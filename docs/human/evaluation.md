@@ -14,6 +14,10 @@ The maintained user-facing skill is `@eval-harness`. The old separate
 to it, but active plan/diff validation should use `just agent::eval
 recommend|execute`.
 
+For the current row, engine, provider, intent, and evidence-lane inventory used
+to discuss baseline scoping and pruning, see
+[Eval harness dimensions](eval-harness-dimensions.md).
+
 An eval suite answers whether a capability is improving over time, not whether a
 single demo happened to complete. The expected flow is:
 

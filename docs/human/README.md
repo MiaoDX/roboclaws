@@ -10,6 +10,7 @@ AI agents should also read these docs when they need human-facing context.
 - [Domain vocabulary](domain.md)
 - [Agent/task command taxonomy](agent-task-command-taxonomy.md)
 - [Evaluation suites](evaluation.md)
+- [Eval harness dimensions](eval-harness-dimensions.md)
 - [Technical design](technical-design.md)
 
 ## Reference
