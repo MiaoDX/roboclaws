@@ -2493,22 +2493,52 @@ def test_agent_server_cli_errors_use_canonical_targets(
 
 
 def test_molmo_cleanup_recipe_passes_goal_contract_to_all_household_runners() -> None:
-    molmo_text = MOLMO_JUST.read_text(encoding="utf-8")
-    agent_text = AGENT_JUST.read_text(encoding="utf-8")
-
-    assert 'ROBOCLAWS_GOAL_CONTRACT_JSON="$goal_contract_json" \\' in agent_text
-    assert 'ROBOCLAWS_GOAL_CONTRACT_PATH="$goal_contract_path" \\' in agent_text
-    assert 'ROBOCLAWS_TASK_INTENT="$resolved_task_intent" \\' in agent_text
-    assert 'run_just molmo::household-world-impl "${molmo_args[@]}"' in agent_text
-    assert 'goal_contract_json="${goal_contract_json:-${ROBOCLAWS_GOAL_CONTRACT_JSON:-}}"' in (
-        molmo_text
+    plan = resolve_surface_launch(
+        (
+            "surface=household-world",
+            "agent_engine=openai-agents-sdk",
+            "preset=cleanup",
+            "evidence_lane=world-public-labels",
+        )
     )
-    assert 'if [[ -z "$goal_contract_json" && -z "$goal_contract_path" ]]; then' in molmo_text
-    assert "normalize_goal_contract" in molmo_text
-    assert 'goal_contract_args+=(--goal-contract-json "$goal_contract_json")' in molmo_text
-    assert '"${goal_contract_args[@]}" \\' in molmo_text
-    assert 'prompt_args+=("${goal_contract_args[@]}")' in molmo_text
-    assert 'server_args+=("${goal_contract_args[@]}")' in molmo_text
+    exported_env = export_env_from_overrides(plan.overrides)
+
+    assert json.loads(exported_env["ROBOCLAWS_GOAL_CONTRACT_JSON"])["intent"] == "cleanup"
+    assert exported_env["ROBOCLAWS_TASK_INTENT"] == "cleanup"
+    assert exported_env["ROBOCLAWS_TASK_SKILL"] == "molmo-realworld-cleanup"
+
+    env = os.environ.copy()
+    env.update(
+        {
+            "ROBOCLAWS_JUST_TRACE": "1",
+            "ROBOCLAWS_GOAL_CONTRACT_JSON": exported_env["ROBOCLAWS_GOAL_CONTRACT_JSON"],
+            "ROBOCLAWS_GOAL_CONTRACT_PATH": "/tmp/roboclaws-goal-contract.json",
+        }
+    )
+    result = subprocess.run(
+        [
+            just_bin(),
+            "molmo::household-world-impl",
+            "direct",
+            "world-public-labels",
+            "7",
+            "output/test-goal-contract-trace",
+            "clean",
+            "1",
+        ],
+        cwd=REPO_ROOT,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    route = result.stdout.strip().split("\t")
+
+    assert route[0:4] == ["just", "molmo::household-world-impl", "direct", "world-public-labels"]
+    assert route[-2:] == [
+        exported_env["ROBOCLAWS_GOAL_CONTRACT_JSON"],
+        "/tmp/roboclaws-goal-contract.json",
+    ]
 
 
 def test_ci_does_not_define_codex_live_proof() -> None:
@@ -3268,34 +3298,31 @@ def test_coding_agent_claude_simple_mode_can_be_overridden() -> None:
 
 
 def test_openai_agents_launcher_applies_provider_overrides_per_invocation() -> None:
-    molmo_text = MOLMO_JUST.read_text(encoding="utf-8")
     helper_text = CODING_AGENT_ENV.read_text(encoding="utf-8")
-    runner_text = LIVE_OPENAI_AGENTS_RUNNER.read_text(encoding="utf-8")
 
-    assert "source scripts/dev/coding_agent_env.sh" in molmo_text
-    assert "roboclaws_code_agent_provider ROBOCLAWS_PROVIDER_PROFILE codex-router-responses" in (
-        molmo_text
+    plan = resolve_surface_launch(
+        (
+            "surface=household-world",
+            "agent_engine=openai-agents-sdk",
+            "provider_profile=mimo-mify-responses",
+            "preset=cleanup",
+            "evidence_lane=world-public-labels",
+        )
     )
-    assert "roboclaws_code_agent_model ROBOCLAWS_OPENAI_AGENTS_MODEL" in molmo_text
-    assert "roboclaws_codex_provider_args codex_model_args" not in molmo_text
-    assert "roboclaws_claude_provider_args claude_model_args claude_env_args" not in molmo_text
-    assert "scripts/dev/coding_agent_docker.sh ensure" not in molmo_text
-    assert 'scripts/dev/coding_agent_docker.sh install-wrappers "$docker_shim_dir"' not in (
-        molmo_text
+    exported_env = export_env_from_overrides(plan.overrides)
+
+    assert plan.provider_profile == "mimo-mify-responses"
+    assert exported_env["ROBOCLAWS_PROVIDER_PROFILE"] == "mimo-mify-responses"
+    assert plan.argv[:4] == (
+        "just",
+        "agent::run",
+        "household-world.cleanup",
+        "openai-agents-sdk",
     )
-    assert '"--codex-model-arg=$arg"' not in molmo_text
-    assert "--codex-provider-summary" not in molmo_text
-    assert "XM_LLM_API_KEY" not in molmo_text
-    assert "XM_LLM_BASE_URL" not in molmo_text
-    assert "MM_API_KEY" not in molmo_text
-    assert "MM_BASE_URL" not in molmo_text
+    assert "provider_profile=mimo-mify-responses" not in plan.argv
+
     assert "MM_API_KEY" in helper_text
     assert "MM_BASE_URL" in helper_text
-    assert "ROBOCLAWS_PROVIDER_TIMING_PROXY" not in molmo_text
-    assert "ROBOCLAWS_TIMING_PROXY_BIND_PORT" not in molmo_text
-    assert "provider_profile" in runner_text
-    assert "openai-agents-live" in runner_text
-    assert '--claude-bin "$claude_bin"' not in molmo_text
     assert "ANTHROPIC_BASE_URL" in helper_text
     assert "ANTHROPIC_API_KEY" in helper_text
 
