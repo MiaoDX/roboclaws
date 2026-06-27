@@ -8,13 +8,12 @@ refactor slices until the stop condition is met.
 
 Current slice:
 
-- Slice 37 complete. Fresh post-Slice-36 discovery found the first-screen
-  `ARCHITECTURE.md` diagram still showed retired `codex-cli` and
-  `claude-code` as peer agent-engine cards while the surrounding text says
-  they are rejected. Updated the diagram to show only `direct-runner` and
-  `openai-agents-sdk` as current engines, with retired engines called out as
-  rejected, and added a focused diagram guard. Next action is fresh
-  post-Slice-37 discovery.
+- Slice 38 complete. Fresh post-Slice-37 discovery found an active status
+  capsule for open-ended household proof still told agents to rerun
+  `provider_profile=codex-env`, which current launch validation rejects before
+  provider health is tested. Updated the capsule to the current
+  `codex-router-responses` route and added a focused active-status command
+  guard. Next action is fresh post-Slice-38 discovery.
 
 Last proven evidence:
 
@@ -191,6 +190,16 @@ Last proven evidence:
   aligned with current launch docs. Focused diagram/public-engine tests,
   stale-card search, touched-file Ruff, Python quality ratchet, and
   `git diff --check` passed.
+- Fresh post-Slice-37 discovery found a current false-confidence retry command
+  in `docs/status/active/open-ended-household-default-architecture.md`: the
+  capsule described the remaining SDK product proof as blocked on `codex-env`
+  upstream health, but the current launch catalog rejects
+  `provider_profile=codex-env` for `openai-agents-sdk`. Slice 38 updated the
+  active rerun command and blocker text to `codex-router-responses` and added
+  `tests/contract/dev_tools/test_active_status_commands.py` to resolve that
+  current status command through the public launch catalog. Focused status-doc
+  tests, stale-command search, touched-file Ruff, Python quality ratchet, and
+  `git diff --check` passed.
 
 Completed slice batch:
 
@@ -279,6 +288,9 @@ Completed slice batch:
 - Slice 37: aligned the top-level architecture diagram's agent-engine layer
   with the current SDK/direct public engine set and added a focused diagram
   guard.
+- Slice 38: updated the active open-ended household proof capsule away from the
+  obsolete `codex-env` provider profile and guarded its current rerun command
+  through the launch catalog.
 
 Next proof:
 

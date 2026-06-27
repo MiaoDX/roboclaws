@@ -65,9 +65,9 @@ Stop/park criteria:
 
 Current stop reason:
 
-- Not met after Slice 37. Fresh post-Slice-36 discovery found one more current
-  human-doc false-confidence candidate in the top-level architecture diagram;
-  resume discovery from the new verified HEAD.
+- Not met after Slice 38. Fresh post-Slice-37 discovery found one more current
+  active-status false-confidence command for open-ended household proof; resume
+  discovery from the new verified HEAD.
 
 Discovery source:
 
@@ -116,6 +116,7 @@ Surface metrics:
 | Remove retired Claude Code live CI entry | 2 | 1 | 0 | 2 | preserved |
 | Migrate apple2apple grid to active SDK route | 1 | 1 | 0 | 1 | preserved |
 | Align architecture diagram engine layer | 2 | 1 | 0 | 1 | preserved |
+| Update active open-ended proof provider route | 1 | 1 | 0 | 1 | preserved |
 
 Low-value stop signal:
 
@@ -184,7 +185,16 @@ Next clear candidates:
 
 Next clear candidates:
 
-- Run fresh post-Slice-37 discovery from the new verified HEAD.
+- Fresh post-Slice-37 discovery found that
+  `docs/status/active/open-ended-household-default-architecture.md` still
+  described the remaining SDK proof as blocked on `codex-env` and gave a
+  `provider_profile=codex-env` rerun command. Current launch validation now
+  rejects that profile for `openai-agents-sdk`, so Slice 38 updated the capsule
+  to `codex-router-responses` and added an active-status command guard.
+
+Next clear candidates:
+
+- Run fresh post-Slice-38 discovery from the new verified HEAD.
 
 Checked and parked:
 
@@ -264,9 +274,14 @@ Checked and parked:
   as current agent-engine cards even though the surrounding architecture text
   and public launch validation reject them. Slice 37 aligned the diagram and
   added a focused guard under `tests/contract/dev_tools/`.
+- Fresh post-Slice-37 discovery found current active-status drift:
+  `docs/status/active/open-ended-household-default-architecture.md` used the
+  obsolete `codex-env` provider profile in a current rerun command. Slice 38
+  migrated that capsule to the current `codex-router-responses` route and
+  guarded the command through `roboclaws.launch.catalog.resolve_surface_launch`.
 
-The campaign remains active after Slice 37. Park only after fresh
-post-Slice-37 discovery satisfies the no-clear-candidate stop rule.
+The campaign remains active after Slice 38. Park only after fresh
+post-Slice-38 discovery satisfies the no-clear-candidate stop rule.
 
 The campaign resumed on explicit user instruction after the final verified
 Slice 28 stop.
