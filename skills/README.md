@@ -19,7 +19,8 @@ Each maintained skill has:
 - the skill name, role, status, and abstraction level;
 - the MCP contract profile(s), if any;
 - required, optional, and privileged tools;
-- script paths owned by the skill;
+- script paths owned by the skill, or explicitly marked `owner: "repo"` when a
+  skill reuses a canonical repo-level helper;
 - evidence outputs expected from a run;
 - lifecycle notes for when to refactor the skill or promote behavior into MCP.
 
