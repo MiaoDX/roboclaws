@@ -65,9 +65,10 @@ Stop/park criteria:
 
 Current stop reason:
 
-- Not met after Slice 41. Fresh post-Slice-40 discovery found one more current
-  false-confidence live proof command in the adaptive inspection triggerability
-  plan; resume discovery from the new verified HEAD.
+- Not met after Slice 42. Fresh post-Slice-41 discovery found current
+  report/MCP rerun-command fixtures still preserving a retired engine in tests
+  that only need to prove recorded command rendering; resume discovery from
+  the new verified HEAD.
 
 Discovery source:
 
@@ -120,6 +121,7 @@ Surface metrics:
 | Update active RAW-FPV live retry provider route | 1 | 1 | 0 | 1 | preserved |
 | Update live-agent retry policy provider route | 1 | 1 | 0 | 1 | preserved |
 | Update adaptive inspection live proof route | 1 | 1 | 0 | 1 | preserved |
+| Update cleanup rerun-command fixtures to SDK route | 1 | 1 | 0 | 4 | preserved |
 
 Low-value stop signal:
 
@@ -229,7 +231,16 @@ Next clear candidates:
 
 Next clear candidates:
 
-- Run fresh post-Slice-41 discovery from the new verified HEAD.
+- Fresh post-Slice-41 discovery found that cleanup report and MCP
+  rerun-command contract fixtures still used `agent_engine=codex-cli` even
+  though current launch validation rejects that engine and the tests only prove
+  command preservation/rendering. Slice 42 migrated the fixtures to the current
+  `openai-agents-sdk` / `codex-router-responses` route and added a guard that
+  keeps retired-engine mentions limited to explicit rejection tests.
+
+Next clear candidates:
+
+- Run fresh post-Slice-42 discovery from the new verified HEAD.
 
 Checked and parked:
 
@@ -332,9 +343,15 @@ Checked and parked:
   launch axes and `map_mode=minimal`. Slice 41 updated only the current
   runnable command to the canonical map-build SDK route and guarded it through
   launch resolution.
+- Fresh post-Slice-41 discovery found current test-source drift in
+  cleanup report/MCP rerun-command fixtures: they used retired
+  `agent_engine=codex-cli` as the preserved command despite only testing
+  persistence/rendering. Slice 42 migrated those fixtures to the current SDK
+  route and guarded the test surfaces against reintroducing the retired engine
+  outside explicit rejection tests.
 
-The campaign remains active after Slice 41. Park only after fresh
-post-Slice-41 discovery satisfies the no-clear-candidate stop rule.
+The campaign remains active after Slice 42. Park only after fresh
+post-Slice-42 discovery satisfies the no-clear-candidate stop rule.
 
 The campaign resumed on explicit user instruction after the final verified
 Slice 28 stop.

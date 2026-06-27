@@ -8,13 +8,13 @@ refactor slices until the stop condition is met.
 
 Current slice:
 
-- Slice 41 complete. Fresh post-Slice-40 discovery found the adaptive
-  inspection triggerability plan's optional live proof command still used the
-  retired `codex-cli` / `codex-env` route and legacy `map_mode=minimal`
-  override. Updated only that current runnable command to the canonical
-  `preset=map-build` OpenAI Agents SDK Codex router route, and extended the
-  active-status command guard to resolve the plan command through
-  `roboclaws.launch`. Next action is fresh post-Slice-41 discovery.
+- Slice 42 complete. Fresh post-Slice-41 discovery found three cleanup
+  report/MCP contract tests still used retired `agent_engine=codex-cli` in
+  recorded rerun-command fixtures even though the behavior under test is
+  command preservation/rendering, not retired-engine compatibility. Migrated
+  those fixtures to the current OpenAI Agents SDK Codex router route and added
+  a guard so current rerun-command fixtures do not reintroduce the retired
+  engine. Next action is fresh post-Slice-42 discovery.
 
 Last proven evidence:
 
@@ -230,6 +230,16 @@ Last proven evidence:
   intact. Focused status-doc tests, touched-file Ruff, trace launch
   resolution, stale-command search, Python quality ratchet, and
   `git diff --check` passed.
+- Fresh post-Slice-41 discovery found test-source drift in cleanup report/MCP
+  rerun-command fixtures: three current contract tests still used
+  `agent_engine=codex-cli` while asserting recorded command preservation and
+  rendered report text. Slice 42 migrated those fixtures to
+  `agent_engine=openai-agents-sdk` with `provider_profile=codex-router-responses`
+  and added an active-status guard that allows only explicit retired-route
+  rejection tests to keep `agent_engine=codex-cli`. Focused report/MCP/demo
+  rerun-command tests, active-status guard tests, touched-file Ruff, stale
+  retired-engine search, Python quality ratchet, and `git diff --check`
+  passed.
 
 Completed slice batch:
 
@@ -329,19 +339,22 @@ Completed slice batch:
 - Slice 41: updated the adaptive inspection plan's current optional live-proof
   command away from the retired `codex-cli` / `codex-env` route and guarded the
   command through the launch catalog.
+- Slice 42: migrated cleanup report/MCP rerun-command contract fixtures away
+  from retired `agent_engine=codex-cli` while preserving command rendering and
+  persistence behavior.
 
 Next proof:
 
 ```bash
 .venv/bin/python scripts/dev/check_python_quality_ratchet.py
-# Then run a fresh targeted post-Slice-41 stale-surface discovery pass.
+# Then run a fresh targeted post-Slice-42 stale-surface discovery pass.
 ```
 
 Stop condition:
 
 - Stop for public contract migration, unavailable proof, external/hardware
   evidence, or two consecutive fresh post-HEAD no-clear-candidate handoffs.
-- Current stop reason: not met after Slice 41; reset discovery from the new
+- Current stop reason: not met after Slice 42; reset discovery from the new
   HEAD and require fresh no-clear passes before parking again.
 
 No-touch scope:

@@ -100,3 +100,19 @@ def test_adaptive_inspection_live_proof_command_uses_current_map_build_route() -
     assert plan.agent_engine == "openai-agents-sdk"
     assert plan.provider_profile == "codex-router-responses"
     assert "camera_labeler=grounding-dino" in plan.overrides
+
+
+def test_cleanup_rerun_command_fixtures_use_current_live_engine() -> None:
+    fixture_paths = [
+        REPO_ROOT / "tests" / "contract" / "reports" / "test_molmo_cleanup_report.py",
+        REPO_ROOT / "tests" / "contract" / "molmo_cleanup" / "test_molmo_realworld_mcp_server.py",
+        REPO_ROOT
+        / "tests"
+        / "contract"
+        / "molmo_cleanup"
+        / "test_molmospaces_realworld_cleanup.py",
+    ]
+    fixture_text = "\n".join(path.read_text(encoding="utf-8") for path in fixture_paths)
+
+    assert "agent_engine=openai-agents-sdk" in fixture_text
+    assert "agent_engine=codex-cli" not in fixture_text
