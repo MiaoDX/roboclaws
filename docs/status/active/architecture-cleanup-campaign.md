@@ -8,9 +8,13 @@ refactor slices until the stop condition is met.
 
 Current slice:
 
-- PARKED after post-Slice-33 discovery pass 2. Two independent fresh passes
-  found no clear safe autonomous P1/P2 slice after shrink attempts, so the
-  campaign stop condition is met.
+- Slice 34 complete. Fresh discovery after `ce26d3ca` found a current
+  false-confidence candidate in the opt-in Molmo live CI workflow:
+  `.github/workflows/ci.yml` still scheduled and downloaded
+  `claude-code-kimi-k2.6`, but `roboclaws.household.ci_live_reports.MODEL_ENTRIES`
+  no longer declared that entry. Removed the stale workflow matrix/download
+  surface and added a registry/workflow sync guard. Next action is fresh
+  post-Slice-34 discovery.
 
 Last proven evidence:
 
@@ -145,6 +149,15 @@ Last proven evidence:
   bar: remaining candidates require public command migration, broader
   test-suite/report restructuring, domain-contract decisions, or would only
   move lines without deleting, merging, or canonicalizing a real concept.
+- Fresh post-`ce26d3ca` discovery found the quality ratchet now passes after
+  later baseline/contract updates, but the opt-in Molmo live CI workflow still
+  carried one stale `claude-code-kimi-k2.6` matrix entry and one stale Pages
+  artifact download step. Slice 34 aligned the workflow to the live-report
+  registry owner and added
+  `tests/unit/molmo_cleanup/test_ci_live_workflow_entries.py` so future
+  workflow matrix/download entries match `MODEL_ENTRIES`. Focused CI-live
+  report tests, stale-reference search, touched-file Ruff, touched-file format
+  check, the Python quality ratchet, and `git diff --check` passed.
 
 Completed slice batch:
 
@@ -220,21 +233,24 @@ Completed slice batch:
   into the existing agent-layer live timing owner.
 - Slice 33: merged duplicate operator-console JSONL source-error formatting in
   the interactions owner.
+- Slice 34: removed the stale opt-in CI live-report `claude-code-kimi-k2.6`
+  workflow matrix/download surfaces and added a regression guard tying the
+  workflow to the `MODEL_ENTRIES` registry.
 
 Next proof:
 
 ```bash
+node /home/mi/.codex/skills/intuitive-reduce-entropy/scripts/high-noise-summary.mjs --examples 8
 .venv/bin/python scripts/dev/check_python_quality_ratchet.py
-# Expect remaining failures to be oversized-module baseline drift only.
+# Then run a fresh targeted post-Slice-34 stale-surface discovery pass.
 ```
 
 Stop condition:
 
 - Stop for public contract migration, unavailable proof, external/hardware
   evidence, or two consecutive fresh post-HEAD no-clear-candidate handoffs.
-- Current stop reason: met. Post-Slice-33 discovery passes 1 and 2 found no
-  clear safe P1/P2 autonomous slice after parking public migrations and broad
-  oversized-module restructuring.
+- Current stop reason: not met after Slice 34; reset discovery from the new
+  HEAD and require fresh no-clear passes before parking again.
 
 No-touch scope:
 
@@ -285,6 +301,8 @@ Parked work:
   drift across household, launch, operator-console, scripts, and large tests;
   select only owner-local shrink slices that delete, merge, canonicalize, or
   clearly deepen a real owner concept.
+- Fresh post-`ce26d3ca` quality-ratchet proof passes:
+  `python-quality-ratchet: ok (2 Ruff violations at/below baseline, 83 oversized modules at/below baseline)`.
 - No-clear pass 1 after Slice 33: public MolmoSpaces alias/checker-flag
   migrations remain parked; `operator_console.state` already centralizes JSON
   source errors; remaining oversized owners need broader domain contracts or

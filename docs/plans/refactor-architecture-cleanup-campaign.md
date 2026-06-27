@@ -1,6 +1,6 @@
 # Refactor: Architecture Cleanup Campaign
 
-**Status:** PARKED
+**Status:** Active
 **Created:** 2026-06-23
 **Source:** `$intuitive-reduce-entropy` saturation scan,
 `$improve-codebase-architecture` report-only review, `$intuitive-refactor`
@@ -65,9 +65,9 @@ Stop/park criteria:
 
 Current stop reason:
 
-- Met: post-Slice-33 discovery passes 1 and 2 found no clear safe P1/P2
-  autonomous slice after parking public migrations and broad oversized-module
-  restructuring.
+- Not met after Slice 34. The earlier post-Slice-33 stop was reopened by a
+  fresh current workflow/registry drift found at `ce26d3ca`; resume discovery
+  from the new verified HEAD.
 
 Discovery source:
 
@@ -112,6 +112,7 @@ Surface metrics:
 | Deepen MolmoSpaces category rules | 0 | 1 | 0 | 1 | preserved |
 | Move Codex live timing to agent owner | 0 | 1 | 1 | 0 | preserved |
 | Merge operator-console source-error helpers | 0 | 1 | 0 | 0 | preserved |
+| Align Molmo live CI workflow with report registry | 1 | 1 | 0 | 1 | preserved |
 
 Low-value stop signal:
 
@@ -123,7 +124,7 @@ Discovery cadence:
 - Run a fresh reduce-entropy discovery handoff when the candidate queue is
   exhausted.
 
-Consecutive no-clear-candidate passes: 2
+Consecutive no-clear-candidate passes: 0
 
 ## Candidate Queue
 
@@ -143,12 +144,18 @@ Next clear candidates:
   rows. Slice 30 split the operator-console assertion helpers, so the ratchet
   now reports only oversized-module baseline drift.
 
-Broader oversized-module growth remains architecture pressure, not one
-autonomous slice: several touched modules grew beyond the recorded baseline and
-need owner-specific refactors or a reviewed baseline refresh after clear new
-complexity violations are removed. Post-Slice-33 discovery passes 1 and 2 found
-no further clear safe P1/P2 autonomous slice, so this campaign is parked by its
-stop condition.
+The quality-ratchet proof now passes at `ce26d3ca` after later
+baseline/contract updates:
+`python-quality-ratchet: ok (2 Ruff violations at/below baseline, 83 oversized modules at/below baseline)`.
+Fresh post-`ce26d3ca` discovery found one current false-confidence candidate:
+the opt-in Molmo live CI workflow still scheduled/downloaded
+`claude-code-kimi-k2.6`, while the `MODEL_ENTRIES` registry no longer declares
+that entry. Slice 34 removed the stale workflow matrix/download surfaces and
+added a focused guard tying the workflow to the registry.
+
+Next clear candidates:
+
+- Run fresh post-Slice-34 discovery from the new verified HEAD.
 
 Checked and parked:
 
@@ -206,10 +213,14 @@ Checked and parked:
   bar: remaining candidates require public command migration, broader
   test-suite/report restructuring, domain-contract decisions, or would only
   move lines without deleting, merging, or canonicalizing a real concept.
+- Fresh post-`ce26d3ca` discovery confirmed the quality ratchet now passes, but
+  found current CI workflow drift against the live-report registry. Slice 34
+  removed the stale `claude-code-kimi-k2.6` workflow matrix entry and stale
+  Pages artifact download step, then added a registry/workflow sync guard in
+  `tests/unit/molmo_cleanup/test_ci_live_workflow_entries.py`.
 
-The campaign is parked from the quality-ratchet proof surface. Reopen only with
-a new accepted owner-specific plan, a public migration decision, or a reviewed
-baseline decision.
+The campaign is active again after Slice 34. Park only after fresh
+post-Slice-34 discovery satisfies the no-clear-candidate stop rule.
 
 The campaign resumed on explicit user instruction after the final verified
 Slice 28 stop.
