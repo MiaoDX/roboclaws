@@ -65,8 +65,8 @@ Stop/park criteria:
 
 Current stop reason:
 
-- Not met after Slice 39. Fresh post-Slice-38 discovery found one more current
-  active-status false-confidence route in the RAW-FPV live caps JSON; resume
+- Not met after Slice 40. Fresh post-Slice-39 discovery found one more current
+  retry-policy false-confidence route in live-agent performance docs; resume
   discovery from the new verified HEAD.
 
 Discovery source:
@@ -118,6 +118,7 @@ Surface metrics:
 | Align architecture diagram engine layer | 2 | 1 | 0 | 1 | preserved |
 | Update active open-ended proof provider route | 1 | 1 | 0 | 1 | preserved |
 | Update active RAW-FPV live retry provider route | 1 | 1 | 0 | 1 | preserved |
+| Update live-agent retry policy provider route | 1 | 1 | 0 | 1 | preserved |
 
 Low-value stop signal:
 
@@ -206,7 +207,17 @@ Next clear candidates:
 
 Next clear candidates:
 
-- Run fresh post-Slice-39 discovery from the new verified HEAD.
+- Fresh post-Slice-39 discovery found that current live-agent runtime
+  performance policy still said to retry GPT/P/AA when `codex-env` recovered.
+  Slice 40 updated the current policy wording in
+  `docs/status/active/live-agent-runtime-sdk-spike.md` and
+  `docs/plans/live-agent-runtime-sdk-perf-followups.md` to use
+  `codex-router-responses`, while leaving historical matrix rows and output
+  paths unchanged.
+
+Next clear candidates:
+
+- Run fresh post-Slice-40 discovery from the new verified HEAD.
 
 Checked and parked:
 
@@ -297,9 +308,15 @@ Checked and parked:
   migrated the current retry profile to `codex-router-responses`, kept
   `codex-env` only as historical route vocabulary, and guarded the route
   through the launch catalog plus provider-registry image-transport capability.
+- Fresh post-Slice-39 discovery found current retry-policy drift in
+  `docs/status/active/live-agent-runtime-sdk-spike.md` and
+  `docs/plans/live-agent-runtime-sdk-perf-followups.md`: both still used
+  `codex-env` as the future recovery trigger for GPT/P/AA retry work. Slice 40
+  updated only current policy text to the current `codex-router-responses`
+  route and guarded the wording.
 
-The campaign remains active after Slice 39. Park only after fresh
-post-Slice-39 discovery satisfies the no-clear-candidate stop rule.
+The campaign remains active after Slice 40. Park only after fresh
+post-Slice-40 discovery satisfies the no-clear-candidate stop rule.
 
 The campaign resumed on explicit user instruction after the final verified
 Slice 28 stop.

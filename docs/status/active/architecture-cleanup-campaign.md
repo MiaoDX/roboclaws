@@ -8,14 +8,12 @@ refactor slices until the stop condition is met.
 
 Current slice:
 
-- Slice 39 complete. Fresh post-Slice-38 discovery found the active RAW-FPV
-  live caps JSON still selected and retried on the obsolete `codex-env`
-  provider profile, even though current launch/provider validation uses
-  `codex-router-responses` and the raw-FPV probe CLI already accepts only that
-  current route. Updated the capsule's current retry route while preserving
-  the old failed attempts as historical evidence, and extended the active
-  status guard to validate the route through the launch catalog and provider
-  registry. Next action is fresh post-Slice-39 discovery.
+- Slice 40 complete. Fresh post-Slice-39 discovery found current live-agent
+  performance closeout policy still told agents to reopen P/AA when
+  `codex-env` recovered. Updated only the current retry-policy sentences to
+  use `codex-router-responses`, while leaving historical matrix rows and old
+  artifact paths untouched. Extended the active status guard to reject the
+  obsolete retry wording. Next action is fresh post-Slice-40 discovery.
 
 Last proven evidence:
 
@@ -213,6 +211,14 @@ Last proven evidence:
   `image_transport=supported`. Focused status-caps tests, stale current-route
   search, touched-file Ruff, Python quality ratchet, and `git diff --check`
   passed.
+- Fresh post-Slice-39 discovery found current retry-policy drift in the
+  live-agent runtime performance closeout surfaces: the active capsule and
+  parked follow-up plan still said to retry GPT/P/AA when `codex-env` recovered.
+  Slice 40 updated those current policy sentences to `codex-router-responses`
+  while preserving old matrix rows and output paths as historical evidence, and
+  extended `tests/contract/dev_tools/test_active_status_commands.py` to reject
+  the obsolete retry wording. Focused status-doc tests, stale-policy search,
+  touched-file Ruff, Python quality ratchet, and `git diff --check` passed.
 
 Completed slice batch:
 
@@ -307,20 +313,22 @@ Completed slice batch:
 - Slice 39: updated the active RAW-FPV live caps JSON away from the obsolete
   `codex-env` retry route and guarded its current provider profile through the
   launch catalog plus provider registry.
+- Slice 40: updated current live-agent performance retry policy away from the
+  obsolete `codex-env` recovery trigger and guarded the policy text.
 
 Next proof:
 
 ```bash
 node /home/mi/.codex/skills/intuitive-reduce-entropy/scripts/high-noise-summary.mjs --examples 8
 .venv/bin/python scripts/dev/check_python_quality_ratchet.py
-# Then run a fresh targeted post-Slice-39 stale-surface discovery pass.
+# Then run a fresh targeted post-Slice-40 stale-surface discovery pass.
 ```
 
 Stop condition:
 
 - Stop for public contract migration, unavailable proof, external/hardware
   evidence, or two consecutive fresh post-HEAD no-clear-candidate handoffs.
-- Current stop reason: not met after Slice 39; reset discovery from the new
+- Current stop reason: not met after Slice 40; reset discovery from the new
   HEAD and require fresh no-clear passes before parking again.
 
 No-touch scope:

@@ -63,3 +63,16 @@ def test_raw_fpv_live_caps_use_current_retry_provider_profile() -> None:
     assert route_capabilities_for_engine(route, "openai-agents-sdk")["image_transport"] == (
         ROUTE_CAP_SUPPORTED
     )
+
+
+def test_live_agent_runtime_policy_uses_current_codex_retry_route() -> None:
+    policy_paths = [
+        REPO_ROOT / "docs" / "status" / "active" / "live-agent-runtime-sdk-spike.md",
+        REPO_ROOT / "docs" / "plans" / "live-agent-runtime-sdk-perf-followups.md",
+    ]
+    policy_text = "\n".join(path.read_text(encoding="utf-8") for path in policy_paths)
+
+    assert "codex-router-responses" in policy_text
+    assert "retry GPT `codex-env`" not in policy_text
+    assert "codex-env` upstream availability changes" not in policy_text
+    assert "`codex-env`\n  recovers enough to retry P/AA" not in policy_text
