@@ -8,12 +8,14 @@ refactor slices until the stop condition is met.
 
 Current slice:
 
-- Slice 38 complete. Fresh post-Slice-37 discovery found an active status
-  capsule for open-ended household proof still told agents to rerun
-  `provider_profile=codex-env`, which current launch validation rejects before
-  provider health is tested. Updated the capsule to the current
-  `codex-router-responses` route and added a focused active-status command
-  guard. Next action is fresh post-Slice-38 discovery.
+- Slice 39 complete. Fresh post-Slice-38 discovery found the active RAW-FPV
+  live caps JSON still selected and retried on the obsolete `codex-env`
+  provider profile, even though current launch/provider validation uses
+  `codex-router-responses` and the raw-FPV probe CLI already accepts only that
+  current route. Updated the capsule's current retry route while preserving
+  the old failed attempts as historical evidence, and extended the active
+  status guard to validate the route through the launch catalog and provider
+  registry. Next action is fresh post-Slice-39 discovery.
 
 Last proven evidence:
 
@@ -200,6 +202,17 @@ Last proven evidence:
   current status command through the public launch catalog. Focused status-doc
   tests, stale-command search, touched-file Ruff, Python quality ratchet, and
   `git diff --check` passed.
+- Fresh post-Slice-38 discovery found current active-status JSON drift:
+  `docs/status/active/agent-sdk-raw-fpv-live-caps.json` still selected
+  `provider_profile=codex-env` and told agents to retry after `codex-env`
+  upstream availability recovered. Slice 39 updated the current retry route to
+  `codex-router-responses`, kept `codex-env` only as historical route
+  vocabulary for the old failed attempts, and extended
+  `tests/contract/dev_tools/test_active_status_commands.py` to prove the route
+  resolves through `roboclaws.launch` and still has provider-registry
+  `image_transport=supported`. Focused status-caps tests, stale current-route
+  search, touched-file Ruff, Python quality ratchet, and `git diff --check`
+  passed.
 
 Completed slice batch:
 
@@ -291,20 +304,23 @@ Completed slice batch:
 - Slice 38: updated the active open-ended household proof capsule away from the
   obsolete `codex-env` provider profile and guarded its current rerun command
   through the launch catalog.
+- Slice 39: updated the active RAW-FPV live caps JSON away from the obsolete
+  `codex-env` retry route and guarded its current provider profile through the
+  launch catalog plus provider registry.
 
 Next proof:
 
 ```bash
 node /home/mi/.codex/skills/intuitive-reduce-entropy/scripts/high-noise-summary.mjs --examples 8
 .venv/bin/python scripts/dev/check_python_quality_ratchet.py
-# Then run a fresh targeted post-Slice-35 stale-surface discovery pass.
+# Then run a fresh targeted post-Slice-39 stale-surface discovery pass.
 ```
 
 Stop condition:
 
 - Stop for public contract migration, unavailable proof, external/hardware
   evidence, or two consecutive fresh post-HEAD no-clear-candidate handoffs.
-- Current stop reason: not met after Slice 35; reset discovery from the new
+- Current stop reason: not met after Slice 39; reset discovery from the new
   HEAD and require fresh no-clear passes before parking again.
 
 No-touch scope:

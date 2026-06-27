@@ -1,8 +1,14 @@
 from __future__ import annotations
 
+import json
 import shlex
 from pathlib import Path
 
+from roboclaws.agents.provider_registry import (
+    ROUTE_CAP_SUPPORTED,
+    provider_route_spec,
+    route_capabilities_for_engine,
+)
 from roboclaws.launch.catalog import resolve_surface_launch
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -20,3 +26,40 @@ def test_open_ended_status_rerun_command_uses_current_provider_profile() -> None
     assert plan.agent_engine == "openai-agents-sdk"
     assert plan.provider_profile == "codex-router-responses"
     assert plan.intent == "open-ended"
+
+
+def test_raw_fpv_live_caps_use_current_retry_provider_profile() -> None:
+    caps_path = REPO_ROOT / "docs" / "status" / "active" / "agent-sdk-raw-fpv-live-caps.json"
+    caps = json.loads(caps_path.read_text(encoding="utf-8"))
+
+    provider_profile = caps["provider_profile"]
+    selected_route = caps["route_gate"]["selected"]
+    next_action = caps["outcome"]["next"]
+
+    assert provider_profile == "codex-router-responses"
+    assert selected_route["provider_profile"] == provider_profile
+    assert "codex-router-responses" in next_action
+    assert "codex-env upstream availability recovers" not in next_action
+
+    plan = resolve_surface_launch(
+        [
+            f"surface={caps['surface']}",
+            f"world={caps['world']}",
+            f"backend={caps['backend']}",
+            "preset=cleanup",
+            "agent_engine=openai-agents-sdk",
+            f"provider_profile={provider_profile}",
+            f"evidence_lane={caps['evidence_lane']}",
+            f"seed={caps['seed']}",
+            f"scenario_setup={caps['scenario_setup']}",
+            f"relocation_count={caps['relocation_count']}",
+        ]
+    )
+    route = provider_route_spec(provider_profile)
+
+    assert plan.intent == "cleanup"
+    assert plan.agent_engine == "openai-agents-sdk"
+    assert plan.provider_profile == provider_profile
+    assert route_capabilities_for_engine(route, "openai-agents-sdk")["image_transport"] == (
+        ROUTE_CAP_SUPPORTED
+    )

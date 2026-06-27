@@ -65,8 +65,8 @@ Stop/park criteria:
 
 Current stop reason:
 
-- Not met after Slice 38. Fresh post-Slice-37 discovery found one more current
-  active-status false-confidence command for open-ended household proof; resume
+- Not met after Slice 39. Fresh post-Slice-38 discovery found one more current
+  active-status false-confidence route in the RAW-FPV live caps JSON; resume
   discovery from the new verified HEAD.
 
 Discovery source:
@@ -117,6 +117,7 @@ Surface metrics:
 | Migrate apple2apple grid to active SDK route | 1 | 1 | 0 | 1 | preserved |
 | Align architecture diagram engine layer | 2 | 1 | 0 | 1 | preserved |
 | Update active open-ended proof provider route | 1 | 1 | 0 | 1 | preserved |
+| Update active RAW-FPV live retry provider route | 1 | 1 | 0 | 1 | preserved |
 
 Low-value stop signal:
 
@@ -194,7 +195,18 @@ Next clear candidates:
 
 Next clear candidates:
 
-- Run fresh post-Slice-38 discovery from the new verified HEAD.
+- Fresh post-Slice-38 discovery found that
+  `docs/status/active/agent-sdk-raw-fpv-live-caps.json` still named
+  `provider_profile=codex-env` as the selected RAW-FPV retry route and told
+  agents to wait for `codex-env` upstream availability. Current provider and
+  launch surfaces now use `codex-router-responses`, and the raw-FPV perception
+  probe accepts `codex-router-responses` rather than `codex-env`, so Slice 39
+  migrated the active caps JSON to the current route while preserving the old
+  failed attempts as historical evidence.
+
+Next clear candidates:
+
+- Run fresh post-Slice-39 discovery from the new verified HEAD.
 
 Checked and parked:
 
@@ -279,9 +291,15 @@ Checked and parked:
   obsolete `codex-env` provider profile in a current rerun command. Slice 38
   migrated that capsule to the current `codex-router-responses` route and
   guarded the command through `roboclaws.launch.catalog.resolve_surface_launch`.
+- Fresh post-Slice-38 discovery found current active-status JSON drift:
+  `docs/status/active/agent-sdk-raw-fpv-live-caps.json` used the obsolete
+  `codex-env` provider profile for the selected RAW-FPV retry route. Slice 39
+  migrated the current retry profile to `codex-router-responses`, kept
+  `codex-env` only as historical route vocabulary, and guarded the route
+  through the launch catalog plus provider-registry image-transport capability.
 
-The campaign remains active after Slice 38. Park only after fresh
-post-Slice-38 discovery satisfies the no-clear-candidate stop rule.
+The campaign remains active after Slice 39. Park only after fresh
+post-Slice-39 discovery satisfies the no-clear-candidate stop rule.
 
 The campaign resumed on explicit user instruction after the final verified
 Slice 28 stop.
