@@ -65,9 +65,9 @@ Stop/park criteria:
 
 Current stop reason:
 
-- Not met after Slice 40. Fresh post-Slice-39 discovery found one more current
-  retry-policy false-confidence route in live-agent performance docs; resume
-  discovery from the new verified HEAD.
+- Not met after Slice 41. Fresh post-Slice-40 discovery found one more current
+  false-confidence live proof command in the adaptive inspection triggerability
+  plan; resume discovery from the new verified HEAD.
 
 Discovery source:
 
@@ -119,6 +119,7 @@ Surface metrics:
 | Update active open-ended proof provider route | 1 | 1 | 0 | 1 | preserved |
 | Update active RAW-FPV live retry provider route | 1 | 1 | 0 | 1 | preserved |
 | Update live-agent retry policy provider route | 1 | 1 | 0 | 1 | preserved |
+| Update adaptive inspection live proof route | 1 | 1 | 0 | 1 | preserved |
 
 Low-value stop signal:
 
@@ -217,7 +218,18 @@ Next clear candidates:
 
 Next clear candidates:
 
-- Run fresh post-Slice-40 discovery from the new verified HEAD.
+- Fresh post-Slice-40 discovery found that
+  `docs/plans/2026-06-11-live-agent-adaptive-inspection-triggerability.md`
+  still carried a current optional live-proof command for retired
+  `agent_engine=codex-cli` and `provider_profile=codex-env`, plus the legacy
+  `map_mode=minimal` override. Slice 41 migrated that command to
+  `preset=map-build`, `agent_engine=openai-agents-sdk`, and
+  `provider_profile=codex-router-responses`, and guarded it through
+  `roboclaws.launch.catalog.resolve_surface_launch`.
+
+Next clear candidates:
+
+- Run fresh post-Slice-41 discovery from the new verified HEAD.
 
 Checked and parked:
 
@@ -314,9 +326,15 @@ Checked and parked:
   `codex-env` as the future recovery trigger for GPT/P/AA retry work. Slice 40
   updated only current policy text to the current `codex-router-responses`
   route and guarded the wording.
+- Fresh post-Slice-40 discovery found current live-proof route drift in
+  `docs/plans/2026-06-11-live-agent-adaptive-inspection-triggerability.md`:
+  the optional proof command still used retired `codex-cli` / `codex-env`
+  launch axes and `map_mode=minimal`. Slice 41 updated only the current
+  runnable command to the canonical map-build SDK route and guarded it through
+  launch resolution.
 
-The campaign remains active after Slice 40. Park only after fresh
-post-Slice-40 discovery satisfies the no-clear-candidate stop rule.
+The campaign remains active after Slice 41. Park only after fresh
+post-Slice-41 discovery satisfies the no-clear-candidate stop rule.
 
 The campaign resumed on explicit user instruction after the final verified
 Slice 28 stop.

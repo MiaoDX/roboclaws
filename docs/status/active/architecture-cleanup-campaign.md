@@ -8,12 +8,13 @@ refactor slices until the stop condition is met.
 
 Current slice:
 
-- Slice 40 complete. Fresh post-Slice-39 discovery found current live-agent
-  performance closeout policy still told agents to reopen P/AA when
-  `codex-env` recovered. Updated only the current retry-policy sentences to
-  use `codex-router-responses`, while leaving historical matrix rows and old
-  artifact paths untouched. Extended the active status guard to reject the
-  obsolete retry wording. Next action is fresh post-Slice-40 discovery.
+- Slice 41 complete. Fresh post-Slice-40 discovery found the adaptive
+  inspection triggerability plan's optional live proof command still used the
+  retired `codex-cli` / `codex-env` route and legacy `map_mode=minimal`
+  override. Updated only that current runnable command to the canonical
+  `preset=map-build` OpenAI Agents SDK Codex router route, and extended the
+  active-status command guard to resolve the plan command through
+  `roboclaws.launch`. Next action is fresh post-Slice-41 discovery.
 
 Last proven evidence:
 
@@ -219,6 +220,16 @@ Last proven evidence:
   extended `tests/contract/dev_tools/test_active_status_commands.py` to reject
   the obsolete retry wording. Focused status-doc tests, stale-policy search,
   touched-file Ruff, Python quality ratchet, and `git diff --check` passed.
+- Fresh post-Slice-40 discovery found a current false-confidence proof command
+  in `docs/plans/2026-06-11-live-agent-adaptive-inspection-triggerability.md`:
+  the optional live-proof block still launched retired `codex-cli` with
+  `provider_profile=codex-env` and `map_mode=minimal`. Slice 41 migrated that
+  runnable command to `preset=map-build`,
+  `agent_engine=openai-agents-sdk`, and
+  `provider_profile=codex-router-responses` while keeping historical plan text
+  intact. Focused status-doc tests, touched-file Ruff, trace launch
+  resolution, stale-command search, Python quality ratchet, and
+  `git diff --check` passed.
 
 Completed slice batch:
 
@@ -315,20 +326,22 @@ Completed slice batch:
   launch catalog plus provider registry.
 - Slice 40: updated current live-agent performance retry policy away from the
   obsolete `codex-env` recovery trigger and guarded the policy text.
+- Slice 41: updated the adaptive inspection plan's current optional live-proof
+  command away from the retired `codex-cli` / `codex-env` route and guarded the
+  command through the launch catalog.
 
 Next proof:
 
 ```bash
-node /home/mi/.codex/skills/intuitive-reduce-entropy/scripts/high-noise-summary.mjs --examples 8
 .venv/bin/python scripts/dev/check_python_quality_ratchet.py
-# Then run a fresh targeted post-Slice-40 stale-surface discovery pass.
+# Then run a fresh targeted post-Slice-41 stale-surface discovery pass.
 ```
 
 Stop condition:
 
 - Stop for public contract migration, unavailable proof, external/hardware
   evidence, or two consecutive fresh post-HEAD no-clear-candidate handoffs.
-- Current stop reason: not met after Slice 40; reset discovery from the new
+- Current stop reason: not met after Slice 41; reset discovery from the new
   HEAD and require fresh no-clear passes before parking again.
 
 No-touch scope:
