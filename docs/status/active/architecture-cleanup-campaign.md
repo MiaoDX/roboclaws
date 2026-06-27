@@ -8,12 +8,13 @@ refactor slices until the stop condition is met.
 
 Current slice:
 
-- Slice 36 complete. Fresh post-Slice-35 discovery found the active
-  `just molmo::apple2apple-grid` maintainer recipe still generated
-  `agent_engine=codex-cli` and `agent_engine=claude-code` cleanup rows that
-  current `just run::surface` rejects. Migrated the grid to the current
-  `openai-agents-sdk` Codex router route and added a launch-catalog guard for
-  every generated cleanup row. Next action is fresh post-Slice-36 discovery.
+- Slice 37 complete. Fresh post-Slice-36 discovery found the first-screen
+  `ARCHITECTURE.md` diagram still showed retired `codex-cli` and
+  `claude-code` as peer agent-engine cards while the surrounding text says
+  they are rejected. Updated the diagram to show only `direct-runner` and
+  `openai-agents-sdk` as current engines, with retired engines called out as
+  rejected, and added a focused diagram guard. Next action is fresh
+  post-Slice-37 discovery.
 
 Last proven evidence:
 
@@ -181,6 +182,15 @@ Last proven evidence:
   apple2apple tests, recipe contract tests, stale retired-engine search for
   the grid, touched-file Ruff, Python quality ratchet, and `git diff --check`
   passed.
+- Fresh post-Slice-36 discovery found live human-doc source drift:
+  `ARCHITECTURE.md` embeds `docs/architecture.svg`, and the diagram's
+  agent-engine layer still presented `codex-cli` and `claude-code` as current
+  cards. Slice 37 updated the diagram to show the active SDK/direct engines
+  and a retired-engine rejection note, then added
+  `tests/contract/dev_tools/test_architecture_diagram.py` to keep the diagram
+  aligned with current launch docs. Focused diagram/public-engine tests,
+  stale-card search, touched-file Ruff, Python quality ratchet, and
+  `git diff --check` passed.
 
 Completed slice batch:
 
@@ -266,6 +276,9 @@ Completed slice batch:
   retired `codex-cli` / `claude-code` launch rows to the active
   `openai-agents-sdk` Codex router route and added launch-catalog validation
   for generated cleanup rows.
+- Slice 37: aligned the top-level architecture diagram's agent-engine layer
+  with the current SDK/direct public engine set and added a focused diagram
+  guard.
 
 Next proof:
 

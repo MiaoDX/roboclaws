@@ -65,8 +65,8 @@ Stop/park criteria:
 
 Current stop reason:
 
-- Not met after Slice 36. Fresh post-Slice-35 discovery found one more current
-  maintainer false-confidence candidate in the MolmoSpaces apple-to-apple grid;
+- Not met after Slice 37. Fresh post-Slice-36 discovery found one more current
+  human-doc false-confidence candidate in the top-level architecture diagram;
   resume discovery from the new verified HEAD.
 
 Discovery source:
@@ -115,6 +115,7 @@ Surface metrics:
 | Align Molmo live CI workflow with report registry | 1 | 1 | 0 | 1 | preserved |
 | Remove retired Claude Code live CI entry | 2 | 1 | 0 | 2 | preserved |
 | Migrate apple2apple grid to active SDK route | 1 | 1 | 0 | 1 | preserved |
+| Align architecture diagram engine layer | 2 | 1 | 0 | 1 | preserved |
 
 Low-value stop signal:
 
@@ -174,7 +175,16 @@ Next clear candidates:
 
 Next clear candidates:
 
-- Run fresh post-Slice-36 discovery from the new verified HEAD.
+- Fresh post-Slice-36 discovery found that `ARCHITECTURE.md` embedded
+  `docs/architecture.svg`, but that first-screen diagram still showed
+  `codex-cli` and `claude-code` as peer agent-engine cards. Slice 37 removed
+  those stale current cards, kept the active `direct-runner` /
+  `openai-agents-sdk` engine set, added an explicit retired-engine rejection
+  note, and guarded the diagram text.
+
+Next clear candidates:
+
+- Run fresh post-Slice-37 discovery from the new verified HEAD.
 
 Checked and parked:
 
@@ -249,9 +259,14 @@ Checked and parked:
   the grid's active agent route axis to the current OpenAI Agents SDK Codex
   router route and added a guard that resolves every generated cleanup row
   through `roboclaws.launch.catalog.resolve_surface_launch`.
+- Fresh post-Slice-36 discovery found current human-doc diagram drift:
+  `docs/architecture.svg` still listed retired `codex-cli` and `claude-code`
+  as current agent-engine cards even though the surrounding architecture text
+  and public launch validation reject them. Slice 37 aligned the diagram and
+  added a focused guard under `tests/contract/dev_tools/`.
 
-The campaign remains active after Slice 36. Park only after fresh
-post-Slice-36 discovery satisfies the no-clear-candidate stop rule.
+The campaign remains active after Slice 37. Park only after fresh
+post-Slice-37 discovery satisfies the no-clear-candidate stop rule.
 
 The campaign resumed on explicit user instruction after the final verified
 Slice 28 stop.
