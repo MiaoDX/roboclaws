@@ -8,13 +8,11 @@ refactor slices until the stop condition is met.
 
 Current slice:
 
-- Slice 42 complete. Fresh post-Slice-41 discovery found three cleanup
-  report/MCP contract tests still used retired `agent_engine=codex-cli` in
-  recorded rerun-command fixtures even though the behavior under test is
-  command preservation/rendering, not retired-engine compatibility. Migrated
-  those fixtures to the current OpenAI Agents SDK Codex router route and added
-  a guard so current rerun-command fixtures do not reintroduce the retired
-  engine. Next action is fresh post-Slice-42 discovery.
+- Saturation reached after Slice 42. Two independent post-Slice-42 discovery
+  passes found no new clear safe P1/P2 cleanup slice after deduping historical
+  plan/status evidence, explicit retired-route rejection guards, current
+  map-mode rejection guards, parked live-matrix JSON, and broad retired
+  Codex/Claude runner-script deletion that needs a separate migration decision.
 
 Last proven evidence:
 
@@ -240,6 +238,20 @@ Last proven evidence:
   rerun-command tests, active-status guard tests, touched-file Ruff, stale
   retired-engine search, Python quality ratchet, and `git diff --check`
   passed.
+- Fresh post-Slice-42 discovery pass 1 rechecked current active docs/tests/code
+  for retired `codex-cli` / `claude-code`, obsolete `codex-env`,
+  `map_mode=minimal`, and stale retry wording. Remaining active-surface hits
+  were campaign history, explicit retired-engine rejection tests, public
+  `map_mode` rejection guards, or intentional absence assertions; plan hits
+  were historical or parked evidence.
+- Fresh post-Slice-42 discovery pass 2 independently checked active JSON
+  capsules, script surfaces, just recipes, workflows, and the retired
+  Codex/Claude live runner scripts. Active JSON hits were historical live
+  matrix rows/output dirs; the RAW-FPV strategy capsule is already
+  STOP-reached; `run_live_codex_cleanup.py` / `run_live_claude_cleanup.py` are
+  no longer public `just` dispatch surfaces but still have broad legacy tests
+  and report parsing. Removing them is parked as a separate runner-script /
+  manual-debug migration, not an autonomous slice.
 
 Completed slice batch:
 
@@ -347,15 +359,15 @@ Next proof:
 
 ```bash
 .venv/bin/python scripts/dev/check_python_quality_ratchet.py
-# Then run a fresh targeted post-Slice-42 stale-surface discovery pass.
+# Resume only after new code lands or a human accepts a parked migration scope.
 ```
 
 Stop condition:
 
 - Stop for public contract migration, unavailable proof, external/hardware
   evidence, or two consecutive fresh post-HEAD no-clear-candidate handoffs.
-- Current stop reason: not met after Slice 42; reset discovery from the new
-  HEAD and require fresh no-clear passes before parking again.
+- Current stop reason: met after Slice 42; two fresh post-HEAD discovery passes
+  found no new clear safe P1/P2 slice.
 
 No-touch scope:
 
@@ -419,3 +431,9 @@ Parked work:
   owner; public MolmoSpaces `val_*` aliases remain documented/tested launch
   surfaces; remaining quality-ratchet failures are oversized-module baseline
   drift that needs a new owner-specific plan or reviewed baseline decision.
+- No-clear passes 1 and 2 after Slice 42: remaining stale-route hits are
+  historical plan/status evidence, explicit rejection guards, current public
+  `map_mode` rejection tests, historical live-matrix JSON rows, or parked
+  RAW-FPV strategy text. Retired Codex/Claude live runner script deletion needs
+  a separate approved migration because only legacy/manual-debug tests and
+  historical report readers still exercise those scripts.

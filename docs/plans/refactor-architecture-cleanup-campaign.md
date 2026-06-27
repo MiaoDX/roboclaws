@@ -1,6 +1,6 @@
 # Refactor: Architecture Cleanup Campaign
 
-**Status:** Active
+**Status:** Parked - saturated after Slice 42
 **Created:** 2026-06-23
 **Source:** `$intuitive-reduce-entropy` saturation scan,
 `$improve-codebase-architecture` report-only review, `$intuitive-refactor`
@@ -65,10 +65,11 @@ Stop/park criteria:
 
 Current stop reason:
 
-- Not met after Slice 42. Fresh post-Slice-41 discovery found current
-  report/MCP rerun-command fixtures still preserving a retired engine in tests
-  that only need to prove recorded command rendering; resume discovery from
-  the new verified HEAD.
+- Met after Slice 42. Two independent post-Slice-42 discovery passes found no
+  new clear safe P1/P2 cleanup slice after deduping historical plan/status
+  evidence, explicit retired-route rejection guards, current map-mode
+  rejection guards, parked live-matrix JSON, and broad retired Codex/Claude
+  runner-script deletion that needs a separate migration decision.
 
 Discovery source:
 
@@ -133,7 +134,7 @@ Discovery cadence:
 - Run a fresh reduce-entropy discovery handoff when the candidate queue is
   exhausted.
 
-Consecutive no-clear-candidate passes: 0
+Consecutive no-clear-candidate passes: 2
 
 ## Candidate Queue
 
@@ -240,7 +241,8 @@ Next clear candidates:
 
 Next clear candidates:
 
-- Run fresh post-Slice-42 discovery from the new verified HEAD.
+- None. Post-Slice-42 saturation discovery did not find a new clear safe P1/P2
+  slice.
 
 Checked and parked:
 
@@ -349,9 +351,23 @@ Checked and parked:
   persistence/rendering. Slice 42 migrated those fixtures to the current SDK
   route and guarded the test surfaces against reintroducing the retired engine
   outside explicit rejection tests.
+- Post-Slice-42 discovery pass 1 rechecked current active docs/tests/code for
+  retired `codex-cli` / `claude-code`, obsolete `codex-env`,
+  `map_mode=minimal`, and stale retry wording. Remaining active-surface hits
+  were campaign history, explicit retired-engine rejection tests, public
+  `map_mode` rejection guards, or intentional absence assertions; plan hits
+  were historical or parked evidence.
+- Post-Slice-42 discovery pass 2 independently checked active JSON capsules,
+  script surfaces, just recipes, workflows, and the retired Codex/Claude live
+  runner scripts. Active JSON hits were historical live matrix rows/output
+  dirs; the RAW-FPV strategy capsule is already STOP-reached; the retired live
+  runner scripts are no longer public `just` dispatch surfaces but still have
+  broad legacy tests and report parsing. Removing them is parked as a separate
+  runner-script / manual-debug migration, not an autonomous cleanup slice.
 
-The campaign remains active after Slice 42. Park only after fresh
-post-Slice-42 discovery satisfies the no-clear-candidate stop rule.
+The campaign is parked after Slice 42 because the saturation stop rule is met.
+Resume only after new code lands, the user accepts a parked migration scope, or
+fresh evidence changes one parked item's unblocker/risk.
 
 The campaign resumed on explicit user instruction after the final verified
 Slice 28 stop.
