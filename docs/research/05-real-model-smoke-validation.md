@@ -114,8 +114,8 @@ description of current behavior.
 > **Note for future ingests:** this report's body describes the state
 > at 2026-04-14. When consumed by `/gsd-ingest-docs` on 2026-04-20, the
 > doc-synthesizer initially treated the "Likely Cause" section as
-> current-state findings (producing two stale WARNINGs in
-> `.planning/INGEST-CONFLICTS.md`). Both warnings were verified stale
-> against git log + live code and marked RESOLVED. The lesson —
+> current-state findings (producing two stale ingest warnings). Both warnings
+> were verified stale against git log + live code and marked RESOLVED before
+> the old ingest scratch files were removed from `.planning/`. The lesson —
 > always cross-check "current broken state" claims in dated validation
 > reports — is captured as a feedback memory.
