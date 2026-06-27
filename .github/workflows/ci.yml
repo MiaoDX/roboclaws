@@ -127,15 +127,6 @@ jobs:
       - name: Install Python dependencies
         run: uv sync --extra dev --extra molmospaces
 
-      - name: Build pinned coding-agent CLI image
-        env:
-          ROBOCLAWS_CODE_AGENT_IMAGE: roboclaws-coding-agents:${{ github.run_id }}-${{ matrix.model_entry }}
-        run: |
-          scripts/dev/coding_agent_docker.sh build
-          scripts/dev/coding_agent_docker.sh install-wrappers .tmp/coding-agent-bin
-          echo "$PWD/.tmp/coding-agent-bin" >> "$GITHUB_PATH"
-          .tmp/coding-agent-bin/claude --version
-
       - name: Run Molmo live cleanup entry
         env:
           KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}

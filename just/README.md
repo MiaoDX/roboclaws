@@ -10,7 +10,7 @@ world/backend/preset/agent-engine combination as a separate recipe.
   modules.
 
 Lower modules such as `molmo::*`, `harness::*`, `verify::*`, `mcp::*`,
-`code::*`, `chat::*`, and `dev::*` are private. They remain runnable for
+`chat::*`, and `dev::*` are private. They remain runnable for
 debugging, but they are hidden from `just --summary` and shell completion.
 
 ## Main Grammar
@@ -143,9 +143,9 @@ Provider/model facts are centralized in
 
 `codex-cli` and `claude-code` are retired active engines. Current
 `run::surface`, `agent::run`, eval-harness, and operator-console routes reject
-them instead of launching Docker wrappers or hidden fallbacks. The pinned
-Docker coding-agent toolchain may remain under private `code::*` helpers for
-explicit manual debugging, but it is not a current product launch path.
+them instead of launching Docker wrappers or hidden fallbacks. The old
+Docker-backed Codex/Claude helper route has been removed; use
+`agent_engine=openai-agents-sdk` for live provider runs.
 
 Current task mappings:
 

@@ -146,7 +146,7 @@ just agent::gateway up|down|pull-image
 ```
 
 Lower modules such as `openclaw::*`, `molmo::*`, `harness::*`, `verify::*`,
-`mcp::*`, `code::*`, `chat::*`, and `dev::*` are private implementation
+`mcp::*`, `chat::*`, and `dev::*` are private implementation
 details. They remain runnable for debugging but should not be the first choice
 for natural-language run requests.
 
