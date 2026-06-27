@@ -36,7 +36,6 @@ from roboclaws.operator_console.launcher import (
     start_console_run,
     stop_console_run,
 )
-from roboclaws.operator_console.messup import preview_messup
 from roboclaws.operator_console.paths import (
     OUTPUT_ROOT_ENV,
     console_output_root,
@@ -279,9 +278,6 @@ class ConsoleRequestHandler(SimpleHTTPRequestHandler):
         if path == "/api/sessions":
             self._json(create_operator_session(self.repo_root), status=201)
             return True
-        if path == "/api/messup-preview":
-            self._serve_messup_preview(payload)
-            return True
         if path == "/api/prompt-preview":
             self._serve_prompt_preview(payload)
             return True
@@ -458,18 +454,6 @@ class ConsoleRequestHandler(SimpleHTTPRequestHandler):
             self.send_error(HTTPStatus.NOT_FOUND)
             return
         self._text(redacted_artifact_text(path))
-
-    def _serve_messup_preview(self, payload: dict[str, object]) -> None:
-        self._json(
-            preview_messup(
-                self.repo_root,
-                world_id=str(payload.get("world_id") or ""),
-                backend_id=str(payload.get("backend_id") or ""),
-                scenario_setup=str(payload.get("scenario_setup") or ""),
-                relocation_count=str(payload.get("relocation_count") or "5"),
-                seed=str(payload.get("seed") or ""),
-            )
-        )
 
     def _serve_run_start(self, payload: dict[str, object]) -> None:
         request = _launch_request_from_payload(payload)

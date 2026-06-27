@@ -13,12 +13,9 @@ const state = {
   operatorMode: "goal",
   pollTimer: null,
   readinessTimer: null,
-  promptPreviewTimer: null,
-  taskPollTimer: null,
   activeView: "overview",
   selectedIntent: "",
   setupSelectionKey: "",
-  messupStatusKey: "",
   syncAxesFromRoute: false,
   manualControlPending: false,
 };
@@ -47,8 +44,6 @@ const els = {
   scenarioSetupInput: document.getElementById("scenario-setup-input"),
   relocationCountField: document.getElementById("relocation-count-field"),
   relocationCountInput: document.getElementById("relocation-count-input"),
-  messupButton: document.getElementById("messup-button"),
-  messupStatus: document.getElementById("messup-status"),
   portInput: document.getElementById("port-input"),
   selectedRouteSummary: document.getElementById("selected-route-summary"),
   commonFields: document.getElementById("common-fields"),
@@ -89,6 +84,7 @@ const els = {
   agentPromptPanel: document.getElementById("agent-prompt-state"),
   artifactList: document.getElementById("artifact-list"),
   promptPreviewPanel: document.getElementById("prompt-preview-panel"),
+  promptPreviewButton: document.getElementById("prompt-preview-button"),
   promptPreviewSummary: document.getElementById("prompt-preview-summary"),
   promptPreviewText: document.getElementById("prompt-preview-text"),
   eventList: document.getElementById("event-log"),
@@ -102,9 +98,6 @@ const els = {
   imageDialogTitle: document.getElementById("image-dialog-title"),
   imageDialogPath: document.getElementById("image-dialog-path"),
   imageDialogImg: document.getElementById("image-dialog-img"),
-  refreshTasksButton: document.getElementById("refresh-tasks-button"),
-  backgroundTaskSummary: document.getElementById("background-task-summary"),
-  backgroundTaskList: document.getElementById("background-task-list"),
 };
 
 async function boot() {
@@ -129,7 +122,7 @@ async function boot() {
   }
   renderRoutes();
   renderSelection();
-  renderBackgroundTasks();
+  renderBackgroundTaskButton();
   bindEvents();
   renderViewModes();
 }
@@ -161,12 +154,10 @@ function bindEvents() {
   els.taskPrompt.addEventListener("input", () => {
     els.promptCount.textContent = `${els.taskPrompt.value.length} / 2000`;
     renderSelection();
-    schedulePromptPreviewRefresh();
   });
   els.intentInput.addEventListener("change", () => {
     state.selectedIntent = els.intentInput.value;
     renderSelection();
-    schedulePromptPreviewRefresh();
   });
   [
     els.contextInput,
@@ -186,32 +177,26 @@ function bindEvents() {
     input.addEventListener("input", renderSelection);
     input.addEventListener("input", renderRoutes);
     input.addEventListener("input", scheduleReadinessRefresh);
-    input.addEventListener("input", schedulePromptPreviewRefresh);
     input.addEventListener("change", renderSelection);
     input.addEventListener("change", renderRoutes);
     input.addEventListener("change", refreshSelectedRouteReadiness);
-    input.addEventListener("change", refreshPromptPreview);
   });
   [els.scenarioSetupInput, els.relocationCountInput].forEach((input) => {
     input.addEventListener("input", () => {
-      resetMessupStatusForManualSetup();
       renderSelection();
       renderRoutes();
       scheduleReadinessRefresh();
-      schedulePromptPreviewRefresh();
     });
     input.addEventListener("change", () => {
-      resetMessupStatusForManualSetup();
       renderSelection();
       renderRoutes();
       refreshSelectedRouteReadiness();
-      refreshPromptPreview();
     });
   });
   els.startButton.addEventListener("click", handleStartAction);
-  els.messupButton.addEventListener("click", previewMessup);
+  els.promptPreviewButton.addEventListener("click", refreshPromptPreview);
   els.latestResultButton.addEventListener("click", attachLatestResult);
-  els.refreshTasksButton.addEventListener("click", refreshRuntimeTasks);
+  els.backgroundTasksButton.addEventListener("click", refreshRuntimeTasks);
   els.pauseButton.addEventListener("click", () => postRunAction("pause"));
   els.manualControlButtons.forEach((button) => {
     button.addEventListener("click", () => postManualControl(button.dataset.controlAction || ""));
@@ -245,9 +230,6 @@ function bindEvents() {
     button.addEventListener("click", () => {
       state.activeView = button.dataset.view;
       renderViewModes();
-      if (state.activeView === "tasks") {
-        refreshRuntimeTasks();
-      }
     });
   });
   document.querySelectorAll("[data-copy]").forEach((button) => {
@@ -360,7 +342,6 @@ function renderSelection() {
   renderScenarioSetup(route);
   renderOperatorInput(route);
   renderSelectedScenePreview(route);
-  schedulePromptPreviewRefresh();
 
   const gates = readiness.gates || route.gates || [];
   els.gateList.innerHTML = "";
@@ -677,8 +658,6 @@ function renderSelectedRouteSummary(route, readiness) {
   const taskLink = els.selectedRouteSummary.querySelector("[data-open-background-tasks]");
   if (taskLink) {
     taskLink.addEventListener("click", () => {
-      state.activeView = "tasks";
-      renderViewModes();
       refreshRuntimeTasks();
     });
   }
@@ -702,7 +681,7 @@ function backgroundBlockerSummaryHtml(readiness) {
   return `
     <div class="background-blocker">
       <span>${escapeHtml(text)}</span>
-      <button type="button" class="secondary mini-button" data-open-background-tasks>View</button>
+      <button type="button" class="secondary mini-button" data-open-background-tasks>Refresh</button>
     </div>
   `;
 }
@@ -732,7 +711,6 @@ function renderScenarioSetup(route) {
   const relocation = selectedScenarioSetup() !== "baseline";
   els.relocationCountField.hidden = !relocation;
   els.relocationCountInput.disabled = !relocation;
-  renderMessupAction(route);
 }
 
 function defaultScenarioSetup(route, intent, defaults) {
@@ -740,41 +718,6 @@ function defaultScenarioSetup(route, intent, defaults) {
     return route.scenario_setup || defaults.scenario_setup || "relocate-cleanup-related-objects";
   }
   return "baseline";
-}
-
-function renderMessupAction(route) {
-  const supported = Boolean(
-    route &&
-      route.world_id &&
-      route.world_id.startsWith("molmospaces/") &&
-      route.backend_id === "mujoco"
-  );
-  const relocation = selectedScenarioSetup() !== "baseline";
-  const statusKey = currentMessupStatusKey(route);
-  els.messupButton.disabled = !supported || !relocation || Boolean(state.activeRunId);
-  els.messupButton.hidden = !supported || !relocation;
-  els.messupStatus.hidden = !supported;
-  if (!supported) {
-    return;
-  }
-  if (state.messupStatusKey !== statusKey) {
-    state.messupStatusKey = statusKey;
-    els.messupStatus.textContent = relocation
-      ? "Mess-up check is optional; run it before Start Agent Run to check target capacity."
-      : "Baseline means no pre-run relocation. Start Agent Run will not mess up objects.";
-  }
-}
-
-function resetMessupStatusForManualSetup() {
-  const route = state.selectedRoute;
-  if (!route || !route.world_id || !route.world_id.startsWith("molmospaces/")) {
-    return;
-  }
-  const relocation = selectedScenarioSetup() !== "baseline";
-  els.messupStatus.textContent = relocation
-    ? "Mess-up check is optional; run it again after changing setup or count."
-    : "Baseline means no pre-run relocation. Start Agent Run will not mess up objects.";
-  state.messupStatusKey = currentMessupStatusKey(route);
 }
 
 function renderIntentSelector(route) {
@@ -837,13 +780,6 @@ function withoutKeys(parts, keys) {
 
 function selectedScenarioSetup() {
   return els.scenarioSetupInput.value || "baseline";
-}
-
-function currentMessupStatusKey(route) {
-  if (!route) {
-    return "";
-  }
-  return `${route.world_id}:${route.backend_id}:${selectedScenarioSetup()}`;
 }
 
 function routeDefaultOverrides(route) {
@@ -1080,8 +1016,8 @@ function backgroundBlockerHelp(readiness) {
     .slice(0, 3)
     .join(" and ");
   return resources
-    ? `Background task ${first.id} is using ${resources}. Open Background Tasks for attach, tail, and artifact actions.`
-    : `Background task ${first.id} is active. Open Background Tasks for details.`;
+    ? `Background task ${first.id} is using ${resources}. Refresh background tasks for latest status.`
+    : `Background task ${first.id} is active. Refresh background tasks for latest status.`;
 }
 
 function steerHelp(controls) {
@@ -1249,20 +1185,18 @@ async function refreshSelectedRouteReadiness() {
   state.readiness[route.id] = readiness;
   renderRoutes();
   renderSelection();
-  if (state.activeView === "tasks") {
-    refreshRuntimeTasks();
-  }
 }
 
 async function refreshRuntimeTasks() {
   const port = els.portInput.value || "18788";
   const payload = await fetchJson(`/api/runtime/tasks?port=${encodeURIComponent(port)}`);
   if (payload.error) {
-    els.backgroundTaskSummary.textContent = payload.error;
+    els.eventList.textContent = payload.error;
     return;
   }
   state.runtime = payload;
-  renderBackgroundTasks();
+  renderBackgroundTaskButton();
+  els.eventList.textContent = backgroundTaskEventText();
 }
 
 function confirmLaunch() {
@@ -1408,61 +1342,6 @@ function confirmAction({ title, cta, body, bodyHtml, onConfirm }) {
   );
 }
 
-async function previewMessup() {
-  const route = state.selectedRoute;
-  if (!route) {
-    return;
-  }
-  const requestedCount = els.relocationCountInput.value || "5";
-  els.messupButton.disabled = true;
-  els.messupStatus.textContent = "Checking mess-up target capacity...";
-  const result = await fetchJson("/api/messup-preview", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      world_id: route.world_id,
-      backend_id: route.backend_id,
-      scenario_setup: "relocate-cleanup-related-objects",
-      relocation_count: requestedCount,
-      seed: els.seedInput.value || "7",
-    }),
-  });
-  els.messupButton.disabled = false;
-  if (result.error) {
-    els.scenarioSetupInput.value = "baseline";
-    els.messupStatus.textContent = `Mess-up check failed: ${result.error}. Baseline remains available.`;
-    markCurrentMessupStatus(route);
-    renderSelection();
-    return;
-  }
-  if (result.ok) {
-    els.scenarioSetupInput.value = result.scenario_setup || "relocate-cleanup-related-objects";
-    els.relocationCountInput.value = String(result.requested_count || requestedCount);
-    markCurrentSetupSelection(route);
-    els.messupStatus.textContent =
-      `Mess-up ready: ${result.selected_count} / ${result.requested_count} targets. ` +
-      "Start Agent Run will use this relocation setup.";
-    markCurrentMessupStatus(route);
-  } else {
-    els.scenarioSetupInput.value = "baseline";
-    markCurrentSetupSelection(route);
-    els.messupStatus.textContent =
-      `Mess-up unavailable: ${result.message || "not enough eligible targets"}. ` +
-      "Baseline remains available for follow-up tests.";
-    markCurrentMessupStatus(route);
-  }
-  renderSelection();
-  scheduleReadinessRefresh();
-}
-
-function markCurrentSetupSelection(route) {
-  state.setupSelectionKey = `${route.id}:${selectedIntentForRoute(route)}`;
-}
-
-function markCurrentMessupStatus(route) {
-  state.messupStatusKey = currentMessupStatusKey(route);
-}
-
 function launchRequestBody(route = state.selectedRoute) {
   return {
     world_id: route.world_id,
@@ -1519,16 +1398,6 @@ function launchEnvOverrides(route = state.selectedRoute) {
   return {};
 }
 
-function schedulePromptPreviewRefresh() {
-  if (state.activeRunId || !state.selectedRoute || !state.selectedRoute.enabled) {
-    return;
-  }
-  if (state.promptPreviewTimer) {
-    clearTimeout(state.promptPreviewTimer);
-  }
-  state.promptPreviewTimer = setTimeout(refreshPromptPreview, 300);
-}
-
 async function refreshPromptPreview() {
   const route = state.selectedRoute;
   if (!route || !route.enabled || state.activeRunId || state.operatorMode !== "goal") {
@@ -1583,14 +1452,6 @@ function startPolling() {
   }
   pollState();
   state.pollTimer = setInterval(pollState, 2000);
-  startTaskPolling();
-}
-
-function startTaskPolling() {
-  if (state.taskPollTimer) {
-    clearInterval(state.taskPollTimer);
-  }
-  state.taskPollTimer = setInterval(refreshRuntimeTasks, 5000);
 }
 
 async function pollState() {
@@ -1958,105 +1819,24 @@ function renderArtifacts(items) {
   }
 }
 
-function renderBackgroundTasks() {
+function renderBackgroundTaskButton() {
   const tasks = (state.runtime && state.runtime.tasks) || [];
   const summary = (state.runtime && state.runtime.summary) || {};
   const activeCount = Number(summary.active || tasks.length || 0);
-  els.backgroundTasksButton.hidden = activeCount <= 0 && state.activeView !== "tasks";
-  els.backgroundTaskSummary.textContent =
-    `${activeCount} blocking resource${activeCount === 1 ? "" : "s"} affecting ` +
-    `console/UI E2E startup.`;
-  els.backgroundTaskList.innerHTML = "";
-  if (!tasks.length) {
-    els.backgroundTaskList.textContent = "No blocking background resources detected.";
-    return;
-  }
-  for (const task of tasks) {
-    const row = document.createElement("article");
-    row.className = "task-row";
-    row.innerHTML = `
-      <div>
-        <div class="task-title">
-          <span>${escapeHtml(task.label || task.id)}</span>
-          <span class="badge ${statusClass(task.status)}">${escapeHtml(task.status || "unknown")}</span>
-        </div>
-        <div class="meta-label">${escapeHtml(task.owner || "unknown")} / ${escapeHtml(task.resource || "resource")}</div>
-        <div class="field-help">${escapeHtml(task.row_id || task.run_id || task.route_id || task.id || "")}</div>
-        <div class="task-resource-list">${taskResourcesHtml(task.resources || [])}</div>
-      </div>
-      <div class="task-actions">${taskActionsHtml(task)}</div>
-    `;
-    bindTaskActions(row, task);
-    els.backgroundTaskList.appendChild(row);
-  }
+  els.backgroundTasksButton.hidden = activeCount <= 0;
 }
 
-function taskResourcesHtml(resources) {
-  if (!resources.length) {
-    return '<span class="field-help">No resource details.</span>';
+function backgroundTaskEventText() {
+  const tasks = (state.runtime && state.runtime.tasks) || [];
+  const summary = (state.runtime && state.runtime.summary) || {};
+  const activeCount = Number(summary.active || tasks.length || 0);
+  if (!activeCount) {
+    return "No blocking background resources detected.";
   }
-  return resources
-    .map((resource) => `<span class="badge">${escapeHtml(resource.label || resource.kind)}</span>`)
-    .join("");
-}
-
-function taskActionsHtml(task) {
-  const actions = task.actions || [];
-  const artifactLinks = (task.artifacts || [])
-    .filter((artifact) => artifact.href)
-    .slice(0, 4)
-    .map(
-      (artifact) =>
-        `<a href="${escapeHtml(artifact.href)}" target="_blank" rel="noreferrer">${escapeHtml(
-          artifact.label
-        )}</a>`
-    )
-    .join("");
-  const actionButtons = actions
-    .map((action, index) => {
-      if (action.type === "link") {
-        return `<a href="${escapeHtml(action.href)}" target="_blank" rel="noreferrer">${escapeHtml(
-          action.label
-        )}</a>`;
-      }
-      return `<button type="button" class="secondary mini-button" data-task-action="${index}">${escapeHtml(
-        action.label
-      )}</button>`;
-    })
-    .join("");
-  return `${actionButtons}${artifactLinks}`;
-}
-
-function bindTaskActions(row, task) {
-  row.querySelectorAll("[data-task-action]").forEach((button) => {
-    const action = (task.actions || [])[Number(button.dataset.taskAction)];
-    if (!action) {
-      return;
-    }
-    button.addEventListener("click", () => runTaskAction(task, action));
-  });
-}
-
-async function runTaskAction(task, action) {
-  if (action.type === "api_post" && action.href) {
-    confirmAction({
-      title: action.label,
-      cta: action.label,
-      body: `Apply ${action.label} to ${task.label || task.id}?`,
-      onConfirm: async () => {
-        const result = await fetchJson(action.href, { method: action.method || "POST" });
-        els.eventList.textContent =
-          result.error || result.terminal_reason || result.phase || "Action complete.";
-        await refreshRuntimeTasks();
-        await refreshSelectedRouteReadiness();
-      },
-    });
-    return;
-  }
-  if (action.type === "copy_command" && action.command) {
-    await copyText(action.command);
-    els.eventList.textContent = `Copied: ${action.command}`;
-  }
+  const first = tasks[0] || {};
+  return `${activeCount} background blocker${activeCount === 1 ? "" : "s"}: ${
+    first.label || first.id || "resource active"
+  }.`;
 }
 
 async function copyText(text) {
@@ -2089,11 +1869,6 @@ function renderViews(assets, route = state.selectedRoute) {
     "Missing Metric Map artifact: expected runtime_metric_map_preview.png or map_bundle/preview.png."
   );
   setImageSlot(
-    "runtime_map",
-    sourceAssets.runtime_map,
-    "Missing runtime map preview: expected runtime_metric_map_preview.png."
-  );
-  setImageSlot(
     "topdown",
     sourceAssets.topdown || routePreviewAsset(route, "topdown"),
     "Missing run Top2Down artifact: expected a run-local topdown image."
@@ -2121,11 +1896,6 @@ function renderSelectedScenePreview(route = state.selectedRoute) {
   state.latestViewAssets = previews;
   setImageSlot("fpv", previews.fpv, "No scene FPV preview is available.");
   setImageSlot("map", previews.map, "No base Metric Map preview is available.");
-  setImageSlot(
-    "runtime_map",
-    null,
-    "Runtime Metric Map preview will appear after a run writes runtime_metric_map.json."
-  );
   setImageSlot("topdown", previews.topdown, "No Top2Down scene preview is available.");
   setImageSlot("grounding", null, "Grounding will appear after a camera-grounded run starts.");
   const chaseEmptyText = routeHasView(route, "chase")
@@ -2186,7 +1956,6 @@ function imageLabel(name, asset = {}) {
   const labels = {
     fpv: "FPV(+Grounding)",
     map: "Metric Map",
-    runtime_map: "Metric Map",
     topdown: "Top2Down",
     grounding: "Grounding",
     chase: "Chase",
@@ -2281,16 +2050,7 @@ function ensureActiveViewAvailable(route = state.selectedRoute) {
 function routeViewModes(route) {
   const modes = new Set(route.view_modes || ["overview", "fpv", "map", "outputs"]);
   modes.add("topdown");
-  if (backgroundTaskViewAvailable()) {
-    modes.add("tasks");
-  }
   return modes;
-}
-
-function backgroundTaskViewAvailable() {
-  const tasks = (state.runtime && state.runtime.tasks) || [];
-  const summary = (state.runtime && state.runtime.summary) || {};
-  return Number(summary.active || tasks.length || 0) > 0 || state.activeView === "tasks";
 }
 
 function routeHasView(route, view) {
@@ -2337,9 +2097,6 @@ function visiblePanelsForView(view, modes, route = state.selectedRoute) {
   if (view === "outputs") {
     return new Set(["outputs"]);
   }
-  if (view === "tasks") {
-    return new Set(["tasks"]);
-  }
   return new Set([view]);
 }
 
@@ -2360,7 +2117,6 @@ async function postRunAction(action) {
   if (["stop", "emergency-stop"].includes(action)) {
     detachRunAfterStop(result);
     await refreshSelectedRouteReadiness();
-    await refreshRuntimeTasks();
     return;
   }
   pollState();
