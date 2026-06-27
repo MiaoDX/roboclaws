@@ -68,7 +68,6 @@ def _ci_live_dry_run_args(tmp_path: Path, entry: str, *extra: str) -> list[str]:
         "--dry-run",
         "--skip-uv-sync",
         "--skip-prewarm",
-        "--skip-version-check",
         "--output-dir",
         str(tmp_path / "runs"),
         "--published-dir",
@@ -78,7 +77,6 @@ def _ci_live_dry_run_args(tmp_path: Path, entry: str, *extra: str) -> list[str]:
 
 def test_ci_live_model_entries_match_provider_profiles() -> None:
     assert [entry.name for entry in MODEL_ENTRIES] == [
-        "claude-code-mimo-v2.5",
         "agents-sdk-mimo-v2.5",
         "agents-sdk-kimi-k2.7-code",
     ]
@@ -92,13 +90,6 @@ def test_ci_live_model_entries_match_provider_profiles() -> None:
         )
         for entry in MODEL_ENTRIES
     } == {
-        "claude-code-mimo-v2.5": (
-            "claude-code",
-            "mimo-tp-anthropic",
-            "mimo-v2.5",
-            "MIMO_TP_KEY",
-            "world-public-labels",
-        ),
         "agents-sdk-mimo-v2.5": (
             "openai-agents-sdk",
             "mimo-tp-openai-chat",
@@ -1935,14 +1926,6 @@ def test_publish_seed_run_and_pages_index_render_molmo_live_tiles(tmp_path: Path
             "report_path": report_path_for_entry("agents-sdk-kimi-k2.7-code", seed=7),
         }
     )
-    skipped = base_status(
-        entry_by_name("claude-code-mimo-v2.5"),
-        seed=7,
-        generated_mess_count=5,
-        profile="world-public-labels",
-        task="帮我收拾这个房间",
-    )
-    skipped.update({"status": "skipped", "reason": "missing required secret/env MIMO_TP_KEY"})
     agents_success = base_status(
         entry_by_name("agents-sdk-mimo-v2.5"),
         seed=7,
@@ -1957,7 +1940,6 @@ def test_publish_seed_run_and_pages_index_render_molmo_live_tiles(tmp_path: Path
         }
     )
     write_status(status_path_for_entry(live_root, "agents-sdk-kimi-k2.7-code"), success)
-    write_status(status_path_for_entry(live_root, "claude-code-mimo-v2.5"), skipped)
     write_status(status_path_for_entry(live_root, "agents-sdk-mimo-v2.5"), agents_success)
     write_manifest(live_root)
     live_index = write_live_index(live_root)
@@ -1978,7 +1960,6 @@ def test_publish_seed_run_and_pages_index_render_molmo_live_tiles(tmp_path: Path
     assert "OpenAI Agents SDK + MiMo v2.5" in html
     assert "openai-agents-sdk" in html
     assert "MiMo v2.5" in html
-    assert "missing required secret/env MIMO_TP_KEY" in html
 
 
 def test_publish_diagnostic_seed_run_and_pages_index_link_failed_tile(tmp_path: Path) -> None:

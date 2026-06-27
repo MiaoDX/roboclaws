@@ -8,13 +8,13 @@ refactor slices until the stop condition is met.
 
 Current slice:
 
-- Slice 34 complete. Fresh discovery after `ce26d3ca` found a current
-  false-confidence candidate in the opt-in Molmo live CI workflow:
-  `.github/workflows/ci.yml` still scheduled and downloaded
-  `claude-code-kimi-k2.6`, but `roboclaws.household.ci_live_reports.MODEL_ENTRIES`
-  no longer declared that entry. Removed the stale workflow matrix/download
-  surface and added a registry/workflow sync guard. Next action is fresh
-  post-Slice-34 discovery.
+- Slice 35 complete. Fresh post-Slice-34 discovery found the remaining
+  `claude-code-mimo-v2.5` opt-in Molmo live CI entry was still
+  registry/workflow-consistent, but it launched the retired
+  `agent_engine=claude-code` that current `just run::surface` rejects. Removed
+  the broken CI registry/workflow row and the now-dead Claude binary/version
+  branch from the live CI matrix runner. Next action is fresh post-Slice-35
+  discovery.
 
 Last proven evidence:
 
@@ -158,6 +158,20 @@ Last proven evidence:
   workflow matrix/download entries match `MODEL_ENTRIES`. Focused CI-live
   report tests, stale-reference search, touched-file Ruff, touched-file format
   check, the Python quality ratchet, and `git diff --check` passed.
+- Fresh post-Slice-34 discovery found the last Claude Code Molmo live CI entry
+  still reached a retired public launch engine. `just run::surface ... agent_engine=claude-code`
+  fails with `unsupported agent_engine 'claude-code'`, so that row could only
+  produce a failed opt-in CI leg. Slice 35 removed
+  `claude-code-mimo-v2.5` from `MODEL_ENTRIES`, the GitHub Actions matrix, and
+  Pages artifact downloads; removed the dead `--skip-version-check`/Claude
+  binary branch from `run_ci_live_cleanup_matrix.py` and rehearsal recipes; and
+  strengthened the registry/workflow guard to prove each entry resolves through
+  the canonical launch catalog. Focused CI-live tests, dry-run single/all
+  matrix commands, stale-reference search, touched-file Ruff, Python quality
+  ratchet, and `git diff --check` passed. The pre-commit scoped Molmo suite
+  also exposed and fixed an environment-dependent Isaac fake-backend assertion:
+  imported robot USD artifacts may coexist with a missing URDF source while
+  still recording the missing-URDF blocker.
 
 Completed slice batch:
 
@@ -236,20 +250,23 @@ Completed slice batch:
 - Slice 34: removed the stale opt-in CI live-report `claude-code-kimi-k2.6`
   workflow matrix/download surfaces and added a regression guard tying the
   workflow to the `MODEL_ENTRIES` registry.
+- Slice 35: removed the broken opt-in CI live-report `claude-code-mimo-v2.5`
+  registry/workflow row and deleted the now-dead Claude version-check branch
+  from the live CI matrix runner.
 
 Next proof:
 
 ```bash
 node /home/mi/.codex/skills/intuitive-reduce-entropy/scripts/high-noise-summary.mjs --examples 8
 .venv/bin/python scripts/dev/check_python_quality_ratchet.py
-# Then run a fresh targeted post-Slice-34 stale-surface discovery pass.
+# Then run a fresh targeted post-Slice-35 stale-surface discovery pass.
 ```
 
 Stop condition:
 
 - Stop for public contract migration, unavailable proof, external/hardware
   evidence, or two consecutive fresh post-HEAD no-clear-candidate handoffs.
-- Current stop reason: not met after Slice 34; reset discovery from the new
+- Current stop reason: not met after Slice 35; reset discovery from the new
   HEAD and require fresh no-clear passes before parking again.
 
 No-touch scope:

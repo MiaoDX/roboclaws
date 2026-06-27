@@ -79,7 +79,6 @@ jobs:
       max-parallel: 3
       matrix:
         model_entry:
-          - claude-code-mimo-v2.5
           - agents-sdk-mimo-v2.5
           - agents-sdk-kimi-k2.7-code
 
@@ -209,13 +208,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Download Molmo live Claude Code MiMo artifact
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          name: report-molmo-live-claude-code-mimo-v2.5
-          path: molmo-live-src/claude-code-mimo-v2.5
 
       - name: Download Molmo live Agents SDK MiMo artifact
         continue-on-error: true

@@ -1104,7 +1104,7 @@ ci-rehearsal entry="agents-sdk-kimi-k2.7-code" dry_run="":
       ""|live)
         ;;
       --dry-run|dry-run|dry|true)
-        dry_args=(--dry-run --skip-uv-sync --skip-prewarm --skip-version-check)
+        dry_args=(--dry-run --skip-uv-sync --skip-prewarm)
         ;;
       *)
         echo "error: unsupported ci-rehearsal mode '$dry_run' (expected live or --dry-run)" >&2
@@ -1127,7 +1127,7 @@ ci-rehearsal-all dry_run="":
       ""|live)
         ;;
       --dry-run|dry-run|dry|true)
-        dry_args=(--dry-run --skip-uv-sync --skip-prewarm --skip-version-check)
+        dry_args=(--dry-run --skip-uv-sync --skip-prewarm)
         ;;
       *)
         echo "error: unsupported ci-rehearsal-all mode '$dry_run' (expected live or --dry-run)" >&2

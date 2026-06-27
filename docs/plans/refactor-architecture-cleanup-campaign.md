@@ -65,9 +65,9 @@ Stop/park criteria:
 
 Current stop reason:
 
-- Not met after Slice 34. The earlier post-Slice-33 stop was reopened by a
-  fresh current workflow/registry drift found at `ce26d3ca`; resume discovery
-  from the new verified HEAD.
+- Not met after Slice 35. Fresh post-Slice-34 discovery found one more current
+  workflow/registry false-confidence candidate in the opt-in Molmo live CI
+  route; resume discovery from the new verified HEAD.
 
 Discovery source:
 
@@ -113,6 +113,7 @@ Surface metrics:
 | Move Codex live timing to agent owner | 0 | 1 | 1 | 0 | preserved |
 | Merge operator-console source-error helpers | 0 | 1 | 0 | 0 | preserved |
 | Align Molmo live CI workflow with report registry | 1 | 1 | 0 | 1 | preserved |
+| Remove retired Claude Code live CI entry | 2 | 1 | 0 | 2 | preserved |
 
 Low-value stop signal:
 
@@ -155,7 +156,15 @@ added a focused guard tying the workflow to the registry.
 
 Next clear candidates:
 
-- Run fresh post-Slice-34 discovery from the new verified HEAD.
+- Fresh post-Slice-34 discovery found the remaining `claude-code-mimo-v2.5`
+  live CI entry was registry/workflow-consistent but still launched retired
+  `agent_engine=claude-code`, which the current public launch route rejects.
+  Slice 35 removed that broken opt-in CI row and the runner's now-dead Claude
+  version-check branch.
+
+Next clear candidates:
+
+- Run fresh post-Slice-35 discovery from the new verified HEAD.
 
 Checked and parked:
 
@@ -218,9 +227,16 @@ Checked and parked:
   removed the stale `claude-code-kimi-k2.6` workflow matrix entry and stale
   Pages artifact download step, then added a registry/workflow sync guard in
   `tests/unit/molmo_cleanup/test_ci_live_workflow_entries.py`.
+- Fresh post-Slice-34 discovery found the last Claude Code Molmo live CI entry
+  still launched a retired public engine. `just run::surface ... agent_engine=claude-code`
+  fails before useful work, so `claude-code-mimo-v2.5` was false confidence in
+  the opt-in CI matrix. Slice 35 removed it from the registry, workflow matrix,
+  and Pages artifact downloads, removed the runner/rehearsal `--skip-version-check`
+  branch that existed only for the Claude binary check, and made the
+  registry/workflow guard resolve every entry through `roboclaws.launch`.
 
-The campaign is active again after Slice 34. Park only after fresh
-post-Slice-34 discovery satisfies the no-clear-candidate stop rule.
+The campaign remains active after Slice 35. Park only after fresh
+post-Slice-35 discovery satisfies the no-clear-candidate stop rule.
 
 The campaign resumed on explicit user instruction after the final verified
 Slice 28 stop.
