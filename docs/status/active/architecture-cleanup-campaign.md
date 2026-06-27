@@ -8,13 +8,12 @@ refactor slices until the stop condition is met.
 
 Current slice:
 
-- Slice 35 complete. Fresh post-Slice-34 discovery found the remaining
-  `claude-code-mimo-v2.5` opt-in Molmo live CI entry was still
-  registry/workflow-consistent, but it launched the retired
-  `agent_engine=claude-code` that current `just run::surface` rejects. Removed
-  the broken CI registry/workflow row and the now-dead Claude binary/version
-  branch from the live CI matrix runner. Next action is fresh post-Slice-35
-  discovery.
+- Slice 36 complete. Fresh post-Slice-35 discovery found the active
+  `just molmo::apple2apple-grid` maintainer recipe still generated
+  `agent_engine=codex-cli` and `agent_engine=claude-code` cleanup rows that
+  current `just run::surface` rejects. Migrated the grid to the current
+  `openai-agents-sdk` Codex router route and added a launch-catalog guard for
+  every generated cleanup row. Next action is fresh post-Slice-36 discovery.
 
 Last proven evidence:
 
@@ -172,6 +171,16 @@ Last proven evidence:
   also exposed and fixed an environment-dependent Isaac fake-backend assertion:
   imported robot USD artifacts may coexist with a missing URDF source while
   still recording the missing-URDF blocker.
+- Fresh post-Slice-35 discovery found the MolmoSpaces apple-to-apple grid was
+  still a current `just` recipe and contract-tested maintainer surface, but
+  its cleanup rows launched retired `codex-cli` and `claude-code` engines.
+  Slice 36 collapsed the active grid to the current OpenAI Agents SDK Codex
+  router route, kept the online/offline Runtime Metric Map and camera-lane
+  axes, and added a regression test that resolves every generated cleanup row
+  through `roboclaws.launch.catalog.resolve_surface_launch`. Focused
+  apple2apple tests, recipe contract tests, stale retired-engine search for
+  the grid, touched-file Ruff, Python quality ratchet, and `git diff --check`
+  passed.
 
 Completed slice batch:
 
@@ -253,6 +262,10 @@ Completed slice batch:
 - Slice 35: removed the broken opt-in CI live-report `claude-code-mimo-v2.5`
   registry/workflow row and deleted the now-dead Claude version-check branch
   from the live CI matrix runner.
+- Slice 36: migrated the current MolmoSpaces apple-to-apple grid away from
+  retired `codex-cli` / `claude-code` launch rows to the active
+  `openai-agents-sdk` Codex router route and added launch-catalog validation
+  for generated cleanup rows.
 
 Next proof:
 

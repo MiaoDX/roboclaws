@@ -65,9 +65,9 @@ Stop/park criteria:
 
 Current stop reason:
 
-- Not met after Slice 35. Fresh post-Slice-34 discovery found one more current
-  workflow/registry false-confidence candidate in the opt-in Molmo live CI
-  route; resume discovery from the new verified HEAD.
+- Not met after Slice 36. Fresh post-Slice-35 discovery found one more current
+  maintainer false-confidence candidate in the MolmoSpaces apple-to-apple grid;
+  resume discovery from the new verified HEAD.
 
 Discovery source:
 
@@ -114,6 +114,7 @@ Surface metrics:
 | Merge operator-console source-error helpers | 0 | 1 | 0 | 0 | preserved |
 | Align Molmo live CI workflow with report registry | 1 | 1 | 0 | 1 | preserved |
 | Remove retired Claude Code live CI entry | 2 | 1 | 0 | 2 | preserved |
+| Migrate apple2apple grid to active SDK route | 1 | 1 | 0 | 1 | preserved |
 
 Low-value stop signal:
 
@@ -164,7 +165,16 @@ Next clear candidates:
 
 Next clear candidates:
 
-- Run fresh post-Slice-35 discovery from the new verified HEAD.
+- Fresh post-Slice-35 discovery found that `just molmo::apple2apple-grid`
+  still generated cleanup rows for retired `agent_engine=codex-cli` and
+  `agent_engine=claude-code`, while current launch validation rejects both.
+  Slice 36 migrated the active grid to the current `openai-agents-sdk` Codex
+  router route, preserved the online/offline and camera evidence axes, and
+  added a launch-catalog regression guard for generated cleanup rows.
+
+Next clear candidates:
+
+- Run fresh post-Slice-36 discovery from the new verified HEAD.
 
 Checked and parked:
 
@@ -234,9 +244,14 @@ Checked and parked:
   and Pages artifact downloads, removed the runner/rehearsal `--skip-version-check`
   branch that existed only for the Claude binary check, and made the
   registry/workflow guard resolve every entry through `roboclaws.launch`.
+- Fresh post-Slice-35 discovery found the current MolmoSpaces apple-to-apple
+  grid recipe still generated retired-engine launch rows. Slice 36 collapsed
+  the grid's active agent route axis to the current OpenAI Agents SDK Codex
+  router route and added a guard that resolves every generated cleanup row
+  through `roboclaws.launch.catalog.resolve_surface_launch`.
 
-The campaign remains active after Slice 35. Park only after fresh
-post-Slice-35 discovery satisfies the no-clear-candidate stop rule.
+The campaign remains active after Slice 36. Park only after fresh
+post-Slice-36 discovery satisfies the no-clear-candidate stop rule.
 
 The campaign resumed on explicit user instruction after the final verified
 Slice 28 stop.
