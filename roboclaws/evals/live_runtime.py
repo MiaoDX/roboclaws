@@ -150,11 +150,13 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
             timeout=timeout_s,
         )
     except subprocess.TimeoutExpired as exc:
+        timeout_stdout = _subprocess_text_output(exc.stdout)
+        timeout_stderr = _subprocess_text_output(exc.stderr)
         sample_run_dir = discover_live_surface_run_dir(
             kwargs,
             output_dir=sample_run_root,
             fallback_run_dir=sample_run_dir,
-            stdout=exc.stdout or "",
+            stdout=timeout_stdout,
             started_wall_time_s=started_wall_time_s,
         )
         sample_run_dir = wait_for_timed_out_live_surface_artifact(
@@ -167,8 +169,8 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
         record.update(
             {
                 "returncode": "timeout",
-                "stdout": exc.stdout or "",
-                "stderr": exc.stderr or "",
+                "stdout": timeout_stdout,
+                "stderr": timeout_stderr,
                 "timeout_s": timeout_s,
                 "timeout_completion_grace_s": live_timeout_completion_grace_s(),
                 "effective_run_dir": str(sample_run_dir),
@@ -676,6 +678,16 @@ def _public_backend_from_implementation(backend: str) -> str:
 
 def _load_json(path: Path) -> dict[str, Any]:
     return load_live_eval_json(path)
+
+
+def _subprocess_text_output(value: object) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return str(value)
 
 
 def _live_eval_effective_run_dir(run_result: object, *, trial_run_dir: Path) -> Path:
