@@ -77,9 +77,11 @@ def test_b1_preview_reports_unreadable_camera_artifact_as_source_error(
     assert expected_reason in result["camera_result"]["reason"]
     assert not (tmp_path / "b1-map12-fpv.png").exists()
     assert not (tmp_path / "b1-map12-chase.png").exists()
+    assert (tmp_path / "b1-map12-map.png").is_file()
+    assert (tmp_path / "b1-map12-topdown.png").is_file()
     metadata = json.loads((tmp_path / "b1-map12-preview.json").read_text(encoding="utf-8"))
     assert metadata["schema"] == PREVIEW_METADATA_SCHEMA
-    assert metadata["views"] == {}
+    assert set(metadata["views"]) == {"map", "topdown"}
 
 
 def test_molmospaces_preview_backend_state_loads_json_object(tmp_path: Path) -> None:

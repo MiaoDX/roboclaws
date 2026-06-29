@@ -199,7 +199,7 @@ def test_molmospaces_preview_scene_ref_rejects_unknown_source_or_index() -> None
         _molmospaces_scene_ref("molmospaces/ithor/-1")
 
 
-def test_b1_map12_preview_does_not_generate_unverified_map_assets(tmp_path: Path) -> None:
+def test_b1_map12_preview_generates_static_semantic_map_assets(tmp_path: Path) -> None:
     Image.new("RGB", (16, 16), (10, 20, 30)).save(tmp_path / "b1-map12-map.png")
     Image.new("RGB", (16, 16), (30, 20, 10)).save(tmp_path / "b1-map12-topdown.png")
 
@@ -207,15 +207,20 @@ def test_b1_map12_preview_does_not_generate_unverified_map_assets(tmp_path: Path
 
     assert result["world_id"] == B1_MAP12_WORLD_ID
     assert result["status"] == "rendered"
-    assert not (tmp_path / "b1-map12-map.png").exists()
-    assert not (tmp_path / "b1-map12-topdown.png").exists()
+    assert (tmp_path / "b1-map12-map.png").is_file()
+    assert (tmp_path / "b1-map12-topdown.png").is_file()
     assert not (tmp_path / "b1-map12-fpv.png").exists()
     assert not (tmp_path / "b1-map12-chase.png").exists()
     metadata = json.loads((tmp_path / "b1-map12-preview.json").read_text(encoding="utf-8"))
     assert metadata["schema"] == PREVIEW_METADATA_SCHEMA
     assert metadata["backend"] == "isaaclab"
-    assert metadata["renderer"] == "b1_map12_runtime_camera_previews_only"
-    assert metadata["views"] == {}
+    assert metadata["renderer"] == "b1_map12_static_semantic_previews"
+    assert set(metadata["views"]) == {"map", "topdown"}
+    assert metadata["views"]["map"]["view"] == "base_metric_map_preview"
+    assert metadata["views"]["map"]["artifact_source_family"] == "base_metric_map_bundle"
+    assert metadata["views"]["topdown"]["view"] == "topdown_scene_render"
+    assert metadata["views"]["topdown"]["artifact_source_family"] == "semantic_map_overlay"
+    assert metadata["views"]["topdown"]["first_waypoint_id"] == "meeting_room_b_inspection"
     assert "diagnostic_views" not in metadata
     assert "runtime_map_bundle" not in metadata
 
@@ -273,12 +278,11 @@ def test_b1_map12_preview_promotes_real_isaac_camera_artifact(tmp_path: Path) ->
     )
 
     assert result["status"] == "rendered"
-    for view_name in ("fpv", "chase"):
+    for view_name in ("fpv", "map", "chase", "topdown"):
         assert (tmp_path / f"b1-map12-{view_name}.png").is_file()
-    assert not (tmp_path / "b1-map12-map.png").exists()
-    assert not (tmp_path / "b1-map12-topdown.png").exists()
     metadata = json.loads((tmp_path / "b1-map12-preview.json").read_text(encoding="utf-8"))
-    assert metadata["renderer"] == "b1_map12_isaac_runtime_camera_previews"
+    assert metadata["renderer"] == "b1_map12_static_semantic_previews_with_isaac_runtime_camera"
+    assert set(metadata["views"]) == {"fpv", "map", "chase", "topdown"}
     assert metadata["camera_preview_artifact"]["source_artifact_name"] == "run_result.json"
     assert metadata["camera_preview_artifact"]["source_artifact_sha256"] == _file_sha256(artifact)
     assert "path" not in metadata["camera_preview_artifact"]
@@ -573,6 +577,104 @@ def test_b1_camera_promotion_accepts_navigation_smoke_waypoint_evidence(
     assert result["views"]["fpv"]["waypoint_id"] == "point_a"
 
 
+def test_b1_camera_promotion_accepts_repo_relative_navigation_smoke_views(
+    tmp_path: Path,
+) -> None:
+    run_dir = Path("tmp") / "b1-camera-promotion-repo-relative"
+    if run_dir.exists():
+        import shutil
+
+        shutil.rmtree(run_dir)
+    views_dir = run_dir / "waypoint_01_views"
+    views_dir.mkdir(parents=True)
+    _write_pattern_image(views_dir / "point_a.fpv.png", accent=(220, 220, 220))
+    _write_pattern_image(views_dir / "point_a.chase.png", accent=(120, 90, 60))
+    try:
+        artifact = _write_b1_navigation_smoke_artifact(
+            run_dir,
+            fpv_path=(views_dir / "point_a.fpv.png").as_posix(),
+            chase_path=(views_dir / "point_a.chase.png").as_posix(),
+        )
+
+        result = _promote_b1_camera_previews(
+            camera_artifact=artifact,
+            fpv_path=tmp_path / "b1-map12-fpv.png",
+            chase_path=tmp_path / "b1-map12-chase.png",
+            width=320,
+            height=200,
+        )
+    finally:
+        if run_dir.exists():
+            import shutil
+
+            shutil.rmtree(run_dir)
+
+    assert result["status"] == "promoted"
+    assert result["views"]["fpv"]["waypoint_id"] == "point_a"
+
+
+def test_b1_camera_promotion_uses_first_accepted_waypoint_pair(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    views_dir = run_dir / "robot_views"
+    views_dir.mkdir(parents=True)
+    _write_pattern_image(views_dir / "first.fpv.png", accent=(220, 220, 220))
+    _write_pattern_image(views_dir / "first.chase.png", accent=(120, 90, 60))
+    _write_pattern_image(views_dir / "second.fpv.png", accent=(240, 240, 240))
+    _write_pattern_image(views_dir / "second.chase.png", accent=(30, 180, 220))
+    artifact = run_dir / "run_result.json"
+    artifact.write_text(
+        json.dumps(
+            {
+                "alignment_artifact": str(run_dir / "alignment_residuals.json"),
+                "alignment_transform_source": "reviewed_correspondence_fit",
+                "robot_view_steps": [
+                    {
+                        "label": "first",
+                        "waypoint_id": "first_waypoint",
+                        "robot_pose_applied": True,
+                        "alignment_artifact": str(run_dir / "alignment_residuals.json"),
+                        "alignment_transform_source": "reviewed_correspondence_fit",
+                        "camera_control_contract": _robot_camera_control_contract(),
+                        "views": {
+                            "fpv": "robot_views/first.fpv.png",
+                            "chase": "robot_views/first.chase.png",
+                        },
+                    },
+                    {
+                        "label": "second",
+                        "waypoint_id": "second_waypoint",
+                        "robot_pose_applied": True,
+                        "alignment_artifact": str(run_dir / "alignment_residuals.json"),
+                        "alignment_transform_source": "reviewed_correspondence_fit",
+                        "camera_control_contract": _robot_camera_control_contract(),
+                        "views": {
+                            "fpv": "robot_views/second.fpv.png",
+                            "chase": "robot_views/second.chase.png",
+                        },
+                    },
+                ],
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = _promote_b1_camera_previews(
+        camera_artifact=artifact,
+        fpv_path=tmp_path / "b1-map12-fpv.png",
+        chase_path=tmp_path / "b1-map12-chase.png",
+        width=320,
+        height=200,
+    )
+
+    assert result["status"] == "promoted"
+    assert result["selection_status"] == "selected_first_accepted_real_isaac_camera_pair"
+    assert result["artifact"]["selected_waypoint_id"] == "first_waypoint"
+    assert result["views"]["fpv"]["waypoint_id"] == "first_waypoint"
+
+
 @pytest.mark.parametrize(
     (
         "fpv_path",
@@ -713,8 +815,14 @@ def test_b1_map12_skip_existing_rewrites_stale_camera_preview_metadata(tmp_path:
                 "views": {
                     "fpv": {"path": "b1-map12-fpv.png"},
                     "chase": {"path": "b1-map12-chase.png"},
-                    "map": {"path": "b1-map12-map.png"},
-                    "topdown": {"path": "b1-map12-topdown.png"},
+                    "map": {
+                        "path": "b1-map12-map.png",
+                        "provenance": "b1_map12_base_metric_map_preview_png",
+                    },
+                    "topdown": {
+                        "path": "b1-map12-topdown.png",
+                        "provenance": "b1_map12_reviewed_semantic_topdown_png",
+                    },
                 },
             },
             indent=2,
@@ -734,9 +842,13 @@ def test_b1_map12_skip_existing_rewrites_stale_camera_preview_metadata(tmp_path:
     assert result["status"] == "rendered"
     assert not (tmp_path / "b1-map12-fpv.png").exists()
     assert not (tmp_path / "b1-map12-chase.png").exists()
+    assert (tmp_path / "b1-map12-map.png").is_file()
+    assert (tmp_path / "b1-map12-topdown.png").is_file()
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     assert "fpv" not in metadata["views"]
     assert "chase" not in metadata["views"]
+    assert "map" in metadata["views"]
+    assert "topdown" in metadata["views"]
 
 
 def test_b1_map12_rewrites_prepared_nurec_scene_probe_camera_previews(tmp_path: Path) -> None:
@@ -757,8 +869,14 @@ def test_b1_map12_rewrites_prepared_nurec_scene_probe_camera_previews(tmp_path: 
                         "path": "b1-map12-chase.png",
                         "provenance": "prepared_b1_nurec_scene_camera_preview",
                     },
-                    "map": {"path": "b1-map12-map.png"},
-                    "topdown": {"path": "b1-map12-topdown.png"},
+                    "map": {
+                        "path": "b1-map12-map.png",
+                        "provenance": "b1_map12_base_metric_map_preview_png",
+                    },
+                    "topdown": {
+                        "path": "b1-map12-topdown.png",
+                        "provenance": "b1_map12_reviewed_semantic_topdown_png",
+                    },
                 },
             },
             indent=2,
@@ -773,10 +891,14 @@ def test_b1_map12_rewrites_prepared_nurec_scene_probe_camera_previews(tmp_path: 
     assert result["status"] == "rendered"
     assert not (tmp_path / "b1-map12-fpv.png").exists()
     assert not (tmp_path / "b1-map12-chase.png").exists()
+    assert (tmp_path / "b1-map12-map.png").is_file()
+    assert (tmp_path / "b1-map12-topdown.png").is_file()
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-    assert metadata["renderer"] == "b1_map12_runtime_camera_previews_only"
+    assert metadata["renderer"] == "b1_map12_static_semantic_previews"
     assert "fpv" not in metadata["views"]
     assert "chase" not in metadata["views"]
+    assert "map" in metadata["views"]
+    assert "topdown" in metadata["views"]
 
 
 def test_b1_map12_skip_existing_rewrites_missing_real_camera_files(tmp_path: Path) -> None:
@@ -796,8 +918,14 @@ def test_b1_map12_skip_existing_rewrites_missing_real_camera_files(tmp_path: Pat
                         "path": "b1-map12-chase.png",
                         "provenance": "isaac_runtime_report_chase_camera",
                     },
-                    "map": {"path": "b1-map12-map.png"},
-                    "topdown": {"path": "b1-map12-topdown.png"},
+                    "map": {
+                        "path": "b1-map12-map.png",
+                        "provenance": "b1_map12_base_metric_map_preview_png",
+                    },
+                    "topdown": {
+                        "path": "b1-map12-topdown.png",
+                        "provenance": "b1_map12_reviewed_semantic_topdown_png",
+                    },
                 },
             },
             indent=2,
@@ -816,9 +944,11 @@ def test_b1_map12_skip_existing_rewrites_missing_real_camera_files(tmp_path: Pat
 
     assert result["status"] == "rendered"
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-    assert metadata["renderer"] == "b1_map12_runtime_camera_previews_only"
+    assert metadata["renderer"] == "b1_map12_static_semantic_previews"
     assert "fpv" not in metadata["views"]
     assert "chase" not in metadata["views"]
+    assert "map" in metadata["views"]
+    assert "topdown" in metadata["views"]
 
 
 def test_b1_map12_skip_existing_rewrites_real_camera_metadata_without_alignment(
@@ -841,9 +971,13 @@ def test_b1_map12_skip_existing_rewrites_real_camera_metadata_without_alignment(
     assert result["status"] == "camera_preview_unavailable"
     assert not (tmp_path / "b1-map12-fpv.png").exists()
     assert not (tmp_path / "b1-map12-chase.png").exists()
+    assert (tmp_path / "b1-map12-map.png").is_file()
+    assert (tmp_path / "b1-map12-topdown.png").is_file()
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     assert "fpv" not in metadata["views"]
     assert "chase" not in metadata["views"]
+    assert "map" in metadata["views"]
+    assert "topdown" in metadata["views"]
 
 
 def test_b1_map12_skip_existing_keeps_complete_matching_camera_metadata(tmp_path: Path) -> None:
@@ -885,16 +1019,15 @@ def test_b1_map12_static_preview_does_not_carry_forward_real_camera_previews(
     assert set(result["removed_stale"]) == {
         str(tmp_path / "b1-map12-fpv.png"),
         str(tmp_path / "b1-map12-chase.png"),
-        str(tmp_path / "b1-map12-map.png"),
-        str(tmp_path / "b1-map12-topdown.png"),
     }
     assert not (tmp_path / "b1-map12-fpv.png").exists()
     assert not (tmp_path / "b1-map12-chase.png").exists()
+    assert (tmp_path / "b1-map12-map.png").is_file()
+    assert (tmp_path / "b1-map12-topdown.png").is_file()
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-    assert metadata["renderer"] == "b1_map12_runtime_camera_previews_only"
+    assert metadata["renderer"] == "b1_map12_static_semantic_previews"
     assert "camera_preview_artifact" not in metadata
-    assert "fpv" not in metadata["views"]
-    assert "chase" not in metadata["views"]
+    assert set(metadata["views"]) == {"map", "topdown"}
 
 
 def test_b1_map12_skip_existing_requires_matching_camera_artifact(tmp_path: Path) -> None:
@@ -965,8 +1098,14 @@ def _write_stale_b1_real_camera_preview_metadata(
                         "alignment_transform_source": alignment_transform_source,
                         "provenance": "isaac_runtime_report_chase_camera",
                     },
-                    "map": {"path": "b1-map12-map.png"},
-                    "topdown": {"path": "b1-map12-topdown.png"},
+                    "map": {
+                        "path": "b1-map12-map.png",
+                        "provenance": "b1_map12_base_metric_map_preview_png",
+                    },
+                    "topdown": {
+                        "path": "b1-map12-topdown.png",
+                        "provenance": "b1_map12_reviewed_semantic_topdown_png",
+                    },
                 },
             },
             indent=2,

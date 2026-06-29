@@ -92,9 +92,17 @@ def test_world_catalog_exposes_scene_first_console_choices() -> None:
             "path": "/previews/b1-map12-fpv.png",
             "href": "/previews/b1-map12-fpv.png",
         },
+        "map": {
+            "path": "/previews/b1-map12-map.png",
+            "href": "/previews/b1-map12-map.png",
+        },
         "chase": {
             "path": "/previews/b1-map12-chase.png",
             "href": "/previews/b1-map12-chase.png",
+        },
+        "topdown": {
+            "path": "/previews/b1-map12-topdown.png",
+            "href": "/previews/b1-map12-topdown.png",
         },
     }
     assert "ai2thor/FloorPlan201" not in worlds
@@ -179,12 +187,15 @@ def test_b1_map12_scene_preview_has_v1_runtime_camera_provenance() -> None:
     assert metadata["schema"] == "operator_console_scene_preview_v1"
     assert metadata["world_id"] == "b1-map12"
     assert metadata["backend"] == "isaaclab"
-    assert metadata["renderer"] == "b1_map12_isaac_runtime_camera_previews"
+    assert metadata["renderer"] == "b1_map12_static_semantic_previews_with_isaac_runtime_camera"
     assert metadata["scene_usd_path"] == (
         "data/robot-data-lab/scene-engine/data/B1_floor2_slow/usda/F2_all/default.usda"
     )
     assert metadata["camera_preview_artifact"]["schema"] == "b1_map12_navigation_smoke_v1"
     assert metadata["camera_preview_artifact"]["source_artifact_name"] == "navigation_smoke.json"
+    assert metadata["camera_preview_artifact"]["selected_waypoint_id"] == (
+        "b1_aligned_plastic_bottle_table_1"
+    )
     assert "path" not in metadata["camera_preview_artifact"]
     assert metadata["views"]["fpv"]["provenance"] == ("isaac_runtime_robot_mounted_head_camera_fpv")
     assert metadata["views"]["fpv"]["robot_mounted"] is True
@@ -193,10 +204,13 @@ def test_b1_map12_scene_preview_has_v1_runtime_camera_provenance() -> None:
     assert metadata["views"]["chase"]["provenance"] == "isaac_runtime_report_chase_camera"
     assert not str(metadata["views"]["chase"].get("source_artifact_view", "")).startswith("/")
     assert "source_path" not in metadata["views"]["chase"]
-    assert "map" not in metadata["views"]
-    assert "topdown" not in metadata["views"]
+    assert metadata["views"]["map"]["view"] == "base_metric_map_preview"
+    assert metadata["views"]["map"]["artifact_source_family"] == "base_metric_map_bundle"
+    assert metadata["views"]["topdown"]["view"] == "topdown_scene_render"
+    assert metadata["views"]["topdown"]["artifact_source_family"] == "semantic_map_overlay"
+    assert metadata["views"]["topdown"]["first_waypoint_id"] == "meeting_room_b_inspection"
     assert "diagnostic_views" not in metadata
-    assert "map_bundle" not in metadata
+    assert metadata["map_bundle"] == "vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot"
     assert "runtime_map_bundle" not in metadata
 
 

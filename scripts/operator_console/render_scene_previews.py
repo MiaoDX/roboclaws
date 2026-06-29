@@ -8,10 +8,11 @@ import json
 import math
 import shutil
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageFilter, ImageStat
+from PIL import Image, ImageDraw, ImageFilter, ImageStat
 
 if __package__ in {None, ""}:
     REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -40,7 +41,18 @@ from roboclaws.maps.preview import (  # noqa: E402
     BASE_METRIC_MAP_PREVIEW_ROLE,
     SCENE_RENDER_SOURCE_FAMILY,
     TOPDOWN_SCENE_RENDER_ROLE,
+    render_base_metric_map_preview,
 )
+from scripts.maps.build_b1_map12_base_metric_map import (  # noqa: E402
+    DEFAULT_LABELS as B1_BASE_METRIC_LABELS,
+)
+from scripts.maps.build_b1_map12_base_metric_map import (
+    DEFAULT_MAP_BUNDLE as B1_BASE_METRIC_MAP_BUNDLE,
+)
+from scripts.maps.build_b1_map12_base_metric_map import (
+    DEFAULT_ROOM_SEMANTICS as B1_ROOM_SEMANTICS,
+)
+from scripts.maps.build_b1_map12_base_metric_map import build_base_metric_map_bundle  # noqa: E402
 
 PREVIEW_METADATA_SCHEMA = "operator_console_scene_preview_v1"
 DEFAULT_OUTPUT_DIR = Path("roboclaws/operator_console/static/previews")
@@ -51,6 +63,9 @@ B1_MAP12_WORLD_ID = "b1-map12"
 B1_SCENE_USD_PATH = Path(
     "data/robot-data-lab/scene-engine/data/B1_floor2_slow/usda/F2_all/default.usda"
 )
+B1_SEMANTIC_MAP_SOURCE_FAMILY = "semantic_map_overlay"
+B1_BASE_METRIC_MAP_PROVENANCE = "b1_map12_base_metric_map_preview_png"
+B1_SEMANTIC_TOPDOWN_PROVENANCE = "b1_map12_reviewed_semantic_topdown_png"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -354,16 +369,18 @@ def render_b1_map12_preview(
 ) -> dict[str, Any]:
     slug = _world_slug(B1_MAP12_WORLD_ID)
     fpv_path = output_dir / f"{slug}-fpv.png"
+    map_path = output_dir / f"{slug}-map.png"
     chase_path = output_dir / f"{slug}-chase.png"
+    topdown_path = output_dir / f"{slug}-topdown.png"
     metadata_path = output_dir / f"{slug}-preview.json"
-    stale_map_path = output_dir / f"{slug}-map.png"
-    stale_topdown_path = output_dir / f"{slug}-topdown.png"
     removed_stale: list[str] = []
     skip_result = (
         _b1_preview_skip_result(
             camera_artifact=camera_artifact,
             fpv_path=fpv_path,
+            map_path=map_path,
             chase_path=chase_path,
+            topdown_path=topdown_path,
             metadata_path=metadata_path,
             removed_stale=removed_stale,
         )
@@ -373,26 +390,26 @@ def render_b1_map12_preview(
     if skip_result is not None:
         if skip_result.get("status") == "metadata_unreadable":
             return skip_result
-        removed_stale.extend(
-            _remove_stale_b1_camera_previews(
-                camera_artifact=camera_artifact,
-                fpv_path=fpv_path,
-                chase_path=chase_path,
-            )
-        )
-        removed_stale.extend(_unlink_existing_paths(stale_map_path, stale_topdown_path))
         skip_result["removed_stale"] = removed_stale
         return skip_result
-    removed_stale.extend(
-        _remove_stale_b1_camera_previews(
-            camera_artifact=camera_artifact,
-            fpv_path=fpv_path,
-            chase_path=chase_path,
-        )
-    )
-    removed_stale.extend(_unlink_existing_paths(stale_map_path, stale_topdown_path))
 
-    metadata = _b1_map12_preview_metadata(width=width, height=height)
+    if camera_artifact is None:
+        removed_stale.extend(_unlink_existing_paths(fpv_path, chase_path))
+
+    static_result = _write_b1_static_preview_assets(
+        output_dir=output_dir,
+        map_path=map_path,
+        topdown_path=topdown_path,
+        width=width,
+        height=height,
+    )
+    metadata = _b1_map12_preview_metadata(
+        width=width,
+        height=height,
+        map_path=map_path,
+        topdown_path=topdown_path,
+        static_result=static_result,
+    )
     camera_result: dict[str, Any] | None = None
     if camera_artifact is not None:
         camera_result = _promote_b1_camera_previews(
@@ -416,8 +433,10 @@ def render_b1_map12_preview(
                 "camera_artifact": str(camera_artifact),
                 "camera_result": camera_result,
                 "removed_stale": removed_stale,
+                "map": str(map_path),
+                "topdown": str(topdown_path),
             }
-        metadata["renderer"] = "b1_map12_isaac_runtime_camera_previews"
+        metadata["renderer"] = "b1_map12_static_semantic_previews_with_isaac_runtime_camera"
         metadata["views"]["fpv"] = camera_result["views"]["fpv"]
         metadata["views"]["chase"] = camera_result["views"]["chase"]
         metadata["camera_preview_artifact"] = camera_result["artifact"]
@@ -430,6 +449,8 @@ def render_b1_map12_preview(
         "scene_source": "b1-gaussian-digital-twin",
         "status": "rendered",
         "metadata": str(metadata_path),
+        "map": str(map_path),
+        "topdown": str(topdown_path),
         "removed_stale": removed_stale,
     }
     if camera_result is not None:
@@ -453,37 +474,36 @@ def _unlink_existing_paths(*paths: Path) -> list[str]:
     return removed
 
 
-def _remove_stale_b1_camera_previews(
-    *,
-    camera_artifact: Path | None,
-    fpv_path: Path,
-    chase_path: Path,
-) -> list[str]:
-    if camera_artifact is not None:
-        return []
-    return _unlink_existing_paths(fpv_path, chase_path)
-
-
 def _b1_preview_skip_result(
     *,
     camera_artifact: Path | None,
     fpv_path: Path,
+    map_path: Path,
     chase_path: Path,
+    topdown_path: Path,
     metadata_path: Path,
     removed_stale: list[str],
 ) -> dict[str, Any] | None:
     if not metadata_path.exists():
         return None
     try:
+        static_ready = _b1_metadata_has_static_previews(
+            metadata_path,
+            map_path=map_path,
+            topdown_path=topdown_path,
+        )
         if camera_artifact is None:
-            can_skip = _b1_metadata_has_no_camera_previews(metadata_path)
+            can_skip = static_ready and _b1_metadata_has_no_camera_previews(metadata_path)
         else:
             metadata_has_real_camera_previews = _b1_metadata_has_real_camera_previews(
                 metadata_path,
                 camera_artifact=camera_artifact,
             )
             can_skip = (
-                fpv_path.exists() and chase_path.exists() and metadata_has_real_camera_previews
+                static_ready
+                and fpv_path.exists()
+                and chase_path.exists()
+                and metadata_has_real_camera_previews
             )
     except (OSError, ValueError) as exc:
         return {
@@ -500,10 +520,39 @@ def _b1_preview_skip_result(
         "world_id": B1_MAP12_WORLD_ID,
         "scene_source": "b1-gaussian-digital-twin",
         "status": "skipped",
-        **({"fpv": str(fpv_path), "chase": str(chase_path)} if camera_artifact is not None else {}),
+        "map": str(map_path),
+        "topdown": str(topdown_path),
+        **(
+            {"fpv": str(fpv_path), "chase": str(chase_path)}
+            if fpv_path.exists() and chase_path.exists()
+            else {}
+        ),
         "metadata": str(metadata_path),
         "removed_stale": removed_stale,
     }
+
+
+def _b1_metadata_has_static_previews(
+    path: Path,
+    *,
+    map_path: Path,
+    topdown_path: Path,
+) -> bool:
+    if not map_path.exists() or not topdown_path.exists():
+        return False
+    payload = read_json_object(path, label="B1 preview metadata")
+    views = payload.get("views")
+    if not isinstance(views, dict):
+        return False
+    return _b1_static_view_ready(views.get("map"), expected_path=map_path.name) and (
+        _b1_static_view_ready(views.get("topdown"), expected_path=topdown_path.name)
+    )
+
+
+def _b1_static_view_ready(view: Any, *, expected_path: str) -> bool:
+    if not isinstance(view, dict):
+        return False
+    return str(view.get("path") or "") == expected_path and bool(str(view.get("provenance") or ""))
 
 
 def _b1_metadata_has_no_camera_previews(path: Path) -> bool:
@@ -550,6 +599,8 @@ def _b1_metadata_camera_artifact_matches(
 
 
 def _portable_b1_artifact_view_ref(*, artifact_path: Path, view_path: Path) -> str:
+    artifact_path = artifact_path.resolve()
+    view_path = view_path.resolve()
     try:
         return view_path.relative_to(artifact_path.parent).as_posix()
     except ValueError:
@@ -625,7 +676,7 @@ def _promote_b1_camera_previews(
             "candidate_count": len(candidates),
             "evaluated_candidates": evaluated,
         }
-    selected = max(accepted, key=lambda item: float(item.get("score") or 0.0))
+    selected = accepted[0]
     fpv_source = Path(str(selected["fpv_source"]))
     chase_source = Path(str(selected["chase_source"]))
     _fit_preview_image(Image.open(fpv_source), width=width, height=height).save(fpv_path)
@@ -648,7 +699,7 @@ def _promote_b1_camera_previews(
     )
     return {
         "status": "promoted",
-        "selection_status": "selected_highest_scoring_real_isaac_camera_pair",
+        "selection_status": "selected_first_accepted_real_isaac_camera_pair",
         "artifact": {
             "source_artifact_name": camera_artifact.name,
             "source_artifact_sha256": _file_sha256(camera_artifact),
@@ -995,6 +1046,15 @@ def _resolve_b1_artifact_view_path(artifact_path: Path, raw_path: Any) -> Path |
         resolved.relative_to(base_dir)
     except ValueError:
         return None
+    if resolved.is_file():
+        return resolved
+    repo_resolved = (REPO_ROOT / path).resolve()
+    try:
+        repo_resolved.relative_to(REPO_ROOT)
+    except ValueError:
+        return None
+    if repo_resolved.is_file():
+        return repo_resolved
     return resolved
 
 
@@ -1196,21 +1256,120 @@ def _select_chase_preview(
     }
 
 
+def _write_b1_static_preview_assets(
+    *,
+    output_dir: Path,
+    map_path: Path,
+    topdown_path: Path,
+    width: int,
+    height: int,
+) -> dict[str, Any]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="b1-map12-preview-") as temp_dir:
+        bundle_dir = Path(temp_dir) / "base-metric-map"
+        bundle_result = build_base_metric_map_bundle(
+            map_bundle=B1_BASE_METRIC_MAP_BUNDLE,
+            labels_path=B1_BASE_METRIC_LABELS,
+            room_semantics_path=B1_ROOM_SEMANTICS,
+            output_dir=bundle_dir,
+        )
+        semantics = read_json_object(
+            bundle_dir / "semantics.json",
+            label="B1 Base Metric Map semantics",
+        )
+        render_base_metric_map_preview(
+            semantics=semantics,
+            output_path=map_path,
+            width=width,
+            height=height,
+            provenance=B1_BASE_METRIC_MAP_PROVENANCE,
+        )
+        _render_b1_semantic_topdown_preview(
+            semantics=semantics,
+            output_path=topdown_path,
+            width=width,
+            height=height,
+        )
+        return {
+            "map_bundle": str(B1_BASE_METRIC_MAP_BUNDLE),
+            "base_metric_labels": str(B1_BASE_METRIC_LABELS),
+            "room_semantics": str(B1_ROOM_SEMANTICS),
+            "navigation_area_count": int(bundle_result["navigation_area_count"]),
+            "inspection_waypoint_count": int(bundle_result["inspection_waypoint_count"]),
+            "semantic_label_count": len(semantics.get("rooms") or []),
+            "first_waypoint_id": str(
+                ((semantics.get("inspection_waypoints") or [{}])[0]).get("waypoint_id") or ""
+            ),
+        }
+
+
+def _render_b1_semantic_topdown_preview(
+    *,
+    semantics: dict[str, Any],
+    output_path: Path,
+    width: int,
+    height: int,
+) -> None:
+    render_base_metric_map_preview(
+        semantics=semantics,
+        output_path=output_path,
+        width=width,
+        height=height,
+        provenance=B1_SEMANTIC_TOPDOWN_PROVENANCE,
+    )
+    with Image.open(output_path) as image:
+        canvas = image.convert("RGB")
+    draw = ImageDraw.Draw(canvas, "RGBA")
+    draw.rectangle((28, 26, 386, 94), fill=(255, 255, 255, 235), outline=(213, 220, 230, 230))
+    draw.text((42, 38), "B1 reviewed semantic Top2Down", fill=(30, 41, 59, 255))
+    draw.text((42, 60), "source map frame; accepted DT room labels", fill=(86, 95, 112, 255))
+    canvas.save(output_path, format="PNG")
+
+
 def _b1_map12_preview_metadata(
     *,
     width: int,
     height: int,
+    map_path: Path,
+    topdown_path: Path,
+    static_result: dict[str, Any],
 ) -> dict[str, Any]:
     return {
         "schema": PREVIEW_METADATA_SCHEMA,
         "generated_at": _utc_timestamp(),
         "world_id": B1_MAP12_WORLD_ID,
         "backend": "isaaclab",
-        "renderer": "b1_map12_runtime_camera_previews_only",
+        "renderer": "b1_map12_static_semantic_previews",
         "scene_source": "b1-gaussian-digital-twin",
         "scene_usd_path": str(B1_SCENE_USD_PATH),
+        "map_bundle": static_result["map_bundle"],
+        "base_metric_labels": static_result["base_metric_labels"],
+        "room_semantics": static_result["room_semantics"],
         "render_resolution": {"width": width, "height": height},
-        "views": {},
+        "views": {
+            "map": {
+                "path": map_path.name,
+                "view": BASE_METRIC_MAP_PREVIEW_ROLE,
+                "visual_role": BASE_METRIC_MAP_PREVIEW_ROLE,
+                "artifact_source_family": BASE_MAP_SOURCE_FAMILY,
+                "provenance": B1_BASE_METRIC_MAP_PROVENANCE,
+                "alignment_status": "verified_source_map_frame",
+                "image_diagnostics": _image_diagnostics(map_path),
+            },
+            "topdown": {
+                "path": topdown_path.name,
+                "view": TOPDOWN_SCENE_RENDER_ROLE,
+                "visual_role": TOPDOWN_SCENE_RENDER_ROLE,
+                "artifact_source_family": B1_SEMANTIC_MAP_SOURCE_FAMILY,
+                "provenance": B1_SEMANTIC_TOPDOWN_PROVENANCE,
+                "alignment_status": "reviewed_semantic_map_overlay",
+                "room_count": static_result["semantic_label_count"],
+                "review_label_count": static_result["semantic_label_count"],
+                "inspection_waypoint_count": static_result["inspection_waypoint_count"],
+                "first_waypoint_id": static_result["first_waypoint_id"],
+                "image_diagnostics": _image_diagnostics(topdown_path),
+            },
+        },
     }
 
 
