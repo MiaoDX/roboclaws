@@ -337,6 +337,8 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
       exit 1
     fi
     if [[ "$profile" == "world-public-labels" && "$backend" == "isaaclab_subprocess" ]]; then
+      b1_alignment_artifact="${b1_alignment_artifact:-output/b1-map12/alignment/alignment_residuals.json}"
+      b1_navigation_artifact="${b1_navigation_artifact:-output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json}"
       isaac_min_semantic_accepted_count="$generated_mess_count"
       if [[ "$min_generated_mess_count_override" != "auto" && -n "$min_generated_mess_count_override" ]]; then
         isaac_min_semantic_accepted_count="$min_generated_mess_count_override"
@@ -348,7 +350,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
         --min-sweep-coverage 1.0
       )
       if [[ -z "$b1_alignment_artifact" || -z "$b1_navigation_artifact" ]]; then
-        echo "error: B1 / Map 12 robot-consumption proof requires explicit b1_alignment_artifact and b1_navigation_artifact" >&2
+        echo "error: B1 / Map 12 robot-consumption proof requires default or override b1_alignment_artifact and b1_navigation_artifact" >&2
         exit 1
       fi
       if [[ "$robot_views" != "off" && "$robot_views" != "false" && "$robot_views" != "0" ]]; then

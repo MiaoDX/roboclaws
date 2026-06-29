@@ -140,8 +140,8 @@ def _request_field_gate(
     provider_status: dict[str, Any],
     runtime_tasks: list[dict[str, Any]] | None,
 ) -> GateEvaluation:
-    del route, gate_map, provider_status, runtime_tasks
-    raw_path = str(override_map.get(gate.id) or "").strip()
+    del gate_map, provider_status, runtime_tasks
+    raw_path = str(override_map.get(gate.id) or _route_default_override(route, gate.id)).strip()
     kind = _request_field_kind(gate.id)
     label = str(getattr(gate, "label", None) or gate.id)
     if not raw_path:
@@ -200,6 +200,14 @@ def _request_field_kind(gate_id: str) -> str:
     if gate_id == "context_json":
         return "needs_agibot_context"
     return "needs_route_parameter"
+
+
+def _route_default_override(route: ConsoleLaunchSelection, key: str) -> str:
+    prefix = f"{key}="
+    for item in route.launch_default_overrides:
+        if item.startswith(prefix):
+            return item[len(prefix) :]
+    return ""
 
 
 def _operator_gate(

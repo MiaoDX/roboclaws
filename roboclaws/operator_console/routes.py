@@ -37,9 +37,14 @@ ISAAC_SUPPORTED_EVIDENCE_LANES = tuple(
     lane for lane in REAL_EVIDENCE_LANES if lane != CAMERA_GROUNDED_LABELS_LANE
 )
 ISAAC_UNSUPPORTED_EVIDENCE_LANES = (CAMERA_GROUNDED_LABELS_LANE,)
-B1_ROBOT_PROOF_REQUIRED_OVERRIDES = (
-    "b1_alignment_artifact",
-    "b1_navigation_artifact",
+B1_ALIGNMENT_ARTIFACT_DEFAULT = "output/b1-map12/alignment/alignment_residuals.json"
+B1_NAVIGATION_ARTIFACT_DEFAULT = (
+    "output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json"
+)
+B1_ROBOT_PROOF_REQUIRED_OVERRIDES: tuple[str, ...] = ()
+B1_ROBOT_PROOF_DEFAULT_OVERRIDES = (
+    f"b1_alignment_artifact={B1_ALIGNMENT_ARTIFACT_DEFAULT}",
+    f"b1_navigation_artifact={B1_NAVIGATION_ARTIFACT_DEFAULT}",
 )
 
 
@@ -269,15 +274,17 @@ AGIBOT_ESTOP_GATE = RouteGate(
 )
 B1_ALIGNMENT_ARTIFACT_GATE = RouteGate(
     id="b1_alignment_artifact",
-    label="B1 alignment residual artifact attached",
+    label="B1 verified alignment artifact available",
     kind="request_field",
-    help_text="Attach the explicit verified B1 / Map 12 alignment residual JSON.",
+    help_text=(
+        "Use the reviewed B1 / Map 12 alignment residual JSON, or override the default path."
+    ),
 )
 B1_NAVIGATION_ARTIFACT_GATE = RouteGate(
     id="b1_navigation_artifact",
-    label="B1 navigation smoke artifact attached",
+    label="B1 verified navigation smoke artifact available",
     kind="request_field",
-    help_text="Attach the explicit verified B1 / Map 12 navigation smoke JSON.",
+    help_text=("Use the reviewed B1 / Map 12 navigation smoke JSON, or override the default path."),
 )
 
 
@@ -396,7 +403,7 @@ def _enabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
                 B1_NAVIGATION_ARTIFACT_GATE,
             ),
             required_overrides=B1_ROBOT_PROOF_REQUIRED_OVERRIDES,
-            default_overrides=("seed=7",),
+            default_overrides=("seed=7", *B1_ROBOT_PROOF_DEFAULT_OVERRIDES),
             supports_operator_steer=True,
             supports_paused_handoff_resume=True,
             supports_relative_navigation_control=True,
@@ -480,7 +487,7 @@ def _disabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
             ),
             gates=_common_gates(),
             required_overrides=B1_ROBOT_PROOF_REQUIRED_OVERRIDES,
-            default_overrides=("seed=7",),
+            default_overrides=("seed=7", *B1_ROBOT_PROOF_DEFAULT_OVERRIDES),
             supports_operator_steer=True,
         ),
         _selection(

@@ -1617,39 +1617,26 @@ def test_b1_isaac_route_uses_b1_robot_consumption_checker_gate() -> None:
 
     assert "--require-b1-robot-consumption-proof" in isaac_branch
     assert "--require-real-robot-alignment" not in isaac_branch
-    assert "requires explicit b1_alignment_artifact and b1_navigation_artifact" in isaac_branch
+    assert "output/b1-map12/alignment/alignment_residuals.json" in isaac_branch
+    assert "output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json" in isaac_branch
 
 
-def test_b1_isaac_route_requires_explicit_robot_consumption_artifacts() -> None:
-    binary = just_bin()
-    env = os.environ.copy()
-    env.pop("ROBOCLAWS_JUST_TRACE", None)
-    env["PATH"] = f"{Path(binary).parent}{os.pathsep}{env.get('PATH', '')}"
+def test_b1_isaac_route_defaults_to_reviewed_robot_consumption_artifacts() -> None:
+    molmo_text = MOLMO_JUST.read_text(encoding="utf-8")
+    isaac_branch = molmo_text.split(
+        'if [[ "$profile" == "world-public-labels" && "$backend" == "isaaclab_subprocess" ]]',
+        1,
+    )[1].split('    fi\n    if [[ "$cleanup_routine"', 1)[0]
 
-    result = subprocess.run(
-        [
-            binary,
-            "agent::run",
-            "household-world.open-ended",
-            "openai-agents-sdk",
-            "world-public-labels",
-            "world=b1-map12",
-            "backend=isaaclab_subprocess",
-            "map_bundle=vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot",
-            "task_intent=open-ended",
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.returncode != 0
     assert (
-        "requires explicit b1_alignment_artifact and b1_navigation_artifact" in result.stderr
-        or "requires explicit b1_alignment_artifact and b1_navigation_artifact" in result.stdout
-    )
+        'b1_alignment_artifact="${b1_alignment_artifact:-'
+        'output/b1-map12/alignment/alignment_residuals.json}"'
+    ) in isaac_branch
+    assert (
+        'b1_navigation_artifact="${b1_navigation_artifact:-'
+        'output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json}"'
+    ) in isaac_branch
+    assert "requires explicit b1_alignment_artifact" not in isaac_branch
 
 
 def test_household_cleanup_routes_agibot_backend_to_physical_pilot_cli() -> None:

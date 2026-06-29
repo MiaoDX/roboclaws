@@ -10,6 +10,8 @@ from roboclaws.launch.agent_engines import agent_engine_spec
 from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS, WORLD_SPECS
 from roboclaws.operator_console.launcher import ConsoleLaunchError, build_launch_argv
 from roboclaws.operator_console.routes import (
+    B1_ALIGNMENT_ARTIFACT_DEFAULT,
+    B1_NAVIGATION_ARTIFACT_DEFAULT,
     get_selection,
     list_console_combinations,
     list_evidence_lanes,
@@ -327,7 +329,9 @@ def test_molmospaces_scene_choices_use_scene_specific_launch_defaults(tmp_path) 
     for world_id in MOLMOSPACES_CONSOLE_WORLD_IDS:
         assert f"{world_id}::mujoco::map-build::direct-runner::world-public-labels" in enabled_ids
     for world_id in MOLMOSPACES_CONSOLE_WORLD_IDS:
-        assert f"{world_id}::mujoco::cleanup::openai-agents-sdk::world-public-labels" in enabled_ids
+        assert (
+            f"{world_id}::mujoco::cleanup::openai-agents-sdk::world-public-labels" in enabled_ids
+        )
 
     objaverse0 = get_selection(MUJOCO_SDK_CLEANUP)
     val10 = get_selection(
@@ -403,7 +407,10 @@ def test_molmospaces_cleanup_routes_are_selectable_for_ui_scenes() -> None:
     assert B1_OPENAI_AGENTS_OPEN_TASK in enabled_ids
 
     for world_id in MOLMOSPACES_CONSOLE_WORLD_IDS:
-        assert f"{world_id}::mujoco::cleanup::openai-agents-sdk::world-public-labels" in enabled_ids
+        assert (
+            f"{world_id}::mujoco::cleanup::openai-agents-sdk::world-public-labels"
+            in enabled_ids
+        )
 
 
 def test_console_keeps_b1_unsupported_isaac_lane_visible_but_disabled() -> None:
@@ -460,10 +467,15 @@ def test_payload_exposes_orthogonal_ui_metadata() -> None:
     assert b1_openai_agents["backend_id"] == "isaaclab"
     assert b1_openai_agents["agent_engine_id"] == "openai-agents-sdk"
     assert b1_openai_agents["provider_profile"] == "codex-router-responses"
-    assert b1_openai_agents["required_overrides"] == [
-        "b1_alignment_artifact",
-        "b1_navigation_artifact",
-    ]
+    assert b1_openai_agents["required_overrides"] == []
+    assert (
+        f"b1_alignment_artifact={B1_ALIGNMENT_ARTIFACT_DEFAULT}"
+        in b1_openai_agents["launch_default_overrides"]
+    )
+    assert (
+        f"b1_navigation_artifact={B1_NAVIGATION_ARTIFACT_DEFAULT}"
+        in b1_openai_agents["launch_default_overrides"]
+    )
     assert b1_openai_agents["supports_relative_navigation_control"] is True
     assert b1_openai_agents["supports_paused_handoff_resume"] is True
     assert "agent_engine=openai-agents-sdk" in b1_openai_agents["argv_preview"]
@@ -551,11 +563,13 @@ def test_b1_map12_open_ended_launch_uses_scene_and_map_bundle(tmp_path) -> None:
     assert not any(item.startswith("relocation_count=") for item in argv)
 
 
-def test_b1_map12_launch_requires_explicit_robot_proof_artifacts(tmp_path) -> None:
+def test_b1_map12_launch_uses_default_robot_proof_artifacts(tmp_path) -> None:
     selection = get_selection(B1_OPENAI_AGENTS_OPEN_TASK)
 
-    with pytest.raises(ConsoleLaunchError, match="b1_alignment_artifact"):
-        build_launch_argv(selection, root=tmp_path, run_id="run-1")
+    argv = build_launch_argv(selection, root=tmp_path, run_id="run-1")
+
+    assert f"b1_alignment_artifact={B1_ALIGNMENT_ARTIFACT_DEFAULT}" in argv
+    assert f"b1_navigation_artifact={B1_NAVIGATION_ARTIFACT_DEFAULT}" in argv
 
 
 def test_prompt_rejected_for_unsupported_selection(tmp_path) -> None:
