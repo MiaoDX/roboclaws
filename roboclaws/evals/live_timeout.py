@@ -13,7 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class LiveEvalTimeoutError(TimeoutError):
-    """Raised when the foreground live eval process exceeds its timeout."""
+    """Raised when the foreground live eval process exceeds a live eval budget."""
 
     def __init__(
         self,
@@ -24,9 +24,15 @@ class LiveEvalTimeoutError(TimeoutError):
         live_status: dict[str, Any],
         timeout_debug_snapshot: dict[str, Any],
         command_record: dict[str, Any],
+        timeout_kind: str = "timeout",
+        wall_clock_budget_s: float | None = None,
+        stall_timeout_s: float | None = None,
     ) -> None:
         super().__init__(message)
         self.timeout_s = timeout_s
+        self.timeout_kind = timeout_kind
+        self.wall_clock_budget_s = wall_clock_budget_s
+        self.stall_timeout_s = stall_timeout_s
         self.effective_run_dir = str(effective_run_dir)
         self.live_status = live_status
         self.timeout_debug_snapshot = timeout_debug_snapshot
@@ -38,6 +44,9 @@ def live_timeout_snapshot(
     *,
     live_status: dict[str, Any],
     timeout_s: float | None,
+    timeout_kind: str = "timeout",
+    wall_clock_budget_s: float | None = None,
+    stall_timeout_s: float | None = None,
 ) -> dict[str, Any]:
     status_snapshot = live_status.get("debug_snapshot")
     if isinstance(status_snapshot, dict):
@@ -49,6 +58,9 @@ def live_timeout_snapshot(
             "report_present": (effective_run_dir / "report.html").is_file(),
         }
     snapshot["eval_timeout_s"] = timeout_s
+    snapshot["timeout_kind"] = timeout_kind
+    snapshot["eval_wall_clock_budget_s"] = wall_clock_budget_s
+    snapshot["eval_stall_timeout_s"] = stall_timeout_s
     snapshot["effective_run_dir"] = str(effective_run_dir)
     snapshot["live_status_phase"] = str(live_status.get("phase") or "")
     if "elapsed_s" not in snapshot and live_status.get("elapsed_s") is not None:
@@ -67,6 +79,13 @@ def live_exception_debug_fields(exc: Exception) -> dict[str, Any]:
     live_status = getattr(exc, "live_status", None)
     if isinstance(live_status, dict) and live_status:
         fields["live_status_phase"] = str(live_status.get("phase") or "")
+    timeout_kind = getattr(exc, "timeout_kind", "")
+    if timeout_kind:
+        fields["timeout_kind"] = str(timeout_kind)
+    for name in ("timeout_s", "wall_clock_budget_s", "stall_timeout_s"):
+        value = getattr(exc, name, None)
+        if value is not None:
+            fields[name] = value
     return fields
 
 

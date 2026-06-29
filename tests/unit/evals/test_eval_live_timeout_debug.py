@@ -17,58 +17,98 @@ def test_live_surface_product_records_timeout_debug_snapshot(
 ) -> None:
     timeout_run_dir: Path | None = None
     sleeps: list[float] = []
+    clock = {"now": 0.0}
 
     def fake_sleep(seconds: float) -> None:
         sleeps.append(seconds)
+        clock["now"] += seconds
 
-    def fake_run(command: list[str], **_kwargs: Any) -> Any:
-        output_arg = next(item for item in command if item.startswith("output_dir="))
-        output_dir = Path(output_arg.removeprefix("output_dir="))
-        run_dir = output_dir / "0615_0311" / "seed-7"
-        run_dir.mkdir(parents=True, exist_ok=True)
-        (run_dir / "live_status.json").write_text(
-            json.dumps(
-                {
-                    "phase": "running-sdk",
-                    "debug_snapshot": {
-                        "schema": "molmo_live_timeout_debug_snapshot_v1",
-                        "elapsed_s": 299.0,
-                        "run_result_present": False,
-                        "report_present": False,
-                        "last_trace_event": "observe:response",
-                        "progress": {"observe": 3, "done": 0},
-                    },
-                }
+    def fake_monotonic() -> float:
+        return clock["now"]
+
+    class FakePopen:
+        def __init__(
+            self,
+            command: list[str],
+            *,
+            stdout: Any = None,
+            stderr: Any = None,
+            **_kwargs: Any,
+        ) -> None:
+            output_arg = next(item for item in command if item.startswith("output_dir="))
+            output_dir = Path(output_arg.removeprefix("output_dir="))
+            run_dir = output_dir / "0615_0311" / "seed-7"
+            run_dir.mkdir(parents=True, exist_ok=True)
+            (run_dir / "live_status.json").write_text(
+                json.dumps(
+                    {
+                        "phase": "running-sdk",
+                        "debug_snapshot": {
+                            "schema": "molmo_live_timeout_debug_snapshot_v1",
+                            "elapsed_s": 299.0,
+                            "run_result_present": False,
+                            "report_present": False,
+                            "last_trace_event": "observe:response",
+                            "progress": {"observe": 3, "done": 0},
+                        },
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
             )
-            + "\n",
-            encoding="utf-8",
-        )
-        nonlocal timeout_run_dir
-        timeout_run_dir = run_dir
-        raise live_runtime.subprocess.TimeoutExpired(
-            cmd=command,
-            timeout=5.0,
-            output=f"Artifacts: {run_dir}\n".encode(),
-            stderr=b"still running",
-        )
+            if stdout is not None:
+                stdout.write(f"Artifacts: {run_dir}\n")
+            if stderr is not None:
+                stderr.write("still running")
+            nonlocal timeout_run_dir
+            timeout_run_dir = run_dir
+            self.terminated = False
+            self.killed = False
 
-    monkeypatch.setattr(live_runtime.subprocess, "run", fake_run)
+        def poll(self) -> int | None:
+            return None
+
+        def terminate(self) -> None:
+            self.terminated = True
+
+        def kill(self) -> None:
+            self.killed = True
+
+        def wait(self, timeout: float | None = None) -> int:
+            return 143
+
+    monkeypatch.setattr(live_runtime.subprocess, "Popen", FakePopen)
+    monkeypatch.setattr(live_runtime.time, "monotonic", fake_monotonic)
     monkeypatch.setattr(live_runtime.time, "sleep", fake_sleep)
 
     with pytest.raises(LiveEvalTimeoutError) as exc_info:
         live_runtime.run_live_surface_product(
-            **_live_surface_kwargs(tmp_path / "trial-0000", live_timeout_s=5.0)
+            **_live_surface_kwargs(
+                tmp_path / "trial-0000",
+                live_timeout_s=50.0,
+                live_stall_timeout_s=5.0,
+            )
         )
 
-    assert str(exc_info.value) == "live eval trial timed out after 5s"
+    assert str(exc_info.value) == "live eval trial stalled after 5s without progress"
+    assert exc_info.value.timeout_kind == "stall_timeout"
+    assert exc_info.value.wall_clock_budget_s == 50.0
+    assert exc_info.value.stall_timeout_s == 5.0
     assert exc_info.value.timeout_debug_snapshot["progress"]["observe"] == 3
     assert exc_info.value.live_status["phase"] == "running-sdk"
-    assert sleeps == []
+    assert sleeps == [1.0, 1.0, 1.0, 1.0, 1.0]
     assert timeout_run_dir is not None
     record = json.loads((tmp_path / "trial-0000" / "live_eval_command.json").read_text())
-    assert record["returncode"] == "timeout"
+    assert record["returncode"] == "stall_timeout"
+    assert record["timeout_kind"] == "stall_timeout"
+    assert record["timeout_s"] == 50.0
+    assert record["wall_clock_budget_s"] == 50.0
+    assert record["stall_timeout_s"] == 5.0
     assert record["timeout_completion_grace_s"] == 30.0
     assert record["timeout_child_cleanup"]["status"] == "server_pid_unavailable"
+    assert record["timeout_debug_snapshot"]["timeout_kind"] == "stall_timeout"
+    assert record["timeout_debug_snapshot"]["eval_wall_clock_budget_s"] == 50.0
+    assert record["timeout_debug_snapshot"]["eval_stall_timeout_s"] == 5.0
     assert record["timeout_debug_snapshot"]["last_trace_event"] == "observe:response"
     assert record["timeout_debug_snapshot"]["effective_run_dir"].endswith(
         "surface-run/0615_0311/seed-7"
@@ -92,6 +132,9 @@ def test_live_eval_timeout_snapshot_reaches_blocked_result(
         raise LiveEvalTimeoutError(
             "live eval trial timed out after 300s",
             timeout_s=300.0,
+            timeout_kind="wall_clock_budget_exhausted",
+            wall_clock_budget_s=300.0,
+            stall_timeout_s=120.0,
             effective_run_dir=run_dir,
             live_status={"phase": "running-sdk"},
             timeout_debug_snapshot=snapshot,
@@ -116,11 +159,100 @@ def test_live_eval_timeout_snapshot_reaches_blocked_result(
     assert runner["status"] == "blocked"
     assert runner["error_type"] == "LiveEvalTimeoutError"
     assert runner["live_status_phase"] == "running-sdk"
+    assert runner["timeout_kind"] == "wall_clock_budget_exhausted"
+    assert runner["wall_clock_budget_s"] == 300.0
+    assert runner["stall_timeout_s"] == 120.0
     assert runner["effective_run_dir"].endswith("surface-run/seed-7")
     assert runner["timeout_debug_snapshot"]["last_trace_event"] == "metric_map:response"
 
 
-def _live_surface_kwargs(run_dir: Path, *, live_timeout_s: float | None = None) -> dict[str, Any]:
+def test_live_surface_product_records_wall_clock_budget_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    clock = {"now": 0.0}
+    progress_count = {"value": 0}
+
+    def fake_monotonic() -> float:
+        return clock["now"]
+
+    def fake_sleep(seconds: float) -> None:
+        clock["now"] += seconds
+
+    class FakePopen:
+        def __init__(
+            self,
+            command: list[str],
+            *,
+            stdout: Any = None,
+            **_kwargs: Any,
+        ) -> None:
+            output_arg = next(item for item in command if item.startswith("output_dir="))
+            output_dir = Path(output_arg.removeprefix("output_dir="))
+            self.run_dir = output_dir / "0615_0312" / "seed-7"
+            self.run_dir.mkdir(parents=True, exist_ok=True)
+            if stdout is not None:
+                stdout.write(f"Artifacts: {self.run_dir}\n")
+            self.terminated = False
+
+        def poll(self) -> int | None:
+            progress_count["value"] += 1
+            (self.run_dir / "live_status.json").write_text(
+                json.dumps(
+                    {
+                        "phase": "running-sdk",
+                        "debug_snapshot": {
+                            "schema": "molmo_live_timeout_debug_snapshot_v1",
+                            "trace_event_count": progress_count["value"],
+                            "last_trace_event": f"observe:{progress_count['value']}",
+                            "progress": {"observe": progress_count["value"], "done": 0},
+                        },
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            return None
+
+        def terminate(self) -> None:
+            self.terminated = True
+
+        def kill(self) -> None:
+            return None
+
+        def wait(self, timeout: float | None = None) -> int:
+            return 143
+
+    monkeypatch.setattr(live_runtime.subprocess, "Popen", FakePopen)
+    monkeypatch.setattr(live_runtime.time, "monotonic", fake_monotonic)
+    monkeypatch.setattr(live_runtime.time, "sleep", fake_sleep)
+
+    with pytest.raises(LiveEvalTimeoutError) as exc_info:
+        live_runtime.run_live_surface_product(
+            **_live_surface_kwargs(
+                tmp_path / "trial-0000",
+                live_timeout_s=5.0,
+                live_stall_timeout_s=30.0,
+            )
+        )
+
+    assert str(exc_info.value) == "live eval trial exceeded wall-clock budget after 5s"
+    assert exc_info.value.timeout_kind == "wall_clock_budget_exhausted"
+    record = json.loads((tmp_path / "trial-0000" / "live_eval_command.json").read_text())
+    assert record["returncode"] == "wall_clock_budget_exhausted"
+    assert record["timeout_kind"] == "wall_clock_budget_exhausted"
+    assert record["wall_clock_budget_s"] == 5.0
+    assert record["stall_timeout_s"] == 30.0
+    assert record["timeout_debug_snapshot"]["timeout_kind"] == "wall_clock_budget_exhausted"
+    assert record["timeout_debug_snapshot"]["progress"]["observe"] > 1
+
+
+def _live_surface_kwargs(
+    run_dir: Path,
+    *,
+    live_timeout_s: float | None = None,
+    live_stall_timeout_s: float | None = None,
+) -> dict[str, Any]:
     return {
         "output_dir": run_dir,
         "seed": 7,
@@ -133,4 +265,5 @@ def _live_surface_kwargs(run_dir: Path, *, live_timeout_s: float | None = None) 
         "provider_profile": "codex-router-responses",
         "model": None,
         "live_timeout_s": live_timeout_s,
+        "live_stall_timeout_s": live_stall_timeout_s,
     }

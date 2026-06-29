@@ -148,6 +148,7 @@ def _run_eval_from_overrides(overrides: dict[str, str]):
     model = values.pop("model", None)
     live_execution = values.pop("live_execution", "blocked")
     live_timeout_s = _optional_float(values.pop("live_timeout_s", None))
+    live_stall_timeout_s = _optional_float(values.pop("live_stall_timeout_s", None))
     regrade_source = _optional_path(values.pop("regrade_source", None))
     if values:
         keys = ", ".join(sorted(values))
@@ -162,6 +163,7 @@ def _run_eval_from_overrides(overrides: dict[str, str]):
         model=model,
         live_execution=live_execution,
         live_timeout_s=live_timeout_s,
+        live_stall_timeout_s=live_stall_timeout_s,
         regrade_source=regrade_source,
     )
 
