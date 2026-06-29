@@ -10,7 +10,6 @@ from roboclaws.launch.agent_engines import agent_engine_spec
 from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS, WORLD_SPECS
 from roboclaws.operator_console.launcher import ConsoleLaunchError, build_launch_argv
 from roboclaws.operator_console.routes import (
-    MOLMOSPACES_MUJOCO_DEFAULT_CLEANUP_WORLD_IDS,
     get_selection,
     list_console_combinations,
     list_evidence_lanes,
@@ -327,14 +326,8 @@ def test_molmospaces_scene_choices_use_scene_specific_launch_defaults(tmp_path) 
     enabled_ids = {route.id for route in list_console_combinations(include_disabled=False)}
     for world_id in MOLMOSPACES_CONSOLE_WORLD_IDS:
         assert f"{world_id}::mujoco::map-build::direct-runner::world-public-labels" in enabled_ids
-    disabled_ids = {
-        route.id for route in list_console_combinations(include_disabled=True) if not route.enabled
-    }
-    assert MOLMOSPACES_MUJOCO_DEFAULT_CLEANUP_WORLD_IDS == ()
     for world_id in MOLMOSPACES_CONSOLE_WORLD_IDS:
-        assert (
-            f"{world_id}::mujoco::cleanup::openai-agents-sdk::world-public-labels" in disabled_ids
-        )
+        assert f"{world_id}::mujoco::cleanup::openai-agents-sdk::world-public-labels" in enabled_ids
 
     objaverse0 = get_selection(MUJOCO_SDK_CLEANUP)
     val10 = get_selection(
@@ -381,14 +374,9 @@ def test_molmospaces_scene_choices_use_scene_specific_launch_defaults(tmp_path) 
     assert "map_bundle=assets/maps/molmospaces/procthor-objaverse-val/10" in argv
 
 
-def test_molmospaces_cleanup_routes_match_scene_target_capacity() -> None:
+def test_molmospaces_cleanup_routes_are_selectable_for_ui_scenes() -> None:
     all_ids = {route.id for route in list_console_combinations()}
     enabled_ids = {route.id for route in list_console_combinations(include_disabled=False)}
-    disabled = {
-        route.id: route.disabled_reason
-        for route in list_console_combinations()
-        if not route.enabled
-    }
 
     assert not any(route_id.startswith("molmospaces/val_6::") for route_id in all_ids)
     assert not any(route_id.startswith("molmospaces/val_8::") for route_id in all_ids)
@@ -401,12 +389,6 @@ def test_molmospaces_cleanup_routes_match_scene_target_capacity() -> None:
         "molmospaces/val_1::mujoco::cleanup::openai-agents-sdk::world-public-labels" not in all_ids
     )
 
-    cleanup_disabled = (
-        "molmospaces/procthor-objaverse-val/0::mujoco::cleanup::openai-agents-sdk::"
-        "world-public-labels"
-    )
-    assert cleanup_disabled in disabled
-    assert "at least 5 generated cleanup targets" in disabled[cleanup_disabled]
     assert not any(
         "::isaaclab::" in route_id for route_id in all_ids if route_id.startswith("molmospaces/")
     )
@@ -420,17 +402,8 @@ def test_molmospaces_cleanup_routes_match_scene_target_capacity() -> None:
     )
     assert B1_OPENAI_AGENTS_OPEN_TASK in enabled_ids
 
-    enabled_mujoco_cleanup_worlds = {
-        route.world_id
-        for route in list_console_combinations(include_disabled=False)
-        if (
-            route.backend_id == "mujoco"
-            and route.intent_id == "cleanup"
-            and route.agent_engine_id == "openai-agents-sdk"
-            and route.evidence_lane == "world-public-labels"
-        )
-    }
-    assert enabled_mujoco_cleanup_worlds == set()
+    for world_id in MOLMOSPACES_CONSOLE_WORLD_IDS:
+        assert f"{world_id}::mujoco::cleanup::openai-agents-sdk::world-public-labels" in enabled_ids
 
 
 def test_console_keeps_b1_unsupported_isaac_lane_visible_but_disabled() -> None:

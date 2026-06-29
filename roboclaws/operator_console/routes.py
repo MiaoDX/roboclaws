@@ -37,8 +37,6 @@ ISAAC_SUPPORTED_EVIDENCE_LANES = tuple(
     lane for lane in REAL_EVIDENCE_LANES if lane != CAMERA_GROUNDED_LABELS_LANE
 )
 ISAAC_UNSUPPORTED_EVIDENCE_LANES = (CAMERA_GROUNDED_LABELS_LANE,)
-MOLMOSPACES_DEFAULT_CLEANUP_TARGET_COUNT = 5
-MOLMOSPACES_MUJOCO_DEFAULT_CLEANUP_WORLD_IDS: tuple[str, ...] = ()
 B1_ROBOT_PROOF_REQUIRED_OVERRIDES = (
     "b1_alignment_artifact",
     "b1_navigation_artifact",
@@ -410,21 +408,20 @@ def _molmospaces_enabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
     rows: list[ConsoleLaunchSelection] = []
     common_gates = _common_gates()
     for world_id in MOLMOSPACES_CONSOLE_WORLD_IDS:
-        if world_id in MOLMOSPACES_MUJOCO_DEFAULT_CLEANUP_WORLD_IDS:
-            rows.extend(
-                _lane_selections(
-                    world_id,
-                    "mujoco",
-                    "cleanup",
-                    "openai-agents-sdk",
-                    "codex-router-responses",
-                    gates=common_gates,
-                    default_overrides=("seed=7",),
-                    supports_operator_steer=True,
-                    supports_paused_handoff_resume=True,
-                    supports_relative_navigation_control=True,
-                )
+        rows.extend(
+            _lane_selections(
+                world_id,
+                "mujoco",
+                "cleanup",
+                "openai-agents-sdk",
+                "codex-router-responses",
+                gates=common_gates,
+                default_overrides=("seed=7",),
+                supports_operator_steer=True,
+                supports_paused_handoff_resume=True,
+                supports_relative_navigation_control=True,
             )
+        )
         rows.extend(
             _lane_selections(
                 world_id,
@@ -469,7 +466,6 @@ def _molmospaces_enabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
 
 def _disabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
     return (
-        *_disabled_molmospaces_cleanup_combinations(),
         *_lane_selections(
             "b1-map12",
             "isaaclab",
@@ -502,36 +498,6 @@ def _disabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
             emergency_stop_required=True,
         ),
     )
-
-
-def _disabled_molmospaces_cleanup_combinations() -> tuple[ConsoleLaunchSelection, ...]:
-    rows: list[ConsoleLaunchSelection] = []
-    for world_id in MOLMOSPACES_CONSOLE_WORLD_IDS:
-        if world_id not in MOLMOSPACES_MUJOCO_DEFAULT_CLEANUP_WORLD_IDS:
-            reason = (
-                "This scene does not expose at least "
-                f"{MOLMOSPACES_DEFAULT_CLEANUP_TARGET_COUNT} generated cleanup targets "
-                "under the current cleanup rules. Use Map Build or choose a cleanup-ready scene."
-            )
-            for agent_engine_id, provider_profile in (
-                ("openai-agents-sdk", "codex-router-responses"),
-            ):
-                rows.extend(
-                    _lane_selections(
-                        world_id,
-                        "mujoco",
-                        "cleanup",
-                        agent_engine_id,
-                        provider_profile,
-                        enabled=False,
-                        unsupported_reason=reason,
-                        gates=_common_gates(),
-                        default_overrides=("seed=7",),
-                        supports_operator_steer=True,
-                        supports_paused_handoff_resume=True,
-                    )
-                )
-    return tuple(rows)
 
 
 def _selection(
