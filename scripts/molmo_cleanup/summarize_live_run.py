@@ -18,6 +18,7 @@ from roboclaws.reports.live_performance import (
     compare_report_performance_metrics,
     extract_report_performance_metrics,
 )
+from scripts.molmo_cleanup.live_debug_summary import debug_snapshot_lines
 
 DEFAULT_SEARCH_ROOT = Path("output/molmo/codex-report")
 LIVE_RUN_DISCOVERY_FILES = (
@@ -529,44 +530,8 @@ def _print_timing(timing: dict[str, Any]) -> None:
 
 
 def _print_debug_snapshot(snapshot: dict[str, Any]) -> None:
-    if not snapshot:
-        return
-    progress = snapshot.get("progress") if isinstance(snapshot.get("progress"), dict) else {}
-    print(
-        "debug snapshot: "
-        f"elapsed={_format_duration(snapshot.get('elapsed_s'))} "
-        f"result={snapshot.get('run_result_present', False)} "
-        f"report={snapshot.get('report_present', False)} "
-        f"last={snapshot.get('last_trace_event', 'none')} "
-        f"last_response={snapshot.get('last_trace_response', 'none')}"
-    )
-    print(
-        "debug progress: "
-        f"metric_map={progress.get('metric_map', 0)} "
-        f"resolve={progress.get('resolve_target_query', 0)} "
-        f"observe={progress.get('observe', 0)} "
-        f"nav_wp={progress.get('navigate_to_waypoint', 0)} "
-        f"pick={progress.get('pick', 0)} "
-        f"place={progress.get('place', 0)} "
-        f"done={progress.get('done', 0)}"
-    )
-    event_counts = (
-        snapshot.get("openai_agents_event_counts")
-        if isinstance(snapshot.get("openai_agents_event_counts"), dict)
-        else {}
-    )
-    if event_counts:
-        interesting = (
-            "model_service_attempt",
-            "model_service_success",
-            "model_service_failure",
-            "model_racing_arm_start",
-            "model_racing_arm_finish",
-        )
-        print(
-            "debug model events: "
-            + " ".join(f"{name}={event_counts.get(name, 0)}" for name in interesting)
-        )
+    for line in debug_snapshot_lines(snapshot):
+        print(line)
 
 
 def _print_runner_timing(runner: dict[str, Any]) -> None:

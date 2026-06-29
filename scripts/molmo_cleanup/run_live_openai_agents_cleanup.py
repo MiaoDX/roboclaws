@@ -61,6 +61,7 @@ from roboclaws.reports.live_performance import (
     extract_model_call_metrics,
     write_model_call_metrics_jsonl,
 )
+from scripts.molmo_cleanup.live_status_writer import LiveRunStatusWriter
 from scripts.molmo_cleanup.openai_agents_budget import (
     raw_fpv_budget_failure as _raw_fpv_budget_failure,
 )
@@ -136,7 +137,6 @@ OPERATOR_HANDOFF_WAIT_MARKERS = (
     "等待",
     "我现在停止",
 )
-
 
 DEFAULT_INCOMPLETE_TURN_CONTINUATION_PROMPT = """
 Continuation recovery for the same live household cleanup run:
@@ -422,12 +422,13 @@ class LiveOpenAIAgentsCleanupRunner:
         self.server_log_path = self.run_dir / "openai-agents-server.log"
         self.server_log_file: BinaryIO | None = None
         self.server_log_thread: threading.Thread | None = None
-        self.status_lock = threading.Lock()
-        self.status_phase = "initializing"
-        self.status_terminal = False
-        self.heartbeat_stop = threading.Event()
-        self.heartbeat_thread: threading.Thread | None = None
         self.run_lease = HouseholdLiveRunLease()
+        self.status_writer = LiveRunStatusWriter(
+            run_dir=self.run_dir,
+            status_path=self.status_path,
+            started_at_epoch=self.started_at_epoch,
+            lease_status_fields=self.run_lease.status_fields,
+        )
         self.operator_handoff_active = False
         self.agent_sdk_perf_profile = _resolve_agent_sdk_perf_profile(args)
         self.skill_context = _load_agent_sdk_skill_context(
@@ -481,7 +482,7 @@ class LiveOpenAIAgentsCleanupRunner:
         self.run_dir.mkdir(parents=True, exist_ok=True)
         try:
             self._acquire_lock()
-            self._start_status_heartbeat()
+            self.status_writer.start_heartbeat()
             self._write_status("starting-server")
             self._start_server()
             self._wait_for_mcp_ready()
@@ -497,7 +498,7 @@ class LiveOpenAIAgentsCleanupRunner:
             self._write_live_timing("failed", 130, reason="keyboard_interrupt")
             self._cleanup_server()
             self._release_visual_slot()
-            self._stop_status_heartbeat()
+            self.status_writer.stop_heartbeat()
             return 130
         except LiveAgentRunFailure as exc:
             print(f"error: {exc}", file=sys.stderr)
@@ -505,7 +506,7 @@ class LiveOpenAIAgentsCleanupRunner:
             self._write_live_timing("failed", 1, **exc.failure.status_fields())
             self._cleanup_server()
             self._release_visual_slot()
-            self._stop_status_heartbeat()
+            self.status_writer.stop_heartbeat()
             return 1
         except Exception as exc:
             print(f"error: {exc}", file=sys.stderr)
@@ -513,13 +514,13 @@ class LiveOpenAIAgentsCleanupRunner:
             self._write_live_timing("failed", 1, reason=str(exc))
             self._cleanup_server()
             self._release_visual_slot()
-            self._stop_status_heartbeat()
+            self.status_writer.stop_heartbeat()
             return 1
 
         self._write_live_timing("finished", 0)
         self._write_status("finished", 0)
         self._release_visual_slot()
-        self._stop_status_heartbeat()
+        self.status_writer.stop_heartbeat()
         return 0
 
     def _acquire_lock(self) -> None:
@@ -1116,31 +1117,6 @@ class LiveOpenAIAgentsCleanupRunner:
             log_file.close()
             self.server_log_file = None
 
-    def _start_status_heartbeat(self) -> None:
-        if self.heartbeat_thread is not None:
-            return
-        self.heartbeat_thread = threading.Thread(
-            target=self._status_heartbeat_loop,
-            daemon=True,
-            name="roboclaws-live-status-heartbeat",
-        )
-        self.heartbeat_thread.start()
-
-    def _stop_status_heartbeat(self) -> None:
-        self.heartbeat_stop.set()
-        thread = self.heartbeat_thread
-        if thread is not None:
-            thread.join(timeout=2)
-            self.heartbeat_thread = None
-
-    def _status_heartbeat_loop(self) -> None:
-        while not self.heartbeat_stop.wait(15.0):
-            with self.status_lock:
-                if self.status_terminal:
-                    return
-                phase = self.status_phase
-            self._write_status(phase)
-
     def _write_status(
         self,
         phase: str,
@@ -1152,41 +1128,9 @@ class LiveOpenAIAgentsCleanupRunner:
         resume_available: bool | None = None,
         detail: str = "",
     ) -> None:
-        with self.status_lock:
-            if self.status_terminal and exit_status is None:
-                return
-            self.status_phase = phase
-            if exit_status is not None:
-                self.status_terminal = True
-            now = time.time()
-            payload: dict[str, object] = {
-                "phase": phase,
-                "started_at_epoch": self.started_at_epoch,
-                "updated_at_epoch": now,
-                "elapsed_s": _round_duration(now - self.started_at_epoch),
-                "debug_snapshot": _timeout_debug_snapshot(
-                    self.run_dir,
-                    started_at_epoch=self.started_at_epoch,
-                    captured_at_epoch=now,
-                ),
-            }
-            if reason:
-                payload["reason"] = reason
-            if provider_reason:
-                payload["provider_reason"] = provider_reason
-            if retryable is not None:
-                payload["retryable"] = retryable
-            if resume_available is not None:
-                payload["resume_available"] = resume_available
-            if detail:
-                payload["detail"] = detail
-            payload.update(self.run_lease.status_fields())
-            if exit_status is not None:
-                payload["finished_at_epoch"] = now
-                payload["exit_status"] = exit_status
-            tmp_path = self.status_path.with_suffix(f"{self.status_path.suffix}.tmp")
-            tmp_path.write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
-            tmp_path.replace(self.status_path)
+        self.status_writer.write(
+            phase, exit_status, reason, provider_reason, retryable, resume_available, detail
+        )
 
 
 @dataclass(frozen=True)
@@ -1810,121 +1754,6 @@ def _task_aware_continuation_suffix(args: Any) -> str:
         "steps. Call `done` only after MCP-visible task state satisfies the selected "
         "preset instructions."
     )
-
-
-def _timeout_debug_snapshot(
-    run_dir: Path,
-    *,
-    started_at_epoch: float,
-    captured_at_epoch: float | None = None,
-) -> dict[str, Any]:
-    captured = captured_at_epoch or time.time()
-    trace_events, trace_error = _read_jsonl_path_for_snapshot(run_dir / "trace.jsonl")
-    agent_events, agent_errors = _openai_agents_events_for_snapshot(run_dir)
-    trace_responses = [event for event in trace_events if event.get("event") == "response"]
-    trace_requests = [event for event in trace_events if event.get("event") == "request"]
-    tool_response_counts = _tool_counts(trace_responses)
-    agent_event_counts = _event_counts(agent_events)
-    last_trace = trace_events[-1] if trace_events else {}
-    last_response = trace_responses[-1] if trace_responses else {}
-    last_agent_event = agent_events[-1] if agent_events else {}
-    last_trace_elapsed = _float_or_none(last_trace.get("wallclock_elapsed"))
-    snapshot: dict[str, Any] = {
-        "schema": "molmo_live_timeout_debug_snapshot_v1",
-        "captured_at_epoch": captured,
-        "elapsed_s": _round_duration(captured - started_at_epoch),
-        "runner_pid": os.getpid(),
-        "server_pid": _server_pid_from_file(run_dir / "server.pid"),
-        "run_result_present": (run_dir / "run_result.json").is_file(),
-        "report_present": (run_dir / "report.html").is_file(),
-        "trace_event_count": len(trace_events),
-        "trace_request_count": len(trace_requests),
-        "trace_response_count": len(trace_responses),
-        "last_trace_event": _snapshot_event_label(last_trace),
-        "last_trace_response": _snapshot_event_label(last_response),
-        "last_trace_wallclock_elapsed_s": _round_duration(last_trace_elapsed)
-        if last_trace_elapsed is not None
-        else None,
-        "tool_response_counts": tool_response_counts,
-        "progress": _progress_counts(tool_response_counts),
-        "openai_agents_event_count": len(agent_events),
-        "openai_agents_event_counts": agent_event_counts,
-        "last_openai_agents_event": str(last_agent_event.get("event") or "none"),
-        "last_openai_agents_ts_epoch": _float_or_none(last_agent_event.get("ts_epoch")),
-    }
-    if trace_error:
-        snapshot["trace_source_error"] = trace_error
-    if agent_errors:
-        snapshot["openai_agents_source_errors"] = agent_errors
-    return snapshot
-
-
-def _read_jsonl_path_for_snapshot(path: Path) -> tuple[list[dict[str, Any]], str]:
-    if not path.is_file():
-        return [], ""
-    try:
-        return read_jsonl_objects(path, label="OpenAI Agents live timeout debug"), ""
-    except (OSError, ValueError) as exc:
-        return [], str(exc)
-
-
-def _openai_agents_events_for_snapshot(run_dir: Path) -> tuple[list[dict[str, Any]], list[str]]:
-    rows: list[dict[str, Any]] = []
-    errors: list[str] = []
-    for path in sorted(run_dir.glob("openai-agents-events*.jsonl")):
-        path_rows, error = _read_jsonl_path_for_snapshot(path)
-        rows.extend(path_rows)
-        if error:
-            errors.append(f"{path.name}: {error}")
-    rows.sort(key=lambda item: _float_or_none(item.get("ts_epoch")) or 0.0)
-    return rows, errors
-
-
-def _tool_counts(events: list[dict[str, Any]]) -> dict[str, int]:
-    counts: dict[str, int] = {}
-    for event in events:
-        tool = str(event.get("tool") or "")
-        if tool and not tool.startswith("<"):
-            counts[tool] = counts.get(tool, 0) + 1
-    return counts
-
-
-def _event_counts(events: list[dict[str, Any]]) -> dict[str, int]:
-    counts: dict[str, int] = {}
-    for event in events:
-        name = str(event.get("event") or "unknown")
-        counts[name] = counts.get(name, 0) + 1
-    return counts
-
-
-def _progress_counts(tool_counts: dict[str, int]) -> dict[str, int]:
-    return {
-        "metric_map": tool_counts.get("metric_map", 0),
-        "resolve_target_query": tool_counts.get("resolve_target_query", 0),
-        "observe": tool_counts.get("observe", 0),
-        "navigate_to_waypoint": tool_counts.get("navigate_to_waypoint", 0),
-        "navigate_to_object": tool_counts.get("navigate_to_object", 0),
-        "pick": tool_counts.get("pick", 0),
-        "navigate_to_receptacle": tool_counts.get("navigate_to_receptacle", 0),
-        "open_receptacle": tool_counts.get("open_receptacle", 0),
-        "place": tool_counts.get("place", 0),
-        "place_inside": tool_counts.get("place_inside", 0),
-        "close_receptacle": tool_counts.get("close_receptacle", 0),
-        "done": tool_counts.get("done", 0),
-    }
-
-
-def _snapshot_event_label(event: dict[str, Any]) -> str:
-    if not event:
-        return "none"
-    return f"{event.get('tool', '?')}:{event.get('event', '?')}"
-
-
-def _server_pid_from_file(path: Path) -> int | None:
-    try:
-        return int(path.read_text(encoding="utf-8").strip())
-    except (OSError, ValueError):
-        return None
 
 
 def _estimated_tokens_from_chars(char_count: int) -> int:

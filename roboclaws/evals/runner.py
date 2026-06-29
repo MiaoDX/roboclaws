@@ -27,6 +27,7 @@ from roboclaws.evals.live_runtime import (
     run_live_eval_trial,
     run_live_surface_product,
 )
+from roboclaws.evals.live_timeout import live_exception_debug_fields
 from roboclaws.evals.map_build_quality import grade_runtime_metric_map_quality
 from roboclaws.evals.models import (
     MISSING_NOT_APPLICABLE,
@@ -44,7 +45,6 @@ from roboclaws.household.realworld_cleanup import run_realworld_cleanup
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUTPUT_ROOT = REPO_ROOT / "output" / "evals"
-
 ProductRun = Callable[..., dict[str, Any]]
 
 
@@ -1516,15 +1516,7 @@ def _blocked_result_from_exception(trial: EvalTrial, exc: Exception) -> EvalResu
         "error_type": type(exc).__name__,
         "message": str(exc),
     }
-    effective_run_dir = getattr(exc, "effective_run_dir", "")
-    if effective_run_dir:
-        runner_output["effective_run_dir"] = str(effective_run_dir)
-    timeout_debug_snapshot = getattr(exc, "timeout_debug_snapshot", None)
-    if isinstance(timeout_debug_snapshot, dict) and timeout_debug_snapshot:
-        runner_output["timeout_debug_snapshot"] = timeout_debug_snapshot
-    live_status = getattr(exc, "live_status", None)
-    if isinstance(live_status, dict) and live_status:
-        runner_output["live_status_phase"] = str(live_status.get("phase") or "")
+    runner_output.update(live_exception_debug_fields(exc))
     return EvalResult.from_trial(
         trial,
         status="blocked" if blocked else "failed",
