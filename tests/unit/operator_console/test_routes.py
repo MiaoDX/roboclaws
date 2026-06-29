@@ -187,9 +187,9 @@ def test_b1_map12_scene_preview_has_v1_runtime_camera_provenance() -> None:
     assert metadata["schema"] == "operator_console_scene_preview_v1"
     assert metadata["world_id"] == "b1-map12"
     assert metadata["backend"] == "isaaclab"
-    assert metadata["renderer"] == "b1_map12_static_semantic_previews_with_isaac_runtime_camera"
+    assert metadata["renderer"] == "b1_map12_static_gaussian_topdown_with_isaac_runtime_camera"
     assert metadata["scene_usd_path"] == (
-        "data/robot-data-lab/scene-engine/data/B1_floor2_slow/usda/F2_all/default.usda"
+        "data/robot-data-lab/scene-engine/data/2rd_floor_seperated/storey_1/scene_gs.usda"
     )
     assert metadata["camera_preview_artifact"]["schema"] == "b1_map12_navigation_smoke_v1"
     assert metadata["camera_preview_artifact"]["source_artifact_name"] == "navigation_smoke.json"
@@ -207,8 +207,12 @@ def test_b1_map12_scene_preview_has_v1_runtime_camera_provenance() -> None:
     assert metadata["views"]["map"]["view"] == "base_metric_map_preview"
     assert metadata["views"]["map"]["artifact_source_family"] == "base_metric_map_bundle"
     assert metadata["views"]["topdown"]["view"] == "topdown_scene_render"
-    assert metadata["views"]["topdown"]["artifact_source_family"] == "semantic_map_overlay"
-    assert metadata["views"]["topdown"]["first_waypoint_id"] == "meeting_room_b_inspection"
+    assert metadata["views"]["topdown"]["artifact_source_family"] == "scene_camera_render"
+    assert metadata["views"]["topdown"]["provenance"] == "b1_scene_gaussian_topdown_crop_z1p8_png"
+    assert metadata["views"]["topdown"]["alignment_status"] == (
+        "height_cropped_gaussian_scene_topdown"
+    )
+    assert "first_waypoint_id" not in metadata["views"]["topdown"]
     assert "diagnostic_views" not in metadata
     assert metadata["map_bundle"] == "vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot"
     assert "runtime_map_bundle" not in metadata

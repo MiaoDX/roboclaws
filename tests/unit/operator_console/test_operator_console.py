@@ -766,7 +766,7 @@ def _assert_scene_preview_json_assets(base_url: str) -> None:
         assert preview["views"]["chase"]["view"] == "chase_camera"
     with urllib.request.urlopen(f"{base_url}/previews/b1-map12-preview.json") as response:
         preview = json.loads(response.read().decode("utf-8"))
-        assert preview["renderer"] == "b1_map12_static_semantic_previews_with_isaac_runtime_camera"
+        assert preview["renderer"] == "b1_map12_static_gaussian_topdown_with_isaac_runtime_camera"
         assert preview["views"]["fpv"]["view"] == "raw_fpv"
         assert preview["views"]["map"]["view"] == "base_metric_map_preview"
         assert preview["views"]["chase"]["view"] == "chase_camera"

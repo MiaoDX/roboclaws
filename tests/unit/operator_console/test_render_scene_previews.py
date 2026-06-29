@@ -199,7 +199,9 @@ def test_molmospaces_preview_scene_ref_rejects_unknown_source_or_index() -> None
         _molmospaces_scene_ref("molmospaces/ithor/-1")
 
 
-def test_b1_map12_preview_generates_static_semantic_map_assets(tmp_path: Path) -> None:
+def test_b1_map12_preview_generates_static_map_and_gaussian_topdown_assets(
+    tmp_path: Path,
+) -> None:
     Image.new("RGB", (16, 16), (10, 20, 30)).save(tmp_path / "b1-map12-map.png")
     Image.new("RGB", (16, 16), (30, 20, 10)).save(tmp_path / "b1-map12-topdown.png")
 
@@ -214,13 +216,24 @@ def test_b1_map12_preview_generates_static_semantic_map_assets(tmp_path: Path) -
     metadata = json.loads((tmp_path / "b1-map12-preview.json").read_text(encoding="utf-8"))
     assert metadata["schema"] == PREVIEW_METADATA_SCHEMA
     assert metadata["backend"] == "isaaclab"
-    assert metadata["renderer"] == "b1_map12_static_semantic_previews"
+    assert metadata["renderer"] == "b1_map12_static_gaussian_topdown_previews"
     assert set(metadata["views"]) == {"map", "topdown"}
     assert metadata["views"]["map"]["view"] == "base_metric_map_preview"
     assert metadata["views"]["map"]["artifact_source_family"] == "base_metric_map_bundle"
     assert metadata["views"]["topdown"]["view"] == "topdown_scene_render"
-    assert metadata["views"]["topdown"]["artifact_source_family"] == "semantic_map_overlay"
-    assert metadata["views"]["topdown"]["first_waypoint_id"] == "meeting_room_b_inspection"
+    assert metadata["views"]["topdown"]["artifact_source_family"] == "scene_camera_render"
+    assert metadata["views"]["topdown"]["provenance"] == "b1_scene_gaussian_topdown_crop_z1p8_png"
+    assert metadata["views"]["topdown"]["alignment_status"] == (
+        "height_cropped_gaussian_scene_topdown"
+    )
+    assert metadata["views"]["topdown"]["source_packet"] == (
+        "output/b1-map12/scene-gaussian-topdown-crop-z1p8/scene_gaussian_topdown.json"
+    )
+    assert metadata["views"]["topdown"]["source_status"] in {
+        "captured_gaussian_topdown_packet",
+        "checked_in_operator_preview_png",
+    }
+    assert "first_waypoint_id" not in metadata["views"]["topdown"]
     assert "diagnostic_views" not in metadata
     assert "runtime_map_bundle" not in metadata
 
@@ -281,7 +294,7 @@ def test_b1_map12_preview_promotes_real_isaac_camera_artifact(tmp_path: Path) ->
     for view_name in ("fpv", "map", "chase", "topdown"):
         assert (tmp_path / f"b1-map12-{view_name}.png").is_file()
     metadata = json.loads((tmp_path / "b1-map12-preview.json").read_text(encoding="utf-8"))
-    assert metadata["renderer"] == "b1_map12_static_semantic_previews_with_isaac_runtime_camera"
+    assert metadata["renderer"] == "b1_map12_static_gaussian_topdown_with_isaac_runtime_camera"
     assert set(metadata["views"]) == {"fpv", "map", "chase", "topdown"}
     assert metadata["camera_preview_artifact"]["source_artifact_name"] == "run_result.json"
     assert metadata["camera_preview_artifact"]["source_artifact_sha256"] == _file_sha256(artifact)
@@ -849,6 +862,8 @@ def test_b1_map12_skip_existing_rewrites_stale_camera_preview_metadata(tmp_path:
     assert "chase" not in metadata["views"]
     assert "map" in metadata["views"]
     assert "topdown" in metadata["views"]
+    assert metadata["views"]["topdown"]["provenance"] == "b1_scene_gaussian_topdown_crop_z1p8_png"
+    assert metadata["views"]["topdown"]["artifact_source_family"] == "scene_camera_render"
 
 
 def test_b1_map12_rewrites_prepared_nurec_scene_probe_camera_previews(tmp_path: Path) -> None:
@@ -875,7 +890,7 @@ def test_b1_map12_rewrites_prepared_nurec_scene_probe_camera_previews(tmp_path: 
                     },
                     "topdown": {
                         "path": "b1-map12-topdown.png",
-                        "provenance": "b1_map12_reviewed_semantic_topdown_png",
+                        "provenance": "b1_scene_gaussian_topdown_crop_z1p8_png",
                     },
                 },
             },
@@ -894,7 +909,7 @@ def test_b1_map12_rewrites_prepared_nurec_scene_probe_camera_previews(tmp_path: 
     assert (tmp_path / "b1-map12-map.png").is_file()
     assert (tmp_path / "b1-map12-topdown.png").is_file()
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-    assert metadata["renderer"] == "b1_map12_static_semantic_previews"
+    assert metadata["renderer"] == "b1_map12_static_gaussian_topdown_previews"
     assert "fpv" not in metadata["views"]
     assert "chase" not in metadata["views"]
     assert "map" in metadata["views"]
@@ -924,7 +939,7 @@ def test_b1_map12_skip_existing_rewrites_missing_real_camera_files(tmp_path: Pat
                     },
                     "topdown": {
                         "path": "b1-map12-topdown.png",
-                        "provenance": "b1_map12_reviewed_semantic_topdown_png",
+                        "provenance": "b1_scene_gaussian_topdown_crop_z1p8_png",
                     },
                 },
             },
@@ -944,7 +959,7 @@ def test_b1_map12_skip_existing_rewrites_missing_real_camera_files(tmp_path: Pat
 
     assert result["status"] == "rendered"
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-    assert metadata["renderer"] == "b1_map12_static_semantic_previews"
+    assert metadata["renderer"] == "b1_map12_static_gaussian_topdown_previews"
     assert "fpv" not in metadata["views"]
     assert "chase" not in metadata["views"]
     assert "map" in metadata["views"]
@@ -1025,7 +1040,7 @@ def test_b1_map12_static_preview_does_not_carry_forward_real_camera_previews(
     assert (tmp_path / "b1-map12-map.png").is_file()
     assert (tmp_path / "b1-map12-topdown.png").is_file()
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-    assert metadata["renderer"] == "b1_map12_static_semantic_previews"
+    assert metadata["renderer"] == "b1_map12_static_gaussian_topdown_previews"
     assert "camera_preview_artifact" not in metadata
     assert set(metadata["views"]) == {"map", "topdown"}
 
@@ -1104,7 +1119,7 @@ def _write_stale_b1_real_camera_preview_metadata(
                     },
                     "topdown": {
                         "path": "b1-map12-topdown.png",
-                        "provenance": "b1_map12_reviewed_semantic_topdown_png",
+                        "provenance": "b1_scene_gaussian_topdown_crop_z1p8_png",
                     },
                 },
             },

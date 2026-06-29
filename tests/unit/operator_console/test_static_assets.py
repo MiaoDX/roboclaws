@@ -243,11 +243,9 @@ def _assert_b1_preview_metadata(preview_dir: Path) -> None:
     b1_metadata = json.loads((preview_dir / "b1-map12-preview.json").read_text(encoding="utf-8"))
     assert b1_metadata["world_id"] == "b1-map12"
     assert b1_metadata["backend"] == "isaaclab"
-    assert b1_metadata["renderer"] == (
-        "b1_map12_static_semantic_previews_with_isaac_runtime_camera"
-    )
+    assert b1_metadata["renderer"] == ("b1_map12_static_gaussian_topdown_with_isaac_runtime_camera")
     assert b1_metadata["scene_usd_path"] == (
-        "data/robot-data-lab/scene-engine/data/B1_floor2_slow/usda/F2_all/default.usda"
+        "data/robot-data-lab/scene-engine/data/2rd_floor_seperated/storey_1/scene_gs.usda"
     )
     assert b1_metadata["views"]["fpv"]["view"] == "raw_fpv"
     assert b1_metadata["views"]["chase"]["view"] == "chase_camera"
@@ -258,7 +256,13 @@ def _assert_b1_preview_metadata(preview_dir: Path) -> None:
     assert b1_metadata["views"]["map"]["view"] == "base_metric_map_preview"
     assert b1_metadata["views"]["map"]["artifact_source_family"] == "base_metric_map_bundle"
     assert b1_metadata["views"]["topdown"]["view"] == "topdown_scene_render"
-    assert b1_metadata["views"]["topdown"]["artifact_source_family"] == "semantic_map_overlay"
+    assert b1_metadata["views"]["topdown"]["artifact_source_family"] == "scene_camera_render"
+    assert b1_metadata["views"]["topdown"]["provenance"] == (
+        "b1_scene_gaussian_topdown_crop_z1p8_png"
+    )
+    assert b1_metadata["views"]["topdown"]["alignment_status"] == (
+        "height_cropped_gaussian_scene_topdown"
+    )
     assert "diagnostic_views" not in b1_metadata
 
 
