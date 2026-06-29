@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -36,6 +37,27 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 ProductRun = Callable[..., dict[str, Any]]
 DEFAULT_LIVE_TIMEOUT_S = 3600.0
 DEFAULT_LIVE_TIMEOUT_COMPLETION_GRACE_S = 30.0
+
+
+class LiveEvalTimeoutError(TimeoutError):
+    """Raised when the foreground live eval process exceeds its timeout."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        timeout_s: float | None,
+        effective_run_dir: Path,
+        live_status: dict[str, Any],
+        timeout_debug_snapshot: dict[str, Any],
+        command_record: dict[str, Any],
+    ) -> None:
+        super().__init__(message)
+        self.timeout_s = timeout_s
+        self.effective_run_dir = str(effective_run_dir)
+        self.live_status = live_status
+        self.timeout_debug_snapshot = timeout_debug_snapshot
+        self.command_record = command_record
 
 
 @dataclass(frozen=True)
@@ -177,6 +199,11 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
                 "live_status": _load_json(sample_run_dir / "live_status.json"),
             }
         )
+        record["timeout_debug_snapshot"] = _live_timeout_snapshot(
+            sample_run_dir,
+            live_status=record["live_status"],
+            timeout_s=timeout_s,
+        )
         run_result_path = sample_run_dir / "run_result.json"
         run_result = _load_json(run_result_path)
         if run_result and _live_surface_already_complete(
@@ -188,8 +215,16 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
             _write_live_eval_command_record(run_dir / "live_eval_command.json", record)
             run_result["eval_effective_run_dir"] = str(sample_run_dir)
             return run_result
+        record["timeout_child_cleanup"] = _cleanup_timed_out_live_children(sample_run_dir)
         _write_live_eval_command_record(run_dir / "live_eval_command.json", record)
-        raise TimeoutError(f"live eval trial timed out after {timeout_s:g}s") from exc
+        raise LiveEvalTimeoutError(
+            f"live eval trial timed out after {timeout_s:g}s",
+            timeout_s=timeout_s,
+            effective_run_dir=sample_run_dir,
+            live_status=record["live_status"],
+            timeout_debug_snapshot=record["timeout_debug_snapshot"],
+            command_record=record,
+        ) from exc
 
     sample_run_dir = discover_live_surface_run_dir(
         kwargs,
@@ -678,6 +713,132 @@ def _public_backend_from_implementation(backend: str) -> str:
 
 def _load_json(path: Path) -> dict[str, Any]:
     return load_live_eval_json(path)
+
+
+def _live_timeout_snapshot(
+    effective_run_dir: Path,
+    *,
+    live_status: dict[str, Any],
+    timeout_s: float | None,
+) -> dict[str, Any]:
+    status_snapshot = live_status.get("debug_snapshot")
+    if isinstance(status_snapshot, dict):
+        snapshot = dict(status_snapshot)
+    else:
+        snapshot = {
+            "schema": "molmo_live_timeout_debug_snapshot_v1",
+            "run_result_present": (effective_run_dir / "run_result.json").is_file(),
+            "report_present": (effective_run_dir / "report.html").is_file(),
+        }
+    snapshot["eval_timeout_s"] = timeout_s
+    snapshot["effective_run_dir"] = str(effective_run_dir)
+    snapshot["live_status_phase"] = str(live_status.get("phase") or "")
+    if "elapsed_s" not in snapshot and live_status.get("elapsed_s") is not None:
+        snapshot["elapsed_s"] = live_status.get("elapsed_s")
+    return snapshot
+
+
+def _cleanup_timed_out_live_children(effective_run_dir: Path) -> dict[str, Any]:
+    pid_path = effective_run_dir / "server.pid"
+    payload: dict[str, Any] = {"server_pid_path": str(pid_path), "server_pid": None}
+    try:
+        pid = int(pid_path.read_text(encoding="utf-8").strip())
+    except (OSError, ValueError) as exc:
+        payload["status"] = "server_pid_unavailable"
+        payload["error_type"] = exc.__class__.__name__
+        payload["visual_backend_slot_cleanup"] = _cleanup_visual_backend_slot_for_run(
+            effective_run_dir
+        )
+        return payload
+    payload["server_pid"] = pid
+    if not _process_exists(pid):
+        payload["status"] = "server_not_running"
+        payload["visual_backend_slot_cleanup"] = _cleanup_visual_backend_slot_for_run(
+            effective_run_dir
+        )
+        return payload
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except OSError as exc:
+        payload["status"] = "terminate_failed"
+        payload["error_type"] = exc.__class__.__name__
+        payload["message"] = str(exc)
+        payload["visual_backend_slot_cleanup"] = _cleanup_visual_backend_slot_for_run(
+            effective_run_dir
+        )
+        return payload
+    deadline = time.monotonic() + 5.0
+    while time.monotonic() < deadline:
+        if not _process_exists(pid):
+            payload["status"] = "terminated"
+            payload["visual_backend_slot_cleanup"] = _cleanup_visual_backend_slot_for_run(
+                effective_run_dir
+            )
+            return payload
+        time.sleep(0.1)
+    try:
+        os.kill(pid, signal.SIGKILL)
+    except OSError as exc:
+        payload["status"] = "kill_failed"
+        payload["error_type"] = exc.__class__.__name__
+        payload["message"] = str(exc)
+        payload["visual_backend_slot_cleanup"] = _cleanup_visual_backend_slot_for_run(
+            effective_run_dir
+        )
+        return payload
+    payload["status"] = "killed" if not _process_exists(pid) else "kill_sent"
+    payload["visual_backend_slot_cleanup"] = _cleanup_visual_backend_slot_for_run(effective_run_dir)
+    return payload
+
+
+def _process_exists(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def _cleanup_visual_backend_slot_for_run(effective_run_dir: Path) -> dict[str, Any]:
+    slot_root = REPO_ROOT / "output" / "molmo" / "visual-backend-slots"
+    target = _resolved_path(effective_run_dir)
+    removed: list[str] = []
+    errors: list[dict[str, str]] = []
+    for path in sorted(slot_root.glob("slot-*.json")):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            errors.append({"path": str(path), "error_type": exc.__class__.__name__})
+            continue
+        if not isinstance(payload, dict):
+            continue
+        slot_output = str(payload.get("output_dir") or "")
+        if not slot_output or _resolved_path(Path(slot_output)) != target:
+            continue
+        try:
+            path.unlink()
+        except OSError as exc:
+            errors.append(
+                {
+                    "path": str(path),
+                    "error_type": exc.__class__.__name__,
+                    "message": str(exc),
+                }
+            )
+            continue
+        removed.append(str(path))
+    return {
+        "slot_root": str(slot_root),
+        "target_output_dir": str(effective_run_dir),
+        "removed": removed,
+        "errors": errors,
+    }
+
+
+def _resolved_path(path: Path) -> Path:
+    return (REPO_ROOT / path).resolve() if not path.is_absolute() else path.resolve()
 
 
 def _subprocess_text_output(value: object) -> str:

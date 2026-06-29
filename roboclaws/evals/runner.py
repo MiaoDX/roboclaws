@@ -1511,17 +1511,25 @@ def _prior_use_verdict(
 def _blocked_result_from_exception(trial: EvalTrial, exc: Exception) -> EvalResult:
     failure_class = _failure_class_from_exception(exc)
     blocked = failure_class in {"environment_blocked", "model_or_provider_unavailable"}
+    runner_output: dict[str, Any] = {
+        "status": "blocked" if blocked else "failed",
+        "error_type": type(exc).__name__,
+        "message": str(exc),
+    }
+    effective_run_dir = getattr(exc, "effective_run_dir", "")
+    if effective_run_dir:
+        runner_output["effective_run_dir"] = str(effective_run_dir)
+    timeout_debug_snapshot = getattr(exc, "timeout_debug_snapshot", None)
+    if isinstance(timeout_debug_snapshot, dict) and timeout_debug_snapshot:
+        runner_output["timeout_debug_snapshot"] = timeout_debug_snapshot
+    live_status = getattr(exc, "live_status", None)
+    if isinstance(live_status, dict) and live_status:
+        runner_output["live_status_phase"] = str(live_status.get("phase") or "")
     return EvalResult.from_trial(
         trial,
         status="blocked" if blocked else "failed",
         failure_class=failure_class,
-        grader_outputs={
-            "runner": {
-                "status": "blocked" if blocked else "failed",
-                "error_type": type(exc).__name__,
-                "message": str(exc),
-            }
-        },
+        grader_outputs={"runner": runner_output},
         artifacts={},
         metrics={"pass": 0.0},
         limitations=(*trial.limitations, "product_run_failed_before_grading"),
