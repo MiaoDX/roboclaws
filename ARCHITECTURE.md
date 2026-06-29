@@ -219,6 +219,19 @@ SDK/direct household routes. The console does not expose arbitrary shell
 commands: world, backend, intent, agent engine, provider profile, evidence lane,
 and scenario setup all resolve through the public launch catalog.
 
+Operator Console long interaction is modeled as **Operator Session chaining**,
+not as one persistent agent process. A Robot Run remains one auditable episode:
+after `done` or any terminal status, its report, checker result, and artifacts
+are fixed. While a Robot Run is active, new operator text is `Steer Current Run`
+and must be consumed through `check_operator_messages`; active-run queued next
+goals are rejected. During an explicit paused handoff, operator text is
+`Resume With Prompt`. After a terminal parent, `Next Goal` starts a linked child
+Robot Run in the same Operator Session. The child kickoff prompt may receive a
+sanitized public `next_goal_packet` containing the session id, parent run id,
+parent public summary, and public artifact links. Private scorer truth,
+generated mess truth, acceptable destinations, private manifests, and global
+movable-object inventories must not be injected into follow-up context.
+
 ## Evaluation Layer
 
 Eval suites answer whether a household or planner-proof capability is improving
@@ -255,6 +268,18 @@ Live eval execution is opt-in. Non-direct eval requests can record blocked
 identity/preflight packets without launching real providers; `live_execution=run`
 is the explicit switch that runs the selected product route. Provider/runtime
 failures are classified separately from agent behavior failures.
+
+The Operator Session live eval is:
+
+```bash
+just agent::eval session-live budget=smoke \
+  agent_engine=openai-agents-sdk provider_profile=<profile> live_execution=run
+```
+
+It drives the headless operator-console API through parent start, active-run
+Steer, terminal parent, Next Goal child launch, sanitized child follow-up
+context, and child terminal status. Missing provider keys, SDK packages, ports,
+or runtime gates are blocked evidence, not agent behavior failures.
 
 ## Capability Profiles
 

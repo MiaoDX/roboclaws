@@ -82,6 +82,7 @@ _LAUNCH_ONLY_OVERRIDE_KEYS = (
     "skill_name",
     "goal_contract_json",
     "goal_contract_path",
+    "operator_session_context_json",
     "evidence_lane",
     "profile",
     "report",

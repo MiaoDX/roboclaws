@@ -783,6 +783,31 @@ def test_surface_launch_exports_goal_contract_to_lower_recipe_environment() -> N
     assert json.loads(env["ROBOCLAWS_GOAL_CONTRACT_JSON"])["intent"] == "cleanup"
 
 
+def test_surface_launch_exports_operator_session_context_to_lower_recipe_environment() -> None:
+    context = json.dumps(
+        {
+            "schema": "operator_console_next_goal_packet_v1",
+            "operator_session_id": "session-test",
+            "parent_run_id": "parent-run",
+        },
+        sort_keys=True,
+    )
+    plan = resolve_surface_launch(
+        (
+            "surface=household-world",
+            "agent_engine=openai-agents-sdk",
+            "prompt=next task",
+            "evidence_lane=world-public-labels",
+            f"operator_session_context_json={context}",
+        )
+    )
+    env = export_env_from_overrides(plan.overrides)
+
+    assert env["ROBOCLAWS_OPERATOR_SESSION_CONTEXT_JSON"] == context
+    assert not any(item.startswith("operator_session_context_json=") for item in plan.argv)
+    assert json.loads(env["ROBOCLAWS_GOAL_CONTRACT_JSON"])["normalized_goal"] == "next task"
+
+
 def test_surface_launch_rejects_retired_ai2thor_surface() -> None:
     with pytest.raises(LaunchError, match="unsupported surface 'ai2thor-world'") as exc:
         resolve_surface_launch(

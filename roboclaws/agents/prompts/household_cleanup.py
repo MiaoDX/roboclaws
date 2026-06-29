@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import json
+from typing import Any
 
 from roboclaws.household.map_build_scan_profile import (
     map_build_scan_profile,
@@ -89,6 +91,30 @@ OPEN_ENDED_HOUSEHOLD_TASK_PREFIX = (
     "operator task subject to public tool safety and error responses. "
 )
 DEFAULT_HOUSEHOLD_CLEANUP_TASK = "clean up this room"
+OPERATOR_SESSION_CONTEXT_MAX_CHARS = 12_000
+OPERATOR_SESSION_CONTEXT_HEADING = "Operator Session follow-up context"
+OPERATOR_SESSION_PRIVATE_TERMS = (
+    "generated_mess_set",
+    "generated_mess_truth",
+    "acceptable_destination_sets",
+    "acceptable_destination",
+    "private_manifest",
+    "target_receptacle_id",
+    "private_target_truth",
+    "global_movable_object_inventory",
+    "private_scorer_truth",
+    "scorer_truth",
+)
+OPERATOR_STEER_CHECKPOINT_RULES = (
+    "Operator steering checkpoint rule: this run may receive public operator "
+    "steering through check_operator_messages. Call check_operator_messages after "
+    "metric_map, after each observe or observe_camera_grounded_candidates response, "
+    "before starting a new task/object/search chain, and before done. If any tool "
+    "response includes operator_message_pending, pending_operator_message_count, or "
+    "an operator_message_instruction, call check_operator_messages before continuing "
+    "or ending. Treat seen messages as public steering hints; do not read private "
+    "run artifacts for steering."
+)
 
 
 def _normalize_task(task: str) -> str:
@@ -270,6 +296,8 @@ def render_kickoff_prompt(
     max_observe_per_waypoint: int = 1,
     done_retry_budget: int = 1,
     camera_grounded_composite_tools: bool = False,
+    operator_session_context: dict[str, Any] | None = None,
+    operator_session_context_json: str = "",
 ) -> str:
     """Render the live-agent kickoff prompt for a cleanup evidence lane."""
 
@@ -293,35 +321,145 @@ def render_kickoff_prompt(
         prompt = WORLD_LABELS_COMPACT_PROMPT
     else:
         prompt = COMMON_WAYPOINT_RULES + COMMON_CLEANUP_RULES
-    return _with_task(
+    prompt = f"{prompt} {OPERATOR_STEER_CHECKPOINT_RULES}"
+    prompt = _with_task(
         prompt,
         task,
         household_intent=household_intent,
         goal_contract=goal_contract,
+    )
+    return _with_operator_session_context(
+        prompt,
+        operator_session_context=operator_session_context,
+        operator_session_context_json=operator_session_context_json,
     )
 
 
 def render_map_build_prompt(
     profile: str,
     task: str,
+    *,
+    operator_session_context: dict[str, Any] | None = None,
+    operator_session_context_json: str = "",
 ) -> str:
     """Render the live-agent kickoff prompt for intent=map-build."""
 
     selected_scan_profile = map_build_scan_profile()
     prompt = CUSTOM_PREFIX + MAP_BUILD_RULES.format(task=task)
     prompt += " " + _map_build_scan_profile_prompt(selected_scan_profile.to_payload())
+    prompt += " " + OPERATOR_STEER_CHECKPOINT_RULES
     if profile == "camera-raw-fpv":
-        return (
+        prompt = (
             prompt + " This is the raw-FPV map-build lane: inspect each raw FPV image block "
             "returned by observe, record only public map evidence, and do not declare "
             "cleanup candidates."
         )
-    if profile == "world-public-labels":
-        return (
+    elif profile == "world-public-labels":
+        prompt = (
             prompt + " Treat visible_object_detections as structured public detections without "
             "destination oracle fields; use them only as map labels."
         )
-    return prompt
+    return _with_operator_session_context(
+        prompt,
+        operator_session_context=operator_session_context,
+        operator_session_context_json=operator_session_context_json,
+    )
+
+
+def _with_operator_session_context(
+    prompt: str,
+    *,
+    operator_session_context: dict[str, Any] | None = None,
+    operator_session_context_json: str = "",
+) -> str:
+    return append_operator_session_context(
+        prompt,
+        operator_session_context=operator_session_context,
+        operator_session_context_json=operator_session_context_json,
+    )
+
+
+def append_operator_session_context(
+    prompt: str,
+    *,
+    operator_session_context: dict[str, Any] | None = None,
+    operator_session_context_json: str = "",
+) -> str:
+    if OPERATOR_SESSION_CONTEXT_HEADING in prompt:
+        return prompt
+    block = _operator_session_context_block(
+        operator_session_context=operator_session_context,
+        operator_session_context_json=operator_session_context_json,
+    )
+    if not block:
+        return prompt
+    return f"{prompt.rstrip()}\n\n{block}"
+
+
+def _operator_session_context_block(
+    *,
+    operator_session_context: dict[str, Any] | None = None,
+    operator_session_context_json: str = "",
+) -> str:
+    payload = operator_session_context or _parse_operator_session_context(
+        operator_session_context_json
+    )
+    if not payload:
+        return ""
+    sanitized = _strip_operator_session_private_payload(payload)
+    if not isinstance(sanitized, dict) or not sanitized:
+        return ""
+    serialized = json.dumps(sanitized, ensure_ascii=False, indent=2, sort_keys=True)
+    serialized = _strip_operator_session_private_text(serialized)
+    if len(serialized) > OPERATOR_SESSION_CONTEXT_MAX_CHARS:
+        serialized = serialized[:OPERATOR_SESSION_CONTEXT_MAX_CHARS].rstrip() + "\n..."
+    return (
+        f"{OPERATOR_SESSION_CONTEXT_HEADING} (sanitized public next_goal_packet):\n"
+        f"{serialized}\n"
+        "Use operator_session_id, parent_run_id, the parent public summary, and public "
+        "artifact links as continuity context. Use only public parent context; do not "
+        "consume hidden scoring, generation, destination-answer, manifest, or inventory "
+        "truth from the parent run."
+    )
+
+
+def _parse_operator_session_context(raw: str) -> dict[str, Any]:
+    raw = str(raw or "").strip()
+    if not raw:
+        return {}
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _strip_operator_session_private_payload(value: Any) -> Any:
+    if isinstance(value, dict):
+        output: dict[str, Any] = {}
+        for key, item in value.items():
+            key_text = str(key)
+            if _operator_session_private_key(key_text):
+                continue
+            output[key_text] = _strip_operator_session_private_payload(item)
+        return output
+    if isinstance(value, list):
+        return [_strip_operator_session_private_payload(item) for item in value]
+    if isinstance(value, str):
+        return _strip_operator_session_private_text(value)
+    return value
+
+
+def _operator_session_private_key(key: str) -> bool:
+    normalized = key.lower()
+    return any(term.lower() in normalized for term in OPERATOR_SESSION_PRIVATE_TERMS)
+
+
+def _strip_operator_session_private_text(text: str) -> str:
+    output = text
+    for term in OPERATOR_SESSION_PRIVATE_TERMS:
+        output = output.replace(term, "[redacted_private_field]")
+    return output
 
 
 def _map_build_scan_profile_prompt(scan_profile: dict[str, object]) -> str:
@@ -361,6 +499,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-observe-per-waypoint", type=int, default=1)
     parser.add_argument("--done-retry-budget", type=int, default=1)
     parser.add_argument("--camera-grounded-composite-tools", action="store_true")
+    parser.add_argument("--operator-session-context-json", default="")
     args = parser.parse_args(argv)
     goal_contract = goal_contract_from_json(args.goal_contract_json)
     intent = normalize_household_intent(str(getattr(goal_contract, "intent", "") or args.intent))
@@ -370,6 +509,7 @@ def main(argv: list[str] | None = None) -> int:
             render_map_build_prompt(
                 args.profile,
                 task,
+                operator_session_context_json=args.operator_session_context_json,
             )
         )
     else:
@@ -384,6 +524,7 @@ def main(argv: list[str] | None = None) -> int:
                 max_observe_per_waypoint=args.max_observe_per_waypoint,
                 done_retry_budget=args.done_retry_budget,
                 camera_grounded_composite_tools=args.camera_grounded_composite_tools,
+                operator_session_context_json=args.operator_session_context_json,
             )
         )
     return 0

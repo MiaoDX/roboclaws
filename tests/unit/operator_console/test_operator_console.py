@@ -943,6 +943,9 @@ def test_operator_console_next_goal_autostarts_ready_followup(tmp_path: Path) ->
     assert launch_request.intent_id == "open-ended"
     assert launch_request.operator_session_id == "session-test"
     assert launch_request.parent_run_id == run_id
+    assert launch_request.next_goal_packet["operator_session_id"] == "session-test"
+    assert launch_request.next_goal_packet["parent_run_id"] == run_id
+    assert "parent_public_summary" in launch_request.next_goal_packet
 
 
 def test_operator_console_resume_endpoint_records_paused_handoff_request(

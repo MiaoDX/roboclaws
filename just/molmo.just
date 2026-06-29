@@ -124,6 +124,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
     run_dir_override="${run_dir_override:-${ROBOCLAWS_MOLMO_RUN_DIR_OVERRIDE:-}}"
     goal_contract_json="${goal_contract_json:-${ROBOCLAWS_GOAL_CONTRACT_JSON:-}}"
     goal_contract_path="${goal_contract_path:-${ROBOCLAWS_GOAL_CONTRACT_PATH:-}}"
+    operator_session_context_json="${ROBOCLAWS_OPERATOR_SESSION_CONTEXT_JSON:-}"
     python_bin="${ROBOCLAWS_DEVTOOLS_PYTHON:-.venv/bin/python}"
     if [[ "${ROBOCLAWS_JUST_TRACE:-}" == "1" ]]; then
       trace_args=(
@@ -709,6 +710,9 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
           --max-observe-per-waypoint "$prompt_max_observe_per_waypoint"
           --done-retry-budget "$prompt_done_retry_budget"
         )
+        if [[ -n "$operator_session_context_json" ]]; then
+          prompt_args+=(--operator-session-context-json "$operator_session_context_json")
+        fi
         if [[ "$driver" == "openai-agents-live" && "$profile" == "camera-grounded-labels" ]]; then
           case "${ROBOCLAWS_OPENAI_AGENTS_CAMERA_GROUNDED_COMPOSITE_TOOLS:-}" in
             1|true|True|TRUE|yes|Yes|YES|on|On|ON)

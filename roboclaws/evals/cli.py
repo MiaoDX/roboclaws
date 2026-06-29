@@ -13,6 +13,7 @@ from roboclaws.evals.map_build_reports import (
 )
 from roboclaws.evals.regression import promote_regression_from_cli_overrides
 from roboclaws.evals.runner import DEFAULT_OUTPUT_ROOT, run_eval_suite
+from roboclaws.evals.session_live import run_session_live_eval
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EVAL_HARNESS_RUNNER = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "run_eval_harness.py"
@@ -42,6 +43,13 @@ def main(argv: list[str] | None = None) -> int:
         except ValueError as exc:
             parser.exit(2, f"error: {exc}\n")
         print(json.dumps(report, sort_keys=True))
+        return 0
+    if args.overrides and args.overrides[0] in {"session-live", "session_live"}:
+        try:
+            run = _run_session_live_from_overrides(_parse_key_value_args(args.overrides[1:]))
+        except ValueError as exc:
+            parser.exit(2, f"error: {exc}\n")
+        print(json.dumps({"results": str(run.results_path), "report": str(run.report_path)}))
         return 0
     try:
         run = _run_eval_from_overrides(_parse_key_value_args(args.overrides))
@@ -91,6 +99,29 @@ def _run_map_build_report(overrides: dict[str, str]) -> dict[str, str]:
     return write_map_build_matrix_report(
         eval_results_paths=eval_results_paths,
         output_dir=output_dir,
+    )
+
+
+def _run_session_live_from_overrides(overrides: dict[str, str]):
+    values = dict(overrides)
+    budget = values.pop("budget", "smoke")
+    output_root = Path(values.pop("output_dir", str(DEFAULT_OUTPUT_ROOT)))
+    stamp = values.pop("stamp", None)
+    agent_engine = values.pop("agent_engine", "openai-agents-sdk")
+    provider_profile = values.pop("provider_profile", "codex-router-responses")
+    live_execution = values.pop("live_execution", "blocked")
+    live_timeout_s = _optional_float(values.pop("live_timeout_s", None)) or 900.0
+    if values:
+        keys = ", ".join(sorted(values))
+        raise ValueError(f"unsupported session-live eval override(s): {keys}")
+    return run_session_live_eval(
+        output_root=output_root,
+        budget=budget,
+        stamp=stamp,
+        agent_engine=agent_engine,
+        provider_profile=provider_profile,
+        live_execution=live_execution,
+        live_timeout_s=live_timeout_s,
     )
 
 
