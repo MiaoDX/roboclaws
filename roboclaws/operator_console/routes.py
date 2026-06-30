@@ -82,7 +82,7 @@ class ConsoleLaunchSelection:
             (
                 self.world_id,
                 self.backend_id,
-                self.preset_id or "open-task",
+                selection_task_selector(self.intent_id),
                 self.agent_engine_id,
                 self.evidence_lane,
             )
@@ -312,6 +312,12 @@ def list_evidence_lanes() -> tuple[dict[str, str], ...]:
         }
         for lane in cleanup_evidence_lane_names()
     )
+
+
+def selection_task_selector(intent_id: str) -> str:
+    """Return the task segment used by canonical console selection ids."""
+
+    return intent_id if intent_id in {"cleanup", "map-build"} else "open-task"
 
 
 def _preview_assets_payload(items: tuple[tuple[str, str], ...]) -> dict[str, dict[str, str]]:

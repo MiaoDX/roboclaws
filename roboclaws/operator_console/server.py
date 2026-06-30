@@ -52,6 +52,7 @@ from roboclaws.operator_console.routes import (
     list_console_combinations,
     list_evidence_lanes,
     list_worlds,
+    selection_task_selector,
 )
 from roboclaws.operator_console.runtime_inventory import (
     requested_mcp_endpoint,
@@ -88,10 +89,6 @@ def _registered_preview_asset_names() -> frozenset[str]:
     return frozenset(names)
 
 
-def _selection_task_selector(intent_id: str) -> str:
-    return intent_id if intent_id in {"cleanup", "map-build"} else "open-task"
-
-
 def _readiness_selection_id(query: dict[str, list[str]]) -> str:
     selection_id = str(query.get("selection_id", [""])[0])
     if selection_id:
@@ -105,7 +102,7 @@ def _readiness_selection_id(query: dict[str, list[str]]) -> str:
         (
             world_id,
             backend_id,
-            _selection_task_selector(intent_id),
+            selection_task_selector(intent_id),
             agent_engine_id,
             evidence_lane,
         )

@@ -7,8 +7,8 @@ Source gate: `docs/plans/refactor-operator-console-ui-maintenance.md`
 Latest user intent classification: execute repo-wide architecture maintenance
 for the UI operator console until saturation, using `$intuitive-refactor`.
 
-Current slice: rediscover from current `HEAD` after completing the second clear
-queue item.
+Current slice: commit selection-id task segment helper merge, then rediscover
+from current `HEAD`.
 
 Blocker fingerprint: none.
 
@@ -31,6 +31,9 @@ Last proven evidence:
 - exact no-reference search for `_selection_launch_parts`,
   `selection_id.split`, and `split("::")` under `roboclaws/operator_console`
   and `tests/unit/operator_console`
+- `./scripts/dev/run_pytest_standalone.sh -q tests/unit/operator_console/test_routes.py::test_selection_task_selector_keeps_open_tasks_out_of_preset_vocabulary tests/unit/operator_console/test_runtime_inventory.py::test_runtime_inventory_lists_eval_harness_sdk_live_row tests/unit/operator_console/test_launcher.py::test_launcher_rejects_missing_canonical_selection_identity tests/unit/operator_console/test_operator_console.py::test_operator_console_routes_endpoint_exposes_evidence_lane_matrix`
+- exact duplication search for inline `open-task` selector expressions under
+  `roboclaws/operator_console` and `tests/unit/operator_console`
 
 Completed slice batch summary:
 
@@ -41,6 +44,9 @@ Completed slice batch summary:
 - 2026-06-30: removed the private next-goal selection-id split parser from
   `server.py`; follow-up launch requests now use `get_selection()`. Focused
   follow-up/API proof passed.
+- 2026-06-30: moved the non-preset `open-task` selection-id segment rule into
+  `routes.selection_task_selector()` and updated launcher, server readiness,
+  and runtime inventory callers.
 
 Next proof command:
 

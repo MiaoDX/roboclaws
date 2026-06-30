@@ -15,6 +15,7 @@ from roboclaws.operator_console.routes import (
     list_console_combinations,
     list_evidence_lanes,
     list_worlds,
+    selection_task_selector,
     validate_supported_routes_against_catalog,
 )
 from roboclaws.operator_console.server import ConsoleRequestHandler
@@ -279,6 +280,12 @@ def test_console_combinations_are_catalog_backed_axes() -> None:
         ),
     }
     validate_supported_routes_against_catalog()
+
+
+def test_selection_task_selector_keeps_open_tasks_out_of_preset_vocabulary() -> None:
+    assert selection_task_selector("cleanup") == "cleanup"
+    assert selection_task_selector("map-build") == "map-build"
+    assert selection_task_selector("open-ended") == "open-task"
 
 
 def test_openai_agents_route_payload_lists_provider_profiles() -> None:

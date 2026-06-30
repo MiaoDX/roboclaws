@@ -19,7 +19,7 @@ from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root, operator_output_request_path
 from roboclaws.operator_console.process_status import pid_is_active
 from roboclaws.operator_console.redaction import redact_text
-from roboclaws.operator_console.routes import ConsoleLaunchSelection
+from roboclaws.operator_console.routes import ConsoleLaunchSelection, selection_task_selector
 from roboclaws.operator_console.state import resolve_display_run_dir
 from roboclaws.operator_console.terminal_runs import task_phase_from_paths
 
@@ -902,8 +902,7 @@ def _route_id_from_axes(axes: dict[str, Any]) -> str:
     lane = str(axes.get("evidence_lane") or "")
     if not all((world, backend, intent, engine, lane)):
         return ""
-    task = intent if intent in {"cleanup", "map-build"} else "open-task"
-    return "::".join((world, backend, task, engine, lane))
+    return "::".join((world, backend, selection_task_selector(intent), engine, lane))
 
 
 def _summary(tasks: list[dict[str, Any]]) -> dict[str, Any]:

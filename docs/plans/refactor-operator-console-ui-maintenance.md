@@ -15,10 +15,8 @@ active_capsule: docs/status/active/refactor-operator-console-ui-maintenance.md
 ## Plan Ledger
 
 - Status: ACTIVE
-- Current slice: rediscover from current `HEAD` after completing the second
-  clear queue item.
-- Next action: run the next `$intuitive-reduce-entropy` discovery round against
-  the operator-console UI/API surface.
+- Current slice: canonicalize the console selection-id task segment helper.
+- Next action: commit clear queue item 3, then rediscover from current `HEAD`.
 - Blocker: none.
 - Last proof: route-alias cleanup proof passed on 2026-06-30.
 
@@ -163,6 +161,28 @@ Consecutive no-clear-candidate passes: 0
     and `tests/unit/operator_console`.
   - Skipped browser smoke: this slice changed server-side follow-up request
     construction only; focused API/helper proof covered the observable risk.
+
+3. **DONE: Canonicalize selection-id task segment mapping**
+   - Severity: P2
+   - Entropy source: duplicate owner for `open-task` selection-id vocabulary
+   - Demand gate: `routes.py`, `launcher.py`, `server.py`, and
+     `runtime_inventory.py` each knew that non-preset intents lower to
+     `open-task`; the route registry already owns canonical console selection
+     identity.
+   - Owner layer: operator-console route registry
+   - Expected simplification: one helper owns the selection-id task segment for
+     route payloads, launch requests, readiness query fallback, and eval-row
+     runtime inventory.
+   - Behavior-change class: behavior-preserving internal owner merge.
+   - Proof:
+     `./scripts/dev/run_pytest_standalone.sh -q tests/unit/operator_console/test_routes.py::test_selection_task_selector_keeps_open_tasks_out_of_preset_vocabulary tests/unit/operator_console/test_runtime_inventory.py::test_runtime_inventory_lists_eval_harness_sdk_live_row tests/unit/operator_console/test_launcher.py::test_launcher_rejects_missing_canonical_selection_identity tests/unit/operator_console/test_operator_console.py::test_operator_console_routes_endpoint_exposes_evidence_lane_matrix`;
+     `node --check roboclaws/operator_console/static/app.js`;
+     `.venv/bin/ruff check roboclaws/operator_console tests/unit/operator_console`;
+     `git diff --check`;
+     exact duplication search for inline `open-task` selector expressions under
+     `roboclaws/operator_console` and `tests/unit/operator_console`.
+   - Skipped browser smoke: this slice changed route-id construction helpers,
+     not rendered layout, interaction behavior, or visual asset loading.
 
 ## Parked Registry
 

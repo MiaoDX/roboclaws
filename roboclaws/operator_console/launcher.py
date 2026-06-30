@@ -53,6 +53,7 @@ from roboclaws.operator_console.routes import (
     DEFAULT_PROMPTS,
     ConsoleLaunchSelection,
     get_selection,
+    selection_task_selector,
 )
 from roboclaws.operator_console.runtime_inventory import (
     background_blocker_message,
@@ -104,14 +105,11 @@ class LaunchRequest:
     def selection_id(self) -> str:
         if self.world_id and self.backend_id and self.intent_id and self.agent_engine_id:
             lane = self.evidence_lane or "world-public-labels"
-            task_selector = (
-                self.intent_id if self.intent_id in {"cleanup", "map-build"} else "open-task"
-            )
             return "::".join(
                 (
                     self.world_id,
                     self.backend_id,
-                    task_selector,
+                    selection_task_selector(self.intent_id),
                     self.agent_engine_id,
                     lane,
                 )
