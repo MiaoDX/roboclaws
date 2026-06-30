@@ -159,9 +159,7 @@ class ConsoleLaunchSelection:
             "backend_id": self.backend_id,
             "backend_label": backend.label,
             "intent_id": self.intent_id,
-            "intent": self.intent_id,
             "preset_id": self.preset_id,
-            "preset": self.preset_id,
             "agent_engine_id": self.agent_engine_id,
             "agent_engine_label": engine.label,
             "agent_engine_availability": engine.availability,
@@ -192,8 +190,6 @@ class ConsoleLaunchSelection:
             "preview_assets": _preview_assets_payload(world.preview_assets),
             "gates": [gate.to_payload() for gate in self.gates],
             "required_gates": [gate.to_payload() for gate in self.gates if gate.required],
-            "state": "enabled" if self.enabled else "disabled",
-            "blocker": self.unsupported_reason,
             "default_prompt": self.task_prompt_default,
             "prompt_disabled_reason": (
                 ""
@@ -206,13 +202,7 @@ class ConsoleLaunchSelection:
             "field_groups": list(backend.field_groups),
             "view_modes": list(backend.view_modes),
             "argv_preview": ["just", "run::surface", *self.base_args()],
-            "command_preview": ["just", "run::surface", *self.base_args()],
             "intent_options": [_intent_option(self.intent_id)],
-            "default_intent": self.intent_id,
-            "supported_intents": [self.intent_id],
-            "preset_options": [_preset_option(self.preset_id)] if self.preset_id else [],
-            "default_preset": self.preset_id,
-            "supported_presets": [self.preset_id] if self.preset_id else [],
         }
         return payload
 
@@ -607,14 +597,6 @@ def _intent_option(intent_id: str) -> dict[str, str]:
         "evaluation_policy": spec.evaluation_policy,
         "done_readiness_policy": spec.done_readiness_policy,
         "checker_policy": spec.checker_policy,
-    }
-
-
-def _preset_option(preset_id: str) -> dict[str, str]:
-    return {
-        "id": preset_id,
-        "label": _intent_label(preset_id),
-        "intent_id": preset_id,
     }
 
 

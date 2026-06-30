@@ -460,7 +460,7 @@ function intentOptionsForCurrentAxes(combos) {
     const enabledMatch = matching.find((item) => item.enabled);
     const disabledMatch = matching.find((item) => !item.enabled);
     const reason = disabledMatch
-      ? disabledMatch.unsupported_reason || disabledMatch.disabled_reason || "Unavailable for this route."
+      ? disabledMatch.unsupported_reason || "Unavailable for this route."
       : "Unavailable for this route.";
     return {
       value,
@@ -490,7 +490,7 @@ function evidenceLaneOptions(combos) {
     const enabledMatch = matching.find((item) => item.enabled);
     const disabledMatch = matching.find((item) => !item.enabled);
     const reason = disabledMatch
-      ? disabledMatch.unsupported_reason || disabledMatch.disabled_reason || "Unavailable for this route."
+      ? disabledMatch.unsupported_reason || "Unavailable for this route."
       : "Unavailable for this route.";
     return {
       value,
@@ -732,7 +732,7 @@ function renderIntentSelector(route) {
 
 function commandPreview(route) {
   const selected = selectedIntentForRoute(route);
-  let parts = [...(route.argv_preview || route.command_preview || [])];
+  let parts = [...(route.argv_preview || [])];
   if (!parts.length) {
     return "Route unavailable.";
   }
@@ -813,13 +813,13 @@ function selectedIntent() {
   if (!route) {
     return "";
   }
-  const value = els.intentInput.value || state.selectedIntent || route.default_intent || route.intent;
+  const value = els.intentInput.value || state.selectedIntent || route.intent_id;
   return selectedIntentForRoute(route, value);
 }
 
 function selectedIntentForRoute(route, requestedIntent = "") {
   const options = intentOptions(route);
-  const fallback = route.default_intent || route.intent || (options[0] && options[0].id) || "";
+  const fallback = route.intent_id || (options[0] && options[0].id) || "";
   const candidate = requestedIntent || state.selectedIntent || fallback;
   return options.some((option) => option.id === candidate) ? candidate : fallback;
 }
@@ -829,7 +829,7 @@ function intentOptions(route) {
   if (options.length) {
     return options;
   }
-  return (route.supported_intents || [route.intent]).map((intent) => ({
+  return [route.intent_id].filter(Boolean).map((intent) => ({
     id: intent,
     label: intentLabel(intent),
     checker_id: route.checker_id || "",
@@ -877,7 +877,7 @@ function effectiveReadiness(route) {
   let blocker = "";
 
   if (!route.enabled) {
-    return { can_start: false, blocker: route.disabled_reason || "", gates };
+    return { can_start: false, blocker: route.unsupported_reason || "", gates };
   }
   if (lockBlocked) {
     blocker =
@@ -997,7 +997,7 @@ function renderStartAction(route, readiness) {
   const backgroundBlockerText = backgroundBlockerHelp(readiness);
   els.startHelp.textContent = attachableRun
     ? `Existing run ${attachableRun.run_id} is using this backend. Attach to watch it.`
-    : backgroundBlockerText || readiness.blocker || route.disabled_reason || "";
+    : backgroundBlockerText || readiness.blocker || route.unsupported_reason || "";
 }
 
 function backgroundBlockerHelp(readiness) {
