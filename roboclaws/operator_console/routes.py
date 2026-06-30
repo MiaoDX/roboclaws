@@ -556,18 +556,7 @@ def _lane_selections(
 
 
 def _intent_option(intent_id: str) -> dict[str, str]:
-    spec = TASK_INTENT_SPECS.get(intent_id)
-    if spec is None:
-        return {
-            "id": intent_id,
-            "label": _intent_label(intent_id),
-            "prompt_id": "",
-            "checker_id": "",
-            "goal_scope": "",
-            "evaluation_policy": "",
-            "done_readiness_policy": "",
-            "checker_policy": "",
-        }
+    spec = TASK_INTENT_SPECS[intent_id]
     return {
         "id": intent_id,
         "label": _intent_label(intent_id),
