@@ -15,6 +15,10 @@ from roboclaws.household.visual_backend_slots import (
     VisualBackendSlotError,
     list_visual_backend_slots,
 )
+from roboclaws.operator_console.launch_support import (
+    DockerMountSourceError,
+    docker_container_mount_sources,
+)
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root, operator_output_request_path
 from roboclaws.operator_console.process_status import pid_is_active
@@ -1133,23 +1137,22 @@ def _split_docker_ps(line: str) -> tuple[str, str, str, str]:
 
 
 def _docker_mount_sources(container_id: str) -> tuple[list[Path], str]:
-    result = _run_command(["docker", "inspect", "--format", "{{json .Mounts}}", container_id])
-    if result is None or result.returncode != 0:
-        return [], ""
     try:
-        mounts = json.loads(result.stdout)
-    except json.JSONDecodeError as exc:
-        return [], f"invalid_json:{exc.msg}"
-    output: list[Path] = []
-    if not isinstance(mounts, list):
-        return [], "invalid_json_array"
-    for mount in mounts:
-        if not isinstance(mount, dict):
-            return [], f"invalid_json_object:{type(mount).__name__}"
-        if not mount.get("Source"):
-            continue
-        output.append(Path(str(mount["Source"])).resolve())
-    return output, ""
+        return docker_container_mount_sources(container_id, run_command=subprocess.run), ""
+    except DockerMountSourceError as exc:
+        return [], _docker_mount_source_error_reason(exc)
+
+
+def _docker_mount_source_error_reason(error: DockerMountSourceError) -> str:
+    message = str(error)
+    if "contain invalid JSON" in message:
+        return "invalid_json"
+    if "must be a JSON array" in message:
+        return "invalid_json_array"
+    object_marker = "must contain JSON objects; got "
+    if object_marker in message:
+        return f"invalid_json_object:{message.rsplit(object_marker, 1)[1]}"
+    return "invalid_docker_mounts"
 
 
 def _docker_mount_source_error_task(

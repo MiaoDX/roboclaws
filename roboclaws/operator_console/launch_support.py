@@ -153,6 +153,23 @@ def docker_container_ids_with_mount(
     return container_ids
 
 
+def docker_container_mount_sources(
+    container_id: str,
+    *,
+    run_command: RunCommand = subprocess.run,
+) -> list[Path]:
+    sources: list[Path] = []
+    for mount in _docker_container_mounts(container_id, run_command=run_command):
+        mount_source = mount.get("Source")
+        if not mount_source:
+            continue
+        try:
+            sources.append(Path(str(mount_source)).resolve())
+        except OSError:
+            continue
+    return sources
+
+
 def _docker_ps(run_command: RunCommand) -> Any | None:
     try:
         result = run_command(
@@ -173,8 +190,10 @@ def _docker_container_mounts_source(
     *,
     run_command: RunCommand,
 ) -> bool:
-    mounts = _docker_container_mounts(container_id, run_command=run_command)
-    return any(_mount_source_matches(mount, source) for mount in mounts)
+    return any(
+        mount_source == source
+        for mount_source in docker_container_mount_sources(container_id, run_command=run_command)
+    )
 
 
 def _docker_container_mounts(container_id: str, *, run_command: RunCommand) -> list[Any]:
@@ -207,15 +226,3 @@ def _docker_container_mounts(container_id: str, *, run_command: RunCommand) -> l
             f"{container_id} must contain JSON objects; got {type(invalid_mount).__name__}"
         )
     return mounts
-
-
-def _mount_source_matches(mount: Any, source: Path) -> bool:
-    if not isinstance(mount, dict):
-        return False
-    mount_source = mount.get("Source")
-    if not mount_source:
-        return False
-    try:
-        return Path(str(mount_source)).resolve() == source
-    except OSError:
-        return False
