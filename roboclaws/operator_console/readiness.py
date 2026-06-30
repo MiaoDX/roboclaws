@@ -56,13 +56,7 @@ def _evaluate_route_gate(
     provider_status: dict[str, Any],
     runtime_tasks: list[dict[str, Any]] | None,
 ) -> GateEvaluation:
-    evaluators = {
-        "provider_key": _provider_key_gate,
-        "mcp_port_free": _mcp_port_gate,
-        "request_field": _request_field_gate,
-        "operator_gate": _operator_gate,
-    }
-    evaluator = evaluators.get(gate.kind)
+    evaluator = _GATE_EVALUATORS.get(gate.kind)
     if evaluator is None:
         return GateEvaluation(severity=gate.severity, blocks_start=gate.required)
     return evaluator(root, route, gate, override_map, gate_map, provider_status, runtime_tasks)
@@ -296,6 +290,14 @@ def _parse_port(value: str) -> int:
     if not 1 <= port <= 65535:
         raise _console_launch_error(f"invalid MCP port: {value}")
     return port
+
+
+_GATE_EVALUATORS: dict[str, Any] = {
+    "provider_key": _provider_key_gate,
+    "mcp_port_free": _mcp_port_gate,
+    "request_field": _request_field_gate,
+    "operator_gate": _operator_gate,
+}
 
 
 def _console_launch_error(message: str) -> ValueError:
