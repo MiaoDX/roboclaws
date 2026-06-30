@@ -6,13 +6,17 @@ Source plan: `docs/plans/2026-06-30-operator-console-workflow-simplification.md`
 
 Latest user intent: execute full plan via `$intuitive-flow`; do not stop mid-plan.
 
-Current slice: complete; source plan shipped.
+Current slice: complete; source plan shipped in
+`239f6dcc feat: simplify operator console workflows`.
 
 Last proven evidence:
 
 - `./scripts/dev/run_pytest_standalone.sh tests/unit/operator_console -q`
 - focused workflow/static tests
 - touched-file `ruff check`, `ruff format --check`, and `node --check`
+- browser smoke on `http://127.0.0.1:8876`: MolmoSpaces shows normal
+  workflow actions, with-map actions disabled as `NEEDS MAP`, and the command
+  preview uses `evidence_lane=camera-grounded-labels`
 
 Next proof: none for this plan; future prior-catalog population is parked.
 

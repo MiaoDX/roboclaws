@@ -34,12 +34,14 @@ Verification:
 - `./scripts/dev/run_pytest_standalone.sh tests/unit/operator_console -q`
 - `ruff check` and `ruff format --check` on touched operator-console files
 - `node --check roboclaws/operator_console/static/app.js`
+- Browser smoke on `python -m roboclaws.operator_console --host 127.0.0.1 --port 8876 --repo-root .`
 
 Notes:
 
 - The recommended-prior catalog is intentionally empty until an accepted,
   tracked Runtime Map Prior Snapshot exists. With-map workflows therefore show
-  a visible empty state and require an operator override today.
+  a visible empty state; the rendered with-map workflow buttons are disabled
+  until a recommended prior or explicit operator override exists.
 - Raw route axes remain available in Advanced; the main UI is workflow-first.
 
 ## Goal
