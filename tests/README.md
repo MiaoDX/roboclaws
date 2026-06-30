@@ -38,9 +38,7 @@ tests/
 filename fallback for any short-lived legacy flat files, but new tests should go
 directly into the right layer and domain folder.
 
-The commit-time hook uses the tight-loop marker expression above. CI-safe but
-expensive end-to-end tests that should stay in their layer while skipping tight
-loops are listed in `tests/conftest.py` as slow modules or slow test names.
+Slow tight-loop exclusions are maintained in `tests/conftest.py`.
 
 ## Keep Or Delete
 

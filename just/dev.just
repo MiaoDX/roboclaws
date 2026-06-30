@@ -19,7 +19,6 @@ set working-directory := '..'
 set positional-arguments
 
 standalone_pytest := "./scripts/dev/run_pytest_standalone.sh"
-fast_pytest_marker := "not integration and not local and not slow"
 
 # Default: list module recipes (avoids accidentally rewiring git hooks).
 default:
@@ -96,7 +95,7 @@ test kind="all":
     case "{{kind}}" in
       fast)
         ROBOCLAWS_PYTEST_CLEAR_PROVIDER_ENV=1 {{standalone_pytest}} \
-          -m "{{fast_pytest_marker}}" -q --durations=5
+          -m "not integration and not local and not slow" -q --durations=5
         ;;
 
       unit)
