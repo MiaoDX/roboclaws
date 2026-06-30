@@ -133,12 +133,18 @@ def _candidate_inputs_from_visual_grounding_response(
             index=index,
             artifact_base_dir=artifact_base_dir,
         )
+        evidence_note = str(candidate.get("evidence_note") or "").strip()
+        if not evidence_note:
+            evidence_note = (
+                "external visual grounding service proposed a public "
+                f"{category} candidate from the agent-facing FPV frame"
+            )
         candidates.append(
             {
                 "category": category,
                 "source_fixture_id": source_fixture_id,
                 "target_fixture_id": target_fixture_id,
-                "evidence_note": str(candidate.get("evidence_note") or ""),
+                "evidence_note": evidence_note,
                 "image_region": candidate.get("image_region"),
                 "confidence": candidate.get("confidence"),
                 "producer_type": EXTERNAL_VISUAL_GROUNDING_PROVENANCE,

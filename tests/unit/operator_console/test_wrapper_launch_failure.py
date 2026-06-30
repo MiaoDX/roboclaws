@@ -9,23 +9,13 @@ from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.routes import get_selection
 from roboclaws.operator_console.state import derive_operator_state
+from tests.support.b1_robot_proof import write_b1_robot_proof_artifacts
 
 CODEX_ENV = {
     "CODEX_BASE_URL": "https://codex.example.test/v1",
     "CODEX_API_KEY": "key",
 }
 B1_OPENAI_AGENTS_OPEN_TASK = "b1-map12::isaaclab::open-task::openai-agents-sdk::world-public-labels"
-
-
-def _b1_required_overrides(tmp_path: Path) -> dict[str, str]:
-    alignment_artifact = tmp_path / "alignment_residuals.json"
-    navigation_artifact = tmp_path / "navigation_smoke.json"
-    alignment_artifact.write_text("{}\n", encoding="utf-8")
-    navigation_artifact.write_text("{}\n", encoding="utf-8")
-    return {
-        "b1_alignment_artifact": str(alignment_artifact),
-        "b1_navigation_artifact": str(navigation_artifact),
-    }
 
 
 def test_state_marks_dead_wrapper_launch_without_live_artifacts_failed(
@@ -62,6 +52,7 @@ def test_state_marks_dead_wrapper_launch_without_live_artifacts_failed(
 
 def test_readiness_does_not_block_on_zombie_wrapper_lock(tmp_path: Path, monkeypatch) -> None:
     route = get_selection(B1_OPENAI_AGENTS_OPEN_TASK)
+    write_b1_robot_proof_artifacts(tmp_path)
     run_id = "zombie-wrapper-run"
     run_dir = console_output_root(tmp_path) / "runs" / run_id
     run_dir.mkdir(parents=True)
@@ -78,7 +69,7 @@ def test_readiness_does_not_block_on_zombie_wrapper_lock(tmp_path: Path, monkeyp
     readiness = route_readiness(
         tmp_path,
         route,
-        overrides={"port": _free_port(), **_b1_required_overrides(tmp_path)},
+        overrides={"port": _free_port()},
         env=CODEX_ENV,
     )
 

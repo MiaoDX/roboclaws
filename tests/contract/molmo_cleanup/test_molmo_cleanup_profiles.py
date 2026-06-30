@@ -180,6 +180,28 @@ def test_camera_grounded_labels_requires_camera_labeler() -> None:
     assert metadata["camera_labeler"] == "grounding-dino"
 
 
+def test_camera_grounded_run_metadata_allows_isaac_head_camera_backend() -> None:
+    metadata = evidence_lane_metadata_for_run(
+        evidence_lane_name=CAMERA_LABELS_PROFILE,
+        backend=ISAACLAB_SUBPROCESS_BACKEND,
+        perception_mode=CAMERA_MODEL_POLICY_MODE,
+        record_robot_views=True,
+        camera_labeler="grounding-dino",
+    )
+
+    validate_evidence_lane_metadata(
+        metadata,
+        expected_evidence_lane=CAMERA_LABELS_PROFILE,
+        expected_backend=ISAACLAB_SUBPROCESS_BACKEND,
+        expected_perception_mode=CAMERA_MODEL_POLICY_MODE,
+    )
+    assert metadata["world_backend"] == "isaac_sim"
+    assert metadata["agent_input"] == "camera_labels"
+    assert metadata["camera_labeler"] == "grounding-dino"
+    assert "Isaac Lab" in metadata["summary"]
+    assert "robot-mounted head camera" in metadata["model_input_note"]
+
+
 @pytest.mark.parametrize(
     "camera_labeler",
     ["sim-projected-labels", "fake-http", "contract-fake"],

@@ -33,19 +33,8 @@ AGIBOT_CAMERA_LABELER = "grounding-dino"
 SIMULATION_CAMERA_LABELER = "grounding-dino"
 
 REAL_EVIDENCE_LANES = cleanup_evidence_lane_names()
-ISAAC_SUPPORTED_EVIDENCE_LANES = tuple(
-    lane for lane in REAL_EVIDENCE_LANES if lane != CAMERA_GROUNDED_LABELS_LANE
-)
-ISAAC_UNSUPPORTED_EVIDENCE_LANES = (CAMERA_GROUNDED_LABELS_LANE,)
-B1_ALIGNMENT_ARTIFACT_DEFAULT = "output/b1-map12/alignment/alignment_residuals.json"
-B1_NAVIGATION_ARTIFACT_DEFAULT = (
-    "output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json"
-)
+ISAAC_SUPPORTED_EVIDENCE_LANES = REAL_EVIDENCE_LANES
 B1_ROBOT_PROOF_REQUIRED_OVERRIDES: tuple[str, ...] = ()
-B1_ROBOT_PROOF_DEFAULT_OVERRIDES = (
-    f"b1_alignment_artifact={B1_ALIGNMENT_ARTIFACT_DEFAULT}",
-    f"b1_navigation_artifact={B1_NAVIGATION_ARTIFACT_DEFAULT}",
-)
 
 
 @dataclass(frozen=True)
@@ -277,14 +266,14 @@ B1_ALIGNMENT_ARTIFACT_GATE = RouteGate(
     label="B1 verified alignment artifact available",
     kind="request_field",
     help_text=(
-        "Use the reviewed B1 / Map 12 alignment residual JSON, or override the default path."
+        "Optional: leave empty to generate a B1 / Map 12 alignment residual JSON at launch."
     ),
 )
 B1_NAVIGATION_ARTIFACT_GATE = RouteGate(
     id="b1_navigation_artifact",
     label="B1 verified navigation smoke artifact available",
     kind="request_field",
-    help_text=("Use the reviewed B1 / Map 12 navigation smoke JSON, or override the default path."),
+    help_text="Optional: leave empty to generate a B1 / Map 12 navigation smoke JSON at launch.",
 )
 
 
@@ -396,6 +385,7 @@ def _enabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
             "openai-agents-sdk",
             "codex-router-responses",
             evidence_lanes=ISAAC_SUPPORTED_EVIDENCE_LANES,
+            camera_labeler=SIMULATION_CAMERA_LABELER,
             scenario_setup=ENVIRONMENT_SETUP_BASELINE,
             gates=(
                 *common_gates,
@@ -403,7 +393,7 @@ def _enabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
                 B1_NAVIGATION_ARTIFACT_GATE,
             ),
             required_overrides=B1_ROBOT_PROOF_REQUIRED_OVERRIDES,
-            default_overrides=("seed=7", *B1_ROBOT_PROOF_DEFAULT_OVERRIDES),
+            default_overrides=("seed=7",),
             supports_operator_steer=True,
             supports_paused_handoff_resume=True,
             supports_relative_navigation_control=True,
@@ -473,23 +463,6 @@ def _molmospaces_enabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
 
 def _disabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
     return (
-        *_lane_selections(
-            "b1-map12",
-            "isaaclab",
-            "open-ended",
-            "openai-agents-sdk",
-            "codex-router-responses",
-            evidence_lanes=ISAAC_UNSUPPORTED_EVIDENCE_LANES,
-            scenario_setup=ENVIRONMENT_SETUP_BASELINE,
-            enabled=False,
-            unsupported_reason=(
-                "Isaac Lab camera-grounded labels are not wired yet; use world labels or raw FPV."
-            ),
-            gates=_common_gates(),
-            required_overrides=B1_ROBOT_PROOF_REQUIRED_OVERRIDES,
-            default_overrides=("seed=7", *B1_ROBOT_PROOF_DEFAULT_OVERRIDES),
-            supports_operator_steer=True,
-        ),
         _selection(
             "agibot-g2/map-12",
             "agibot-gdk",

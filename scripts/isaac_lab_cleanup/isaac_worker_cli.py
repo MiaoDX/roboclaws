@@ -127,6 +127,8 @@ def _add_robot_views_parser(
     robot_views.add_argument("--label", required=True)
     robot_views.add_argument("--focus-object-id")
     robot_views.add_argument("--focus-receptacle-id")
+    robot_views.add_argument("--camera-yaw-offset-deg", type=float, default=0.0)
+    robot_views.add_argument("--camera-pitch-offset-deg", type=float, default=0.0)
     robot_views.add_argument("--render-width", type=_positive_int_arg, default=default_width)
     robot_views.add_argument("--render-height", type=_positive_int_arg, default=default_height)
     robot_views.add_argument(

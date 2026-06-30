@@ -1526,9 +1526,31 @@ def test_b1_public_launch_routes_isaac_backend_to_current_implementation() -> No
     assert "world=b1-map12" in target_trace
     assert "backend=isaaclab_subprocess" in target_trace
     assert "generated_mess_count=0" in target_trace
-    assert "b1_alignment_artifact=" not in target_trace
-    assert "b1_navigation_artifact=" not in target_trace
+    assert "b1_alignment_artifact=output/b1-map12" not in target_trace
+    assert "b1_navigation_artifact=output/b1-map12" not in target_trace
     assert "b1_semantic_projection_artifact=" not in target_trace
+
+
+def test_b1_public_launch_supports_camera_grounded_labels() -> None:
+    route, plan_trace = trace_surface_run_with_plan(
+        "surface=household-world",
+        "world=b1-map12",
+        "backend=isaaclab",
+        "agent_engine=openai-agents-sdk",
+        "prompt=inspect the digital twin with camera grounded labels",
+        "evidence_lane=camera-grounded-labels",
+    )
+
+    assert route[3] == "camera-grounded-labels"
+    assert route[13] == "grounding-dino"
+    assert route[17] == "isaaclab_subprocess"
+    assert len(route) == 25
+    target_trace = next(item for item in plan_trace if item.startswith("target=just agent::run "))
+    assert "household-world.open-ended openai-agents-sdk camera-grounded-labels" in target_trace
+    assert "backend=isaaclab_subprocess" in target_trace
+    assert "camera_labeler=grounding-dino" in target_trace
+    assert "b1_alignment_artifact=output/b1-map12" not in target_trace
+    assert "b1_navigation_artifact=output/b1-map12" not in target_trace
 
 
 def test_b1_public_launch_passes_explicit_robot_consumption_proof_artifacts() -> None:
@@ -1611,32 +1633,56 @@ def test_b1_live_agent_run_copies_robot_consumption_artifacts_to_seed_run_dir() 
 def test_b1_isaac_route_uses_b1_robot_consumption_checker_gate() -> None:
     molmo_text = MOLMO_JUST.read_text(encoding="utf-8")
     isaac_branch = molmo_text.split(
-        'if [[ "$profile" == "world-public-labels" && "$backend" == "isaaclab_subprocess" ]]',
+        'if [[ "$backend" == "isaaclab_subprocess" && "$launch_world_id" == "b1-map12" ]]',
         1,
-    )[1].split('    fi\n    if [[ "$cleanup_routine"', 1)[0]
+    )[1].split('    if [[ "$cleanup_routine"', 1)[0]
 
     assert "--require-b1-robot-consumption-proof" in isaac_branch
     assert "--require-real-robot-alignment" not in isaac_branch
-    assert "output/b1-map12/alignment/alignment_residuals.json" in isaac_branch
-    assert "output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json" in isaac_branch
+    assert "output/b1-map12/alignment/alignment_residuals.json" not in isaac_branch
+    assert "output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json" not in (
+        isaac_branch
+    )
 
 
-def test_b1_isaac_route_defaults_to_reviewed_robot_consumption_artifacts() -> None:
+def test_b1_isaac_camera_grounded_uses_isaac_backend_and_real_grounding_gate() -> None:
     molmo_text = MOLMO_JUST.read_text(encoding="utf-8")
+    camera_branch = re.search(
+        r"camera-grounded-labels\)\n(?P<body>.*?)\n\s+;;",
+        molmo_text,
+        re.DOTALL,
+    )
+    assert camera_branch is not None
     isaac_branch = molmo_text.split(
-        'if [[ "$profile" == "world-public-labels" && "$backend" == "isaaclab_subprocess" ]]',
+        'if [[ "$backend" == "isaaclab_subprocess" && "$launch_world_id" == "b1-map12" ]]',
         1,
-    )[1].split('    fi\n    if [[ "$cleanup_routine"', 1)[0]
+    )[1].split('    if [[ "$cleanup_routine"', 1)[0]
 
-    assert (
-        'b1_alignment_artifact="${b1_alignment_artifact:-'
-        'output/b1-map12/alignment/alignment_residuals.json}"'
-    ) in isaac_branch
-    assert (
-        'b1_navigation_artifact="${b1_navigation_artifact:-'
-        'output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json}"'
-    ) in isaac_branch
-    assert "requires explicit b1_alignment_artifact" not in isaac_branch
+    assert 'if [[ "$launch_world_id" == "b1-map12" ]]' in camera_branch.group("body")
+    assert 'backend="isaaclab_subprocess"' in camera_branch.group("body")
+    assert "--require-camera-model-policy" in isaac_branch
+    assert "--expect-visual-grounding-pipeline" in isaac_branch
+    assert "--require-b1-robot-consumption-proof" in isaac_branch
+    assert "--require-waypoint-honesty" in isaac_branch
+    assert "--require-robot-views" in isaac_branch
+
+
+def test_b1_isaac_route_generates_robot_consumption_artifacts() -> None:
+    molmo_text = MOLMO_JUST.read_text(encoding="utf-8")
+    b1_compile_branch = molmo_text.split(
+        'if [[ "$backend" == "isaaclab_subprocess" && "$launch_world_id" == "b1-map12" ]]',
+        1,
+    )[1].split("    fi\n    map_bundle_args=()", 1)[0]
+
+    assert "b1-map12-robot-consumption-proof" in b1_compile_branch
+    assert "fit_b1_map12_scene_alignment.py" in b1_compile_branch
+    assert "check_b1_map12_readiness.py" in b1_compile_branch
+    assert "run_b1_map12_navigation_smoke.py" in b1_compile_branch
+    assert "b1_navigation_artifact requires b1_alignment_artifact" in b1_compile_branch
+    assert "output/b1-map12/alignment/alignment_residuals.json" not in b1_compile_branch
+    assert "output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json" not in (
+        b1_compile_branch
+    )
 
 
 def test_household_cleanup_routes_agibot_backend_to_physical_pilot_cli() -> None:
@@ -2272,6 +2318,40 @@ def test_molmo_cleanup_live_prompt_includes_open_ended_user_task() -> None:
     assert "call done only after every metric_map.inspection_waypoints" not in prompt
 
 
+def test_molmo_open_ended_camera_grounded_prompt_requires_label_declaration() -> None:
+    prompt = render_kickoff_prompt(
+        "camera-grounded-labels",
+        task=(
+            "巡检 B1 / Map 12 digital twin，使用相机 grounded label "
+            "证据报告你看到的至少一个公开候选目标，并在证据足够后调用 done。"
+        ),
+        intent="open-ended",
+    )
+
+    assert "This run is surface=household-world with no task preset" in prompt
+    assert "This open-ended run uses camera-grounded-labels" in prompt
+    assert "call declare_visual_candidates with observation_id only" in prompt
+    assert "configured camera labeler labels the frame" in prompt
+    assert "camera_model_candidates" in prompt
+    assert "model_declared_observations" in prompt
+    assert "service URLs" in prompt
+    assert "Unless the operator explicitly asks you to wait or not call done" in prompt
+
+
+def test_molmo_open_ended_camera_grounded_prompt_can_use_composite_tool() -> None:
+    prompt = render_kickoff_prompt(
+        "camera-grounded-labels",
+        task="inspect B1 camera grounded candidates",
+        intent="open-ended",
+        camera_grounded_composite_tools=True,
+    )
+
+    assert "This open-ended run uses camera-grounded-labels" in prompt
+    assert "call observe_camera_grounded_candidates" in prompt
+    assert "configured camera labeler labels the current FPV frame" in prompt
+    assert "do not ask for service URLs" in prompt
+
+
 def test_molmo_cleanup_live_prompt_uses_cleanup_intent_without_open_ended_intent() -> None:
     prompt = render_kickoff_prompt(
         "world-public-labels",
@@ -2355,6 +2435,24 @@ def test_molmo_camera_grounded_product_runs_autostart_real_sidecar() -> None:
     assert ".venv-visual-grounding/bin/python" in text
     assert "stop_managed_visual_grounding_sidecar" in text
     assert 'exec "${runner_args[@]}"' not in text
+
+
+def test_molmo_isaac_live_runs_default_to_longer_mcp_client_timeout() -> None:
+    text = MOLMO_JUST.read_text(encoding="utf-8")
+
+    timeout_default = (
+        "openai_agents_mcp_client_session_timeout_s="
+        '"${ROBOCLAWS_OPENAI_AGENTS_MCP_CLIENT_SESSION_TIMEOUT_S:-30}"'
+    )
+    timeout_condition = (
+        '[[ -z "${ROBOCLAWS_OPENAI_AGENTS_MCP_CLIENT_SESSION_TIMEOUT_S:-}" '
+        '&& "$backend" == "isaaclab_subprocess" ]]'
+    )
+
+    assert timeout_default in text
+    assert timeout_condition in text
+    assert 'openai_agents_mcp_client_session_timeout_s="120"' in text
+    assert '--mcp-client-session-timeout-s "$openai_agents_mcp_client_session_timeout_s"' in text
 
 
 def test_molmo_raw_fpv_compact_prompt_includes_budget_contract() -> None:

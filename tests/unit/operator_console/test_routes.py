@@ -10,8 +10,6 @@ from roboclaws.launch.agent_engines import agent_engine_spec
 from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS, WORLD_SPECS
 from roboclaws.operator_console.launcher import ConsoleLaunchError, build_launch_argv
 from roboclaws.operator_console.routes import (
-    B1_ALIGNMENT_ARTIFACT_DEFAULT,
-    B1_NAVIGATION_ARTIFACT_DEFAULT,
     get_selection,
     list_console_combinations,
     list_evidence_lanes,
@@ -26,6 +24,9 @@ AGIBOT_SDK_MAP_BUILD = (
     "agibot-g2/map-12::agibot-gdk::map-build::openai-agents-sdk::camera-grounded-labels"
 )
 B1_OPENAI_AGENTS_OPEN_TASK = "b1-map12::isaaclab::open-task::openai-agents-sdk::world-public-labels"
+B1_OPENAI_AGENTS_CAMERA_GROUNDED = (
+    "b1-map12::isaaclab::open-task::openai-agents-sdk::camera-grounded-labels"
+)
 MUJOCO_SDK_CLEANUP = (
     "molmospaces/procthor-objaverse-val/0::mujoco::cleanup::openai-agents-sdk::world-public-labels"
 )
@@ -329,9 +330,7 @@ def test_molmospaces_scene_choices_use_scene_specific_launch_defaults(tmp_path) 
     for world_id in MOLMOSPACES_CONSOLE_WORLD_IDS:
         assert f"{world_id}::mujoco::map-build::direct-runner::world-public-labels" in enabled_ids
     for world_id in MOLMOSPACES_CONSOLE_WORLD_IDS:
-        assert (
-            f"{world_id}::mujoco::cleanup::openai-agents-sdk::world-public-labels" in enabled_ids
-        )
+        assert f"{world_id}::mujoco::cleanup::openai-agents-sdk::world-public-labels" in enabled_ids
 
     objaverse0 = get_selection(MUJOCO_SDK_CLEANUP)
     val10 = get_selection(
@@ -407,24 +406,17 @@ def test_molmospaces_cleanup_routes_are_selectable_for_ui_scenes() -> None:
     assert B1_OPENAI_AGENTS_OPEN_TASK in enabled_ids
 
     for world_id in MOLMOSPACES_CONSOLE_WORLD_IDS:
-        assert (
-            f"{world_id}::mujoco::cleanup::openai-agents-sdk::world-public-labels"
-            in enabled_ids
-        )
+        assert f"{world_id}::mujoco::cleanup::openai-agents-sdk::world-public-labels" in enabled_ids
 
 
-def test_console_keeps_b1_unsupported_isaac_lane_visible_but_disabled() -> None:
-    disabled = {
-        route.id: route.disabled_reason
-        for route in list_console_combinations()
-        if not route.enabled
-    }
-
+def test_console_enables_b1_camera_grounded_isaac_lane() -> None:
     enabled_ids = {route.id for route in list_console_combinations(include_disabled=False)}
-    route_id = "b1-map12::isaaclab::open-task::openai-agents-sdk::camera-grounded-labels"
-    reason = disabled[route_id]
-    assert "not wired yet" in reason
-    assert route_id not in enabled_ids
+    route = get_selection(B1_OPENAI_AGENTS_CAMERA_GROUNDED)
+
+    assert route.id in enabled_ids
+    assert route.enabled is True
+    assert route.disabled_reason == ""
+    assert "camera_labeler=grounding-dino" in route.base_args()
     assert "b1-map12::isaaclab::open-task::openai-agents-sdk::camera-raw-fpv" in enabled_ids
 
 
@@ -434,8 +426,7 @@ def test_disabled_combinations_have_concrete_reasons() -> None:
     assert disabled
     reasons = {route.id: route.disabled_reason for route in disabled}
     assert "Physical manipulation is not active" in reasons[AGIBOT_SDK_CLEANUP]
-    b1_camera_grounded = "b1-map12::isaaclab::open-task::openai-agents-sdk::camera-grounded-labels"
-    assert "not wired yet" in reasons[b1_camera_grounded]
+    assert B1_OPENAI_AGENTS_CAMERA_GROUNDED not in reasons
 
 
 def test_payload_exposes_orthogonal_ui_metadata() -> None:
@@ -468,13 +459,13 @@ def test_payload_exposes_orthogonal_ui_metadata() -> None:
     assert b1_openai_agents["agent_engine_id"] == "openai-agents-sdk"
     assert b1_openai_agents["provider_profile"] == "codex-router-responses"
     assert b1_openai_agents["required_overrides"] == []
-    assert (
-        f"b1_alignment_artifact={B1_ALIGNMENT_ARTIFACT_DEFAULT}"
-        in b1_openai_agents["launch_default_overrides"]
+    assert not any(
+        item.startswith("b1_alignment_artifact=")
+        for item in b1_openai_agents["launch_default_overrides"]
     )
-    assert (
-        f"b1_navigation_artifact={B1_NAVIGATION_ARTIFACT_DEFAULT}"
-        in b1_openai_agents["launch_default_overrides"]
+    assert not any(
+        item.startswith("b1_navigation_artifact=")
+        for item in b1_openai_agents["launch_default_overrides"]
     )
     assert b1_openai_agents["supports_relative_navigation_control"] is True
     assert b1_openai_agents["supports_paused_handoff_resume"] is True
@@ -563,13 +554,13 @@ def test_b1_map12_open_ended_launch_uses_scene_and_map_bundle(tmp_path) -> None:
     assert not any(item.startswith("relocation_count=") for item in argv)
 
 
-def test_b1_map12_launch_uses_default_robot_proof_artifacts(tmp_path) -> None:
+def test_b1_map12_launch_generates_robot_proof_artifacts_at_launch(tmp_path) -> None:
     selection = get_selection(B1_OPENAI_AGENTS_OPEN_TASK)
 
     argv = build_launch_argv(selection, root=tmp_path, run_id="run-1")
 
-    assert f"b1_alignment_artifact={B1_ALIGNMENT_ARTIFACT_DEFAULT}" in argv
-    assert f"b1_navigation_artifact={B1_NAVIGATION_ARTIFACT_DEFAULT}" in argv
+    assert not any(item.startswith("b1_alignment_artifact=") for item in argv)
+    assert not any(item.startswith("b1_navigation_artifact=") for item in argv)
 
 
 def test_prompt_rejected_for_unsupported_selection(tmp_path) -> None:

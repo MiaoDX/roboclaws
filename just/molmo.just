@@ -306,7 +306,11 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
         )
         ;;
       camera-grounded-labels)
-        backend="molmospaces_subprocess"
+        if [[ "$launch_world_id" == "b1-map12" ]]; then
+          backend="isaaclab_subprocess"
+        else
+          backend="molmospaces_subprocess"
+        fi
         min_generated_mess_count="$generated_mess_count"
         implementation_evidence_lane="$profile"
         perception_mode="camera_model_policy"
@@ -336,24 +340,41 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
       echo "error: backend=isaaclab_subprocess is scoped to world=b1-map12; MolmoSpaces household routes use backend=molmospaces_subprocess" >&2
       exit 1
     fi
-    if [[ "$profile" == "world-public-labels" && "$backend" == "isaaclab_subprocess" ]]; then
-      b1_alignment_artifact="${b1_alignment_artifact:-output/b1-map12/alignment/alignment_residuals.json}"
-      b1_navigation_artifact="${b1_navigation_artifact:-output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json}"
+    if [[ "$backend" == "isaaclab_subprocess" && "$launch_world_id" == "b1-map12" ]]; then
+      if [[ -z "$isaac_scene_usd_path" ]]; then
+        isaac_scene_usd_path="data/robot-data-lab/scene-engine/data/B1_floor2_slow/usda/F2_all/default.usda"
+      fi
+      if [[ -n "$b1_navigation_artifact" && -z "$b1_alignment_artifact" ]]; then
+        echo "error: b1_navigation_artifact requires b1_alignment_artifact; leave both empty to generate fresh B1 proof at launch" >&2
+        exit 1
+      fi
       isaac_min_semantic_accepted_count="$generated_mess_count"
       if [[ "$min_generated_mess_count_override" != "auto" && -n "$min_generated_mess_count_override" ]]; then
         isaac_min_semantic_accepted_count="$min_generated_mess_count_override"
       fi
-      checker_visual_args=(
-        --require-waypoint-honesty
-        --require-b1-robot-consumption-proof
-        --min-semantic-accepted-count "$isaac_min_semantic_accepted_count"
-        --min-sweep-coverage 1.0
-      )
-      if [[ -z "$b1_alignment_artifact" || -z "$b1_navigation_artifact" ]]; then
-        echo "error: B1 / Map 12 robot-consumption proof requires default or override b1_alignment_artifact and b1_navigation_artifact" >&2
-        exit 1
-      fi
-      if [[ "$robot_views" != "off" && "$robot_views" != "false" && "$robot_views" != "0" ]]; then
+      case "$profile" in
+        world-public-labels)
+          checker_visual_args=(
+            --require-waypoint-honesty
+            --require-b1-robot-consumption-proof
+            --min-semantic-accepted-count "$isaac_min_semantic_accepted_count"
+            --min-sweep-coverage 1.0
+          )
+          ;;
+        camera-grounded-labels)
+          checker_visual_args=(
+            --require-robot-views
+            --require-camera-model-policy
+            --expect-visual-grounding-pipeline "$visual_grounding"
+            --require-waypoint-honesty
+            --require-b1-robot-consumption-proof
+            --min-sweep-coverage 1.0
+          )
+          ;;
+        camera-raw-fpv)
+          ;;
+      esac
+      if [[ "$profile" != "camera-grounded-labels" && "$robot_views" != "off" && "$robot_views" != "false" && "$robot_views" != "0" ]]; then
         checker_visual_args=(--require-robot-views "${checker_visual_args[@]}")
       fi
     fi
@@ -457,6 +478,37 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
       if [[ -z "$map_bundle_dir" ]]; then
         echo "error: world=b1-map12 requires raw map_bundle before runtime compilation" >&2
         exit 1
+      fi
+      b1_robot_proof_dir="${output_dir}/b1-map12-robot-consumption-proof"
+      b1_readiness_artifact="${b1_robot_proof_dir}/readiness_with_alignment.json"
+      b1_navigation_output_dir="${b1_robot_proof_dir}/navigation-smoke"
+      if [[ -z "$b1_alignment_artifact" ]]; then
+        "$python_bin" scripts/maps/fit_b1_map12_scene_alignment.py \
+          --correspondences assets/maps/b1-map12-scene-correspondences.json \
+          --map-bundle "$map_bundle_dir" \
+          --output-dir "${b1_robot_proof_dir}/alignment" >/dev/null
+        b1_alignment_artifact="${b1_robot_proof_dir}/alignment/alignment_residuals.json"
+      fi
+      if [[ -z "$b1_navigation_artifact" ]]; then
+        b1_isaac_python="${ROBOCLAWS_ISAACLAB_PYTHON:-.venv-isaaclab/bin/python}"
+        if [[ ! -x "$b1_isaac_python" ]]; then
+          echo "error: B1 / Map 12 navigation proof generation requires Isaac Lab Python at ${b1_isaac_python}; set ROBOCLAWS_ISAACLAB_PYTHON or pass explicit b1_navigation_artifact" >&2
+          exit 1
+        fi
+        "$b1_isaac_python" scripts/isaac_lab_cleanup/check_b1_map12_readiness.py \
+          --b1-root data/robot-data-lab/scene-engine/data/2rd_floor_seperated \
+          --map12-root vendors/agibot_sdk/artifacts/maps/robot_map_12 \
+          --alignment-artifact "$b1_alignment_artifact" \
+          --output "$b1_readiness_artifact" >/dev/null
+        if [[ ! -s output/isaaclab/robots/rby1m/rby1m_holobase_isaac.usda ]]; then
+          "$b1_isaac_python" scripts/isaac_lab_cleanup/import_rby1m_robot_usd.py --static-only >/dev/null
+        fi
+        "$b1_isaac_python" scripts/isaac_lab_cleanup/run_b1_map12_navigation_smoke.py \
+          --readiness-artifact "$b1_readiness_artifact" \
+          --output-dir "$b1_navigation_output_dir" \
+          --render-scene-usd "$isaac_scene_usd_path" \
+          --accept-nvidia-eula >/dev/null
+        b1_navigation_artifact="${b1_navigation_output_dir}/navigation_smoke.json"
       fi
       b1_base_map_bundle_dir="${output_dir}/b1-map12-base-metric-map"
       b1_runtime_map_bundle_dir="${output_dir}/b1-map12-base-metric-map-with-proof"
@@ -768,6 +820,10 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
           fi
 
           status_path="${run_dir}/live_status.json"
+          openai_agents_mcp_client_session_timeout_s="${ROBOCLAWS_OPENAI_AGENTS_MCP_CLIENT_SESSION_TIMEOUT_S:-30}"
+          if [[ -z "${ROBOCLAWS_OPENAI_AGENTS_MCP_CLIENT_SESSION_TIMEOUT_S:-}" && "$backend" == "isaaclab_subprocess" ]]; then
+            openai_agents_mcp_client_session_timeout_s="120"
+          fi
           runner_args=(
             .venv/bin/python
             scripts/molmo_cleanup/run_live_openai_agents_cleanup.py
@@ -780,7 +836,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
             --lock-path "$openai_agents_lock_path"
             --provider-profile "$openai_agents_profile"
             --model "$openai_agents_model"
-            --mcp-client-session-timeout-s "${ROBOCLAWS_OPENAI_AGENTS_MCP_CLIENT_SESSION_TIMEOUT_S:-30}"
+            --mcp-client-session-timeout-s "$openai_agents_mcp_client_session_timeout_s"
             --agent-sdk-perf-profile "${ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE:-}"
             --continuation-mode "${ROBOCLAWS_OPENAI_AGENTS_CONTINUATION_MODE:-}"
             --model-thinking-mode "${ROBOCLAWS_OPENAI_AGENTS_THINKING_MODE:-default}"

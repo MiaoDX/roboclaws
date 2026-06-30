@@ -39,7 +39,9 @@ CAMERA_LABELERS: tuple[str, ...] = (
 _CAMERA_LABELER_TO_VISUAL_GROUNDING_PIPELINE: dict[str, str] = {}
 _VISUAL_GROUNDING_PIPELINE_TO_CAMERA_LABELER: dict[str, str] = {}
 
-ISAAC_COMPATIBLE_PROFILES = frozenset({WORLD_PUBLIC_LABELS_PROFILE, CAMERA_RAW_PROFILE})
+ISAAC_COMPATIBLE_PROFILES = frozenset(
+    {WORLD_PUBLIC_LABELS_PROFILE, CAMERA_RAW_PROFILE, CAMERA_LABELS_PROFILE}
+)
 
 WORLD_LABELS_INPUT = "world_labels"
 SANITIZED_WORLD_LABELS_INPUT = "sanitized_world_labels"
@@ -364,6 +366,17 @@ def evidence_lane_metadata_for_run(
                 "The agent receives raw Isaac FPV image blocks from the robot-mounted "
                 "head camera first, then creates model-declared observed handles from "
                 "public image evidence. Structured labels remain withheld before declaration."
+            )
+        elif profile.profile == CAMERA_LABELS_PROFILE:
+            metadata["summary"] = (
+                "Camera-grounded structured-label cleanup from Isaac Lab mounted "
+                "head-camera artifacts."
+            )
+            metadata["model_input_note"] = (
+                "The agent receives camera-derived object candidates registered from "
+                "raw Isaac FPV observations captured by the robot-mounted head camera. "
+                "camera_labeler selects the producer that turns FPV evidence into "
+                "structured candidates."
             )
     metadata["record_robot_views"] = bool(record_robot_views)
     if profile.profile == WORLD_PUBLIC_LABELS_PROFILE and not record_robot_views:

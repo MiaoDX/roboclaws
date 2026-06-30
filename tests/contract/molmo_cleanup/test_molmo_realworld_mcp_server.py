@@ -10,6 +10,10 @@ import pytest
 from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household.backend import ApiSemanticCleanupBackend
 from roboclaws.household.backend_contract import CleanupBackendSession
+from roboclaws.household.isaac_lab_backend import (
+    ISAACLAB_ROBOT_VIEW_VARIANT,
+    ISAACLAB_SUBPROCESS_BACKEND,
+)
 from roboclaws.household.profiles import WORLD_PUBLIC_LABELS_PROFILE
 from roboclaws.household.realworld_contract import (
     CAMERA_MODEL_POLICY_MODE,
@@ -756,6 +760,33 @@ class MolmoSpacesSubprocessBackend(_FakeVisualBackend):
     requested_generated_mess_count = 5
 
 
+class IsaacLabSubprocessBackend(_FakeVisualBackend):
+    backend = ISAACLAB_SUBPROCESS_BACKEND
+    requested_generated_mess_count = 5
+
+    def write_robot_views(
+        self,
+        output_dir: Path,
+        *,
+        label: str,
+        focus_object_id: str | None = None,
+        focus_receptacle_id: str | None = None,
+        camera_yaw_offset_deg: float = 0.0,
+        camera_pitch_offset_deg: float = 0.0,
+    ) -> dict[str, Any]:
+        capture = super().write_robot_views(
+            output_dir,
+            label=label,
+            focus_object_id=focus_object_id,
+            focus_receptacle_id=focus_receptacle_id,
+            camera_yaw_offset_deg=camera_yaw_offset_deg,
+            camera_pitch_offset_deg=camera_pitch_offset_deg,
+        )
+        capture["view_variant"] = ISAACLAB_ROBOT_VIEW_VARIANT
+        capture["view_provenance"] = "test_fake_isaac_visual_backend"
+        return capture
+
+
 def _empty_cleanup_scenario(scenario_id: str) -> CleanupScenario:
     return CleanupScenario(
         scenario_id=scenario_id,
@@ -1004,6 +1035,65 @@ def test_realworld_mcp_open_ended_intent_is_recorded_in_run_result(
     assert run_result["final_status"] == "success"
     assert run_result["cleanup_status_role"] == "advisory"
     assert run_result["cleanup_status"] == "failed"
+
+
+def test_realworld_mcp_camera_grounded_isaac_closeout_writes_run_result(
+    tmp_path: Path,
+) -> None:
+    prompt = "巡检 B1 / Map 12 digital twin，报告至少一个公开候选目标。"
+    scenario = build_cleanup_scenario(seed=7)
+    backend = IsaacLabSubprocessBackend(scenario)
+    server = make_molmo_realworld_cleanup_mcp(
+        run_dir=tmp_path,
+        scenario=scenario,
+        base_contract=CleanupBackendSession(scenario, backend=backend),
+        port=0,
+        policy="codex_agent",
+        agent_driven=True,
+        task_prompt=prompt,
+        goal_contract=_open_ended_goal_contract(prompt),
+        record_robot_views=True,
+        perception_mode=CAMERA_MODEL_POLICY_MODE,
+        evidence_lane="camera-grounded-labels",
+        visual_grounding="grounding-dino",
+    )
+    try:
+        metric_map = server.call_tool("metric_map")
+        server.call_tool(
+            "navigate_to_waypoint",
+            waypoint_id=metric_map["inspection_waypoints"][0]["waypoint_id"],
+        )
+        observation = server.call_tool("observe")
+        declaration = server.call_tool(
+            "declare_visual_candidates",
+            observation_id=observation["raw_fpv_observation"]["observation_id"],
+            candidates=[
+                {
+                    "category": "mug",
+                    "evidence_note": "Grounding DINO fixture detected mug from RAW_FPV pixels",
+                    "image_region": {"type": "bbox", "value": [0.2, 0.2, 0.4, 0.4]},
+                    "confidence": 0.8,
+                }
+            ],
+        )
+        done = server.call_tool("done", reason="open-ended camera-grounded proof complete")
+        run_result = json.loads(Path(done["run_result"]).read_text(encoding="utf-8"))
+    finally:
+        server.close()
+
+    assert done["ok"] is True
+    assert declaration["ok"] is True
+    assert run_result["backend"] == ISAACLAB_SUBPROCESS_BACKEND
+    assert run_result["task_intent"] == "open-ended"
+    assert run_result["intent_status"] == "success"
+    assert run_result["evidence_lane"] == "camera-grounded-labels"
+    assert run_result["camera_labeler"] == "grounding-dino"
+    assert run_result["evidence_lane_metadata"]["backend"] == ISAACLAB_SUBPROCESS_BACKEND
+    assert run_result["evidence_lane_metadata"]["world_backend"] == "isaac_sim"
+    assert run_result["evidence_lane_metadata"]["camera_labeler"] == "grounding-dino"
+    assert run_result["view_variant"] == ISAACLAB_ROBOT_VIEW_VARIANT
+    assert run_result["robot_view_steps"]
+    assert run_result["artifacts"]["robot_views"] == str(tmp_path / "robot_views")
 
 
 def test_realworld_mcp_raw_fpv_camera_raw_done_allows_complete_live_chains(

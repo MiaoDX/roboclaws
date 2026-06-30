@@ -306,6 +306,14 @@ def render_kickoff_prompt(
     open_ended = household_intent_is_open_ended(household_intent)
     if open_ended:
         prompt = OPEN_ENDED_TASK_RULES
+        if profile == "camera-grounded-labels":
+            prompt = (
+                prompt
+                + " "
+                + _camera_grounded_open_ended_rule(
+                    camera_grounded_composite_tools=camera_grounded_composite_tools
+                )
+            )
     elif profile == "camera-raw-fpv":
         prompt = _camera_raw_compact_prompt(
             target_cleanup_count=target_cleanup_count,
@@ -332,6 +340,26 @@ def render_kickoff_prompt(
         prompt,
         operator_session_context=operator_session_context,
         operator_session_context_json=operator_session_context_json,
+    )
+
+
+def _camera_grounded_open_ended_rule(*, camera_grounded_composite_tools: bool) -> str:
+    if camera_grounded_composite_tools:
+        return (
+            "This open-ended run uses camera-grounded-labels: after navigating to a public "
+            "waypoint or target candidate, call observe_camera_grounded_candidates so the "
+            "configured camera labeler labels the current FPV frame. Use returned public "
+            "camera_model_candidates, model_declared_observations, and runtime_metric_map "
+            "evidence for the operator task; do not ask for service URLs, credentials, image "
+            "paths, or model hosts."
+        )
+    return (
+        "This open-ended run uses camera-grounded-labels: after each task-relevant observe "
+        "response with a raw FPV observation_id, call declare_visual_candidates with "
+        "observation_id only and omit candidates so the configured camera labeler labels the "
+        "frame. Use returned public camera_model_candidates, model_declared_observations, and "
+        "runtime_metric_map evidence for the operator task; do not ask for service URLs, "
+        "credentials, image paths, or model hosts."
     )
 
 

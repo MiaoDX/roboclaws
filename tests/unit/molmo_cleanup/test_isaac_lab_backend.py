@@ -836,6 +836,101 @@ def test_isaac_worker_can_request_semantic_filter_override(tmp_path: Path) -> No
     assert getattr(args, "segmentation_semantic_filter") == ["usd_prim_path"]
 
 
+def test_isaac_worker_robot_views_accept_camera_offsets(tmp_path: Path) -> None:
+    args = isaac_lab_backend_worker.parse_args(
+        [
+            "--state-path",
+            str(tmp_path / "state.json"),
+            "robot_views",
+            "--output-dir",
+            str(tmp_path / "robot_views"),
+            "--label",
+            "0001_adjusted",
+            "--camera-yaw-offset-deg",
+            "12.5",
+            "--camera-pitch-offset-deg",
+            "-10.0",
+        ]
+    )
+
+    assert args.camera_yaw_offset_deg == pytest.approx(12.5)
+    assert args.camera_pitch_offset_deg == pytest.approx(-10.0)
+
+
+def test_isaac_worker_robot_views_apply_pitch_offset_to_head_camera_pose(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    context = _setup_semantic_pose_recapture_runtime(monkeypatch, tmp_path)
+    captured_state: dict[str, object] = {}
+
+    def fake_capture_semantic_pose_robot_views(
+        *,
+        state: dict[str, object],
+        scene_usd: Path,
+        view_paths: dict[str, Path],
+        width: int,
+        height: int,
+        **_: object,
+    ) -> dict[str, object]:
+        del scene_usd, width, height
+        captured_state.update(state)
+        for path in view_paths.values():
+            _write_nonblank_image(path)
+        return {
+            "robot_view_images": {key: str(path) for key, path in view_paths.items()},
+            "render_steps": 7,
+            "robot_view_uses_mounted_head_camera": True,
+            "semantic_pose_stage_application": {
+                "schema": "isaac_semantic_pose_stage_application_v1",
+                "status": "applied",
+                "applied_object_count": 0,
+                "failed_object_count": 0,
+                "rendered_to_usd": True,
+            },
+            "robot_pose_stage_application": {
+                "schema": "isaac_robot_head_camera_pose_application_v1",
+                "status": "applied",
+                "head_pitch": math.radians(-10.0),
+                "head_pitch_applied": True,
+            },
+            "camera_diagnostics": {
+                "schema": "isaac_robot_view_camera_diagnostics_v1",
+                "views": {},
+            },
+        }
+
+    monkeypatch.setattr(
+        isaac_lab_backend_worker,
+        "capture_semantic_pose_robot_views",
+        fake_capture_semantic_pose_robot_views,
+    )
+    _init_real_worker_with_scene_usd(context)
+
+    result = isaac_lab_backend_worker.write_robot_views(
+        isaac_lab_backend_worker.parse_args(
+            [
+                "--state-path",
+                str(context.state_path),
+                "robot_views",
+                "--output-dir",
+                str(context.run_dir / "robot_views"),
+                "--label",
+                "0001_adjusted",
+                "--camera-pitch-offset-deg",
+                "-10.0",
+            ]
+        ),
+        isaac_lab_backend_worker.read_state(context.state_path),
+    )
+
+    assert result["ok"] is True
+    robot_pose = captured_state["semantic_pose_state"]["robot_pose"]  # type: ignore[index]
+    assert robot_pose["head_pitch"] == pytest.approx(math.radians(-10.0))
+    assert robot_pose["head_pitch_source"] == "camera_pitch_offset_deg"
+    assert robot_pose["camera_adjustment"]["pitch_applied_to_static_head_camera"] is True
+
+
 def test_isaac_worker_hard_exits_after_deferred_app_success(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
