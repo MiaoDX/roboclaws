@@ -130,6 +130,8 @@ def _camera_angle_label(offset: dict[str, float], *, active: bool) -> str:
 
 
 def _float_or_zero(value: Any) -> float:
+    """Parse a float with full precision (no rounding). Distinct from
+    state._float_or_zero which rounds to 3dp."""
     try:
         return float(value)
     except (TypeError, ValueError):

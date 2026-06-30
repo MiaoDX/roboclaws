@@ -525,6 +525,8 @@ def _numeric_trace_time(trace: dict[str, Any] | None) -> float | None:
 
 
 def _float_or_zero(value: Any) -> float:
+    """Parse a float with operator-state precision (3dp). Distinct from
+    state_summary._float_or_zero which keeps full precision."""
     try:
         number = float(value)
     except (TypeError, ValueError):
