@@ -27,7 +27,6 @@ from roboclaws.launch.environment_setup import (
     RELOCATION_SETUP_OPTIONS,
 )
 from roboclaws.operator_console import context_packets
-from roboclaws.operator_console.history import append_run_history
 from roboclaws.operator_console.interactions import (
     MESSAGE_LOG,
     RESUME_REQUEST_LOG,
@@ -334,14 +333,6 @@ def start_console_run(
         "run_dir": str(run_dir),
     }
     (run_dir / "operator_state.json").write_text(json.dumps(state, indent=2), encoding="utf-8")
-    append_run_history(
-        root,
-        run_id=run_id,
-        selection=route,
-        run_dir=run_dir,
-        started_at_epoch=started_at_epoch,
-        started_at=started_at,
-    )
     return state
 
 

@@ -281,17 +281,7 @@ def test_launcher_holds_lock_before_spawning_process(tmp_path: Path) -> None:
     assert "prompt=收拾桌面上的杯子" in state["argv"]
     assert state["operator_session_id"].startswith("session-")
     assert any(item.startswith("operator_messages_path=") for item in state["argv"])
-    history_path = console_output_root(tmp_path) / "runs.jsonl"
-    history_rows = [
-        json.loads(line)
-        for line in history_path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
-    assert history_rows[-1]["run_id"] == state["run_id"]
-    assert history_rows[-1]["selection_id"] == route.id
-    assert history_rows[-1]["run_dir"] == str(
-        console_output_root(tmp_path) / "runs" / state["run_id"]
-    )
+    assert not (console_output_root(tmp_path) / "runs.jsonl").exists()
     lock = ResourceLock(tmp_path, route.lock_name).read()
     assert lock.pid == 12345
     state_path = console_output_root(tmp_path) / "runs" / state["run_id"] / "operator_state.json"
