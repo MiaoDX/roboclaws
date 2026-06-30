@@ -1,7 +1,7 @@
 # Dev workflow — git hooks, pytest split, repo-wide self-check.
 #
 # Test split invariant:
-#   - test-fast        : full non-integration confidence gate; opt into it from
+#   - test-fast        : tight-loop confidence gate; opt into it from
 #                        pre-commit with FORCE_TESTS=1.
 #   - test-unit        : fast isolated public-API behavior tests.
 #   - test-contract    : public schema/tool/report/recipe compatibility tests.
@@ -11,11 +11,15 @@
 #                        model provider).
 # Integration tests should never fire on every `git commit`. They live behind
 # `@pytest.mark.integration`.
+#
+# Local and slow tests are also excluded from commit-time tight loops. Run them
+# explicitly when a change touches those contracts.
 
 set working-directory := '..'
 set positional-arguments
 
 standalone_pytest := "./scripts/dev/run_pytest_standalone.sh"
+fast_pytest_marker := "not integration and not local and not slow"
 
 # Default: list module recipes (avoids accidentally rewiring git hooks).
 default:
@@ -92,7 +96,7 @@ test kind="all":
     case "{{kind}}" in
       fast)
         ROBOCLAWS_PYTEST_CLEAR_PROVIDER_ENV=1 {{standalone_pytest}} \
-          -m "not integration and not local" -q --durations=5
+          -m "{{fast_pytest_marker}}" -q --durations=5
         ;;
 
       unit)

@@ -15,13 +15,12 @@
 #     Tests are auto-skipped when no .py / .toml / .lock files are staged
 #     (doc-only commits don't pay the test cost). Python commits run scoped
 #     tests when the hook can infer a relevant target. Set FORCE_TESTS=1
-#     to run the full non-integration suite.
+#     to run the full tight-loop suite.
 #
 # Design notes:
-#   - Tests marked `@pytest.mark.integration` (Docker-dependent OR real
-#     model-provider API calls) are excluded via `-m "not integration"`.
-#     Run them post-merge with `just dev::test-integration`, and CI still
-#     runs the full suite.
+#   - Tests marked `@pytest.mark.integration`, `@pytest.mark.local`, or
+#     `@pytest.mark.slow` are excluded from commit-time tight loops. Run
+#     them with focused pytest commands, post-merge integration, or CI.
 #   - We run tests through the standalone wrapper to avoid host-wide ROS
 #     contamination leaking into PYTHONPATH (and breaking `lark` import).
 #   - No network calls. The Docker-gated integration tests auto-skip
@@ -32,6 +31,7 @@ set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
+FAST_PYTEST_MARKER="not integration and not local and not slow"
 
 # --- Ruff: lint + format check -------------------------------------------
 if command -v ruff >/dev/null 2>&1; then
@@ -86,8 +86,13 @@ if [[ ! -x scripts/dev/run_pytest_standalone.sh ]]; then
 fi
 
 run_full_fast_tests() {
-    echo "pre-commit: pytest -m 'not integration' (full fast subset)"
-    ./scripts/dev/run_pytest_standalone.sh -m "not integration" -q --durations=5
+    echo "pre-commit: pytest -m '$FAST_PYTEST_MARKER' (full fast subset)"
+    ./scripts/dev/run_pytest_standalone.sh -m "$FAST_PYTEST_MARKER" -q --durations=5
+}
+
+run_collection_sanity() {
+    echo "pre-commit: pytest collection sanity"
+    ./scripts/dev/run_pytest_standalone.sh -m "$FAST_PYTEST_MARKER" --collect-only -q >/dev/null
 }
 
 add_test_target() {
@@ -103,6 +108,9 @@ add_test_target() {
 infer_tests_for_path() {
     local path="$1"
     case "$path" in
+        tests/conftest.py)
+            RUN_COLLECTION_SANITY=1
+            ;;
         tests/*.py|tests/*/*.py|tests/*/*/*.py)
             add_test_target "$path"
             ;;
@@ -159,17 +167,25 @@ if [[ -n "$STAGED_CONFIG" ]]; then
     exit 0
 fi
 
+RUN_COLLECTION_SANITY=0
 declare -a TEST_TARGETS=()
 while IFS= read -r path; do
     [[ -n "$path" ]] || continue
     infer_tests_for_path "$path"
 done <<< "$STAGED_PY"
 
+if [[ "$RUN_COLLECTION_SANITY" == "1" ]]; then
+    run_collection_sanity
+fi
+
 if [[ "${#TEST_TARGETS[@]}" -eq 0 ]]; then
+    if [[ "$RUN_COLLECTION_SANITY" == "1" ]]; then
+        exit 0
+    fi
     echo "pre-commit: no scoped pytest target inferred — running full fast pytest"
     run_full_fast_tests
     exit 0
 fi
 
 echo "pre-commit: pytest scoped targets: ${TEST_TARGETS[*]}"
-./scripts/dev/run_pytest_standalone.sh -m "not integration" -q --durations=5 "${TEST_TARGETS[@]}"
+./scripts/dev/run_pytest_standalone.sh -m "$FAST_PYTEST_MARKER" -q --durations=5 "${TEST_TARGETS[@]}"

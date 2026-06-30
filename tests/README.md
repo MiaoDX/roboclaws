@@ -31,12 +31,16 @@ tests/
 ./scripts/dev/run_pytest_standalone.sh -m unit -q
 ./scripts/dev/run_pytest_standalone.sh -m contract -q
 ./scripts/dev/run_pytest_standalone.sh -m regression -q
-./scripts/dev/run_pytest_standalone.sh -m "not integration" -q
+./scripts/dev/run_pytest_standalone.sh -m "not integration and not local and not slow" -q
 ```
 
 `tests/conftest.py` auto-marks tests from the top-level folder. It still has a
 filename fallback for any short-lived legacy flat files, but new tests should go
 directly into the right layer and domain folder.
+
+The commit-time hook uses the tight-loop marker expression above. CI-safe but
+expensive end-to-end tests that should stay in their layer while skipping tight
+loops are listed in `tests/conftest.py` as slow modules or slow test names.
 
 ## Keep Or Delete
 
