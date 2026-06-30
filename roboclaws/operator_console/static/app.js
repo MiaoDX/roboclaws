@@ -46,13 +46,9 @@ const els = {
   portInput: document.getElementById("port-input"),
   selectedRouteSummary: document.getElementById("selected-route-summary"),
   commonFields: document.getElementById("common-fields"),
-  isaacFields: document.getElementById("isaac-fields"),
   agibotFields: document.getElementById("agibot-fields"),
   agibotGateFields: document.getElementById("agibot-gate-fields"),
   contextInput: document.getElementById("context-json-input"),
-  isaacSceneInput: document.getElementById("isaac-scene-input"),
-  b1AlignmentArtifactInput: document.getElementById("b1-alignment-artifact-input"),
-  b1NavigationArtifactInput: document.getElementById("b1-navigation-artifact-input"),
   localizationGate: document.getElementById("localization-gate"),
   enablementGate: document.getElementById("enablement-gate"),
   estopGate: document.getElementById("estop-gate"),
@@ -158,9 +154,6 @@ function bindEvents() {
   });
   [
     els.contextInput,
-    els.isaacSceneInput,
-    els.b1AlignmentArtifactInput,
-    els.b1NavigationArtifactInput,
     els.portInput,
     els.backendInput,
     els.agentEngineInput,
@@ -686,7 +679,6 @@ function renderRouteFields(route) {
   const fieldGroups = new Set(route.field_groups || ["common"]);
 
   els.commonFields.hidden = !route.enabled || !fieldGroups.has("common");
-  els.isaacFields.hidden = !fieldGroups.has("isaac");
   els.agibotFields.hidden = !fieldGroups.has("agibot");
   els.agibotGateFields.hidden = !fieldGroups.has("agibot_gates");
 }
@@ -1158,15 +1150,6 @@ async function refreshSelectedRouteReadiness() {
   if (els.contextInput.value) {
     params.set("context_json", els.contextInput.value);
   }
-  if (els.isaacSceneInput.value) {
-    params.set("isaac_scene_usd_path", els.isaacSceneInput.value);
-  }
-  if (els.b1AlignmentArtifactInput.value) {
-    params.set("b1_alignment_artifact", els.b1AlignmentArtifactInput.value);
-  }
-  if (els.b1NavigationArtifactInput.value) {
-    params.set("b1_navigation_artifact", els.b1NavigationArtifactInput.value);
-  }
   if (isAgibotRoute(route)) {
     params.set("real_movement_enabled", els.realMovementGate.checked ? "true" : "false");
     params.set("localization_ready", els.localizationGate.checked ? "true" : "false");
@@ -1372,15 +1355,6 @@ function launchOverrides(route = state.selectedRoute) {
   }
   if (isAgibotRoute(route)) {
     overrides.real_movement_enabled = els.realMovementGate.checked ? "true" : "false";
-  }
-  if (els.isaacSceneInput.value) {
-    overrides.isaac_scene_usd_path = els.isaacSceneInput.value;
-  }
-  if (els.b1AlignmentArtifactInput.value) {
-    overrides.b1_alignment_artifact = els.b1AlignmentArtifactInput.value;
-  }
-  if (els.b1NavigationArtifactInput.value) {
-    overrides.b1_navigation_artifact = els.b1NavigationArtifactInput.value;
   }
   return overrides;
 }

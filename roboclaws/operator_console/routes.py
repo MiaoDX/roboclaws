@@ -249,22 +249,6 @@ AGIBOT_ESTOP_GATE = RouteGate(
     severity="capability",
     help_text="Required only when real movement is enabled.",
 )
-B1_ALIGNMENT_ARTIFACT_GATE = RouteGate(
-    id="b1_alignment_artifact",
-    label="B1 verified alignment artifact available",
-    kind="request_field",
-    help_text=(
-        "Optional: leave empty to generate a B1 / Map 12 alignment residual JSON at launch."
-    ),
-)
-B1_NAVIGATION_ARTIFACT_GATE = RouteGate(
-    id="b1_navigation_artifact",
-    label="B1 verified navigation smoke artifact available",
-    kind="request_field",
-    help_text="Optional: leave empty to generate a B1 / Map 12 navigation smoke JSON at launch.",
-)
-
-
 def list_worlds(*, include_hidden: bool = False) -> tuple[dict[str, Any], ...]:
     """Return searchable world/scene metadata for the console rail."""
 
@@ -381,11 +365,7 @@ def _enabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
             evidence_lanes=ISAAC_SUPPORTED_EVIDENCE_LANES,
             camera_labeler=SIMULATION_CAMERA_LABELER,
             scenario_setup=ENVIRONMENT_SETUP_BASELINE,
-            gates=(
-                *common_gates,
-                B1_ALIGNMENT_ARTIFACT_GATE,
-                B1_NAVIGATION_ARTIFACT_GATE,
-            ),
+            gates=common_gates,
             required_overrides=B1_ROBOT_PROOF_REQUIRED_OVERRIDES,
             default_overrides=("seed=7",),
             supports_operator_steer=True,

@@ -125,7 +125,7 @@ def test_console_route_payload_supports_backend_specific_ui_metadata() -> None:
     assert "grounding" not in mujoco["view_modes"]
     assert {"overview", "fpv", "map", "outputs"}.issubset(set(mujoco["view_modes"]))
 
-    assert b1["field_groups"] == ["common", "isaac"]
+    assert b1["field_groups"] == ["common"]
     assert "grounding" in b1["view_modes"]
 
     assert agibot["field_groups"] == ["common", "agibot", "agibot_gates"]
@@ -396,8 +396,6 @@ def test_console_readiness_omits_isaac_marker_diagnostic_but_keeps_locks_blockin
     assert {gate["id"] for gate in readiness["gates"]} == {
         "provider_key",
         "mcp_port_free",
-        "b1_alignment_artifact",
-        "b1_navigation_artifact",
     }
 
     lock = ResourceLock(tmp_path, route.lock_name)

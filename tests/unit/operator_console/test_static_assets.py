@@ -45,7 +45,6 @@ def test_static_app_has_route_specific_field_groups() -> None:
     state_rail_html = html.split('<aside class="state-rail">', 1)[1].split("</aside>", 1)[0]
 
     for snippet in (
-        'id="isaac-fields"',
         'id="provider-profile-input"',
         'id="agibot-gate-fields"',
         'id="real-movement-gate"',
@@ -55,6 +54,13 @@ def test_static_app_has_route_specific_field_groups() -> None:
         'data-operator-mode="resume"',
     ):
         assert snippet in html
+
+    for snippet in (
+        'name="isaac_scene_usd_path"',
+        'name="b1_alignment_artifact"',
+        'name="b1_navigation_artifact"',
+    ):
+        assert snippet not in html
 
     for snippet in (
         "renderRouteFields",

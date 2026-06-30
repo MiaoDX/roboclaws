@@ -23,7 +23,6 @@ from roboclaws.operator_console.launcher import (
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.routes import get_selection
-from scripts.isaac_lab_cleanup.check_b1_map12_readiness import DEFAULT_B1_VISUAL_ROUTE_SCENE_USD
 
 CODEX_ENV = {
     "CODEX_BASE_URL": "https://codex.example.test/v1",
@@ -64,8 +63,6 @@ def _free_port() -> str:
 
 
 def test_launcher_readiness_layers_isaac_and_agibot_gates(tmp_path: Path) -> None:
-    alignment_artifact = tmp_path / "alignment_residuals.json"
-    navigation_artifact = tmp_path / "navigation_smoke.json"
     b1_map12 = route_readiness(
         tmp_path,
         get_selection(B1_OPENAI_AGENTS_OPEN_TASK),
@@ -77,28 +74,7 @@ def test_launcher_readiness_layers_isaac_and_agibot_gates(tmp_path: Path) -> Non
     assert {gate["id"] for gate in b1_map12["gates"]} == {
         "provider_key",
         "mcp_port_free",
-        "b1_alignment_artifact",
-        "b1_navigation_artifact",
     }
-    proof_gates = [gate for gate in b1_map12["gates"] if gate["id"].startswith("b1_")]
-    assert {gate["evidence"] for gate in proof_gates} == {"generated at launch"}
-    assert {gate["blocks_start"] for gate in proof_gates} == {False}
-
-    alignment_artifact.write_text("{}", encoding="utf-8")
-    navigation_artifact.write_text("{}", encoding="utf-8")
-    b1_map12 = route_readiness(
-        tmp_path,
-        get_selection(B1_OPENAI_AGENTS_OPEN_TASK),
-        overrides={
-            "port": _free_port(),
-            "b1_alignment_artifact": str(alignment_artifact),
-            "b1_navigation_artifact": str(navigation_artifact),
-        },
-        env=CODEX_ENV,
-    )
-    assert b1_map12["can_start"] is False
-    assert b1_map12["blocker_kind"] == "needs_route_parameter"
-    assert "failed contract" in str(b1_map12["blocker"])
 
     context_path = tmp_path / "context.json"
     context_path.write_text("{}", encoding="utf-8")
@@ -129,92 +105,6 @@ def test_launcher_readiness_layers_isaac_and_agibot_gates(tmp_path: Path) -> Non
     assert movement["can_start"] is False
     assert movement["blocker_kind"] == "needs_real_movement_gate"
     assert "Real movement is enabled" in movement["blocker"]
-
-
-def test_launcher_readiness_rejects_explicit_stale_b1_navigation_artifact(
-    tmp_path: Path,
-) -> None:
-    alignment_artifact = tmp_path / "alignment_residuals.json"
-    navigation_artifact = tmp_path / "navigation_smoke.json"
-    alignment_artifact.write_text(
-        json.dumps(
-            {
-                "schema": "b1_map12_scene_alignment_residuals_v1",
-                "global_alignment_status": "verified",
-                "bbox_seed_policy": "known_poor_seed_only",
-                "manipulation_supported": False,
-                "object_receptacle_usd_binding_status": "blocked_out_of_scope",
-                "selected_transform": {"source": "reviewed_correspondence_fit"},
-                "selected_transform_type": "rigid_2d",
-                "residual_evidence": {
-                    "status": "available",
-                    "matched_anchor_count": 6,
-                    "transform_source": "reviewed_correspondence_fit",
-                },
-            }
-        ),
-        encoding="utf-8",
-    )
-    navigation_artifact.write_text(
-        json.dumps(
-            {
-                "schema": "b1_map12_navigation_smoke_v1",
-                "status": "passed",
-                "robot_navigation_supported": True,
-                "robot_navigation_provenance": "isaac_b1_map12_navigation_smoke",
-                "navigation_provenance": "kinematic_pose_driven",
-                "alignment_artifact": str(alignment_artifact),
-                "b1_scene_usd": (
-                    "data/robot-data-lab/scene-engine/data/2rd_floor_seperated/"
-                    "storey_1/configuration/scene_base.usd"
-                ),
-                "alignment_transform_source": "reviewed_correspondence_fit",
-                "planner_backed": False,
-                "semantic_source": "robot_map_12_navigation_memory_overlay",
-                "semantic_usd_binding_status": "blocked_until_segmentation_or_manifest",
-                "manipulation_supported": False,
-                "navigation_waypoint_count": 2,
-                "waypoint_evidence": [
-                    {
-                        "waypoint_id": "a",
-                        "scene_usd": str(DEFAULT_B1_VISUAL_ROUTE_SCENE_USD),
-                        "robot_pose_applied": True,
-                        "alignment_artifact": str(alignment_artifact),
-                        "alignment_transform_source": "reviewed_correspondence_fit",
-                        "robot_pose": {"x": 0, "y": 0},
-                        "views": {"fpv": "missing-a.png"},
-                    },
-                    {
-                        "waypoint_id": "b",
-                        "scene_usd": str(DEFAULT_B1_VISUAL_ROUTE_SCENE_USD),
-                        "robot_pose_applied": True,
-                        "alignment_artifact": str(alignment_artifact),
-                        "alignment_transform_source": "reviewed_correspondence_fit",
-                        "robot_pose": {"x": 1, "y": 1},
-                        "views": {"fpv": "missing-b.png"},
-                    },
-                ],
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    readiness = route_readiness(
-        tmp_path,
-        get_selection(B1_OPENAI_AGENTS_OPEN_TASK),
-        overrides={
-            "port": _free_port(),
-            "b1_alignment_artifact": str(alignment_artifact),
-            "b1_navigation_artifact": str(navigation_artifact),
-        },
-        env=CODEX_ENV,
-    )
-
-    assert readiness["can_start"] is False
-    assert readiness["blocker_kind"] == "needs_route_parameter"
-    assert "navigation artifact must render the verified B1_floor2_slow visual route" in str(
-        readiness["blocker"]
-    )
 
 
 def test_launcher_builds_route_specific_overrides(tmp_path: Path) -> None:

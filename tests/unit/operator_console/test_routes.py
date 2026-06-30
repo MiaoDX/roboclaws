@@ -474,6 +474,11 @@ def test_payload_exposes_orthogonal_ui_metadata() -> None:
     assert b1_openai_agents["agent_engine_id"] == "openai-agents-sdk"
     assert b1_openai_agents["provider_profile"] == "codex-router-responses"
     assert b1_openai_agents["required_overrides"] == []
+    assert [gate["id"] for gate in b1_openai_agents["gates"]] == [
+        "provider_key",
+        "mcp_port_free",
+    ]
+    assert b1_openai_agents["field_groups"] == ["common"]
     assert not any(
         item.startswith("b1_alignment_artifact=")
         for item in b1_openai_agents["launch_default_overrides"]
