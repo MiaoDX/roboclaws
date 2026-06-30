@@ -11,7 +11,22 @@ from typing import Any
 
 from roboclaws.core.json_sources import read_json_object
 from roboclaws.operator_console.paths import console_output_root
-from roboclaws.operator_console.process_status import pid_is_active
+
+
+def pid_is_active(pid: Any) -> bool:
+    try:
+        parsed_pid = int(pid)
+    except (TypeError, ValueError):
+        return False
+    if parsed_pid <= 0:
+        return False
+    try:
+        os.kill(parsed_pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
 
 
 @dataclass(frozen=True)

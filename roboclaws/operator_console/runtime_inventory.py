@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import socket
 import subprocess
 import time
@@ -21,7 +22,22 @@ from roboclaws.operator_console.launch_support import (
 )
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root, operator_output_request_path
-from roboclaws.operator_console.process_status import pid_is_active
+
+
+def pid_is_active(pid: Any) -> bool:
+    try:
+        parsed_pid = int(pid)
+    except (TypeError, ValueError):
+        return False
+    if parsed_pid <= 0:
+        return False
+    try:
+        os.kill(parsed_pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
 from roboclaws.operator_console.redaction import redact_text
 from roboclaws.operator_console.routes import ConsoleLaunchSelection, selection_task_selector
 from roboclaws.operator_console.state import resolve_display_run_dir

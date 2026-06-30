@@ -38,7 +38,22 @@ from roboclaws.operator_console.launch_support import (
 )
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root
-from roboclaws.operator_console.process_status import pid_is_active
+
+
+def pid_is_active(pid: Any) -> bool:
+    try:
+        parsed_pid = int(pid)
+    except (TypeError, ValueError):
+        return False
+    if parsed_pid <= 0:
+        return False
+    try:
+        os.kill(parsed_pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
 from roboclaws.operator_console.prompt_preview import (
     PromptPreviewRequest,
     build_prompt_preview,
@@ -558,7 +573,7 @@ def _display_run_attachable(
         return False
     if phase:
         return True
-    if active_pid and _pid_exists(active_pid):
+    if active_pid and pid_is_active(active_pid):
         return True
     if _tmux_session_active(display_run_dir):
         return True
@@ -649,9 +664,9 @@ def _terminate_process_group(pid: int | None) -> None:
         return
     _signal_process_group_or_pid(pid, signal.SIGTERM)
     deadline = time.monotonic() + 1.0
-    while _pid_exists(pid) and time.monotonic() < deadline:
+    while pid_is_active(pid) and time.monotonic() < deadline:
         time.sleep(0.05)
-    if _pid_exists(pid):
+    if pid_is_active(pid):
         _signal_process_group_or_pid(pid, signal.SIGKILL)
 
 
@@ -773,10 +788,6 @@ def _read_json_source(path: Path) -> dict[str, Any]:
         raise _JsonSourceError(path, "cannot be read: missing source") from exc
     except OSError as exc:
         raise _JsonSourceError(path, f"cannot be read: {exc}") from exc
-
-
-def _pid_exists(pid: int) -> bool:
-    return pid_is_active(pid)
 
 
 def _tmux_session_active(display_run_dir: Path) -> bool:
