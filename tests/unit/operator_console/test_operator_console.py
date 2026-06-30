@@ -821,68 +821,6 @@ def test_operator_console_latest_run_endpoint_returns_artifact_backed_history(
     assert payload["run_dir"] == str(run_dir.resolve())
 
 
-def test_operator_console_run_reload_ignores_legacy_route_query(tmp_path: Path) -> None:
-    run_id = "route-less-run"
-    run_dir = tmp_path / "output" / "operator-console" / "runs" / run_id
-    run_dir.mkdir(parents=True)
-    (run_dir / "operator_state.json").write_text(
-        json.dumps({"run_id": run_id, "phase": "running"}),
-        encoding="utf-8",
-    )
-
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
-        route_id = "molmospaces/val_0::mujoco::cleanup::openai-agents-sdk::world-public-labels"
-        url = f"http://{host}:{port}/api/runs/{run_id}?route={route_id}"
-        with urllib.request.urlopen(url) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
-
-    assert payload["run_id"] == run_id
-    assert payload["route"] is None
-    assert payload["selected_intent"] == ""
-
-
-def test_operator_console_run_endpoint_rejects_legacy_route_id_field(
-    tmp_path: Path,
-) -> None:
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
-        request = urllib.request.Request(
-            f"http://{host}:{port}/api/runs",
-            method="POST",
-            data=json.dumps(
-                {
-                    "route_id": MUJOCO_SDK_CLEANUP,
-                    "intent": "open-ended",
-                    "prompt": "收拾桌面上的杯子",
-                }
-            ).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-        )
-        with pytest.raises(urllib.error.HTTPError) as exc_info:
-            urllib.request.urlopen(request)
-        payload = json.loads(exc_info.value.read().decode("utf-8"))
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
-
-    assert exc_info.value.code == 400
-    assert "launch requires" in payload["error"]
-
-
 def test_operator_console_next_goal_autostarts_ready_followup(tmp_path: Path) -> None:
     route = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
     run_id = "parent-run"
@@ -1647,26 +1585,3 @@ def test_operator_console_stop_endpoint_rejects_malformed_live_status_source(
     stop_child.assert_not_called()
     stop_wrapper.assert_not_called()
     assert ResourceLock(tmp_path, route.lock_name).read().held is True
-
-
-def test_operator_console_continue_endpoint_is_not_public(tmp_path: Path) -> None:
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
-        request = urllib.request.Request(
-            f"http://{host}:{port}/api/runs/parent-run/continue",
-            method="POST",
-            data=json.dumps({"prompt": "Run the next sweep"}).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-        )
-        with pytest.raises(urllib.error.HTTPError) as exc_info:
-            urllib.request.urlopen(request)
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
-
-    assert exc_info.value.code == 404

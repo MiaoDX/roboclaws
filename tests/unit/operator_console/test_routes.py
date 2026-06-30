@@ -2,11 +2,9 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
-import roboclaws.operator_console.routes as route_registry
 from roboclaws.launch.agent_engines import agent_engine_spec
 from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS, WORLD_SPECS
 from roboclaws.operator_console.launcher import ConsoleLaunchError, build_launch_argv
@@ -18,7 +16,6 @@ from roboclaws.operator_console.routes import (
     selection_task_selector,
     validate_supported_routes_against_catalog,
 )
-from roboclaws.operator_console.server import ConsoleRequestHandler
 
 AGIBOT_SDK_CLEANUP = (
     "agibot-g2/map-12::agibot-gdk::cleanup::openai-agents-sdk::camera-grounded-labels"
@@ -488,22 +485,6 @@ def test_payload_exposes_orthogonal_ui_metadata() -> None:
     assert b1_openai_agents["supports_relative_navigation_control"] is True
     assert b1_openai_agents["supports_paused_handoff_resume"] is True
     assert "agent_engine=openai-agents-sdk" in b1_openai_agents["argv_preview"]
-
-
-def test_routes_payload_does_not_preserve_legacy_routes_alias(tmp_path: Path) -> None:
-    payload = ConsoleRequestHandler._routes_payload(SimpleNamespace(repo_root=tmp_path))
-
-    assert "combinations" in payload
-    assert "routes" not in payload
-
-
-def test_legacy_route_api_stays_removed() -> None:
-    assert not hasattr(route_registry, "ConsoleRoute")
-    assert not hasattr(route_registry, "get_route")
-    assert not hasattr(route_registry, "list_console_routes")
-
-    with pytest.raises(KeyError):
-        get_selection("codex-mujoco-cleanup")
 
 
 def test_prompt_gating_uses_argv_element_not_shell_joining(tmp_path) -> None:

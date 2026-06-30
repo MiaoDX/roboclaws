@@ -488,16 +488,6 @@ def test_static_app_keeps_long_run_header_within_fixed_top_bar() -> None:
     assert '"$2$3-$4$5$7"' not in app
 
 
-def test_static_app_hides_pause_until_a_route_supports_it() -> None:
-    html = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
-    app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
-
-    assert 'id="pause-button" class="secondary" disabled hidden' in html
-    assert "const pauseAvailable = Boolean(controls.pause_available)" in app
-    assert "els.pauseButton.hidden = !pauseAvailable" in app
-    assert "els.pauseButton.disabled = !pauseAvailable" in app
-
-
 def test_static_app_wires_manual_relative_navigation_controls() -> None:
     html = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
     app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")

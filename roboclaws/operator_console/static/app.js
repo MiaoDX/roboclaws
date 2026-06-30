@@ -67,7 +67,6 @@ const els = {
   elapsedStatus: document.getElementById("elapsed-status"),
   latestResultButton: document.getElementById("latest-result-button"),
   backgroundTasksButton: document.getElementById("background-tasks-button"),
-  pauseButton: document.getElementById("pause-button"),
   stopButton: document.getElementById("stop-button"),
   emergencyButton: document.getElementById("emergency-button"),
   manualControlPanel: document.getElementById("manual-control-panel"),
@@ -195,7 +194,6 @@ function bindEvents() {
   els.promptPreviewButton.addEventListener("click", refreshPromptPreview);
   els.latestResultButton.addEventListener("click", attachLatestResult);
   els.backgroundTasksButton.addEventListener("click", refreshRuntimeTasks);
-  els.pauseButton.addEventListener("click", () => postRunAction("pause"));
   els.manualControlButtons.forEach((button) => {
     button.addEventListener("click", () => postManualControl(button.dataset.controlAction || ""));
   });
@@ -1568,9 +1566,6 @@ function cameraStateLabel(cameraState) {
 
 function renderControls(payload) {
   const controls = payload.controls || {};
-  const pauseAvailable = Boolean(controls.pause_available);
-  els.pauseButton.hidden = !pauseAvailable;
-  els.pauseButton.disabled = !pauseAvailable;
   els.stopButton.disabled = !controls.stop_available;
   els.emergencyButton.disabled = !controls.emergency_stop_required;
 }

@@ -232,7 +232,6 @@ def derive_operator_state(
             "supports_paused_handoff_resume": supports_resume,
             "relative_navigation_control_available": relative_control_available,
             "supports_relative_navigation_control": supports_relative_control,
-            "pause_available": bool(route.pause_supported) if route else False,
             "stop_available": stop_available,
             "emergency_stop_required": bool(route.emergency_stop_required) if route else False,
         },

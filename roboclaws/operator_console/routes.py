@@ -73,7 +73,6 @@ class ConsoleLaunchSelection:
     supports_operator_steer: bool = False
     supports_paused_handoff_resume: bool = False
     supports_relative_navigation_control: bool = False
-    pause_supported: bool = False
     emergency_stop_required: bool = False
 
     @property
@@ -186,7 +185,6 @@ class ConsoleLaunchSelection:
             "supports_operator_steer": self.supports_operator_steer,
             "supports_paused_handoff_resume": self.supports_paused_handoff_resume,
             "supports_relative_navigation_control": self.supports_relative_navigation_control,
-            "pause_supported": self.pause_supported,
             "emergency_stop_required": self.emergency_stop_required,
             "required_overrides": list(self.required_overrides),
             "default_overrides": list(self.default_overrides),
@@ -504,7 +502,6 @@ def _selection(
     supports_operator_steer: bool = False,
     supports_paused_handoff_resume: bool = False,
     supports_relative_navigation_control: bool = False,
-    pause_supported: bool = False,
     emergency_stop_required: bool = False,
 ) -> ConsoleLaunchSelection:
     setup = scenario_setup or (
@@ -531,7 +528,6 @@ def _selection(
         supports_operator_steer=supports_operator_steer,
         supports_paused_handoff_resume=supports_paused_handoff_resume,
         supports_relative_navigation_control=supports_relative_navigation_control,
-        pause_supported=pause_supported,
         emergency_stop_required=emergency_stop_required,
     )
 
@@ -555,7 +551,6 @@ def _lane_selections(
     supports_operator_steer: bool = False,
     supports_paused_handoff_resume: bool = False,
     supports_relative_navigation_control: bool = False,
-    pause_supported: bool = False,
     emergency_stop_required: bool = False,
 ) -> tuple[ConsoleLaunchSelection, ...]:
     rows: list[ConsoleLaunchSelection] = []
@@ -584,7 +579,6 @@ def _lane_selections(
                 supports_operator_steer=supports_operator_steer,
                 supports_paused_handoff_resume=supports_paused_handoff_resume,
                 supports_relative_navigation_control=supports_relative_navigation_control,
-                pause_supported=pause_supported,
                 emergency_stop_required=emergency_stop_required,
             )
         )

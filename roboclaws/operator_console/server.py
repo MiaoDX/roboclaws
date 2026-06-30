@@ -62,7 +62,6 @@ from roboclaws.operator_console.runtime_inventory import (
 )
 from roboclaws.operator_console.state import derive_operator_state, redacted_artifact_text
 
-PAUSE_UNAVAILABLE_REASON = "Pause is unavailable for this route. Use Stop or Emergency Stop."
 FOLLOW_UP_AUTOSTART_ATTEMPTS = 30
 FOLLOW_UP_AUTOSTART_RETRY_DELAY_S = 1.0
 
@@ -300,7 +299,6 @@ class ConsoleRequestHandler(SimpleHTTPRequestHandler):
             "next-goal": self._serve_next_goal,
             "resume": self._serve_resume,
             "control": self._serve_control_post,
-            "pause": self._serve_pause_post,
             "stop": self._serve_stop_post,
             "emergency-stop": self._serve_emergency_stop_post,
         }
@@ -419,9 +417,6 @@ class ConsoleRequestHandler(SimpleHTTPRequestHandler):
 
     def _serve_run_get(self, parsed: ParseResult) -> None:
         run_id = unquote(parsed.path.removeprefix("/api/runs/"))
-        if run_id.endswith("/pause"):
-            self._serve_pause_get(run_id.removesuffix("/pause"))
-            return
         if run_id.endswith("/messages"):
             self._serve_run_messages_get(run_id.removesuffix("/messages"))
             return
@@ -429,15 +424,6 @@ class ConsoleRequestHandler(SimpleHTTPRequestHandler):
         route = get_selection(selection_id) if selection_id else None
         run_dir = console_output_root(self.repo_root) / "runs" / run_id
         self._json(derive_operator_state(self.repo_root, run_dir, route))
-
-    def _serve_pause_get(self, run_id: str) -> None:
-        self._json(
-            {
-                "run_id": run_id,
-                "paused": False,
-                "reason": PAUSE_UNAVAILABLE_REASON,
-            }
-        )
 
     def _serve_run_messages_get(self, run_id: str) -> None:
         try:
@@ -508,10 +494,6 @@ class ConsoleRequestHandler(SimpleHTTPRequestHandler):
             ),
             status=201,
         )
-
-    def _serve_pause_post(self, run_id: str, payload: dict[str, object]) -> None:
-        del payload
-        self._serve_pause_get(run_id)
 
     def _serve_control_post(self, run_id: str, payload: dict[str, object]) -> None:
         try:
@@ -624,7 +606,6 @@ def _parse_run_action_path(path: str) -> tuple[str, str] | None:
         "messages",
         "resume",
         "control",
-        "pause",
         "stop",
     ):
         suffix = f"/{action}"
