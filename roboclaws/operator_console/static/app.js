@@ -1,6 +1,5 @@
 const state = {
   worlds: [],
-  routes: [],
   combinations: [],
   evidenceLanes: [],
   readiness: {},
@@ -103,8 +102,7 @@ const els = {
 async function boot() {
   const payload = await fetchJson("/api/routes");
   state.evidenceLanes = payload.evidence_lanes || [];
-  state.combinations = payload.combinations || payload.routes || [];
-  state.routes = state.combinations;
+  state.combinations = payload.combinations || [];
   state.worlds = orderedVisibleWorlds(payload.worlds || []);
   state.readiness = payload.readiness || {};
   state.runtime = payload.runtime || { tasks: [], summary: {} };
@@ -1120,7 +1118,7 @@ async function attachLatestResult() {
     els.eventList.textContent = result.error;
     return;
   }
-  const route = state.routes.find((item) => item.id === result.selection_id);
+  const route = state.combinations.find((item) => item.id === result.selection_id);
   if (route) {
     state.selectedRoute = route;
     state.selectedIntent = route.intent_id || "";

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -16,6 +17,7 @@ from roboclaws.operator_console.routes import (
     list_worlds,
     validate_supported_routes_against_catalog,
 )
+from roboclaws.operator_console.server import ConsoleRequestHandler
 
 AGIBOT_SDK_CLEANUP = (
     "agibot-g2/map-12::agibot-gdk::cleanup::openai-agents-sdk::camera-grounded-labels"
@@ -88,7 +90,16 @@ def test_world_catalog_exposes_scene_first_console_choices() -> None:
             "href": "/previews/molmospaces-procthor-objaverse-val-10-topdown.png",
         },
     }
-    assert worlds["agibot-g2/map-12"]["preview_assets"] == {}
+    assert worlds["agibot-g2/map-12"]["preview_assets"] == {
+        "map": {
+            "path": "/previews/b1-map12-map.png",
+            "href": "/previews/b1-map12-map.png",
+        },
+        "topdown": {
+            "path": "/previews/b1-map12-topdown.png",
+            "href": "/previews/b1-map12-topdown.png",
+        },
+    }
     assert worlds["b1-map12"]["preview_assets"] == {
         "fpv": {
             "path": "/previews/b1-map12-fpv.png",
@@ -470,6 +481,13 @@ def test_payload_exposes_orthogonal_ui_metadata() -> None:
     assert b1_openai_agents["supports_relative_navigation_control"] is True
     assert b1_openai_agents["supports_paused_handoff_resume"] is True
     assert "agent_engine=openai-agents-sdk" in b1_openai_agents["argv_preview"]
+
+
+def test_routes_payload_does_not_preserve_legacy_routes_alias(tmp_path: Path) -> None:
+    payload = ConsoleRequestHandler._routes_payload(SimpleNamespace(repo_root=tmp_path))
+
+    assert "combinations" in payload
+    assert "routes" not in payload
 
 
 def test_legacy_route_api_stays_removed() -> None:

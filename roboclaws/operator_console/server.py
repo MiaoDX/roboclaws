@@ -363,10 +363,6 @@ class ConsoleRequestHandler(SimpleHTTPRequestHandler):
                 selection.to_payload()
                 for selection in list_console_combinations(include_disabled=True)
             ],
-            "routes": [
-                selection.to_payload()
-                for selection in list_console_combinations(include_disabled=True)
-            ],
             "readiness": {
                 selection.id: route_readiness(
                     self.repo_root,
