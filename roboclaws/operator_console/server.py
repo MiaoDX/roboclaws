@@ -179,34 +179,19 @@ def _retryable_follow_up_start_error(error: str) -> bool:
 
 def _follow_up_launch_request(parent_run_id: str, follow_up: dict[str, object]) -> LaunchRequest:
     selection_id = str(follow_up.get("selection_id") or "")
-    launch_parts = _selection_launch_parts(selection_id)
+    route = get_selection(selection_id)
     return LaunchRequest(
         selection_id_override=selection_id,
-        intent_id=str(follow_up.get("intent") or "") or launch_parts.get("intent_id", ""),
+        intent_id=str(follow_up.get("intent") or "") or route.intent_id,
         prompt=str(follow_up.get("body") or ""),
         operator_session_id=str(follow_up.get("operator_session_id") or ""),
         parent_run_id=parent_run_id,
         next_goal_packet=dict(follow_up.get("next_goal_packet") or {}),
-        world_id=launch_parts.get("world_id", ""),
-        backend_id=launch_parts.get("backend_id", ""),
-        agent_engine_id=launch_parts.get("agent_engine_id", ""),
-        evidence_lane=launch_parts.get("evidence_lane", ""),
+        world_id=route.world_id,
+        backend_id=route.backend_id,
+        agent_engine_id=route.agent_engine_id,
+        evidence_lane=route.evidence_lane,
     )
-
-
-def _selection_launch_parts(selection_id: str) -> dict[str, str]:
-    if not selection_id:
-        return {}
-    parts = selection_id.split("::")
-    if len(parts) != 5:
-        return {}
-    return {
-        "world_id": parts[0],
-        "backend_id": parts[1],
-        "intent_id": "open-ended" if parts[2] == "open-task" else parts[2],
-        "agent_engine_id": parts[3],
-        "evidence_lane": parts[4],
-    }
 
 
 class ConsoleRequestHandler(SimpleHTTPRequestHandler):

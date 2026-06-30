@@ -7,7 +7,7 @@ Source gate: `docs/plans/refactor-operator-console-ui-maintenance.md`
 Latest user intent classification: execute repo-wide architecture maintenance
 for the UI operator console until saturation, using `$intuitive-refactor`.
 
-Current slice: rediscover from current `HEAD` after completing the first clear
+Current slice: rediscover from current `HEAD` after completing the second clear
 queue item.
 
 Blocker fingerprint: none.
@@ -22,6 +22,15 @@ Last proven evidence:
 - exact stale-reference search for `state.routes`, `payload.routes`,
   `payload["routes"]`, and `"routes":` under `roboclaws/operator_console` and
   `tests/unit/operator_console`
+- `./scripts/dev/run_pytest_standalone.sh -q tests/unit/operator_console/test_operator_session_followup.py::test_followup_launch_request_uses_route_registry_for_selection_axes tests/unit/operator_console/test_operator_session_followup.py::test_followup_launch_request_rejects_unknown_selection_id tests/unit/operator_console/test_operator_session_followup.py::test_next_goal_autostart_retries_visual_slot_wind_down tests/unit/operator_console/test_operator_session_followup.py::test_next_goal_autostart_releases_parent_lock_during_live_status_wind_down tests/unit/operator_console/test_operator_console.py::test_operator_console_next_goal_autostarts_ready_followup`
+- `.venv/bin/ruff check roboclaws/operator_console/server.py tests/unit/operator_console/test_operator_session_followup.py`
+- `./scripts/dev/run_pytest_standalone.sh -q tests/unit/operator_console/test_operator_session_followup.py tests/unit/operator_console/test_operator_console.py::test_operator_console_next_goal_autostarts_ready_followup`
+- `node --check roboclaws/operator_console/static/app.js`
+- `.venv/bin/ruff check roboclaws/operator_console tests/unit/operator_console`
+- `git diff --check`
+- exact no-reference search for `_selection_launch_parts`,
+  `selection_id.split`, and `split("::")` under `roboclaws/operator_console`
+  and `tests/unit/operator_console`
 
 Completed slice batch summary:
 
@@ -29,6 +38,9 @@ Completed slice batch summary:
   `state.routes` shadow owner. The API/static proof passed. The full scoped
   operator-console target also exposed and fixed a stale Agibot preview
   expectation in `tests/unit/operator_console/test_routes.py`.
+- 2026-06-30: removed the private next-goal selection-id split parser from
+  `server.py`; follow-up launch requests now use `get_selection()`. Focused
+  follow-up/API proof passed.
 
 Next proof command:
 

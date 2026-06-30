@@ -15,8 +15,8 @@ active_capsule: docs/status/active/refactor-operator-console-ui-maintenance.md
 ## Plan Ledger
 
 - Status: ACTIVE
-- Current slice: rediscover from current `HEAD` after completing the first clear
-  queue item.
+- Current slice: rediscover from current `HEAD` after completing the second
+  clear queue item.
 - Next action: run the next `$intuitive-reduce-entropy` discovery round against
   the operator-console UI/API surface.
 - Blocker: none.
@@ -109,6 +109,20 @@ Consecutive no-clear-candidate passes: 0
    - Suggested proof: exact stale-reference search, `node --check`, focused
      routes endpoint/static asset tests.
 
+2. **DONE: Canonicalize next-goal follow-up selection decoding**
+   - Severity: P2
+   - Entropy source: duplicate owner for route selection identity
+   - Demand gate: next-goal autostart reconstructed launch axes by splitting
+     `selection_id` in `server.py`, even though `routes.get_selection()` and
+     `LaunchRequest.selection_id` already own the canonical route identity.
+   - Owner layer: operator-console server/route-registry boundary
+   - Expected simplification: remove one private parser and route follow-up
+     launch construction through the route registry.
+   - Behavior-change class: behavior-preserving internal owner move; invalid
+     selections still fail through the existing POST error wrapper.
+   - Suggested proof: exact no-reference search for the removed parser,
+     focused next-goal helper/autostart tests, ruff.
+
 ## Completed Slice Batch Summary
 
 - 2026-06-30: `/api/routes` now exposes only the canonical `combinations`
@@ -131,6 +145,24 @@ Consecutive no-clear-candidate passes: 0
   - Skipped browser smoke: this slice changed an internal JSON key alias and
     state lookup owner, not rendered layout, interaction behavior, or visual
     asset loading; focused API/static proof covered the observable risk.
+
+- 2026-06-30: next-goal follow-up launch request construction now asks
+  `get_selection(selection_id)` for world/backend/intent/engine/lane axes
+  instead of parsing the selection string inside `server.py`.
+  - Value metrics: duplicate private parsers removed: 1; route identity owners
+    merged to the route registry: 1; public contracts touched: no.
+  - Proof:
+    `./scripts/dev/run_pytest_standalone.sh -q tests/unit/operator_console/test_operator_session_followup.py::test_followup_launch_request_uses_route_registry_for_selection_axes tests/unit/operator_console/test_operator_session_followup.py::test_followup_launch_request_rejects_unknown_selection_id tests/unit/operator_console/test_operator_session_followup.py::test_next_goal_autostart_retries_visual_slot_wind_down tests/unit/operator_console/test_operator_session_followup.py::test_next_goal_autostart_releases_parent_lock_during_live_status_wind_down tests/unit/operator_console/test_operator_console.py::test_operator_console_next_goal_autostarts_ready_followup`;
+    `./scripts/dev/run_pytest_standalone.sh -q tests/unit/operator_console/test_operator_session_followup.py tests/unit/operator_console/test_operator_console.py::test_operator_console_next_goal_autostarts_ready_followup`;
+    `.venv/bin/ruff check roboclaws/operator_console/server.py tests/unit/operator_console/test_operator_session_followup.py`;
+    `node --check roboclaws/operator_console/static/app.js`;
+    `.venv/bin/ruff check roboclaws/operator_console tests/unit/operator_console`;
+    `git diff --check`;
+    exact no-reference search for `_selection_launch_parts`,
+    `selection_id.split`, and `split("::")` under `roboclaws/operator_console`
+    and `tests/unit/operator_console`.
+  - Skipped browser smoke: this slice changed server-side follow-up request
+    construction only; focused API/helper proof covered the observable risk.
 
 ## Parked Registry
 
