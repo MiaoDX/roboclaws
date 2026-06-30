@@ -18,10 +18,7 @@ from roboclaws.operator_console.control import _serialize_tool_result
 from roboclaws.operator_console.routes import get_selection
 from roboclaws.operator_console.server import ConsoleRequestHandler
 
-MUJOCO_OPENAI_AGENTS_OPEN_TASK = (
-    "molmospaces/procthor-objaverse-val/0::mujoco::open-task::openai-agents-sdk::"
-    "world-public-labels"
-)
+from tests.unit.operator_console.conftest import MUJOCO_OPENAI_AGENTS_OPEN_TASK  # noqa: F401  re-exported for tests
 
 
 def test_control_endpoint_rejects_malformed_tool_response_text(tmp_path: Path) -> None:

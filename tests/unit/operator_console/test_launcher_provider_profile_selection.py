@@ -15,7 +15,7 @@ from roboclaws.operator_console.launcher import (
 from roboclaws.operator_console.routes import get_selection
 from tests.support.b1_robot_proof import write_b1_robot_proof_artifacts
 
-B1_OPENAI_AGENTS_OPEN_TASK = "b1-map12::isaaclab::open-task::openai-agents-sdk::world-public-labels"
+from tests.unit.operator_console.conftest import B1_OPENAI_AGENTS_OPEN_TASK  # noqa: F401  re-exported for tests
 
 
 def _free_port() -> str:

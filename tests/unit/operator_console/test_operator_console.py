@@ -50,26 +50,15 @@ CODEX_ENV = {
     "CODEX_BASE_URL": "https://codex.example.test/v1",
     "CODEX_API_KEY": "key",
 }
-AGIBOT_SDK_CLEANUP = (
-    "agibot-g2/map-12::agibot-gdk::cleanup::openai-agents-sdk::camera-grounded-labels"
-)
-AGIBOT_SDK_MAP_BUILD = (
-    "agibot-g2/map-12::agibot-gdk::map-build::openai-agents-sdk::camera-grounded-labels"
-)
-B1_OPENAI_AGENTS_OPEN_TASK = "b1-map12::isaaclab::open-task::openai-agents-sdk::world-public-labels"
-B1_OPENAI_AGENTS_CAMERA_GROUNDED = (
-    "b1-map12::isaaclab::open-task::openai-agents-sdk::camera-grounded-labels"
-)
-MUJOCO_SDK_CLEANUP = (
-    "molmospaces/procthor-objaverse-val/0::mujoco::cleanup::openai-agents-sdk::world-public-labels"
-)
-MUJOCO_OPENAI_AGENTS_OPEN_TASK = (
-    "molmospaces/procthor-objaverse-val/0::mujoco::open-task::openai-agents-sdk::"
-    "world-public-labels"
-)
-MUJOCO_SDK_MAP_BUILD = (
-    "molmospaces/procthor-objaverse-val/0::mujoco::map-build::openai-agents-sdk::"
-    "world-public-labels"
+
+from tests.unit.operator_console.conftest import (  # noqa: F401  re-exported for tests
+    AGIBOT_SDK_CLEANUP,
+    AGIBOT_SDK_MAP_BUILD,
+    B1_OPENAI_AGENTS_CAMERA_GROUNDED,
+    B1_OPENAI_AGENTS_OPEN_TASK,
+    MUJOCO_OPENAI_AGENTS_OPEN_TASK,
+    MUJOCO_SDK_CLEANUP,
+    MUJOCO_SDK_MAP_BUILD,
 )
 
 
