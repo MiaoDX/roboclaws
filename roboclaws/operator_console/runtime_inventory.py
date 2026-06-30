@@ -449,10 +449,6 @@ def _tmux_tasks(root: Path) -> list[dict[str, Any]]:
                 resources=resources,
                 session_id=name,
                 started_at_epoch=started,
-                actions=[
-                    _command_action("Attach", f"tmux attach -t {name}"),
-                    _command_action("Copy Stop Command", f"tmux kill-session -t {name}"),
-                ],
             )
         )
     return tasks
@@ -482,7 +478,6 @@ def _port_owner_tasks(root: Path, ports: list[int]) -> list[dict[str, Any]]:
                 resource=f"MCP port {DEFAULT_MCP_HOST}:{port}",
                 resources=resources,
                 pid=owner,
-                actions=[_command_action("Inspect Port", f"lsof -nP -iTCP:{port} -sTCP:LISTEN")],
             )
         )
     return tasks
@@ -531,10 +526,6 @@ def _docker_tasks(root: Path) -> list[dict[str, Any]]:
                 resources=resources,
                 container_id=container_id,
                 artifacts=[],
-                actions=[
-                    _command_action("Inspect", f"docker inspect {container_id}"),
-                    _command_action("Copy Stop Command", f"docker stop --time 5 {container_id}"),
-                ],
                 extra={"image": image, "docker_status": status},
             )
         )
@@ -652,12 +643,10 @@ def _run_actions(
             }
         )
     session = _tmux_session_name(display_run_dir) if display_run_dir else ""
-    if session and (not require_live_tmux or _tmux_session_exists(session)):
-        actions.append(_command_action("Attach", f"tmux attach -t {session}"))
-        actions.append(_command_action("Copy Stop Command", f"tmux kill-session -t {session}"))
+    if session and require_live_tmux and not _tmux_session_exists(session):
+        session = ""
     driver_log = display_run_dir / "driver.log" if display_run_dir else None
     if driver_log and driver_log.is_file():
-        actions.append(_command_action("Tail Log", f"tail -f {driver_log}"))
         request_path = operator_output_request_path(root, driver_log)
         if request_path:
             actions.append(
@@ -741,10 +730,6 @@ def _artifact(root: Path, path: Path, label: str, *, kind: str) -> dict[str, Any
         "path": str(path),
         "href": href,
     }
-
-
-def _command_action(label: str, command: str) -> dict[str, str]:
-    return {"type": "copy_command", "label": label, "command": redact_text(command)}
 
 
 def _status_from_phase(
@@ -1181,7 +1166,6 @@ def _docker_mount_source_error_task(
             )
         ],
         container_id=container_id,
-        actions=[_command_action("Inspect", f"docker inspect {container_id}")],
         extra={
             "image": image,
             "docker_status": status,

@@ -132,13 +132,13 @@ def test_runtime_inventory_lists_eval_harness_sdk_live_row(tmp_path: Path) -> No
     )
     assert any(resource["kind"] == "tmux_session" for resource in task["resources"])
     assert any(resource["kind"] == "visual_slot" for resource in task["resources"])
-    assert not any(action["label"] == "Attach" for action in task["actions"])
-    assert not any(action["type"] == "api_post" for action in task["actions"])
+    assert not any(action["label"] == "Attach" for action in task.get("actions", []))
+    assert not any(action["type"] == "api_post" for action in task.get("actions", []))
     artifacts = {item["label"]: item for item in task["artifacts"]}
     assert artifacts["Driver log"]["path"] == str(run_dir / "driver.log")
     assert artifacts["Driver log"]["href"] == ""
     assert artifacts["Eval harness manifest"]["href"] == ""
-    assert not any(action["label"] == "Open Log" for action in task["actions"])
+    assert not any(action["label"] == "Open Log" for action in task.get("actions", []))
     assert "SECRET_TOKEN_VALUE" not in json.dumps(task)
     assert "secret-key-value" not in json.dumps(task)
 

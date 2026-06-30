@@ -89,7 +89,6 @@ def test_static_app_keeps_deleted_operator_console_widgets_deleted() -> None:
         'id="messup-button"',
         'id="messup-status"',
         'id="tasks-panel"',
-        'id="background-task-list"',
         'data-view="tasks"',
         'data-panel="runtime_map"',
     ):
@@ -100,12 +99,9 @@ def test_static_app_keeps_deleted_operator_console_widgets_deleted() -> None:
         "/api/messup-preview",
         "schedulePromptPreviewRefresh",
         "promptPreviewTimer",
-        "renderBackgroundTasks",
         "backgroundTaskViewAvailable",
         "taskActionsHtml",
-        "runTaskAction",
         "copy_command",
-        "api_post",
         'setImageSlot(\n    "runtime_map"',
         'runtime_map: "Metric Map"',
     ):
@@ -119,6 +115,20 @@ def test_static_app_keeps_deleted_operator_console_widgets_deleted() -> None:
         ".messup-actions",
     ):
         assert snippet not in css
+
+
+def test_static_app_keeps_background_tasks_in_console() -> None:
+    html = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
+    app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
+    css = (STATIC_ROOT / "styles.css").read_text(encoding="utf-8")
+
+    assert 'id="background-tasks-dialog"' in html
+    assert 'id="background-task-list"' in html
+    assert "renderBackgroundTasks" in app
+    assert "runBackgroundTaskAction" in app
+    assert "copy_command" not in app
+    assert "window.open" in app
+    assert ".background-task-row" in css
 
 
 def test_static_app_does_not_short_circuit_context_json_readiness() -> None:

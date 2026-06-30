@@ -836,6 +836,46 @@ dialog pre {
   gap: 8px;
 }
 
+.dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.background-tasks-dialog {
+  width: min(880px, calc(100vw - 32px));
+}
+
+.background-task-list {
+  display: grid;
+  gap: 12px;
+  max-height: min(680px, calc(100vh - 180px));
+  overflow: auto;
+}
+
+.background-task-row {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.background-task-row header,
+.background-task-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.background-task-actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
 .image-dialog {
   width: min(1280px, calc(100vw - 32px));
   max-width: calc(100vw - 32px);
