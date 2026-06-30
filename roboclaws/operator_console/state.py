@@ -483,20 +483,15 @@ def _read_jsonl_source(
 def _last_robot_tool_jsonl(rows: list[dict[str, Any]]) -> dict[str, Any]:
     for index in range(len(rows) - 1, -1, -1):
         payload = rows[index]
-        if isinstance(payload, dict) and _is_robot_tool_trace(payload):
-            return _paired_tool_trace(payload, rows[:index])
+        if isinstance(payload, dict):
+            tool = str(payload.get("tool") or payload.get("tool_name") or "")
+            if tool and tool != "<runtime>":
+                return _paired_tool_trace(payload, rows[:index])
     return {}
 
 
 def _camera_angle_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     return camera_angle_summary(rows)
-
-
-def _is_robot_tool_trace(payload: dict[str, Any]) -> bool:
-    tool = str(payload.get("tool") or payload.get("tool_name") or "")
-    if not tool or tool == "<runtime>":
-        return False
-    return True
 
 
 def _paired_tool_trace(trace: dict[str, Any], previous: list[dict[str, Any]]) -> dict[str, Any]:

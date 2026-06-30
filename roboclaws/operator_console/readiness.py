@@ -184,16 +184,6 @@ def _request_field_gate(
             severity=gate.severity,
             blocks_start=gate.required,
         )
-    contract_errors = _request_field_contract_errors(route, gate.id, payload)
-    if contract_errors:
-        return GateEvaluation(
-            ok=False,
-            message=f"{label} failed contract: {'; '.join(contract_errors)}",
-            evidence=str(context_path),
-            kind=kind,
-            severity=gate.severity,
-            blocks_start=gate.required,
-        )
     return GateEvaluation(
         evidence=str(context_path),
         severity=gate.severity,
@@ -205,15 +195,6 @@ def _request_field_kind(gate_id: str) -> str:
     if gate_id == "context_json":
         return "needs_agibot_context"
     return "needs_route_parameter"
-
-
-def _request_field_contract_errors(
-    route: ConsoleLaunchSelection,
-    gate_id: str,
-    payload: dict[str, Any],
-) -> list[str]:
-    del route, gate_id, payload
-    return []
 
 
 def _route_default_override(route: ConsoleLaunchSelection, key: str) -> str:
