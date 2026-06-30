@@ -1259,6 +1259,33 @@ def test_operator_console_control_endpoint_allows_paused_operator_handoff(
     assert state["latest_operator_control"]["action"] == "observe"
 
 
+def test_operator_console_control_endpoint_waits_for_mcp_ready(
+    tmp_path: Path,
+) -> None:
+    route = get_selection(B1_OPENAI_AGENTS_OPEN_TASK)
+    run_id = "starting-control-run"
+    run_dir = tmp_path / "output" / "operator-console" / "runs" / run_id
+    run_dir.mkdir(parents=True)
+    (run_dir / "operator_state.json").write_text(
+        json.dumps(
+            {
+                "run_id": run_id,
+                "route": route.to_payload(),
+                "phase": "starting",
+                "backend_lock": route.lock_name,
+                "mcp_url": "http://127.0.0.1:19999/mcp",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with _console_server(tmp_path) as (host, port):
+        payload = _blocked_operator_control_payload(host, port, run_id, {"action": "observe"})
+
+    assert payload["error"] == "manual control is waiting for the MCP endpoint to become ready"
+    assert not (run_dir / "operator_control.jsonl").exists()
+
+
 def test_operator_console_control_endpoint_rejects_unsupported_route(tmp_path: Path) -> None:
     route = get_selection(MUJOCO_SDK_MAP_BUILD)
     run_id = "map-build-run"

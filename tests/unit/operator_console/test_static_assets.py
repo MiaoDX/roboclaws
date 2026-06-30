@@ -510,8 +510,10 @@ def test_static_app_wires_manual_relative_navigation_controls() -> None:
     assert "/control" in app
     assert "supports_relative_navigation_control" in app
     assert "relative_navigation_control_available" in app
+    assert "relative_navigation_control_pending" in app
     assert "operator_handoff_paused" in app
     assert "supports_paused_handoff_resume" in app
+    assert "MCP endpoint to become ready" in app
     assert "operator moves are recorded as assisted interventions".lower() in app.lower()
     assert ".manual-control-panel" in css
     assert ".manual-control-grid" in css

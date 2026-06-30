@@ -263,6 +263,7 @@ def test_next_goal_autostart_retries_visual_slot_wind_down(tmp_path: Path) -> No
 def test_next_goal_autostart_releases_parent_lock_during_live_status_wind_down(
     tmp_path: Path,
 ) -> None:
+    mcp_port = int(_free_port())
     route = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
     run_id = "parent-wind-down-run"
     run_dir = tmp_path / "output" / "operator-console" / "runs" / run_id
@@ -304,6 +305,8 @@ def test_next_goal_autostart_releases_parent_lock_during_live_status_wind_down(
 
     with (
         patch.dict(os.environ, CODEX_ENV),
+        patch("roboclaws.operator_console.readiness.DEFAULT_MCP_PORT", mcp_port),
+        patch("roboclaws.operator_console.runtime_inventory.DEFAULT_MCP_PORT", mcp_port),
         patch("roboclaws.operator_console.launcher.subprocess.Popen", return_value=FakeProcess()),
         _console_server(tmp_path) as (host, port),
     ):

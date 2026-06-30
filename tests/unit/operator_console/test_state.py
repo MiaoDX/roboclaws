@@ -1224,6 +1224,33 @@ def test_state_keeps_manual_control_available_for_paused_handoff_attempt(
     assert state["controls"]["supports_paused_handoff_resume"] is True
 
 
+def test_state_holds_manual_control_until_live_mcp_phase_is_ready(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "output" / "operator-console" / "runs" / "wrapper-run"
+    route = get_selection(B1_OPENAI_AGENTS_OPEN_TASK)
+    run_dir.mkdir(parents=True)
+    (run_dir / "operator_state.json").write_text(
+        json.dumps(
+            {
+                "run_id": "wrapper-run",
+                "route": route.to_payload(),
+                "phase": "starting",
+                "backend_lock": route.lock_name,
+                "mcp_url": "http://127.0.0.1:18788/mcp",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    state = derive_operator_state(tmp_path, run_dir, route)
+
+    assert state["phase"] == "starting"
+    assert state["controls"]["relative_navigation_control_available"] is False
+    assert state["controls"]["relative_navigation_control_pending"] is True
+    assert state["controls"]["next_goal_available"] is False
+
+
 def test_state_reports_blocked_resume_for_paused_handoff_without_runner_support(
     tmp_path: Path,
 ) -> None:

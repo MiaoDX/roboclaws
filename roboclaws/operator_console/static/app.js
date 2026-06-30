@@ -1586,6 +1586,9 @@ function manualControlStatusText(payload, controls, available) {
     return "This route does not expose relative navigation control.";
   }
   if (!available) {
+    if (controls.relative_navigation_control_pending) {
+      return "Manual control is waiting for the MCP endpoint to become ready.";
+    }
     if (controls.operator_handoff_paused) {
       return "Manual control is unavailable for this paused handoff route.";
     }

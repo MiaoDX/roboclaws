@@ -166,7 +166,14 @@ def derive_operator_state(
         and not controls_terminal
         and not operator_handoff_paused
     )
-    relative_control_available = bool(supports_relative_control and not controls_terminal)
+    relative_control_pending = bool(
+        supports_relative_control
+        and not controls_terminal
+        and _relative_control_startup_pending(phase)
+    )
+    relative_control_available = bool(
+        supports_relative_control and not controls_terminal and not relative_control_pending
+    )
     stop_available = _stop_available(
         root=root,
         run_id=run_id,
@@ -220,6 +227,7 @@ def derive_operator_state(
             "supports_operator_steer": bool(route.supports_operator_steer) if route else False,
             "supports_paused_handoff_resume": supports_resume,
             "relative_navigation_control_available": relative_control_available,
+            "relative_navigation_control_pending": relative_control_pending,
             "supports_relative_navigation_control": supports_relative_control,
             "stop_available": stop_available,
             "emergency_stop_required": bool(route.emergency_stop_required) if route else False,
@@ -790,6 +798,14 @@ def _control_terminal_state(phase: str, status: str, terminal_reason: str) -> bo
         or status.lower() in terminal_values
         or terminal_reason.lower() in terminal_values
     )
+
+
+def _relative_control_startup_pending(phase: str) -> bool:
+    return phase.lower() in {
+        "queued",
+        "starting",
+        "starting-server",
+    }
 
 
 def _operator_handoff_paused(phase: str, terminal_reason: str) -> bool:
