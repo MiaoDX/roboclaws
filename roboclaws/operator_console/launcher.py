@@ -38,22 +38,7 @@ from roboclaws.operator_console.launch_support import (
 )
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root
-
-
-def pid_is_active(pid: Any) -> bool:
-    try:
-        parsed_pid = int(pid)
-    except (TypeError, ValueError):
-        return False
-    if parsed_pid <= 0:
-        return False
-    try:
-        os.kill(parsed_pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    return True
+from roboclaws.operator_console.runtime_compat import pid_is_active  # noqa: F401
 from roboclaws.operator_console.prompt_preview import (
     PromptPreviewRequest,
     build_prompt_preview,

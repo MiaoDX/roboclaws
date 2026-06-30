@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import socket
 import subprocess
 import time
@@ -22,24 +21,9 @@ from roboclaws.operator_console.launch_support import (
 )
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root, operator_output_request_path
-
-
-def pid_is_active(pid: Any) -> bool:
-    try:
-        parsed_pid = int(pid)
-    except (TypeError, ValueError):
-        return False
-    if parsed_pid <= 0:
-        return False
-    try:
-        os.kill(parsed_pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    return True
 from roboclaws.operator_console.redaction import redact_text
 from roboclaws.operator_console.routes import ConsoleLaunchSelection, selection_task_selector
+from roboclaws.operator_console.runtime_compat import float_or_none, pid_is_active  # noqa: F401
 from roboclaws.operator_console.state import resolve_display_run_dir
 from roboclaws.operator_console.state_summary import TERMINAL_RUN_PHASES, task_phase_from_paths
 
@@ -285,7 +269,7 @@ def _operator_run_task(root: Path, run_dir: Path) -> dict[str, Any] | None:
         run_dir=run_dir,
         display_run_dir=display_run_dir,
         started_at=str(state.get("started_at") or ""),
-        started_at_epoch=_float_or_none(state.get("started_at_epoch")),
+        started_at_epoch=float_or_none(state.get("started_at_epoch")),
         artifacts=artifacts,
         actions=actions,
     )
@@ -453,7 +437,7 @@ def _tmux_tasks(root: Path) -> list[dict[str, Any]]:
         name = parts[0].strip() if parts else ""
         if not _repo_tmux_session(name):
             continue
-        started = _float_or_none(parts[1] if len(parts) > 1 else None)
+        started = float_or_none(parts[1] if len(parts) > 1 else None)
         resources = [_resource("tmux_session", name, session_id=name, active=True)]
         tasks.append(
             _task(
@@ -957,7 +941,7 @@ def _dedupe_resources(resources: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def _sort_key(task: dict[str, Any]) -> tuple[float, str]:
-    epoch = _float_or_none(task.get("started_at_epoch")) or _mtime_for_task(task)
+    epoch = float_or_none(task.get("started_at_epoch")) or _mtime_for_task(task)
     return epoch, str(task.get("id") or "")
 
 
@@ -1200,6 +1184,8 @@ def _path_is_repo_relevant(root: Path, path: Path) -> bool:
 
 
 def _host_probe_enabled(root: Path) -> bool:
+    """Skip host-probe (tmux / port / docker) when not running from a repo root."""
+
     return (root / "pyproject.toml").is_file() and (root / "roboclaws").is_dir()
 
 
@@ -1246,13 +1232,6 @@ def _int_or_none(value: Any) -> int | None:
     return parsed if parsed > 0 else None
 
 
-def _float_or_none(value: Any) -> float | None:
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
 def _age_seconds(started_at_epoch: float | None) -> float | None:
     if started_at_epoch is None:
         return None
@@ -1260,7 +1239,7 @@ def _age_seconds(started_at_epoch: float | None) -> float | None:
 
 
 def _recent_epoch(value: Any, *, window_s: float) -> bool:
-    epoch = _float_or_none(value)
+    epoch = float_or_none(value)
     return bool(epoch and time.time() - epoch <= window_s)
 
 
