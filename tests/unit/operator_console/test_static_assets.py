@@ -128,6 +128,7 @@ def test_static_app_renders_scene_preview_assets() -> None:
     _assert_scene_preview_app_wiring(app)
     molmospaces_preview_files = _assert_molmospaces_preview_files(preview_dir)
     _assert_b1_world_spec_has_four_preview_assets()
+    _assert_agibot_map12_world_spec_reuses_safe_b1_review_assets()
     _assert_molmospaces_preview_metadata(preview_dir)
     _assert_b1_preview_metadata(preview_dir)
     assert not any(name.startswith("molmospaces-val_6-") for name in molmospaces_preview_files)
@@ -233,6 +234,14 @@ def _assert_preview_png_files_exist(preview_dir: Path, preview_by_view: dict[str
 def _assert_b1_world_spec_has_four_preview_assets() -> None:
     b1_preview_assets = dict(WORLD_SPECS["b1-map12"].preview_assets)
     assert set(b1_preview_assets) == {"fpv", "map", "chase", "topdown"}
+
+
+def _assert_agibot_map12_world_spec_reuses_safe_b1_review_assets() -> None:
+    agibot_preview_assets = dict(WORLD_SPECS["agibot-g2/map-12"].preview_assets)
+    assert agibot_preview_assets == {
+        "map": "/previews/b1-map12-map.png",
+        "topdown": "/previews/b1-map12-topdown.png",
+    }
 
 
 def _assert_b1_preview_metadata(preview_dir: Path) -> None:

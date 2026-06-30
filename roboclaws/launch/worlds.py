@@ -97,6 +97,10 @@ WORLD_SPECS: dict[str, WorldSpec] = {
         tags=("household", "physical-robot", "map-build"),
         default_backend="agibot-gdk",
         resource_kind="physical_robot",
+        preview_assets=(
+            ("map", "/previews/b1-map12-map.png"),
+            ("topdown", "/previews/b1-map12-topdown.png"),
+        ),
     ),
     "b1-map12": WorldSpec(
         id="b1-map12",
