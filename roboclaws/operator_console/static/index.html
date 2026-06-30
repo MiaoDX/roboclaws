@@ -39,8 +39,26 @@
         <section class="rail-section">
           <h2>Setup</h2>
           <div id="selected-route-summary" class="selected-route-summary">
-            Choose a world or scene to configure backend, task, agent engine, and evidence.
+            Choose a world or scene, then run a supported workflow action.
           </div>
+          <section id="scene-state-summary" class="scene-state-summary">
+            <h2>Scene State</h2>
+            <div id="map-prior-state" class="evidence-box">No map prior selected.</div>
+            <label>
+              Runtime Map Prior Override
+              <input
+                id="runtime-map-prior-input"
+                name="runtime_map_prior"
+                placeholder="path/to/runtime_map_prior_snapshot.json"
+              />
+            </label>
+          </section>
+          <section class="workflow-panel">
+            <h2>Workflow</h2>
+            <div id="workflow-action-list" class="workflow-action-list"></div>
+          </section>
+          <details id="advanced-controls" class="advanced-controls">
+            <summary>Advanced</summary>
           <div id="launch-axis-fields" class="route-fields">
           <label>
             Backend
@@ -122,6 +140,7 @@
             Real movement enabled
           </label>
           </div>
+          </details>
           <section class="operator-message-panel">
             <h2>Operator Input</h2>
             <div class="operator-mode-tabs" role="group" aria-label="Operator input mode">

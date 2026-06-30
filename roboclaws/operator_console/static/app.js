@@ -2,10 +2,13 @@ const state = {
   worlds: [],
   combinations: [],
   evidenceLanes: [],
+  workflows: [],
+  recommendedPriors: [],
   readiness: {},
   runtime: { tasks: [], summary: {} },
   selectedWorld: null,
   selectedRoute: null,
+  selectedWorkflow: null,
   activeRunId: null,
   activeRouteId: "",
   activeState: null,
@@ -22,6 +25,7 @@ const state = {
 const MANUAL_CONTROL_STEP_M = 0.25;
 const MANUAL_CONTROL_TURN_DEG = 15;
 const DEFAULT_UI_INTENT = "open-ended";
+const DEFAULT_WORKFLOW_ID = "open-task";
 
 const els = {
   appShell: document.querySelector(".app-shell"),
@@ -45,6 +49,11 @@ const els = {
   relocationCountInput: document.getElementById("relocation-count-input"),
   portInput: document.getElementById("port-input"),
   selectedRouteSummary: document.getElementById("selected-route-summary"),
+  sceneStateSummary: document.getElementById("scene-state-summary"),
+  mapPriorState: document.getElementById("map-prior-state"),
+  runtimeMapPriorInput: document.getElementById("runtime-map-prior-input"),
+  workflowActionList: document.getElementById("workflow-action-list"),
+  advancedControls: document.getElementById("advanced-controls"),
   commonFields: document.getElementById("common-fields"),
   agibotFields: document.getElementById("agibot-fields"),
   agibotGateFields: document.getElementById("agibot-gate-fields"),
@@ -100,20 +109,25 @@ const els = {
 async function boot() {
   const payload = await fetchJson("/api/routes");
   state.evidenceLanes = payload.evidence_lanes || [];
+  state.workflows = payload.workflows || [];
+  state.recommendedPriors = payload.recommended_priors || [];
   state.combinations = payload.combinations || [];
   state.worlds = orderedVisibleWorlds(payload.worlds || []);
   state.readiness = payload.readiness || {};
   state.runtime = payload.runtime || { tasks: [], summary: {} };
+  state.selectedWorld = state.worlds[0] || null;
+  state.selectedWorkflow = preferredWorkflowForWorld(state.selectedWorld);
   state.selectedRoute =
-    preferredPreviewCombination(state.combinations) ||
-    preferredDefaultCombination(combinationsForWorld(state.worlds[0] && state.worlds[0].id)) ||
+    routeForWorkflow(state.selectedWorkflow, state.selectedWorld) ||
+    preferredPreviewCombination(combinationsForWorld(state.selectedWorld && state.selectedWorld.id)) ||
+    preferredDefaultCombination(combinationsForWorld(state.selectedWorld && state.selectedWorld.id)) ||
     preferredDefaultCombination(state.combinations) ||
     state.combinations[0];
-  state.selectedWorld = state.worlds[0] || null;
   if (state.selectedRoute) {
     state.selectedWorld =
       state.worlds.find((world) => world.id === state.selectedRoute.world_id) || state.selectedWorld;
     state.selectedIntent = state.selectedRoute.intent_id || "";
+    state.selectedWorkflow = preferredWorkflowForWorld(state.selectedWorld);
     state.syncAxesFromRoute = true;
   }
   renderRoutes();
@@ -173,6 +187,14 @@ function bindEvents() {
     input.addEventListener("change", renderSelection);
     input.addEventListener("change", renderRoutes);
     input.addEventListener("change", refreshSelectedRouteReadiness);
+  });
+  els.runtimeMapPriorInput.addEventListener("input", () => {
+    renderSelection();
+    renderRoutes();
+  });
+  els.runtimeMapPriorInput.addEventListener("change", () => {
+    renderSelection();
+    refreshSelectedRouteReadiness();
   });
   [els.scenarioSetupInput, els.relocationCountInput].forEach((input) => {
     input.addEventListener("input", () => {
@@ -255,8 +277,11 @@ function renderRoutes() {
     `;
     button.addEventListener("click", () => {
       state.selectedWorld = world;
-      state.selectedRoute = preferredDefaultCombination(combinationsForWorld(world.id));
-      state.selectedIntent = state.selectedRoute ? state.selectedRoute.intent_id : "";
+      state.selectedWorkflow = preferredWorkflowForWorld(world);
+      state.selectedRoute =
+        routeForWorkflow(state.selectedWorkflow, world) ||
+        preferredDefaultCombination(combinationsForWorld(world.id));
+      state.selectedIntent = workflowIntent(state.selectedWorkflow) || (state.selectedRoute ? state.selectedRoute.intent_id : "");
       state.syncAxesFromRoute = true;
       renderRoutes();
       renderSelection();
@@ -272,6 +297,13 @@ function combinationsForWorld(worldId) {
 
 function preferredDefaultCombination(combinations) {
   return (
+    combinations.find(
+      (item) =>
+        item.enabled &&
+        item.intent_id === DEFAULT_UI_INTENT &&
+        item.evidence_lane === "camera-grounded-labels" &&
+        item.agent_engine_id === "openai-agents-sdk"
+    ) ||
     combinations.find((item) => item.enabled && item.intent_id === DEFAULT_UI_INTENT) ||
     combinations.find((item) => item.enabled) ||
     combinations[0]
@@ -284,6 +316,107 @@ function preferredPreviewCombination(combinations) {
 
 function routeHasPreviewAssets(route) {
   return Boolean(route && route.preview_assets && Object.keys(route.preview_assets).length);
+}
+
+function preferredWorkflowForWorld(world = state.selectedWorld) {
+  const workflows = workflowActionsForWorld(world);
+  return (
+    workflows.find((item) => item.id === DEFAULT_WORKFLOW_ID && item.enabled) ||
+    workflows.find((item) => item.enabled) ||
+    workflows[0] ||
+    null
+  );
+}
+
+function workflowActionsForWorld(world = state.selectedWorld) {
+  if (!world) {
+    return state.workflows || [];
+  }
+  return world.workflow_actions || state.workflows || [];
+}
+
+function selectedWorkflow() {
+  const workflows = workflowActionsForWorld();
+  if (!state.selectedWorkflow || !workflows.some((item) => item.id === state.selectedWorkflow.id)) {
+    state.selectedWorkflow = preferredWorkflowForWorld();
+  }
+  return state.selectedWorkflow;
+}
+
+function routeForWorkflow(workflow = selectedWorkflow(), world = state.selectedWorld) {
+  if (!workflow) {
+    return null;
+  }
+  if (workflow.default_route_id) {
+    const exact = state.combinations.find((item) => item.id === workflow.default_route_id);
+    if (exact) {
+      return exact;
+    }
+  }
+  const worldId = world && world.id;
+  return (
+    combinationsForWorld(worldId).find(
+      (item) =>
+        item.enabled &&
+        item.intent_id === workflowIntent(workflow) &&
+        item.evidence_lane === (workflow.default_evidence_lane || "camera-grounded-labels") &&
+        item.agent_engine_id === "openai-agents-sdk"
+    ) || null
+  );
+}
+
+function workflowForRoute(route) {
+  if (!route) {
+    return preferredWorkflowForWorld();
+  }
+  const routeHasRuntimePrior = (route.default_overrides || []).some((item) =>
+    String(item).startsWith("runtime_map_prior=")
+  );
+  const workflows = workflowActionsForWorld(
+    state.worlds.find((world) => world.id === route.world_id) || state.selectedWorld
+  );
+  return (
+    workflows.find(
+      (workflow) =>
+        workflow.intent_id === route.intent_id &&
+        Boolean(workflow.requires_runtime_map_prior) === routeHasRuntimePrior
+    ) ||
+    workflows.find((workflow) => workflow.intent_id === route.intent_id) ||
+    preferredWorkflowForWorld()
+  );
+}
+
+function workflowIntent(workflow) {
+  return (workflow && workflow.intent_id) || "";
+}
+
+function workflowRequiresPrior(workflow = selectedWorkflow()) {
+  return Boolean(workflow && workflow.requires_runtime_map_prior);
+}
+
+function workflowHasRoute(workflow = selectedWorkflow()) {
+  return Boolean(routeForWorkflow(workflow));
+}
+
+function selectedRuntimeMapPrior(workflow = selectedWorkflow()) {
+  const override = els.runtimeMapPriorInput.value.trim();
+  if (override) {
+    return { path: override, source: "operator_override", status: "operator-selected" };
+  }
+  return workflow && workflow.recommended_prior ? workflow.recommended_prior : null;
+}
+
+function workflowIsStartable(workflow = selectedWorkflow()) {
+  if (!workflow || !workflowHasRoute(workflow)) {
+    return false;
+  }
+  if (workflow.enabled === false) {
+    return Boolean(workflowRequiresPrior(workflow) && selectedRuntimeMapPrior(workflow));
+  }
+  if (workflowRequiresPrior(workflow) && !selectedRuntimeMapPrior(workflow)) {
+    return false;
+  }
+  return true;
 }
 
 function selectedCombinationFromAxes() {
@@ -319,6 +452,15 @@ function selectedCombinationFromAxes() {
 }
 
 function renderSelection() {
+  if (!state.selectedWorkflow) {
+    state.selectedWorkflow = preferredWorkflowForWorld();
+  }
+  const workflowRoute = routeForWorkflow(state.selectedWorkflow);
+  if (workflowRoute && !state.syncAxesFromRoute) {
+    state.selectedRoute = workflowRoute;
+    state.selectedIntent = workflowIntent(state.selectedWorkflow);
+    state.syncAxesFromRoute = true;
+  }
   renderAxisSelectors();
   const route = selectedCombinationFromAxes();
   state.selectedRoute = route;
@@ -327,6 +469,8 @@ function renderSelection() {
   }
   const readiness = effectiveReadiness(route);
   renderRouteFields(route);
+  renderSceneState(route);
+  renderWorkflowActions(route, readiness);
   renderSelectedRouteSummary(route, readiness);
   ensureActiveViewAvailable(route);
   renderViewModes(route);
@@ -360,6 +504,77 @@ function renderSelection() {
 
   els.commandPreview.textContent = commandPreview(route);
   renderStartAction(route, readiness);
+}
+
+function renderSceneState(route) {
+  const workflow = selectedWorkflow();
+  const prior = selectedRuntimeMapPrior(workflow);
+  const world = state.selectedWorld || {};
+  const backend = route ? route.backend_label || route.backend_id : world.default_backend || "";
+  if (prior) {
+    els.mapPriorState.innerHTML = `
+      <strong>${escapeHtml(prior.status || "selected")}</strong>
+      <p>${escapeHtml(prior.path || "")}</p>
+      <p class="field-help">${escapeHtml(prior.source || "Runtime Map Prior Snapshot")}</p>
+    `;
+  } else {
+    els.mapPriorState.innerHTML = `
+      <strong>No recommended prior</strong>
+      <p>Build Map or provide an explicit Runtime Map Prior Snapshot override for with-map workflows.</p>
+      <p class="field-help">${escapeHtml(world.label || world.id || "scene")} / ${escapeHtml(backend)}</p>
+    `;
+  }
+}
+
+function renderWorkflowActions(route, readiness) {
+  const workflows = workflowActionsForWorld();
+  els.workflowActionList.innerHTML = "";
+  for (const workflow of workflows) {
+    const active = selectedWorkflow() && workflow.id === selectedWorkflow().id;
+    const startable = workflowIsStartable(workflow);
+    const status = workflowStatusDisplay(workflow, route, readiness);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `workflow-action${active ? " active" : ""}`;
+    button.dataset.workflowId = workflow.id;
+    button.disabled = !startable;
+    button.innerHTML = `
+      <span class="workflow-action-title">${escapeHtml(workflow.label)}</span>
+      <span class="badge ${status.className}">${status.label}</span>
+      <span class="field-help">${escapeHtml(workflowCoverageText(workflow))}</span>
+      ${workflow.disabled_reason && !startable ? `<span class="field-help">${escapeHtml(workflow.disabled_reason)}</span>` : ""}
+    `;
+    button.addEventListener("click", () => {
+      state.selectedWorkflow = workflow;
+      const nextRoute = routeForWorkflow(workflow);
+      if (nextRoute) {
+        state.selectedRoute = nextRoute;
+        state.selectedIntent = workflowIntent(workflow);
+        state.syncAxesFromRoute = true;
+      }
+      renderSelection();
+      refreshSelectedRouteReadiness();
+    });
+    els.workflowActionList.appendChild(button);
+  }
+}
+
+function workflowStatusDisplay(workflow, route, readiness) {
+  if (!workflowHasRoute(workflow)) {
+    return { label: "UNAVAILABLE", className: "blocked" };
+  }
+  if (!workflowIsStartable(workflow)) {
+    return { label: "NEEDS MAP", className: "needs_action" };
+  }
+  if (selectedWorkflow() && workflow.id === selectedWorkflow().id && readiness.can_start === false) {
+    return routeStatusDisplay(route, readiness);
+  }
+  return { label: "READY", className: "ready" };
+}
+
+function workflowCoverageText(workflow) {
+  const coverage = workflow.coverage || {};
+  return `${coverage.owner_type || "coverage"}: ${coverage.owner_id || "unowned"}`;
 }
 
 function renderAxisSelectors() {
@@ -634,10 +849,11 @@ function gateBadgeDisplay(gate) {
 function renderSelectedRouteSummary(route, readiness) {
   const status = routeStatusDisplay(route, readiness);
   const interpretation = launchInterpretation(route);
+  const workflow = selectedWorkflow();
   const blockerHtml = backgroundBlockerSummaryHtml(readiness);
   els.selectedRouteSummary.innerHTML = `
     <div class="route-card-title">
-      <span>${escapeHtml(route.label)}</span>
+      <span>${escapeHtml(workflow ? workflow.label : route.label)}</span>
       <span class="badge ${status.className}">${status.label}</span>
     </div>
     <div class="meta-label">${escapeHtml(route.agent_engine_label || route.agent_engine_id)} / ${escapeHtml(route.evidence_lane)}</div>
@@ -645,6 +861,7 @@ function renderSelectedRouteSummary(route, readiness) {
     <div class="field-help">${escapeHtml(interpretation.intentLabel)} / ${escapeHtml(
       interpretation.goalScope
     )}</div>
+    ${workflow ? `<div class="field-help">${escapeHtml(workflowCoverageText(workflow))}</div>` : ""}
     ${blockerHtml}
   `;
   const taskLink = els.selectedRouteSummary.querySelector("[data-open-background-tasks]");
@@ -688,8 +905,9 @@ function renderRouteFields(route) {
 
 function renderScenarioSetup(route) {
   const defaults = routeDefaultOverrides(route);
-  const intent = selectedIntentForRoute(route);
-  const selectionKey = `${route.id}:${intent}`;
+  const workflow = selectedWorkflow();
+  const intent = workflowIntent(workflow) || selectedIntentForRoute(route);
+  const selectionKey = `${route.id}:${intent}:${workflow ? workflow.id : ""}`;
   const defaultSetup = defaultScenarioSetup(route, intent, defaults);
   if (state.setupSelectionKey !== selectionKey) {
     els.scenarioSetupInput.value = defaultSetup;
@@ -705,6 +923,10 @@ function renderScenarioSetup(route) {
 }
 
 function defaultScenarioSetup(route, intent, defaults) {
+  const workflow = selectedWorkflow();
+  if (workflow && workflow.scenario_setup) {
+    return workflow.scenario_setup;
+  }
   if (intent === "cleanup") {
     return route.scenario_setup || defaults.scenario_setup || "relocate-cleanup-related-objects";
   }
@@ -712,7 +934,8 @@ function defaultScenarioSetup(route, intent, defaults) {
 }
 
 function renderIntentSelector(route) {
-  state.selectedIntent = selectedIntentForRoute(route);
+  const workflow = selectedWorkflow();
+  state.selectedIntent = workflowIntent(workflow) || selectedIntentForRoute(route);
   els.intentFields.hidden = !route.enabled;
   els.intentInput.disabled = false;
   const interpretation = launchInterpretation(route);
@@ -726,10 +949,18 @@ function renderIntentSelector(route) {
 }
 
 function commandPreview(route) {
-  const selected = selectedIntentForRoute(route);
+  const workflow = selectedWorkflow();
+  const selected = workflowIntent(workflow) || selectedIntentForRoute(route);
   let parts = [...(route.argv_preview || [])];
   if (!parts.length) {
     return "Route unavailable.";
+  }
+  parts = withoutKeys(parts, ["preset", "intent"]);
+  const taskArgIndex = Math.min(5, parts.length);
+  if (workflow && workflow.preset_id) {
+    parts.splice(taskArgIndex, 0, `preset=${workflow.preset_id}`);
+  } else if (selected && selected !== "open-ended") {
+    parts.splice(taskArgIndex, 0, `intent=${selected}`);
   }
   const intentIndex = parts.findIndex((part) => String(part).startsWith("intent="));
   if (intentIndex >= 0) {
@@ -743,7 +974,12 @@ function commandPreview(route) {
   if (route.supports_prompt && prompt) {
     parts.push(`prompt=${prompt}`);
   }
-  return commandPartsWithSetup(parts).join(" ");
+  const prior = selectedRuntimeMapPrior(workflow);
+  if (prior && workflowRequiresPrior(workflow)) {
+    parts = withoutKeys(parts, ["runtime_map_prior"]);
+    parts.push(`runtime_map_prior=${prior.path}`);
+  }
+  return commandPartsWithSetup(parts, workflow).join(" ");
 }
 
 function withProviderProfile(parts, providerProfile) {
@@ -752,8 +988,8 @@ function withProviderProfile(parts, providerProfile) {
   return next;
 }
 
-function commandPartsWithSetup(parts) {
-  const setup = selectedScenarioSetup();
+function commandPartsWithSetup(parts, workflow = selectedWorkflow()) {
+  const setup = workflow ? workflow.scenario_setup : selectedScenarioSetup();
   const next = withoutKeys(parts, ["scenario_setup", "relocation_count"]);
   next.push(`scenario_setup=${setup}`);
   if (setup !== "baseline") {
@@ -770,6 +1006,10 @@ function withoutKeys(parts, keys) {
 }
 
 function selectedScenarioSetup() {
+  const workflow = selectedWorkflow();
+  if (workflow && workflow.scenario_setup) {
+    return workflow.scenario_setup;
+  }
   return els.scenarioSetupInput.value || "baseline";
 }
 
@@ -804,6 +1044,10 @@ function effectiveLaunchPromptText(route = state.selectedRoute) {
 }
 
 function selectedIntent() {
+  const workflow = selectedWorkflow();
+  if (workflowIntent(workflow)) {
+    return workflowIntent(workflow);
+  }
   const route = state.selectedRoute;
   if (!route) {
     return "";
@@ -834,7 +1078,8 @@ function intentOptions(route) {
 }
 
 function launchInterpretation(route) {
-  const intent = selectedIntentForRoute(route);
+  const workflow = selectedWorkflow();
+  const intent = workflowIntent(workflow) || selectedIntentForRoute(route);
   const option = intentOptions(route).find((item) => item.id === intent) || {};
   return {
     intent,
@@ -961,6 +1206,7 @@ function isRealMovementGate(gate) {
 
 function renderStartAction(route, readiness) {
   const mode = state.operatorMode;
+  const workflow = selectedWorkflow();
   if (mode === "steer") {
     const controls = (state.activeState && state.activeState.controls) || {};
     const enabled = Boolean(state.activeRunId && controls.steer_available);
@@ -987,11 +1233,22 @@ function renderStartAction(route, readiness) {
     return;
   }
   const attachableRun = readiness.attachable_run || null;
-  els.startButton.textContent = attachableRun ? "Attach Existing Run" : "Start Agent Run";
-  els.startButton.disabled = !route.enabled || (readiness.can_start === false && !attachableRun);
+  els.startButton.textContent = attachableRun
+    ? "Attach Existing Run"
+    : workflow
+    ? workflow.label
+    : "Start Agent Run";
+  const workflowBlocked = !workflowIsStartable(workflow);
+  const workflowHasCatalogRoute = workflowHasRoute(workflow);
+  els.startButton.disabled =
+    !route.enabled || workflowBlocked || (readiness.can_start === false && !attachableRun);
   const backgroundBlockerText = backgroundBlockerHelp(readiness);
   els.startHelp.textContent = attachableRun
     ? `Existing run ${attachableRun.run_id} is using this backend. Attach to watch it.`
+    : !workflowHasCatalogRoute
+    ? "This workflow is unavailable for the selected scene/backend."
+    : workflowBlocked
+    ? "This workflow needs a Runtime Map Prior Snapshot. Provide an override or run Build Map first."
     : backgroundBlockerText || readiness.blocker || route.unsupported_reason || "";
 }
 
@@ -1114,6 +1371,7 @@ async function attachLatestResult() {
   const route = state.combinations.find((item) => item.id === result.selection_id);
   if (route) {
     state.selectedRoute = route;
+    state.selectedWorkflow = workflowForRoute(route);
     state.selectedIntent = route.intent_id || "";
     state.syncAxesFromRoute = true;
     renderRoutes();
@@ -1147,6 +1405,11 @@ async function refreshSelectedRouteReadiness() {
     port: els.portInput.value || "18788",
     scenario_setup: selectedScenarioSetup(),
   });
+  const workflow = selectedWorkflow();
+  const prior = selectedRuntimeMapPrior(workflow);
+  if (workflowRequiresPrior(workflow) && prior && prior.path) {
+    params.set("runtime_map_prior", prior.path);
+  }
   if (selectedProviderProfile()) {
     params.set("provider_profile", selectedProviderProfile());
   }
@@ -1263,8 +1526,10 @@ async function runBackgroundTaskAction(action) {
 
 function confirmLaunch() {
   const route = state.selectedRoute;
+  const workflow = selectedWorkflow();
   const promptSource = launchPromptText() ? "custom" : "default";
   const interpretation = launchInterpretation(route);
+  const prior = selectedRuntimeMapPrior(workflow);
   const providerRows = route.provider_profile
     ? `<dt>Provider</dt><dd>${escapeHtml(selectedProviderLabel(route))}</dd>`
     : "";
@@ -1279,11 +1544,13 @@ function confirmLaunch() {
       <dt>Backend</dt><dd>${escapeHtml(route.backend_label || route.backend_id)}</dd>
       <dt>Agent</dt><dd>${escapeHtml(route.agent_engine_label || route.agent_engine_id)}</dd>
       <dt>Evidence</dt><dd>${escapeHtml(route.evidence_lane)}</dd>
+      <dt>Workflow</dt><dd>${escapeHtml(workflow ? workflow.label : "route launch")}</dd>
       <dt>Intent</dt><dd>${escapeHtml(interpretation.intentLabel)}</dd>
       <dt>Goal scope</dt><dd>${escapeHtml(interpretation.goalScope)}</dd>
       <dt>Checker</dt><dd>${escapeHtml(interpretation.checker)}</dd>
       <dt>Evaluation</dt><dd>${escapeHtml(interpretation.evaluation)}</dd>
       ${providerRows}
+      ${workflowRequiresPrior(workflow) ? `<dt>Map Prior</dt><dd>${escapeHtml(prior ? prior.path : "missing")}</dd>` : ""}
       <dt>Lock</dt><dd>${escapeHtml(route.lock_name)}</dd>
       ${movementRows}
       <dt>Prompt</dt><dd>${promptSource}</dd>
@@ -1405,16 +1672,23 @@ function confirmAction({ title, cta, body, bodyHtml, onConfirm }) {
 }
 
 function launchRequestBody(route = state.selectedRoute) {
+  const workflow = selectedWorkflow();
+  const prior = selectedRuntimeMapPrior(workflow);
+  const overrides = launchOverrides(route);
+  if (workflowRequiresPrior(workflow) && prior && prior.path) {
+    overrides.runtime_map_prior = prior.path;
+  }
   return {
     world_id: route.world_id,
     backend_id: route.backend_id,
-    intent_id: selectedIntent(),
+    intent_id: workflowIntent(workflow) || selectedIntent(),
     agent_engine_id: route.agent_engine_id,
     provider_profile: selectedProviderProfile(),
     evidence_lane: route.evidence_lane,
     scenario_setup: selectedScenarioSetup(),
     prompt: effectiveLaunchPromptText(route),
-    overrides: launchOverrides(route),
+    workflow_id: workflow ? workflow.id : "",
+    overrides,
     env_overrides: launchEnvOverrides(route),
     gates: {
       localization_ready: els.localizationGate.checked,

@@ -41,6 +41,7 @@ ALLOWED_ROUTE_OVERRIDES = {
     "operator_messages_path",
     "operator_resume_requests_path",
     "operator_session_context_json",
+    "runtime_map_prior",
 }
 RunCommand = Callable[..., Any]
 

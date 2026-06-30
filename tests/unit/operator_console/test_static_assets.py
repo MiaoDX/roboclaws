@@ -45,6 +45,9 @@ def test_static_app_has_route_specific_field_groups() -> None:
     state_rail_html = html.split('<aside class="state-rail">', 1)[1].split("</aside>", 1)[0]
 
     for snippet in (
+        'id="workflow-action-list"',
+        'id="runtime-map-prior-input"',
+        'id="advanced-controls"',
         'id="provider-profile-input"',
         'id="agibot-gate-fields"',
         'id="real-movement-gate"',
@@ -63,6 +66,11 @@ def test_static_app_has_route_specific_field_groups() -> None:
         assert snippet not in html
 
     for snippet in (
+        "renderWorkflowActions",
+        "workflow_id",
+        "runtime_map_prior",
+        "selectedRuntimeMapPrior",
+        "routeForWorkflow(state.selectedWorkflow, state.selectedWorld)",
         "renderRouteFields",
         "field_groups",
         "selectedProviderRoute",
@@ -301,8 +309,10 @@ def test_static_app_exposes_explicit_intent_selector_and_interpretation() -> Non
     assert "selectedIntent" in app
     assert "selectedIntentForRoute" in app
     assert 'const DEFAULT_UI_INTENT = "open-ended";' in app
+    assert 'const DEFAULT_WORKFLOW_ID = "open-task";' in app
     assert "preferredDefaultCombination" in app
-    assert "item.enabled && item.intent_id === DEFAULT_UI_INTENT" in app
+    assert "item.intent_id === DEFAULT_UI_INTENT" in app
+    assert 'item.evidence_lane === "camera-grounded-labels"' in app
     assert "state.selectedIntent = els.intentInput.value;" in app
     assert "state.selectedIntent = selectedIntent();" not in app
     assert "syncAxesFromRoute" in app
@@ -311,7 +321,8 @@ def test_static_app_exposes_explicit_intent_selector_and_interpretation() -> Non
     assert "const scopedCombos = axisMatches.length ? axisMatches : combos;" in app
     assert "launchInterpretation" in app
     assert "route.intent_options" in app
-    assert "intent_id: selectedIntent()" in app
+    assert "intent_id: workflowIntent(workflow) || selectedIntent()" in app
+    assert 'workflow_id: workflow ? workflow.id : ""' in app
     assert "world_id: route.world_id" in app
     assert "backend_id: route.backend_id" in app
     assert "agent_engine_id: route.agent_engine_id" in app

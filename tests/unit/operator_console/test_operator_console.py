@@ -45,12 +45,6 @@ from roboclaws.operator_console.state import (
     redacted_artifact_text,
 )
 from tests.support.b1_robot_proof import write_b1_robot_proof_artifacts
-
-CODEX_ENV = {
-    "CODEX_BASE_URL": "https://codex.example.test/v1",
-    "CODEX_API_KEY": "key",
-}
-
 from tests.unit.operator_console.conftest import (  # noqa: F401  re-exported for tests
     AGIBOT_SDK_CLEANUP,
     AGIBOT_SDK_MAP_BUILD,
@@ -60,6 +54,11 @@ from tests.unit.operator_console.conftest import (  # noqa: F401  re-exported fo
     MUJOCO_SDK_CLEANUP,
     MUJOCO_SDK_MAP_BUILD,
 )
+
+CODEX_ENV = {
+    "CODEX_BASE_URL": "https://codex.example.test/v1",
+    "CODEX_API_KEY": "key",
+}
 
 
 def _free_port() -> str:
@@ -103,6 +102,26 @@ def test_console_route_registry_exposes_agent_routes_and_explains_disabled_route
     }
     assert "Physical manipulation is not active" in disabled[AGIBOT_SDK_CLEANUP]
     validate_supported_routes_against_catalog()
+
+
+def test_console_routes_endpoint_exposes_workflows_and_prior_catalog(tmp_path: Path) -> None:
+    with _console_server(tmp_path) as (host, port):
+        with urllib.request.urlopen(f"http://{host}:{port}/api/routes") as response:
+            payload = json.loads(response.read().decode("utf-8"))
+
+    workflows = {workflow["id"]: workflow for workflow in payload["workflows"]}
+    scene = next(
+        world
+        for world in payload["worlds"]
+        if world["id"] == "molmospaces/procthor-objaverse-val/0"
+    )
+    scene_workflows = {workflow["id"]: workflow for workflow in scene["workflow_actions"]}
+
+    assert payload["recommended_priors"] == []
+    assert workflows["cleanup-with-map"]["requires_runtime_map_prior"] is True
+    assert scene_workflows["open-task"]["default_route_id"].endswith("::camera-grounded-labels")
+    assert scene_workflows["cleanup-with-map"]["enabled"] is False
+    assert scene_workflows["cleanup-with-map"]["allows_prior_override"] is True
 
 
 def test_console_route_payload_supports_backend_specific_ui_metadata() -> None:

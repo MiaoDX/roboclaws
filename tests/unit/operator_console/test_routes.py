@@ -9,14 +9,16 @@ from roboclaws.launch.agent_engines import agent_engine_spec
 from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS, WORLD_SPECS
 from roboclaws.operator_console.launcher import ConsoleLaunchError, build_launch_argv
 from roboclaws.operator_console.routes import (
+    default_workflow_selection_id,
     get_selection,
     list_console_combinations,
     list_evidence_lanes,
+    list_prior_catalog,
+    list_workflows,
     list_worlds,
     selection_task_selector,
     validate_supported_routes_against_catalog,
 )
-
 from tests.unit.operator_console.conftest import (  # noqa: F401  re-exported for tests
     AGIBOT_SDK_CLEANUP,
     AGIBOT_SDK_MAP_BUILD,
@@ -327,6 +329,56 @@ def test_console_exposes_all_supported_household_evidence_lanes() -> None:
     agibot_grounded = get_selection(AGIBOT_SDK_MAP_BUILD)
     assert agibot_grounded.enabled
     assert "camera_labeler=grounding-dino" in agibot_grounded.launch_default_overrides
+
+
+def test_operator_console_exposes_product_workflow_metadata() -> None:
+    workflows = {workflow["id"]: workflow for workflow in list_workflows()}
+
+    assert tuple(workflows) == (
+        "build-map",
+        "open-task",
+        "cleanup",
+        "open-task-with-map",
+        "cleanup-with-map",
+        "prepare-standard-mess",
+        "reset-scene",
+    )
+    assert {workflow["coverage"]["owner_type"] for workflow in workflows.values()} == {
+        "eval_suite",
+        "unit_contract",
+        "manual_operational_control",
+    }
+    assert workflows["build-map"]["coverage"]["owner_id"] == "map_build_consumer"
+    assert workflows["open-task"]["coverage"]["owner_id"] == "open_ended_goals"
+    assert workflows["cleanup"]["coverage"]["owner_id"] == "cleanup_capability"
+    assert workflows["cleanup-with-map"]["requires_runtime_map_prior"] is True
+    assert workflows["prepare-standard-mess"]["scenario_setup"] == (
+        "relocate-cleanup-related-objects"
+    )
+    assert workflows["reset-scene"]["coverage"]["owner_type"] == "manual_operational_control"
+
+
+def test_scene_workflow_payload_defaults_to_camera_grounded_and_empty_prior_catalog() -> None:
+    worlds = {world["id"]: world for world in list_worlds()}
+    world = worlds["molmospaces/procthor-objaverse-val/0"]
+    workflows = {workflow["id"]: workflow for workflow in world["workflow_actions"]}
+
+    assert list_prior_catalog() == ()
+    assert default_workflow_selection_id(
+        "molmospaces/procthor-objaverse-val/0", "open-task"
+    ).endswith("::camera-grounded-labels")
+    assert workflows["open-task"]["default_evidence_lane"] == "camera-grounded-labels"
+    assert workflows["open-task"]["default_camera_labeler"] == "grounding-dino"
+    assert workflows["open-task"]["default_route_id"].endswith("::camera-grounded-labels")
+    assert workflows["cleanup"]["default_route_id"].endswith("::camera-grounded-labels")
+    assert workflows["cleanup"]["enabled"] is True
+    assert workflows["cleanup-with-map"]["enabled"] is False
+    assert workflows["cleanup-with-map"]["allows_prior_override"] is True
+    assert workflows["cleanup-with-map"]["recommended_prior"] is None
+    assert (
+        "No accepted Runtime Map Prior Snapshot"
+        in (workflows["cleanup-with-map"]["disabled_reason"])
+    )
 
 
 def test_molmospaces_scene_choices_use_scene_specific_launch_defaults(tmp_path) -> None:

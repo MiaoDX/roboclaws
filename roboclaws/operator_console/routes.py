@@ -22,6 +22,15 @@ from roboclaws.launch.environment_setup import (
 )
 from roboclaws.launch.intents import TASK_INTENT_SPECS
 from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS, WORLD_SPECS
+from roboclaws.operator_console.workflows import (
+    DEFAULT_PROVIDER_PROFILE,
+    OperatorWorkflow,
+    get_operator_workflow,
+    list_operator_workflows,
+    list_recommended_priors,
+    recommended_prior_for,
+    workflow_payload_for_world,
+)
 
 DEFAULT_PROMPTS = {
     "cleanup": "帮我收拾这个房间",
@@ -249,6 +258,8 @@ AGIBOT_ESTOP_GATE = RouteGate(
     severity="capability",
     help_text="Required only when real movement is enabled.",
 )
+
+
 def list_worlds(*, include_hidden: bool = False) -> tuple[dict[str, Any], ...]:
     """Return searchable world/scene metadata for the console rail."""
 
@@ -269,9 +280,29 @@ def list_worlds(*, include_hidden: bool = False) -> tuple[dict[str, Any], ...]:
                 "availability": world.availability,
                 "preview_assets": _preview_assets_payload(world.preview_assets),
                 "sampler_metadata": dict(world.sampler_metadata or {}),
+                "recommended_prior": (
+                    recommended_prior.to_payload()
+                    if (recommended_prior := recommended_prior_for(world.id, world.default_backend))
+                    else None
+                ),
+                "workflow_actions": list(
+                    _workflow_payloads_for_world(world.id, world.default_backend)
+                ),
             }
         )
     return tuple(rows)
+
+
+def list_workflows() -> tuple[dict[str, Any], ...]:
+    """Return product workflow metadata for the main operator-console UI."""
+
+    return tuple(workflow.to_payload() for workflow in list_operator_workflows())
+
+
+def list_prior_catalog() -> tuple[dict[str, Any], ...]:
+    """Return accepted Runtime Map Prior Snapshot catalog rows."""
+
+    return tuple(entry.to_payload() for entry in list_recommended_priors())
 
 
 def list_evidence_lanes() -> tuple[dict[str, str], ...]:
@@ -315,6 +346,16 @@ def get_selection(selection_id: str) -> ConsoleLaunchSelection:
     raise KeyError(selection_id)
 
 
+def default_workflow_selection_id(world_id: str, workflow_id: str) -> str:
+    """Return the product-default route id for an operator workflow."""
+
+    workflow = get_operator_workflow(workflow_id)
+    selection = _default_workflow_selection(world_id, workflow)
+    if selection is None:
+        raise KeyError(f"{world_id}:{workflow_id}")
+    return selection.id
+
+
 def validate_supported_routes_against_catalog() -> None:
     """Fail if supported console combinations drift away from launch catalog."""
 
@@ -323,6 +364,48 @@ def validate_supported_routes_against_catalog() -> None:
             resolve_surface_launch(selection.base_args())
         except LaunchError as exc:  # pragma: no cover - assertion context
             raise AssertionError(f"invalid console selection {selection.id}: {exc}") from exc
+
+
+def _workflow_payloads_for_world(world_id: str, backend_id: str) -> tuple[dict[str, Any], ...]:
+    rows: list[dict[str, Any]] = []
+    for workflow in list_operator_workflows():
+        payload = workflow_payload_for_world(workflow, world_id=world_id, backend_id=backend_id)
+        selection = _default_workflow_selection(world_id, workflow)
+        payload["default_route_id"] = selection.id if selection else ""
+        payload["default_route_label"] = selection.label if selection else ""
+        if selection is None:
+            payload["enabled"] = False
+            payload["disabled_reason"] = (
+                payload.get("disabled_reason")
+                or "No catalog-backed route supports this workflow for the selected scene."
+            )
+        rows.append(payload)
+    return tuple(rows)
+
+
+def _default_workflow_selection(
+    world_id: str,
+    workflow: OperatorWorkflow,
+) -> ConsoleLaunchSelection | None:
+    world = WORLD_SPECS.get(world_id)
+    backend_id = world.default_backend if world else ""
+    candidates = [
+        selection
+        for selection in list_console_combinations(include_disabled=False)
+        if selection.world_id == world_id
+        and selection.backend_id == backend_id
+        and selection.intent_id == workflow.intent_id
+        and selection.evidence_lane == CAMERA_GROUNDED_LABELS_LANE
+    ]
+    if not candidates:
+        return None
+    preferred = [
+        selection
+        for selection in candidates
+        if selection.agent_engine_id == "openai-agents-sdk"
+        and selection.provider_profile == DEFAULT_PROVIDER_PROFILE
+    ]
+    return (preferred or candidates)[0]
 
 
 def _common_gates() -> tuple[RouteGate, ...]:

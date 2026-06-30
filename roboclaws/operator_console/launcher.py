@@ -38,7 +38,6 @@ from roboclaws.operator_console.launch_support import (
 )
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root
-from roboclaws.operator_console.runtime_compat import pid_is_active  # noqa: F401
 from roboclaws.operator_console.prompt_preview import (
     PromptPreviewRequest,
     build_prompt_preview,
@@ -50,6 +49,7 @@ from roboclaws.operator_console.routes import (
     get_selection,
     selection_task_selector,
 )
+from roboclaws.operator_console.runtime_compat import pid_is_active  # noqa: F401
 from roboclaws.operator_console.runtime_inventory import (
     background_blocker_message,
     blocking_tasks_for_route,
@@ -60,6 +60,11 @@ from roboclaws.operator_console.state import resolve_display_run_dir
 from roboclaws.operator_console.state_summary import (
     existing_terminal_phase,
     existing_terminal_reason,
+)
+from roboclaws.operator_console.workflows import (
+    get_operator_workflow,
+    runtime_map_prior_for_workflow,
+    runtime_prior_override_exists,
 )
 
 RUN_ID_SAFE_RE = re.compile(r"[^A-Za-z0-9_.-]+")
@@ -95,6 +100,7 @@ class LaunchRequest:
     parent_run_id: str = ""
     next_goal_packet: dict[str, Any] | None = None
     selection_id_override: str = ""
+    workflow_id: str = ""
 
     @property
     def selection_id(self) -> str:
@@ -156,6 +162,82 @@ def build_launch_argv(
     return ["just", "run::surface", *args]
 
 
+def build_workflow_launch_argv(
+    route: ConsoleLaunchSelection,
+    *,
+    workflow_id: str,
+    root: Path,
+    run_id: str,
+    prompt: str = "",
+    overrides: dict[str, str] | None = None,
+) -> list[str]:
+    """Build argv for an operator workflow action through the route catalog."""
+
+    workflow = get_operator_workflow(workflow_id)
+    if workflow.intent_id != route.intent_id:
+        raise ConsoleLaunchError(
+            f"workflow {workflow.id} requires intent {workflow.intent_id}, "
+            f"but route uses {route.intent_id}"
+        )
+    request_overrides = dict(overrides or {})
+    request_overrides.setdefault("scenario_setup", workflow.scenario_setup)
+    try:
+        runtime_map_prior = runtime_map_prior_for_workflow(
+            workflow=workflow,
+            world_id=route.world_id,
+            backend_id=route.backend_id,
+            override_path=str(request_overrides.get("runtime_map_prior") or ""),
+        )
+    except ValueError as exc:
+        raise ConsoleLaunchError(str(exc)) from exc
+    if runtime_map_prior:
+        if not runtime_prior_override_exists(runtime_map_prior, root=root):
+            raise ConsoleLaunchError(f"runtime_map_prior path does not exist: {runtime_map_prior}")
+        request_overrides["runtime_map_prior"] = runtime_map_prior
+    elif (
+        "runtime_map_prior" in request_overrides
+        and not str(request_overrides["runtime_map_prior"]).strip()
+    ):
+        raise ConsoleLaunchError("runtime_map_prior override cannot be empty")
+    return build_launch_argv(
+        route,
+        root=root,
+        run_id=run_id,
+        intent=workflow.intent_id,
+        prompt=prompt,
+        overrides=request_overrides,
+    )
+
+
+def _build_request_launch_argv(
+    route: ConsoleLaunchSelection,
+    request: LaunchRequest,
+    *,
+    root: Path,
+    run_id: str,
+    selected_intent: str,
+    launch_prompt: str,
+    overrides: dict[str, str],
+) -> list[str]:
+    if request.workflow_id:
+        return build_workflow_launch_argv(
+            route,
+            workflow_id=request.workflow_id,
+            root=root,
+            run_id=run_id,
+            prompt=launch_prompt,
+            overrides=overrides,
+        )
+    return build_launch_argv(
+        route,
+        root=root,
+        run_id=run_id,
+        intent=selected_intent,
+        prompt=launch_prompt,
+        overrides=overrides,
+    )
+
+
 def start_console_run(
     root: Path,
     request: LaunchRequest,
@@ -204,12 +286,13 @@ def start_console_run(
                 env_overrides=prompt_preview_env(run_env, env_overrides),
             ),
         )
-        argv = build_launch_argv(
+        argv = _build_request_launch_argv(
             route,
+            request,
             root=root,
             run_id=run_id,
-            intent=selected_intent,
-            prompt=launch_prompt,
+            selected_intent=selected_intent,
+            launch_prompt=launch_prompt,
             overrides=overrides,
         )
         mcp_host, mcp_port = requested_mcp_endpoint(overrides)
@@ -245,6 +328,7 @@ def start_console_run(
         "agent_kickoff_prompt": preview["agent_kickoff_prompt"],
         "launch_selection": route.to_payload(),
         "route": route.to_payload(),
+        "workflow_id": request.workflow_id,
         "selected_intent": selected_intent,
         "world_id": route.world_id,
         "backend_id": route.backend_id,

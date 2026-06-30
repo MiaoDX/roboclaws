@@ -365,6 +365,58 @@ pre,
   background: var(--panel);
 }
 
+.scene-state-summary,
+.workflow-panel,
+.advanced-controls {
+  margin-bottom: 16px;
+}
+
+.scene-state-summary h2,
+.workflow-panel h2 {
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.workflow-action-list {
+  display: grid;
+  gap: 8px;
+}
+
+.workflow-action {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 8px;
+  align-items: start;
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  text-align: left;
+  border-radius: 8px;
+}
+
+.workflow-action.active {
+  border-color: var(--accent);
+  box-shadow: inset 4px 0 0 var(--accent);
+}
+
+.workflow-action-title {
+  min-width: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.workflow-action .field-help {
+  grid-column: 1 / -1;
+}
+
+.advanced-controls summary {
+  margin-bottom: 12px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
 .background-blocker {
   display: flex;
   align-items: flex-start;

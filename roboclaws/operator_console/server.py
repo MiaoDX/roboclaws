@@ -51,6 +51,8 @@ from roboclaws.operator_console.routes import (
     get_selection,
     list_console_combinations,
     list_evidence_lanes,
+    list_prior_catalog,
+    list_workflows,
     list_worlds,
     selection_task_selector,
 )
@@ -142,6 +144,7 @@ def _launch_request_from_payload(payload: dict[str, object]) -> LaunchRequest:
         parent_run_id=str(payload.get("parent_run_id") or ""),
         next_goal_packet=dict(payload.get("next_goal_packet") or {}),
         selection_id_override=str(payload.get("selection_id") or ""),
+        workflow_id=str(payload.get("workflow_id") or ""),
     )
 
 
@@ -338,6 +341,8 @@ class ConsoleRequestHandler(SimpleHTTPRequestHandler):
         runtime_tasks = inventory["tasks"]
         return {
             "worlds": list(list_worlds()),
+            "workflows": list(list_workflows()),
+            "recommended_priors": list(list_prior_catalog()),
             "evidence_lanes": list(list_evidence_lanes()),
             "combinations": [
                 selection.to_payload()
@@ -378,6 +383,7 @@ class ConsoleRequestHandler(SimpleHTTPRequestHandler):
                     "real_movement_enabled",
                     "scenario_setup",
                     "provider_profile",
+                    "runtime_map_prior",
                     "isaac_scene_usd_path",
                     "b1_alignment_artifact",
                     "b1_navigation_artifact",

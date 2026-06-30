@@ -15,6 +15,7 @@ from roboclaws.operator_console.launcher import (
     _safe_run_id_suffix,
     _terminate_process_group,
     build_launch_argv,
+    build_workflow_launch_argv,
     load_repo_dotenv,
     route_readiness,
     start_console_run,
@@ -23,12 +24,6 @@ from roboclaws.operator_console.launcher import (
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.routes import get_selection
-
-CODEX_ENV = {
-    "CODEX_BASE_URL": "https://codex.example.test/v1",
-    "CODEX_API_KEY": "key",
-}
-
 from tests.unit.operator_console.conftest import (  # noqa: F401  re-exported for tests
     AGIBOT_SDK_MAP_BUILD,
     B1_OPENAI_AGENTS_CAMERA_GROUNDED,
@@ -36,6 +31,11 @@ from tests.unit.operator_console.conftest import (  # noqa: F401  re-exported fo
     MUJOCO_OPENAI_AGENTS_OPEN_TASK,
     MUJOCO_SDK_CLEANUP,
 )
+
+CODEX_ENV = {
+    "CODEX_BASE_URL": "https://codex.example.test/v1",
+    "CODEX_API_KEY": "key",
+}
 
 
 def test_new_console_run_id_is_filesystem_and_docker_mount_safe() -> None:
@@ -128,6 +128,75 @@ def test_b1_camera_grounded_launch_includes_default_camera_labeler(tmp_path: Pat
     assert "camera_labeler=grounding-dino" in argv
     assert not any(item.startswith("b1_alignment_artifact=") for item in argv)
     assert not any(item.startswith("b1_navigation_artifact=") for item in argv)
+
+
+def test_workflow_launch_argv_uses_camera_grounded_and_standard_mess_defaults(
+    tmp_path: Path,
+) -> None:
+    route = get_selection(
+        "molmospaces/procthor-objaverse-val/0::mujoco::cleanup::openai-agents-sdk::"
+        "camera-grounded-labels"
+    )
+
+    argv = build_workflow_launch_argv(
+        route,
+        workflow_id="prepare-standard-mess",
+        root=tmp_path,
+        run_id="run-1",
+    )
+
+    assert "preset=cleanup" in argv
+    assert "evidence_lane=camera-grounded-labels" in argv
+    assert "camera_labeler=grounding-dino" in argv
+    assert "scenario_setup=relocate-cleanup-related-objects" in argv
+    assert "relocation_count=5" in argv
+    assert "provider_profile=codex-router-responses" in argv
+
+
+def test_workflow_launch_requires_explicit_runtime_prior_when_catalog_is_empty(
+    tmp_path: Path,
+) -> None:
+    route = get_selection(
+        "molmospaces/procthor-objaverse-val/0::mujoco::cleanup::openai-agents-sdk::"
+        "camera-grounded-labels"
+    )
+
+    with pytest.raises(ConsoleLaunchError, match="no recommended prior is cataloged"):
+        build_workflow_launch_argv(
+            route,
+            workflow_id="cleanup-with-map",
+            root=tmp_path,
+            run_id="run-1",
+        )
+
+    prior = tmp_path / "runtime_map_prior_snapshot.json"
+    prior.write_text('{"schema":"runtime_map_prior_snapshot_v1"}\n', encoding="utf-8")
+    argv = build_workflow_launch_argv(
+        route,
+        workflow_id="cleanup-with-map",
+        root=tmp_path,
+        run_id="run-2",
+        overrides={"runtime_map_prior": str(prior)},
+    )
+
+    assert f"runtime_map_prior={prior}" in argv
+    assert "scenario_setup=relocate-cleanup-related-objects" in argv
+
+
+def test_workflow_launch_rejects_nonexistent_runtime_prior_override(tmp_path: Path) -> None:
+    route = get_selection(
+        "molmospaces/procthor-objaverse-val/0::mujoco::cleanup::openai-agents-sdk::"
+        "camera-grounded-labels"
+    )
+
+    with pytest.raises(ConsoleLaunchError, match="runtime_map_prior path does not exist"):
+        build_workflow_launch_argv(
+            route,
+            workflow_id="cleanup-with-map",
+            root=tmp_path,
+            run_id="run-1",
+            overrides={"runtime_map_prior": str(tmp_path / "missing.json")},
+        )
 
 
 def test_launcher_replaces_route_default_overrides(tmp_path: Path) -> None:
