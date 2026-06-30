@@ -57,7 +57,7 @@ from roboclaws.operator_console.runtime_inventory import (
     runtime_inventory_payload,
 )
 from roboclaws.operator_console.state import resolve_display_run_dir
-from roboclaws.operator_console.terminal_runs import (
+from roboclaws.operator_console.state_summary import (
     existing_terminal_phase,
     existing_terminal_reason,
 )

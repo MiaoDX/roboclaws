@@ -25,7 +25,7 @@ from roboclaws.operator_console.process_status import pid_is_active
 from roboclaws.operator_console.redaction import redact_text
 from roboclaws.operator_console.routes import ConsoleLaunchSelection, selection_task_selector
 from roboclaws.operator_console.state import resolve_display_run_dir
-from roboclaws.operator_console.terminal_runs import TERMINAL_RUN_PHASES, task_phase_from_paths
+from roboclaws.operator_console.state_summary import TERMINAL_RUN_PHASES, task_phase_from_paths
 
 DEFAULT_MCP_HOST, DEFAULT_MCP_PORT = "127.0.0.1", 18788
 ACTIVE_STATUSES = {"running", "launched", "blocked"}
