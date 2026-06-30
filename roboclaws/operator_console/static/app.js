@@ -1818,20 +1818,26 @@ async function postManualControl(action) {
 }
 
 function manualControlPayload(action) {
-  const zero = { forward_m: 0, lateral_m: 0, yaw_delta_deg: 0 };
   const byAction = {
-    forward: { ...zero, forward_m: MANUAL_CONTROL_STEP_M },
-    back: { ...zero, forward_m: -MANUAL_CONTROL_STEP_M },
-    left: { ...zero, lateral_m: MANUAL_CONTROL_STEP_M },
-    right: { ...zero, lateral_m: -MANUAL_CONTROL_STEP_M },
-    "turn-left": { ...zero, yaw_delta_deg: MANUAL_CONTROL_TURN_DEG },
-    "turn-right": { ...zero, yaw_delta_deg: -MANUAL_CONTROL_TURN_DEG },
+    forward: [MANUAL_CONTROL_STEP_M, 0, 0],
+    back: [-MANUAL_CONTROL_STEP_M, 0, 0],
+    left: [0, MANUAL_CONTROL_STEP_M, 0],
+    right: [0, -MANUAL_CONTROL_STEP_M, 0],
+    "turn-left": [0, 0, MANUAL_CONTROL_TURN_DEG],
+    "turn-right": [0, 0, -MANUAL_CONTROL_TURN_DEG],
   };
   if (action === "observe") {
     return { action: "observe" };
   }
   const delta = byAction[action];
-  return delta ? { action: "navigate_to_relative_pose", ...delta } : null;
+  return delta
+    ? {
+        action: "navigate_to_relative_pose",
+        forward_m: delta[0],
+        lateral_m: delta[1],
+        yaw_delta_deg: delta[2],
+      }
+    : null;
 }
 
 function manualControlResultText(result) {
@@ -1895,13 +1901,8 @@ function backgroundTaskEventText() {
 async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text);
-  } catch {
-    const area = document.createElement("textarea");
-    area.value = text;
-    document.body.appendChild(area);
-    area.select();
-    document.execCommand("copy");
-    area.remove();
+  } catch (error) {
+    els.eventList.textContent = `Copy failed: ${error.message || error}`;
   }
 }
 

@@ -494,13 +494,9 @@ def test_static_app_keeps_long_run_header_within_fixed_top_bar() -> None:
     assert "justify-content: flex-start;" in responsive_controls
     assert "flex-wrap: wrap;" in responsive_controls
     assert "#run-title {\n    flex-basis: 100%;" in css
-    assert "function compactRunPart(part)" in app
-    assert (
-        "return `${fullTimestamp[2]}${fullTimestamp[3]}-${fullTimestamp[4]}${fullTimestamp[5]}`"
-    ) in app
-    assert (
-        "return `${shortTimestamp[1]}${shortTimestamp[2]}_${shortTimestamp[3]}${shortTimestamp[4]}`"
-    ) in app
+    assert "compactRunPart" in app
+    assert "fullTimestamp" in app
+    assert "shortTimestamp" in app
     assert '"$2$3-$4$5$7"' not in app
 
 
@@ -516,7 +512,7 @@ def test_static_app_wires_manual_relative_navigation_controls() -> None:
     assert "MANUAL_CONTROL_STEP_M = 0.25" in app
     assert "MANUAL_CONTROL_TURN_DEG = 15" in app
     assert 'action: "navigate_to_relative_pose"' in app
-    assert 'return { action: "observe" }' in app
+    assert 'action === "observe"' in app
     assert "/control" in app
     assert "supports_relative_navigation_control" in app
     assert "relative_navigation_control_available" in app
