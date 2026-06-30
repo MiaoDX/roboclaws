@@ -1,14 +1,13 @@
 # Operator Console UI Maintenance Capsule
 
-Capsule status: ACTIVE
+Capsule status: DONE
 
 Source gate: `docs/plans/refactor-operator-console-ui-maintenance.md`
 
 Latest user intent classification: execute repo-wide architecture maintenance
 for the UI operator console until saturation, using `$intuitive-refactor`.
 
-Current slice: commit selection-id task segment helper merge, then rediscover
-from current `HEAD`.
+Current slice: none; maintenance loop saturated for current `HEAD`.
 
 Blocker fingerprint: none.
 
@@ -47,18 +46,13 @@ Completed slice batch summary:
 - 2026-06-30: moved the non-preset `open-task` selection-id segment rule into
   `routes.selection_task_selector()` and updated launcher, server readiness,
   and runtime inventory callers.
+- 2026-06-30: saturation discovery found no new clear P1/P2 after deduping
+  parked and rejected observations.
 
-Next proof command:
+Next proof command: none for this completed capsule.
 
-```bash
-node --check roboclaws/operator_console/static/app.js
-./scripts/dev/run_pytest_standalone.sh -q tests/unit/operator_console
-.venv/bin/ruff check roboclaws/operator_console tests/unit/operator_console
-```
-
-Stop condition: after each clear queue batch passes focused proof, rediscover
-from current `HEAD`; stop only when a fresh discovery round finds no new clear
-P1/P2 candidate after deduping parked and rejected observations.
+Stop condition: satisfied. A fresh discovery round from current `HEAD` found no
+new clear P1/P2 candidate after deduping parked and rejected observations.
 
 No-touch scope: no broad UI redesign, robot task strategy changes, provider
 profile changes, live runtime changes, or external contract removals without
@@ -68,3 +62,8 @@ Parked work:
 
 - `operator-console/static/app.js/oversized-controller`: reopen only when a
   concrete stale concept, duplicate owner, or owner move is proven.
+- `operator-console/runtime-inventory/route_id-field`: reopen only if current
+  consumers use `route_id` as launch input instead of display/linking metadata.
+- `operator-console/history/legacy-route-display-readers`: reopen only with an
+  approved artifact migration need or evidence that old history display readers
+  mislead active launch behavior.
