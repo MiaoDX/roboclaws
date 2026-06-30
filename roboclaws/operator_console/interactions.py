@@ -509,8 +509,6 @@ def _public_artifact_scope(artifacts: list[Any]) -> list[dict[str, str]]:
         "Run Result",
         "Trace",
         "Agent Events",
-        "Claude Events",
-        "OpenAI Agents Events",
         "Runtime Map",
         "Actionable Map",
     }

@@ -25,19 +25,12 @@ from roboclaws.operator_console.routes import ConsoleLaunchSelection
 from roboclaws.operator_console.state_checker import checker_status
 from roboclaws.operator_console.state_summary import (
     camera_angle_summary,
-    is_failure_string,
-    is_open_ended_run_result,
-    is_success_string,
-    run_result_has_failure,
-    run_result_success,
 )
 
 LIVE_RUN_MARKERS = (
     "live_status.json",
     "run_result.json",
     "trace.jsonl",
-    "codex-events.jsonl",
-    "claude-events.jsonl",
     "report.html",
     "runtime_metric_map.json",
     "tmux_session.txt",
@@ -46,11 +39,7 @@ LIVE_RUN_MARKERS = (
     "openai-agents-trace.json",
 )
 
-AGENT_EVENT_GLOBS = (
-    "codex-events*.jsonl",
-    "claude-events*.jsonl",
-    "openai-agents-events*.jsonl",
-)
+AGENT_EVENT_GLOBS = ("openai-agents-events*.jsonl",)
 
 
 @dataclass(frozen=True)
@@ -558,11 +547,7 @@ def _latest_agent_message(run_dir: Path) -> tuple[str, tuple[JsonSourceError, ..
 
 
 def _agent_event_label(path: Path) -> str:
-    name = path.name
-    if name.startswith("claude-events"):
-        return "Claude Events"
-    if name.startswith("openai-agents-events"):
-        return "OpenAI Agents Events"
+    del path
     return "Agent Events"
 
 
@@ -643,9 +628,7 @@ def _artifact_links(run_dir: Path) -> list[ArtifactLink]:
         ("Report", "report.html", "html"),
         ("Run Result", "run_result.json", "json"),
         ("Trace", "trace.jsonl", "jsonl"),
-        ("Agent Events", "codex-events.jsonl", "jsonl"),
-        ("Claude Events", "claude-events.jsonl", "jsonl"),
-        ("OpenAI Agents Events", "openai-agents-events.jsonl", "jsonl"),
+        ("Agent Events", "openai-agents-events.jsonl", "jsonl"),
         ("OpenAI Agents Trace", "openai-agents-trace.json", "json"),
         ("Driver Log", "driver.log", "log"),
         ("Checker Output", "checker.log", "log"),
@@ -758,26 +741,6 @@ def _artifact_href(root: Path, path: Path) -> str:
     if not path.is_relative_to(root):
         return ""
     return f"/artifacts/{path.relative_to(root)}?v={path.stat().st_mtime_ns}"
-
-
-def _run_result_success(run_result: dict[str, Any]) -> bool:
-    return run_result_success(run_result)
-
-
-def _run_result_has_failure(run_result: dict[str, Any]) -> bool:
-    return run_result_has_failure(run_result)
-
-
-def _is_open_ended_run_result(run_result: dict[str, Any]) -> bool:
-    return is_open_ended_run_result(run_result)
-
-
-def _is_success_string(value: Any) -> bool:
-    return is_success_string(value)
-
-
-def _is_failure_string(value: Any) -> bool:
-    return is_failure_string(value)
 
 
 def _terminal_reason(
