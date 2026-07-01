@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
+from roboclaws.evals import long_horizon as lh
 from roboclaws.evals.dependencies import dependency_failure, resolve_artifact_dependencies
 from roboclaws.evals.live_artifacts import (
     discover_live_surface_run_dir,
@@ -753,6 +754,7 @@ def product_run_kwargs(
         "evidence_lane": evidence_lane(sample, budget=budget),
         "map_build": map_build,
         "generated_mess_count": generated_mess_count(sample),
+        "generated_mess_object_ids": lh.generated_mess_object_ids(sample),
         "scene_source": scene_source(sample),
         "scene_index": scene_index(sample),
         "run_metadata_overrides": {
@@ -781,7 +783,7 @@ def product_run_kwargs(
 
 def implementation_backend(sample: EvalSample, *, budget: str) -> str:
     if budget == "smoke":
-        return SYNTHETIC_BACKEND
+        return lh.implementation_backend_for_direct_long_horizon(sample, SYNTHETIC_BACKEND)
     backend = BACKEND_SPECS.get(sample.backend)
     if backend is None:
         return sample.backend
@@ -789,25 +791,25 @@ def implementation_backend(sample: EvalSample, *, budget: str) -> str:
 
 
 def evidence_lane(sample: EvalSample, *, budget: str) -> str:
-    if budget == "smoke":
-        return "smoke"
-    return sample.evidence_lane
+    smoke = budget == "smoke" and not lh.is_long_horizon_sample(sample)
+    return "smoke" if smoke else sample.evidence_lane
 
 
 def camera_labeler(sample: EvalSample) -> str:
     if sample.evidence_lane != "camera-grounded-labels":
         return ""
-    if sample.camera_labeler not in MISSING_SENTINELS:
-        return sample.camera_labeler
-    return "grounding-dino"
+    labeler = sample.camera_labeler
+    return labeler if labeler not in MISSING_SENTINELS else "grounding-dino"
 
 
 def task_prompt(sample: EvalSample) -> str:
     if sample.prompt not in {"", MISSING_NOT_APPLICABLE, MISSING_UNAVAILABLE}:
         return sample.prompt
-    if sample.intent == "map-build":
-        return "帮我建立这个房间的 Runtime Metric Map"
-    return "帮我收拾这个房间"
+    return (
+        "帮我建立这个房间的 Runtime Metric Map"
+        if sample.intent == "map-build"
+        else "帮我收拾这个房间"
+    )
 
 
 def generated_mess_count(sample: EvalSample) -> int:
@@ -828,21 +830,15 @@ def generated_mess_count(sample: EvalSample) -> int:
 
 
 def scene_source(sample: EvalSample) -> str:
-    launch_overrides = sample.launch_overrides or {}
-    if "scene_source" not in launch_overrides:
-        return "procthor-10k-val"
     return _non_empty_string_value(
-        launch_overrides.get("scene_source"),
+        (sample.launch_overrides or {}).get("scene_source", "procthor-10k-val"),
         "launch_overrides.scene_source",
     )
 
 
 def scene_index(sample: EvalSample) -> int:
-    launch_overrides = sample.launch_overrides or {}
-    if "scene_index" not in launch_overrides:
-        return 0
     return _non_negative_int_value(
-        launch_overrides.get("scene_index"),
+        (sample.launch_overrides or {}).get("scene_index", 0),
         "launch_overrides.scene_index",
     )
 
@@ -881,9 +877,7 @@ def live_surface_env(kwargs: dict[str, Any], *, base_env: Any) -> dict[str, str]
 
 def live_evidence_lane(kwargs: dict[str, Any]) -> str:
     lane = str(kwargs.get("evidence_lane") or "")
-    if lane == "smoke":
-        return "world-public-labels"
-    return lane or "world-public-labels"
+    return lane if lane and lane != "smoke" else "world-public-labels"
 
 
 def live_camera_labeler(kwargs: dict[str, Any], *, evidence_lane: str) -> str:
@@ -909,9 +903,11 @@ def _is_smoke_budget(kwargs: dict[str, Any]) -> bool:
 
 def _generated_mess_count(kwargs: dict[str, Any]) -> int:
     value = kwargs.get("generated_mess_count")
-    if value is None or value == "":
-        return 0
-    return _non_negative_int_value(value, "generated_mess_count")
+    return (
+        0
+        if value is None or value == ""
+        else _non_negative_int_value(value, "generated_mess_count")
+    )
 
 
 def _live_surface_scene_index(kwargs: dict[str, Any]) -> int:
@@ -945,9 +941,7 @@ def _non_negative_int_value(value: object, setting_name: str) -> int:
 
 
 def _public_backend_from_implementation(backend: str) -> str:
-    if backend in {MISSING_NOT_APPLICABLE, MISSING_UNAVAILABLE, ""}:
-        return "mujoco"
-    if backend == "api_semantic_synthetic":
+    if backend in {MISSING_NOT_APPLICABLE, MISSING_UNAVAILABLE, "", "api_semantic_synthetic"}:
         return "mujoco"
     for spec in BACKEND_SPECS.values():
         if spec.implementation_backend == backend:

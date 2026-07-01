@@ -1,0 +1,40 @@
+{
+  "schema": "roboclaws_eval_suite_v1",
+  "suite_id": "household_world.long_horizon_tasks",
+  "version": "2026-07-01",
+  "capability": "household_world_long_horizon_tasks",
+  "sample_ids": [
+    "long_horizon.snack_restock_val0_seed7"
+  ],
+  "sample_refs": [
+    "evals/household_world/samples/long_horizon/snack_restock_val0_seed7.json"
+  ],
+  "required_graders": [
+    "artifacts",
+    "privacy",
+    "trajectory",
+    "open_ended",
+    "long_horizon"
+  ],
+  "thresholds": {
+    "pass_at_1": 1.0,
+    "private_truth_leak_count": 0,
+    "trajectory_policy_violation_count": 0,
+    "long_horizon_subgoals": "all_passed",
+    "artifact_readiness": "ready"
+  },
+  "metadata": {
+    "runner_scope": "public household open-task route with private long-horizon grader",
+    "public_route_shape": "surface=household-world prompt=<goal>",
+    "identity_intent": "open-ended",
+    "live_provider_required": true,
+    "semantic_satisfaction": "authoritative_private_state_grader",
+    "pilot_scene": "molmospaces/val_0",
+    "unsupported_in_v1": [
+      "stairs",
+      "elevator",
+      "parcel_unpacking",
+      "drawer_open_close"
+    ]
+  }
+}
