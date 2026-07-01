@@ -7,6 +7,7 @@ import pytest
 
 from roboclaws.launch.agent_engines import agent_engine_spec
 from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS, WORLD_SPECS
+from roboclaws.operator_console import workflows as console_workflows
 from roboclaws.operator_console.launcher import ConsoleLaunchError, build_launch_argv
 from roboclaws.operator_console.routes import (
     default_workflow_selection_id,
@@ -381,6 +382,66 @@ def test_scene_workflow_payload_defaults_to_camera_grounded_and_empty_prior_cata
     )
 
 
+def test_scene_workflow_payload_enables_with_map_from_accepted_catalog(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    prior = tmp_path / "runtime_map_prior_snapshot.json"
+    prior.write_text('{"schema":"runtime_map_prior_snapshot_v1"}\n', encoding="utf-8")
+    catalog = tmp_path / "recommended_runtime_map_priors.json"
+    _write_prior_catalog(catalog, prior)
+    monkeypatch.setattr(console_workflows, "RECOMMENDED_PRIOR_CATALOG_PATH", catalog)
+
+    worlds = {world["id"]: world for world in list_worlds()}
+    world = worlds["molmospaces/procthor-objaverse-val/0"]
+    workflows = {workflow["id"]: workflow for workflow in world["workflow_actions"]}
+    catalog_rows = list_prior_catalog()
+
+    assert catalog_rows[0]["path"] == str(prior)
+    assert catalog_rows[0]["staleness"] == "compatible"
+    assert workflows["open-task-with-map"]["enabled"] is True
+    assert workflows["cleanup-with-map"]["enabled"] is True
+    assert workflows["cleanup-with-map"]["disabled_reason"] == ""
+    assert workflows["cleanup-with-map"]["recommended_prior"]["path"] == str(prior)
+
+
+def test_scene_workflow_payload_keeps_blocking_stale_catalog_disabled(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    prior = tmp_path / "runtime_map_prior_snapshot.json"
+    prior.write_text('{"schema":"runtime_map_prior_snapshot_v1"}\n', encoding="utf-8")
+    catalog = tmp_path / "recommended_runtime_map_priors.json"
+    _write_prior_catalog(catalog, prior, staleness="blocking_stale")
+    monkeypatch.setattr(console_workflows, "RECOMMENDED_PRIOR_CATALOG_PATH", catalog)
+
+    worlds = {world["id"]: world for world in list_worlds()}
+    world = worlds["molmospaces/procthor-objaverse-val/0"]
+    workflows = {workflow["id"]: workflow for workflow in world["workflow_actions"]}
+
+    assert list_prior_catalog()[0]["staleness"] == "blocking_stale"
+    assert workflows["cleanup-with-map"]["enabled"] is False
+    assert workflows["cleanup-with-map"]["recommended_prior"] is None
+
+
+def test_scene_workflow_payload_marks_missing_catalog_prior_blocking_stale(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    missing_prior = tmp_path / "missing_runtime_map_prior_snapshot.json"
+    catalog = tmp_path / "recommended_runtime_map_priors.json"
+    _write_prior_catalog(catalog, missing_prior)
+    monkeypatch.setattr(console_workflows, "RECOMMENDED_PRIOR_CATALOG_PATH", catalog)
+
+    worlds = {world["id"]: world for world in list_worlds()}
+    world = worlds["molmospaces/procthor-objaverse-val/0"]
+    workflows = {workflow["id"]: workflow for workflow in world["workflow_actions"]}
+
+    assert list_prior_catalog()[0]["staleness"] == "blocking_stale"
+    assert workflows["cleanup-with-map"]["enabled"] is False
+    assert workflows["cleanup-with-map"]["recommended_prior"] is None
+
+
 def test_molmospaces_scene_choices_use_scene_specific_launch_defaults(tmp_path) -> None:
     enabled_ids = {route.id for route in list_console_combinations(include_disabled=False)}
     for world_id in MOLMOSPACES_CONSOLE_WORLD_IDS:
@@ -425,7 +486,6 @@ def test_molmospaces_scene_choices_use_scene_specific_launch_defaults(tmp_path) 
             "href": "/previews/molmospaces-procthor-10k-val-11-topdown.png",
         },
     }
-
     argv = build_launch_argv(val10, root=tmp_path, run_id="run-val-10")
     assert "world=molmospaces/procthor-objaverse-val/10" in argv
     assert "scene_source=procthor-objaverse-val" in argv
@@ -619,3 +679,42 @@ def test_prompt_rejected_for_unsupported_selection(tmp_path) -> None:
     selection = get_selection(AGIBOT_SDK_CLEANUP)
     with pytest.raises(ConsoleLaunchError, match="custom prompt"):
         build_launch_argv(selection, root=tmp_path, run_id="run-1", prompt="unsafe")
+
+
+def _write_prior_catalog(
+    path: Path,
+    prior: Path,
+    *,
+    staleness: str = "compatible",
+) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "schema": "runtime_map_prior_catalog_v1",
+                "entries": [
+                    {
+                        "id": "molmospaces/procthor-objaverse-val/0::mujoco",
+                        "world_id": "molmospaces/procthor-objaverse-val/0",
+                        "backend_id": "mujoco",
+                        "path": str(prior),
+                        "status": "accepted",
+                        "staleness": staleness,
+                        "source": "runtime_map_prior_selector",
+                        "catalog_key": {
+                            "world": "molmospaces/procthor-objaverse-val/0",
+                            "backend": "mujoco",
+                            "source_map_identity": "map-bundle-sha256:abc",
+                            "scene_identity": "procthor-objaverse-val/0",
+                        },
+                        "selected_candidate_id": "candidate-1",
+                        "run_id": "run-1",
+                        "product_route": {"agent_engine": "openai-agents-sdk"},
+                        "producer": {"provider_profile": "codex-router-responses"},
+                        "evidence": ["hard_gates_passed"],
+                    }
+                ],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )

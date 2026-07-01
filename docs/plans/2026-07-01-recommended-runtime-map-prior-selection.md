@@ -1,9 +1,9 @@
 ---
 plan_scope: recommended-runtime-map-prior-selection
-status: PROPOSED
+status: IMPLEMENTED
 created: 2026-07-01
 last_reviewed: 2026-07-01
-implementation_allowed: false
+implementation_allowed: true
 source:
   - user direction to use EvalHarness and SimOracle to prebuild richer map priors
   - parked operator-console recommended-prior catalog work
@@ -19,15 +19,17 @@ related_context:
 
 ## Plan Ledger
 
-Status: PROPOSED
+Status: IMPLEMENTED
 
-Current slice: decision contract captured after `grill-with-docs-batch`.
+Current slice: deterministic selector/catalog implementation completed via
+`$intuitive-flow`.
 
-Next action: turn this into an implementation preflight or GSD phase if the
-catalog contract is accepted.
+Next action: use `just agent::eval runtime-prior-select
+manifest=<manifest.json> eval_results=<eval_results.json>[,...]` after
+candidate MapBuild runs or regrades to publish a catalog file.
 
-Blocked on: accepted execution scope and, for live candidates, provider/runtime
-availability.
+Blocked on: no implementation blocker. Running a fresh live candidate matrix
+still depends on provider/runtime availability.
 
 ## Goal
 

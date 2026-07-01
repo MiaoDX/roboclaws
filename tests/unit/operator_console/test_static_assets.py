@@ -70,6 +70,7 @@ def test_static_app_has_route_specific_field_groups() -> None:
         "workflow_id",
         "runtime_map_prior",
         "selectedRuntimeMapPrior",
+        "Staleness:",
         "routeForWorkflow(state.selectedWorkflow, state.selectedWorld)",
         "renderRouteFields",
         "field_groups",

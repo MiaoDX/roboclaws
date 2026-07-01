@@ -512,10 +512,16 @@ function renderSceneState(route) {
   const world = state.selectedWorld || {};
   const backend = route ? route.backend_label || route.backend_id : world.default_backend || "";
   if (prior) {
+    const staleness = prior.staleness || prior.compatibility || "";
+    const stalenessLine =
+      staleness && staleness !== "compatible"
+        ? `<p class="field-help">Staleness: ${escapeHtml(staleness)}</p>`
+        : "";
     els.mapPriorState.innerHTML = `
       <strong>${escapeHtml(prior.status || "selected")}</strong>
       <p>${escapeHtml(prior.path || "")}</p>
       <p class="field-help">${escapeHtml(prior.source || "Runtime Map Prior Snapshot")}</p>
+      ${stalenessLine}
     `;
   } else {
     els.mapPriorState.innerHTML = `
