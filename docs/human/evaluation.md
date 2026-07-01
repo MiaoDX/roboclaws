@@ -101,8 +101,12 @@ when needed, and grades the SDK product artifacts written under that run dir:
 ```bash
 just agent::eval suite=cleanup_capability budget=smoke \
   agent_engine=openai-agents-sdk provider_profile=codex-router-responses \
-  live_execution=run live_timeout_s=120
+  live_execution=run
 ```
+
+Live evals default to a 1200 second wall-clock budget and a 120 second
+no-progress stall timeout. Pass `live_timeout_s=<seconds>` only when you intend
+to override the whole-run wall-clock budget for a specific run.
 
 The eval result records blocked provider/runtime conditions separately from
 agent behavior when the selected live route cannot finish.
