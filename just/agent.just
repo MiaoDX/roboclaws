@@ -152,7 +152,7 @@ run dispatch_target agent_engine mode="" *overrides:
         b1_alignment_artifact|b1_navigation_artifact|map_bundle|mode|model|output_dir|policy|port|prompt|provider|provider_profile|\
         regrade_source|\
         camera_labeler|evidence_lane|profile|real_movement_enabled|rehearsal_mode|robot_name|run_dir|runner_python|runner_script|\
-        runtime|runtime_map_prior|molmospaces_python|generated_mess_object_ids|\
+        runtime|runtime_map_prior|molmospaces_python|generated_mess_object_ids|generated_mess_manifest_path|\
         operator_messages_path|operator_resume_requests_path|operator_session_context_json|skill_name|task_intent|task_preset|task_surface|goal_contract_json|goal_contract_path|\
         scene_index|scene_source|seed|seeds|map_build|task|timeout_s|world|\
         isaac_scene_usd_path|\
@@ -345,6 +345,7 @@ run dispatch_target agent_engine mode="" *overrides:
           goal_contract_args+=(--goal-contract "$goal_contract_path")
         fi
         generated_mess_count="$(get generated_mess_count 10)"
+        generated_mess_manifest_path="$(get generated_mess_manifest_path "")"
         host="$(get host 127.0.0.1)"
         port="$(get port "${ROBOCLAWS_EVAL_HARNESS_MCP_PORT:-18788}")"
         map_bundle="$(get map_bundle auto)"
@@ -674,6 +675,7 @@ run dispatch_target agent_engine mode="" *overrides:
           ROBOCLAWS_TASK_INTENT="$resolved_task_intent" \
           ROBOCLAWS_TASK_PRESET="${kv[task_preset]:-}" \
           ROBOCLAWS_TASK_SKILL="$skill_name" \
+          ROBOCLAWS_GENERATED_MESS_MANIFEST_PATH="$generated_mess_manifest_path" \
           run_just molmo::household-world-impl "${molmo_args[@]}"
         ;;
 

@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.evals.live_runtime import live_product_run_kwargs, live_surface_command
+from roboclaws.evals.long_horizon import long_horizon_spec
+from roboclaws.evals.long_horizon_manifest import generated_mess_manifest
 from roboclaws.evals.models import load_eval_sample, load_eval_suite
 from roboclaws.evals.runner import run_eval_suite
 from roboclaws.launch.catalog import resolve_surface_launch
@@ -14,6 +16,9 @@ LONG_HORIZON_SUITE = REPO_ROOT / "evals" / "household_world" / "suites" / "long_
 TARGET_A = "bread_5f50f53c9dcfbae4352335033a8b2bb4_1_0_2"
 TARGET_B = "bread_dcb25a3fdc38be63308c7171e734e8a3_1_0_2"
 SHELF = "shelf_140ccb7e1f5028c7d773229dfe6e1a04_1_0_2"
+FRIDGE = "refrigerator_5e0d26d670a75ae0a52f2ceb08914b0e_1_0_2"
+LIVING_DINING_TABLE = "diningtable_f113cf7f8367e89f709b53cbee1a1c05_2_0_3"
+LIVING_SOFA = "sofa_26757136bf2f1a8029d685a42db38f2a_1_0_3"
 
 
 def test_long_horizon_suite_fixture_declares_private_grader() -> None:
@@ -73,11 +78,79 @@ def test_long_horizon_live_command_uses_private_task_targets(tmp_path: Path) -> 
     command = live_surface_command(kwargs, output_dir=tmp_path / "surface-run")
 
     pinned_targets_arg = f"generated_mess_object_ids={','.join(target_ids)}"
+    manifest_path = Path(kwargs["generated_mess_manifest_path"])
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert f"relocation_count={len(target_ids)}" in command
     assert pinned_targets_arg in command
+    assert f"generated_mess_manifest_path={manifest_path}" in command
+    assert [item["object_id"] for item in manifest["targets"]] == list(target_ids)
+    assert [item["start_receptacle_id"] for item in manifest["targets"]] == [
+        LIVING_DINING_TABLE,
+        LIVING_SOFA,
+    ]
+    assert [item["valid_receptacle_ids"] for item in manifest["targets"]] == [
+        [SHELF, FRIDGE],
+        [SHELF, FRIDGE],
+    ]
     plan = resolve_surface_launch(command[5:])
     assert f"generated_mess_count={len(target_ids)}" in plan.argv
     assert pinned_targets_arg in plan.argv
+    assert f"generated_mess_manifest_path={manifest_path}" in plan.argv
+
+
+def test_long_horizon_generated_mess_manifest_comes_from_private_task_spec() -> None:
+    sample = load_eval_sample(
+        REPO_ROOT / "evals/household_world/samples/long_horizon/snack_restock_val0_seed7.json"
+    )
+
+    spec = long_horizon_spec(sample)
+    assert spec is not None
+
+    manifest = generated_mess_manifest(sample, spec)
+
+    assert manifest["provenance"] == "long_horizon_task_private_goal_reference"
+    assert manifest["generated_mess_count"] == 2
+    assert [item["object_id"] for item in manifest["targets"]] == [TARGET_A, TARGET_B]
+    assert [item["start_receptacle_id"] for item in manifest["targets"]] == [
+        LIVING_DINING_TABLE,
+        LIVING_SOFA,
+    ]
+    assert {tuple(item["valid_receptacle_ids"]) for item in manifest["targets"]} == {
+        (SHELF, FRIDGE)
+    }
+
+
+def test_long_horizon_live_aggregate_uses_private_grader_over_cleanup_checker_sidecar(
+    tmp_path: Path,
+) -> None:
+    def live_product_runner(**kwargs: Any) -> dict[str, Any]:
+        run_dir = Path(kwargs["output_dir"])
+        _write_long_horizon_artifacts(run_dir)
+        (run_dir / "live_status.json").write_text(
+            '{"phase": "failed", "exit_status": 1, '
+            '"reason": "cleanup checker exited with status 1"}\n'
+        )
+        result = _long_horizon_run_result(run_dir)
+        result["eval_effective_run_dir"] = str(run_dir)
+        return result
+
+    run = run_eval_suite(
+        "long_horizon_tasks",
+        output_root=tmp_path,
+        stamp="long-horizon-live-checker-sidecar",
+        agent_engine="openai-agents-sdk",
+        provider_profile="codex-router-responses",
+        live_execution="run",
+        live_product_runner=live_product_runner,
+    )
+
+    aggregate = json.loads(run.results_path.read_text())["aggregate"]
+
+    assert aggregate["passed"] == 1
+    assert aggregate["failed"] == 0
+    assert aggregate["open_ended"]["live_statuses"] == {
+        "checker_sidecar_failed_but_long_horizon_passed": 1
+    }
 
 
 def test_long_horizon_grader_rejects_incomplete_final_state(tmp_path: Path) -> None:

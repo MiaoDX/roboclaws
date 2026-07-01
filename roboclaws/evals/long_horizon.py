@@ -40,6 +40,7 @@ class LongHorizonTaskSpec:
     accepted_destination_ids: tuple[str, ...]
     cold_object_ids: tuple[str, ...]
     source_room_ids: tuple[str, ...]
+    source_receptacle_ids: tuple[str, ...]
     destination_room_ids: tuple[str, ...]
     required_tool_sequence: tuple[str, ...]
 
@@ -60,6 +61,9 @@ def long_horizon_spec(sample: EvalSample) -> LongHorizonTaskSpec | None:
         ),
         cold_object_ids=tuple(str(item) for item in reference.get("cold_object_ids") or ()),
         source_room_ids=tuple(str(item) for item in reference.get("source_room_ids") or ()),
+        source_receptacle_ids=tuple(
+            str(item) for item in reference.get("source_receptacle_ids") or ()
+        ),
         destination_room_ids=tuple(
             str(item) for item in reference.get("destination_room_ids") or ()
         ),

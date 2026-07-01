@@ -292,7 +292,9 @@ def _private_manifest(
         "targets": [
             {
                 "object_id": target["object_id"],
-                "valid_receptacle_ids": [target["target_receptacle_id"]],
+                "valid_receptacle_ids": list(
+                    target.get("valid_receptacle_ids") or [target["target_receptacle_id"]]
+                ),
             }
             for target in targets
         ],

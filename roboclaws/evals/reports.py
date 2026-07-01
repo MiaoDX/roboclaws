@@ -690,6 +690,19 @@ def _open_ended_aggregate(results: list[dict[str, Any]]) -> dict[str, Any]:
             else {}
         )
         live_phase = str(live_status.get("phase") or MISSING_UNAVAILABLE)
+        long_horizon = (
+            grader_outputs.get("long_horizon")
+            if isinstance(grader_outputs.get("long_horizon"), dict)
+            else {}
+        )
+        reason = str(live_status.get("reason") or "").lower()
+        if (
+            status == "passed"
+            and live_phase == "failed"
+            and long_horizon.get("status") == "passed"
+            and "cleanup checker exited with status" in reason
+        ):
+            live_phase = "checker_sidecar_failed_but_long_horizon_passed"
         live_statuses[live_phase] = live_statuses.get(live_phase, 0) + 1
     return {
         "schema": "roboclaws_open_ended_eval_aggregate_v1",

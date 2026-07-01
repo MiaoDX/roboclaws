@@ -59,6 +59,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
     isaac_scene_usd_path="{{isaac_scene_usd_path}}"
     min_generated_mess_count_override="{{min_generated_mess_count_override}}"
     generated_mess_object_ids="{{generated_mess_object_ids}}"
+    generated_mess_manifest_path="${ROBOCLAWS_GENERATED_MESS_MANIFEST_PATH:-}"
     task_surface="{{task_surface}}"
     task_intent="{{task_intent}}"
     operator_messages_path="{{operator_messages_path}}"
@@ -548,6 +549,10 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
         fi
       done
     fi
+    generated_mess_manifest_args=()
+    if [[ -n "$generated_mess_manifest_path" ]]; then
+      generated_mess_manifest_args=(--generated-mess-manifest-path "$generated_mess_manifest_path")
+    fi
     if [[ -z "$map_bundle_dir" ]]; then
       echo "error: profile '$profile' requires a selected prebuilt Nav2 map bundle" >&2
       echo "hint: generate the canonical scene bundle with scripts/maps/generate_molmospaces_scene_bundles.py --scene ${scene_source}/${scene_index} --force" >&2
@@ -788,6 +793,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
           --task "$task"
           --generated-mess-count "$generated_mess_count"
           "${generated_mess_object_args[@]}"
+          "${generated_mess_manifest_args[@]}"
           --perception-mode "$perception_mode"
           --evidence-lane "$implementation_evidence_lane"
           --scene-source "$scene_source"
@@ -1044,6 +1050,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
             "${map_bundle_args[@]}" \
             --generated-mess-count "$generated_mess_count" \
             "${generated_mess_object_args[@]}" \
+            "${generated_mess_manifest_args[@]}" \
             --scene-source "$scene_source" \
             --scene-index "$scene_index" \
             "${visual_args[@]}" \
@@ -1067,6 +1074,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
             --policy "$policy" \
             --generated-mess-count "$generated_mess_count" \
             "${generated_mess_object_args[@]}" \
+            "${generated_mess_manifest_args[@]}" \
             --perception-mode "$perception_mode" \
             --evidence-lane "$implementation_evidence_lane" \
             "${map_bundle_args[@]}" \

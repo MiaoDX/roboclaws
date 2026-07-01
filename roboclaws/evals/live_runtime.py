@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
+from roboclaws.evals import live_long_horizon
 from roboclaws.evals import long_horizon as lh
 from roboclaws.evals.dependencies import dependency_failure, resolve_artifact_dependencies
 from roboclaws.evals.live_artifacts import (
@@ -548,14 +549,10 @@ def live_surface_command(kwargs: dict[str, Any], *, output_dir: Path) -> list[st
     if _is_smoke_budget(kwargs):
         command.append("run_preset=smoke")
     else:
-        relocation_count = _generated_mess_count(kwargs)
-        if relocation_count:
-            command += [
-                "scenario_setup=relocate-cleanup-related-objects",
-                f"relocation_count={relocation_count}",
-            ]
-            if generated_object_ids := kwargs.get("generated_mess_object_ids"):
-                command.append(f"generated_mess_object_ids={','.join(generated_object_ids)}")
+        command += live_long_horizon.relocation_args(
+            kwargs,
+            relocation_count=_generated_mess_count(kwargs),
+        )
     runtime_map_prior = str(kwargs.get("runtime_map_prior_path") or "")
     if runtime_map_prior:
         command.append(f"runtime_map_prior={runtime_map_prior}")
@@ -727,6 +724,7 @@ def live_product_run_kwargs(
         budget=budget,
         dependency_artifacts=dependency_artifacts,
     )
+    live_long_horizon.attach_generated_mess_manifest(kwargs, sample=sample, run_dir=run_dir)
     kwargs.update(
         {
             "eval_sample": sample,
