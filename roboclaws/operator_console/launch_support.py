@@ -134,6 +134,18 @@ def launch_prompt_for_intent(
     return DEFAULT_PROMPTS.get(selected_intent, route.task_prompt_default)
 
 
+def launch_overrides_from_run_state(state: dict[str, Any]) -> dict[str, str]:
+    return {
+        key: value
+        for key, value in {
+            "provider_profile": str(state.get("provider_profile") or "").strip(),
+            "host": str(state.get("mcp_host") or "").strip(),
+            "port": str(state.get("mcp_port") or "").strip(),
+        }.items()
+        if value
+    }
+
+
 def normalized_launch_overrides(
     route: ConsoleLaunchSelection,
     overrides: dict[str, str],

@@ -14,6 +14,7 @@ from roboclaws.operator_console.context_packets import (
     strip_private_payload,
 )
 from roboclaws.operator_console.jsonl_sources import JsonlSourceIssue, collect_jsonl_objects
+from roboclaws.operator_console.launch_support import launch_overrides_from_run_state
 from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.routes import ConsoleLaunchSelection, get_selection
 from roboclaws.operator_console.state import (
@@ -214,6 +215,7 @@ def append_next_goal_request(
             "parent_run_id": run_id,
             "selection_id": _state_selection_id(state),
             "intent": str(state.get("selected_intent") or ""),
+            "launch_overrides": launch_overrides_from_run_state(run_state),
             "queue_reason": reason,
             "auto_start_allowed": status == "ready_to_start",
             "confirmation_required": status == "confirmation_required",

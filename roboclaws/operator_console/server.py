@@ -179,6 +179,7 @@ def _retryable_follow_up_start_error(error: str) -> bool:
 def _follow_up_launch_request(parent_run_id: str, follow_up: dict[str, object]) -> LaunchRequest:
     selection_id = str(follow_up.get("selection_id") or "")
     route = get_selection(selection_id)
+    launch_overrides = follow_up.get("launch_overrides")
     return LaunchRequest(
         selection_id_override=selection_id,
         intent_id=str(follow_up.get("intent") or "") or route.intent_id,
@@ -186,6 +187,7 @@ def _follow_up_launch_request(parent_run_id: str, follow_up: dict[str, object]) 
         operator_session_id=str(follow_up.get("operator_session_id") or ""),
         parent_run_id=parent_run_id,
         next_goal_packet=dict(follow_up.get("next_goal_packet") or {}),
+        overrides=dict(launch_overrides) if isinstance(launch_overrides, dict) else {},
         world_id=route.world_id,
         backend_id=route.backend_id,
         agent_engine_id=route.agent_engine_id,

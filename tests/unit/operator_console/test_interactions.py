@@ -20,8 +20,9 @@ from roboclaws.operator_console.interactions import (
 )
 from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.routes import get_selection
-
-from tests.unit.operator_console.conftest import MUJOCO_OPENAI_AGENTS_OPEN_TASK  # noqa: F401  re-exported for tests
+from tests.unit.operator_console.conftest import (
+    MUJOCO_OPENAI_AGENTS_OPEN_TASK,  # noqa: F401  re-exported for tests
+)
 
 
 def _write_run(
@@ -31,6 +32,9 @@ def _write_run(
     selection_id: str = MUJOCO_OPENAI_AGENTS_OPEN_TASK,
     phase: str = "running-sdk",
     run_result: dict[str, object] | None = None,
+    provider_profile: str = "codex-router-responses",
+    mcp_host: str = "127.0.0.1",
+    mcp_port: int = 18788,
 ) -> Path:
     route = get_selection(selection_id)
     run_dir = console_output_root(root) / "runs" / run_id
@@ -45,6 +49,9 @@ def _write_run(
                 "phase": phase,
                 "backend_lock": route.lock_name,
                 "run_dir": str(run_dir),
+                "provider_profile": provider_profile,
+                "mcp_host": mcp_host,
+                "mcp_port": mcp_port,
             }
         ),
         encoding="utf-8",
@@ -177,7 +184,13 @@ def test_get_operator_session_rejects_session_id_mismatch(tmp_path: Path) -> Non
 
 
 def test_terminal_simulator_next_goal_is_ready_with_public_packet(tmp_path: Path) -> None:
-    _write_run(tmp_path, phase="finished", run_result={"cleanup_success": True})
+    _write_run(
+        tmp_path,
+        phase="finished",
+        run_result={"cleanup_success": True},
+        provider_profile="minimax-responses",
+        mcp_port=19888,
+    )
 
     request = append_next_goal_request(tmp_path, "run-a", "Run the next sweep")
 
@@ -187,6 +200,11 @@ def test_terminal_simulator_next_goal_is_ready_with_public_packet(tmp_path: Path
     assert request["queue_reason"] == "parent_terminal_and_result_available"
     assert request["operator_session_id"].startswith("session-")
     assert request["selection_id"] == MUJOCO_OPENAI_AGENTS_OPEN_TASK
+    assert request["launch_overrides"] == {
+        "host": "127.0.0.1",
+        "port": "19888",
+        "provider_profile": "minimax-responses",
+    }
     assert request["next_goal_packet"]["instruction"].startswith(
         "This is a linked follow-up Robot Run"
     )
