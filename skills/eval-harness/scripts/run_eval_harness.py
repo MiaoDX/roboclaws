@@ -27,6 +27,8 @@ SELECTOR_PATH = SCRIPT_DIR / "select_eval_harness.py"
 DEFAULT_VISUAL_GROUNDING_BASE_URL = "http://127.0.0.1:18880"
 PROVIDER_TIMING_PROXY_ENV = "ROBOCLAWS_PROVIDER_TIMING_PROXY"
 DINO_SIDECAR_AUTOSTART_ENV = "ROBOCLAWS_EVAL_HARNESS_AUTOSTART_DINO_SIDECAR"
+EVAL_HARNESS_MCP_PORT_ENV = "ROBOCLAWS_EVAL_HARNESS_MCP_PORT"
+SESSION_LIVE_MCP_PORT_ENV = "ROBOCLAWS_SESSION_LIVE_MCP_PORT"
 DINO_SIDECAR_STARTUP_TIMEOUT_S = 15.0
 ROW_BLOCKER_REQUIREMENT_PRIORITY = {
     "codex_provider": 0,
@@ -198,6 +200,12 @@ def _row_environment(row: dict[str, Any]) -> dict[str, str]:
     if _should_default_provider_timing_proxy(row) and PROVIDER_TIMING_PROXY_ENV not in env:
         env[PROVIDER_TIMING_PROXY_ENV] = "1"
         row["defaulted_provider_timing_proxy"] = True
+    port = _live_row_mcp_port(row)
+    if port:
+        env[EVAL_HARNESS_MCP_PORT_ENV] = port
+        if _command_uses_session_live(row):
+            env[SESSION_LIVE_MCP_PORT_ENV] = port
+        row["mcp_port"] = port
     return env
 
 
@@ -205,11 +213,37 @@ def _should_default_provider_timing_proxy(row: dict[str, Any]) -> bool:
     return False
 
 
+def _live_row_mcp_port(row: dict[str, Any]) -> str:
+    if str(row.get("row_kind") or "") != "live_agent_eval":
+        return ""
+    row_id = str(row.get("row_id") or "")
+    if not row_id:
+        return ""
+    return str(19000 + (_stable_row_port_offset(row_id) % 1000))
+
+
+def _stable_row_port_offset(row_id: str) -> int:
+    total = 0
+    for index, char in enumerate(row_id):
+        total += (index + 1) * ord(char)
+    return total
+
+
+def _command_uses_session_live(row: dict[str, Any]) -> bool:
+    return any(str(item) == "session-live" for item in row.get("command") or [])
+
+
 def _resolve_row_command(row: dict[str, Any], manifest: dict[str, Any]) -> list[str]:
     command = [_resolve_row_argument(str(item), manifest) for item in row["command"]]
+    if _command_uses_surface_run(row, command):
+        command.append(f"port={_live_row_mcp_port(row)}")
     row["resolved_command"] = command
     row["resolved_command_display"] = " ".join(command)
     return command
+
+
+def _command_uses_surface_run(row: dict[str, Any], command: list[str]) -> bool:
+    return bool(_live_row_mcp_port(row)) and any(str(item) == "run::surface" for item in command)
 
 
 def _resolve_row_argument(argument: str, manifest: dict[str, Any]) -> str:

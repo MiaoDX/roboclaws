@@ -346,7 +346,7 @@ run dispatch_target agent_engine mode="" *overrides:
         fi
         generated_mess_count="$(get generated_mess_count 10)"
         host="$(get host 127.0.0.1)"
-        port="$(get port 18788)"
+        port="$(get port "${ROBOCLAWS_EVAL_HARNESS_MCP_PORT:-18788}")"
         map_bundle="$(get map_bundle auto)"
         b1_alignment_artifact="$(get b1_alignment_artifact "")"
         b1_navigation_artifact="$(get b1_navigation_artifact "")"
