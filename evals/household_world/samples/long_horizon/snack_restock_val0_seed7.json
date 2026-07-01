@@ -83,10 +83,7 @@
     "agent_engine": "direct-runner",
     "evidence_lane": "world-public-labels",
     "seed": 7,
-    "scenario_setup": "long-horizon-snack-restock",
     "scene_source": "procthor-10k-val",
-    "scene_index": 0,
-    "generated_mess_count": 2,
-    "generated_mess_object_ids": "bread_5f50f53c9dcfbae4352335033a8b2bb4_1_0_2,bread_dcb25a3fdc38be63308c7171e734e8a3_1_0_2"
+    "scene_index": 0
   }
 }

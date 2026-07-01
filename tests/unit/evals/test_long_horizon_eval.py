@@ -4,8 +4,10 @@ import json
 from pathlib import Path
 from typing import Any
 
-from roboclaws.evals.models import load_eval_suite
+from roboclaws.evals.live_runtime import live_product_run_kwargs, live_surface_command
+from roboclaws.evals.models import load_eval_sample, load_eval_suite
 from roboclaws.evals.runner import run_eval_suite
+from roboclaws.launch.catalog import resolve_surface_launch
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 LONG_HORIZON_SUITE = REPO_ROOT / "evals" / "household_world" / "suites" / "long_horizon_tasks.json"
@@ -49,6 +51,33 @@ def test_long_horizon_suite_records_manipulation_tool_surface_and_passes(
     assert captured_kwargs["generated_mess_object_ids"] == (TARGET_A, TARGET_B)
     assert result["grader_outputs"]["long_horizon"]["subgoals"]["placed"] is True
     assert result["metrics"]["long_horizon_subgoals"]["hands_empty"] is True
+
+
+def test_long_horizon_live_command_uses_private_task_targets(tmp_path: Path) -> None:
+    sample = load_eval_sample(
+        REPO_ROOT / "evals/household_world/samples/long_horizon/snack_restock_val0_seed7.json"
+    )
+    target_ids = (TARGET_A, TARGET_B)
+    kwargs = live_product_run_kwargs(
+        sample,
+        run_dir=tmp_path / "trial-0000",
+        budget="smoke",
+        dependency_artifacts=None,
+        agent_engine="openai-agents-sdk",
+        provider_profile="codex-router-responses",
+        model=None,
+        live_timeout_s=None,
+        live_stall_timeout_s=None,
+    )
+
+    command = live_surface_command(kwargs, output_dir=tmp_path / "surface-run")
+
+    pinned_targets_arg = f"generated_mess_object_ids={','.join(target_ids)}"
+    assert f"relocation_count={len(target_ids)}" in command
+    assert pinned_targets_arg in command
+    plan = resolve_surface_launch(command[5:])
+    assert f"generated_mess_count={len(target_ids)}" in plan.argv
+    assert pinned_targets_arg in plan.argv
 
 
 def test_long_horizon_grader_rejects_incomplete_final_state(tmp_path: Path) -> None:

@@ -550,8 +550,12 @@ def live_surface_command(kwargs: dict[str, Any], *, output_dir: Path) -> list[st
     else:
         relocation_count = _generated_mess_count(kwargs)
         if relocation_count:
-            command.append("scenario_setup=relocate-cleanup-related-objects")
-            command.append(f"relocation_count={relocation_count}")
+            command += [
+                "scenario_setup=relocate-cleanup-related-objects",
+                f"relocation_count={relocation_count}",
+            ]
+            if generated_object_ids := kwargs.get("generated_mess_object_ids"):
+                command.append(f"generated_mess_object_ids={','.join(generated_object_ids)}")
     runtime_map_prior = str(kwargs.get("runtime_map_prior_path") or "")
     if runtime_map_prior:
         command.append(f"runtime_map_prior={runtime_map_prior}")
@@ -819,6 +823,8 @@ def generated_mess_count(sample: EvalSample) -> int:
             reference.get("generated_mess_count"),
             "private_goal_reference.generated_mess_count",
         )
+    if object_ids := lh.generated_mess_object_ids(sample):
+        return len(object_ids)
     launch_overrides = sample.launch_overrides or {}
     for key in ("generated_mess_count", "relocation_count"):
         value = launch_overrides.get(key)
