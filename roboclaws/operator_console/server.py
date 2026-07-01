@@ -161,18 +161,23 @@ def _try_autostart_follow_up(root: Path, parent_run_id: str, follow_up: dict[str
             follow_up["start_error"] = str(exc)
             follow_up["autostart_attempts"] = attempt
             if attempt >= FOLLOW_UP_AUTOSTART_ATTEMPTS or not _retryable_follow_up_start_error(
-                str(exc)
+                str(exc),
+                parent_run_id=parent_run_id,
             ):
                 return
             time.sleep(FOLLOW_UP_AUTOSTART_RETRY_DELAY_S)
 
 
-def _retryable_follow_up_start_error(error: str) -> bool:
+def _retryable_follow_up_start_error(error: str, *, parent_run_id: str = "") -> bool:
     normalized = error.lower()
     return (
         "background task visual-slot:" in normalized
         or "molmo visual slot" in normalized
         or "visual backend slot" in normalized
+        or (
+            bool(parent_run_id)
+            and f"background task operator-run:{parent_run_id.lower()}" in normalized
+        )
     )
 
 
