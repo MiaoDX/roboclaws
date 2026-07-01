@@ -130,6 +130,15 @@ and MCP/tool request counts. It uses only eval artifacts and grader outputs;
 private fixture/scorer truth remains grader-only and is not converted into
 runtime or agent-facing map input.
 
+Recommended Runtime Map Prior selection is a follow-on EvalHarness use case:
+run or regrade comparable MapBuild candidates for the same scene/backend,
+apply hard gates before ranking, and emit a catalog entry only for an accepted
+Runtime Map Prior Snapshot. SimOracle or grader-only truth may choose and
+explain the winner in maintainer reports, but selected prior artifacts and
+operator-console payloads must remain public/private safe. Catalog entries
+should be pinned with provenance while using compatibility classes so minor
+report, doc, or non-contract metadata changes do not force live reruns.
+
 `scene_sampler_stress` is the static eval projection for source-aware
 MolmoSpaces scene sampling. It currently admits six prepared
 `procthor-10k-val` map-build samples and ten prepared `procthor-objaverse-val`
