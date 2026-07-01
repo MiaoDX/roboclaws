@@ -1002,6 +1002,12 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
         trap - EXIT INT TERM
 
         if [[ -f "${run_dir}/run_result.json" ]]; then
+          if [[ "$open_ended_intent" == "true" ]]; then
+            .venv/bin/python -m roboclaws.launch.open_ended_artifacts \
+              "${run_dir}/run_result.json"
+            echo "==> report: ${run_dir}/report.html"
+            exit 0
+          fi
           checker_args=(
             --expect-task "$task"
             --expect-backend "$backend"
@@ -1018,9 +1024,6 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
           fi
           if [[ "$profile_requires_clean_success" == "true" && "$driver" != "openclaw-live" && "$open_ended_intent" != "true" ]]; then
             checker_args+=(--require-clean-agent-run)
-          fi
-          if [[ "$open_ended_intent" == "true" ]]; then
-            checker_args+=(--allow-partial-cleanup)
           fi
           .venv/bin/python scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py \
             "${checker_args[@]}" \
@@ -1086,6 +1089,13 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
       esac
     done
 
+    if [[ "$open_ended_intent" == "true" ]]; then
+      .venv/bin/python -m roboclaws.launch.open_ended_artifacts "$run_root"
+      echo "==> reports:"
+      find "$run_root" -maxdepth 2 -name report.html -print
+      exit 0
+    fi
+
     seed_csv="$(printf '%s' "$seeds" | tr ' ' ',')"
     checker_args=(
       --expect-task "$task"
@@ -1107,9 +1117,6 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
         if [[ "$profile_requires_clean_success" == "true" && "$open_ended_intent" != "true" ]]; then
           checker_args+=(--require-clean-agent-run)
         fi
-        if [[ "$open_ended_intent" == "true" ]]; then
-          checker_args+=(--allow-partial-cleanup)
-        fi
         ;;
       openclaw-smoke)
         checker_args+=(
@@ -1120,9 +1127,6 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
         )
         if [[ "$profile_requires_clean_success" == "true" && "$open_ended_intent" != "true" ]]; then
           checker_args+=(--require-clean-agent-run)
-        fi
-        if [[ "$open_ended_intent" == "true" ]]; then
-          checker_args+=(--allow-partial-cleanup)
         fi
         ;;
     esac

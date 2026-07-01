@@ -1084,7 +1084,7 @@ def test_live_surface_product_rejects_failed_live_status(
         )
 
 
-def test_live_open_ended_eval_grades_artifacts_after_checker_nonzero_exit(
+def test_live_open_ended_eval_does_not_recover_cleanup_checker_nonzero_exit(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -1132,15 +1132,14 @@ def test_live_open_ended_eval_grades_artifacts_after_checker_nonzero_exit(
     )
 
     payload = json.loads(run.results_path.read_text())
-    assert payload["aggregate"]["passed"] == 3
-    assert payload["aggregate"]["failed"] == 0
+    assert payload["aggregate"]["passed"] == 0
+    assert payload["aggregate"]["failed"] == 3
     result = payload["results"][0]
-    assert result["status"] == "passed"
+    assert result["status"] == "failed"
+    assert result["failure_class"] == "harness_bug_unclassified"
     assert result["identity"]["agent_engine"] == "openai-agents-sdk"
-    assert result["grader_outputs"]["open_ended"]["completion_claim_present"] is True
-    assert result["artifacts"]["run_result"].endswith(
-        "runs/open_ended_drink_seed7/trial-0000/surface-run/seed-7/run_result.json"
-    )
+    assert result["limitations"] == ["product_run_failed_before_grading"]
+    assert "cleanup checker exited with status 1" in result["grader_outputs"]["runner"]["message"]
     command_record = json.loads(
         (
             tmp_path
@@ -1155,23 +1154,17 @@ def test_live_open_ended_eval_grades_artifacts_after_checker_nonzero_exit(
     assert command_record["returncode"] == 1
 
 
-def test_live_open_ended_eval_recovers_checker_nonzero_foreground_artifact(
+def test_live_open_ended_eval_rejects_failed_foreground_status_even_with_artifacts(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     from roboclaws.evals import live_runtime
     from roboclaws.evals.models import load_eval_sample
 
-    sleeps: list[float] = []
-    current_run_dir: Path | None = None
-    clock = {"now": 0.0}
-
     def fake_run(command: list[str], **_kwargs: Any) -> Any:
         output_arg = next(item for item in command if item.startswith("output_dir="))
         output_dir = Path(output_arg.removeprefix("output_dir="))
         run_dir = output_dir / "0616_1405" / "seed-7"
-        nonlocal current_run_dir
-        current_run_dir = run_dir
         _write_product_artifacts(
             run_dir,
             completion_status="failed",
@@ -1194,15 +1187,7 @@ def test_live_open_ended_eval_recovers_checker_nonzero_foreground_artifact(
         )
         return _completed_process(returncode=1, stderr="cleanup checker exited with status 1")
 
-    def fake_sleep(seconds: float) -> None:
-        sleeps.append(seconds)
-
-    def fake_monotonic() -> float:
-        return clock["now"]
-
     _patch_live_surface_popen(monkeypatch, live_runtime, fake_run)
-    monkeypatch.setattr(live_runtime.time, "sleep", fake_sleep)
-    monkeypatch.setattr(live_runtime.time, "monotonic", fake_monotonic)
     sample = load_eval_sample(
         Path(__file__).resolve().parents[3]
         / "evals"
@@ -1214,11 +1199,9 @@ def test_live_open_ended_eval_recovers_checker_nonzero_foreground_artifact(
     kwargs = _live_surface_kwargs(tmp_path / "trial-0000", live_timeout_s=12.5)
     kwargs["eval_sample"] = sample
 
-    result = live_runtime.run_live_surface_product(**kwargs)
+    with pytest.raises(RuntimeError, match="live surface run failed with exit 1"):
+        live_runtime.run_live_surface_product(**kwargs)
 
-    assert current_run_dir is not None
-    assert sleeps == []
-    assert result["eval_effective_run_dir"].endswith("surface-run/0616_1405/seed-7")
     command_record = json.loads((tmp_path / "trial-0000" / "live_eval_command.json").read_text())
     assert command_record["returncode"] == 1
 

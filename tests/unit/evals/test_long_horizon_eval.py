@@ -120,16 +120,13 @@ def test_long_horizon_generated_mess_manifest_comes_from_private_task_spec() -> 
     }
 
 
-def test_long_horizon_live_aggregate_uses_private_grader_over_cleanup_checker_sidecar(
+def test_long_horizon_live_aggregate_records_finished_open_task_status(
     tmp_path: Path,
 ) -> None:
     def live_product_runner(**kwargs: Any) -> dict[str, Any]:
         run_dir = Path(kwargs["output_dir"])
         _write_long_horizon_artifacts(run_dir)
-        (run_dir / "live_status.json").write_text(
-            '{"phase": "failed", "exit_status": 1, '
-            '"reason": "cleanup checker exited with status 1"}\n'
-        )
+        (run_dir / "live_status.json").write_text('{"phase": "finished", "exit_status": 0}\n')
         result = _long_horizon_run_result(run_dir)
         result["eval_effective_run_dir"] = str(run_dir)
         return result
@@ -148,9 +145,7 @@ def test_long_horizon_live_aggregate_uses_private_grader_over_cleanup_checker_si
 
     assert aggregate["passed"] == 1
     assert aggregate["failed"] == 0
-    assert aggregate["open_ended"]["live_statuses"] == {
-        "checker_sidecar_failed_but_long_horizon_passed": 1
-    }
+    assert aggregate["open_ended"]["live_statuses"] == {"finished": 1}
 
 
 def test_long_horizon_grader_rejects_incomplete_final_state(tmp_path: Path) -> None:

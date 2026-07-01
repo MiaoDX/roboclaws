@@ -191,7 +191,6 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
             output_dir=sample_run_root,
             effective_run_dir=sample_run_dir,
             started_wall_time_s=started_wall_time_s,
-            allow_open_ended_checker_failure=_is_open_ended_eval_sample(kwargs),
         )
         record.update(
             {
@@ -221,7 +220,6 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
         run_result = _load_json(run_result_path)
         if run_result and _live_surface_already_complete(
             sample_run_dir,
-            allow_open_ended_checker_failure=_is_open_ended_eval_sample(kwargs),
             require_terminal_status=False,
         ):
             record["returncode"] = "timeout_after_completion"
@@ -275,7 +273,7 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
                 output_dir=sample_run_root,
                 effective_run_dir=sample_run_dir,
                 elapsed_s=time.monotonic() - started,
-                allow_open_ended_checker_failure=True,
+                allow_cleanup_checker_failure=True,
                 started_wall_time_s=started_wall_time_s,
             )
             run_result["eval_effective_run_dir"] = str(sample_run_dir)
@@ -287,7 +285,6 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
         output_dir=sample_run_root,
         effective_run_dir=sample_run_dir,
         elapsed_s=time.monotonic() - started,
-        allow_open_ended_checker_failure=_is_open_ended_eval_sample(kwargs),
         started_wall_time_s=started_wall_time_s,
     )
     record["effective_run_dir"] = str(sample_run_dir)
@@ -578,14 +575,14 @@ def wait_for_live_surface_completion(
     effective_run_dir: Path,
     elapsed_s: float = 0.0,
     poll_s: float = 1.0,
-    allow_open_ended_checker_failure: bool = False,
+    allow_cleanup_checker_failure: bool = False,
     started_wall_time_s: float | None = None,
 ) -> Path:
     """Validate foreground live-product artifacts after the public route exits."""
 
     if _live_surface_already_complete(
         effective_run_dir,
-        allow_open_ended_checker_failure=allow_open_ended_checker_failure,
+        allow_cleanup_checker_failure=allow_cleanup_checker_failure,
         require_terminal_status=False,
     ):
         return effective_run_dir
@@ -595,7 +592,7 @@ def wait_for_live_surface_completion(
 def _live_surface_already_complete(
     effective_run_dir: Path,
     *,
-    allow_open_ended_checker_failure: bool,
+    allow_cleanup_checker_failure: bool = False,
     require_terminal_status: bool,
 ) -> bool:
     if (effective_run_dir / "run_result.json").is_file() and not require_terminal_status:
@@ -603,14 +600,11 @@ def _live_surface_already_complete(
         if status:
             exit_status = status.get("exit_status")
             if exit_status not in {None, 0}:
-                if allow_open_ended_checker_failure and _is_checker_failure(status):
+                if allow_cleanup_checker_failure and _is_cleanup_checker_failure(status):
                     return True
                 _raise_for_terminal_live_status(effective_run_dir, status)
         return True
-    return _live_surface_run_is_terminal(
-        effective_run_dir,
-        allow_open_ended_checker_failure=allow_open_ended_checker_failure,
-    )
+    return _live_surface_run_is_terminal(effective_run_dir)
 
 
 def live_surface_timeout_s(kwargs: dict[str, Any]) -> float:
@@ -646,7 +640,6 @@ def wait_for_timed_out_live_surface_artifact(
     output_dir: Path,
     effective_run_dir: Path,
     poll_s: float = 1.0,
-    allow_open_ended_checker_failure: bool = False,
     started_wall_time_s: float | None = None,
 ) -> Path:
     """Return the last discovered run dir after a foreground subprocess timeout."""
@@ -1002,21 +995,12 @@ def _recover_eval_run_result_after_nonzero_checker_exit(
     return _load_json(sample_run_dir / "run_result.json")
 
 
-def _is_open_ended_eval_sample(kwargs: dict[str, Any]) -> bool:
-    sample: EvalSample | None = kwargs.get("eval_sample")
-    return sample is not None and sample.intent == "open-ended"
-
-
 def _is_recoverable_checker_eval_sample(kwargs: dict[str, Any]) -> bool:
     sample: EvalSample | None = kwargs.get("eval_sample")
-    return sample is not None and sample.intent in {"open-ended", "cleanup"}
+    return sample is not None and sample.intent == "cleanup"
 
 
-def _live_surface_run_is_terminal(
-    run_dir: Path,
-    *,
-    allow_open_ended_checker_failure: bool = False,
-) -> bool:
+def _live_surface_run_is_terminal(run_dir: Path) -> bool:
     status = _load_json(run_dir / "live_status.json")
     if not status:
         return False
@@ -1024,13 +1008,11 @@ def _live_surface_run_is_terminal(
     if exit_status == 0:
         return True
     if exit_status not in {None, 0}:
-        if allow_open_ended_checker_failure and _is_checker_failure(status):
-            return True
         _raise_for_terminal_live_status(run_dir, status)
     return False
 
 
-def _is_checker_failure(status: dict[str, Any]) -> bool:
+def _is_cleanup_checker_failure(status: dict[str, Any]) -> bool:
     reason = str(status.get("reason") or "").lower()
     return "cleanup checker exited with status" in reason
 

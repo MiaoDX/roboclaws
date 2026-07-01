@@ -70,7 +70,6 @@ def checker_flags_for_household_intent(
         "--require-goal-contract",
     ]
     if intent_id == "open-ended":
-        flags.append("--allow-partial-cleanup")
         return tuple(flags)
     if intent_id == "map-build":
         flags.append("--require-runtime-metric-map")
