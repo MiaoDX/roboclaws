@@ -1245,13 +1245,12 @@ def _kickoff_prompt_source(args: argparse.Namespace, profile: dict[str, Any]) ->
 
 
 def _prompt_already_matches_profile(
-    prompt: str,
-    *,
-    camera_grounded_composite_tools: bool = False,
+    prompt: str, *, camera_grounded_composite_tools: bool = False
 ) -> bool:
+    marker = "observe_camera_grounded_candidates instead of a"
     if camera_grounded_composite_tools:
-        return "observe_camera_grounded_candidates" in prompt
-    return (
+        return marker in prompt
+    return marker not in prompt and (
         "Compact action cadence for world-public-labels" in prompt
         or "Compact action cadence for camera-grounded-labels" in prompt
         or "Compact action cadence for camera-raw-fpv" in prompt

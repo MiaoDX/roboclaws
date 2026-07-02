@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -325,8 +326,25 @@ def test_current_and_manual_debug_just_recipes_use_network_guard() -> None:
 
     assert not (JUST_DIR / "code.just").exists()
 
-    agent_text = (JUST_DIR / "agent.just").read_text(encoding="utf-8")
-    assert "unsupported agent_engine 'codex-cli'" in agent_text
-    assert "unsupported agent_engine 'claude-code'" in agent_text
+    env = os.environ.copy()
+    env["ROBOCLAWS_JUST_TRACE"] = "1"
+    just_binary = shutil.which("just") or str(Path.home() / ".local/bin" / "just")
+    for engine in ("codex-cli", "claude-code"):
+        result = subprocess.run(
+            [
+                just_binary,
+                "agent::run",
+                "household-world.cleanup",
+                engine,
+                "world-public-labels",
+            ],
+            cwd=REPO_ROOT,
+            env=env,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode != 0
+        assert f"unsupported agent_engine '{engine}'" in result.stderr
 
     assert "network-status:" in (JUST_DIR / "dev.just").read_text(encoding="utf-8")

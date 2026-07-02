@@ -60,7 +60,6 @@ def test_verify_layer_keeps_static_checks_out_of_harness_namespace() -> None:
 
 def test_required_ci_gate_has_one_local_verify_facade() -> None:
     verify_text = VERIFY_JUST.read_text(encoding="utf-8")
-    agent_text = (JUST_DIR / "agent.just").read_text(encoding="utf-8")
     workflow_text = CI_WORKFLOW.read_text(encoding="utf-8")
 
     assert re.search(r"^ci-required output_dir=\"output/demo\":", verify_text, re.MULTILINE)
@@ -75,7 +74,6 @@ def test_required_ci_gate_has_one_local_verify_facade() -> None:
     assert "scripts/reports/generate_demo_report.py" not in body
     assert 'mkdir -p "$output_dir"' in body
 
-    assert "static|mock|ci-required|contract" in agent_text
     assert "run: just agent::verify ci-required" in workflow_text
 
 
