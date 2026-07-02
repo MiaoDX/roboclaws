@@ -80,11 +80,13 @@ MolmoSpaces implementation backend for `molmospaces/val_0` so it can prove
 multi-room navigation, visual confirmation, pick/place, and private final-state
 grading in the target sim scene.
 
-`long_horizon_tasks` currently contains the first snack-restock pilot. It uses
-the public household-world open-task route plus a private `long_horizon` grader
-that checks target final placement, empty hands at `done`, required public tool
+`long_horizon_tasks` contains Chinese household open-task samples that exercise
+longer multi-room manipulation while remaining a focused subset of
+open-ended goals, not a separate public task axis. It uses the public
+household-world open-task route plus a private `long_horizon` grader that
+checks target final placement, empty hands at `done`, required public tool
 sequence, source/destination progress, artifact readiness, and private-truth
-leakage. The v1 task deliberately stays within existing sim primitives:
+leakage. The v1 samples deliberately stay within existing sim primitives:
 navigation, observation, camera adjustment, pick, place/place_inside, optional
 open/close receptacle, and done. Stairs, elevators, parcel unpacking, and
 drawer-specific interaction remain future scene/runtime capabilities.

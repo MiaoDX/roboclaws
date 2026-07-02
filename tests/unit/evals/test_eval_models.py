@@ -328,6 +328,7 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
         "open_ended.stable_anchor_fixture_focused_prior_seed7",
         "open_ended.stable_anchor_no_prior_seed7",
         "long_horizon.snack_restock_val0_seed7",
+        "long_horizon.food_restock_chinese_val0_seed7",
         "scene_sampler.procthor-10k-val.0.map_build",
         "scene_sampler.procthor-10k-val.10.map_build",
         "scene_sampler.procthor-10k-val.11.map_build",
