@@ -17,6 +17,7 @@ contract have since superseded.
 | 06 | Current background | [visual-grounding-perception-producer](06-visual-grounding-perception-producer.md) | Edge visual-grounding perception producer | Separate producer service; fast proposer first, optional verifier only when measured quality requires it. |
 | 07 | Current background | [agent-sdk-vs-frameworks-for-coding-loop](07-agent-sdk-vs-frameworks-for-coding-loop.md) | OpenAI Agents SDK vs. Claude Agent SDK vs. other frameworks, for the code-holds-the-loop MCP robot agent | Decisive axis is loop ownership, not provider compat; thin DIY loop on the MCP Python SDK (or PydanticAI) beats both vendor SDKs for this use case; OpenAI Agents SDK preferred of the two; resilience must be engineered regardless. |
 | 08 | Current decision context | [agent-evaluation-harness-research](08-agent-evaluation-harness-research.md) | OpenAI, Anthropic, Cursor, eval frameworks, and agent benchmark patterns | Use public benchmarks for calibration, but build a repo-native versioned eval suite with samples, trials, trace/state graders, identity packets, `pass^k`, and failure replay. |
+| 09 | Current decision context | [agent-context-management-research](09-agent-context-management-research.md) | Agent context management, tool-output reduction, provider compaction, and Roboclaws profile compatibility | Use layered context management: source-level tool output shaping, deterministic model-input compaction, explicit budgets/hard limits, optional provider-native compaction only as an additive compatibility layer, and complete trace/artifact state outside model context. |
 
 ## See Also
 
@@ -30,3 +31,4 @@ contract have since superseded.
 - **2026-05-25**: Added report 06 on the visual-grounding perception producer reference design
 - **2026-06-09**: Added report 07 comparing the OpenAI Agents SDK, Claude Agent SDK, and other frameworks for the code-holds-the-loop MCP robot agent (decision context for replacing the Codex-CLI subprocess driver)
 - **2026-06-14**: Added report 08 on agent evaluation harness best practices and Roboclaws eval-suite implications
+- **2026-07-02**: Added report 09 on agent context management best practices and the `baseline` / `context_managed_v1` compatibility policy

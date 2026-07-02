@@ -987,11 +987,11 @@ Required persisted shape:
 ```text
 agent_sdk_perf_profile:
   schema: agent_sdk_perf_profile_v1
-  profile_id: baseline | gpt_compact_v1 | mimo_compact_v1 | raw_fpv_budgeted_v1 | custom
+  profile_id: baseline | context_managed_v1
   source: default | cli | environment | metadata
   provider_profile: codex-env | mify
   model_family: gpt | mimo
-  prompt_mode: full | compact | raw_fpv_compact
+  prompt_mode: full | context_managed
   continuation_mode: repeat_full_prompt | state_summary_only
   max_turns
   max_continuations
@@ -1004,21 +1004,24 @@ agent_sdk_perf_profile:
   context_hard_limit_tokens
 ```
 
-Expected model-specific defaults:
+Expected defaults:
 
-- GPT/codex-env: prefer explicit action cadence, aggressive context monitoring,
-  and state-summary continuation because the full-lane GPT runs showed large
-  cached and uncached context growth.
-- MiMo/mify: keep the shorter successful smoke behavior as a baseline, then
-  compare compact prompts and state-summary continuation against full-lane
-  mify runs before promoting defaults.
+- Product and operator-console launches default to `context_managed_v1`.
+  `baseline` is preserved only for explicit A/B comparison and failure
+  reproduction.
+- `context_managed_v1` is a single lane-neutral profile id with
+  provider-aware default ceilings. GPT/codex-env can use a larger context
+  ceiling than smaller effective-window routes, but that difference must stay
+  inside the profile payload rather than becoming separate public profile ids.
+- Direct field overrides remain available for experiments through existing CLI
+  flags and environment variables, but there is no `custom` profile id.
 
 Profile resolution precedence:
 
 1. Explicit CLI flag.
 2. `LiveAgentRequest.metadata`.
 3. Environment variable.
-4. Provider/model default.
+4. Product default: `context_managed_v1`.
 
 CLI flag contract:
 
@@ -1039,27 +1042,45 @@ Known profile ids:
 
 | Profile id | Provider/model family | Prompt mode | Continuation mode | Max turns | Max continuations | Cache tools | MCP timeout | Context soft/hard limit | Lane budgets |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `context_managed_v1` | provider-aware | `context_managed` | `state_summary_only` | 128, or lower for lane/provider guardrails | 1 | true | 30s | provider-aware soft/hard ceiling, capped at the known effective window | lane-neutral observe/context guards plus lane-specific raw-FPV candidate budget |
 | `baseline` | inferred from provider/model | `full` | `repeat_full_prompt` | 128 | 2 | true | 30s | unset / unset | unset |
-| `gpt_compact_v1` | GPT/codex-env | `compact` | `state_summary_only` | 128 | 1 | true | 30s | 96k / 128k | done retry 2, max observe per waypoint 1 |
-| `mimo_compact_v1` | MiMo/mify | `compact` | `state_summary_only` | 128 | 1 | true | 30s | 64k / 96k | done retry 2, max observe per waypoint 1 |
-| `raw_fpv_budgeted_v1` | GPT/codex-env or MiMo/mify | `raw_fpv_compact` | `state_summary_only` | 40 | 1 | true | 30s | 64k / 96k | raw-FPV candidates 24, max observe per waypoint 1, done retry 1 |
-| `custom` | explicit | explicit | explicit | explicit | explicit | explicit | explicit | explicit | explicit |
 
 Budget notes:
 
-- `baseline` preserves current behavior and exists for apples-to-apples
+- `baseline` preserves unmanaged behavior and exists only for apples-to-apples
   telemetry comparison.
-- `gpt_compact_v1` can use a higher context budget than `mimo_compact_v1`
-  because the GPT Observability V1 runs showed larger windows but still hit
-  raw-FPV context risk.
-- Hard-limit checks fail before starting another continuation or broad raw-FPV
+- Context-management research source:
+  `docs/research/09-agent-context-management-research.md`. The profile design
+  follows a layered policy: source-level tool output reduction first,
+  deterministic model-input compaction and hard limits second, and
+  provider-native compaction only as an optional provider-specific additive
+  layer after proof.
+- `context_managed_v1` owns soft/hard context limits, compact continuation,
+  model-input compaction, max-observe guardrails, and lane-specific raw-FPV
+  candidate budgets.
+- In `camera-grounded-labels`, `context_managed_v1` enables the SDK-private
+  camera-grounded composite tool path so the managed default uses
+  `observe_camera_grounded_candidates` instead of growing a repeated
+  `observe` plus `declare_visual_candidates` history. This is runtime strategy,
+  not a new public launch axis.
+- Hard-limit checks fail before starting another continuation or broad
   observation loop.
-- Raw-FPV uses a lower SDK per-attempt turn cap so the runner regains control
-  and can classify budget exhaustion before a single attempt grows into a
-  provider context-window failure.
+- Raw-FPV can use a lower SDK per-attempt turn cap so the runner regains
+  control and can classify budget exhaustion before a single attempt grows into
+  a provider context-window failure. The raw-FPV candidate budget is a lane
+  policy inside `context_managed_v1`, not a separate profile.
 - If a provider exposes a smaller effective context window than the configured
   profile, the run records `provider_context_budget_exceeded` and the profile
   limitation instead of retrying with an implicit larger budget.
+- Old profile ids (`gpt_compact_v1`, `mimo_compact_v1`,
+  `raw_fpv_budgeted_v1`, and `custom`) are removed rather than kept as
+  compatibility aliases. In-repo callers, docs, tests, and artifacts that need
+  a managed run must migrate to `context_managed_v1`; comparison runs must pass
+  `baseline` explicitly.
+- Product UI and default operator-console routes do not surface `baseline` as
+  the normal path. `baseline` remains available only through explicit CLI,
+  environment, or metadata selection for A/B comparison and failure
+  reproduction.
 
 #### Context Budget And Compaction
 
@@ -1205,10 +1226,10 @@ Phase 2: private performance profile plumbing, still no strategy change
   `ROBOCLAWS_OPENAI_AGENTS_MCP_CLIENT_SESSION_TIMEOUT_S`,
   `ROBOCLAWS_OPENAI_AGENTS_PROVIDER`, `ROBOCLAWS_CODEX_PROVIDER`,
   `ROBOCLAWS_OPENAI_AGENTS_MODEL`, and `ROBOCLAWS_CODEX_MODEL`.
-- Required proof: a unit test resolves `baseline`, `gpt_compact_v1`,
-  `mimo_compact_v1`, `raw_fpv_budgeted_v1`, and `custom` without changing the
-  public `just run::surface` route or accepting `openai-agents-live` through
-  public task-driver routing.
+- Required proof: unit tests resolve default `context_managed_v1` and explicit
+  `baseline`, reject removed profile ids without compatibility aliases, and
+  preserve the public `just run::surface` route without accepting
+  `openai-agents-live` through public task-driver routing.
 
 Phase 3: continuation compaction
 
@@ -1519,8 +1540,9 @@ SUCCESS only if:
   context/cache/context-growth metrics, profile data, and model/SDK residual
   attribution with `available/source/limitations`.
 - Missing span usage is represented as unavailable, not zero.
-- `agent_sdk_perf_profile` resolves and persists `baseline`, `gpt_compact_v1`,
-  `mimo_compact_v1`, `raw_fpv_budgeted_v1`, and `custom`.
+- `agent_sdk_perf_profile` resolves and persists default
+  `context_managed_v1` and explicit `baseline`; removed profile ids fail loudly
+  rather than silently aliasing.
 - Continuation compaction does not replay the full kickoff prompt and still
   refuses success without `done`/`run_result.json`.
 - Label-lane optimized profiles preserve checker success and meet or explain

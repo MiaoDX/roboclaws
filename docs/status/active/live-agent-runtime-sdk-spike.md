@@ -214,18 +214,19 @@ Result:
   `live_timing.json`, and forwards `--robot-view-capture-policy` to the private
   cleanup server only when requested. This is deterministic prep only, not a
   live speed claim.
-- Candidate P deterministic prep now adds a raw-FPV repeated visual-candidate
-  failure rail to `raw_fpv_budgeted_v1`. Repeated compact
+- Candidate P deterministic prep added a raw-FPV repeated visual-candidate
+  failure rail that should be folded into the unified `context_managed_v1`
+  profile. Repeated compact
   `navigate_to_visual_candidate` failure fingerprints terminate as
   `raw_fpv_repeated_candidate_failure`, with aggregate terminal counts exposed
   in `agent_sdk_budget_terminal` and timeline latency attribution. The terminal
   detail stays compact and does not persist raw prompts, model text, image
   region payloads, full tool payload bodies, credentials, or private truth.
   This is raw-FPV stabilization prep, not a cleanup-pass or speed claim.
-- Candidate AA deterministic prep now adds raw-FPV image memory inside the
-  private SDK model-input filter. `raw_fpv_budgeted_v1` keeps the latest full
-  raw-FPV frame model-visible and summarizes older image blocks only when the
-  summary is smaller. Events and timing persist aggregate retained/evicted
+- Candidate AA deterministic prep added raw-FPV image memory inside the
+  private SDK model-input filter. The unified `context_managed_v1` profile
+  keeps the latest full raw-FPV frame model-visible and summarizes older image
+  blocks only when the summary is smaller. Events and timing persist aggregate retained/evicted
   counts, byte deltas, hashes, and policy metadata only. MCP traces, report
   artifacts, and robot-view images remain complete; the raw-FPV MCP observe
   boundary still returns compact state plus a full PNG image block. This is
