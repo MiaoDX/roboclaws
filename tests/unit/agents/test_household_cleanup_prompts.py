@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import json
 
-from roboclaws.agents.prompts.household_cleanup import render_kickoff_prompt
+from roboclaws.agents.prompts.household_cleanup import (
+    render_kickoff_prompt,
+    render_map_build_prompt,
+)
 
 
 def test_kickoff_prompt_requires_operator_message_checkpoints() -> None:
@@ -46,3 +49,37 @@ def test_kickoff_prompt_appends_sanitized_operator_session_context() -> None:
     assert "private_manifest" not in prompt
     assert "private_target_truth" not in prompt
     assert "global_movable_object_inventory" not in prompt
+
+
+def test_map_build_camera_grounded_prompt_uses_composite_cadence_when_enabled() -> None:
+    prompt = render_map_build_prompt(
+        "camera-grounded-labels",
+        "build a Runtime Metric Map",
+        camera_grounded_composite_tools=True,
+        max_observe_per_waypoint=1,
+    )
+
+    assert "observe_camera_grounded_candidates" in prompt
+    assert "after navigating to each public inspection waypoint" in prompt
+    assert "Use at most one observe_camera_grounded_candidates response per waypoint_id" in prompt
+    assert "move to the next public waypoint instead of adjusting pose" in prompt
+    assert "do not use navigate_to_relative_pose or camera-adjustment scanning" in prompt
+    assert "then observe again" not in prompt
+    assert "Do not resume the older observe plus declare_visual_candidates cadence" in prompt
+    assert "declare_visual_candidates for each raw FPV observation" not in prompt
+    assert "Do not pick, place, place_inside" in prompt
+
+
+def test_map_build_camera_grounded_baseline_prompt_keeps_two_step_cadence() -> None:
+    prompt = render_map_build_prompt(
+        "camera-grounded-labels",
+        "build a Runtime Metric Map",
+        camera_grounded_composite_tools=False,
+    )
+
+    assert "navigate_to_waypoint then observe" in prompt
+    assert "declare_visual_candidates for each raw FPV observation" in prompt
+    assert (
+        "after navigating to each public inspection waypoint call "
+        "observe_camera_grounded_candidates" not in prompt
+    )

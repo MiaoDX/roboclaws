@@ -11,6 +11,10 @@ import time
 from pathlib import Path
 from typing import Any
 
+from roboclaws.agents.drivers.openai_agents_budget import (
+    OpenAIAgentsBudgetExceededError,
+    openai_agents_budget_failure,
+)
 from roboclaws.agents.live_runtime import LiveAgentRequest
 from roboclaws.core.json_sources import parse_json_object_text
 
@@ -95,14 +99,26 @@ def _positive_int(
 def _model_input_compaction_filter(
     events_path: Path,
     *,
+    run_dir: Path,
     runtime_config: dict[str, Any],
     config: dict[str, Any],
+    budget_profile: dict[str, Any] | None = None,
+    budget_timing: dict[str, Any] | None = None,
 ) -> Any:
     async def _filter(data: Any) -> Any:
         model_data = getattr(data, "model_data", None)
         original_items = getattr(model_data, "input", None)
         instructions = getattr(model_data, "instructions", None)
         if not isinstance(original_items, list):
+            return model_data
+        _raise_budget_failure_before_model_call(
+            run_dir,
+            events_path=events_path,
+            runtime_config=runtime_config,
+            profile=budget_profile or {},
+            timing=budget_timing or {},
+        )
+        if not _model_input_compaction_enabled(config):
             return model_data
         filtered_items, metrics = _compact_model_input_items(
             original_items,
@@ -132,6 +148,37 @@ def _model_input_compaction_filter(
         )
 
     return _filter
+
+
+def _model_input_compaction_enabled(config: dict[str, Any]) -> bool:
+    if config.get("enabled"):
+        return True
+    for key in ("raw_fpv_image_memory", "camera_grounded_history"):
+        nested = config.get(key)
+        if isinstance(nested, dict) and nested.get("enabled"):
+            return True
+    return False
+
+
+def _raise_budget_failure_before_model_call(
+    run_dir: Path,
+    *,
+    events_path: Path,
+    runtime_config: dict[str, Any],
+    profile: dict[str, Any],
+    timing: dict[str, Any],
+) -> None:
+    failure = openai_agents_budget_failure(run_dir, timing, profile)
+    if failure is None:
+        return
+    _append_model_input_budget_event(
+        events_path,
+        runtime_config=runtime_config,
+        profile=profile,
+        timing=timing,
+        failure=failure,
+    )
+    raise OpenAIAgentsBudgetExceededError(failure)
 
 
 def _model_input_data_like(model_data: Any, *, input_items: list[Any], instructions: Any) -> Any:
@@ -207,8 +254,9 @@ def _compact_model_input_items(
                 metric_map_seen=metric_map_seen,
                 public_tool_output_summary=public_tool_output_summary,
                 repeated_metric_map_delta=repeated_metric_map_delta,
+                tool_names_by_call_id=tool_names_by_call_id,
             )
-        if _is_metric_map_tool_output(item):
+        if _is_metric_map_tool_output(item, tool_names_by_call_id=tool_names_by_call_id):
             metric_map_output_count += 1
             metric_map_bytes_before += item_bytes
             if metric_map_seen:
@@ -226,7 +274,7 @@ def _compact_model_input_items(
         filtered.append(filtered_item)
         filtered_item_bytes = _json_size_bytes(filtered_item)
         input_bytes_after += filtered_item_bytes
-        if _is_metric_map_tool_output(item):
+        if _is_metric_map_tool_output(item, tool_names_by_call_id=tool_names_by_call_id):
             metric_map_bytes_after += filtered_item_bytes
     return filtered, {
         "schema": "agent_sdk_model_input_compaction_metrics_v1",
@@ -255,6 +303,7 @@ def _compaction_candidate(
     metric_map_seen: bool,
     public_tool_output_summary: bool,
     repeated_metric_map_delta: bool,
+    tool_names_by_call_id: dict[str, str] | None = None,
 ) -> tuple[Any | None, str]:
     payload = _to_jsonable(item)
     if not isinstance(payload, dict):
@@ -272,7 +321,13 @@ def _compaction_candidate(
         return None, ""
     output = payload.get(output_key)
     output_text = output if isinstance(output, str) else json.dumps(output, sort_keys=True)
-    if repeated_metric_map_delta and metric_map_seen and _is_metric_map_tool_output(payload):
+    is_metric_map_output = _is_metric_map_tool_output(
+        payload,
+        tool_names_by_call_id=tool_names_by_call_id,
+    )
+    if repeated_metric_map_delta and is_metric_map_output and not metric_map_seen:
+        return None, ""
+    if repeated_metric_map_delta and metric_map_seen and is_metric_map_output:
         compacted = copy.deepcopy(payload)
         summary = json.dumps(
             _repeated_metric_map_delta_summary(output_text, item_type=item_type),
@@ -753,14 +808,27 @@ def _camera_grounded_history_candidate(
     return compacted, "camera_grounded_history"
 
 
-def _is_metric_map_tool_output(item: Any) -> bool:
+def _is_metric_map_tool_output(
+    item: Any,
+    *,
+    tool_names_by_call_id: dict[str, str] | None = None,
+) -> bool:
     payload = _to_jsonable(item)
     if not isinstance(payload, dict):
+        return False
+    if str(payload.get("type") or "") not in {
+        "function_call_output",
+        "computer_call_output",
+        "mcp_call",
+        "mcp_approval_response",
+    }:
         return False
     for key in ("name", "tool", "tool_name"):
         if str(payload.get(key) or "") == "metric_map":
             return True
     call_id = str(payload.get("call_id") or "")
+    if _normalize_mcp_tool_name((tool_names_by_call_id or {}).get(call_id) or "") == "metric_map":
+        return True
     if "metric_map" in call_id:
         return True
     output = payload.get("output") if "output" in payload else payload.get("content")
@@ -938,6 +1006,68 @@ def _append_model_input_filter_event(
             }
         ),
     )
+
+
+def _append_model_input_budget_event(
+    events_path: Path,
+    *,
+    runtime_config: dict[str, Any],
+    profile: dict[str, Any],
+    timing: dict[str, Any],
+    failure: Any,
+) -> None:
+    detail: dict[str, Any] = {}
+    if getattr(failure, "detail", ""):
+        try:
+            parsed = json.loads(failure.detail)
+        except json.JSONDecodeError:
+            detail = {"detail_text_sha256": hashlib.sha256(failure.detail.encode()).hexdigest()}
+        else:
+            detail = parsed if isinstance(parsed, dict) else {}
+    _append_event(
+        events_path,
+        _drop_empty(
+            {
+                "schema": "openai_agents_model_input_budget_guard_v1",
+                "event": "model_input_budget_guard",
+                "ts_epoch": time.time(),
+                "runtime": runtime_config.get("runtime"),
+                "provider_profile": runtime_config.get("provider_profile"),
+                "wire_api": runtime_config.get("wire_api"),
+                "model": runtime_config.get("model"),
+                "profile_id": profile.get("profile_id") or "baseline",
+                "evidence_lane": timing.get("evidence_lane") or timing.get("profile") or "",
+                "reason": getattr(failure, "reason", ""),
+                "retryable": getattr(failure, "retryable", False),
+                "resume_available": getattr(failure, "resume_available", False),
+                "detail_schema": detail.get("schema"),
+                "detail_summary": _budget_detail_summary(detail),
+                "privacy_note": (
+                    "Aggregate budget guard metadata only. Raw prompts, model text, tool "
+                    "payload bodies, image payloads, credentials, and private truth are "
+                    "not stored by this event."
+                ),
+            }
+        ),
+    )
+
+
+def _budget_detail_summary(detail: dict[str, Any]) -> dict[str, Any]:
+    keys = (
+        "context_hard_limit_tokens",
+        "current_input_tokens",
+        "max_input_tokens",
+        "total_input_tokens",
+        "total_uncached_input_tokens",
+        "response_span_count",
+        "raw_fpv_candidate_budget",
+        "raw_fpv_repeated_failure_limit",
+        "max_observe_per_waypoint",
+        "candidate_attempt_count",
+        "observe_over_budget_by_waypoint",
+        "reasons",
+    )
+    return {key: detail[key] for key in keys if key in detail}
 
 
 def _model_input_shape_summary(items: list[Any]) -> dict[str, Any]:

@@ -153,6 +153,27 @@ def test_cleanup_workflow_launch_argv_uses_camera_grounded_and_standard_mess_def
     assert "scenario_setup=relocate-cleanup-related-objects" in argv
     assert "relocation_count=5" in argv
     assert "provider_profile=codex-router-responses" in argv
+    assert not any(item.startswith("agent_sdk_perf_profile=") for item in argv)
+    assert "--agent-sdk-perf-profile" not in argv
+    assert "ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE=baseline" not in argv
+
+
+def test_operator_console_sdk_map_build_does_not_select_baseline_profile(
+    tmp_path: Path,
+) -> None:
+    route = get_selection(AGIBOT_SDK_MAP_BUILD)
+
+    argv = build_launch_argv(
+        route,
+        root=tmp_path,
+        run_id="run-1",
+        overrides={"context_json": str(tmp_path / "context.json")},
+    )
+
+    assert "agent_engine=openai-agents-sdk" in argv
+    assert "preset=map-build" in argv
+    assert not any(item.startswith("agent_sdk_perf_profile=") for item in argv)
+    assert "--agent-sdk-perf-profile" not in argv
 
 
 def test_workflow_launch_allows_empty_catalog_and_accepts_explicit_runtime_prior(

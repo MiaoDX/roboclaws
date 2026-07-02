@@ -1,10 +1,15 @@
-**Status:** Proposed
+**Status:** Implemented
 **Created:** 2026-07-02
 **Last reviewed:** 2026-07-02
-**Current implementation contract:** Plan only. Research inputs and implementation choices are intentionally separated.
+**Current implementation contract:** Implemented and verified. Research inputs and implementation choices are intentionally separated.
 **Research source:** `docs/research/09-agent-context-management-research.md`
 **Related plans:** `docs/plans/live-agent-runtime-sdk-spike.md`, `docs/plans/live-agent-runtime-sdk-perf-followups.md`
 **Related ADRs:** `docs/adr/0126-bridge-camera-evidence-to-cleanup-handles-with-model-declared-observations.md`, `docs/adr/0132-keep-cleanup-memory-skill-first-and-remove-promoted-composite.md`, `docs/adr/0139-use-household-open-task-surface-with-presets.md`, `docs/adr/0145-scope-eval-harness-profiles-to-purposeful-baselines.md`
+
+Final active state: `docs/status/active/openai-agents-context-management-optimization.md`
+
+Final product proof:
+`output/household/household-world/map-build/openai-agents-live-camera-grounded-labels/0702_2014/seed-7`
 
 # OpenAI Agents Context Management Optimization
 
