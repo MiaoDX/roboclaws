@@ -132,7 +132,7 @@ def test_b1_camera_grounded_launch_includes_default_camera_labeler(tmp_path: Pat
     assert not any(item.startswith("b1_navigation_artifact=") for item in argv)
 
 
-def test_workflow_launch_argv_uses_camera_grounded_and_standard_mess_defaults(
+def test_cleanup_workflow_launch_argv_uses_camera_grounded_and_standard_mess_defaults(
     tmp_path: Path,
 ) -> None:
     route = get_selection(
@@ -142,7 +142,7 @@ def test_workflow_launch_argv_uses_camera_grounded_and_standard_mess_defaults(
 
     argv = build_workflow_launch_argv(
         route,
-        workflow_id="prepare-standard-mess",
+        workflow_id="cleanup",
         root=tmp_path,
         run_id="run-1",
     )
@@ -155,7 +155,7 @@ def test_workflow_launch_argv_uses_camera_grounded_and_standard_mess_defaults(
     assert "provider_profile=codex-router-responses" in argv
 
 
-def test_workflow_launch_requires_explicit_runtime_prior_when_catalog_is_empty(
+def test_workflow_launch_allows_empty_catalog_and_accepts_explicit_runtime_prior(
     tmp_path: Path,
 ) -> None:
     route = get_selection(
@@ -163,19 +163,20 @@ def test_workflow_launch_requires_explicit_runtime_prior_when_catalog_is_empty(
         "camera-grounded-labels"
     )
 
-    with pytest.raises(ConsoleLaunchError, match="no recommended prior is cataloged"):
-        build_workflow_launch_argv(
-            route,
-            workflow_id="cleanup-with-map",
-            root=tmp_path,
-            run_id="run-1",
-        )
+    argv_without_prior = build_workflow_launch_argv(
+        route,
+        workflow_id="cleanup",
+        root=tmp_path,
+        run_id="run-1",
+    )
+
+    assert not any(item.startswith("runtime_map_prior=") for item in argv_without_prior)
 
     prior = tmp_path / "runtime_map_prior_snapshot.json"
     prior.write_text('{"schema":"runtime_map_prior_snapshot_v1"}\n', encoding="utf-8")
     argv = build_workflow_launch_argv(
         route,
-        workflow_id="cleanup-with-map",
+        workflow_id="cleanup",
         root=tmp_path,
         run_id="run-2",
         overrides={"runtime_map_prior": str(prior)},
@@ -201,7 +202,7 @@ def test_workflow_launch_uses_accepted_catalog_prior_by_default(
 
     argv = build_workflow_launch_argv(
         route,
-        workflow_id="cleanup-with-map",
+        workflow_id="cleanup",
         root=tmp_path,
         run_id="run-1",
     )
@@ -228,7 +229,7 @@ def test_workflow_launch_explicit_prior_override_wins_over_catalog(
 
     argv = build_workflow_launch_argv(
         route,
-        workflow_id="cleanup-with-map",
+        workflow_id="cleanup",
         root=tmp_path,
         run_id="run-1",
         overrides={"runtime_map_prior": str(override_prior)},
@@ -247,7 +248,7 @@ def test_workflow_launch_rejects_nonexistent_runtime_prior_override(tmp_path: Pa
     with pytest.raises(ConsoleLaunchError, match="runtime_map_prior path does not exist"):
         build_workflow_launch_argv(
             route,
-            workflow_id="cleanup-with-map",
+            workflow_id="cleanup",
             root=tmp_path,
             run_id="run-1",
             overrides={"runtime_map_prior": str(tmp_path / "missing.json")},

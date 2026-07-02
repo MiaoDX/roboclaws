@@ -11,6 +11,8 @@ from roboclaws.agents.provider_registry import (
 )
 from roboclaws.household.profiles import (
     CAMERA_GROUNDED_LABELS_LANE,
+    CAMERA_RAW_FPV_LANE,
+    WORLD_PUBLIC_LABELS_LANE,
     cleanup_evidence_lane_names,
 )
 from roboclaws.launch.agent_engines import AGENT_ENGINE_SPECS
@@ -36,6 +38,13 @@ DEFAULT_PROMPTS = {
     "cleanup": "帮我收拾这个房间",
     "map-build": "帮我建立这个房间的 Runtime Metric Map",
     "open-ended": "在这个场景中完成开放性导航任务，并报告你看到的证据。",
+}
+
+STABLE_WORKSPACE_VIEW_MODES = ("overview", "fpv", "map", "grounding", "chase", "outputs")
+EVIDENCE_LANE_LABELS = {
+    WORLD_PUBLIC_LABELS_LANE: "Structured public state",
+    CAMERA_GROUNDED_LABELS_LANE: "Camera-grounded candidates",
+    CAMERA_RAW_FPV_LANE: "Raw camera FPV",
 }
 
 AGIBOT_CAMERA_LABELER = "grounding-dino"
@@ -181,6 +190,7 @@ class ConsoleLaunchSelection:
             ],
             "default_provider_profile": engine.default_provider_profile or "",
             "evidence_lane": self.evidence_lane,
+            "evidence_lane_label": EVIDENCE_LANE_LABELS.get(self.evidence_lane, self.evidence_lane),
             "scenario_setup": self.scenario_setup,
             "surface": self.surface,
             "enabled": self.enabled,
@@ -209,7 +219,8 @@ class ConsoleLaunchSelection:
                 )
             ),
             "field_groups": list(backend.field_groups),
-            "view_modes": list(backend.view_modes),
+            "view_modes": list(STABLE_WORKSPACE_VIEW_MODES),
+            "backend_view_modes": list(backend.view_modes),
             "argv_preview": ["just", "run::surface", *self.base_args()],
             "intent_options": [_intent_option(self.intent_id)],
         }
@@ -311,7 +322,8 @@ def list_evidence_lanes() -> tuple[dict[str, str], ...]:
     return tuple(
         {
             "id": lane,
-            "label": lane,
+            "label": EVIDENCE_LANE_LABELS.get(lane, lane),
+            "raw_id": lane,
         }
         for lane in cleanup_evidence_lane_names()
     )
@@ -371,12 +383,23 @@ def _workflow_payloads_for_world(world_id: str, backend_id: str) -> tuple[dict[s
     for workflow in list_operator_workflows():
         payload = workflow_payload_for_world(workflow, world_id=world_id, backend_id=backend_id)
         selection = _default_workflow_selection(world_id, workflow)
-        payload["default_route_id"] = selection.id if selection else ""
-        payload["default_route_label"] = selection.label if selection else ""
+        disabled_selection = (
+            None
+            if selection
+            else _default_workflow_selection(
+                world_id,
+                workflow,
+                include_disabled=True,
+            )
+        )
+        displayed_selection = selection or disabled_selection
+        payload["default_route_id"] = displayed_selection.id if displayed_selection else ""
+        payload["default_route_label"] = displayed_selection.label if displayed_selection else ""
         if selection is None:
             payload["enabled"] = False
             payload["disabled_reason"] = (
-                payload.get("disabled_reason")
+                (disabled_selection.disabled_reason if disabled_selection else "")
+                or payload.get("disabled_reason")
                 or "No catalog-backed route supports this workflow for the selected scene."
             )
         rows.append(payload)
@@ -386,26 +409,31 @@ def _workflow_payloads_for_world(world_id: str, backend_id: str) -> tuple[dict[s
 def _default_workflow_selection(
     world_id: str,
     workflow: OperatorWorkflow,
+    *,
+    include_disabled: bool = False,
 ) -> ConsoleLaunchSelection | None:
     world = WORLD_SPECS.get(world_id)
     backend_id = world.default_backend if world else ""
     candidates = [
         selection
-        for selection in list_console_combinations(include_disabled=False)
+        for selection in list_console_combinations(include_disabled=include_disabled)
         if selection.world_id == world_id
         and selection.backend_id == backend_id
         and selection.intent_id == workflow.intent_id
+        and (include_disabled or selection.enabled)
         and selection.evidence_lane == CAMERA_GROUNDED_LABELS_LANE
     ]
     if not candidates:
         return None
+    enabled_candidates = [selection for selection in candidates if selection.enabled]
+    scoped_candidates = enabled_candidates or candidates
     preferred = [
         selection
-        for selection in candidates
+        for selection in scoped_candidates
         if selection.agent_engine_id == "openai-agents-sdk"
         and selection.provider_profile == DEFAULT_PROVIDER_PROFILE
     ]
-    return (preferred or candidates)[0]
+    return (preferred or scoped_candidates)[0]
 
 
 def _common_gates() -> tuple[RouteGate, ...]:
@@ -438,6 +466,19 @@ def _enabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
                 "visual_grounding_timeout_s=20",
             ),
             emergency_stop_required=True,
+        ),
+        *_lane_selections(
+            "b1-map12",
+            "isaaclab",
+            "map-build",
+            "openai-agents-sdk",
+            "codex-router-responses",
+            evidence_lanes=ISAAC_SUPPORTED_EVIDENCE_LANES,
+            camera_labeler=SIMULATION_CAMERA_LABELER,
+            scenario_setup=ENVIRONMENT_SETUP_BASELINE,
+            gates=common_gates,
+            required_overrides=B1_ROBOT_PROOF_REQUIRED_OVERRIDES,
+            default_overrides=("seed=7",),
         ),
         *_lane_selections(
             "b1-map12",
@@ -520,6 +561,35 @@ def _molmospaces_enabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
 
 def _disabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
     return (
+        _selection(
+            "b1-map12",
+            "isaaclab",
+            "cleanup",
+            "openai-agents-sdk",
+            "codex-router-responses",
+            evidence_lane=CAMERA_GROUNDED_LABELS_LANE,
+            enabled=False,
+            unsupported_reason=(
+                "Digital-twin cleanup is not product-proven yet. Use B1 / Map 12 Build Map "
+                "or Open Task until cleanup execution proof is available."
+            ),
+            supports_prompt=False,
+        ),
+        _selection(
+            "agibot-g2/map-12",
+            "agibot-gdk",
+            "open-ended",
+            "openai-agents-sdk",
+            "codex-router-responses",
+            evidence_lane=CAMERA_GROUNDED_LABELS_LANE,
+            enabled=False,
+            unsupported_reason=(
+                "Physical open task is not product-proven yet. Use Agibot G2 Map Build for "
+                "map evidence until live task execution proof is available."
+            ),
+            supports_prompt=False,
+            emergency_stop_required=True,
+        ),
         _selection(
             "agibot-g2/map-12",
             "agibot-gdk",

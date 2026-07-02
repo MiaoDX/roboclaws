@@ -112,7 +112,7 @@ def test_static_app_keeps_deleted_operator_console_widgets_deleted() -> None:
         "taskActionsHtml",
         "copy_command",
         'setImageSlot(\n    "runtime_map"',
-        'runtime_map: "Metric Map"',
+        'runtime_map: "Map"',
     ):
         assert snippet not in app
 
@@ -165,12 +165,12 @@ def _assert_scene_preview_app_wiring(app: str) -> None:
     assert "renderSelectedScenePreview" in app
     assert "renderSelectedScenePreview(route);" in app
     assert "route.preview_assets" in app
-    assert 'setImageSlot("topdown", previews.topdown' in app
+    assert 'setImageSlot(\n    "topdown",\n    previews.topdown' in app
     assert 'data-view-role="${escapeHtml(visualRole)}"' in app
     assert 'data-artifact-source-family="${escapeHtml(sourceFamily)}"' in app
-    assert "No Top2Down scene preview is available." in app
+    assert "No top-down scene preview is available." in app
     assert "state.activeRunId" in app
-    assert "Grounding will appear after a camera-grounded run starts." in app
+    assert "Perception output will appear after a camera-grounded run starts." in app
 
 
 def _assert_molmospaces_preview_files(preview_dir: Path) -> list[str]:
@@ -356,12 +356,11 @@ def _assert_overview_outputs_html(html: str) -> None:
     assert 'data-panel="blank-chase"' not in html
     assert ">Outputs<" in html
     assert "Artifacts" not in html
-    assert ">Metric Map<" in html
+    assert ">Map<" in html
     assert ">Base Map<" not in html
     assert ">Runtime Map<" not in html
     assert ">Semantic Map<" not in html
-    assert ">Top2Down<" in html
-    assert ">Top-down<" not in html
+    assert ">Top-down Scene<" in html
     assert 'data-panel-title="fpv"' in html
     assert 'data-panel-title="chase"' in html
     assert 'data-panel="grounding"' in html
@@ -372,11 +371,13 @@ def _assert_overview_outputs_html(html: str) -> None:
 
 def _assert_overview_outputs_app(app: str) -> None:
     assert "Top-down Scene View" not in app
-    assert "FPV(+Grounding)" in app
+    assert "Camera(+Perception)" in app
     assert 'display_source === "visual_grounding_overlay"' in app
     assert 'activeView: "overview"' in app
     assert "visiblePanelsForView" in app
     assert "routeViewModes" in app
+    assert "STABLE_VIEW_MODES" in app
+    assert "backend_view_modes" in app
     assert "routeHasOverviewChase" not in app
     assert 'resource_kind !== "physical_robot"' not in app
     overview_body = app.split('if (view === "overview") {', 1)[1].split("\n  }", 1)[0]
@@ -385,10 +386,10 @@ def _assert_overview_outputs_app(app: str) -> None:
     assert '"tasks"' not in overview_body
     assert '"grounding"' not in overview_body
     assert '"runtime_map"' not in overview_body
-    assert "Missing run chase artifact" in app
-    assert "Missing Metric Map artifact" in app
+    assert "Missing run third-person artifact" in app
+    assert "Missing Map artifact" in app
     assert "sourceAssets.runtime_map || sourceAssets.map" in app
-    assert 'routeHasView(route, "chase") ? previews.chase : null' in app
+    assert "Third-person view unavailable for this backend." in app
 
 
 def _assert_overview_outputs_css(css: str) -> None:

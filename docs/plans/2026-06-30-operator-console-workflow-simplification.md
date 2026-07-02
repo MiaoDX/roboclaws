@@ -2,7 +2,7 @@
 plan_scope: operator-console-workflow-simplification
 status: DONE
 created: 2026-06-30
-last_reviewed: 2026-07-01
+last_reviewed: 2026-07-02
 implementation_allowed: true
 source:
   - user direction to make operator-console UI expose fewer, clearer workflows
@@ -38,13 +38,18 @@ Verification:
 
 Notes:
 
-- The recommended-prior catalog is intentionally empty until an accepted,
-  tracked Runtime Map Prior Snapshot exists. With-map workflows therefore show
-  a visible empty state; the rendered with-map workflow buttons are disabled
-  until a recommended prior or explicit operator override exists.
+- 2026-07-02 refinement: Runtime Map Prior Snapshot use is now a workflow
+  setting, not a separate top-level "with map" workflow. When no accepted prior
+  exists, the map-prior selector shows an empty state and launches proceed
+  without a prior unless the operator supplies an explicit override.
 - Follow-up prior selection is tracked in
   `docs/plans/2026-07-01-recommended-runtime-map-prior-selection.md`.
 - Raw route axes remain available in Advanced; the main UI is workflow-first.
+- Scene/backend differences should be presented as capability and readiness
+  state on a shared UI. B1 / Map 12 Build Map should be visible as an
+  experimental Isaac-runtime-gated workflow. Digital-twin cleanup remains
+  unavailable until product cleanup execution is proven. Agibot G2 cleanup
+  remains unavailable until physical manipulation proof exists.
 
 ## Goal
 
@@ -66,14 +71,15 @@ Supported main actions:
 - `Build Map`
 - `Open Task`
 - `Cleanup`
-- `Open Task With Map`
-- `Cleanup With Map`
-- `Prepare Standard Mess`
-- `Reset Scene`
 
-`Open Task With Map` and `Cleanup With Map` use a Runtime Map Prior Snapshot.
-They should be disabled when no valid recommended or operator-selected map
-prior is available for the selected scene/backend.
+Runtime Map Prior Snapshot use is an optional setting on `Open Task` and
+`Cleanup`, backed by the scene recommended-prior catalog or an explicit operator
+override. Scene preparation actions such as standard mess setup and reset are
+setup/operations controls, not robot-task workflow peers.
+
+The same workflow actions should remain visible across simulator, digital twin,
+and physical robot scenes. Unsupported capabilities are disabled with concrete
+reasons instead of being hidden behind environment-specific action lists.
 
 ## Defaults
 
@@ -81,6 +87,9 @@ prior is available for the selected scene/backend.
   labeler, because real robot routes do not have simulator public labels.
 - `world-public-labels` remains a deterministic/eval lane, not the primary
   operator-console default.
+- Evidence-lane labels in the UI should describe the user-facing input contract:
+  `Structured public state`, `Camera-grounded candidates`, and `Raw camera FPV`.
+  The raw ids remain visible in Advanced/tooltips and in command previews.
 - If the camera-grounded labeler or provider route is not ready, the UI reports
   a visible readiness blocker. It must not silently fall back to
   `world-public-labels`; simulator-only users may pick that lane from Advanced.
@@ -115,6 +124,10 @@ Rules:
 - If no recommended prior exists, the UI should say that clearly and offer
   `Build Map` or an explicit map override instead of silently falling back.
 
+The selector must not treat ad hoc latest Build Map output as the default prior.
+Without a recommended prior or explicit override, normal `Open Task` and
+`Cleanup` launch without `runtime_map_prior`.
+
 ## Coverage Owners
 
 Every enabled UI workflow action must declare one of:
@@ -137,19 +150,26 @@ No workflow action may exist only as an unowned UI path.
   identities, acceptable destinations, or hidden target counts to the agent.
 - Do not treat manual UI clicking as baseline evidence unless the result is
   promoted into an automated eval, contract, or regression artifact.
+- Do not split the primary UI into simulator, digital-twin, and physical-robot
+  variants. Backend-specific controls belong in shared capability/readiness
+  panels.
 
 ## Acceptance Gates
 
 - Main UI exposes workflow actions, not raw route matrix selection.
 - The default generated command for operator workflows uses
   `evidence_lane=camera-grounded-labels`.
-- With-map workflows require an explicit Runtime Map Prior Snapshot from the
-  scene recommended-prior catalog or a user override.
+- Runtime-map-prior use is represented as an optional workflow setting. The UI
+  shows catalog provenance, staleness, and override status, and only emits
+  `runtime_map_prior=...` when a catalog prior or explicit override is selected.
 - Route construction still resolves through `resolve_surface_launch` and
   `just run::surface`.
 - Operator-console unit/contract coverage proves workflow ownership metadata,
   default evidence-lane selection, standard mess preparation, prior override
   validation, and no silent fallback to arbitrary latest map artifacts.
+- Visual workspace tabs are stable across environments: Camera, Map,
+  Perception, Third-person, and Outputs. Missing backend artifacts render a
+  clear unavailable state instead of changing the product shape.
 - Eval coverage remains headless through eval harness and suites; UI workflows
   only reference that coverage.
 

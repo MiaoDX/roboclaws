@@ -23,7 +23,10 @@ from roboclaws.operator_console.routes import (
 from tests.unit.operator_console.conftest import (  # noqa: F401  re-exported for tests
     AGIBOT_SDK_CLEANUP,
     AGIBOT_SDK_MAP_BUILD,
+    AGIBOT_SDK_OPEN_TASK,
     B1_OPENAI_AGENTS_CAMERA_GROUNDED,
+    B1_OPENAI_AGENTS_CLEANUP,
+    B1_OPENAI_AGENTS_MAP_BUILD,
     B1_OPENAI_AGENTS_OPEN_TASK,
     MUJOCO_DIRECT_MAP_BUILD,
     MUJOCO_OPENAI_AGENTS_OPEN_TASK,
@@ -305,12 +308,19 @@ def test_openclaw_agent_engine_marks_validation_required() -> None:
 
 
 def test_console_exposes_all_supported_household_evidence_lanes() -> None:
-    lanes = tuple(lane["id"] for lane in list_evidence_lanes())
+    lane_rows = list_evidence_lanes()
+    lanes = tuple(lane["id"] for lane in lane_rows)
     assert lanes == (
         "world-public-labels",
         "camera-grounded-labels",
         "camera-raw-fpv",
     )
+    assert {lane["id"]: lane["label"] for lane in lane_rows} == {
+        "world-public-labels": "Structured public state",
+        "camera-grounded-labels": "Camera-grounded candidates",
+        "camera-raw-fpv": "Raw camera FPV",
+    }
+    assert {lane["id"]: lane["raw_id"] for lane in lane_rows} == {lane: lane for lane in lanes}
 
     enabled_ids = {route.id for route in list_console_combinations(include_disabled=False)}
     for lane in lanes:
@@ -339,24 +349,18 @@ def test_operator_console_exposes_product_workflow_metadata() -> None:
         "build-map",
         "open-task",
         "cleanup",
-        "open-task-with-map",
-        "cleanup-with-map",
-        "prepare-standard-mess",
-        "reset-scene",
     )
     assert {workflow["coverage"]["owner_type"] for workflow in workflows.values()} == {
         "eval_suite",
-        "unit_contract",
-        "manual_operational_control",
     }
     assert workflows["build-map"]["coverage"]["owner_id"] == "map_build_consumer"
     assert workflows["open-task"]["coverage"]["owner_id"] == "open_ended_goals"
     assert workflows["cleanup"]["coverage"]["owner_id"] == "cleanup_capability"
-    assert workflows["cleanup-with-map"]["requires_runtime_map_prior"] is True
-    assert workflows["prepare-standard-mess"]["scenario_setup"] == (
-        "relocate-cleanup-related-objects"
-    )
-    assert workflows["reset-scene"]["coverage"]["owner_type"] == "manual_operational_control"
+    assert workflows["build-map"]["allows_prior_override"] is False
+    assert workflows["open-task"]["allows_prior_override"] is True
+    assert workflows["cleanup"]["allows_prior_override"] is True
+    assert workflows["cleanup"]["requires_runtime_map_prior"] is False
+    assert workflows["cleanup"]["scenario_setup"] == "relocate-cleanup-related-objects"
 
 
 def test_scene_workflow_payload_defaults_to_camera_grounded_and_empty_prior_catalog() -> None:
@@ -373,16 +377,12 @@ def test_scene_workflow_payload_defaults_to_camera_grounded_and_empty_prior_cata
     assert workflows["open-task"]["default_route_id"].endswith("::camera-grounded-labels")
     assert workflows["cleanup"]["default_route_id"].endswith("::camera-grounded-labels")
     assert workflows["cleanup"]["enabled"] is True
-    assert workflows["cleanup-with-map"]["enabled"] is False
-    assert workflows["cleanup-with-map"]["allows_prior_override"] is True
-    assert workflows["cleanup-with-map"]["recommended_prior"] is None
-    assert (
-        "No accepted Runtime Map Prior Snapshot"
-        in (workflows["cleanup-with-map"]["disabled_reason"])
-    )
+    assert workflows["cleanup"]["allows_prior_override"] is True
+    assert workflows["cleanup"]["recommended_prior"] is None
+    assert workflows["cleanup"]["disabled_reason"] == ""
 
 
-def test_scene_workflow_payload_enables_with_map_from_accepted_catalog(
+def test_scene_workflow_payload_selects_accepted_catalog_prior(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -399,13 +399,14 @@ def test_scene_workflow_payload_enables_with_map_from_accepted_catalog(
 
     assert catalog_rows[0]["path"] == str(prior)
     assert catalog_rows[0]["staleness"] == "compatible"
-    assert workflows["open-task-with-map"]["enabled"] is True
-    assert workflows["cleanup-with-map"]["enabled"] is True
-    assert workflows["cleanup-with-map"]["disabled_reason"] == ""
-    assert workflows["cleanup-with-map"]["recommended_prior"]["path"] == str(prior)
+    assert workflows["open-task"]["enabled"] is True
+    assert workflows["cleanup"]["enabled"] is True
+    assert workflows["cleanup"]["disabled_reason"] == ""
+    assert workflows["open-task"]["recommended_prior"]["path"] == str(prior)
+    assert workflows["cleanup"]["recommended_prior"]["path"] == str(prior)
 
 
-def test_scene_workflow_payload_keeps_blocking_stale_catalog_disabled(
+def test_scene_workflow_payload_keeps_blocking_stale_catalog_unselected(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -420,8 +421,8 @@ def test_scene_workflow_payload_keeps_blocking_stale_catalog_disabled(
     workflows = {workflow["id"]: workflow for workflow in world["workflow_actions"]}
 
     assert list_prior_catalog()[0]["staleness"] == "blocking_stale"
-    assert workflows["cleanup-with-map"]["enabled"] is False
-    assert workflows["cleanup-with-map"]["recommended_prior"] is None
+    assert workflows["cleanup"]["enabled"] is True
+    assert workflows["cleanup"]["recommended_prior"] is None
 
 
 def test_scene_workflow_payload_marks_missing_catalog_prior_blocking_stale(
@@ -438,8 +439,8 @@ def test_scene_workflow_payload_marks_missing_catalog_prior_blocking_stale(
     workflows = {workflow["id"]: workflow for workflow in world["workflow_actions"]}
 
     assert list_prior_catalog()[0]["staleness"] == "blocking_stale"
-    assert workflows["cleanup-with-map"]["enabled"] is False
-    assert workflows["cleanup-with-map"]["recommended_prior"] is None
+    assert workflows["cleanup"]["enabled"] is True
+    assert workflows["cleanup"]["recommended_prior"] is None
 
 
 def test_molmospaces_scene_choices_use_scene_specific_launch_defaults(tmp_path) -> None:
@@ -520,20 +521,25 @@ def test_molmospaces_cleanup_routes_are_selectable_for_ui_scenes() -> None:
         "world-public-labels" in enabled_ids
     )
     assert B1_OPENAI_AGENTS_OPEN_TASK in enabled_ids
+    assert B1_OPENAI_AGENTS_MAP_BUILD in enabled_ids
 
     for world_id in MOLMOSPACES_CONSOLE_WORLD_IDS:
         assert f"{world_id}::mujoco::cleanup::openai-agents-sdk::world-public-labels" in enabled_ids
 
 
-def test_console_enables_b1_camera_grounded_isaac_lane() -> None:
+def test_console_enables_b1_camera_grounded_isaac_workflows() -> None:
     enabled_ids = {route.id for route in list_console_combinations(include_disabled=False)}
     route = get_selection(B1_OPENAI_AGENTS_CAMERA_GROUNDED)
+    map_build = get_selection(B1_OPENAI_AGENTS_MAP_BUILD)
 
     assert route.id in enabled_ids
     assert route.enabled is True
     assert route.disabled_reason == ""
     assert "camera_labeler=grounding-dino" in route.base_args()
     assert "b1-map12::isaaclab::open-task::openai-agents-sdk::camera-raw-fpv" in enabled_ids
+    assert map_build.id in enabled_ids
+    assert "preset=map-build" in map_build.base_args()
+    assert "camera_labeler=grounding-dino" in map_build.base_args()
 
 
 def test_disabled_combinations_have_concrete_reasons() -> None:
@@ -542,6 +548,8 @@ def test_disabled_combinations_have_concrete_reasons() -> None:
     assert disabled
     reasons = {route.id: route.disabled_reason for route in disabled}
     assert "Physical manipulation is not active" in reasons[AGIBOT_SDK_CLEANUP]
+    assert "Physical open task is not product-proven yet" in reasons[AGIBOT_SDK_OPEN_TASK]
+    assert "Digital-twin cleanup is not product-proven yet" in reasons[B1_OPENAI_AGENTS_CLEANUP]
     assert B1_OPENAI_AGENTS_CAMERA_GROUNDED not in reasons
 
 
@@ -558,7 +566,8 @@ def test_payload_exposes_orthogonal_ui_metadata() -> None:
     assert "agent_engine=openai-agents-sdk" in mujoco["argv_preview"]
     assert "scenario_setup=baseline" in mujoco["argv_preview"]
     assert mujoco["field_groups"] == ["common"]
-    assert "grounding" not in mujoco["view_modes"]
+    assert set(mujoco["view_modes"]) == {"overview", "fpv", "map", "grounding", "chase", "outputs"}
+    assert "grounding" not in mujoco["backend_view_modes"]
     assert mujoco["supports_operator_steer"] is True
     assert mujoco["supports_paused_handoff_resume"] is True
     assert (
@@ -569,6 +578,7 @@ def test_payload_exposes_orthogonal_ui_metadata() -> None:
     assert agibot["field_groups"] == ["common", "agibot", "agibot_gates"]
     assert "context_json" in agibot["required_overrides"]
     assert "grounding" in agibot["view_modes"]
+    assert "chase" not in agibot["backend_view_modes"]
 
     assert b1_openai_agents["world_id"] == "b1-map12"
     assert b1_openai_agents["backend_id"] == "isaaclab"

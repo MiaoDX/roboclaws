@@ -25,10 +25,6 @@ DEFAULT_PROVIDER_PROFILE = "codex-router-responses"
 WORKFLOW_BUILD_MAP = "build-map"
 WORKFLOW_OPEN_TASK = "open-task"
 WORKFLOW_CLEANUP = "cleanup"
-WORKFLOW_OPEN_TASK_WITH_MAP = "open-task-with-map"
-WORKFLOW_CLEANUP_WITH_MAP = "cleanup-with-map"
-WORKFLOW_PREPARE_STANDARD_MESS = "prepare-standard-mess"
-WORKFLOW_RESET_SCENE = "reset-scene"
 
 
 @dataclass(frozen=True)
@@ -50,7 +46,7 @@ class OperatorWorkflow:
     label: str
     intent_id: str
     preset_id: str
-    requires_runtime_map_prior: bool
+    supports_runtime_map_prior: bool
     scenario_setup: str
     coverage: WorkflowCoverage
     prompt_required: bool = False
@@ -59,6 +55,8 @@ class OperatorWorkflow:
     def to_payload(self) -> dict[str, Any]:
         payload = asdict(self)
         payload["coverage"] = self.coverage.to_payload()
+        payload["allows_prior_override"] = self.supports_runtime_map_prior
+        payload["requires_runtime_map_prior"] = False
         return payload
 
 
@@ -111,7 +109,7 @@ WORKFLOWS: tuple[OperatorWorkflow, ...] = (
         label="Build Map",
         intent_id="map-build",
         preset_id="map-build",
-        requires_runtime_map_prior=False,
+        supports_runtime_map_prior=False,
         scenario_setup=ENVIRONMENT_SETUP_BASELINE,
         coverage=WorkflowCoverage("eval_suite", "map_build_consumer"),
     ),
@@ -120,7 +118,7 @@ WORKFLOWS: tuple[OperatorWorkflow, ...] = (
         label="Open Task",
         intent_id="open-ended",
         preset_id="",
-        requires_runtime_map_prior=False,
+        supports_runtime_map_prior=True,
         scenario_setup=ENVIRONMENT_SETUP_BASELINE,
         coverage=WorkflowCoverage("eval_suite", "open_ended_goals"),
         prompt_required=True,
@@ -130,46 +128,9 @@ WORKFLOWS: tuple[OperatorWorkflow, ...] = (
         label="Cleanup",
         intent_id="cleanup",
         preset_id="cleanup",
-        requires_runtime_map_prior=False,
+        supports_runtime_map_prior=True,
         scenario_setup=ENVIRONMENT_SETUP_RELOCATE_CLEANUP_RELATED_OBJECTS,
         coverage=WorkflowCoverage("eval_suite", "cleanup_capability"),
-    ),
-    OperatorWorkflow(
-        id=WORKFLOW_OPEN_TASK_WITH_MAP,
-        label="Open Task With Map",
-        intent_id="open-ended",
-        preset_id="",
-        requires_runtime_map_prior=True,
-        scenario_setup=ENVIRONMENT_SETUP_BASELINE,
-        coverage=WorkflowCoverage("eval_suite", "map_build_consumer"),
-        prompt_required=True,
-    ),
-    OperatorWorkflow(
-        id=WORKFLOW_CLEANUP_WITH_MAP,
-        label="Cleanup With Map",
-        intent_id="cleanup",
-        preset_id="cleanup",
-        requires_runtime_map_prior=True,
-        scenario_setup=ENVIRONMENT_SETUP_RELOCATE_CLEANUP_RELATED_OBJECTS,
-        coverage=WorkflowCoverage("eval_suite", "map_build_consumer"),
-    ),
-    OperatorWorkflow(
-        id=WORKFLOW_PREPARE_STANDARD_MESS,
-        label="Prepare Standard Mess",
-        intent_id="cleanup",
-        preset_id="cleanup",
-        requires_runtime_map_prior=False,
-        scenario_setup=ENVIRONMENT_SETUP_RELOCATE_CLEANUP_RELATED_OBJECTS,
-        coverage=WorkflowCoverage("unit_contract", "operator_console_workflows"),
-    ),
-    OperatorWorkflow(
-        id=WORKFLOW_RESET_SCENE,
-        label="Reset Scene",
-        intent_id="open-ended",
-        preset_id="",
-        requires_runtime_map_prior=False,
-        scenario_setup=ENVIRONMENT_SETUP_BASELINE,
-        coverage=WorkflowCoverage("manual_operational_control", "operator_console_reset_scene"),
     ),
 )
 
@@ -223,21 +184,15 @@ def workflow_payload_for_world(
     payload["default_camera_labeler"] = DEFAULT_CAMERA_LABELER
     payload["default_provider_profile"] = DEFAULT_PROVIDER_PROFILE
     payload["default_relocation_count"] = DEFAULT_RELOCATION_COUNT
-    payload["allows_prior_override"] = workflow.requires_runtime_map_prior
+    payload["allows_prior_override"] = workflow.supports_runtime_map_prior
+    payload["requires_runtime_map_prior"] = False
     payload["recommended_prior"] = (
         recommended_prior.to_payload()
-        if workflow.requires_runtime_map_prior and recommended_prior is not None
+        if workflow.supports_runtime_map_prior and recommended_prior is not None
         else None
     )
-    if workflow.requires_runtime_map_prior and recommended_prior is None:
-        payload["enabled"] = False
-        payload["disabled_reason"] = (
-            "No accepted Runtime Map Prior Snapshot is cataloged for this scene/backend. "
-            "Run Build Map or choose an explicit map override."
-        )
-    else:
-        payload["enabled"] = True
-        payload["disabled_reason"] = ""
+    payload["enabled"] = True
+    payload["disabled_reason"] = ""
     return payload
 
 
@@ -257,14 +212,11 @@ def runtime_map_prior_for_workflow(
     path = override_path.strip()
     if path:
         return path
-    if not workflow.requires_runtime_map_prior:
+    if not workflow.supports_runtime_map_prior:
         return ""
     recommended = recommended_prior_for(world_id, backend_id)
     if recommended is None:
-        raise ValueError(
-            "workflow requires runtime_map_prior but no recommended prior is cataloged; "
-            "choose an explicit Runtime Map Prior Snapshot override"
-        )
+        return ""
     return recommended.path
 
 
@@ -307,9 +259,7 @@ __all__ = [
     "RECOMMENDED_PRIOR_CATALOG_PATH",
     "WORKFLOW_BUILD_MAP",
     "WORKFLOW_CLEANUP",
-    "WORKFLOW_CLEANUP_WITH_MAP",
     "WORKFLOW_OPEN_TASK",
-    "WORKFLOW_OPEN_TASK_WITH_MAP",
     "RuntimeMapPriorCatalogEntry",
     "list_recommended_priors",
     "recommended_prior_for",
