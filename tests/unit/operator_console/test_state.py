@@ -11,7 +11,7 @@ from roboclaws.operator_console.state import (
     redacted_artifact_text,
     resolve_display_run_dir,
 )
-
+from tests.support.operator_console_grounding import write_grounding_gallery_agent_view
 from tests.unit.operator_console.conftest import (  # noqa: F401  re-exported for tests
     B1_OPENAI_AGENTS_OPEN_TASK,
     MUJOCO_SDK_CLEANUP,
@@ -818,7 +818,7 @@ def test_state_does_not_synthesize_topdown_from_pose_trace(
     assert "topdown" not in state["latest_view_assets"]
 
 
-def test_state_uses_latest_grounding_overlay_as_fpv_when_available(
+def test_state_groups_visual_grounding_candidates_without_replacing_fpv(
     tmp_path: Path,
 ) -> None:
     run_dir = tmp_path / "output" / "operator-console" / "runs" / "run"
@@ -838,20 +838,36 @@ def test_state_uses_latest_grounding_overlay_as_fpv_when_available(
         encoding="utf-8",
     )
     raw_fpv = robot_views / "raw_fpv_001.fpv.png"
+    second_raw_fpv = robot_views / "raw_fpv_002.fpv.png"
     first_overlay = overlays / "candidate_001.jpg"
     latest_overlay = overlays / "candidate_002.jpg"
     raw_fpv.write_bytes(b"raw fpv")
+    second_raw_fpv.write_bytes(b"second raw fpv")
     first_overlay.write_bytes(b"first dino overlay")
     latest_overlay.write_bytes(b"latest dino overlay")
     os.utime(raw_fpv, (1, 1))
+    os.utime(second_raw_fpv, (4, 4))
     os.utime(first_overlay, (2, 2))
     os.utime(latest_overlay, (3, 3))
+    write_grounding_gallery_agent_view(run_dir)
 
     state = derive_operator_state(tmp_path, run_dir, get_selection(MUJOCO_SDK_CLEANUP))
 
     assert state["latest_view_assets"]["grounding"]["path"] == str(latest_overlay.resolve())
-    assert state["latest_view_assets"]["fpv"]["path"] == str(latest_overlay.resolve())
-    assert state["latest_view_assets"]["fpv"]["display_source"] == "visual_grounding_overlay"
+    assert state["latest_view_assets"]["fpv"]["path"] == str(second_raw_fpv.resolve())
+    assert "display_source" not in state["latest_view_assets"]["fpv"]
+    grounding_frames = state["latest_view_assets"]["grounding_frames"]
+    assert grounding_frames["frame_count"] == 1
+    assert grounding_frames["candidate_count"] == 2
+    frame = grounding_frames["frames"][0]
+    assert frame["observation_id"] == "raw_fpv_001"
+    assert frame["image"]["path"] == str(raw_fpv.resolve())
+    assert [candidate["category"] for candidate in frame["candidates"]] == [
+        "book",
+        "electronics",
+    ]
+    assert frame["candidates"][0]["bbox_xywh"] == [0.1, 0.2, 0.3, 0.4]
+    assert frame["candidates"][0]["overlay"]["path"] == str(first_overlay.resolve())
 
 
 def test_state_does_not_promote_report_bbox_images_as_grounding_overlay(

@@ -2223,9 +2223,8 @@ function renderViews(assets, route = state.selectedRoute) {
     displayAssets.chase,
     artifactEmptyText(route, "chase", "Missing run third-person artifact: expected robot_views/*.chase.png.")
   );
-  setImageSlot(
-    "grounding",
-    sourceAssets.grounding,
+  renderGroundingSlot(
+    sourceAssets,
     artifactEmptyText(route, "grounding", "No perception overlay has been written yet.")
   );
   state.latestViewAssets = displayAssets;
@@ -2311,15 +2310,110 @@ function setImageSlot(name, asset, emptyText) {
   });
 }
 
+function renderGroundingSlot(assets, emptyText) {
+  const slot = document.getElementById("grounding-frame");
+  if (!slot) {
+    return;
+  }
+  updatePanelTitle("grounding", imageLabel("grounding"));
+  const framePayload = assets && assets.grounding_frames;
+  const frames = framePayload && Array.isArray(framePayload.frames) ? framePayload.frames : [];
+  if (!frames.length) {
+    setImageSlot("grounding", assets && assets.grounding, emptyText);
+    return;
+  }
+  const copyAsset = firstGroundingFrameAsset(frames);
+  updateCopyButton("grounding", copyAsset);
+  const candidateCount = framePayload.candidate_count || groundingCandidateCount(frames);
+  slot.innerHTML = `
+    <div class="grounding-gallery" data-frame-count="${frames.length}" data-candidate-count="${candidateCount}">
+      <div class="grounding-gallery-summary">
+        ${frames.length} frame${frames.length === 1 ? "" : "s"} / ${candidateCount} candidate${candidateCount === 1 ? "" : "s"}
+      </div>
+      <div class="grounding-frame-list">
+        ${frames.map((frame) => groundingFrameHtml(frame)).join("")}
+      </div>
+    </div>
+  `;
+  slot.querySelectorAll(".grounding-image-button").forEach((button) => {
+    button.addEventListener("click", () => {
+      openImageDialog({
+        src: button.dataset.imageSrc || "",
+        title: button.dataset.imageTitle || imageLabel("grounding"),
+        path: button.dataset.imagePath || "",
+      });
+    });
+  });
+}
+
+function firstGroundingFrameAsset(frames) {
+  const first = frames.find((frame) => frame && frame.image && frame.image.path);
+  return first ? first.image : null;
+}
+
+function groundingCandidateCount(frames) {
+  return frames.reduce((total, frame) => total + ((frame && frame.candidates && frame.candidates.length) || 0), 0);
+}
+
+function groundingFrameHtml(frame) {
+  const image = (frame && frame.image) || {};
+  const src = image.href || artifactHref(image.path);
+  const observationId = frame.observation_id || "raw_fpv";
+  const candidates = Array.isArray(frame.candidates) ? frame.candidates : [];
+  return `
+    <article class="grounding-frame-card">
+      <div class="grounding-frame-header">
+        <span>${escapeHtml(observationId)}</span>
+        <span>${candidates.length} candidate${candidates.length === 1 ? "" : "s"}</span>
+      </div>
+      <button
+        type="button"
+        class="grounding-image-button"
+        data-image-src="${escapeHtml(src)}"
+        data-image-title="${escapeHtml(`Perception ${observationId}`)}"
+        data-image-path="${escapeHtml(image.path || "")}"
+        aria-label="Open ${escapeHtml(observationId)} perception frame"
+        title="Open perception frame"
+      >
+        <img alt="${escapeHtml(observationId)} camera frame" src="${escapeHtml(src)}" />
+        <span class="grounding-box-layer" aria-hidden="true">
+          ${candidates.map((candidate, index) => groundingCandidateBoxHtml(candidate, index)).join("")}
+        </span>
+      </button>
+    </article>
+  `;
+}
+
+function groundingCandidateBoxHtml(candidate, index) {
+  const bbox = Array.isArray(candidate.bbox_xywh) ? candidate.bbox_xywh : [];
+  if (bbox.length !== 4) {
+    return "";
+  }
+  const [x, y, width, height] = bbox.map((value) => Math.max(0, Math.min(1, Number(value) || 0)));
+  const label = groundingCandidateLabel(candidate, index);
+  return `
+    <span
+      class="grounding-box"
+      style="left:${x * 100}%;top:${y * 100}%;width:${width * 100}%;height:${height * 100}%"
+    >
+      <span class="grounding-box-label">${escapeHtml(label)}</span>
+    </span>
+  `;
+}
+
+function groundingCandidateLabel(candidate, index) {
+  const category = candidate.category || `candidate ${index + 1}`;
+  const confidence =
+    typeof candidate.confidence === "number" ? ` ${Math.round(candidate.confidence * 100)}%` : "";
+  return `${category}${confidence}`;
+}
+
 function routePreviewAsset(route, name) {
   const previews = route && route.preview_assets ? route.preview_assets : {};
   return previews[name] || null;
 }
 
 function imageLabel(name, asset = {}) {
-  if (name === "fpv" && asset.display_source === "visual_grounding_overlay") {
-    return "Camera(+Perception)";
-  }
   const labels = {
     fpv: "Camera",
     map: "Map",
@@ -2349,7 +2443,13 @@ function updateCopyButton(name, asset) {
 async function copyVisualPath(name) {
   const asset =
     state.latestViewAssets &&
-    (name === "map"
+    (name === "grounding"
+      ? firstGroundingFrameAsset(
+          state.latestViewAssets.grounding_frames && state.latestViewAssets.grounding_frames.frames
+            ? state.latestViewAssets.grounding_frames.frames
+            : []
+        ) || state.latestViewAssets.grounding
+      : name === "map"
       ? state.latestViewAssets.runtime_map || state.latestViewAssets.map
       : state.latestViewAssets[name]);
   if (!asset || !asset.path) {

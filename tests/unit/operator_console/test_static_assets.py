@@ -371,8 +371,11 @@ def _assert_overview_outputs_html(html: str) -> None:
 
 def _assert_overview_outputs_app(app: str) -> None:
     assert "Top-down Scene View" not in app
-    assert "Camera(+Perception)" in app
-    assert 'display_source === "visual_grounding_overlay"' in app
+    assert "renderGroundingSlot" in app
+    assert "grounding_frames" in app
+    assert "groundingFrameHtml" in app
+    assert "groundingCandidateBoxHtml" in app
+    assert 'display_source === "visual_grounding_overlay"' not in app
     assert 'activeView: "overview"' in app
     assert "visiblePanelsForView" in app
     assert "routeViewModes" in app
@@ -390,12 +393,16 @@ def _assert_overview_outputs_app(app: str) -> None:
     assert "Missing Map artifact" in app
     assert "sourceAssets.runtime_map || sourceAssets.map" in app
     assert "Third-person view unavailable for this backend." in app
+    assert "No perception overlay has been written yet." in app
 
 
 def _assert_overview_outputs_css(css: str) -> None:
     assert ".mode-overview" in css
     assert '"fpv map"' in css
     assert '"chase topdown"' in css
+    assert ".grounding-gallery" in css
+    assert ".grounding-frame-card" in css
+    assert ".grounding-box" in css
     assert "object-position: center center" in css
     assert ".image-panel > .image-frame" in css
     assert "aspect-ratio: auto" in css
