@@ -49,7 +49,7 @@ gateway action="up" token_file=".openclaw-token" provider="mimo" agents="1":
             PROVIDER="{{provider}}" \
             AGENTS="{{agents}}" \
             OPENCLAW_TOKEN="${OPENCLAW_TOKEN:-demo}" \
-            SKILLS_DIR="${SKILLS_DIR:-$PWD/skills/molmo-realworld-cleanup}" \
+            SKILLS_DIR="${SKILLS_DIR:-$PWD/skills/household-world}" \
             ./scripts/openclaw/openclaw-bootstrap.sh
         )
         [ -n "$TOKEN" ] || { echo "bootstrap failed — no token"; exit 1; }

@@ -83,10 +83,10 @@ list until their separate proof gates are green. Retired Docker-backed
 Script-style proof and dry-run paths belong under direct runners, harness
 recipes, or backend adapters; they are not public agent engines.
 
-Reusable behavior belongs in skills. The maintained cleanup skill drives
-`preset=cleanup`; the `household-open-task` skill drives no-preset household
-goals and `preset=map-build`. The goal contract and checker policy decide what
-completion means for a run.
+Reusable behavior belongs in skills. The maintained `household-world` skill
+has cleanup, map-build, and open-ended sections selected by GoalContract,
+TaskIntentSpec, and optional TaskPresetSpec. The goal contract and checker
+policy decide what completion means for a run.
 
 ## Evaluation Strategy
 

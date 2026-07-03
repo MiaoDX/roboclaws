@@ -53,7 +53,7 @@ from roboclaws.household.visual_grounding import (
 from roboclaws.launch.goals import goal_contract_from_file, goal_contract_from_json
 from roboclaws.maps.runtime_prior_snapshot import read_runtime_map_prior_artifact
 
-log = logging.getLogger("molmo-realworld-cleanup-agent-server")
+log = logging.getLogger("household-world-agent-server")
 AGIBOT_GDK_BACKEND = "agibot_gdk"
 
 
@@ -189,7 +189,7 @@ def client_setup_commands(url: str) -> dict[str, str]:
     port = url.rsplit(":", 1)[-1].split("/", 1)[0]
     return {
         "OpenClaw": (
-            "SKILLS_DIR=$PWD/skills/molmo-realworld-cleanup "
+            "SKILLS_DIR=$PWD/skills/household-world "
             f"ROBOCLAWS_MCP_URL=http://host.docker.internal:{port}/mcp "
             "just chat::run"
         ),
@@ -233,7 +233,7 @@ def print_setup(
         print("  Call roboclaws__metric_map first.")
         print("  Observe only as needed for the open-ended task; stop when the task is satisfied.")
     else:
-        print("  Read skills/molmo-realworld-cleanup/SKILL.md.")
+        print("  Read skills/household-world/SKILL.md.")
         print("  Call roboclaws__metric_map first.")
         print("  Sweep waypoints with roboclaws__navigate_to_waypoint then roboclaws__observe.")
     if perception_mode == RAW_FPV_ONLY_MODE:

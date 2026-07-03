@@ -49,7 +49,7 @@ Build from the bottom up, but let the agent enter from the top:
 | --- | --- | --- | --- |
 | Open-ended goal | Human intent | "clean the room", "inspect this room" | Do not turn this into one opaque MCP tool. |
 | Runnable surface and optional preset | Public command, parameters, report shape, acceptance gates | `surface=household-world prompt=...`, `surface=household-world preset=map-build`, `surface=household-world preset=cleanup` | Keep it separate from strategy and backend implementation. |
-| Agent skill | Reusable behavior package | `molmo-realworld-cleanup`, `household-open-task` | Skills can evolve, merge, split, and be pruned. |
+| Agent skill | Reusable behavior package | `household-world` | Skills can evolve, merge, split, and be pruned. |
 | Trace-preserving skill routine | Skill-side reusable execution shape | scripted cleanup loop, `navigate -> observe -> pick -> place` | Default home for reusable composition before MCP promotion. |
 | Composite action | Describes a skill's internal behavior shape | `navigate -> observe -> pick -> place` | Descriptive by default, not a separate artifact. |
 | Composed semantic capability | Bounded capability or service | localization, navigation, search, transport | Promote only when the boundary is stable. |
@@ -300,8 +300,7 @@ preset catalog:
 
 Reusable strategy names belong in skills:
 
-- `molmo-realworld-cleanup`
-- `household-open-task`
+- `household-world`
 
 Backend variants such as `molmospaces_subprocess`, `api_semantic_synthetic`, or
 `agibot_gdk` should be profile metadata or run configuration, not the primary
@@ -388,9 +387,9 @@ describe what public robot capabilities the agent is allowed to rely on.
 | --- | --- |
 | Profile declarations and built-ins | `roboclaws/mcp/profiles.py` |
 | Generic profile router helper | `roboclaws/mcp/entrypoint.py` |
-| Household cleanup MCP server | `roboclaws/household/realworld_mcp_server.py` |
+| Household-world MCP server | `roboclaws/household/realworld_mcp_server.py` |
 | Skill library convention | `skills/README.md` |
-| ADR-0003 Molmo cleanup skill | `skills/molmo-realworld-cleanup/SKILL.md` |
+| Household-world skill | `skills/household-world/SKILL.md` |
 | Runtime map prior snapshot code | `roboclaws/maps/runtime_prior_snapshot.py` |
 | Agibot navigation-memory converter | `scripts/maps/convert_agibot_navigation_memory.py` |
 | Profile/router contract tests | `tests/contract/mcp/test_semantic_profiles.py` |

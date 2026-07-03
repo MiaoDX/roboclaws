@@ -149,9 +149,9 @@ Docker-backed Codex/Claude helper route has been removed; use
 
 Current task mappings:
 
-- `surface=household-world preset=map-build`: `household-open-task` with cleanup actions disabled for simulator backends; dedicated Agibot map-build runner for public `backend=agibot-gdk`, lowered internally to implementation backend `agibot_gdk`
-- `surface=household-world preset=cleanup`: `molmo-realworld-cleanup`
-- `surface=household-world prompt=...`: `household-open-task` with an open-ended goal contract
+- `surface=household-world preset=map-build`: `household-world` with `task_intent=map-build` and cleanup actions disabled
+- `surface=household-world preset=cleanup`: `household-world` with `task_intent=cleanup`
+- `surface=household-world prompt=...`: `household-world` with an open-ended goal contract
 - `surface=planner-proof intent=planner-proof`: planner-proof bundle runner
 
 Python owns route metadata and reusable launch pieces:
@@ -161,9 +161,9 @@ Python owns route metadata and reusable launch pieces:
 - Live-agent driver helpers and kickoff prompts live under `roboclaws.agents`.
 - MCP server startup goes through `python -m roboclaws.cli.agent_server`, with
   launch-shaped household targets selecting the household server variants.
-- Direct deterministic household cleanup runs through
-  `python -m roboclaws.household.realworld_cleanup`; the example script is a
-  thin wrapper for manual use.
+- Direct deterministic household runs through
+  `python -m roboclaws.household.household_world_episode`; the example script
+  is a thin wrapper for manual use.
 
 ## Examples
 
@@ -230,9 +230,8 @@ just agent::mcp up
 ```
 
 `agent::run` is a private maintainer dispatcher. Public callers should use
-`run::surface`; the dispatcher accepts launch-shaped targets such as
-`household-world.cleanup` and normalizes them to older implementation recipes
-only after the public axes have been resolved.
+`run::surface`; the dispatcher accepts the surface-level `household-world`
+target plus explicit `task_intent` and `task_preset` launch context.
 
 The required PR gate is reproducible locally with
 `just agent::verify ci-required`. Use `just agent::verify mock` for a faster

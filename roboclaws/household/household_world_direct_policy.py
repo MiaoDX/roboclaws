@@ -29,7 +29,18 @@ StopAfterWaypoint = Callable[[RealWorldCleanupContract], bool]
 
 
 @dataclass(frozen=True)
-class DirectCleanupLoopHooks:
+class DirectHouseholdEpisodePolicy:
+    policy_name: str
+    artifact_kind: str
+    cleanup_actions_enabled: bool
+
+    @property
+    def requires_map_artifacts(self) -> bool:
+        return self.artifact_kind == "runtime_metric_map"
+
+
+@dataclass(frozen=True)
+class DirectHouseholdEpisodePolicyHooks:
     call_tool: ToolCaller
     attach_raw_fpv_robot_view: ObservationPostprocessor
     view_index_after_raw_fpv: Callable[[list[dict[str, Any]], int], int]
@@ -39,7 +50,7 @@ class DirectCleanupLoopHooks:
     failed_score: Callable[[RealWorldCleanupContract], dict[str, Any]]
 
 
-def record_direct_cleanup_robot_view(
+def record_direct_household_episode_robot_view(
     *,
     base_contract: CleanupBackendSession,
     robot_view_steps: list[dict[str, Any]],
@@ -60,15 +71,29 @@ def record_direct_cleanup_robot_view(
     )
 
 
-def direct_cleanup_policy_name(*, map_build: bool, perception_mode: str) -> str:
-    if map_build:
-        return MAP_BUILD_POLICY
+def direct_household_episode_policy(
+    *,
+    intent: str,
+    perception_mode: str,
+) -> DirectHouseholdEpisodePolicy:
+    if intent == "map-build":
+        return DirectHouseholdEpisodePolicy(
+            policy_name=MAP_BUILD_POLICY,
+            artifact_kind="runtime_metric_map",
+            cleanup_actions_enabled=False,
+        )
     if perception_mode == CAMERA_MODEL_POLICY_MODE:
-        return CAMERA_MODEL_POLICY_NAME
-    return DETERMINISTIC_SWEEP_POLICY
+        policy_name = CAMERA_MODEL_POLICY_NAME
+    else:
+        policy_name = DETERMINISTIC_SWEEP_POLICY
+    return DirectHouseholdEpisodePolicy(
+        policy_name=policy_name,
+        artifact_kind="household_episode",
+        cleanup_actions_enabled=True,
+    )
 
 
-def direct_cleanup_scratchpad(policy_name: str) -> dict[str, Any]:
+def direct_household_episode_scratchpad(policy_name: str) -> dict[str, Any]:
     scratchpad = empty_skill_scratchpad(
         note="Deterministic direct demo scratchpad; cleanup_worklist is authoritative."
     )
@@ -76,7 +101,7 @@ def direct_cleanup_scratchpad(policy_name: str) -> dict[str, Any]:
     return scratchpad
 
 
-def run_direct_cleanup_scan(
+def run_direct_household_episode_scan(
     *,
     trace_events: list[dict[str, Any]],
     started_at: float,
@@ -88,11 +113,11 @@ def run_direct_cleanup_scan(
     output_dir: Path,
     view_index: int,
     record_robot_views: bool,
-    map_build: bool,
+    episode_policy: DirectHouseholdEpisodePolicy,
     perception_mode: str,
     planner_proof_evidence: dict[str, Any] | None,
     agent_scratchpad: dict[str, Any],
-    hooks: DirectCleanupLoopHooks,
+    hooks: DirectHouseholdEpisodePolicyHooks,
     map_build_scan_profile: MapBuildScanProfile | None = None,
     waypoint_filter: WaypointFilter | None = None,
     stop_after_waypoint: StopAfterWaypoint | None = None,
@@ -115,7 +140,7 @@ def run_direct_cleanup_scan(
             output_dir=output_dir,
             view_index=view_index,
             record_robot_views=record_robot_views,
-            map_build=map_build,
+            episode_policy=episode_policy,
             perception_mode=perception_mode,
             planner_proof_evidence=planner_proof_evidence,
             agent_scratchpad=agent_scratchpad,
@@ -126,7 +151,7 @@ def run_direct_cleanup_scan(
         )
         if stop_after_waypoint is not None and stop_after_waypoint(contract):
             break
-    if not map_build:
+    if episode_policy.cleanup_actions_enabled:
         return _clean_pending_detections(
             trace_events=trace_events,
             started_at=started_at,
@@ -163,13 +188,13 @@ def _scan_direct_cleanup_waypoint(
     output_dir: Path,
     view_index: int,
     record_robot_views: bool,
-    map_build: bool,
+    episode_policy: DirectHouseholdEpisodePolicy,
     perception_mode: str,
     planner_proof_evidence: dict[str, Any] | None,
     agent_scratchpad: dict[str, Any],
     handled_handles: set[str],
     pending_detections: dict[str, dict[str, Any]],
-    hooks: DirectCleanupLoopHooks,
+    hooks: DirectHouseholdEpisodePolicyHooks,
     map_build_scan_profile: MapBuildScanProfile,
 ) -> int:
     waypoint_id = str(waypoint["waypoint_id"])
@@ -189,12 +214,12 @@ def _scan_direct_cleanup_waypoint(
         output_dir=output_dir,
         view_index=view_index,
         record_robot_views=record_robot_views,
-        map_build=map_build,
+        episode_policy=episode_policy,
         perception_mode=perception_mode,
         hooks=hooks,
         map_build_scan_profile=map_build_scan_profile,
     )
-    if map_build:
+    if not episode_policy.cleanup_actions_enabled:
         return view_index
     return _handle_direct_cleanup_detections(
         trace_events=trace_events,
@@ -226,18 +251,18 @@ def _observe_direct_cleanup_waypoint(
     output_dir: Path,
     view_index: int,
     record_robot_views: bool,
-    map_build: bool,
+    episode_policy: DirectHouseholdEpisodePolicy,
     perception_mode: str,
-    hooks: DirectCleanupLoopHooks,
+    hooks: DirectHouseholdEpisodePolicyHooks,
     map_build_scan_profile: MapBuildScanProfile,
 ) -> tuple[list[dict[str, Any]], int]:
     detections = []
     camera_schedule = _camera_schedule_for_direct_scan(
-        map_build=map_build,
+        requires_map_artifacts=episode_policy.requires_map_artifacts,
         scan_profile=map_build_scan_profile,
     )
     for camera_index, camera_step in enumerate(camera_schedule):
-        if map_build and camera_index > 0:
+        if episode_policy.requires_map_artifacts and camera_index > 0:
             hooks.call_tool(
                 trace_events,
                 started_at,
@@ -271,7 +296,7 @@ def _observe_direct_cleanup_waypoint(
                 perception_mode=perception_mode,
             )
         )
-    if map_build and map_build_scan_profile.uses_robot_body_turns:
+    if episode_policy.requires_map_artifacts and map_build_scan_profile.uses_robot_body_turns:
         for turn_index in range(map_build_scan_profile.body_turn_count_per_waypoint):
             turn_response = hooks.call_tool(
                 trace_events,
@@ -330,10 +355,10 @@ def _observe_direct_cleanup_waypoint(
 
 def _camera_schedule_for_direct_scan(
     *,
-    map_build: bool,
+    requires_map_artifacts: bool,
     scan_profile: MapBuildScanProfile,
 ) -> tuple[dict[str, float], ...]:
-    if map_build:
+    if requires_map_artifacts:
         return scan_profile.camera_schedule
     return ({"yaw_delta_deg": 0.0, "pitch_delta_deg": 0.0},)
 
@@ -355,7 +380,7 @@ def _handle_direct_cleanup_detections(
     handled_handles: set[str],
     pending_detections: dict[str, dict[str, Any]],
     perception_mode: str,
-    hooks: DirectCleanupLoopHooks,
+    hooks: DirectHouseholdEpisodePolicyHooks,
 ) -> int:
     for detection in detections:
         pending_detections[str(detection["object_id"])] = dict(detection)
@@ -378,7 +403,7 @@ def _clean_direct_cleanup_detections(
     agent_scratchpad: dict[str, Any],
     handled_handles: set[str],
     perception_mode: str,
-    hooks: DirectCleanupLoopHooks,
+    hooks: DirectHouseholdEpisodePolicyHooks,
 ) -> int:
     for detection in detections:
         view_index = hooks.maybe_clean_visible_object(
@@ -416,7 +441,7 @@ def _clean_pending_detections(
     handled_handles: set[str],
     pending_detections: dict[str, dict[str, Any]],
     perception_mode: str,
-    hooks: DirectCleanupLoopHooks,
+    hooks: DirectHouseholdEpisodePolicyHooks,
 ) -> int:
     return _clean_direct_cleanup_detections(
         trace_events=trace_events,
@@ -437,17 +462,16 @@ def _clean_pending_detections(
     )
 
 
-def complete_direct_cleanup(
+def complete_direct_household_episode(
     *,
     trace_events: list[dict[str, Any]],
     started_at: float,
     contract: RealWorldCleanupContract,
     base_contract: CleanupBackendSession,
-    policy_name: str,
-    map_build: bool,
-    hooks: DirectCleanupLoopHooks,
+    episode_policy: DirectHouseholdEpisodePolicy,
+    hooks: DirectHouseholdEpisodePolicyHooks,
 ) -> dict[str, Any]:
-    reason = f"{policy_name} complete"
+    reason = f"{episode_policy.policy_name} complete"
     done = hooks.call_tool(
         trace_events,
         started_at,
@@ -455,7 +479,7 @@ def complete_direct_cleanup(
         {"reason": reason},
         lambda: (
             hooks.map_build_done(contract, base_contract, reason)
-            if map_build
+            if episode_policy.requires_map_artifacts
             else contract.done(reason)
         ),
     )
@@ -465,7 +489,7 @@ def complete_direct_cleanup(
         contract=contract,
         base_contract=base_contract,
         done=done,
-        reason=f"{policy_name} incomplete",
+        reason=f"{episode_policy.policy_name} incomplete",
         hooks=hooks,
     )
 
@@ -476,7 +500,7 @@ def _done_with_failed_score(
     base_contract: CleanupBackendSession,
     done: dict[str, Any],
     reason: str,
-    hooks: DirectCleanupLoopHooks,
+    hooks: DirectHouseholdEpisodePolicyHooks,
 ) -> dict[str, Any]:
     base_done = base_contract.done(reason=reason)
     score = dict(base_done.get("score") or {})

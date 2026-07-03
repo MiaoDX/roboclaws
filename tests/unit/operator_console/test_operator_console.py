@@ -239,14 +239,14 @@ def test_operator_console_prompt_preview_endpoint_renders_agent_kickoff_prompt(
             payload = json.loads(response.read().decode("utf-8"))
 
     assert payload["operator_prompt"] == "只收拾桌面上的杯子"
-    assert payload["source"] == "household-open-task"
+    assert payload["source"] == "household-world"
     assert payload["intent"] == "open-ended"
     assert "prompt_mode" not in payload
     assert (
         "This run is surface=household-world intent=open-ended" in payload["agent_kickoff_prompt"]
     )
     assert "只收拾桌面上的杯子" in payload["agent_kickoff_prompt"]
-    assert "household-open-task skill instructions" in payload["agent_kickoff_prompt"]
+    assert "household-world skill instructions" in payload["agent_kickoff_prompt"]
     assert payload["wrapper_notes"] == []
 
 

@@ -13,9 +13,9 @@ one maintainer proof surface. The skill answers:
 2. why each row was selected, skipped, run, failed, or blocked;
 3. where the resulting reports and regression-promotion evidence live.
 
-It is an orchestration skill, not a robot behavior skill. Keep task strategy in
-task skills such as `molmo-realworld-cleanup`; keep reusable robot capability
-semantics in MCP tools and capability profiles.
+It is an orchestration skill, not a robot behavior skill. Keep household-world
+task strategy in `household-world`; keep reusable robot capability semantics
+in MCP tools and capability profiles.
 
 ## Commands
 

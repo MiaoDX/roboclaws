@@ -211,7 +211,7 @@ def test_eval_runner_does_not_expose_map_build_scan_profile_override(
     map_build_kwargs: dict[str, Any] = {}
 
     def product_runner(**kwargs: Any) -> dict[str, Any]:
-        if kwargs.get("map_build"):
+        if kwargs.get("intent") == "map-build":
             map_build_kwargs.update(kwargs)
         return _passing_product_runner(**kwargs)
 

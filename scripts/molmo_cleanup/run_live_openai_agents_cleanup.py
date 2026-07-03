@@ -419,7 +419,7 @@ def main(argv: list[str] | None = None) -> int:
 class LiveOpenAIAgentsCleanupRunner:
     def __init__(self, args: argparse.Namespace) -> None:
         self.args = args
-        self.skill_name = str(getattr(args, "skill_name", "") or "molmo-realworld-cleanup")
+        self.skill_name = str(getattr(args, "skill_name", "") or "household-world")
         self.run_dir = args.run_dir
         self.status_path = args.status_path
         self.timing_path = self.run_dir / "live_timing.json"

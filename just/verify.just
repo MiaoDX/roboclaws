@@ -8,7 +8,7 @@
 # - just verify::mock              static + fast unit/mock tests
 # - just verify::ci-required       required PR gate: mock + HTML report artifact
 # - just verify::contract          focused fixture/schema/report contracts
-# - just verify::molmo-realworld-cleanup  ADR-0003 public/private cleanup proof
+# - just verify::household-world  public/private household-world cleanup proof
 # - just verify::molmo-realworld-agent-mcp  ADR-0003 MCP smoke-agent proof
 # - just verify::molmo-realworld-agent-dogfood-kit  ADR-0003 direct-agent kit proof
 # - just verify::molmo-realworld-openclaw-dogfood-kit  ADR-0003 OpenClaw minimum-gate kit proof
@@ -80,7 +80,7 @@ contract:
 
 # ADR-0003 public/private cleanup gate. Requires the repo-local uv MolmoSpaces
 # runtime for the harness; focused tests use the synthetic backend.
-molmo-realworld-cleanup generated_mess_count="10":
+household-world generated_mess_count="10":
     #!/usr/bin/env bash
     set -euo pipefail
     {{standalone_pytest}} -q \
@@ -89,7 +89,7 @@ molmo-realworld-cleanup generated_mess_count="10":
       tests/contract/checkers/test_check_molmo_realworld_cleanup_result.py \
       tests/contract/reports/test_molmo_cleanup_report.py \
       tests/contract/dev_tools/test_verify_just_recipes.py
-    just harness::molmo-realworld-cleanup "1 2 3" "output/molmo-realworld-cleanup-harness" "帮我收拾这个房间" "{{generated_mess_count}}"
+    just harness::household-world "1 2 3" "output/household-world-harness" "帮我收拾这个房间" "{{generated_mess_count}}"
 
 # ADR-0003 real-world MCP smoke-agent gate. Requires the repo-local uv
 # MolmoSpaces runtime for the harness; focused tests use the synthetic backend.

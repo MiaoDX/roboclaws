@@ -17,10 +17,8 @@ from roboclaws.household.semantic_timeline import (
 )
 
 ROOT = Path(__file__).resolve().parents[3]
-ROUTINE_PATH = (
-    ROOT / "skills" / "molmo-realworld-cleanup" / "scripts" / "trace_preserving_cleanup.py"
-)
-SKILL_PATH = ROOT / "skills" / "molmo-realworld-cleanup" / "SKILL.md"
+ROUTINE_PATH = ROOT / "skills" / "household-world" / "scripts" / "trace_preserving_cleanup.py"
+SKILL_PATH = ROOT / "skills" / "household-world" / "SKILL.md"
 PREBUILT_BUNDLE = ROOT / "assets" / "maps" / "molmospaces" / "procthor-10k-val" / "0"
 
 

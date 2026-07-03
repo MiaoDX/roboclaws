@@ -13,7 +13,7 @@ VERIFY_TARGETS = {
     "mock",
     "ci-required",
     "contract",
-    "molmo-realworld-cleanup",
+    "household-world",
     "molmo-realworld-agent-mcp",
     "molmo-realworld-agent-dogfood-kit",
     "molmo-realworld-openclaw-dogfood-kit",
@@ -26,7 +26,7 @@ VERIFY_TARGETS = {
 }
 
 HARNESS_TARGETS = {
-    "molmo-realworld-cleanup",
+    "household-world",
     "molmo-realworld-agent-mcp",
     "molmo-realworld-agent-dogfood-kit",
     "molmo-realworld-openclaw-dogfood-kit",
@@ -101,16 +101,9 @@ def _mcp(args: Sequence[str]) -> int:
         return _exec_or_trace(["just", "mcp::down"])
     if action != "up":
         _die(f"unsupported mcp action '{action}' (expected up|down)")
-    server = args[1] if len(args) > 1 else "household-world.cleanup"
-    if server in {"household-world.cleanup", "cleanup"}:
-        server = "household-world.cleanup"
-    elif server in {"household-world.map-build", "map-build"}:
-        server = "household-world.map-build"
-    else:
-        _die(
-            f"unsupported MCP dispatch target '{server}' "
-            "(expected household-world.cleanup|household-world.map-build)"
-        )
+    server = args[1] if len(args) > 1 else "household-world"
+    if server != "household-world":
+        _die(f"unsupported MCP dispatch target '{server}' (expected household-world)")
     host = args[2] if len(args) > 2 else "127.0.0.1"
     port = args[3] if len(args) > 3 else "18788"
     output_dir = args[4] if len(args) > 4 else ".tmp/roboclaws-mcp/run"

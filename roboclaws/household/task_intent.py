@@ -24,11 +24,11 @@ def normalize_household_intent(value: str | None) -> str:
     normalized = str(value or "").strip().lower().replace("_", "-")
     if not normalized:
         return HOUSEHOLD_INTENT_CLEANUP
-    if normalized in {HOUSEHOLD_INTENT_OPEN_ENDED, "household-world.open-ended"}:
+    if normalized == HOUSEHOLD_INTENT_OPEN_ENDED:
         return HOUSEHOLD_INTENT_OPEN_ENDED
-    if normalized in {HOUSEHOLD_INTENT_MAP_BUILD, "household-world.map-build"}:
+    if normalized == HOUSEHOLD_INTENT_MAP_BUILD:
         return HOUSEHOLD_INTENT_MAP_BUILD
-    if normalized in {HOUSEHOLD_INTENT_CLEANUP, "household-world.cleanup"}:
+    if normalized == HOUSEHOLD_INTENT_CLEANUP:
         return HOUSEHOLD_INTENT_CLEANUP
     expected = ", ".join(sorted(HOUSEHOLD_INTENTS))
     raise ValueError(f"unsupported household intent {value!r} (expected one of: {expected})")
@@ -57,7 +57,8 @@ def household_intent_from_args(
 
 
 def household_task_name(*, surface: str | None = None, intent: str | None = None) -> str:
-    return f"{surface or HOUSEHOLD_SURFACE}.{normalize_household_intent(intent)}"
+    normalize_household_intent(intent)
+    return str(surface or HOUSEHOLD_SURFACE)
 
 
 def household_task_identity(
@@ -66,7 +67,7 @@ def household_task_identity(
     task_intent = normalize_household_intent(intent)
     task_surface = str(surface or HOUSEHOLD_SURFACE)
     return {
-        "task_name": f"{task_surface}.{task_intent}",
+        "task_name": task_surface,
         "task_surface": task_surface,
         "task_intent": task_intent,
     }

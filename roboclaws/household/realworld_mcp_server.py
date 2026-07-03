@@ -624,7 +624,7 @@ class RealWorldMolmoCleanupMCPServer:
         thread = threading.Thread(
             target=self._mcp.run,
             kwargs={"transport": "streamable-http"},
-            name=f"molmo-realworld-cleanup-mcp-{self.port}",
+            name=f"household-world-mcp-{self.port}",
             daemon=True,
         )
         thread.start()

@@ -61,10 +61,11 @@ SIGNAL_RULES: tuple[dict[str, Any], ...] = (
     },
     {
         "id": "cleanup_skill",
-        "label": "Cleanup skill or prompt",
+        "label": "Household-world skill or prompt",
         "patterns": (
-            r"skills/molmo-realworld-cleanup/",
+            r"skills/household-world/",
             r"household_cleanup",
+            r"household[-_]world",
             r"semantic_cleanup_loop",
             r"trace_preserving_cleanup",
             r"\bcleanup\b",

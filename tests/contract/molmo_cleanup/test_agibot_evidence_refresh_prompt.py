@@ -45,9 +45,10 @@ def test_agibot_molmospaces_sim_route_passes_open_evidence_refresh_prompt() -> N
     prompt = "基于已有 Runtime Metric Map 做开放巡检"
 
     route = _trace_agent_run(
-        "household-world.map-build",
+        "household-world",
         "direct-runner",
         "camera-grounded-labels",
+        "task_intent=map-build",
         "backend=agibot_molmospaces_sim",
         "runtime=fixture",
         "camera_labeler=grounding-dino",
@@ -84,6 +85,7 @@ def test_agibot_molmospaces_sim_rehearsal_records_open_evidence_refresh_prompt(
     assert result["task_prompt"] == prompt
     assert run_result["task_prompt"] == prompt
     assert runtime_export["task_prompt"] == prompt
-    assert run_result["task_name"] == "household-world.map-build"
+    assert run_result["task_name"] == "household-world"
+    assert run_result["task_intent"] == "map-build"
     assert run_result["simulated"] is True
     assert run_result["physical_robot"] is False

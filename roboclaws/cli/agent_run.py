@@ -11,11 +11,11 @@ from roboclaws.cli.agent_common import (
     _die,
     _exec_or_trace,
     _get,
-    _has_raw_override_key,
     _strip_prefixes,
 )
 from roboclaws.cli.agent_constants import AGENT_RUN_KEYS
 
+HOUSEHOLD_DISPATCH_TARGET = "household-world"
 HOUSEHOLD_PROFILES = {
     "smoke",
     "world-public-labels",
@@ -164,7 +164,10 @@ def _validate_household_route(dispatch_surface: str, dispatch_intent: str, drive
             f"'{dispatch_surface}.{dispatch_intent}:{driver}'"
         )
     if dispatch_intent == "map-build" and driver not in {"direct", "openai-agents-live"}:
-        _die("household-world.map-build currently supports direct-runner or openai-agents-sdk only")
+        _die(
+            "surface=household-world task_intent=map-build currently supports "
+            "direct-runner or openai-agents-sdk only"
+        )
 
 
 def _validate_household_backend(
@@ -181,7 +184,8 @@ def _validate_household_backend(
                 _die("backend=agibot_molmospaces_sim currently supports direct driver only")
         elif backend not in allowed_backends:
             _die(
-                f"household-world.map-build {agent_engine} unsupported backend '{backend}' "
+                f"surface=household-world task_intent=map-build {agent_engine} "
+                f"unsupported backend '{backend}' "
                 "(expected auto|molmospaces_subprocess|isaaclab_subprocess|agibot_gdk)"
             )
     if backend == "isaaclab_subprocess" and world_id != "b1-map12":
@@ -193,16 +197,14 @@ def _validate_household_backend(
 
 def _resolved_task_intent(dispatch_intent: str, kv: dict[str, str]) -> str:
     task_intent = _get(kv, "task_intent", os.environ.get("ROBOCLAWS_TASK_INTENT", ""))
-    return task_intent or ("map-build" if dispatch_intent == "map-build" else "cleanup")
+    return task_intent or dispatch_intent
 
 
 def _skill_name(dispatch_intent: str, resolved_task_intent: str, kv: dict[str, str]) -> str:
     skill_name = _get(kv, "skill_name", os.environ.get("ROBOCLAWS_TASK_SKILL", ""))
     if skill_name:
         return skill_name
-    if dispatch_intent == "map-build" or resolved_task_intent == "open-ended":
-        return "household-open-task"
-    return "molmo-realworld-cleanup"
+    return HOUSEHOLD_DISPATCH_TARGET
 
 
 def _profile_options(profile: str, kv: dict[str, str]) -> tuple[str, str]:
@@ -466,12 +468,13 @@ def _agibot_gdk_live_map_build(
     context_json = _get(kv, "context_json", "")
     if not context_json:
         _die(
-            f"backend=agibot_gdk household-world.map-build {agent_engine} "
+            f"backend=agibot_gdk surface=household-world task_intent=map-build {agent_engine} "
             "requires context_json=<agibot map context JSON>"
         )
     if len(seeds.split()) != 1:
         _die(
-            f"Agibot household-world.map-build {agent_engine} accepts exactly one seed per live run"
+            f"Agibot surface=household-world task_intent=map-build {agent_engine} "
+            "accepts exactly one seed per live run"
         )
     run_dir = _get(kv, "run_dir", "") or f"{output_dir}/seed-{seeds}"
     policy = _get(kv, "policy", "openai_agents_agibot_map_build")
@@ -640,16 +643,21 @@ def _planner_proof_run(
 
 
 def _dispatch_parts(dispatch_target: str, raw_overrides: list[str]) -> tuple[str, str]:
-    if dispatch_target == "household-world.cleanup":
-        return "household-world", "cleanup"
-    if dispatch_target == "household-world.map-build":
-        return "household-world", "map-build"
-    if dispatch_target == "household-world.open-ended":
-        if not _has_raw_override_key(raw_overrides, "task_intent"):
-            raw_overrides.append("task_intent=open-ended")
-        return "household-world", "open-ended"
+    if dispatch_target == HOUSEHOLD_DISPATCH_TARGET:
+        task_intent = ""
+        for override in raw_overrides:
+            if override.startswith(("task_intent=", "--task-intent=", "--task_intent=")):
+                task_intent = override.split("=", 1)[1]
+                break
+        task_intent = task_intent or os.environ.get("ROBOCLAWS_TASK_INTENT", "") or "cleanup"
+        return HOUSEHOLD_DISPATCH_TARGET, task_intent
     if dispatch_target == "planner-proof.planner-proof":
         return "planner-proof", "planner-proof"
+    if dispatch_target.startswith("household-world."):
+        _die(
+            f"unsupported household dispatch target '{dispatch_target}'; "
+            "use dispatch_target=household-world with task_intent=cleanup|map-build|open-ended"
+        )
     if "." in dispatch_target:
         return tuple(dispatch_target.split(".", 1))  # type: ignore[return-value]
     return dispatch_target, dispatch_target

@@ -42,7 +42,7 @@ from roboclaws.evals.models import (
 )
 from roboclaws.evals.reports import render_eval_report, results_bundle
 from roboclaws.household.backend_contract import SYNTHETIC_BACKEND
-from roboclaws.household.realworld_cleanup import run_realworld_cleanup
+from roboclaws.household.household_world_episode import run_household_world_episode
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUTPUT_ROOT = REPO_ROOT / "output" / "evals"
@@ -73,7 +73,7 @@ def run_eval_suite(
     live_timeout_s: float | None = None,
     live_stall_timeout_s: float | None = None,
     regrade_source: Path | None = None,
-    product_runner: ProductRun = run_realworld_cleanup,
+    product_runner: ProductRun = run_household_world_episode,
     live_product_runner: ProductRun | None = None,
 ) -> EvalSuiteRun:
     """Run a repo-native deterministic eval suite."""
@@ -336,7 +336,7 @@ def _run_trial(
             budget=budget,
             dependency_artifacts=dependency_artifacts,
         )
-        run_result = lh.run_trial(sample, product_runner, run_realworld_cleanup, kwargs)
+        run_result = product_runner(**kwargs)
     except Exception as exc:  # noqa: BLE001 - eval packets must classify runner failures.
         return _blocked_result_from_exception(trial, exc)
 
@@ -1704,9 +1704,9 @@ def _json_artifact_error_reason(exc: ValueError) -> str:
 
 
 def _skill_name(sample: EvalSample) -> str:
-    if sample.intent == "cleanup":
-        return "molmo-realworld-cleanup"
-    return lh.skill_name(sample, "household-open-task")
+    if sample.surface == "household-world":
+        return "household-world"
+    return MISSING_UNAVAILABLE
 
 
 def _mcp_profile(sample: EvalSample) -> str:

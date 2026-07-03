@@ -31,12 +31,10 @@ OPEN_TASK_TOOL_PROTOCOL_PREFIX = (
     "use namespace cleanup, never mcp__cleanup__ or roboclaws__. "
 )
 
-COMMON_PREFIX = (
-    "Use the bundled molmo-realworld-cleanup skill instructions. " + TOOL_PROTOCOL_PREFIX
-)
+COMMON_PREFIX = "Use the bundled household-world skill instructions. " + TOOL_PROTOCOL_PREFIX
 
 CUSTOM_PREFIX = (
-    "Use the bundled household-open-task skill instructions. "
+    "Use the bundled household-world skill instructions. "
     "Use the MCP tools as a bounded household robot capability surface. "
     + OPEN_TASK_TOOL_PROTOCOL_PREFIX
 )

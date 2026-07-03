@@ -178,10 +178,11 @@ def test_surface_cleanup_live_run_dir_reaches_molmo_impl() -> None:
     ]
     assert route[-1] == "/tmp/roboclaws-eval-surface-test/seed-7"
     assert (
-        "target=just agent::run household-world.cleanup openai-agents-sdk smoke "
+        "target=just agent::run household-world openai-agents-sdk smoke "
         "seed=7 output_dir=/tmp/roboclaws-eval-surface-test "
         "run_dir=/tmp/roboclaws-eval-surface-test/seed-7"
     ) in " ".join(plan_trace)
+    assert "task_intent=cleanup" in " ".join(plan_trace)
 
 
 def test_surface_live_smoke_uses_world_public_server_evidence_lane() -> None:

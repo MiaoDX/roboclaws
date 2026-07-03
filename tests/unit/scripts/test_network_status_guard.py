@@ -334,7 +334,7 @@ def test_current_and_manual_debug_just_recipes_use_network_guard() -> None:
             [
                 just_binary,
                 "agent::run",
-                "household-world.cleanup",
+                "household-world",
                 engine,
                 "world-public-labels",
             ],

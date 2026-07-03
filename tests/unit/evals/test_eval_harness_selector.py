@@ -118,7 +118,7 @@ def test_changed_file_signals_select_expected_eval_harness_rows(tmp_path: Path) 
         },
         {
             "name": "cleanup_skill",
-            "changed_files": ["skills/molmo-realworld-cleanup/SKILL.md"],
+            "changed_files": ["skills/household-world/SKILL.md"],
             "present_rows": (
                 "cleanup-capability-eval-suite",
                 "openai-agents-sdk-cleanup-live-eval",
@@ -361,7 +361,7 @@ def test_smoke_budget_records_relevant_expensive_rows_as_user_budget_skipped(
 ) -> None:
     manifest = selector.build_eval_harness(
         budget="smoke",
-        changed_files=["skills/molmo-realworld-cleanup/SKILL.md"],
+        changed_files=["skills/household-world/SKILL.md"],
         output_dir=tmp_path,
     )
 
@@ -481,7 +481,7 @@ def test_execute_marks_live_row_blocked_when_provider_is_missing(
     manifest = selector.build_eval_harness(
         mode="execute",
         budget="focused",
-        changed_files=["skills/molmo-realworld-cleanup/SKILL.md"],
+        changed_files=["skills/household-world/SKILL.md"],
         output_dir=tmp_path,
     )
 
@@ -536,7 +536,7 @@ def test_execute_does_not_default_provider_timing_proxy_for_sdk_rows(
     manifest = selector.build_eval_harness(
         mode="execute",
         budget="focused",
-        changed_files=["skills/molmo-realworld-cleanup/SKILL.md"],
+        changed_files=["skills/household-world/SKILL.md"],
         output_dir=tmp_path,
     )
 
@@ -573,7 +573,7 @@ def test_execute_preserves_provider_timing_proxy_escape_hatch(
     manifest = selector.build_eval_harness(
         mode="execute",
         budget="focused",
-        changed_files=["skills/molmo-realworld-cleanup/SKILL.md"],
+        changed_files=["skills/household-world/SKILL.md"],
         output_dir=tmp_path,
     )
 

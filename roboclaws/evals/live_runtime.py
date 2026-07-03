@@ -545,11 +545,10 @@ def live_surface_command(kwargs: dict[str, Any], *, output_dir: Path) -> list[st
         command.append("preset=map-build")
     if _is_smoke_budget(kwargs):
         command.append("run_preset=smoke")
-    else:
-        command += live_long_horizon.relocation_args(
-            kwargs,
-            relocation_count=_generated_mess_count(kwargs),
-        )
+    command += live_long_horizon.relocation_args(
+        kwargs,
+        relocation_count=_generated_mess_count(kwargs),
+    )
     runtime_map_prior = str(kwargs.get("runtime_map_prior_path") or "")
     if runtime_map_prior:
         command.append(f"runtime_map_prior={runtime_map_prior}")
@@ -740,14 +739,13 @@ def product_run_kwargs(
 ) -> dict[str, Any]:
     """Return shared cleanup product-run kwargs for direct and live eval trials."""
 
-    map_build = sample.intent == "map-build" or sample.preset == "map-build"
     kwargs: dict[str, Any] = {
         "output_dir": run_dir,
         "seed": sample.seed,
         "task_prompt": task_prompt(sample),
         "backend": implementation_backend(sample, budget=budget),
         "evidence_lane": evidence_lane(sample, budget=budget),
-        "map_build": map_build,
+        "intent": sample.intent,
         "generated_mess_count": generated_mess_count(sample),
         "generated_mess_object_ids": lh.generated_mess_object_ids(sample),
         "scene_source": scene_source(sample),
@@ -778,7 +776,11 @@ def product_run_kwargs(
 
 def implementation_backend(sample: EvalSample, *, budget: str) -> str:
     if budget == "smoke":
-        return lh.implementation_backend_for_direct_long_horizon(sample, SYNTHETIC_BACKEND)
+        runtime_requirements = _sample_runtime_requirements(sample)
+        if runtime_requirements.get("requires_real_molmospaces_backend") is True:
+            backend = BACKEND_SPECS.get(sample.backend)
+            return backend.implementation_backend if backend is not None else sample.backend
+        return SYNTHETIC_BACKEND
     backend = BACKEND_SPECS.get(sample.backend)
     if backend is None:
         return sample.backend
@@ -786,8 +788,15 @@ def implementation_backend(sample: EvalSample, *, budget: str) -> str:
 
 
 def evidence_lane(sample: EvalSample, *, budget: str) -> str:
-    smoke = budget == "smoke" and not lh.is_long_horizon_sample(sample)
+    runtime_requirements = _sample_runtime_requirements(sample)
+    smoke = budget == "smoke" and not runtime_requirements.get("requires_product_evidence_lane")
     return "smoke" if smoke else sample.evidence_lane
+
+
+def _sample_runtime_requirements(sample: EvalSample) -> dict[str, Any]:
+    reference = sample.private_goal_reference
+    requirements = reference.get("runtime_requirements")
+    return dict(requirements) if isinstance(requirements, dict) else {}
 
 
 def camera_labeler(sample: EvalSample) -> str:

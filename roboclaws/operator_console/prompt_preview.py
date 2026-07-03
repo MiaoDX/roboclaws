@@ -102,9 +102,7 @@ def build_prompt_preview(
                 camera_grounded_composite_tools=composite_tools,
                 operator_session_context_json=overrides.get("operator_session_context_json", ""),
             )
-            source = (
-                "household-open-task" if selected_intent == "open-ended" else "household-cleanup"
-            )
+            source = "household-world"
 
     wrapper_notes = _wrapper_notes(route)
     return {

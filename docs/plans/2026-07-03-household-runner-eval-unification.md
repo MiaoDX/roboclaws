@@ -1,9 +1,9 @@
 ---
 plan_scope: household-runner-eval-unification
-status: PROPOSED
+status: DONE
 created: 2026-07-03
 last_reviewed: 2026-07-03
-implementation_allowed: false
+implementation_allowed: true
 source:
   - user discussion about Long Horizon Runner, Cleanup Runner, and Map Builder
   - user decision that Long Horizon is not an eval exception
@@ -22,6 +22,28 @@ related_context:
 ---
 
 # Household Runner And Eval Unification
+
+## Plan Ledger
+
+- Plan status: DONE
+- Session scope: household-runner-eval-unification
+- Last updated: 2026-07-03
+- Current slice: implementation complete. Household skill identity, private
+  dispatch, direct product episode naming/API, eval identity, Long Horizon eval
+  execution, docs, and tests now use `household-world` plus `task_intent` /
+  `task_preset` instead of task-named runner concepts.
+- Latest deterministic evidence: `ruff check .`, `ruff format --check .`,
+  `./scripts/dev/run_pytest_standalone.sh -q`, direct map-build and cleanup
+  product routes, all listed smoke eval suites, and eval-harness
+  recommendation completed.
+- Latest live evidence: the selected `map_build_consumer` OpenAI Agents SDK /
+  `codex-router-responses` live row ran through product routes. Provider and
+  runtime availability were proven; the MapBuild sample passed and four
+  consumer/open-ended samples failed before grading as product
+  behavior/runtime-budget failures.
+- Next action: none for this migration. Follow-up live policy tuning belongs
+  in a separate product-behavior plan.
+- Blocked on: none for the migration itself.
 
 ## Goal
 

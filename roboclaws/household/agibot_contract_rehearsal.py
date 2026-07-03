@@ -43,11 +43,11 @@ from roboclaws.household.agibot_contract_rehearsal_runtime import (
 from roboclaws.household.agibot_sdk_runner import BLOCKED_MANIPULATION_TOOLS
 from roboclaws.household.backend import API_SEMANTIC_PROVENANCE
 from roboclaws.household.backend_contract import CleanupBackendSession
-from roboclaws.household.manipulation_provenance import BLOCKED_CAPABILITY_PROVENANCE
-from roboclaws.household.realworld_cleanup import (
+from roboclaws.household.household_world_episode import (
     SYNTHETIC_BACKEND,
-    run_realworld_cleanup,
+    run_household_world_episode,
 )
+from roboclaws.household.manipulation_provenance import BLOCKED_CAPABILITY_PROVENANCE
 from roboclaws.household.realworld_contract import (
     CAMERA_MODEL_POLICY_MODE,
     CLEANUP_WORKLIST_SCHEMA,
@@ -201,7 +201,7 @@ def run_molmospaces_agibot_prehardware_rehearsal(
         agibot_map_reference=agibot_map_reference,
         cleanup_actions_disabled=is_map_build,
     )
-    result = run_realworld_cleanup(
+    result = run_household_world_episode(
         output_dir=run_dir,
         seed=seed,
         task_prompt=selected_task_prompt,
@@ -216,7 +216,7 @@ def run_molmospaces_agibot_prehardware_rehearsal(
         map_bundle_dir=map_bundle_dir
         or molmospaces_nav2_map_bundle_path(scene_source="procthor-10k-val", scene_index=0),
         evidence_lane=profile if runtime == RUNTIME_MOLMOSPACES_SUBPROCESS else None,
-        map_build=is_map_build,
+        intent=("map-build" if is_map_build else "cleanup"),
         visual_grounding=visual_grounding,
         visual_grounding_base_url=visual_grounding_base_url,
         visual_grounding_timeout_s=visual_grounding_timeout_s,

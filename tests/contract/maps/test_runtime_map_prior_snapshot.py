@@ -8,7 +8,10 @@ from pathlib import Path
 import pytest
 
 from roboclaws.household.backend_contract import CleanupBackendSession
-from roboclaws.household.realworld_cleanup import _load_runtime_map_prior, run_realworld_cleanup
+from roboclaws.household.household_world_episode import (
+    _load_runtime_map_prior,
+    run_household_world_episode,
+)
 from roboclaws.household.realworld_contract import (
     RAW_FPV_ONLY_MODE,
     RealWorldCleanupContract,
@@ -602,7 +605,7 @@ def test_synthetic_cleanup_consumes_converted_snapshot_through_runtime_prior(
     prior_path = tmp_path / "runtime_map_prior_snapshot.json"
     prior_path.write_text(json.dumps(snapshot), encoding="utf-8")
 
-    result = run_realworld_cleanup(
+    result = run_household_world_episode(
         output_dir=tmp_path / "cleanup",
         seed=7,
         runtime_map_prior_path=prior_path,

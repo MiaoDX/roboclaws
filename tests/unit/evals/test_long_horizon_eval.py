@@ -49,6 +49,7 @@ def test_long_horizon_suite_records_manipulation_tool_surface_and_passes(
     run = run_eval_suite(
         "long_horizon_tasks",
         output_root=tmp_path,
+        budget="focused",
         stamp="long-horizon-pass",
         product_runner=product_runner,
     )
@@ -56,7 +57,7 @@ def test_long_horizon_suite_records_manipulation_tool_surface_and_passes(
     result = json.loads(run.results_path.read_text())["results"][0]
     assert result["status"] == "passed"
     assert result["failure_class"] == "not_applicable"
-    assert result["identity"]["skill_name"] == "household-long-horizon"
+    assert result["identity"]["skill_name"] == "household-world"
     assert "pick" in result["identity"]["tool_surface"]
     assert captured_kwargs["evidence_lane"] == "world-public-labels"
     assert captured_kwargs["generated_mess_object_ids"] == (

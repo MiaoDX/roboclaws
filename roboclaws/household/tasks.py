@@ -15,7 +15,7 @@ HOUSEHOLD_PRESET_SPECS: dict[str, TaskPresetSpec] = {
     "cleanup": TaskPresetSpec(
         preset_id="cleanup",
         intent_id="cleanup",
-        skill_name="molmo-realworld-cleanup",
+        skill_name="household-world",
         required_capabilities=(
             "household_world",
             "household_manipulation",
@@ -28,7 +28,7 @@ HOUSEHOLD_PRESET_SPECS: dict[str, TaskPresetSpec] = {
     "map-build": TaskPresetSpec(
         preset_id="map-build",
         intent_id="map-build",
-        skill_name="household-open-task",
+        skill_name="household-world",
         required_capabilities=("household_world", "household_episode"),
         default_scenario_setup=ENVIRONMENT_SETUP_BASELINE,
         report_profile="runtime_metric_map",

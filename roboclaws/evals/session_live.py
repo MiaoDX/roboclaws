@@ -517,7 +517,7 @@ def _result(
             "runner_class": "live",
             "provider_profile": provider_profile,
             "model": "provider_default",
-            "skill_name": "household-open-task",
+            "skill_name": "household-world",
             "prompt_source": "operator_session_live",
             "mcp_profile": "household_world",
             "tool_surface": ["metric_map", "observe", "check_operator_messages", "done"],

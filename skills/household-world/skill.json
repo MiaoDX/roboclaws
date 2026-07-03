@@ -1,0 +1,77 @@
+{
+  "schema": "roboclaws_skill_manifest_v1",
+  "name": "household-world",
+  "summary": "Run household-world goals through public map, observation, episode, and optional manipulation capabilities.",
+  "abstraction_level": "agent_skill",
+  "role": "household_world_task_behavior",
+  "status": "active",
+  "mcp": {
+    "profiles": ["household_world", "household_episode", "household_manipulation"],
+    "required_tools": [
+      "metric_map",
+      "navigate_to_waypoint",
+      "observe",
+      "adjust_camera",
+      "resolve_target_query",
+      "done"
+    ],
+    "optional_tools": [
+      "declare_visual_candidates",
+      "navigate_to_visual_candidate",
+      "navigate_to_object",
+      "pick",
+      "navigate_to_receptacle",
+      "place",
+      "place_inside",
+      "open_receptacle",
+      "close_receptacle",
+      "navigate_to_room",
+      "inspect_visible_object",
+      "check_operator_messages"
+    ],
+    "privileged_tools": [],
+    "boundary_notes": "Public/private-safe household surface. No scene_objects, hidden destination table, generated mess truth, target list, or private scoring truth."
+  },
+  "capability_requirements": {
+    "profiles": ["household_world", "household_episode", "household_manipulation"],
+    "backend_variants": ["api_semantic_synthetic", "molmospaces_subprocess", "agibot_gdk"],
+    "notes": "GoalContract, TaskIntentSpec, TaskPresetSpec, and required capabilities decide whether manipulation is enabled. The skill name is not task-specific."
+  },
+  "scripts": [
+    {
+      "path": "scripts/trace_preserving_cleanup.py",
+      "kind": "routine",
+      "summary": "Reference wrapper for the canonical observed-object cleanup routine. It composes public atomic MCP tools through an injected call_tool function and preserves semantic substeps."
+    },
+    {
+      "path": "scripts/target_query_recovery.py",
+      "kind": "artifact_review",
+      "summary": "Offline helper for inspecting public runtime_metric_map target candidates. It is not permission to read private manifests or simulator inventory."
+    },
+    {
+      "path": "scripts/scratchpad.py",
+      "kind": "scratchpad",
+      "summary": "Non-authoritative run-local strategy scratchpad helpers for intent, retries, and routine summaries."
+    }
+  ],
+  "evidence_outputs": [
+    "trace.jsonl",
+    "run_result.json",
+    "report.html",
+    "agent_view.json",
+    "goal_contract.json",
+    "runtime_metric_map.json"
+  ],
+  "lifecycle": {
+    "refactor_signals": [
+      "repeated household traces reveal reusable room-sweep, search, or manipulation behavior",
+      "planner-backed manipulation evidence becomes common enough to split into a capability-profile subskill"
+    ],
+    "promote_to_mcp_when": [
+      "a subproblem is stable across household intents",
+      "it uses only public contract data",
+      "trace and report artifacts preserve the semantic substeps",
+      "live performance evidence shows skill-side composition is not good enough for cross-client use"
+    ]
+  }
+}

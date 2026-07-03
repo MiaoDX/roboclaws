@@ -8,7 +8,7 @@ from pathlib import Path
 SCRIPT = (
     Path(__file__).resolve().parents[3]
     / "skills"
-    / "molmo-realworld-cleanup"
+    / "household-world"
     / "scripts"
     / "target_query_recovery.py"
 )

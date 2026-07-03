@@ -146,7 +146,7 @@ def test_verify_delegates_scenario_gates_to_harness() -> None:
     text = VERIFY_JUST.read_text(encoding="utf-8")
 
     expected_calls = (
-        "just harness::molmo-realworld-cleanup",
+        "just harness::household-world",
         "just harness::molmo-realworld-agent-mcp",
         "just harness::molmo-realworld-agent-dogfood-kit",
         "just harness::molmo-realworld-openclaw-dogfood-kit",
@@ -164,7 +164,7 @@ def test_harness_exposes_named_execution_rigs() -> None:
     text = HARNESS_JUST.read_text(encoding="utf-8")
 
     expected_headers = (
-        r"^molmo-realworld-cleanup seeds=\"1 2 3\"",
+        r"^household-world seeds=\"1 2 3\"",
         r"^molmo-realworld-agent-mcp seeds=\"1\"",
         r"^molmo-realworld-agent-dogfood-kit seed=\"7\"",
         r"^molmo-realworld-openclaw-dogfood-kit seed=\"7\"",
@@ -236,7 +236,7 @@ def test_molmo_axis_runner_distinguishes_smoke_from_current_live_agents() -> Non
         "--evidence-lane",
         "--expect-profile",
         "mcp-smoke/openclaw-smoke for deterministic substitutes",
-        'SKILLS_DIR="$PWD/skills/molmo-realworld-cleanup"',
+        'SKILLS_DIR="$PWD/skills/household-world"',
         "just chat::run",
         'bash scripts/dev/network_status.sh --assert-off-work "OpenClaw Molmo cleanup live report"',
         (
@@ -274,7 +274,7 @@ def test_molmo_harness_output_roots_keep_timestamped_runs() -> None:
 
     assert 'timestamp_cmd := "TZ=Asia/Shanghai date +%m%d_%H%M"' in text
     recipe_names = (
-        "molmo-realworld-cleanup",
+        "household-world",
         "molmo-realworld-agent-mcp",
         "molmo-realworld-agent-dogfood-kit",
         "molmo-realworld-openclaw-dogfood-kit",
@@ -323,7 +323,7 @@ def test_realworld_gates_require_advisory_scoring() -> None:
     text = HARNESS_JUST.read_text(encoding="utf-8")
 
     for recipe_name in (
-        "molmo-realworld-cleanup",
+        "household-world",
         "molmo-realworld-agent-mcp",
         "molmo-realworld-agent-dogfood-kit",
         "molmo-realworld-openclaw-dogfood-kit",
@@ -390,7 +390,7 @@ def test_planner_proof_bundle_runner_harness_stays_dry_run() -> None:
     assert recipe is not None
     body = recipe.group(0)
     for expected in (
-        "roboclaws.household.realworld_cleanup",
+        "roboclaws.household.household_world_episode",
         "scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py",
         "scripts/molmo_cleanup/run_molmo_planner_proof_bundle_from_requests.py",
         "scripts/molmo_cleanup/check_molmo_planner_proof_bundle_runner_result.py",
@@ -412,7 +412,7 @@ def test_planner_proof_bundle_execute_rerun_gate_is_strict_and_local() -> None:
     assert recipe is not None
     body = recipe.group(0)
     for expected in (
-        "roboclaws.household.realworld_cleanup",
+        "roboclaws.household.household_world_episode",
         "--backend molmospaces_subprocess",
         "--include-robot",
         "--record-robot-views",

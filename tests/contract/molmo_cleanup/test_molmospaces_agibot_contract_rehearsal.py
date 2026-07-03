@@ -327,7 +327,8 @@ def test_agibot_molmospaces_prehardware_map_build_starts_from_base_metric_map(
 
     assert result["backend"] == "agibot_molmospaces_sim"
     assert run_result["confidence_layer"] == PRE_HARDWARE_CONFIDENCE_LAYER
-    assert run_result["task_name"] == "household-world.map-build"
+    assert run_result["task_name"] == "household-world"
+    assert run_result["task_intent"] == "map-build"
     assert run_result["cleanup_actions_disabled"] is True
     assert run_result["map_build_mode"] is True
     assert "map_mode" not in run_result
@@ -374,7 +375,8 @@ def test_agibot_molmospaces_prehardware_cleanup_uses_same_base_metric_map(
 
     assert result["backend"] == "agibot_molmospaces_sim"
     assert result["confidence_layer"] == PRE_HARDWARE_CONFIDENCE_LAYER
-    assert result["task_name"] == "household-world.cleanup"
+    assert result["task_name"] == "household-world"
+    assert result["task_intent"] == "cleanup"
     assert result["cleanup_actions_disabled"] is False
     assert result["map_build_mode"] is False
     assert "map_mode" not in result

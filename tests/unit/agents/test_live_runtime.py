@@ -78,8 +78,8 @@ class FakeRunConfig:
 
 def test_live_agent_request_keeps_one_turn_policy_explicit(tmp_path: Path) -> None:
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -126,8 +126,8 @@ def test_openai_agents_default_model_settings_apply_provider_thinking_policy() -
 def test_live_agent_request_rejects_invalid_sdk_turn_budget(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="max_turns must be >= 1"):
         LiveAgentRequest(
-            run_id="household-world.cleanup",
-            skill_name="molmo-realworld-cleanup",
+            run_id="household-world",
+            skill_name="household-world",
             kickoff_prompt="clean the room",
             mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
             run_dir=tmp_path / "run",
@@ -250,8 +250,8 @@ def test_openai_agents_runtime_missing_sdk_writes_normalized_failure(
         missing_sdk,
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -826,8 +826,8 @@ def test_openai_agents_runtime_turn_completion_does_not_infer_cleanup_success(
         lambda *_args, **_kwargs: FakeSDKResult(),
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -901,8 +901,8 @@ def test_openai_agents_runtime_defaults_to_codex_env_responses_profile(
         SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -991,17 +991,17 @@ def test_openai_agents_runtime_includes_skill_context_without_persisting_body(
         SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
         metadata={
             "skill_context": {
-                "skill_name": "molmo-realworld-cleanup",
+                "skill_name": "household-world",
                 "included": True,
                 "reason": "included",
-                "relative_path": "skills/molmo-realworld-cleanup/SKILL.md",
+                "relative_path": "skills/household-world/SKILL.md",
                 "sha256": "abc123",
                 "bytes": len(skill_text),
                 "estimated_tokens": 12,
@@ -1029,10 +1029,10 @@ def test_openai_agents_runtime_includes_skill_context_without_persisting_body(
     )
     assert artifact == {
         "schema": "openai_agents_skill_context_v1",
-        "skill_name": "molmo-realworld-cleanup",
+        "skill_name": "household-world",
         "included": True,
         "reason": "included",
-        "relative_path": "skills/molmo-realworld-cleanup/SKILL.md",
+        "relative_path": "skills/household-world/SKILL.md",
         "sha256": "abc123",
         "bytes": len(skill_text),
         "estimated_tokens": 12,
@@ -1091,8 +1091,8 @@ def test_openai_agents_runtime_can_use_mimo_openai_chat_profile(
         SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1167,8 +1167,8 @@ def test_openai_agents_runtime_applies_kimi_coding_user_agent(tmp_path: Path, mo
         SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1254,8 +1254,8 @@ def test_openai_agents_runtime_configures_model_input_compaction_filter(
         SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1385,7 +1385,7 @@ def test_openai_agents_model_input_filter_fails_before_model_call_on_observe_bud
         SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
     )
     request = LiveAgentRequest(
-        run_id="household-world.map-build",
+        run_id="household-world",
         skill_name="household-map-build",
         kickoff_prompt="build a map",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
@@ -1482,8 +1482,8 @@ def test_model_input_compaction_reduces_oversized_public_tool_outputs() -> None:
 def test_model_input_compaction_rejects_invalid_min_chars_env(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_INPUT_COMPACTION_MIN_CHARS", "many")
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1536,8 +1536,8 @@ def test_model_input_compaction_rejects_invalid_boolean_settings(
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
     monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1560,8 +1560,8 @@ def test_model_input_compaction_rejects_invalid_direct_policy_limits(
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
     monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1608,8 +1608,8 @@ def test_openai_agents_runtime_rejects_invalid_model_racing_boolean_settings(
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
     monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1661,8 +1661,8 @@ def test_openai_agents_runtime_rejects_invalid_model_racing_numeric_settings(
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
     monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1686,8 +1686,8 @@ def _assert_openai_agents_config_failure(
     detail: str,
 ) -> None:
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1844,8 +1844,8 @@ def test_openai_agents_runtime_preserves_zero_mcp_client_timeout_disable(
     tmp_path: Path,
 ) -> None:
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1916,8 +1916,8 @@ def test_openai_agents_runtime_rejects_conflicting_provider_model_env_settings(
     for key, value in base_env.items():
         monkeypatch.setenv(key, value)
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1938,8 +1938,8 @@ def test_openai_agents_runtime_rejects_unknown_model_env(tmp_path: Path, monkeyp
     monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
     monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_MODEL", "not-in-provider-catalog")
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1962,8 +1962,8 @@ def test_openai_agents_runtime_rejects_route_incompatible_model_env(
     monkeypatch.setenv("ROBOCLAWS_PROVIDER_PROFILE", "minimax-responses")
     monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_MODEL", "gpt-5.5")
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -2031,8 +2031,8 @@ def test_openai_agents_runtime_allows_matching_provider_model_env_aliases(
         SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -2629,8 +2629,8 @@ def test_openai_agents_runtime_can_use_kimi_openai_chat_profile(
         SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -2693,8 +2693,8 @@ def test_openai_agents_runtime_allows_disabling_mcp_tool_list_cache(
         SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -2712,8 +2712,8 @@ def test_openai_agents_runtime_rejects_invalid_cache_tools_metadata(
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
     monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -2784,8 +2784,8 @@ def test_openai_agents_runtime_configures_mcp_client_session_timeout(
         SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -2905,7 +2905,7 @@ def test_openai_agents_cleanup_runner_invokes_sdk_then_checker(tmp_path: Path, m
         server_startup_timeout_s=1.0,
         kickoff_prompt="clean the room",
         backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         policy="openai_agents_agent",
         task="clean",
         min_generated_mess_count="5",
@@ -2929,7 +2929,7 @@ def _assert_context_managed_openai_agents_timing(timing: dict[str, object]) -> N
     assert timing["runtime"] == "openai-agents-live"
     assert timing["surface"] == "household-world"
     assert timing["intent"] == "cleanup"
-    assert timing["task_name"] == "household-world.cleanup"
+    assert timing["task_name"] == "household-world"
     assert timing["evidence_lane"] == "smoke"
     assert timing["mcp_client_session_timeout_s"] == 30.0
     assert timing["agent_sdk_perf_profile"]["schema"] == "agent_sdk_perf_profile_v1"
@@ -3166,7 +3166,7 @@ def test_openai_agents_camera_grounded_composite_profile_adds_private_server_fla
         server_startup_timeout_s=1.0,
         kickoff_prompt="clean the room",
         backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         policy="openai_agents_agent",
         task="clean",
         min_generated_mess_count="5",
@@ -3282,7 +3282,7 @@ def test_openai_agents_robot_view_capture_policy_adds_private_server_flag(
         server_startup_timeout_s=1.0,
         kickoff_prompt="clean the room",
         backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         policy="openai_agents_agent",
         task="clean",
         min_generated_mess_count="5",
@@ -3309,7 +3309,7 @@ def test_openai_agents_camera_grounded_composite_rerenders_stale_two_step_prompt
     args = Namespace(
         kickoff_prompt=stale_prompt,
         profile="camera-grounded-labels",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         task="clean",
         min_generated_mess_count="5",
     )
@@ -3339,7 +3339,7 @@ def test_openai_agents_camera_grounded_composite_rerenders_map_build_prompt() ->
     args = Namespace(
         kickoff_prompt=stale_prompt,
         profile="camera-grounded-labels",
-        run_id="household-world.map-build",
+        run_id="household-world",
         intent="map-build",
         task="build a Runtime Metric Map",
         min_generated_mess_count="0",
@@ -3458,7 +3458,7 @@ def test_openai_agents_camera_grounded_composite_runner_rerenders_stale_two_step
         server_startup_timeout_s=1.0,
         kickoff_prompt=stale_prompt,
         backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         policy="openai_agents_agent",
         task="clean",
         min_generated_mess_count="5",
@@ -3483,7 +3483,7 @@ def test_openai_agents_cleanup_runner_loads_canonical_skill_context(
 ) -> None:
     run_dir = tmp_path / "run"
     repo_root = tmp_path / "repo"
-    skill_path = repo_root / "skills/molmo-realworld-cleanup/SKILL.md"
+    skill_path = repo_root / "skills/household-world/SKILL.md"
     skill_path.parent.mkdir(parents=True)
     skill_text = "# Molmo Real-World Cleanup\n\nCall metric_map first."
     skill_path.write_text(skill_text, encoding="utf-8")
@@ -3527,7 +3527,7 @@ def test_openai_agents_cleanup_runner_loads_canonical_skill_context(
                 json.dumps(
                     {
                         "schema": "openai_agents_skill_context_v1",
-                        "skill_name": "molmo-realworld-cleanup",
+                        "skill_name": "household-world",
                         "included": True,
                         "sha256": request.metadata["skill_context"]["sha256"],
                     }
@@ -3593,7 +3593,7 @@ def test_openai_agents_cleanup_runner_loads_canonical_skill_context(
         server_startup_timeout_s=1.0,
         kickoff_prompt="clean the room",
         backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         policy="openai_agents_agent",
         task="clean",
         min_generated_mess_count="5",
@@ -3609,12 +3609,10 @@ def test_openai_agents_cleanup_runner_loads_canonical_skill_context(
     skill_context = captured_contexts[0]
     assert skill_context["included"] is True
     assert skill_context["content"] == skill_text
-    assert skill_context["relative_path"] == "skills/molmo-realworld-cleanup/SKILL.md"
+    assert skill_context["relative_path"] == "skills/household-world/SKILL.md"
     timing = json.loads((run_dir / "live_timing.json").read_text(encoding="utf-8"))
     assert timing["agent_sdk_skill_context"]["included"] is True
-    assert timing["agent_sdk_skill_context"]["relative_path"] == (
-        "skills/molmo-realworld-cleanup/SKILL.md"
-    )
+    assert timing["agent_sdk_skill_context"]["relative_path"] == ("skills/household-world/SKILL.md")
     assert timing["agent_sdk_skill_context"]["bytes"] == len(skill_text.encode("utf-8"))
     assert "content" not in timing["agent_sdk_skill_context"]
     assert skill_text not in json.dumps(timing)
@@ -3623,12 +3621,12 @@ def test_openai_agents_cleanup_runner_loads_canonical_skill_context(
 def test_agent_sdk_skill_context_loader_reports_missing_source(tmp_path: Path) -> None:
     context = _load_agent_sdk_skill_context(
         tmp_path / "repo",
-        skill_name="molmo-realworld-cleanup",
+        skill_name="household-world",
     )
 
     assert context["included"] is False
     assert context["reason"] == "source_unavailable"
-    assert context["relative_path"] == "skills/molmo-realworld-cleanup/SKILL.md"
+    assert context["relative_path"] == "skills/household-world/SKILL.md"
     assert "content" not in context
 
 
@@ -3741,7 +3739,7 @@ def test_openai_agents_cleanup_runner_continues_incomplete_sdk_turn(
         server_startup_timeout_s=1.0,
         kickoff_prompt="clean the room",
         backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         policy="openai_agents_agent",
         task="clean",
         min_generated_mess_count="5",
@@ -3898,7 +3896,7 @@ def test_openai_agents_cleanup_runner_compact_continuation_excludes_full_prompt(
         server_startup_timeout_s=1.0,
         kickoff_prompt=full_prompt,
         backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         policy="openai_agents_agent",
         task="clean",
         min_generated_mess_count="5",
@@ -4047,7 +4045,7 @@ def test_openai_agents_cleanup_runner_compact_continuation_preserves_composite_c
         server_startup_timeout_s=1.0,
         kickoff_prompt=full_prompt,
         backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         policy="openai_agents_agent",
         task="clean",
         min_generated_mess_count="5",
@@ -4158,7 +4156,7 @@ def test_openai_agents_cleanup_runner_uses_profiled_compact_kickoff_prompt(
         server_startup_timeout_s=1.0,
         kickoff_prompt="FULL PROMPT THAT SHOULD BE REPLACED",
         backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         policy="openai_agents_agent",
         task="clean",
         min_generated_mess_count="5",
@@ -4542,7 +4540,7 @@ def test_openai_agents_cleanup_runner_fails_after_bounded_continuation(
         server_startup_timeout_s=1.0,
         kickoff_prompt="clean the room",
         backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         policy="openai_agents_agent",
         task="clean",
         min_generated_mess_count="5",
@@ -5791,7 +5789,7 @@ def test_openai_agents_live_timing_timeline_partitions_runner_and_attribution() 
     timing = {
         "surface": "household-world",
         "intent": "open-ended",
-        "task_name": "household-world.open-ended",
+        "task_name": "household-world",
         "runtime": "openai-agents-live",
         "provider_profile": "codex-router-responses",
         "wire_api": "responses",
@@ -5961,7 +5959,7 @@ def test_openai_agents_live_timing_timeline_partitions_runner_and_attribution() 
     assert timeline["schema"] == "live_agent_timeline_v1"
     assert timeline["surface"] == "household-world"
     assert timeline["intent"] == "open-ended"
-    assert timeline["task_name"] == "household-world.open-ended"
+    assert timeline["task_name"] == "household-world"
     assert timeline["runtime"] == "openai-agents-live"
     assert timeline["provider_profile"] == "codex-router-responses"
     assert timeline["wire_api"] == "responses"

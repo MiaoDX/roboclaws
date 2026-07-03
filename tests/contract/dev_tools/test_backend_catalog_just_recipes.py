@@ -94,9 +94,10 @@ def test_sdk_map_build_rejects_unknown_backend_from_catalog() -> None:
         [
             just_bin(),
             "agent::run",
-            "household-world.map-build",
+            "household-world",
             "openai-agents-sdk",
             "world-public-labels",
+            "task_intent=map-build",
             "backend=missing_backend",
         ],
         cwd=REPO_ROOT,
@@ -107,9 +108,8 @@ def test_sdk_map_build_rejects_unknown_backend_from_catalog() -> None:
     )
 
     assert result.returncode != 0
-    assert "household-world.map-build openai-agents-sdk unsupported backend 'missing_backend'" in (
-        result.stderr
-    )
+    assert "surface=household-world task_intent=map-build openai-agents-sdk" in result.stderr
+    assert "unsupported backend 'missing_backend'" in result.stderr
     assert "expected auto|molmospaces_subprocess|isaaclab_subprocess|agibot_gdk" in result.stderr
 
 
@@ -120,9 +120,10 @@ def test_agent_run_rejects_retired_codex_map_build_engine() -> None:
         [
             just_bin(),
             "agent::run",
-            "household-world.map-build",
+            "household-world",
             "codex-cli",
             "world-public-labels",
+            "task_intent=map-build",
             "backend=molmospaces_subprocess",
         ],
         cwd=REPO_ROOT,
