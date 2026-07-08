@@ -849,6 +849,7 @@ def _open_ended_grader(
         error
         for error in (
             _json_source_error(run_dir / "advisory_evaluation.json", advisory_error),
+            *_open_ended_goal_contract_source_errors(run_dir),
             *(predicate.get("source_errors") or []),
         )
         if error
@@ -887,6 +888,22 @@ def _open_ended_grader(
         "success_predicate": predicate,
         "source_errors": source_errors,
     }
+
+
+def _open_ended_goal_contract_source_errors(run_dir: Path) -> tuple[dict[str, str], ...]:
+    path = run_dir / "goal_contract.json"
+    if not path.exists():
+        return ()
+    contract, reason = _load_optional_json_mapping(path)
+    if reason:
+        return (_json_source_error(path, reason),)
+    errors: list[dict[str, str]] = []
+    if contract.get("schema") != "roboclaws_goal_contract_v1":
+        errors.append({"path": str(path), "reason": "invalid_goal_contract_schema"})
+    for key in ("surface", "intent", "normalized_goal", "goal_scope"):
+        if not str(contract.get(key) or "").strip():
+            errors.append({"path": str(path), "reason": f"missing_goal_contract_{key}"})
+    return tuple(errors)
 
 
 def _open_ended_success_predicate(
@@ -1539,6 +1556,8 @@ def _failure_class_from_exception(exc: Exception) -> str:
     if isinstance(exc, (ImportError, ModuleNotFoundError, TimeoutError)):
         return "environment_blocked"
     message = str(exc).lower()
+    if "observe_budget_exhausted" in message or "budget_exhausted" in message:
+        return "budget_exhausted"
     environment_tokens = ("no module named", "not installed", "unavailable", "timed out", "mcp")
     if "another interactive codex molmo cleanup session appears to be active" in message:
         return "environment_blocked"

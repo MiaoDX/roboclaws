@@ -213,7 +213,7 @@ molmo-realworld-raw-fpv seed="7" output_dir="output/molmo-realworld-raw-fpv-harn
 # ADR-0042 proof-bundle runner dry-run handoff. This proves fresh ADR-0003
 # cleanup artifacts produce checked planner proof commands without executing
 # local GPU planner probes.
-molmo-planner-proof-bundle-runner output_dir="output/molmo-planner-proof-bundle-runner-harness" seed="7" task="帮我收拾这个房间" generated_mess_count="10":
+molmo-planner-proof-bundle-runner output_dir="output/molmo-planner-proof-bundle-runner-harness" seed="7" task="帮我收拾这个房间" generated_mess_count="10" map_bundle="assets/maps/molmospaces/procthor-10k-val/0":
     #!/usr/bin/env bash
     set -euo pipefail
     stamp="$({{timestamp_cmd}})"
@@ -227,6 +227,7 @@ molmo-planner-proof-bundle-runner output_dir="output/molmo-planner-proof-bundle-
       --backend api_semantic_synthetic \
       --task "{{task}}" \
       --static-fixture-projection-mode room_only \
+      --map-bundle-dir "{{map_bundle}}" \
       --generated-mess-count "{{generated_mess_count}}" \
       --output-dir "${cleanup_dir}"
     .venv/bin/python scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py \

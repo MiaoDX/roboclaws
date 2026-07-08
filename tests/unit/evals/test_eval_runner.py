@@ -1084,7 +1084,31 @@ def test_live_surface_product_rejects_failed_live_status(
         )
 
 
-def test_live_open_ended_eval_does_not_recover_cleanup_checker_nonzero_exit(
+def test_live_eval_classifies_observe_budget_runtime_failure(tmp_path: Path) -> None:
+    def live_product_runner(**_kwargs: Any) -> dict[str, Any]:
+        raise RuntimeError("OpenAI Agents SDK runtime failed: observe_budget_exhausted")
+
+    run = run_eval_suite(
+        "open_ended_goals",
+        output_root=tmp_path,
+        stamp="live-open-ended-observe-budget",
+        agent_engine="openai-agents-sdk",
+        provider_profile="codex-router-responses",
+        live_execution="run",
+        live_product_runner=live_product_runner,
+    )
+
+    payload = json.loads(run.results_path.read_text())
+    result = payload["results"][0]
+
+    assert payload["aggregate"]["failed"] == 3
+    assert payload["aggregate"]["failure_classes"] == {"budget_exhausted": 3}
+    assert result["status"] == "failed"
+    assert result["failure_class"] == "budget_exhausted"
+    assert result["limitations"] == ["product_run_failed_before_grading"]
+
+
+def test_live_open_ended_eval_grades_artifacts_after_checker_nonzero_exit(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -1132,14 +1156,12 @@ def test_live_open_ended_eval_does_not_recover_cleanup_checker_nonzero_exit(
     )
 
     payload = json.loads(run.results_path.read_text())
-    assert payload["aggregate"]["passed"] == 0
-    assert payload["aggregate"]["failed"] == 3
+    assert payload["aggregate"]["passed"] == 3
+    assert payload["aggregate"]["failed"] == 0
     result = payload["results"][0]
-    assert result["status"] == "failed"
-    assert result["failure_class"] == "harness_bug_unclassified"
+    assert result["status"] == "passed"
+    assert result["failure_class"] == "not_applicable"
     assert result["identity"]["agent_engine"] == "openai-agents-sdk"
-    assert result["limitations"] == ["product_run_failed_before_grading"]
-    assert "cleanup checker exited with status 1" in result["grader_outputs"]["runner"]["message"]
     command_record = json.loads(
         (
             tmp_path
@@ -1182,10 +1204,9 @@ def test_live_open_ended_eval_rejects_failed_foreground_status_even_with_artifac
             + "\n"
         )
         (run_dir / "live_status.json").write_text(
-            '{"phase": "failed", "exit_status": 1, '
-            '"reason": "cleanup checker exited with status 1"}\n'
+            '{"phase": "failed", "exit_status": 1, "reason": "provider failure"}\n'
         )
-        return _completed_process(returncode=1, stderr="cleanup checker exited with status 1")
+        return _completed_process(returncode=1, stderr="provider failure")
 
     _patch_live_surface_popen(monkeypatch, live_runtime, fake_run)
     sample = load_eval_sample(
@@ -1199,7 +1220,7 @@ def test_live_open_ended_eval_rejects_failed_foreground_status_even_with_artifac
     kwargs = _live_surface_kwargs(tmp_path / "trial-0000", live_timeout_s=12.5)
     kwargs["eval_sample"] = sample
 
-    with pytest.raises(RuntimeError, match="live surface run failed with exit 1"):
+    with pytest.raises(RuntimeError, match="live surface run reported failed status 1"):
         live_runtime.run_live_surface_product(**kwargs)
 
     command_record = json.loads((tmp_path / "trial-0000" / "live_eval_command.json").read_text())
@@ -3117,7 +3138,18 @@ def _write_product_artifacts(
     (run_dir / "private_evaluation.json").write_text("{}\n")
     (run_dir / "advisory_evaluation.json").write_text('{"authoritative": false}\n')
     if include_goal_contract:
-        (run_dir / "goal_contract.json").write_text('{"intent": "open-ended"}\n')
+        (run_dir / "goal_contract.json").write_text(
+            json.dumps(
+                {
+                    "schema": "roboclaws_goal_contract_v1",
+                    "surface": "household-world",
+                    "intent": "open-ended",
+                    "normalized_goal": "find something useful to drink",
+                    "goal_scope": "agent-declared",
+                }
+            )
+            + "\n"
+        )
     (run_dir / "trace.jsonl").write_text(
         "\n".join(
             [

@@ -620,10 +620,11 @@ def _planner_proof_run(
     seed = _get(kv, "seed", "7")
     prompt = _prompt_for("cleanup", kv)
     generated_mess_count = _get(kv, "generated_mess_count", "10")
+    map_bundle = _get(kv, "map_bundle", "assets/maps/molmospaces/procthor-10k-val/0")
     if mode in {"dry-run", "dry"}:
         cmd = ["just", "harness::molmo-planner-proof-bundle-runner"]
         if output_dir:
-            cmd.extend([output_dir, seed, prompt, generated_mess_count])
+            cmd.extend([output_dir, seed, prompt, generated_mess_count, map_bundle])
         return _exec_or_trace(cmd)
     if mode in {"execute-rerun", "execute", "local"}:
         return _exec_or_trace(

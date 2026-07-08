@@ -1006,7 +1006,7 @@ def _recover_eval_run_result_after_nonzero_checker_exit(
 
 def _is_recoverable_checker_eval_sample(kwargs: dict[str, Any]) -> bool:
     sample: EvalSample | None = kwargs.get("eval_sample")
-    return sample is not None and sample.intent == "cleanup"
+    return sample is not None and sample.intent in {"cleanup", "open-ended"}
 
 
 def _live_surface_run_is_terminal(run_dir: Path) -> bool:

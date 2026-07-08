@@ -1280,6 +1280,24 @@ def test_prompt_mapping_rejects_retired_ai2thor_nav_task() -> None:
     assert "expected household-world|planner-proof" in stderr
 
 
+def test_planner_proof_surface_route_passes_default_map_bundle() -> None:
+    route = trace_surface_run(
+        "surface=planner-proof",
+        "agent_engine=direct-runner",
+        "output_dir=output/custom-planner-proof",
+    )
+
+    assert route == [
+        "just",
+        "harness::molmo-planner-proof-bundle-runner",
+        "output/custom-planner-proof",
+        "7",
+        "帮我收拾这个房间",
+        "10",
+        "assets/maps/molmospaces/procthor-10k-val/0",
+    ]
+
+
 def test_openclaw_module_no_longer_exposes_direct_game_recipe() -> None:
     text = OPENCLAW_JUST.read_text(encoding="utf-8")
 

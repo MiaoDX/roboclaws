@@ -395,6 +395,7 @@ def test_planner_proof_bundle_runner_harness_stays_dry_run() -> None:
         "scripts/molmo_cleanup/run_molmo_planner_proof_bundle_from_requests.py",
         "scripts/molmo_cleanup/check_molmo_planner_proof_bundle_runner_result.py",
         "--backend api_semantic_synthetic",
+        "--map-bundle-dir",
         "--probe-mode execute",
     ):
         assert expected in body
