@@ -53,6 +53,7 @@ from roboclaws.agents.model_matrix_benchmark import (
     selected_cases,
     usage_tokens,
 )
+from roboclaws.agents.work_network_gate import assert_no_work_network_codex_gpt55
 from roboclaws.core.dotenv import update_env_from_dotenv_file
 from roboclaws.core.json_sources import parse_json_object_text
 from roboclaws.operator_console.redaction import redact_text
@@ -651,6 +652,7 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(f"unknown benchmark case(s): {', '.join(sorted(unknown_cases))}")
     if not selected:
         raise SystemExit("no benchmark cases selected")
+    _assert_work_network_cases_allowed(selected)
     layers: tuple[BenchmarkLayer, ...] = tuple(args.layer or DEFAULT_LAYERS)
 
     results = _run_selected_cases(selected, layers=layers, args=args)
@@ -668,6 +670,23 @@ def main(argv: list[str] | None = None) -> int:
     if all(result.status == "SKIP" for result in results):
         return 1
     return 0
+
+
+def _assert_work_network_cases_allowed(
+    selected: tuple[MatrixCase, ...],
+    *,
+    is_work_network: bool | None = None,
+) -> None:
+    assert_no_work_network_codex_gpt55(
+        ((case.provider_id, case.model, case.case_id) for case in selected),
+        item_label="benchmark case(s)",
+        recommendation=(
+            "Use a non-GPT case such as "
+            "mimo-mify-responses:xiaomi-mimo-v2.5:openai-responses or "
+            "minimax-responses:MiniMax-M3:responses, or retry off the work network."
+        ),
+        is_work_network=is_work_network,
+    )
 
 
 def _validate_positive_args(args: argparse.Namespace) -> None:

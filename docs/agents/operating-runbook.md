@@ -63,6 +63,11 @@ Current live product route:
 - explicit alternatives: `mimo-mify-responses` with `XM_LLM_API_KEY`, or
   `minimax-responses` with `MM_API_KEY`
 
+As of 2026-07-09, `codex-router-responses` / `gpt-5.5` returns HTTP 403 on the
+work network and is blocked there by the repo network guard. Work-network live
+provider experiments should use explicit `provider_profile=mimo-mify-responses`
+or `provider_profile=minimax-responses`.
+
 Before OpenClaw Gateway, `just chat::run`, OpenClaw local/integration gates, or
 system-provider Claude Code workflows:
 

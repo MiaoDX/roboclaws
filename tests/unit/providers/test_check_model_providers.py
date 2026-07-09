@@ -5,6 +5,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 
 def _load_script_module():
     path = Path("scripts/dev/check_model_providers.py")
@@ -51,6 +53,25 @@ def test_provider_probe_defaults_exclude_unavailable_official_openai_route() -> 
 
     assert "provider:openai-responses" not in probes
     assert all(probe.api_key_env != "OPENAI_API_KEY" for probe in probes.values())
+
+
+def test_work_network_gate_blocks_codex_gpt55_probes_only() -> None:
+    script = _load_script_module()
+    probes = {probe.probe_id: probe for probe in script.build_agent_sdk_probes()}
+    codex = probes["agents-sdk:codex-router-responses"]
+    minimax = probes["agents-sdk:minimax-responses"]
+
+    with pytest.raises(SystemExit) as exc_info:
+        script._assert_work_network_probes_allowed([codex], is_work_network=True)
+
+    message = str(exc_info.value)
+    assert "codex-router-responses/gpt-5.5" in message
+    assert "HTTP 403" in message
+    assert "provider_profile=mimo-mify-responses" in message
+    assert "provider_profile=minimax-responses" in message
+
+    script._assert_work_network_probes_allowed([minimax], is_work_network=True)
+    script._assert_work_network_probes_allowed([codex], is_work_network=False)
 
 
 def test_require_all_fails_on_skipped_probe(monkeypatch) -> None:

@@ -33,9 +33,12 @@ API, and web search disabled.
 
 Run `just dev::network-status` before validation-required maintainer workflows.
 On the work network, guarded maintainer routes and system-provider Claude Code
-are blocked; the repo-local SDK `codex-router-responses` route
-(`CODEX_BASE_URL` plus `CODEX_API_KEY`) and explicit SDK
-`mimo-mify-responses` override remain allowed. Agent-facing work-network
+are blocked. As of 2026-07-09, the repo-local SDK
+`codex-router-responses` / `gpt-5.5` route also returns HTTP 403 on the work
+network and is blocked there by the network guard. Use explicit SDK
+`provider_profile=mimo-mify-responses` or
+`provider_profile=minimax-responses` for work-network provider experiments.
+Agent-facing work-network
 restrictions and examples are documented in
 [`docs/agents/operating-runbook.md`](../agents/operating-runbook.md).
 

@@ -16,7 +16,7 @@ route summary.
 
 | Agent engine | Default provider profile | Default model | Current status |
 | --- | --- | --- | --- |
-| `openai-agents-sdk` | `codex-router-responses` | `gpt-5.5` | Preferred product route for map-build and OpenAI Agents SDK live evals when provider capacity is healthy. |
+| `openai-agents-sdk` | `codex-router-responses` | `gpt-5.5` | Preferred product route only when provider capacity and network access are healthy. Blocked on the work network after 2026-07-09 HTTP 403 probes. |
 | `direct-runner` | none | none | Deterministic contract/eval baseline; no model route and not a live robot agent. |
 
 Useful explicit profiles:
@@ -44,6 +44,8 @@ Useful explicit profiles:
   it.
 - Do not infer route health from model capability alone; use
   `model-route-verdicts.yaml`.
+- On the work network, do not run `codex-router-responses` / `gpt-5.5`.
+  Use `mimo-mify-responses` or `minimax-responses` for current experiments.
 
 ## Update Checklist
 

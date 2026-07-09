@@ -4,6 +4,8 @@ import importlib.util
 import sys
 from pathlib import Path
 
+import pytest
+
 
 def _load_script_module():
     path = Path("scripts/dev/benchmark_model_matrix.py")
@@ -36,6 +38,25 @@ def test_default_cases_cover_routes_and_wire_formats() -> None:
         "openai-responses",
         "anthropic-messages",
     }
+
+
+def test_work_network_gate_blocks_codex_gpt55_cases_only() -> None:
+    script = _load_script_module()
+    cases = {case.case_id: case for case in script.default_cases()}
+    codex = cases["codex-router-responses:gpt-5.5:responses"]
+    mimo = cases["mimo-mify-responses:xiaomi-mimo-v2.5:openai-responses"]
+
+    with pytest.raises(SystemExit) as exc_info:
+        script._assert_work_network_cases_allowed((codex,), is_work_network=True)
+
+    message = str(exc_info.value)
+    assert "codex-router-responses/gpt-5.5" in message
+    assert "HTTP 403" in message
+    assert "mimo-mify-responses:xiaomi-mimo-v2.5:openai-responses" in message
+    assert "minimax-responses:MiniMax-M3:responses" in message
+
+    script._assert_work_network_cases_allowed((mimo,), is_work_network=True)
+    script._assert_work_network_cases_allowed((codex,), is_work_network=False)
 
 
 def test_nvidia_cases_read_adjacent_base_url_env(monkeypatch) -> None:

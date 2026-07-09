@@ -57,8 +57,8 @@ print_status() {
       echo "network: work"
       echo "probe: reachable $probe_url"
       echo "guard: OpenClaw and system-provider Codex/Claude manual-debug recipes are blocked here"
-      echo "guard: SDK live routes use repo-local CODEX_BASE_URL/CODEX_API_KEY by default"
-      echo "guard: SDK mimo-mify-responses/minimax-responses require explicit provider overrides"
+      echo "guard: SDK codex-router-responses/gpt-5.5 is blocked here after current HTTP 403 probes"
+      echo "guard: SDK mimo-mify-responses/minimax-responses remain available with explicit provider overrides"
       echo "guard: retired Codex/Claude engines do not fall back to missing repo-local provider routes"
       ;;
     1)

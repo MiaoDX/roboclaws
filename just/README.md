@@ -136,6 +136,11 @@ cp .env.example .env
 # Optional: set ROBOCLAWS_PROVIDER_PROFILE=minimax-responses with MM_API_KEY.
 ```
 
+On the work network, `codex-router-responses` / `gpt-5.5` is currently blocked
+by the repo network guard after HTTP 403 probes. Use
+`provider_profile=mimo-mify-responses` or `provider_profile=minimax-responses`
+for work-network live provider experiments.
+
 Provider/model facts are centralized in
 `roboclaws/agents/provider_registry.py`, with current live verdicts in
 `docs/human/model-route-verdicts.yaml` and narrative notes in
