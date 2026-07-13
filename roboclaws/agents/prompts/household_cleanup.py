@@ -167,10 +167,12 @@ MAP_BUILD_RULES = (
     "complete only after that waypoint_id has a {waypoint_observe_response} response; "
     "{waypoint_observe_budget_rule}"
     "do not treat one empty observation as enough to complete an ambiguous waypoint "
-    "or target search. If a target query, "
-    "visual candidate, anchor, or waypoint observation has incomplete public evidence, "
-    "call adjust_camera within the public budget, observe again, and use the fresh "
-    "observation before moving on. Use resolve_target_query for any target-search, "
+    "or target search. If a target query, visual candidate, anchor, or waypoint "
+    "observation has incomplete public evidence, call adjust_camera or "
+    "navigate_to_relative_pose and observe again only when a public tool asks for it or "
+    "when that successful bounded camera or pose change can produce materially new "
+    "evidence; otherwise record the ambiguity and move on. Use "
+    "resolve_target_query for any target-search, "
     "stale label, or open-ended map question and leave not-found claims tied to the "
     "returned public search budget. If a public tool returns required_next_tool or "
     "required_tool, call that tool before continuing. If a target candidate is "
@@ -472,9 +474,11 @@ def _map_build_target_candidate_recovery_rule(
 ) -> str:
     if max_observe_per_waypoint is not None and max(1, int(max_observe_per_waypoint)) == 1:
         return (
-            " If that waypoint_id has already used its observation budget, record the "
-            "target-candidate ambiguity as public map evidence and move on instead of "
-            f"calling {observe_tool} again."
+            " If that waypoint_id has already used its preferred observation budget, "
+            "record the target-candidate ambiguity as public map evidence and move on "
+            "unless a public tool requests a re-observation or a successful bounded "
+            f"camera, pose, or world-state change makes one more {observe_tool} call "
+            "materially useful."
         )
     return f" Then call {observe_tool} again."
 
@@ -489,10 +493,11 @@ def _map_build_observe_budget_rule(
     observe_budget = max(1, int(max_observe_per_waypoint))
     if observe_budget == 1:
         return (
-            f"Use at most one {observe_tool} response per waypoint_id; if evidence is "
-            "ambiguous after that response, mark the ambiguity in the Runtime Metric Map "
-            "evidence and move to the next public waypoint instead of adjusting pose or "
-            "observing that same waypoint again. "
+            f"Prefer one {observe_tool} response per waypoint_id. If evidence remains "
+            "ambiguous, record the ambiguity and move on. One bounded re-observation is "
+            "allowed only when a public tool requests it or after a successful camera, "
+            "pose, or world-state change can produce materially new Runtime Metric Map "
+            "evidence. "
         )
     return (
         f"Use at most {observe_budget} {observe_tool} responses per waypoint_id, including "
@@ -615,11 +620,11 @@ def _map_build_scan_profile_prompt(
     )
     if max_observe_per_waypoint is not None and max(1, int(max_observe_per_waypoint)) == 1:
         return (
-            f"MapBuild scan_profile={profile_id}: this managed profile budgets one "
-            f"{observe_tool} response per waypoint_id, so do not use "
-            "navigate_to_relative_pose or camera-adjustment scanning to produce extra "
-            "observations for the same waypoint. Record any missing heading coverage as "
-            f"public ambiguity in the Runtime Metric Map evidence instead.{emphasis}"
+            f"MapBuild scan_profile={profile_id}: this managed profile prefers one "
+            f"{observe_tool} response per waypoint_id, so skip routine multi-heading "
+            "scanning. Use one bounded re-observation only after a successful camera or "
+            "pose change when public evidence is ambiguous or a tool requests it; otherwise "
+            f"record missing heading coverage as public ambiguity.{emphasis}"
         )
     return (
         f"MapBuild scan_profile={profile_id}: at each inspection waypoint, after the "

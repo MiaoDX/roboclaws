@@ -61,10 +61,11 @@ def test_map_build_camera_grounded_prompt_uses_composite_cadence_when_enabled() 
 
     assert "observe_camera_grounded_candidates" in prompt
     assert "after navigating to each public inspection waypoint" in prompt
-    assert "Use at most one observe_camera_grounded_candidates response per waypoint_id" in prompt
-    assert "move to the next public waypoint instead of adjusting pose" in prompt
-    assert "do not use navigate_to_relative_pose or camera-adjustment scanning" in prompt
-    assert "then observe again" not in prompt
+    assert "Prefer one observe_camera_grounded_candidates response per waypoint_id" in prompt
+    assert "One bounded re-observation is allowed" in prompt
+    assert "skip routine multi-heading scanning" in prompt
+    assert "successful camera or pose change" in prompt
+    assert "move to the next public waypoint instead of adjusting pose" not in prompt
     assert "Do not resume the older observe plus declare_visual_candidates cadence" in prompt
     assert "declare_visual_candidates for each raw FPV observation" not in prompt
     assert "Do not pick, place, place_inside" in prompt

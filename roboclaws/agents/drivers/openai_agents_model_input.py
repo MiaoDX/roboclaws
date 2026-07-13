@@ -14,6 +14,7 @@ from typing import Any
 from roboclaws.agents.drivers.openai_agents_budget import (
     OpenAIAgentsBudgetExceededError,
     openai_agents_budget_failure,
+    openai_agents_observe_budget_advisory,
 )
 from roboclaws.agents.live_runtime import LiveAgentRequest
 from roboclaws.core.json_sources import parse_json_object_text
@@ -118,8 +119,22 @@ def _model_input_compaction_filter(
             profile=budget_profile or {},
             timing=budget_timing or {},
         )
+        budget_advisory = _observe_budget_advisory_before_model_call(
+            run_dir,
+            events_path=events_path,
+            runtime_config=runtime_config,
+            profile=budget_profile or {},
+            timing=budget_timing or {},
+        )
+        instructions = _instructions_with_observe_budget_advisory(instructions, budget_advisory)
         if not _model_input_compaction_enabled(config):
-            return model_data
+            if budget_advisory is None:
+                return model_data
+            return _model_input_data_like(
+                model_data,
+                input_items=original_items,
+                instructions=instructions,
+            )
         filtered_items, metrics = _compact_model_input_items(
             original_items,
             min_chars=int(config.get("min_chars") or DEFAULT_MODEL_INPUT_COMPACTION_MIN_CHARS),
@@ -179,6 +194,51 @@ def _raise_budget_failure_before_model_call(
         failure=failure,
     )
     raise OpenAIAgentsBudgetExceededError(failure)
+
+
+def _observe_budget_advisory_before_model_call(
+    run_dir: Path,
+    *,
+    events_path: Path,
+    runtime_config: dict[str, Any],
+    profile: dict[str, Any],
+    timing: dict[str, Any],
+) -> dict[str, Any] | None:
+    advisory = openai_agents_observe_budget_advisory(run_dir, timing, profile)
+    if advisory is None:
+        return None
+    _append_model_input_budget_advisory_event(
+        events_path,
+        runtime_config=runtime_config,
+        advisory=advisory,
+    )
+    return advisory
+
+
+def _instructions_with_observe_budget_advisory(
+    instructions: Any,
+    advisory: dict[str, Any] | None,
+) -> Any:
+    if advisory is None or not isinstance(instructions, (str, type(None))):
+        return instructions
+    observe_budget = int(advisory.get("max_observe_per_waypoint") or 0)
+    over_budget = advisory.get("observe_over_budget_by_waypoint")
+    counts = over_budget if isinstance(over_budget, dict) else {}
+    waypoint_summary = ", ".join(
+        f"{waypoint_id} (count={count})" for waypoint_id, count in sorted(counts.items())[:12]
+    )
+    note = (
+        "Observation cadence advisory: the following public waypoint_id values have "
+        f"exceeded the preferred limit of {observe_budget} successful observe response(s): "
+        f"{waypoint_summary}. Continue the task instead of terminating. Reuse existing "
+        "evidence, navigate to another waypoint, or record public ambiguity. Re-observe one "
+        "of these waypoint_ids only after a public tool requests it or a successful camera, "
+        "pose, or world-state change can produce materially new evidence; otherwise call done "
+        "when the task contract is satisfied."
+    )
+    if not instructions:
+        return note
+    return f"{instructions.rstrip()}\n\n{note}"
 
 
 def _model_input_data_like(model_data: Any, *, input_items: list[Any], instructions: Any) -> Any:
@@ -1046,6 +1106,38 @@ def _append_model_input_budget_event(
                     "Aggregate budget guard metadata only. Raw prompts, model text, tool "
                     "payload bodies, image payloads, credentials, and private truth are "
                     "not stored by this event."
+                ),
+            }
+        ),
+    )
+
+
+def _append_model_input_budget_advisory_event(
+    events_path: Path,
+    *,
+    runtime_config: dict[str, Any],
+    advisory: dict[str, Any],
+) -> None:
+    _append_event(
+        events_path,
+        _drop_empty(
+            {
+                "schema": "openai_agents_model_input_budget_advisory_v1",
+                "event": "model_input_budget_advisory",
+                "ts_epoch": time.time(),
+                "runtime": runtime_config.get("runtime"),
+                "provider_profile": runtime_config.get("provider_profile"),
+                "wire_api": runtime_config.get("wire_api"),
+                "model": runtime_config.get("model"),
+                "profile_id": advisory.get("profile_id"),
+                "evidence_lane": advisory.get("evidence_lane"),
+                "reason": advisory.get("reason"),
+                "detail_schema": advisory.get("schema"),
+                "detail_summary": _budget_detail_summary(advisory),
+                "privacy_note": (
+                    "Public waypoint ids and aggregate observation counts only. Raw prompts, "
+                    "model text, tool payload bodies, image payloads, credentials, and private "
+                    "truth are not stored by this event."
                 ),
             }
         ),

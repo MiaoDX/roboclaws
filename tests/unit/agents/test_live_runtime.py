@@ -9,7 +9,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from roboclaws.agents.drivers.openai_agents_budget import OpenAIAgentsBudgetExceededError
+from roboclaws.agents.drivers.openai_agents_budget import (
+    OpenAIAgentsBudgetExceededError,
+    openai_agents_observe_budget_advisory,
+)
 from roboclaws.agents.drivers.openai_agents_live import (
     OpenAIAgentsLiveRuntime,
     _default_sdk_model_settings_payload,
@@ -1308,7 +1311,7 @@ def test_openai_agents_runtime_configures_model_input_compaction_filter(
     assert "call_model_input_filter" not in events[0]["sdk_run_config"]
 
 
-def test_openai_agents_model_input_filter_fails_before_model_call_on_observe_budget(
+def test_openai_agents_model_input_filter_warns_before_model_call_on_observe_budget(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1348,7 +1351,8 @@ def test_openai_agents_model_input_filter_fails_before_model_call_on_observe_bud
             + "\n",
             encoding="utf-8",
         )
-        raise asyncio.run(run_config.call_model_input_filter(data))
+        captured["filtered_model_data"] = asyncio.run(run_config.call_model_input_filter(data))
+        return SimpleNamespace(final_output="continued after observation advisory")
 
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
     monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
@@ -1409,22 +1413,24 @@ def test_openai_agents_model_input_filter_fails_before_model_call_on_observe_bud
 
     result = OpenAIAgentsLiveRuntime().run(request)
 
-    assert result.exit_status == 1
-    assert result.reason == "observe_budget_exhausted"
-    assert result.retryable is False
-    detail = json.loads(result.detail)
-    assert detail["schema"] == "agent_sdk_raw_fpv_budget_terminal_v1"
-    assert detail["evidence_lane"] == "camera-grounded-labels"
-    assert detail["observe_over_budget_by_waypoint"] == {"generated_exploration_001": 2}
+    assert result.exit_status == 0
+    assert result.phase == "agent-turn-complete"
+    filtered_model_data = captured["filtered_model_data"]
+    assert "Observation cadence advisory" in filtered_model_data.instructions
+    assert "generated_exploration_001" in filtered_model_data.instructions
+    assert "preferred limit of 1" in filtered_model_data.instructions
     events = [
         json.loads(line)
         for line in (tmp_path / "run" / "openai-agents-events.jsonl").read_text().splitlines()
     ]
     assert events[0]["model_input_compaction"]["enabled"] is False
-    budget_event = next(item for item in events if item.get("event") == "model_input_budget_guard")
-    assert budget_event["reason"] == "observe_budget_exhausted"
-    assert budget_event["detail_schema"] == "agent_sdk_raw_fpv_budget_terminal_v1"
-    assert budget_event["detail_summary"]["observe_over_budget_by_waypoint"] == {
+    assert not any(item.get("event") == "model_input_budget_guard" for item in events)
+    advisory_event = next(
+        item for item in events if item.get("event") == "model_input_budget_advisory"
+    )
+    assert advisory_event["reason"] == "observe_budget_exceeded"
+    assert advisory_event["detail_schema"] == "agent_sdk_observe_budget_advisory_v1"
+    assert advisory_event["detail_summary"]["observe_over_budget_by_waypoint"] == {
         "generated_exploration_001": 2
     }
 
@@ -3359,7 +3365,8 @@ def test_openai_agents_camera_grounded_composite_rerenders_map_build_prompt() ->
     assert "declare_visual_candidates for each raw FPV observation" in stale_prompt
     assert "observe_camera_grounded_candidates" in prompt
     assert "after navigating to each public inspection waypoint" in prompt
-    assert "Use at most one observe_camera_grounded_candidates response per waypoint_id" in prompt
+    assert "Prefer one observe_camera_grounded_candidates response per waypoint_id" in prompt
+    assert "One bounded re-observation is allowed" in prompt
     assert "Do not resume the older observe plus declare_visual_candidates cadence" in prompt
     assert "declare_visual_candidates for each raw FPV observation" not in prompt
     assert "Do not pick, place, place_inside" in prompt
@@ -4412,12 +4419,26 @@ def test_openai_agents_budget_guard_classifies_repeated_raw_fpv_failures(
     assert "image_region" not in json.dumps(detail)
 
 
-def test_openai_agents_budget_guard_classifies_label_lane_observe_budget(
+def test_openai_agents_budget_guard_reports_label_lane_observe_budget_as_advisory(
     tmp_path: Path,
 ) -> None:
     run_dir = tmp_path / "run"
     run_dir.mkdir()
     events = [
+        {
+            "event": "response",
+            "tool": "observe",
+            "response": {
+                "ok": False,
+                "waypoint_id": "generated_exploration_001",
+                "error_reason": "capture_failed",
+            },
+        },
+        {
+            "event": "response",
+            "tool": "observe",
+            "response": {"ok": True},
+        },
         {
             "event": "response",
             "tool": "observe",
@@ -4434,26 +4455,30 @@ def test_openai_agents_budget_guard_classifies_label_lane_observe_budget(
         encoding="utf-8",
     )
 
+    timing = {"evidence_lane": "camera-grounded-labels", "cache_tools_list": True}
+    profile = {
+        "profile_id": "context_managed_v1",
+        "context_hard_limit_tokens": None,
+        "raw_fpv_candidate_budget": None,
+        "raw_fpv_repeated_failure_limit": None,
+        "max_observe_per_waypoint": 1,
+    }
+
     failure = _budget_failure_from_run_state(
         run_dir,
-        {"evidence_lane": "camera-grounded-labels", "cache_tools_list": True},
-        {
-            "profile_id": "context_managed_v1",
-            "context_hard_limit_tokens": None,
-            "raw_fpv_candidate_budget": None,
-            "raw_fpv_repeated_failure_limit": None,
-            "max_observe_per_waypoint": 1,
-        },
+        timing,
+        profile,
     )
+    advisory = openai_agents_observe_budget_advisory(run_dir, timing, profile)
 
-    assert failure is not None
-    assert failure.reason == "observe_budget_exhausted"
-    detail = json.loads(failure.detail)
-    assert detail["schema"] == "agent_sdk_raw_fpv_budget_terminal_v1"
-    assert detail["evidence_lane"] == "camera-grounded-labels"
-    assert detail["reasons"] == ["observe_budget_exhausted"]
-    assert detail["observe_over_budget_by_waypoint"] == {"generated_exploration_001": 2}
-    assert detail["raw_fpv_candidate_budget"] is None
+    assert failure is None
+    assert advisory is not None
+    assert advisory["schema"] == "agent_sdk_observe_budget_advisory_v1"
+    assert advisory["reason"] == "observe_budget_exceeded"
+    assert advisory["evidence_lane"] == "camera-grounded-labels"
+    assert advisory["max_observe_per_waypoint"] == 1
+    assert advisory["observe_count_by_waypoint"] == {"generated_exploration_001": 2}
+    assert advisory["observe_over_budget_by_waypoint"] == {"generated_exploration_001": 2}
 
 
 def test_openai_agents_cleanup_runner_fails_after_bounded_continuation(

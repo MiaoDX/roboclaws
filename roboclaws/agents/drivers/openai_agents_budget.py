@@ -1,4 +1,4 @@
-"""Budget guards for the experimental OpenAI Agents SDK runtime."""
+"""Budget guards and advisories for the experimental OpenAI Agents SDK runtime."""
 
 from __future__ import annotations
 
@@ -27,6 +27,35 @@ def openai_agents_budget_failure(
     if context_failure is not None:
         return context_failure
     return raw_fpv_budget_failure(run_dir, timing, profile)
+
+
+def openai_agents_observe_budget_advisory(
+    run_dir: Path,
+    timing: dict[str, Any],
+    profile: dict[str, Any],
+) -> dict[str, Any] | None:
+    observe_budget = _int_or_none(profile.get("max_observe_per_waypoint"))
+    if observe_budget is None:
+        return None
+    trace_events = _read_jsonl_path(run_dir / "trace.jsonl")
+    if not trace_events:
+        return None
+    metrics = raw_fpv_budget_metrics(trace_events)
+    over_budget = _observe_over_budget(
+        metrics.get("observe_count_by_waypoint") or {},
+        observe_budget=observe_budget,
+    )
+    if not over_budget:
+        return None
+    return {
+        "schema": "agent_sdk_observe_budget_advisory_v1",
+        "reason": "observe_budget_exceeded",
+        "profile_id": profile.get("profile_id") or "baseline",
+        "evidence_lane": timing.get("evidence_lane") or timing.get("profile") or "",
+        "max_observe_per_waypoint": observe_budget,
+        "observe_count_by_waypoint": metrics["observe_count_by_waypoint"],
+        "observe_over_budget_by_waypoint": over_budget,
+    }
 
 
 def context_budget_failure(
@@ -255,16 +284,6 @@ def _raw_fpv_budget_reasons(
     candidate_budget = limits["candidate_budget"]
     if candidate_budget is not None and metrics["candidate_attempt_count"] >= candidate_budget:
         reasons.append("raw_fpv_candidate_budget_exhausted")
-    observe_budget = limits["observe_budget"]
-    if observe_budget is not None:
-        over_budget = {
-            waypoint_id: count
-            for waypoint_id, count in metrics["observe_count_by_waypoint"].items()
-            if waypoint_id and count > observe_budget
-        }
-        if over_budget:
-            metrics["observe_over_budget_by_waypoint"] = dict(sorted(over_budget.items()))
-            reasons.append("observe_budget_exhausted")
     return reasons
 
 
@@ -272,7 +291,6 @@ def _primary_raw_fpv_budget_reason(reasons: list[str]) -> str:
     for reason in (
         "raw_fpv_repeated_candidate_failure",
         "raw_fpv_candidate_budget_exhausted",
-        "observe_budget_exhausted",
     ):
         if reason in reasons:
             return reason
@@ -284,8 +302,24 @@ def _record_observe_response(
     observe_count_by_waypoint: dict[str, int],
 ) -> None:
     response = event.get("response") if isinstance(event.get("response"), dict) else {}
+    if response.get("ok") is not True:
+        return
     waypoint_id = _waypoint_from_response(response)
+    if not waypoint_id or waypoint_id == "unknown":
+        return
     observe_count_by_waypoint[waypoint_id] = observe_count_by_waypoint.get(waypoint_id, 0) + 1
+
+
+def _observe_over_budget(
+    observe_count_by_waypoint: dict[str, Any],
+    *,
+    observe_budget: int,
+) -> dict[str, int]:
+    return {
+        str(waypoint_id): int(count)
+        for waypoint_id, count in sorted(observe_count_by_waypoint.items())
+        if waypoint_id and int(count) > observe_budget
+    }
 
 
 def _raw_fpv_candidate_event(event: dict[str, Any]) -> _RawFpvCandidateEvent | None:
