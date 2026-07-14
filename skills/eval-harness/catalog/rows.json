@@ -677,7 +677,7 @@
         "backend": "{default_backend}",
         "world": "{default_world}"
       },
-      "reason_selected": "Agent SDK codex-router-responses remains provider availability evidence while provider-side 502/upstream-unavailable responses persist.",
+      "reason_selected": "Agent SDK codex-router-responses remains first-class live availability evidence for the default GPT route.",
       "requirement": "optional",
       "expense": "live-agent",
       "selection_rule_ids": [

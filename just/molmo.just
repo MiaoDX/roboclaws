@@ -741,7 +741,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
         fi
         openai_agents_model=""
         openai_agents_profile="codex-router-responses"
-        openai_agents_profile_summary="codex-router-responses model=gpt-5.5"
+        openai_agents_profile_summary="codex-router-responses model=gpt-5.6-sol"
         if [[ "$driver" == "openai-agents-live" ]]; then
           openai_agents_profile="$(roboclaws_code_agent_provider ROBOCLAWS_PROVIDER_PROFILE codex-router-responses)"
           openai_agents_model="$(roboclaws_code_agent_model ROBOCLAWS_OPENAI_AGENTS_MODEL ROBOCLAWS_PROVIDER_PROFILE codex-router-responses)"

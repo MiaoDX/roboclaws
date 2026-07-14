@@ -356,7 +356,7 @@ roboclaws_assert_claude_code_network_allowed() {
 
 roboclaws_assert_codex_network_allowed() {
   local label="${1:-Codex}"
-  local provider model
+  local provider
   provider="$(roboclaws_code_agent_provider ROBOCLAWS_PROVIDER_PROFILE "codex-router-responses")" || return
   case "$provider" in
     codex-router-responses|mimo-mify-responses|minimax-responses)
@@ -376,8 +376,6 @@ roboclaws_assert_codex_network_allowed() {
 
   case "$rc" in
     0)
-      model="$(roboclaws_code_agent_model ROBOCLAWS_CODEX_MODEL ROBOCLAWS_PROVIDER_PROFILE "$provider")" || return
-      roboclaws_assert_work_network_model_allowed "$provider" "$model" "$label" || return
       echo "==> network guard ok: work network with repo-local Codex provider (${provider})" >&2
       ;;
     1)
@@ -392,7 +390,7 @@ roboclaws_assert_codex_network_allowed() {
 
 roboclaws_assert_openai_agents_network_allowed() {
   local label="${1:-OpenAI Agents SDK}"
-  local provider model
+  local provider
   provider="$(roboclaws_code_agent_provider ROBOCLAWS_PROVIDER_PROFILE "codex-router-responses")" || return
   case "$provider" in
     codex-router-responses|mimo-mify-responses|minimax-responses|mimo-tp-openai-chat|mimo-inside-openai-chat|kimi-openai-chat)
@@ -412,8 +410,6 @@ roboclaws_assert_openai_agents_network_allowed() {
 
   case "$rc" in
     0)
-      model="$(roboclaws_code_agent_model ROBOCLAWS_OPENAI_AGENTS_MODEL ROBOCLAWS_PROVIDER_PROFILE "$provider")" || return
-      roboclaws_assert_work_network_model_allowed "$provider" "$model" "$label" || return
       echo "==> network guard ok: work network with repo-local OpenAI Agents SDK provider (${provider})" >&2
       ;;
     1)
@@ -424,19 +420,6 @@ roboclaws_assert_openai_agents_network_allowed() {
       return 2
       ;;
   esac
-}
-
-roboclaws_assert_work_network_model_allowed() {
-  local provider="$1"
-  local model="$2"
-  local label="${3:-this command}"
-
-  if [[ "$provider" == "codex-router-responses" && "$model" == "gpt-5.5" ]]; then
-    echo "error: work network detected; ${label} is blocked for codex-router-responses/gpt-5.5 because that route currently returns HTTP 403 here." >&2
-    echo "       Use provider_profile=mimo-mify-responses or provider_profile=minimax-responses, or retry off the work network." >&2
-    return 1
-  fi
-  return 0
 }
 
 roboclaws_code_agent_profile_summary() {

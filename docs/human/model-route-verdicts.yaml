@@ -7,14 +7,14 @@ verdicts:
   - agent_engine: openai-agents-sdk
     provider_route: codex-router-responses
     provider_profile: codex-router-responses
-    model_id: gpt-5.5
-    route_status: degraded
+    model_id: gpt-5.6-sol
+    route_status: experimental
     lane_verdicts:
       structured_labels: experimental
       camera_grounded_labels: experimental
       camera_raw_fpv: healthy
-    evidence: 2026-07-09 work-network model-matrix probe returned HTTP 403
-    notes: Default active live-agent route off the work network when provider capacity is healthy; blocked by repo network guard on the work network. Requires CODEX_BASE_URL and CODEX_API_KEY.
+    evidence: 2026-07-14 work-network Responses and OpenAI SDK probes passed; model-matrix health passed 2/2 with GPT-5.6-sol
+    notes: Default active live-agent route when provider capacity is healthy. Requires CODEX_BASE_URL and CODEX_API_KEY; GPT-5.5 remains available as an explicit compatibility model.
   - agent_engine: openai-agents-sdk
     provider_route: mimo-tp-openai-chat
     provider_profile: mimo-tp-openai-chat

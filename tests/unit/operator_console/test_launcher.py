@@ -1269,7 +1269,7 @@ def test_provider_gate_ignores_code_agent_model_alias_for_openai_agents(
 
     assert readiness["can_start"] is True
     assert readiness["provider"]["provider"] == "codex-router-responses"
-    assert readiness["provider"]["model"] == "gpt-5.5"
+    assert readiness["provider"]["model"] == "gpt-5.6-sol"
 
 
 def test_provider_gate_blocks_incompatible_openai_agents_model_env(tmp_path: Path) -> None:

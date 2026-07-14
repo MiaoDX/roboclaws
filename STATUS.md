@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-07-09
+Last updated: 2026-07-14
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -62,16 +62,12 @@ for plan/diff-driven verification recommendations.
 - No current human blocker for deterministic MapBuild quality-gate work.
 - No current implementation blocker for deterministic or OpenAI Agents SDK smoke
   eval work when using a provider route available on the current network.
-- On the work network, `codex-router-responses` / `gpt-5.5` is guarded off
-  after 2026-07-09 probes returned HTTP 403. Use explicit
-  `provider_profile=mimo-mify-responses` or `provider_profile=minimax-responses`
-  for work-network provider experiments.
 - The focused MapBuild consumer live matrix has historical evidence across the
-  target SDK provider profiles, but Codex live reruns now require off-work
-  network proof or a fresh provider-availability decision.
+  target SDK provider profiles. The default `codex-router-responses` route now
+  uses `gpt-5.6-sol` and handles Router transport compatibility internally.
 - Broader live-agent `pass^k`, RAW-FPV live cleanup, and
   validation-required maintainer routes still depend on provider/runtime
-  capacity and route-specific off-work-network proof.
+  capacity and route-specific availability proof.
 
 ## Human Review Surface
 

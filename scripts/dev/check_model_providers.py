@@ -23,8 +23,8 @@ from roboclaws.agents.provider_registry import (
     provider_route_spec,
     route_base_url,
 )
+from roboclaws.agents.provider_transport import provider_default_headers
 from roboclaws.agents.thinking_policy import thinking_request_body_for_wire
-from roboclaws.agents.work_network_gate import assert_no_work_network_codex_gpt55
 from roboclaws.core.dotenv import update_env_from_dotenv_file
 from roboclaws.core.json_sources import parse_json_object_text
 
@@ -273,12 +273,16 @@ def _run_agents_sdk_probe(
     from openai import AsyncOpenAI  # type: ignore[import-not-found]
 
     set_tracing_disabled(True)
-    client = AsyncOpenAI(
-        api_key=api_key,
-        base_url=spec.base_url or None,
-        timeout=timeout_s,
-        max_retries=0,
-    )
+    client_kwargs: dict[str, Any] = {
+        "api_key": api_key,
+        "base_url": spec.base_url or None,
+        "timeout": timeout_s,
+        "max_retries": 0,
+    }
+    default_headers = provider_default_headers(spec.route_id)
+    if default_headers:
+        client_kwargs["default_headers"] = default_headers
+    client = AsyncOpenAI(**client_kwargs)
     if spec.wire_api == WIRE_RESPONSES:
         model = OpenAIResponsesModel(spec.model, openai_client=client)
     elif spec.wire_api == WIRE_CHAT_COMPLETIONS:
@@ -317,6 +321,9 @@ def _run_responses_probe(
     kwargs: dict[str, Any] = {"api_key": api_key, "timeout": timeout_s, "max_retries": 0}
     if spec.base_url:
         kwargs["base_url"] = spec.base_url
+    default_headers = provider_default_headers(spec.route_id)
+    if default_headers:
+        kwargs["default_headers"] = default_headers
     client = OpenAI(**kwargs)
     response = client.responses.create(
         model=spec.model,
@@ -459,7 +466,6 @@ def main(argv: list[str] | None = None) -> int:
     if args.dotenv:
         load_dotenv(Path(args.dotenv))
     probes = select_probes(args)
-    _assert_work_network_probes_allowed(probes)
     results = [
         run_probe(
             probe,
@@ -476,22 +482,6 @@ def main(argv: list[str] | None = None) -> int:
     if args.require_all:
         return 1 if any(result.status != "PASS" for result in results) else 0
     return 1 if any(not result.ok for result in results) else 0
-
-
-def _assert_work_network_probes_allowed(
-    probes: list[ProbeSpec],
-    *,
-    is_work_network: bool | None = None,
-) -> None:
-    assert_no_work_network_codex_gpt55(
-        ((probe.route_id, probe.model, probe.probe_id) for probe in probes),
-        item_label="provider probe(s)",
-        recommendation=(
-            "Use provider_profile=mimo-mify-responses or "
-            "provider_profile=minimax-responses, or retry off the work network."
-        ),
-        is_work_network=is_work_network,
-    )
 
 
 def print_results(results: list[ProbeResult]) -> None:

@@ -28,6 +28,7 @@ from roboclaws.agents.provider_registry import (
     WIRE_CHAT_COMPLETIONS,
     openai_agents_runtime_settings,
 )
+from roboclaws.agents.provider_transport import provider_default_headers
 from roboclaws.agents.thinking_policy import apply_model_thinking_policy
 
 try:
@@ -876,9 +877,18 @@ def _model_for_request(request: LiveAgentRequest) -> Any:
     from openai import AsyncOpenAI  # type: ignore[import-not-found]
 
     settings = _model_settings(request)
+    client_kwargs: dict[str, Any] = {
+        "api_key": settings["api_key"],
+        "base_url": settings["base_url"],
+    }
+    default_headers = provider_default_headers(
+        settings["provider_profile"],
+        session_seed=request.run_dir,
+    )
+    if default_headers:
+        client_kwargs["default_headers"] = default_headers
     client = AsyncOpenAI(
-        api_key=settings["api_key"],
-        base_url=settings["base_url"],
+        **client_kwargs,
     )
     if settings["wire_api"] == "responses":
         from agents import OpenAIResponsesModel  # type: ignore[import-not-found]

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import uuid
 from argparse import Namespace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -864,9 +865,16 @@ def test_openai_agents_runtime_defaults_to_codex_env_responses_profile(
             captured["client"] = openai_client
 
     class FakeAsyncOpenAI:
-        def __init__(self, *, api_key: str, base_url: str) -> None:
+        def __init__(
+            self,
+            *,
+            api_key: str,
+            base_url: str,
+            default_headers: dict[str, str] | None = None,
+        ) -> None:
             captured["api_key"] = api_key
             captured["base_url"] = base_url
+            captured["default_headers"] = default_headers
 
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
     monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
@@ -913,19 +921,26 @@ def test_openai_agents_runtime_defaults_to_codex_env_responses_profile(
 
     OpenAIAgentsLiveRuntime().run(request)
 
-    assert captured["model"] == "gpt-5.5"
+    assert captured["model"] == "gpt-5.6-sol"
     assert captured["base_url"] == "https://codex.example.test/v1"
     assert captured["api_key"] == "fake-codex-key"
+    window_id = captured["default_headers"]["X-Codex-Window-Id"]
+    thread_id, generation = window_id.rsplit(":", 1)
+    assert uuid.UUID(thread_id)
+    assert generation == "0"
     wrapped_model = captured["agent_kwargs"]["model"]
     assert isinstance(wrapped_model, _RetryingModel)
     assert wrapped_model.base_model is captured["responses_model"]
     assert captured["agent_kwargs"]["model_settings"].tool_choice == "auto"
     assert captured["agent_kwargs"]["model_settings"].parallel_tool_calls is False
     assert not hasattr(captured["agent_kwargs"]["model_settings"], "truncation")
+    assert not hasattr(captured["agent_kwargs"]["model_settings"], "extra_headers")
     assert captured["runner_kwargs"]["run_config"].trace_include_sensitive_data is False
     assert captured["runner_kwargs"]["run_config"].workflow_name == "roboclaws-openai-agents-live"
     assert captured["mcp_server_kwargs"]["cache_tools_list"] is True
     assert "client_session_timeout_seconds" not in captured["mcp_server_kwargs"]
+    events_text = (tmp_path / "run" / "openai-agents-events.jsonl").read_text(encoding="utf-8")
+    assert "x-codex" not in events_text.lower()
     assert captured["agent_kwargs"]["mcp_config"]["failure_error_function"]
     assert captured["runner_kwargs"]["max_turns"] == 128
     events = [
@@ -955,7 +970,13 @@ def test_openai_agents_runtime_includes_skill_context_without_persisting_body(
             captured["model"] = model
 
     class FakeAsyncOpenAI:
-        def __init__(self, *, api_key: str, base_url: str) -> None:
+        def __init__(
+            self,
+            *,
+            api_key: str,
+            base_url: str,
+            default_headers: dict[str, str] | None = None,
+        ) -> None:
             pass
 
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
@@ -1059,7 +1080,13 @@ def test_openai_agents_runtime_can_use_mimo_openai_chat_profile(
             captured["client"] = openai_client
 
     class FakeAsyncOpenAI:
-        def __init__(self, *, api_key: str, base_url: str) -> None:
+        def __init__(
+            self,
+            *,
+            api_key: str,
+            base_url: str,
+            default_headers: dict[str, str] | None = None,
+        ) -> None:
             captured["api_key"] = api_key
             captured["base_url"] = base_url
 
@@ -1135,7 +1162,13 @@ def test_openai_agents_runtime_applies_kimi_coding_user_agent(tmp_path: Path, mo
             captured["client"] = openai_client
 
     class FakeAsyncOpenAI:
-        def __init__(self, *, api_key: str, base_url: str) -> None:
+        def __init__(
+            self,
+            *,
+            api_key: str,
+            base_url: str,
+            default_headers: dict[str, str] | None = None,
+        ) -> None:
             captured["api_key"] = api_key
             captured["base_url"] = base_url
 
@@ -1218,7 +1251,13 @@ def test_openai_agents_runtime_configures_model_input_compaction_filter(
             captured["model"] = model
 
     class FakeAsyncOpenAI:
-        def __init__(self, *, api_key: str, base_url: str) -> None:
+        def __init__(
+            self,
+            *,
+            api_key: str,
+            base_url: str,
+            default_headers: dict[str, str] | None = None,
+        ) -> None:
             pass
 
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
@@ -1322,7 +1361,13 @@ def test_openai_agents_model_input_filter_warns_before_model_call_on_observe_bud
             captured["model"] = model
 
     class FakeAsyncOpenAI:
-        def __init__(self, *, api_key: str, base_url: str) -> None:
+        def __init__(
+            self,
+            *,
+            api_key: str,
+            base_url: str,
+            default_headers: dict[str, str] | None = None,
+        ) -> None:
             pass
 
     def fake_run_with_async_mcp_server(_server, _agent, request, _events_path, *, run_config):
@@ -1999,7 +2044,13 @@ def test_openai_agents_runtime_allows_matching_provider_model_env_aliases(
             captured["model"] = model
 
     class FakeAsyncOpenAI:
-        def __init__(self, *, api_key: str, base_url: str) -> None:
+        def __init__(
+            self,
+            *,
+            api_key: str,
+            base_url: str,
+            default_headers: dict[str, str] | None = None,
+        ) -> None:
             captured["api_key"] = api_key
             captured["base_url"] = base_url
 
@@ -2600,7 +2651,13 @@ def test_openai_agents_runtime_can_use_kimi_openai_chat_profile(
             captured["model"] = model
 
     class FakeAsyncOpenAI:
-        def __init__(self, *, api_key: str, base_url: str) -> None:
+        def __init__(
+            self,
+            *,
+            api_key: str,
+            base_url: str,
+            default_headers: dict[str, str] | None = None,
+        ) -> None:
             captured["api_key"] = api_key
             captured["base_url"] = base_url
 
@@ -2664,7 +2721,13 @@ def test_openai_agents_runtime_allows_disabling_mcp_tool_list_cache(
             captured["model"] = model
 
     class FakeAsyncOpenAI:
-        def __init__(self, *, api_key: str, base_url: str) -> None:
+        def __init__(
+            self,
+            *,
+            api_key: str,
+            base_url: str,
+            default_headers: dict[str, str] | None = None,
+        ) -> None:
             pass
 
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
@@ -2754,7 +2817,13 @@ def test_openai_agents_runtime_configures_mcp_client_session_timeout(
             captured["model"] = model
 
     class FakeAsyncOpenAI:
-        def __init__(self, *, api_key: str, base_url: str) -> None:
+        def __init__(
+            self,
+            *,
+            api_key: str,
+            base_url: str,
+            default_headers: dict[str, str] | None = None,
+        ) -> None:
             pass
 
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")

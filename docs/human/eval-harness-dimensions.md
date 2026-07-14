@@ -45,7 +45,7 @@ optional.
 
 | Provider profile | Engines | Default model | Wire API | Current route status |
 | --- | --- | --- | --- | --- |
-| `codex-router-responses` | `codex-cli`, `openai-agents-sdk` | `gpt-5.5` | Responses | healthy for Codex; experimental for Agent SDK |
+| `codex-router-responses` | `codex-cli`, `openai-agents-sdk` | `gpt-5.6-sol` | Responses | healthy for Codex; experimental for Agent SDK |
 | `mimo-mify-responses` | `codex-cli`, `openai-agents-sdk` | `xiaomi/mimo-v2.5` | Responses gateway | degraded for Codex; provisional for Agent SDK |
 | `minimax-responses` | `codex-cli`, `openai-agents-sdk` | `MiniMax-M3` | Responses | blocked for Codex; healthy for Agent SDK |
 | `mimo-tp-openai-chat` | `openai-agents-sdk` | `mimo-v2.5` | Chat Completions | healthy |

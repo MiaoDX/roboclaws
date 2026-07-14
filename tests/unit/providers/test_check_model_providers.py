@@ -5,8 +5,6 @@ import json
 import sys
 from pathlib import Path
 
-import pytest
-
 
 def _load_script_module():
     path = Path("scripts/dev/check_model_providers.py")
@@ -55,23 +53,82 @@ def test_provider_probe_defaults_exclude_unavailable_official_openai_route() -> 
     assert all(probe.api_key_env != "OPENAI_API_KEY" for probe in probes.values())
 
 
-def test_work_network_gate_blocks_codex_gpt55_probes_only() -> None:
+def test_codex_probes_apply_private_router_headers(monkeypatch) -> None:
     script = _load_script_module()
-    probes = {probe.probe_id: probe for probe in script.build_agent_sdk_probes()}
-    codex = probes["agents-sdk:codex-router-responses"]
-    minimax = probes["agents-sdk:minimax-responses"]
+    captured: dict[str, object] = {}
+    monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
 
-    with pytest.raises(SystemExit) as exc_info:
-        script._assert_work_network_probes_allowed([codex], is_work_network=True)
+    class FakeModelSettings:
+        def __init__(self, **_kwargs) -> None:
+            pass
 
-    message = str(exc_info.value)
-    assert "codex-router-responses/gpt-5.5" in message
-    assert "HTTP 403" in message
-    assert "provider_profile=mimo-mify-responses" in message
-    assert "provider_profile=minimax-responses" in message
+    class FakeAgent:
+        def __init__(self, **_kwargs) -> None:
+            pass
 
-    script._assert_work_network_probes_allowed([minimax], is_work_network=True)
-    script._assert_work_network_probes_allowed([codex], is_work_network=False)
+    class FakeRunner:
+        @staticmethod
+        def run_sync(*_args, **_kwargs):
+            return type("Result", (), {"final_output": "ok"})()
+
+    class FakeAsyncOpenAI:
+        def __init__(self, **kwargs) -> None:
+            captured["async_client"] = kwargs
+
+    class FakeResponsesModel:
+        def __init__(self, _model: str, *, openai_client: object) -> None:
+            captured["model_client"] = openai_client
+
+    class FakeResponses:
+        @staticmethod
+        def create(**_kwargs):
+            return type("Response", (), {"status": "completed", "output_text": "ok"})()
+
+    class FakeOpenAI:
+        def __init__(self, **kwargs) -> None:
+            captured["sync_client"] = kwargs
+            self.responses = FakeResponses()
+
+    monkeypatch.setitem(
+        sys.modules,
+        "agents",
+        type(
+            "FakeAgentsModule",
+            (),
+            {
+                "Agent": FakeAgent,
+                "ModelSettings": FakeModelSettings,
+                "OpenAIChatCompletionsModel": object,
+                "OpenAIResponsesModel": FakeResponsesModel,
+                "Runner": FakeRunner,
+                "set_tracing_disabled": staticmethod(lambda *_args, **_kwargs: None),
+            },
+        ),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "openai",
+        type(
+            "FakeOpenAIModule",
+            (),
+            {"AsyncOpenAI": FakeAsyncOpenAI, "OpenAI": FakeOpenAI},
+        ),
+    )
+
+    agent_probe = {probe.probe_id: probe for probe in script.build_agent_sdk_probes()}[
+        "agents-sdk:codex-router-responses"
+    ]
+    raw_probe = {probe.probe_id: probe for probe in script.build_provider_probes()}[
+        "provider:codex-router-responses"
+    ]
+
+    assert script.run_probe(agent_probe, prompt="ok", timeout_s=1.0).status == "PASS"
+    assert script.run_probe(raw_probe, prompt="ok", timeout_s=1.0).status == "PASS"
+    for client_key in ("async_client", "sync_client"):
+        window_id = captured[client_key]["default_headers"]["X-Codex-Window-Id"]
+        thread_id, generation = window_id.rsplit(":", 1)
+        assert len(thread_id) == 36
+        assert generation == "0"
 
 
 def test_require_all_fails_on_skipped_probe(monkeypatch) -> None:

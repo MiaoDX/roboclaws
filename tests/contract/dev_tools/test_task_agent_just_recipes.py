@@ -2763,7 +2763,7 @@ def test_coding_agent_codex_default_prefers_codex_env_even_when_xm_key_is_availa
     assert result.stdout.splitlines() == [
         "codex-router-responses",
         "-c",
-        'model="gpt-5.5"',
+        'model="gpt-5.6-sol"',
         "-c",
         'model_provider="codex-router-responses"',
         "-c",
@@ -3089,7 +3089,7 @@ def test_coding_agent_codex_can_disable_responses_websockets() -> None:
 
     assert result.stdout.splitlines() == [
         "-c",
-        'model="gpt-5.5"',
+        'model="gpt-5.6-sol"',
         "-c",
         'model_provider="codex-router-responses"',
         "-c",
@@ -3165,7 +3165,7 @@ def test_coding_agent_codex_key_contract_builds_scoped_config_args() -> None:
 
     assert result.stdout.splitlines() == [
         "-c",
-        'model="gpt-5.5"',
+        'model="gpt-5.6-sol"',
         "-c",
         'model_provider="codex-router-responses"',
         "-c",
@@ -3205,7 +3205,7 @@ def test_coding_agent_codex_official_openai_uses_same_key_contract() -> None:
 
     assert result.stdout.splitlines() == [
         "-c",
-        'model="gpt-5.5"',
+        'model="gpt-5.6-sol"',
         "-c",
         'model_provider="codex-router-responses"',
         "-c",

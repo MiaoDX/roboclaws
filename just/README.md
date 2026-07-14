@@ -131,15 +131,14 @@ config. Normal users configure keys only; command shape controls behavior.
 
 ```bash
 cp .env.example .env
-# Fill CODEX_BASE_URL and CODEX_API_KEY for the default codex-router-responses SDK route.
+# Fill CODEX_BASE_URL and CODEX_API_KEY for the default codex-router-responses / gpt-5.6-sol SDK route.
 # Optional: set ROBOCLAWS_PROVIDER_PROFILE=mimo-mify-responses with XM_LLM_API_KEY.
 # Optional: set ROBOCLAWS_PROVIDER_PROFILE=minimax-responses with MM_API_KEY.
 ```
 
-On the work network, `codex-router-responses` / `gpt-5.5` is currently blocked
-by the repo network guard after HTTP 403 probes. Use
-`provider_profile=mimo-mify-responses` or `provider_profile=minimax-responses`
-for work-network live provider experiments.
+Repo-local OpenAI Agents SDK provider routes may run on the work network.
+`codex-router-responses` handles its Router transport compatibility
+internally; callers select it like any other provider profile.
 
 Provider/model facts are centralized in
 `roboclaws/agents/provider_registry.py`, with current live verdicts in
