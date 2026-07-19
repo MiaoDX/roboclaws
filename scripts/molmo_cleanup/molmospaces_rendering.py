@@ -391,11 +391,15 @@ def inflate_bbox(
     center_y = (top + bottom) // 2
     half_width = max((right - left) // 2 + pad, min_size // 2)
     half_height = max((bottom - top) // 2 + pad, min_size // 2)
+    clipped_left = max(0, center_x - half_width)
+    clipped_top = max(29, center_y - half_height)
+    clipped_right = min(width - 1, center_x + half_width)
+    clipped_bottom = min(height - 1, center_y + half_height)
     return (
-        max(0, center_x - half_width),
-        max(29, center_y - half_height),
-        min(width - 1, center_x + half_width),
-        min(height - 1, center_y + half_height),
+        min(clipped_left, clipped_right),
+        clipped_top,
+        clipped_right,
+        max(clipped_top, clipped_bottom),
     )
 
 

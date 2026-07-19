@@ -6,6 +6,7 @@ import io
 import math
 import os
 import tempfile
+import threading
 import time
 from dataclasses import dataclass
 from functools import lru_cache
@@ -28,6 +29,7 @@ DEFAULT_GROUNDING_DINO_MODEL_ID = "IDEA-Research/grounding-dino-base"
 DEFAULT_GROUNDING_DINO_BOX_THRESHOLD = 0.25
 DEFAULT_GROUNDING_DINO_TEXT_THRESHOLD = 0.20
 ADAPTER_CATALOG_SCHEMA = "visual_grounding_adapter_catalog_v1"
+_GROUNDING_DINO_LOAD_LOCK = threading.Lock()
 
 
 @dataclass(frozen=True)
@@ -916,15 +918,24 @@ def _required_adapter_record(
     }
 
 
-@lru_cache(maxsize=8)
 def _load_grounding_dino(
+    model_id: str,
+    requested_device: str,
+    requested_dtype: str,
+) -> tuple[Any, Any, Any, dict[str, Any]]:
+    with _GROUNDING_DINO_LOAD_LOCK:
+        return _load_grounding_dino_cached(model_id, requested_device, requested_dtype)
+
+
+@lru_cache(maxsize=8)
+def _load_grounding_dino_cached(
     model_id: str,
     requested_device: str,
     requested_dtype: str,
 ) -> tuple[Any, Any, Any, dict[str, Any]]:
     try:
         import torch
-        from transformers import AutoModelForZeroShotObjectDetection, AutoProcessor
+        from transformers import AutoModelForZeroShotObjectDetection, GroundingDinoProcessor
     except ImportError as exc:
         raise ImportError(
             "Grounding DINO real mode requires sidecar dependencies: transformers and torch"
@@ -932,8 +943,8 @@ def _load_grounding_dino(
 
     device = _resolve_torch_device(torch, requested_device)
     dtype, dtype_name = _resolve_torch_dtype(torch, requested_dtype)
-    processor = AutoProcessor.from_pretrained(model_id)
-    model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id)
+    processor = _from_pretrained_local_first(GroundingDinoProcessor, model_id)
+    model = _from_pretrained_local_first(AutoModelForZeroShotObjectDetection, model_id)
     try:
         model = model.to(device)
         if dtype is not None:
@@ -952,6 +963,13 @@ def _load_grounding_dino(
         model_id=model_id,
     )
     return processor, model, torch, runtime
+
+
+def _from_pretrained_local_first(factory: Any, model_id: str) -> Any:
+    try:
+        return factory.from_pretrained(model_id, local_files_only=True)
+    except OSError:
+        return factory.from_pretrained(model_id)
 
 
 @lru_cache(maxsize=4)

@@ -24,12 +24,13 @@ EXPECTED_ROW_IDS = {
     "smoke-regression-eval-suite",
     "map-build-consumer-eval-suite",
     "map-build-consumer-openai-agents-sdk-codex-router-responses",
-    "map-build-consumer-openai-agents-sdk-mimo-inside-openai-chat",
+    "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
     "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
     "map-build-consumer-openai-agents-sdk-minimax-responses",
     "open-ended-goals-eval-suite",
     "scene-sampler-stress-eval-suite",
     "cleanup-capability-eval-suite",
+    "long-horizon-tasks-eval-suite",
     "openai-agents-sdk-open-task-live-eval",
     "openai-agents-sdk-session-live-eval",
     "openai-agents-sdk-cleanup-live-eval",
@@ -97,12 +98,19 @@ def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
     assert manifest["profile"] == "baseline-refresh"
     assert manifest["summary"]["selected_row_count"] == len(EXPECTED_ROW_IDS)
     assert manifest["summary"]["budget_skipped_count"] == 0
-    assert manifest["summary"]["eval_suite_row_count"] == 5
+    assert manifest["summary"]["eval_suite_row_count"] == 6
     assert manifest["summary"]["live_agent_eval_row_count"] == 9
     assert rows["openai-agents-sdk-open-task-live-eval"]["status"] == "not_run"
     assert rows["openai-agents-sdk-cleanup-live-eval"]["status"] == "not_run"
+    assert "live_stall_timeout_s=180" in rows["openai-agents-sdk-cleanup-live-eval"]["command"]
     assert rows["direct-camera-grounded-grounding-dino"]["status"] == "not_run"
     assert rows["direct-map-build-grounding-dino"]["status"] == "not_run"
+    assert rows["long-horizon-tasks-eval-suite"]["status"] == "not_run"
+    assert rows["long-horizon-tasks-eval-suite"]["expense"] == "local-sim"
+    assert "suite=long_horizon_tasks" in rows["long-horizon-tasks-eval-suite"]["command"]
+    raw_fpv_row = rows["openai-agents-sdk-cleanup-camera-raw-fpv-live-product"]
+    assert raw_fpv_row["axes"]["provider_profile"] == "codex-router-responses"
+    assert "provider_profile=codex-router-responses" in raw_fpv_row["command"]
     assert rows["openai-agents-sdk-codex-router-responses-availability"]["requirement"] == (
         "optional"
     )
@@ -176,7 +184,7 @@ def test_changed_file_signals_select_expected_eval_harness_rows(tmp_path: Path) 
                 "direct-cleanup-runtime-prior-consumer",
                 "map-build-consumer-eval-suite",
                 "map-build-consumer-openai-agents-sdk-codex-router-responses",
-                "map-build-consumer-openai-agents-sdk-mimo-inside-openai-chat",
+                "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
                 "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
                 "map-build-consumer-openai-agents-sdk-minimax-responses",
             ),
@@ -185,6 +193,11 @@ def test_changed_file_signals_select_expected_eval_harness_rows(tmp_path: Path) 
             "name": "scene_sampler",
             "changed_files": ["roboclaws/launch/scene_sampler.py"],
             "present_rows": ("scene-sampler-stress-eval-suite",),
+        },
+        {
+            "name": "long_horizon",
+            "changed_files": ["roboclaws/evals/long_horizon.py"],
+            "present_rows": ("long-horizon-tasks-eval-suite",),
         },
         {
             "name": "open_ended_file",
@@ -411,13 +424,13 @@ def test_map_build_consumer_plan_selects_four_profile_model_matrix(
     }
     assert set(matrix_rows) == {
         "map-build-consumer-openai-agents-sdk-codex-router-responses",
-        "map-build-consumer-openai-agents-sdk-mimo-inside-openai-chat",
+        "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
         "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
         "map-build-consumer-openai-agents-sdk-minimax-responses",
     }
     assert {row["axes"]["provider_profile"] for row in matrix_rows.values()} == {
         "codex-router-responses",
-        "mimo-inside-openai-chat",
+        "mimo-tp-openai-chat",
         "kimi-openai-chat",
         "minimax-responses",
     }
@@ -444,7 +457,7 @@ def test_explicit_provider_axis_selects_matching_map_build_consumer_matrix_rows(
     rows = _selected_rows(manifest)
     assert "map-build-consumer-openai-agents-sdk-kimi-openai-chat" in rows
     assert "map-build-consumer-openai-agents-sdk-minimax-responses" in rows
-    assert "map-build-consumer-openai-agents-sdk-mimo-inside-openai-chat" not in rows
+    assert "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat" not in rows
 
 
 def test_explicit_codex_env_selects_agent_sdk_availability_evidence(
@@ -634,6 +647,23 @@ def test_failed_live_row_with_busy_mcp_port_is_classified_as_blocked() -> None:
         assert row["status"] == "blocked"
         assert row["outcome"] == "blocked"
         assert row["blocker_category"] == "environment_blocked"
+
+
+def test_failed_dino_readiness_is_classified_as_environment_blocked() -> None:
+    row = {"exit_code": 1}
+
+    runner._classify_failed_row(
+        row,
+        stderr=(
+            "visual grounding sidecar is not ready for product runs: timeout. "
+            "visual grounding service timed out"
+        ),
+        stdout="",
+    )
+
+    assert row["status"] == "blocked"
+    assert row["outcome"] == "blocked"
+    assert row["blocker_category"] == "environment_blocked"
 
 
 def test_optional_blocked_rows_do_not_fail_harness_exit_status() -> None:

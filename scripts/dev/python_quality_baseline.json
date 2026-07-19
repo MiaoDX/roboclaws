@@ -8,7 +8,7 @@
         "path": "roboclaws/agents/drivers/openai_agents_live.py"
       },
       {
-        "lines": 1267,
+        "lines": 1315,
         "max_module_lines": 800,
         "path": "roboclaws/agents/drivers/openai_agents_model_input.py"
       },
@@ -223,7 +223,7 @@
         "path": "scripts/molmo_cleanup/run_codex_cleanup_apple2apple_summary.py"
       },
       {
-        "lines": 1795,
+        "lines": 1879,
         "max_module_lines": 800,
         "path": "scripts/molmo_cleanup/run_live_openai_agents_cleanup.py"
       },
@@ -258,7 +258,7 @@
         "path": "scripts/operator_console/render_scene_previews.py"
       },
       {
-        "lines": 1900,
+        "lines": 1918,
         "max_module_lines": 800,
         "path": "scripts/visual_grounding/adapters.py"
       },
@@ -293,7 +293,7 @@
         "path": "tests/contract/checkers/test_check_molmo_realworld_cleanup_result.py"
       },
       {
-        "lines": 3445,
+        "lines": 3451,
         "max_module_lines": 800,
         "path": "tests/contract/dev_tools/test_task_agent_just_recipes.py"
       },
@@ -338,14 +338,19 @@
         "path": "tests/contract/reports/test_molmo_cleanup_report.py"
       },
       {
-        "lines": 818,
+        "lines": 848,
         "max_module_lines": 800,
         "path": "tests/contract/visual_grounding/test_visual_grounding_service.py"
       },
       {
-        "lines": 6298,
+        "lines": 6548,
         "max_module_lines": 800,
         "path": "tests/unit/agents/test_live_runtime.py"
+      },
+      {
+        "lines": 816,
+        "max_module_lines": 800,
+        "path": "tests/unit/evals/test_eval_harness_selector.py"
       },
       {
         "lines": 3320,

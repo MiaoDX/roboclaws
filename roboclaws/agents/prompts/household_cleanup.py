@@ -251,7 +251,7 @@ def _camera_raw_compact_prompt(
     *,
     target_cleanup_count: int = 7,
     raw_fpv_candidate_budget: int = 24,
-    max_observe_per_waypoint: int = 1,
+    max_observe_per_waypoint: int = 4,
     done_retry_budget: int = 1,
 ) -> str:
     cleanup_count = max(1, int(target_cleanup_count))
@@ -262,12 +262,25 @@ def _camera_raw_compact_prompt(
         "Compact action cadence for camera-raw-fpv. Call metric_map, build "
         "the exact inspection_waypoints checklist, and sweep public waypoints with "
         "navigate_to_waypoint then observe. Inspect raw FPV image blocks directly; do not expect "
-        "structured labels. At each waypoint, use at most "
-        f"{observe_budget} observe response(s) before moving on unless a public tool error asks "
-        "for a bounded camera adjustment. Choose at most one fresh high-confidence cleanup "
+        f"structured labels. At each waypoint, use at most {observe_budget} observe response(s). "
+        "Until the required cleanup chains succeed, scan each waypoint from "
+        f"up to {observe_budget} materially distinct robot-body headings: after the initial "
+        "observe, when the current frame has no fresh actionable candidate, call "
+        "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90) then observe. "
+        "Stop rotating that waypoint when a heading repeats, the observation budget is reached, "
+        "or the cleanup gate is met; after the gate is met, use one observe response for each "
+        "remaining waypoint. Count post-placement observations within the same waypoint budget. "
+        "Choose at most one fresh high-confidence cleanup "
         "candidate per raw FPV observation and stay within the run budget of "
         f"{candidate_budget} raw-FPV candidate attempts. Never retry the same "
         "source_observation_id/category/region or visual-candidate id after a public failure. "
+        "Do not discard a likely movable cleanup object merely because it is small or clipped "
+        "by the FPV edge. Reframe each such candidate at most once with adjust_camera followed "
+        "by observe: for a left-edge candidate use yaw_delta_deg=45, for a right-edge candidate "
+        "use yaw_delta_deg=-45, for a bottom-edge candidate use pitch_delta_deg=20, and for a "
+        "top-edge candidate use pitch_delta_deg=-20. Act only from the fresh reframed observation "
+        "and its new bbox; if the "
+        "candidate becomes less visible, abandon it and continue the sweep. "
         + raw_fpv_inline_candidate_instruction()
         + " Omit source_fixture_id with Base Metric Map context. Use "
         "navigate_to_visual_candidate -> pick -> navigate_to_receptacle -> open? -> "
@@ -294,7 +307,7 @@ def render_kickoff_prompt(
     intent: str = "",
     goal_contract: GoalContract | None = None,
     raw_fpv_candidate_budget: int = 24,
-    max_observe_per_waypoint: int = 1,
+    max_observe_per_waypoint: int = 4,
     done_retry_budget: int = 1,
     camera_grounded_composite_tools: bool = False,
     operator_session_context: dict[str, Any] | None = None,

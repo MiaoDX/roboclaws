@@ -83,6 +83,16 @@ SIGNAL_RULES: tuple[dict[str, Any], ...] = (
         ),
     },
     {
+        "id": "long_horizon",
+        "label": "Long-horizon household tasks",
+        "patterns": (
+            r"long[-_]horizon",
+            r"long_horizon_tasks",
+            r"roboclaws/evals/long_horizon",
+            r"evals/.*/long_horizon",
+        ),
+    },
+    {
         "id": "mcp_checker",
         "label": "MCP/server/checker contract",
         "patterns": (

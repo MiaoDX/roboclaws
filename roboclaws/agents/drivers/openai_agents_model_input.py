@@ -183,7 +183,13 @@ def _raise_budget_failure_before_model_call(
     profile: dict[str, Any],
     timing: dict[str, Any],
 ) -> None:
-    failure = openai_agents_budget_failure(run_dir, timing, profile)
+    spans_path = events_path.with_name(events_path.name.replace("events", "spans", 1))
+    failure = openai_agents_budget_failure(
+        run_dir,
+        timing,
+        profile,
+        context_spans_path=spans_path,
+    )
     if failure is None:
         return
     _append_model_input_budget_event(
@@ -478,6 +484,34 @@ def _raw_fpv_image_info(item: Any) -> dict[str, Any] | None:
     payload = _to_jsonable(item)
     if not isinstance(payload, dict):
         return None
+    output_key = "output" if "output" in payload else "content" if "content" in payload else ""
+    output = payload.get(output_key) if output_key else None
+    if isinstance(output, list):
+        for content_index, content in enumerate(output):
+            if not isinstance(content, dict) or str(content.get("type") or "") not in {
+                "image",
+                "input_image",
+            }:
+                continue
+            image_url = str(content.get("image_url") or "")
+            if not image_url:
+                continue
+            mime = ""
+            if image_url.startswith("data:") and ";base64," in image_url:
+                mime = image_url[5:].split(";", 1)[0]
+            material = image_url.encode("utf-8")
+            text = json.dumps(payload, sort_keys=True)
+            matches = RAW_FPV_OBSERVATION_ID_RE.findall(text)
+            return {
+                "observation_id": matches[-1] if matches else "",
+                "mime_type": mime or "image/unknown",
+                "format": mime.removeprefix("image/") if mime.startswith("image/") else "",
+                "data_bytes": len(material),
+                "item_bytes": _json_size_bytes(payload),
+                "sha256": hashlib.sha256(material).hexdigest(),
+                "nested_output_key": output_key,
+                "nested_content_index": content_index,
+            }
     data = payload.get("data")
     if isinstance(data, (bytes, bytearray)):
         data_len = len(data)
@@ -536,17 +570,31 @@ def _raw_fpv_image_memory_candidate(
         ),
         "private_artifact_policy": policy.get("private_artifact_policy"),
     }
-    if _json_size_bytes(summary) >= _json_size_bytes(item):
+    nested_output_key = str(image_info.get("nested_output_key") or "")
+    nested_content_index = image_info.get("nested_content_index")
+    if nested_output_key and isinstance(nested_content_index, int):
+        candidate = copy.deepcopy(_to_jsonable(item))
+        output = candidate.get(nested_output_key) if isinstance(candidate, dict) else None
+        if isinstance(output, list) and 0 <= nested_content_index < len(output):
+            output[nested_content_index] = {
+                "type": "input_text",
+                "text": json.dumps(summary, sort_keys=True),
+            }
+        else:
+            candidate = summary
+    else:
+        candidate = summary
+    if _json_size_bytes(candidate) >= _json_size_bytes(item):
         metrics["raw_fpv_image_retained_count"] += 1
         metrics["raw_fpv_image_bytes_after"] += _json_size_bytes(item)
         return None, ""
     metrics["raw_fpv_image_evicted_count"] += 1
-    metrics["raw_fpv_image_bytes_after"] += _json_size_bytes(summary)
+    metrics["raw_fpv_image_bytes_after"] += _json_size_bytes(candidate)
     metrics["raw_fpv_image_bytes_reduced"] = max(
         0,
         metrics["raw_fpv_image_bytes_before"] - metrics["raw_fpv_image_bytes_after"],
     )
-    return summary, "raw_fpv_image_memory"
+    return candidate, "raw_fpv_image_memory"
 
 
 def _camera_grounded_history_policy(config: dict[str, Any] | None) -> dict[str, Any]:

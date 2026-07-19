@@ -2127,10 +2127,15 @@ def test_molmo_camera_raw_prompt_requires_exact_waypoint_checklist() -> None:
     assert "Call done only after every public waypoint has an observe response" in prompt
     assert "never mcp__cleanup__" in prompt
     assert "roboclaws__" in prompt
-    assert "use at most 1 observe response(s)" in prompt
+    assert "up to 4 materially distinct robot-body headings" in prompt
+    assert "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90)" in prompt
+    assert "after the gate is met, use one observe response" in prompt
     assert "Compact action cadence for camera-raw-fpv" in prompt
     assert "at most one fresh high-confidence cleanup candidate" in prompt
     assert "source_observation_id/category/region" in prompt
+    assert "for a left-edge candidate use yaw_delta_deg=45" in prompt
+    assert "for a right-edge candidate use yaw_delta_deg=-45" in prompt
+    assert "for a bottom-edge candidate use pitch_delta_deg=20" in prompt
     assert "Use the exact visual class when the image makes it clear" in prompt
     assert "Use broader cleanup categories" in prompt
     assert "only when the exact object class is uncertain" in prompt
@@ -2431,7 +2436,7 @@ def test_molmo_raw_fpv_compact_prompt_includes_budget_contract() -> None:
 
     assert "Compact action cadence for camera-raw-fpv" in prompt
     assert "run budget of 3 raw-FPV candidate attempts" in prompt
-    assert "use at most 2 observe response(s)" in prompt
+    assert "up to 2 materially distinct robot-body headings" in prompt
     assert "retry done at most 1 time(s)" in prompt
     assert "Never retry the same source_observation_id/category/region" in prompt
     assert "only MCP done producing run_result.json counts" in prompt
@@ -2444,6 +2449,7 @@ def test_molmo_live_openai_agents_uses_single_lane_default_prompt() -> None:
     assert "--prompt-mode" not in text
     assert '--raw-fpv-candidate-budget "$prompt_raw_fpv_candidate_budget"' in text
     assert '--max-observe-per-waypoint "$prompt_max_observe_per_waypoint"' in text
+    assert 'prompt_max_observe_per_waypoint="4"' in text
     assert '--done-retry-budget "$prompt_done_retry_budget"' in text
     assert 'runner_args+=(--max-turns "${ROBOCLAWS_OPENAI_AGENTS_MAX_TURNS}")' in text
     assert '--max-turns "${ROBOCLAWS_OPENAI_AGENTS_MAX_TURNS:-128}"' not in text

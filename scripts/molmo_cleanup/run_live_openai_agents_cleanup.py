@@ -621,30 +621,18 @@ class LiveOpenAIAgentsCleanupRunner:
             attempt_summary = _sdk_attempt_summary(result, attempt_index=attempt_index)
             attempts.append(attempt_summary)
             self.live_timing["openai_agents_attempts"] = attempts
-            if result.exit_status not in {0, None}:
+            context_budget_recovery = _is_context_budget_result(result)
+            if result.exit_status not in {0, None} and not context_budget_recovery:
                 break
             if (self.run_dir / "run_result.json").is_file():
                 break
-            handoff = _explicit_operator_handoff_requested(self.args)
-            if handoff and self.server_proc is not None and self.server_proc.poll() is None:
-                attempt_summary["recovery_action"] = "operator_handoff"
-                attempt_summary["recovery_reason"] = OPERATOR_HANDOFF_REASON
-                self.operator_handoff_active = True
-                self._write_status(
-                    "paused",
-                    reason=OPERATOR_HANDOFF_REASON,
-                    resume_available=True,
-                    detail=handoff,
-                )
-                print(
-                    "==> OpenAI Agents SDK requested an operator handoff; keeping "
-                    "MCP server alive for manual control"
-                )
+            if self._start_operator_handoff_if_requested(attempt_summary):
                 break
-            self._raise_agent_sdk_budget_failure_if_any(
-                attempt_index=attempt_index,
-                stage="after",
-            )
+            if not context_budget_recovery:
+                self._raise_agent_sdk_budget_failure_if_any(
+                    attempt_index=attempt_index,
+                    stage="after",
+                )
             continuation_prompt = recovery_policy.continuation_prompt(
                 original_prompt=self.initial_kickoff_prompt,
                 result=result,
@@ -656,7 +644,10 @@ class LiveOpenAIAgentsCleanupRunner:
             if continuation_prompt is None:
                 break
             attempt_summary["recovery_action"] = "continue"
-            attempt_summary["recovery_reason"] = recovery_policy.reason
+            attempt_summary["recovery_reason"] = _continuation_recovery_reason(
+                context_budget_recovery=context_budget_recovery,
+                default_reason=recovery_policy.reason,
+            )
             attempt_summary["continuation_prompt_chars"] = len(continuation_prompt)
             attempt_summary["continuation_prompt_estimated_tokens"] = _estimated_tokens_from_chars(
                 len(continuation_prompt)
@@ -677,19 +668,7 @@ class LiveOpenAIAgentsCleanupRunner:
             "trace_id": result.trace_id,
             "provider_session_id": result.provider_session_id,
         }
-        if result.exit_status not in {0, None}:
-            failure = _failure_from_sdk_result(
-                result,
-                run_dir=self.run_dir,
-                timing=self.live_timing,
-                profile=self.agent_sdk_perf_profile,
-            )
-            if result.reason == "agent_sdk_turn_budget_exceeded":
-                self.live_timing["agent_sdk_budget_terminal"] = failure.status_fields()
-            raise LiveAgentRunFailure(
-                f"OpenAI Agents SDK runtime failed: {failure.reason}",
-                failure,
-            )
+        self._raise_sdk_result_failure(result)
         if self.operator_handoff_active:
             return
         if not (self.run_dir / "run_result.json").is_file():
@@ -698,8 +677,46 @@ class LiveOpenAIAgentsCleanupRunner:
                 f"{len(attempts)} OpenAI Agents SDK invocation(s)"
             )
 
+    def _start_operator_handoff_if_requested(self, attempt_summary: dict[str, Any]) -> bool:
+        handoff = _explicit_operator_handoff_requested(self.args)
+        if not handoff or self.server_proc is None or self.server_proc.poll() is not None:
+            return False
+        attempt_summary["recovery_action"] = "operator_handoff"
+        attempt_summary["recovery_reason"] = OPERATOR_HANDOFF_REASON
+        self.operator_handoff_active = True
+        self._write_status(
+            "paused",
+            reason=OPERATOR_HANDOFF_REASON,
+            resume_available=True,
+            detail=handoff,
+        )
+        print(
+            "==> OpenAI Agents SDK requested an operator handoff; keeping "
+            "MCP server alive for manual control"
+        )
+        return True
+
+    def _raise_sdk_result_failure(self, result: Any) -> None:
+        if result.exit_status in {0, None}:
+            return
+        failure = _failure_from_sdk_result(
+            result,
+            run_dir=self.run_dir,
+            timing=self.live_timing,
+            profile=self.agent_sdk_perf_profile,
+        )
+        if result.reason in {
+            "agent_sdk_turn_budget_exceeded",
+            "provider_context_budget_exceeded",
+        }:
+            self.live_timing["agent_sdk_budget_terminal"] = failure.status_fields()
+        raise LiveAgentRunFailure(
+            f"OpenAI Agents SDK runtime failed: {failure.reason}",
+            failure,
+        )
+
     def _raise_agent_sdk_budget_failure_if_any(self, *, attempt_index: int, stage: str) -> None:
-        budget_failure = _budget_failure_from_run_state(
+        budget_failure = _raw_fpv_budget_failure(
             self.run_dir,
             self.live_timing,
             self.agent_sdk_perf_profile,
@@ -1163,19 +1180,24 @@ class IncompleteTurnRecoveryPolicy:
             return None
         if (run_dir / "run_result.json").is_file():
             return None
-        if getattr(result, "exit_status", None) not in {0, None}:
+        context_budget_recovery = _is_context_budget_result(result)
+        if getattr(result, "exit_status", None) not in {0, None} and not context_budget_recovery:
             return None
-        if getattr(result, "phase", "") != "agent-turn-complete":
+        if getattr(result, "phase", "") != "agent-turn-complete" and not context_budget_recovery:
             return None
         profile = profile or {}
         context_metrics = context_metrics or {}
         continuation_mode = str(profile.get("continuation_mode") or "repeat_full_prompt")
         total_input_tokens = _int_or_none(context_metrics.get("total_input_tokens"))
         soft_limit = _int_or_none(profile.get("context_soft_limit_tokens"))
-        if continuation_mode == "state_summary_only" or (
-            soft_limit is not None
-            and total_input_tokens is not None
-            and total_input_tokens >= soft_limit
+        if (
+            context_budget_recovery
+            or continuation_mode == "state_summary_only"
+            or (
+                soft_limit is not None
+                and total_input_tokens is not None
+                and total_input_tokens >= soft_limit
+            )
         ):
             return _compact_continuation_prompt(
                 run_dir,
@@ -1183,6 +1205,16 @@ class IncompleteTurnRecoveryPolicy:
                 context_metrics=context_metrics,
             )
         return f"{original_prompt.rstrip()}\n\n{self.continuation_suffix}\n"
+
+
+def _is_context_budget_result(result: Any) -> bool:
+    return str(getattr(result, "reason", "") or "") == "provider_context_budget_exceeded"
+
+
+def _continuation_recovery_reason(*, context_budget_recovery: bool, default_reason: str) -> str:
+    if context_budget_recovery:
+        return "context_budget_compact_continuation"
+    return default_reason
 
 
 def _profiled_kickoff_prompt(args: argparse.Namespace, *, profile: dict[str, Any]) -> str:
@@ -1441,6 +1473,19 @@ def _compact_continuation_prompt(
 
 
 def _compact_continuation_profile_guidance(profile: dict[str, Any]) -> str:
+    if profile.get("raw_fpv_candidate_budget") is not None:
+        return (
+            "RAW-FPV continuation: if latest_done_blockers is non-empty, do not call done "
+            "again until its public current values reach required. Use observe_counts_by_waypoint "
+            "to revisit the least-scanned waypoint, call navigate_to_waypoint, then rotate with "
+            "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90) and observe "
+            "a materially new FPV heading. Act on each fresh high-confidence visible candidate "
+            "with navigate_to_visual_candidate and complete its pick/place chain. For a likely "
+            "movable candidate clipped at the left or right edge, reframe it once with "
+            "adjust_camera(yaw_delta_deg=45 or -45, pitch_delta_deg=0), then observe and use only "
+            "the fresh bbox. Do not call "
+            "metric_map again when completed_waypoints already contains the public checklist."
+        )
     composite = profile.get("camera_grounded_composite_tools")
     if not isinstance(composite, dict) or not bool(composite.get("enabled")):
         return ""
@@ -1470,6 +1515,8 @@ def _compact_continuation_state(
     public_pending = _public_pending_object_handles(trace_events)
     blocked_candidates = _blocked_candidates(trace_events)
     recent_failures = _recent_tool_failures(trace_events)
+    observe_counts = _observe_counts_by_waypoint(trace_events)
+    latest_done_blockers = _latest_done_blockers(trace_events)
     return {
         "schema": "compact_agent_state_v1",
         "surface": goal_contract.get("surface") or "household-world",
@@ -1483,10 +1530,47 @@ def _compact_continuation_state(
         "public_pending_object_handles": public_pending[-32:],
         "blocked_candidates": blocked_candidates[-12:],
         "recent_tool_failures": recent_failures[-8:],
+        "observe_counts_by_waypoint": observe_counts,
+        "latest_done_blockers": latest_done_blockers,
         "remaining_public_gates": _remaining_public_gates(completed_waypoints, public_pending),
         "next_requested_action": _next_requested_action(completed_waypoints, public_pending),
         "context_metrics": _compact_metric_group(context_metrics),
     }
+
+
+def _observe_counts_by_waypoint(trace_events: list[dict[str, Any]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for event in trace_events:
+        if event.get("event") != "response" or event.get("tool") != "observe":
+            continue
+        response = event.get("response") if isinstance(event.get("response"), dict) else {}
+        waypoint_id = str(response.get("waypoint_id") or "")
+        if waypoint_id:
+            counts[waypoint_id] = counts.get(waypoint_id, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _latest_done_blockers(trace_events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    for event in reversed(trace_events):
+        if event.get("event") != "response" or event.get("tool") != "done":
+            continue
+        response = event.get("response") if isinstance(event.get("response"), dict) else {}
+        completion = (
+            response.get("completion") if isinstance(response.get("completion"), dict) else {}
+        )
+        blockers = completion.get("blockers")
+        if not isinstance(blockers, list):
+            return []
+        return [
+            {
+                key: blocker[key]
+                for key in ("type", "current", "required", "required_tool", "recovery_hint")
+                if key in blocker
+            }
+            for blocker in blockers
+            if isinstance(blocker, dict)
+        ]
+    return []
 
 
 def _goal_contract_summary(trace_events: list[dict[str, Any]]) -> dict[str, Any]:

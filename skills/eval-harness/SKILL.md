@@ -59,9 +59,9 @@ just agent::eval promote-regression \
 - `profile=adaptive`: default mode; select rows from plan text, diff paths, and
   explicit axes.
 - `profile=baseline-refresh`: select the catalog baseline set directly:
-  deterministic gates, all current eval suites, direct product rows, DINO rows,
-  Codex CLI live rows, and OpenAI Agents SDK live rows. Selected rows run or
-  record explicit blocked evidence; they are not converted to
+  deterministic gates, all current eval suites including long-horizon tasks,
+  direct product rows, DINO rows, and OpenAI Agents SDK live rows. Selected
+  rows run or record explicit blocked evidence; they are not converted to
   `skipped_by_budget`.
 - `execute budget=smoke`: deterministic confidence only; selected expensive or
   live rows are recorded as skipped by user budget in `profile=adaptive`.

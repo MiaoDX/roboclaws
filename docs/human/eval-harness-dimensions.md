@@ -14,29 +14,29 @@ Source of truth:
 
 ## Current Baseline Rows
 
-`profile=baseline-refresh` currently selects 21 rows: 20 required and 1
+`profile=baseline-refresh` currently selects 27 rows: 26 required and 1
 optional.
 
 | Row kind | Count | Rows |
 | --- | ---: | --- |
-| `deterministic_gate` | 4 | `route-trace-contract-tests`, `eval-unit-tests`, `cleanup-contract-tests`, `open-ended-household-contract-tests` |
-| `eval_suite` | 5 | `smoke-regression-eval-suite`, `map-build-consumer-eval-suite`, `open-ended-goals-eval-suite`, `scene-sampler-stress-eval-suite`, `cleanup-capability-eval-suite` |
+| `deterministic_gate` | 5 | `route-trace-contract-tests`, `eval-unit-tests`, `cleanup-contract-tests`, `agent-view-contract-tests`, `open-ended-household-contract-tests` |
+| `eval_suite` | 6 | `smoke-regression-eval-suite`, `map-build-consumer-eval-suite`, `open-ended-goals-eval-suite`, `scene-sampler-stress-eval-suite`, `cleanup-capability-eval-suite`, `long-horizon-tasks-eval-suite` |
 | `product_run` | 7 | `household-direct-world-public-product`, `planner-proof-dry-run-product`, `direct-camera-grounded-grounding-dino`, `direct-map-build-grounding-dino`, `direct-camera-raw-fpv`, `direct-map-build-world-public`, `direct-cleanup-runtime-prior-consumer` |
-| `live_agent_eval` | 5 | `codex-open-task-live-eval`, `codex-cleanup-live-eval`, `codex-cleanup-camera-raw-fpv-live-product`, `openai-agents-sdk-open-task-live-eval`, `openai-agents-sdk-codex-router-responses-availability` |
+| `live_agent_eval` | 9 | four `map-build-consumer-openai-agents-sdk-*` provider rows, `openai-agents-sdk-open-task-live-eval`, `openai-agents-sdk-session-live-eval`, `openai-agents-sdk-cleanup-live-eval`, `openai-agents-sdk-cleanup-camera-raw-fpv-live-product`, `openai-agents-sdk-codex-router-responses-availability` |
 
 | Runtime cost | Count | Rows |
 | --- | ---: | --- |
-| `deterministic` | 9 | deterministic gates plus the five eval-suite rows |
-| `local-sim` | 5 | direct world-public cleanup, planner proof, direct RAW-FPV cleanup, direct map-build, runtime-prior cleanup consumer |
+| `deterministic` | 10 | five deterministic gates plus five synthetic/static eval-suite rows |
+| `local-sim` | 6 | direct world-public cleanup, planner proof, direct RAW-FPV cleanup, direct map-build, runtime-prior cleanup consumer, long-horizon suite |
 | `dino` | 2 | direct Grounding DINO cleanup and map-build rows |
-| `live-agent` | 5 | Codex CLI rows plus OpenAI Agents SDK rows |
+| `live-agent` | 9 | OpenAI Agents SDK capability and provider rows |
 
 ## Agent Engines
 
 | Engine | Catalog status | Default provider | Supported provider profiles | Keep-pressure |
 | --- | --- | --- | --- | --- |
 | `direct-runner` | In baseline catalog | none | none | High: deterministic product and suite proof. |
-| `codex-cli` | In baseline catalog | `codex-router-responses` | `codex-router-responses`, `mimo-mify-responses`, `minimax-responses` | High when proving coding-agent MCP behavior. |
+| `codex-cli` | Launch-supported, not in baseline catalog | `codex-router-responses` | `codex-router-responses`, `mimo-mify-responses`, `minimax-responses` | Add only when proving coding-agent MCP behavior is a current baseline claim. |
 | `openai-agents-sdk` | In baseline catalog | `codex-router-responses` in launch catalog; baseline behavior row uses `minimax-responses` | `codex-router-responses`, `mimo-mify-responses`, `minimax-responses`, `mimo-tp-openai-chat`, `mimo-inside-openai-chat`, `kimi-openai-chat` | Medium: useful route, but experimental and provider-matrix prone. |
 | `claude-code` | Launch-supported, not in baseline catalog | `mimo-tp-anthropic` | `kimi-anthropic`, `mimo-tp-anthropic`, `mimo-mify-anthropic` | Discuss: add only if it protects a current coding-agent claim. |
 | `openclaw-gateway` | Launch metadata only; validation-required | `kimi` | `kimi` | Low for normal baseline; explicit validation path only. |
@@ -78,9 +78,10 @@ result. Treat provider sweeps as explicit opt-in rows, not default proof.
 | --- | ---: | --- |
 | `smoke_regression` | 1 | Minimal cleanup regression confidence. |
 | `cleanup_capability` | 1 repeated sample | Cleanup capability metrics such as repeated success. |
-| `map_build_consumer` | 3 | Runtime Metric Map actionability and downstream consumption. |
+| `map_build_consumer` | 5 | Runtime Metric Map actionability and downstream consumption. |
 | `open_ended_goals` | 3 | No-preset open household goals. |
-| `scene_sampler_stress` | 15 | Scene-source sampling projection and map-build admission metadata. |
+| `scene_sampler_stress` | 16 | Scene-source sampling projection and map-build admission metadata. |
+| `long_horizon_tasks` | 2 | Multi-room navigation, manipulation, final-state grading, and privacy. |
 
 ## Candidate Profile Groups
 

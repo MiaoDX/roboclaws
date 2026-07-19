@@ -278,7 +278,7 @@
       ]
     },
     {
-      "row_id": "map-build-consumer-openai-agents-sdk-mimo-inside-openai-chat",
+      "row_id": "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
       "row_kind": "live_agent_eval",
       "command": [
         "just",
@@ -286,14 +286,14 @@
         "suite=map_build_consumer",
         "budget=focused",
         "output_dir={eval_output_root}",
-        "stamp=map-build-consumer-openai-agents-sdk-mimo-inside-openai-chat",
+        "stamp=map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
         "agent_engine=openai-agents-sdk",
-        "provider_profile=mimo-inside-openai-chat",
+        "provider_profile=mimo-tp-openai-chat",
         "live_execution=run"
       ],
       "axes": {
         "agent_engine": "openai-agents-sdk",
-        "provider_profile": "mimo-inside-openai-chat",
+        "provider_profile": "mimo-tp-openai-chat",
         "intent": "map-build-consumer",
         "suite": "map_build_consumer",
         "evidence_lane": "world-public-labels",
@@ -494,6 +494,35 @@
       ]
     },
     {
+      "row_id": "long-horizon-tasks-eval-suite",
+      "row_kind": "eval_suite",
+      "command": [
+        "just",
+        "agent::eval",
+        "suite=long_horizon_tasks",
+        "budget=smoke",
+        "output_dir={eval_output_root}",
+        "stamp=long-horizon-tasks-eval-suite",
+        "agent_engine=direct-runner"
+      ],
+      "axes": {
+        "intent": "eval-suite",
+        "suite": "long_horizon_tasks"
+      },
+      "reason_selected": "Long-horizon household task changes need the real MolmoSpaces multi-room manipulation suite.",
+      "expense": "local-sim",
+      "selection_rule_ids": [
+        "long_horizon"
+      ],
+      "requires": [
+        "just",
+        "python_env"
+      ],
+      "profiles": [
+        "baseline-refresh"
+      ]
+    },
+    {
       "row_id": "openai-agents-sdk-open-task-live-eval",
       "row_kind": "live_agent_eval",
       "command": [
@@ -585,6 +614,7 @@
         "stamp=openai-agents-sdk-cleanup-live-eval",
         "agent_engine=openai-agents-sdk",
         "provider_profile={agent_sdk_provider}",
+        "live_stall_timeout_s=180",
         "live_execution=run"
       ],
       "axes": {
@@ -596,7 +626,7 @@
         "backend": "{default_backend}",
         "world": "{default_world}"
       },
-      "reason_selected": "Cleanup skill or MCP changes need a representative SDK live-agent cleanup capability eval row.",
+      "reason_selected": "Cleanup skill or MCP changes need a representative SDK live-agent cleanup capability eval row with enough stall budget for long reasoning calls.",
       "expense": "live-agent",
       "selection_rule_ids": [
         "cleanup_skill",
@@ -628,18 +658,18 @@
         "scenario_setup=relocate-cleanup-related-objects",
         "relocation_count=5",
         "output_dir={row_dir}/openai-agents-sdk-cleanup-camera-raw-fpv-live-product/run",
-        "provider_profile={agent_sdk_provider}"
+        "provider_profile={default_provider}"
       ],
       "axes": {
         "agent_engine": "openai-agents-sdk",
-        "provider_profile": "{agent_sdk_provider}",
+        "provider_profile": "{default_provider}",
         "intent": "cleanup",
         "preset": "cleanup",
         "evidence_lane": "camera-raw-fpv",
         "backend": "{default_backend}",
         "world": "{default_world}"
       },
-      "reason_selected": "RAW-FPV changes need a live or direct SDK RAW-FPV cleanup gate.",
+      "reason_selected": "RAW-FPV changes need a live SDK cleanup gate through a provider with verified image transport.",
       "expense": "live-agent",
       "selection_rule_ids": [
         "raw_fpv"

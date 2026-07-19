@@ -277,13 +277,17 @@ def _classify_failed_row(row: dict[str, Any], *, stderr: str, stdout: str) -> No
         "another interactive codex molmo cleanup session appears to be active" in combined
         or ("requested mcp port" in combined and "is already accepting connections" in combined)
         or "no molmospaces visual backend slot is available" in combined
+        or "visual grounding sidecar is not ready for product runs" in combined
+        or "visual grounding service timed out" in combined
+        or "visual grounding connection error" in combined
+        or "visual grounding adapter unavailable" in combined
     ):
         row["status"] = "blocked"
         row["outcome"] = "blocked"
         row["blocker_category"] = "environment_blocked"
         row["blockers"] = [
             _environment_blocker(
-                "another live Molmo cleanup MCP session, port owner, or visual slot is active"
+                "required local runtime, visual-grounding service, or visual slot is unavailable"
             )
         ]
     elif any(

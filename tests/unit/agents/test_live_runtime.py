@@ -12,6 +12,7 @@ import pytest
 
 from roboclaws.agents.drivers.openai_agents_budget import (
     OpenAIAgentsBudgetExceededError,
+    openai_agents_budget_failure,
     openai_agents_observe_budget_advisory,
 )
 from roboclaws.agents.drivers.openai_agents_live import (
@@ -48,6 +49,7 @@ from scripts.molmo_cleanup.run_live_openai_agents_cleanup import (
     LiveOpenAIAgentsCleanupRunner,
     _budget_failure_from_run_state,
     _cache_metrics,
+    _compact_continuation_prompt,
     _context_growth_metrics,
     _context_metrics,
     _kickoff_prompt_source,
@@ -2321,6 +2323,89 @@ def test_model_input_compaction_evicted_raw_fpv_images_keep_latest_frame() -> No
     assert metrics["raw_fpv_image_bytes_reduced"] > 0
 
 
+def test_model_input_compaction_handles_sdk_nested_raw_fpv_images() -> None:
+    def observe_output(observation_id: str, image_byte: str) -> dict[str, object]:
+        return {
+            "type": "function_call_output",
+            "call_id": f"observe_{observation_id}",
+            "output": [
+                {
+                    "type": "input_text",
+                    "text": json.dumps(
+                        {
+                            "schema": "raw_fpv_mcp_observe_state_v1",
+                            "raw_fpv_observation": {"observation_id": observation_id},
+                        }
+                    ),
+                },
+                {
+                    "type": "input_image",
+                    "image_url": f"data:image/png;base64,{image_byte * 3_000}",
+                },
+            ],
+        }
+
+    items = [observe_output("raw_fpv_001", "a"), observe_output("raw_fpv_002", "b")]
+
+    filtered, metrics = _compact_model_input_items(
+        items,
+        min_chars=1200,
+        raw_fpv_image_memory={
+            "enabled": True,
+            "mode": "retain_latest_full_frame",
+            "retained_full_frame_limit": 1,
+        },
+    )
+
+    assert filtered[0]["output"][0] == items[0]["output"][0]
+    evicted = filtered[0]["output"][1]
+    assert evicted["type"] == "input_text"
+    evicted_summary = json.loads(evicted["text"])
+    assert evicted_summary["schema"] == "raw_fpv_evicted_image_frame_summary_v1"
+    assert evicted_summary["observation_id"] == "raw_fpv_001"
+    assert "a" * 20 not in json.dumps(filtered[0])
+    assert filtered[1] == items[1]
+    assert filtered[1]["output"][1]["type"] == "input_image"
+    assert metrics["raw_fpv_image_item_count"] == 2
+    assert metrics["raw_fpv_image_retained_count"] == 1
+    assert metrics["raw_fpv_image_evicted_count"] == 1
+
+
+def test_model_input_compaction_does_not_summarize_latest_sdk_raw_fpv_image() -> None:
+    item = {
+        "type": "function_call_output",
+        "call_id": "observe_raw_fpv_001",
+        "output": [
+            {
+                "type": "input_text",
+                "text": json.dumps(
+                    {
+                        "schema": "raw_fpv_mcp_observe_state_v1",
+                        "raw_fpv_observation": {"observation_id": "raw_fpv_001"},
+                    }
+                ),
+            },
+            {"type": "input_image", "image_url": "data:image/png;base64," + "a" * 3_000},
+        ],
+    }
+
+    filtered, metrics = _compact_model_input_items(
+        [item],
+        min_chars=1200,
+        public_tool_output_summary=True,
+        raw_fpv_image_memory={
+            "enabled": True,
+            "mode": "retain_latest_full_frame",
+            "retained_full_frame_limit": 1,
+        },
+    )
+
+    assert filtered == [item]
+    assert metrics["compacted_item_count"] == 0
+    assert metrics["raw_fpv_image_item_count"] == 1
+    assert metrics["raw_fpv_image_retained_count"] == 1
+
+
 def test_model_input_compaction_summarizes_old_camera_grounded_history() -> None:
     def camera_output(idx: int) -> dict[str, object]:
         return {
@@ -3994,6 +4079,78 @@ def test_openai_agents_cleanup_runner_compact_continuation_excludes_full_prompt(
     assert timing["openai_agents_attempts"][0]["continuation_prompt_chars"] == len(prompts[1])
 
 
+def test_raw_fpv_compact_continuation_preserves_scan_progress_and_done_blockers(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    events = [
+        {
+            "event": "molmo_realworld_cleanup_mcp_initialized",
+            "evidence_lane": "camera-raw-fpv",
+            "goal_contract": {
+                "surface": "household-world",
+                "intent": "cleanup",
+                "normalized_goal": "clean the room",
+            },
+        },
+        {
+            "event": "response",
+            "tool": "observe",
+            "response": {"ok": True, "waypoint_id": "room_2_inspection"},
+        },
+        {
+            "event": "response",
+            "tool": "observe",
+            "response": {"ok": True, "waypoint_id": "room_2_inspection"},
+        },
+        {
+            "event": "response",
+            "tool": "observe",
+            "response": {"ok": True, "waypoint_id": "room_3_inspection"},
+        },
+        {
+            "event": "response",
+            "tool": "done",
+            "response": {
+                "ok": False,
+                "status": "blocked",
+                "completion": {
+                    "blockers": [
+                        {
+                            "type": "insufficient_grounded_cleanup_chains",
+                            "current": 2,
+                            "required": 4,
+                            "required_tool": "navigate_to_visual_candidate",
+                            "recovery_hint": "continue the cleanup loop",
+                        }
+                    ]
+                },
+            },
+        },
+    ]
+    (run_dir / "trace.jsonl").write_text(
+        "\n".join(json.dumps(event) for event in events) + "\n",
+        encoding="utf-8",
+    )
+
+    prompt = _compact_continuation_prompt(
+        run_dir,
+        profile={"profile_id": "context_managed_v1", "raw_fpv_candidate_budget": 24},
+        context_metrics={},
+    )
+
+    assert "RAW-FPV continuation" in prompt
+    assert "do not call done again" in prompt
+    assert '"room_2_inspection": 2' in prompt
+    assert '"room_3_inspection": 1' in prompt
+    assert '"current": 2' in prompt
+    assert '"required": 4' in prompt
+    assert "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90)" in prompt
+    assert "clipped at the left or right edge" in prompt
+    assert "adjust_camera(yaw_delta_deg=45 or -45, pitch_delta_deg=0)" in prompt
+
+
 def test_openai_agents_cleanup_runner_compact_continuation_preserves_composite_cadence(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -4290,6 +4447,49 @@ def test_incomplete_turn_recovery_compacts_after_context_soft_limit(tmp_path: Pa
     assert "ORIGINAL FULL PROMPT" not in prompt
 
 
+def test_context_budget_result_recovers_with_compact_continuation(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "trace.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "molmo_realworld_cleanup_mcp_initialized",
+                "evidence_lane": "camera-raw-fpv",
+                "goal_contract": {
+                    "surface": "household-world",
+                    "intent": "cleanup",
+                    "normalized_goal": "clean the room",
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    result = LiveAgentResult(
+        phase="failed",
+        exit_status=1,
+        reason="provider_context_budget_exceeded",
+    )
+
+    prompt = IncompleteTurnRecoveryPolicy(max_attempts=2).continuation_prompt(
+        original_prompt="ORIGINAL FULL PROMPT",
+        result=result,
+        run_dir=run_dir,
+        attempt_index=0,
+        profile={
+            "profile_id": "context_managed_v1",
+            "continuation_mode": "state_summary_only",
+            "raw_fpv_candidate_budget": 24,
+        },
+        context_metrics={"available": True, "max_input_tokens": 128_000},
+    )
+
+    assert prompt is not None
+    assert "compact_continuation_state" in prompt
+    assert "RAW-FPV continuation" in prompt
+    assert "ORIGINAL FULL PROMPT" not in prompt
+
+
 def test_openai_agents_budget_guard_classifies_context_hard_limit(tmp_path: Path) -> None:
     run_dir = tmp_path / "run"
     run_dir.mkdir()
@@ -4323,6 +4523,55 @@ def test_openai_agents_budget_guard_classifies_context_hard_limit(tmp_path: Path
     assert detail["current_input_tokens"] == 150
     assert detail["total_input_tokens"] == 150
     assert detail["context_hard_limit_tokens"] == 100
+
+
+def test_context_budget_guard_is_scoped_to_current_attempt_spans(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    base_spans = run_dir / "openai-agents-spans.jsonl"
+    continuation_spans = run_dir / "openai-agents-spans.continuation-1.jsonl"
+    base_spans.write_text(
+        json.dumps(
+            {
+                "event": "span_end",
+                "span_type": "response",
+                "usage": {"input_tokens": 150},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    continuation_spans.write_text(
+        json.dumps(
+            {
+                "event": "span_end",
+                "span_type": "response",
+                "usage": {"input_tokens": 80},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    profile = {"context_hard_limit_tokens": 100}
+
+    assert (
+        openai_agents_budget_failure(
+            run_dir,
+            {},
+            profile,
+            context_spans_path=continuation_spans,
+        )
+        is None
+    )
+    assert (
+        openai_agents_budget_failure(
+            run_dir,
+            {},
+            profile,
+            context_spans_path=base_spans,
+        ).reason
+        == "provider_context_budget_exceeded"
+    )
 
 
 def test_openai_agents_budget_guard_uses_current_context_not_cumulative_tokens(
@@ -5212,9 +5461,10 @@ def test_openai_agents_perf_profile_resolves_raw_fpv_budget_defaults(monkeypatch
     )
 
     assert raw["max_turns"] == 128
-    assert raw["max_continuations"] == 1
+    assert raw["max_continuations"] == 2
     assert raw["raw_fpv_candidate_budget"] == 24
     assert raw["raw_fpv_repeated_failure_limit"] == 3
+    assert raw["max_observe_per_waypoint"] == 4
     assert raw["model_input_compaction"]["enabled"] is True
     assert raw["model_input_compaction"]["raw_fpv_image_memory"] == (
         _expected_raw_fpv_image_memory_policy(1)

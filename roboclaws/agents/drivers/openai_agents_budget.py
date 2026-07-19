@@ -22,8 +22,15 @@ def openai_agents_budget_failure(
     run_dir: Path,
     timing: dict[str, Any],
     profile: dict[str, Any],
+    *,
+    context_spans_path: Path | None = None,
 ) -> LiveAgentFailure | None:
-    context_failure = context_budget_failure(run_dir, timing, profile)
+    context_failure = context_budget_failure(
+        run_dir,
+        timing,
+        profile,
+        context_spans_path=context_spans_path,
+    )
     if context_failure is not None:
         return context_failure
     return raw_fpv_budget_failure(run_dir, timing, profile)
@@ -62,11 +69,16 @@ def context_budget_failure(
     run_dir: Path,
     timing: dict[str, Any],
     profile: dict[str, Any],
+    *,
+    context_spans_path: Path | None = None,
 ) -> LiveAgentFailure | None:
     hard_limit = _int_or_none(profile.get("context_hard_limit_tokens"))
     if hard_limit is None:
         return None
-    context_metrics = openai_agents_context_budget_metrics(run_dir)
+    context_metrics = openai_agents_context_budget_metrics(
+        run_dir,
+        context_spans_path=context_spans_path,
+    )
     current_input = _int_or_none(context_metrics.get("max_input_tokens"))
     if current_input is None or current_input < hard_limit:
         return None
@@ -134,8 +146,12 @@ def raw_fpv_budget_failure(
     )
 
 
-def openai_agents_context_budget_metrics(run_dir: Path) -> dict[str, Any]:
-    response_spans = _response_span_end_events(run_dir)
+def openai_agents_context_budget_metrics(
+    run_dir: Path,
+    *,
+    context_spans_path: Path | None = None,
+) -> dict[str, Any]:
+    response_spans = _response_span_end_events(run_dir, spans_path=context_spans_path)
     if not response_spans:
         return {
             "available": False,
@@ -238,9 +254,20 @@ class _RawFpvCandidateEvent:
         }
 
 
-def _response_span_end_events(run_dir: Path) -> list[dict[str, Any]]:
+def _response_span_end_events(
+    run_dir: Path,
+    *,
+    spans_path: Path | None = None,
+) -> list[dict[str, Any]]:
     events: list[dict[str, Any]] = []
-    for path in sorted(run_dir.glob("openai-agents-spans*.jsonl")):
+    paths = (
+        [spans_path]
+        if spans_path is not None
+        else sorted(run_dir.glob("openai-agents-spans*.jsonl"))
+    )
+    for path in paths:
+        if not path.is_file():
+            continue
         for event in read_jsonl_objects(path, label="OpenAI Agents budget span"):
             if event.get("event") == "span_end" and event.get("span_type") == "response":
                 events.append(event)
