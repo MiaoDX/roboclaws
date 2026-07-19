@@ -58,7 +58,7 @@
         "path": "roboclaws/household/planner_task_feasibility.py"
       },
       {
-        "lines": 1969,
+        "lines": 1992,
         "max_module_lines": 800,
         "path": "roboclaws/household/realworld_contract.py"
       },
@@ -78,7 +78,7 @@
         "path": "roboclaws/household/realworld_runtime_map_targets.py"
       },
       {
-        "lines": 1194,
+        "lines": 1345,
         "max_module_lines": 800,
         "path": "roboclaws/household/realworld_visual_candidate_lifecycle.py"
       },
@@ -198,7 +198,7 @@
         "path": "scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py"
       },
       {
-        "lines": 1881,
+        "lines": 1958,
         "max_module_lines": 800,
         "path": "scripts/molmo_cleanup/molmospaces_subprocess_worker.py"
       },
@@ -223,7 +223,7 @@
         "path": "scripts/molmo_cleanup/run_codex_cleanup_apple2apple_summary.py"
       },
       {
-        "lines": 1879,
+        "lines": 1991,
         "max_module_lines": 800,
         "path": "scripts/molmo_cleanup/run_live_openai_agents_cleanup.py"
       },
@@ -313,7 +313,7 @@
         "path": "tests/contract/maps/test_runtime_map_prior_snapshot.py"
       },
       {
-        "lines": 3697,
+        "lines": 3802,
         "max_module_lines": 800,
         "path": "tests/contract/molmo_cleanup/test_molmo_realworld_contract.py"
       },
@@ -343,7 +343,7 @@
         "path": "tests/contract/visual_grounding/test_visual_grounding_service.py"
       },
       {
-        "lines": 6548,
+        "lines": 6770,
         "max_module_lines": 800,
         "path": "tests/unit/agents/test_live_runtime.py"
       },

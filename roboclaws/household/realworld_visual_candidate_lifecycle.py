@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 from collections.abc import Callable
+from types import SimpleNamespace
 from typing import Any
 
 from roboclaws.household import (
@@ -253,23 +254,161 @@ def resolve_visual_candidate(
 ) -> dict[str, Any]:
     category_norm = _norm(candidate.get("category"))
     source_fixture_id = str(candidate.get("source_fixture_id") or "")
-    match = visual_candidate_match_for_source(
+    source_observation_id = str(candidate.get("source_observation_id") or "")
+    private_bindings = getattr(
         contract,
-        waypoint,
-        category_norm=category_norm,
-        source_fixture_id=source_fixture_id,
-        restrict_to_waypoint_fixtures=True,
-    )
+        "_private_raw_fpv_bindings_by_observation_id",
+        {},
+    ).get(source_observation_id)
+    if isinstance(private_bindings, dict):
+        match = visual_candidate_match_for_observation_binding(
+            contract,
+            candidate,
+            private_bindings,
+            category_norm=category_norm,
+            source_fixture_id=source_fixture_id,
+        )
+    else:
+        match = visual_candidate_match_for_source(
+            contract,
+            waypoint,
+            category_norm=category_norm,
+            source_fixture_id=source_fixture_id,
+            restrict_to_waypoint_fixtures=True,
+        )
     match["locality_status"] = (
         "exact_source_fixture_in_source_observation"
         if source_fixture_id and match["status"] != "unresolved"
-        else "same_waypoint_source_observation"
+        else "same_source_observation_bbox"
+        if match.get("binding_source") == "private_observation_segmentation"
+        and match["status"] != "unresolved"
+        else "same_waypoint_public_context"
         if match["status"] != "unresolved"
         else "source_observation_locality_unresolved"
     )
     if source_fixture_id and match["status"] == "unresolved":
         match["requested_source_fixture_id"] = source_fixture_id
     return match
+
+
+def visual_candidate_match_for_observation_binding(
+    contract: Any,
+    candidate: dict[str, Any],
+    private_bindings: dict[str, Any],
+    *,
+    category_norm: str,
+    source_fixture_id: str,
+) -> dict[str, Any]:
+    candidate_bbox = _candidate_bbox_pixels(candidate, private_bindings)
+    if candidate_bbox is None:
+        return {
+            "status": "unresolved",
+            "objects": [],
+            "location_ids": [],
+            "binding_source": "private_observation_segmentation",
+        }
+    ranked: list[tuple[int, float, int, Any, str]] = []
+    handled: list[tuple[int, float, int, Any, str]] = []
+    for item in private_bindings.get("bindings") or []:
+        if not isinstance(item, dict):
+            continue
+        object_id = str(item.get("object_id") or "")
+        location_id = str(item.get("location_id") or "")
+        obj = SimpleNamespace(
+            object_id=object_id,
+            category=str(item.get("category") or "object"),
+            name=str(item.get("name") or item.get("category") or "object"),
+        )
+        category_rank = realworld_visual_candidates._declared_category_match_rank(
+            category_norm, obj
+        )
+        if not object_id or category_rank <= 0:
+            continue
+        if source_fixture_id and source_fixture_id not in {
+            location_id,
+            contract._public_fixture_reference_id(location_id),
+        }:
+            continue
+        binding_bbox = _bbox_xywh(item.get("bbox"))
+        if binding_bbox is None:
+            continue
+        score = _bbox_binding_score(candidate_bbox, binding_bbox)
+        if score <= 0.0:
+            continue
+        existing_handle = contract._observed_handles_by_object_id.get(object_id)
+        target = (
+            handled
+            if existing_handle and handle_is_non_actionable(contract, existing_handle)
+            else ranked
+        )
+        target.append((category_rank, score, int(item.get("object_pixels") or 0), obj, location_id))
+    ranked.sort(key=lambda item: (item[0], item[1], item[2]), reverse=True)
+    handled.sort(key=lambda item: (item[0], item[1], item[2]), reverse=True)
+    selected = ranked if ranked else handled
+    if not selected:
+        status = "unresolved"
+    elif (
+        len(selected) == 1
+        or selected[0][0] > selected[1][0]
+        or selected[0][1] >= selected[1][1] + 0.15
+        or (selected[0][2] >= 32 and selected[0][2] >= 4 * max(1, selected[1][2]))
+    ):
+        status = "resolved" if ranked else "already_handled"
+        selected = selected[:1]
+    else:
+        status = "ambiguous"
+    return {
+        "status": status,
+        "objects": [item[3] for item in selected],
+        "location_ids": [item[4] for item in selected],
+        "binding_source": "private_observation_segmentation",
+    }
+
+
+def _candidate_bbox_pixels(
+    candidate: dict[str, Any],
+    private_bindings: dict[str, Any],
+) -> tuple[float, float, float, float] | None:
+    image_region = candidate.get("image_region")
+    if not isinstance(image_region, dict) or image_region.get("type") != "bbox":
+        return None
+    bbox = _bbox_xywh(image_region.get("value"))
+    if bbox is None:
+        return None
+    dimensions = private_bindings.get("image_dimensions") or {}
+    width = float(dimensions.get("width") or 0)
+    height = float(dimensions.get("height") or 0)
+    if width > 0 and height > 0 and max(abs(value) for value in bbox) <= 1.0:
+        return (bbox[0] * width, bbox[1] * height, bbox[2] * width, bbox[3] * height)
+    return bbox
+
+
+def _bbox_xywh(value: Any) -> tuple[float, float, float, float] | None:
+    if not isinstance(value, (list, tuple)) or len(value) != 4:
+        return None
+    try:
+        x, y, width, height = (float(item) for item in value)
+    except (TypeError, ValueError):
+        return None
+    if width <= 0 or height <= 0:
+        return None
+    return x, y, width, height
+
+
+def _bbox_binding_score(
+    candidate: tuple[float, float, float, float],
+    binding: tuple[float, float, float, float],
+) -> float:
+    cx, cy, cw, ch = candidate
+    bx, by, bw, bh = binding
+    intersection_width = max(0.0, min(cx + cw, bx + bw) - max(cx, bx))
+    intersection_height = max(0.0, min(cy + ch, by + bh) - max(cy, by))
+    intersection = intersection_width * intersection_height
+    if intersection <= 0.0:
+        return 0.0
+    candidate_area = cw * ch
+    binding_area = bw * bh
+    return intersection / max(1.0, min(candidate_area, binding_area))
 
 
 def visual_candidate_match_for_source(
@@ -328,7 +467,11 @@ def declaration_from_resolution(
     objects = match.get("objects") or []
     if status == "resolved":
         handle = contract._handle_for_object(objects[0].object_id)
-        basis = "single public camera-context object matched exact source observation locality"
+        basis = (
+            "single public camera-context object matched source observation bbox"
+            if match.get("binding_source") == "private_observation_segmentation"
+            else "single public camera-context object matched waypoint-local public context"
+        )
         confidence = realworld_visual_candidates._grounding_confidence(candidate, "resolved")
         recovery_hint = ""
         grounding_status = "resolved"
@@ -353,12 +496,14 @@ def declaration_from_resolution(
         )
         confidence = realworld_visual_candidates._grounding_confidence(candidate, status)
         recovery_hint = (
-            "Provide a tighter bbox/point or source_fixture_id before picking."
+            "Adjust the camera to a materially different view, observe, then provide a tighter "
+            "bbox/point before picking. Do not observe again at an unchanged pose."
             if status == "ambiguous"
             else (
-                "No public actionable object matched this declaration. Retry at most once "
-                "with a tighter image_region or clearer category, then continue the "
-                "waypoint sweep instead of looping on this visible item."
+                "No public actionable object matched this declaration. Rotate the robot body, "
+                "adjust the camera, or move to another waypoint before observing again; an "
+                "unchanged pose is not fresh evidence. Retry at most once from a materially "
+                "different view, then continue the waypoint sweep instead of looping."
             )
         )
         grounding_status = status
@@ -848,6 +993,7 @@ def _visual_candidate_declaration_blocker(
             ),
         )
     if declaration.get("grounding_status") != "resolved":
+        ambiguous = declaration.get("grounding_status") == "ambiguous"
         return contract._error(
             "navigate_to_visual_candidate",
             "visual_candidate_not_resolved",
@@ -855,11 +1001,16 @@ def _visual_candidate_declaration_blocker(
             object_id=handle,
             grounding_status=declaration.get("grounding_status", "unresolved"),
             grounding_confidence=declaration.get("grounding_confidence", 0.0),
-            required_next_tool="observe",
+            required_next_tool="adjust_camera" if ambiguous else "navigate_to_relative_pose",
+            recovery_tool_options=[
+                "adjust_camera",
+                "navigate_to_relative_pose",
+                "navigate_to_waypoint",
+            ],
             recovery_hint=declaration.get(
                 "recovery_hint",
-                "If one retry with a tighter image_region still does not resolve, "
-                "treat this visible item as non-actionable public clutter and "
+                "Change the public camera view before observing again. Do not call observe at "
+                "an unchanged pose. If one retry from a different view still does not resolve, "
                 "continue to another waypoint.",
             ),
         )

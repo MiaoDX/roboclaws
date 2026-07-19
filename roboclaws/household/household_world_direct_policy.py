@@ -16,6 +16,7 @@ from roboclaws.household.realworld_contract import (
     CAMERA_MODEL_POLICY_MODE,
     CAMERA_MODEL_POLICY_NAME,
     DETERMINISTIC_SWEEP_POLICY,
+    RAW_FPV_ONLY_MODE,
     RealWorldCleanupContract,
 )
 from roboclaws.household.skill_scratchpad import empty_skill_scratchpad
@@ -296,8 +297,14 @@ def _observe_direct_cleanup_waypoint(
                 perception_mode=perception_mode,
             )
         )
-    if episode_policy.requires_map_artifacts and map_build_scan_profile.uses_robot_body_turns:
-        for turn_index in range(map_build_scan_profile.body_turn_count_per_waypoint):
+    uses_body_turn_scan = episode_policy.requires_map_artifacts or (
+        perception_mode == RAW_FPV_ONLY_MODE
+    )
+    if uses_body_turn_scan and map_build_scan_profile.uses_robot_body_turns:
+        turn_count = map_build_scan_profile.body_turn_count_per_waypoint
+        if perception_mode == RAW_FPV_ONLY_MODE and not episode_policy.requires_map_artifacts:
+            turn_count = min(3, turn_count)
+        for turn_index in range(turn_count):
             turn_response = hooks.call_tool(
                 trace_events,
                 started_at,

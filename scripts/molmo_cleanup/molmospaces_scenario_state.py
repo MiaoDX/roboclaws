@@ -325,11 +325,12 @@ def read_locations(
     mujoco.mj_forward(model, data)
     receptacles = list(state["receptacles"].values())
     locations = {}
-    for object_id in state["selected_object_ids"]:
+    for object_id, obj in state["objects"].items():
+        if not bool(obj.get("pickupable", True)):
+            continue
         if object_id == state.get("held_object_id"):
             locations[object_id] = HELD_LOCATION_ID
             continue
-        obj = state["objects"][object_id]
         if obj.get("contained_in"):
             locations[object_id] = str(obj["contained_in"])
             continue
@@ -342,8 +343,9 @@ def read_locations(
 
 def read_containment(state: dict[str, Any]) -> dict[str, dict[str, str]]:
     containment = {}
-    for object_id in state.get("selected_object_ids", []):
-        obj = state["objects"][object_id]
+    for object_id, obj in state.get("objects", {}).items():
+        if not bool(obj.get("pickupable", True)):
+            continue
         if obj.get("contained_in") or obj.get("location_relation"):
             containment[object_id] = {
                 "contained_in": obj.get("contained_in"),

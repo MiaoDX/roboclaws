@@ -105,6 +105,7 @@ def init_runtime_state(target: Any, runtime_map_prior: dict[str, Any] | None) ->
     target._detections_by_handle = {}
     target._object_lifecycle = {}
     target._raw_fpv_observations = []
+    target._private_raw_fpv_bindings_by_observation_id = {}
     target._visible_observation_count = 0
     target._camera_model_policy_events = []
     target._model_declared_observations = []

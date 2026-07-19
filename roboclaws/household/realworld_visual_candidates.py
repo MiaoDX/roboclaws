@@ -37,8 +37,9 @@ VISUAL_GROUNDING_CATEGORY_HINTS = [
 ]
 
 _EXACT_VISUAL_CATEGORY_ALIASES = frozenset(
-    {"cup", "mug", "plate", "bowl", "utensil", "fork", "knife", "spoon"}
+    {"cup", "mug", "plate", "bowl", "utensil", "fork", "knife", "spoon", "ladle"}
 )
+_EXACT_VISUAL_SYNONYM_GROUPS = (frozenset({"spoon", "ladle"}),)
 _OBJECT_CATEGORY_TARGETS = realworld_contract_projection._OBJECT_CATEGORY_TARGETS
 
 
@@ -571,14 +572,23 @@ def _grounding_confidence(candidate: dict[str, Any], status: str) -> float:
 
 
 def _declared_category_matches_object(category_norm: str, obj: Any) -> bool:
+    return _declared_category_match_rank(category_norm, obj) > 0
+
+
+def _declared_category_match_rank(category_norm: str, obj: Any) -> int:
     object_norm = _norm(f"{getattr(obj, 'category', '')} {getattr(obj, 'name', '')}")
     if not category_norm or category_norm in object_norm or object_norm in category_norm:
-        return True
+        return 2
+    if any(
+        category_norm in group and any(alias in object_norm for alias in group)
+        for group in _EXACT_VISUAL_SYNONYM_GROUPS
+    ):
+        return 2
     if category_norm in _EXACT_VISUAL_CATEGORY_ALIASES:
-        return False
+        return 0
     declared_families = _category_alias_families(category_norm)
     object_families = _category_alias_families(object_norm)
-    return bool(declared_families.intersection(object_families))
+    return 1 if declared_families.intersection(object_families) else 0
 
 
 def _category_alias_family(text_norm: str) -> str:

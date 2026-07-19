@@ -397,6 +397,44 @@ def simulated_declaration_inputs_for_waypoint(
     return inputs
 
 
+def simulated_raw_fpv_inputs_for_observation(
+    contract: VisualCandidateDeclarationContract,
+    waypoint: dict[str, Any],
+    *,
+    observation_id: str,
+) -> list[dict[str, Any]]:
+    payload = getattr(contract, "_private_raw_fpv_bindings_by_observation_id", {}).get(
+        observation_id,
+        {},
+    )
+    bindings = {
+        str(item.get("object_id") or ""): item
+        for item in payload.get("bindings") or []
+        if isinstance(item, dict) and item.get("object_id")
+    }
+    inputs: list[dict[str, Any]] = []
+    for obj, location_id in realworld_visual_candidate_lifecycle.objects_visible_from_waypoint(
+        contract,
+        waypoint,
+    ):
+        binding = bindings.get(obj.object_id)
+        if not binding or not binding.get("bbox"):
+            continue
+        inputs.append(
+            {
+                "category": obj.category,
+                "source_fixture_id": contract._public_fixture_reference_id(location_id),
+                "evidence_note": (
+                    "simulated camera model declared a public camera-derived "
+                    f"{obj.category} candidate"
+                ),
+                "image_region": {"type": "bbox", "value": list(binding["bbox"])},
+                "confidence": 0.9,
+            }
+        )
+    return inputs
+
+
 def camera_label_producer_candidates(
     contract: VisualCandidateDeclarationContract,
     *,

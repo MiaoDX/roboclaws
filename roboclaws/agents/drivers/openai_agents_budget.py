@@ -196,22 +196,52 @@ def openai_agents_context_budget_metrics(
 def raw_fpv_budget_metrics(trace_events: list[dict[str, Any]]) -> dict[str, Any]:
     candidate_attempts: list[dict[str, str]] = []
     observe_count_by_waypoint: dict[str, int] = {}
+    observation_waypoints: dict[str, str] = {}
+    observation_view_scopes: dict[str, str] = {}
     failure_fingerprints: dict[str, int] = {}
     failure_fingerprint_details: dict[str, dict[str, str]] = {}
+    failed_candidate_attempts: list[dict[str, str]] = []
+    pending_requests: dict[str, list[dict[str, Any]]] = {}
     for event in trace_events:
         tool = str(event.get("tool") or "")
         event_type = str(event.get("event") or "")
         if tool == "observe" and event_type == "response":
             _record_observe_response(event, observe_count_by_waypoint)
+            _record_observation_context(
+                event,
+                observation_waypoints,
+                observation_view_scopes,
+            )
             continue
         if tool not in {"navigate_to_visual_candidate", "declare_visual_candidates"}:
             continue
-        raw_event = _raw_fpv_candidate_event(event)
+        if event_type == "request":
+            request = event.get("request") if isinstance(event.get("request"), dict) else {}
+            pending_requests.setdefault(tool, []).append(request)
+            raw_event = _raw_fpv_candidate_event(
+                event,
+                observation_waypoints=observation_waypoints,
+                observation_view_scopes=observation_view_scopes,
+            )
+        elif event_type == "response":
+            pending_request = pending_requests[tool].pop(0) if pending_requests.get(tool) else {}
+            request = (
+                event.get("request") if isinstance(event.get("request"), dict) else {}
+            ) or pending_request
+            raw_event = _raw_fpv_candidate_event(
+                event,
+                request_override=request,
+                observation_waypoints=observation_waypoints,
+                observation_view_scopes=observation_view_scopes,
+            )
+        else:
+            continue
         if raw_event is None:
             continue
         if event_type == "request":
             candidate_attempts.append(raw_event.attempt)
         if event_type == "response" and raw_event.failure_reason:
+            failed_candidate_attempts.append(raw_event.detail)
             failure_fingerprints[raw_event.fingerprint] = (
                 failure_fingerprints.get(raw_event.fingerprint, 0) + 1
             )
@@ -219,6 +249,7 @@ def raw_fpv_budget_metrics(trace_events: list[dict[str, Any]]) -> dict[str, Any]
     return {
         "candidate_attempt_count": len(candidate_attempts),
         "candidate_attempts_sample": candidate_attempts[-12:],
+        "failed_candidate_attempts_sample": failed_candidate_attempts[-12:],
         "observe_count_by_waypoint": dict(sorted(observe_count_by_waypoint.items())),
         "repeated_failure_fingerprints": _repeated_failure_fingerprints(
             failure_fingerprints,
@@ -234,6 +265,9 @@ class _RawFpvCandidateEvent:
         source_id: str,
         category: str,
         region: str,
+        semantic_region: str,
+        waypoint_id: str,
+        view_scope: str,
         candidate_id: str,
         failure_reason: str,
     ) -> None:
@@ -244,11 +278,15 @@ class _RawFpvCandidateEvent:
             "region": region,
             "candidate_id": candidate_id,
         }
-        self.fingerprint = "|".join((source_id, category, region, candidate_id, failure_reason))
+        stable_scope = view_scope or source_id or waypoint_id
+        self.fingerprint = "|".join(
+            (stable_scope, category, semantic_region or region, candidate_id, failure_reason)
+        )
         self.detail = {
             "source_observation_id": source_id,
+            "waypoint_id": waypoint_id,
             "category": category,
-            "region": region,
+            "region": semantic_region or region,
             "candidate_id": candidate_id,
             "failure_reason": failure_reason,
         }
@@ -337,6 +375,59 @@ def _record_observe_response(
     observe_count_by_waypoint[waypoint_id] = observe_count_by_waypoint.get(waypoint_id, 0) + 1
 
 
+def _record_observation_context(
+    event: dict[str, Any],
+    observation_waypoints: dict[str, str],
+    observation_view_scopes: dict[str, str],
+) -> None:
+    response = event.get("response") if isinstance(event.get("response"), dict) else {}
+    if response.get("ok") is not True:
+        return
+    raw = (
+        response.get("raw_fpv_observation")
+        if isinstance(response.get("raw_fpv_observation"), dict)
+        else {}
+    )
+    observation_id = str(raw.get("observation_id") or response.get("observation_id") or "")
+    waypoint_id = _waypoint_from_response(response)
+    if observation_id and waypoint_id and waypoint_id != "unknown":
+        observation_waypoints[observation_id] = waypoint_id
+        observation_view_scopes[observation_id] = _observation_view_scope(
+            waypoint_id,
+            raw,
+        )
+
+
+def _observation_view_scope(waypoint_id: str, raw: dict[str, Any]) -> str:
+    camera_offset = raw.get("camera_offset") if isinstance(raw.get("camera_offset"), dict) else {}
+    camera_contract = (
+        raw.get("camera_control_contract")
+        if isinstance(raw.get("camera_control_contract"), dict)
+        else {}
+    )
+    robot_pose = (
+        camera_contract.get("robot_pose")
+        if isinstance(camera_contract.get("robot_pose"), dict)
+        else {}
+    )
+    values = [
+        camera_offset.get("yaw_delta_deg"),
+        camera_offset.get("pitch_delta_deg"),
+        robot_pose.get("x"),
+        robot_pose.get("y"),
+        robot_pose.get("theta"),
+        robot_pose.get("head_yaw"),
+        robot_pose.get("head_pitch"),
+    ]
+    normalized: list[str] = []
+    for value in values:
+        try:
+            normalized.append(f"{float(value):.3f}")
+        except (TypeError, ValueError):
+            normalized.append("")
+    return "|".join([waypoint_id, *normalized]) if any(normalized) else waypoint_id
+
+
 def _observe_over_budget(
     observe_count_by_waypoint: dict[str, Any],
     *,
@@ -349,8 +440,16 @@ def _observe_over_budget(
     }
 
 
-def _raw_fpv_candidate_event(event: dict[str, Any]) -> _RawFpvCandidateEvent | None:
-    request = event.get("request") if isinstance(event.get("request"), dict) else {}
+def _raw_fpv_candidate_event(
+    event: dict[str, Any],
+    *,
+    request_override: dict[str, Any] | None = None,
+    observation_waypoints: dict[str, str] | None = None,
+    observation_view_scopes: dict[str, str] | None = None,
+) -> _RawFpvCandidateEvent | None:
+    request = request_override or (
+        event.get("request") if isinstance(event.get("request"), dict) else {}
+    )
     response = event.get("response") if isinstance(event.get("response"), dict) else {}
     source_id = str(
         request.get("source_observation_id")
@@ -363,20 +462,46 @@ def _raw_fpv_candidate_event(event: dict[str, Any]) -> _RawFpvCandidateEvent | N
         return None
     category = str(request.get("category") or response.get("category") or "")
     region = _region_fingerprint(request.get("image_region"))
-    candidate_id = str(response.get("candidate_id") or response.get("object_id") or "")
-    failure_reason = str(
-        response.get("error_reason")
-        or response.get("failure_reason")
-        or response.get("status")
-        or ""
-    )
+    semantic_region = _semantic_region_fingerprint(request.get("image_region"))
+    candidate_id = str(request.get("candidate_id") or request.get("object_id") or "")
+    failure_reason = _candidate_failure_reason(response)
+    waypoint_id = str((observation_waypoints or {}).get(source_id) or "")
+    view_scope = str((observation_view_scopes or {}).get(source_id) or "")
     return _RawFpvCandidateEvent(
         source_id=source_id,
         category=category,
         region=region,
+        semantic_region=semantic_region,
+        waypoint_id=waypoint_id,
+        view_scope=view_scope,
         candidate_id=candidate_id,
         failure_reason=failure_reason,
     )
+
+
+def _candidate_failure_reason(response: dict[str, Any]) -> str:
+    if not response or response.get("ok") is True:
+        return ""
+    explicit = str(response.get("error_reason") or response.get("failure_reason") or "")
+    if explicit:
+        return explicit
+    status = str(response.get("status") or "")
+    return "" if status in {"", "ok", "success", "finished"} else status
+
+
+def _semantic_region_fingerprint(value: Any) -> str:
+    if not isinstance(value, dict) or value.get("type") != "bbox":
+        return _region_fingerprint(value)
+    raw = value.get("value")
+    if not isinstance(raw, list) or len(raw) != 4:
+        return _region_fingerprint(value)
+    try:
+        numbers = [float(item) for item in raw]
+    except (TypeError, ValueError):
+        return _region_fingerprint(value)
+    quantum = 0.02 if all(abs(item) <= 1.0 for item in numbers) else 8.0
+    buckets = [round(number / quantum) for number in numbers]
+    return "bbox:" + ",".join(str(item) for item in buckets)
 
 
 def _repeated_failure_fingerprints(

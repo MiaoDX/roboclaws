@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from roboclaws.core.json_sources import read_json_value
 from roboclaws.household import (
     realworld_agent_view_contract,
     realworld_contract_init,
@@ -1219,6 +1220,7 @@ class RealWorldCleanupContract:
                 item["image_artifacts"] = {"fpv": str(fpv_path)}
                 item["fpv_image"] = str(fpv_path)
                 item["artifact_status"] = "recorded"
+                self._attach_private_raw_fpv_bindings(observation_id, str(fpv_path))
             if robot_view_label:
                 item["robot_view_label"] = robot_view_label
             if camera_control_contract:
@@ -1228,6 +1230,27 @@ class RealWorldCleanupContract:
             _assert_no_forbidden_agent_view_keys(item)
             return dict(item)
         return None
+
+    def _attach_private_raw_fpv_bindings(
+        self,
+        observation_id: str,
+        fpv_path: str,
+    ) -> None:
+        resolved = Path(fpv_path)
+        if not resolved.is_absolute() and self.visual_grounding_artifact_base_dir is not None:
+            resolved = self.visual_grounding_artifact_base_dir / resolved
+        bindings_path = resolved.with_suffix(".bindings.private.json")
+        if not bindings_path.is_file():
+            return
+        payload = read_json_value(bindings_path, label="RAW-FPV private visual bindings")
+        if not isinstance(payload, dict) or payload.get("schema") != "raw_fpv_private_bindings_v1":
+            raise ValueError(f"invalid RAW-FPV private visual bindings: {bindings_path}")
+        bindings = payload.get("bindings")
+        if not isinstance(bindings, list):
+            raise ValueError(
+                f"RAW-FPV private visual bindings must contain a list: {bindings_path}"
+            )
+        self._private_raw_fpv_bindings_by_observation_id[observation_id] = payload
 
     def _place(self, fixture_id: str, *, inside: bool) -> dict[str, Any]:
         requested_fixture_id = str(fixture_id)

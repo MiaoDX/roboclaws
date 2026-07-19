@@ -502,7 +502,7 @@ def write_robot_views(
     width: int = DEFAULT_RENDER_WIDTH,
     height: int = DEFAULT_RENDER_HEIGHT,
 ) -> dict[str, Any]:
-    return molmospaces_worker_outputs.write_robot_views(
+    result = molmospaces_worker_outputs.write_robot_views(
         state,
         output_dir,
         label,
@@ -514,6 +514,83 @@ def write_robot_views(
         height=height,
         hooks=_molmo_worker_output_hooks(),
     )
+    if result.get("ok") and state.get("objects"):
+        fpv_path = Path(str((result.get("views") or {}).get("fpv") or ""))
+        if fpv_path:
+            bindings_path = fpv_path.with_suffix(".bindings.private.json")
+            bindings_path.write_text(
+                json.dumps(
+                    _raw_fpv_private_bindings(
+                        state,
+                        camera_yaw_offset_deg=camera_yaw_offset_deg,
+                        camera_pitch_offset_deg=camera_pitch_offset_deg,
+                        width=width,
+                        height=height,
+                    ),
+                    indent=2,
+                    sort_keys=True,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+    return result
+
+
+def _raw_fpv_private_bindings(
+    state: dict[str, Any],
+    *,
+    camera_yaw_offset_deg: float,
+    camera_pitch_offset_deg: float,
+    width: int,
+    height: int,
+) -> dict[str, Any]:
+    width, height = _render_dimensions(width, height)
+    model, data = _load_model_data_for_state(state)
+    _apply_qpos(data, state["qpos"])
+    _apply_robot_view_camera_offset(
+        model,
+        data,
+        yaw_offset_deg=camera_yaw_offset_deg,
+        pitch_offset_deg=camera_pitch_offset_deg,
+    )
+    mujoco.mj_forward(model, data)
+    segmentation = _render_segmentation(
+        model,
+        data,
+        "robot_0/head_camera",
+        width=width,
+        height=height,
+    )
+    locations = _read_locations(state)
+    bindings = []
+    for object_id, obj in state.get("objects", {}).items():
+        if not bool(obj.get("pickupable", True)) or object_id == state.get("held_object_id"):
+            continue
+        box = _segmentation_box(
+            model,
+            segmentation,
+            str(obj.get("body_name") or object_id),
+            label=str(obj.get("category") or object_id),
+            color=[239, 68, 68],
+        )
+        if box is None or int(box.get("pixels") or 0) <= 0:
+            continue
+        left, top, right, bottom = [int(value) for value in box["bbox"]]
+        bindings.append(
+            {
+                "object_id": str(object_id),
+                "name": str(obj.get("name") or obj.get("category") or "object"),
+                "category": str(obj.get("category") or "object"),
+                "location_id": str(locations.get(object_id) or ""),
+                "bbox": [left, top, right - left + 1, bottom - top + 1],
+                "object_pixels": int(box["pixels"]),
+            }
+        )
+    return {
+        "schema": "raw_fpv_private_bindings_v1",
+        "image_dimensions": {"width": width, "height": height},
+        "bindings": bindings,
+    }
 
 
 def _robot_view_camera_adjustment(

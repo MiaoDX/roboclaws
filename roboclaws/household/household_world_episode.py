@@ -625,7 +625,7 @@ def _detections_for_policy(
     if perception_mode == RAW_FPV_ONLY_MODE:
         waypoint = contract._waypoint_by_id(str(raw.get("waypoint_id") or ""))
         candidate_inputs = (
-            realworld_visual_candidate_declarations.simulated_declaration_inputs_for_waypoint(
+            realworld_visual_candidate_declarations.simulated_raw_fpv_inputs_for_observation(
                 contract,
                 waypoint,
                 observation_id=str(raw.get("observation_id", "")),

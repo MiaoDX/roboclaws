@@ -14,6 +14,7 @@ from roboclaws.agents.drivers.openai_agents_budget import (
     OpenAIAgentsBudgetExceededError,
     openai_agents_budget_failure,
     openai_agents_observe_budget_advisory,
+    raw_fpv_budget_metrics,
 )
 from roboclaws.agents.drivers.openai_agents_live import (
     OpenAIAgentsLiveRuntime,
@@ -50,6 +51,7 @@ from scripts.molmo_cleanup.run_live_openai_agents_cleanup import (
     _budget_failure_from_run_state,
     _cache_metrics,
     _compact_continuation_prompt,
+    _compact_continuation_state,
     _context_growth_metrics,
     _context_metrics,
     _kickoff_prompt_source,
@@ -4151,6 +4153,119 @@ def test_raw_fpv_compact_continuation_preserves_scan_progress_and_done_blockers(
     assert "adjust_camera(yaw_delta_deg=45 or -45, pitch_delta_deg=0)" in prompt
 
 
+def test_raw_fpv_compact_continuation_reconciles_scan_and_candidate_progress(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    events: list[dict[str, object]] = []
+    for waypoint_id in ("room_2_inspection", "room_3_inspection"):
+        for _ in range(4):
+            events.append(
+                {
+                    "event": "response",
+                    "tool": "observe",
+                    "response": {"ok": True, "waypoint_id": waypoint_id},
+                }
+            )
+    events.extend(
+        [
+            {
+                "event": "response",
+                "tool": "observe",
+                "response": {"ok": False, "waypoint_id": "room_4_inspection"},
+            },
+            {
+                "event": "request",
+                "tool": "navigate_to_visual_candidate",
+                "request": {
+                    "source_observation_id": "raw_fpv_001",
+                    "category": "cup",
+                    "image_region": {"type": "bbox", "value": [10, 20, 30, 40]},
+                },
+            },
+            {
+                "event": "response",
+                "tool": "navigate_to_visual_candidate",
+                "response": {
+                    "ok": False,
+                    "status": "error",
+                    "error_reason": "visual_candidate_not_resolved",
+                    "object_id": "observed_001",
+                },
+            },
+            {
+                "event": "response",
+                "tool": "done",
+                "response": {
+                    "ok": False,
+                    "status": "blocked",
+                    "completion": {
+                        "blockers": [
+                            {
+                                "type": "insufficient_grounded_cleanup_chains",
+                                "current": 1,
+                                "required": 4,
+                            },
+                            {
+                                "type": "insufficient_waypoint_coverage",
+                                "current": 1,
+                                "required": 3,
+                            },
+                        ]
+                    },
+                },
+            },
+            {
+                "event": "response",
+                "tool": "place",
+                "response": {"ok": True, "status": "ok", "object_id": "observed_002"},
+            },
+            {
+                "event": "response",
+                "tool": "place",
+                "response": {"ok": False, "status": "error", "object_id": "observed_bad"},
+            },
+        ]
+    )
+    (run_dir / "trace.jsonl").write_text(
+        "\n".join(json.dumps(event) for event in events) + "\n",
+        encoding="utf-8",
+    )
+    profile = {
+        "profile_id": "context_managed_v1",
+        "raw_fpv_candidate_budget": 24,
+        "max_observe_per_waypoint": 4,
+    }
+
+    state = _compact_continuation_state(run_dir, profile=profile, context_metrics={})
+    prompt = _compact_continuation_prompt(run_dir, profile=profile, context_metrics={})
+
+    assert state["completed_waypoints"] == ["room_2_inspection", "room_3_inspection"]
+    assert state["scan_exhausted_waypoints"] == ["room_2_inspection", "room_3_inspection"]
+    assert state["remaining_observes_by_waypoint"] == {
+        "room_2_inspection": 0,
+        "room_3_inspection": 0,
+    }
+    assert state["raw_fpv_candidate_budget"] == {
+        "attempted": 1,
+        "limit": 24,
+        "remaining": 23,
+    }
+    assert state["handled_object_handles"] == ["observed_002"]
+    assert state["latest_done_blockers"][0]["current"] == 2
+    assert state["latest_done_blockers"][0]["progress_source"] == ("trace_reconciled_after_done")
+    assert state["latest_done_blockers"][1] == {
+        "type": "insufficient_waypoint_coverage",
+        "current": 1,
+        "required": 3,
+    }
+    assert state["recent_failed_candidate_attempts"][0]["error_reason"] == (
+        "visual_candidate_not_resolved"
+    )
+    assert "do not broad re-sweep exhausted waypoints" in prompt.lower()
+
+
 def test_openai_agents_cleanup_runner_compact_continuation_preserves_composite_cadence(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -4691,15 +4806,9 @@ def test_openai_agents_budget_guard_classifies_repeated_raw_fpv_failures(
                 {
                     "event": "response",
                     "tool": "navigate_to_visual_candidate",
-                    "request": {
-                        "source_observation_id": "raw_fpv_001",
-                        "category": "cup",
-                        "image_region": {"type": "bbox", "value": [1, 2, 3, 4]},
-                    },
                     "response": {
                         "ok": False,
-                        "source_observation_id": "raw_fpv_001",
-                        "category": "cup",
+                        "object_id": f"observed_{len(events):03d}",
                         "error_reason": "source_observation_locality_unresolved",
                     },
                 },
@@ -4735,6 +4844,119 @@ def test_openai_agents_budget_guard_classifies_repeated_raw_fpv_failures(
         "source_observation_locality_unresolved"
     )
     assert "image_region" not in json.dumps(detail)
+
+
+def test_openai_agents_budget_guard_ignores_success_status_as_failure() -> None:
+    metrics = raw_fpv_budget_metrics(
+        [
+            {
+                "event": "request",
+                "tool": "navigate_to_visual_candidate",
+                "request": {
+                    "source_observation_id": "raw_fpv_001",
+                    "category": "book",
+                    "image_region": {"type": "bbox", "value": [1, 2, 3, 4]},
+                },
+            },
+            {
+                "event": "response",
+                "tool": "navigate_to_visual_candidate",
+                "response": {"ok": True, "status": "ok", "object_id": "observed_001"},
+            },
+        ]
+    )
+
+    assert metrics["candidate_attempt_count"] == 1
+    assert metrics["repeated_failure_fingerprints"] == []
+
+
+def test_raw_fpv_budget_pairs_mixed_embedded_and_fifo_responses() -> None:
+    def request(source_id: str, category: str) -> dict[str, object]:
+        return {
+            "event": "request",
+            "tool": "navigate_to_visual_candidate",
+            "request": {
+                "source_observation_id": source_id,
+                "category": category,
+                "image_region": {"type": "bbox", "value": [10, 20, 30, 40]},
+            },
+        }
+
+    first = request("raw_fpv_001", "cup")
+    second = request("raw_fpv_002", "book")
+    metrics = raw_fpv_budget_metrics(
+        [
+            first,
+            {
+                "event": "response",
+                "tool": "navigate_to_visual_candidate",
+                "request": first["request"],
+                "response": {"ok": False, "error_reason": "not_resolved"},
+            },
+            second,
+            {
+                "event": "response",
+                "tool": "navigate_to_visual_candidate",
+                "response": {"ok": False, "error_reason": "not_resolved"},
+            },
+        ]
+    )
+
+    assert [item["category"] for item in metrics["failed_candidate_attempts_sample"]] == [
+        "cup",
+        "book",
+    ]
+
+
+def test_raw_fpv_repeated_failures_are_scoped_to_materially_same_view() -> None:
+    def observe(source_id: str, yaw_delta_deg: float) -> dict[str, object]:
+        return {
+            "event": "response",
+            "tool": "observe",
+            "response": {
+                "ok": True,
+                "waypoint_id": "room_2_inspection",
+                "raw_fpv_observation": {
+                    "observation_id": source_id,
+                    "camera_offset": {
+                        "yaw_delta_deg": yaw_delta_deg,
+                        "pitch_delta_deg": 0,
+                    },
+                },
+            },
+        }
+
+    def failed_attempt(source_id: str) -> list[dict[str, object]]:
+        return [
+            {
+                "event": "request",
+                "tool": "navigate_to_visual_candidate",
+                "request": {
+                    "source_observation_id": source_id,
+                    "category": "cup",
+                    "image_region": {"type": "bbox", "value": [10, 20, 30, 40]},
+                },
+            },
+            {
+                "event": "response",
+                "tool": "navigate_to_visual_candidate",
+                "response": {"ok": False, "error_reason": "not_resolved"},
+            },
+        ]
+
+    metrics = raw_fpv_budget_metrics(
+        [
+            observe("raw_fpv_001", 0),
+            *failed_attempt("raw_fpv_001"),
+            observe("raw_fpv_002", 45),
+            *failed_attempt("raw_fpv_002"),
+            observe("raw_fpv_003", 45),
+            *failed_attempt("raw_fpv_003"),
+        ]
+    )
+
+    assert len(metrics["repeated_failure_fingerprints"]) == 1
+    assert metrics["repeated_failure_fingerprints"][0]["count"] == 2
 
 
 def test_openai_agents_budget_guard_reports_label_lane_observe_budget_as_advisory(

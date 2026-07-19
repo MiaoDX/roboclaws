@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
 from PIL import Image
 
 from roboclaws.household import agent_view as agent_view_module
-from roboclaws.household import realworld_runtime_map_targets
+from roboclaws.household import (
+    realworld_runtime_map_targets,
+    realworld_visual_candidate_declarations,
+    realworld_visual_candidate_lifecycle,
+)
 from roboclaws.household.backend_contract import CleanupBackendSession
 from roboclaws.household.realworld_contract import (
     CAMERA_MODEL_POLICY_MODE,
@@ -56,12 +61,14 @@ def _contract(
 def test_visual_candidate_exact_category_matching_does_not_cross_broad_family() -> None:
     plate = CleanupObject("plate_01", "Plate", "Plate", "table_01")
     mug = CleanupObject("mug_01", "ceramic mug", "dish", "sofa_01")
+    ladle = CleanupObject("ladle_01", "Ladle", "Ladle", "counter_01")
 
     assert _declared_category_matches_object("plate", plate) is True
     assert _declared_category_matches_object("dish", plate) is True
     assert _declared_category_matches_object("cup", plate) is False
     assert _declared_category_matches_object("plate", mug) is False
     assert _declared_category_matches_object("dish", mug) is True
+    assert _declared_category_matches_object("spoon", ladle) is True
 
 
 class _PoseRecordingBackend:
@@ -2302,10 +2309,108 @@ def test_realworld_navigate_to_unresolved_visual_candidate_says_continue_sweep()
 
     assert response["ok"] is False
     assert response["error_reason"] == "visual_candidate_not_resolved"
-    assert response["required_next_tool"] == "observe"
+    assert response["required_next_tool"] == "navigate_to_relative_pose"
+    assert "adjust_camera" in response["recovery_tool_options"]
+    assert "unchanged pose" in response["recovery_hint"]
     assert "No public actionable object matched" in response["recovery_hint"]
     assert "instead of looping" in response["recovery_hint"]
     _assert_no_forbidden_keys(response)
+
+
+def test_realworld_raw_fpv_grounding_uses_source_observation_bbox_binding(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    scenario = build_cleanup_scenario(seed=7)
+    session = CleanupBackendSession(scenario)
+    contract = _contract(session, perception_mode=RAW_FPV_ONLY_MODE)
+    target = scenario.objects[0]
+    target_location = session.object_locations()[target.object_id]
+    waypoint = next(
+        item
+        for item in contract.metric_map()["inspection_waypoints"]
+        if target_location
+        not in set(contract._private_waypoint_for_public_waypoint(item).get("fixture_ids") or [])
+    )
+    contract.navigate_to_waypoint(str(waypoint["waypoint_id"]))
+    observation = contract.observe()
+    observation_id = observation["raw_fpv_observation"]["observation_id"]
+    fpv_path = tmp_path / "raw_fpv_001.fpv.png"
+    bindings_path = fpv_path.with_suffix(".bindings.private.json")
+    bindings_path.write_text(
+        json.dumps(
+            {
+                "schema": "raw_fpv_private_bindings_v1",
+                "image_dimensions": {"width": 540, "height": 360},
+                "bindings": [
+                    {
+                        "object_id": target.object_id,
+                        "category": target.category,
+                        "name": target.name,
+                        "location_id": target_location,
+                        "bbox": [100, 80, 80, 60],
+                        "object_pixels": 3200,
+                    },
+                    {
+                        "object_id": "low_pixel_bbox_distractor",
+                        "category": target.category,
+                        "name": f"distant {target.name}",
+                        "location_id": target_location,
+                        "bbox": [105, 85, 70, 50],
+                        "object_pixels": 5,
+                    },
+                ],
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    contract.attach_raw_fpv_observation_artifact(
+        observation_id,
+        views={"fpv": str(fpv_path)},
+    )
+
+    match = realworld_visual_candidate_lifecycle.resolve_visual_candidate(
+        contract,
+        contract._private_waypoint_for_public_waypoint(waypoint),
+        {
+            "source_observation_id": observation_id,
+            "category": target.category,
+            "source_fixture_id": contract._public_fixture_reference_id(target_location),
+            "image_region": {"type": "bbox", "value": [105, 85, 70, 50]},
+        },
+    )
+
+    assert match["status"] == "resolved"
+    assert match["objects"][0].object_id == target.object_id
+    assert match["locality_status"] == "exact_source_fixture_in_source_observation"
+    assert match["binding_source"] == "private_observation_segmentation"
+    monkeypatch.setattr(
+        realworld_visual_candidate_lifecycle,
+        "objects_visible_from_waypoint",
+        lambda _contract, _waypoint: [(target, target_location)],
+    )
+    simulated_inputs = (
+        realworld_visual_candidate_declarations.simulated_raw_fpv_inputs_for_observation(
+            contract,
+            waypoint,
+            observation_id=observation_id,
+        )
+    )
+    assert simulated_inputs == [
+        {
+            "category": target.category,
+            "source_fixture_id": contract._public_fixture_reference_id(target_location),
+            "evidence_note": (
+                "simulated camera model declared a public camera-derived "
+                f"{target.category} candidate"
+            ),
+            "image_region": {"type": "bbox", "value": [100, 80, 80, 60]},
+            "confidence": 0.9,
+        }
+    ]
+    assert target.object_id not in json.dumps(simulated_inputs)
+    assert target_location not in json.dumps(simulated_inputs)
 
 
 def test_realworld_unresolved_visual_candidates_do_not_count_as_model_declared_actions() -> None:
@@ -2625,7 +2730,7 @@ def test_minimal_raw_fpv_visual_candidate_requires_public_destination() -> None:
     assert response["error_reason"] == "visual_candidate_not_resolved"
     assert response["object_id"].startswith("observed_")
     assert response["grounding_status"] == "unresolved"
-    assert response["required_next_tool"] == "observe"
+    assert response["required_next_tool"] == "navigate_to_relative_pose"
     assert "No public actionable object matched" in response["recovery_hint"]
     assert contract.pick(response["object_id"])["ok"] is False
     _assert_no_forbidden_keys(response)
@@ -2908,7 +3013,7 @@ def test_realworld_model_declared_grounding_accepts_live_broad_categories() -> N
     assert electronics["ok"] is True
     assert electronics["model_declared_observation"]["grounding_status"] == "resolved"
     assert (
-        "exact source observation locality"
+        "waypoint-local public context"
         in electronics["model_declared_observation"]["grounding_basis"]
     )
     assert str(electronics["candidate_fixture_id"]).startswith("anchor_fixture_")

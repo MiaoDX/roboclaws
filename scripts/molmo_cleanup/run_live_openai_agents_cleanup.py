@@ -71,6 +71,9 @@ from scripts.molmo_cleanup.live_status_writer import LiveRunStatusWriter
 from scripts.molmo_cleanup.openai_agents_budget import (
     raw_fpv_budget_failure as _raw_fpv_budget_failure,
 )
+from scripts.molmo_cleanup.openai_agents_budget import (
+    raw_fpv_budget_metrics as _raw_fpv_budget_metrics,
+)
 from scripts.molmo_cleanup.openai_agents_metrics import (
     model_input_filter_metrics as _model_input_filter_metrics,
 )
@@ -1476,14 +1479,18 @@ def _compact_continuation_profile_guidance(profile: dict[str, Any]) -> str:
     if profile.get("raw_fpv_candidate_budget") is not None:
         return (
             "RAW-FPV continuation: if latest_done_blockers is non-empty, do not call done "
-            "again until its public current values reach required. Use observe_counts_by_waypoint "
-            "to revisit the least-scanned waypoint, call navigate_to_waypoint, then rotate with "
+            "again until its public current values reach required or trace-reconciled progress "
+            "shows a new completion chain. Use remaining_observes_by_waypoint and visit only a "
+            "waypoint whose remaining count is positive. Do not broad re-sweep exhausted "
+            "waypoints. "
+            "For an eligible waypoint, call navigate_to_waypoint, then rotate with "
             "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90) and observe "
             "a materially new FPV heading. Act on each fresh high-confidence visible candidate "
             "with navigate_to_visual_candidate and complete its pick/place chain. For a likely "
             "movable candidate clipped at the left or right edge, reframe it once with "
             "adjust_camera(yaw_delta_deg=45 or -45, pitch_delta_deg=0), then observe and use only "
-            "the fresh bbox. Do not call "
+            "the fresh bbox. Respect raw_fpv_candidate_budget.remaining and do not retry entries "
+            "listed in recent_failed_candidate_attempts. Do not call "
             "metric_map again when completed_waypoints already contains the public checklist."
         )
     composite = profile.get("camera_grounded_composite_tools")
@@ -1517,6 +1524,19 @@ def _compact_continuation_state(
     recent_failures = _recent_tool_failures(trace_events)
     observe_counts = _observe_counts_by_waypoint(trace_events)
     latest_done_blockers = _latest_done_blockers(trace_events)
+    budget_metrics = _raw_fpv_budget_metrics(trace_events)
+    max_observes = _int_or_none(profile.get("max_observe_per_waypoint"))
+    known_waypoints = _inspection_waypoint_ids(trace_events) or list(observe_counts)
+    remaining_observes = _remaining_observes_by_waypoint(
+        known_waypoints,
+        observe_counts,
+        max_observes=max_observes,
+    )
+    exhausted_waypoints = [
+        waypoint_id for waypoint_id, remaining in remaining_observes.items() if remaining == 0
+    ]
+    candidate_limit = _int_or_none(profile.get("raw_fpv_candidate_budget"))
+    candidate_attempted = int(budget_metrics.get("candidate_attempt_count") or 0)
     return {
         "schema": "compact_agent_state_v1",
         "surface": goal_contract.get("surface") or "household-world",
@@ -1531,6 +1551,18 @@ def _compact_continuation_state(
         "blocked_candidates": blocked_candidates[-12:],
         "recent_tool_failures": recent_failures[-8:],
         "observe_counts_by_waypoint": observe_counts,
+        "remaining_observes_by_waypoint": remaining_observes,
+        "scan_exhausted_waypoints": exhausted_waypoints,
+        "raw_fpv_candidate_budget": {
+            "attempted": candidate_attempted,
+            "limit": candidate_limit,
+            "remaining": max(0, candidate_limit - candidate_attempted)
+            if candidate_limit is not None
+            else None,
+        },
+        "recent_failed_candidate_attempts": _compact_failed_candidate_attempts(
+            budget_metrics.get("failed_candidate_attempts_sample") or []
+        ),
         "latest_done_blockers": latest_done_blockers,
         "remaining_public_gates": _remaining_public_gates(completed_waypoints, public_pending),
         "next_requested_action": _next_requested_action(completed_waypoints, public_pending),
@@ -1544,6 +1576,8 @@ def _observe_counts_by_waypoint(trace_events: list[dict[str, Any]]) -> dict[str,
         if event.get("event") != "response" or event.get("tool") != "observe":
             continue
         response = event.get("response") if isinstance(event.get("response"), dict) else {}
+        if response.get("ok") is not True:
+            continue
         waypoint_id = str(response.get("waypoint_id") or "")
         if waypoint_id:
             counts[waypoint_id] = counts.get(waypoint_id, 0) + 1
@@ -1551,7 +1585,8 @@ def _observe_counts_by_waypoint(trace_events: list[dict[str, Any]]) -> dict[str,
 
 
 def _latest_done_blockers(trace_events: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    for event in reversed(trace_events):
+    for event_index in range(len(trace_events) - 1, -1, -1):
+        event = trace_events[event_index]
         if event.get("event") != "response" or event.get("tool") != "done":
             continue
         response = event.get("response") if isinstance(event.get("response"), dict) else {}
@@ -1561,7 +1596,8 @@ def _latest_done_blockers(trace_events: list[dict[str, Any]]) -> list[dict[str, 
         blockers = completion.get("blockers")
         if not isinstance(blockers, list):
             return []
-        return [
+        progress_after_done = len(_successful_placement_handles(trace_events[event_index + 1 :]))
+        normalized = [
             {
                 key: blocker[key]
                 for key in ("type", "current", "required", "required_tool", "recovery_hint")
@@ -1570,7 +1606,83 @@ def _latest_done_blockers(trace_events: list[dict[str, Any]]) -> list[dict[str, 
             for blocker in blockers
             if isinstance(blocker, dict)
         ]
+        if progress_after_done:
+            for blocker in normalized:
+                if blocker.get("type") != "insufficient_grounded_cleanup_chains":
+                    continue
+                current = _int_or_none(blocker.get("current"))
+                required = _int_or_none(blocker.get("required"))
+                if current is None:
+                    continue
+                blocker["current"] = (
+                    min(required, current + progress_after_done)
+                    if required
+                    else (current + progress_after_done)
+                )
+                blocker["progress_since_latest_done"] = progress_after_done
+                blocker["progress_source"] = "trace_reconciled_after_done"
+        return normalized
     return []
+
+
+def _inspection_waypoint_ids(trace_events: list[dict[str, Any]]) -> list[str]:
+    for event in trace_events:
+        if event.get("event") != "response" or event.get("tool") != "metric_map":
+            continue
+        response = event.get("response") if isinstance(event.get("response"), dict) else {}
+        raw_waypoints = response.get("inspection_waypoints")
+        if not isinstance(raw_waypoints, list):
+            continue
+        return [
+            str(item.get("waypoint_id") or "")
+            for item in raw_waypoints
+            if isinstance(item, dict) and item.get("waypoint_id")
+        ]
+    return []
+
+
+def _remaining_observes_by_waypoint(
+    waypoint_ids: list[str],
+    observe_counts: dict[str, int],
+    *,
+    max_observes: int | None,
+) -> dict[str, int | None]:
+    return {
+        waypoint_id: max(0, max_observes - int(observe_counts.get(waypoint_id, 0)))
+        if max_observes is not None
+        else None
+        for waypoint_id in waypoint_ids
+    }
+
+
+def _compact_failed_candidate_attempts(
+    attempts: list[dict[str, Any]],
+) -> list[dict[str, str]]:
+    return [
+        {
+            "source_observation_id": str(item.get("source_observation_id") or ""),
+            "waypoint_id": str(item.get("waypoint_id") or ""),
+            "category": str(item.get("category") or ""),
+            "region": str(item.get("region") or ""),
+            "error_reason": str(item.get("failure_reason") or "tool_failed"),
+        }
+        for item in attempts[-12:]
+        if isinstance(item, dict)
+    ]
+
+
+def _successful_placement_handles(trace_events: list[dict[str, Any]]) -> list[str]:
+    handles: list[str] = []
+    for event in trace_events:
+        if event.get("event") != "response" or event.get("tool") not in {"place", "place_inside"}:
+            continue
+        response = event.get("response") if isinstance(event.get("response"), dict) else {}
+        if response.get("ok") is not True:
+            continue
+        handle = str(response.get("object_id") or response.get("held_object_id") or "")
+        if handle and handle not in handles:
+            handles.append(handle)
+    return handles
 
 
 def _goal_contract_summary(trace_events: list[dict[str, Any]]) -> dict[str, Any]:
@@ -1600,6 +1712,8 @@ def _completed_waypoints(trace_events: list[dict[str, Any]]) -> list[str]:
         if event.get("event") != "response" or event.get("tool") != "observe":
             continue
         response = event.get("response") if isinstance(event.get("response"), dict) else {}
+        if response.get("ok") is not True:
+            continue
         waypoint_id = str(response.get("waypoint_id") or "")
         if waypoint_id and waypoint_id not in completed:
             completed.append(waypoint_id)
@@ -1607,16 +1721,7 @@ def _completed_waypoints(trace_events: list[dict[str, Any]]) -> list[str]:
 
 
 def _handled_object_handles(trace_events: list[dict[str, Any]]) -> list[str]:
-    handled: list[str] = []
-    for event in trace_events:
-        if event.get("event") != "response" or event.get("tool") not in {"place", "place_inside"}:
-            continue
-        response = event.get("response") if isinstance(event.get("response"), dict) else {}
-        for key in ("object_id", "held_object_id", "source_object_id", "target_object_id"):
-            value = str(response.get(key) or "")
-            if value and value not in handled:
-                handled.append(value)
-    return handled
+    return _successful_placement_handles(trace_events)
 
 
 def _public_pending_object_handles(trace_events: list[dict[str, Any]]) -> list[str]:
@@ -1657,7 +1762,14 @@ def _blocked_candidates(trace_events: list[dict[str, Any]]) -> list[dict[str, st
             or response.get("source_observation_id")
             or ""
         )
-        reason = str(response.get("reason") or response.get("error") or status or "tool_failed")
+        reason = str(
+            response.get("error_reason")
+            or response.get("failure_reason")
+            or response.get("reason")
+            or response.get("error")
+            or status
+            or "tool_failed"
+        )
         item = {
             "public_id": public_id,
             "reason": reason[:160],
