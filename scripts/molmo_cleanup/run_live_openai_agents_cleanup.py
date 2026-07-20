@@ -1463,16 +1463,34 @@ def _compact_continuation_prompt(
     )
     profile_guidance = _compact_continuation_profile_guidance(profile)
     profile_guidance_section = f"\n\n{profile_guidance}" if profile_guidance else ""
+    intent = str(state.get("intent") or "cleanup")
+    task_guidance = _compact_continuation_task_guidance(intent)
     return (
-        "Continuation recovery for the same live household cleanup run.\n\n"
+        f"Continuation recovery for the same live household {intent} run.\n\n"
         "Use this compact public state packet instead of replaying the original "
-        "kickoff prompt. Do not summarize progress as a final answer. Inspect "
-        "current public MCP state if needed, continue only missing cleanup work, "
-        "and call done only after MCP-visible public state satisfies the task. "
+        "kickoff prompt. Do not summarize progress as a final answer. "
+        f"{task_guidance} "
+        "Call done only after MCP-visible public state satisfies the task. "
         "The runner will count success only when MCP done produces run_result.json."
         f"{profile_guidance_section}\n\n"
         f"compact_continuation_state:\n{json.dumps(state, ensure_ascii=False, sort_keys=True)}\n"
     )
+
+
+def _compact_continuation_task_guidance(intent: str) -> str:
+    if intent == "map-build":
+        return (
+            "Continue only missing public map sweep and Runtime Metric Map evidence work. "
+            "Do not pick, place, or perform cleanup manipulation for a map-build task. "
+            "Use completed_waypoints and latest_done_blockers before requesting fresh MCP state."
+        )
+    if intent == "open-ended":
+        return (
+            "Preserve goal_summary and continue only the missing search, inspection, or "
+            "task-relevant action. Do not switch into whole-room cleanup unless the goal asks "
+            "for cleanup."
+        )
+    return "Inspect current public MCP state if needed and continue only missing cleanup work."
 
 
 def _compact_continuation_profile_guidance(profile: dict[str, Any]) -> str:
@@ -1485,7 +1503,11 @@ def _compact_continuation_profile_guidance(profile: dict[str, Any]) -> str:
             "waypoints. "
             "For an eligible waypoint, call navigate_to_waypoint, then rotate with "
             "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90) and observe "
-            "a materially new FPV heading. Act on each fresh high-confidence visible candidate "
+            "a materially new FPV heading. Prefer candidate_free_scan_waypoints in the "
+            "listed most-recently-observed-first order before revisiting waypoints that already "
+            "produced candidate attempts; this preserves the latest FPV context and current pose. "
+            "An empty default FPV view is not evidence that the whole room is clear. Act on each "
+            "fresh high-confidence visible candidate "
             "with navigate_to_visual_candidate and complete its pick/place chain. For a likely "
             "movable candidate clipped at the left or right edge, reframe it once with "
             "adjust_camera(yaw_delta_deg=45 or -45, pitch_delta_deg=0), then observe and use only "
@@ -1532,6 +1554,17 @@ def _compact_continuation_state(
         observe_counts,
         max_observes=max_observes,
     )
+    candidate_attempt_counts = _candidate_attempt_counts_by_waypoint(trace_events)
+    scan_priority = _waypoints_by_observation_recency(trace_events)
+    scan_priority.extend(
+        waypoint_id for waypoint_id in known_waypoints if waypoint_id not in scan_priority
+    )
+    candidate_free_waypoints = [
+        waypoint_id
+        for waypoint_id in scan_priority
+        if remaining_observes.get(waypoint_id) != 0
+        and candidate_attempt_counts.get(waypoint_id, 0) == 0
+    ]
     exhausted_waypoints = [
         waypoint_id for waypoint_id, remaining in remaining_observes.items() if remaining == 0
     ]
@@ -1551,6 +1584,8 @@ def _compact_continuation_state(
         "blocked_candidates": blocked_candidates[-12:],
         "recent_tool_failures": recent_failures[-8:],
         "observe_counts_by_waypoint": observe_counts,
+        "candidate_attempt_counts_by_waypoint": candidate_attempt_counts,
+        "candidate_free_scan_waypoints": candidate_free_waypoints,
         "remaining_observes_by_waypoint": remaining_observes,
         "scan_exhausted_waypoints": exhausted_waypoints,
         "raw_fpv_candidate_budget": {
@@ -1582,6 +1617,52 @@ def _observe_counts_by_waypoint(trace_events: list[dict[str, Any]]) -> dict[str,
         if waypoint_id:
             counts[waypoint_id] = counts.get(waypoint_id, 0) + 1
     return dict(sorted(counts.items()))
+
+
+def _candidate_attempt_counts_by_waypoint(
+    trace_events: list[dict[str, Any]],
+) -> dict[str, int]:
+    observation_waypoints: dict[str, str] = {}
+    for event in trace_events:
+        if event.get("event") != "response" or event.get("tool") != "observe":
+            continue
+        response = event.get("response") if isinstance(event.get("response"), dict) else {}
+        if response.get("ok") is not True:
+            continue
+        raw_observation = response.get("raw_fpv_observation")
+        if not isinstance(raw_observation, dict):
+            compact = response.get("compact_observation")
+            compact = compact if isinstance(compact, dict) else {}
+            raw_observation = compact.get("raw_fpv_observation")
+        raw_observation = raw_observation if isinstance(raw_observation, dict) else {}
+        observation_id = str(raw_observation.get("observation_id") or "")
+        waypoint_id = str(response.get("waypoint_id") or raw_observation.get("waypoint_id") or "")
+        if observation_id and waypoint_id:
+            observation_waypoints[observation_id] = waypoint_id
+
+    counts: dict[str, int] = {}
+    for event in trace_events:
+        if event.get("event") != "request" or event.get("tool") != "navigate_to_visual_candidate":
+            continue
+        request = event.get("request") if isinstance(event.get("request"), dict) else {}
+        waypoint_id = observation_waypoints.get(str(request.get("source_observation_id") or ""), "")
+        if waypoint_id:
+            counts[waypoint_id] = counts.get(waypoint_id, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _waypoints_by_observation_recency(trace_events: list[dict[str, Any]]) -> list[str]:
+    waypoint_ids: list[str] = []
+    for event in reversed(trace_events):
+        if event.get("event") != "response" or event.get("tool") != "observe":
+            continue
+        response = event.get("response") if isinstance(event.get("response"), dict) else {}
+        if response.get("ok") is not True:
+            continue
+        waypoint_id = str(response.get("waypoint_id") or "")
+        if waypoint_id and waypoint_id not in waypoint_ids:
+            waypoint_ids.append(waypoint_id)
+    return waypoint_ids
 
 
 def _latest_done_blockers(trace_events: list[dict[str, Any]]) -> list[dict[str, Any]]:

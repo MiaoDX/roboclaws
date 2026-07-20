@@ -1084,9 +1084,17 @@ def test_live_surface_product_rejects_failed_live_status(
         )
 
 
-def test_live_eval_classifies_observe_budget_runtime_failure(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "reason",
+    [
+        "observe_budget_exhausted",
+        "agent_sdk_turn_budget_exceeded",
+        "provider_context_budget_exceeded",
+    ],
+)
+def test_live_eval_classifies_budget_runtime_failure(tmp_path: Path, reason: str) -> None:
     def live_product_runner(**_kwargs: Any) -> dict[str, Any]:
-        raise RuntimeError("OpenAI Agents SDK runtime failed: observe_budget_exhausted")
+        raise RuntimeError(f"OpenAI Agents SDK runtime failed: {reason}")
 
     run = run_eval_suite(
         "open_ended_goals",

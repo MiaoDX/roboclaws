@@ -3,12 +3,12 @@
   "pylint_too_many_lines": {
     "files": [
       {
-        "lines": 1943,
+        "lines": 1968,
         "max_module_lines": 800,
         "path": "roboclaws/agents/drivers/openai_agents_live.py"
       },
       {
-        "lines": 1315,
+        "lines": 1452,
         "max_module_lines": 800,
         "path": "roboclaws/agents/drivers/openai_agents_model_input.py"
       },
@@ -23,7 +23,7 @@
         "path": "roboclaws/evals/live_runtime.py"
       },
       {
-        "lines": 1773,
+        "lines": 1781,
         "max_module_lines": 800,
         "path": "roboclaws/evals/runner.py"
       },
@@ -43,7 +43,7 @@
         "path": "roboclaws/household/agibot_sdk_runner.py"
       },
       {
-        "lines": 1241,
+        "lines": 1322,
         "max_module_lines": 800,
         "path": "roboclaws/household/household_world_episode.py"
       },
@@ -58,7 +58,7 @@
         "path": "roboclaws/household/planner_task_feasibility.py"
       },
       {
-        "lines": 1992,
+        "lines": 2006,
         "max_module_lines": 800,
         "path": "roboclaws/household/realworld_contract.py"
       },
@@ -223,7 +223,7 @@
         "path": "scripts/molmo_cleanup/run_codex_cleanup_apple2apple_summary.py"
       },
       {
-        "lines": 1991,
+        "lines": 2072,
         "max_module_lines": 800,
         "path": "scripts/molmo_cleanup/run_live_openai_agents_cleanup.py"
       },
@@ -313,7 +313,7 @@
         "path": "tests/contract/maps/test_runtime_map_prior_snapshot.py"
       },
       {
-        "lines": 3802,
+        "lines": 3901,
         "max_module_lines": 800,
         "path": "tests/contract/molmo_cleanup/test_molmo_realworld_contract.py"
       },
@@ -343,7 +343,7 @@
         "path": "tests/contract/visual_grounding/test_visual_grounding_service.py"
       },
       {
-        "lines": 6770,
+        "lines": 7008,
         "max_module_lines": 800,
         "path": "tests/unit/agents/test_live_runtime.py"
       },
@@ -353,7 +353,7 @@
         "path": "tests/unit/evals/test_eval_harness_selector.py"
       },
       {
-        "lines": 3320,
+        "lines": 3328,
         "max_module_lines": 800,
         "path": "tests/unit/evals/test_eval_runner.py"
       },

@@ -8,6 +8,7 @@ from roboclaws.household import (
     realworld_visual_candidate_lifecycle,
     realworld_visual_candidates,
 )
+from roboclaws.household.backend_contract import SYNTHETIC_BACKEND
 from roboclaws.household.raw_fpv_guidance import (
     raw_fpv_visual_candidate_recovery,
     raw_fpv_visual_candidate_recovery_hint,
@@ -32,6 +33,7 @@ _manual_visual_grounding_pipeline = realworld_visual_candidates._manual_visual_g
 
 
 class VisualCandidateDeclarationContract(Protocol):
+    contract: Any
     perception_mode: str
     visual_grounding_pipeline_id: str
     visual_grounding_client: Any
@@ -412,6 +414,15 @@ def simulated_raw_fpv_inputs_for_observation(
         for item in payload.get("bindings") or []
         if isinstance(item, dict) and item.get("object_id")
     }
+    if not bindings and _uses_synthetic_raw_fpv_declarations(contract):
+        return [
+            {key: value for key, value in candidate.items() if key != "target_fixture_id"}
+            for candidate in simulated_declaration_inputs_for_waypoint(
+                contract,
+                waypoint,
+                observation_id=observation_id,
+            )
+        ]
     inputs: list[dict[str, Any]] = []
     for obj, location_id in realworld_visual_candidate_lifecycle.objects_visible_from_waypoint(
         contract,
@@ -433,6 +444,17 @@ def simulated_raw_fpv_inputs_for_observation(
             }
         )
     return inputs
+
+
+def _uses_synthetic_raw_fpv_declarations(
+    contract: VisualCandidateDeclarationContract,
+) -> bool:
+    backend_name = getattr(getattr(contract, "contract", None), "backend_name", None)
+    return (
+        callable(backend_name)
+        and backend_name() == SYNTHETIC_BACKEND
+        and contract.visual_grounding_pipeline_id == SIM_VISUAL_GROUNDING_PIPELINE_ID
+    )
 
 
 def camera_label_producer_candidates(

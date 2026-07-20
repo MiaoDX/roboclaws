@@ -33,6 +33,7 @@ from roboclaws.household.realworld_policy_trace import (
 from roboclaws.household.robot_view_pose import room_for_point
 from roboclaws.household.semantic_acceptability import (
     annotate_score_with_semantic_acceptability,
+    semantic_disturbance_metrics,
 )
 from roboclaws.household.semantic_timeline import SEMANTIC_LOOP_VARIANT
 from roboclaws.household.target_query import resolve_target_query
@@ -1512,11 +1513,13 @@ class RealWorldCleanupContract:
         total_waypoints = len(self._waypoints)
         coverage = len(self._observed_waypoint_ids) / total_waypoints if total_waypoints else 1.0
         target_ids = {target.object_id for target in self.scenario.private_manifest.targets}
-        disturbance_count = sum(
-            1
-            for object_id, start in self._initial_locations.items()
-            if object_id not in target_ids and final_locations.get(object_id) not in {None, start}
+        disturbance = semantic_disturbance_metrics(
+            self.scenario,
+            self._initial_locations,
+            final_locations,
+            excluded_object_ids=target_ids,
         )
+        disturbance_count = disturbance["disturbance_count"]
         completion_status = (
             "success"
             if mess_rate >= 0.70 and coverage >= 0.90 and disturbance_count <= 2
@@ -1528,6 +1531,7 @@ class RealWorldCleanupContract:
             "mess_restoration_rate": round(mess_rate, 6),
             "sweep_coverage_rate": round(coverage, 6),
             "disturbance_count": disturbance_count,
+            "non_target_location_change_count": disturbance["non_target_location_change_count"],
             "completion_status": completion_status,
         }
 
@@ -1694,6 +1698,16 @@ class RealWorldCleanupContract:
         item["state"] = state
         item.update({key: value for key, value in updates.items() if value is not None})
         lifecycle[handle] = item
+
+    def _mark_visual_scan_unresolved(self, handle: str, *, reason: str) -> None:
+        self._set_handle_state(
+            handle,
+            "unresolved",
+            tool="observe",
+            grounding_status="unresolved",
+            actionability_status="needs_clarification",
+            visual_scan_failure_reason=reason,
+        )
 
     def _waypoint_by_id(self, waypoint_id: str) -> dict[str, Any] | None:
         generated = self._generated_inspection_waypoints.get(str(waypoint_id))

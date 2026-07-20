@@ -302,23 +302,42 @@ def _exercise_session_flow(
 def _wait_for_terminal(base_url: str, run_id: str, *, deadline: float) -> dict[str, Any]:
     while time.monotonic() < deadline:
         state = _api_json(base_url, "GET", f"/api/runs/{run_id}", {})
-        state_markers = {
-            str(state.get("status") or "").lower(),
-            str(state.get("phase") or "").lower(),
-            str(state.get("terminal_reason") or "").lower(),
-        }
-        if state_markers & {
+        phase = str(state.get("phase") or "").lower()
+        status = str(state.get("status") or "").lower()
+        terminal_reason = str(state.get("terminal_reason") or "").lower()
+        lifecycle_terminal = {
             "done",
             "finished",
-            "passed",
             "failed",
             "stopped_by_operator",
             "human_takeover_stop",
             "emergency_stopped",
-        }:
-            return state
+        }
+        operator_terminal = {
+            "stopped_by_operator",
+            "human_takeover_stop",
+            "emergency_stopped",
+        }
+        if (
+            phase in lifecycle_terminal
+            or terminal_reason in operator_terminal
+            or status in operator_terminal
+        ):
+            pid = state.get("pid")
+            if not isinstance(pid, int) or not _pid_exists(pid):
+                return state
         time.sleep(1.0)
     raise RuntimeError(f"run {run_id} did not reach terminal state before timeout")
+
+
+def _pid_exists(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
 
 
 def _parent_consumed_steer(parent_dir: Path) -> bool:

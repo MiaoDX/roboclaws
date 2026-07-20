@@ -76,6 +76,31 @@ class OpenAIAgentsLiveRuntime(LiveAgentRuntime):
                 spans_path=spans_path,
                 skill_context_path=skill_context_path,
             )
+        except asyncio.CancelledError as exc:
+            run_result_path = request.run_dir / "run_result.json"
+            if run_result_path.is_file():
+                result = None
+            else:
+                failure = LiveAgentFailure(
+                    "agent_runtime_cancelled",
+                    retryable=False,
+                    detail=str(exc) or "OpenAI Agents SDK runtime was cancelled before done",
+                )
+                normalized = LiveAgentResult.from_failure(
+                    phase="failed",
+                    exit_status=1,
+                    failure=failure,
+                    started_at_epoch=started_at,
+                    finished_at_epoch=time.time(),
+                    artifact_paths={
+                        "openai_agents_events": events_path,
+                        "openai_agents_spans": spans_path,
+                        "openai_agents_skill_context": skill_context_path,
+                        "live_status": status_path,
+                    },
+                )
+                _write_json(status_path, normalized.to_live_status_payload())
+                return normalized
         except ImportError:
             failure = LiveAgentFailure(
                 "provider_config_failure",

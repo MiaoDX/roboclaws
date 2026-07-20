@@ -307,7 +307,10 @@ def _response_span_end_events(
         if not path.is_file():
             continue
         for event in read_jsonl_objects(path, label="OpenAI Agents budget span"):
-            if event.get("event") == "span_end" and event.get("span_type") == "response":
+            if event.get("event") == "span_end" and event.get("span_type") in {
+                "generation",
+                "response",
+            }:
                 events.append(event)
     return events
 

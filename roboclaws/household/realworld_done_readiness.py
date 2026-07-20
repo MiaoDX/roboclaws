@@ -13,7 +13,11 @@ from roboclaws.household.realworld_agent_view_contract import (
     positive_int,
     public_success_threshold,
 )
-from roboclaws.household.task_intent import household_intent_is_open_ended
+from roboclaws.household.task_intent import (
+    HOUSEHOLD_INTENT_MAP_BUILD,
+    household_intent_is_open_ended,
+    normalize_household_intent,
+)
 from roboclaws.household.visual_scan_guidance import visual_scan_done_recovery_hint
 
 DONE_READINESS_POLICY_RAW_FPV = "raw_fpv_grounded_cleanup_chains"
@@ -171,11 +175,14 @@ def evaluate_done_readiness(
 ) -> dict[str, Any]:
     blockers: list[dict[str, Any]] = []
     open_ended_task = open_ended_task_intent(contract)
-    pending = (
-        held_cleanup_candidates(contract)
-        if open_ended_task
-        else pending_cleanup_candidates(contract)
-    )
+    map_build_task = map_build_task_intent(contract)
+    pending = []
+    if not map_build_task:
+        pending = (
+            held_cleanup_candidates(contract)
+            if open_ended_task
+            else pending_cleanup_candidates(contract)
+        )
     if pending:
         required_tool = str(pending[0].get("required_tool") or "navigate_to_object")
         if any(str(item.get("state") or "") == "held" for item in pending):
@@ -220,7 +227,7 @@ def evaluate_done_readiness(
             }
         )
 
-    if contract.perception_mode == raw_fpv_only_mode:
+    if not map_build_task and contract.perception_mode == raw_fpv_only_mode:
         required_declaration_count = required_model_declared_observations(contract)
         declaration_count = len(contract._model_declared_observations)
         if declaration_count < required_declaration_count:
@@ -241,12 +248,14 @@ def evaluate_done_readiness(
                 }
             )
 
-    grounded_chain_blocker = grounded_cleanup_chain_blocker(
-        contract,
-        semantic_cleanup_evidence,
-        raw_fpv_only_mode=raw_fpv_only_mode,
-        assert_no_forbidden_agent_view_keys=assert_no_forbidden_agent_view_keys,
-    )
+    grounded_chain_blocker = None
+    if not map_build_task:
+        grounded_chain_blocker = grounded_cleanup_chain_blocker(
+            contract,
+            semantic_cleanup_evidence,
+            raw_fpv_only_mode=raw_fpv_only_mode,
+            assert_no_forbidden_agent_view_keys=assert_no_forbidden_agent_view_keys,
+        )
     if grounded_chain_blocker is not None:
         blockers.append(grounded_chain_blocker)
 
@@ -415,3 +424,7 @@ def sweep_coverage(contract: DoneReadinessContract) -> dict[str, Any]:
 
 def open_ended_task_intent(contract: DoneReadinessContract) -> bool:
     return household_intent_is_open_ended(contract.task_intent)
+
+
+def map_build_task_intent(contract: DoneReadinessContract) -> bool:
+    return normalize_household_intent(contract.task_intent) == HOUSEHOLD_INTENT_MAP_BUILD

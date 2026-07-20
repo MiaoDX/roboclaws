@@ -8,7 +8,11 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
 
-from roboclaws.evals.session_live import SESSION_LIVE_API_TIMEOUT_S, run_session_live_eval
+from roboclaws.evals.session_live import (
+    SESSION_LIVE_API_TIMEOUT_S,
+    _wait_for_terminal,
+    run_session_live_eval,
+)
 from roboclaws.operator_console.interactions import check_operator_messages_for_mcp
 from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.routes import get_selection
@@ -183,6 +187,25 @@ def test_session_live_next_goal_timeout_covers_autostart_retry_window() -> None:
     server_retry_window_s = FOLLOW_UP_AUTOSTART_ATTEMPTS * FOLLOW_UP_AUTOSTART_RETRY_DELAY_S
 
     assert SESSION_LIVE_API_TIMEOUT_S > server_retry_window_s
+
+
+def test_session_live_waits_for_lifecycle_phase_after_product_status_passed() -> None:
+    states = iter(
+        [
+            {"status": "passed", "phase": "running-sdk"},
+            {"status": "passed", "phase": "finished", "pid": 1234},
+            {"status": "passed", "phase": "finished", "pid": 1234},
+        ]
+    )
+
+    with (
+        patch("roboclaws.evals.session_live._api_json", side_effect=lambda *_args: next(states)),
+        patch("roboclaws.evals.session_live._pid_exists", side_effect=[True, False]),
+        patch("roboclaws.evals.session_live.time.sleep"),
+    ):
+        terminal = _wait_for_terminal("http://console", "run-1", deadline=time.monotonic() + 1)
+
+    assert terminal["phase"] == "finished"
 
 
 def _consume_parent_steer_then_finish(

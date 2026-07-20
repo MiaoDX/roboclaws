@@ -1556,7 +1556,15 @@ def _failure_class_from_exception(exc: Exception) -> str:
     if isinstance(exc, (ImportError, ModuleNotFoundError, TimeoutError)):
         return "environment_blocked"
     message = str(exc).lower()
-    if "observe_budget_exhausted" in message or "budget_exhausted" in message:
+    if any(
+        token in message
+        for token in (
+            "agent_sdk_turn_budget_exceeded",
+            "budget_exhausted",
+            "observe_budget_exhausted",
+            "provider_context_budget_exceeded",
+        )
+    ):
         return "budget_exhausted"
     environment_tokens = ("no module named", "not installed", "unavailable", "timed out", "mcp")
     if "another interactive codex molmo cleanup session appears to be active" in message:

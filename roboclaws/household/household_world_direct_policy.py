@@ -450,7 +450,7 @@ def _clean_pending_detections(
     perception_mode: str,
     hooks: DirectHouseholdEpisodePolicyHooks,
 ) -> int:
-    return _clean_direct_cleanup_detections(
+    view_index = _clean_direct_cleanup_detections(
         trace_events=trace_events,
         started_at=started_at,
         contract=contract,
@@ -467,6 +467,56 @@ def _clean_pending_detections(
         perception_mode=perception_mode,
         hooks=hooks,
     )
+    while True:
+        newly_observed = _unhandled_worklist_detections(
+            contract,
+            handled_handles=handled_handles,
+        )
+        if not newly_observed:
+            return view_index
+        view_index = _clean_direct_cleanup_detections(
+            trace_events=trace_events,
+            started_at=started_at,
+            contract=contract,
+            base_contract=base_contract,
+            detections=newly_observed,
+            static_fixture_projection=static_fixture_projection,
+            robot_view_steps=robot_view_steps,
+            output_dir=output_dir,
+            view_index=view_index,
+            record_robot_views=record_robot_views,
+            planner_proof_evidence=planner_proof_evidence,
+            agent_scratchpad=agent_scratchpad,
+            handled_handles=handled_handles,
+            perception_mode=perception_mode,
+            hooks=hooks,
+        )
+
+
+def _unhandled_worklist_detections(
+    contract: RealWorldCleanupContract,
+    *,
+    handled_handles: set[str],
+) -> list[dict[str, Any]]:
+    worklist = contract.cleanup_worklist_payload(
+        static_fixture_projection=contract.static_fixture_projection()
+    )
+    detections = []
+    for item in worklist.get("objects", []):
+        handle = str(item.get("object_id") or "")
+        if not handle or handle in handled_handles or item.get("state") != "pending":
+            continue
+        inspected = contract.inspect_visible_object(handle)
+        detection = inspected.get("detection") if inspected.get("ok") else None
+        if isinstance(detection, dict):
+            detections.append(dict(detection))
+        else:
+            handled_handles.add(handle)
+            contract._mark_visual_scan_unresolved(  # noqa: SLF001
+                handle,
+                reason="worklist_candidate_not_inspectable",
+            )
+    return detections
 
 
 def complete_direct_household_episode(

@@ -276,6 +276,80 @@ def test_openai_agents_runtime_missing_sdk_writes_normalized_failure(
     assert "not installed" in payload["detail"]
 
 
+def test_openai_agents_runtime_accepts_post_done_sdk_cancellation(
+    tmp_path: Path, monkeypatch
+) -> None:
+    def cancel_after_done(request, **_kwargs):  # noqa: ANN001
+        request.run_dir.mkdir(parents=True, exist_ok=True)
+        (request.run_dir / "run_result.json").write_text("{}\n", encoding="utf-8")
+        raise asyncio.CancelledError("cancelled while draining completed tool calls")
+
+    monkeypatch.setattr(
+        "roboclaws.agents.drivers.openai_agents_live._run_openai_agents",
+        cancel_after_done,
+    )
+    request = LiveAgentRequest(
+        run_id="household-world",
+        skill_name="household-world",
+        kickoff_prompt="clean the room",
+        mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
+        run_dir=tmp_path / "run",
+    )
+
+    result = OpenAIAgentsLiveRuntime().run(request)
+
+    assert result.phase == "finished"
+    assert result.exit_status == 0
+    assert result.run_result_present is True
+
+
+def test_openai_agents_runtime_fails_cancellation_before_done(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(
+        "roboclaws.agents.drivers.openai_agents_live._run_openai_agents",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(asyncio.CancelledError("early")),
+    )
+    request = LiveAgentRequest(
+        run_id="household-world",
+        skill_name="household-world",
+        kickoff_prompt="clean the room",
+        mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
+        run_dir=tmp_path / "run",
+    )
+
+    result = OpenAIAgentsLiveRuntime().run(request)
+
+    assert result.phase == "failed"
+    assert result.exit_status == 1
+    assert result.reason == "agent_runtime_cancelled"
+
+
+def test_context_budget_guard_reads_chat_completion_generation_spans(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    spans_path = run_dir / "openai-agents-spans.jsonl"
+    spans_path.write_text(
+        json.dumps(
+            {
+                "event": "span_end",
+                "span_type": "generation",
+                "usage": {"input_tokens": 120_000},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    failure = openai_agents_budget_failure(
+        run_dir,
+        {},
+        {"context_hard_limit_tokens": 96_000},
+        context_spans_path=spans_path,
+    )
+
+    assert failure is not None
+    assert failure.reason == "provider_context_budget_exceeded"
+
+
 def test_openai_agents_runtime_classifies_context_window_before_502() -> None:
     failure = _failure_from_exception(
         RuntimeError(
@@ -2259,6 +2333,66 @@ def test_model_input_compaction_keeps_first_metric_map_output_with_opaque_call_i
     assert metrics["repeated_metric_map_output_count"] == 1
     assert metrics["metric_map_delta_compacted_count"] == 1
     assert metrics["metric_map_bytes_before"] > metrics["metric_map_bytes_after"]
+
+
+def test_model_input_compaction_projects_oversized_first_metric_map() -> None:
+    metric_map = {
+        "ok": True,
+        "tool": "metric_map",
+        "map_id": "home",
+        "inspection_waypoints": [{"waypoint_id": "room_2_inspection", "room_id": "room_2"}],
+        "runtime_metric_map": {
+            "public_semantic_anchors": [
+                {
+                    "anchor_id": "anchor_fixture_001",
+                    "category": "sink",
+                    "waypoint_id": "room_2_inspection",
+                }
+            ],
+            "target_candidates": [
+                {
+                    "candidate_id": "candidate_001",
+                    "category": "plate",
+                    "target_actionability_status": "navigation_authorized",
+                    "required_tool": "navigate_to_object",
+                    "destination_options": [
+                        {
+                            "candidate_fixture_id": "anchor_fixture_001",
+                            "recommended_tool": "place",
+                        }
+                    ],
+                }
+            ],
+            "cleanup_worklist_summary": {"pending_count": 1},
+            "target_query_recovery": {"repeated_prose": "x" * 160_000},
+        },
+    }
+    items = [
+        {
+            "type": "function_call_output",
+            "call_id": "call_metric_map_first",
+            "output": json.dumps(metric_map),
+        }
+    ]
+
+    filtered, metrics = _compact_model_input_items(items, min_chars=1200)
+
+    projection = json.loads(filtered[0]["output"])
+    assert projection["schema"] == "roboclaws_oversized_metric_map_snapshot_v1"
+    assert projection["inspection_waypoints"][0]["waypoint_id"] == "room_2_inspection"
+    assert projection["public_semantic_anchors"][0]["anchor_id"] == "anchor_fixture_001"
+    assert projection["target_candidates"][0]["candidate_id"] == "candidate_001"
+    assert (
+        projection["target_candidates"][0]["target_actionability_status"] == "navigation_authorized"
+    )
+    assert projection["target_candidates"][0]["destination_options"][0] == {
+        "candidate_fixture_id": "anchor_fixture_001",
+        "recommended_tool": "place",
+    }
+    assert "repeated_prose" not in filtered[0]["output"]
+    assert projection["cleanup_worklist_summary"] == {"pending_count": 1}
+    assert metrics["oversized_metric_map_compacted_count"] == 1
+    assert metrics["metric_map_bytes_after"] < metrics["metric_map_bytes_before"] / 4
 
 
 def test_model_input_compaction_evicted_raw_fpv_images_keep_latest_frame() -> None:
@@ -4266,6 +4400,79 @@ def test_raw_fpv_compact_continuation_reconciles_scan_and_candidate_progress(
     assert "do not broad re-sweep exhausted waypoints" in prompt.lower()
 
 
+def test_raw_fpv_compact_continuation_prioritizes_candidate_free_waypoints(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    events = [
+        {
+            "event": "response",
+            "tool": "metric_map",
+            "response": {
+                "ok": True,
+                "inspection_waypoints": [
+                    {"waypoint_id": "room_2_inspection"},
+                    {"waypoint_id": "room_3_inspection"},
+                    {"waypoint_id": "room_8_inspection"},
+                ],
+            },
+        },
+        {
+            "event": "response",
+            "tool": "observe",
+            "response": {
+                "ok": True,
+                "waypoint_id": "room_2_inspection",
+                "raw_fpv_observation": {"observation_id": "raw_fpv_001"},
+            },
+        },
+        {
+            "event": "request",
+            "tool": "navigate_to_visual_candidate",
+            "request": {"source_observation_id": "raw_fpv_001", "category": "plate"},
+        },
+        {
+            "event": "response",
+            "tool": "observe",
+            "response": {
+                "ok": True,
+                "waypoint_id": "room_3_inspection",
+                "raw_fpv_observation": {"observation_id": "raw_fpv_003"},
+            },
+        },
+        {
+            "event": "response",
+            "tool": "observe",
+            "response": {
+                "ok": True,
+                "waypoint_id": "room_8_inspection",
+                "compact_observation": {"raw_fpv_observation": {"observation_id": "raw_fpv_002"}},
+            },
+        },
+    ]
+    (run_dir / "trace.jsonl").write_text(
+        "\n".join(json.dumps(event) for event in events) + "\n",
+        encoding="utf-8",
+    )
+    profile = {
+        "profile_id": "context_managed_v1",
+        "raw_fpv_candidate_budget": 24,
+        "max_observe_per_waypoint": 4,
+    }
+
+    state = _compact_continuation_state(run_dir, profile=profile, context_metrics={})
+    prompt = _compact_continuation_prompt(run_dir, profile=profile, context_metrics={})
+
+    assert state["candidate_attempt_counts_by_waypoint"] == {"room_2_inspection": 1}
+    assert state["candidate_free_scan_waypoints"] == [
+        "room_8_inspection",
+        "room_3_inspection",
+    ]
+    assert "Prefer candidate_free_scan_waypoints" in prompt
+    assert "empty default fpv view is not evidence" in prompt.lower()
+
+
 def test_openai_agents_cleanup_runner_compact_continuation_preserves_composite_cadence(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -4603,6 +4810,37 @@ def test_context_budget_result_recovers_with_compact_continuation(tmp_path: Path
     assert "compact_continuation_state" in prompt
     assert "RAW-FPV continuation" in prompt
     assert "ORIGINAL FULL PROMPT" not in prompt
+
+
+def test_compact_continuation_preserves_map_build_intent(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "trace.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "molmo_realworld_cleanup_mcp_initialized",
+                "evidence_lane": "world-public-labels",
+                "goal_contract": {
+                    "surface": "household-world",
+                    "intent": "map-build",
+                    "normalized_goal": "build runtime map evidence",
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    prompt = _compact_continuation_prompt(
+        run_dir,
+        profile={"profile_id": "context_managed_v1"},
+        context_metrics={},
+    )
+
+    assert "same live household map-build run" in prompt
+    assert "Continue only missing public map sweep" in prompt
+    assert "Do not pick, place, or perform cleanup manipulation" in prompt
+    assert "continue only missing cleanup work" not in prompt
 
 
 def test_openai_agents_budget_guard_classifies_context_hard_limit(tmp_path: Path) -> None:

@@ -34,6 +34,7 @@ from roboclaws.household.realworld_contract import (
     forbidden_agent_view_keys,
 )
 from roboclaws.household.scenario import build_cleanup_scenario
+from roboclaws.household.subprocess_backend import MOLMOSPACES_SUBPROCESS_BACKEND
 from roboclaws.household.target_query import resolve_target_query
 from roboclaws.household.types import (
     CleanupObject,
@@ -1836,6 +1837,25 @@ def test_realworld_contract_rejects_done_with_pending_public_candidates() -> Non
     _assert_no_forbidden_keys(done)
 
 
+def test_visual_scan_failure_removes_stale_candidate_from_done_blockers() -> None:
+    contract = _contract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
+    observation = _first_non_empty_observation(contract)
+    candidate = observation["visible_object_detections"][0]
+
+    contract._mark_visual_scan_unresolved(  # noqa: SLF001
+        candidate["object_id"],
+        reason="visual_scan_confirmation_missing",
+    )
+    readiness = contract.evaluate_done_readiness()
+    blocked_handles = {
+        handle
+        for blocker in readiness["blockers"]
+        for handle in blocker.get("pending_observed_handles", [])
+    }
+
+    assert candidate["object_id"] not in blocked_handles
+
+
 def test_open_ended_done_ignores_unrelated_pending_public_candidates() -> None:
     contract = _contract(
         CleanupBackendSession(build_cleanup_scenario(seed=7)),
@@ -1851,6 +1871,41 @@ def test_open_ended_done_ignores_unrelated_pending_public_candidates() -> None:
     assert done["tool"] == "done"
     readiness = contract.evaluate_done_readiness()
     assert readiness["task_intent"] == "open-ended"
+    _assert_no_forbidden_keys(done)
+
+
+def test_map_build_done_ignores_cleanup_candidates_after_complete_sweep() -> None:
+    contract = _contract(
+        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        public_acceptance_config={"task_intent": "map-build"},
+    )
+    for waypoint in contract.metric_map()["inspection_waypoints"]:
+        assert contract.navigate_to_waypoint(waypoint["waypoint_id"])["ok"] is True
+        assert contract.observe()["ok"] is True
+
+    done = contract.done("map sweep complete")
+
+    assert done["ok"] is True
+    assert contract.evaluate_done_readiness()["status"] == "ready"
+    _assert_no_forbidden_keys(done)
+
+
+def test_map_build_done_still_requires_complete_sweep() -> None:
+    contract = _contract(
+        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        public_acceptance_config={"task_intent": "map-build"},
+    )
+    observation = _first_non_empty_observation(contract)
+    assert observation["visible_object_detections"]
+
+    done = contract.done("map sweep incomplete")
+
+    assert done["ok"] is False
+    assert done["error_reason"] == "insufficient_sweep_coverage"
+    assert all(
+        blocker["type"] != "pending_cleanup_candidates"
+        for blocker in done["completion"]["blockers"]
+    )
     _assert_no_forbidden_keys(done)
 
 
@@ -2411,6 +2466,50 @@ def test_realworld_raw_fpv_grounding_uses_source_observation_bbox_binding(
     ]
     assert target.object_id not in json.dumps(simulated_inputs)
     assert target_location not in json.dumps(simulated_inputs)
+
+
+def test_simulated_raw_fpv_inputs_only_fall_back_for_synthetic_backend(monkeypatch) -> None:
+    scenario = build_cleanup_scenario(seed=7)
+    session = CleanupBackendSession(scenario)
+    contract = _contract(session, perception_mode=RAW_FPV_ONLY_MODE)
+    target = scenario.objects[0]
+    target_location = session.object_locations()[target.object_id]
+    waypoint = contract.metric_map()["inspection_waypoints"][0]
+    monkeypatch.setattr(
+        realworld_visual_candidate_lifecycle,
+        "objects_visible_from_waypoint",
+        lambda _contract, _waypoint: [(target, target_location)],
+    )
+
+    synthetic_inputs = (
+        realworld_visual_candidate_declarations.simulated_raw_fpv_inputs_for_observation(
+            contract,
+            waypoint,
+            observation_id="synthetic-observation-without-bindings",
+        )
+    )
+
+    assert len(synthetic_inputs) == 1
+    assert synthetic_inputs[0]["category"] == target.category
+    assert synthetic_inputs[0]["source_fixture_id"] == target_location
+    assert synthetic_inputs[0]["image_region"]["type"] == "bbox"
+    assert "target_fixture_id" not in synthetic_inputs[0]
+
+    monkeypatch.setattr(
+        session.backend,
+        "backend",
+        MOLMOSPACES_SUBPROCESS_BACKEND,
+        raising=False,
+    )
+    real_backend_inputs = (
+        realworld_visual_candidate_declarations.simulated_raw_fpv_inputs_for_observation(
+            contract,
+            waypoint,
+            observation_id="real-observation-without-bindings",
+        )
+    )
+
+    assert real_backend_inputs == []
 
 
 def test_realworld_unresolved_visual_candidates_do_not_count_as_model_declared_actions() -> None:

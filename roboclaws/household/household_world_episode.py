@@ -58,6 +58,9 @@ from roboclaws.household.realworld_contract import (
     VISIBLE_OBJECT_DETECTIONS_MODE,
     RealWorldCleanupContract,
 )
+from roboclaws.household.realworld_done_readiness import (
+    destination_options_for_policy,
+)
 from roboclaws.household.realworld_run_artifacts import (
     RealWorldRunArtifactInputs,
     finalize_realworld_cleanup_run,
@@ -844,16 +847,21 @@ def _maybe_clean_visible_object(
     handle = str(detection["object_id"])
     if handle in handled_handles:
         return view_index
+    handled_handles.add(handle)
     agent_scratchpad["observed_handles"].setdefault(handle, {"object_id": handle})
     live_detection = contract.inspect_visible_object(handle)
     if live_detection.get("ok") and isinstance(live_detection.get("detection"), dict):
         detection = dict(live_detection["detection"])
-    target_fixture = contract.target_fixture_for_detection(
-        detection,
-        static_fixture_projection,
-        include_runtime_backend_fixtures=True,
+    target_fixture = _direct_policy_target_fixture(
+        contract=contract,
+        detection=detection,
+        static_fixture_projection=static_fixture_projection,
     )
     if target_fixture is None:
+        contract._mark_visual_scan_unresolved(  # noqa: SLF001
+            handle,
+            reason="no_public_fixture_match",
+        )
         agent_scratchpad["failed_attempts"].append(
             {"object_id": handle, "reason": "no_public_fixture_match"}
         )
@@ -902,7 +910,6 @@ def _maybe_clean_visible_object(
         record_robot_views=record_robot_views,
         planner_proof_evidence=planner_proof_evidence,
     )
-    handled_handles.add(handle)
     agent_scratchpad["observed_handles"][handle].update(
         {
             "object_id": handle,
@@ -934,6 +941,13 @@ def _redirect_if_already_on_inferred_fixture(
         source_fixture_id=str(candidate.support.get("fixture_id") or ""),
     )
     if refreshed_target is None:
+        contract._handled_handles.add(handle)  # noqa: SLF001
+        contract._set_handle_state(  # noqa: SLF001
+            handle,
+            "placed",
+            tool="direct_policy_reconciliation",
+            resolution="already_on_inferred_fixture",
+        )
         agent_scratchpad["notes"].append(
             {"object_id": handle, "reason": "already_on_inferred_fixture"}
         )
@@ -1007,17 +1021,25 @@ def _confirm_visual_scan_candidate(
         None,
     )
     if confirmed is None:
+        contract._mark_visual_scan_unresolved(  # noqa: SLF001
+            handle,
+            reason="visual_scan_confirmation_missing",
+        )
         agent_scratchpad["failed_attempts"].append(
             {"object_id": handle, "reason": "visual_scan_confirmation_missing"}
         )
         return None, view_index
     detection = dict(confirmed)
-    target_fixture = contract.target_fixture_for_detection(
-        detection,
-        static_fixture_projection,
-        include_runtime_backend_fixtures=True,
+    target_fixture = _direct_policy_target_fixture(
+        contract=contract,
+        detection=detection,
+        static_fixture_projection=static_fixture_projection,
     )
     if target_fixture is None:
+        contract._mark_visual_scan_unresolved(  # noqa: SLF001
+            handle,
+            reason="no_public_fixture_match_after_visual_scan",
+        )
         agent_scratchpad["failed_attempts"].append(
             {"object_id": handle, "reason": "no_public_fixture_match_after_visual_scan"}
         )
@@ -1035,6 +1057,65 @@ def _confirm_visual_scan_candidate(
             agent_scratchpad=agent_scratchpad,
         ),
         view_index,
+    )
+
+
+def _direct_policy_target_fixture(
+    *,
+    contract: RealWorldCleanupContract,
+    detection: dict[str, Any],
+    static_fixture_projection: dict[str, Any],
+) -> dict[str, Any] | None:
+    inferred = contract.target_fixture_for_detection(
+        detection,
+        static_fixture_projection,
+        include_runtime_backend_fixtures=True,
+    )
+    if not contract.sanitize_world_labels:
+        return inferred
+    options = destination_options_for_policy(
+        contract,
+        detection.get("destination_policy") or {},
+    )
+    source_fixture_id = str((detection.get("support_estimate") or {}).get("fixture_id") or "")
+    inferred_fixture_id = str((inferred or {}).get("fixture_id") or "")
+    option_fixture_ids = {str(item.get("candidate_fixture_id") or "") for item in options}
+    if inferred_fixture_id and (
+        inferred_fixture_id != source_fixture_id or source_fixture_id in option_fixture_ids
+    ):
+        return inferred
+    selected = _preferred_public_destination_option(detection, options)
+    if selected is None:
+        return inferred
+    candidate = {**detection, **selected}
+    return contract.target_fixture_for_detection(
+        candidate,
+        static_fixture_projection,
+        include_runtime_backend_fixtures=True,
+    )
+
+
+def _preferred_public_destination_option(
+    detection: dict[str, Any],
+    options: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    if not options:
+        return None
+    source_fixture_id = str((detection.get("support_estimate") or {}).get("fixture_id") or "")
+    source_waypoint_id = str(
+        detection.get("waypoint_id")
+        or detection.get("last_waypoint_id")
+        or (detection.get("support_estimate") or {}).get("waypoint_id")
+        or ""
+    )
+    return dict(
+        min(
+            options,
+            key=lambda item: (
+                str(item.get("candidate_fixture_id") or "") != source_fixture_id,
+                str(item.get("waypoint_id") or "") != source_waypoint_id,
+            ),
+        )
     )
 
 
