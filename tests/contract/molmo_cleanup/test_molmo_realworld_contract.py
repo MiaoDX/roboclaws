@@ -2167,6 +2167,11 @@ def test_realworld_raw_fpv_mode_suppresses_structured_detections() -> None:
     assert "omit target_fixture_id" in observation["instruction"]
     assert "candidate_fixture_id/recommended_tool" in observation["instruction"]
     assert "image_region={type:bbox,value:[x,y,width,height]}" in observation["instruction"]
+    assert "left, right, bottom, or top FPV edge" in observation["instruction"]
+    assert "for a bottom-edge candidate use pitch_delta_deg=20" in observation["instruction"]
+    assert "for a top-edge candidate use pitch_delta_deg=-20" in observation["instruction"]
+    assert "overlap without a clear edge direction" in observation["instruction"]
+    assert "never reuse the original sliver bbox" in observation["instruction"]
     assert "declare_visual_candidates" not in observation["instruction"]
     assert agent_view_module.perception_mode(agent_view) == RAW_FPV_ONLY_MODE
     assert agent_view_module.structured_detections_available(agent_view) is False
@@ -2668,6 +2673,11 @@ def test_camera_raw_requested_run_size_enables_grounded_chain_gate_after_sweep()
         )
         assert declared["model_declared_observations"][0]["grounding_status"] == "unresolved"
 
+    for waypoint in contract.metric_map()["inspection_waypoints"]:
+        contract.navigate_to_waypoint(str(waypoint["waypoint_id"]))
+        contract.adjust_camera(yaw_delta_deg=45, pitch_delta_deg=20)
+        contract.observe()
+
     done = contract.done("camera-raw-fpv run finished without grounded cleanup chains")
 
     assert done["ok"] is False
@@ -2800,6 +2810,51 @@ def test_raw_fpv_done_requires_canonical_distinct_heading_coverage() -> None:
     done = contract.done("covered four distinct headings per public waypoint")
     assert done["ok"] is True
     _assert_no_forbidden_keys(done)
+
+
+def test_raw_fpv_done_requires_bounded_overlap_probe_for_candidate_free_closeout() -> None:
+    contract = _contract(
+        CleanupBackendSession(_empty_cleanup_scenario("raw-fpv-overlap-probe-test")),
+        perception_mode=RAW_FPV_ONLY_MODE,
+        public_acceptance_config={"required_grounded_cleanup_chains": 1},
+    )
+    _observe_raw_fpv_heading_sweep(contract)
+
+    pitch_only_waypoint = str(contract.metric_map()["inspection_waypoints"][0]["waypoint_id"])
+    contract.navigate_to_waypoint(pitch_only_waypoint)
+    contract.observe()
+    contract._raw_fpv_observations[-1]["camera_offset"] = {  # noqa: SLF001
+        "yaw_delta_deg": 90,
+        "pitch_delta_deg": 40,
+    }
+    contract.adjust_camera(pitch_delta_deg=20)
+    contract.observe()
+
+    overlap_blocked = contract.done("covered headings but only made a pitch probe")
+    assert overlap_blocked["ok"] is False
+    assert overlap_blocked["error_reason"] == "insufficient_raw_fpv_overlap_probe_coverage"
+    assert overlap_blocked["required_camera_adjustment"] == {
+        "yaw_delta_deg": 45,
+        "pitch_delta_deg": 20,
+    }
+    assert overlap_blocked["required_tool"] == "navigate_to_waypoint"
+    assert overlap_blocked["followup_tool"] == "adjust_camera"
+    assert overlap_blocked["probed_candidate_free_waypoint_ids"] == []
+    assert "private target truth" in overlap_blocked["recovery_hint"]
+
+    for waypoint in contract.metric_map()["inspection_waypoints"]:
+        contract.navigate_to_waypoint(str(waypoint["waypoint_id"]))
+        contract.adjust_camera(yaw_delta_deg=45, pitch_delta_deg=20)
+        contract.observe()
+
+    still_blocked = contract.done("covered headings and bounded overlap probes")
+    assert still_blocked["ok"] is False
+    assert still_blocked["error_reason"] == "insufficient_grounded_cleanup_chains"
+    assert all(
+        blocker["type"] != "insufficient_raw_fpv_overlap_probe_coverage"
+        for blocker in still_blocked["completion"]["blockers"]
+    )
+    _assert_no_forbidden_keys(still_blocked)
 
 
 def test_open_ended_raw_fpv_done_does_not_require_whole_room_heading_coverage() -> None:
@@ -3228,14 +3283,28 @@ def test_realworld_model_declared_grounding_accepts_live_broad_categories() -> N
     assert bad_source_fixture["ok"] is False
     assert bad_source_fixture["error_reason"] == "visual_candidate_not_resolved"
     assert bad_source_fixture["grounding_status"] == "unresolved"
-    assert electronics["ok"] is True
+    assert electronics["ok"] is False
+    assert electronics["error_reason"] == "visual_candidate_not_cleanup_recommended"
     assert electronics["model_declared_observation"]["grounding_status"] == "resolved"
     assert (
         "waypoint-local public context"
         in electronics["model_declared_observation"]["grounding_basis"]
     )
     assert str(electronics["candidate_fixture_id"]).startswith("anchor_fixture_")
-    assert electronics["recommended_tool"] == "place"
+    assert electronics["recommended_tool"] == ""
+    assert electronics["cleanup_recommended"] is False
+    electronics_worklist_item = next(
+        item
+        for item in contract.cleanup_worklist_payload()["objects"]
+        if item["object_id"] == electronics["object_id"]
+    )
+    assert electronics_worklist_item["cleanup_recommended"] is False
+    assert electronics_worklist_item["candidate_fixture_id"] == electronics["candidate_fixture_id"]
+    assert electronics_worklist_item["recommended_tool"] == "place"
+    pending_handles = {
+        item["object_id"] for item in realworld_done_readiness.pending_cleanup_candidates(contract)
+    }
+    assert electronics["object_id"] not in pending_handles
     assert toy["ok"] is False
     assert toy["error_reason"] == "visual_candidate_not_cleanup_recommended"
     assert toy["model_declared_observation"]["grounding_status"] == "resolved"

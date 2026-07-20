@@ -2,8 +2,32 @@ from __future__ import annotations
 
 from roboclaws.household.semantic_acceptability import (
     annotate_score_with_semantic_acceptability,
+    assess_public_semantic_acceptability,
+    public_source_requires_cleanup,
     semantic_disturbance_metrics,
 )
+
+
+def test_public_category_semantics_distinguish_cleanup_from_reasonable_sources() -> None:
+    cases = (
+        ("plate", "DiningTable", "acceptable", False),
+        ("cup", "DiningTable", "acceptable", False),
+        ("book", "Desk", "acceptable", False),
+        ("electronics", "TVStand", "preferred", False),
+        ("plate", "Bed", "wrong", True),
+        ("book", "Bed", "questionable", True),
+        ("pillow", "Desk", "questionable", True),
+        ("food", "CounterTop", "acceptable", False),
+        ("plant", "Desk", "unknown", False),
+    )
+
+    for object_category, source_category, expected_level, expected_cleanup in cases:
+        assessment = assess_public_semantic_acceptability(
+            object_category,
+            source_category,
+        )
+        assert assessment["level"] == expected_level
+        assert public_source_requires_cleanup(object_category, source_category) is expected_cleanup
 
 
 def test_semantic_acceptability_marks_reasonable_non_private_targets() -> None:

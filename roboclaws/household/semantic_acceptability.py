@@ -116,6 +116,55 @@ _SEMANTIC_RANK = {
 }
 
 
+def assess_public_semantic_acceptability(
+    object_category: Any,
+    receptacle_category: Any,
+) -> dict[str, str]:
+    """Assess cleanup placement using only public category labels."""
+
+    canonical_object = _lookup_alias(_OBJECT_ALIASES, object_category)
+    canonical_receptacle = _lookup_alias(_RECEPTACLE_ALIASES, receptacle_category)
+    if canonical_object is None:
+        return {
+            "level": UNKNOWN,
+            "reason": "object category has no semantic cleanup rubric",
+        }
+    if canonical_receptacle is None:
+        return {
+            "level": UNKNOWN,
+            "reason": "receptacle category has no semantic cleanup rubric",
+        }
+
+    rule = _RUBRIC.get(canonical_object)
+    if rule is None:
+        return {
+            "level": UNKNOWN,
+            "reason": f"{canonical_object} has no semantic cleanup rubric",
+        }
+    for level in (PREFERRED, ACCEPTABLE, QUESTIONABLE):
+        if canonical_receptacle in rule[level]:
+            return {
+                "level": level,
+                "reason": f"{canonical_object} on {canonical_receptacle} is {level}",
+            }
+    return {
+        "level": WRONG,
+        "reason": (f"{canonical_object} on {canonical_receptacle} is not a cleanup placement"),
+    }
+
+
+def public_source_requires_cleanup(
+    object_category: Any,
+    receptacle_category: Any,
+) -> bool:
+    """Return whether public source semantics justify moving an object."""
+
+    return assess_public_semantic_acceptability(object_category, receptacle_category)["level"] in {
+        QUESTIONABLE,
+        WRONG,
+    }
+
+
 def annotate_score_with_semantic_acceptability(
     score: Mapping[str, Any],
     scenario: CleanupScenario | Mapping[str, Any],
@@ -255,22 +304,7 @@ def _assess_semantic_acceptability(
             "reason": "receptacle category has no semantic cleanup rubric",
         }
 
-    rule = _RUBRIC.get(object_category)
-    if rule is None:
-        return {
-            "level": UNKNOWN,
-            "reason": f"{object_category} has no semantic cleanup rubric",
-        }
-    for level in (PREFERRED, ACCEPTABLE, QUESTIONABLE):
-        if receptacle_category in rule[level]:
-            return {
-                "level": level,
-                "reason": f"{object_category} on {receptacle_category} is {level}",
-            }
-    return {
-        "level": WRONG,
-        "reason": f"{object_category} on {receptacle_category} is not a cleanup placement",
-    }
+    return assess_public_semantic_acceptability(object_category, receptacle_category)
 
 
 def _objects_by_id(

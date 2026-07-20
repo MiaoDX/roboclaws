@@ -4295,8 +4295,16 @@ def test_raw_fpv_compact_continuation_preserves_scan_progress_and_done_blockers(
     assert '"current": 2' in prompt
     assert '"required": 4' in prompt
     assert "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90)" in prompt
-    assert "clipped at the left or right edge" in prompt
-    assert "adjust_camera(yaw_delta_deg=45 or -45, pitch_delta_deg=0)" in prompt
+    assert "left, right, bottom, or top FPV edge" in prompt
+    assert "for a left-edge candidate use yaw_delta_deg=45" in prompt
+    assert "for a right-edge candidate use yaw_delta_deg=-45" in prompt
+    assert "for a bottom-edge candidate use pitch_delta_deg=20" in prompt
+    assert "for a top-edge candidate use pitch_delta_deg=-20" in prompt
+    assert "overlap without a clear edge direction" in prompt
+    assert "never reuse the original sliver bbox" in prompt
+    assert "insufficient_raw_fpv_overlap_probe_coverage" in prompt
+    assert "adjust_camera(yaw_delta_deg=45, pitch_delta_deg=20) once" in prompt
+    assert "normal waypoint observe count is exhausted" in prompt
 
 
 def test_compact_continuation_preserves_latest_public_actionable_done_state(

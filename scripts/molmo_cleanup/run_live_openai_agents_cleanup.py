@@ -49,6 +49,7 @@ from roboclaws.agents.prompts.household_cleanup import (
 )
 from roboclaws.agents.thinking_policy import THINKING_MODES
 from roboclaws.core.json_sources import read_json_value, read_jsonl_objects
+from roboclaws.household.raw_fpv_guidance import raw_fpv_edge_reframe_instruction
 from roboclaws.household.realworld_mcp_server import ROBOT_VIEW_CAPTURE_POLICY_FULL
 from roboclaws.household.task_intent import (
     household_intent_from_args as _household_intent,
@@ -1507,6 +1508,10 @@ def _compact_continuation_profile_guidance(profile: dict[str, Any]) -> str:
             "shows a new completion chain. Use remaining_observes_by_waypoint and visit only a "
             "waypoint whose remaining count is positive. Do not broad re-sweep exhausted "
             "waypoints. "
+            "If latest_done_blockers contains insufficient_raw_fpv_overlap_probe_coverage, "
+            "follow its next_waypoint_id and required_camera_adjustment exactly: navigate there, "
+            "call adjust_camera(yaw_delta_deg=45, pitch_delta_deg=20) once, then observe the "
+            "fresh diagonal overlap view even when the normal waypoint observe count is exhausted. "
             "For an eligible waypoint, call navigate_to_waypoint, then rotate with "
             "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90) and observe "
             "a materially new FPV heading. Prefer candidate_free_scan_waypoints in the "
@@ -1514,10 +1519,9 @@ def _compact_continuation_profile_guidance(profile: dict[str, Any]) -> str:
             "produced candidate attempts; this preserves the latest FPV context and current pose. "
             "An empty default FPV view is not evidence that the whole room is clear. Act on each "
             "fresh high-confidence visible candidate "
-            "with navigate_to_visual_candidate and complete its pick/place chain. For a likely "
-            "movable candidate clipped at the left or right edge, reframe it once with "
-            "adjust_camera(yaw_delta_deg=45 or -45, pitch_delta_deg=0), then observe and use only "
-            "the fresh bbox. Respect raw_fpv_candidate_budget.remaining and do not retry entries "
+            "with navigate_to_visual_candidate and complete its pick/place chain. "
+            + raw_fpv_edge_reframe_instruction()
+            + " Respect raw_fpv_candidate_budget.remaining and do not retry entries "
             "listed in recent_failed_candidate_attempts. Do not call "
             "metric_map again when completed_waypoints already contains the public checklist."
         )

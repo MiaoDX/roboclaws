@@ -25,6 +25,23 @@ RAW_FPV_INVALID_FIELDS_TO_AVOID: tuple[str, ...] = (
 )
 
 
+def raw_fpv_edge_reframe_instruction() -> str:
+    return (
+        "Do not declare or act from a tiny sliver. When a likely movable cleanup "
+        "object is clipped at the left, right, bottom, or top FPV edge, or is partly "
+        "occluded or overlapping so its bbox is not reviewable, reframe it at most "
+        "once before continuing the sweep. Call adjust_camera then observe: for a "
+        "left-edge candidate use yaw_delta_deg=45, for a right-edge candidate use "
+        "yaw_delta_deg=-45, for a bottom-edge candidate use pitch_delta_deg=20, and "
+        "for a top-edge candidate use pitch_delta_deg=-20. For overlap without a clear "
+        "edge direction, make one bounded pitch probe with pitch_delta_deg=20; use "
+        "-20 instead only when the candidate is above the frame center. Act only "
+        "from the fresh observation and its new reviewable bbox. If the candidate "
+        "becomes less visible or remains unreviewable, abandon it and continue the "
+        "public waypoint sweep; never reuse the original sliver bbox."
+    )
+
+
 def raw_fpv_inline_candidate_instruction(observation_id: str | None = None) -> str:
     subject = (
         f"observation_id={observation_id}" if observation_id else "the current raw FPV observation"
@@ -42,6 +59,8 @@ def raw_fpv_inline_candidate_instruction(observation_id: str | None = None) -> s
         "makes it clear (for example plate, cup, potato, remotecontrol, book, or "
         "pillow). Use broader cleanup categories such as "
         f"{RAW_FPV_CATEGORY_HINT} only when the exact object class is uncertain. "
+        + raw_fpv_edge_reframe_instruction()
+        + " "
         "Call navigate_to_visual_candidate with source_observation_id, category, "
         "evidence_note, and image_region before pick. With Base Metric Map "
         "context, omit target_fixture_id and normally omit source_fixture_id; "

@@ -96,6 +96,8 @@ def pending_cleanup_candidates(contract: DoneReadinessContract) -> list[dict[str
             continue
         candidate_fixture_id = str(item.get("candidate_fixture_id") or "")
         source_fixture_id = str(item.get("source_fixture_id") or "")
+        if state != "held" and item.get("cleanup_recommended") is not True:
+            continue
         if not candidate_fixture_id or candidate_fixture_id == source_fixture_id:
             continue
         internal_candidate_fixture_id = (
@@ -230,9 +232,6 @@ def evaluate_done_readiness(
             }
         )
 
-    if not open_ended_task and not map_build_task and contract.perception_mode == raw_fpv_only_mode:
-        blockers.extend(raw_fpv_cleanup_readiness_blockers(contract))
-
     grounded_chain_blocker = None
     if not map_build_task:
         grounded_chain_blocker = grounded_cleanup_chain_blocker(
@@ -240,6 +239,13 @@ def evaluate_done_readiness(
             semantic_cleanup_evidence,
             raw_fpv_only_mode=raw_fpv_only_mode,
             assert_no_forbidden_agent_view_keys=assert_no_forbidden_agent_view_keys,
+        )
+    if not open_ended_task and not map_build_task and contract.perception_mode == raw_fpv_only_mode:
+        blockers.extend(
+            raw_fpv_cleanup_readiness_blockers(
+                contract,
+                require_overlap_probe=grounded_chain_blocker is not None,
+            )
         )
     if grounded_chain_blocker is not None:
         blockers.append(grounded_chain_blocker)
@@ -297,11 +303,17 @@ def required_model_declared_observations(contract: DoneReadinessContract) -> int
 
 def raw_fpv_cleanup_readiness_blockers(
     contract: DoneReadinessContract,
+    *,
+    require_overlap_probe: bool = False,
 ) -> list[dict[str, Any]]:
     blockers: list[dict[str, Any]] = []
     heading_coverage_blocker = raw_fpv_heading_coverage_blocker(contract)
     if heading_coverage_blocker is not None:
         blockers.append(heading_coverage_blocker)
+    elif require_overlap_probe:
+        overlap_probe_blocker = raw_fpv_overlap_probe_blocker(contract)
+        if overlap_probe_blocker is not None:
+            blockers.append(overlap_probe_blocker)
     required_declaration_count = required_model_declared_observations(contract)
     declaration_count = len(contract._model_declared_observations)
     if declaration_count < required_declaration_count:
@@ -322,6 +334,79 @@ def raw_fpv_cleanup_readiness_blockers(
             }
         )
     return blockers
+
+
+def raw_fpv_overlap_probe_blocker(
+    contract: DoneReadinessContract,
+) -> dict[str, Any] | None:
+    recommended_waypoint_ids = {
+        str(declaration.get("waypoint_id") or "")
+        for declaration in contract._model_declared_observations
+        if bool(
+            (contract._detections_by_handle.get(str(declaration.get("object_id") or "")) or {}).get(
+                "cleanup_recommended"
+            )
+        )
+    }
+    candidate_free_waypoint_ids = [
+        str(waypoint.get("waypoint_id") or "")
+        for waypoint in contract._public_waypoints
+        if str(waypoint.get("waypoint_id") or "") not in recommended_waypoint_ids
+    ]
+    probed_waypoint_ids = {
+        str(observation.get("waypoint_id") or "")
+        for observation in contract._raw_fpv_observations
+        if _is_bounded_overlap_probe(observation)
+    }
+    incomplete = [
+        waypoint_id
+        for waypoint_id in candidate_free_waypoint_ids
+        if waypoint_id not in probed_waypoint_ids
+    ]
+    if not incomplete:
+        return None
+    next_waypoint_id = incomplete[0]
+    return {
+        "type": "insufficient_raw_fpv_overlap_probe_coverage",
+        "policy_id": "candidate_free_bounded_overlap_probe_v1",
+        "required_tool": "navigate_to_waypoint",
+        "followup_tool": "adjust_camera",
+        "next_waypoint_id": next_waypoint_id,
+        "required_camera_adjustment": {
+            "yaw_delta_deg": 45,
+            "pitch_delta_deg": 20,
+        },
+        "candidate_free_waypoint_ids": candidate_free_waypoint_ids,
+        "probed_candidate_free_waypoint_ids": [
+            waypoint_id
+            for waypoint_id in candidate_free_waypoint_ids
+            if waypoint_id in probed_waypoint_ids
+        ],
+        "incomplete_waypoint_ids": incomplete,
+        "recovery_hint": (
+            f"Return to public waypoint {next_waypoint_id}, call "
+            "adjust_camera(yaw_delta_deg=45, pitch_delta_deg=20) exactly once, then "
+            "observe. This bounded diagonal overlap probe checks horizontal and vertical "
+            "FPV edges without using private target truth. Inspect only the fresh image and "
+            "use only its new reviewable bbox; do not repeat the probe at that waypoint."
+        ),
+    }
+
+
+def _is_bounded_overlap_probe(observation: dict[str, Any]) -> bool:
+    offset = observation.get("camera_offset")
+    if not isinstance(offset, dict):
+        return False
+    try:
+        yaw = float(offset.get("yaw_delta_deg") or 0.0)
+        pitch = float(offset.get("pitch_delta_deg") or 0.0)
+    except (TypeError, ValueError):
+        return False
+    return math.isclose(abs(yaw), 45.0, abs_tol=1e-6) and math.isclose(
+        abs(pitch),
+        20.0,
+        abs_tol=1e-6,
+    )
 
 
 def grounded_cleanup_chain_blocker(

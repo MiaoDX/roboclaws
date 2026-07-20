@@ -2437,8 +2437,16 @@ def test_molmo_raw_fpv_compact_prompt_includes_budget_contract() -> None:
     assert "Compact action cadence for camera-raw-fpv" in prompt
     assert "run budget of 3 raw-FPV candidate attempts" in prompt
     assert "up to 2 materially distinct robot-body headings" in prompt
+    assert "make that final observation the bounded overlap probe" in prompt
+    assert "adjust_camera(yaw_delta_deg=45, pitch_delta_deg=20) exactly once" in prompt
+    assert "counts within the waypoint observation budget" in prompt
     assert "retry done at most 1 time(s)" in prompt
     assert "Never retry the same source_observation_id/category/region" in prompt
+    assert "left, right, bottom, or top FPV edge" in prompt
+    assert "for a bottom-edge candidate use pitch_delta_deg=20" in prompt
+    assert "for a top-edge candidate use pitch_delta_deg=-20" in prompt
+    assert "overlap without a clear edge direction" in prompt
+    assert prompt.count("Do not declare or act from a tiny sliver") == 1
     assert "only MCP done producing run_result.json counts" in prompt
 
 

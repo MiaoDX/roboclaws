@@ -33,6 +33,7 @@ from roboclaws.household.realworld_policy_trace import (
 from roboclaws.household.robot_view_pose import room_for_point
 from roboclaws.household.semantic_acceptability import (
     annotate_score_with_semantic_acceptability,
+    public_source_requires_cleanup,
     semantic_disturbance_metrics,
 )
 from roboclaws.household.semantic_timeline import SEMANTIC_LOOP_VARIANT
@@ -1389,12 +1390,21 @@ class RealWorldCleanupContract:
         )
         public_candidate_fixture_id = self._public_fixture_reference_id(candidate_fixture_id)
         public_source_fixture_id = self._public_fixture_reference_id(source_fixture_id)
+        internal_source_fixture_id = (
+            self.internal_fixture_id_for_public_reference(source_fixture_id) or source_fixture_id
+        )
+        source_fixture = self._fixtures.get(internal_source_fixture_id) or {}
+        source_requires_cleanup = public_source_requires_cleanup(
+            detection.get("category"),
+            source_fixture.get("category") or source_fixture.get("name"),
+        )
         return {
             "candidate_fixture_id": public_candidate_fixture_id,
             "candidate_fixture_category": str(candidate.get("category") or ""),
             "cleanup_recommended": bool(
                 public_candidate_fixture_id
                 and public_candidate_fixture_id != public_source_fixture_id
+                and source_requires_cleanup
                 and not self._handle_is_non_actionable(str(detection.get("object_id") or ""))
                 and _candidate_state(detection) == CANDIDATE_STATE_NAVIGATION_AUTHORIZED
             ),
