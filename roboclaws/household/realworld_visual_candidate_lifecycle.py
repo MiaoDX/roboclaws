@@ -9,8 +9,8 @@ from roboclaws.household import (
     realworld_contract_projection,
     realworld_runtime_map_targets,
     realworld_visual_candidates,
+    visual_scan_guidance,
 )
-from roboclaws.household.visual_scan_guidance import visual_evidence_recovery_hint
 
 MODEL_DECLARED_OBSERVATION_SCHEMA = "model_declared_observation_v1"
 MODEL_DECLARED_OBSERVATION_SOURCE = "model_declared_observation"
@@ -529,7 +529,7 @@ def declaration_from_resolution(
             assert_no_forbidden_agent_view_keys=assert_no_forbidden_agent_view_keys,
         )
         if actionability_status != "actionable":
-            recovery_hint = visual_evidence_recovery_hint()
+            recovery_hint = visual_scan_guidance.visual_evidence_recovery_hint()
     target_plausibility = target_plausibility_for_candidate(
         contract,
         category=str(candidate.get("category") or ""),
@@ -1290,9 +1290,8 @@ def visual_evidence_actionability_error(
             or declaration.get("grounding_status")
             or "resolved",
             source_observation_id=evidence.get("source_observation_id", ""),
-            recovery_hint=(
-                "The current public source/destination evidence does not recommend moving "
-                "this object. Do not navigate to or pick it; continue the waypoint sweep."
+            recovery_hint=visual_scan_guidance.non_recommended_candidate_recovery_hint(
+                contract.perception_mode
             ),
         )
     return contract._error(
@@ -1313,7 +1312,7 @@ def visual_evidence_actionability_error(
         or declaration.get("grounding_confidence")
         or 0.0,
         source_observation_id=evidence.get("source_observation_id", ""),
-        recovery_hint=visual_evidence_recovery_hint(),
+        recovery_hint=visual_scan_guidance.visual_evidence_recovery_hint(),
     )
 
 

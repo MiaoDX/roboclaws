@@ -2775,7 +2775,7 @@ def test_realworld_raw_fpv_non_recommended_candidate_cannot_navigate_or_pick() -
     assert response["ok"] is False
     assert response["error_reason"] == "visual_candidate_not_cleanup_recommended"
     assert response["cleanup_recommended"] is False
-    assert response["candidate_state"] == "visually_confirmed"
+    assert "do not call navigate_to_waypoint again" in response["recovery_hint"]
     assert response["required_next_tool"] == "observe"
     object_id = response["object_id"]
     assert contract.navigate_to_object(object_id)["error_reason"] == (
