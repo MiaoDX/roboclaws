@@ -111,100 +111,48 @@ def trace_household_cleanup_run_with_plan(
     )
 
 
-def trace_surface_run(*args: str) -> list[str]:
+def _run_just(recipe: str, *args: str) -> subprocess.CompletedProcess[str]:
     binary = just_bin()
     env = os.environ.copy()
     env["ROBOCLAWS_JUST_TRACE"] = "1"
     env["PATH"] = f"{Path(binary).parent}{os.pathsep}{env.get('PATH', '')}"
-    result = subprocess.run(
-        [binary, "run::surface", *args],
+    return subprocess.run(
+        [binary, recipe, *args],
         cwd=REPO_ROOT,
         env=env,
         check=True,
         capture_output=True,
         text=True,
     )
-    return result.stdout.strip().split("\t")
+
+
+def trace_just(recipe: str, *args: str) -> list[str]:
+    return _run_just(recipe, *args).stdout.strip().split("\t")
+
+
+def trace_surface_run(*args: str) -> list[str]:
+    return trace_just("run::surface", *args)
 
 
 def trace_surface_run_with_plan(*args: str) -> tuple[list[str], list[str]]:
-    binary = just_bin()
-    env = os.environ.copy()
-    env["ROBOCLAWS_JUST_TRACE"] = "1"
-    env["PATH"] = f"{Path(binary).parent}{os.pathsep}{env.get('PATH', '')}"
-    result = subprocess.run(
-        [binary, "run::surface", *args],
-        cwd=REPO_ROOT,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
+    result = _run_just("run::surface", *args)
     return result.stdout.strip().split("\t"), result.stderr.strip().split("\t")
 
 
 def trace_agent_harness(*args: str) -> list[str]:
-    binary = just_bin()
-    env = os.environ.copy()
-    env["ROBOCLAWS_JUST_TRACE"] = "1"
-    env["PATH"] = f"{Path(binary).parent}{os.pathsep}{env.get('PATH', '')}"
-    result = subprocess.run(
-        [binary, "agent::harness", *args],
-        cwd=REPO_ROOT,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return result.stdout.strip().split("\t")
+    return trace_just("agent::harness", *args)
 
 
 def trace_agent_verify(*args: str) -> list[str]:
-    binary = just_bin()
-    env = os.environ.copy()
-    env["ROBOCLAWS_JUST_TRACE"] = "1"
-    env["PATH"] = f"{Path(binary).parent}{os.pathsep}{env.get('PATH', '')}"
-    result = subprocess.run(
-        [binary, "agent::verify", *args],
-        cwd=REPO_ROOT,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return result.stdout.strip().split("\t")
+    return trace_just("agent::verify", *args)
 
 
 def trace_agent_run(*args: str) -> list[str]:
-    binary = just_bin()
-    env = os.environ.copy()
-    env["ROBOCLAWS_JUST_TRACE"] = "1"
-    env["PATH"] = f"{Path(binary).parent}{os.pathsep}{env.get('PATH', '')}"
-    result = subprocess.run(
-        [binary, "agent::run", *args],
-        cwd=REPO_ROOT,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return result.stdout.strip().split("\t")
+    return trace_just("agent::run", *args)
 
 
 def trace_agent_mcp(*args: str) -> list[str]:
-    binary = just_bin()
-    env = os.environ.copy()
-    env["ROBOCLAWS_JUST_TRACE"] = "1"
-    env["PATH"] = f"{Path(binary).parent}{os.pathsep}{env.get('PATH', '')}"
-    result = subprocess.run(
-        [binary, "agent::mcp", *args],
-        cwd=REPO_ROOT,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return result.stdout.strip().split("\t")
+    return trace_just("agent::mcp", *args)
 
 
 def assert_agent_mcp_fails(*args: str) -> str:
