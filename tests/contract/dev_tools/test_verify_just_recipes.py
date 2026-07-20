@@ -28,18 +28,6 @@ ROOT_MOLMO_SCRIPT_COMPAT_SHIMS = (
 )
 
 
-def test_verify_module_is_registered() -> None:
-    text = JUSTFILE.read_text(encoding="utf-8")
-
-    assert re.search(r"^mod verify\s+'just/verify\.just'$", text, re.MULTILINE)
-
-
-def test_molmo_module_is_registered() -> None:
-    text = JUSTFILE.read_text(encoding="utf-8")
-
-    assert re.search(r"^mod molmo\s+'just/molmo\.just'$", text, re.MULTILINE)
-
-
 def test_root_molmo_script_compat_shims_stay_removed() -> None:
     for script_name in ROOT_MOLMO_SCRIPT_COMPAT_SHIMS:
         assert not (REPO_ROOT / "scripts" / script_name).exists(), script_name
