@@ -288,6 +288,7 @@ def _profile_defaults(
             "enabled": False,
             "mode": "off",
             "min_chars": 1200,
+            "completed_tool_history_limit": 0,
             "raw_fpv_image_memory": {
                 "schema": "agent_sdk_raw_fpv_image_memory_policy_v1",
                 "enabled": False,
@@ -369,6 +370,7 @@ def _profile_defaults(
                     + ("+raw_fpv_image_memory_v1" if raw_fpv_enabled else "")
                 ),
                 "min_chars": 1200,
+                "completed_tool_history_limit": 24 if raw_fpv_enabled else 0,
                 "raw_fpv_image_memory": {
                     "schema": "agent_sdk_raw_fpv_image_memory_policy_v1",
                     "enabled": raw_fpv_enabled,
@@ -465,6 +467,7 @@ def _model_input_compaction_profile(
     )
     raw_fpv_image_memory = _raw_fpv_image_memory_profile(args, default_config)
     camera_grounded_history = _camera_grounded_history_profile(args, default_config)
+    completed_tool_history_limit = int(default_config.get("completed_tool_history_limit") or 0)
     mode_parts = []
     candidate_ids = []
     if enabled:
@@ -476,14 +479,21 @@ def _model_input_compaction_profile(
     if camera_grounded_history["enabled"]:
         mode_parts.append("camera_grounded_history_v1")
         candidate_ids.append("AC")
+    if completed_tool_history_limit > 0:
+        mode_parts.append("completed_tool_history_window_v1")
+        candidate_ids.append("AH")
     hook_enabled = (
-        enabled or bool(raw_fpv_image_memory["enabled"]) or bool(camera_grounded_history["enabled"])
+        enabled
+        or bool(raw_fpv_image_memory["enabled"])
+        or bool(camera_grounded_history["enabled"])
+        or completed_tool_history_limit > 0
     )
     return {
         "schema": "agent_sdk_model_input_compaction_v1",
         "enabled": hook_enabled,
         "mode": "+".join(mode_parts) if mode_parts else "off",
         "min_chars": min_chars,
+        "completed_tool_history_limit": completed_tool_history_limit,
         "candidate_ids": candidate_ids,
         "hook": "RunConfig.call_model_input_filter",
         "repeated_metric_map_delta": enabled,

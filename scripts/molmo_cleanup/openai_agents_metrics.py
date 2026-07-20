@@ -9,14 +9,17 @@ from roboclaws.core.json_sources import read_jsonl_objects
 MODEL_SERVICE_FALLBACK_SCHEMA = "openai_agents_model_service_fallback_v1"
 MODEL_RACING_OBSERVABILITY_SCHEMA = "openai_agents_model_racing_observability_v1"
 MODEL_INPUT_FILTER_SCHEMA = "openai_agents_model_input_filter_v1"
-
 MODEL_INPUT_SUM_FIELDS = tuple(
     """
     compacted_item_count unchanged_item_count repeated_item_count
     metric_map_output_count repeated_metric_map_output_count metric_map_delta_compacted_count
     metric_map_bytes_before metric_map_bytes_after metric_map_bytes_reduced
     raw_fpv_image_item_count raw_fpv_image_retained_count raw_fpv_image_evicted_count
+    raw_fpv_image_transcoded_count
     raw_fpv_image_bytes_before raw_fpv_image_bytes_after raw_fpv_image_bytes_reduced
+    completed_tool_history_bundle_count completed_tool_history_retained_count
+    completed_tool_history_evicted_count completed_tool_history_item_count_before
+    completed_tool_history_item_count_after completed_tool_history_bytes_reduced
     camera_grounded_history_item_count camera_grounded_history_retained_count
     camera_grounded_history_compacted_count camera_grounded_history_bytes_before
     camera_grounded_history_bytes_after camera_grounded_history_bytes_reduced
@@ -410,6 +413,7 @@ def model_input_filter_metrics(run_dir: Path) -> dict[str, Any]:
         "raw_fpv_image_item_count": state["raw_fpv_image_item_count"],
         "raw_fpv_image_retained_count": state["raw_fpv_image_retained_count"],
         "raw_fpv_image_evicted_count": state["raw_fpv_image_evicted_count"],
+        "raw_fpv_image_transcoded_count": state["raw_fpv_image_transcoded_count"],
         "raw_fpv_image_bytes_before": state["raw_fpv_image_bytes_before"],
         "raw_fpv_image_bytes_after": state["raw_fpv_image_bytes_after"],
         "raw_fpv_image_bytes_reduced": state["raw_fpv_image_bytes_reduced"],
@@ -417,6 +421,14 @@ def model_input_filter_metrics(run_dir: Path) -> dict[str, Any]:
             state["raw_fpv_image_bytes_reduced"],
             state["raw_fpv_image_bytes_before"],
         ),
+        "completed_tool_history_bundle_count": state["completed_tool_history_bundle_count"],
+        "completed_tool_history_retained_count": state["completed_tool_history_retained_count"],
+        "completed_tool_history_evicted_count": state["completed_tool_history_evicted_count"],
+        "completed_tool_history_item_count_before": state[
+            "completed_tool_history_item_count_before"
+        ],
+        "completed_tool_history_item_count_after": state["completed_tool_history_item_count_after"],
+        "completed_tool_history_bytes_reduced": state["completed_tool_history_bytes_reduced"],
         "camera_grounded_history_enabled": state["camera_grounded_history_enabled"],
         "camera_grounded_history_modes": sorted(state["camera_grounded_history_modes"]),
         "camera_grounded_history_item_count": state["camera_grounded_history_item_count"],

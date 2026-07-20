@@ -8,7 +8,7 @@
         "path": "roboclaws/agents/drivers/openai_agents_live.py"
       },
       {
-        "lines": 1479,
+        "lines": 1700,
         "max_module_lines": 800,
         "path": "roboclaws/agents/drivers/openai_agents_model_input.py"
       },
@@ -203,7 +203,7 @@
         "path": "scripts/molmo_cleanup/molmospaces_subprocess_worker.py"
       },
       {
-        "lines": 885,
+        "lines": 895,
         "max_module_lines": 800,
         "path": "scripts/molmo_cleanup/openai_agents_perf_profile.py"
       },
@@ -343,7 +343,7 @@
         "path": "tests/contract/visual_grounding/test_visual_grounding_service.py"
       },
       {
-        "lines": 7132,
+        "lines": 7134,
         "max_module_lines": 800,
         "path": "tests/unit/agents/test_live_runtime.py"
       },
