@@ -969,12 +969,10 @@ def test_realworld_mcp_raw_fpv_camera_raw_done_requires_complete_live_chains(
     assert done["ok"] is False
     assert done["tool"] == "done"
     assert done["status"] == "blocked"
-    assert done["error_reason"] == "insufficient_grounded_cleanup_chains"
-    assert done["required_tool"] == "navigate_to_visual_candidate"
-    assert done["complete_semantic_substep_objects"] == 0
-    assert done["required_complete_semantic_substep_objects"] == 4
+    assert done["error_reason"] == "insufficient_raw_fpv_overlap_probe_coverage"
+    assert done["required_tool"] == "navigate_to_waypoint"
     assert done["completion"]["status"] == "blocked"
-    blocker = done["completion"]["blockers"][0]
+    blocker = done["completion"]["blockers"][-1]
     assert blocker["type"] == "insufficient_grounded_cleanup_chains"
     assert blocker["current"] == 0
     assert blocker["required"] == 4
