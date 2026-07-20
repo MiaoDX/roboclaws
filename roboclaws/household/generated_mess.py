@@ -5,8 +5,11 @@ import random
 from collections.abc import Sequence
 from typing import Any
 
+from roboclaws.household.semantic_acceptability import public_source_requires_cleanup
+
 GENERATED_MESS_MANIFEST_SCHEMA = "roboclaws_generated_mess_manifest_v1"
 GENERATED_MESS_MANIFEST_PROVENANCE = "backend_neutral_generated_mess"
+GENERATED_MESS_START_SEMANTICS = "public_cleanup_required_v1"
 
 TARGET_RULES: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...] = (
     (("Cup", "Mug", "Plate", "Bowl"), ("Sink",)),
@@ -153,20 +156,15 @@ def generated_mess_manifest_from_targets(
         for target in targets
         if str(target.get("target_receptacle_id") or "")
     }
-    wrong_pool = generated_mess_wrong_receptacle_pool(receptacles, target_receptacle_ids)
     manifest_targets: list[dict[str, Any]] = []
     for index, target in enumerate(targets):
         target_receptacle_id = str(target.get("target_receptacle_id") or "")
-        start_receptacle = (
-            wrong_pool[index % len(wrong_pool)]
-            if wrong_pool
-            else {"receptacle_id": target_receptacle_id}
+        start_pool = generated_mess_public_cleanup_start_pool(
+            target,
+            receptacles,
+            excluded_receptacle_ids=target_receptacle_ids,
         )
-        if (
-            len(wrong_pool) > 1
-            and str(start_receptacle.get("receptacle_id") or "") == target_receptacle_id
-        ):
-            start_receptacle = wrong_pool[(index + 1) % len(wrong_pool)]
+        start_receptacle = start_pool[index % len(start_pool)]
         start_receptacle_id = str(start_receptacle.get("receptacle_id") or target_receptacle_id)
         relation = "inside" if receptacle_prefers_inside(start_receptacle) else "on"
         manifest_targets.append(
@@ -193,6 +191,7 @@ def generated_mess_manifest_from_targets(
             "selector": "roboclaws.household.generated_mess.select_generated_mess_targets",
             "seed": seed,
             "requested_generated_mess_count": requested_generated_mess_count,
+            "start_semantics": GENERATED_MESS_START_SEMANTICS,
         },
         "requested_generated_mess_count": requested_generated_mess_count,
         "generated_mess_count": generated_count,
@@ -345,23 +344,32 @@ def generated_mess_manifest_object_ids(manifest: dict[str, Any]) -> list[str]:
     ]
 
 
-def generated_mess_wrong_receptacle_pool(
+def generated_mess_public_cleanup_start_pool(
+    target: dict[str, Any],
     receptacles: list[dict[str, Any]],
-    target_receptacle_ids: set[str],
+    *,
+    excluded_receptacle_ids: set[str],
 ) -> list[dict[str, Any]]:
-    wrong_pool = [
+    object_category = str(target.get("category") or "")
+    candidates = [
         item
         for item in receptacles
-        if str(item.get("receptacle_id") or "") not in target_receptacle_ids
-        and not receptacle_requires_open(item)
+        if str(item.get("receptacle_id") or "") not in excluded_receptacle_ids
+        and public_source_requires_cleanup(
+            object_category,
+            item.get("category") or item.get("name") or item.get("kind"),
+        )
     ]
-    if not wrong_pool:
-        wrong_pool = [
-            item
-            for item in receptacles
-            if str(item.get("receptacle_id") or "") not in target_receptacle_ids
-        ]
-    return wrong_pool or list(receptacles)
+    preferred = [item for item in candidates if not receptacle_requires_open(item)]
+    if preferred:
+        return preferred
+    if candidates:
+        return candidates
+    object_id = str(target.get("object_id") or "<unknown>")
+    raise ValueError(
+        "generated mess target has no public cleanup-required start receptacle: "
+        f"{object_id} ({object_category or '<unknown>'})"
+    )
 
 
 def receptacle_requires_open(receptacle: dict[str, Any]) -> bool:

@@ -7,6 +7,7 @@ from typing import Any, Callable
 import mujoco
 
 from roboclaws.household.generated_mess import (
+    generated_mess_public_cleanup_start_pool,
     valid_generated_mess_placement_index,
     valid_generated_mess_relation,
 )
@@ -121,25 +122,20 @@ def seed_misplaced_objects(
         target_receptacle_id(target, manifest_targets.get(str(target["object_id"])))
         for target in targets
     }
-    wrong_pool = [
-        item
-        for item in state["receptacles"].values()
-        if item["receptacle_id"] not in target_receptacle_ids
-        and not hooks.receptacle_requires_open(item)
-    ]
-    if not wrong_pool:
-        wrong_pool = [
-            item
-            for item in state["receptacles"].values()
-            if item["receptacle_id"] not in target_receptacle_ids
-        ]
-    if not wrong_pool:
-        wrong_pool = list(state["receptacles"].values())
     for index, target in enumerate(targets):
         manifest_target = manifest_targets.get(str(target["object_id"]))
         target_id = target_receptacle_id(target, manifest_target)
         placement_index = target_placement_index(index, manifest_target)
-        wrong = target_start_receptacle(state, target, wrong_pool, index, manifest_target)
+        start_pool = (
+            list(state["receptacles"].values())
+            if manifest_target
+            else generated_mess_public_cleanup_start_pool(
+                target,
+                list(state["receptacles"].values()),
+                excluded_receptacle_ids=target_receptacle_ids,
+            )
+        )
+        wrong = target_start_receptacle(state, target, start_pool, index, manifest_target)
         state["objects"][target["object_id"]]["target_receptacle_id"] = target_id
         state["objects"][target["object_id"]]["seeded_start_receptacle_id"] = wrong["receptacle_id"]
         relation = target_relation(wrong, manifest_target, hooks=hooks)
@@ -240,6 +236,14 @@ def target_start_receptacle_id(state: dict[str, Any], target: dict[str, Any]) ->
         start_receptacle_id = str(manifest_target.get("start_receptacle_id") or "")
         if start_receptacle_id:
             return start_receptacle_id
+    seeded_start_receptacle_id = str(
+        (state.get("objects", {}).get(str(target.get("object_id") or ""), {}) or {}).get(
+            "seeded_start_receptacle_id"
+        )
+        or ""
+    )
+    if seeded_start_receptacle_id:
+        return seeded_start_receptacle_id
     return first_wrong_receptacle(state, target)
 
 

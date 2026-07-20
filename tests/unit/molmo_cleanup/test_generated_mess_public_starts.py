@@ -1,0 +1,105 @@
+from __future__ import annotations
+
+import pytest
+
+from roboclaws.household.generated_mess import (
+    build_generated_mess_manifest,
+    targets_from_generated_mess_manifest,
+)
+from roboclaws.household.semantic_acceptability import public_source_requires_cleanup
+from scripts.molmo_cleanup.molmospaces_scenario_state import target_start_receptacle_id
+
+
+def test_generated_mess_manifest_uses_public_cleanup_required_starts() -> None:
+    receptacles = [
+        {"receptacle_id": "fridge_01", "category": "Fridge"},
+        {"receptacle_id": "tvstand_01", "category": "TVStand"},
+        {"receptacle_id": "counter_01", "category": "CounterTop"},
+        {"receptacle_id": "table_01", "category": "DiningTable"},
+        {"receptacle_id": "desk_01", "category": "Desk"},
+        {"receptacle_id": "sofa_01", "category": "Sofa"},
+        {"receptacle_id": "coffee_01", "category": "CoffeeTable"},
+        {"receptacle_id": "bed_01", "category": "Bed"},
+        {"receptacle_id": "sink_01", "category": "Sink"},
+    ]
+    objects = [
+        {"object_id": "apple_01", "category": "Apple"},
+        {"object_id": "remote_01", "category": "RemoteControl"},
+    ]
+
+    manifest = build_generated_mess_manifest(objects, receptacles, target_count=2, seed=7)
+    receptacle_by_id = {item["receptacle_id"]: item for item in receptacles}
+
+    assert manifest["selection"]["start_semantics"] == "public_cleanup_required_v1"
+    assert all(
+        public_source_requires_cleanup(
+            target["category"],
+            receptacle_by_id[target["start_receptacle_id"]]["category"],
+        )
+        for target in manifest["targets"]
+    )
+    starts_by_category = {
+        target["category"]: receptacle_by_id[target["start_receptacle_id"]]["category"]
+        for target in manifest["targets"]
+    }
+    assert starts_by_category["Apple"] not in {"CounterTop", "DiningTable"}
+    assert starts_by_category["RemoteControl"] not in {"Desk", "Sofa", "CoffeeTable"}
+
+
+def test_generated_mess_manifest_rejects_missing_public_cleanup_start() -> None:
+    with pytest.raises(ValueError, match="no public cleanup-required start receptacle"):
+        build_generated_mess_manifest(
+            [{"object_id": "plate_01", "category": "Plate"}],
+            [{"receptacle_id": "sink_01", "category": "Sink"}],
+            target_count=1,
+            seed=7,
+        )
+
+
+def test_explicit_generated_mess_manifest_can_keep_public_acceptable_start() -> None:
+    receptacles = [
+        {"receptacle_id": "fridge_01", "category": "Fridge"},
+        {"receptacle_id": "counter_01", "category": "CounterTop"},
+    ]
+    objects = [{"object_id": "potato_01", "category": "Potato"}]
+    manifest = {
+        "schema": "roboclaws_generated_mess_manifest_v1",
+        "targets": [
+            {
+                "object_id": "potato_01",
+                "target_receptacle_id": "fridge_01",
+                "valid_receptacle_ids": ["fridge_01"],
+                "start_receptacle_id": "counter_01",
+                "relation": "on",
+                "placement_index": 0,
+            }
+        ],
+    }
+
+    selected = targets_from_generated_mess_manifest(
+        objects,
+        receptacles,
+        manifest,
+        target_count=1,
+    )
+
+    assert selected[0]["start_receptacle_id"] == "counter_01"
+
+
+def test_runtime_uses_actual_seeded_start_receptacle() -> None:
+    target = {
+        "object_id": "plate_01",
+        "target_receptacle_id": "sink_01",
+    }
+    state = {
+        "objects": {
+            "plate_01": {"seeded_start_receptacle_id": "bed_01"},
+        },
+        "receptacles": {
+            "sink_01": {"receptacle_id": "sink_01"},
+            "sofa_01": {"receptacle_id": "sofa_01"},
+            "bed_01": {"receptacle_id": "bed_01"},
+        },
+    }
+
+    assert target_start_receptacle_id(state, target) == "bed_01"
