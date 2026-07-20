@@ -5,6 +5,31 @@ from typing import Any
 RAW_FPV_RECOVERY_GATE_SCHEMA = "raw_fpv_recovery_gate_v1"
 
 
+def raw_fpv_recovery_exhaustion(
+    trace_events: list[dict[str, Any]],
+    *,
+    evidence_lane: str,
+    task_intent: str = "",
+) -> dict[str, Any] | None:
+    state = raw_fpv_recovery_state(
+        trace_events,
+        evidence_lane=evidence_lane,
+        task_intent=task_intent or _task_intent(trace_events),
+    )
+    if not state.get("terminal_exhausted"):
+        return None
+    return {
+        "schema": "raw_fpv_recovery_exhausted_v1",
+        "reason": "raw_fpv_recovery_exhausted",
+        "progress_fingerprint": dict(state.get("progress_fingerprint") or {}),
+        "consumed_waypoint_ids": list(state.get("consumed_waypoint_ids") or []),
+        "eligible_waypoint_ids": [],
+        "epoch_event_index": state.get("epoch_event_index"),
+        "final_done_event_index": state.get("latest_done_event_index"),
+        "policy_uses_private_truth": False,
+    }
+
+
 def raw_fpv_recovery_gate(
     trace_events: list[dict[str, Any]],
     *,
@@ -29,6 +54,8 @@ def raw_fpv_recovery_gate(
         return _overlap_gate(tool, request, state)
     if state["phase"] != "bounded_revisit":
         return None
+    if state.get("terminal_exhausted"):
+        return _blocked(tool, state, "raw_fpv_recovery_exhausted")
     return _bounded_revisit_gate(tool, request, state)
 
 
@@ -113,6 +140,14 @@ def raw_fpv_recovery_state(
             == latest_revisit_observation_id
         ):
             fresh_observation_id = latest_revisit_observation_id
+    latest_pending_candidates = _blocker(latest_blockers, "pending_cleanup_candidates")
+    terminal_exhausted = bool(
+        latest_index > epoch_index
+        and not eligible
+        and not pending.get("expected_tool")
+        and latest_pending_candidates is None
+        and current < _int_or_zero(chain.get("required"))
+    )
     return {
         **common,
         "phase": "bounded_revisit",
@@ -132,6 +167,7 @@ def raw_fpv_recovery_state(
         "consumed_waypoint_ids": sorted(consumed),
         "eligible_waypoint_ids": eligible,
         "attempted_fresh_observation_ids": sorted(attempted_observation_ids),
+        "terminal_exhausted": terminal_exhausted,
     }
 
 
@@ -279,6 +315,16 @@ def _blocked_done_events(
         if response.get("ok") is False and isinstance(blockers, list):
             result.append((index, [item for item in blockers if isinstance(item, dict)]))
     return result
+
+
+def _task_intent(events: list[dict[str, Any]]) -> str:
+    for event in events:
+        goal_contract = event.get("goal_contract")
+        if isinstance(goal_contract, dict) and goal_contract.get("intent"):
+            return str(goal_contract["intent"])
+        if event.get("task_intent"):
+            return str(event["task_intent"])
+    return ""
 
 
 def _blocker(blockers: list[dict[str, Any]], blocker_type: str) -> dict[str, Any] | None:

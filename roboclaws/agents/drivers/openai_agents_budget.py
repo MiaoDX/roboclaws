@@ -8,6 +8,7 @@ from typing import Any
 
 from roboclaws.agents.live_status import LiveAgentFailure
 from roboclaws.core.json_sources import read_jsonl_objects
+from roboclaws.household.raw_fpv_recovery import raw_fpv_recovery_exhaustion
 
 
 class OpenAIAgentsBudgetExceededError(RuntimeError):
@@ -112,13 +113,32 @@ def raw_fpv_budget_failure(
 ) -> LiveAgentFailure | None:
     lane = str(timing.get("evidence_lane") or timing.get("profile") or "")
     raw_fpv_lane = lane == "camera-raw-fpv"
+    trace_events = _read_jsonl_path(run_dir / "trace.jsonl")
+    exhaustion = (
+        raw_fpv_recovery_exhaustion(trace_events, evidence_lane=lane)
+        if raw_fpv_lane and trace_events
+        else None
+    )
+    if exhaustion is not None:
+        return LiveAgentFailure(
+            "raw_fpv_recovery_exhausted",
+            retryable=False,
+            resume_available=False,
+            detail=json.dumps(
+                {
+                    "profile_id": profile.get("profile_id") or "baseline",
+                    "evidence_lane": lane,
+                    **exhaustion,
+                },
+                sort_keys=True,
+            ),
+        )
     limits = _raw_fpv_budget_limits(profile)
     if not limits:
         return None
     if not raw_fpv_lane:
         limits["candidate_budget"] = None
         limits["repeated_failure_limit"] = None
-    trace_events = _read_jsonl_path(run_dir / "trace.jsonl")
     if not trace_events:
         return None
     metrics = raw_fpv_budget_metrics(trace_events)
