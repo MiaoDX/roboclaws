@@ -75,6 +75,12 @@ from scripts.molmo_cleanup.openai_agents_budget import (
 from scripts.molmo_cleanup.openai_agents_budget import (
     raw_fpv_budget_metrics as _raw_fpv_budget_metrics,
 )
+from scripts.molmo_cleanup.openai_agents_continuation_state import (
+    latest_done_completion_blockers,
+    reconcile_remaining_observes_with_heading_blocker,
+    remaining_observes_by_waypoint,
+    waypoints_by_observation_recency,
+)
 from scripts.molmo_cleanup.openai_agents_metrics import (
     model_input_filter_metrics as _model_input_filter_metrics,
 )
@@ -626,7 +632,9 @@ class LiveOpenAIAgentsCleanupRunner:
             attempts.append(attempt_summary)
             self.live_timing["openai_agents_attempts"] = attempts
             context_budget_recovery = _is_context_budget_result(result)
-            if result.exit_status not in {0, None} and not context_budget_recovery:
+            turn_budget_recovery = _is_turn_budget_result(result)
+            budget_recovery = context_budget_recovery or turn_budget_recovery
+            if result.exit_status not in {0, None} and not budget_recovery:
                 break
             if (self.run_dir / "run_result.json").is_file():
                 break
@@ -650,6 +658,7 @@ class LiveOpenAIAgentsCleanupRunner:
             attempt_summary["recovery_action"] = "continue"
             attempt_summary["recovery_reason"] = _continuation_recovery_reason(
                 context_budget_recovery=context_budget_recovery,
+                turn_budget_recovery=turn_budget_recovery,
                 default_reason=recovery_policy.reason,
             )
             attempt_summary["continuation_prompt_chars"] = len(continuation_prompt)
@@ -1185,9 +1194,11 @@ class IncompleteTurnRecoveryPolicy:
         if (run_dir / "run_result.json").is_file():
             return None
         context_budget_recovery = _is_context_budget_result(result)
-        if getattr(result, "exit_status", None) not in {0, None} and not context_budget_recovery:
+        turn_budget_recovery = _is_turn_budget_result(result)
+        budget_recovery = context_budget_recovery or turn_budget_recovery
+        if getattr(result, "exit_status", None) not in {0, None} and not budget_recovery:
             return None
-        if getattr(result, "phase", "") != "agent-turn-complete" and not context_budget_recovery:
+        if getattr(result, "phase", "") != "agent-turn-complete" and not budget_recovery:
             return None
         profile = profile or {}
         context_metrics = context_metrics or {}
@@ -1195,7 +1206,7 @@ class IncompleteTurnRecoveryPolicy:
         total_input_tokens = _int_or_none(context_metrics.get("total_input_tokens"))
         soft_limit = _int_or_none(profile.get("context_soft_limit_tokens"))
         if (
-            context_budget_recovery
+            budget_recovery
             or continuation_mode == "state_summary_only"
             or (
                 soft_limit is not None
@@ -1215,9 +1226,20 @@ def _is_context_budget_result(result: Any) -> bool:
     return str(getattr(result, "reason", "") or "") == "provider_context_budget_exceeded"
 
 
-def _continuation_recovery_reason(*, context_budget_recovery: bool, default_reason: str) -> str:
+def _is_turn_budget_result(result: Any) -> bool:
+    return str(getattr(result, "reason", "") or "") == "agent_sdk_turn_budget_exceeded"
+
+
+def _continuation_recovery_reason(
+    *,
+    context_budget_recovery: bool,
+    turn_budget_recovery: bool,
+    default_reason: str,
+) -> str:
     if context_budget_recovery:
         return "context_budget_compact_continuation"
+    if turn_budget_recovery:
+        return "turn_budget_compact_continuation"
     return default_reason
 
 
@@ -1512,6 +1534,13 @@ def _compact_continuation_profile_guidance(profile: dict[str, Any]) -> str:
             "follow its next_waypoint_id and required_camera_adjustment exactly: navigate there, "
             "call adjust_camera(yaw_delta_deg=45, pitch_delta_deg=20) once, then observe the "
             "fresh diagonal overlap view even when the normal waypoint observe count is exhausted. "
+            "If latest_done_blockers contains insufficient_raw_fpv_heading_coverage, follow "
+            "its next_waypoint_id and stay at that waypoint for a complete deterministic body "
+            "sweep: observe the canonical pose, then call "
+            "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90) followed by "
+            "observe three consecutive times before leaving. Do not return to canonical or switch "
+            "waypoints after only one relative rotation. Treat remaining_observes_by_waypoint as "
+            "the public distinct-heading deficit, not a hard cap on recovery observations. "
             "For an eligible waypoint, call navigate_to_waypoint, then rotate with "
             "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90) and observe "
             "a materially new FPV heading. Prefer candidate_free_scan_waypoints in the "
@@ -1560,13 +1589,17 @@ def _compact_continuation_state(
     budget_metrics = _raw_fpv_budget_metrics(trace_events)
     max_observes = _int_or_none(profile.get("max_observe_per_waypoint"))
     known_waypoints = _inspection_waypoint_ids(trace_events) or list(observe_counts)
-    remaining_observes = _remaining_observes_by_waypoint(
+    remaining_observes = remaining_observes_by_waypoint(
         known_waypoints,
         observe_counts,
         max_observes=max_observes,
     )
+    reconcile_remaining_observes_with_heading_blocker(
+        remaining_observes,
+        latest_done_blockers,
+    )
     candidate_attempt_counts = _candidate_attempt_counts_by_waypoint(trace_events)
-    scan_priority = _waypoints_by_observation_recency(trace_events)
+    scan_priority = waypoints_by_observation_recency(trace_events)
     scan_priority.extend(
         waypoint_id for waypoint_id in known_waypoints if waypoint_id not in scan_priority
     )
@@ -1670,22 +1703,8 @@ def _candidate_attempt_counts_by_waypoint(
     return dict(sorted(counts.items()))
 
 
-def _waypoints_by_observation_recency(trace_events: list[dict[str, Any]]) -> list[str]:
-    waypoint_ids: list[str] = []
-    for event in reversed(trace_events):
-        if event.get("event") != "response" or event.get("tool") != "observe":
-            continue
-        response = event.get("response") if isinstance(event.get("response"), dict) else {}
-        if response.get("ok") is not True:
-            continue
-        waypoint_id = str(response.get("waypoint_id") or "")
-        if waypoint_id and waypoint_id not in waypoint_ids:
-            waypoint_ids.append(waypoint_id)
-    return waypoint_ids
-
-
 def _latest_done_blockers(trace_events: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    event_index, blockers = _latest_done_completion_blockers(trace_events)
+    event_index, blockers = latest_done_completion_blockers(trace_events)
     if event_index is None:
         return []
     normalized = [
@@ -1697,9 +1716,18 @@ def _latest_done_blockers(trace_events: list[dict[str, Any]]) -> list[dict[str, 
                 "required",
                 "required_tool",
                 "next_waypoint_id",
+                "policy_id",
                 "sweep_coverage_rate",
                 "observed_waypoint_count",
                 "total_waypoints",
+                "current_distinct_heading_count",
+                "required_distinct_heading_count",
+                "distinct_heading_counts_by_waypoint",
+                "incomplete_waypoint_ids",
+                "followup_tool",
+                "required_camera_adjustment",
+                "candidate_free_waypoint_ids",
+                "probed_candidate_free_waypoint_ids",
                 "recovery_hint",
             )
             if key in blocker
@@ -1710,24 +1738,6 @@ def _latest_done_blockers(trace_events: list[dict[str, Any]]) -> list[dict[str, 
     if progress_after_done:
         _reconcile_grounded_chain_progress(normalized, progress_after_done)
     return normalized
-
-
-def _latest_done_completion_blockers(
-    trace_events: list[dict[str, Any]],
-) -> tuple[int | None, list[dict[str, Any]]]:
-    for event_index in range(len(trace_events) - 1, -1, -1):
-        event = trace_events[event_index]
-        if event.get("event") != "response" or event.get("tool") != "done":
-            continue
-        response = event.get("response") if isinstance(event.get("response"), dict) else {}
-        completion = (
-            response.get("completion") if isinstance(response.get("completion"), dict) else {}
-        )
-        blockers = completion.get("blockers")
-        if not isinstance(blockers, list):
-            return event_index, []
-        return event_index, [item for item in blockers if isinstance(item, dict)]
-    return None, []
 
 
 def _reconcile_grounded_chain_progress(
@@ -1750,7 +1760,7 @@ def _reconcile_grounded_chain_progress(
 
 
 def _latest_done_public_action_state(trace_events: list[dict[str, Any]]) -> dict[str, Any]:
-    _, blockers = _latest_done_completion_blockers(trace_events)
+    _, blockers = latest_done_completion_blockers(trace_events)
     pending_blockers = [
         item for item in blockers if item.get("type") == "pending_cleanup_candidates"
     ]
@@ -1841,20 +1851,6 @@ def _inspection_waypoint_ids(trace_events: list[dict[str, Any]]) -> list[str]:
             if isinstance(item, dict) and item.get("waypoint_id")
         ]
     return []
-
-
-def _remaining_observes_by_waypoint(
-    waypoint_ids: list[str],
-    observe_counts: dict[str, int],
-    *,
-    max_observes: int | None,
-) -> dict[str, int | None]:
-    return {
-        waypoint_id: max(0, max_observes - int(observe_counts.get(waypoint_id, 0)))
-        if max_observes is not None
-        else None
-        for waypoint_id in waypoint_ids
-    }
 
 
 def _compact_failed_candidate_attempts(

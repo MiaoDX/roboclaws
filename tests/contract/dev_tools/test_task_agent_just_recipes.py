@@ -2126,10 +2126,10 @@ def test_molmo_camera_raw_prompt_requires_exact_waypoint_checklist() -> None:
     assert "server named cleanup" not in prompt
     assert "Call done only after every public waypoint has an observe response" in prompt
     assert "never mcp__cleanup__" in prompt
-    assert "roboclaws__" in prompt
-    assert "up to 4 materially distinct robot-body headings" in prompt
+    assert "must complete 4 materially distinct robot-body headings" in prompt
     assert "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90)" in prompt
-    assert "after the gate is met, use one observe response" in prompt
+    assert "even when the cleanup gate is already met" in prompt
+    assert "extra overlap probe after those body headings" in prompt
     assert "Compact action cadence for camera-raw-fpv" in prompt
     assert "at most one fresh high-confidence cleanup candidate" in prompt
     assert "source_observation_id/category/region" in prompt
@@ -2436,10 +2436,10 @@ def test_molmo_raw_fpv_compact_prompt_includes_budget_contract() -> None:
 
     assert "Compact action cadence for camera-raw-fpv" in prompt
     assert "run budget of 3 raw-FPV candidate attempts" in prompt
-    assert "up to 2 materially distinct robot-body headings" in prompt
-    assert "make that final observation the bounded overlap probe" in prompt
+    assert "must complete 2 materially distinct robot-body headings" in prompt
+    assert "extra overlap probe after those body headings" in prompt
     assert "adjust_camera(yaw_delta_deg=45, pitch_delta_deg=20) exactly once" in prompt
-    assert "counts within the waypoint observation budget" in prompt
+    assert "does not count as a distinct robot-body heading" in prompt
     assert "retry done at most 1 time(s)" in prompt
     assert "Never retry the same source_observation_id/category/region" in prompt
     assert "left, right, bottom, or top FPV edge" in prompt
