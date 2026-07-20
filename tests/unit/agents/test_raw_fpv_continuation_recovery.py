@@ -6,6 +6,7 @@ from pathlib import Path
 from roboclaws.agents.live_runtime import LiveAgentResult
 from scripts.molmo_cleanup.run_live_openai_agents_cleanup import (
     IncompleteTurnRecoveryPolicy,
+    _compact_continuation_prompt,
     _compact_continuation_state,
 )
 
@@ -117,6 +118,171 @@ def test_heading_blocker_overrides_raw_observe_exhaustion(tmp_path: Path) -> Non
         "room_2_inspection": 3,
         "room_3_inspection": 4,
     }
+
+
+def test_raw_fpv_continuation_builds_bounded_public_revisit_queue(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    events: list[dict[str, object]] = [
+        {
+            "event": "response",
+            "tool": "metric_map",
+            "response": {
+                "inspection_waypoints": [
+                    {"waypoint_id": "room_2_inspection"},
+                    {"waypoint_id": "room_3_inspection"},
+                    {"waypoint_id": "room_4_inspection"},
+                ]
+            },
+        }
+    ]
+    for waypoint_id, observation_id in (
+        ("room_2_inspection", "raw_fpv_002"),
+        ("room_3_inspection", "raw_fpv_003"),
+        ("room_4_inspection", "raw_fpv_004"),
+    ):
+        events.append(
+            {
+                "event": "response",
+                "tool": "observe",
+                "response": {
+                    "ok": True,
+                    "waypoint_id": waypoint_id,
+                    "raw_fpv_observation": {"observation_id": observation_id},
+                },
+            }
+        )
+    events.extend(
+        [
+            {
+                "event": "request",
+                "tool": "navigate_to_visual_candidate",
+                "request": {
+                    "source_observation_id": "raw_fpv_002",
+                    "category": "electronics",
+                    "image_region": {"type": "bbox", "value": [1, 2, 3, 4]},
+                },
+            },
+            {
+                "event": "response",
+                "tool": "navigate_to_visual_candidate",
+                "response": {
+                    "ok": False,
+                    "error_reason": "visual_candidate_not_resolved",
+                    "private_target_id": "must_not_leak",
+                },
+            },
+            {
+                "event": "request",
+                "tool": "navigate_to_visual_candidate",
+                "request": {"source_observation_id": "raw_fpv_004", "category": "book"},
+            },
+            {
+                "event": "response",
+                "tool": "navigate_to_visual_candidate",
+                "response": {"ok": True, "object_id": "observed_public"},
+            },
+            {
+                "event": "response",
+                "tool": "done",
+                "response": {
+                    "completion": {
+                        "blockers": [
+                            {
+                                "type": "insufficient_grounded_cleanup_chains",
+                                "current": 3,
+                                "required": 4,
+                            }
+                        ]
+                    }
+                },
+            },
+        ]
+    )
+    _write_trace(run_dir, events)
+    profile = {"max_observe_per_waypoint": 4, "raw_fpv_candidate_budget": 24}
+
+    state = _compact_continuation_state(run_dir, profile=profile, context_metrics={})
+    prompt = _compact_continuation_prompt(run_dir, profile=profile, context_metrics={})
+
+    assert state["raw_fpv_waypoint_candidate_outcomes"] == {
+        "room_2_inspection": {
+            "attempted": 1,
+            "authorized": 0,
+            "unresolved": 1,
+            "not_recommended": 0,
+        },
+        "room_3_inspection": {
+            "attempted": 0,
+            "authorized": 0,
+            "unresolved": 0,
+            "not_recommended": 0,
+        },
+        "room_4_inspection": {
+            "attempted": 1,
+            "authorized": 1,
+            "unresolved": 0,
+            "not_recommended": 0,
+        },
+    }
+    assert state["raw_fpv_revisit_waypoints"] == [
+        "room_2_inspection",
+        "room_3_inspection",
+    ]
+    assert "must_not_leak" not in json.dumps(state)
+    public_ledger = json.dumps(state["raw_fpv_waypoint_candidate_outcomes"])
+    assert "electronics" not in public_ledger
+    assert "raw_fpv_002" not in public_ledger
+    assert "visit each listed waypoint at most once" in prompt
+    assert "Do not revisit waypoints absent from that list" in prompt
+
+
+def test_raw_fpv_revisit_queue_excludes_waypoints_observed_after_done(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    _write_trace(
+        run_dir,
+        [
+            {
+                "event": "response",
+                "tool": "metric_map",
+                "response": {
+                    "inspection_waypoints": [
+                        {"waypoint_id": "room_2_inspection"},
+                        {"waypoint_id": "room_3_inspection"},
+                    ]
+                },
+            },
+            {
+                "event": "response",
+                "tool": "done",
+                "response": {
+                    "completion": {
+                        "blockers": [
+                            {
+                                "type": "insufficient_grounded_cleanup_chains",
+                                "current": 2,
+                                "required": 4,
+                            }
+                        ]
+                    }
+                },
+            },
+            {
+                "event": "response",
+                "tool": "observe",
+                "response": {"ok": True, "waypoint_id": "room_2_inspection"},
+            },
+        ],
+    )
+
+    state = _compact_continuation_state(
+        run_dir,
+        profile={"raw_fpv_candidate_budget": 24},
+        context_metrics={},
+    )
+
+    assert state["raw_fpv_revisit_waypoints"] == ["room_3_inspection"]
 
 
 def _write_trace(run_dir: Path, events: list[dict[str, object]]) -> None:

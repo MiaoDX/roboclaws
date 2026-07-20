@@ -109,7 +109,10 @@ In `camera-raw-fpv`, inspect raw FPV image evidence directly. Select at most
 one fresh high-confidence cleanup object per source observation, then call
 `roboclaws__navigate_to_visual_candidate(...)` only when you intend to act on a
 visual candidate. Do not pre-register raw-FPV candidates with
-`declare_visual_candidates`.
+`declare_visual_candidates`. If a compact continuation supplies a bounded
+public revisit queue after `done` reports a grounded-chain deficit, finish any
+heading blocker first, then inspect each listed waypoint at most once from the
+specified fresh recovery view.
 
 In `camera-grounded-labels`, use `roboclaws__declare_visual_candidates()` to
 register producer-labelled candidates before cleanup selection.

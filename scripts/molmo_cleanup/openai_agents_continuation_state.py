@@ -73,6 +73,155 @@ def reconcile_remaining_observes_with_heading_blocker(
         remaining_observes[next_waypoint_id] = max(0, required - current)
 
 
+def candidate_attempt_counts_by_waypoint(trace_events: list[dict[str, Any]]) -> dict[str, int]:
+    observation_waypoints = _observation_waypoint_index(trace_events)
+    counts: dict[str, int] = {}
+    for event in trace_events:
+        if event.get("event") != "request" or event.get("tool") != "navigate_to_visual_candidate":
+            continue
+        request = event.get("request") if isinstance(event.get("request"), dict) else {}
+        waypoint_id = observation_waypoints.get(str(request.get("source_observation_id") or ""), "")
+        if waypoint_id:
+            counts[waypoint_id] = counts.get(waypoint_id, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def candidate_outcomes_by_waypoint(
+    trace_events: list[dict[str, Any]],
+    known_waypoints: list[str],
+) -> dict[str, dict[str, int]]:
+    observation_waypoints = _observation_waypoint_index(trace_events)
+    outcomes = {waypoint_id: _empty_candidate_outcome() for waypoint_id in known_waypoints}
+    pending_waypoints: list[str] = []
+    for event in trace_events:
+        if event.get("tool") != "navigate_to_visual_candidate":
+            continue
+        if event.get("event") == "request":
+            _record_candidate_request(event, observation_waypoints, outcomes, pending_waypoints)
+        elif event.get("event") == "response":
+            _record_candidate_response(event, outcomes, pending_waypoints)
+    return outcomes
+
+
+def raw_fpv_revisit_waypoints(
+    trace_events: list[dict[str, Any]],
+    *,
+    known_waypoints: list[str],
+    candidate_outcomes: dict[str, dict[str, int]],
+    latest_done_blockers: list[dict[str, Any]],
+    has_pending_candidates: bool,
+) -> list[str]:
+    chain_blocker = next(
+        (
+            blocker
+            for blocker in latest_done_blockers
+            if blocker.get("type") == "insufficient_grounded_cleanup_chains"
+        ),
+        None,
+    )
+    if chain_blocker is None or has_pending_candidates:
+        return []
+    current = _int_or_none(chain_blocker.get("current"))
+    required = _int_or_none(chain_blocker.get("required"))
+    if current is not None and required is not None and current >= required:
+        return []
+
+    latest_done_index, _ = latest_done_completion_blockers(trace_events)
+    observed_after_done = (
+        set(_completed_waypoints(trace_events[latest_done_index + 1 :]))
+        if latest_done_index is not None
+        else set()
+    )
+
+    def eligible(waypoint_id: str) -> bool:
+        outcome = candidate_outcomes.get(waypoint_id) or {}
+        return outcome.get("authorized", 0) == 0 and waypoint_id not in observed_after_done
+
+    unresolved = [
+        waypoint_id
+        for waypoint_id in known_waypoints
+        if eligible(waypoint_id)
+        and (candidate_outcomes.get(waypoint_id) or {}).get("unresolved", 0) > 0
+    ]
+    candidate_free = [
+        waypoint_id
+        for waypoint_id in known_waypoints
+        if eligible(waypoint_id)
+        and (candidate_outcomes.get(waypoint_id) or {}).get("attempted", 0) == 0
+    ]
+    return unresolved + candidate_free
+
+
+def _observation_waypoint_index(trace_events: list[dict[str, Any]]) -> dict[str, str]:
+    observation_waypoints: dict[str, str] = {}
+    for event in trace_events:
+        if event.get("event") != "response" or event.get("tool") != "observe":
+            continue
+        response = event.get("response") if isinstance(event.get("response"), dict) else {}
+        if response.get("ok") is not True:
+            continue
+        raw_observation = response.get("raw_fpv_observation")
+        if not isinstance(raw_observation, dict):
+            compact = response.get("compact_observation")
+            compact = compact if isinstance(compact, dict) else {}
+            raw_observation = compact.get("raw_fpv_observation")
+        raw_observation = raw_observation if isinstance(raw_observation, dict) else {}
+        observation_id = str(raw_observation.get("observation_id") or "")
+        waypoint_id = str(response.get("waypoint_id") or raw_observation.get("waypoint_id") or "")
+        if observation_id and waypoint_id:
+            observation_waypoints[observation_id] = waypoint_id
+    return observation_waypoints
+
+
+def _record_candidate_request(
+    event: dict[str, Any],
+    observation_waypoints: dict[str, str],
+    outcomes: dict[str, dict[str, int]],
+    pending_waypoints: list[str],
+) -> None:
+    request = event.get("request") if isinstance(event.get("request"), dict) else {}
+    waypoint_id = observation_waypoints.get(str(request.get("source_observation_id") or ""), "")
+    pending_waypoints.append(waypoint_id)
+    if waypoint_id:
+        outcomes.setdefault(waypoint_id, _empty_candidate_outcome())["attempted"] += 1
+
+
+def _record_candidate_response(
+    event: dict[str, Any],
+    outcomes: dict[str, dict[str, int]],
+    pending_waypoints: list[str],
+) -> None:
+    waypoint_id = pending_waypoints.pop(0) if pending_waypoints else ""
+    if not waypoint_id:
+        return
+    response = event.get("response") if isinstance(event.get("response"), dict) else {}
+    if response.get("ok") is True:
+        outcomes[waypoint_id]["authorized"] += 1
+        return
+    outcome_key = {
+        "visual_candidate_not_resolved": "unresolved",
+        "visual_candidate_not_cleanup_recommended": "not_recommended",
+    }.get(response.get("error_reason"))
+    if outcome_key:
+        outcomes[waypoint_id][outcome_key] += 1
+
+
+def _completed_waypoints(trace_events: list[dict[str, Any]]) -> list[str]:
+    return [
+        str(event["response"].get("waypoint_id"))
+        for event in trace_events
+        if event.get("event") == "response"
+        and event.get("tool") == "observe"
+        and isinstance(event.get("response"), dict)
+        and event["response"].get("ok") is True
+        and event["response"].get("waypoint_id")
+    ]
+
+
+def _empty_candidate_outcome() -> dict[str, int]:
+    return {"attempted": 0, "authorized": 0, "unresolved": 0, "not_recommended": 0}
+
+
 def _int_or_none(value: Any) -> int | None:
     if isinstance(value, bool) or value is None:
         return None

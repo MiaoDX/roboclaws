@@ -76,7 +76,10 @@ from scripts.molmo_cleanup.openai_agents_budget import (
     raw_fpv_budget_metrics as _raw_fpv_budget_metrics,
 )
 from scripts.molmo_cleanup.openai_agents_continuation_state import (
+    candidate_attempt_counts_by_waypoint,
+    candidate_outcomes_by_waypoint,
     latest_done_completion_blockers,
+    raw_fpv_revisit_waypoints,
     reconcile_remaining_observes_with_heading_blocker,
     remaining_observes_by_waypoint,
     waypoints_by_observation_recency,
@@ -1527,9 +1530,11 @@ def _compact_continuation_profile_guidance(profile: dict[str, Any]) -> str:
         return (
             "RAW-FPV continuation: if latest_done_blockers is non-empty, do not call done "
             "again until its public current values reach required or trace-reconciled progress "
-            "shows a new completion chain. Use remaining_observes_by_waypoint and visit only a "
-            "waypoint whose remaining count is positive. Do not broad re-sweep exhausted "
-            "waypoints. "
+            "shows a new completion chain. A heading-coverage blocker has first priority: use "
+            "remaining_observes_by_waypoint and visit only a waypoint whose remaining count is "
+            "positive until that blocker is resolved. Do not consume raw_fpv_revisit_waypoints "
+            "while a heading-coverage blocker remains. Do not broad re-sweep exhausted "
+            "waypoints; the bounded raw_fpv_revisit_waypoints pass below is the only exception. "
             "If latest_done_blockers contains insufficient_raw_fpv_overlap_probe_coverage, "
             "follow its next_waypoint_id and required_camera_adjustment exactly: navigate there, "
             "call adjust_camera(yaw_delta_deg=45, pitch_delta_deg=20) once, then observe the "
@@ -1541,6 +1546,15 @@ def _compact_continuation_profile_guidance(profile: dict[str, Any]) -> str:
             "observe three consecutive times before leaving. Do not return to canonical or switch "
             "waypoints after only one relative rotation. Treat remaining_observes_by_waypoint as "
             "the public distinct-heading deficit, not a hard cap on recovery observations. "
+            "After heading coverage is complete, if insufficient_grounded_cleanup_chains still "
+            "remains and no held or pending candidate exists, visit raw_fpv_revisit_waypoints in "
+            "order. This is a bounded public recovery pass over otherwise scan-exhausted "
+            "waypoints: visit each listed waypoint at most once, call "
+            "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=45) once, then "
+            "observe exactly one fresh diagonal view. Act only on a high-confidence candidate in "
+            "that fresh observation, never copy an old source observation, bbox, or public "
+            "candidate id, and stop the pass when the public chain gate is met or the list is "
+            "exhausted. Do not revisit waypoints absent from that list. "
             "For an eligible waypoint, call navigate_to_waypoint, then rotate with "
             "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90) and observe "
             "a materially new FPV heading. Prefer candidate_free_scan_waypoints in the "
@@ -1598,7 +1612,8 @@ def _compact_continuation_state(
         remaining_observes,
         latest_done_blockers,
     )
-    candidate_attempt_counts = _candidate_attempt_counts_by_waypoint(trace_events)
+    candidate_attempt_counts = candidate_attempt_counts_by_waypoint(trace_events)
+    candidate_outcomes = candidate_outcomes_by_waypoint(trace_events, known_waypoints)
     scan_priority = waypoints_by_observation_recency(trace_events)
     scan_priority.extend(
         waypoint_id for waypoint_id in known_waypoints if waypoint_id not in scan_priority
@@ -1614,6 +1629,15 @@ def _compact_continuation_state(
     ]
     candidate_limit = _int_or_none(profile.get("raw_fpv_candidate_budget"))
     candidate_attempted = int(budget_metrics.get("candidate_attempt_count") or 0)
+    revisit_waypoints = raw_fpv_revisit_waypoints(
+        trace_events,
+        known_waypoints=known_waypoints,
+        candidate_outcomes=candidate_outcomes,
+        latest_done_blockers=latest_done_blockers,
+        has_pending_candidates=bool(
+            public_pending or latest_done_action_state["actionable_pending_candidates"]
+        ),
+    )
     return {
         "schema": "compact_agent_state_v1",
         "surface": goal_contract.get("surface") or "household-world",
@@ -1629,6 +1653,8 @@ def _compact_continuation_state(
         "recent_tool_failures": recent_failures[-8:],
         "observe_counts_by_waypoint": observe_counts,
         "candidate_attempt_counts_by_waypoint": candidate_attempt_counts,
+        "raw_fpv_waypoint_candidate_outcomes": candidate_outcomes,
+        "raw_fpv_revisit_waypoints": revisit_waypoints,
         "candidate_free_scan_waypoints": candidate_free_waypoints,
         "remaining_observes_by_waypoint": remaining_observes,
         "scan_exhausted_waypoints": exhausted_waypoints,
@@ -1666,38 +1692,6 @@ def _observe_counts_by_waypoint(trace_events: list[dict[str, Any]]) -> dict[str,
         if response.get("ok") is not True:
             continue
         waypoint_id = str(response.get("waypoint_id") or "")
-        if waypoint_id:
-            counts[waypoint_id] = counts.get(waypoint_id, 0) + 1
-    return dict(sorted(counts.items()))
-
-
-def _candidate_attempt_counts_by_waypoint(
-    trace_events: list[dict[str, Any]],
-) -> dict[str, int]:
-    observation_waypoints: dict[str, str] = {}
-    for event in trace_events:
-        if event.get("event") != "response" or event.get("tool") != "observe":
-            continue
-        response = event.get("response") if isinstance(event.get("response"), dict) else {}
-        if response.get("ok") is not True:
-            continue
-        raw_observation = response.get("raw_fpv_observation")
-        if not isinstance(raw_observation, dict):
-            compact = response.get("compact_observation")
-            compact = compact if isinstance(compact, dict) else {}
-            raw_observation = compact.get("raw_fpv_observation")
-        raw_observation = raw_observation if isinstance(raw_observation, dict) else {}
-        observation_id = str(raw_observation.get("observation_id") or "")
-        waypoint_id = str(response.get("waypoint_id") or raw_observation.get("waypoint_id") or "")
-        if observation_id and waypoint_id:
-            observation_waypoints[observation_id] = waypoint_id
-
-    counts: dict[str, int] = {}
-    for event in trace_events:
-        if event.get("event") != "request" or event.get("tool") != "navigate_to_visual_candidate":
-            continue
-        request = event.get("request") if isinstance(event.get("request"), dict) else {}
-        waypoint_id = observation_waypoints.get(str(request.get("source_observation_id") or ""), "")
         if waypoint_id:
             counts[waypoint_id] = counts.get(waypoint_id, 0) + 1
     return dict(sorted(counts.items()))
