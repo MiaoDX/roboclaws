@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -8,6 +9,7 @@ from PIL import Image
 
 from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household import (
+    realworld_done_readiness,
     realworld_runtime_map_targets,
     realworld_visual_candidate_declarations,
     realworld_visual_candidate_lifecycle,
@@ -195,6 +197,17 @@ def test_realworld_public_tools_do_not_expose_private_targets_or_global_inventor
     assert "objects" not in static_fixture_projection
     assert observation["private_target_truth_included"] is False
     assert observation["visible_object_detections"]
+    assert observation["visible_fixture_detections"]
+    for fixture in observation["visible_fixture_detections"]:
+        assert fixture["fixture_id"] == fixture["anchor_id"]
+        assert fixture["fixture_id"].startswith("anchor_fixture_")
+    serialized_observation = json.dumps(observation)
+    assert not any(fixture_id in serialized_observation for fixture_id in contract._fixtures)
+    fixture_navigation = contract.navigate_to_receptacle(
+        observation["visible_fixture_detections"][0]["fixture_id"]
+    )
+    assert fixture_navigation["error_reason"] == "semantic_order"
+    assert fixture_navigation["required_tool"] == "pick"
     for detection in observation["visible_object_detections"]:
         assert detection["object_id"].startswith("observed_")
         assert "support_estimate" in detection
@@ -2207,10 +2220,7 @@ def test_realworld_raw_fpv_done_gate_scales_to_small_generated_mess_count() -> N
         public_acceptance_config={"required_model_declared_observations": 3},
     )
 
-    waypoints = contract.metric_map()["inspection_waypoints"]
-    for waypoint in waypoints:
-        contract.navigate_to_waypoint(str(waypoint["waypoint_id"]))
-        contract.observe()
+    _observe_raw_fpv_heading_sweep(contract)
 
     contract._model_declared_observations = [{}, {}]  # noqa: SLF001
     shortfall = contract.done("small raw-fpv rehearsal shortfall")
@@ -2571,11 +2581,7 @@ def test_realworld_done_does_not_require_unresolved_visual_candidates() -> None:
     assert early_done["next_waypoint_id"]
     assert early_done["sweep_coverage_rate"] < 0.90
 
-    for waypoint in contract.metric_map()["inspection_waypoints"]:
-        if waypoint["visited"]:
-            continue
-        contract.navigate_to_waypoint(str(waypoint["waypoint_id"]))
-        contract.observe()
+    _observe_raw_fpv_heading_sweep(contract)
 
     done = contract.done("finished with unresolved false positives")
 
@@ -2646,10 +2652,7 @@ def test_camera_raw_requested_run_size_enables_grounded_chain_gate_after_sweep()
         public_acceptance_config={"requested_run_size": 5},
     )
 
-    observation = {}
-    for waypoint in contract.metric_map()["inspection_waypoints"]:
-        contract.navigate_to_waypoint(str(waypoint["waypoint_id"]))
-        observation = contract.observe()
+    observation = _observe_raw_fpv_heading_sweep(contract)
     for index in range(5):
         declared = contract.declare_visual_candidates(
             observation["raw_fpv_observation"]["observation_id"],
@@ -2729,6 +2732,122 @@ def test_realworld_navigate_to_visual_candidate_returns_grounded_handle() -> Non
     assert response["visual_grounding_evidence"]["bbox_coordinate_space"] == "normalized_xywh"
     assert contract.pick(response["object_id"])["ok"] is True
     _assert_no_forbidden_keys(response)
+
+
+def test_realworld_raw_fpv_non_recommended_candidate_cannot_navigate_or_pick() -> None:
+    scenario = CleanupScenario(
+        scenario_id="raw-fpv-not-recommended-test",
+        task="leave an already tidy mug in place",
+        seed=7,
+        objects=(CleanupObject("mug_01", "mug", "dish", "sink_01"),),
+        receptacles=(CleanupReceptacle("sink_01", "Sink", "kitchen", category="Sink"),),
+        private_manifest=PrivateScoringManifest(
+            scenario_id="raw-fpv-not-recommended-test",
+            targets=(),
+            success_threshold=0,
+        ),
+    )
+    contract = _contract(
+        CleanupBackendSession(scenario),
+        perception_mode=RAW_FPV_ONLY_MODE,
+    )
+
+    observation = _observe_raw_fpv_category(contract, category="dish")
+    response = contract.navigate_to_visual_candidate(
+        observation["raw_fpv_observation"]["observation_id"],
+        category="mug",
+        evidence_note="mug already resting at its normal sink destination",
+        image_region={"type": "bbox", "value": [0.2, 0.2, 0.2, 0.2]},
+        producer_type="main_cleanup_agent",
+        producer_id="test_agent",
+    )
+
+    assert response["ok"] is False
+    assert response["error_reason"] == "visual_candidate_not_cleanup_recommended"
+    assert response["cleanup_recommended"] is False
+    assert response["candidate_state"] == "visually_confirmed"
+    assert response["required_next_tool"] == "observe"
+    object_id = response["object_id"]
+    assert contract.navigate_to_object(object_id)["error_reason"] == (
+        "visual_candidate_not_cleanup_recommended"
+    )
+    assert contract.pick(object_id)["error_reason"] == "visual_candidate_not_cleanup_recommended"
+    _assert_no_forbidden_keys(response)
+
+
+def test_raw_fpv_done_requires_canonical_distinct_heading_coverage() -> None:
+    contract = _contract(
+        CleanupBackendSession(_empty_cleanup_scenario("raw-fpv-heading-coverage-test")),
+        perception_mode=RAW_FPV_ONLY_MODE,
+    )
+
+    for waypoint in contract.metric_map()["inspection_waypoints"]:
+        contract.navigate_to_waypoint(str(waypoint["waypoint_id"]))
+        for _ in range(4):
+            contract.observe()
+            _set_latest_raw_fpv_heading(contract, 0.0)
+
+    repeated_pose_done = contract.done("repeated the same camera heading")
+
+    assert repeated_pose_done["ok"] is False
+    assert repeated_pose_done["error_reason"] == "insufficient_raw_fpv_heading_coverage"
+    assert repeated_pose_done["required_distinct_heading_count"] == 4
+    assert repeated_pose_done["current_distinct_heading_count"] == 1
+    assert repeated_pose_done["required_tool"] == "navigate_to_waypoint"
+
+    _observe_raw_fpv_heading_sweep(contract, headings=(90.0, 180.0, 270.0))
+
+    done = contract.done("covered four distinct headings per public waypoint")
+    assert done["ok"] is True
+    _assert_no_forbidden_keys(done)
+
+
+def test_open_ended_raw_fpv_done_does_not_require_whole_room_heading_coverage() -> None:
+    contract = _contract(
+        CleanupBackendSession(_empty_cleanup_scenario("open-ended-raw-fpv-heading-test")),
+        perception_mode=RAW_FPV_ONLY_MODE,
+        public_acceptance_config={"task_intent": "open-ended"},
+    )
+
+    done = contract.done("task-scoped public search is complete")
+
+    assert done["ok"] is True
+    assert all(
+        blocker["type"] != "insufficient_raw_fpv_heading_coverage"
+        for blocker in contract.evaluate_done_readiness()["blockers"]
+    )
+    _assert_no_forbidden_keys(done)
+
+
+def test_grounded_chain_gate_counts_only_cleanup_recommended_handles() -> None:
+    contract = _contract(
+        CleanupBackendSession(_empty_cleanup_scenario("recommended-chain-count-test")),
+        perception_mode=RAW_FPV_ONLY_MODE,
+        public_acceptance_config={"required_grounded_cleanup_chains": 2},
+    )
+    contract._detections_by_handle = {  # noqa: SLF001
+        "observed_recommended": {"cleanup_recommended": True},
+        "observed_not_recommended": {"cleanup_recommended": False},
+    }
+
+    blocker = realworld_done_readiness.grounded_cleanup_chain_blocker(
+        contract,
+        {
+            "complete_semantic_substep_objects": 2,
+            "complete_semantic_substep_object_ids": [
+                "observed_recommended",
+                "observed_not_recommended",
+            ],
+            "semantic_substep_count": 2,
+        },
+        raw_fpv_only_mode=RAW_FPV_ONLY_MODE,
+        assert_no_forbidden_agent_view_keys=_assert_no_forbidden_keys,
+    )
+
+    assert blocker is not None
+    assert blocker["current"] == 1
+    assert blocker["complete_semantic_substep_object_ids"] == ["observed_recommended"]
+    assert blocker["required"] == 2
 
 
 def test_realworld_raw_fpv_visual_candidate_requires_reviewable_fpv_bbox() -> None:
@@ -3117,9 +3236,12 @@ def test_realworld_model_declared_grounding_accepts_live_broad_categories() -> N
     )
     assert str(electronics["candidate_fixture_id"]).startswith("anchor_fixture_")
     assert electronics["recommended_tool"] == "place"
-    assert toy["ok"] is True
+    assert toy["ok"] is False
+    assert toy["error_reason"] == "visual_candidate_not_cleanup_recommended"
     assert toy["model_declared_observation"]["grounding_status"] == "resolved"
     assert str(toy["candidate_fixture_id"]).startswith("anchor_fixture_")
+    assert toy["cleanup_recommended"] is False
+    assert toy["required_next_tool"] == "observe"
     _assert_no_forbidden_keys(bad_source_fixture)
     _assert_no_forbidden_keys(electronics)
     _assert_no_forbidden_keys(toy)
@@ -3712,6 +3834,32 @@ def _observe_raw_fpv_category(
     waypoint_id = contract._preferred_waypoint_for_fixture(fixture_id)  # noqa: SLF001
     contract.navigate_to_waypoint(waypoint_id)
     return contract.observe()
+
+
+def _observe_raw_fpv_heading_sweep(
+    contract: RealWorldCleanupContract,
+    *,
+    headings: tuple[float, ...] = (0.0, 90.0, 180.0, 270.0),
+) -> dict:
+    observation = {}
+    for waypoint in contract.metric_map()["inspection_waypoints"]:
+        contract.navigate_to_waypoint(str(waypoint["waypoint_id"]))
+        for heading in headings:
+            observation = contract.observe()
+            _set_latest_raw_fpv_heading(contract, heading)
+    return observation
+
+
+def _set_latest_raw_fpv_heading(
+    contract: RealWorldCleanupContract,
+    heading_degrees: float,
+) -> None:
+    contract._raw_fpv_observations[-1]["camera_control_contract"] = {  # noqa: SLF001
+        "robot_pose": {
+            "pose_source": "relative_robot_frame",
+            "theta": math.radians(heading_degrees),
+        }
+    }
 
 
 def _observe_all_public_waypoints(contract: RealWorldCleanupContract) -> dict:

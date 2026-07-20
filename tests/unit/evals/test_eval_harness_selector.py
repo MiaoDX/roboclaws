@@ -103,6 +103,13 @@ def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
     assert rows["openai-agents-sdk-open-task-live-eval"]["status"] == "not_run"
     assert rows["openai-agents-sdk-cleanup-live-eval"]["status"] == "not_run"
     assert "live_stall_timeout_s=180" in rows["openai-agents-sdk-cleanup-live-eval"]["command"]
+    provider_rows = [
+        row
+        for row_id, row in rows.items()
+        if row_id.startswith("map-build-consumer-openai-agents-sdk-")
+    ]
+    assert len(provider_rows) == 4
+    assert all("live_stall_timeout_s=180" in row["command"] for row in provider_rows)
     assert rows["direct-camera-grounded-grounding-dino"]["status"] == "not_run"
     assert rows["direct-map-build-grounding-dino"]["status"] == "not_run"
     assert rows["long-horizon-tasks-eval-suite"]["status"] == "not_run"

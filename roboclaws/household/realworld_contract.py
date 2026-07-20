@@ -573,7 +573,7 @@ class RealWorldCleanupContract:
             visible_object_detections=[
                 self._agent_visible_detection_payload(detection) for detection in detections
             ],
-            visible_fixture_detections=fixture_observations,
+            visible_fixture_detections=self._public_fixture_reference_payload(fixture_observations),
             held_object_id=self._held_handle,
             perception_source=perception_source,
             private_target_truth_included=False,

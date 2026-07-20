@@ -381,12 +381,12 @@ def _candidate_state(candidate: dict[str, Any]) -> str:
     )
     if reviewability_status != VISUAL_EVIDENCE_REVIEWABLE_STATUS:
         return CANDIDATE_STATE_VISUAL_SCAN_REQUIRED
+    if candidate.get("cleanup_recommended") is False:
+        return CANDIDATE_STATE_VISUALLY_CONFIRMED
     if existing == CANDIDATE_STATE_NAVIGATION_AUTHORIZED:
         return existing
     cleanup_recommended = bool(candidate.get("cleanup_recommended"))
-    candidate_fixture_id = str(candidate.get("candidate_fixture_id") or "")
-    recommended_tool = str(candidate.get("recommended_tool") or "")
-    if cleanup_recommended or (candidate_fixture_id and recommended_tool):
+    if cleanup_recommended:
         return CANDIDATE_STATE_NAVIGATION_AUTHORIZED
     return CANDIDATE_STATE_VISUALLY_CONFIRMED
 

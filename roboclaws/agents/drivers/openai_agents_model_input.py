@@ -284,7 +284,10 @@ def _compact_model_input_items(
         camera_policy,
         tool_names_by_call_id=tool_names_by_call_id,
     )
-    camera_metrics = _new_camera_grounded_history_metrics(camera_policy)
+    camera_metrics, latest_tool_output_index = (
+        _new_camera_grounded_history_metrics(camera_policy),
+        _latest_oversized_tool_output_index(items, min_chars=min_chars),
+    )
     filtered: list[Any] = []
     items_seen: dict[str, int] = {}
     metric_map_seen = False
@@ -320,6 +323,7 @@ def _compact_model_input_items(
                 item,
                 min_chars=min_chars,
                 metric_map_seen=metric_map_seen,
+                preserve_generic_output=index == latest_tool_output_index,
                 public_tool_output_summary=public_tool_output_summary,
                 repeated_metric_map_delta=repeated_metric_map_delta,
                 tool_names_by_call_id=tool_names_by_call_id,
@@ -372,6 +376,7 @@ def _compaction_candidate(
     *,
     min_chars: int,
     metric_map_seen: bool,
+    preserve_generic_output: bool,
     public_tool_output_summary: bool,
     repeated_metric_map_delta: bool,
     tool_names_by_call_id: dict[str, str] | None = None,
@@ -416,7 +421,7 @@ def _compaction_candidate(
         if len(summary) < len(output_text):
             compacted[output_key] = summary
             return compacted, "repeated_metric_map_delta"
-    if not public_tool_output_summary or len(output_text) < min_chars:
+    if preserve_generic_output or not public_tool_output_summary or len(output_text) < min_chars:
         return None, ""
     compacted = copy.deepcopy(payload)
     compacted[output_key] = json.dumps(
@@ -424,6 +429,28 @@ def _compaction_candidate(
         sort_keys=True,
     )
     return compacted, "generic_public_tool_output_summary"
+
+
+def _latest_oversized_tool_output_index(items: list[Any], *, min_chars: int) -> int | None:
+    for index in range(len(items) - 1, -1, -1):
+        payload = _to_jsonable(items[index])
+        if not isinstance(payload, dict):
+            continue
+        if str(payload.get("type") or "") not in {
+            "function_call_output",
+            "computer_call_output",
+            "mcp_call",
+            "mcp_approval_response",
+        }:
+            continue
+        output_key = "output" if "output" in payload else "content" if "content" in payload else ""
+        if not output_key:
+            continue
+        output = payload.get(output_key)
+        output_text = output if isinstance(output, str) else json.dumps(output, sort_keys=True)
+        if len(output_text) >= min_chars:
+            return index
+    return None
 
 
 def _raw_fpv_image_memory_policy(config: dict[str, Any] | None) -> dict[str, Any]:

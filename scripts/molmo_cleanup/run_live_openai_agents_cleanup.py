@@ -1490,7 +1490,13 @@ def _compact_continuation_task_guidance(intent: str) -> str:
             "task-relevant action. Do not switch into whole-room cleanup unless the goal asks "
             "for cleanup."
         )
-    return "Inspect current public MCP state if needed and continue only missing cleanup work."
+    return (
+        "Continue missing cleanup work in this order: first finish held entries in "
+        "actionable_pending_candidates using their destination_options; then advance pending "
+        "entries with their required_tool; then continue the public sweep at "
+        "next_unvisited_waypoint. Do not broad re-sweep while an actionable held or pending "
+        "candidate remains."
+    )
 
 
 def _compact_continuation_profile_guidance(profile: dict[str, Any]) -> str:
@@ -1546,6 +1552,7 @@ def _compact_continuation_state(
     recent_failures = _recent_tool_failures(trace_events)
     observe_counts = _observe_counts_by_waypoint(trace_events)
     latest_done_blockers = _latest_done_blockers(trace_events)
+    latest_done_action_state = _latest_done_public_action_state(trace_events)
     budget_metrics = _raw_fpv_budget_metrics(trace_events)
     max_observes = _int_or_none(profile.get("max_observe_per_waypoint"))
     known_waypoints = _inspection_waypoint_ids(trace_events) or list(observe_counts)
@@ -1599,8 +1606,16 @@ def _compact_continuation_state(
             budget_metrics.get("failed_candidate_attempts_sample") or []
         ),
         "latest_done_blockers": latest_done_blockers,
+        "actionable_pending_candidates": latest_done_action_state["actionable_pending_candidates"],
+        "next_unvisited_waypoint": latest_done_action_state["next_unvisited_waypoint"],
+        "unvisited_waypoint_ids": latest_done_action_state["unvisited_waypoint_ids"],
         "remaining_public_gates": _remaining_public_gates(completed_waypoints, public_pending),
-        "next_requested_action": _next_requested_action(completed_waypoints, public_pending),
+        "next_requested_action": _next_requested_action(
+            completed_waypoints,
+            public_pending,
+            actionable_pending=latest_done_action_state["actionable_pending_candidates"],
+            next_unvisited_waypoint=latest_done_action_state["next_unvisited_waypoint"],
+        ),
         "context_metrics": _compact_metric_group(context_metrics),
     }
 
@@ -1666,6 +1681,36 @@ def _waypoints_by_observation_recency(trace_events: list[dict[str, Any]]) -> lis
 
 
 def _latest_done_blockers(trace_events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    event_index, blockers = _latest_done_completion_blockers(trace_events)
+    if event_index is None:
+        return []
+    normalized = [
+        {
+            key: blocker[key]
+            for key in (
+                "type",
+                "current",
+                "required",
+                "required_tool",
+                "next_waypoint_id",
+                "sweep_coverage_rate",
+                "observed_waypoint_count",
+                "total_waypoints",
+                "recovery_hint",
+            )
+            if key in blocker
+        }
+        for blocker in blockers
+    ]
+    progress_after_done = len(_successful_placement_handles(trace_events[event_index + 1 :]))
+    if progress_after_done:
+        _reconcile_grounded_chain_progress(normalized, progress_after_done)
+    return normalized
+
+
+def _latest_done_completion_blockers(
+    trace_events: list[dict[str, Any]],
+) -> tuple[int | None, list[dict[str, Any]]]:
     for event_index in range(len(trace_events) - 1, -1, -1):
         event = trace_events[event_index]
         if event.get("event") != "response" or event.get("tool") != "done":
@@ -1676,34 +1721,106 @@ def _latest_done_blockers(trace_events: list[dict[str, Any]]) -> list[dict[str, 
         )
         blockers = completion.get("blockers")
         if not isinstance(blockers, list):
-            return []
-        progress_after_done = len(_successful_placement_handles(trace_events[event_index + 1 :]))
-        normalized = [
-            {
-                key: blocker[key]
-                for key in ("type", "current", "required", "required_tool", "recovery_hint")
-                if key in blocker
-            }
-            for blocker in blockers
-            if isinstance(blocker, dict)
-        ]
-        if progress_after_done:
-            for blocker in normalized:
-                if blocker.get("type") != "insufficient_grounded_cleanup_chains":
-                    continue
-                current = _int_or_none(blocker.get("current"))
-                required = _int_or_none(blocker.get("required"))
-                if current is None:
-                    continue
-                blocker["current"] = (
-                    min(required, current + progress_after_done)
-                    if required
-                    else (current + progress_after_done)
-                )
-                blocker["progress_since_latest_done"] = progress_after_done
-                blocker["progress_source"] = "trace_reconciled_after_done"
-        return normalized
-    return []
+            return event_index, []
+        return event_index, [item for item in blockers if isinstance(item, dict)]
+    return None, []
+
+
+def _reconcile_grounded_chain_progress(
+    blockers: list[dict[str, Any]], progress_after_done: int
+) -> None:
+    for blocker in blockers:
+        if blocker.get("type") != "insufficient_grounded_cleanup_chains":
+            continue
+        current = _int_or_none(blocker.get("current"))
+        required = _int_or_none(blocker.get("required"))
+        if current is None:
+            continue
+        blocker["current"] = (
+            min(required, current + progress_after_done)
+            if required
+            else (current + progress_after_done)
+        )
+        blocker["progress_since_latest_done"] = progress_after_done
+        blocker["progress_source"] = "trace_reconciled_after_done"
+
+
+def _latest_done_public_action_state(trace_events: list[dict[str, Any]]) -> dict[str, Any]:
+    _, blockers = _latest_done_completion_blockers(trace_events)
+    pending_blockers = [
+        item for item in blockers if item.get("type") == "pending_cleanup_candidates"
+    ]
+    pending = [
+        candidate
+        for blocker in pending_blockers
+        for candidates in [blocker.get("pending_cleanup_candidates")]
+        if isinstance(candidates, list)
+        for candidate in candidates
+        if isinstance(candidate, dict)
+    ]
+    sweep = next(
+        (item for item in blockers if item.get("type") == "insufficient_sweep_coverage"),
+        {},
+    )
+    raw_unvisited = sweep.get("unvisited_waypoint_ids")
+    unvisited_waypoints = (
+        [str(item) for item in raw_unvisited if str(item)][:32]
+        if isinstance(raw_unvisited, list)
+        else []
+    )
+    next_waypoint = str(sweep.get("next_waypoint_id") or "")
+    if not next_waypoint and unvisited_waypoints:
+        next_waypoint = unvisited_waypoints[0]
+    return {
+        "actionable_pending_candidates": _public_actionable_pending_candidates(pending),
+        "next_unvisited_waypoint": next_waypoint,
+        "unvisited_waypoint_ids": unvisited_waypoints,
+    }
+
+
+def _public_actionable_pending_candidates(
+    pending: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    sanitized: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    for candidate in pending:
+        public_id = str(candidate.get("object_id") or "")
+        if not public_id or public_id in seen_ids:
+            continue
+        seen_ids.add(public_id)
+        item = {
+            key: candidate[key]
+            for key in (
+                "object_id",
+                "category",
+                "state",
+                "candidate_state",
+                "required_tool",
+            )
+            if key in candidate
+        }
+        options = candidate.get("destination_options")
+        if isinstance(options, list):
+            item["destination_options"] = [
+                {
+                    key: option[key]
+                    for key in (
+                        "candidate_fixture_id",
+                        "candidate_fixture_category",
+                        "recommended_tool",
+                        "candidate_source",
+                        "waypoint_id",
+                    )
+                    if key in option
+                }
+                for option in options[:8]
+                if isinstance(option, dict)
+            ]
+        sanitized.append(item)
+        if len(sanitized) >= 12:
+            break
+    sanitized.sort(key=lambda item: 0 if item.get("state") == "held" else 1)
+    return sanitized
 
 
 def _inspection_waypoint_ids(trace_events: list[dict[str, Any]]) -> list[str]:
@@ -1897,9 +2014,20 @@ def _remaining_public_gates(completed_waypoints: list[str], pending: list[str]) 
     return gates
 
 
-def _next_requested_action(completed_waypoints: list[str], pending: list[str]) -> str:
-    if pending:
+def _next_requested_action(
+    completed_waypoints: list[str],
+    pending: list[str],
+    *,
+    actionable_pending: list[dict[str, Any]] | None = None,
+    next_unvisited_waypoint: str = "",
+) -> str:
+    actionable_pending = actionable_pending or []
+    if any(item.get("state") == "held" for item in actionable_pending):
+        return "finish held candidates using public destination_options before other work"
+    if actionable_pending or pending:
         return "clean the public pending handles before broad re-sweep"
+    if next_unvisited_waypoint:
+        return f"navigate_to_waypoint({next_unvisited_waypoint}), then observe"
     if not completed_waypoints:
         return "call metric_map, navigate_to_waypoint, then observe"
     return "inspect public MCP state, finish missing objects or waypoints, then call done"

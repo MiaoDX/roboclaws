@@ -247,6 +247,7 @@
         "stamp=map-build-consumer-openai-agents-sdk-{default_provider}",
         "agent_engine=openai-agents-sdk",
         "provider_profile={default_provider}",
+        "live_stall_timeout_s=180",
         "live_execution=run"
       ],
       "axes": {
@@ -289,6 +290,7 @@
         "stamp=map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
         "agent_engine=openai-agents-sdk",
         "provider_profile=mimo-tp-openai-chat",
+        "live_stall_timeout_s=180",
         "live_execution=run"
       ],
       "axes": {
@@ -331,6 +333,7 @@
         "stamp=map-build-consumer-openai-agents-sdk-kimi-openai-chat",
         "agent_engine=openai-agents-sdk",
         "provider_profile=kimi-openai-chat",
+        "live_stall_timeout_s=180",
         "live_execution=run"
       ],
       "axes": {
@@ -373,6 +376,7 @@
         "stamp=map-build-consumer-openai-agents-sdk-minimax-responses",
         "agent_engine=openai-agents-sdk",
         "provider_profile=minimax-responses",
+        "live_stall_timeout_s=180",
         "live_execution=run"
       ],
       "axes": {

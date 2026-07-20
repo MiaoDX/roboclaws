@@ -1590,22 +1590,34 @@ def test_model_input_compaction_reduces_oversized_public_tool_outputs() -> None:
         {"role": "user", "content": "clean the room"},
         {
             "type": "function_call_output",
-            "call_id": "call_inspect_visible_object",
+            "call_id": "call_old_inspect_visible_object",
             "output": large_output,
+        },
+        {
+            "type": "function_call_output",
+            "call_id": "call_latest_inspect_visible_object",
+            "output": large_output.replace("object_1", "object_2"),
+        },
+        {
+            "type": "function_call_output",
+            "call_id": "call_operator_checkpoint",
+            "output": '{"ok":true,"pending_operator_message_count":0}',
         },
     ]
 
     filtered, metrics = _compact_model_input_items(items, min_chars=80)
 
-    assert metrics["input_item_count"] == 2
+    assert metrics["input_item_count"] == 4
     assert metrics["compacted_item_count"] == 1
     assert metrics["input_bytes_after"] < metrics["input_bytes_before"]
     assert filtered[0] == items[0]
-    assert filtered[1]["call_id"] == "call_inspect_visible_object"
+    assert filtered[1]["call_id"] == "call_old_inspect_visible_object"
     replacement = json.loads(filtered[1]["output"])
     assert replacement["schema"] == "roboclaws_public_tool_output_summary_v1"
     assert replacement["original_chars"] == len(large_output)
-    assert "large public observation payload 19" not in json.dumps(filtered)
+    assert filtered[2] == items[2]
+    assert "large public observation payload 19" in filtered[2]["output"]
+    assert filtered[3] == items[3]
 
 
 def test_model_input_compaction_rejects_invalid_min_chars_env(tmp_path: Path, monkeypatch) -> None:
@@ -4285,6 +4297,110 @@ def test_raw_fpv_compact_continuation_preserves_scan_progress_and_done_blockers(
     assert "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90)" in prompt
     assert "clipped at the left or right edge" in prompt
     assert "adjust_camera(yaw_delta_deg=45 or -45, pitch_delta_deg=0)" in prompt
+
+
+def test_compact_continuation_preserves_latest_public_actionable_done_state(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    destination = {
+        "candidate_fixture_id": "anchor_fixture_fridge",
+        "candidate_fixture_category": "fridge",
+        "recommended_tool": "place_inside",
+        "candidate_source": "runtime_public_semantic_anchor",
+        "waypoint_id": "room_3_inspection",
+        "private_fixture_id": "fixture_private_1",
+    }
+    events = [
+        {
+            "event": "response",
+            "tool": "done",
+            "response": {
+                "ok": False,
+                "completion": {
+                    "blockers": [
+                        {
+                            "type": "pending_cleanup_candidates",
+                            "pending_cleanup_candidates": [
+                                {"object_id": "stale_object", "state": "pending"}
+                            ],
+                        }
+                    ]
+                },
+            },
+        },
+        {
+            "event": "response",
+            "tool": "done",
+            "response": {
+                "ok": False,
+                "completion": {
+                    "blockers": [
+                        {
+                            "type": "pending_cleanup_candidates",
+                            "required_tool": "navigate_to_receptacle",
+                            "pending_cleanup_candidates": [
+                                {
+                                    "object_id": "observed_pending",
+                                    "category": "cup",
+                                    "state": "pending",
+                                    "candidate_state": "navigation_authorized",
+                                    "required_tool": "navigate_to_object",
+                                    "private_target_id": "target_private_1",
+                                },
+                                {
+                                    "object_id": "observed_held",
+                                    "category": "food",
+                                    "state": "held",
+                                    "candidate_state": "navigation_authorized",
+                                    "required_tool": "navigate_to_receptacle",
+                                    "destination_options": [destination],
+                                },
+                            ],
+                        },
+                        {
+                            "type": "insufficient_sweep_coverage",
+                            "required_tool": "navigate_to_waypoint",
+                            "next_waypoint_id": "room_4_inspection",
+                            "unvisited_waypoint_ids": [
+                                "room_4_inspection",
+                                "room_5_inspection",
+                            ],
+                        },
+                    ]
+                },
+            },
+        },
+    ]
+    (run_dir / "trace.jsonl").write_text(
+        "\n".join(json.dumps(event) for event in events) + "\n",
+        encoding="utf-8",
+    )
+
+    state = _compact_continuation_state(run_dir, profile={}, context_metrics={})
+    prompt = _compact_continuation_prompt(run_dir, profile={}, context_metrics={})
+
+    assert [item["object_id"] for item in state["actionable_pending_candidates"]] == [
+        "observed_held",
+        "observed_pending",
+    ]
+    assert state["actionable_pending_candidates"][0]["destination_options"] == [
+        {key: value for key, value in destination.items() if key != "private_fixture_id"}
+    ]
+    assert "private_target_id" not in json.dumps(state)
+    assert "stale_object" not in json.dumps(state)
+    assert state["next_unvisited_waypoint"] == "room_4_inspection"
+    assert state["unvisited_waypoint_ids"] == [
+        "room_4_inspection",
+        "room_5_inspection",
+    ]
+    assert state["next_requested_action"] == (
+        "finish held candidates using public destination_options before other work"
+    )
+    assert "first finish held entries" in prompt
+    assert "then advance pending entries" in prompt
+    assert "then continue the public sweep" in prompt
 
 
 def test_raw_fpv_compact_continuation_reconciles_scan_and_candidate_progress(

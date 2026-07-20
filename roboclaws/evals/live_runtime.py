@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import signal
 import subprocess
 import sys
 import tempfile
@@ -19,6 +20,10 @@ from roboclaws.evals.dependencies import dependency_failure, resolve_artifact_de
 from roboclaws.evals.live_artifacts import (
     discover_live_surface_run_dir,
     load_live_eval_json,
+)
+from roboclaws.evals.live_retry import (
+    LIVE_TRIAL_ATTEMPTS_FILENAME,
+    run_with_model_call_stall_retry,
 )
 from roboclaws.evals.live_timeout import (
     LiveEvalTimeoutError,
@@ -101,22 +106,26 @@ def run_live_eval_trial(
         failure = dependency_failure(dependency_artifacts)
         if failure is not None:
             return hooks.failed_result_from_dependency(trial, run_dir, failure)
-        run_result = live_product_runner(
-            **live_product_run_kwargs(
-                sample,
-                run_dir=run_dir,
-                budget=budget,
-                dependency_artifacts=dependency_artifacts,
-                agent_engine=agent_engine,
-                provider_profile=provider_profile,
-                model=model,
-                live_timeout_s=live_timeout_s,
-                live_stall_timeout_s=live_stall_timeout_s,
+
+        def run_attempt(attempt_run_dir: Path) -> tuple[dict[str, Any], Path]:
+            result = live_product_runner(
+                **live_product_run_kwargs(
+                    sample,
+                    run_dir=attempt_run_dir,
+                    budget=budget,
+                    dependency_artifacts=dependency_artifacts,
+                    agent_engine=agent_engine,
+                    provider_profile=provider_profile,
+                    model=model,
+                    live_timeout_s=live_timeout_s,
+                    live_stall_timeout_s=live_stall_timeout_s,
+                )
             )
-        )
-        effective_run_dir = _live_eval_effective_run_dir(
-            run_result,
-            trial_run_dir=run_dir,
+            return result, _live_eval_effective_run_dir(result, trial_run_dir=attempt_run_dir)
+
+        run_result, effective_run_dir = run_with_model_call_stall_retry(
+            run_dir=run_dir,
+            run_attempt=run_attempt,
         )
     except Exception as exc:  # noqa: BLE001 - eval packets must classify runner failures.
         return hooks.blocked_result_from_exception(trial, exc)
@@ -129,6 +138,9 @@ def run_live_eval_trial(
     )
     status, failure_class = hooks.status_from_graders(grader_outputs)
     artifacts = hooks.artifact_paths(effective_run_dir)
+    attempts_path = run_dir / LIVE_TRIAL_ATTEMPTS_FILENAME
+    if attempts_path.is_file():
+        artifacts["live_trial_attempts"] = str(attempts_path)
     metrics = hooks.metrics_from_graders(
         grader_outputs,
         status=status,
@@ -321,6 +333,7 @@ def _run_live_surface_foreground_process(
                 stdout=stdout_file,
                 stderr=stderr_file,
                 text=True,
+                start_new_session=True,
             )
             while True:
                 now = time.monotonic()
@@ -469,17 +482,18 @@ def _glob_progress_signature(run_dir: Path, pattern: str) -> tuple[tuple[str, bo
 def _terminate_live_surface_process(process: subprocess.Popen[Any]) -> None:
     if process.poll() is not None:
         return
+    process_group_id = process.pid
     try:
-        process.terminate()
+        os.killpg(process_group_id, signal.SIGTERM)
     except OSError:
         return
     try:
         process.wait(timeout=5.0)
-        return
     except subprocess.TimeoutExpired:
         pass
+    # The `just` wrapper can exit before its product child; finish the whole group.
     try:
-        process.kill()
+        os.killpg(process_group_id, signal.SIGKILL)
     except OSError:
         return
     try:

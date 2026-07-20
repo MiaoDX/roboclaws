@@ -200,7 +200,7 @@ def test_session_live_waits_for_lifecycle_phase_after_product_status_passed() ->
 
     with (
         patch("roboclaws.evals.session_live._api_json", side_effect=lambda *_args: next(states)),
-        patch("roboclaws.evals.session_live._pid_exists", side_effect=[True, False]),
+        patch("roboclaws.evals.session_live.pid_is_active", side_effect=[True, False]),
         patch("roboclaws.evals.session_live.time.sleep"),
     ):
         terminal = _wait_for_terminal("http://console", "run-1", deadline=time.monotonic() + 1)

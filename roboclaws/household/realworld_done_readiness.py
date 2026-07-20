@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from collections.abc import Callable, Collection, Mapping, Sequence
 from typing import Any, Protocol
 
@@ -8,6 +9,7 @@ from roboclaws.household import (
     realworld_runtime_map_targets,
     realworld_visual_candidates,
 )
+from roboclaws.household.map_build_scan_profile import map_build_scan_profile
 from roboclaws.household.realworld_agent_view_contract import (
     nonnegative_int,
     positive_int,
@@ -30,6 +32,7 @@ class DoneReadinessContract(Protocol):
     public_acceptance_config: Mapping[str, Any]
     sanitize_world_labels: bool
     _fixtures: dict[str, dict[str, Any]]
+    _detections_by_handle: dict[str, dict[str, Any]]
     _model_declared_observations: Sequence[dict[str, Any]]
     _observed_waypoint_ids: Collection[str]
     _public_waypoints: Sequence[dict[str, Any]]
@@ -227,26 +230,8 @@ def evaluate_done_readiness(
             }
         )
 
-    if not map_build_task and contract.perception_mode == raw_fpv_only_mode:
-        required_declaration_count = required_model_declared_observations(contract)
-        declaration_count = len(contract._model_declared_observations)
-        if declaration_count < required_declaration_count:
-            blockers.append(
-                {
-                    "type": "insufficient_model_declared_observations",
-                    "required_tool": "navigate_to_visual_candidate",
-                    "current": declaration_count,
-                    "required": required_declaration_count,
-                    "model_declared_observations": declaration_count,
-                    "raw_fpv_observations": len(contract._raw_fpv_observations),
-                    "required_model_declared_observations": required_declaration_count,
-                    "recovery_hint": (
-                        "Continue sweeping public waypoints and use "
-                        "navigate_to_visual_candidate for plausible cleanup objects "
-                        "seen in raw FPV images before calling done."
-                    ),
-                }
-            )
+    if not open_ended_task and not map_build_task and contract.perception_mode == raw_fpv_only_mode:
+        blockers.extend(raw_fpv_cleanup_readiness_blockers(contract))
 
     grounded_chain_blocker = None
     if not map_build_task:
@@ -310,6 +295,35 @@ def required_model_declared_observations(contract: DoneReadinessContract) -> int
     return 0
 
 
+def raw_fpv_cleanup_readiness_blockers(
+    contract: DoneReadinessContract,
+) -> list[dict[str, Any]]:
+    blockers: list[dict[str, Any]] = []
+    heading_coverage_blocker = raw_fpv_heading_coverage_blocker(contract)
+    if heading_coverage_blocker is not None:
+        blockers.append(heading_coverage_blocker)
+    required_declaration_count = required_model_declared_observations(contract)
+    declaration_count = len(contract._model_declared_observations)
+    if declaration_count < required_declaration_count:
+        blockers.append(
+            {
+                "type": "insufficient_model_declared_observations",
+                "required_tool": "navigate_to_visual_candidate",
+                "current": declaration_count,
+                "required": required_declaration_count,
+                "model_declared_observations": declaration_count,
+                "raw_fpv_observations": len(contract._raw_fpv_observations),
+                "required_model_declared_observations": required_declaration_count,
+                "recovery_hint": (
+                    "Continue sweeping public waypoints and use "
+                    "navigate_to_visual_candidate for plausible cleanup objects "
+                    "seen in raw FPV images before calling done."
+                ),
+            }
+        )
+    return blockers
+
+
 def grounded_cleanup_chain_blocker(
     contract: DoneReadinessContract,
     semantic_cleanup_evidence: dict[str, Any] | None,
@@ -324,14 +338,17 @@ def grounded_cleanup_chain_blocker(
     if required_count <= 0:
         return None
     evidence = semantic_cleanup_evidence or {}
-    complete_handles = [
+    traced_complete_handles = [
         str(item)
         for item in evidence.get("complete_semantic_substep_object_ids") or []
         if str(item)
     ]
-    complete_count = positive_int(evidence.get("complete_semantic_substep_objects"))
-    if complete_count is None:
-        complete_count = len(complete_handles)
+    complete_handles = [
+        handle
+        for handle in traced_complete_handles
+        if bool((contract._detections_by_handle.get(handle) or {}).get("cleanup_recommended"))
+    ]
+    complete_count = len(complete_handles)
     if complete_count >= required_count:
         return None
     required_tool = grounded_cleanup_chain_required_tool(
@@ -352,6 +369,82 @@ def grounded_cleanup_chain_blocker(
     }
     assert_no_forbidden_agent_view_keys(blocker)
     return blocker
+
+
+def raw_fpv_heading_coverage_blocker(contract: DoneReadinessContract) -> dict[str, Any] | None:
+    profile = map_build_scan_profile()
+    required_count = min(4, max(1, profile.observe_count_per_waypoint))
+    heading_buckets = _raw_fpv_heading_buckets_by_waypoint(
+        contract._raw_fpv_observations,
+        turn_degrees=abs(float(profile.body_turn_yaw_delta_deg or 90.0)),
+    )
+    waypoint_ids = [str(item.get("waypoint_id") or "") for item in contract._public_waypoints]
+    counts = {
+        waypoint_id: len(heading_buckets.get(waypoint_id, set())) for waypoint_id in waypoint_ids
+    }
+    incomplete = [
+        waypoint_id for waypoint_id in waypoint_ids if counts[waypoint_id] < required_count
+    ]
+    if not incomplete:
+        return None
+    next_waypoint_id = incomplete[0]
+    return {
+        "type": "insufficient_raw_fpv_heading_coverage",
+        "policy_id": profile.profile_id,
+        "required_tool": "navigate_to_waypoint",
+        "next_waypoint_id": next_waypoint_id,
+        "required_distinct_heading_count": required_count,
+        "current_distinct_heading_count": counts[next_waypoint_id],
+        "distinct_heading_counts_by_waypoint": counts,
+        "incomplete_waypoint_ids": incomplete,
+        "recovery_hint": (
+            f"Return to {next_waypoint_id}, observe from its canonical inspection pose, then "
+            f"use navigate_to_relative_pose with yaw_delta_deg={profile.body_turn_yaw_delta_deg:g} "
+            "and observe until the required distinct body headings are covered. Repeated "
+            "observations at the same body heading do not add coverage."
+        ),
+    }
+
+
+def _raw_fpv_heading_buckets_by_waypoint(
+    observations: Sequence[dict[str, Any]],
+    *,
+    turn_degrees: float,
+) -> dict[str, set[int]]:
+    headings_by_waypoint: dict[str, list[float]] = {}
+    for observation in observations:
+        waypoint_id = str(observation.get("waypoint_id") or "")
+        heading = _raw_fpv_body_heading_degrees(observation)
+        if waypoint_id and heading is not None:
+            headings_by_waypoint.setdefault(waypoint_id, []).append(heading)
+
+    buckets_by_waypoint: dict[str, set[int]] = {}
+    for waypoint_id, headings in headings_by_waypoint.items():
+        origin = headings[0]
+        buckets_by_waypoint[waypoint_id] = {
+            int(math.floor((((heading - origin) % 360.0) + turn_degrees / 2.0) / turn_degrees))
+            % max(1, round(360.0 / turn_degrees))
+            for heading in headings
+        }
+    return buckets_by_waypoint
+
+
+def _raw_fpv_body_heading_degrees(observation: dict[str, Any]) -> float | None:
+    camera_contract = observation.get("camera_control_contract")
+    camera_contract = camera_contract if isinstance(camera_contract, dict) else {}
+    robot_pose = camera_contract.get("robot_pose")
+    robot_pose = robot_pose if isinstance(robot_pose, dict) else {}
+    pose_source = str(robot_pose.get("pose_source") or "")
+    if pose_source and pose_source not in {
+        "waypoint_room_outline_projection",
+        "relative_robot_frame",
+    }:
+        return None
+    try:
+        theta = float(robot_pose["theta"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    return math.degrees(theta) % 360.0
 
 
 def grounded_cleanup_chain_requirement(

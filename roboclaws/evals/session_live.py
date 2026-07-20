@@ -23,6 +23,7 @@ from roboclaws.evals.reports import RESULTS_BUNDLE_SCHEMA
 from roboclaws.operator_console.interactions import MESSAGE_LOG
 from roboclaws.operator_console.paths import OUTPUT_ROOT_ENV, console_output_root
 from roboclaws.operator_console.routes import ConsoleLaunchSelection, list_console_combinations
+from roboclaws.operator_console.runtime_compat import pid_is_active
 from roboclaws.operator_console.server import ConsoleRequestHandler
 
 SESSION_LIVE_SUITE_SCHEMA = "roboclaws_session_live_eval_suite_v1"
@@ -324,20 +325,10 @@ def _wait_for_terminal(base_url: str, run_id: str, *, deadline: float) -> dict[s
             or status in operator_terminal
         ):
             pid = state.get("pid")
-            if not isinstance(pid, int) or not _pid_exists(pid):
+            if not isinstance(pid, int) or not pid_is_active(pid):
                 return state
         time.sleep(1.0)
     raise RuntimeError(f"run {run_id} did not reach terminal state before timeout")
-
-
-def _pid_exists(pid: int) -> bool:
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    return True
 
 
 def _parent_consumed_steer(parent_dir: Path) -> bool:

@@ -20,6 +20,7 @@ CANDIDATE_STATE_NAVIGATION_AUTHORIZED = (
 CANDIDATE_STATE_VISUAL_SCAN_REQUIRED = (
     realworld_visual_candidates.CANDIDATE_STATE_VISUAL_SCAN_REQUIRED
 )
+CANDIDATE_STATE_VISUALLY_CONFIRMED = realworld_visual_candidates.CANDIDATE_STATE_VISUALLY_CONFIRMED
 VISUAL_EVIDENCE_REQUIRED_ACTIONABILITY = (
     realworld_visual_candidates.VISUAL_EVIDENCE_REQUIRED_ACTIONABILITY
 )
@@ -1039,14 +1040,18 @@ def _visual_candidate_actionability_blocker(
             object_id=handle,
             candidate_fixture_id=candidate_fixture_id,
             candidate_fixture_category=detection.get("candidate_fixture_category", ""),
-            cleanup_recommended=False,
-            recommended_tool="",
+            cleanup_recommended=bool(visual_evidence_error.get("cleanup_recommended", False)),
+            recommended_tool=str(visual_evidence_error.get("recommended_tool") or ""),
             grounding_status=declaration.get("grounding_status", "resolved"),
             required_next_tool="observe",
             recovery_tool_options=visual_evidence_error.get("recovery_tool_options", []),
             actionability_status=visual_evidence_error.get(
                 "actionability_status",
                 VISUAL_EVIDENCE_REQUIRED_ACTIONABILITY,
+            ),
+            candidate_state=visual_evidence_error.get(
+                "candidate_state",
+                CANDIDATE_STATE_VISUAL_SCAN_REQUIRED,
             ),
             visual_grounding_evidence=visual_evidence_error.get(
                 "visual_grounding_evidence",
@@ -1267,6 +1272,29 @@ def visual_evidence_actionability_error(
         assert_no_forbidden_agent_view_keys=assert_no_forbidden_agent_view_keys,
     )
     declaration = detection.get("model_declared_observation") or {}
+    if detection.get("cleanup_recommended") is False and status == "actionable":
+        return contract._error(
+            tool,
+            "visual_candidate_not_cleanup_recommended",
+            object_id=object_id,
+            candidate_fixture_id=str(detection.get("candidate_fixture_id") or ""),
+            candidate_fixture_category=str(detection.get("candidate_fixture_category") or ""),
+            cleanup_recommended=False,
+            recommended_tool="",
+            required_next_tool="observe",
+            recovery_tool_options=["observe", "navigate_to_relative_pose", "navigate_to_waypoint"],
+            actionability_status="not_recommended",
+            candidate_state=CANDIDATE_STATE_VISUALLY_CONFIRMED,
+            visual_grounding_evidence=evidence,
+            grounding_status=detection.get("grounding_status")
+            or declaration.get("grounding_status")
+            or "resolved",
+            source_observation_id=evidence.get("source_observation_id", ""),
+            recovery_hint=(
+                "The current public source/destination evidence does not recommend moving "
+                "this object. Do not navigate to or pick it; continue the waypoint sweep."
+            ),
+        )
     return contract._error(
         tool,
         "visual_evidence_not_reviewable",
