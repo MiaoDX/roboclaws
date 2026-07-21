@@ -1,935 +1,321 @@
 ---
 plan_scope: cloudml-juicefs-eval
-status: Phase 1 dry-run and minimal real cleanup proof implemented locally; formal CloudML submit and bulk JuiceFS asset upload still require explicit approval
+status: active
+implementation_allowed: true
 created: 2026-06-18
-last_reviewed: 2026-06-20
-implementation_allowed: false
+last_reviewed: 2026-07-21
 source:
-  - user request to make formal eval runs less local-only
-  - user decision to use CloudML and JuiceFS
-  - user constraint that CloudML training jobs should be treated as no-network runtime
-  - user decision that Docker images are validated locally, pushed to an internal registry, then consumed by CloudML
+  - user request to make CloudML a standard eval execution target
+  - user approval of the hybrid local and CloudML design on 2026-07-21
 related_context:
   - ARCHITECTURE.md
   - STATUS.md
   - docs/human/evaluation.md
-  - evals/household_world/README.md
+  - docs/human/cloudml-experiment-flow.md
+  - docs/adr/0145-scope-eval-harness-profiles-to-purposeful-baselines.md
 ---
 
-# CloudML + JuiceFS Eval Execution Plan
-
-## Purpose
-
-Move formal Roboclaws eval execution from mostly local runs to a reproducible
-CloudML-backed path, with JuiceFS as the shared artifact store.
-
-The goal is not to replace local debugging. Local runs remain the fastest way to
-iterate on simulator issues, UI/report review, and one-off failures. CloudML
-should own formal eval evidence: clean checkout, fixed commit, fixed image,
-fixed suite/sample set, fixed mount paths, and archived output that can be
-compared across commits, provider profiles, and model versions.
-
-Hard runtime constraint: treat the running CloudML container as having no
-network after entrypoint start. CloudML platform preparation may still fetch
-Roboclaws source from an internal Git URL through `codeConfig` before the
-container entrypoint runs. External GitHub/GitLab, package indexes, model
-downloads, apt install, pip install with dependency resolution, or remote asset
-fetches are still out of scope for the running container unless a separate
-platform proof shows that exact prefetch path is available. Anything the
-entrypoint needs must already be in the image, in the CloudML-prepared internal
-Git checkout, or on JuiceFS.
-
-## Architecture Layer
-
-This plan touches these existing layers:
-
-- Eval harness / eval suite: keep `just agent::eval ...` as the authoritative
-  eval contract.
-- Harness recipes: add or document the CloudML launch mechanics around the eval
-  contract.
-- Runtime artifacts: store eval bundles, product run artifacts, job YAML, and
-  logs under a stable JuiceFS layout.
-- Backend runtime / environment primitive: CloudML is the execution environment
-  for formal eval runs, not a new Roboclaws product backend.
-
-Non-decision: this plan does not introduce a new public product surface, MCP
-tool, capability profile, or eval schema.
-
-## Target Shape
-
-```text
-Local / executor staging
-  -> builds and verifies a Docker image with uv + Roboclaws runtime dependencies
-  -> pushes the verified image to the internal Docker registry
-  -> uploads asset bundles, optional uv cache/wheelhouse, and run manifest to JuiceFS
-
-CloudML custom_train job
-  -> starts from the verified internal-registry Docker image
-  -> uses CloudML codeConfig to fetch Roboclaws from an internal Git URL + commit hash before entrypoint start
-  -> mounts JuiceFS at fixed paths
-  -> reads assets/environment metadata from JuiceFS or the image
-  -> runs one or more `just agent::eval ...` commands
-  -> copies eval outputs and job metadata into JuiceFS
-```
-
-Roboclaws eval semantics stay repo-native:
-
-```bash
-just agent::eval suite=<suite> budget=<budget> stamp=<stamp>
-```
-
-CloudML owns where and how the command runs. JuiceFS owns durable input and
-output. The Docker image owns the Python/UV dependency environment. CloudML
-does not re-validate or mutate that environment; it consumes the already
-verified image.
-
-## Split Of Responsibility
-
-This plan is split into two tracks:
-
-- **Phase 0 / now-verifiable Roboclaws work:** prove the offline Docker runtime,
-  eval command, artifact writing, internal-registry image reference, and CloudML
-  dry-run shape without submitting a real CloudML job.
-- **Phase 1 / executor storage and dry-run work:** use the existing Executor
-  CloudML and JuiceFS targets to prove staged input upload/list/retrieval
-  conventions and dry-run YAML shape.
-- **Phase 2 / formal CloudML smoke work:** after explicit approval and complete
-  CloudML/JuiceFS config, submit one deterministic CloudML smoke job and retrieve
-  its JuiceFS artifacts.
-
-## Now-Verifiable Track
-
-These checks can be done now with local Docker, the current repo, the internal
-Docker Registry, and the existing CloudML executor target.
-
-Terminology:
-
-- `Roboclaws code`: the Roboclaws repository source code fetched by CloudML
-  from Git using `code_url` plus `code_commit`.
-- `asset bundle`: runtime data such as MolmoSpaces fixtures, map bundles,
-  detector weights, benchmark corpora, model caches, or other non-source files.
-- `eval artifacts`: outputs such as `eval_results.json`, `eval_report.html`,
-  traces, run logs, and product run directories.
-
-### 1. Offline Docker Eval Proof
-
-Goal: prove a Docker image can run deterministic Roboclaws evals with no runtime
-network.
-
-Local proof command shape:
-
-```bash
-docker run --rm --network none \
-  -v "$PWD:/workspace/roboclaws:ro" \
-  -v /tmp/roboclaws-eval-output:/workspace/output \
-  -e ROBOCLAWS_DEVTOOLS_PYTHON=/opt/roboclaws/.venv/bin/python \
-  <image-url-or-local-tag> \
-  bash -lc '
-    cd /workspace/roboclaws &&
-    "$ROBOCLAWS_DEVTOOLS_PYTHON" -c "import roboclaws, numpy, PIL, jinja2" &&
-    just agent::eval suite=smoke_regression budget=smoke output_dir=/workspace/output
-  '
-```
-
-Pass condition:
-
-- `smoke_regression` completes without network.
-- `eval_results.json` and `eval_report.html` are written under the mounted
-  output directory.
-- Failure is loud when the image lacks Python, `.venv`, native libraries, or
-  required assets.
-- Local proof can bind-mount the current checkout for simplicity. CloudML source
-  fetch is covered by the dry-run/submission path, not by this Docker proof.
-
-### 2. Docker Image Baseline
-
-Initial image expectations:
-
-- Python 3.12.
-- `uv` installed.
-- Roboclaws `dev` dependency set installed from `pyproject.toml` / `uv.lock`.
-- `ROBOCLAWS_DEVTOOLS_PYTHON` points at the image-baked interpreter under
-  `/opt/roboclaws/.venv/bin/python`.
-- The runtime Roboclaws checkout is installed into that venv as an editable
-  package with no dependency resolution, after CloudML has prepared the source
-  checkout. This keeps imports bound to the requested `code_commit` while
-  preserving the no-network runtime contract.
-- Native libraries needed by deterministic MuJoCo/MolmoSpaces smoke evals.
-- `just`, `git`, `bash`, and basic diagnostics.
-- No provider secrets baked into the image.
-
-Recommended build strategy:
-
-1. Build a dedicated eval image instead of reusing `Dockerfile.coding-agents`.
-   The coding-agent image is for Codex/Claude CLIs, not the Roboclaws Python
-   eval runtime.
-2. Version the image by environment inputs: Dockerfile, base image, `uv.lock`,
-   native libraries, and runtime scripts. Do not rebuild the image for every
-   Roboclaws code commit unless that commit changes environment inputs.
-3. During image build, run `uv sync --extra dev` while network is available,
-   or build a portable `/opt/roboclaws/.venv` and set
-   `ROBOCLAWS_DEVTOOLS_PYTHON=/opt/roboclaws/.venv/bin/python`.
-4. At runtime, never run `uv sync` unless the job is explicitly an environment
-   proof with network enabled.
-5. At runtime, run only a local editable install for the fetched checkout, for
-   example
-   `uv pip install --python "$ROBOCLAWS_DEVTOOLS_PYTHON" --no-deps --editable "$REPO_DIR"`.
-   This is allowed because it does not fetch packages or resolve dependencies.
-6. Tag and push only after the offline proof passes.
-
-Recommended tag convention:
-
-```text
-<cloudml-accessible-internal-registry>/roboclaws/eval:<short-sha>-<yyyymmdd>
-```
-
-Record the immutable image digest after push:
-
-```bash
-docker image inspect <cloudml-accessible-internal-registry>/roboclaws/eval:<tag> \
-  --format '{{index .RepoDigests 0}}'
-```
-
-CloudML should use the pushed registry URL, preferably with a digest-pinned
-reference when the platform accepts it. Use the internal registry namespace
-that CloudML can pull from; if CloudML enforces a `micr.cloud.mioffice.cn/`
-prefix, mirror or tag the verified image there.
-
-Formal jobs should use an image digest, not just a mutable tag. If CloudML does
-not accept digest-pinned image references, record the resolved digest in the
-run manifest next to the submitted tag.
-
-### 3. Deterministic Eval Matrix
-
-Start with deterministic eval suites only:
-
-```bash
-just agent::eval suite=smoke_regression budget=smoke
-just agent::eval suite=open_ended_goals budget=smoke
-just agent::eval suite=map_build_consumer budget=smoke
-just agent::eval suite=scene_sampler_stress budget=smoke
-```
-
-Do not include live provider execution in the first slice. Live routes require
-extra proof for provider keys, runtime capacity, model outages, and in the
-Codex/Claude cases the pinned coding-agent Docker runtime.
-
-Promotion gates:
-
-- Image promotion gate: import check plus `smoke_regression` passes in the
-  local no-network Docker proof.
-- First formal eval gate: the four deterministic suites above pass locally in
-  no-network Docker before the first CloudML submission is treated as formal
-  evidence.
-
-### 4. CloudML Dry-Run YAML
-
-The existing executor target can already generate a CloudML dry-run YAML. Use
-this only to validate job shape before submission:
-
-```bash
-./execute.py nvs cloudml custom_train submit \
-  --job_name roboclaws-eval-<short-sha>-smoke \
-  --description "Roboclaws deterministic eval smoke for <code_commit>" \
-  --access_type PRIVATE \
-  --image_url <cloudml-accessible-internal-registry>/roboclaws/eval:<verified-tag-or-digest> \
-  --image_command '<entrypoint command>' \
-  --code_url <https://.../roboclaws.git> \
-  --code_branch <branch> \
-  --code_commit <commit-sha> \
-  --juicefs_mount_configs '<juicefs-json-array>' \
-  --queue_id <queue-id> \
-  --priority 5 \
-  --resource_priority GUARANTEED \
-  --resource_name <resource-name> \
-  --resource_number 1 \
-  --node_number 1 \
-  --dry_run true \
-  --json
-```
-
-The dry-run should answer whether the image, queue, resource, Git source config,
-JuiceFS mount, and entrypoint shape are valid. It should not be treated as
-proof that assets are staged correctly or that the image works. The
-image-working proof is the local Docker `--network none` run.
-
-## Phase 1 Executor Storage And Dry-Run Track
-
-Executor already supports the CloudML custom_train target and SDK-backed
-JuiceFS transfers:
-
-```bash
-./execute.py nvs cloudml custom_train submit -h
-./execute.py nvs storage check_deps --service juicefs --json
-./execute.py nvs storage juicefs upload -h
-./execute.py nvs storage juicefs download -h
-```
-
-As of the 2026-06-19 review, the JuiceFS SDK target exists but may be blocked by
-local credential configuration. Missing `EXECUTOR_JUICEFS_AK` /
-`EXECUTOR_JUICEFS_SK` is a configuration blocker, not a Roboclaws
-implementation blocker.
-
-Expected executor shape:
-
-```text
-local files -> executor JuiceFS upload -> JuiceFS fixed prefix
-CloudML job -> mounted JuiceFS prefix -> output artifacts
-JuiceFS fixed prefix -> executor JuiceFS download/list/verify -> local review
-```
-
-Executor should own or standardize:
-
-- JuiceFS vol-detail URL syntax and how it maps to CloudML `volume`,
-  `juiceFsCluster`, `subPath`, and `mountPath`.
-- Fixed input/output prefix conventions.
-- Remote manifest conventions for staged asset bundles, caches, image, and
-  eval command matrix.
-- Retrieval commands for local report review.
-- Any platform-specific convenience around CloudML job submission.
-
-The rest of this section records Roboclaws conventions on top of the existing
-Executor target interface.
-
-## Inputs To Be Supplied By Executor Or Operator
-
-Fill these before submitting a real CloudML job:
-
-| Field | Required | Notes |
-| --- | --- | --- |
-| `code_url` | yes | Git URL CloudML can fetch. |
-| `code_branch` | yes | Branch used for traceability. |
-| `code_commit` | yes | Commit hash used by CloudML `codeConfig`; local uncommitted files are not formal eval input. |
-| `image_url` | yes | CloudML-accessible internal-registry image URL or digest for the locally verified eval image. |
-| `queue_id` | yes | CloudML queue id. |
-| `resource_name` | yes | CloudML resource name from queue resources. |
-| `resource_priority` | yes | Usually `GUARANTEED` for formal eval, unless cost/capacity says otherwise. |
-| `priority` | yes | CloudML supports common values such as `2`, `5`, `8`. |
-| `juicefs volume` | yes | JuiceFS volume name from CloudML storage console. |
-| `juicefs cluster` | yes | JuiceFS cluster name. |
-| `juicefs input subPath` | yes | Absolute subpath for staged assets, caches, and manifests. |
-| `juicefs output subPath` | yes | Absolute subpath for eval artifacts and logs. |
-| `juicefs mountPath` | yes | Absolute container path; must not be `/` or `/ml-engine/code`. |
-| `suite matrix` | yes | Which suites/budgets to run in the job. |
-| `stamp convention` | yes | Recommended: `<date>-<short-sha>-<suite-or-matrix>`. |
-
-Implementation preference: use CloudML `codeConfig` as the source-code path.
-That keeps source identity as Git URL + commit hash. JuiceFS is for assets,
-caches, manifests, and outputs.
-
-## JuiceFS Layout
-
-Recommended initial layout:
-
-```text
-/mnt/roboclaws-evals/
-  inputs/
-    assets/
-      molmospaces/
-      visual-grounding/
-      maps/
-    caches/
-      uv/
-      huggingface/
-      torch/
-  runs/
-    <yyyyMMdd>/
-      <short-sha>/
-        <job-name>/
-          cloudml_task.yaml
-          cloudml_submit.json
-          command.sh
-          stdout.log
-          stderr.log
-          output/
-            evals/
-              <suite-id>/
-                <stamp>/
-                  eval_results.json
-                  eval_report.html
-                  runs/
-```
-
-Keep private scorer truth out of public report bundles. If a future run needs
-private grader inputs, place them under an explicitly private path and link them
-only from maintainer-facing manifests.
-
-Initial artifact policy: treat the first JuiceFS eval prefix as
-maintainer-private. It may store complete eval bundles, logs, manifests, and
-debug artifacts. Publishing public reports from that prefix is a later explicit
-export step, not the default behavior.
-
-## Local Asset Staging
-
-Before submitting CloudML, local/executor staging should prepare everything the
-job needs:
-
-- Asset bundles: MolmoSpaces fixtures, map bundles, generated eval samples,
-  detector weights, and any benchmark corpora needed by selected suites.
-- Optional caches: uv cache, model cache, torch cache, and other large immutable
-  downloads. Caches are an optimization only; the first formal deterministic
-  path should work from the pinned image plus staged assets.
-- Run manifest: commit SHA, branch, image URL, suite matrix, expected JuiceFS
-  input/output prefixes, and exact eval commands.
-
-This staging step is where future executor JuiceFS support should mirror the
-current TOS ergonomics: upload/sync local files, verify remote listing, and
-download/sync results for review.
-
-Every staged input prefix should include a manifest:
-
-```json
-{
-  "schema": "roboclaws_cloudml_eval_inputs_v1",
-  "created_at": "<iso8601>",
-  "git": {
-    "url": "<repo-url>",
-    "branch": "<branch>",
-    "commit": "<sha>",
-    "source_path": "cloudml.codeConfig"
-  },
-  "image": {
-    "url": "<cloudml-accessible-internal-registry>/roboclaws/eval:<tag-or-digest>",
-    "python": "<path>",
-    "uv_lock_sha256": "<sha256>"
-  },
-  "assets": [
-    {
-      "name": "molmospaces",
-      "path": "assets/molmospaces",
-      "sha256_manifest": "assets/molmospaces.sha256"
-    }
-  ],
-  "eval": {
-    "commands": [
-      "just agent::eval suite=smoke_regression budget=smoke stamp=<stamp>"
-    ]
-  }
-}
-```
-
-The manifest is more important than the exact directory names. It is the object
-that lets two eval runs answer whether they used the same code, image, assets,
-and suite matrix.
-
-## Docker Image Strategy
-See **Now-Verifiable Track**. This is the first thing to prove before relying on
-CloudML.
-
-## Phase 0 Implementation Evidence
-
-Status: implemented and locally verified on 2026-06-19.
-
-Implemented artifacts:
-
-- `Dockerfile.eval`: dedicated eval image definition for the baked Roboclaws
-  `dev` dependency environment. This image is separate from
-  `Dockerfile.coding-agents` because it owns the Python eval runtime, not Codex
-  or Claude Code CLIs.
-- `scripts/dev/run_eval_image_offline_smoke.sh`: repeatable local proof command
-  that bind-mounts the current checkout read-only, runs Docker with
-  `--network none`, editable-installs the mounted checkout into
-  `/opt/roboclaws/.venv` with `--no-build-isolation --no-deps`, then calls the
-  existing `just agent::eval` facade.
-
-Verification evidence:
-
-```bash
-docker build -f Dockerfile.eval -t roboclaws-eval:local .
-ROBOCLAWS_EVAL_OUTPUT_DIR=/tmp/roboclaws-eval-output \
-  scripts/dev/run_eval_image_offline_smoke.sh
-```
-
-Observed result:
-
-- Docker image id:
-  `sha256:66fd32d8943a231830e2ca29fe9467f0f6ff808e6baad45cf9640d728023d81d`.
-- `smoke_regression` passed under Docker `--network none`.
-- Current-checkout eval artifacts were written to
-  `/tmp/roboclaws-eval-output-current/household_world_smoke_regression/offline-smoke-current/`.
-- `eval_results.json` aggregate: `passed=1`, `failed=0`, `blocked=0`,
-  `pass_at_1=1.0`.
-- `eval_report.html` exists in the same output directory.
-
-Runtime install note: the no-network editable install needs the build backend
-and editable helper available in the baked venv. The image therefore installs
-`hatchling` and `editables` during image build, declares `editables` in
-`pyproject.toml` build-system requirements, then uses
-`uv pip install --no-build-isolation --no-deps --editable "$REPO_DIR"` at
-runtime. This keeps package resolution in the network-allowed image build
-phase and keeps the CloudML/container entrypoint network-free.
-
-## Phase 1 Implementation Evidence
-
-Status: image push and CloudML dry-run verified on 2026-06-19.
-
-Operator-supplied decisions:
-
-- CloudML should consume the internal `mi/main` Roboclaws repository commit.
-- Eval image should be pushed to the internal `cc-proxy` registry.
-- The first CloudML command may be chosen pragmatically by the implementer.
-
-Implemented artifacts:
-
-- `scripts/dev/build_push_eval_image.sh`: builds `Dockerfile.eval`, proves the
-  selected image with Docker `--network none`, then pushes it to the
-  CloudML-accessible registry.
-- `scripts/dev/cloudml_eval_dry_run.sh`: generates a CloudML custom training
-  dry-run YAML through executor using the `profiles/nvs/miaodongxu.yaml`
-  wrapper, the `mi/main` code commit, the cc-proxy image, and the fixed
-  Miaodongxu JuiceFS mounts.
-- `scripts/dev/run_eval_image_offline_smoke.sh` now accepts
-  `ROBOCLAWS_EVAL_REPO_DIR`, so the local image proof can mount a clean
-  checkout matching the CloudML `code_commit` instead of the current possibly
-  dirty working tree.
-
-Verified image:
-
-```text
-image_url: micr.cloud.mioffice.cn/cc-proxy/miuniverse-staging:roboclaws-eval-dfb0a395d1cf-20260619
-image_digest: sha256:90a21f7ba1d9336f67c95adedef452d2c75b806da3b853cce374403102a56742
-image_size: 1877458360
-```
-
-Verified code source:
-
-```text
-code_url: https://git.n.xiaomi.com/ipg/infra/roboclaws.git
-code_branch: main
-code_commit: dfb0a395d1cf56121a00ed3f1477e3f7cf8130b3
-```
-
-Verification evidence:
-
-```bash
-docker build \
-  -f Dockerfile.eval \
-  -t roboclaws-eval:local \
-  -t micr.cloud.mioffice.cn/cc-proxy/miuniverse-staging:roboclaws-eval-dfb0a395d1cf-20260619 \
-  .
-ROBOCLAWS_EVAL_IMAGE=micr.cloud.mioffice.cn/cc-proxy/miuniverse-staging:roboclaws-eval-dfb0a395d1cf-20260619 \
-ROBOCLAWS_EVAL_REPO_DIR=/tmp/roboclaws-mi-main-dfb0a395d1cf \
-ROBOCLAWS_EVAL_OUTPUT_DIR=/tmp/roboclaws-eval-output-cloudml-phase1-mi-main \
-ROBOCLAWS_EVAL_STAMP=offline-smoke-mi-main-dfb0a395 \
-  scripts/dev/run_eval_image_offline_smoke.sh
-docker push micr.cloud.mioffice.cn/cc-proxy/miuniverse-staging:roboclaws-eval-dfb0a395d1cf-20260619
-ROBOCLAWS_CLOUDML_IMAGE_URL=micr.cloud.mioffice.cn/cc-proxy/miuniverse-staging:roboclaws-eval-dfb0a395d1cf-20260619 \
-ROBOCLAWS_CLOUDML_OUTPUT_YAML=/tmp/roboclaws-cloudml-dfb0a395-smoke.yaml \
-  scripts/dev/cloudml_eval_dry_run.sh
-```
-
-Observed result:
-
-- Pushed image digest:
-  `sha256:90a21f7ba1d9336f67c95adedef452d2c75b806da3b853cce374403102a56742`.
-- Clean `mi/main` checkout smoke passed under Docker `--network none`.
-- Local smoke artifacts were written to
-  `/tmp/roboclaws-eval-output-cloudml-phase1-mi-main/household_world_smoke_regression/offline-smoke-mi-main-dfb0a395/`.
-- `eval_results.json` aggregate: `passed=1`, `failed=0`, `blocked=0`,
-  `pass_at_1=1.0`.
-- CloudML dry-run YAML was generated at
-  `/tmp/roboclaws-cloudml-dfb0a395-smoke.yaml` with `dry_run=true`, no
-  `task_id`, and no CloudML submission.
-
-Dry-run YAML shape:
-
-- `queueId`: `11759`.
-- `resourceName`: `cloudml.ng1r49-8-8.13-107`.
-- `resourcePriority`: `GUARANTEED`.
-- `juiceFsMountConfigs`:
-  - read-only input:
-    `robot-intelligent-planning-data` / `wlcb-cloudml` /
-    `/dongxu/gpu_perf/gpu_perf` mounted at `/mnt/cloudml/input`.
-  - read/write output:
-    `robot-intelligent-planning-data` / `wlcb-cloudml` /
-    `/dongxu/gpu_perf/executor_cloudml_runs` mounted at
-    `/mnt/cloudml/output`.
-- `imageCommand`:
-  `bash -lc 'set -Eeuo pipefail; cd /ml-engine/code/roboclaws.git; test -x /opt/roboclaws/.venv/bin/python; uv pip install --python /opt/roboclaws/.venv/bin/python --no-build-isolation --no-deps --editable /ml-engine/code/roboclaws.git; just agent::eval suite=smoke_regression budget=smoke output_dir=/mnt/cloudml/output/roboclaws-evals stamp=cloudml-smoke-dfb0a395d1cf-20260619'`.
-
-Executor note: the personal `nvs miaodongxu cloudml submit` wrapper safely
-handles simple command strings and the fixed JuiceFS mounts. For the Roboclaws
-dry-run script, the CloudML command uses literal paths
-(`/ml-engine/code/roboclaws.git`, `/opt/roboclaws/.venv/bin/python`, and
-`/mnt/cloudml/output/roboclaws-evals`) instead of runtime shell variables
-because executor command-template interpolation runs through a generated bash
-script before calling the CloudML target.
-
-## CloudML Submit Template
-See **Now-Verifiable Track** for the current dry-run command shape. After
-reviewing the generated YAML, submit the same command without `--dry_run true`.
-
-## 2026-06-20 Focused Cleanup Update
-
-The original CloudML dry-run used `smoke_regression/smoke`, which only proves
-the synthetic eval harness path. The minimal real cleanup proof now uses one of
-two command shapes:
-
-```bash
-# Product route: works with the existing public launch catalog and mi/main code.
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco \
-  preset=cleanup agent_engine=direct-runner evidence_lane=world-public-labels \
-  seed=7 scenario_setup=relocate-cleanup-related-objects relocation_count=5 \
-  map_bundle=assets/maps/molmospaces/procthor-10k-val/0 \
-  output_dir=/mnt/cloudml/output/roboclaws-cleanup-runs/<stamp>
-
-# Eval route: one real cleanup sample when the submitted code commit includes
-# the focused-eval map-bundle wiring.
-just agent::eval suite=smoke_regression budget=focused \
-  output_dir=/mnt/cloudml/output/roboclaws-evals stamp=<stamp>
-```
-
-Local evidence:
-
-- Product cleanup passed at
-  `/tmp/roboclaws-cleanup-product-local/0620_0903/seed-7/report.html` with
-  backend `molmospaces_subprocess`, `restored_count=4`, `total_targets=5`,
-  `mess_restoration_rate=0.8`, `sweep_coverage_rate=1.0`, and
-  `disturbance_count=0`.
-- Focused eval cleanup passed at
-  `/tmp/roboclaws-eval-cleanup-focused-local/household_world_smoke_regression/cleanup-focused-local-20260620-092357/eval_results.json`
-  with aggregate `passed=1`, `failed=0`, `blocked=0`, `pass_at_1=1.0`.
-- `scripts/dev/cloudml_eval_dry_run.sh` now defaults to
-  `ROBOCLAWS_CLOUDML_RUN_MODE=product-cleanup`, which runs the public
-  `just run::surface ... preset=cleanup` product route instead of a synthetic
-  smoke eval. The generated CloudML entrypoint fails loudly if the mounted
-  MolmoSpaces scene XML/JSON, THOR objects, RBY1M robot assets, repo map bundle
-  files, or image-baked `/opt/roboclaws/.venv` are missing. It symlinks that
-  venv into the CloudML checkout before the public product route runs.
-- `ROBOCLAWS_CLOUDML_RUN_MODE=eval-focused` remains available for
-  `just agent::eval suite=smoke_regression budget=focused`, but only when the
-  submitted code commit includes the focused-eval map-bundle fix.
-- `scripts/dev/stage_cloudml_cleanup_assets.sh` writes a manifest-first local
-  staging directory and runs executor `storage juicefs upload --dry_run --json`.
-  The default dry-run stages only small repo map assets and the manifest; set
-  `ROBOCLAWS_STAGE_MATERIALIZE_ASSETS=true` only after accepting the large
-  MolmoSpaces asset upload size and JuiceFS target prefix.
-
-Asset findings for the minimal MolmoSpaces cleanup route:
-
-- Repo map assets: `assets/maps/molmospaces`, about 3.5 MB.
-- Current MolmoSpaces symlink asset root:
-  `~/.cache/molmospaces/assets/<install-hash>`, about 519 MB without following
-  symlinks.
-- Actual MolmoSpaces resource cache: `~/.cache/molmo-spaces-resources`, about
-  24 GB on this host.
-- The focused CloudML entrypoint expects staged assets under
-  `/mnt/cloudml/input/roboclaws-assets/cleanup-focused/molmospaces/assets`.
-  The required first-slice checks are:
-  `scenes/procthor-10k-val/val_0.xml`,
-  `scenes/procthor-10k-val/val_0.json`, `objects/thor`, and `robots/rby1m`.
-  The map bundle is checked from the CloudML checkout at
-  `assets/maps/molmospaces/procthor-10k-val/0`.
-
-Important code-commit note: the focused eval route needs the eval runner to pass
-the canonical MolmoSpaces Nav2 map bundle into direct product runs. If CloudML
-must use the older internal `mi/main` commit
-`dfb0a395d1cf56121a00ed3f1477e3f7cf8130b3`, use the public product cleanup
-command above instead of `just agent::eval ... budget=focused`, or update the
-submitted code commit to include the focused-eval map-bundle fix.
-
-Example JuiceFS config shape:
-
-```json
-[
-  {
-    "volume": "<JuiceFSVolumeName>",
-    "subPath": "/roboclaws/evals",
-    "juiceFsCluster": "<juiceFsClusterName>",
-    "mountPath": "/mnt/roboclaws-evals",
-    "readOnly": false
-  }
-]
-```
-
-## Entrypoint Sketch
-
-The entrypoint should fail loudly and preserve artifacts even when an eval
-fails. It must not rely on network after CloudML has prepared the container.
-Roboclaws code should already be present through CloudML `codeConfig`.
-
-```bash
-set -euo pipefail
-
-REPO_DIR="${REPO_DIR:-}"
-JUICEFS_ROOT="/mnt/roboclaws-evals"
-WORK_ROOT="/workspace/roboclaws-eval"
-ARTIFACT_ROOT="$JUICEFS_ROOT/runs/<date>/<short-sha>/<job-name>"
-STAMP="<date>-<short-sha>-smoke"
-EXPECTED_CODE_COMMIT="<commit-sha>"
-EVAL_OUTPUT_ROOT="$ARTIFACT_ROOT/output/evals"
-
-mkdir -p "$ARTIFACT_ROOT" "$WORK_ROOT" "$EVAL_OUTPUT_ROOT"
-if [ -z "$REPO_DIR" ]; then
-  for candidate in /ml-engine/code/roboclaws /ml-engine/code/roboclaws.git; do
-    if [ -d "$candidate/.git" ]; then
-      REPO_DIR="$candidate"
-      break
-    fi
-  done
-fi
-
-test -n "$REPO_DIR"
-cd "$REPO_DIR"
-
-if [ -z "${ROBOCLAWS_DEVTOOLS_PYTHON:-}" ]; then
-  if [ -x "$REPO_DIR/.venv/bin/python" ]; then
-    export ROBOCLAWS_DEVTOOLS_PYTHON="$REPO_DIR/.venv/bin/python"
-  else
-    export ROBOCLAWS_DEVTOOLS_PYTHON="/opt/roboclaws/.venv/bin/python"
-  fi
-fi
-test -x "$ROBOCLAWS_DEVTOOLS_PYTHON"
-
-uv pip install --python "$ROBOCLAWS_DEVTOOLS_PYTHON" --no-deps --editable "$REPO_DIR"
-"$ROBOCLAWS_DEVTOOLS_PYTHON" -c '
-import pathlib
-import roboclaws
-import numpy
-import PIL
-import jinja2
-repo = pathlib.Path("'"$REPO_DIR"'").resolve()
-module = pathlib.Path(roboclaws.__file__).resolve()
-assert repo in module.parents, f"roboclaws imported from {module}, expected under {repo}"
-'
-if git rev-parse HEAD >/dev/null 2>&1; then
-  git rev-parse HEAD > "$ARTIFACT_ROOT/code_commit.txt"
-else
-  printf '%s\n' "<commit-sha>" > "$ARTIFACT_ROOT/code_commit.txt"
-fi
-test "$(cat "$ARTIFACT_ROOT/code_commit.txt")" = "$EXPECTED_CODE_COMMIT"
-
-set +e
-just agent::eval suite=smoke_regression budget=smoke \
-  output_dir="$EVAL_OUTPUT_ROOT" stamp="$STAMP-smoke-regression"
-SMOKE_STATUS=$?
-just agent::eval suite=open_ended_goals budget=smoke \
-  output_dir="$EVAL_OUTPUT_ROOT" stamp="$STAMP-open-ended-goals"
-OPEN_STATUS=$?
-just agent::eval suite=map_build_consumer budget=smoke \
-  output_dir="$EVAL_OUTPUT_ROOT" stamp="$STAMP-map-build-consumer"
-MAP_STATUS=$?
-just agent::eval suite=scene_sampler_stress budget=smoke \
-  output_dir="$EVAL_OUTPUT_ROOT" stamp="$STAMP-scene-sampler-stress"
-SCENE_STATUS=$?
-set -e
-
-cat > "$ARTIFACT_ROOT/exit_status.json" <<EOF
-{
-  "smoke_regression": $SMOKE_STATUS,
-  "open_ended_goals": $OPEN_STATUS,
-  "map_build_consumer": $MAP_STATUS,
-  "scene_sampler_stress": $SCENE_STATUS
-}
-EOF
-
-test "$SMOKE_STATUS" -eq 0
-test "$OPEN_STATUS" -eq 0
-test "$MAP_STATUS" -eq 0
-test "$SCENE_STATUS" -eq 0
-```
-
-Before implementation, verify the CloudML checkout path and replace the
-discovery snippet with a fixed path once the platform behavior is known.
-
-## Monitoring Commands
-
-Query a job:
-
-```bash
-./execute.py nvs cloudml custom_train query \
-  --job_ids <job-id> \
-  --json
-```
-
-Describe a job:
-
-```bash
-./execute.py nvs cloudml custom_train describe \
-  --job_id <job-id> \
-  --json
-```
-
-Fetch logs:
-
-```bash
-./execute.py nvs cloudml custom_train log \
-  --job_id <job-id> \
-  --lines 2000
-```
-
-Stopping jobs is a state-changing operation. Only run stop commands after
-explicit human confirmation.
-
-## Reproducibility Contract
-
-A formal CloudML eval result is comparable only if it records:
-
-- Git URL, branch, and commit SHA.
-- Docker image URL.
-- CloudML queue/resource metadata.
-- JuiceFS artifact root.
-- JuiceFS input manifest and staged asset bundle hashes.
-- Exact `just agent::eval ...` commands.
-- Eval suite id, budget, stamp, and sample/trial identity.
-- Provider profile and `live_execution` setting, if any.
-- Exit status and CloudML job id.
-
-Uncommitted local files are not part of a formal CloudML eval. If a test needs
-local changes, push them to a branch and pass the resulting commit SHA.
-
-## Live Eval Follow-up
-
-After deterministic suites work:
-
-1. Add `live_execution=run` for `open_ended_goals` with one provider profile
-   that does not require the coding-agent Docker runtime.
-2. Record provider/runtime failures separately from behavior failures, matching
-   the current eval runner contract.
-3. Prove whether CloudML can support the pinned Codex/Claude Docker runtime
-   before enabling Codex CLI or Claude Code live evals.
-4. Only then add repeated live-agent `cleanup_capability` runs for `pass@k` and
-   `pass^k`.
-
-## Preflight Contract
-
-Preflight status: REVIEWED_PHASE_0_ONLY
-
-Task source: `docs/plans/2026-06-18-cloudml-juicefs-eval.md` plus discussion.
+# CloudML Eval Execution
+
+## Plan Ledger
+
+- Plan status: ACTIVE
+- Session scope: cloudml-eval-execution
+- Parent plan: none
+- Child plans: none
+- Last updated: 2026-07-21
+- Current slice: add execution metadata, timing, exact-row workers, and local
+  parallel aggregation before connecting the same contract to CloudML.
+- Next action: implement and test the execution-neutral harness contract.
+- Blocked on: none for deterministic implementation and dry-run proof; a real
+  CloudML submission remains an explicit cost-bearing stop gate.
+- Do not touch from this session: product task strategy, MCP semantics, eval
+  grader policy, unrelated provider routes, or physical-robot backends.
+
+## Approved Preflight Contract
+
+Preflight status: approved by the user's 2026-07-21 `LGTM, do these via
+intuitive flow` instruction.
+
+Task source: user discussion plus this reconciled plan.
 
 Canonical source: `docs/plans/2026-06-18-cloudml-juicefs-eval.md`.
 
-Route: durable `$intuitive-flow`.
+Route: durable `$intuitive-flow`; the main session owns integration and final
+verification, with bounded worker phases when they preserve control-plane
+context.
 
-Goal: prove Phase 0, the first local validation slice for CloudML evals, by building a
-local offline-capable Roboclaws eval Docker image and running deterministic
-eval smoke with `--network none`.
+Goal: make local and CloudML execution interchangeable, reproducible targets
+of the same Eval Harness so normal development checks and full baseline
+refreshes can use bounded parallelism without changing eval meaning.
 
 Scope:
 
-- Add a dedicated eval Docker image definition if no suitable image already
-  exists.
-- Build an image with Python 3.12, `uv`, `just`, native runtime dependencies,
-  and Roboclaws `dev` dependencies.
-- Verify locally with a bind-mounted checkout and no runtime network.
-- Record image versioning assumptions: environment image is versioned by
-  Dockerfile, base image, `uv.lock`, and native dependencies, not by every
-  Roboclaws commit.
-- Keep CloudML dry-run command documented, but run it only if registry image
-  URL, queue/resource, and JuiceFS mount config are supplied.
+- Record row timing, execution capabilities, dependencies, attempts, and
+  remote provenance in the harness artifact contract.
+- Execute an exact selected row or dependency-safe shard without rerunning
+  selection policy inside a worker.
+- Add bounded local parallel execution and deterministic artifact aggregation.
+- Add `local`, `cloudml`, and capability-matched `auto` execution targets.
+- Route deterministic work to CPU-capable pools and MuJoCo, DINO, and live
+  simulation work to RTX 4090-class CloudML pools when available.
+- Treat provider reachability as a worker-pool capability. CloudML may use the
+  internal API Router and MiMo Router; direct Kimi and MiniMax rows stay on an
+  external-network pool unless an explicit internal provider profile is added.
+- Pin code commit, image digest, asset manifest digest, row command, and output
+  root for formal evidence.
+- Stage inputs and collect run-owned outputs through JuiceFS, then render the
+  normal `eval_harness.json`, Markdown, and HTML reports.
+- Support submit, poll, collect, retry/resume, and detached status workflows.
+- Keep provider credentials out of commands, YAML, manifests, logs, and normal
+  JuiceFS artifacts. Only a native CloudML secret reference or equivalent
+  workload identity is acceptable for formal live rows.
+- Update the current CloudML runbook and retire the stale single-suite command
+  path once the replacement is proven.
 
 Non-goals:
 
-- No executor JuiceFS target implementation; the existing
-  `nvs storage juicefs` target is reused when Phase 1 has credentials and a
-  vol-detail URL.
-- No real CloudML job submission unless explicitly approved after dry-run.
-- No live provider evals, Codex/Claude live routes, or `live_execution=run`.
-- No public report publishing from JuiceFS.
-- No change to `just agent::eval` semantics.
+- No new robot product surface, public product backend, task intent, MCP tool,
+  eval grader policy, or provider identity alias.
+- No silent fallback from direct Kimi/MiniMax profiles to internal Router
+  models. A different route is a different explicit provider profile.
+- No full Cartesian product of providers, tasks, evidence lanes, and worlds.
+- No plaintext secret bundle in source control, task YAML, shell arguments,
+  report artifacts, or shared storage.
+- No preemptible CloudML evidence jobs until application-level resume is
+  independently proven.
+- No FDS publication by default; publication remains an explicit sharing step.
 
 Entity budget:
 
-- Reuse: `just agent::eval`, current eval suites, `pyproject.toml`, `uv.lock`,
-  and the CloudML executor target.
-- Remove/merge: none.
-- New: one eval Dockerfile and optionally one small local proof script, only if
-  needed to make the proof repeatable.
-- Expansion triggers: adding executor targets, submitting real CloudML jobs,
-  handling provider credentials, changing eval suite semantics, or publishing
-  reports.
+- reuse: the row catalog, selector, harness manifest/report, existing
+  `Dockerfile.eval`, CloudML/JuiceFS scripts, provider registry, and executor
+  `compute cloudml` targets.
+- remove/merge: replace the serial-only run loop with one execution interface;
+  merge the single-suite CloudML prototype into the harness adapter; remove
+  stale `nvs ... cloudml` command references.
+- new: one execution-plan/shard schema and one CloudML adapter boundary are
+  necessary because current rows have no placement or remote lifecycle model.
+- expansion triggers: a new public command family, executor-repo API change,
+  provider alias, plaintext secret fallback, more than three delivery phases,
+  or a new durable storage/service dependency requires review before expansion.
 
 Context:
 
-- Must-read: this plan, `docs/human/evaluation.md`,
-  `evals/household_world/README.md`, `pyproject.toml`, `uv.lock`, and
-  `just/agent.just`.
-- Useful: `Dockerfile.coding-agents` as a non-reuse contrast, and CloudML
-  executor help.
-- Avoid unless needed: historical plans and live-agent implementation details.
+- must-read: this plan, `ARCHITECTURE.md`, `docs/human/evaluation.md`,
+  `skills/eval-harness/SKILL.md`, `skills/eval-harness/catalog/rows.json`,
+  selector/runner code, and `docs/agents/operating-runbook.md`.
+- useful: the latest complete baseline manifest and
+  `docs/human/cloudml-experiment-flow.md`.
+- avoid-unless-needed: historical CloudML transcripts, retired engine plans,
+  broad `.planning/` history, and unrelated provider incidents.
 
-Acceptance:
+## Acceptance
 
-- SUCCESS: local Docker image runs
-  `just agent::eval suite=smoke_regression budget=smoke` with `--network none`
-  and writes `eval_results.json` plus `eval_report.html`.
-- BLOCKED_NEEDS_DECISION: real CloudML dry-run or push requires registry URL,
-  queue/resource, and JuiceFS mount config.
-- BLOCKED_NEEDS_LOCAL_VALIDATION: Docker unavailable or image build cannot
-  complete on the local machine.
-- INTERMEDIATE_ONLY: Dockerfile builds but offline eval fails; keep logs and
-  failure reason.
-- No regressions: existing local `.venv` workflow and `just agent::eval` remain
-  unchanged.
+SUCCESS requires all of the following:
 
-Verification:
+1. `execution_target=local` preserves current row selection, outcome
+   classification, artifact paths, and exit semantics.
+2. Every executed row records start, finish, duration, attempt, execution
+   target, resolved command, and worker provenance.
+3. Dependency-safe local parallel execution shortens a representative
+   multi-row run and never runs a consumer before its producer artifact exists.
+4. A worker can execute an exact row/shard from a frozen manifest without
+   reselecting or mutating unrelated rows.
+5. CloudML dry-run output uses the current `compute cloudml custom_train`
+   target, pinned code/image/input identities, read-only input and run-owned
+   output mounts, and contains no provider secret values.
+6. A real deterministic CloudML smoke writes valid row and harness artifacts
+   to JuiceFS and the local collector reproduces the normal aggregate report.
+7. A real RTX 4090-class MuJoCo/DINO smoke proves the GPU image, EGL/rendering,
+   detector assets, sidecar readiness, and output collection.
+8. Internal API Router and MiMo Router live rows pass from CloudML using secure
+   secret injection; direct Kimi/MiniMax rows are placed on an eligible pool or
+   explicitly blocked with network capability evidence.
+9. `execution_target=auto` completes a hybrid representative baseline with
+   stable row identity and a single aggregate report.
+10. Documentation gives one standard workflow for development, formal
+    baseline refresh, detached monitoring, collection, and failure replay.
 
-- Deterministic: `git diff --check`, plus focused Dockerfile/script shell
-  syntax check if added.
-- Integration: `docker build ...`, then
-  `docker run --rm --network none ... just agent::eval suite=smoke_regression budget=smoke output_dir=/workspace/output`.
-- Product-run: none; this is eval infrastructure proof, not a public robot run
-  change.
-- Local/live/manual: Docker build/run is required locally; CloudML dry-run is
-  optional if required parameters are provided.
-- Optional: run the four deterministic suites locally offline after smoke
-  passes.
+BLOCKED_NEEDS_DECISION:
 
-Execution:
+- A real CloudML submission is a cost-bearing external state change and needs
+  confirmation immediately before the first submit.
+- If CloudML exposes no native secret reference or workload identity, stop for
+  a security decision; do not invent a plaintext fallback.
+- If an internal Router model is proposed as a replacement for an existing
+  direct provider row, require an explicit provider-profile decision.
 
-- Main: supervise image definition, build, offline smoke, artifact inspection,
-  and plan update with result.
-- Worker: none.
-- Worker goal: none.
+BLOCKED_NEEDS_LOCAL_VALIDATION:
 
-To execute:
+- CloudML credentials, queue access, internal registry, JuiceFS mounts, GPU
+  capacity, or internal provider reachability are required for final success.
+  Missing evidence leaves the plan ACTIVE rather than partially complete.
 
-```text
-/goal execute docs/plans/2026-06-18-cloudml-juicefs-eval.md with intuitive-flow
+INTERMEDIATE_ONLY: deterministic implementation, unit/contract proof, and
+CloudML dry-run are useful committed checkpoints but do not complete this plan.
+
+No regressions:
+
+- Existing `just agent::eval recommend|execute|suite|promote-regression`
+  behavior remains supported.
+- Private scorer truth stays grader-only.
+- Provider outages remain separate from agent behavior failures.
+- A selected required row cannot silently disappear because no pool matches.
+
+## Verification
+
+Deterministic:
+
+```bash
+ruff check .
+ruff format --check .
+./scripts/dev/run_pytest_standalone.sh -q \
+  tests/unit/evals/test_eval_harness_baseline_profiles.py \
+  tests/unit/evals/test_eval_harness_selector.py \
+  tests/unit/evals/test_eval_runner.py \
+  tests/contract/dev_tools/test_eval_just_recipe.py
 ```
 
-Optional tracking: none.
+Integration:
 
-Approval: `LGTM`, `approve`, or `go ahead` approves; edits request revision.
+- Generate local, CloudML, and auto execution plans for `baseline-core`,
+  `baseline-live-default`, and `baseline-refresh`.
+- Run a dependency pair and a parallel independent-row group locally.
+- Generate and inspect CloudML dry-run YAML with redaction assertions.
+- Collect synthetic remote row results and prove idempotent aggregation.
+- Run the repo's scene-catalog sync guard when staged scene inputs change.
 
-## Acceptance Criteria By Phase
+Product and local/live:
 
-Phase 0, local image proof:
+- Offline Docker eval smoke with `--network none`.
+- Real CloudML deterministic smoke on a pinned image and commit.
+- Real CloudML RTX 4090 MuJoCo/DINO product row.
+- Real CloudML internal API Router live row.
+- Real CloudML MiMo Router live row.
+- Hybrid `execution_target=auto` representative baseline and final
+  `baseline-refresh` once the earlier gates pass.
 
-- A local Docker run with `--network none` can execute at least
-  `smoke_regression` from a read-only source checkout and write eval output to a
-  mounted directory.
-- The image-baked Python environment can editable-install the runtime checkout
-  with `uv pip install --no-deps --editable "$REPO_DIR"` and import Roboclaws
-  from that checkout.
-- Missing Python, native libraries, `uv`, `just`, or eval dependencies fail
-  loudly.
+Optional:
 
-Phase 1, Executor staging and dry-run:
+- Publish a completed report to FDS for team review.
+- Compare observed wall time against the 2026-07-21 serial baseline of roughly
+  2 hours 42 minutes.
 
-- Existing Executor JuiceFS commands can upload staged assets/caches/manifests
-  and download result bundles with the same ergonomics as current TOS
-  operations once credentials and a vol-detail URL are supplied.
-- `./execute.py nvs storage check_deps --service juicefs --json` is ready, or
-  reports missing JuiceFS credentials as a configuration blocker.
-- `./execute.py nvs storage juicefs upload ... --dry_run --json` can validate
-  the selected input prefix shape before data upload.
-- A dry-run CloudML YAML can be generated for a pushed Roboclaws commit.
-- Missing CloudML config, missing JuiceFS mount fields, missing code commit, or
-  missing staged assets fails loudly.
+## Architecture Contract
 
-Phase 2, formal CloudML smoke:
+```text
+selector
+  -> frozen eval harness manifest and dependency DAG
+  -> capability scheduler
+       -> local worker pool
+       -> CloudML CPU worker pool
+       -> CloudML RTX 4090 worker pool
+  -> row attempt artifacts on local disk or JuiceFS
+  -> collector verifies identities and terminal markers
+  -> one normal eval_harness.json / .md / .html report
+```
 
-- One approved CloudML deterministic smoke job runs without runtime network
-  dependency after entrypoint start.
-- The job writes `eval_results.json` and `eval_report.html` under JuiceFS.
-- The local operator can retrieve the result by commit/suite/stamp without
-  inspecting local machine state.
+CloudML is an Eval Harness execution environment, not a product `backend`.
+Workers execute catalog commands; they do not own selection policy or robot
+strategy.
 
-## Deferred Work
+### Public Maintainer Command
 
-- A dedicated executor workflow or target for Roboclaws eval submission.
-- A report index that compares two JuiceFS eval roots by suite/sample/trial.
-- CloudML image promotion automation after the local offline proof passes.
-- Live provider key handling and redacted metrics capture.
-- Scheduled nightly or pre-release eval runs.
+The intended facade remains `agent::eval`:
+
+```bash
+just agent::eval execute profile=baseline-refresh budget=focused execution_target=auto
+just agent::eval execute profile=baseline-refresh budget=focused execution_target=cloudml detach=true
+just agent::eval status run=<run-id>
+just agent::eval collect run=<run-id>
+```
+
+Exact spelling may follow the existing `just` parser, but no second public
+CloudML-only eval command family should survive closeout.
+
+### Execution Metadata
+
+Row catalog metadata should state policy, not host-specific credentials:
+
+- `execution_requirements`: CPU/GPU, simulator, DINO, provider route, network
+  reachability, and writable artifact storage.
+- `depends_on`: producer rows whose artifacts must exist first.
+- `timeout_s`: row wall-clock bound.
+- `concurrency_group`: optional shared-service/rate-limit bound.
+
+Resolved plan/attempt metadata should add:
+
+- `execution_target`, `worker_pool`, `shard_id`, and CloudML job/pod identity;
+- `attempt`, `started_at`, `finished_at`, and `duration_s`;
+- code commit, image digest, asset-manifest digest, and command digest;
+- terminal marker, artifact root, result digest, and collection status.
+
+### Capability Pools
+
+Pool capability configuration is environment-owned and contains names or
+secret references only, never secret values.
+
+| Pool | Capabilities | Initial use |
+| --- | --- | --- |
+| `local` | external egress, local simulator, one visual slot | direct Kimi/MiniMax and debugging |
+| `cloudml-cpu` | internal network, CPU, JuiceFS | deterministic gates and static suites |
+| `cloudml-r49` | internal network, RTX 4090-class GPU, EGL, MuJoCo, DINO, JuiceFS | simulator, DINO, API Router and MiMo live rows |
+
+Provider concurrency is bounded per route and raised only from measured
+evidence. Independent CloudML jobs may reuse container ports because network
+namespaces are isolated.
+
+### Sharding Rules
+
+- Group short deterministic rows into one CPU shard to amortize startup.
+- Keep producer/consumer artifact chains in one ordered shard unless the
+  artifact has been durably committed and verified before dispatch.
+- Give 15-30 minute live provider rows independent shards when provider
+  concurrency permits.
+- Run DINO rows in a GPU shard whose image or mounted cache already contains
+  detector dependencies and weights.
+- A retry writes a new attempt directory and never overwrites prior evidence.
+- Infrastructure retry is allowed only for classified transient failures;
+  behavioral failures are not automatically retried as infrastructure.
+
+### Security Rules
+
+- Secret values must never enter argv, generated YAML, Git, report JSON/HTML,
+  logs, task labels, FDS bundles, or ordinary JuiceFS artifacts.
+- Worker manifests contain provider profile and secret reference names only.
+- Logs and exception summaries retain the existing redaction boundary.
+- Formal live CloudML execution requires a native secret reference or
+  workload identity proven by a redaction test and a real bounded probe.
+
+## Delivery Sequence
+
+1. Execution-neutral harness core: timing, metadata, dependencies, exact-row
+   worker, local bounded parallelism, aggregation, and tests.
+2. CloudML adapter: current executor path, image/input identities, CPU/GPU
+   pools, dry-run, polling, terminal markers, collection, and retry/resume.
+3. Network/provider routing and live proof: secure secrets, API Router, MiMo,
+   hybrid auto execution, complete baseline timing, docs, and closeout.
+
+Each slice gets focused proof and a semantic commit before the next slice.
+
+## Existing Foundation
+
+The 2026-06-18 through 2026-06-20 prototype already proved:
+
+- `Dockerfile.eval` and an offline `smoke_regression` image run;
+- a pinned internal-registry image and digest;
+- code and focused MolmoSpaces asset archives with sha256 manifests;
+- local deterministic product/eval runs;
+- CloudML dry-run generation and JuiceFS upload dry-run;
+- report retrieval and optional FDS preview publication.
+
+This implementation must reuse those assets while replacing their stale
+single-suite orchestration and old executor target path.
+
+## Stop Condition
+
+The plan is DONE only when all ten SUCCESS items are proven. Deterministic or
+dry-run-only progress remains an intermediate checkpoint. Stop immediately at
+the cost, security, provider-identity, or unavailable-runtime gates above and
+record the exact blocker in the active capsule.
