@@ -12,77 +12,48 @@ made explicit.
 Latest user intent: execute the approved standard CloudML Eval Harness support
 through `intuitive-flow`, committing coherent slices along the way.
 
-Current slice: upload the pinned commit/assets, then prove the
-submit/status/collect lifecycle with real deterministic and RTX 4090 CloudML
-smokes.
+Current slice: CPU and RTX 4090 lifecycle proof is complete; the next boundary
+is secure provider injection for internal Router live rows.
 
-Current blocker: none for the user-approved CPU/GPU smoke sequence. Formal live
-provider rows still require a native secret reference or workload identity.
+Current blocker: executor `custom_train submit` has no native secret reference,
+environment-secret reference, or workload identity parameter. Provider keys
+cannot be placed in argv, YAML, image commands, or JuiceFS artifacts.
 
-Blocker fingerprint: none
+Blocker fingerprint: `cloudml_secret_injection_missing`; security-sensitive
+executor API expansion requires review before implementation.
 
 Last proven evidence:
 
-- Local execution defaults to serial behavior, supports bounded parallel rows,
-  serializes shared concurrency groups, and enforces dependency ordering.
-- Frozen manifests execute exact row IDs without rerunning selection; each
-  attempt writes redacted timing/provenance in `row_result.json`, while launched
-  subprocess rows retain stdout and stderr logs.
-- Focused Eval Harness unit and contract suite passed: 82 tests.
-- CloudML placement, frozen-shard relocation, safe mounts, pinned identities,
-  worker provenance, and current executor dry-run contracts passed: 70 focused
-  tests. A schema-only executor smoke generated YAML without submission.
-- Synthetic terminal-marker collection now validates shard/row identities and
-  idempotently merges remote row results into the normal harness manifest.
-- Submit uploads staging before jobs, persists each task ID independently,
-  resumes missing shards without duplication, and preserves explicit retry
-  history. Public status, opt-in polling, download, and report collection route
-  through `just agent::eval`.
-- Existing offline Docker `smoke_regression` passed with `--network none`.
-- Existing CloudML dry-run and JuiceFS upload dry-run completed in the 2026-06
-  prototype.
-- Current executor readiness is `ready` through
-  `exe compute cloudml check_deps --json`.
-- Current queue probe exposes RTX 4090-class `r49-24g` resources in
-  `robot-dev-common`; availability is a snapshot, not a quota guarantee.
-- The 2026-07-21 local `baseline-refresh` completed serially in about 2 hours
-  42 minutes and exposes no per-row duration fields in its manifest.
-- Separate CPU and CUDA eval images pass offline smokes. Their local sizes are
-  1.88 GB and 10.84 GB respectively; the CUDA image also loads the pinned DINO
-  snapshot offline as `GroundingDinoForObjectDetection`.
-- CUDA dependencies and the pinned DINO snapshot are isolated from the CPU
-  image. The model enters the build through a local BuildKit named context, so
-  public Hugging Face availability is not part of the image contract.
-- Cold common dependencies took about 23 minutes and cold CUDA wheels about 22
-  minutes to build. Baseline refreshes reuse published images; cached CPU
-  rebuilds complete in seconds.
-- Commit `865658f2` staging generated a checksummed 39.7 MB code archive and
-  1.80 GB cleanup-asset archive locally, with upload explicitly disabled.
-- A `baseline-core/focused` CloudML dry-run for that commit selected 18 rows
-  with no blocked rows: ten rows in one CPU shard and eight rows across seven
-  RTX 4090 shards. Pool-specific placeholder digests reached the correct YAML,
-  and only RTX 4090 commands received `cuda`/`float16`; no job was submitted.
-- CPU and CUDA images were rebuilt from clean commit `865658f2`, passed offline
-  smoke, pushed to the internal registry, and remotely resolved as OCI digests
-  `sha256:e715abbd...faa7` and `sha256:d1d4c398...69a4` respectively.
+- Local bounded parallelism, dependency ordering, frozen manifests, per-row
+  timing/provenance, resumable submission, status polling, collection, and
+  normal JSON/Markdown/HTML reporting are implemented and covered.
+- Published CPU/CUDA images passed offline smokes and resolve to OCI digests
+  `sha256:e715abbd...faa7` and `sha256:d1d4c398...69a4`.
+- CPU task `t-20260721202435-8sghy` passed and collected
+  `route-trace-contract-tests` in 12.969 seconds with zero failed/missing rows.
+- RTX 4090 task `t-20260721211104-0e8nh` passed and collected
+  `direct-camera-grounded-grounding-dino` in 238.08 seconds. Readiness returned
+  five DINO candidates; MuJoCo/MolmoSpaces cleanup completed offline.
+- Grounding DINO must use `cuda`/`auto` with Transformers 4.57.6; whole-model
+  float16 fails because internal text position embeddings remain float32.
+- The cleanup archive now contains versioned scene and `droid_objaverse` cache
+  metadata. Staging uses executor's `exe` entrypoint and active config.
+- Executor CloudML readiness is `ready`, but `custom_train submit` exposes no
+  secure provider secret reference or workload identity field.
 
-Completed slice batch: execution-neutral local core plus CloudML CPU/RTX 4090
-placement, frozen manifests, run-owned mounts, pinned image/code/asset checks,
-container worker entrypoint, resumable submit, status/poll, download, and
-idempotent report collection are implemented.
+Completed slice batch: local parallel execution and the complete CloudML
+CPU/RTX 4090 submit/status/collect path, including pinned images, code/assets,
+run-owned mounts, offline DINO, and MolmoSpaces product execution.
 
-Next hypothesis: the published CPU image and checksummed staged inputs can
-complete one bounded deterministic shard and collect it into the normal
-aggregate manifest.
+Next hypothesis: a native CloudML secret-reference or workload-identity field
+can make internal API Router and MiMo rows runnable without exposing provider
+keys.
 
 Next proof:
 
 ```bash
-ROBOCLAWS_CLOUDML_CPU_IMAGE_URL='<published-cpu>@sha256:e715...' \
-ROBOCLAWS_CLOUDML_ASSET_MANIFEST='<staging>/roboclaws_cloudml_cleanup_assets.json' \
-  just agent::eval execute profile=baseline-core budget=focused \
-  execution_target=cloudml row_id=route-trace-contract-tests \
-  output_dir=output/eval-harness/<run>
+cd /home/mi/executor
+./exe compute cloudml custom_train submit -h
 ```
 
 Stop condition: stop before any plaintext secret workaround, provider identity
@@ -91,7 +62,7 @@ substitution, destructive retry, or new cross-repo executor API change.
 No-touch scope: product task strategy, MCP semantics, grader policy, physical
 robot backends, unrelated plans, and direct-provider identity aliases.
 
-Parked work: secure provider injection is still required for API Router and
-MiMo live rows; the repository quality ratchet baseline has unrelated
-pre-existing drift even though full Ruff and pytest gates pass; FDS publication
-remains optional.
+Parked work: API Router/MiMo live rows and hybrid baseline proof wait on secure
+provider injection; direct Kimi/MiniMax remain ineligible on the internal-only
+worker pool; the repository quality ratchet has unrelated pre-existing drift;
+FDS publication remains optional.

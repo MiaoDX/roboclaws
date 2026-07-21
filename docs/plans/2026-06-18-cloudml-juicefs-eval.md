@@ -24,12 +24,14 @@ related_context:
 - Parent plan: none
 - Child plans: none
 - Last updated: 2026-07-21
-- Current slice: upload the pinned commit/assets and run and collect the first
-  real deterministic and RTX 4090 CloudML smokes.
-- Next action: upload the checksummed staging directory, submit one bounded CPU
-  shard with the published CPU digest, monitor it, and collect its report.
-- Blocked on: none for the approved CPU/GPU smoke sequence. Formal provider
-  rows may still stop if CloudML lacks native secret injection.
+- Current slice: CPU and RTX 4090 CloudML smokes are proven; reconcile the
+  secure provider-injection boundary before live Router rows.
+- Next action: add or select a reviewed CloudML native secret reference or
+  workload identity contract, then run bounded API Router and MiMo rows.
+- Blocked on: executor `custom_train submit` currently exposes no native secret
+  reference, environment-secret reference, or workload identity input. The
+  accepted security gate forbids plaintext provider credentials in argv, YAML,
+  image commands, or JuiceFS.
 - Do not touch from this session: product task strategy, MCP semantics, eval
   grader policy, unrelated provider routes, or physical-robot backends.
 
@@ -222,19 +224,29 @@ As of 2026-07-21:
   refreshes reuse published digests and do not rebuild either image.
 - The CUDA build consumes a pinned local Hugging Face cache through a BuildKit
   named context, so image construction does not depend on public Hub access.
-- A current-commit `baseline-core/focused` CloudML dry-run selected 18 rows
+- A `baseline-core/focused` CloudML dry-run selected 18 rows
   with zero blocked rows and generated eight shards: one CPU shard containing
   ten rows and seven RTX 4090 shards containing eight rows. The generated YAML
-  selected the pool-specific image identity and injected `cuda`/`float16` only
-  for RTX 4090 workers. Placeholder digests were used for this schema proof;
-  they are not registry artifacts.
-- Current-commit staging produced checksummed code and cleanup-asset archives
-  locally. JuiceFS upload and real CloudML submission remain unexecuted at this
-  checkpoint.
+  selected the pool-specific image identity. Grounding DINO now uses
+  `cuda`/`auto`: Transformers 4.57.6 generates internal float32 text position
+  embeddings and fails when the whole model is converted to float16.
 - The CPU and CUDA images were rebuilt from commit `865658f2`, passed offline
   smoke again, and were published and remotely resolved as OCI digests
-  `sha256:e715abbd...faa7` and `sha256:d1d4c398...69a4`. JuiceFS upload and
-  real CloudML submission remain unexecuted at this checkpoint.
+  `sha256:e715abbd...faa7` and `sha256:d1d4c398...69a4`.
+- CPU task `t-20260721202435-8sghy` completed and collected the
+  `route-trace-contract-tests` row in 12.969 seconds with zero failed or missing
+  results.
+- RTX 4090 task `t-20260721211104-0e8nh` completed and collected the
+  `direct-camera-grounded-grounding-dino` product row in 238.08 seconds. DINO
+  readiness returned five candidates and the full offline MolmoSpaces cleanup
+  row passed.
+- The staged MolmoSpaces archive includes the versioned scene and
+  `droid_objaverse` cache metadata required by the resource manager. Staging
+  now calls executor through its supported `exe` entrypoint and inherits the
+  executor project's active config unless an explicit override is supplied.
+- The current executor `custom_train submit` CLI and implementation expose no
+  native secret reference or workload identity field. API Router and MiMo live
+  rows therefore remain blocked by the approved no-plaintext-secret gate.
 
 ## Architecture Contract
 
