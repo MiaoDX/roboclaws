@@ -220,7 +220,7 @@ def _validate_image_urls(plan: dict[str, Any], image_urls: dict[str, str]) -> No
         image_url = image_urls.get(pool, "")
         if not image_url:
             raise ValueError(f"CloudML worker pool {pool} has no configured image URL")
-        _validate_image_digest(image_url)
+        _split_image_reference(image_url)
 
 
 def _validate_retry_shard_ids(plan: dict[str, Any], retry_shard_ids: Sequence[str]) -> set[str]:
@@ -243,6 +243,7 @@ def _submit_shard(
     output_subpath: str,
     dry_run: bool,
 ) -> None:
+    platform_image_url, image_digest = _split_image_reference(image_url)
     previous_attempt = {
         key: shard[key]
         for key in ("task_id", "job_id", "console_url", "submitted_at", "remote_status")
@@ -251,7 +252,7 @@ def _submit_shard(
     argv = _executor_submit_argv(
         shard,
         plan=plan,
-        image_url=image_url,
+        image_url=platform_image_url,
         identity=identity,
         executor_path=executor_path,
         input_subpath=input_subpath,
@@ -268,6 +269,8 @@ def _submit_shard(
     payload = _parse_json_output(result.stdout, label="CloudML submit")
     shard["executor_argv"] = argv
     shard["image_url"] = image_url
+    shard["platform_image_url"] = platform_image_url
+    shard["image_digest"] = image_digest
     shard["dry_run"] = bool(payload.get("dry_run", dry_run))
     shard["yaml_path"] = str(payload.get("yaml_path") or shard["yaml_path"])
     if dry_run:
@@ -673,9 +676,16 @@ def _stage_shard_manifests(plan: dict[str, Any], *, stage_dir: Path) -> None:
         shard["manifest_staged_path"] = str(target)
 
 
-def _validate_image_digest(image_url: str) -> None:
-    if not re.fullmatch(r"micr\.cloud\.mioffice\.cn/.+@sha256:[0-9a-f]{64}", image_url):
-        raise ValueError("CloudML image must be a micr.cloud.mioffice.cn URL pinned by sha256")
+def _split_image_reference(image_url: str) -> tuple[str, str]:
+    match = re.fullmatch(
+        r"(micr\.cloud\.mioffice\.cn/.+:[^/@:]+)@(sha256:[0-9a-f]{64})",
+        image_url,
+    )
+    if not match or match.group(1).endswith(":latest"):
+        raise ValueError(
+            "CloudML image must use an immutable micr.cloud.mioffice.cn tag plus sha256 digest"
+        )
+    return match.group(1), match.group(2)
 
 
 def _executor_submit_argv(

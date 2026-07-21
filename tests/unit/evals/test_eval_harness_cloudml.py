@@ -88,8 +88,8 @@ def _asset_manifest(tmp_path: Path, *, code_commit: str = "a" * 40) -> Path:
 
 def _image_urls() -> dict[str, str]:
     return {
-        "cloudml-cpu": f"micr.cloud.mioffice.cn/team/roboclaws-cpu@sha256:{'c' * 64}",
-        "cloudml-r49": f"micr.cloud.mioffice.cn/team/roboclaws-cuda@sha256:{'d' * 64}",
+        "cloudml-cpu": (f"micr.cloud.mioffice.cn/team/roboclaws-cpu:commit-abc@sha256:{'c' * 64}"),
+        "cloudml-r49": (f"micr.cloud.mioffice.cn/team/roboclaws-cuda:commit-abc@sha256:{'d' * 64}"),
     }
 
 
@@ -282,7 +282,9 @@ def test_executor_dry_run_uses_current_target_pinned_inputs_and_safe_mounts(
     argv = plan["shards"][0]["executor_argv"]
     assert argv[1:5] == ["compute", "cloudml", "custom_train", "submit"]
     assert argv[argv.index("--dry_run") + 1] == "true"
-    assert argv[argv.index("--image_url") + 1] == image
+    assert argv[argv.index("--image_url") + 1] == image.rsplit("@", 1)[0]
+    assert plan["shards"][0]["image_url"] == image
+    assert plan["shards"][0]["image_digest"] == image.rsplit("@", 1)[1]
     mounts = json.loads(argv[argv.index("--juicefs_mount_configs") + 1])
     assert mounts[0]["readOnly"] is True
     assert mounts[0]["mountPath"] == "/mnt/cloudml/input"
@@ -293,14 +295,22 @@ def test_executor_dry_run_uses_current_target_pinned_inputs_and_safe_mounts(
     assert "SECRET" not in serialized
 
 
-def test_executor_dry_run_rejects_unpinned_image(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "image",
+    [
+        "micr.cloud.mioffice.cn/team/roboclaws:latest",
+        f"micr.cloud.mioffice.cn/team/roboclaws:latest@sha256:{'c' * 64}",
+        f"micr.cloud.mioffice.cn/team/roboclaws@sha256:{'c' * 64}",
+    ],
+)
+def test_executor_dry_run_rejects_unpinned_image(tmp_path: Path, image: str) -> None:
     row = _row("first", ("cpu", "python-env", "artifact-storage"))
     plan = cloudml.build_cloudml_plan(_manifest(row), execution_target="cloudml", run_id="run-1")
 
-    with pytest.raises(ValueError, match="pinned by sha256"):
+    with pytest.raises(ValueError, match="immutable.*tag plus sha256"):
         cloudml.executor_dry_run(
             plan,
-            image_urls={"cloudml-cpu": "micr.cloud.mioffice.cn/team/roboclaws:latest"},
+            image_urls={"cloudml-cpu": image},
             asset_manifest_path=_asset_manifest(tmp_path, code_commit=plan["code_commit"]),
             executor_path=tmp_path / "exe",
             input_subpath="/input",
@@ -334,6 +344,8 @@ def test_executor_dry_run_selects_image_per_worker_pool(tmp_path: Path) -> None:
     shards = {shard["worker_pool"]: shard for shard in plan["shards"]}
     assert shards["cloudml-cpu"]["image_url"] == _image_urls()["cloudml-cpu"]
     assert shards["cloudml-r49"]["image_url"] == _image_urls()["cloudml-r49"]
+    assert shards["cloudml-cpu"]["platform_image_url"] == _image_urls()["cloudml-cpu"].split("@")[0]
+    assert shards["cloudml-r49"]["image_digest"] == f"sha256:{'d' * 64}"
     gpu_command = shards["cloudml-r49"]["executor_argv"]
     image_command = gpu_command[gpu_command.index("--image_command") + 1]
     assert "VISUAL_GROUNDING_DEVICE=cuda" in image_command
