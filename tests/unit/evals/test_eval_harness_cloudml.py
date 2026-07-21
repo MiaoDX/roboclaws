@@ -122,12 +122,17 @@ def _minimal_molmospaces_assets(tmp_path: Path) -> tuple[Path, Path]:
         path.write_text(f"fixture:{relative}\n", encoding="utf-8")
     cache_scene = cache / "scenes" / "procthor-10k-val" / "20251217"
     cache_scene.mkdir(parents=True)
+    cache_grasps = cache / "grasps" / "droid_objaverse" / "20251218"
+    cache_grasps.mkdir(parents=True)
     (cache / "mjthor_data_type_to_source_to_versions.json").write_text(
-        '{"scenes": {"procthor-10k-val": ["20251217"]}}\n', encoding="utf-8"
+        '{"grasps": {"droid_objaverse": ["20251218"]}, '
+        '"scenes": {"procthor-10k-val": ["20251217"]}}\n',
+        encoding="utf-8",
     )
     (cache_scene / "mjthor_resource_file_to_size_mb.json").write_text(
         '{"fixture": true}\n', encoding="utf-8"
     )
+    (cache_grasps / "mjthor_resource_file_to_size_mb.json").write_text("{}\n", encoding="utf-8")
     return assets, cache
 
 
@@ -705,4 +710,7 @@ def test_cloudml_staging_archives_are_reproducible(tmp_path: Path) -> None:
         assert (
             "molmospaces/cache/scenes/procthor-10k-val/20251217/"
             "mjthor_resource_file_to_size_mb.json"
+        ) in archive.getnames()
+        assert (
+            "molmospaces/cache/grasps/droid_objaverse/20251218/mjthor_resource_file_to_size_mb.json"
         ) in archive.getnames()
