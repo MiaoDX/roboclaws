@@ -140,14 +140,9 @@ def _refresh_cloudml_status(plan: dict[str, Any], *, executor_path: Path) -> dic
                 "compute",
                 "cloudml",
                 "custom_train",
-                "query",
-                "--job_ids",
+                "describe",
+                "--job_id",
                 task_id,
-                "--all_creators",
-                "--page_size",
-                "200",
-                "--max_num",
-                "200",
                 "--json",
             ],
             check=False,
@@ -159,29 +154,18 @@ def _refresh_cloudml_status(plan: dict[str, Any], *, executor_path: Path) -> dic
                 f"CloudML status query failed for {task_id}: "
                 + (result.stderr or result.stdout).strip()
             )
-        try:
-            jobs = json.loads(result.stdout)
-        except json.JSONDecodeError as exc:
-            raise RuntimeError(f"CloudML status query returned invalid JSON for {task_id}") from exc
-        if not isinstance(jobs, list):
-            raise RuntimeError(f"CloudML status query must return a list for {task_id}")
-        job = next(
-            (
-                item
-                for item in jobs
-                if isinstance(item, dict)
-                and str(item.get("job_id") or item.get("task_id") or item.get("id") or "")
-                == task_id
-            ),
-            None,
+        job = _parse_json_object(result.stdout, label=f"CloudML status describe for {task_id}")
+        resolved_id = str(
+            job.get("jobId") or job.get("job_id") or job.get("task_id") or job.get("id") or ""
         )
-        state = _normalize_cloudml_state(
-            str((job or {}).get("state") or (job or {}).get("status") or "")
-        )
+        if resolved_id != task_id:
+            raise RuntimeError(
+                f"CloudML status describe returned job {resolved_id or '<missing>'} for {task_id}"
+            )
+        state = _normalize_cloudml_state(str(job.get("state") or job.get("status") or ""))
         shard["remote_status"] = state
         shard["status_checked_at"] = _utc_now()
-        if job:
-            shard["console_url"] = str(job.get("console_url") or shard.get("console_url") or "")
+        shard["console_url"] = str(job.get("console_url") or shard.get("console_url") or "")
     terminal_states = TERMINAL_SUCCESS_STATES | TERMINAL_FAILURE_STATES
     terminal_count = sum(1 for shard in submitted if shard.get("remote_status") in terminal_states)
     succeeded_count = sum(

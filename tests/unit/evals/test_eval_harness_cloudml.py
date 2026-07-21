@@ -507,7 +507,7 @@ def test_status_normalizes_terminal_cloudml_state(
 
     def fake_run(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
         calls.append(argv)
-        payload = [{"job_id": "task-1", "state": "Successful"}]
+        payload = {"jobId": "task-1", "state": "Successful"}
         return subprocess.CompletedProcess(argv, 0, json.dumps(payload), "")
 
     monkeypatch.setattr(cloudml_lifecycle.subprocess, "run", fake_run)
@@ -518,7 +518,8 @@ def test_status_normalizes_terminal_cloudml_state(
     assert resolved_path == plan_path.resolve()
     assert summary["all_terminal"] is True
     assert summary["all_succeeded"] is True
-    assert calls[0][1:5] == ["compute", "cloudml", "custom_train", "query"]
+    assert calls[0][1:5] == ["compute", "cloudml", "custom_train", "describe"]
+    assert calls[0][calls[0].index("--job_id") + 1] == "task-1"
 
 
 def test_status_does_not_treat_partial_submission_as_terminal(
@@ -535,7 +536,7 @@ def test_status_does_not_treat_partial_submission_as_terminal(
     (harness_dir / "eval_harness.json").write_text(json.dumps(manifest), encoding="utf-8")
 
     def fake_run(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
-        payload = [{"job_id": "task-1", "state": "succeed"}]
+        payload = {"jobId": "task-1", "state": "succeed"}
         return subprocess.CompletedProcess(argv, 0, json.dumps(payload), "")
 
     monkeypatch.setattr(cloudml_lifecycle.subprocess, "run", fake_run)
@@ -565,8 +566,8 @@ def test_collect_downloads_and_merges_terminal_run(
 
     def fake_run(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
         calls.append(argv)
-        if "query" in argv:
-            payload: Any = [{"job_id": "task-1", "state": "succeed"}]
+        if "describe" in argv:
+            payload: Any = {"jobId": "task-1", "state": "succeed"}
         else:
             collected_root = Path(argv[argv.index("--output_dir") + 1])
             shard_root = collected_root / "shards" / shard["shard_id"]
