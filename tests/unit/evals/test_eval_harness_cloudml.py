@@ -349,7 +349,7 @@ def test_executor_dry_run_selects_image_per_worker_pool(tmp_path: Path) -> None:
     gpu_command = shards["cloudml-r49"]["executor_argv"]
     image_command = gpu_command[gpu_command.index("--image_command") + 1]
     assert "VISUAL_GROUNDING_DEVICE=cuda" in image_command
-    assert "VISUAL_GROUNDING_TORCH_DTYPE=float16" in image_command
+    assert "VISUAL_GROUNDING_TORCH_DTYPE=auto" in image_command
 
 
 def test_environment_requires_only_images_for_selected_pools(

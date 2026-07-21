@@ -827,7 +827,7 @@ def _image_command(shard: dict[str, Any], *, identity: dict[str, str]) -> str:
         )
         values["ROBOCLAWS_CLOUDML_ASSET_ARCHIVE_SHA256"] = identity["asset_archive_sha256"]
         values["VISUAL_GROUNDING_DEVICE"] = "cuda"
-        values["VISUAL_GROUNDING_TORCH_DTYPE"] = "float16"
+        values["VISUAL_GROUNDING_TORCH_DTYPE"] = "auto"
     exports = " ".join(f"{key}={shlex.quote(value)}" for key, value in values.items())
     return f"bash -lc {shlex.quote(exports + ' /opt/roboclaws/bin/run-cloudml-eval-worker')}"
 
