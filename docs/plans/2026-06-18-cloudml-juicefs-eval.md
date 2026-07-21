@@ -24,10 +24,10 @@ related_context:
 - Parent plan: none
 - Child plans: none
 - Last updated: 2026-07-21
-- Current slice: add submit, poll, and idempotent collection around the proven
-  CloudML dry-run and exact-row worker contract.
-- Next action: persist task ids, query terminal state, download terminal markers
-  and row results, then aggregate them into the normal harness report.
+- Current slice: add submit and poll lifecycle around the proven CloudML
+  dry-run, exact-row worker, and idempotent collector contract.
+- Next action: persist task ids, query terminal state, and download terminal
+  markers/row results into the collector input root.
 - Blocked on: none for deterministic implementation and dry-run proof; a real
   CloudML submission remains an explicit cost-bearing stop gate.
 - Do not touch from this session: product task strategy, MCP semantics, eval

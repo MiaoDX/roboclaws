@@ -261,6 +261,62 @@ def test_environment_dry_run_stages_worker_manifests(
     assert plan["staging"]["upload_required"] is True
 
 
+def test_collector_merges_remote_results_idempotently(tmp_path: Path) -> None:
+    row = _row("first", ("cpu", "python-env", "artifact-storage"))
+    manifest = _manifest(row)
+    plan = cloudml.build_cloudml_plan(manifest, execution_target="cloudml", run_id="run-1")
+    shard = plan["shards"][0]
+    shard_root = tmp_path / "shards" / shard["shard_id"]
+    marker_dir = shard_root / "markers"
+    row_dir = shard_root / "rows" / "first"
+    marker_dir.mkdir(parents=True)
+    row_dir.mkdir(parents=True)
+    (marker_dir / f"{shard['shard_id']}.json").write_text(
+        json.dumps({"shard_id": shard["shard_id"], "status": "succeeded", "exit_code": 0})
+    )
+    (row_dir / "row_result.json").write_text(
+        json.dumps(
+            {
+                **row,
+                "status": "ran",
+                "outcome": "passed",
+                "execution_target": "cloudml",
+                "worker_pool": "cloudml-cpu",
+                "shard_id": shard["shard_id"],
+            }
+        )
+    )
+
+    first = cloudml.collect_cloudml_results(plan, manifest, collected_root=tmp_path)
+    second = cloudml.collect_cloudml_results(plan, manifest, collected_root=tmp_path)
+
+    assert (
+        first
+        == second
+        == {
+            "collected_row_count": 1,
+            "failed_shard_count": 0,
+            "missing_result_count": 0,
+        }
+    )
+    assert row["outcome"] == "passed"
+
+
+def test_collector_rejects_mismatched_marker_identity(tmp_path: Path) -> None:
+    row = _row("first", ("cpu", "python-env", "artifact-storage"))
+    manifest = _manifest(row)
+    plan = cloudml.build_cloudml_plan(manifest, execution_target="cloudml", run_id="run-1")
+    shard = plan["shards"][0]
+    marker_dir = tmp_path / "shards" / shard["shard_id"] / "markers"
+    marker_dir.mkdir(parents=True)
+    (marker_dir / f"{shard['shard_id']}.json").write_text(
+        json.dumps({"shard_id": "wrong", "status": "succeeded", "exit_code": 0})
+    )
+
+    with pytest.raises(ValueError, match="identity mismatch"):
+        cloudml.collect_cloudml_results(plan, manifest, collected_root=tmp_path)
+
+
 def test_eval_image_contains_cloudml_worker_entrypoint() -> None:
     dockerfile = (REPO_ROOT / "Dockerfile.eval").read_text(encoding="utf-8")
     worker = (REPO_ROOT / "scripts" / "dev" / "run_cloudml_eval_worker.sh").read_text(

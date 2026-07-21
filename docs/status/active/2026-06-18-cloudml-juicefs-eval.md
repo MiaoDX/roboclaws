@@ -12,8 +12,8 @@ made explicit.
 Latest user intent: execute the approved standard CloudML Eval Harness support
 through `intuitive-flow`, committing coherent slices along the way.
 
-Current slice: add CloudML submit/poll/collect lifecycle around the proven
-CPU/RTX 4090 dry-run and exact-row worker contract.
+Current slice: add CloudML submit/poll lifecycle around the proven CPU/RTX 4090
+dry-run, exact-row worker, and idempotent collector contracts.
 
 Current blocker: none for deterministic implementation or CloudML dry-run.
 Real CloudML submit is a cost-bearing stop gate; formal live rows additionally
@@ -32,6 +32,8 @@ Last proven evidence:
 - CloudML placement, frozen-shard relocation, safe mounts, pinned identities,
   worker provenance, and current executor dry-run contracts passed: 70 focused
   tests. A schema-only executor smoke generated YAML without submission.
+- Synthetic terminal-marker collection now validates shard/row identities and
+  idempotently merges remote row results into the normal harness manifest.
 - Existing offline Docker `smoke_regression` passed with `--network none`.
 - Existing CloudML dry-run and JuiceFS upload dry-run completed in the 2026-06
   prototype.

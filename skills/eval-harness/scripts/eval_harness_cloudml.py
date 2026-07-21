@@ -277,6 +277,47 @@ def apply_blocked_placements(manifest: dict[str, Any], plan: dict[str, Any]) -> 
         row["blockers"] = [{"category": blocked["category"], "detail": blocked["detail"]}]
 
 
+def collect_cloudml_results(
+    plan: dict[str, Any], manifest: dict[str, Any], *, collected_root: Path
+) -> dict[str, int]:
+    rows = {str(row.get("row_id")): row for row in manifest.get("rows") or []}
+    collected = failed_shards = missing_results = 0
+    for shard in plan.get("shards") or []:
+        shard_id = str(shard["shard_id"])
+        shard_root = collected_root / "shards" / shard_id
+        marker_path = shard_root / "markers" / f"{shard_id}.json"
+        marker = _read_json_object(marker_path, label="CloudML terminal marker")
+        if marker.get("shard_id") != shard_id:
+            raise ValueError(f"CloudML terminal marker identity mismatch for {shard_id}")
+        if marker.get("status") != "succeeded" or int(marker.get("exit_code") or 0) != 0:
+            failed_shards += 1
+        for row_id in shard["row_ids"]:
+            result_path = shard_root / "rows" / str(row_id) / "row_result.json"
+            if not result_path.is_file():
+                missing_results += 1
+                continue
+            result = _read_json_object(result_path, label="CloudML row result")
+            if result.get("row_id") != row_id:
+                raise ValueError(f"CloudML row result identity mismatch for {row_id}")
+            if result.get("execution_target") != "cloudml":
+                raise ValueError(f"CloudML row result target mismatch for {row_id}")
+            if result.get("shard_id") != shard_id:
+                raise ValueError(f"CloudML row result shard mismatch for {row_id}")
+            if str(row_id) not in rows:
+                raise ValueError(f"CloudML row result is not in source manifest: {row_id}")
+            rows[str(row_id)].update(result)
+            collected += 1
+        shard["terminal_marker"] = str(marker_path)
+        shard["collection_status"] = "collected"
+    summary = {
+        "collected_row_count": collected,
+        "failed_shard_count": failed_shards,
+        "missing_result_count": missing_results,
+    }
+    plan["collection"] = summary
+    return summary
+
+
 def _selected_rows(manifest: dict[str, Any], *, row_ids: Sequence[str]) -> list[dict[str, Any]]:
     selected = [row for row in manifest.get("rows") or [] if row.get("selected")]
     if not row_ids:
@@ -394,6 +435,18 @@ def _load_asset_identity(path: Path) -> dict[str, str]:
     if missing:
         raise ValueError(f"asset manifest is missing identity field(s): {', '.join(missing)}")
     return identity
+
+
+def _read_json_object(path: Path, *, label: str) -> dict[str, Any]:
+    if not path.is_file():
+        raise ValueError(f"missing {label}: {path}")
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{label} must contain valid JSON: {path}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError(f"{label} must contain a JSON object: {path}")
+    return payload
 
 
 def _stage_shard_manifests(plan: dict[str, Any], *, stage_dir: Path) -> None:
