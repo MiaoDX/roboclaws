@@ -1,11 +1,12 @@
 # CloudML Experiment Flow
 
 For new Eval Harness work, use the target-aware `just agent::eval` flow in
-`docs/human/evaluation.md`. The shell workflow below is the older single-suite
+`docs/human/evaluation.md`; it owns current submit, poll, collect, resume, and
+provider-env staging. The shell workflow below is the older single-suite
 experiment prototype and remains only for its already-validated product
-cleanup/staging path while submit, poll, and collect migrate into Eval Harness.
-Its `cloudml_eval_dry_run.sh` submit implementation still names a retired
-executor route and must not be used as the canonical eval submission command.
+cleanup/staging path. Its `cloudml_eval_dry_run.sh` submit implementation still
+names a retired executor route and must not be used as the canonical eval
+submission command.
 
 This runbook fixes the full executor-backed experiment loop for Roboclaws
 cleanup product runs and evaluation trials:

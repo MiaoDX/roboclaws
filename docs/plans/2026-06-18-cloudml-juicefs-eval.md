@@ -24,15 +24,14 @@ related_context:
 - Parent plan: none
 - Child plans: none
 - Last updated: 2026-07-21
-- Current slice: CPU and RTX 4090 CloudML smokes are proven; live Router rows
-  are paused at the reviewed provider-identity boundary.
-- Next action: approve a Router-side CloudML workload-identity exchange for a
-  short-lived scoped token, then implement the worker bootstrap and run bounded
-  API Router and MiMo rows.
-- Blocked on: executor `custom_train submit` currently exposes no native secret
-  reference, environment-secret reference, or workload identity input. The
-  accepted security gate forbids plaintext provider credentials in argv, YAML,
-  image commands, or JuiceFS.
+- Current slice: scoped provider-env staging and bounded CloudML API Router/MiMo
+  live proof are complete; hybrid `auto` execution and the full baseline refresh
+  remain.
+- Next action: implement dependency-safe local/CloudML handoff, then run a
+  representative hybrid baseline before the full refresh.
+- Blocked on: no credential-transport blocker. The internal `mimo-1000` route is
+  currently upstream-unavailable, and this account can run two r49 shards
+  concurrently before CloudML resource quota requires resume-based submission.
 - Do not touch from this session: product task strategy, MCP semantics, eval
   grader policy, unrelated provider routes, or physical-robot backends.
 
@@ -71,9 +70,9 @@ Scope:
 - Stage inputs and collect run-owned outputs through JuiceFS, then render the
   normal `eval_harness.json`, Markdown, and HTML reports.
 - Support submit, poll, collect, retry/resume, and detached status workflows.
-- Keep provider credentials out of commands, YAML, manifests, logs, and normal
-  JuiceFS artifacts. Only a native CloudML secret reference or equivalent
-  workload identity is acceptable for formal live rows.
+- Keep provider credentials out of commands, YAML, manifests, logs, reports, and
+  normal output artifacts. Stage only registry-required values from a local
+  dotenv into a separate per-shard, read-only JuiceFS mount.
 - Update the current CloudML runbook and retire the stale single-suite command
   path once the replacement is proven.
 
@@ -84,8 +83,9 @@ Non-goals:
 - No silent fallback from direct Kimi/MiniMax profiles to internal Router
   models. A different route is a different explicit provider profile.
 - No full Cartesian product of providers, tasks, evidence lanes, and worlds.
-- No plaintext secret bundle in source control, task YAML, shell arguments,
-  report artifacts, or shared storage.
+- No complete `.env` upload and no provider values in source control, task YAML,
+  shell arguments, reports, logs, or the normal input/output mounts. The approved
+  provider mount is a separate, minimal plaintext JuiceFS prefix.
 - No preemptible CloudML evidence jobs until application-level resume is
   independently proven.
 - No FDS publication by default; publication remains an explicit sharing step.
@@ -101,7 +101,7 @@ Entity budget:
 - new: one execution-plan/shard schema and one CloudML adapter boundary are
   necessary because current rows have no placement or remote lifecycle model.
 - expansion triggers: a new public command family, executor-repo API change,
-  provider alias, plaintext secret fallback, more than three delivery phases,
+  provider alias, broader credential staging, more than three delivery phases,
   or a new durable storage/service dependency requires review before expansion.
 
 Context:
@@ -133,9 +133,10 @@ SUCCESS requires all of the following:
    to JuiceFS and the local collector reproduces the normal aggregate report.
 7. A real RTX 4090-class MuJoCo/DINO smoke proves the GPU image, EGL/rendering,
    detector assets, sidecar readiness, and output collection.
-8. Internal API Router and MiMo Router live rows pass from CloudML using secure
-   secret injection; direct Kimi/MiniMax rows are placed on an eligible pool or
-   explicitly blocked with network capability evidence.
+8. Internal API Router and MiMo live rows execute from CloudML through the
+   scoped provider mount; unavailable models remain explicit provider failures.
+   Direct Kimi/MiniMax rows are placed on an eligible pool or explicitly blocked
+   with network capability evidence.
 9. `execution_target=auto` completes a hybrid representative baseline with
    stable row identity and a single aggregate report.
 10. Documentation gives one standard workflow for development, formal
@@ -146,8 +147,9 @@ BLOCKED_NEEDS_DECISION:
 - A real CloudML submission is a cost-bearing external state change and needs
   confirmation immediately before the first submit. The user supplied that
   confirmation for the current CPU/GPU smoke sequence on 2026-07-21.
-- If CloudML exposes no native secret reference or workload identity, stop for
-  a security decision; do not invent a plaintext fallback.
+- Any expansion from the approved per-shard registry keys to a broader dotenv,
+  another storage surface, or task environment values requires a new security
+  decision.
 - If an internal Router model is proposed as a replacement for an existing
   direct provider row, require an explicit provider-profile decision.
 
@@ -211,7 +213,7 @@ Optional:
 
 As of 2026-07-21:
 
-- Focused Eval Harness regression passes 82 tests; Ruff, formatting checks,
+- Focused Eval Harness regression passes 211 tests; Ruff, formatting checks,
   and CloudML shell syntax checks pass.
 - Separate local CPU and CUDA images pass offline eval smokes. The CPU image is
   1.88 GB and the CUDA image is 10.84 GB.
@@ -245,29 +247,25 @@ As of 2026-07-21:
   `droid_objaverse` cache metadata required by the resource manager. Staging
   now calls executor through its supported `exe` entrypoint and inherits the
   executor project's active config unless an explicit override is supplied.
-- The current executor `custom_train submit` CLI and implementation expose no
-  native secret reference or workload identity field. API Router and MiMo live
-  rows therefore remain blocked by the approved no-plaintext-secret gate.
-- CloudML CLI v1.3.25 confirms that `--env` serializes ordinary key/value pairs
-  into `envConfigs`; `--image_secret` is only an image-pull credential. The
-  exported custom-train schema contains neither an environment secret reference
-  nor a service-account/workload-identity field. A no-credential CloudML probe
-  reached both internal Routers but received HTTP 401, so network placement or
-  pod identity alone is not currently accepted.
-
-Recommended security contract:
-
-- CloudML supplies a platform-verifiable workload assertion already available
-  to the pod, or the platform team adds one without exposing a long-lived key.
-- A Router-side exchange endpoint validates workspace, queue, workload, and
-  audience, then returns a short-lived token scoped to the intended model route.
-- The worker bootstrap keeps that token in memory and exposes the existing
-  provider environment contract only to the child eval process. Manifests,
-  commands, reports, logs, and JuiceFS continue to contain only route and
-  identity metadata.
-- Static provider credentials in `envConfigs`, task YAML, image commands, or a
-  JuiceFS secret file remain out of scope even if accepted as an emergency
-  manual experiment; they cannot become formal baseline evidence.
+- Provider requirements now come directly from the provider registry. The
+  adapter loads the repo-local `.env`, writes only each shard's required values
+  to a `0600` temporary dotenv, uploads it to a separate run-owned JuiceFS
+  prefix, and mounts it read-only. Temporary local files are deleted after
+  submission; plans, argv, generated YAML, logs, reports, and collected output
+  contain no API-key values.
+- Live run `provider-fabb06bf-live` collected all three rows. API Router passed
+  3/3 open-ended samples in 397.722 seconds; MiMo Mify passed 3/3 in 692.858
+  seconds. MiMo Inside reached its configured `mimo-1000` route but failed both
+  attempts as `provider_transient_failure/upstream_unavailable`, matching the
+  earlier local route result rather than a credential-transport failure.
+- Submission initially hit the account's two-r49 concurrent resource quota.
+  Persisted task IDs and upload markers allowed the third shard to be submitted
+  with `agent::eval execute run=...` after one task completed, without duplicate
+  upload or duplicate submission.
+- The scoped remote dotenv remains plaintext on JuiceFS and currently has no
+  automatic deletion lifecycle. A native CloudML secret reference or
+  Router-issued short-lived workload token remains the preferred hardening path,
+  but is no longer a blocker for the approved controlled baseline workflow.
 
 ## Architecture Contract
 
@@ -292,8 +290,8 @@ strategy.
 The intended facade remains `agent::eval`:
 
 ```bash
-just agent::eval execute profile=baseline-refresh budget=focused execution_target=auto
-just agent::eval execute profile=baseline-refresh budget=focused execution_target=cloudml detach=true
+just agent::eval execute profile=baseline-refresh budget=focused execution_target=auto cloudml_dry_run=true
+just agent::eval execute profile=baseline-refresh budget=focused execution_target=cloudml output_dir=output/eval-harness/<run>
 just agent::eval status run=<run-id>
 just agent::eval collect run=<run-id>
 ```
@@ -320,8 +318,8 @@ Resolved plan/attempt metadata should add:
 
 ### Capability Pools
 
-Pool capability configuration is environment-owned and contains names or
-secret references only, never secret values.
+Pool capability configuration is environment-owned and contains names and
+placement policy only. Provider values stay in the separate scoped mount.
 
 | Pool | Capabilities | Initial use |
 | --- | --- | --- |
@@ -349,11 +347,15 @@ namespaces are isolated.
 ### Security Rules
 
 - Secret values must never enter argv, generated YAML, Git, report JSON/HTML,
-  logs, task labels, FDS bundles, or ordinary JuiceFS artifacts.
-- Worker manifests contain provider profile and secret reference names only.
+  logs, task labels, FDS bundles, or normal input/output JuiceFS artifacts.
+- Worker manifests contain provider profile and required environment names only.
 - Logs and exception summaries retain the existing redaction boundary.
-- Formal live CloudML execution requires a native secret reference or
-  workload identity proven by a redaction test and a real bounded probe.
+- The provider mount contains only registry-required values for one shard, is
+  read-only in the worker, and is never placed under the collected output root.
+- The current JuiceFS transport is plaintext at rest from the harness
+  perspective and has no automatic remote deletion; access control and key
+  rotation are operational requirements until a native secret manager replaces
+  it.
 
 ## Delivery Sequence
 

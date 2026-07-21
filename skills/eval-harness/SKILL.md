@@ -52,11 +52,10 @@ CloudML uses separate CPU and CUDA image digests. Build them through
 so it remains reproducible when the public Hugging Face Hub is unreachable.
 Normal baseline runs reuse published digests and do not rebuild images.
 
-`execution_target=auto` keeps direct Kimi/MiniMax and any provider row that
-cannot receive a secure CloudML secret on the local worker. It never substitutes
-another provider identity. Real hybrid submission remains disabled until the
-local/cloud dependency handoff is implemented; `auto` is currently a placement
-dry-run only.
+`execution_target=auto` keeps direct Kimi/MiniMax and provider rows with missing
+local environment on the local worker. It never substitutes another provider
+identity. Real hybrid submission remains disabled until the local/cloud
+dependency handoff is implemented; `auto` is currently a placement dry-run only.
 
 Submit a detached CloudML run only after reviewing the dry-run and accepting
 the infrastructure cost, then monitor and collect it through the same facade:
@@ -77,9 +76,16 @@ execute run=output/eval-harness/<run>` to submit only missing shards. Pass
 `retry_shard_id=<shard-id>` only for an intentional new attempt; the prior task
 identity remains in `previous_attempts`.
 
-CloudML live provider rows remain explicitly blocked until executor supports a
-secret reference or workload identity. Never put provider keys in commands,
-task YAML, JuiceFS staging, or harness artifacts.
+CloudML API Router and MiMo rows load their registry-required values from the
+repo-local `.env` by default. The adapter writes only those keys to a `0600`
+temporary dotenv, uploads one file per shard to a separate run-owned JuiceFS
+prefix, and mounts it read-only. The temporary local copy is deleted after
+submission; key values never enter commands, task YAML, plans, logs, reports, or
+the collected output mount. The remote file is still plaintext credential
+storage and is not automatically deleted, so use a controlled JuiceFS prefix and
+rotate credentials according to provider policy. Set
+`ROBOCLAWS_PROVIDER_ENV_FILE` to use a different local dotenv source. Missing
+required values produce `missing_provider_environment` instead of submitting.
 
 Refresh the current baseline at the appropriate cost tier:
 

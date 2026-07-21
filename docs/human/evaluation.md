@@ -150,12 +150,23 @@ just agent::eval status run=output/eval-harness/<run> wait=true timeout_s=3600
 just agent::eval collect run=output/eval-harness/<run>
 ```
 
-Direct Kimi/MiniMax require external egress. API Router/MiMo are reachable from
-CloudML, but live provider rows remain explicitly blocked there until executor
-supports a secret reference or workload identity; plaintext key injection is
-not supported. `execution_target=auto` currently supports placement dry-runs
-only because a real hybrid run still needs dependency-safe handoff between
-CloudML producer rows and local provider consumers.
+Direct Kimi/MiniMax require external egress. API Router and MiMo rows can run on
+CloudML from the repo-local `.env`; `ROBOCLAWS_PROVIDER_ENV_FILE` selects a
+different local dotenv source. The adapter reads each profile's requirements
+from the provider registry, writes only the required values to a `0600`
+temporary file, uploads one file per shard to a separate run-owned JuiceFS
+prefix, and mounts it read-only at `/mnt/cloudml/provider-env`. The temporary
+local file is removed after submission, and the secret mount is separate from
+the collected output mount. Commands, generated YAML, plans, logs, reports, and
+normal result artifacts contain paths and environment names, not key values.
+
+This is controlled plaintext storage on JuiceFS, not a platform secret manager:
+the remote provider file is not automatically deleted. Do not upload the full
+`.env`; keep the provider prefix access-controlled and rotate credentials under
+the normal provider policy. Missing required values produce
+`missing_provider_environment`. `execution_target=auto` currently supports
+placement dry-runs only because a real hybrid run still needs dependency-safe
+handoff between CloudML producer rows and local provider consumers.
 
 Direct suites run direct-runner household samples without provider keys, write
 `output/evals/<suite>/<stamp>/eval_results.json`, and render

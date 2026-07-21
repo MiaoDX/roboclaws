@@ -1,6 +1,6 @@
 # CloudML Eval Execution Capsule
 
-Capsule status: BLOCKED
+Capsule status: ACTIVE
 
 Source plan: `docs/plans/2026-06-18-cloudml-juicefs-eval.md`
 
@@ -9,67 +9,50 @@ Control plane: root Codex session, scope `cloudml-eval-execution`
 Project-status writer: unassigned; return a status delta unless ownership is
 made explicit.
 
-Latest user intent: execute the approved standard CloudML Eval Harness support
-through `intuitive-flow`, committing coherent slices along the way.
+Latest user intent: make CloudML provider rows use the repo-local `.env` without
+placing keys in entry commands, then commit and prove the route.
 
-Current slice: CPU and RTX 4090 lifecycle proof is complete; internal Router
-live rows are paused at the provider-identity decision boundary.
+Current slice: scoped provider-env staging and bounded live proof are complete.
+Hybrid `auto` dependency handoff and the complete baseline refresh remain.
 
-Current blocker: CloudML CLI v1.3.25 and the exported custom-train schema have no
-native environment-secret reference or workload-identity parameter. `--env`
-stores plaintext `envConfigs`, while `--image_secret` only authenticates image
-pulls. Provider keys cannot be placed in argv, YAML, image commands, or JuiceFS
-artifacts.
-
-Blocker fingerprint: `cloudml_secret_injection_missing`; the recommended
-Router-side workload-identity exchange requires product/security review before
-implementation.
+Current blocker: no credential-transport blocker. `mimo-1000` is currently
+upstream-unavailable; CloudML allows two concurrent r49 shards for this account,
+so larger GPU batches must use resumable waves.
 
 Last proven evidence:
 
-- Local bounded parallelism, dependency ordering, frozen manifests, per-row
-  timing/provenance, resumable submission, status polling, collection, and
-  normal JSON/Markdown/HTML reporting are implemented and covered.
-- Published CPU/CUDA images passed offline smokes and resolve to OCI digests
-  `sha256:e715abbd...faa7` and `sha256:d1d4c398...69a4`.
-- CPU task `t-20260721202435-8sghy` passed and collected
-  `route-trace-contract-tests` in 12.969 seconds with zero failed/missing rows.
-- RTX 4090 task `t-20260721211104-0e8nh` passed and collected
-  `direct-camera-grounded-grounding-dino` in 238.08 seconds. Readiness returned
-  five DINO candidates; MuJoCo/MolmoSpaces cleanup completed offline.
-- Grounding DINO must use `cuda`/`auto` with Transformers 4.57.6; whole-model
-  float16 fails because internal text position embeddings remain float32.
-- The cleanup archive now contains versioned scene and `droid_objaverse` cache
-  metadata. Staging uses executor's `exe` entrypoint and active config.
-- Executor CloudML readiness is `ready`, but `custom_train submit` exposes no
-  secure provider secret reference or workload identity field.
-- A no-credential task reached both internal Router `/models` endpoints and
-  received HTTP 401. The remaining failure is authentication, not CloudML
-  egress, model quota, GPU/runtime readiness, or harness placement.
-- CLI help, binary schema, and a redacted exported task structure agree that
-  CloudML currently exposes ordinary `envConfigs`, an image-pull secret, and
-  JuiceFS-specific mount credentials, but no general runtime secret binding.
+- Commits `ab7c855c` and `fabb06bf` load registry-required values from `.env`,
+  stage one `0600` dotenv per provider shard, mount it read-only, and bootstrap
+  both old and new eval images without putting values in argv/YAML/reports.
+- Eval Harness focused regression passes 211 tests; provider-env tests include
+  special-character round-trip, registry mapping, temp cleanup, mount policy,
+  resume, and secret-sentinel checks.
+- Live run `provider-fabb06bf-live` collected all three rows with no missing
+  results. API Router passed 3/3 in 397.722 seconds; MiMo Mify passed 3/3 in
+  692.858 seconds.
+- MiMo Inside reached `mimo-1000` and failed after two calls classified by the
+  runtime as `provider_transient_failure/upstream_unavailable`. The aggregate
+  currently promotes this to `harness_bug_unclassified`, which is a separate
+  eval-classification defect.
+- Across 258 generated and collected files, no current API-key value was found.
+  Provider base URLs remain normal non-secret route metadata.
+- The third r49 shard initially exceeded the two-task account quota, then
+  submitted successfully through resume after the first task completed without
+  re-uploading staging.
 
-Completed slice batch: local parallel execution and the complete CloudML
-CPU/RTX 4090 submit/status/collect path, including pinned images, code/assets,
-run-owned mounts, offline DINO, and MolmoSpaces product execution.
+Next slice: implement dependency-safe local/CloudML handoff for real
+`execution_target=auto`, then run a representative hybrid baseline.
 
-Next hypothesis: a Router endpoint can validate a CloudML workload assertion
-and issue a short-lived, route-scoped token without placing a long-lived
-provider credential in CloudML task configuration.
+Next proof: generate and execute a hybrid plan with one CloudML producer and one
+local consumer, collect one aggregate report, then run the full baseline refresh.
 
-Next proof: after security approval and Router support, run one bounded API
-Router row and one bounded MiMo Router row from CloudML, then inspect generated
-YAML, logs, and collected artifacts for secret leakage before running the hybrid
-baseline.
-
-Stop condition: stop before any plaintext secret workaround, provider identity
-substitution, destructive retry, or new cross-repo executor API change.
+Stop condition: stop before provider identity substitution, uploading the full
+`.env`, placing provider values in normal artifacts, destructive retry, or a new
+cross-repo executor API change.
 
 No-touch scope: product task strategy, MCP semantics, grader policy, physical
 robot backends, unrelated plans, and direct-provider identity aliases.
 
-Parked work: API Router/MiMo live rows and hybrid baseline proof wait on the
-workload-identity decision and Router implementation; direct Kimi/MiniMax remain
-ineligible on the internal-only worker pool; the repository quality ratchet has
-unrelated pre-existing drift; FDS publication remains optional.
+Parked work: native CloudML secret references/workload tokens and automatic
+remote secret deletion are security hardening; direct Kimi/MiniMax remain
+ineligible on the internal-only pool; FDS publication remains optional.
