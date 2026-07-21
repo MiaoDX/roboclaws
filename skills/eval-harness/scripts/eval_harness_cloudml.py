@@ -9,6 +9,7 @@ import re
 import shlex
 import shutil
 import subprocess
+import urllib.parse
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -58,6 +59,8 @@ PROVIDER_SECRET_ENV = {
 INPUT_MOUNT = "/mnt/cloudml/input"
 OUTPUT_MOUNT = "/mnt/cloudml/output"
 REPO_ROOT = Path(__file__).resolve().parents[3]
+CLOUDML_VOLUME = "robot-intelligent-planning-data"
+CLOUDML_CLUSTER = "wlcb-cloudml"
 
 
 def bool_value(value: str) -> bool:
@@ -170,6 +173,80 @@ def write_cloudml_plan(plan: dict[str, Any], manifest: dict[str, Any], *, output
     return path
 
 
+def executor_submit(
+    plan: dict[str, Any],
+    *,
+    image_url: str,
+    asset_manifest_path: Path,
+    executor_path: Path,
+    input_subpath: str,
+    output_subpath: str,
+    dry_run: bool,
+    plan_path: Path | None = None,
+    retry_shard_ids: Sequence[str] = (),
+) -> None:
+    identity = _load_asset_identity(asset_manifest_path)
+    _validate_image_digest(image_url)
+    if identity["code_commit"] != plan["code_commit"]:
+        raise ValueError(
+            "asset manifest code commit does not match the eval harness plan: "
+            f"{identity['code_commit']} != {plan['code_commit']}"
+        )
+    retry_ids = {str(value) for value in retry_shard_ids}
+    known_ids = {str(shard["shard_id"]) for shard in plan["shards"]}
+    unknown_retry_ids = retry_ids - known_ids
+    if unknown_retry_ids:
+        raise ValueError("unknown CloudML retry shard(s): " + ", ".join(sorted(unknown_retry_ids)))
+    for shard in plan["shards"]:
+        if shard.get("task_id") and str(shard["shard_id"]) not in retry_ids:
+            continue
+        previous_attempt = {
+            key: shard[key]
+            for key in ("task_id", "job_id", "console_url", "submitted_at", "remote_status")
+            if shard.get(key)
+        }
+        argv = _executor_submit_argv(
+            shard,
+            plan=plan,
+            image_url=image_url,
+            identity=identity,
+            executor_path=executor_path,
+            input_subpath=input_subpath,
+            output_subpath=output_subpath,
+            dry_run=dry_run,
+        )
+        result = subprocess.run(argv, check=False, capture_output=True, text=True)
+        shard["executor_exit_code"] = result.returncode
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"CloudML {'dry-run' if dry_run else 'submit'} failed for {shard['shard_id']}: "
+                f"{(result.stderr or result.stdout).strip()}"
+            )
+        payload = _parse_json_output(result.stdout, label="CloudML submit")
+        shard["executor_argv"] = argv
+        shard["dry_run"] = bool(payload.get("dry_run", dry_run))
+        shard["yaml_path"] = str(payload.get("yaml_path") or shard["yaml_path"])
+        if not dry_run:
+            task_id = str(payload.get("task_id") or payload.get("job_id") or "")
+            if not task_id:
+                raise RuntimeError(f"CloudML submit returned no task id for {shard['shard_id']}")
+            if previous_attempt:
+                attempts = list(shard.get("previous_attempts") or [])
+                attempts.append(previous_attempt)
+                shard["previous_attempts"] = attempts
+            shard.update(
+                {
+                    "task_id": task_id,
+                    "job_id": str(payload.get("job_id") or task_id),
+                    "console_url": str(payload.get("console_url") or ""),
+                    "submitted_at": _utc_now(),
+                    "remote_status": "submitted",
+                }
+            )
+        if plan_path is not None:
+            _write_json(plan_path, plan)
+
+
 def executor_dry_run(
     plan: dict[str, Any],
     *,
@@ -179,36 +256,24 @@ def executor_dry_run(
     input_subpath: str,
     output_subpath: str,
 ) -> None:
-    identity = _load_asset_identity(asset_manifest_path)
-    _validate_image_digest(image_url)
-    if identity["code_commit"] != plan["code_commit"]:
-        raise ValueError(
-            "asset manifest code commit does not match the eval harness plan: "
-            f"{identity['code_commit']} != {plan['code_commit']}"
-        )
-    for shard in plan["shards"]:
-        argv = _executor_submit_argv(
-            shard,
-            plan=plan,
-            image_url=image_url,
-            identity=identity,
-            executor_path=executor_path,
-            input_subpath=input_subpath,
-            output_subpath=output_subpath,
-        )
-        result = subprocess.run(argv, check=False, capture_output=True, text=True)
-        shard["executor_argv"] = argv
-        shard["executor_exit_code"] = result.returncode
-        shard["executor_stdout"] = result.stdout
-        shard["executor_stderr"] = result.stderr
-        if result.returncode != 0:
-            raise RuntimeError(
-                f"CloudML dry-run failed for {shard['shard_id']}: "
-                f"{(result.stderr or result.stdout).strip()}"
-            )
+    executor_submit(
+        plan,
+        image_url=image_url,
+        asset_manifest_path=asset_manifest_path,
+        executor_path=executor_path,
+        input_subpath=input_subpath,
+        output_subpath=output_subpath,
+        dry_run=True,
+    )
 
 
-def executor_dry_run_from_environment(plan: dict[str, Any]) -> None:
+def executor_from_environment(
+    plan: dict[str, Any],
+    *,
+    dry_run: bool,
+    plan_path: Path | None = None,
+    retry_shard_ids: Sequence[str] = (),
+) -> None:
     image_url = os.environ.get("ROBOCLAWS_CLOUDML_IMAGE_URL", "")
     asset_manifest = os.environ.get("ROBOCLAWS_CLOUDML_ASSET_MANIFEST", "")
     if not image_url:
@@ -228,21 +293,68 @@ def executor_dry_run_from_environment(plan: dict[str, Any]) -> None:
         f"/dongxu/gpu_perf/executor_cloudml_runs/roboclaws-eval-harness/{plan['run_id']}",
     )
     _stage_shard_manifests(plan, stage_dir=asset_manifest_path.parent)
+    prior_upload = (plan.get("staging") or {}).get("upload")
     plan["staging"] = {
         "local_dir": str(asset_manifest_path.parent),
         "input_subpath": input_subpath,
         "output_subpath": output_subpath,
-        "upload_required": True,
+        "input_url": _juicefs_url(input_subpath),
+        "output_url": _juicefs_url(output_subpath),
+        "upload_required": not prior_upload,
     }
+    if prior_upload:
+        plan["staging"]["upload"] = prior_upload
     executor_path = Path(os.environ.get("ROBOCLAWS_EXECUTOR_PATH", "/home/mi/executor/exe"))
-    executor_dry_run(
+    if not dry_run and plan["shards"]:
+        _upload_staging(plan, executor_path=executor_path, plan_path=plan_path)
+    executor_submit(
         plan,
         image_url=image_url,
         asset_manifest_path=asset_manifest_path,
         executor_path=executor_path,
         input_subpath=input_subpath,
         output_subpath=output_subpath,
+        dry_run=dry_run,
+        plan_path=plan_path,
+        retry_shard_ids=retry_shard_ids,
     )
+
+
+def executor_dry_run_from_environment(plan: dict[str, Any]) -> None:
+    executor_from_environment(plan, dry_run=True)
+
+
+def prepare_cloudml_execution(
+    manifest: dict[str, Any],
+    *,
+    execution_target: str,
+    row_ids: Sequence[str],
+    run_id: str,
+    dry_run: bool,
+    retry_shard_ids: Sequence[str] = (),
+) -> dict[str, Any]:
+    if execution_target == "auto" and not dry_run:
+        raise ValueError(
+            "execution_target=auto submission is not enabled until local/cloud dependency handoff "
+            "is implemented; use cloudml_dry_run=true or execution_target=cloudml"
+        )
+    output_dir = Path(manifest["output_dir"])
+    plan = build_cloudml_plan(
+        manifest,
+        execution_target=execution_target,
+        row_ids=row_ids,
+        run_id=run_id,
+    )
+    plan_path = write_cloudml_plan(plan, manifest, output_dir=output_dir)
+    executor_from_environment(
+        plan,
+        dry_run=dry_run,
+        plan_path=plan_path,
+        retry_shard_ids=retry_shard_ids,
+    )
+    apply_blocked_placements(manifest, plan)
+    _write_json(plan_path, plan)
+    return plan
 
 
 def prepare_cloudml_dry_run(
@@ -252,17 +364,13 @@ def prepare_cloudml_dry_run(
     row_ids: Sequence[str],
     run_id: str,
 ) -> None:
-    output_dir = Path(manifest["output_dir"])
-    plan = build_cloudml_plan(
+    prepare_cloudml_execution(
         manifest,
         execution_target=execution_target,
         row_ids=row_ids,
         run_id=run_id,
+        dry_run=True,
     )
-    plan_path = write_cloudml_plan(plan, manifest, output_dir=output_dir)
-    executor_dry_run_from_environment(plan)
-    apply_blocked_placements(manifest, plan)
-    plan_path.write_text(json.dumps(plan, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def apply_blocked_placements(manifest: dict[str, Any], plan: dict[str, Any]) -> None:
@@ -449,6 +557,64 @@ def _read_json_object(path: Path, *, label: str) -> dict[str, Any]:
     return payload
 
 
+def _write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _parse_json_output(value: str, *, label: str) -> dict[str, Any]:
+    try:
+        payload = json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"{label} returned invalid JSON") from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"{label} must return a JSON object")
+    return payload
+
+
+def _upload_staging(plan: dict[str, Any], *, executor_path: Path, plan_path: Path | None) -> None:
+    staging = plan["staging"]
+    if (staging.get("upload") or {}).get("status") == "completed":
+        return
+    result = subprocess.run(
+        [
+            str(executor_path),
+            "storage",
+            "juicefs",
+            "upload",
+            "--local_dir",
+            str(staging["local_dir"]),
+            "--url",
+            str(staging["input_url"]),
+            "--json",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout).strip()
+        raise RuntimeError(f"CloudML staging upload failed: {detail}")
+    payload = _parse_json_output(result.stdout, label="JuiceFS upload")
+    if payload.get("status") != "ok" or int(payload.get("exit_code") or 0) != 0:
+        raise RuntimeError(f"CloudML staging upload was not successful: {payload}")
+    staging["upload"] = {
+        "status": "completed",
+        "completed_at": _utc_now(),
+        "files": int(payload.get("files") or 0),
+    }
+    staging["upload_required"] = False
+    if plan_path is not None:
+        _write_json(plan_path, plan)
+
+
+def _juicefs_url(subpath: str) -> str:
+    query = urllib.parse.urlencode(
+        {"cluster": CLOUDML_CLUSTER, "name": CLOUDML_VOLUME, "path": subpath}
+    )
+    return f"https://cloud.mioffice.cn/juicefs/vol-detail?{query}"
+
+
 def _stage_shard_manifests(plan: dict[str, Any], *, stage_dir: Path) -> None:
     manifest_dir = stage_dir / "manifests"
     manifest_dir.mkdir(parents=True, exist_ok=True)
@@ -473,18 +639,19 @@ def _executor_submit_argv(
     executor_path: Path,
     input_subpath: str,
     output_subpath: str,
+    dry_run: bool,
 ) -> list[str]:
     mounts = [
         {
-            "volume": "robot-intelligent-planning-data",
-            "juiceFsCluster": "wlcb-cloudml",
+            "volume": CLOUDML_VOLUME,
+            "juiceFsCluster": CLOUDML_CLUSTER,
             "subPath": input_subpath,
             "mountPath": INPUT_MOUNT,
             "readOnly": True,
         },
         {
-            "volume": "robot-intelligent-planning-data",
-            "juiceFsCluster": "wlcb-cloudml",
+            "volume": CLOUDML_VOLUME,
+            "juiceFsCluster": CLOUDML_CLUSTER,
             "subPath": output_subpath,
             "mountPath": OUTPUT_MOUNT,
             "readOnly": False,
@@ -518,7 +685,7 @@ def _executor_submit_argv(
         "--output_yaml_path",
         str(shard["yaml_path"]),
         "--dry_run",
-        "true",
+        "true" if dry_run else "false",
         "--json",
     ]
 

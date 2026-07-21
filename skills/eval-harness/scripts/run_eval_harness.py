@@ -26,6 +26,7 @@ from roboclaws.core.json_sources import read_json_object  # noqa: E402
 SELECTOR_PATH = SCRIPT_DIR / "select_eval_harness.py"
 LOCAL_EXECUTION_PATH = SCRIPT_DIR / "eval_harness_local_execution.py"
 CLOUDML_EXECUTION_PATH = SCRIPT_DIR / "eval_harness_cloudml.py"
+CLOUDML_LIFECYCLE_PATH = SCRIPT_DIR / "eval_harness_cloudml_lifecycle.py"
 DEFAULT_VISUAL_GROUNDING_BASE_URL = "http://127.0.0.1:18880"
 PROVIDER_TIMING_PROXY_ENV = "ROBOCLAWS_PROVIDER_TIMING_PROXY"
 DINO_SIDECAR_AUTOSTART_ENV = "ROBOCLAWS_EVAL_HARNESS_AUTOSTART_DINO_SIDECAR"
@@ -56,6 +57,7 @@ def _load_script(name: str, path: Path) -> Any:
 selector = _load_script("eval_harness_selector", SELECTOR_PATH)
 local_execution = _load_script("eval_harness_local_execution", LOCAL_EXECUTION_PATH)
 cloudml_execution = _load_script("eval_harness_cloudml", CLOUDML_EXECUTION_PATH)
+cloudml_lifecycle = _load_script("eval_harness_cloudml_lifecycle", CLOUDML_LIFECYCLE_PATH)
 
 
 _MANAGED_DINO_SIDECARS: list[dict[str, Any]] = []
@@ -103,13 +105,13 @@ def main(argv: list[str] | None = None) -> int:
                 shard_id=args.shard_id,
             )
         else:
-            if not args.cloudml_dry_run:
-                raise ValueError("CloudML submission is not enabled; use cloudml_dry_run=true")
-            cloudml_execution.prepare_cloudml_dry_run(
+            _write_outputs(manifest, output_dir)
+            cloudml_execution.prepare_cloudml_execution(
                 manifest,
                 execution_target=args.execution_target,
                 row_ids=row_ids,
                 run_id=args.shard_id if args.shard_id != "local-main" else "",
+                dry_run=args.cloudml_dry_run,
             )
     _write_outputs(manifest, output_dir)
     print(f"eval harness manifest: {output_dir / 'eval_harness.json'}")

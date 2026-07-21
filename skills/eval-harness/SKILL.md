@@ -45,8 +45,31 @@ ROBOCLAWS_CLOUDML_ASSET_MANIFEST=/path/to/roboclaws_cloudml_cleanup_assets.json 
 
 `execution_target=auto` keeps direct Kimi/MiniMax and any provider row that
 cannot receive a secure CloudML secret on the local worker. It never substitutes
-another provider identity. Real CloudML submit remains disabled until the
-submit adapter and secure secret-reference contract are proven.
+another provider identity. Real hybrid submission remains disabled until the
+local/cloud dependency handoff is implemented; `auto` is currently a placement
+dry-run only.
+
+Submit a detached CloudML run only after reviewing the dry-run and accepting
+the infrastructure cost, then monitor and collect it through the same facade:
+
+```bash
+ROBOCLAWS_CLOUDML_IMAGE_URL='<registry-image>@sha256:<digest>' \
+ROBOCLAWS_CLOUDML_ASSET_MANIFEST=/path/to/roboclaws_cloudml_cleanup_assets.json \
+  just agent::eval execute profile=baseline-core budget=focused \
+  execution_target=cloudml output_dir=output/eval-harness/<run>
+just agent::eval status run=output/eval-harness/<run>
+just agent::eval status run=output/eval-harness/<run> wait=true timeout_s=3600
+just agent::eval collect run=output/eval-harness/<run>
+```
+
+If submission stops after some shards have task IDs, use `just agent::eval
+execute run=output/eval-harness/<run>` to submit only missing shards. Pass
+`retry_shard_id=<shard-id>` only for an intentional new attempt; the prior task
+identity remains in `previous_attempts`.
+
+CloudML live provider rows remain explicitly blocked until executor supports a
+secret reference or workload identity. Never put provider keys in commands,
+task YAML, JuiceFS staging, or harness artifacts.
 
 Refresh the current baseline at the appropriate cost tier:
 

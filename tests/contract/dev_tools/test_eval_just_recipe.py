@@ -119,6 +119,18 @@ def test_agent_eval_public_facade_routes_eval_harness_execute() -> None:
     assert "budget=focused" in trace
 
 
+def test_agent_eval_public_facade_routes_cloudml_lifecycle() -> None:
+    status_trace = _trace_agent_eval("status", "run=eval-20260721", "wait=false")
+    collect_trace = _trace_agent_eval("collect", "run=output/eval-harness/20260721")
+    resume_trace = _trace_agent_eval("execute", "run=eval-20260721")
+
+    for trace in (status_trace, collect_trace, resume_trace):
+        assert trace[:5] == ["cmd", ".venv/bin/python", "-m", "roboclaws.cli.main", "eval"]
+    assert status_trace[-3:] == ["status", "run=eval-20260721", "wait=false"]
+    assert collect_trace[-2:] == ["collect", "run=output/eval-harness/20260721"]
+    assert resume_trace[-2:] == ["execute", "run=eval-20260721"]
+
+
 def test_current_eval_docs_use_default_live_eval_budget() -> None:
     from roboclaws.evals import live_runtime
 

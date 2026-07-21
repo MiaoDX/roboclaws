@@ -92,13 +92,40 @@ ROBOCLAWS_CLOUDML_ASSET_MANIFEST=/path/to/roboclaws_cloudml_cleanup_assets.json 
   execution_target=cloudml cloudml_dry_run=true
 ```
 
-This currently generates executor `custom_train` YAML for CPU and RTX 4090
-shards only; it does not submit. Inputs are mounted read-only, outputs use a
-run-owned writable JuiceFS prefix, and code/image/asset identities are pinned.
+With `cloudml_dry_run=true`, this generates executor `custom_train` YAML for
+CPU and RTX 4090 shards without uploading or submitting. Inputs are mounted
+read-only, outputs use a run-owned writable JuiceFS prefix, and
+code/image/asset identities are pinned.
+
+After reviewing the dry-run and accepting the CloudML cost, omit
+`cloudml_dry_run=true` to upload the staging directory and submit detached
+jobs. The plan persists each task ID immediately, so a partial submission is
+resumable:
+
+```bash
+ROBOCLAWS_CLOUDML_IMAGE_URL='<registry-image>@sha256:<digest>' \
+ROBOCLAWS_CLOUDML_ASSET_MANIFEST=/path/to/roboclaws_cloudml_cleanup_assets.json \
+  just agent::eval execute profile=baseline-core budget=focused \
+  execution_target=cloudml output_dir=output/eval-harness/<run>
+just agent::eval execute run=output/eval-harness/<run>
+```
+
+Status is a single query by default. Waiting is opt-in. Collection downloads
+the run-owned JuiceFS output, requires terminal markers and exact row/shard
+identities, then rewrites the normal harness JSON, Markdown, and HTML reports:
+
+```bash
+just agent::eval status run=output/eval-harness/<run>
+just agent::eval status run=output/eval-harness/<run> wait=true timeout_s=3600
+just agent::eval collect run=output/eval-harness/<run>
+```
+
 Direct Kimi/MiniMax require external egress. API Router/MiMo are reachable from
 CloudML, but live provider rows remain explicitly blocked there until executor
 supports a secret reference or workload identity; plaintext key injection is
-not supported.
+not supported. `execution_target=auto` currently supports placement dry-runs
+only because a real hybrid run still needs dependency-safe handoff between
+CloudML producer rows and local provider consumers.
 
 Direct suites run direct-runner household samples without provider keys, write
 `output/evals/<suite>/<stamp>/eval_results.json`, and render

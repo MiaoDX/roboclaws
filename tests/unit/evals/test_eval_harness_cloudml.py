@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -9,6 +10,9 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CLOUDML_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "eval_harness_cloudml.py"
+CLOUDML_LIFECYCLE_PATH = (
+    REPO_ROOT / "skills" / "eval-harness" / "scripts" / "eval_harness_cloudml_lifecycle.py"
+)
 
 
 def _load_module(name: str, path: Path):
@@ -21,6 +25,7 @@ def _load_module(name: str, path: Path):
 
 
 cloudml = _load_module("eval_harness_cloudml_test", CLOUDML_PATH)
+cloudml_lifecycle = _load_module("eval_harness_cloudml_lifecycle_test", CLOUDML_LIFECYCLE_PATH)
 
 
 def _row(
@@ -193,7 +198,10 @@ def test_executor_dry_run_uses_current_target_pinned_inputs_and_safe_mounts(
     plan = cloudml.build_cloudml_plan(manifest, execution_target="cloudml", run_id="run-1")
     cloudml.write_cloudml_plan(plan, manifest, output_dir=tmp_path)
     executor = tmp_path / "exe"
-    executor.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+    executor.write_text(
+        '#!/usr/bin/env bash\necho \'{"dry_run":true,"yaml_path":"/tmp/task.yaml"}\'\n',
+        encoding="utf-8",
+    )
     executor.chmod(0o755)
     image = f"micr.cloud.mioffice.cn/team/roboclaws@sha256:{'d' * 64}"
 
@@ -245,7 +253,10 @@ def test_environment_dry_run_stages_worker_manifests(
     stage_dir.mkdir()
     asset_manifest = _asset_manifest(stage_dir, code_commit=plan["code_commit"])
     executor = tmp_path / "exe"
-    executor.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+    executor.write_text(
+        '#!/usr/bin/env bash\necho \'{"dry_run":true,"yaml_path":"/tmp/task.yaml"}\'\n',
+        encoding="utf-8",
+    )
     executor.chmod(0o755)
     monkeypatch.setenv(
         "ROBOCLAWS_CLOUDML_IMAGE_URL",
@@ -259,6 +270,215 @@ def test_environment_dry_run_stages_worker_manifests(
     assert (stage_dir / "manifests" / "run-1-cpu-001.json").is_file()
     assert plan["staging"]["local_dir"] == str(stage_dir)
     assert plan["staging"]["upload_required"] is True
+
+
+def test_real_submit_uploads_first_and_persists_each_task_id(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cpu = _row("cpu", ("cpu", "python-env", "artifact-storage"))
+    gpu = _row("gpu", ("gpu", "python-env", "artifact-storage", "simulator:mujoco"))
+    manifest = _manifest(cpu, gpu)
+    plan = cloudml.build_cloudml_plan(manifest, execution_target="cloudml", run_id="run-1")
+    harness_dir = tmp_path / "harness"
+    plan_path = cloudml.write_cloudml_plan(plan, manifest, output_dir=harness_dir)
+    stage_dir = tmp_path / "stage"
+    stage_dir.mkdir()
+    asset_manifest = _asset_manifest(stage_dir, code_commit=plan["code_commit"])
+    monkeypatch.setenv("ROBOCLAWS_CLOUDML_ASSET_MANIFEST", str(asset_manifest))
+    monkeypatch.setenv(
+        "ROBOCLAWS_CLOUDML_IMAGE_URL",
+        f"micr.cloud.mioffice.cn/team/roboclaws@sha256:{'d' * 64}",
+    )
+    monkeypatch.setenv("CODEX_API_KEY", "do-not-leak")
+    calls: list[list[str]] = []
+
+    def fake_run(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        calls.append(argv)
+        if "upload" in argv:
+            payload = {"status": "ok", "exit_code": 0, "files": 3}
+        else:
+            submit_index = sum("submit" in call for call in calls)
+            if submit_index == 2:
+                persisted = json.loads(plan_path.read_text(encoding="utf-8"))
+                assert persisted["shards"][0]["task_id"] == "task-1"
+            payload = {
+                "task_id": f"task-{submit_index}",
+                "job_id": f"task-{submit_index}",
+                "console_url": f"https://cloudml/jobs/task-{submit_index}",
+                "yaml_path": "/tmp/task.yaml",
+                "dry_run": False,
+            }
+        return subprocess.CompletedProcess(argv, 0, json.dumps(payload), "")
+
+    monkeypatch.setattr(cloudml.subprocess, "run", fake_run)
+    cloudml.executor_from_environment(plan, dry_run=False, plan_path=plan_path)
+
+    assert calls[0][1:4] == ["storage", "juicefs", "upload"]
+    assert [shard["task_id"] for shard in plan["shards"]] == ["task-1", "task-2"]
+    assert plan["staging"]["upload_required"] is False
+    assert "do-not-leak" not in json.dumps(plan)
+
+
+def test_partial_submit_plan_resumes_without_resubmitting_completed_shard(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cpu = _row("cpu", ("cpu", "python-env", "artifact-storage"))
+    gpu = _row("gpu", ("gpu", "python-env", "artifact-storage", "simulator:mujoco"))
+    manifest = _manifest(cpu, gpu)
+    plan = cloudml.build_cloudml_plan(manifest, execution_target="cloudml", run_id="run-1")
+    plan_path = cloudml.write_cloudml_plan(plan, manifest, output_dir=tmp_path / "harness")
+    stage_dir = tmp_path / "stage"
+    stage_dir.mkdir()
+    asset_manifest = _asset_manifest(stage_dir, code_commit=plan["code_commit"])
+    monkeypatch.setenv("ROBOCLAWS_CLOUDML_ASSET_MANIFEST", str(asset_manifest))
+    monkeypatch.setenv(
+        "ROBOCLAWS_CLOUDML_IMAGE_URL",
+        f"micr.cloud.mioffice.cn/team/roboclaws@sha256:{'d' * 64}",
+    )
+    submit_calls: list[str] = []
+
+    def fail_second(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        if "upload" in argv:
+            return subprocess.CompletedProcess(
+                argv, 0, json.dumps({"status": "ok", "exit_code": 0, "files": 3}), ""
+            )
+        submit_calls.append(argv[argv.index("--job_name") + 1])
+        if len(submit_calls) == 2:
+            return subprocess.CompletedProcess(argv, 1, "", "submit failed")
+        payload = {"task_id": "task-1", "job_id": "task-1", "dry_run": False}
+        return subprocess.CompletedProcess(argv, 0, json.dumps(payload), "")
+
+    monkeypatch.setattr(cloudml.subprocess, "run", fail_second)
+    with pytest.raises(RuntimeError, match="submit failed"):
+        cloudml.executor_from_environment(plan, dry_run=False, plan_path=plan_path)
+
+    resumed = json.loads(plan_path.read_text(encoding="utf-8"))
+    assert resumed["shards"][0]["task_id"] == "task-1"
+    resumed_calls: list[str] = []
+
+    def resume(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        if "upload" in argv:
+            payload = {"status": "ok", "exit_code": 0, "files": 3}
+        else:
+            resumed_calls.append(argv[argv.index("--job_name") + 1])
+            payload = {"task_id": "task-2", "job_id": "task-2", "dry_run": False}
+        return subprocess.CompletedProcess(argv, 0, json.dumps(payload), "")
+
+    monkeypatch.setattr(cloudml.subprocess, "run", resume)
+    cloudml.executor_from_environment(resumed, dry_run=False, plan_path=plan_path)
+
+    assert len(resumed_calls) == 1
+    assert resumed["shards"][1]["task_id"] == "task-2"
+
+
+def test_status_normalizes_terminal_cloudml_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    row = _row("first", ("cpu", "python-env", "artifact-storage"))
+    manifest = _manifest(row)
+    harness_dir = tmp_path / "harness"
+    manifest["output_dir"] = str(harness_dir)
+    plan = cloudml.build_cloudml_plan(manifest, execution_target="cloudml", run_id="run-1")
+    plan["shards"][0]["task_id"] = "task-1"
+    plan_path = cloudml.write_cloudml_plan(plan, manifest, output_dir=harness_dir)
+    (harness_dir / "eval_harness.json").write_text(json.dumps(manifest), encoding="utf-8")
+    calls: list[list[str]] = []
+
+    def fake_run(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        calls.append(argv)
+        payload = [{"job_id": "task-1", "state": "Successful"}]
+        return subprocess.CompletedProcess(argv, 0, json.dumps(payload), "")
+
+    monkeypatch.setattr(cloudml_lifecycle.subprocess, "run", fake_run)
+    summary, resolved_path = cloudml_lifecycle.status_cloudml_run(
+        str(harness_dir), executor_path=tmp_path / "exe"
+    )
+
+    assert resolved_path == plan_path.resolve()
+    assert summary["all_terminal"] is True
+    assert summary["all_succeeded"] is True
+    assert calls[0][1:5] == ["compute", "cloudml", "custom_train", "query"]
+
+
+def test_status_does_not_treat_partial_submission_as_terminal(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cpu = _row("cpu", ("cpu", "python-env", "artifact-storage"))
+    gpu = _row("gpu", ("gpu", "python-env", "artifact-storage", "simulator:mujoco"))
+    manifest = _manifest(cpu, gpu)
+    harness_dir = tmp_path / "harness"
+    manifest["output_dir"] = str(harness_dir)
+    plan = cloudml.build_cloudml_plan(manifest, execution_target="cloudml", run_id="run-1")
+    plan["shards"][0]["task_id"] = "task-1"
+    cloudml.write_cloudml_plan(plan, manifest, output_dir=harness_dir)
+    (harness_dir / "eval_harness.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+    def fake_run(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        payload = [{"job_id": "task-1", "state": "succeed"}]
+        return subprocess.CompletedProcess(argv, 0, json.dumps(payload), "")
+
+    monkeypatch.setattr(cloudml_lifecycle.subprocess, "run", fake_run)
+    summary, _ = cloudml_lifecycle.status_cloudml_run(
+        str(harness_dir), executor_path=tmp_path / "exe"
+    )
+
+    assert summary["terminal_shard_count"] == 1
+    assert summary["all_terminal"] is False
+    assert summary["shards"][1]["status"] == "not_submitted"
+
+
+def test_collect_downloads_and_merges_terminal_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    row = _row("first", ("cpu", "python-env", "artifact-storage"))
+    manifest = _manifest(row)
+    harness_dir = tmp_path / "harness"
+    manifest["output_dir"] = str(harness_dir)
+    plan = cloudml.build_cloudml_plan(manifest, execution_target="cloudml", run_id="run-1")
+    shard = plan["shards"][0]
+    shard["task_id"] = "task-1"
+    plan["staging"] = {"output_url": "https://cloud.mioffice.cn/juicefs/vol-detail?run=1"}
+    plan_path = cloudml.write_cloudml_plan(plan, manifest, output_dir=harness_dir)
+    (harness_dir / "eval_harness.json").write_text(json.dumps(manifest), encoding="utf-8")
+    calls: list[list[str]] = []
+
+    def fake_run(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        calls.append(argv)
+        if "query" in argv:
+            payload: Any = [{"job_id": "task-1", "state": "succeed"}]
+        else:
+            collected_root = Path(argv[argv.index("--output_dir") + 1])
+            shard_root = collected_root / "shards" / shard["shard_id"]
+            (shard_root / "markers").mkdir(parents=True)
+            (shard_root / "rows" / "first").mkdir(parents=True)
+            (shard_root / "markers" / f"{shard['shard_id']}.json").write_text(
+                json.dumps({"shard_id": shard["shard_id"], "status": "succeeded", "exit_code": 0}),
+                encoding="utf-8",
+            )
+            (shard_root / "rows" / "first" / "row_result.json").write_text(
+                json.dumps(
+                    {
+                        **row,
+                        "status": "ran",
+                        "outcome": "passed",
+                        "execution_target": "cloudml",
+                        "shard_id": shard["shard_id"],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            payload = {"status": "ok", "exit_code": 0, "files": 2}
+        return subprocess.CompletedProcess(argv, 0, json.dumps(payload), "")
+
+    monkeypatch.setattr(cloudml_lifecycle.subprocess, "run", fake_run)
+    collected_plan, collected_manifest, resolved_path = cloudml_lifecycle.collect_cloudml_run(
+        cloudml, str(harness_dir), executor_path=tmp_path / "exe"
+    )
+
+    assert resolved_path == plan_path.resolve()
+    assert calls[1][1:4] == ["storage", "juicefs", "download"]
+    assert collected_plan["collection"]["collected_row_count"] == 1
+    assert collected_manifest["rows"][0]["outcome"] == "passed"
 
 
 def test_collector_merges_remote_results_idempotently(tmp_path: Path) -> None:

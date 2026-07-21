@@ -24,10 +24,10 @@ related_context:
 - Parent plan: none
 - Child plans: none
 - Last updated: 2026-07-21
-- Current slice: add submit and poll lifecycle around the proven CloudML
-  dry-run, exact-row worker, and idempotent collector contract.
-- Next action: persist task ids, query terminal state, and download terminal
-  markers/row results into the collector input root.
+- Current slice: run and collect the first real deterministic CloudML smoke,
+  then prove the RTX 4090 image/runtime path.
+- Next action: confirm CloudML cost, submit one bounded deterministic shard,
+  monitor it through `agent::eval status`, and collect its normal report.
 - Blocked on: none for deterministic implementation and dry-run proof; a real
   CloudML submission remains an explicit cost-bearing stop gate.
 - Do not touch from this session: product task strategy, MCP semantics, eval

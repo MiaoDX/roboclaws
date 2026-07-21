@@ -12,8 +12,8 @@ made explicit.
 Latest user intent: execute the approved standard CloudML Eval Harness support
 through `intuitive-flow`, committing coherent slices along the way.
 
-Current slice: add CloudML submit/poll lifecycle around the proven CPU/RTX 4090
-dry-run, exact-row worker, and idempotent collector contracts.
+Current slice: prove the committed submit/status/collect lifecycle with a real
+deterministic CloudML smoke, then prove the RTX 4090 image/runtime path.
 
 Current blocker: none for deterministic implementation or CloudML dry-run.
 Real CloudML submit is a cost-bearing stop gate; formal live rows additionally
@@ -28,12 +28,16 @@ Last proven evidence:
 - Frozen manifests execute exact row IDs without rerunning selection; each
   attempt writes redacted timing/provenance in `row_result.json`, while launched
   subprocess rows retain stdout and stderr logs.
-- Focused Eval Harness unit and contract suite passed: 59 tests.
+- Focused Eval Harness unit and contract suite passed: 78 tests.
 - CloudML placement, frozen-shard relocation, safe mounts, pinned identities,
   worker provenance, and current executor dry-run contracts passed: 70 focused
   tests. A schema-only executor smoke generated YAML without submission.
 - Synthetic terminal-marker collection now validates shard/row identities and
   idempotently merges remote row results into the normal harness manifest.
+- Submit uploads staging before jobs, persists each task ID independently,
+  resumes missing shards without duplication, and preserves explicit retry
+  history. Public status, opt-in polling, download, and report collection route
+  through `just agent::eval`.
 - Existing offline Docker `smoke_regression` passed with `--network none`.
 - Existing CloudML dry-run and JuiceFS upload dry-run completed in the 2026-06
   prototype.
@@ -46,10 +50,11 @@ Last proven evidence:
 
 Completed slice batch: execution-neutral local core plus CloudML CPU/RTX 4090
 placement, frozen manifests, run-owned mounts, pinned image/code/asset checks,
-container worker entrypoint, and executor dry-run rendering are implemented.
+container worker entrypoint, resumable submit, status/poll, download, and
+idempotent report collection are implemented.
 
-Next hypothesis: submitted shard task ids and terminal markers can drive
-idempotent polling/collection into the same aggregate manifest.
+Next hypothesis: the pinned image and staged assets can complete the first real
+deterministic CPU shard and collect it into the normal aggregate manifest.
 
 Next proof:
 
