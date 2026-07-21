@@ -403,9 +403,12 @@ def _grounding_dino_real_response(
         )
         text_labels = [[_label_prompt(label) for label in labels]]
         inputs = processor(images=image, text=text_labels, return_tensors="pt")
-        device = runtime_diagnostics.get("device")
-        if device and hasattr(inputs, "to"):
-            inputs = inputs.to(str(device))
+        inputs = _move_torch_inputs(
+            inputs,
+            torch_module,
+            device=str(runtime_diagnostics.get("device") or "cpu"),
+            dtype_name=str(runtime_diagnostics.get("dtype") or "auto"),
+        )
         with torch_module.no_grad():
             outputs = model(**inputs)
         runtime_diagnostics = {
@@ -1065,6 +1068,24 @@ def _resolve_torch_dtype(torch_module: Any, requested_dtype: str) -> tuple[Any |
             "VISUAL_GROUNDING_TORCH_DTYPE must be one of auto, float16, bfloat16, or float32"
         )
     return getattr(torch_module, dtype_name), dtype_name
+
+
+def _move_torch_inputs(
+    inputs: Any,
+    torch_module: Any,
+    *,
+    device: str,
+    dtype_name: str,
+) -> Any:
+    dtype = None if dtype_name == "auto" else getattr(torch_module, dtype_name)
+    for key, value in inputs.items():
+        if not hasattr(value, "to"):
+            continue
+        if dtype is not None and bool(torch_module.is_floating_point(value)):
+            inputs[key] = value.to(device=device, dtype=dtype)
+        else:
+            inputs[key] = value.to(device=device)
+    return inputs
 
 
 def _torch_runtime_diagnostics(
