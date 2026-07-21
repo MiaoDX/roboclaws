@@ -224,6 +224,15 @@ As of 2026-07-21:
   refreshes reuse published digests and do not rebuild either image.
 - The CUDA build consumes a pinned local Hugging Face cache through a BuildKit
   named context, so image construction does not depend on public Hub access.
+- A current-commit `baseline-core/focused` CloudML dry-run selected 18 rows
+  with zero blocked rows and generated eight shards: one CPU shard containing
+  ten rows and seven RTX 4090 shards containing eight rows. The generated YAML
+  selected the pool-specific image identity and injected `cuda`/`float16` only
+  for RTX 4090 workers. Placeholder digests were used for this schema proof;
+  they are not registry artifacts.
+- Current-commit staging produced checksummed code and cleanup-asset archives
+  without uploading them. Registry publication, JuiceFS upload, and real
+  CloudML submission remain unexecuted stop-gated actions.
 
 ## Architecture Contract
 

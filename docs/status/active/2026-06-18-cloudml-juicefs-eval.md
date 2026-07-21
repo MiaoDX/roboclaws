@@ -57,6 +57,12 @@ Last proven evidence:
 - Cold common dependencies took about 23 minutes and cold CUDA wheels about 22
   minutes to build. Baseline refreshes reuse published images; cached CPU
   rebuilds complete in seconds.
+- Commit `865658f2` staging generated a checksummed 39.7 MB code archive and
+  1.80 GB cleanup-asset archive locally, with upload explicitly disabled.
+- A `baseline-core/focused` CloudML dry-run for that commit selected 18 rows
+  with no blocked rows: ten rows in one CPU shard and eight rows across seven
+  RTX 4090 shards. Pool-specific placeholder digests reached the correct YAML,
+  and only RTX 4090 commands received `cuda`/`float16`; no job was submitted.
 
 Completed slice batch: execution-neutral local core plus CloudML CPU/RTX 4090
 placement, frozen manifests, run-owned mounts, pinned image/code/asset checks,
@@ -89,4 +95,6 @@ robot backends, unrelated plans, and direct-provider identity aliases.
 
 Parked work: registry publication and real CloudML proof await explicit
 approval; secure provider injection is still required for API Router and MiMo
-live rows; FDS publication remains optional.
+live rows; the repository quality ratchet baseline has unrelated pre-existing
+drift even though full Ruff and pytest gates pass; FDS publication remains
+optional.
