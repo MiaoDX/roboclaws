@@ -137,6 +137,14 @@ code_archive_path="$stage_dir/archives/$code_archive_name"
 code_archive_sha256=""
 code_archive_bytes=""
 staged_paths=()
+reproducible_tar_args=(
+  --sort=name
+  --mtime=@0
+  --owner=0
+  --group=0
+  --numeric-owner
+  --format=gnu
+)
 case "$asset_mode" in
   archive)
     archive_path="$stage_dir/archives/$archive_name"
@@ -163,7 +171,7 @@ case "$asset_mode" in
       require_path "$assets_source/grasps/droid" "MolmoSpaces DROID grasp assets"
       tar_paths+=("grasps/droid")
     fi
-    tar -czf "$archive_tmp" \
+    tar "${reproducible_tar_args[@]}" -cf - \
       --dereference \
       --transform 's#^\(scenes\|objects\|robots\|grasps\)/#molmospaces/assets/\1/#' \
       --transform 's#^assets/maps/#roboclaws/assets/maps/#' \
@@ -172,7 +180,8 @@ case "$asset_mode" in
       -C "$archive_manifest_dir" \
       "molmospaces" \
       -C "$repo_root" \
-      "$map_bundle"
+      "$map_bundle" \
+      | gzip -n > "$archive_tmp"
     rm -rf "$archive_manifest_dir"
     mv "$archive_tmp" "$archive_path"
     archive_sha256="$(sha256sum "$archive_path" | awk '{print $1}')"
@@ -194,7 +203,8 @@ rm -rf "$code_tmp"
 mkdir -p "$code_tmp/roboclaws.git"
 git -C "$repo_root" archive --format=tar "$code_commit" | tar -xf - -C "$code_tmp/roboclaws.git"
 printf '%s\n' "$code_commit" > "$code_tmp/roboclaws.git/.roboclaws_code_commit"
-tar -czf "${code_archive_path}.tmp" -C "$code_tmp" roboclaws.git
+tar "${reproducible_tar_args[@]}" -cf - -C "$code_tmp" roboclaws.git \
+  | gzip -n > "${code_archive_path}.tmp"
 mv "${code_archive_path}.tmp" "$code_archive_path"
 rm -rf "$code_tmp"
 code_archive_sha256="$(sha256sum "$code_archive_path" | awk '{print $1}')"

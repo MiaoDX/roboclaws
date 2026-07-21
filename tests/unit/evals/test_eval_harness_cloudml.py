@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import subprocess
+import time
 from pathlib import Path
 from typing import Any
 
@@ -95,6 +97,56 @@ def _set_image_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     images = _image_urls()
     monkeypatch.setenv("ROBOCLAWS_CLOUDML_CPU_IMAGE_URL", images["cloudml-cpu"])
     monkeypatch.setenv("ROBOCLAWS_CLOUDML_GPU_IMAGE_URL", images["cloudml-r49"])
+
+
+def _minimal_molmospaces_assets(tmp_path: Path) -> tuple[Path, Path]:
+    assets = tmp_path / "assets"
+    cache = tmp_path / "cache"
+    files = (
+        "scenes/procthor-10k-val/val_0.xml",
+        "scenes/procthor-10k-val/val_0.json",
+        "scenes/procthor-10k-val/val_0_metadata.json",
+        "scenes/procthor-10k-val/val_0_ceiling.xml",
+        "scenes/procthor-10k-val/val_0_assets/mesh.obj",
+        "scenes/procthor-10k-val/mjthor_resources_combined_meta.json.gz",
+        "scenes/procthor-10k-val/mjthor_resource_file_to_size_mb.json",
+        "scenes/procthor-10k-val/.procthor-10k-val_val_0.tar.zst_complete_links",
+        "objects/thor/object.txt",
+        "robots/rby1m/robot.txt",
+        "mjthor_data_type_to_source_to_versions.json",
+    )
+    for relative in files:
+        path = assets / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"fixture:{relative}\n", encoding="utf-8")
+    cache.mkdir()
+    (cache / "mjthor_data_type_to_source_to_versions.json").write_text(
+        '{"fixture": true}\n', encoding="utf-8"
+    )
+    return assets, cache
+
+
+def _stage_fixture_assets(stage_dir: Path, assets: Path, cache: Path) -> dict[str, Any]:
+    env = os.environ.copy()
+    env.update(
+        {
+            "MLSPACES_ASSETS_DIR": str(assets),
+            "MLSPACES_CACHE_DIR": str(cache),
+            "ROBOCLAWS_CLOUDML_CODE_COMMIT": "HEAD",
+            "ROBOCLAWS_STAGE_DIR": str(stage_dir),
+            "ROBOCLAWS_STAGE_RUN_UPLOAD_DRY_RUN": "false",
+            "ROBOCLAWS_STAGE_RUN_UPLOAD": "false",
+        }
+    )
+    subprocess.run(
+        [str(REPO_ROOT / "scripts" / "dev" / "stage_cloudml_cleanup_assets.sh")],
+        cwd=REPO_ROOT,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return json.loads((stage_dir / "roboclaws_cloudml_cleanup_assets.json").read_text())
 
 
 def test_cloudml_plan_uses_cpu_and_r49_capability_pools() -> None:
@@ -611,3 +663,16 @@ def test_eval_image_contains_cloudml_worker_entrypoint() -> None:
     assert "just agent::eval execute" in worker
     assert "ROBOCLAWS_EVAL_DINO_CACHE_DIR" in build_script
     assert '--build-context "grounding-dino-cache=$dino_cache_dir"' in build_script
+
+
+def test_cloudml_staging_archives_are_reproducible(tmp_path: Path) -> None:
+    assets, cache = _minimal_molmospaces_assets(tmp_path)
+
+    first = _stage_fixture_assets(tmp_path / "stage-first", assets, cache)
+    time.sleep(1.1)
+    second = _stage_fixture_assets(tmp_path / "stage-second", assets, cache)
+
+    assert (
+        first["staged_assets"]["archive"]["sha256"] == second["staged_assets"]["archive"]["sha256"]
+    )
+    assert first["git"]["code_archive"]["sha256"] == second["git"]["code_archive"]["sha256"]
