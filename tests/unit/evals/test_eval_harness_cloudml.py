@@ -431,8 +431,12 @@ def test_real_submit_uploads_first_and_persists_each_task_id(
     cloudml.executor_from_environment(plan, dry_run=False, plan_path=plan_path)
 
     assert calls[0][1:4] == ["storage", "juicefs", "upload"]
+    assert calls[1][1:4] == ["storage", "juicefs", "upload"]
+    assert "--no_manifest" in calls[1]
+    assert calls[2][1:5] == ["compute", "cloudml", "custom_train", "submit"]
     assert [shard["task_id"] for shard in plan["shards"]] == ["task-1", "task-2"]
     assert plan["staging"]["upload_required"] is False
+    assert plan["staging"]["output_init"]["status"] == "completed"
     assert "do-not-leak" not in json.dumps(plan)
 
 
@@ -469,9 +473,11 @@ def test_partial_submit_plan_resumes_without_resubmitting_completed_shard(
     resumed = json.loads(plan_path.read_text(encoding="utf-8"))
     assert resumed["shards"][0]["task_id"] == "task-1"
     resumed_calls: list[str] = []
+    resumed_uploads: list[list[str]] = []
 
     def resume(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
         if "upload" in argv:
+            resumed_uploads.append(argv)
             payload = {"status": "ok", "exit_code": 0, "files": 3}
         else:
             resumed_calls.append(argv[argv.index("--job_name") + 1])
@@ -482,6 +488,7 @@ def test_partial_submit_plan_resumes_without_resubmitting_completed_shard(
     cloudml.executor_from_environment(resumed, dry_run=False, plan_path=plan_path)
 
     assert len(resumed_calls) == 1
+    assert resumed_uploads == []
     assert resumed["shards"][1]["task_id"] == "task-2"
 
 

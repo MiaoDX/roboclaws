@@ -344,7 +344,9 @@ def executor_from_environment(
         f"/dongxu/gpu_perf/executor_cloudml_runs/roboclaws-eval-harness/{plan['run_id']}",
     )
     _stage_shard_manifests(plan, stage_dir=asset_manifest_path.parent)
-    prior_upload = (plan.get("staging") or {}).get("upload")
+    prior_staging = plan.get("staging") or {}
+    prior_upload = prior_staging.get("upload")
+    prior_output_init = prior_staging.get("output_init")
     plan["staging"] = {
         "local_dir": str(asset_manifest_path.parent),
         "input_subpath": input_subpath,
@@ -355,9 +357,12 @@ def executor_from_environment(
     }
     if prior_upload:
         plan["staging"]["upload"] = prior_upload
+    if prior_output_init:
+        plan["staging"]["output_init"] = prior_output_init
     executor_path = Path(os.environ.get("ROBOCLAWS_EXECUTOR_PATH", "/home/mi/executor/exe"))
     if not dry_run and plan["shards"]:
         _upload_staging(plan, executor_path=executor_path, plan_path=plan_path)
+        _initialize_output_mount(plan, executor_path=executor_path, plan_path=plan_path)
     executor_submit(
         plan,
         image_urls=image_urls,
@@ -655,6 +660,56 @@ def _upload_staging(plan: dict[str, Any], *, executor_path: Path, plan_path: Pat
         "files": int(payload.get("files") or 0),
     }
     staging["upload_required"] = False
+    if plan_path is not None:
+        _write_json(plan_path, plan)
+
+
+def _initialize_output_mount(
+    plan: dict[str, Any], *, executor_path: Path, plan_path: Path | None
+) -> None:
+    staging = plan["staging"]
+    if (staging.get("output_init") or {}).get("status") == "completed":
+        return
+    yaml_dir = Path(plan["shards"][0]["yaml_path"]).parent
+    local_dir = yaml_dir.parent / "output-init"
+    marker = local_dir / "roboclaws_output_root.json"
+    _write_json(
+        marker,
+        {
+            "schema": "roboclaws_cloudml_output_root_v1",
+            "run_id": plan["run_id"],
+            "code_commit": plan["code_commit"],
+        },
+    )
+    result = subprocess.run(
+        [
+            str(executor_path),
+            "storage",
+            "juicefs",
+            "upload",
+            "--local_dir",
+            str(local_dir),
+            "--url",
+            str(staging["output_url"]),
+            "--no_manifest",
+            "--json",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout).strip()
+        raise RuntimeError(f"CloudML output mount initialization failed: {detail}")
+    payload = _parse_json_output(result.stdout, label="CloudML output mount initialization")
+    if payload.get("status") != "ok" or int(payload.get("exit_code") or 0) != 0:
+        raise RuntimeError(f"CloudML output mount initialization was not successful: {payload}")
+    staging["output_init"] = {
+        "status": "completed",
+        "completed_at": _utc_now(),
+        "files": int(payload.get("files") or 0),
+        "marker": marker.name,
+    }
     if plan_path is not None:
         _write_json(plan_path, plan)
 
