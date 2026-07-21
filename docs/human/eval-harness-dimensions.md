@@ -14,8 +14,15 @@ Source of truth:
 
 ## Current Baseline Rows
 
-`profile=baseline-refresh` currently selects 27 rows: 26 required and 1
-optional.
+The current named baseline profiles are:
+
+| Profile | Rows | Intended use | Observed/estimated time |
+| --- | ---: | --- | ---: |
+| `baseline-core` | 18 | Normal broad local refresh without live providers. | 10-15 min |
+| `baseline-live-default` | 24 | Core plus default GPT Router live capability proof. | 1.5-2 h |
+| `baseline-refresh` | 27 | Release/nightly full baseline including alternate providers. | 2.5-3.5 h |
+
+`profile=baseline-refresh` selects 27 rows: 26 required and 1 optional.
 
 | Row kind | Count | Rows |
 | --- | ---: | --- |
@@ -37,7 +44,7 @@ optional.
 | --- | --- | --- | --- | --- |
 | `direct-runner` | In baseline catalog | none | none | High: deterministic product and suite proof. |
 | `codex-cli` | Launch-supported, not in baseline catalog | `codex-router-responses` | `codex-router-responses`, `mimo-mify-responses`, `minimax-responses` | Add only when proving coding-agent MCP behavior is a current baseline claim. |
-| `openai-agents-sdk` | In baseline catalog | `codex-router-responses` in launch catalog; baseline behavior row uses `minimax-responses` | `codex-router-responses`, `mimo-mify-responses`, `minimax-responses`, `mimo-tp-openai-chat`, `mimo-inside-openai-chat`, `kimi-openai-chat` | Medium: useful route, but experimental and provider-matrix prone. |
+| `openai-agents-sdk` | In baseline catalog | `codex-router-responses` | `codex-router-responses`, `mimo-mify-responses`, `minimax-responses`, `mimo-tp-openai-chat`, `mimo-inside-openai-chat`, `kimi-openai-chat` | Medium: useful route, but experimental and provider-matrix prone. |
 | `claude-code` | Launch-supported, not in baseline catalog | `mimo-tp-anthropic` | `kimi-anthropic`, `mimo-tp-anthropic`, `mimo-mify-anthropic` | Discuss: add only if it protects a current coding-agent claim. |
 | `openclaw-gateway` | Launch metadata only; validation-required | `kimi` | `kimi` | Low for normal baseline; explicit validation path only. |
 
@@ -90,8 +97,9 @@ to shrink or disappear when they no longer protect a current product claim.
 
 | Candidate group | Would include | Main reason to keep | Main reason to cut or keep opt-in |
 | --- | --- | --- | --- |
-| `full` / `baseline-refresh` | The accepted complete baseline set | Refresh state after large code changes. | Expensive and easy to overrun attention. |
-| `core` | Deterministic gates, eval suites, local-sim product rows | Fast broad confidence without live providers. | Still includes simulator/runtime assumptions. |
+| `baseline-refresh` | The accepted complete baseline set | Release/nightly refresh after large code changes. | Expensive and easy to overrun attention. |
+| `baseline-core` | Deterministic gates, eval suites, local-sim and DINO product rows | Fast broad confidence without live providers. | Still includes simulator/runtime assumptions. |
+| `baseline-live-default` | Core plus default GPT Router live rows | Proves the primary live route without a provider sweep. | Still takes around 1.5-2 hours on a single visual slot. |
 | `coding-agent` | Live coding-agent rows | Proves MCP behavior through real coding agents. | Should not become every provider permutation. |
 | `codex` | Codex CLI rows | Current strongest coding-agent route. | Non-default providers should stay explicit. |
 | `claude-code` | Claude Code rows if added | Useful parity check for second coding-agent runtime. | Not currently in baseline; add only for a current claim. |

@@ -21,6 +21,8 @@
         "python_env"
       ],
       "profiles": [
+        "baseline-core",
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -44,6 +46,8 @@
         "python_env"
       ],
       "profiles": [
+        "baseline-core",
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -72,6 +76,8 @@
         "python_env"
       ],
       "profiles": [
+        "baseline-core",
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -111,6 +117,8 @@
         "python_env"
       ],
       "profiles": [
+        "baseline-core",
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -148,6 +156,8 @@
         "python_env"
       ],
       "profiles": [
+        "baseline-core",
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -173,6 +183,8 @@
         "python_env"
       ],
       "profiles": [
+        "baseline-core",
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -203,6 +215,8 @@
         "python_env"
       ],
       "profiles": [
+        "baseline-core",
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -232,6 +246,8 @@
         "python_env"
       ],
       "profiles": [
+        "baseline-core",
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -275,6 +291,7 @@
         "codex_provider"
       ],
       "profiles": [
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -433,6 +450,8 @@
         "python_env"
       ],
       "profiles": [
+        "baseline-core",
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -464,6 +483,8 @@
         "python_env"
       ],
       "profiles": [
+        "baseline-core",
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -494,6 +515,8 @@
         "python_env"
       ],
       "profiles": [
+        "baseline-core",
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -523,6 +546,8 @@
         "python_env"
       ],
       "profiles": [
+        "baseline-core",
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -562,6 +587,7 @@
         "codex_provider"
       ],
       "profiles": [
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -603,6 +629,7 @@
         "codex_provider"
       ],
       "profiles": [
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -643,6 +670,7 @@
         "codex_provider"
       ],
       "profiles": [
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -685,6 +713,7 @@
         "codex_provider"
       ],
       "profiles": [
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -724,6 +753,7 @@
         "codex_provider"
       ],
       "profiles": [
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -757,6 +787,8 @@
         "python_env"
       ],
       "profiles": [
+        "baseline-core",
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -798,6 +830,8 @@
         "dino_sidecar"
       ],
       "profiles": [
+        "baseline-core",
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -839,6 +873,8 @@
         "dino_sidecar"
       ],
       "profiles": [
+        "baseline-core",
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -877,6 +913,8 @@
         "python_env"
       ],
       "profiles": [
+        "baseline-core",
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -914,6 +952,8 @@
         "python_env"
       ],
       "profiles": [
+        "baseline-core",
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -955,6 +995,8 @@
         "runtime_map_prior"
       ],
       "profiles": [
+        "baseline-core",
+        "baseline-live-default",
         "baseline-refresh"
       ]
     }

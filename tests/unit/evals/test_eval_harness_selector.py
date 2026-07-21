@@ -482,8 +482,8 @@ def test_explicit_codex_env_selects_agent_sdk_availability_evidence(
     behavior_row = rows["openai-agents-sdk-open-task-live-eval"]
     session_row = rows["openai-agents-sdk-session-live-eval"]
     availability_row = rows["openai-agents-sdk-codex-router-responses-availability"]
-    assert behavior_row["axes"]["provider_profile"] == "minimax-responses"
-    assert session_row["axes"]["provider_profile"] == "minimax-responses"
+    assert behavior_row["axes"]["provider_profile"] == "codex-router-responses"
+    assert session_row["axes"]["provider_profile"] == "codex-router-responses"
     assert session_row["requirement"] == "required"
     assert behavior_row["requirement"] == "required"
     assert availability_row["axes"]["provider_profile"] == "codex-router-responses"

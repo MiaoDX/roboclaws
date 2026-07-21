@@ -51,6 +51,8 @@ The deterministic runner is available through:
 ```bash
 just agent::eval recommend plan=docs/plans/example.md budget=focused
 just agent::eval execute since=origin/main budget=focused
+just agent::eval execute profile=baseline-core budget=focused
+just agent::eval execute profile=baseline-live-default budget=focused
 just agent::eval execute profile=baseline-refresh budget=focused
 just agent::eval suite=smoke_regression budget=smoke
 just agent::eval suite=map_build_consumer budget=smoke
@@ -61,13 +63,20 @@ just agent::eval session-live budget=smoke \
   agent_engine=openai-agents-sdk provider_profile=<profile> live_execution=run
 ```
 
-Use `profile=baseline-refresh` after large code changes when the goal is to
-refresh the whole current baseline instead of selecting rows from a diff. It
-selects the catalog baseline: deterministic gates, current eval suites listed
-in the eval catalog, direct product rows, Grounding DINO product rows, Codex CLI
-live evals, and OpenAI Agents SDK live evals. Selected live or DINO rows run
-when their preflight is ready and otherwise record blocked evidence; they are
-not `skipped_by_budget`.
+Use `profile=baseline-core` for the normal broad local refresh. It selects the
+deterministic gates, current eval suites, direct product rows, and Grounding
+DINO product rows, without live providers. On the current workstation this is
+expected to take roughly 10-15 minutes.
+
+Use `profile=baseline-live-default` when the default GPT Router live-agent route
+also needs proof. It adds the default live capability rows but excludes the
+MiMo, Kimi, and MiniMax provider sweep; budget roughly 1.5-2 hours on the
+current single-slot workstation.
+
+Use `profile=baseline-refresh` for a release/nightly complete refresh. It adds
+the explicit alternate-provider matrix and currently takes roughly 2.5-3.5
+hours. Named baseline profile rows run when their preflight is ready and
+otherwise record blocked evidence; they are not `skipped_by_budget`.
 
 Direct suites run direct-runner household samples without provider keys, write
 `output/evals/<suite>/<stamp>/eval_results.json`, and render
