@@ -111,6 +111,9 @@ fi
 
 cd "$repo_dir"
 ln -sfn /opt/roboclaws/.venv .venv
+if [[ -x /opt/roboclaws/.venv-visual-grounding/bin/python ]]; then
+  ln -sfn /opt/roboclaws/.venv-visual-grounding .venv-visual-grounding
+fi
 uv pip install \
   --python /opt/roboclaws/.venv/bin/python \
   --no-build-isolation \
@@ -129,6 +132,26 @@ export ROBOCLAWS_EVAL_EXECUTION_TARGET=cloudml
 export ROBOCLAWS_EVAL_WORKER_POOL="$ROBOCLAWS_CLOUDML_WORKER_POOL"
 export ROBOCLAWS_EVAL_CLOUDML_JOB_ID="${CLOUDML_TASK_ID:-${CML_JOB_ID:-}}"
 export ROBOCLAWS_EVAL_CLOUDML_POD_NAME="${HOSTNAME:-}"
+
+if [[ "$ROBOCLAWS_CLOUDML_WORKER_POOL" == "cloudml-r49" ]]; then
+  test -x .venv-visual-grounding/bin/python
+  .venv-visual-grounding/bin/python - <<'PY'
+import os
+from pathlib import Path
+
+import torch
+
+assert torch.version.cuda, "CUDA-enabled Torch wheel is required"
+assert torch.cuda.is_available(), "CloudML r49 worker did not expose a CUDA device"
+model_dir = Path(os.environ["VISUAL_GROUNDING_DINO_MODEL_ID"])
+assert (model_dir / "config.json").is_file(), "Grounding DINO config is missing"
+assert (model_dir / "model.safetensors").is_file(), "Grounding DINO weights are missing"
+assert (model_dir / ".revision").read_text().strip() == os.environ[
+    "VISUAL_GROUNDING_DINO_MODEL_REVISION"
+], "Grounding DINO revision does not match the image contract"
+print(f"cloudml gpu ready: {torch.cuda.get_device_name(0)} cuda={torch.version.cuda}")
+PY
+fi
 
 just agent::eval execute \
   "manifest=$ROBOCLAWS_CLOUDML_MANIFEST" \

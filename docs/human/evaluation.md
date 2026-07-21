@@ -83,10 +83,36 @@ and `max_parallel=1` preserves the historical serial behavior. Raising
 `max_parallel` runs independent rows concurrently while dependency chains and
 shared local visual-backend groups remain ordered.
 
+Build eval images only when `Dockerfile.eval`, the root lockfile, the visual
+grounding lockfile, or the pinned DINO snapshot changes. A baseline refresh
+normally reuses already-published image digests and does not rebuild images:
+
+```bash
+ROBOCLAWS_EVAL_IMAGE_VARIANT=cpu \
+ROBOCLAWS_EVAL_CODE_REF=HEAD \
+ROBOCLAWS_EVAL_PUSH=false \
+  scripts/dev/build_push_eval_image.sh
+
+ROBOCLAWS_EVAL_IMAGE_VARIANT=cuda \
+ROBOCLAWS_EVAL_CODE_REF=HEAD \
+ROBOCLAWS_EVAL_DINO_CACHE_DIR="$HOME/.cache/huggingface/hub/models--IDEA-Research--grounding-dino-base" \
+ROBOCLAWS_EVAL_PUSH=false \
+  scripts/dev/build_push_eval_image.sh
+```
+
+Both commands run an offline eval smoke. The CUDA build also requires the
+pinned DINO revision in the supplied Hugging Face cache and copies it into the
+image; it does not fetch model assets from the public Hub. After local proof,
+set `ROBOCLAWS_EVAL_PUSH=true` only when publishing is intended, then use the
+reported registry `@sha256:` identity below. Cold builds can take tens of
+minutes, especially for CUDA wheels, but cached rebuilds and baseline execution
+do not pay that setup cost.
+
 CloudML planning uses the same frozen manifest and row identities:
 
 ```bash
-ROBOCLAWS_CLOUDML_IMAGE_URL='<registry-image>@sha256:<digest>' \
+ROBOCLAWS_CLOUDML_CPU_IMAGE_URL='<cpu-image>@sha256:<digest>' \
+ROBOCLAWS_CLOUDML_GPU_IMAGE_URL='<cuda-image>@sha256:<digest>' \
 ROBOCLAWS_CLOUDML_ASSET_MANIFEST=/path/to/roboclaws_cloudml_cleanup_assets.json \
   just agent::eval execute profile=baseline-core budget=focused \
   execution_target=cloudml cloudml_dry_run=true
@@ -95,7 +121,10 @@ ROBOCLAWS_CLOUDML_ASSET_MANIFEST=/path/to/roboclaws_cloudml_cleanup_assets.json 
 With `cloudml_dry_run=true`, this generates executor `custom_train` YAML for
 CPU and RTX 4090 shards without uploading or submitting. Inputs are mounted
 read-only, outputs use a run-owned writable JuiceFS prefix, and
-code/image/asset identities are pinned.
+code/image/asset identities are pinned. Only image variables for pools selected
+by the plan are required, so a CPU-only run does not need a CUDA image. The CUDA
+image contains the pinned Grounding DINO model snapshot and CUDA sidecar venv;
+the CPU image stays smaller and does not install those dependencies.
 
 After reviewing the dry-run and accepting the CloudML cost, omit
 `cloudml_dry_run=true` to upload the staging directory and submit detached
@@ -103,7 +132,8 @@ jobs. The plan persists each task ID immediately, so a partial submission is
 resumable:
 
 ```bash
-ROBOCLAWS_CLOUDML_IMAGE_URL='<registry-image>@sha256:<digest>' \
+ROBOCLAWS_CLOUDML_CPU_IMAGE_URL='<cpu-image>@sha256:<digest>' \
+ROBOCLAWS_CLOUDML_GPU_IMAGE_URL='<cuda-image>@sha256:<digest>' \
 ROBOCLAWS_CLOUDML_ASSET_MANIFEST=/path/to/roboclaws_cloudml_cleanup_assets.json \
   just agent::eval execute profile=baseline-core budget=focused \
   execution_target=cloudml output_dir=output/eval-harness/<run>

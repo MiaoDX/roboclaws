@@ -7,7 +7,7 @@ set positional-arguments
 default:
     @just --list agent
 
-python_bin := ".venv/bin/python"
+python_bin := env_var_or_default("ROBOCLAWS_DEVTOOLS_PYTHON", ".venv/bin/python")
 
 # Run a normalized private dispatch target / agent-engine tuple.
 run dispatch_target agent_engine mode="" *overrides:

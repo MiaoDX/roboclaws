@@ -24,12 +24,14 @@ related_context:
 - Parent plan: none
 - Child plans: none
 - Last updated: 2026-07-21
-- Current slice: run and collect the first real deterministic CloudML smoke,
-  then prove the RTX 4090 image/runtime path.
-- Next action: confirm CloudML cost, submit one bounded deterministic shard,
-  monitor it through `agent::eval status`, and collect its normal report.
-- Blocked on: none for deterministic implementation and dry-run proof; a real
-  CloudML submission remains an explicit cost-bearing stop gate.
+- Current slice: publish the proven CPU/CUDA eval images by registry digest,
+  then run and collect the first real deterministic and RTX 4090 CloudML
+  smokes.
+- Next action: confirm the two image pushes, record their registry digests,
+  regenerate pinned CPU/GPU shard YAML, then confirm the first bounded
+  cost-bearing CPU submission.
+- Blocked on: explicit approval to push the two eval images; subsequent real
+  CloudML submissions remain separate cost-bearing stop gates.
 - Do not touch from this session: product task strategy, MCP semantics, eval
   grader policy, unrelated provider routes, or physical-robot backends.
 
@@ -202,6 +204,26 @@ Optional:
 - Publish a completed report to FDS for team review.
 - Compare observed wall time against the 2026-07-21 serial baseline of roughly
   2 hours 42 minutes.
+
+## Implementation Evidence
+
+As of 2026-07-21:
+
+- Focused Eval Harness regression passes 82 tests; Ruff, formatting checks,
+  and CloudML shell syntax checks pass.
+- Separate local CPU and CUDA images pass offline eval smokes. The CPU image is
+  1.88 GB and the CUDA image is 10.84 GB.
+- The CUDA image loads the pinned Grounding DINO snapshot offline as
+  `GroundingDinoForObjectDetection` from
+  `/opt/roboclaws/models/grounding-dino-base`.
+- Local image IDs are build evidence only, not CloudML-pullable registry
+  identities. Formal shard YAML still requires two published `@sha256:`
+  digests.
+- A cold common dependency build took about 23 minutes and a cold CUDA wheel
+  build about 22 minutes. Cached CPU rebuilds take seconds; normal baseline
+  refreshes reuse published digests and do not rebuild either image.
+- The CUDA build consumes a pinned local Hugging Face cache through a BuildKit
+  named context, so image construction does not depend on public Hub access.
 
 ## Architecture Contract
 

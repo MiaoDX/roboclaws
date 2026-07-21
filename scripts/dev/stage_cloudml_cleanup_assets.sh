@@ -11,8 +11,6 @@ code_commit="${ROBOCLAWS_CLOUDML_CODE_COMMIT:-$(git -C "$repo_root" rev-parse "$
 code_short="$(git -C "$repo_root" rev-parse --short=12 "$code_commit")"
 input_rel="${ROBOCLAWS_JUICEFS_INPUT_REL:-roboclaws-assets/cleanup-focused}"
 stage_dir="${ROBOCLAWS_STAGE_DIR:-/tmp/roboclaws-cloudml-cleanup-assets-${code_short}-${date_stamp}}"
-registry_repo="${ROBOCLAWS_EVAL_REGISTRY_REPO:-micr.cloud.mioffice.cn/cc-proxy/miuniverse-staging}"
-image_url="${ROBOCLAWS_CLOUDML_IMAGE_URL:-${registry_repo}:roboclaws-eval-env-$(git -C "$repo_root" rev-parse --short=8 HEAD)-code-${code_short}-${date_stamp}}"
 juicefs_url="${ROBOCLAWS_JUICEFS_URL:-https://cloud.mioffice.cn/juicefs/vol-detail?cluster=wlcb-cloudml&name=robot-intelligent-planning-data&path=/dongxu/gpu_perf/gpu_perf/${input_rel}}"
 asset_mode="${ROBOCLAWS_STAGE_ASSET_MODE:-archive}"
 archive_name="${ROBOCLAWS_STAGE_ARCHIVE_NAME:-cleanup-focused-molmospaces-val0.tar.gz}"
@@ -211,7 +209,6 @@ export ROBOCLAWS_STAGE_DIR_RESOLVED="$stage_dir"
 export ROBOCLAWS_STAGE_INPUT_REL="$input_rel"
 export ROBOCLAWS_STAGE_JUICEFS_URL="$juicefs_url"
 export ROBOCLAWS_STAGE_CODE_COMMIT="$code_commit"
-export ROBOCLAWS_STAGE_IMAGE_URL="$image_url"
 export ROBOCLAWS_STAGE_ASSETS_SOURCE="$assets_source"
 export ROBOCLAWS_STAGE_CACHE_SOURCE="$cache_source"
 export ROBOCLAWS_STAGE_ASSET_MODE="$asset_mode"
@@ -277,9 +274,6 @@ payload = {
             "sha256": os.environ["ROBOCLAWS_STAGE_CODE_ARCHIVE_SHA256"],
             "bytes": int(os.environ["ROBOCLAWS_STAGE_CODE_ARCHIVE_BYTES"] or "0"),
         },
-    },
-    "image": {
-        "url": os.environ["ROBOCLAWS_STAGE_IMAGE_URL"],
     },
     "source_assets": {
         "molmospaces_assets_dir": os.environ["ROBOCLAWS_STAGE_ASSETS_SOURCE"],

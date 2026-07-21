@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -119,6 +120,30 @@ def test_agent_eval_public_facade_routes_eval_harness_execute() -> None:
     assert "budget=focused" in trace
 
 
+def test_agent_eval_public_facade_honors_container_python() -> None:
+    binary = _just_bin()
+    env = os.environ.copy()
+    env["ROBOCLAWS_DEVTOOLS_PYTHON"] = "/opt/roboclaws/.venv/bin/python"
+    result = subprocess.run(
+        [binary, "--dry-run", "agent::eval", "execute", "since=origin/main"],
+        cwd=REPO_ROOT,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert (result.stdout + result.stderr).startswith(
+        "exec /opt/roboclaws/.venv/bin/python -m roboclaws.cli.main agent eval"
+    )
+
+
+def test_agent_eval_dispatch_honors_configured_python() -> None:
+    trace = _trace_agent_eval("execute", "since=origin/main", python_bin=sys.executable)
+
+    assert trace[:5] == ["cmd", sys.executable, "-m", "roboclaws.cli.main", "eval"]
+
+
 def test_agent_eval_public_facade_routes_cloudml_lifecycle() -> None:
     status_trace = _trace_agent_eval("status", "run=eval-20260721", "wait=false")
     collect_trace = _trace_agent_eval("collect", "run=output/eval-harness/20260721")
@@ -207,10 +232,14 @@ def test_surface_live_smoke_uses_world_public_server_evidence_lane() -> None:
     assert '--expect-profile "$implementation_evidence_lane"' in recipe
 
 
-def _trace_agent_eval(*args: str) -> list[str]:
+def _trace_agent_eval(*args: str, python_bin: str = "") -> list[str]:
     binary = _just_bin()
     env = os.environ.copy()
     env["ROBOCLAWS_JUST_TRACE"] = "1"
+    if python_bin:
+        env["ROBOCLAWS_DEVTOOLS_PYTHON"] = python_bin
+    else:
+        env.pop("ROBOCLAWS_DEVTOOLS_PYTHON", None)
     env["PATH"] = f"{Path(binary).parent}{os.pathsep}{env.get('PATH', '')}"
     result = subprocess.run(
         [binary, "agent::eval", *args],

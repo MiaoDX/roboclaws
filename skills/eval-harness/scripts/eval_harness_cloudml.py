@@ -50,6 +50,10 @@ POOL_RESOURCES = {
         "resource_number": 1,
     },
 }
+POOL_IMAGE_ENV = {
+    "cloudml-cpu": "ROBOCLAWS_CLOUDML_CPU_IMAGE_URL",
+    "cloudml-r49": "ROBOCLAWS_CLOUDML_GPU_IMAGE_URL",
+}
 PROVIDER_SECRET_ENV = {
     "codex-router-responses": ("CODEX_API_KEY",),
     "mimo-mify-responses": ("XM_LLM_API_KEY",),
@@ -176,7 +180,7 @@ def write_cloudml_plan(plan: dict[str, Any], manifest: dict[str, Any], *, output
 def executor_submit(
     plan: dict[str, Any],
     *,
-    image_url: str,
+    image_urls: dict[str, str],
     asset_manifest_path: Path,
     executor_path: Path,
     input_subpath: str,
@@ -186,71 +190,110 @@ def executor_submit(
     retry_shard_ids: Sequence[str] = (),
 ) -> None:
     identity = _load_asset_identity(asset_manifest_path)
-    _validate_image_digest(image_url)
+    _validate_image_urls(plan, image_urls)
     if identity["code_commit"] != plan["code_commit"]:
         raise ValueError(
             "asset manifest code commit does not match the eval harness plan: "
             f"{identity['code_commit']} != {plan['code_commit']}"
         )
-    retry_ids = {str(value) for value in retry_shard_ids}
-    known_ids = {str(shard["shard_id"]) for shard in plan["shards"]}
-    unknown_retry_ids = retry_ids - known_ids
-    if unknown_retry_ids:
-        raise ValueError("unknown CloudML retry shard(s): " + ", ".join(sorted(unknown_retry_ids)))
+    retry_ids = _validate_retry_shard_ids(plan, retry_shard_ids)
     for shard in plan["shards"]:
         if shard.get("task_id") and str(shard["shard_id"]) not in retry_ids:
             continue
-        previous_attempt = {
-            key: shard[key]
-            for key in ("task_id", "job_id", "console_url", "submitted_at", "remote_status")
-            if shard.get(key)
-        }
-        argv = _executor_submit_argv(
+        _submit_shard(
             shard,
             plan=plan,
-            image_url=image_url,
+            image_url=image_urls[str(shard["worker_pool"])],
             identity=identity,
             executor_path=executor_path,
             input_subpath=input_subpath,
             output_subpath=output_subpath,
             dry_run=dry_run,
         )
-        result = subprocess.run(argv, check=False, capture_output=True, text=True)
-        shard["executor_exit_code"] = result.returncode
-        if result.returncode != 0:
-            raise RuntimeError(
-                f"CloudML {'dry-run' if dry_run else 'submit'} failed for {shard['shard_id']}: "
-                f"{(result.stderr or result.stdout).strip()}"
-            )
-        payload = _parse_json_output(result.stdout, label="CloudML submit")
-        shard["executor_argv"] = argv
-        shard["dry_run"] = bool(payload.get("dry_run", dry_run))
-        shard["yaml_path"] = str(payload.get("yaml_path") or shard["yaml_path"])
-        if not dry_run:
-            task_id = str(payload.get("task_id") or payload.get("job_id") or "")
-            if not task_id:
-                raise RuntimeError(f"CloudML submit returned no task id for {shard['shard_id']}")
-            if previous_attempt:
-                attempts = list(shard.get("previous_attempts") or [])
-                attempts.append(previous_attempt)
-                shard["previous_attempts"] = attempts
-            shard.update(
-                {
-                    "task_id": task_id,
-                    "job_id": str(payload.get("job_id") or task_id),
-                    "console_url": str(payload.get("console_url") or ""),
-                    "submitted_at": _utc_now(),
-                    "remote_status": "submitted",
-                }
-            )
         if plan_path is not None:
             _write_json(plan_path, plan)
+
+
+def _validate_image_urls(plan: dict[str, Any], image_urls: dict[str, str]) -> None:
+    required_pools = {str(shard["worker_pool"]) for shard in plan["shards"]}
+    for pool in required_pools:
+        image_url = image_urls.get(pool, "")
+        if not image_url:
+            raise ValueError(f"CloudML worker pool {pool} has no configured image URL")
+        _validate_image_digest(image_url)
+
+
+def _validate_retry_shard_ids(plan: dict[str, Any], retry_shard_ids: Sequence[str]) -> set[str]:
+    retry_ids = {str(value) for value in retry_shard_ids}
+    known_ids = {str(shard["shard_id"]) for shard in plan["shards"]}
+    unknown_retry_ids = retry_ids - known_ids
+    if unknown_retry_ids:
+        raise ValueError("unknown CloudML retry shard(s): " + ", ".join(sorted(unknown_retry_ids)))
+    return retry_ids
+
+
+def _submit_shard(
+    shard: dict[str, Any],
+    *,
+    plan: dict[str, Any],
+    image_url: str,
+    identity: dict[str, str],
+    executor_path: Path,
+    input_subpath: str,
+    output_subpath: str,
+    dry_run: bool,
+) -> None:
+    previous_attempt = {
+        key: shard[key]
+        for key in ("task_id", "job_id", "console_url", "submitted_at", "remote_status")
+        if shard.get(key)
+    }
+    argv = _executor_submit_argv(
+        shard,
+        plan=plan,
+        image_url=image_url,
+        identity=identity,
+        executor_path=executor_path,
+        input_subpath=input_subpath,
+        output_subpath=output_subpath,
+        dry_run=dry_run,
+    )
+    result = subprocess.run(argv, check=False, capture_output=True, text=True)
+    shard["executor_exit_code"] = result.returncode
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"CloudML {'dry-run' if dry_run else 'submit'} failed for {shard['shard_id']}: "
+            f"{(result.stderr or result.stdout).strip()}"
+        )
+    payload = _parse_json_output(result.stdout, label="CloudML submit")
+    shard["executor_argv"] = argv
+    shard["image_url"] = image_url
+    shard["dry_run"] = bool(payload.get("dry_run", dry_run))
+    shard["yaml_path"] = str(payload.get("yaml_path") or shard["yaml_path"])
+    if dry_run:
+        return
+    task_id = str(payload.get("task_id") or payload.get("job_id") or "")
+    if not task_id:
+        raise RuntimeError(f"CloudML submit returned no task id for {shard['shard_id']}")
+    if previous_attempt:
+        attempts = list(shard.get("previous_attempts") or [])
+        attempts.append(previous_attempt)
+        shard["previous_attempts"] = attempts
+    shard.update(
+        {
+            "task_id": task_id,
+            "job_id": str(payload.get("job_id") or task_id),
+            "console_url": str(payload.get("console_url") or ""),
+            "submitted_at": _utc_now(),
+            "remote_status": "submitted",
+        }
+    )
 
 
 def executor_dry_run(
     plan: dict[str, Any],
     *,
-    image_url: str,
+    image_urls: dict[str, str],
     asset_manifest_path: Path,
     executor_path: Path,
     input_subpath: str,
@@ -258,7 +301,7 @@ def executor_dry_run(
 ) -> None:
     executor_submit(
         plan,
-        image_url=image_url,
+        image_urls=image_urls,
         asset_manifest_path=asset_manifest_path,
         executor_path=executor_path,
         input_subpath=input_subpath,
@@ -274,12 +317,17 @@ def executor_from_environment(
     plan_path: Path | None = None,
     retry_shard_ids: Sequence[str] = (),
 ) -> None:
-    image_url = os.environ.get("ROBOCLAWS_CLOUDML_IMAGE_URL", "")
     asset_manifest = os.environ.get("ROBOCLAWS_CLOUDML_ASSET_MANIFEST", "")
-    if not image_url:
-        raise ValueError("execution_target=cloudml requires ROBOCLAWS_CLOUDML_IMAGE_URL")
     if not asset_manifest:
         raise ValueError("execution_target=cloudml requires ROBOCLAWS_CLOUDML_ASSET_MANIFEST")
+    required_pools = {str(shard["worker_pool"]) for shard in plan["shards"]}
+    image_urls = {pool: os.environ.get(POOL_IMAGE_ENV[pool], "") for pool in sorted(required_pools)}
+    missing_image_env = [POOL_IMAGE_ENV[pool] for pool, value in image_urls.items() if not value]
+    if missing_image_env:
+        raise ValueError(
+            "execution_target=cloudml requires image environment variable(s): "
+            + ", ".join(missing_image_env)
+        )
     asset_manifest_path = Path(asset_manifest)
     payload = json.loads(asset_manifest_path.read_text(encoding="utf-8"))
     input_rel = str((payload.get("juicefs") or {}).get("input_rel") or "")
@@ -309,7 +357,7 @@ def executor_from_environment(
         _upload_staging(plan, executor_path=executor_path, plan_path=plan_path)
     executor_submit(
         plan,
-        image_url=image_url,
+        image_urls=image_urls,
         asset_manifest_path=asset_manifest_path,
         executor_path=executor_path,
         input_subpath=input_subpath,
@@ -713,6 +761,8 @@ def _image_command(shard: dict[str, Any], *, identity: dict[str, str]) -> str:
             f"{INPUT_MOUNT}/archives/{identity['asset_archive_name']}"
         )
         values["ROBOCLAWS_CLOUDML_ASSET_ARCHIVE_SHA256"] = identity["asset_archive_sha256"]
+        values["VISUAL_GROUNDING_DEVICE"] = "cuda"
+        values["VISUAL_GROUNDING_TORCH_DTYPE"] = "float16"
     exports = " ".join(f"{key}={shlex.quote(value)}" for key, value in values.items())
     return f"bash -lc {shlex.quote(exports + ' /opt/roboclaws/bin/run-cloudml-eval-worker')}"
 

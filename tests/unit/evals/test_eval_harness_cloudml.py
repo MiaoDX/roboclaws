@@ -84,6 +84,19 @@ def _asset_manifest(tmp_path: Path, *, code_commit: str = "a" * 40) -> Path:
     return path
 
 
+def _image_urls() -> dict[str, str]:
+    return {
+        "cloudml-cpu": f"micr.cloud.mioffice.cn/team/roboclaws-cpu@sha256:{'c' * 64}",
+        "cloudml-r49": f"micr.cloud.mioffice.cn/team/roboclaws-cuda@sha256:{'d' * 64}",
+    }
+
+
+def _set_image_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    images = _image_urls()
+    monkeypatch.setenv("ROBOCLAWS_CLOUDML_CPU_IMAGE_URL", images["cloudml-cpu"])
+    monkeypatch.setenv("ROBOCLAWS_CLOUDML_GPU_IMAGE_URL", images["cloudml-r49"])
+
+
 def test_cloudml_plan_uses_cpu_and_r49_capability_pools() -> None:
     deterministic = _row("deterministic", ("cpu", "python-env", "artifact-storage"))
     simulator = _row(
@@ -203,11 +216,11 @@ def test_executor_dry_run_uses_current_target_pinned_inputs_and_safe_mounts(
         encoding="utf-8",
     )
     executor.chmod(0o755)
-    image = f"micr.cloud.mioffice.cn/team/roboclaws@sha256:{'d' * 64}"
+    image = _image_urls()["cloudml-cpu"]
 
     cloudml.executor_dry_run(
         plan,
-        image_url=image,
+        image_urls=_image_urls(),
         asset_manifest_path=_asset_manifest(tmp_path, code_commit=plan["code_commit"]),
         executor_path=executor,
         input_subpath="/team/evals/run-1/input",
@@ -229,17 +242,63 @@ def test_executor_dry_run_uses_current_target_pinned_inputs_and_safe_mounts(
 
 
 def test_executor_dry_run_rejects_unpinned_image(tmp_path: Path) -> None:
-    plan = {"shards": []}
+    row = _row("first", ("cpu", "python-env", "artifact-storage"))
+    plan = cloudml.build_cloudml_plan(_manifest(row), execution_target="cloudml", run_id="run-1")
 
     with pytest.raises(ValueError, match="pinned by sha256"):
         cloudml.executor_dry_run(
             plan,
-            image_url="micr.cloud.mioffice.cn/team/roboclaws:latest",
-            asset_manifest_path=_asset_manifest(tmp_path),
+            image_urls={"cloudml-cpu": "micr.cloud.mioffice.cn/team/roboclaws:latest"},
+            asset_manifest_path=_asset_manifest(tmp_path, code_commit=plan["code_commit"]),
             executor_path=tmp_path / "exe",
             input_subpath="/input",
             output_subpath="/output",
         )
+
+
+def test_executor_dry_run_selects_image_per_worker_pool(tmp_path: Path) -> None:
+    cpu = _row("cpu", ("cpu", "python-env", "artifact-storage"))
+    gpu = _row("gpu", ("gpu", "python-env", "artifact-storage", "simulator:mujoco"))
+    plan = cloudml.build_cloudml_plan(
+        _manifest(cpu, gpu), execution_target="cloudml", run_id="run-1"
+    )
+    cloudml.write_cloudml_plan(plan, _manifest(cpu, gpu), output_dir=tmp_path)
+    executor = tmp_path / "exe"
+    executor.write_text(
+        '#!/usr/bin/env bash\necho \'{"dry_run":true,"yaml_path":"/tmp/task.yaml"}\'\n',
+        encoding="utf-8",
+    )
+    executor.chmod(0o755)
+
+    cloudml.executor_dry_run(
+        plan,
+        image_urls=_image_urls(),
+        asset_manifest_path=_asset_manifest(tmp_path, code_commit=plan["code_commit"]),
+        executor_path=executor,
+        input_subpath="/input",
+        output_subpath="/output",
+    )
+
+    shards = {shard["worker_pool"]: shard for shard in plan["shards"]}
+    assert shards["cloudml-cpu"]["image_url"] == _image_urls()["cloudml-cpu"]
+    assert shards["cloudml-r49"]["image_url"] == _image_urls()["cloudml-r49"]
+    gpu_command = shards["cloudml-r49"]["executor_argv"]
+    image_command = gpu_command[gpu_command.index("--image_command") + 1]
+    assert "VISUAL_GROUNDING_DEVICE=cuda" in image_command
+    assert "VISUAL_GROUNDING_TORCH_DTYPE=float16" in image_command
+
+
+def test_environment_requires_only_images_for_selected_pools(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    row = _row("first", ("cpu", "python-env", "artifact-storage"))
+    plan = cloudml.build_cloudml_plan(_manifest(row), execution_target="cloudml", run_id="run-1")
+    asset_manifest = _asset_manifest(tmp_path, code_commit=plan["code_commit"])
+    monkeypatch.setenv("ROBOCLAWS_CLOUDML_ASSET_MANIFEST", str(asset_manifest))
+    monkeypatch.setenv("ROBOCLAWS_CLOUDML_IMAGE_URL", _image_urls()["cloudml-cpu"])
+
+    with pytest.raises(ValueError, match="ROBOCLAWS_CLOUDML_CPU_IMAGE_URL"):
+        cloudml.executor_dry_run_from_environment(plan)
 
 
 def test_environment_dry_run_stages_worker_manifests(
@@ -258,10 +317,7 @@ def test_environment_dry_run_stages_worker_manifests(
         encoding="utf-8",
     )
     executor.chmod(0o755)
-    monkeypatch.setenv(
-        "ROBOCLAWS_CLOUDML_IMAGE_URL",
-        f"micr.cloud.mioffice.cn/team/roboclaws@sha256:{'d' * 64}",
-    )
+    monkeypatch.setenv("ROBOCLAWS_CLOUDML_CPU_IMAGE_URL", _image_urls()["cloudml-cpu"])
     monkeypatch.setenv("ROBOCLAWS_CLOUDML_ASSET_MANIFEST", str(asset_manifest))
     monkeypatch.setenv("ROBOCLAWS_EXECUTOR_PATH", str(executor))
 
@@ -285,10 +341,7 @@ def test_real_submit_uploads_first_and_persists_each_task_id(
     stage_dir.mkdir()
     asset_manifest = _asset_manifest(stage_dir, code_commit=plan["code_commit"])
     monkeypatch.setenv("ROBOCLAWS_CLOUDML_ASSET_MANIFEST", str(asset_manifest))
-    monkeypatch.setenv(
-        "ROBOCLAWS_CLOUDML_IMAGE_URL",
-        f"micr.cloud.mioffice.cn/team/roboclaws@sha256:{'d' * 64}",
-    )
+    _set_image_environment(monkeypatch)
     monkeypatch.setenv("CODEX_API_KEY", "do-not-leak")
     calls: list[list[str]] = []
 
@@ -331,10 +384,7 @@ def test_partial_submit_plan_resumes_without_resubmitting_completed_shard(
     stage_dir.mkdir()
     asset_manifest = _asset_manifest(stage_dir, code_commit=plan["code_commit"])
     monkeypatch.setenv("ROBOCLAWS_CLOUDML_ASSET_MANIFEST", str(asset_manifest))
-    monkeypatch.setenv(
-        "ROBOCLAWS_CLOUDML_IMAGE_URL",
-        f"micr.cloud.mioffice.cn/team/roboclaws@sha256:{'d' * 64}",
-    )
+    _set_image_environment(monkeypatch)
     submit_calls: list[str] = []
 
     def fail_second(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
@@ -539,6 +589,9 @@ def test_collector_rejects_mismatched_marker_identity(tmp_path: Path) -> None:
 
 def test_eval_image_contains_cloudml_worker_entrypoint() -> None:
     dockerfile = (REPO_ROOT / "Dockerfile.eval").read_text(encoding="utf-8")
+    build_script = (REPO_ROOT / "scripts" / "dev" / "build_push_eval_image.sh").read_text(
+        encoding="utf-8"
+    )
     worker = (REPO_ROOT / "scripts" / "dev" / "run_cloudml_eval_worker.sh").read_text(
         encoding="utf-8"
     )
@@ -547,4 +600,14 @@ def test_eval_image_contains_cloudml_worker_entrypoint() -> None:
     assert "ROBOCLAWS_EVAL_EXECUTION_TARGET=cloudml" in worker
     assert '"$ROBOCLAWS_CLOUDML_ASSET_MANIFEST"' in worker
     assert '"$ROBOCLAWS_CLOUDML_ASSET_MANIFEST_SHA256"' in worker
+    assert "EVAL_IMAGE_VARIANT" in dockerfile
+    assert dockerfile.index("RUN uv sync --extra dev") < dockerfile.index("ARG EVAL_IMAGE_VARIANT")
+    assert "--extra cuda --frozen" in dockerfile
+    assert "VISUAL_GROUNDING_DINO_MODEL_REVISION" in dockerfile
+    assert "from=grounding-dino-cache" in dockerfile
+    assert "model.safetensors" in worker
+    assert '"VISUAL_GROUNDING_DINO_MODEL_REVISION"' in worker
+    assert "torch.cuda.is_available()" in worker
     assert "just agent::eval execute" in worker
+    assert "ROBOCLAWS_EVAL_DINO_CACHE_DIR" in build_script
+    assert '--build-context "grounding-dino-cache=$dino_cache_dir"' in build_script

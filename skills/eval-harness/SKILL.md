@@ -37,11 +37,20 @@ just agent::eval execute profile=baseline-core budget=focused \
 Generate pinned CloudML CPU/RTX 4090 shard YAML without submitting jobs:
 
 ```bash
-ROBOCLAWS_CLOUDML_IMAGE_URL='<registry-image>@sha256:<digest>' \
+ROBOCLAWS_CLOUDML_CPU_IMAGE_URL='<cpu-image>@sha256:<digest>' \
+ROBOCLAWS_CLOUDML_GPU_IMAGE_URL='<cuda-image>@sha256:<digest>' \
 ROBOCLAWS_CLOUDML_ASSET_MANIFEST=/path/to/roboclaws_cloudml_cleanup_assets.json \
   just agent::eval execute profile=baseline-core budget=focused \
   execution_target=cloudml cloudml_dry_run=true
 ```
+
+CloudML uses separate CPU and CUDA image digests. Build them through
+`scripts/dev/build_push_eval_image.sh` with
+`ROBOCLAWS_EVAL_IMAGE_VARIANT=cpu|cuda`; use
+`ROBOCLAWS_EVAL_PUSH=false` for local proof. The CUDA build requires
+`ROBOCLAWS_EVAL_DINO_CACHE_DIR` to contain the pinned Grounding DINO snapshot,
+so it remains reproducible when the public Hugging Face Hub is unreachable.
+Normal baseline runs reuse published digests and do not rebuild images.
 
 `execution_target=auto` keeps direct Kimi/MiniMax and any provider row that
 cannot receive a secure CloudML secret on the local worker. It never substitutes
@@ -53,7 +62,8 @@ Submit a detached CloudML run only after reviewing the dry-run and accepting
 the infrastructure cost, then monitor and collect it through the same facade:
 
 ```bash
-ROBOCLAWS_CLOUDML_IMAGE_URL='<registry-image>@sha256:<digest>' \
+ROBOCLAWS_CLOUDML_CPU_IMAGE_URL='<cpu-image>@sha256:<digest>' \
+ROBOCLAWS_CLOUDML_GPU_IMAGE_URL='<cuda-image>@sha256:<digest>' \
 ROBOCLAWS_CLOUDML_ASSET_MANIFEST=/path/to/roboclaws_cloudml_cleanup_assets.json \
   just agent::eval execute profile=baseline-core budget=focused \
   execution_target=cloudml output_dir=output/eval-harness/<run>
