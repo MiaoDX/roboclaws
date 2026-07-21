@@ -11,10 +11,18 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from roboclaws.agents.drivers.openai_agents_budget import OpenAIAgentsBudgetExceededError
 from roboclaws.agents.drivers.openai_agents_model_input import (
     _input_compaction_config,
     _model_input_compaction_filter,
+)
+from roboclaws.agents.drivers.openai_agents_provider_runtime import (
+    close_async_resource as _close_async_resource,
+)
+from roboclaws.agents.drivers.openai_agents_provider_runtime import (
+    failure_from_exception as _failure_from_exception,
+)
+from roboclaws.agents.drivers.openai_agents_provider_runtime import (
+    model_service_failure_detail as _model_service_failure_detail,
 )
 from roboclaws.agents.drivers.openai_agents_spans import (
     RoboclawsSpanRecorder,
@@ -381,17 +389,24 @@ def _run_with_async_mcp_server(
     async def _run() -> Any:
         from agents import Runner  # type: ignore[import-not-found]
 
-        async with server:
-            runner_kwargs: dict[str, Any] = {
-                "max_turns": _max_turns(request),
-                "run_config": run_config,
-            }
-            result = await Runner.run(agent, request.kickoff_prompt, **runner_kwargs)
-        _append_event(
-            events_path,
-            {"event": "result", "ts_epoch": time.time(), "summary": _summarize_sdk_result(result)},
-        )
-        return result
+        try:
+            async with server:
+                runner_kwargs: dict[str, Any] = {
+                    "max_turns": _max_turns(request),
+                    "run_config": run_config,
+                }
+                result = await Runner.run(agent, request.kickoff_prompt, **runner_kwargs)
+            _append_event(
+                events_path,
+                {
+                    "event": "result",
+                    "ts_epoch": time.time(),
+                    "summary": _summarize_sdk_result(result),
+                },
+            )
+            return result
+        finally:
+            await _close_async_resource(getattr(agent, "model", None))
 
     return asyncio.run(_run())
 
@@ -928,6 +943,7 @@ def _model_for_request(request: LiveAgentRequest) -> Any:
     retry_config = _model_service_retry_config(request)
     return _RetryingModel(
         base_model,
+        client=client,
         retry_attempts=int(retry_config["retry_attempts"]),
         retry_sleep_s=float(retry_config["retry_sleep_s"]),
         events_path=request.artifact_path("openai_agents_events", "openai-agents-events.jsonl"),
@@ -980,6 +996,7 @@ class _RetryingModel(_AgentsModel):
         self,
         base_model: Any,
         *,
+        client: Any | None = None,
         retry_attempts: int,
         retry_sleep_s: float,
         events_path: Path,
@@ -987,6 +1004,7 @@ class _RetryingModel(_AgentsModel):
         runtime_config: dict[str, Any],
     ) -> None:
         self.base_model = base_model
+        self.client = client
         self.retry_attempts = max(0, retry_attempts)
         self.retry_sleep_s = max(0.0, retry_sleep_s)
         self.events_path = events_path
@@ -995,12 +1013,11 @@ class _RetryingModel(_AgentsModel):
         self._model_call_index = 0
 
     async def close(self) -> None:
-        close = getattr(self.base_model, "close", None)
-        if close is None:
-            return None
-        result = close()
-        if hasattr(result, "__await__"):
-            await result
+        try:
+            await _close_async_resource(self.base_model)
+        finally:
+            if self.client is not self.base_model:
+                await _close_async_resource(self.client)
         return None
 
     def get_retry_advice(self, request: Any) -> Any:
@@ -1579,6 +1596,7 @@ def _append_model_service_failure_events(
         "method": method,
         "failure_class": failure.reason,
         "provider_reason": failure.provider_reason,
+        "failure_detail": _model_service_failure_detail(failure),
         "retryable": failure.retryable,
         "safe_to_replay": safe_to_replay,
         "elapsed_s": _round_duration(time.time() - started_at),
@@ -1838,105 +1856,6 @@ def _non_negative_float(value: Any, *, setting_name: str, env_name: str, default
             f"finite non-negative number, got {value!r}"
         )
     return parsed
-
-
-def _failure_from_exception(exc: Exception) -> LiveAgentFailure:
-    if isinstance(exc, OpenAIAgentsBudgetExceededError):
-        return exc.failure
-    detail = str(exc)
-    if exc.__class__.__name__ == "MaxTurnsExceeded":
-        return LiveAgentFailure(
-            "agent_sdk_turn_budget_exceeded",
-            retryable=False,
-            resume_available=False,
-            detail=detail,
-        )
-    lowered = detail.lower()
-    if any(
-        item in lowered
-        for item in (
-            "roboclaws_openai_agents_",
-            "openai agents sdk setting",
-        )
-    ):
-        return LiveAgentFailure("provider_config_failure", retryable=False, detail=detail)
-    if any(item in lowered for item in ("requires codex_base_url", "requires codex_api_key")):
-        return LiveAgentFailure("provider_config_failure", retryable=False, detail=detail)
-    if any(
-        item in lowered
-        for item in (
-            "requires xm_llm_api_key",
-            "requires mm_api_key",
-            "supports responses provider",
-        )
-    ):
-        return LiveAgentFailure("provider_config_failure", retryable=False, detail=detail)
-    if any(
-        item in lowered for item in ("authentication", "unauthorized", "invalid api key", "401")
-    ):
-        return LiveAgentFailure("provider_auth_failure", retryable=False, detail=detail)
-    if any(
-        item in lowered
-        for item in (
-            "context length",
-            "context_length",
-            "context window",
-            "maximum context",
-            "input exceeds the context",
-            "too large",
-        )
-    ):
-        return LiveAgentFailure("provider_context_failure", retryable=False, detail=detail)
-    if any(
-        item in lowered
-        for item in (
-            "429",
-            "rate limit",
-            "too many requests",
-            "500",
-            "502",
-            "503",
-            "504",
-            "model unavailable",
-            "model_unavailable",
-            "temporarily unavailable",
-            "service unavailable",
-            "internal server error",
-            "bad gateway",
-            "gateway timeout",
-        )
-    ):
-        provider_reason = (
-            "rate_limit" if "429" in lowered or "rate limit" in lowered else "upstream_unavailable"
-        )
-        return LiveAgentFailure(
-            "provider_transient_failure",
-            retryable=True,
-            provider_reason=provider_reason,
-            resume_available=True,
-            detail=detail,
-        )
-    if any(
-        item in lowered
-        for item in (
-            "timed out",
-            "timeout",
-            "connection reset",
-            "connection refused",
-            "connection error",
-            "transport error",
-            "broken pipe",
-            "econnreset",
-        )
-    ):
-        return LiveAgentFailure(
-            "provider_transient_failure",
-            retryable=True,
-            provider_reason="upstream_timeout",
-            resume_available=True,
-            detail=detail,
-        )
-    return LiveAgentFailure("agent_cli_failure", retryable=False, detail=detail)
 
 
 def _append_event(path: Path, payload: dict[str, Any]) -> None:
