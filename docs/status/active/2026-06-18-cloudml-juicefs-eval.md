@@ -1,6 +1,6 @@
 # CloudML Eval Execution Capsule
 
-Capsule status: ACTIVE
+Capsule status: BLOCKED
 
 Source plan: `docs/plans/2026-06-18-cloudml-juicefs-eval.md`
 
@@ -12,15 +12,18 @@ made explicit.
 Latest user intent: execute the approved standard CloudML Eval Harness support
 through `intuitive-flow`, committing coherent slices along the way.
 
-Current slice: CPU and RTX 4090 lifecycle proof is complete; the next boundary
-is secure provider injection for internal Router live rows.
+Current slice: CPU and RTX 4090 lifecycle proof is complete; internal Router
+live rows are paused at the provider-identity decision boundary.
 
-Current blocker: executor `custom_train submit` has no native secret reference,
-environment-secret reference, or workload identity parameter. Provider keys
-cannot be placed in argv, YAML, image commands, or JuiceFS artifacts.
+Current blocker: CloudML CLI v1.3.25 and the exported custom-train schema have no
+native environment-secret reference or workload-identity parameter. `--env`
+stores plaintext `envConfigs`, while `--image_secret` only authenticates image
+pulls. Provider keys cannot be placed in argv, YAML, image commands, or JuiceFS
+artifacts.
 
-Blocker fingerprint: `cloudml_secret_injection_missing`; security-sensitive
-executor API expansion requires review before implementation.
+Blocker fingerprint: `cloudml_secret_injection_missing`; the recommended
+Router-side workload-identity exchange requires product/security review before
+implementation.
 
 Last proven evidence:
 
@@ -40,21 +43,25 @@ Last proven evidence:
   metadata. Staging uses executor's `exe` entrypoint and active config.
 - Executor CloudML readiness is `ready`, but `custom_train submit` exposes no
   secure provider secret reference or workload identity field.
+- A no-credential task reached both internal Router `/models` endpoints and
+  received HTTP 401. The remaining failure is authentication, not CloudML
+  egress, model quota, GPU/runtime readiness, or harness placement.
+- CLI help, binary schema, and a redacted exported task structure agree that
+  CloudML currently exposes ordinary `envConfigs`, an image-pull secret, and
+  JuiceFS-specific mount credentials, but no general runtime secret binding.
 
 Completed slice batch: local parallel execution and the complete CloudML
 CPU/RTX 4090 submit/status/collect path, including pinned images, code/assets,
 run-owned mounts, offline DINO, and MolmoSpaces product execution.
 
-Next hypothesis: a native CloudML secret-reference or workload-identity field
-can make internal API Router and MiMo rows runnable without exposing provider
-keys.
+Next hypothesis: a Router endpoint can validate a CloudML workload assertion
+and issue a short-lived, route-scoped token without placing a long-lived
+provider credential in CloudML task configuration.
 
-Next proof:
-
-```bash
-cd /home/mi/executor
-./exe compute cloudml custom_train submit -h
-```
+Next proof: after security approval and Router support, run one bounded API
+Router row and one bounded MiMo Router row from CloudML, then inspect generated
+YAML, logs, and collected artifacts for secret leakage before running the hybrid
+baseline.
 
 Stop condition: stop before any plaintext secret workaround, provider identity
 substitution, destructive retry, or new cross-repo executor API change.
@@ -62,7 +69,7 @@ substitution, destructive retry, or new cross-repo executor API change.
 No-touch scope: product task strategy, MCP semantics, grader policy, physical
 robot backends, unrelated plans, and direct-provider identity aliases.
 
-Parked work: API Router/MiMo live rows and hybrid baseline proof wait on secure
-provider injection; direct Kimi/MiniMax remain ineligible on the internal-only
-worker pool; the repository quality ratchet has unrelated pre-existing drift;
-FDS publication remains optional.
+Parked work: API Router/MiMo live rows and hybrid baseline proof wait on the
+workload-identity decision and Router implementation; direct Kimi/MiniMax remain
+ineligible on the internal-only worker pool; the repository quality ratchet has
+unrelated pre-existing drift; FDS publication remains optional.

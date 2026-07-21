@@ -24,10 +24,11 @@ related_context:
 - Parent plan: none
 - Child plans: none
 - Last updated: 2026-07-21
-- Current slice: CPU and RTX 4090 CloudML smokes are proven; reconcile the
-  secure provider-injection boundary before live Router rows.
-- Next action: add or select a reviewed CloudML native secret reference or
-  workload identity contract, then run bounded API Router and MiMo rows.
+- Current slice: CPU and RTX 4090 CloudML smokes are proven; live Router rows
+  are paused at the reviewed provider-identity boundary.
+- Next action: approve a Router-side CloudML workload-identity exchange for a
+  short-lived scoped token, then implement the worker bootstrap and run bounded
+  API Router and MiMo rows.
 - Blocked on: executor `custom_train submit` currently exposes no native secret
   reference, environment-secret reference, or workload identity input. The
   accepted security gate forbids plaintext provider credentials in argv, YAML,
@@ -247,6 +248,26 @@ As of 2026-07-21:
 - The current executor `custom_train submit` CLI and implementation expose no
   native secret reference or workload identity field. API Router and MiMo live
   rows therefore remain blocked by the approved no-plaintext-secret gate.
+- CloudML CLI v1.3.25 confirms that `--env` serializes ordinary key/value pairs
+  into `envConfigs`; `--image_secret` is only an image-pull credential. The
+  exported custom-train schema contains neither an environment secret reference
+  nor a service-account/workload-identity field. A no-credential CloudML probe
+  reached both internal Routers but received HTTP 401, so network placement or
+  pod identity alone is not currently accepted.
+
+Recommended security contract:
+
+- CloudML supplies a platform-verifiable workload assertion already available
+  to the pod, or the platform team adds one without exposing a long-lived key.
+- A Router-side exchange endpoint validates workspace, queue, workload, and
+  audience, then returns a short-lived token scoped to the intended model route.
+- The worker bootstrap keeps that token in memory and exposes the existing
+  provider environment contract only to the child eval process. Manifests,
+  commands, reports, logs, and JuiceFS continue to contain only route and
+  identity metadata.
+- Static provider credentials in `envConfigs`, task YAML, image commands, or a
+  JuiceFS secret file remain out of scope even if accepted as an emergency
+  manual experiment; they cannot become formal baseline evidence.
 
 ## Architecture Contract
 
