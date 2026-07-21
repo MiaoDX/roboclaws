@@ -119,7 +119,12 @@ def image_command(shard: dict[str, Any], *, identity: dict[str, str]) -> str:
         values["VISUAL_GROUNDING_DEVICE"] = "cuda"
         values["VISUAL_GROUNDING_TORCH_DTYPE"] = "auto"
     exports = " ".join(f"{key}={shlex.quote(value)}" for key, value in values.items())
-    return f"bash -lc {shlex.quote(exports + ' /opt/roboclaws/bin/run-cloudml-eval-worker')}"
+    bootstrap = ""
+    if shard.get("provider_env_keys"):
+        provider_path = f"{PROVIDER_ENV_MOUNT}/{PROVIDER_ENV_FILENAME}"
+        bootstrap = f"set +x; set -a; source {shlex.quote(provider_path)}; set +a; "
+    shell_command = f"export {exports}; {bootstrap}exec /opt/roboclaws/bin/run-cloudml-eval-worker"
+    return f"bash -lc {shlex.quote(shell_command)}"
 
 
 def _mount(subpath: str, mount_path: str, *, read_only: bool) -> dict[str, Any]:

@@ -169,5 +169,6 @@ def test_provider_environment_is_scoped_uploaded_mounted_and_not_serialized(
     assert mounts[2]["readOnly"] is True
     image_command = argv[argv.index("--image_command") + 1]
     assert "ROBOCLAWS_CLOUDML_PROVIDER_ENV_FILE" in image_command
+    assert "source /mnt/cloudml/provider-env/provider.env" in image_command
     assert sentinel not in json.dumps(plan)
     assert sentinel not in json.dumps(calls)
