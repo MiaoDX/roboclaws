@@ -61,5 +61,8 @@ RUN uv sync --extra dev --frozen --no-install-project \
         "editables==${EDITABLES_VERSION}" \
     && "$ROBOCLAWS_DEVTOOLS_PYTHON" -c "import numpy, PIL, jinja2"
 
+COPY scripts/dev/run_cloudml_eval_worker.sh /opt/roboclaws/bin/run-cloudml-eval-worker
+RUN chmod +x /opt/roboclaws/bin/run-cloudml-eval-worker
+
 WORKDIR /workspace/roboclaws
 CMD ["bash"]

@@ -1,0 +1,274 @@
+from __future__ import annotations
+
+import importlib.util
+import json
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+CLOUDML_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "eval_harness_cloudml.py"
+
+
+def _load_module(name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+cloudml = _load_module("eval_harness_cloudml_test", CLOUDML_PATH)
+
+
+def _row(
+    row_id: str,
+    requirements: tuple[str, ...],
+    *,
+    provider_profile: str = "",
+    depends_on: tuple[str, ...] = (),
+) -> dict[str, Any]:
+    return {
+        "schema": "roboclaws_eval_harness_row_v1",
+        "row_id": row_id,
+        "row_kind": "test",
+        "selected": True,
+        "status": "not_run",
+        "outcome": "",
+        "requirement": "required",
+        "execution_requirements": list(requirements),
+        "depends_on": list(depends_on),
+        "timeout_s": 30,
+        "axes": {"provider_profile": provider_profile},
+        "row_dir": f"/local/harness/rows/{row_id}",
+        "command": ["tool", f"output_dir=/local/harness/evals/{row_id}"],
+        "command_display": f"tool output_dir=/local/harness/evals/{row_id}",
+    }
+
+
+def _manifest(*rows: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "schema": "roboclaws_eval_harness_manifest_v1",
+        "mode": "execute",
+        "budget": "focused",
+        "profile": "adaptive",
+        "signals": [],
+        "summary": {"selected_row_count": len(rows)},
+        "output_dir": "/local/harness",
+        "rows": list(rows),
+    }
+
+
+def _asset_manifest(tmp_path: Path, *, code_commit: str = "a" * 40) -> Path:
+    path = tmp_path / "assets.json"
+    path.write_text(
+        json.dumps(
+            {
+                "juicefs": {"input_rel": "roboclaws-assets/test"},
+                "git": {
+                    "code_commit": code_commit,
+                    "code_archive": {"name": "code.tar.gz", "sha256": "b" * 64},
+                },
+                "staged_assets": {"archive": {"name": "assets.tar.gz", "sha256": "c" * 64}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def test_cloudml_plan_uses_cpu_and_r49_capability_pools() -> None:
+    deterministic = _row("deterministic", ("cpu", "python-env", "artifact-storage"))
+    simulator = _row(
+        "simulator",
+        ("gpu", "python-env", "artifact-storage", "simulator:mujoco"),
+    )
+
+    plan = cloudml.build_cloudml_plan(
+        _manifest(deterministic, simulator), execution_target="cloudml", run_id="run-1"
+    )
+
+    assert [(shard["worker_pool"], shard["row_ids"]) for shard in plan["shards"]] == [
+        ("cloudml-cpu", ["deterministic"]),
+        ("cloudml-r49", ["simulator"]),
+    ]
+    assert plan["summary"] == {
+        "selected_row_count": 2,
+        "cloudml_row_count": 2,
+        "local_row_count": 0,
+        "blocked_row_count": 0,
+        "shard_count": 2,
+    }
+
+
+def test_dependency_pair_stays_in_one_ordered_shard() -> None:
+    requirements = ("gpu", "python-env", "artifact-storage", "simulator:mujoco")
+    producer = _row("producer", requirements)
+    consumer = _row("consumer", requirements, depends_on=("producer",))
+
+    plan = cloudml.build_cloudml_plan(
+        _manifest(producer, consumer), execution_target="cloudml", run_id="run-1"
+    )
+
+    assert len(plan["shards"]) == 1
+    assert plan["shards"][0]["row_ids"] == ["producer", "consumer"]
+
+
+def test_cloudml_run_id_rejects_path_components() -> None:
+    row = _row("first", ("cpu", "python-env", "artifact-storage"))
+
+    with pytest.raises(ValueError, match="CloudML run id"):
+        cloudml.build_cloudml_plan(_manifest(row), execution_target="cloudml", run_id="../escape")
+
+
+def test_auto_keeps_provider_rows_on_local_network_pool() -> None:
+    internal = _row(
+        "router",
+        (
+            "gpu",
+            "python-env",
+            "artifact-storage",
+            "simulator:mujoco",
+            "network:internal-api-router",
+            "provider:codex-router-responses",
+        ),
+        provider_profile="codex-router-responses",
+    )
+    external = _row(
+        "kimi",
+        ("network:external-egress", "provider:kimi-openai-chat"),
+        provider_profile="kimi-openai-chat",
+    )
+
+    plan = cloudml.build_cloudml_plan(
+        _manifest(internal, external), execution_target="auto", run_id="run-1"
+    )
+
+    assert plan["local_row_ids"] == ["router", "kimi"]
+    assert plan["blocked_rows"] == []
+
+
+def test_cloudml_provider_row_blocks_without_secure_secret_reference() -> None:
+    row = _row(
+        "router",
+        ("network:internal-api-router", "provider:codex-router-responses"),
+        provider_profile="codex-router-responses",
+    )
+    manifest = _manifest(row)
+
+    plan = cloudml.build_cloudml_plan(manifest, execution_target="cloudml", run_id="run-1")
+    cloudml.apply_blocked_placements(manifest, plan)
+
+    assert plan["blocked_rows"][0]["category"] == "secure_secret_injection_unavailable"
+    assert row["status"] == "blocked"
+    assert "secret-reference" in row["blockers"][0]["detail"]
+
+
+def test_frozen_shard_manifest_relocates_only_selected_rows(tmp_path: Path) -> None:
+    first = _row("first", ("cpu", "python-env", "artifact-storage"))
+    second = _row("second", ("cpu", "python-env", "artifact-storage"))
+    manifest = _manifest(first, second)
+    plan = cloudml.build_cloudml_plan(
+        manifest, execution_target="cloudml", row_ids=["first"], run_id="run-1"
+    )
+
+    cloudml.write_cloudml_plan(plan, manifest, output_dir=tmp_path)
+
+    shard = plan["shards"][0]
+    payload = json.loads(Path(shard["manifest_local_path"]).read_text(encoding="utf-8"))
+    by_id = {row["row_id"]: row for row in payload["rows"]}
+    assert payload["output_dir"].startswith("/mnt/cloudml/output/shards/")
+    assert by_id["first"]["selected"] is True
+    assert by_id["second"]["selected"] is False
+    assert by_id["first"]["row_dir"].startswith("/mnt/cloudml/output/shards/")
+
+
+def test_executor_dry_run_uses_current_target_pinned_inputs_and_safe_mounts(
+    tmp_path: Path,
+) -> None:
+    row = _row("first", ("cpu", "python-env", "artifact-storage"))
+    manifest = _manifest(row)
+    plan = cloudml.build_cloudml_plan(manifest, execution_target="cloudml", run_id="run-1")
+    cloudml.write_cloudml_plan(plan, manifest, output_dir=tmp_path)
+    executor = tmp_path / "exe"
+    executor.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+    executor.chmod(0o755)
+    image = f"micr.cloud.mioffice.cn/team/roboclaws@sha256:{'d' * 64}"
+
+    cloudml.executor_dry_run(
+        plan,
+        image_url=image,
+        asset_manifest_path=_asset_manifest(tmp_path, code_commit=plan["code_commit"]),
+        executor_path=executor,
+        input_subpath="/team/evals/run-1/input",
+        output_subpath="/team/evals/run-1/output",
+    )
+
+    argv = plan["shards"][0]["executor_argv"]
+    assert argv[1:5] == ["compute", "cloudml", "custom_train", "submit"]
+    assert argv[argv.index("--dry_run") + 1] == "true"
+    assert argv[argv.index("--image_url") + 1] == image
+    mounts = json.loads(argv[argv.index("--juicefs_mount_configs") + 1])
+    assert mounts[0]["readOnly"] is True
+    assert mounts[0]["mountPath"] == "/mnt/cloudml/input"
+    assert mounts[1]["readOnly"] is False
+    assert mounts[1]["mountPath"] == "/mnt/cloudml/output"
+    serialized = json.dumps(plan)
+    assert "API_KEY" not in serialized
+    assert "SECRET" not in serialized
+
+
+def test_executor_dry_run_rejects_unpinned_image(tmp_path: Path) -> None:
+    plan = {"shards": []}
+
+    with pytest.raises(ValueError, match="pinned by sha256"):
+        cloudml.executor_dry_run(
+            plan,
+            image_url="micr.cloud.mioffice.cn/team/roboclaws:latest",
+            asset_manifest_path=_asset_manifest(tmp_path),
+            executor_path=tmp_path / "exe",
+            input_subpath="/input",
+            output_subpath="/output",
+        )
+
+
+def test_environment_dry_run_stages_worker_manifests(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    row = _row("first", ("cpu", "python-env", "artifact-storage"))
+    manifest = _manifest(row)
+    plan = cloudml.build_cloudml_plan(manifest, execution_target="cloudml", run_id="run-1")
+    cloudml.write_cloudml_plan(plan, manifest, output_dir=tmp_path / "harness")
+    stage_dir = tmp_path / "stage"
+    stage_dir.mkdir()
+    asset_manifest = _asset_manifest(stage_dir, code_commit=plan["code_commit"])
+    executor = tmp_path / "exe"
+    executor.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+    executor.chmod(0o755)
+    monkeypatch.setenv(
+        "ROBOCLAWS_CLOUDML_IMAGE_URL",
+        f"micr.cloud.mioffice.cn/team/roboclaws@sha256:{'d' * 64}",
+    )
+    monkeypatch.setenv("ROBOCLAWS_CLOUDML_ASSET_MANIFEST", str(asset_manifest))
+    monkeypatch.setenv("ROBOCLAWS_EXECUTOR_PATH", str(executor))
+
+    cloudml.executor_dry_run_from_environment(plan)
+
+    assert (stage_dir / "manifests" / "run-1-cpu-001.json").is_file()
+    assert plan["staging"]["local_dir"] == str(stage_dir)
+    assert plan["staging"]["upload_required"] is True
+
+
+def test_eval_image_contains_cloudml_worker_entrypoint() -> None:
+    dockerfile = (REPO_ROOT / "Dockerfile.eval").read_text(encoding="utf-8")
+    worker = (REPO_ROOT / "scripts" / "dev" / "run_cloudml_eval_worker.sh").read_text(
+        encoding="utf-8"
+    )
+
+    assert "run_cloudml_eval_worker.sh /opt/roboclaws/bin/run-cloudml-eval-worker" in dockerfile
+    assert "ROBOCLAWS_EVAL_EXECUTION_TARGET=cloudml" in worker
+    assert '"$ROBOCLAWS_CLOUDML_ASSET_MANIFEST"' in worker
+    assert '"$ROBOCLAWS_CLOUDML_ASSET_MANIFEST_SHA256"' in worker
+    assert "just agent::eval execute" in worker

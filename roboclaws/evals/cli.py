@@ -111,6 +111,7 @@ def _run_eval_harness(mode: str, overrides: dict[str, str]) -> int:
         "output_dir",
         "execution_target",
         "max_parallel",
+        "cloudml_dry_run",
         "manifest",
         "row_id",
         "shard_id",

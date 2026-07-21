@@ -12,8 +12,8 @@ made explicit.
 Latest user intent: execute the approved standard CloudML Eval Harness support
 through `intuitive-flow`, committing coherent slices along the way.
 
-Current slice: connect the execution-neutral row contract to CloudML CPU/RTX
-4090 capability pools, dry-run submission rendering, and collection.
+Current slice: add CloudML submit/poll/collect lifecycle around the proven
+CPU/RTX 4090 dry-run and exact-row worker contract.
 
 Current blocker: none for deterministic implementation or CloudML dry-run.
 Real CloudML submit is a cost-bearing stop gate; formal live rows additionally
@@ -29,6 +29,9 @@ Last proven evidence:
   attempt writes redacted timing/provenance in `row_result.json`, while launched
   subprocess rows retain stdout and stderr logs.
 - Focused Eval Harness unit and contract suite passed: 59 tests.
+- CloudML placement, frozen-shard relocation, safe mounts, pinned identities,
+  worker provenance, and current executor dry-run contracts passed: 70 focused
+  tests. A schema-only executor smoke generated YAML without submission.
 - Existing offline Docker `smoke_regression` passed with `--network none`.
 - Existing CloudML dry-run and JuiceFS upload dry-run completed in the 2026-06
   prototype.
@@ -39,12 +42,12 @@ Last proven evidence:
 - The 2026-07-21 local `baseline-refresh` completed serially in about 2 hours
   42 minutes and exposes no per-row duration fields in its manifest.
 
-Completed slice batch: approved preflight contract reconciled; row capability,
-provider-network, timeout, dependency, exact-worker, bounded local parallel,
-process cleanup, and row-result contracts implemented and focused-tested.
+Completed slice batch: execution-neutral local core plus CloudML CPU/RTX 4090
+placement, frozen manifests, run-owned mounts, pinned image/code/asset checks,
+container worker entrypoint, and executor dry-run rendering are implemented.
 
-Next hypothesis: capability-matched CloudML shards can render and collect the
-same frozen row contract without duplicating selector or report policy.
+Next hypothesis: submitted shard task ids and terminal markers can drive
+idempotent polling/collection into the same aggregate manifest.
 
 Next proof:
 
@@ -52,6 +55,7 @@ Next proof:
 ./scripts/dev/run_pytest_standalone.sh -q \
   tests/unit/evals/test_eval_harness_baseline_profiles.py \
   tests/unit/evals/test_eval_harness_selector.py \
+  tests/unit/evals/test_eval_harness_cloudml.py \
   tests/unit/evals/test_eval_harness_execution.py \
   tests/unit/evals/test_eval_harness_live_ports.py \
   tests/unit/evals/test_eval_harness_manifest.py \

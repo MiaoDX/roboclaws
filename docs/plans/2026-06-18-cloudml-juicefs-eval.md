@@ -24,10 +24,10 @@ related_context:
 - Parent plan: none
 - Child plans: none
 - Last updated: 2026-07-21
-- Current slice: connect the proven execution-neutral row contract to a
-  CloudML dry-run adapter and capability pools.
-- Next action: implement pinned CloudML CPU/RTX 4090 shard planning, submit
-  command rendering, polling markers, and synthetic collection proof.
+- Current slice: add submit, poll, and idempotent collection around the proven
+  CloudML dry-run and exact-row worker contract.
+- Next action: persist task ids, query terminal state, download terminal markers
+  and row results, then aggregate them into the normal harness report.
 - Blocked on: none for deterministic implementation and dry-run proof; a real
   CloudML submission remains an explicit cost-bearing stop gate.
 - Do not touch from this session: product task strategy, MCP semantics, eval

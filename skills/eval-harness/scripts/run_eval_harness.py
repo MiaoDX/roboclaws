@@ -25,6 +25,7 @@ from roboclaws.core.json_sources import read_json_object  # noqa: E402
 
 SELECTOR_PATH = SCRIPT_DIR / "select_eval_harness.py"
 LOCAL_EXECUTION_PATH = SCRIPT_DIR / "eval_harness_local_execution.py"
+CLOUDML_EXECUTION_PATH = SCRIPT_DIR / "eval_harness_cloudml.py"
 DEFAULT_VISUAL_GROUNDING_BASE_URL = "http://127.0.0.1:18880"
 PROVIDER_TIMING_PROXY_ENV = "ROBOCLAWS_PROVIDER_TIMING_PROXY"
 DINO_SIDECAR_AUTOSTART_ENV = "ROBOCLAWS_EVAL_HARNESS_AUTOSTART_DINO_SIDECAR"
@@ -42,19 +43,19 @@ ROW_BLOCKER_REQUIREMENT_PRIORITY = {
 }
 RUNTIME_MAP_PRIOR_SOURCE_ROW_ID = "direct-map-build-world-public"
 
-spec = importlib.util.spec_from_file_location("eval_harness_selector", SELECTOR_PATH)
-if spec is None or spec.loader is None:
-    raise RuntimeError(f"could not load selector at {SELECTOR_PATH}")
-selector = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(selector)
 
-local_execution_spec = importlib.util.spec_from_file_location(
-    "eval_harness_local_execution", LOCAL_EXECUTION_PATH
-)
-if local_execution_spec is None or local_execution_spec.loader is None:
-    raise RuntimeError(f"could not load local execution adapter at {LOCAL_EXECUTION_PATH}")
-local_execution = importlib.util.module_from_spec(local_execution_spec)
-local_execution_spec.loader.exec_module(local_execution)
+def _load_script(name: str, path: Path) -> Any:
+    script_spec = importlib.util.spec_from_file_location(name, path)
+    if script_spec is None or script_spec.loader is None:
+        raise RuntimeError(f"could not load {name} at {path}")
+    module = importlib.util.module_from_spec(script_spec)
+    script_spec.loader.exec_module(module)
+    return module
+
+
+selector = _load_script("eval_harness_selector", SELECTOR_PATH)
+local_execution = _load_script("eval_harness_local_execution", LOCAL_EXECUTION_PATH)
+cloudml_execution = _load_script("eval_harness_cloudml", CLOUDML_EXECUTION_PATH)
 
 
 _MANAGED_DINO_SIDECARS: list[dict[str, Any]] = []
@@ -78,8 +79,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--evidence-lane", default="")
     parser.add_argument("--camera-labeler", default="")
     parser.add_argument("--output-dir", type=Path)
-    parser.add_argument("--execution-target", choices=("local",), default="local")
-    parser.add_argument("--max-parallel", type=_positive_int, default=1)
+    parser.add_argument("--execution-target", choices=("local", "cloudml", "auto"), default="local")
+    parser.add_argument("--max-parallel", type=local_execution.positive_int, default=1)
+    parser.add_argument("--cloudml-dry-run", type=cloudml_execution.bool_value, default=False)
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--row-id", action="append", default=[])
     parser.add_argument("--shard-id", default="local-main")
@@ -93,23 +95,26 @@ def main(argv: list[str] | None = None) -> int:
     output_dir = Path(manifest["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
     if args.mode == "execute":
-        _execute_harness(
-            manifest,
-            row_ids=row_ids,
-            max_parallel=args.max_parallel,
-            shard_id=args.shard_id,
-        )
+        if args.execution_target == "local":
+            _execute_harness(
+                manifest,
+                row_ids=row_ids,
+                max_parallel=args.max_parallel,
+                shard_id=args.shard_id,
+            )
+        else:
+            if not args.cloudml_dry_run:
+                raise ValueError("CloudML submission is not enabled; use cloudml_dry_run=true")
+            cloudml_execution.prepare_cloudml_dry_run(
+                manifest,
+                execution_target=args.execution_target,
+                row_ids=row_ids,
+                run_id=args.shard_id if args.shard_id != "local-main" else "",
+            )
     _write_outputs(manifest, output_dir)
     print(f"eval harness manifest: {output_dir / 'eval_harness.json'}")
     print(f"eval harness report: {output_dir / 'eval_harness.html'}")
     return _exit_status(manifest, row_ids=row_ids)
-
-
-def _positive_int(value: str) -> int:
-    parsed = int(value)
-    if parsed < 1:
-        raise argparse.ArgumentTypeError("value must be at least 1")
-    return parsed
 
 
 def _manifest_from_args(args: argparse.Namespace) -> dict[str, Any]:

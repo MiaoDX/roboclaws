@@ -78,6 +78,28 @@ the explicit alternate-provider matrix and currently takes roughly 2.5-3.5
 hours. Named baseline profile rows run when their preflight is ready and
 otherwise record blocked evidence; they are not `skipped_by_budget`.
 
+Harness execution is target-aware. `execution_target=local` remains the default
+and `max_parallel=1` preserves the historical serial behavior. Raising
+`max_parallel` runs independent rows concurrently while dependency chains and
+shared local visual-backend groups remain ordered.
+
+CloudML planning uses the same frozen manifest and row identities:
+
+```bash
+ROBOCLAWS_CLOUDML_IMAGE_URL='<registry-image>@sha256:<digest>' \
+ROBOCLAWS_CLOUDML_ASSET_MANIFEST=/path/to/roboclaws_cloudml_cleanup_assets.json \
+  just agent::eval execute profile=baseline-core budget=focused \
+  execution_target=cloudml cloudml_dry_run=true
+```
+
+This currently generates executor `custom_train` YAML for CPU and RTX 4090
+shards only; it does not submit. Inputs are mounted read-only, outputs use a
+run-owned writable JuiceFS prefix, and code/image/asset identities are pinned.
+Direct Kimi/MiniMax require external egress. API Router/MiMo are reachable from
+CloudML, but live provider rows remain explicitly blocked there until executor
+supports a secret reference or workload identity; plaintext key injection is
+not supported.
+
 Direct suites run direct-runner household samples without provider keys, write
 `output/evals/<suite>/<stamp>/eval_results.json`, and render
 `eval_report.html` with links to the underlying product run artifacts. Smoke

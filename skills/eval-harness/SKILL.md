@@ -30,7 +30,23 @@ Execute relevant rows for a plan or diff:
 ```bash
 just agent::eval execute plan=docs/plans/example.md budget=focused
 just agent::eval execute since=origin/main budget=focused
+just agent::eval execute profile=baseline-core budget=focused \
+  execution_target=local max_parallel=4
 ```
+
+Generate pinned CloudML CPU/RTX 4090 shard YAML without submitting jobs:
+
+```bash
+ROBOCLAWS_CLOUDML_IMAGE_URL='<registry-image>@sha256:<digest>' \
+ROBOCLAWS_CLOUDML_ASSET_MANIFEST=/path/to/roboclaws_cloudml_cleanup_assets.json \
+  just agent::eval execute profile=baseline-core budget=focused \
+  execution_target=cloudml cloudml_dry_run=true
+```
+
+`execution_target=auto` keeps direct Kimi/MiniMax and any provider row that
+cannot receive a secure CloudML secret on the local worker. It never substitutes
+another provider identity. Real CloudML submit remains disabled until the
+submit adapter and secure secret-reference contract are proven.
 
 Refresh the current baseline at the appropriate cost tier:
 

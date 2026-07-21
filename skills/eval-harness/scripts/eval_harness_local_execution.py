@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import datetime as dt
 import os
 import signal
@@ -12,6 +13,13 @@ from typing import Any, Callable, Sequence
 RunRow = Callable[[dict[str, Any], dict[str, Any]], None]
 RowBlockers = Callable[[dict[str, Any], dict[str, Any]], list[dict[str, str]]]
 WriteRowResult = Callable[[dict[str, Any]], None]
+
+
+def positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("value must be at least 1")
+    return parsed
 
 
 def run_local_command(
@@ -87,9 +95,11 @@ def execute_local_rows(
     worker_id = f"{socket.gethostname()}:{os.getpid()}"
     worker_count = max(1, int(max_parallel))
 
+    execution_target = os.environ.get("ROBOCLAWS_EVAL_EXECUTION_TARGET", "local")
+    worker_pool = os.environ.get("ROBOCLAWS_EVAL_WORKER_POOL", "local")
     manifest["execution"] = {
-        "execution_target": "local",
-        "worker_pool": "local",
+        "execution_target": execution_target,
+        "worker_pool": worker_pool,
         "shard_id": shard_id,
         "max_parallel": worker_count,
         "row_ids": [row["row_id"] for row in selected],
@@ -104,6 +114,8 @@ def execute_local_rows(
                 write_row_result=write_row_result,
                 shard_id=shard_id,
                 worker_id=worker_id,
+                execution_target=execution_target,
+                worker_pool=worker_pool,
             )
             submitted = _submit_ready_rows(
                 pool,
@@ -117,6 +129,8 @@ def execute_local_rows(
                 write_row_result=write_row_result,
                 shard_id=shard_id,
                 worker_id=worker_id,
+                execution_target=execution_target,
+                worker_pool=worker_pool,
                 slots=worker_count - len(futures),
             )
             if futures:
@@ -134,6 +148,8 @@ def execute_local_rows(
                     write_row_result=write_row_result,
                     shard_id=shard_id,
                     worker_id=worker_id,
+                    execution_target=execution_target,
+                    worker_pool=worker_pool,
                 )
 
 
@@ -162,6 +178,8 @@ def _submit_ready_rows(
     write_row_result: WriteRowResult,
     shard_id: str,
     worker_id: str,
+    execution_target: str,
+    worker_pool: str,
     slots: int,
 ) -> int:
     submitted = 0
@@ -186,6 +204,8 @@ def _submit_ready_rows(
             write_row_result=write_row_result,
             shard_id=shard_id,
             worker_id=worker_id,
+            execution_target=execution_target,
+            worker_pool=worker_pool,
         )
         futures[future] = (row_id, group)
         running_ids.add(row_id)
@@ -216,6 +236,8 @@ def _mark_failed_dependencies(
     write_row_result: WriteRowResult,
     shard_id: str,
     worker_id: str,
+    execution_target: str,
+    worker_pool: str,
 ) -> None:
     for row_id, row in list(pending.items()):
         failure = _terminal_dependency_failure(
@@ -233,6 +255,8 @@ def _mark_failed_dependencies(
             write_row_result=write_row_result,
             shard_id=shard_id,
             worker_id=worker_id,
+            execution_target=execution_target,
+            worker_pool=worker_pool,
         )
 
 
@@ -266,6 +290,8 @@ def _mark_unresolvable_dependencies(
     write_row_result: WriteRowResult,
     shard_id: str,
     worker_id: str,
+    execution_target: str,
+    worker_pool: str,
 ) -> None:
     pending_ids = set(pending)
     for row_id, row in list(pending.items()):
@@ -287,6 +313,8 @@ def _mark_unresolvable_dependencies(
             write_row_result=write_row_result,
             shard_id=shard_id,
             worker_id=worker_id,
+            execution_target=execution_target,
+            worker_pool=worker_pool,
         )
 
 
@@ -299,9 +327,17 @@ def _execute_one(
     write_row_result: WriteRowResult,
     shard_id: str,
     worker_id: str,
+    execution_target: str,
+    worker_pool: str,
 ) -> None:
     started = time.monotonic()
-    _start_attempt(row, shard_id=shard_id, worker_id=worker_id)
+    _start_attempt(
+        row,
+        shard_id=shard_id,
+        worker_id=worker_id,
+        execution_target=execution_target,
+        worker_pool=worker_pool,
+    )
     try:
         blockers = row_blockers(row, manifest)
         if blockers:
@@ -322,12 +358,23 @@ def _execute_one(
         write_row_result(row)
 
 
-def _start_attempt(row: dict[str, Any], *, shard_id: str, worker_id: str) -> None:
+def _start_attempt(
+    row: dict[str, Any],
+    *,
+    shard_id: str,
+    worker_id: str,
+    execution_target: str,
+    worker_pool: str,
+) -> None:
     row["attempt"] = int(row.get("attempt") or 0) + 1
-    row["execution_target"] = "local"
-    row["worker_pool"] = "local"
+    row["execution_target"] = execution_target
+    row["worker_pool"] = worker_pool
     row["shard_id"] = shard_id
     row["worker_id"] = worker_id
+    if os.environ.get("ROBOCLAWS_EVAL_CLOUDML_JOB_ID"):
+        row["cloudml_job_id"] = os.environ["ROBOCLAWS_EVAL_CLOUDML_JOB_ID"]
+    if os.environ.get("ROBOCLAWS_EVAL_CLOUDML_POD_NAME"):
+        row["cloudml_pod_name"] = os.environ["ROBOCLAWS_EVAL_CLOUDML_POD_NAME"]
     row["started_at"] = _utc_now()
 
 
@@ -343,9 +390,17 @@ def _mark_dependency_blocked(
     write_row_result: WriteRowResult,
     shard_id: str,
     worker_id: str,
+    execution_target: str,
+    worker_pool: str,
 ) -> None:
     started = time.monotonic()
-    _start_attempt(row, shard_id=shard_id, worker_id=worker_id)
+    _start_attempt(
+        row,
+        shard_id=shard_id,
+        worker_id=worker_id,
+        execution_target=execution_target,
+        worker_pool=worker_pool,
+    )
     row["status"] = "blocked"
     row["outcome"] = "blocked"
     row["blocker_category"] = "dependency_blocked"
