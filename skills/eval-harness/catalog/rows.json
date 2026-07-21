@@ -1,5 +1,74 @@
 {
   "schema": "roboclaws_eval_harness_row_catalog_v1",
+  "execution_defaults": {
+    "deterministic": {
+      "execution_requirements": [
+        "cpu",
+        "python-env",
+        "artifact-storage"
+      ],
+      "timeout_s": 900,
+      "concurrency_group": ""
+    },
+    "local-sim": {
+      "execution_requirements": [
+        "cpu",
+        "python-env",
+        "artifact-storage",
+        "simulator:mujoco"
+      ],
+      "timeout_s": 1800,
+      "concurrency_group": "visual-backend"
+    },
+    "dino": {
+      "execution_requirements": [
+        "gpu",
+        "python-env",
+        "artifact-storage",
+        "simulator:mujoco",
+        "detector:grounding-dino"
+      ],
+      "timeout_s": 1800,
+      "concurrency_group": "visual-backend"
+    },
+    "live-agent": {
+      "execution_requirements": [
+        "gpu",
+        "python-env",
+        "artifact-storage",
+        "simulator:mujoco",
+        "openai-agents-sdk"
+      ],
+      "timeout_s": 3600,
+      "concurrency_group": "visual-backend"
+    }
+  },
+  "provider_execution_requirements": {
+    "codex-router-responses": [
+      "provider:codex-router-responses",
+      "network:internal-api-router"
+    ],
+    "mimo-mify-responses": [
+      "provider:mimo-mify-responses",
+      "network:internal-mimo-router"
+    ],
+    "mimo-tp-openai-chat": [
+      "provider:mimo-tp-openai-chat",
+      "network:internal-mimo-router"
+    ],
+    "mimo-inside-openai-chat": [
+      "provider:mimo-inside-openai-chat",
+      "network:internal-mimo-router"
+    ],
+    "kimi-openai-chat": [
+      "provider:kimi-openai-chat",
+      "network:external-egress"
+    ],
+    "minimax-responses": [
+      "provider:minimax-responses",
+      "network:external-egress"
+    ]
+  },
   "rows": [
     {
       "row_id": "route-trace-contract-tests",
@@ -993,6 +1062,9 @@
         "just",
         "python_env",
         "runtime_map_prior"
+      ],
+      "depends_on": [
+        "direct-map-build-world-public"
       ],
       "profiles": [
         "baseline-core",

@@ -109,6 +109,11 @@ def _run_eval_harness(mode: str, overrides: dict[str, str]) -> int:
         "evidence_lane",
         "camera_labeler",
         "output_dir",
+        "execution_target",
+        "max_parallel",
+        "manifest",
+        "row_id",
+        "shard_id",
     ):
         value = values.pop(key, None)
         if value in {None, ""}:

@@ -539,20 +539,19 @@ def test_execute_does_not_default_provider_timing_proxy_for_sdk_rows(
     monkeypatch.delenv("ROBOCLAWS_PROVIDER_TIMING_PROXY", raising=False)
     monkeypatch.setattr(runner, "_row_blockers", lambda row, manifest: [])
 
-    def fake_run(command, **kwargs):
-        if "agent_engine=openai-agents-sdk" in command:
-            env = kwargs.get("env")
-            assert isinstance(env, dict)
-            captured.append(env)
+    class FakeProcess:
+        returncode = 0
 
-        class _Result:
-            returncode = 0
-            stdout = ""
-            stderr = ""
+        def __init__(self, command, **kwargs):
+            if "agent_engine=openai-agents-sdk" in command:
+                env = kwargs.get("env")
+                assert isinstance(env, dict)
+                captured.append(env)
 
-        return _Result()
+        def communicate(self, timeout=None):
+            return "", ""
 
-    monkeypatch.setattr(runner.subprocess, "run", fake_run)
+    monkeypatch.setattr(runner.local_execution.subprocess, "Popen", FakeProcess)
     manifest = selector.build_eval_harness(
         mode="execute",
         budget="focused",
@@ -576,20 +575,19 @@ def test_execute_preserves_provider_timing_proxy_escape_hatch(
     monkeypatch.setenv("ROBOCLAWS_PROVIDER_TIMING_PROXY", "0")
     monkeypatch.setattr(runner, "_row_blockers", lambda row, manifest: [])
 
-    def fake_run(command, **kwargs):
-        if "agent_engine=openai-agents-sdk" in command:
-            env = kwargs.get("env")
-            assert isinstance(env, dict)
-            captured.append(env)
+    class FakeProcess:
+        returncode = 0
 
-        class _Result:
-            returncode = 0
-            stdout = ""
-            stderr = ""
+        def __init__(self, command, **kwargs):
+            if "agent_engine=openai-agents-sdk" in command:
+                env = kwargs.get("env")
+                assert isinstance(env, dict)
+                captured.append(env)
 
-        return _Result()
+        def communicate(self, timeout=None):
+            return "", ""
 
-    monkeypatch.setattr(runner.subprocess, "run", fake_run)
+    monkeypatch.setattr(runner.local_execution.subprocess, "Popen", FakeProcess)
     manifest = selector.build_eval_harness(
         mode="execute",
         budget="focused",
@@ -616,15 +614,16 @@ def test_sdk_live_product_row_records_foreground_command_outputs(
     )
     row = _selected_rows(manifest)["openai-agents-sdk-cleanup-camera-raw-fpv-live-product"]
 
-    def fake_run(*_args: Any, **_kwargs: Any) -> Any:
-        class _Result:
-            returncode = 0
-            stdout = "sdk foreground stdout"
-            stderr = ""
+    class FakeProcess:
+        returncode = 0
 
-        return _Result()
+        def __init__(self, *_args: Any, **_kwargs: Any) -> None:
+            pass
 
-    monkeypatch.setattr(runner.subprocess, "run", fake_run)
+        def communicate(self, timeout: float | None = None) -> tuple[str, str]:
+            return "sdk foreground stdout", ""
+
+    monkeypatch.setattr(runner.local_execution.subprocess, "Popen", FakeProcess)
 
     runner._run_row(row, manifest)
 
