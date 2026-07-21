@@ -24,14 +24,12 @@ related_context:
 - Parent plan: none
 - Child plans: none
 - Last updated: 2026-07-21
-- Current slice: publish the proven CPU/CUDA eval images by registry digest,
-  then run and collect the first real deterministic and RTX 4090 CloudML
-  smokes.
-- Next action: confirm the two image pushes, record their registry digests,
-  regenerate pinned CPU/GPU shard YAML, then confirm the first bounded
-  cost-bearing CPU submission.
-- Blocked on: explicit approval to push the two eval images; subsequent real
-  CloudML submissions remain separate cost-bearing stop gates.
+- Current slice: upload the pinned commit/assets and run and collect the first
+  real deterministic and RTX 4090 CloudML smokes.
+- Next action: upload the checksummed staging directory, submit one bounded CPU
+  shard with the published CPU digest, monitor it, and collect its report.
+- Blocked on: none for the approved CPU/GPU smoke sequence. Formal provider
+  rows may still stop if CloudML lacks native secret injection.
 - Do not touch from this session: product task strategy, MCP semantics, eval
   grader policy, unrelated provider routes, or physical-robot backends.
 
@@ -143,7 +141,8 @@ SUCCESS requires all of the following:
 BLOCKED_NEEDS_DECISION:
 
 - A real CloudML submission is a cost-bearing external state change and needs
-  confirmation immediately before the first submit.
+  confirmation immediately before the first submit. The user supplied that
+  confirmation for the current CPU/GPU smoke sequence on 2026-07-21.
 - If CloudML exposes no native secret reference or workload identity, stop for
   a security decision; do not invent a plaintext fallback.
 - If an internal Router model is proposed as a replacement for an existing
@@ -216,9 +215,8 @@ As of 2026-07-21:
 - The CUDA image loads the pinned Grounding DINO snapshot offline as
   `GroundingDinoForObjectDetection` from
   `/opt/roboclaws/models/grounding-dino-base`.
-- Local image IDs are build evidence only, not CloudML-pullable registry
-  identities. Formal shard YAML still requires two published `@sha256:`
-  digests.
+- Local image IDs remain build evidence only; formal shard YAML uses the two
+  separately verified registry `@sha256:` identities recorded below.
 - A cold common dependency build took about 23 minutes and a cold CUDA wheel
   build about 22 minutes. Cached CPU rebuilds take seconds; normal baseline
   refreshes reuse published digests and do not rebuild either image.
@@ -231,8 +229,12 @@ As of 2026-07-21:
   for RTX 4090 workers. Placeholder digests were used for this schema proof;
   they are not registry artifacts.
 - Current-commit staging produced checksummed code and cleanup-asset archives
-  without uploading them. Registry publication, JuiceFS upload, and real
-  CloudML submission remain unexecuted stop-gated actions.
+  locally. JuiceFS upload and real CloudML submission remain unexecuted at this
+  checkpoint.
+- The CPU and CUDA images were rebuilt from commit `865658f2`, passed offline
+  smoke again, and were published and remotely resolved as OCI digests
+  `sha256:e715abbd...faa7` and `sha256:d1d4c398...69a4`. JuiceFS upload and
+  real CloudML submission remain unexecuted at this checkpoint.
 
 ## Architecture Contract
 

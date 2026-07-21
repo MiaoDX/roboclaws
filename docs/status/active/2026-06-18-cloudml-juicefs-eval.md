@@ -12,13 +12,12 @@ made explicit.
 Latest user intent: execute the approved standard CloudML Eval Harness support
 through `intuitive-flow`, committing coherent slices along the way.
 
-Current slice: publish the locally proven CPU/CUDA images by registry digest,
-then prove the submit/status/collect lifecycle with real deterministic and RTX
-4090 CloudML smokes.
+Current slice: upload the pinned commit/assets, then prove the
+submit/status/collect lifecycle with real deterministic and RTX 4090 CloudML
+smokes.
 
-Current blocker: publishing the two eval images requires explicit approval.
-Each real CloudML submit is a separate cost-bearing stop gate; formal live rows
-additionally require a native secret reference or workload identity.
+Current blocker: none for the user-approved CPU/GPU smoke sequence. Formal live
+provider rows still require a native secret reference or workload identity.
 
 Blocker fingerprint: none
 
@@ -63,38 +62,36 @@ Last proven evidence:
   with no blocked rows: ten rows in one CPU shard and eight rows across seven
   RTX 4090 shards. Pool-specific placeholder digests reached the correct YAML,
   and only RTX 4090 commands received `cuda`/`float16`; no job was submitted.
+- CPU and CUDA images were rebuilt from clean commit `865658f2`, passed offline
+  smoke, pushed to the internal registry, and remotely resolved as OCI digests
+  `sha256:e715abbd...faa7` and `sha256:d1d4c398...69a4` respectively.
 
 Completed slice batch: execution-neutral local core plus CloudML CPU/RTX 4090
 placement, frozen manifests, run-owned mounts, pinned image/code/asset checks,
 container worker entrypoint, resumable submit, status/poll, download, and
 idempotent report collection are implemented.
 
-Next hypothesis: after the CPU and CUDA images are pushed and represented by
-registry digests, the pinned CPU image and staged assets can complete the first
-real deterministic shard and collect it into the normal aggregate manifest.
+Next hypothesis: the published CPU image and checksummed staged inputs can
+complete one bounded deterministic shard and collect it into the normal
+aggregate manifest.
 
 Next proof:
 
 ```bash
-./scripts/dev/run_pytest_standalone.sh -q \
-  tests/unit/evals/test_eval_harness_baseline_profiles.py \
-  tests/unit/evals/test_eval_harness_selector.py \
-  tests/unit/evals/test_eval_harness_cloudml.py \
-  tests/unit/evals/test_eval_harness_execution.py \
-  tests/unit/evals/test_eval_harness_live_ports.py \
-  tests/unit/evals/test_eval_harness_manifest.py \
-  tests/contract/dev_tools/test_eval_just_recipe.py
+ROBOCLAWS_CLOUDML_CPU_IMAGE_URL='<published-cpu>@sha256:e715...' \
+ROBOCLAWS_CLOUDML_ASSET_MANIFEST='<staging>/roboclaws_cloudml_cleanup_assets.json' \
+  just agent::eval execute profile=baseline-core budget=focused \
+  execution_target=cloudml row_id=route-trace-contract-tests \
+  output_dir=output/eval-harness/<run>
 ```
 
-Stop condition: stop before either image push, the first real CloudML
-submission, any plaintext secret workaround, provider identity substitution,
-or new cross-repo executor API change.
+Stop condition: stop before any plaintext secret workaround, provider identity
+substitution, destructive retry, or new cross-repo executor API change.
 
 No-touch scope: product task strategy, MCP semantics, grader policy, physical
 robot backends, unrelated plans, and direct-provider identity aliases.
 
-Parked work: registry publication and real CloudML proof await explicit
-approval; secure provider injection is still required for API Router and MiMo
-live rows; the repository quality ratchet baseline has unrelated pre-existing
-drift even though full Ruff and pytest gates pass; FDS publication remains
-optional.
+Parked work: secure provider injection is still required for API Router and
+MiMo live rows; the repository quality ratchet baseline has unrelated
+pre-existing drift even though full Ruff and pytest gates pass; FDS publication
+remains optional.
