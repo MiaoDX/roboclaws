@@ -21,6 +21,18 @@ for name in "${required_env[@]}"; do
   fi
 done
 
+if [[ -n "${ROBOCLAWS_CLOUDML_PROVIDER_ENV_FILE:-}" ]]; then
+  set +x
+  if [[ ! -r "$ROBOCLAWS_CLOUDML_PROVIDER_ENV_FILE" ]]; then
+    echo "error: provider environment file is not readable" >&2
+    exit 2
+  fi
+  set -a
+  # The adapter writes shell-quoted assignments for registry-approved keys only.
+  source "$ROBOCLAWS_CLOUDML_PROVIDER_ENV_FILE"
+  set +a
+fi
+
 repo_dir=/tmp/roboclaws-cloudml/repo/roboclaws.git
 asset_dir=/tmp/roboclaws-cloudml/assets
 marker_dir="${ROBOCLAWS_CLOUDML_OUTPUT_DIR}/markers"

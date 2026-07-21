@@ -223,14 +223,17 @@ def test_auto_keeps_provider_rows_on_local_network_pool() -> None:
     )
 
     plan = cloudml.build_cloudml_plan(
-        _manifest(internal, external), execution_target="auto", run_id="run-1"
+        _manifest(internal, external),
+        execution_target="auto",
+        run_id="run-1",
+        provider_environment={},
     )
 
     assert plan["local_row_ids"] == ["router", "kimi"]
     assert plan["blocked_rows"] == []
 
 
-def test_cloudml_provider_row_blocks_without_secure_secret_reference() -> None:
+def test_cloudml_provider_row_blocks_when_required_environment_is_missing() -> None:
     row = _row(
         "router",
         ("network:internal-api-router", "provider:codex-router-responses"),
@@ -238,12 +241,41 @@ def test_cloudml_provider_row_blocks_without_secure_secret_reference() -> None:
     )
     manifest = _manifest(row)
 
-    plan = cloudml.build_cloudml_plan(manifest, execution_target="cloudml", run_id="run-1")
+    plan = cloudml.build_cloudml_plan(
+        manifest,
+        execution_target="cloudml",
+        run_id="run-1",
+        provider_environment={},
+    )
     cloudml.apply_blocked_placements(manifest, plan)
 
-    assert plan["blocked_rows"][0]["category"] == "secure_secret_injection_unavailable"
+    assert plan["blocked_rows"][0]["category"] == "missing_provider_environment"
     assert row["status"] == "blocked"
-    assert "secret-reference" in row["blockers"][0]["detail"]
+    assert "CODEX_BASE_URL" in row["blockers"][0]["detail"]
+    assert "CODEX_API_KEY" in row["blockers"][0]["detail"]
+
+
+def test_cloudml_provider_row_uses_registry_environment_contract() -> None:
+    row = _row(
+        "router",
+        ("network:internal-api-router", "provider:codex-router-responses"),
+        provider_profile="codex-router-responses",
+    )
+
+    plan = cloudml.build_cloudml_plan(
+        _manifest(row),
+        execution_target="cloudml",
+        run_id="run-1",
+        provider_environment={
+            "CODEX_BASE_URL": "https://router.example.test/v1",
+            "CODEX_API_KEY": "secret-sentinel",
+        },
+    )
+
+    assert plan["blocked_rows"] == []
+    assert plan["shards"][0]["row_ids"] == ["router"]
+    assert plan["shards"][0]["provider_env_keys"] == ["CODEX_API_KEY", "CODEX_BASE_URL"]
+    assert "secret-sentinel" not in json.dumps(plan)
 
 
 def test_frozen_shard_manifest_relocates_only_selected_rows(tmp_path: Path) -> None:
@@ -683,6 +715,7 @@ def test_eval_image_contains_cloudml_worker_entrypoint() -> None:
 
     assert "run_cloudml_eval_worker.sh /opt/roboclaws/bin/run-cloudml-eval-worker" in dockerfile
     assert "ROBOCLAWS_EVAL_EXECUTION_TARGET=cloudml" in worker
+    assert 'source "$ROBOCLAWS_CLOUDML_PROVIDER_ENV_FILE"' in worker
     assert '"$ROBOCLAWS_CLOUDML_ASSET_MANIFEST"' in worker
     assert '"$ROBOCLAWS_CLOUDML_ASSET_MANIFEST_SHA256"' in worker
     assert "EVAL_IMAGE_VARIANT" in dockerfile
