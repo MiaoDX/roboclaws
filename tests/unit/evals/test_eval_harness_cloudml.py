@@ -674,6 +674,9 @@ def test_eval_image_contains_cloudml_worker_entrypoint() -> None:
     build_script = (REPO_ROOT / "scripts" / "dev" / "build_push_eval_image.sh").read_text(
         encoding="utf-8"
     )
+    stage_script = (REPO_ROOT / "scripts" / "dev" / "stage_cloudml_cleanup_assets.sh").read_text(
+        encoding="utf-8"
+    )
     worker = (REPO_ROOT / "scripts" / "dev" / "run_cloudml_eval_worker.sh").read_text(
         encoding="utf-8"
     )
@@ -693,6 +696,8 @@ def test_eval_image_contains_cloudml_worker_entrypoint() -> None:
     assert "just agent::eval execute" in worker
     assert "ROBOCLAWS_EVAL_DINO_CACHE_DIR" in build_script
     assert '--build-context "grounding-dino-cache=$dino_cache_dir"' in build_script
+    assert '"$executor_root/exe"' in stage_script
+    assert "profiles/nvs/miaodongxu.yaml" not in stage_script
 
 
 def test_cloudml_staging_archives_are_reproducible(tmp_path: Path) -> None:

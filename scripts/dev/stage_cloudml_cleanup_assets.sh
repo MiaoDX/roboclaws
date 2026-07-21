@@ -3,8 +3,8 @@ set -Eeuo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 executor_root="${ROBOCLAWS_EXECUTOR_ROOT:-/home/mi/executor}"
-executor_config_root="${ROBOCLAWS_EXECUTOR_CONFIG_ROOT:-$executor_root/conf}"
-executor_config_path="${ROBOCLAWS_EXECUTOR_CONFIG_PATH:-profiles/nvs/miaodongxu.yaml}"
+executor_config_root="${ROBOCLAWS_EXECUTOR_CONFIG_ROOT:-}"
+executor_config_path="${ROBOCLAWS_EXECUTOR_CONFIG_PATH:-}"
 date_stamp="${ROBOCLAWS_STAGE_DATE:-$(date +%Y%m%d)}"
 code_ref="${ROBOCLAWS_EVAL_CODE_REF:-mi/main}"
 code_commit="${ROBOCLAWS_CLOUDML_CODE_COMMIT:-$(git -C "$repo_root" rev-parse "$code_ref")}"
@@ -43,8 +43,8 @@ Environment overrides:
   ROBOCLAWS_STAGE_RUN_UPLOAD_DRY_RUN  Set false to skip executor upload dry-run.
   ROBOCLAWS_STAGE_RUN_UPLOAD          Set true to upload staged files to JuiceFS.
   ROBOCLAWS_EXECUTOR_ROOT             Default: /home/mi/executor
-  ROBOCLAWS_EXECUTOR_CONFIG_ROOT      Default: $ROBOCLAWS_EXECUTOR_ROOT/conf
-  ROBOCLAWS_EXECUTOR_CONFIG_PATH      Default: profiles/nvs/miaodongxu.yaml
+  ROBOCLAWS_EXECUTOR_CONFIG_ROOT      Optional executor config-root override.
+  ROBOCLAWS_EXECUTOR_CONFIG_PATH      Optional executor config-path override.
 
 Real JuiceFS upload runs only when ROBOCLAWS_STAGE_RUN_UPLOAD=true. Otherwise the
 script prints the upload command and, by default, performs an upload dry-run.
@@ -57,10 +57,21 @@ if [[ ! -x "$repo_root/.venv/bin/python" ]]; then
   exit 1
 fi
 
-if [[ ! -x "$executor_root/execute.py" ]]; then
+if [[ ! -x "$executor_root/exe" ]]; then
   echo "error: executor not found at $executor_root" >&2
   exit 1
 fi
+
+run_executor() {
+  local env_args=()
+  if [[ -n "$executor_config_root" ]]; then
+    env_args+=("EXECUTOR_CONFIG_ROOT=$executor_config_root")
+  fi
+  if [[ -n "$executor_config_path" ]]; then
+    env_args+=("EXECUTOR_CONFIG_PATH=$executor_config_path")
+  fi
+  env "${env_args[@]}" "$executor_root/exe" "$@"
+}
 
 resolve_molmospaces_paths() {
   "$repo_root/.venv/bin/python" - <<'PY'
@@ -370,24 +381,20 @@ fi
 echo "code_archive=$code_archive_path"
 echo "code_archive_sha256=$code_archive_sha256"
 echo "code_archive_bytes=$code_archive_bytes"
-echo "upload_dry_run_command=EXECUTOR_CONFIG_ROOT=$executor_config_root EXECUTOR_CONFIG_PATH=$executor_config_path $executor_root/execute.py storage juicefs upload --local_dir '$stage_dir' --url '$juicefs_url' --dry_run --json"
-echo "upload_command=EXECUTOR_CONFIG_ROOT=$executor_config_root EXECUTOR_CONFIG_PATH=$executor_config_path $executor_root/execute.py storage juicefs upload --local_dir '$stage_dir' --url '$juicefs_url' --json"
+echo "upload_dry_run_command=$executor_root/exe storage juicefs upload --local_dir '$stage_dir' --url '$juicefs_url' --dry_run --json"
+echo "upload_command=$executor_root/exe storage juicefs upload --local_dir '$stage_dir' --url '$juicefs_url' --json"
 
 if [[ "$run_upload_dry_run" == "true" ]]; then
-  EXECUTOR_CONFIG_ROOT="$executor_config_root" \
-    EXECUTOR_CONFIG_PATH="$executor_config_path" \
-    "$executor_root/execute.py" storage juicefs upload \
-      --local_dir "$stage_dir" \
-      --url "$juicefs_url" \
-      --dry_run \
-      --json
+  run_executor storage juicefs upload \
+    --local_dir "$stage_dir" \
+    --url "$juicefs_url" \
+    --dry_run \
+    --json
 fi
 
 if [[ "$run_upload" == "true" ]]; then
-  EXECUTOR_CONFIG_ROOT="$executor_config_root" \
-    EXECUTOR_CONFIG_PATH="$executor_config_path" \
-    "$executor_root/execute.py" storage juicefs upload \
-      --local_dir "$stage_dir" \
-      --url "$juicefs_url" \
-      --json
+  run_executor storage juicefs upload \
+    --local_dir "$stage_dir" \
+    --url "$juicefs_url" \
+    --json
 fi
