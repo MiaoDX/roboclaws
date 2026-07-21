@@ -385,4 +385,6 @@ def test_agibot_molmospaces_prehardware_cleanup_uses_same_base_metric_map(
     assert runtime_metric_map["source_map_mutated"] is False
     assert runtime_export["cleanup_actions_included"] is True
     assert runtime_export["runtime_metric_map_summary"]["base_metric_map_enabled"] is True
-    assert result["semantic_substeps"]
+    assert result["semantic_substeps"] == []
+    assert runtime_export["semantic_substep_count"] == 0
+    assert result["policy_uses_private_truth"] is False

@@ -28,7 +28,7 @@ from roboclaws.evals.live_runtime import (
     run_live_eval_trial,
     run_live_surface_product,
 )
-from roboclaws.evals.live_timeout import live_exception_debug_fields
+from roboclaws.evals.live_timeout import LiveEvalTimeoutError, live_exception_debug_fields
 from roboclaws.evals.map_build_quality import grade_runtime_metric_map_quality
 from roboclaws.evals.models import (
     MISSING_NOT_APPLICABLE,
@@ -1553,6 +1553,8 @@ def _blocked_result_from_exception(trial: EvalTrial, exc: Exception) -> EvalResu
 
 
 def _failure_class_from_exception(exc: Exception) -> str:
+    if isinstance(exc, LiveEvalTimeoutError) and exc.timeout_kind == "wall_clock_budget_exhausted":
+        return "budget_exhausted"
     if isinstance(exc, (ImportError, ModuleNotFoundError, TimeoutError)):
         return "environment_blocked"
     message = str(exc).lower()
@@ -1596,10 +1598,14 @@ def _failure_class_from_exception(exc: Exception) -> str:
     )
     if any(token in message for token in tool_argument_tokens):
         return "tool_argument_invalid"
+    if "turn ended without done" in message:
+        return "agent_no_completion_claim"
     provider_tokens = (
+        "access_terminated_error",
         "provider_transient_failure",
         "provider_config_failure",
         "provider_context_failure",
+        "usage limit for this billing cycle",
         "model_service",
         "error code: 5",
         "error code: 429",

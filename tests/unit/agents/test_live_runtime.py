@@ -4294,7 +4294,13 @@ def test_raw_fpv_compact_continuation_preserves_scan_progress_and_done_blockers(
     assert '"room_3_inspection": 1' in prompt
     assert '"current": 2' in prompt
     assert '"required": 4' in prompt
-    assert "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90)" in prompt
+    assert (
+        prompt.count("navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90)") == 1
+    )
+    assert (
+        "visit each listed waypoint at most once, call "
+        "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=45) once" in prompt
+    )
     assert "left, right, bottom, or top FPV edge" in prompt
     assert "for a left-edge candidate use yaw_delta_deg=45" in prompt
     assert "for a right-edge candidate use yaw_delta_deg=-45" in prompt

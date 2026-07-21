@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from roboclaws.household import household_world_episode
+from roboclaws.household import household_world_direct_policy, household_world_episode
 
 
 def test_direct_policy_uses_same_waypoint_public_destination_for_unknown_category(
@@ -140,3 +140,50 @@ def test_already_satisfied_direct_candidate_stays_handled_after_reobservation() 
     assert scratchpad["notes"] == [
         {"object_id": "observed_box", "reason": "already_on_inferred_fixture"}
     ]
+
+
+def test_blocked_done_fallback_preserves_semantic_acceptability() -> None:
+    scenario = {
+        "objects": [{"object_id": "book", "category": "Book"}],
+        "receptacles": [{"receptacle_id": "shelf", "category": "ShelvingUnit"}],
+    }
+    contract = SimpleNamespace(
+        scenario=scenario,
+        _realworld_metrics=lambda score, final_locations: {
+            "completion_status": "success",
+            "final_location_count": len(final_locations),
+        },
+    )
+    base_contract = SimpleNamespace(
+        done=lambda reason: {
+            "score": {
+                "status": "success",
+                "success_threshold": 1,
+                "total_targets": 1,
+                "object_results": [
+                    {
+                        "object_id": "book",
+                        "actual_location_id": "shelf",
+                        "restored": True,
+                    }
+                ],
+            },
+            "final_locations": {"book": "shelf"},
+            "final_containment": {},
+            "tool_event_counts": {"done": 1},
+        },
+        final_locations=lambda locations: locations,
+    )
+
+    result = household_world_direct_policy._done_with_failed_score(
+        contract=contract,
+        base_contract=base_contract,
+        done={"ok": False, "error_reason": "pending_cleanup_candidates"},
+        reason="incomplete",
+        hooks=SimpleNamespace(failed_score=lambda contract: {}),
+    )
+
+    assert result["score"]["object_results"][0]["restored"] is True
+    assert result["score"]["object_results"][0]["semantic_acceptability"] == "preferred"
+    assert result["score"]["semantic_acceptability"]["accepted_count"] == 1
+    assert result["score"]["completion_status"] == "success"

@@ -15,6 +15,7 @@ from roboclaws.household.realworld_agent_view_contract import (
     positive_int,
     public_success_threshold,
 )
+from roboclaws.household.semantic_acceptability import public_source_requires_cleanup
 from roboclaws.household.task_intent import (
     HOUSEHOLD_INTENT_MAP_BUILD,
     household_intent_is_open_ended,
@@ -68,6 +69,8 @@ def pending_cleanup_candidates(contract: DoneReadinessContract) -> list[dict[str
         if item.get("grounding_status") in {"ambiguous", "unresolved"}:
             continue
         if contract.sanitize_world_labels:
+            if state != "held" and not _public_source_requires_cleanup(contract, item):
+                continue
             destination_options = destination_options_for_policy(
                 contract,
                 item.get("destination_policy") or {},
@@ -122,6 +125,21 @@ def pending_cleanup_candidates(contract: DoneReadinessContract) -> list[dict[str
             }
         )
     return pending
+
+
+def _public_source_requires_cleanup(
+    contract: DoneReadinessContract,
+    item: Mapping[str, Any],
+) -> bool:
+    source_fixture_id = str(item.get("source_fixture_id") or "")
+    internal_source_fixture_id = (
+        contract.internal_fixture_id_for_public_reference(source_fixture_id) or source_fixture_id
+    )
+    source_fixture = contract._fixtures.get(internal_source_fixture_id) or {}
+    return public_source_requires_cleanup(
+        item.get("category"),
+        source_fixture.get("category") or source_fixture.get("name"),
+    )
 
 
 def held_cleanup_candidates(contract: DoneReadinessContract) -> list[dict[str, Any]]:

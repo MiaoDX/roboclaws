@@ -134,8 +134,7 @@ def raw_fpv_revisit_waypoints(
     )
 
     def eligible(waypoint_id: str) -> bool:
-        outcome = candidate_outcomes.get(waypoint_id) or {}
-        return outcome.get("authorized", 0) == 0 and waypoint_id not in observed_after_done
+        return waypoint_id not in observed_after_done
 
     unresolved = [
         waypoint_id
@@ -149,7 +148,15 @@ def raw_fpv_revisit_waypoints(
         if eligible(waypoint_id)
         and (candidate_outcomes.get(waypoint_id) or {}).get("attempted", 0) == 0
     ]
-    return unresolved + candidate_free
+    previously_authorized = [
+        waypoint_id
+        for waypoint_id in known_waypoints
+        if eligible(waypoint_id)
+        and (candidate_outcomes.get(waypoint_id) or {}).get("authorized", 0) > 0
+        and waypoint_id not in unresolved
+        and waypoint_id not in candidate_free
+    ]
+    return unresolved + candidate_free + previously_authorized
 
 
 def _observation_waypoint_index(trace_events: list[dict[str, Any]]) -> dict[str, str]:

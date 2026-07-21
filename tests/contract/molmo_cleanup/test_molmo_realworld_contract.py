@@ -515,15 +515,15 @@ def test_scene_index_backend_prefers_public_usd_fixture_overlay_over_stale_map_b
                 object_id="bowl_847a24bfa9d8b1a1f26661ebbb850f56_1_0_2",
                 name="Bowl (Bowl_12)",
                 category="Bowl",
-                location_id="diningtable_f113cf7f8367e89f709b53cbee1a1c05_1_0_2",
+                location_id="bed_f113cf7f8367e89f709b53cbee1a1c05_1_0_2",
             ),
         ),
         receptacles=(
             CleanupReceptacle(
-                "diningtable_f113cf7f8367e89f709b53cbee1a1c05_1_0_2",
-                "DiningTable DiningTable|2|1|0 Dining_Table_203_1",
+                "bed_f113cf7f8367e89f709b53cbee1a1c05_1_0_2",
+                "Bed Bed|2|1|0 Bed_203_1",
                 "isaac_scene",
-                category="DiningTable",
+                category="Bed",
             ),
             CleanupReceptacle(
                 "sink_07e796f32d0d3efce9acf4be00f3bc53_1_0_3",
@@ -1833,7 +1833,11 @@ def test_realworld_contract_rejects_skipped_semantic_phases_without_private_trut
 
 def test_realworld_contract_rejects_done_with_pending_public_candidates() -> None:
     contract = _contract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
-    _first_non_empty_observation(contract)
+    observation = _first_non_empty_observation(contract)
+    detection = observation["visible_object_detections"][0]
+    contract._detections_by_handle[detection["object_id"]][  # noqa: SLF001
+        "cleanup_recommended"
+    ] = True
 
     done = contract.done("finished sweep")
 
@@ -1969,6 +1973,44 @@ def test_world_labels_done_rejects_held_public_candidate_with_receptacle_hint() 
     _assert_no_forbidden_keys(done)
 
 
+def test_world_labels_rejects_destination_outside_public_policy() -> None:
+    contract = _contract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
+    detection = _confirm_world_label_detection(
+        contract,
+        _first_detection_by_category(contract, "food"),
+    )
+    assert contract.navigate_to_object(detection["object_id"])["ok"] is True
+    picked = contract.pick(detection["object_id"])
+    assert picked["ok"] is True
+    assert picked["required_next_tool"] == "navigate_to_receptacle"
+    assert {option["candidate_fixture_category"] for option in picked["destination_options"]} == {
+        "fridge"
+    }
+    stale = contract.navigate_to_receptacle("invented_fixture")
+    assert stale["error_reason"] == "stale_reference"
+    assert stale["object_id"] == detection["object_id"]
+    assert stale["destination_options"] == picked["destination_options"]
+    wrong_fixture_id = next(
+        fixture_id
+        for fixture_id, fixture in contract.public_receptacles_by_id().items()
+        if str(fixture.get("category") or "").lower() == "bookshelf"
+    )
+
+    rejected = contract.navigate_to_receptacle(wrong_fixture_id)
+
+    assert rejected["ok"] is False
+    assert rejected["error_reason"] == "destination_policy_mismatch"
+    assert rejected["object_id"] == detection["object_id"]
+    assert rejected["required_tool"] == "navigate_to_receptacle"
+    assert rejected["destination_options"]
+    assert {option["candidate_fixture_category"] for option in rejected["destination_options"]} == {
+        "fridge"
+    }
+    correct_fixture_id = rejected["destination_options"][0]["candidate_fixture_id"]
+    assert contract.navigate_to_receptacle(correct_fixture_id)["ok"] is True
+    _assert_no_forbidden_keys(rejected)
+
+
 def test_open_ended_done_still_rejects_held_public_candidate() -> None:
     contract = _contract(
         CleanupBackendSession(build_cleanup_scenario(seed=7)),
@@ -2043,6 +2085,34 @@ def test_world_labels_sanitized_done_rejects_policy_required_pending_objects() -
     )
     observation = _first_non_empty_observation(contract)
     detection = observation["visible_object_detections"][0]
+    source_fixture_id = detection["support_estimate"]["fixture_id"]
+    internal_source_fixture_id = contract.internal_fixture_id_for_public_reference(
+        source_fixture_id
+    )
+    contract._fixtures[internal_source_fixture_id]["category"] = "bed"  # noqa: SLF001
+    detection = _confirm_world_label_detection(contract, detection)
+    assert (
+        contract._detections_by_handle[detection["object_id"]][  # noqa: SLF001
+            "cleanup_recommended"
+        ]
+        is True
+    )
+    source_waypoint_id = detection["waypoint_id"]
+    other_waypoint_id = next(
+        waypoint["waypoint_id"]
+        for waypoint in contract.metric_map()["inspection_waypoints"]
+        if waypoint["waypoint_id"] != source_waypoint_id
+    )
+    contract.navigate_to_waypoint(other_waypoint_id)
+    contract.observe()
+    contract.navigate_to_waypoint(source_waypoint_id)
+    contract.observe()
+    assert (
+        contract._detections_by_handle[detection["object_id"]][  # noqa: SLF001
+            "cleanup_recommended"
+        ]
+        is False
+    )
 
     done = contract.done("finished without cleaning sanitized detections")
 
@@ -2059,6 +2129,19 @@ def test_world_labels_sanitized_done_rejects_policy_required_pending_objects() -
     assert pending["candidate_fixture_id"] == ""
     assert pending["candidate_state"] == "visual_scan_required"
     _assert_no_forbidden_keys(done)
+
+
+def test_world_labels_sanitized_done_ignores_not_recommended_pending_objects() -> None:
+    contract = _contract(
+        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        evidence_lane="world-public-labels",
+    )
+    detection = _first_detection_by_category(contract, "electronics")
+    handle = detection["object_id"]
+
+    pending = realworld_done_readiness.pending_cleanup_candidates(contract)
+
+    assert handle not in {item["object_id"] for item in pending}
 
 
 def test_realworld_contract_rejects_place_inside_before_opening_fridge() -> None:

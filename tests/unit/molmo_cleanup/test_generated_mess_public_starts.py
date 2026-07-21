@@ -4,6 +4,7 @@ import pytest
 
 from roboclaws.household.generated_mess import (
     build_generated_mess_manifest,
+    generated_mess_public_distractor_settlement_plan,
     targets_from_generated_mess_manifest,
 )
 from roboclaws.household.semantic_acceptability import public_source_requires_cleanup
@@ -54,6 +55,120 @@ def test_generated_mess_manifest_rejects_missing_public_cleanup_start() -> None:
             target_count=1,
             seed=7,
         )
+
+
+def test_generated_mess_manifest_avoids_same_category_source_distractor() -> None:
+    receptacles = [
+        {"receptacle_id": "shelf_01", "category": "ShelvingUnit", "position": [0, 0]},
+        {"receptacle_id": "bed_01", "category": "Bed", "position": [1, 0]},
+        {"receptacle_id": "bed_02", "category": "Bed", "position": [2, 0]},
+    ]
+    objects = [
+        {"object_id": "target_book", "category": "Book", "position": [0, 0]},
+        {"object_id": "other_book", "category": "Newspaper", "position": [1, 0]},
+    ]
+
+    manifest = build_generated_mess_manifest(
+        objects,
+        receptacles,
+        target_count=1,
+        seed=7,
+        object_ids=["target_book"],
+    )
+
+    assert manifest["targets"][0]["object_id"] == "target_book"
+    assert manifest["targets"][0]["start_receptacle_id"] == "bed_02"
+
+
+def test_generated_mess_manifest_rejects_when_all_starts_have_category_distractors() -> None:
+    receptacles = [
+        {"receptacle_id": "shelf_01", "category": "ShelvingUnit"},
+        {"receptacle_id": "bed_01", "category": "Bed"},
+        {"receptacle_id": "bed_02", "category": "Bed"},
+    ]
+    objects = [
+        {"object_id": "target_book", "category": "Book"},
+        {"object_id": "other_book", "category": "Book", "location_id": "bed_01"},
+        {
+            "object_id": "other_newspaper",
+            "category": "Newspaper",
+            "contained_in": "bed_02",
+        },
+    ]
+
+    with pytest.raises(ValueError, match="no publicly identifiable cleanup start"):
+        build_generated_mess_manifest(
+            objects,
+            receptacles,
+            target_count=1,
+            seed=7,
+            object_ids=["target_book"],
+        )
+
+
+def test_generated_mess_manifest_prefers_explicit_distractor_location_over_nearest() -> None:
+    receptacles = [
+        {"receptacle_id": "shelf_01", "category": "ShelvingUnit", "position": [0, 0]},
+        {"receptacle_id": "bed_01", "category": "Bed", "position": [1, 0]},
+        {"receptacle_id": "bed_02", "category": "Bed", "position": [5, 0]},
+    ]
+    objects = [
+        {"object_id": "target_book", "category": "Book", "position": [0, 0]},
+        {
+            "object_id": "other_book",
+            "category": "Book",
+            "location_id": "bed_02",
+            "position": [1, 0],
+        },
+    ]
+
+    manifest = build_generated_mess_manifest(
+        objects,
+        receptacles,
+        target_count=1,
+        seed=7,
+        object_ids=["target_book"],
+    )
+
+    assert manifest["targets"][0]["start_receptacle_id"] == "bed_01"
+
+
+def test_generated_mess_background_settlement_uses_public_semantics() -> None:
+    receptacles = [
+        {"receptacle_id": "sink_01", "category": "Sink"},
+        {"receptacle_id": "shelf_01", "category": "ShelvingUnit"},
+        {"receptacle_id": "tvstand_01", "category": "TVStand"},
+        {"receptacle_id": "bed_01", "category": "Bed"},
+        {"receptacle_id": "desk_01", "category": "Desk"},
+    ]
+    objects = [
+        {"object_id": "target_plate", "category": "Plate", "location_id": "bed_01"},
+        {"object_id": "wrong_book", "category": "Book", "location_id": "bed_01"},
+        {"object_id": "settled_book", "category": "Book", "location_id": "desk_01"},
+        {"object_id": "wrong_remote", "category": "RemoteControl", "location_id": "bed_01"},
+        {"object_id": "unmanaged_vase", "category": "Vase", "location_id": "bed_01"},
+    ]
+
+    plan = generated_mess_public_distractor_settlement_plan(
+        objects,
+        receptacles,
+        excluded_object_ids={"target_plate"},
+    )
+
+    assert plan == [
+        {
+            "object_id": "wrong_book",
+            "category": "Book",
+            "source_receptacle_id": "bed_01",
+            "target_receptacle_id": "shelf_01",
+        },
+        {
+            "object_id": "wrong_remote",
+            "category": "RemoteControl",
+            "source_receptacle_id": "bed_01",
+            "target_receptacle_id": "tvstand_01",
+        },
+    ]
 
 
 def test_explicit_generated_mess_manifest_can_keep_public_acceptable_start() -> None:

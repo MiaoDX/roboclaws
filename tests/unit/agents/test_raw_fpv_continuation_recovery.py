@@ -228,6 +228,7 @@ def test_raw_fpv_continuation_builds_bounded_public_revisit_queue(tmp_path: Path
     assert state["raw_fpv_revisit_waypoints"] == [
         "room_2_inspection",
         "room_3_inspection",
+        "room_4_inspection",
     ]
     assert "must_not_leak" not in json.dumps(state)
     public_ledger = json.dumps(state["raw_fpv_waypoint_candidate_outcomes"])

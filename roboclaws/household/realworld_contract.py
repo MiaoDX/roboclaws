@@ -130,6 +130,7 @@ _pose_stamped_waypoints_present = realworld_contract_projection._pose_stamped_wa
 _public_destination_policy_for_category = (
     realworld_contract_projection._public_destination_policy_for_category
 )
+_normalize_fixture_category_label = realworld_contract_projection._normalize_fixture_category_label
 _public_room_hint_payload = realworld_contract_projection._public_room_hint_payload
 _recommended_place_tool = realworld_contract_projection._recommended_place_tool
 _room_category_from_label = realworld_contract_projection._room_category_from_label
@@ -818,16 +819,32 @@ class RealWorldCleanupContract:
             self._current_receptacle_for_handle = None
             self._opened_receptacle_for_handle = None
             self._set_handle_state(object_id, "held", tool="pick")
-        return self._public_manipulation_response("pick", object_id, picked)
+        result = self._public_manipulation_response("pick", object_id, picked)
+        if picked.get("ok"):
+            result.update(self._destination_policy_context(object_id))
+            result["required_next_tool"] = "navigate_to_receptacle"
+        return result
 
     def navigate_to_receptacle(self, fixture_id: str) -> dict[str, Any]:
         requested_fixture_id = str(fixture_id)
         internal_fixture_id = self._internal_fixture_id_for_public_anchor(requested_fixture_id)
         if internal_fixture_id not in self._fixtures:
+            recovery: dict[str, Any] = {}
+            if self._held_handle is not None:
+                recovery = {
+                    "object_id": self._held_handle,
+                    "required_tool": "navigate_to_receptacle",
+                    "recovery_hint": (
+                        "Choose candidate_fixture_id from destination_options; do not invent "
+                        "or reuse non-public fixture ids."
+                    ),
+                    **self._destination_policy_context(self._held_handle),
+                }
             return self._error(
                 "navigate_to_receptacle",
                 "stale_reference",
                 fixture_id=requested_fixture_id,
+                **recovery,
             )
         if self._held_handle is None:
             return self._semantic_order_error(
@@ -839,6 +856,13 @@ class RealWorldCleanupContract:
                     "Use navigate_to_object -> pick first."
                 ),
             )
+        destination_policy_error = self._destination_policy_error(
+            self._held_handle,
+            requested_fixture_id=requested_fixture_id,
+            internal_fixture_id=internal_fixture_id,
+        )
+        if destination_policy_error is not None:
+            return destination_policy_error
         response = self.contract.navigate_to_receptacle(internal_fixture_id)
         if not response.get("ok"):
             return self._public_error_from_private(
@@ -878,6 +902,52 @@ class RealWorldCleanupContract:
             state_mutation=response.get("state_mutation"),
             navigation_status=response.get("status"),
         )
+
+    def _destination_policy_error(
+        self,
+        handle: str,
+        *,
+        requested_fixture_id: str,
+        internal_fixture_id: str,
+    ) -> dict[str, Any] | None:
+        context = self._destination_policy_context(handle)
+        policy = context["destination_policy"]
+        allowed_categories = {
+            _normalize_fixture_category_label(item)
+            for item in policy.get("acceptable_fixture_categories") or []
+        }
+        fixture = self._fixtures.get(internal_fixture_id) or {}
+        requested_category = _normalize_fixture_category_label(
+            fixture.get("category") or fixture.get("name")
+        )
+        if requested_category in allowed_categories:
+            return None
+        return self._error(
+            "navigate_to_receptacle",
+            "destination_policy_mismatch",
+            object_id=handle,
+            fixture_id=requested_fixture_id,
+            receptacle_id=requested_fixture_id,
+            fixture_category=requested_category,
+            destination_policy=policy,
+            destination_options=context["destination_options"],
+            required_tool="navigate_to_receptacle",
+            recovery_hint=(
+                "Choose candidate_fixture_id from destination_options. The requested fixture "
+                "category is not allowed by this object's public destination policy."
+            ),
+        )
+
+    def _destination_policy_context(self, handle: str) -> dict[str, Any]:
+        detection = self._detections_by_handle.get(handle) or {}
+        policy = _public_destination_policy_for_category(detection.get("category"))
+        return {
+            "destination_policy": policy,
+            "destination_options": realworld_done_readiness.destination_options_for_policy(
+                self,
+                policy,
+            ),
+        }
 
     def open_receptacle(self, fixture_id: str) -> dict[str, Any]:
         requested_fixture_id = str(fixture_id)

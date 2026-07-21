@@ -6,9 +6,43 @@ from typing import Any
 
 RAW_FPV_DECLARATION_STRATEGY = "inline_on_navigate"
 RAW_FPV_CATEGORY_HINT = "food, dish, book, linen, toy, electronics, or pillow"
+RAW_FPV_PUBLIC_CLEANUP_PRIORITY_EXAMPLES = (
+    ("dish", "bed"),
+    ("dish", "desk"),
+    ("food", "bed"),
+    ("food", "desk"),
+    ("book", "bed"),
+    ("book", "sofa"),
+    ("electronics", "bed"),
+    ("electronics", "dining table"),
+    ("pillow", "dining table"),
+    ("linen", "desk"),
+    ("toy", "bed"),
+)
+RAW_FPV_PUBLIC_SETTLED_EXAMPLES = (
+    ("dish", "sink"),
+    ("dish", "countertop"),
+    ("dish", "dining table"),
+    ("food", "fridge"),
+    ("food", "countertop"),
+    ("food", "dining table"),
+    ("electronics", "TV stand"),
+    ("electronics", "desk"),
+    ("electronics", "sofa"),
+    ("book", "shelf"),
+    ("book", "desk"),
+    ("pillow", "bed"),
+)
 RAW_FPV_HIGH_CONFIDENCE_TARGETS = (
-    "movable dishware or food on a table/counter",
-    "books, electronics, linen, toys, or pillows visibly out of storage",
+    "objects whose visible current support is semantically questionable or wrong for that class",
+    "obvious cases such as "
+    + ", ".join(
+        f"{category} on {support}" for category, support in RAW_FPV_PUBLIC_CLEANUP_PRIORITY_EXAMPLES
+    ),
+    "skip already settled distractors such as "
+    + ", ".join(
+        f"{category} on {support}" for category, support in RAW_FPV_PUBLIC_SETTLED_EXAMPLES
+    ),
     "objects with most of the item inside the current FPV frame",
 )
 RAW_FPV_ACCEPTED_IMAGE_REGION_FORMS: tuple[dict[str, Any], ...] = (

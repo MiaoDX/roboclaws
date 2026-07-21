@@ -112,6 +112,60 @@ def test_revisit_candidate_requires_unused_fresh_observation() -> None:
     assert repeated["error_reason"] == "raw_fpv_recovery_observation_consumed"
 
 
+def test_bounded_revisit_allows_one_edge_reframe_and_fresh_candidate() -> None:
+    events = [
+        _response(
+            "metric_map",
+            inspection_waypoints=[{"waypoint_id": "room_2_inspection"}],
+        ),
+        _blocked_done(current=1, required=2),
+        _response("navigate_to_waypoint", waypoint_id="room_2_inspection"),
+        _response(
+            "navigate_to_relative_pose",
+            applied_delta={"forward_m": 0, "lateral_m": 0, "yaw_delta_deg": 45},
+        ),
+        _response(
+            "observe",
+            waypoint_id="room_2_inspection",
+            raw_fpv_observation={"observation_id": "raw_fpv_edge"},
+        ),
+    ]
+
+    assert (
+        raw_fpv_recovery_gate(
+            events,
+            evidence_lane="camera-raw-fpv",
+            task_intent="cleanup",
+            tool="adjust_camera",
+            request={"yaw_delta_deg": -45, "pitch_delta_deg": 0},
+        )
+        is None
+    )
+    events.append(
+        _response(
+            "adjust_camera",
+            camera_offset={"yaw_delta_deg": -45, "pitch_delta_deg": 0},
+        )
+    )
+    events.append(
+        _response(
+            "observe",
+            waypoint_id="room_2_inspection",
+            raw_fpv_observation={"observation_id": "raw_fpv_edge_reframed"},
+        )
+    )
+    assert (
+        raw_fpv_recovery_gate(
+            events,
+            evidence_lane="camera-raw-fpv",
+            task_intent="cleanup",
+            tool="navigate_to_visual_candidate",
+            request={"source_observation_id": "raw_fpv_edge_reframed"},
+        )
+        is None
+    )
+
+
 def test_gate_is_inactive_outside_raw_fpv_cleanup() -> None:
     events = [_blocked_done(current=0, required=4)]
     for lane, intent in (
@@ -232,6 +286,215 @@ def test_final_same_progress_done_marks_empty_recovery_epoch_exhausted(
     )
 
 
+def test_heading_blocker_preempts_bounded_revisit_and_exhaustion() -> None:
+    events = [
+        _response(
+            "metric_map",
+            inspection_waypoints=[{"waypoint_id": "room_7_inspection"}],
+        ),
+        _blocked_done_with_heading(current=3, required=4),
+        _response("navigate_to_waypoint", waypoint_id="room_7_inspection"),
+        _response(
+            "navigate_to_relative_pose",
+            applied_delta={"forward_m": 0, "lateral_m": 0, "yaw_delta_deg": 45},
+        ),
+        _response(
+            "observe",
+            waypoint_id="room_7_inspection",
+            raw_fpv_observation={"observation_id": "raw_fpv_revisit"},
+        ),
+        _blocked_done_with_heading(current=3, required=4),
+    ]
+
+    state = raw_fpv_recovery_state(
+        events,
+        evidence_lane="camera-raw-fpv",
+        task_intent="cleanup",
+    )
+
+    assert state["phase"] == "heading_coverage"
+    assert state["next_waypoint_id"] == "room_7_inspection"
+    assert state["expected_tool"] == "navigate_to_waypoint"
+    for tool in ("metric_map", "done"):
+        blocked = raw_fpv_recovery_gate(
+            events,
+            evidence_lane="camera-raw-fpv",
+            task_intent="cleanup",
+            tool=tool,
+            request={},
+        )
+        assert blocked is not None
+        assert blocked["error_reason"] == "raw_fpv_recovery_step_required"
+    wrong_waypoint = raw_fpv_recovery_gate(
+        events,
+        evidence_lane="camera-raw-fpv",
+        task_intent="cleanup",
+        tool="navigate_to_waypoint",
+        request={"waypoint_id": "room_8_inspection"},
+    )
+    assert wrong_waypoint is not None
+    assert wrong_waypoint["error_reason"] == "raw_fpv_recovery_wrong_waypoint"
+
+    events.append(_response("navigate_to_waypoint", waypoint_id="room_7_inspection"))
+    assert (
+        raw_fpv_recovery_state(
+            events,
+            evidence_lane="camera-raw-fpv",
+            task_intent="cleanup",
+        )["expected_tool"]
+        == "observe"
+    )
+    assert (
+        raw_fpv_recovery_gate(
+            events,
+            evidence_lane="camera-raw-fpv",
+            task_intent="cleanup",
+            tool="observe",
+            request={},
+        )
+        is None
+    )
+    events.append(
+        _response(
+            "observe",
+            waypoint_id="room_7_inspection",
+            raw_fpv_observation={"observation_id": "raw_fpv_heading_0"},
+        )
+    )
+    wrong_heading = raw_fpv_recovery_gate(
+        events,
+        evidence_lane="camera-raw-fpv",
+        task_intent="cleanup",
+        tool="navigate_to_relative_pose",
+        request={"forward_m": 0, "lateral_m": 0, "yaw_delta_deg": 45},
+    )
+    assert wrong_heading is not None
+    assert wrong_heading["error_reason"] == "raw_fpv_recovery_wrong_heading_pose"
+    assert (
+        raw_fpv_recovery_gate(
+            events,
+            evidence_lane="camera-raw-fpv",
+            task_intent="cleanup",
+            tool="adjust_camera",
+            request={"yaw_delta_deg": -45, "pitch_delta_deg": 0},
+        )
+        is None
+    )
+    events.append(
+        _response(
+            "adjust_camera",
+            camera_offset={"yaw_delta_deg": -45, "pitch_delta_deg": 0},
+        )
+    )
+    assert (
+        raw_fpv_recovery_state(
+            events,
+            evidence_lane="camera-raw-fpv",
+            task_intent="cleanup",
+        )["expected_tool"]
+        == "observe"
+    )
+    events.append(
+        _response(
+            "observe",
+            waypoint_id="room_7_inspection",
+            raw_fpv_observation={"observation_id": "raw_fpv_reframe"},
+        )
+    )
+    assert (
+        raw_fpv_recovery_state(
+            events,
+            evidence_lane="camera-raw-fpv",
+            task_intent="cleanup",
+        )["expected_tool"]
+        == "navigate_to_relative_pose"
+    )
+
+    assert (
+        raw_fpv_recovery_gate(
+            events,
+            evidence_lane="camera-raw-fpv",
+            task_intent="cleanup",
+            tool="navigate_to_relative_pose",
+            request={"forward_m": 0, "lateral_m": 0, "yaw_delta_deg": 90},
+        )
+        is None
+    )
+    for index in range(1, 4):
+        events.append(
+            _response(
+                "navigate_to_relative_pose",
+                applied_delta={"forward_m": 0, "lateral_m": 0, "yaw_delta_deg": 90},
+            )
+        )
+        assert (
+            raw_fpv_recovery_state(
+                events,
+                evidence_lane="camera-raw-fpv",
+                task_intent="cleanup",
+            )["expected_tool"]
+            == "observe"
+        )
+        events.append(
+            _response(
+                "observe",
+                waypoint_id="room_7_inspection",
+                raw_fpv_observation={"observation_id": f"raw_fpv_heading_{index}"},
+            )
+        )
+    assert (
+        raw_fpv_recovery_state(
+            events,
+            evidence_lane="camera-raw-fpv",
+            task_intent="cleanup",
+        )["expected_tool"]
+        == "done"
+    )
+    assert (
+        raw_fpv_recovery_exhaustion(
+            events,
+            evidence_lane="camera-raw-fpv",
+            task_intent="cleanup",
+        )
+        is None
+    )
+
+
+def test_authorized_waypoint_remains_last_resort_bounded_revisit() -> None:
+    events = [
+        _response(
+            "metric_map",
+            inspection_waypoints=[
+                {"waypoint_id": "room_2_inspection"},
+                {"waypoint_id": "room_3_inspection"},
+            ],
+        ),
+        _response(
+            "observe",
+            waypoint_id="room_2_inspection",
+            raw_fpv_observation={"observation_id": "raw_fpv_authorized"},
+        ),
+        {
+            "event": "request",
+            "tool": "navigate_to_visual_candidate",
+            "request": {"source_observation_id": "raw_fpv_authorized"},
+        },
+        _response("navigate_to_visual_candidate", object_id="observed_001"),
+        _blocked_done(current=1, required=2),
+    ]
+
+    state = raw_fpv_recovery_state(
+        events,
+        evidence_lane="camera-raw-fpv",
+        task_intent="cleanup",
+    )
+
+    assert state["eligible_waypoint_ids"] == [
+        "room_3_inspection",
+        "room_2_inspection",
+    ]
+
+
 def _response(tool: str, **payload: Any) -> dict[str, Any]:
     return {"event": "response", "tool": tool, "response": {"ok": True, **payload}}
 
@@ -254,3 +517,18 @@ def _blocked_done(*, current: int, required: int) -> dict[str, Any]:
             },
         },
     }
+
+
+def _blocked_done_with_heading(*, current: int, required: int) -> dict[str, Any]:
+    event = _blocked_done(current=current, required=required)
+    event["response"]["completion"]["blockers"].insert(
+        0,
+        {
+            "type": "insufficient_raw_fpv_heading_coverage",
+            "next_waypoint_id": "room_7_inspection",
+            "current_distinct_heading_count": 1,
+            "required_distinct_heading_count": 4,
+            "incomplete_waypoint_ids": ["room_7_inspection"],
+        },
+    )
+    return event

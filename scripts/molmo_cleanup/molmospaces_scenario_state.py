@@ -8,6 +8,7 @@ import mujoco
 
 from roboclaws.household.generated_mess import (
     generated_mess_public_cleanup_start_pool,
+    generated_mess_public_distractor_settlement_plan,
     valid_generated_mess_placement_index,
     valid_generated_mess_relation,
 )
@@ -122,6 +123,51 @@ def seed_misplaced_objects(
         target_receptacle_id(target, manifest_targets.get(str(target["object_id"])))
         for target in targets
     }
+    target_object_ids = {str(target["object_id"]) for target in targets}
+    receptacles = list(state["receptacles"].values())
+    settlement_plan = generated_mess_public_distractor_settlement_plan(
+        list(state["objects"].values()),
+        receptacles,
+        excluded_object_ids=target_object_ids,
+    )
+    for index, settlement in enumerate(settlement_plan):
+        object_id = settlement["object_id"]
+        receptacle_id = settlement["target_receptacle_id"]
+        receptacle = state["receptacles"][receptacle_id]
+        relation = "inside" if hooks.receptacle_prefers_inside(receptacle) else "on"
+        state["objects"][object_id]["contained_in"] = (
+            receptacle_id if relation == "inside" else None
+        )
+        state["objects"][object_id]["location_relation"] = relation
+        placement_resolution = hooks.resolve_placement(
+            model,
+            data,
+            state=state,
+            object_id=object_id,
+            receptacle_id=receptacle_id,
+            index=len(targets) + index,
+            relation=relation,
+        )
+        placement_position = placement_resolution["position"]
+        hooks.set_free_body_position(
+            model,
+            data,
+            state["objects"][object_id]["body_name"],
+            placement_position,
+        )
+        mujoco.mj_forward(model, data)
+        hooks.refresh_object_positions(model, data, state)
+        diagnostic = hooks.placement_diagnostic(
+            state=state,
+            object_id=object_id,
+            receptacle_id=receptacle_id,
+            relation=relation,
+            requested_position=placement_position,
+            source="public_cleanup_background_settlement",
+            placement_index=len(targets) + index,
+            placement_resolution=placement_resolution,
+        )
+        state.setdefault("mess_placement_diagnostics", []).append(diagnostic)
     for index, target in enumerate(targets):
         manifest_target = manifest_targets.get(str(target["object_id"]))
         target_id = target_receptacle_id(target, manifest_target)
@@ -131,8 +177,10 @@ def seed_misplaced_objects(
             if manifest_target
             else generated_mess_public_cleanup_start_pool(
                 target,
-                list(state["receptacles"].values()),
+                receptacles,
                 excluded_receptacle_ids=target_receptacle_ids,
+                objects=list(state["objects"].values()),
+                excluded_object_ids=target_object_ids,
             )
         )
         wrong = target_start_receptacle(state, target, start_pool, index, manifest_target)

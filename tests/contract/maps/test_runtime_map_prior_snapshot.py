@@ -149,7 +149,7 @@ def test_online_and_offline_snapshots_share_consumer_contract_shape() -> None:
     assert offline_snapshot["producer"]["type"] == "offline_navigation_memory_conversion"
 
 
-def test_materialized_online_snapshot_targets_are_valid_cleanup_targets() -> None:
+def test_materialized_online_snapshot_targets_do_not_override_destination_policy() -> None:
     contract = RealWorldCleanupContract(
         CleanupBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=RAW_FPV_ONLY_MODE,
@@ -177,7 +177,11 @@ def test_materialized_online_snapshot_targets_are_valid_cleanup_targets() -> Non
     )
 
     assert contract.pick(candidate["object_id"])["ok"] is True
-    assert contract.navigate_to_receptacle(str(target_fixture["fixture_id"]))["ok"] is True
+    rejected = contract.navigate_to_receptacle(str(target_fixture["fixture_id"]))
+    assert rejected["ok"] is False
+    assert rejected["error_reason"] == "destination_policy_mismatch"
+    assert rejected["fixture_category"] == "desk"
+    assert contract.navigate_to_receptacle(candidate["candidate_fixture_id"])["ok"] is True
 
 
 def test_converted_snapshot_targets_are_exposed_through_cleanup_receptacle_path() -> None:

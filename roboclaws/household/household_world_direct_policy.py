@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,6 +19,12 @@ from roboclaws.household.realworld_contract import (
     DETERMINISTIC_SWEEP_POLICY,
     RAW_FPV_ONLY_MODE,
     RealWorldCleanupContract,
+)
+from roboclaws.household.robot_view_camera_control import (
+    ROBOT_VIEW_CAMERA_CONTROL_CONTRACT_SCHEMA,
+)
+from roboclaws.household.semantic_acceptability import (
+    annotate_score_with_semantic_acceptability,
 )
 from roboclaws.household.skill_scratchpad import empty_skill_scratchpad
 
@@ -258,6 +265,7 @@ def _observe_direct_cleanup_waypoint(
     map_build_scan_profile: MapBuildScanProfile,
 ) -> tuple[list[dict[str, Any]], int]:
     detections = []
+    body_heading_deg = 0.0
     camera_schedule = _camera_schedule_for_direct_scan(
         requires_map_artifacts=episode_policy.requires_map_artifacts,
         scan_profile=map_build_scan_profile,
@@ -277,14 +285,18 @@ def _observe_direct_cleanup_waypoint(
             "observe",
             {},
             contract.observe,
-            postprocess=lambda response: hooks.attach_raw_fpv_robot_view(
-                response=response,
+            postprocess=lambda response: _attach_direct_raw_fpv_observation_evidence(
+                response=hooks.attach_raw_fpv_robot_view(
+                    response=response,
+                    contract=contract,
+                    base_contract=base_contract,
+                    robot_view_steps=robot_view_steps,
+                    output_dir=output_dir,
+                    view_index_ref=[view_index],
+                    record_robot_views=record_robot_views,
+                ),
                 contract=contract,
-                base_contract=base_contract,
-                robot_view_steps=robot_view_steps,
-                output_dir=output_dir,
-                view_index_ref=[view_index],
-                record_robot_views=record_robot_views,
+                body_heading_deg=body_heading_deg,
             ),
         )
         view_index = hooks.view_index_after_raw_fpv(robot_view_steps, view_index)
@@ -331,20 +343,28 @@ def _observe_direct_cleanup_waypoint(
                     "navigate_to_relative_pose, but backend returned "
                     f"{turn_response.get('status') or turn_response.get('error_reason')}"
                 )
+            applied_delta = turn_response.get("applied_delta") or {}
+            body_heading_deg = (
+                body_heading_deg + float(applied_delta.get("yaw_delta_deg") or 0.0)
+            ) % 360.0
             observation = hooks.call_tool(
                 trace_events,
                 started_at,
                 "observe",
                 {"scan_profile": map_build_scan_profile.profile_id, "turn_index": turn_index + 1},
                 contract.observe,
-                postprocess=lambda response: hooks.attach_raw_fpv_robot_view(
-                    response=response,
+                postprocess=lambda response: _attach_direct_raw_fpv_observation_evidence(
+                    response=hooks.attach_raw_fpv_robot_view(
+                        response=response,
+                        contract=contract,
+                        base_contract=base_contract,
+                        robot_view_steps=robot_view_steps,
+                        output_dir=output_dir,
+                        view_index_ref=[view_index],
+                        record_robot_views=record_robot_views,
+                    ),
                     contract=contract,
-                    base_contract=base_contract,
-                    robot_view_steps=robot_view_steps,
-                    output_dir=output_dir,
-                    view_index_ref=[view_index],
-                    record_robot_views=record_robot_views,
+                    body_heading_deg=body_heading_deg,
                 ),
             )
             view_index = hooks.view_index_after_raw_fpv(robot_view_steps, view_index)
@@ -358,6 +378,42 @@ def _observe_direct_cleanup_waypoint(
                 )
             )
     return detections, view_index
+
+
+def _attach_direct_raw_fpv_observation_evidence(
+    *,
+    response: dict[str, Any],
+    contract: RealWorldCleanupContract,
+    body_heading_deg: float,
+) -> dict[str, Any]:
+    raw = response.get("raw_fpv_observation")
+    if not isinstance(raw, dict) or not response.get("ok"):
+        return response
+    if isinstance(raw.get("camera_control_contract"), dict):
+        return response
+    observation_id = str(raw.get("observation_id") or "")
+    if not observation_id:
+        return response
+    attached = contract.attach_raw_fpv_observation_artifact(
+        observation_id,
+        views={},
+        camera_control_contract={
+            "schema": ROBOT_VIEW_CAMERA_CONTROL_CONTRACT_SCHEMA,
+            "status": "direct_runner_action_derived_pose",
+            "camera_control_api": None,
+            "camera_model": "direct_runner_action_derived_pose",
+            "same_pose_api": False,
+            "robot_pose": {
+                "pose_source": "relative_robot_frame",
+                "theta": math.radians(body_heading_deg),
+            },
+        },
+    )
+    if attached is None:
+        return response
+    updated = dict(response)
+    updated["raw_fpv_observation"] = attached
+    return updated
 
 
 def _camera_schedule_for_direct_scan(
@@ -563,6 +619,7 @@ def _done_with_failed_score(
     score = dict(base_done.get("score") or {})
     final_locations = base_contract.final_locations(base_done.get("final_locations"))
     if score:
+        score = annotate_score_with_semantic_acceptability(score, contract.scenario)
         metrics = contract._realworld_metrics(score, final_locations)  # noqa: SLF001
         score.update(metrics)
     else:

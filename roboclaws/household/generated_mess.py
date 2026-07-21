@@ -5,7 +5,10 @@ import random
 from collections.abc import Sequence
 from typing import Any
 
-from roboclaws.household.semantic_acceptability import public_source_requires_cleanup
+from roboclaws.household.semantic_acceptability import (
+    canonical_public_object_category,
+    public_source_requires_cleanup,
+)
 
 GENERATED_MESS_MANIFEST_SCHEMA = "roboclaws_generated_mess_manifest_v1"
 GENERATED_MESS_MANIFEST_PROVENANCE = "backend_neutral_generated_mess"
@@ -131,6 +134,7 @@ def build_generated_mess_manifest(
     return generated_mess_manifest_from_targets(
         targets,
         receptacles,
+        objects=objects,
         requested_generated_mess_count=target_count,
         seed=seed,
         scene_source=scene_source,
@@ -144,6 +148,7 @@ def generated_mess_manifest_from_targets(
     targets: list[dict[str, Any]],
     receptacles: list[dict[str, Any]],
     *,
+    objects: Sequence[dict[str, Any]] = (),
     requested_generated_mess_count: int,
     seed: int | None = None,
     scene_source: str = "",
@@ -156,6 +161,7 @@ def generated_mess_manifest_from_targets(
         for target in targets
         if str(target.get("target_receptacle_id") or "")
     }
+    target_object_ids = {str(target.get("object_id") or "") for target in targets}
     manifest_targets: list[dict[str, Any]] = []
     for index, target in enumerate(targets):
         target_receptacle_id = str(target.get("target_receptacle_id") or "")
@@ -163,6 +169,8 @@ def generated_mess_manifest_from_targets(
             target,
             receptacles,
             excluded_receptacle_ids=target_receptacle_ids,
+            objects=objects,
+            excluded_object_ids=target_object_ids,
         )
         start_receptacle = start_pool[index % len(start_pool)]
         start_receptacle_id = str(start_receptacle.get("receptacle_id") or target_receptacle_id)
@@ -349,6 +357,8 @@ def generated_mess_public_cleanup_start_pool(
     receptacles: list[dict[str, Any]],
     *,
     excluded_receptacle_ids: set[str],
+    objects: Sequence[dict[str, Any]] = (),
+    excluded_object_ids: set[str] | frozenset[str] = frozenset(),
 ) -> list[dict[str, Any]]:
     object_category = str(target.get("category") or "")
     candidates = [
@@ -360,6 +370,25 @@ def generated_mess_public_cleanup_start_pool(
             item.get("category") or item.get("name") or item.get("kind"),
         )
     ]
+    identifiable = [
+        item
+        for item in candidates
+        if not _has_same_category_distractor(
+            target,
+            item,
+            objects=objects,
+            receptacles=receptacles,
+            excluded_object_ids=excluded_object_ids,
+        )
+    ]
+    if identifiable:
+        candidates = identifiable
+    elif objects and candidates:
+        object_id = str(target.get("object_id") or "<unknown>")
+        raise ValueError(
+            "generated mess target has no publicly identifiable cleanup start receptacle: "
+            f"{object_id} ({object_category or '<unknown>'})"
+        )
     preferred = [item for item in candidates if not receptacle_requires_open(item)]
     if preferred:
         return preferred
@@ -370,6 +399,87 @@ def generated_mess_public_cleanup_start_pool(
         "generated mess target has no public cleanup-required start receptacle: "
         f"{object_id} ({object_category or '<unknown>'})"
     )
+
+
+def generated_mess_public_distractor_settlement_plan(
+    objects: Sequence[dict[str, Any]],
+    receptacles: Sequence[dict[str, Any]],
+    *,
+    excluded_object_ids: set[str] | frozenset[str],
+) -> list[dict[str, str]]:
+    receptacle_list = list(receptacles)
+    receptacle_by_id = {
+        str(item.get("receptacle_id") or ""): item
+        for item in receptacle_list
+        if str(item.get("receptacle_id") or "")
+    }
+    plan: list[dict[str, str]] = []
+    for obj in objects:
+        object_id = str(obj.get("object_id") or "")
+        if not object_id or object_id in excluded_object_ids:
+            continue
+        target = target_receptacle_for_object(obj, receptacle_list)
+        source_receptacle_id = _object_receptacle_id(obj, receptacle_list)
+        source = receptacle_by_id.get(source_receptacle_id)
+        if target is None or source is None:
+            continue
+        category = str(obj.get("category") or "")
+        if not public_source_requires_cleanup(category, source.get("category")):
+            continue
+        plan.append(
+            {
+                "object_id": object_id,
+                "category": category,
+                "source_receptacle_id": source_receptacle_id,
+                "target_receptacle_id": str(target.get("receptacle_id") or ""),
+            }
+        )
+    return plan
+
+
+def _has_same_category_distractor(
+    target: dict[str, Any],
+    candidate: dict[str, Any],
+    *,
+    objects: Sequence[dict[str, Any]],
+    receptacles: Sequence[dict[str, Any]],
+    excluded_object_ids: set[str] | frozenset[str],
+) -> bool:
+    target_category = canonical_public_object_category(target.get("category"))
+    candidate_id = str(candidate.get("receptacle_id") or "")
+    return any(
+        str(obj.get("object_id") or "") not in excluded_object_ids
+        and canonical_public_object_category(obj.get("category")) == target_category
+        and _object_receptacle_id(obj, receptacles) == candidate_id
+        for obj in objects
+    )
+
+
+def _object_receptacle_id(
+    obj: dict[str, Any],
+    receptacles: Sequence[dict[str, Any]],
+) -> str:
+    explicit = str(
+        obj.get("seeded_start_receptacle_id")
+        or obj.get("contained_in")
+        or obj.get("location_id")
+        or ""
+    )
+    if explicit:
+        return explicit
+    position = obj.get("position")
+    positioned_receptacles = [
+        item
+        for item in receptacles
+        if isinstance(item.get("position"), list | tuple) and len(item["position"]) >= 2
+    ]
+    if not isinstance(position, list | tuple) or len(position) < 2 or not positioned_receptacles:
+        return ""
+    nearest = min(
+        positioned_receptacles,
+        key=lambda item: math.dist(position[:2], item["position"][:2]),
+    )
+    return str(nearest.get("receptacle_id") or "")
 
 
 def receptacle_requires_open(receptacle: dict[str, Any]) -> bool:

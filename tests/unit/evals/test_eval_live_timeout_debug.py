@@ -151,7 +151,7 @@ def test_live_surface_timeout_terminates_the_entire_process_group(
     ]
 
 
-def test_live_eval_timeout_snapshot_reaches_blocked_result(
+def test_live_eval_wall_clock_budget_timeout_reaches_failed_result(
     tmp_path: Path,
 ) -> None:
     def live_product_runner(**kwargs: Any) -> dict[str, Any]:
@@ -189,10 +189,12 @@ def test_live_eval_timeout_snapshot_reaches_blocked_result(
     )
 
     payload = json.loads(run.results_path.read_text())
-    assert payload["aggregate"]["blocked"] == 3
+    assert payload["aggregate"]["failed"] == 3
+    assert payload["aggregate"]["blocked"] == 0
     result = payload["results"][0]
     runner = result["grader_outputs"]["runner"]
-    assert runner["status"] == "blocked"
+    assert runner["status"] == "failed"
+    assert result["failure_class"] == "budget_exhausted"
     assert runner["error_type"] == "LiveEvalTimeoutError"
     assert runner["live_status_phase"] == "running-sdk"
     assert runner["timeout_kind"] == "wall_clock_budget_exhausted"

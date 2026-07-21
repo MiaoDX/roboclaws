@@ -165,6 +165,12 @@ def public_source_requires_cleanup(
     }
 
 
+def canonical_public_object_category(object_category: Any) -> str:
+    """Return the public semantic category used to compare visual distractors."""
+
+    return _lookup_alias(_OBJECT_ALIASES, object_category) or _normalize(object_category)
+
+
 def annotate_score_with_semantic_acceptability(
     score: Mapping[str, Any],
     scenario: CleanupScenario | Mapping[str, Any],

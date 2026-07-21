@@ -14,7 +14,7 @@ from roboclaws.evals.regression import (
     promote_regression_from_cli_overrides,
     promote_regression_sample_from_eval_result,
 )
-from roboclaws.evals.runner import run_eval_suite
+from roboclaws.evals.runner import _failure_class_from_exception, run_eval_suite
 from roboclaws.launch.catalog import resolve_surface_launch
 from tests.support import eval_runtime_map
 
@@ -70,6 +70,22 @@ def test_eval_runner_default_stamp_is_unique_for_quick_repeated_runs(tmp_path: P
     assert first.output_dir != second.output_dir
     assert first.results_path.exists()
     assert second.results_path.exists()
+
+
+def test_eval_runner_classifies_agent_turn_without_done() -> None:
+    failure_class = _failure_class_from_exception(
+        RuntimeError("OpenAI Agents SDK turn ended without done after 2 invocation(s)")
+    )
+
+    assert failure_class == "agent_no_completion_claim"
+
+
+def test_eval_runner_classifies_provider_billing_limit() -> None:
+    failure_class = _failure_class_from_exception(
+        RuntimeError("HTTP 403 access_terminated_error: usage limit for this billing cycle")
+    )
+
+    assert failure_class == "model_or_provider_unavailable"
 
 
 def test_cleanup_outcome_accepts_semantic_success_when_exact_private_goal_is_partial(

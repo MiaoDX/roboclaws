@@ -1252,6 +1252,11 @@ def _attach_raw_fpv_robot_view(
         observation_id,
         views=step.get("views") or {},
         robot_view_label=str(step.get("label", "")),
+        camera_control_contract=(
+            step.get("camera_control_contract")
+            if isinstance(step.get("camera_control_contract"), dict)
+            else None
+        ),
     )
     if attached is None:
         return response
