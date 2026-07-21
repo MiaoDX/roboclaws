@@ -117,6 +117,8 @@ require_path "$assets_source/mjthor_data_type_to_source_to_versions.json" \
   "MolmoSpaces installed-source manifest"
 require_path "$cache_source/mjthor_data_type_to_source_to_versions.json" \
   "MolmoSpaces cache manifest"
+require_path "$cache_source/scenes/procthor-10k-val" \
+  "MolmoSpaces versioned procthor cache"
 case "$map_bundle" in
   /*|../*|*/../*)
     echo "error: ROBOCLAWS_STAGE_MAP_BUNDLE must be a repo-relative path: $map_bundle" >&2
@@ -150,11 +152,15 @@ case "$asset_mode" in
     archive_path="$stage_dir/archives/$archive_name"
     archive_tmp="${archive_path}.tmp"
     archive_manifest_dir="$stage_dir/.archive-manifest"
-    mkdir -p "$archive_manifest_dir/molmospaces/assets" "$archive_manifest_dir/molmospaces/cache"
+    mkdir -p \
+      "$archive_manifest_dir/molmospaces/assets" \
+      "$archive_manifest_dir/molmospaces/cache/scenes"
     cp "$assets_source/mjthor_data_type_to_source_to_versions.json" \
       "$archive_manifest_dir/molmospaces/assets/"
     cp "$cache_source/mjthor_data_type_to_source_to_versions.json" \
       "$archive_manifest_dir/molmospaces/cache/"
+    cp -a "$cache_source/scenes/procthor-10k-val" \
+      "$archive_manifest_dir/molmospaces/cache/scenes/"
     tar_paths=(
       "scenes/procthor-10k-val/val_0.xml"
       "scenes/procthor-10k-val/val_0.json"
@@ -308,6 +314,7 @@ payload = {
     "required_cloudml_checks": [
         "asset-cache/molmospaces/assets/mjthor_data_type_to_source_to_versions.json",
         "asset-cache/molmospaces/cache/mjthor_data_type_to_source_to_versions.json",
+        "asset-cache/molmospaces/cache/scenes/procthor-10k-val",
         "asset-cache/molmospaces/assets/scenes/procthor-10k-val/val_0.xml",
         "asset-cache/molmospaces/assets/scenes/procthor-10k-val/val_0.json",
         "asset-cache/molmospaces/assets/scenes/procthor-10k-val/val_0_metadata.json",

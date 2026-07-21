@@ -4,6 +4,7 @@ import importlib.util
 import json
 import os
 import subprocess
+import tarfile
 import time
 from pathlib import Path
 from typing import Any
@@ -119,8 +120,12 @@ def _minimal_molmospaces_assets(tmp_path: Path) -> tuple[Path, Path]:
         path = assets / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(f"fixture:{relative}\n", encoding="utf-8")
-    cache.mkdir()
+    cache_scene = cache / "scenes" / "procthor-10k-val" / "20251217"
+    cache_scene.mkdir(parents=True)
     (cache / "mjthor_data_type_to_source_to_versions.json").write_text(
+        '{"scenes": {"procthor-10k-val": ["20251217"]}}\n', encoding="utf-8"
+    )
+    (cache_scene / "mjthor_resource_file_to_size_mb.json").write_text(
         '{"fixture": true}\n', encoding="utf-8"
     )
     return assets, cache
@@ -696,3 +701,8 @@ def test_cloudml_staging_archives_are_reproducible(tmp_path: Path) -> None:
         first["staged_assets"]["archive"]["sha256"] == second["staged_assets"]["archive"]["sha256"]
     )
     assert first["git"]["code_archive"]["sha256"] == second["git"]["code_archive"]["sha256"]
+    with tarfile.open(first["staged_assets"]["archive"]["local_path"], "r:gz") as archive:
+        assert (
+            "molmospaces/cache/scenes/procthor-10k-val/20251217/"
+            "mjthor_resource_file_to_size_mb.json"
+        ) in archive.getnames()
