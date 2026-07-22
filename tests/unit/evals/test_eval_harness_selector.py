@@ -24,7 +24,7 @@ EXPECTED_ROW_IDS = {
     "smoke-regression-eval-suite",
     "map-build-consumer-eval-suite",
     "map-build-consumer-openai-agents-sdk-codex-router-responses",
-    "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
+    "map-build-consumer-openai-agents-sdk-mimo-mify-responses",
     "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
     "map-build-consumer-openai-agents-sdk-minimax-responses",
     "open-ended-goals-eval-suite",
@@ -191,7 +191,7 @@ def test_changed_file_signals_select_expected_eval_harness_rows(tmp_path: Path) 
                 "direct-cleanup-runtime-prior-consumer",
                 "map-build-consumer-eval-suite",
                 "map-build-consumer-openai-agents-sdk-codex-router-responses",
-                "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
+                "map-build-consumer-openai-agents-sdk-mimo-mify-responses",
                 "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
                 "map-build-consumer-openai-agents-sdk-minimax-responses",
             ),
@@ -431,13 +431,13 @@ def test_map_build_consumer_plan_selects_four_profile_model_matrix(
     }
     assert set(matrix_rows) == {
         "map-build-consumer-openai-agents-sdk-codex-router-responses",
-        "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
+        "map-build-consumer-openai-agents-sdk-mimo-mify-responses",
         "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
         "map-build-consumer-openai-agents-sdk-minimax-responses",
     }
     assert {row["axes"]["provider_profile"] for row in matrix_rows.values()} == {
         "codex-router-responses",
-        "mimo-tp-openai-chat",
+        "mimo-mify-responses",
         "kimi-openai-chat",
         "minimax-responses",
     }
@@ -464,7 +464,7 @@ def test_explicit_provider_axis_selects_matching_map_build_consumer_matrix_rows(
     rows = _selected_rows(manifest)
     assert "map-build-consumer-openai-agents-sdk-kimi-openai-chat" in rows
     assert "map-build-consumer-openai-agents-sdk-minimax-responses" in rows
-    assert "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat" not in rows
+    assert "map-build-consumer-openai-agents-sdk-mimo-mify-responses" not in rows
 
 
 def test_explicit_codex_env_selects_agent_sdk_availability_evidence(

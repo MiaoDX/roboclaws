@@ -294,7 +294,7 @@ def test_openai_agents_route_payload_lists_provider_profiles() -> None:
         "kimi-openai-chat",
     ]
     route_by_profile = {route["provider_profile"]: route for route in payload["provider_routes"]}
-    assert route_by_profile["mimo-mify-responses"]["route_status"] == "provisional"
+    assert route_by_profile["mimo-mify-responses"]["route_status"] == "healthy"
     assert route_by_profile["mimo-tp-openai-chat"]["wire_api"] == "chat-completions"
     assert route_by_profile["minimax-responses"]["route_capabilities"]["image_transport"] == (
         "unknown"

@@ -28,7 +28,7 @@ settings. OpenAI Agents SDK defaults to `codex-router-responses` and requires
 `CODEX_BASE_URL` plus `CODEX_API_KEY` (`gpt-5.6-sol`, Responses API). It does not
 fall back to mimo-mify-responses when `XM_LLM_API_KEY` is present. To use
 mimo-mify-responses, set `ROBOCLAWS_PROVIDER_PROFILE=mimo-mify-responses`
-explicitly; that profile uses `XM_LLM_API_KEY`, `xiaomi/mimo-v2.5`, Responses
+explicitly; that profile uses `XM_LLM_API_KEY`, `xiaomi/mimo-v2.5-pro`, Responses
 API, and web search disabled.
 
 Run `just dev::network-status` before validation-required maintainer workflows.

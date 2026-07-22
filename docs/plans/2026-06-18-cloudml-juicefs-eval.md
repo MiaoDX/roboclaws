@@ -23,15 +23,16 @@ related_context:
 - Session scope: cloudml-eval-execution
 - Parent plan: none
 - Child plans: none
-- Last updated: 2026-07-21
+- Last updated: 2026-07-22
 - Current slice: scoped provider-env staging and bounded CloudML API Router/MiMo
   live proof are complete; hybrid `auto` execution and the full baseline refresh
   remain.
 - Next action: implement dependency-safe local/CloudML handoff, then run a
   representative hybrid baseline before the full refresh.
-- Blocked on: no credential-transport blocker. The internal `mimo-1000` route is
-  currently upstream-unavailable, and this account can run two r49 shards
-  concurrently before CloudML resource quota requires resume-based submission.
+- Blocked on: no credential-transport blocker. The `mimo-1000` channel was
+  removed. This account has eight concurrent r49 resource units; the queue does
+  not expose r49 `BEST_EFFORT`, so saturated submissions still require bounded
+  waves and resume.
 - Do not touch from this session: product task strategy, MCP semantics, eval
   grader policy, unrelated provider routes, or physical-robot backends.
 
@@ -258,10 +259,16 @@ As of 2026-07-21:
   seconds. MiMo Inside reached its configured `mimo-1000` route but failed both
   attempts as `provider_transient_failure/upstream_unavailable`, matching the
   earlier local route result rather than a credential-transport failure.
-- Submission initially hit the account's two-r49 concurrent resource quota.
-  Persisted task IDs and upload markers allowed the third shard to be submitted
-  with `agent::eval execute run=...` after one task completed, without duplicate
-  upload or duplicate submission.
+- On 2026-07-22, Mify `xiaomi/mimo-v2.5-pro` passed local OpenAI Chat and
+  Responses probes 3/3 each plus a cleanup worklist tool-call case. It is now
+  the only default-enabled MiMo route and the alternate-provider baseline row;
+  token-plan and Inside routes remain available only for explicit diagnostics.
+- Submission initially hit the account's eight-unit r49 quota because six
+  unrelated single-unit jobs and two eval shards were already active. Persisted
+  task IDs and upload markers allowed the third shard to be submitted with
+  `agent::eval execute run=...` after one unit was released. A later
+  `BEST_EFFORT` smoke was rejected before task creation because this queue has
+  no preemptible r49 resource class.
 - The scoped remote dotenv remains plaintext on JuiceFS and currently has no
   automatic deletion lifecycle. A native CloudML secret reference or
   Router-issued short-lived workload token remains the preferred hardening path,
