@@ -307,10 +307,13 @@ def test_frozen_shard_manifest_relocates_only_selected_rows(tmp_path: Path) -> N
     shard = plan["shards"][0]
     payload = json.loads(Path(shard["manifest_local_path"]).read_text(encoding="utf-8"))
     by_id = {row["row_id"]: row for row in payload["rows"]}
-    assert payload["output_dir"].startswith("/mnt/cloudml/output/shards/")
+    assert payload["output_dir"].startswith("/tmp/roboclaws-cloudml/output/shards/")
+    assert shard["output_scratch_path"] == payload["output_dir"]
+    assert shard["output_mount_path"].startswith("/mnt/cloudml/output/shards/")
+    assert shard["output_archive_name"] == "shard-output.tar"
     assert by_id["first"]["selected"] is True
     assert by_id["second"]["selected"] is False
-    assert by_id["first"]["row_dir"].startswith("/mnt/cloudml/output/shards/")
+    assert by_id["first"]["row_dir"].startswith("/tmp/roboclaws-cloudml/output/shards/")
 
 
 def test_executor_dry_run_uses_current_target_pinned_inputs_and_safe_mounts(
@@ -351,6 +354,11 @@ def test_executor_dry_run_uses_current_target_pinned_inputs_and_safe_mounts(
     serialized = json.dumps(plan)
     assert "API_KEY" not in serialized
     assert "SECRET" not in serialized
+    image_command = argv[argv.index("--image_command") + 1]
+    assert "ROBOCLAWS_CLOUDML_REMOTE_OUTPUT_DIR" in image_command
+    assert "shard-output.tar" in image_command
+    assert "tar -cf" in image_command
+    assert "exec /opt/roboclaws/bin/run-cloudml-eval-worker" not in image_command
 
 
 def test_executor_falls_back_to_cml2_yaml_submit(
@@ -838,6 +846,42 @@ def test_collector_merges_remote_results_idempotently(tmp_path: Path) -> None:
             "missing_result_count": 0,
         }
     )
+    assert row["outcome"] == "passed"
+
+
+def test_collector_materializes_single_file_shard_archive(tmp_path: Path) -> None:
+    row = _row("first", ("cpu", "python-env", "artifact-storage"))
+    manifest = _manifest(row)
+    plan = cloudml.build_cloudml_plan(manifest, execution_target="cloudml", run_id="run-1")
+    shard = plan["shards"][0]
+    shard_root = tmp_path / "shards" / shard["shard_id"]
+    marker_dir = shard_root / "markers"
+    marker_dir.mkdir(parents=True)
+    (marker_dir / f"{shard['shard_id']}.json").write_text(
+        json.dumps({"shard_id": shard["shard_id"], "status": "succeeded", "exit_code": 0})
+    )
+    archive_source = tmp_path / "archive-source"
+    row_dir = archive_source / "rows" / "first"
+    row_dir.mkdir(parents=True)
+    (row_dir / "row_result.json").write_text(
+        json.dumps(
+            {
+                **row,
+                "status": "ran",
+                "outcome": "passed",
+                "execution_target": "cloudml",
+                "worker_pool": "cloudml-cpu",
+                "shard_id": shard["shard_id"],
+            }
+        )
+    )
+    with tarfile.open(shard_root / shard["output_archive_name"], "w") as archive:
+        archive.add(archive_source, arcname=".")
+
+    summary = cloudml.collect_cloudml_results(plan, manifest, collected_root=tmp_path)
+
+    assert summary["collected_row_count"] == 1
+    assert (shard_root / "rows" / "first" / "row_result.json").is_file()
     assert row["outcome"] == "passed"
 
 

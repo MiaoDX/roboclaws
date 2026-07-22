@@ -9,6 +9,8 @@ from typing import Any
 
 INPUT_MOUNT = "/mnt/cloudml/input"
 OUTPUT_MOUNT = "/mnt/cloudml/output"
+CLOUDML_OUTPUT_SCRATCH_ROOT = "/tmp/roboclaws-cloudml/output"
+CLOUDML_SHARD_OUTPUT_ARCHIVE = "shard-output.tar"
 PROVIDER_ENV_MOUNT = "/mnt/cloudml/provider-env"
 PROVIDER_ENV_FILENAME = "provider.env"
 CLOUDML_VOLUME = "robot-intelligent-planning-data"
@@ -165,7 +167,8 @@ def image_command(shard: dict[str, Any], *, identity: dict[str, str]) -> str:
         "ROBOCLAWS_CLOUDML_SHARD_ID": str(shard["shard_id"]),
         "ROBOCLAWS_CLOUDML_WORKER_POOL": str(shard["worker_pool"]),
         "ROBOCLAWS_CLOUDML_MAX_PARALLEL": str(shard["max_parallel"]),
-        "ROBOCLAWS_CLOUDML_OUTPUT_DIR": str(shard["output_mount_path"]),
+        "ROBOCLAWS_CLOUDML_OUTPUT_DIR": str(shard["output_scratch_path"]),
+        "ROBOCLAWS_CLOUDML_REMOTE_OUTPUT_DIR": str(shard["output_mount_path"]),
     }
     if shard.get("provider_env_keys"):
         values["ROBOCLAWS_CLOUDML_PROVIDER_ENV_FILE"] = (
@@ -183,8 +186,21 @@ def image_command(shard: dict[str, Any], *, identity: dict[str, str]) -> str:
     if shard.get("provider_env_keys"):
         provider_path = f"{PROVIDER_ENV_MOUNT}/{PROVIDER_ENV_FILENAME}"
         bootstrap = f"set +x; set -a; source {shlex.quote(provider_path)}; set +a; "
-    shell_command = f"export {exports}; {bootstrap}exec /opt/roboclaws/bin/run-cloudml-eval-worker"
-    return f"bash -lc {shlex.quote(shell_command)}"
+    scratch_path = shlex.quote(str(shard["output_scratch_path"]))
+    remote_path = shlex.quote(str(shard["output_mount_path"]))
+    archive_name = shlex.quote(str(shard["output_archive_name"]))
+    shard_id = shlex.quote(str(shard["shard_id"]))
+    archive_tmp = shlex.quote(f"/tmp/roboclaws-cloudml/{shard['shard_id']}-output.tar")
+    shell_command = (
+        f"set -Eeuo pipefail; export {exports}; {bootstrap}"
+        "set +e; /opt/roboclaws/bin/run-cloudml-eval-worker; worker_exit=$?; set -e; "
+        f"test -d {scratch_path}; mkdir -p /tmp/roboclaws-cloudml {remote_path}/markers; "
+        f"tar -cf {archive_tmp} -C {scratch_path} .; "
+        f"cp {archive_tmp} {remote_path}/{archive_name}; "
+        f"cp {scratch_path}/markers/{shard_id}.json {remote_path}/markers/{shard_id}.json; "
+        'exit "$worker_exit"'
+    )
+    return f"bash -c {shlex.quote(shell_command)}"
 
 
 def _mount(subpath: str, mount_path: str, *, read_only: bool) -> dict[str, Any]:

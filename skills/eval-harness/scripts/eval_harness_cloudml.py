@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import subprocess
+import tarfile
 import tempfile
 from pathlib import Path
 from typing import Any, Sequence
@@ -164,7 +165,8 @@ def write_cloudml_plan(plan: dict[str, Any], manifest: dict[str, Any], *, output
     yaml_dir.mkdir(parents=True, exist_ok=True)
     for shard in plan["shards"]:
         shard_id = str(shard["shard_id"])
-        worker_output = f"{OUTPUT_MOUNT}/shards/{shard_id}"
+        worker_output = f"{cloudml_task.CLOUDML_OUTPUT_SCRATCH_ROOT}/shards/{shard_id}"
+        remote_output = f"{OUTPUT_MOUNT}/shards/{shard_id}"
         frozen = _relocated_manifest(
             manifest,
             output_dir=worker_output,
@@ -174,7 +176,8 @@ def write_cloudml_plan(plan: dict[str, Any], manifest: dict[str, Any], *, output
         local_path.write_text(json.dumps(frozen, indent=2, sort_keys=True) + "\n")
         shard["manifest_local_path"] = str(local_path)
         shard["manifest_cloud_path"] = f"{INPUT_MOUNT}/manifests/{shard_id}.json"
-        shard["output_mount_path"] = worker_output
+        shard["output_scratch_path"] = worker_output
+        shard["output_mount_path"] = remote_output
         shard["yaml_path"] = str(yaml_dir / f"{shard_id}.yaml")
     path = cloudml_dir / "cloudml_plan.json"
     path.write_text(json.dumps(plan, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -513,6 +516,12 @@ def collect_cloudml_results(
     for shard in plan.get("shards") or []:
         shard_id = str(shard["shard_id"])
         shard_root = collected_root / "shards" / shard_id
+        _materialize_shard_archive(
+            shard_root,
+            archive_name=str(
+                shard.get("output_archive_name", cloudml_task.CLOUDML_SHARD_OUTPUT_ARCHIVE)
+            ),
+        )
         marker_path = shard_root / "markers" / f"{shard_id}.json"
         marker = _read_json_object(marker_path, label="CloudML terminal marker")
         if marker.get("shard_id") != shard_id:
@@ -533,6 +542,7 @@ def collect_cloudml_results(
                 raise ValueError(f"CloudML row result shard mismatch for {row_id}")
             if str(row_id) not in rows:
                 raise ValueError(f"CloudML row result is not in source manifest: {row_id}")
+            _rewrite_collected_paths(result, shard=shard, shard_root=shard_root)
             rows[str(row_id)].update(result)
             collected += 1
         shard["terminal_marker"] = str(marker_path)
@@ -544,6 +554,25 @@ def collect_cloudml_results(
     }
     plan["collection"] = summary
     return summary
+
+
+def _materialize_shard_archive(shard_root: Path, *, archive_name: str) -> None:
+    archive_path = shard_root / archive_name
+    if not archive_path.is_file():
+        return
+    try:
+        with tarfile.open(archive_path, "r:") as archive:
+            archive.extractall(shard_root, filter="data")
+    except (tarfile.TarError, ValueError, OSError) as exc:
+        raise ValueError(f"invalid CloudML shard output archive: {archive_path}") from exc
+
+
+def _rewrite_collected_paths(
+    result: dict[str, Any], *, shard: dict[str, Any], shard_root: Path
+) -> None:
+    scratch_path = str(shard.get("output_scratch_path") or "")
+    if scratch_path:
+        _replace_prefix(result, scratch_path, str(shard_root))
 
 
 def _selected_rows(manifest: dict[str, Any], *, row_ids: Sequence[str]) -> list[dict[str, Any]]:
@@ -646,6 +675,7 @@ def _shard(
         "max_parallel": width,
         "timeout_s": sum(int(row.get("timeout_s") or 0) for row in rows) + 600,
         "provider_env_keys": provider_env_keys,
+        "output_archive_name": cloudml_task.CLOUDML_SHARD_OUTPUT_ARCHIVE,
         **POOL_RESOURCES[pool],
     }
 
