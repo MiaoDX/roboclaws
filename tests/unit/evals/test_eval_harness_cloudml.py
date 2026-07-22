@@ -188,6 +188,7 @@ def test_cloudml_plan_uses_cpu_and_r49_capability_pools() -> None:
         "local_row_count": 0,
         "blocked_row_count": 0,
         "shard_count": 2,
+        "preemptible_shard_count": 0,
     }
 
 
@@ -354,6 +355,7 @@ def test_executor_dry_run_uses_current_target_pinned_inputs_and_safe_mounts(
     assert plan["shards"][0]["image_digest"] == image.rsplit("@", 1)[1]
     task_yaml = json.loads(Path(plan["shards"][0]["yaml_path"]).read_text(encoding="utf-8"))
     assert task_yaml["imageConfig"]["imageUrl"] == image.rsplit("@", 1)[0]
+    assert task_yaml["preemptible"] is False
     mounts = task_yaml["juiceFsMountConfigs"]
     assert mounts[0]["readOnly"] is True
     assert mounts[0]["mountPath"] == "/mnt/cloudml/input"
@@ -488,7 +490,10 @@ def test_executor_dry_run_selects_image_per_worker_pool(tmp_path: Path) -> None:
     cpu = _row("cpu", ("cpu", "python-env", "artifact-storage"))
     gpu = _row("gpu", ("gpu", "python-env", "artifact-storage", "simulator:mujoco"))
     plan = cloudml.build_cloudml_plan(
-        _manifest(cpu, gpu), execution_target="cloudml", run_id="run-1"
+        _manifest(cpu, gpu),
+        execution_target="cloudml",
+        run_id="run-1",
+        preemptible=True,
     )
     cloudml.write_cloudml_plan(plan, _manifest(cpu, gpu), output_dir=tmp_path)
     executor = tmp_path / "exe"
@@ -512,7 +517,13 @@ def test_executor_dry_run_selects_image_per_worker_pool(tmp_path: Path) -> None:
     assert shards["cloudml-r49"]["image_url"] == _image_urls()["cloudml-r49"]
     assert shards["cloudml-cpu"]["platform_image_url"] == _image_urls()["cloudml-cpu"].split("@")[0]
     assert shards["cloudml-r49"]["image_digest"] == f"sha256:{'d' * 64}"
+    assert shards["cloudml-cpu"]["preemptible"] is False
+    assert shards["cloudml-r49"]["preemptible"] is True
+    assert plan["summary"]["preemptible_shard_count"] == 1
+    cpu_yaml = json.loads(Path(shards["cloudml-cpu"]["yaml_path"]).read_text(encoding="utf-8"))
     gpu_yaml = json.loads(Path(shards["cloudml-r49"]["yaml_path"]).read_text(encoding="utf-8"))
+    assert cpu_yaml["preemptible"] is False
+    assert gpu_yaml["preemptible"] is True
     image_command = gpu_yaml["imageConfig"]["imageCommand"]
     assert "VISUAL_GROUNDING_DEVICE=cuda" in image_command
     assert "VISUAL_GROUNDING_TORCH_DTYPE=auto" in image_command

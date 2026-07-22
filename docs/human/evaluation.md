@@ -115,7 +115,7 @@ ROBOCLAWS_CLOUDML_CPU_IMAGE_URL='<cpu-image>@sha256:<digest>' \
 ROBOCLAWS_CLOUDML_GPU_IMAGE_URL='<cuda-image>@sha256:<digest>' \
 ROBOCLAWS_CLOUDML_ASSET_MANIFEST=/path/to/roboclaws_cloudml_cleanup_assets.json \
   just agent::eval execute profile=baseline-core budget=focused \
-  execution_target=cloudml cloudml_dry_run=true
+  execution_target=cloudml cloudml_dry_run=true cloudml_preemptible=true
 ```
 
 With `cloudml_dry_run=true`, this generates executor `custom_train` YAML for
@@ -125,6 +125,9 @@ code/image/asset identities are pinned. Only image variables for pools selected
 by the plan are required, so a CPU-only run does not need a CUDA image. The CUDA
 image contains the pinned Grounding DINO model snapshot and CUDA sidecar venv;
 the CPU image stays smaller and does not install those dependencies.
+`cloudml_preemptible=true` marks only r49 GPU shards as preemptible so they can
+borrow idle capacity from the queue's `GUARANTEED` resource; CPU shards remain
+non-preemptible. A preempted shard must be resumed as a new explicit attempt.
 
 After reviewing the dry-run and accepting the CloudML cost, omit
 `cloudml_dry_run=true` to upload the staging directory and submit detached

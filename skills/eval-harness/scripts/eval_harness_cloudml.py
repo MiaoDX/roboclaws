@@ -77,6 +77,7 @@ def build_cloudml_plan(
     row_ids: Sequence[str] = (),
     run_id: str = "",
     provider_environment: dict[str, str] | None = None,
+    preemptible: bool = False,
 ) -> dict[str, Any]:
     if execution_target not in {"cloudml", "auto"}:
         raise ValueError(f"unsupported CloudML execution target: {execution_target}")
@@ -128,6 +129,7 @@ def build_cloudml_plan(
         placed,
         run_id=resolved_run_id,
         provider_env_keys_by_row=provider_env_keys_by_row,
+        preemptible=preemptible,
     )
     return {
         "schema": PLAN_SCHEMA,
@@ -153,6 +155,7 @@ def build_cloudml_plan(
             "local_row_count": len(local_rows),
             "blocked_row_count": len(blocked_rows),
             "shard_count": len(shards),
+            "preemptible_shard_count": sum(1 for shard in shards if bool(shard.get("preemptible"))),
         },
     }
 
@@ -427,6 +430,7 @@ def prepare_cloudml_execution(
     row_ids: Sequence[str],
     run_id: str,
     dry_run: bool,
+    preemptible: bool = False,
     retry_shard_ids: Sequence[str] = (),
 ) -> dict[str, Any]:
     if execution_target == "auto" and not dry_run:
@@ -440,6 +444,7 @@ def prepare_cloudml_execution(
         execution_target=execution_target,
         row_ids=row_ids,
         run_id=run_id,
+        preemptible=preemptible,
     )
     plan_path = write_cloudml_plan(plan, manifest, output_dir=output_dir)
     executor_from_environment(
@@ -459,6 +464,7 @@ def prepare_cloudml_dry_run(
     execution_target: str,
     row_ids: Sequence[str],
     run_id: str,
+    preemptible: bool = False,
 ) -> None:
     prepare_cloudml_execution(
         manifest,
@@ -466,6 +472,7 @@ def prepare_cloudml_dry_run(
         row_ids=row_ids,
         run_id=run_id,
         dry_run=True,
+        preemptible=preemptible,
     )
 
 
@@ -581,6 +588,7 @@ def _build_shards(
     *,
     run_id: str,
     provider_env_keys_by_row: dict[str, tuple[str, ...]],
+    preemptible: bool,
 ) -> list[dict[str, Any]]:
     shards: list[dict[str, Any]] = []
     cpu_rows = placed["cloudml-cpu"]
@@ -593,6 +601,7 @@ def _build_shards(
                 run_id=run_id,
                 width=4,
                 provider_env_keys_by_row=provider_env_keys_by_row,
+                preemptible=False,
             )
         )
     gpu_rows = placed["cloudml-r49"]
@@ -623,6 +632,7 @@ def _build_shards(
                 run_id=run_id,
                 width=1,
                 provider_env_keys_by_row=provider_env_keys_by_row,
+                preemptible=preemptible,
             )
         )
     return shards
@@ -636,6 +646,7 @@ def _shard(
     run_id: str,
     width: int,
     provider_env_keys_by_row: dict[str, tuple[str, ...]],
+    preemptible: bool,
 ) -> dict[str, Any]:
     shard_id = f"{run_id}-{suffix}"
     provider_env_keys = sorted(
@@ -648,6 +659,7 @@ def _shard(
         "max_parallel": width,
         "timeout_s": sum(int(row.get("timeout_s") or 0) for row in rows) + 600,
         "provider_env_keys": provider_env_keys,
+        "preemptible": preemptible,
         "output_archive_name": cloudml_task.CLOUDML_SHARD_OUTPUT_ARCHIVE,
         **POOL_RESOURCES[pool],
     }

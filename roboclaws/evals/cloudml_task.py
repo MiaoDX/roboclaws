@@ -85,6 +85,7 @@ def write_cml_task_yaml(
         },
         "queueId": str(shard["queue_id"]),
         "priority": 5,
+        "preemptible": bool(shard.get("preemptible")),
         "framework": "pytorch",
         "resourceConfigs": [
             {

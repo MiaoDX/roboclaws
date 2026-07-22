@@ -41,7 +41,7 @@ ROBOCLAWS_CLOUDML_CPU_IMAGE_URL='<cpu-image>@sha256:<digest>' \
 ROBOCLAWS_CLOUDML_GPU_IMAGE_URL='<cuda-image>@sha256:<digest>' \
 ROBOCLAWS_CLOUDML_ASSET_MANIFEST=/path/to/roboclaws_cloudml_cleanup_assets.json \
   just agent::eval execute profile=baseline-core budget=focused \
-  execution_target=cloudml cloudml_dry_run=true
+  execution_target=cloudml cloudml_dry_run=true cloudml_preemptible=true
 ```
 
 CloudML uses separate CPU and CUDA image digests. Build them through
@@ -51,6 +51,8 @@ CloudML uses separate CPU and CUDA image digests. Build them through
 `ROBOCLAWS_EVAL_DINO_CACHE_DIR` to contain the pinned Grounding DINO snapshot,
 so it remains reproducible when the public Hugging Face Hub is unreachable.
 Normal baseline runs reuse published digests and do not rebuild images.
+`cloudml_preemptible=true` applies only to r49 GPU shards and borrows idle
+capacity from their `GUARANTEED` resource. CPU shards stay non-preemptible.
 
 `execution_target=auto` keeps direct Kimi/MiniMax and provider rows with missing
 local environment on the local worker. It never substitutes another provider

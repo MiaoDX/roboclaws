@@ -84,6 +84,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--execution-target", choices=("local", "cloudml", "auto"), default="local")
     parser.add_argument("--max-parallel", type=local_execution.positive_int, default=1)
     parser.add_argument("--cloudml-dry-run", type=cloudml_execution.bool_value, default=False)
+    parser.add_argument("--cloudml-preemptible", type=cloudml_execution.bool_value, default=False)
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--row-id", action="append", default=[])
     parser.add_argument("--shard-id", default="local-main")
@@ -112,6 +113,7 @@ def main(argv: list[str] | None = None) -> int:
                 row_ids=row_ids,
                 run_id=args.shard_id if args.shard_id != "local-main" else "",
                 dry_run=args.cloudml_dry_run,
+                preemptible=args.cloudml_preemptible,
             )
     _write_outputs(manifest, output_dir)
     print(f"eval harness manifest: {output_dir / 'eval_harness.json'}")
