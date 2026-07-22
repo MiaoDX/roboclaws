@@ -68,7 +68,13 @@ def test_content_store_uses_digest_paths_and_reuses_remote_cache(
     def fake_run(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
         calls.append(argv)
         if "probe" in argv:
-            payload = {"status": "ok", "exit_code": 0, "hit_count": 2}
+            markers = argv[argv.index("--markers") + 1].split(",")
+            payload = {
+                "status": "ok",
+                "exit_code": 0,
+                "hit_count": 1,
+                "hits": [{"markers": {marker: {"exists": True} for marker in markers}}],
+            }
         else:
             payload = {"status": "ok", "exit_code": 0, "files": 2}
         return subprocess.CompletedProcess(argv, 0, json.dumps(payload), "")
@@ -105,11 +111,23 @@ def test_content_store_does_not_reuse_partial_remote_cache(
 
     def partial_hit(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
         calls.append(argv)
-        payload = (
-            {"status": "ok", "exit_code": 0, "hit_count": 1}
-            if "probe" in argv
-            else {"status": "ok", "exit_code": 0, "files": 2}
-        )
+        if "probe" in argv:
+            markers = argv[argv.index("--markers") + 1].split(",")
+            payload = {
+                "status": "ok",
+                "exit_code": 0,
+                "hit_count": 1,
+                "hits": [
+                    {
+                        "markers": {
+                            markers[0]: {"exists": True},
+                            markers[1]: {"exists": False},
+                        }
+                    }
+                ],
+            }
+        else:
+            payload = {"status": "ok", "exit_code": 0, "files": 2}
         return subprocess.CompletedProcess(argv, 0, json.dumps(payload), "")
 
     monkeypatch.setattr(cloudml_content_store.subprocess, "run", partial_hit)

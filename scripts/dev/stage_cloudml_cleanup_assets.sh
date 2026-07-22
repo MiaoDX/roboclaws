@@ -92,18 +92,19 @@ upload_content_if_missing() {
   local local_dir="$2"
   local url="$3"
   local markers="$4"
-  local probe_output hit_count
+  local probe_output cache_ready
   if ! probe_output="$(run_executor storage juicefs probe \
     --url "$url" --markers "$markers" --max_depth 0 --json)"; then
     echo "error: failed to probe CloudML $label content cache" >&2
     exit 1
   fi
-  if ! hit_count="$(printf '%s' "$probe_output" | "$repo_root/.venv/bin/python" -c \
-    'import json, sys; p=json.load(sys.stdin); assert p.get("status") == "ok" and int(p.get("exit_code") or 0) == 0; print(int(p.get("hit_count") or 0))')"; then
+  if ! cache_ready="$(printf '%s' "$probe_output" | "$repo_root/.venv/bin/python" -c \
+    'import json, sys; p=json.load(sys.stdin); assert p.get("status") == "ok" and int(p.get("exit_code") or 0) == 0; markers=sys.argv[1].split(","); print("true" if any(all((hit.get("markers") or {}).get(marker, {}).get("exists") is True for marker in markers) for hit in p.get("hits") or []) else "false")' \
+    "$markers")"; then
     echo "error: CloudML $label content cache probe returned invalid JSON" >&2
     exit 1
   fi
-  if [[ "$hit_count" == "2" ]]; then
+  if [[ "$cache_ready" == "true" ]]; then
     echo "${label}_upload=reused"
     return
   fi

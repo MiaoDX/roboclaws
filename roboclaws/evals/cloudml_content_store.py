@@ -179,7 +179,16 @@ def _remote_cache_ready(entry: dict[str, Any], *, executor_path: Path) -> bool:
     payload = _parse_json(result.stdout, label="JuiceFS content cache probe")
     if payload.get("status") != "ok" or int(payload.get("exit_code") or 0) != 0:
         raise RuntimeError(f"CloudML content cache probe was not successful: {payload}")
-    return int(payload.get("hit_count") or 0) == len(entry["markers"])
+    for hit in payload.get("hits") or []:
+        reported = hit.get("markers") if isinstance(hit, dict) else None
+        if not isinstance(reported, dict):
+            continue
+        if all(
+            isinstance(reported.get(marker), dict) and reported[marker].get("exists") is True
+            for marker in entry["markers"]
+        ):
+            return True
+    return False
 
 
 def _validate_archive_identity(identity: dict[str, str], *, kind: str) -> None:
