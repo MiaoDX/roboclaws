@@ -109,6 +109,7 @@ def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
         if row_id.startswith("map-build-consumer-openai-agents-sdk-")
     ]
     assert len(provider_rows) == 4
+    assert all("live_timeout_s=1500" in row["command"] for row in provider_rows)
     assert all("live_stall_timeout_s=180" in row["command"] for row in provider_rows)
     assert rows["direct-camera-grounded-grounding-dino"]["status"] == "not_run"
     assert rows["direct-map-build-grounding-dino"]["status"] == "not_run"
@@ -444,6 +445,7 @@ def test_map_build_consumer_plan_selects_four_profile_model_matrix(
     for row in matrix_rows.values():
         assert "suite=map_build_consumer" in row["command"]
         assert "agent_engine=openai-agents-sdk" in row["command"]
+        assert "live_timeout_s=1500" in row["command"]
         assert "live_execution=run" in row["command"]
         assert row["axes"]["provider_cell_count"] == "4"
         assert row["axes"]["default_local_concurrency_width"] == "1"
