@@ -67,6 +67,26 @@ Last proven evidence:
   directory. The source fingerprint includes all archived tree paths, sizes,
   mtimes, symlink targets, cache resources, and the complete map bundle, so an
   in-place resource change invalidates the source reference.
+- Commit `001266a8` fixes the JuiceFS cache probe contract: `hit_count` counts
+  matching candidate directories, not individual marker files. The complete
+  baseline therefore reused both remote digest entries and uploaded only its
+  small run manifests and scoped provider inputs.
+- Final run `cloudml-baseline-content-store-4f3d4fec-20260722` selected 27 rows,
+  dispatched 25 eligible rows as one CPU shard plus 14 preemptible r49 shards,
+  and collected all 25 results with zero missing artifacts. Outcomes were 24
+  passed, one failed, and two explicitly blocked for missing external-egress
+  workers. No shard was preempted or retried.
+- Cloud task wall time was 42 minutes 26 seconds, or 44 minutes 41 seconds from
+  harness generation through the last CloudML task. Executed row durations sum
+  to 3 hours 20 minutes 23 seconds, an effective 4.72x task-execution speedup.
+  This is about 11 minutes 46 seconds faster than the previous 54-minute
+  parallel baseline; part of that improvement is lower live-row runtime, not
+  additional scheduler parallelism.
+- Both Codex and MiMo Mify MapBuild matrices passed 5/5. World-public cleanup
+  live passed 3/3. The sole executed failure was RAW-FPV cleanup:
+  `raw_fpv_recovery_exhausted` after 168 successful model calls, zero provider
+  failures, and 2/4 required grounded cleanup chains. This is product behavior,
+  not CloudML, preemption, or provider availability.
 
 Next slice: implement dependency-safe local/CloudML handoff for real
 `execution_target=auto`, then run a representative hybrid baseline.

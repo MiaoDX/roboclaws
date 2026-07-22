@@ -295,6 +295,27 @@ As of 2026-07-22:
   asset/code cache in 4.90 seconds. The run directory stayed about 16 KB and
   the archive SHA remained stable. Complete archived-tree metadata is included
   in the source fingerprint so resource changes invalidate cache references.
+- Commit `001266a8` corrected the JuiceFS probe interpretation so one matching
+  candidate directory with all required markers is a cache hit. Final run
+  `cloudml-baseline-content-store-4f3d4fec-20260722` reused the existing asset
+  and code digest entries instead of re-uploading the 1.8 GB asset archive.
+- That final run selected 27 rows, submitted one CPU shard and 14 preemptible
+  r49 shards, and collected all 25 eligible rows with zero missing results.
+  No shard was preempted or retried. Outcomes were 24 passed, one failed, and
+  two explicitly blocked because direct Kimi/MiniMax still lack an
+  external-egress worker pool.
+- Cloud task execution completed in 42 minutes 26 seconds; measured from
+  harness generation through the last task it took 44 minutes 41 seconds.
+  Executed row durations sum to 3 hours 20 minutes 23 seconds, giving a 4.72x
+  task-execution speedup. The previous parallel baseline took about 54 minutes
+  12 seconds, so the final run was 11 minutes 46 seconds faster; the change
+  combines parallel execution with lower observed live-row durations.
+- Both provider MapBuild matrices passed 5/5, and world-public cleanup live
+  passed 3/3. RAW-FPV cleanup was the sole executed failure. It completed 168
+  successful model calls with no provider failures, then ended as
+  `raw_fpv_recovery_exhausted` after producing only 2/4 required grounded
+  cleanup chains. The failure is independent of CloudML scheduling and
+  preemption.
 
 ## Architecture Contract
 
