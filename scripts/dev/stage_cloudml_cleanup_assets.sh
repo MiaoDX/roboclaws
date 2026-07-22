@@ -233,7 +233,27 @@ esac
 code_tmp="$stage_dir/.code-archive-tmp"
 rm -rf "$code_tmp"
 mkdir -p "$code_tmp/roboclaws.git"
-git -C "$repo_root" archive --format=tar "$code_commit" | tar -xf - -C "$code_tmp/roboclaws.git"
+if git -C "$repo_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git -C "$repo_root" archive --format=tar "$code_commit" | tar -xf - -C "$code_tmp/roboclaws.git"
+else
+  archive_marker="$repo_root/.roboclaws_code_commit"
+  if [[ ! -f "$archive_marker" || "$(<"$archive_marker")" != "$code_commit" ]]; then
+    echo "error: source archive commit marker does not match $code_commit" >&2
+    exit 2
+  fi
+  tar -cf - \
+    --exclude='./.git' \
+    --exclude='./.env' \
+    --exclude='./.tmp' \
+    --exclude='./.venv' \
+    --exclude='./.venv-*' \
+    --exclude='./output' \
+    --exclude='./.pytest_cache' \
+    --exclude='*/__pycache__' \
+    --exclude='*.pyc' \
+    -C "$repo_root" . \
+    | tar -xf - -C "$code_tmp/roboclaws.git"
+fi
 printf '%s\n' "$code_commit" > "$code_tmp/roboclaws.git/.roboclaws_code_commit"
 tar "${reproducible_tar_args[@]}" -cf - -C "$code_tmp" roboclaws.git \
   | gzip -n > "${code_archive_path}.tmp"
