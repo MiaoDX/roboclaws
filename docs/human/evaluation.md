@@ -128,6 +128,16 @@ the CPU image stays smaller and does not install those dependencies.
 `cloudml_preemptible=true` marks only r49 GPU shards as preemptible so they can
 borrow idle capacity from the queue's `GUARANTEED` resource; CPU shards remain
 non-preemptible. A preempted shard must be resumed as a new explicit attempt.
+The task-level preemptible flag is independent of CloudML resource priority; it
+does not require a separate `BEST_EFFORT` r49 resource class.
+
+The 2026-07-22 complete baseline proof selected 27 rows and placed 25 eligible
+rows into 15 CloudML shards: one CPU shard and 14 preemptible r49 GPU shards.
+All 15 tasks were created within 19 seconds and completed in 54 minutes 12
+seconds without preemption. Their row durations summed to about 4 hours 11
+minutes, an effective 4.6x reduction against serialized work. Two direct
+Kimi/MiniMax rows were explicitly blocked because the internal worker pool
+lacks external egress; they were not silently dropped.
 
 After reviewing the dry-run and accepting the CloudML cost, omit
 `cloudml_dry_run=true` to upload the staging directory and submit detached
@@ -210,7 +220,12 @@ just agent::eval suite=cleanup_capability budget=smoke \
 
 Live evals default to a 1200 second wall-clock budget and a 120 second
 no-progress stall timeout. Pass `live_timeout_s=<seconds>` only when you intend
-to override the whole-run wall-clock budget for a specific run.
+to override the whole-run wall-clock budget for a specific run. Catalog rows
+may own a larger explicit budget when the suite has a repeatable long-running
+contract. The MapBuild provider matrices use 1500 seconds because their cleanup
+consumers can exceed 1200 seconds while continuing to make model and tool
+progress. A targeted CloudML proof completed those cleanup cells in 1144.758
+and 1250.085 seconds and passed the full matrix 5/5.
 
 The eval result records blocked provider/runtime conditions separately from
 agent behavior when the selected live route cannot finish.

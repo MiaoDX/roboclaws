@@ -3,7 +3,7 @@ plan_scope: cloudml-juicefs-eval
 status: active
 implementation_allowed: true
 created: 2026-06-18
-last_reviewed: 2026-07-21
+last_reviewed: 2026-07-22
 source:
   - user request to make CloudML a standard eval execution target
   - user approval of the hybrid local and CloudML design on 2026-07-21
@@ -24,15 +24,14 @@ related_context:
 - Parent plan: none
 - Child plans: none
 - Last updated: 2026-07-22
-- Current slice: scoped provider-env staging and bounded CloudML API Router/MiMo
-  live proof are complete; hybrid `auto` execution and the full baseline refresh
-  remain.
+- Current slice: provider-env staging, preemptible r49 execution, the complete
+  CloudML baseline refresh, and the MapBuild timeout follow-up are complete;
+  hybrid `auto` execution remains.
 - Next action: implement dependency-safe local/CloudML handoff, then run a
-  representative hybrid baseline before the full refresh.
-- Blocked on: no credential-transport blocker. The `mimo-1000` channel was
-  removed. This account has eight concurrent r49 resource units; the queue does
-  not expose r49 `BEST_EFFORT`, so saturated submissions still require bounded
-  waves and resume.
+  representative hybrid baseline.
+- Blocked on: no CloudML or credential-transport blocker. Direct Kimi/MiniMax
+  rows have no eligible internal-only worker pool, and the remaining RAW-FPV
+  failure is product capability rather than infrastructure.
 - Do not touch from this session: product task strategy, MCP semantics, eval
   grader policy, unrelated provider routes, or physical-robot backends.
 
@@ -87,8 +86,8 @@ Non-goals:
 - No complete `.env` upload and no provider values in source control, task YAML,
   shell arguments, reports, logs, or the normal input/output mounts. The approved
   provider mount is a separate, minimal plaintext JuiceFS prefix.
-- No preemptible CloudML evidence jobs until application-level resume is
-  independently proven.
+- No scheduler-side transparent retry of preempted evidence. Each retry remains
+  a new explicit shard attempt with persisted task and artifact identity.
 - No FDS publication by default; publication remains an explicit sharing step.
 
 Entity budget:
@@ -212,7 +211,7 @@ Optional:
 
 ## Implementation Evidence
 
-As of 2026-07-21:
+As of 2026-07-22:
 
 - Focused Eval Harness regression passes 211 tests; Ruff, formatting checks,
   and CloudML shell syntax checks pass.
@@ -266,9 +265,27 @@ As of 2026-07-21:
 - Submission initially hit the account's eight-unit r49 quota because six
   unrelated single-unit jobs and two eval shards were already active. Persisted
   task IDs and upload markers allowed the third shard to be submitted with
-  `agent::eval execute run=...` after one unit was released. A later
-  `BEST_EFFORT` smoke was rejected before task creation because this queue has
-  no preemptible r49 resource class.
+  `agent::eval execute run=...` after one unit was released.
+- Commit `9cfeee42` adds `cloudml_preemptible=true` as a task-level flag for r49
+  GPU shards while leaving CPU shards non-preemptible. It works with the queue's
+  `GUARANTEED` r49 resource priority and does not require a `BEST_EFFORT`
+  resource class.
+- Complete run `cloudml-baseline-refresh-preemptible-9cfeee42-20260722`
+  selected 27 rows and submitted 15 tasks concurrently: one CPU shard and 14
+  preemptible r49 shards. The 25 eligible rows were all collected with no
+  missing results; no shard was preempted. Cloud execution took about 54 minutes
+  12 seconds versus about 4 hours 11 minutes of summed row work, an effective
+  4.6x speedup. Outcomes were 23 passed, two failed, and two explicitly blocked
+  for missing external-network worker capability.
+- The Codex MapBuild matrix initially passed 3/5 because both cleanup cells hit
+  the generic 1200-second live budget while still making progress. Commit
+  `dd4d4ade` assigns all MapBuild provider matrix rows a 1500-second budget. The
+  targeted preemptible CloudML proof then passed 5/5 in 2948.113 seconds; its
+  cleanup cells completed in 1144.758 and 1250.085 seconds with no provider
+  failures or budget exhaustion.
+- RAW-FPV cleanup remains the only executed baseline failure after the MapBuild
+  follow-up. It reached 3/4 required grounded cleanup chains before
+  `raw_fpv_recovery_exhausted`, so it remains a product capability issue.
 - The scoped remote dotenv remains plaintext on JuiceFS and currently has no
   automatic deletion lifecycle. A native CloudML secret reference or
   Router-issued short-lived workload token remains the preferred hardening path,
