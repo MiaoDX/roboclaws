@@ -93,6 +93,66 @@ def executor_submit_argv(
     ]
 
 
+def cml2_submit_argv(*, executor_path: Path, yaml_path: Path) -> list[str]:
+    return [
+        str(executor_path),
+        "--no-show-time",
+        "compute",
+        "cloudml",
+        "custom_train",
+        "submit",
+        "--filename",
+        str(yaml_path),
+    ]
+
+
+def write_cml2_task_yaml(
+    shard: dict[str, Any],
+    *,
+    plan: dict[str, Any],
+    image_url: str,
+    identity: dict[str, str],
+    input_subpath: str,
+    output_subpath: str,
+) -> Path:
+    mounts = [
+        _mount(input_subpath, INPUT_MOUNT, read_only=True),
+        _mount(output_subpath, OUTPUT_MOUNT, read_only=False),
+    ]
+    provider_env_subpath = str(shard.get("provider_env_mount_subpath") or "")
+    if provider_env_subpath:
+        mounts.append(_mount(provider_env_subpath, PROVIDER_ENV_MOUNT, read_only=True))
+    payload = {
+        "jobName": _cloudml_name(str(shard["shard_id"])),
+        "description": f"Roboclaws eval harness {plan['run_id']} {shard['shard_id']}",
+        "accessType": "PRIVATE",
+        "imageConfig": {
+            "imageUrl": image_url,
+            "imageCommand": image_command(shard, identity=identity),
+        },
+        "queueId": str(shard["queue_id"]),
+        "priority": 5,
+        "framework": "pytorch",
+        "resourceConfigs": [
+            {
+                "nodeRole": "worker",
+                "nodeNumber": 1,
+                "perNodeResourceSpec": {
+                    "resourcePriority": str(shard["resource_priority"]),
+                    "resourceName": str(shard["resource_name"]),
+                    "resourceNumber": int(shard["resource_number"]),
+                },
+            }
+        ],
+        "juiceFsMountConfigs": mounts,
+    }
+    yaml_path = Path(str(shard["yaml_path"]))
+    yaml_path.parent.mkdir(parents=True, exist_ok=True)
+    # JSON is a YAML subset and avoids adding a serializer dependency to the adapter.
+    yaml_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return yaml_path
+
+
 def image_command(shard: dict[str, Any], *, identity: dict[str, str]) -> str:
     values = {
         "ROBOCLAWS_CLOUDML_CODE_COMMIT": identity["code_commit"],

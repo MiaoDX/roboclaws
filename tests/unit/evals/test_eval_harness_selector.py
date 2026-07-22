@@ -634,6 +634,45 @@ def test_sdk_live_product_row_records_foreground_command_outputs(
     assert any(path.endswith("stderr.log") for path in row["output_artifacts"])
 
 
+def test_successful_row_rerun_clears_previous_blocker_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    manifest = selector.build_eval_harness(
+        budget="focused",
+        changed_files=["roboclaws/household/raw_fpv_guidance.py"],
+        output_dir=tmp_path,
+    )
+    row = _selected_rows(manifest)["openai-agents-sdk-cleanup-camera-raw-fpv-live-product"]
+    row.update(
+        {
+            "status": "blocked",
+            "outcome": "blocked",
+            "blocker_category": "model_or_provider_unavailable",
+            "blockers": [{"category": "model_or_provider_unavailable", "detail": "stale"}],
+            "failure_class": "provider_transient_failure",
+            "failure_detail": "stale",
+        }
+    )
+
+    class FakeProcess:
+        returncode = 0
+
+        def __init__(self, *_args: Any, **_kwargs: Any) -> None:
+            pass
+
+        def communicate(self, timeout: float | None = None) -> tuple[str, str]:
+            return "sdk foreground stdout", ""
+
+    monkeypatch.setattr(runner.local_execution.subprocess, "Popen", FakeProcess)
+
+    runner._run_row(row, manifest)
+
+    assert row["outcome"] == "passed"
+    for key in ("blocker_category", "blockers", "failure_class", "failure_detail"):
+        assert key not in row
+
+
 def test_failed_live_row_with_busy_mcp_port_is_classified_as_blocked() -> None:
     for stderr in (
         (

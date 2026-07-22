@@ -132,23 +132,15 @@ def load_cloudml_run(run_ref: str) -> tuple[Path, dict[str, Any], dict[str, Any]
 def _refresh_cloudml_status(plan: dict[str, Any], *, executor_path: Path) -> dict[str, Any]:
     shards = list(plan.get("shards") or [])
     submitted = [shard for shard in shards if shard.get("task_id")]
+    cml2_describe = False
     for shard in submitted:
         task_id = str(shard["task_id"])
-        result = subprocess.run(
-            [
-                str(executor_path),
-                "compute",
-                "cloudml",
-                "custom_train",
-                "describe",
-                "--job_id",
-                task_id,
-                "--json",
-            ],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
+        argv = _describe_argv(executor_path, task_id=task_id, cml2=cml2_describe)
+        result = subprocess.run(argv, check=False, capture_output=True, text=True)
+        if result.returncode != 0 and _executor_requires_cml2_describe(result):
+            cml2_describe = True
+            argv = _describe_argv(executor_path, task_id=task_id, cml2=True)
+            result = subprocess.run(argv, check=False, capture_output=True, text=True)
         if result.returncode != 0:
             raise RuntimeError(
                 f"CloudML status query failed for {task_id}: "
@@ -198,6 +190,21 @@ def _refresh_cloudml_status(plan: dict[str, Any], *, executor_path: Path) -> dic
     }
     plan["status"] = summary
     return summary
+
+
+def _describe_argv(executor_path: Path, *, task_id: str, cml2: bool) -> list[str]:
+    prefix = [str(executor_path)]
+    if cml2:
+        prefix.append("--no-show-time")
+    argv = [*prefix, "compute", "cloudml", "custom_train", "describe", "--job_id", task_id]
+    if not cml2:
+        argv.append("--json")
+    return argv
+
+
+def _executor_requires_cml2_describe(result: subprocess.CompletedProcess[str]) -> bool:
+    combined = f"{result.stderr}\n{result.stdout}".lower()
+    return "unrecognized arguments:" in combined and "--json" in combined
 
 
 def _normalize_cloudml_state(value: str) -> str:

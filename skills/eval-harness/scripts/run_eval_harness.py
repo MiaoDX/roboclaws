@@ -226,6 +226,8 @@ def _environment_blocker(detail: str) -> dict[str, str]:
 
 
 def _run_row(row: dict[str, Any], manifest: dict[str, Any]) -> None:
+    for key in ("blocker_category", "blockers", "failure_class", "failure_detail"):
+        row.pop(key, None)
     row_dir = Path(row["row_dir"])
     row_dir.mkdir(parents=True, exist_ok=True)
     stdout_path = row_dir / "stdout.log"

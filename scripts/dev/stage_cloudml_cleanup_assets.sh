@@ -8,7 +8,16 @@ executor_config_path="${ROBOCLAWS_EXECUTOR_CONFIG_PATH:-}"
 date_stamp="${ROBOCLAWS_STAGE_DATE:-$(date +%Y%m%d)}"
 code_ref="${ROBOCLAWS_EVAL_CODE_REF:-mi/main}"
 code_commit="${ROBOCLAWS_CLOUDML_CODE_COMMIT:-$(git -C "$repo_root" rev-parse "$code_ref")}"
-code_short="$(git -C "$repo_root" rev-parse --short=12 "$code_commit")"
+if [[ "$code_commit" == "HEAD" && ! -d "$repo_root/.git" && -f "$repo_root/.roboclaws_code_commit" ]]; then
+  code_commit="$(<"$repo_root/.roboclaws_code_commit")"
+elif [[ ! "$code_commit" =~ ^[0-9a-f]{40}$ ]]; then
+  code_commit="$(git -C "$repo_root" rev-parse "$code_commit")"
+fi
+if [[ ! "$code_commit" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "error: CloudML code commit must resolve to a full 40-character SHA" >&2
+  exit 2
+fi
+code_short="${code_commit:0:12}"
 input_rel="${ROBOCLAWS_JUICEFS_INPUT_REL:-roboclaws-assets/cleanup-focused}"
 stage_dir="${ROBOCLAWS_STAGE_DIR:-/tmp/roboclaws-cloudml-cleanup-assets-${code_short}-${date_stamp}}"
 juicefs_url="${ROBOCLAWS_JUICEFS_URL:-https://cloud.mioffice.cn/juicefs/vol-detail?cluster=wlcb-cloudml&name=robot-intelligent-planning-data&path=/dongxu/gpu_perf/gpu_perf/${input_rel}}"

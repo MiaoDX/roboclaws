@@ -255,13 +255,37 @@ def _submit_shard(
         dry_run=dry_run,
     )
     result = subprocess.run(argv, check=False, capture_output=True, text=True)
+    payload: dict[str, Any] | None = None
+    if result.returncode != 0 and _executor_requires_cml2_submit(result):
+        yaml_path = cloudml_task.write_cml2_task_yaml(
+            shard,
+            plan=plan,
+            image_url=platform_image_url,
+            identity=identity,
+            input_subpath=input_subpath,
+            output_subpath=output_subpath,
+        )
+        argv = cloudml_task.cml2_submit_argv(
+            executor_path=executor_path,
+            yaml_path=yaml_path,
+        )
+        if dry_run:
+            result = subprocess.CompletedProcess(argv, 0, "", "")
+            payload = {"dry_run": True, "yaml_path": str(yaml_path)}
+        else:
+            result = subprocess.run(argv, check=False, capture_output=True, text=True)
     shard["executor_exit_code"] = result.returncode
     if result.returncode != 0:
         raise RuntimeError(
             f"CloudML {'dry-run' if dry_run else 'submit'} failed for {shard['shard_id']}: "
             f"{(result.stderr or result.stdout).strip()}"
         )
-    payload = _parse_json_output(result.stdout, label="CloudML submit")
+    if payload is None:
+        payload = (
+            _parse_cml2_submit_output(result.stdout, stderr=result.stderr)
+            if "--filename" in argv
+            else _parse_json_output(result.stdout, label="CloudML submit")
+        )
     shard["executor_argv"] = argv
     shard["image_url"] = image_url
     shard["platform_image_url"] = platform_image_url
@@ -286,6 +310,30 @@ def _submit_shard(
             "remote_status": "submitted",
         }
     )
+
+
+def _executor_requires_cml2_submit(result: subprocess.CompletedProcess[str]) -> bool:
+    combined = f"{result.stderr}\n{result.stdout}".lower()
+    return "arguments are required: --filename" in combined or (
+        "unrecognized arguments:" in combined
+        and any(flag in combined for flag in ("--job_name", "--dry_run", "--output_yaml_path"))
+    )
+
+
+def _parse_cml2_submit_output(output: str, *, stderr: str = "") -> dict[str, Any]:
+    match = re.search(r"CustomTrainJob \[([^\]]+)\]", output)
+    if not match:
+        detail = (stderr or output).strip()
+        suffix = f": {detail}" if detail else ""
+        raise RuntimeError(f"CloudML CML 2.x submit did not create a task{suffix}")
+    task_id = match.group(1)
+    url_match = re.search(r"https://cloudml\.xiaomi\.com/[^\s\x07\x1b]+", output)
+    return {
+        "task_id": task_id,
+        "job_id": task_id,
+        "console_url": url_match.group(0) if url_match else "",
+        "dry_run": False,
+    }
 
 
 def executor_dry_run(
@@ -784,11 +832,22 @@ def _git_commit() -> str:
     result = subprocess.run(
         ["git", "rev-parse", "HEAD"],
         cwd=REPO_ROOT,
-        check=True,
+        check=False,
         capture_output=True,
         text=True,
     )
-    return result.stdout.strip()
+    if result.returncode == 0:
+        commit = result.stdout.strip()
+    else:
+        marker = REPO_ROOT / ".roboclaws_code_commit"
+        commit = marker.read_text(encoding="utf-8").strip() if marker.is_file() else ""
+    if not re.fullmatch(r"[0-9a-f]{40}", commit):
+        detail = (result.stderr or result.stdout).strip()
+        raise RuntimeError(
+            "cannot resolve the CloudML code commit from git or .roboclaws_code_commit"
+            + (f": {detail}" if detail else "")
+        )
+    return commit
 
 
 def _utc_now() -> str:

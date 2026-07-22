@@ -183,6 +183,21 @@ def test_cloudml_plan_uses_cpu_and_r49_capability_pools() -> None:
     }
 
 
+def test_git_commit_uses_archive_marker_when_git_metadata_is_absent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    commit = "a" * 40
+    (tmp_path / ".roboclaws_code_commit").write_text(commit + "\n", encoding="utf-8")
+    monkeypatch.setattr(cloudml, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(
+        cloudml.subprocess,
+        "run",
+        lambda argv, **kwargs: subprocess.CompletedProcess(argv, 128, "", "not a git repo"),
+    )
+
+    assert cloudml._git_commit() == commit
+
+
 def test_dependency_pair_stays_in_one_ordered_shard() -> None:
     requirements = ("gpu", "python-env", "artifact-storage", "simulator:mujoco")
     producer = _row("producer", requirements)
@@ -335,6 +350,113 @@ def test_executor_dry_run_uses_current_target_pinned_inputs_and_safe_mounts(
     serialized = json.dumps(plan)
     assert "API_KEY" not in serialized
     assert "SECRET" not in serialized
+
+
+def test_executor_falls_back_to_cml2_yaml_submit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    row = _row("first", ("cpu", "python-env", "artifact-storage"))
+    manifest = _manifest(row)
+    plan = cloudml.build_cloudml_plan(manifest, execution_target="cloudml", run_id="run-1")
+    cloudml.write_cloudml_plan(plan, manifest, output_dir=tmp_path / "harness")
+    asset_manifest = _asset_manifest(tmp_path, code_commit=plan["code_commit"])
+    calls: list[list[str]] = []
+
+    def fake_run(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        calls.append(argv)
+        if "--job_name" in argv:
+            return subprocess.CompletedProcess(
+                argv, 2, "", "error: the following arguments are required: --filename"
+            )
+        return subprocess.CompletedProcess(
+            argv,
+            0,
+            "The CustomTrainJob [task-cml2](run-1-cpu-001) was created successfully\n"
+            "https://cloudml.xiaomi.com/jobs/task-cml2\n",
+            "",
+        )
+
+    monkeypatch.setattr(cloudml.subprocess, "run", fake_run)
+    cloudml.executor_submit(
+        plan,
+        image_urls=_image_urls(),
+        asset_manifest_path=asset_manifest,
+        executor_path=tmp_path / "exe",
+        input_subpath="/input",
+        output_subpath="/output",
+        dry_run=False,
+    )
+
+    shard = plan["shards"][0]
+    assert calls[1][1:6] == ["--no-show-time", "compute", "cloudml", "custom_train", "submit"]
+    assert calls[1][calls[1].index("--filename") + 1] == shard["yaml_path"]
+    assert shard["task_id"] == "task-cml2"
+    task_yaml = json.loads(Path(shard["yaml_path"]).read_text(encoding="utf-8"))
+    assert task_yaml["imageConfig"]["imageUrl"] == _image_urls()["cloudml-cpu"].split("@")[0]
+    assert task_yaml["juiceFsMountConfigs"][0]["readOnly"] is True
+    assert task_yaml["juiceFsMountConfigs"][1]["readOnly"] is False
+
+
+def test_executor_cml2_dry_run_writes_yaml_without_submitting(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    row = _row("first", ("cpu", "python-env", "artifact-storage"))
+    manifest = _manifest(row)
+    plan = cloudml.build_cloudml_plan(manifest, execution_target="cloudml", run_id="run-1")
+    cloudml.write_cloudml_plan(plan, manifest, output_dir=tmp_path / "harness")
+    calls: list[list[str]] = []
+
+    def fake_run(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        calls.append(argv)
+        return subprocess.CompletedProcess(
+            argv, 2, "", "error: unrecognized arguments: --output_yaml_path --dry_run"
+        )
+
+    monkeypatch.setattr(cloudml.subprocess, "run", fake_run)
+    cloudml.executor_dry_run(
+        plan,
+        image_urls=_image_urls(),
+        asset_manifest_path=_asset_manifest(tmp_path, code_commit=plan["code_commit"]),
+        executor_path=tmp_path / "exe",
+        input_subpath="/input",
+        output_subpath="/output",
+    )
+
+    assert len(calls) == 1
+    shard = plan["shards"][0]
+    assert shard["dry_run"] is True
+    assert Path(shard["yaml_path"]).is_file()
+    assert "--filename" in shard["executor_argv"]
+
+
+def test_executor_cml2_rejects_zero_exit_without_task_id(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    row = _row("first", ("cpu", "python-env", "artifact-storage"))
+    manifest = _manifest(row)
+    plan = cloudml.build_cloudml_plan(manifest, execution_target="cloudml", run_id="run-1")
+    cloudml.write_cloudml_plan(plan, manifest, output_dir=tmp_path / "harness")
+
+    def fake_run(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        if "--job_name" in argv:
+            return subprocess.CompletedProcess(
+                argv, 2, "", "error: the following arguments are required: --filename"
+            )
+        return subprocess.CompletedProcess(argv, 0, "", "account quota exceeded")
+
+    monkeypatch.setattr(cloudml.subprocess, "run", fake_run)
+    with pytest.raises(RuntimeError, match="account quota exceeded"):
+        cloudml.executor_submit(
+            plan,
+            image_urls=_image_urls(),
+            asset_manifest_path=_asset_manifest(tmp_path, code_commit=plan["code_commit"]),
+            executor_path=tmp_path / "exe",
+            input_subpath="/input",
+            output_subpath="/output",
+            dry_run=False,
+        )
+
+    assert "task_id" not in plan["shards"][0]
 
 
 @pytest.mark.parametrize(
@@ -562,6 +684,38 @@ def test_status_normalizes_terminal_cloudml_state(
     assert summary["all_succeeded"] is True
     assert calls[0][1:5] == ["compute", "cloudml", "custom_train", "describe"]
     assert calls[0][calls[0].index("--job_id") + 1] == "task-1"
+
+
+def test_status_falls_back_to_cml2_describe(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    row = _row("first", ("cpu", "python-env", "artifact-storage"))
+    manifest = _manifest(row)
+    harness_dir = tmp_path / "harness"
+    manifest["output_dir"] = str(harness_dir)
+    plan = cloudml.build_cloudml_plan(manifest, execution_target="cloudml", run_id="run-1")
+    plan["shards"][0]["task_id"] = "task-1"
+    cloudml.write_cloudml_plan(plan, manifest, output_dir=harness_dir)
+    (harness_dir / "eval_harness.json").write_text(json.dumps(manifest), encoding="utf-8")
+    calls: list[list[str]] = []
+
+    def fake_run(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        calls.append(argv)
+        if "--json" in argv:
+            return subprocess.CompletedProcess(argv, 2, "", "error: unrecognized arguments: --json")
+        return subprocess.CompletedProcess(
+            argv, 0, json.dumps({"jobId": "task-1", "state": "succeed"}), ""
+        )
+
+    monkeypatch.setattr(cloudml_lifecycle.subprocess, "run", fake_run)
+    summary, _ = cloudml_lifecycle.status_cloudml_run(
+        str(harness_dir), executor_path=tmp_path / "exe"
+    )
+
+    assert summary["all_succeeded"] is True
+    assert len(calls) == 2
+    assert calls[1][1] == "--no-show-time"
+    assert "--json" not in calls[1]
 
 
 def test_status_does_not_treat_partial_submission_as_terminal(
