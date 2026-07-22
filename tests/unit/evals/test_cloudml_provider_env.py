@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from roboclaws.evals import cloudml_provider_env
+from roboclaws.evals import cloudml_content_store, cloudml_provider_env
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CLOUDML_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "eval_harness_cloudml.py"
@@ -66,16 +66,37 @@ def _manifest(row: dict[str, Any]) -> dict[str, Any]:
 
 
 def _asset_manifest(tmp_path: Path, *, code_commit: str) -> Path:
+    asset_dir = tmp_path / "content-cache" / "asset"
+    code_dir = tmp_path / "content-cache" / "code"
+    asset_dir.mkdir(parents=True)
+    code_dir.mkdir(parents=True)
+    asset_path = asset_dir / "assets.tar.gz"
+    code_path = code_dir / "code.tar.gz"
+    asset_path.write_bytes(b"asset")
+    code_path.write_bytes(b"code")
+    Path(f"{asset_path}.sha256").write_text("c" * 64 + "  assets.tar.gz\n")
+    Path(f"{code_path}.sha256").write_text("b" * 64 + "  code.tar.gz\n")
     path = tmp_path / "assets.json"
     path.write_text(
         json.dumps(
             {
-                "juicefs": {"input_rel": "roboclaws-assets/test"},
+                "schema": "roboclaws_cloudml_content_manifest_v2",
+                "juicefs": {"content_rel": "roboclaws-content"},
                 "git": {
                     "code_commit": code_commit,
-                    "code_archive": {"name": "code.tar.gz", "sha256": "b" * 64},
+                    "code_archive": {
+                        "local_path": str(code_path),
+                        "name": code_path.name,
+                        "sha256": "b" * 64,
+                    },
                 },
-                "staged_assets": {"archive": {"name": "assets.tar.gz", "sha256": "c" * 64}},
+                "staged_assets": {
+                    "archive": {
+                        "local_path": str(asset_path),
+                        "name": asset_path.name,
+                        "sha256": "c" * 64,
+                    }
+                },
             }
         ),
         encoding="utf-8",
@@ -140,6 +161,9 @@ def test_provider_environment_is_scoped_uploaded_mounted_and_not_serialized(
     def fake_run(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
         nonlocal provider_local_dir
         calls.append(argv)
+        if "probe" in argv:
+            payload = {"status": "ok", "exit_code": 0, "hit_count": 0}
+            return subprocess.CompletedProcess(argv, 0, json.dumps(payload), "")
         if "upload" in argv:
             url = argv[argv.index("--url") + 1]
             if "executor_cloudml_provider_env" in url:
@@ -162,6 +186,8 @@ def test_provider_environment_is_scoped_uploaded_mounted_and_not_serialized(
         return subprocess.CompletedProcess(argv, 0, output, "")
 
     monkeypatch.setattr(cloudml_provider_env.subprocess, "run", fake_run)
+    monkeypatch.setattr(cloudml_content_store.subprocess, "run", fake_run)
+    monkeypatch.setattr(cloudml.subprocess, "run", fake_run)
     cloudml.executor_from_environment(plan, dry_run=False, plan_path=plan_path)
 
     assert provider_local_dir is not None
@@ -169,8 +195,8 @@ def test_provider_environment_is_scoped_uploaded_mounted_and_not_serialized(
     argv = plan["shards"][0]["executor_argv"]
     task_yaml = json.loads(Path(argv[argv.index("--filename") + 1]).read_text(encoding="utf-8"))
     mounts = task_yaml["juiceFsMountConfigs"]
-    assert mounts[2]["mountPath"] == "/mnt/cloudml/provider-env"
-    assert mounts[2]["readOnly"] is True
+    assert mounts[4]["mountPath"] == "/mnt/cloudml/provider-env"
+    assert mounts[4]["readOnly"] is True
     image_command = task_yaml["imageConfig"]["imageCommand"]
     assert "ROBOCLAWS_CLOUDML_PROVIDER_ENV_FILE" in image_command
     assert "source /mnt/cloudml/provider-env/provider.env" in image_command

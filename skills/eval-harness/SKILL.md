@@ -59,6 +59,14 @@ local environment on the local worker. It never substitutes another provider
 identity. Real hybrid submission remains disabled until the local/cloud
 dependency handoff is implemented; `auto` is currently a placement dry-run only.
 
+CloudML input staging is content-addressed. The MolmoSpaces asset archive and
+the code archive live under `assets/by-sha256/<sha>` and `code/by-sha256/<sha>`;
+each run uploads only its small manifest under `runs/<run-id>`. The adapter
+probes both digest directories before uploading, so repeated baseline refreshes
+reuse the same large archive and code bundle. Workers mount the run manifest,
+asset bundle, and code bundle read-only at `/mnt/cloudml/input`,
+`/mnt/cloudml/assets`, and `/mnt/cloudml/code` respectively.
+
 Submit a detached CloudML run only after reviewing the dry-run and accepting
 the infrastructure cost, then monitor and collect it through the same facade:
 

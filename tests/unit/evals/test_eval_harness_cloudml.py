@@ -11,6 +11,8 @@ from typing import Any
 
 import pytest
 
+from roboclaws.evals import cloudml_content_store
+
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CLOUDML_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "eval_harness_cloudml.py"
 CLOUDML_LIFECYCLE_PATH = (
@@ -70,16 +72,37 @@ def _manifest(*rows: dict[str, Any]) -> dict[str, Any]:
 
 
 def _asset_manifest(tmp_path: Path, *, code_commit: str = "a" * 40) -> Path:
+    asset_dir = tmp_path / "content-cache" / "asset"
+    code_dir = tmp_path / "content-cache" / "code"
+    asset_dir.mkdir(parents=True)
+    code_dir.mkdir(parents=True)
+    asset_path = asset_dir / "assets.tar.gz"
+    code_path = code_dir / "code.tar.gz"
+    asset_path.write_bytes(b"asset")
+    code_path.write_bytes(b"code")
+    Path(f"{asset_path}.sha256").write_text("c" * 64 + "  assets.tar.gz\n")
+    Path(f"{code_path}.sha256").write_text("b" * 64 + "  code.tar.gz\n")
     path = tmp_path / "assets.json"
     path.write_text(
         json.dumps(
             {
-                "juicefs": {"input_rel": "roboclaws-assets/test"},
+                "schema": "roboclaws_cloudml_content_manifest_v2",
+                "juicefs": {"content_rel": "roboclaws-content"},
                 "git": {
                     "code_commit": code_commit,
-                    "code_archive": {"name": "code.tar.gz", "sha256": "b" * 64},
+                    "code_archive": {
+                        "local_path": str(code_path),
+                        "name": code_path.name,
+                        "sha256": "b" * 64,
+                    },
                 },
-                "staged_assets": {"archive": {"name": "assets.tar.gz", "sha256": "c" * 64}},
+                "staged_assets": {
+                    "archive": {
+                        "local_path": str(asset_path),
+                        "name": asset_path.name,
+                        "sha256": "c" * 64,
+                    }
+                },
             }
         ),
         encoding="utf-8",
@@ -152,6 +175,7 @@ def _stage_fixture_assets(stage_dir: Path, assets: Path, cache: Path) -> dict[st
             "ROBOCLAWS_CLOUDML_CODE_COMMIT": "HEAD",
             "ROBOCLAWS_EXECUTOR_ROOT": str(stage_dir / "missing-executor"),
             "ROBOCLAWS_STAGE_DIR": str(stage_dir),
+            "ROBOCLAWS_STAGE_CONTENT_CACHE_DIR": str(stage_dir.parent / "content-cache"),
             "ROBOCLAWS_STAGE_RUN_UPLOAD_DRY_RUN": "false",
             "ROBOCLAWS_STAGE_RUN_UPLOAD": "false",
         }
@@ -344,7 +368,9 @@ def test_executor_dry_run_uses_current_target_pinned_inputs_and_safe_mounts(
         image_urls=_image_urls(),
         asset_manifest_path=_asset_manifest(tmp_path, code_commit=plan["code_commit"]),
         executor_path=executor,
-        input_subpath="/team/evals/run-1/input",
+        run_input_subpath="/team/evals/run-1/input",
+        asset_subpath="/team/evals/assets",
+        code_subpath="/team/evals/code",
         output_subpath="/team/evals/run-1/output",
     )
 
@@ -359,8 +385,17 @@ def test_executor_dry_run_uses_current_target_pinned_inputs_and_safe_mounts(
     mounts = task_yaml["juiceFsMountConfigs"]
     assert mounts[0]["readOnly"] is True
     assert mounts[0]["mountPath"] == "/mnt/cloudml/input"
-    assert mounts[1]["readOnly"] is False
-    assert mounts[1]["mountPath"] == "/mnt/cloudml/output"
+    assert mounts[1] == {
+        "volume": "robot-intelligent-planning-data",
+        "juiceFsCluster": "wlcb-cloudml",
+        "subPath": "/team/evals/assets",
+        "mountPath": "/mnt/cloudml/assets",
+        "readOnly": True,
+    }
+    assert mounts[2]["readOnly"] is True
+    assert mounts[2]["mountPath"] == "/mnt/cloudml/code"
+    assert mounts[3]["readOnly"] is False
+    assert mounts[3]["mountPath"] == "/mnt/cloudml/output"
     serialized = json.dumps(plan)
     assert "API_KEY" not in serialized
     assert "SECRET" not in serialized
@@ -391,7 +426,9 @@ def test_executor_submits_canonical_cml_yaml(
         image_urls=_image_urls(),
         asset_manifest_path=asset_manifest,
         executor_path=tmp_path / "exe",
-        input_subpath="/input",
+        run_input_subpath="/input",
+        asset_subpath="/assets",
+        code_subpath="/code",
         output_subpath="/output",
         dry_run=False,
     )
@@ -404,7 +441,9 @@ def test_executor_submits_canonical_cml_yaml(
     task_yaml = json.loads(Path(shard["yaml_path"]).read_text(encoding="utf-8"))
     assert task_yaml["imageConfig"]["imageUrl"] == _image_urls()["cloudml-cpu"].split("@")[0]
     assert task_yaml["juiceFsMountConfigs"][0]["readOnly"] is True
-    assert task_yaml["juiceFsMountConfigs"][1]["readOnly"] is False
+    assert task_yaml["juiceFsMountConfigs"][1]["mountPath"] == "/mnt/cloudml/assets"
+    assert task_yaml["juiceFsMountConfigs"][2]["mountPath"] == "/mnt/cloudml/code"
+    assert task_yaml["juiceFsMountConfigs"][3]["readOnly"] is False
 
 
 def test_executor_dry_run_writes_yaml_without_submitting(
@@ -426,7 +465,9 @@ def test_executor_dry_run_writes_yaml_without_submitting(
         image_urls=_image_urls(),
         asset_manifest_path=_asset_manifest(tmp_path, code_commit=plan["code_commit"]),
         executor_path=tmp_path / "exe",
-        input_subpath="/input",
+        run_input_subpath="/input",
+        asset_subpath="/assets",
+        code_subpath="/code",
         output_subpath="/output",
     )
 
@@ -455,7 +496,9 @@ def test_executor_rejects_zero_exit_without_task_id(
             image_urls=_image_urls(),
             asset_manifest_path=_asset_manifest(tmp_path, code_commit=plan["code_commit"]),
             executor_path=tmp_path / "exe",
-            input_subpath="/input",
+            run_input_subpath="/input",
+            asset_subpath="/assets",
+            code_subpath="/code",
             output_subpath="/output",
             dry_run=False,
         )
@@ -481,7 +524,9 @@ def test_executor_dry_run_rejects_unpinned_image(tmp_path: Path, image: str) -> 
             image_urls={"cloudml-cpu": image},
             asset_manifest_path=_asset_manifest(tmp_path, code_commit=plan["code_commit"]),
             executor_path=tmp_path / "exe",
-            input_subpath="/input",
+            run_input_subpath="/input",
+            asset_subpath="/assets",
+            code_subpath="/code",
             output_subpath="/output",
         )
 
@@ -508,7 +553,9 @@ def test_executor_dry_run_selects_image_per_worker_pool(tmp_path: Path) -> None:
         image_urls=_image_urls(),
         asset_manifest_path=_asset_manifest(tmp_path, code_commit=plan["code_commit"]),
         executor_path=executor,
-        input_subpath="/input",
+        run_input_subpath="/input",
+        asset_subpath="/assets",
+        code_subpath="/code",
         output_subpath="/output",
     )
 
@@ -565,8 +612,8 @@ def test_environment_dry_run_stages_worker_manifests(
     cloudml.executor_dry_run_from_environment(plan)
 
     assert (stage_dir / "manifests" / "run-1-cpu-001.json").is_file()
-    assert plan["staging"]["local_dir"] == str(stage_dir)
-    assert plan["staging"]["upload_required"] is True
+    assert plan["staging"]["run_input"]["local_dir"] == str(stage_dir)
+    assert plan["staging"]["run_input"]["upload_required"] is True
 
 
 def test_real_submit_uploads_first_and_persists_each_task_id(
@@ -588,7 +635,9 @@ def test_real_submit_uploads_first_and_persists_each_task_id(
 
     def fake_run(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
         calls.append(argv)
-        if "upload" in argv:
+        if "probe" in argv:
+            payload = {"status": "ok", "exit_code": 0, "hit_count": 0}
+        elif "upload" in argv:
             payload = {"status": "ok", "exit_code": 0, "files": 3}
         else:
             submit_index = sum("submit" in call for call in calls)
@@ -601,14 +650,16 @@ def test_real_submit_uploads_first_and_persists_each_task_id(
         return subprocess.CompletedProcess(argv, 0, json.dumps(payload), "")
 
     monkeypatch.setattr(cloudml.subprocess, "run", fake_run)
+    monkeypatch.setattr(cloudml_content_store.subprocess, "run", fake_run)
     cloudml.executor_from_environment(plan, dry_run=False, plan_path=plan_path)
 
-    assert calls[0][1:4] == ["storage", "juicefs", "upload"]
-    assert calls[1][1:4] == ["storage", "juicefs", "upload"]
+    assert [call[3] for call in calls[:5]] == ["probe", "upload", "probe", "upload", "upload"]
     assert "--no_manifest" in calls[1]
-    assert calls[2][1:7] == ["compute", "cloudml", "cml", "--", "custom_train", "submit"]
+    assert calls[6][1:7] == ["compute", "cloudml", "cml", "--", "custom_train", "submit"]
     assert [shard["task_id"] for shard in plan["shards"]] == ["task-1", "task-2"]
-    assert plan["staging"]["upload_required"] is False
+    assert plan["staging"]["asset"]["upload_required"] is False
+    assert plan["staging"]["code"]["upload_required"] is False
+    assert plan["staging"]["run_input"]["upload_required"] is False
     assert plan["staging"]["output_init"]["status"] == "completed"
     assert "do-not-leak" not in json.dumps(plan)
 
@@ -629,6 +680,10 @@ def test_partial_submit_plan_resumes_without_resubmitting_completed_shard(
     submit_calls: list[str] = []
 
     def fail_second(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        if "probe" in argv:
+            return subprocess.CompletedProcess(
+                argv, 0, json.dumps({"status": "ok", "exit_code": 0, "hit_count": 0}), ""
+            )
         if "upload" in argv:
             return subprocess.CompletedProcess(
                 argv, 0, json.dumps({"status": "ok", "exit_code": 0, "files": 3}), ""
@@ -639,6 +694,7 @@ def test_partial_submit_plan_resumes_without_resubmitting_completed_shard(
         return subprocess.CompletedProcess(argv, 0, _cml_submit_output("task-1"), "")
 
     monkeypatch.setattr(cloudml.subprocess, "run", fail_second)
+    monkeypatch.setattr(cloudml_content_store.subprocess, "run", fail_second)
     with pytest.raises(RuntimeError, match="submit failed"):
         cloudml.executor_from_environment(plan, dry_run=False, plan_path=plan_path)
 
@@ -648,6 +704,8 @@ def test_partial_submit_plan_resumes_without_resubmitting_completed_shard(
     resumed_uploads: list[list[str]] = []
 
     def resume(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        if "probe" in argv:
+            raise AssertionError("completed content cache must not be probed again")
         if "upload" in argv:
             resumed_uploads.append(argv)
             payload = {"status": "ok", "exit_code": 0, "files": 3}
@@ -657,6 +715,7 @@ def test_partial_submit_plan_resumes_without_resubmitting_completed_shard(
         return subprocess.CompletedProcess(argv, 0, json.dumps(payload), "")
 
     monkeypatch.setattr(cloudml.subprocess, "run", resume)
+    monkeypatch.setattr(cloudml_content_store.subprocess, "run", resume)
     cloudml.executor_from_environment(resumed, dry_run=False, plan_path=plan_path)
 
     assert len(resumed_calls) == 1
@@ -927,6 +986,8 @@ def test_eval_image_contains_cloudml_worker_entrypoint() -> None:
     assert '--build-context "grounding-dino-cache=$dino_cache_dir"' in build_script
     assert '"$executor_root/exe"' in stage_script
     assert "profiles/nvs/miaodongxu.yaml" not in stage_script
+    assert "storage juicefs probe" in stage_script
+    assert "upload_content_if_missing" in stage_script
 
 
 def test_cloudml_staging_archives_are_reproducible(tmp_path: Path) -> None:
@@ -940,6 +1001,16 @@ def test_cloudml_staging_archives_are_reproducible(tmp_path: Path) -> None:
         first["staged_assets"]["archive"]["sha256"] == second["staged_assets"]["archive"]["sha256"]
     )
     assert first["git"]["code_archive"]["sha256"] == second["git"]["code_archive"]["sha256"]
+    assert first["local_cache"]["asset_reused"] is False
+    assert second["local_cache"]["asset_reused"] is True
+    assert second["local_cache"]["code_reused"] is True
+    assert (
+        first["staged_assets"]["archive"]["local_path"]
+        == second["staged_assets"]["archive"]["local_path"]
+    )
+    assert first["git"]["code_archive"]["local_path"] == second["git"]["code_archive"]["local_path"]
+    assert list((tmp_path / "stage-first" / "archives").iterdir()) == []
+    assert list((tmp_path / "stage-second" / "archives").iterdir()) == []
     with tarfile.open(first["staged_assets"]["archive"]["local_path"], "r:gz") as archive:
         assert (
             "molmospaces/cache/scenes/procthor-10k-val/20251217/"
@@ -948,3 +1019,22 @@ def test_cloudml_staging_archives_are_reproducible(tmp_path: Path) -> None:
         assert (
             "molmospaces/cache/grasps/droid_objaverse/20251218/mjthor_resource_file_to_size_mb.json"
         ) in archive.getnames()
+
+
+def test_cloudml_staging_invalidates_cache_when_archived_asset_changes(tmp_path: Path) -> None:
+    assets, cache = _minimal_molmospaces_assets(tmp_path)
+
+    first = _stage_fixture_assets(tmp_path / "stage-first", assets, cache)
+    (assets / "scenes/procthor-10k-val/val_0_assets/mesh.obj").write_text(
+        "changed mesh fixture\n", encoding="utf-8"
+    )
+    second = _stage_fixture_assets(tmp_path / "stage-second", assets, cache)
+
+    assert second["local_cache"]["asset_reused"] is False
+    assert (
+        first["local_cache"]["asset_source_fingerprint"]
+        != second["local_cache"]["asset_source_fingerprint"]
+    )
+    assert (
+        first["staged_assets"]["archive"]["sha256"] != second["staged_assets"]["archive"]["sha256"]
+    )

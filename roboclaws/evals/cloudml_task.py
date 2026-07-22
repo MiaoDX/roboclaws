@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any
 
 INPUT_MOUNT = "/mnt/cloudml/input"
+ASSET_MOUNT = "/mnt/cloudml/assets"
+CODE_MOUNT = "/mnt/cloudml/code"
 OUTPUT_MOUNT = "/mnt/cloudml/output"
 CLOUDML_OUTPUT_SCRATCH_ROOT = "/tmp/roboclaws-cloudml/output"
 CLOUDML_SHARD_OUTPUT_ARCHIVE = "shard-output.tar"
@@ -65,11 +67,15 @@ def write_cml_task_yaml(
     plan: dict[str, Any],
     image_url: str,
     identity: dict[str, str],
-    input_subpath: str,
+    run_input_subpath: str,
+    asset_subpath: str,
+    code_subpath: str,
     output_subpath: str,
 ) -> Path:
     mounts = [
-        _mount(input_subpath, INPUT_MOUNT, read_only=True),
+        _mount(run_input_subpath, INPUT_MOUNT, read_only=True),
+        _mount(asset_subpath, ASSET_MOUNT, read_only=True),
+        _mount(code_subpath, CODE_MOUNT, read_only=True),
         _mount(output_subpath, OUTPUT_MOUNT, read_only=False),
     ]
     provider_env_subpath = str(shard.get("provider_env_mount_subpath") or "")
@@ -110,7 +116,7 @@ def write_cml_task_yaml(
 def image_command(shard: dict[str, Any], *, identity: dict[str, str]) -> str:
     values = {
         "ROBOCLAWS_CLOUDML_CODE_COMMIT": identity["code_commit"],
-        "ROBOCLAWS_CLOUDML_CODE_ARCHIVE": f"{INPUT_MOUNT}/archives/{identity['code_archive_name']}",
+        "ROBOCLAWS_CLOUDML_CODE_ARCHIVE": f"{CODE_MOUNT}/{identity['code_archive_name']}",
         "ROBOCLAWS_CLOUDML_CODE_ARCHIVE_SHA256": identity["code_archive_sha256"],
         "ROBOCLAWS_CLOUDML_ASSET_MANIFEST_SHA256": identity["asset_manifest_sha256"],
         "ROBOCLAWS_CLOUDML_ASSET_MANIFEST": f"{INPUT_MOUNT}/roboclaws_cloudml_cleanup_assets.json",
@@ -128,7 +134,7 @@ def image_command(shard: dict[str, Any], *, identity: dict[str, str]) -> str:
         )
     if shard["worker_pool"] == "cloudml-r49":
         values["ROBOCLAWS_CLOUDML_ASSET_ARCHIVE"] = (
-            f"{INPUT_MOUNT}/archives/{identity['asset_archive_name']}"
+            f"{ASSET_MOUNT}/{identity['asset_archive_name']}"
         )
         values["ROBOCLAWS_CLOUDML_ASSET_ARCHIVE_SHA256"] = identity["asset_archive_sha256"]
         values["VISUAL_GROUNDING_DEVICE"] = "cuda"

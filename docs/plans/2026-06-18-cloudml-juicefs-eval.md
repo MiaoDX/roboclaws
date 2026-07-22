@@ -25,8 +25,8 @@ related_context:
 - Child plans: none
 - Last updated: 2026-07-22
 - Current slice: provider-env staging, preemptible r49 execution, the complete
-  CloudML baseline refresh, and the MapBuild timeout follow-up are complete;
-  hybrid `auto` execution remains.
+  CloudML baseline refresh, the MapBuild timeout follow-up, and content-addressed
+  staging are complete; hybrid `auto` execution remains.
 - Next action: implement dependency-safe local/CloudML handoff, then run a
   representative hybrid baseline.
 - Blocked on: no CloudML or credential-transport blocker. Direct Kimi/MiniMax
@@ -290,6 +290,11 @@ As of 2026-07-22:
   automatic deletion lifecycle. A native CloudML secret reference or
   Router-issued short-lived workload token remains the preferred hardening path,
   but is no longer a blocker for the approved controlled baseline workflow.
+- Content-addressed staging was verified locally: a first archive build took
+  89.29 seconds for 1,800,828,916 bytes; an unchanged second run reused the
+  asset/code cache in 4.90 seconds. The run directory stayed about 16 KB and
+  the archive SHA remained stable. Complete archived-tree metadata is included
+  in the source fingerprint so resource changes invalidate cache references.
 
 ## Architecture Contract
 

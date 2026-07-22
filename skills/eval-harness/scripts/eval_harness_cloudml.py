@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import datetime as dt
-import hashlib
 import json
 import os
 import re
@@ -13,7 +12,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Sequence
 
-from roboclaws.evals import cloudml_provider_env, cloudml_task
+from roboclaws.evals import cloudml_content_store, cloudml_provider_env, cloudml_task
 
 PLAN_SCHEMA = "roboclaws_eval_harness_cloudml_plan_v1"
 POOL_CAPABILITIES = {
@@ -193,13 +192,15 @@ def executor_submit(
     image_urls: dict[str, str],
     asset_manifest_path: Path,
     executor_path: Path,
-    input_subpath: str,
+    run_input_subpath: str,
+    asset_subpath: str,
+    code_subpath: str,
     output_subpath: str,
     dry_run: bool,
     plan_path: Path | None = None,
     retry_shard_ids: Sequence[str] = (),
 ) -> None:
-    identity = _load_asset_identity(asset_manifest_path)
+    identity = cloudml_content_store.load_identity(asset_manifest_path)
     cloudml_task.validate_image_urls(plan, image_urls)
     if identity["code_commit"] != plan["code_commit"]:
         raise ValueError(
@@ -216,7 +217,9 @@ def executor_submit(
             image_url=image_urls[str(shard["worker_pool"])],
             identity=identity,
             executor_path=executor_path,
-            input_subpath=input_subpath,
+            run_input_subpath=run_input_subpath,
+            asset_subpath=asset_subpath,
+            code_subpath=code_subpath,
             output_subpath=output_subpath,
             dry_run=dry_run,
         )
@@ -240,7 +243,9 @@ def _submit_shard(
     image_url: str,
     identity: dict[str, str],
     executor_path: Path,
-    input_subpath: str,
+    run_input_subpath: str,
+    asset_subpath: str,
+    code_subpath: str,
     output_subpath: str,
     dry_run: bool,
 ) -> None:
@@ -255,7 +260,9 @@ def _submit_shard(
         plan=plan,
         image_url=platform_image_url,
         identity=identity,
-        input_subpath=input_subpath,
+        run_input_subpath=run_input_subpath,
+        asset_subpath=asset_subpath,
+        code_subpath=code_subpath,
         output_subpath=output_subpath,
     )
     argv = cloudml_task.cml_submit_argv(executor_path=executor_path, yaml_path=yaml_path)
@@ -321,7 +328,9 @@ def executor_dry_run(
     image_urls: dict[str, str],
     asset_manifest_path: Path,
     executor_path: Path,
-    input_subpath: str,
+    run_input_subpath: str,
+    asset_subpath: str,
+    code_subpath: str,
     output_subpath: str,
 ) -> None:
     executor_submit(
@@ -329,7 +338,9 @@ def executor_dry_run(
         image_urls=image_urls,
         asset_manifest_path=asset_manifest_path,
         executor_path=executor_path,
-        input_subpath=input_subpath,
+        run_input_subpath=run_input_subpath,
+        asset_subpath=asset_subpath,
+        code_subpath=code_subpath,
         output_subpath=output_subpath,
         dry_run=True,
     )
@@ -355,12 +366,14 @@ def executor_from_environment(
         )
     asset_manifest_path = Path(asset_manifest)
     payload = json.loads(asset_manifest_path.read_text(encoding="utf-8"))
-    input_rel = str((payload.get("juicefs") or {}).get("input_rel") or "")
-    if not input_rel:
-        raise ValueError("CloudML asset manifest must define juicefs.input_rel")
-    input_subpath = os.environ.get(
-        "ROBOCLAWS_CLOUDML_INPUT_SUBPATH", f"/dongxu/gpu_perf/gpu_perf/{input_rel}"
+    content_rel = str((payload.get("juicefs") or {}).get("content_rel") or "")
+    if not content_rel:
+        raise ValueError("CloudML content manifest must define juicefs.content_rel")
+    content_root_subpath = os.environ.get(
+        "ROBOCLAWS_CLOUDML_CONTENT_ROOT_SUBPATH",
+        f"/dongxu/gpu_perf/gpu_perf/{content_rel}",
     )
+    run_input_subpath = os.environ.get("ROBOCLAWS_CLOUDML_RUN_INPUT_SUBPATH", "")
     output_subpath = os.environ.get(
         "ROBOCLAWS_CLOUDML_OUTPUT_SUBPATH",
         f"/dongxu/gpu_perf/executor_cloudml_runs/roboclaws-eval-harness/{plan['run_id']}",
@@ -371,19 +384,17 @@ def executor_from_environment(
     )
     _stage_shard_manifests(plan, stage_dir=asset_manifest_path.parent)
     prior_staging = plan.get("staging") or {}
-    prior_upload = prior_staging.get("upload")
     prior_output_init = prior_staging.get("output_init")
     prior_provider_environment = prior_staging.get("provider_environment")
-    plan["staging"] = {
-        "local_dir": str(asset_manifest_path.parent),
-        "input_subpath": input_subpath,
-        "output_subpath": output_subpath,
-        "input_url": cloudml_task.juicefs_url(input_subpath),
-        "output_url": cloudml_task.juicefs_url(output_subpath),
-        "upload_required": not prior_upload,
-    }
-    if prior_upload:
-        plan["staging"]["upload"] = prior_upload
+    cloudml_content_store.configure_staging(
+        plan,
+        manifest_path=asset_manifest_path,
+        juicefs_url=cloudml_task.juicefs_url,
+        output_subpath=output_subpath,
+        prior_staging=prior_staging,
+        content_root_subpath=content_root_subpath,
+        run_input_subpath=run_input_subpath,
+    )
     if prior_output_init:
         plan["staging"]["output_init"] = prior_output_init
     cloudml_provider_env.configure_staging(
@@ -404,14 +415,21 @@ def executor_from_environment(
                 executor_path=executor_path,
                 plan_path=plan_path,
             )
-        _upload_staging(plan, executor_path=executor_path, plan_path=plan_path)
+        cloudml_content_store.upload(
+            plan,
+            executor_path=executor_path,
+            persist=lambda: _write_json(plan_path, plan) if plan_path is not None else None,
+        )
         _initialize_output_mount(plan, executor_path=executor_path, plan_path=plan_path)
+    staging = plan["staging"]
     executor_submit(
         plan,
         image_urls=image_urls,
         asset_manifest_path=asset_manifest_path,
         executor_path=executor_path,
-        input_subpath=input_subpath,
+        run_input_subpath=str(staging["run_input"]["subpath"]),
+        asset_subpath=str(staging["asset"]["subpath"]),
+        code_subpath=str(staging["code"]["subpath"]),
         output_subpath=output_subpath,
         dry_run=dry_run,
         plan_path=plan_path,
@@ -689,25 +707,6 @@ def _replace_prefix(value: Any, source: str, destination: str) -> Any:
     return value
 
 
-def _load_asset_identity(path: Path) -> dict[str, str]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    code = payload.get("git") or {}
-    archive = (payload.get("staged_assets") or {}).get("archive") or {}
-    code_archive = code.get("code_archive") or {}
-    identity = {
-        "code_commit": str(code.get("code_commit") or ""),
-        "code_archive_name": str(code_archive.get("name") or ""),
-        "code_archive_sha256": str(code_archive.get("sha256") or ""),
-        "asset_archive_name": str(archive.get("name") or ""),
-        "asset_archive_sha256": str(archive.get("sha256") or ""),
-        "asset_manifest_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-    }
-    missing = [key for key, value in identity.items() if not value]
-    if missing:
-        raise ValueError(f"asset manifest is missing identity field(s): {', '.join(missing)}")
-    return identity
-
-
 def _read_json_object(path: Path, *, label: str) -> dict[str, Any]:
     if not path.is_file():
         raise ValueError(f"missing {label}: {path}")
@@ -733,42 +732,6 @@ def _parse_json_output(value: str, *, label: str) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise RuntimeError(f"{label} must return a JSON object")
     return payload
-
-
-def _upload_staging(plan: dict[str, Any], *, executor_path: Path, plan_path: Path | None) -> None:
-    staging = plan["staging"]
-    if (staging.get("upload") or {}).get("status") == "completed":
-        return
-    result = subprocess.run(
-        [
-            str(executor_path),
-            "storage",
-            "juicefs",
-            "upload",
-            "--local_dir",
-            str(staging["local_dir"]),
-            "--url",
-            str(staging["input_url"]),
-            "--json",
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        detail = (result.stderr or result.stdout).strip()
-        raise RuntimeError(f"CloudML staging upload failed: {detail}")
-    payload = _parse_json_output(result.stdout, label="JuiceFS upload")
-    if payload.get("status") != "ok" or int(payload.get("exit_code") or 0) != 0:
-        raise RuntimeError(f"CloudML staging upload was not successful: {payload}")
-    staging["upload"] = {
-        "status": "completed",
-        "completed_at": _utc_now(),
-        "files": int(payload.get("files") or 0),
-    }
-    staging["upload_required"] = False
-    if plan_path is not None:
-        _write_json(plan_path, plan)
 
 
 def _initialize_output_mount(

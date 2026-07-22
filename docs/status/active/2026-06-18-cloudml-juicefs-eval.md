@@ -13,8 +13,8 @@ Latest user intent: make complete baseline refreshes convenient and faster on
 CloudML by running independent rows concurrently as preemptible r49 shards.
 
 Current slice: the complete CloudML baseline refresh, preemptible r49 support,
-and the MapBuild live-matrix timeout follow-up are complete. Hybrid `auto`
-dependency handoff remains.
+the MapBuild live-matrix timeout follow-up, and content-addressed staging are
+complete. Hybrid `auto` dependency handoff remains.
 
 Current blocker: no CloudML execution or credential-transport blocker. Direct
 Kimi/MiniMax rows remain ineligible on the internal-only worker pool. The
@@ -60,6 +60,13 @@ Last proven evidence:
   seconds, proving the old 1200-second failure was a budget boundary.
 - RAW-FPV cleanup remains a product capability failure:
   `raw_fpv_recovery_exhausted` after 3/4 required grounded cleanup chains.
+- Content staging now stores immutable assets and code under digest paths and
+  keeps `runs/<run-id>` manifests separate. The first local proof built the
+  1,800,828,916-byte asset archive in 89.29 seconds; a later unchanged run
+  reused both content entries in 4.90 seconds with a roughly 16 KB run
+  directory. The source fingerprint includes all archived tree paths, sizes,
+  mtimes, symlink targets, cache resources, and the complete map bundle, so an
+  in-place resource change invalidates the source reference.
 
 Next slice: implement dependency-safe local/CloudML handoff for real
 `execution_target=auto`, then run a representative hybrid baseline.
