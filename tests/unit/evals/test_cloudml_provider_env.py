@@ -154,9 +154,12 @@ def test_provider_environment_is_scoped_uploaded_mounted_and_not_serialized(
                 ).stdout
                 assert f"CODEX_API_KEY={sentinel}" in shell
             payload = {"status": "ok", "exit_code": 0, "files": 1}
-        else:
-            payload = {"task_id": "task-1", "job_id": "task-1", "dry_run": False}
-        return subprocess.CompletedProcess(argv, 0, json.dumps(payload), "")
+            return subprocess.CompletedProcess(argv, 0, json.dumps(payload), "")
+        output = (
+            "The CustomTrainJob [task-1](eval-shard) was created successfully\n"
+            "https://cloudml.xiaomi.com/jobs/task-1\n"
+        )
+        return subprocess.CompletedProcess(argv, 0, output, "")
 
     monkeypatch.setattr(cloudml_provider_env.subprocess, "run", fake_run)
     cloudml.executor_from_environment(plan, dry_run=False, plan_path=plan_path)
@@ -164,10 +167,11 @@ def test_provider_environment_is_scoped_uploaded_mounted_and_not_serialized(
     assert provider_local_dir is not None
     assert not provider_local_dir.exists()
     argv = plan["shards"][0]["executor_argv"]
-    mounts = json.loads(argv[argv.index("--juicefs_mount_configs") + 1])
+    task_yaml = json.loads(Path(argv[argv.index("--filename") + 1]).read_text(encoding="utf-8"))
+    mounts = task_yaml["juiceFsMountConfigs"]
     assert mounts[2]["mountPath"] == "/mnt/cloudml/provider-env"
     assert mounts[2]["readOnly"] is True
-    image_command = argv[argv.index("--image_command") + 1]
+    image_command = task_yaml["imageConfig"]["imageCommand"]
     assert "ROBOCLAWS_CLOUDML_PROVIDER_ENV_FILE" in image_command
     assert "source /mnt/cloudml/provider-env/provider.env" in image_command
     assert sentinel not in json.dumps(plan)

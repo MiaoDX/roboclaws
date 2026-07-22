@@ -45,62 +45,13 @@ def split_image_reference(image_url: str) -> tuple[str, str]:
     return match.group(1), match.group(2)
 
 
-def executor_submit_argv(
-    shard: dict[str, Any],
-    *,
-    plan: dict[str, Any],
-    image_url: str,
-    identity: dict[str, str],
-    executor_path: Path,
-    input_subpath: str,
-    output_subpath: str,
-    dry_run: bool,
-) -> list[str]:
-    mounts = [
-        _mount(input_subpath, INPUT_MOUNT, read_only=True),
-        _mount(output_subpath, OUTPUT_MOUNT, read_only=False),
-    ]
-    provider_env_subpath = str(shard.get("provider_env_mount_subpath") or "")
-    if provider_env_subpath:
-        mounts.append(_mount(provider_env_subpath, PROVIDER_ENV_MOUNT, read_only=True))
+def cml_submit_argv(*, executor_path: Path, yaml_path: Path) -> list[str]:
     return [
         str(executor_path),
         "compute",
         "cloudml",
-        "custom_train",
-        "submit",
-        "--job_name",
-        _cloudml_name(str(shard["shard_id"])),
-        "--description",
-        f"Roboclaws eval harness {plan['run_id']} {shard['shard_id']}",
-        "--image_url",
-        image_url,
-        "--image_command",
-        image_command(shard, identity=identity),
-        "--juicefs_mount_configs",
-        json.dumps(mounts, separators=(",", ":")),
-        "--queue_id",
-        str(shard["queue_id"]),
-        "--resource_priority",
-        str(shard["resource_priority"]),
-        "--resource_name",
-        str(shard["resource_name"]),
-        "--resource_number",
-        str(shard["resource_number"]),
-        "--output_yaml_path",
-        str(shard["yaml_path"]),
-        "--dry_run",
-        "true" if dry_run else "false",
-        "--json",
-    ]
-
-
-def cml2_submit_argv(*, executor_path: Path, yaml_path: Path) -> list[str]:
-    return [
-        str(executor_path),
-        "--no-show-time",
-        "compute",
-        "cloudml",
+        "cml",
+        "--",
         "custom_train",
         "submit",
         "--filename",
@@ -108,7 +59,7 @@ def cml2_submit_argv(*, executor_path: Path, yaml_path: Path) -> list[str]:
     ]
 
 
-def write_cml2_task_yaml(
+def write_cml_task_yaml(
     shard: dict[str, Any],
     *,
     plan: dict[str, Any],

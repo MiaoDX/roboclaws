@@ -94,6 +94,13 @@ def _image_urls() -> dict[str, str]:
     }
 
 
+def _cml_submit_output(task_id: str) -> str:
+    return (
+        f"The CustomTrainJob [{task_id}](eval-shard) was created successfully\n"
+        f"https://cloudml.xiaomi.com/jobs/{task_id}\n"
+    )
+
+
 def _set_image_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     images = _image_urls()
     monkeypatch.setenv("ROBOCLAWS_CLOUDML_CPU_IMAGE_URL", images["cloudml-cpu"])
@@ -341,12 +348,13 @@ def test_executor_dry_run_uses_current_target_pinned_inputs_and_safe_mounts(
     )
 
     argv = plan["shards"][0]["executor_argv"]
-    assert argv[1:5] == ["compute", "cloudml", "custom_train", "submit"]
-    assert argv[argv.index("--dry_run") + 1] == "true"
-    assert argv[argv.index("--image_url") + 1] == image.rsplit("@", 1)[0]
+    assert argv[1:7] == ["compute", "cloudml", "cml", "--", "custom_train", "submit"]
+    assert argv[argv.index("--filename") + 1] == plan["shards"][0]["yaml_path"]
     assert plan["shards"][0]["image_url"] == image
     assert plan["shards"][0]["image_digest"] == image.rsplit("@", 1)[1]
-    mounts = json.loads(argv[argv.index("--juicefs_mount_configs") + 1])
+    task_yaml = json.loads(Path(plan["shards"][0]["yaml_path"]).read_text(encoding="utf-8"))
+    assert task_yaml["imageConfig"]["imageUrl"] == image.rsplit("@", 1)[0]
+    mounts = task_yaml["juiceFsMountConfigs"]
     assert mounts[0]["readOnly"] is True
     assert mounts[0]["mountPath"] == "/mnt/cloudml/input"
     assert mounts[1]["readOnly"] is False
@@ -354,14 +362,14 @@ def test_executor_dry_run_uses_current_target_pinned_inputs_and_safe_mounts(
     serialized = json.dumps(plan)
     assert "API_KEY" not in serialized
     assert "SECRET" not in serialized
-    image_command = argv[argv.index("--image_command") + 1]
+    image_command = task_yaml["imageConfig"]["imageCommand"]
     assert "ROBOCLAWS_CLOUDML_REMOTE_OUTPUT_DIR" in image_command
     assert "shard-output.tar" in image_command
     assert "tar -cf" in image_command
     assert "exec /opt/roboclaws/bin/run-cloudml-eval-worker" not in image_command
 
 
-def test_executor_falls_back_to_cml2_yaml_submit(
+def test_executor_submits_canonical_cml_yaml(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     row = _row("first", ("cpu", "python-env", "artifact-storage"))
@@ -373,17 +381,7 @@ def test_executor_falls_back_to_cml2_yaml_submit(
 
     def fake_run(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
         calls.append(argv)
-        if "--job_name" in argv:
-            return subprocess.CompletedProcess(
-                argv, 2, "", "error: the following arguments are required: --filename"
-            )
-        return subprocess.CompletedProcess(
-            argv,
-            0,
-            "The CustomTrainJob [task-cml2](run-1-cpu-001) was created successfully\n"
-            "https://cloudml.xiaomi.com/jobs/task-cml2\n",
-            "",
-        )
+        return subprocess.CompletedProcess(argv, 0, _cml_submit_output("task-official"), "")
 
     monkeypatch.setattr(cloudml.subprocess, "run", fake_run)
     cloudml.executor_submit(
@@ -397,16 +395,17 @@ def test_executor_falls_back_to_cml2_yaml_submit(
     )
 
     shard = plan["shards"][0]
-    assert calls[1][1:6] == ["--no-show-time", "compute", "cloudml", "custom_train", "submit"]
-    assert calls[1][calls[1].index("--filename") + 1] == shard["yaml_path"]
-    assert shard["task_id"] == "task-cml2"
+    assert len(calls) == 1
+    assert calls[0][1:7] == ["compute", "cloudml", "cml", "--", "custom_train", "submit"]
+    assert calls[0][calls[0].index("--filename") + 1] == shard["yaml_path"]
+    assert shard["task_id"] == "task-official"
     task_yaml = json.loads(Path(shard["yaml_path"]).read_text(encoding="utf-8"))
     assert task_yaml["imageConfig"]["imageUrl"] == _image_urls()["cloudml-cpu"].split("@")[0]
     assert task_yaml["juiceFsMountConfigs"][0]["readOnly"] is True
     assert task_yaml["juiceFsMountConfigs"][1]["readOnly"] is False
 
 
-def test_executor_cml2_dry_run_writes_yaml_without_submitting(
+def test_executor_dry_run_writes_yaml_without_submitting(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     row = _row("first", ("cpu", "python-env", "artifact-storage"))
@@ -417,9 +416,7 @@ def test_executor_cml2_dry_run_writes_yaml_without_submitting(
 
     def fake_run(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
         calls.append(argv)
-        return subprocess.CompletedProcess(
-            argv, 2, "", "error: unrecognized arguments: --output_yaml_path --dry_run"
-        )
+        raise AssertionError("CloudML dry-run must not invoke executor")
 
     monkeypatch.setattr(cloudml.subprocess, "run", fake_run)
     cloudml.executor_dry_run(
@@ -431,14 +428,14 @@ def test_executor_cml2_dry_run_writes_yaml_without_submitting(
         output_subpath="/output",
     )
 
-    assert len(calls) == 1
+    assert calls == []
     shard = plan["shards"][0]
     assert shard["dry_run"] is True
     assert Path(shard["yaml_path"]).is_file()
     assert "--filename" in shard["executor_argv"]
 
 
-def test_executor_cml2_rejects_zero_exit_without_task_id(
+def test_executor_rejects_zero_exit_without_task_id(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     row = _row("first", ("cpu", "python-env", "artifact-storage"))
@@ -447,10 +444,6 @@ def test_executor_cml2_rejects_zero_exit_without_task_id(
     cloudml.write_cloudml_plan(plan, manifest, output_dir=tmp_path / "harness")
 
     def fake_run(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
-        if "--job_name" in argv:
-            return subprocess.CompletedProcess(
-                argv, 2, "", "error: the following arguments are required: --filename"
-            )
         return subprocess.CompletedProcess(argv, 0, "", "account quota exceeded")
 
     monkeypatch.setattr(cloudml.subprocess, "run", fake_run)
@@ -519,8 +512,8 @@ def test_executor_dry_run_selects_image_per_worker_pool(tmp_path: Path) -> None:
     assert shards["cloudml-r49"]["image_url"] == _image_urls()["cloudml-r49"]
     assert shards["cloudml-cpu"]["platform_image_url"] == _image_urls()["cloudml-cpu"].split("@")[0]
     assert shards["cloudml-r49"]["image_digest"] == f"sha256:{'d' * 64}"
-    gpu_command = shards["cloudml-r49"]["executor_argv"]
-    image_command = gpu_command[gpu_command.index("--image_command") + 1]
+    gpu_yaml = json.loads(Path(shards["cloudml-r49"]["yaml_path"]).read_text(encoding="utf-8"))
+    image_command = gpu_yaml["imageConfig"]["imageCommand"]
     assert "VISUAL_GROUNDING_DEVICE=cuda" in image_command
     assert "VISUAL_GROUNDING_TORCH_DTYPE=auto" in image_command
 
@@ -591,13 +584,9 @@ def test_real_submit_uploads_first_and_persists_each_task_id(
             if submit_index == 2:
                 persisted = json.loads(plan_path.read_text(encoding="utf-8"))
                 assert persisted["shards"][0]["task_id"] == "task-1"
-            payload = {
-                "task_id": f"task-{submit_index}",
-                "job_id": f"task-{submit_index}",
-                "console_url": f"https://cloudml/jobs/task-{submit_index}",
-                "yaml_path": "/tmp/task.yaml",
-                "dry_run": False,
-            }
+            return subprocess.CompletedProcess(
+                argv, 0, _cml_submit_output(f"task-{submit_index}"), ""
+            )
         return subprocess.CompletedProcess(argv, 0, json.dumps(payload), "")
 
     monkeypatch.setattr(cloudml.subprocess, "run", fake_run)
@@ -606,7 +595,7 @@ def test_real_submit_uploads_first_and_persists_each_task_id(
     assert calls[0][1:4] == ["storage", "juicefs", "upload"]
     assert calls[1][1:4] == ["storage", "juicefs", "upload"]
     assert "--no_manifest" in calls[1]
-    assert calls[2][1:5] == ["compute", "cloudml", "custom_train", "submit"]
+    assert calls[2][1:7] == ["compute", "cloudml", "cml", "--", "custom_train", "submit"]
     assert [shard["task_id"] for shard in plan["shards"]] == ["task-1", "task-2"]
     assert plan["staging"]["upload_required"] is False
     assert plan["staging"]["output_init"]["status"] == "completed"
@@ -633,11 +622,10 @@ def test_partial_submit_plan_resumes_without_resubmitting_completed_shard(
             return subprocess.CompletedProcess(
                 argv, 0, json.dumps({"status": "ok", "exit_code": 0, "files": 3}), ""
             )
-        submit_calls.append(argv[argv.index("--job_name") + 1])
+        submit_calls.append(argv[argv.index("--filename") + 1])
         if len(submit_calls) == 2:
             return subprocess.CompletedProcess(argv, 1, "", "submit failed")
-        payload = {"task_id": "task-1", "job_id": "task-1", "dry_run": False}
-        return subprocess.CompletedProcess(argv, 0, json.dumps(payload), "")
+        return subprocess.CompletedProcess(argv, 0, _cml_submit_output("task-1"), "")
 
     monkeypatch.setattr(cloudml.subprocess, "run", fail_second)
     with pytest.raises(RuntimeError, match="submit failed"):
@@ -653,8 +641,8 @@ def test_partial_submit_plan_resumes_without_resubmitting_completed_shard(
             resumed_uploads.append(argv)
             payload = {"status": "ok", "exit_code": 0, "files": 3}
         else:
-            resumed_calls.append(argv[argv.index("--job_name") + 1])
-            payload = {"task_id": "task-2", "job_id": "task-2", "dry_run": False}
+            resumed_calls.append(argv[argv.index("--filename") + 1])
+            return subprocess.CompletedProcess(argv, 0, _cml_submit_output("task-2"), "")
         return subprocess.CompletedProcess(argv, 0, json.dumps(payload), "")
 
     monkeypatch.setattr(cloudml.subprocess, "run", resume)
@@ -691,11 +679,11 @@ def test_status_normalizes_terminal_cloudml_state(
     assert resolved_path == plan_path.resolve()
     assert summary["all_terminal"] is True
     assert summary["all_succeeded"] is True
-    assert calls[0][1:5] == ["compute", "cloudml", "custom_train", "describe"]
-    assert calls[0][calls[0].index("--job_id") + 1] == "task-1"
+    assert calls[0][1:7] == ["compute", "cloudml", "cml", "--", "custom_train", "describe"]
+    assert calls[0][7] == "task-1"
 
 
-def test_status_falls_back_to_cml2_describe(
+def test_status_uses_canonical_cml_describe_without_retry(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     row = _row("first", ("cpu", "python-env", "artifact-storage"))
@@ -710,8 +698,6 @@ def test_status_falls_back_to_cml2_describe(
 
     def fake_run(argv: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
         calls.append(argv)
-        if "--json" in argv:
-            return subprocess.CompletedProcess(argv, 2, "", "error: unrecognized arguments: --json")
         return subprocess.CompletedProcess(
             argv, 0, json.dumps({"jobId": "task-1", "state": "succeed"}), ""
         )
@@ -722,9 +708,9 @@ def test_status_falls_back_to_cml2_describe(
     )
 
     assert summary["all_succeeded"] is True
-    assert len(calls) == 2
-    assert calls[1][1] == "--no-show-time"
-    assert "--json" not in calls[1]
+    assert len(calls) == 1
+    assert calls[0][1:7] == ["compute", "cloudml", "cml", "--", "custom_train", "describe"]
+    assert calls[0][7] == "task-1"
 
 
 def test_status_does_not_treat_partial_submission_as_terminal(
