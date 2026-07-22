@@ -66,7 +66,7 @@ if [[ ! -x "$repo_root/.venv/bin/python" ]]; then
   exit 1
 fi
 
-if [[ ! -x "$executor_root/exe" ]]; then
+if [[ ("$run_upload_dry_run" == "true" || "$run_upload" == "true") && ! -x "$executor_root/exe" ]]; then
   echo "error: executor not found at $executor_root" >&2
   exit 1
 fi

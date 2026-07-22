@@ -143,6 +143,7 @@ def _stage_fixture_assets(stage_dir: Path, assets: Path, cache: Path) -> dict[st
             "MLSPACES_ASSETS_DIR": str(assets),
             "MLSPACES_CACHE_DIR": str(cache),
             "ROBOCLAWS_CLOUDML_CODE_COMMIT": "HEAD",
+            "ROBOCLAWS_EXECUTOR_ROOT": str(stage_dir / "missing-executor"),
             "ROBOCLAWS_STAGE_DIR": str(stage_dir),
             "ROBOCLAWS_STAGE_RUN_UPLOAD_DRY_RUN": "false",
             "ROBOCLAWS_STAGE_RUN_UPLOAD": "false",
