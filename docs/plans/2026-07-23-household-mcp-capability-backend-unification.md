@@ -1,4 +1,4 @@
-**Status:** Approved; GSD handoff blocked by incomplete local GSD installation
+**Status:** Active; capability entitlement implemented, backend unification in progress
 **Created:** 2026-07-23
 **Last reviewed:** 2026-07-23
 **Current implementation contract:** Household intents share one public surface and skill, but
@@ -19,12 +19,11 @@ old server ids, tool surfaces, entrypoints, aliases, and readers touched by this
 - Parent plan: none
 - Child plans: none
 - Last updated: 2026-07-23
-- Current slice: GSD ingest and executable phase planning before implementation.
-- Next action: Restore the installed `gsd-ingest-docs` and `gsd-plan-phase` skills, then rerun
-  the unchanged GSD handoff.
-- Blocked on: The local GSD workflow files exist under `~/.claude/get-shit-done/workflows/`, but
-  neither runtime registers the required skills and the bundled `bin/install.js` sync dependency
-  is missing.
+- Current slice: Slice 2, move all backends behind the common household server.
+- Next action: Preserve Agibot MapBuild parity in the common server, merge its live route, then
+  delete the dedicated server/tool/CLI path.
+- Blocked on: none; final live, Isaac, and physical proof may still require guarded blocker
+  evidence.
 - Do not touch from this session: unrelated eval, map/report cleanup, archived plans, `TODOS.md`,
   and `THOUGHTS.md`.
 
