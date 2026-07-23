@@ -1,13 +1,16 @@
 # Recommended Runtime Map Prior Selection
 
-Status: DONE
+Status: ACTIVE
 
 Source plan: `docs/plans/2026-07-01-recommended-runtime-map-prior-selection.md`
 
-Latest user intent: implement the plan via `$intuitive-flow`.
+Latest user intent: reuse one promoted canonical Map Prior across provider and
+configuration matrices; keep builder comparison and end-to-end execution
+explicit.
 
 Current slice: deterministic runtime-prior selector and console catalog wiring
-implemented and verified.
+implemented and verified; the fixed-map consumer-matrix follow-up is approved
+but not implemented.
 
 Last proven evidence:
 
@@ -30,7 +33,8 @@ Completed slice batch:
 
 Next proof:
 
-- None for this implementation slice.
+- Split `map_build_consumer` into MapBuild candidate, no-prior control, and
+  fixed-prior consumer modes; run one scene through the new cached path.
 
 Acceptance audit:
 
@@ -48,7 +52,8 @@ Acceptance audit:
 
 Stop condition:
 
-- Met for deterministic implementation and contract coverage.
+- Met for the selector/catalog slice; the follow-up stops after one canonical
+  prior is reused by multiple consumers and cache invalidation is proven.
 
 No-touch scope:
 
@@ -61,3 +66,5 @@ Parked work:
 
 - Running a real multi-provider live candidate matrix remains provider/runtime
   capacity dependent.
+- Full builder-by-consumer Cartesian matrices remain explicit research/nightly
+  work rather than the default baseline.

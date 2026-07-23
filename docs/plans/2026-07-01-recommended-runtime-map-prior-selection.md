@@ -1,8 +1,8 @@
 ---
 plan_scope: recommended-runtime-map-prior-selection
-status: IMPLEMENTED
+status: ACTIVE
 created: 2026-07-01
-last_reviewed: 2026-07-01
+last_reviewed: 2026-07-23
 implementation_allowed: true
 source:
   - user direction to use EvalHarness and SimOracle to prebuild richer map priors
@@ -13,20 +13,21 @@ related_context:
   - docs/human/evaluation.md
   - docs/plans/2026-06-26-map-build-quality-eval-harness.md
   - docs/plans/2026-06-30-operator-console-workflow-simplification.md
+  - docs/adr/0146-reuse-canonical-map-priors-for-agent-matrices.md
 ---
 
 # Recommended Runtime Map Prior Selection
 
 ## Plan Ledger
 
-Status: IMPLEMENTED
+Status: ACTIVE
 
-Current slice: deterministic selector/catalog implementation completed via
-`$intuitive-flow`.
+Current slice: deterministic selector/catalog implementation is complete;
+the accepted fixed-map consumer-matrix follow-up is not implemented yet.
 
-Next action: use `just agent::eval runtime-prior-select
-manifest=<manifest.json> eval_results=<eval_results.json>[,...]` after
-candidate MapBuild runs or regrades to publish a catalog file.
+Next action: split MapBuild candidate generation from fixed-prior consumer
+matrices, then publish one explicitly promoted canonical prior per scene/map
+identity.
 
 Blocked on: no implementation blocker. Running a fresh live candidate matrix
 still depends on provider/runtime availability.
@@ -57,6 +58,42 @@ when available, and artifact-authored inspection candidates.
 The recommended prior is a downstream artifact selected at the map-artifact
 boundary after MapBuild. It may enrich open-ended and cleanup runs, but it must
 not mutate the source navigation map or expose private evaluation truth.
+
+## Reusable Map Execution Contract
+
+Accepted 2026-07-23 and recorded in ADR-0146:
+
+- The normal provider/model baseline consumes one immutable canonical Runtime
+  Map Prior per `(scene, backend, source_map_identity)`; it does not rebuild the
+  map once per provider cell.
+- MapBuild candidates remain available in a separate `map_build_quality`
+  matrix. Their builder/provider/model provenance is retained even when one
+  candidate is promoted as canonical.
+- `task_matrix_on_fixed_map` is the default downstream comparison. A full
+  builder-by-consumer cross product and same-provider end-to-end flow are
+  explicit research/nightly profiles, not implicit baseline work.
+- No-prior controls do not execute MapBuild as an incidental suite dependency;
+  they run directly against the Base Metric Map. Fixed-prior consumers read the
+  promoted artifact read-only.
+- Promotion into the default catalog requires explicit maintainer approval of
+  an accepted selector report. A passing candidate must not silently replace a
+  previously promoted prior.
+- Canonical artifacts are immutable and content-addressed. The identity must
+  include scene/source-map identity, backend, builder model/provider, prompt or
+  skill version, evidence lane/camera labeler, seed, and map schema version.
+  Source-map, backend, builder, evidence, seed, or schema changes create a new
+  artifact; grader wording changes may use advisory regrade.
+
+The intended execution shape is:
+
+```text
+scene + builder profile
+  -> MapBuild candidate(s)
+  -> quality/private-boundary gates
+  -> maintainer promotion
+  -> immutable canonical Runtime Map Prior
+  -> parallel provider/config consumer matrix
+```
 
 ## Selection Contract
 
@@ -193,6 +230,13 @@ When no accepted prior exists, keep the current empty state:
 5. Add tests proving hard gates, private-boundary protection, compatibility
    classification, no latest-artifact fallback, and UI default enablement only
    from accepted non-blocking catalog entries.
+6. Split the current combined `map_build_consumer` execution into reusable
+   MapBuild candidate generation, no-prior controls, and fixed-prior consumer
+   matrix modes without changing existing result/grader schemas.
+7. Add content-addressed canonical-prior lookup and cache invalidation tests
+   for scene/source-map, backend, builder, evidence, seed, and schema changes.
+8. Add an explicit end-to-end profile for same-provider MapBuild plus consumer
+   runs; keep it out of the normal provider baseline.
 
 ## Non-Goals
 
@@ -215,3 +259,8 @@ When no accepted prior exists, keep the current empty state:
 - Operator console auto-selects Runtime Map Prior entries only for accepted
   non-blocking catalog entries or explicit overrides.
 - Unit/contract coverage proves no fallback to latest artifacts.
+- The default provider matrix reads one promoted canonical prior and records
+  its digest/provenance without launching MapBuild per provider.
+- No-prior controls do not launch or depend on a MapBuild producer.
+- Builder quality, fixed-prior consumer, and end-to-end reports are separately
+  identifiable and cannot be mistaken for one another.
