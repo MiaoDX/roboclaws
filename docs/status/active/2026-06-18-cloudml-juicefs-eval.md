@@ -12,9 +12,9 @@ made explicit.
 Latest user intent: make complete baseline refreshes convenient and faster on
 CloudML by running independent rows concurrently as preemptible r49 shards.
 
-Current slice: the complete CloudML baseline refresh, preemptible r49 support,
-the MapBuild live-matrix timeout follow-up, and content-addressed staging are
-complete. Hybrid `auto` dependency handoff remains.
+Current slice: local and CloudML execution now share scene-aware benchmark
+cases and content-addressed multi-scene staging. Real two-scene CloudML
+parallel proof remains; hybrid `auto` dependency handoff follows it.
 
 Current blocker: no CloudML execution or credential-transport blocker. Direct
 Kimi/MiniMax rows remain ineligible on the internal-only worker pool. The
@@ -87,12 +87,27 @@ Last proven evidence:
   `raw_fpv_recovery_exhausted` after 168 successful model calls, zero provider
   failures, and 2/4 required grounded cleanup chains. This is product behavior,
   not CloudML, preemption, or provider availability.
+- Commits `b0ef5d72` and `68b865d0` make local and CloudML share scene-aware
+  case IDs, scene identity, dependency metadata, and a multi-scene staged asset
+  manifest. Commit `91d126a0` limits outer scene expansion to the two current
+  scene-portable MapBuild product rows; cleanup, open-ended, long-horizon, and
+  provider matrices remain bound to their own scene-specific task contracts.
+- Local run `local-multiscene-mapbuild-91d126a0` passed the world-public
+  MapBuild case on `procthor-10k-val/0` and `procthor-objaverse-val/0`. The
+  shared local scheduler preserved both case IDs but serialized them through
+  the one MolmoSpaces visual-backend concurrency group.
+- CloudML dry-run `cloudml-multiscene-mapbuild-91d126a0-dry` produced two
+  independent preemptible one-r49 shards with the same case IDs, no blocked
+  rows, and no submitted task IDs. The unchanged two-scene asset archive reused
+  digest `cc229669ba262c286ce4856b1d4107b81eb18cb3a9698c15a467f414834fd34c`.
 
-Next slice: implement dependency-safe local/CloudML handoff for real
-`execution_target=auto`, then run a representative hybrid baseline.
+Next slice: after explicit CloudML submission confirmation, run and collect the
+two real MapBuild shards concurrently. Then implement dependency-safe
+local/CloudML handoff for real `execution_target=auto`.
 
-Next proof: generate and execute a hybrid plan with one CloudML producer and one
-local consumer, then collect one aggregate report without changing row identity.
+Next proof: collect both real two-scene CloudML MapBuild cases and verify their
+task intervals overlap. The following proof is a hybrid plan with one CloudML
+producer and one local consumer in one aggregate report.
 
 Stop condition: stop before provider identity substitution, uploading the full
 `.env`, placing provider values in normal artifacts, destructive retry, or a new
