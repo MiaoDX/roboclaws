@@ -121,6 +121,25 @@ if [[ -n "${ROBOCLAWS_CLOUDML_ASSET_ARCHIVE:-}" ]]; then
   export MLSPACES_CACHE_DIR="$asset_dir/molmospaces/cache"
 fi
 
+object_cache_root="$MLSPACES_CACHE_DIR/objects"
+if [[ -d "$object_cache_root" ]]; then
+  mkdir -p "$MLSPACES_ASSETS_DIR/objects"
+  for object_source_root in "$object_cache_root"/*; do
+    [[ -d "$object_source_root" ]] || continue
+    object_versions=("$object_source_root"/*)
+    if [[ "${#object_versions[@]}" -ne 1 || ! -d "${object_versions[0]}" ]]; then
+      echo "error: expected one staged version under $object_source_root" >&2
+      exit 2
+    fi
+    object_source="$(basename "$object_source_root")"
+    object_link="$MLSPACES_ASSETS_DIR/objects/$object_source"
+    if [[ -e "$object_link" || -L "$object_link" ]]; then
+      rm -rf -- "$object_link"
+    fi
+    ln -s "${object_versions[0]}" "$object_link"
+  done
+fi
+
 mapfile -t frozen_scene < <(
   /opt/roboclaws/.venv/bin/python - \
     "$ROBOCLAWS_CLOUDML_ASSET_MANIFEST" \

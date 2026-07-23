@@ -156,10 +156,13 @@ def _minimal_molmospaces_assets(tmp_path: Path) -> tuple[Path, Path]:
         path.write_text(f"fixture:{relative}\n", encoding="utf-8")
     cache_scene = cache / "scenes" / "procthor-10k-val" / "20251217"
     cache_scene.mkdir(parents=True)
+    cache_objects = cache / "objects" / "objaverse" / "20260131"
+    cache_objects.mkdir(parents=True)
     cache_grasps = cache / "grasps" / "droid_objaverse" / "20251218"
     cache_grasps.mkdir(parents=True)
     (cache / "mjthor_data_type_to_source_to_versions.json").write_text(
         '{"grasps": {"droid_objaverse": ["20251218"]}, '
+        '"objects": {"objaverse": ["20260131"]}, '
         '"scenes": {"procthor-10k-val": ["20251217"]}}\n',
         encoding="utf-8",
     )
@@ -167,6 +170,7 @@ def _minimal_molmospaces_assets(tmp_path: Path) -> tuple[Path, Path]:
         '{"fixture": true}\n', encoding="utf-8"
     )
     (cache_grasps / "mjthor_resource_file_to_size_mb.json").write_text("{}\n", encoding="utf-8")
+    (cache_objects / "object.txt").write_text("fixture\n", encoding="utf-8")
     return assets, cache
 
 

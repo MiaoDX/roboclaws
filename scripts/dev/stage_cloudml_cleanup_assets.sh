@@ -232,7 +232,7 @@ require_path "$assets_source/mjthor_data_type_to_source_to_versions.json" \
   "MolmoSpaces installed-source manifest"
 require_path "$cache_source/mjthor_data_type_to_source_to_versions.json" \
   "MolmoSpaces cache manifest"
-cache_resource_paths+=("grasps/droid_objaverse")
+cache_resource_paths+=("objects/objaverse" "grasps/droid_objaverse")
 for relative in "${cache_resource_paths[@]}"; do
   require_path "$cache_source/$relative" "MolmoSpaces versioned $relative cache"
 done
@@ -293,7 +293,7 @@ if include_grasps:
     asset_paths.append(Path("grasps/droid"))
 cache_paths = [Path("mjthor_data_type_to_source_to_versions.json")]
 cache_paths.extend(Path("scenes") / source for source, _index in scene_specs)
-cache_paths.append(Path("grasps/droid_objaverse"))
+cache_paths.extend([Path("objects/objaverse"), Path("grasps/droid_objaverse")])
 cache_paths = list(dict.fromkeys(cache_paths))
 map_paths = [
     Path("assets/maps/molmospaces") / source / str(index)

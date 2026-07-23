@@ -44,6 +44,7 @@ def _fixture_assets(root: Path, *, scene_source: str, scene_indices: tuple[int, 
         path.write_text("fixture\n", encoding="utf-8")
     for relative in (
         f"scenes/{scene_source}/version/resource.json",
+        "objects/objaverse/version/object.txt",
         "grasps/droid_objaverse/version/resource.json",
         "mjthor_data_type_to_source_to_versions.json",
     ):
@@ -144,6 +145,7 @@ def test_staging_freezes_multiple_source_aware_scenes_in_one_archive(tmp_path: P
         names = set(archive.getnames())
     assert "molmospaces/assets/scenes/procthor-10k-val/val_0.xml" in names
     assert "molmospaces/assets/scenes/procthor-objaverse-val/val_0.xml" in names
+    assert "molmospaces/cache/objects/objaverse/version/object.txt" in names
     assert "roboclaws/assets/maps/molmospaces/procthor-10k-val/0/map.yaml" in names
     assert "roboclaws/assets/maps/molmospaces/procthor-objaverse-val/0/map.yaml" in names
 
@@ -160,3 +162,5 @@ def test_scene_defaults_remain_val_zero() -> None:
     assert 'get("source_assets", {}).get("scenes", [])' in worker
     assert 'row.get("case")' in worker
     assert 'scene_dir="$MLSPACES_ASSETS_DIR/scenes/$scene_source"' in worker
+    assert 'object_cache_root="$MLSPACES_CACHE_DIR/objects"' in worker
+    assert 'ln -s "${object_versions[0]}" "$object_link"' in worker
