@@ -194,7 +194,6 @@
     {
       "row_id": "household-direct-world-public-product",
       "row_kind": "product_run",
-      "scene_scope": "selected",
       "command": [
         "just",
         "run::surface",
@@ -293,7 +292,6 @@
     {
       "row_id": "map-build-consumer-eval-suite",
       "row_kind": "eval_suite",
-      "scene_scope": "selected",
       "command": [
         "just",
         "agent::eval",
@@ -325,7 +323,6 @@
     {
       "row_id": "map-build-consumer-openai-agents-sdk-codex-router-responses",
       "row_kind": "live_agent_eval",
-      "scene_scope": "selected",
       "command": [
         "just",
         "agent::eval",
@@ -371,7 +368,6 @@
     {
       "row_id": "map-build-consumer-openai-agents-sdk-mimo-mify-responses",
       "row_kind": "live_agent_eval",
-      "scene_scope": "selected",
       "command": [
         "just",
         "agent::eval",
@@ -416,7 +412,6 @@
     {
       "row_id": "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
       "row_kind": "live_agent_eval",
-      "scene_scope": "selected",
       "command": [
         "just",
         "agent::eval",
@@ -461,7 +456,6 @@
     {
       "row_id": "map-build-consumer-openai-agents-sdk-minimax-responses",
       "row_kind": "live_agent_eval",
-      "scene_scope": "selected",
       "command": [
         "just",
         "agent::eval",
@@ -506,7 +500,6 @@
     {
       "row_id": "open-ended-goals-eval-suite",
       "row_kind": "eval_suite",
-      "scene_scope": "selected",
       "command": [
         "just",
         "agent::eval",
@@ -571,7 +564,6 @@
     {
       "row_id": "cleanup-capability-eval-suite",
       "row_kind": "eval_suite",
-      "scene_scope": "selected",
       "command": [
         "just",
         "agent::eval",
@@ -604,7 +596,6 @@
     {
       "row_id": "long-horizon-tasks-eval-suite",
       "row_kind": "eval_suite",
-      "scene_scope": "selected",
       "command": [
         "just",
         "agent::eval",
@@ -636,7 +627,6 @@
     {
       "row_id": "openai-agents-sdk-open-task-live-eval",
       "row_kind": "live_agent_eval",
-      "scene_scope": "selected",
       "command": [
         "just",
         "agent::eval",
@@ -719,7 +709,6 @@
     {
       "row_id": "openai-agents-sdk-cleanup-live-eval",
       "row_kind": "live_agent_eval",
-      "scene_scope": "selected",
       "command": [
         "just",
         "agent::eval",
@@ -761,7 +750,6 @@
     {
       "row_id": "openai-agents-sdk-cleanup-camera-raw-fpv-live-product",
       "row_kind": "live_agent_eval",
-      "scene_scope": "selected",
       "command": [
         "just",
         "run::surface",
@@ -805,7 +793,6 @@
     {
       "row_id": "openai-agents-sdk-codex-router-responses-availability",
       "row_kind": "live_agent_eval",
-      "scene_scope": "selected",
       "command": [
         "just",
         "agent::eval",
@@ -881,7 +868,6 @@
     {
       "row_id": "direct-camera-grounded-grounding-dino",
       "row_kind": "product_run",
-      "scene_scope": "selected",
       "command": [
         "just",
         "run::surface",
@@ -969,7 +955,6 @@
     {
       "row_id": "direct-camera-raw-fpv",
       "row_kind": "product_run",
-      "scene_scope": "selected",
       "command": [
         "just",
         "run::surface",
@@ -1050,7 +1035,6 @@
     {
       "row_id": "direct-cleanup-runtime-prior-consumer",
       "row_kind": "product_run",
-      "scene_scope": "selected",
       "command": [
         "just",
         "run::surface",

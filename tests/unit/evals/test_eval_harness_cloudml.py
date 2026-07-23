@@ -291,7 +291,7 @@ def test_catalog_rows_expose_default_scene_identity_without_forcing_cloud_packin
     assert "world=molmospaces/val_0" in scene_row["command"]
 
 
-def test_catalog_expands_scene_cases_and_rewrites_dependencies(tmp_path: Path) -> None:
+def test_catalog_expands_only_scene_portable_map_build_cases(tmp_path: Path) -> None:
     rows = rows_module.candidate_rows(
         output_dir=tmp_path,
         explicit_axes={},
@@ -302,12 +302,19 @@ def test_catalog_expands_scene_cases_and_rewrites_dependencies(tmp_path: Path) -
     assert list(row["base_row_id"] for row in rows).count("eval-unit-tests") == 1
     first_producer = by_id["direct-map-build-world-public--scene-procthor-10k-val-0"]
     second_producer = by_id["direct-map-build-world-public--scene-procthor-objaverse-val-0"]
-    second_consumer = by_id["direct-cleanup-runtime-prior-consumer--scene-procthor-objaverse-val-0"]
     assert first_producer["axes"]["world"] == "molmospaces/val_0"
     assert second_producer["axes"]["world"] == "molmospaces/procthor-objaverse-val/0"
-    assert second_consumer["depends_on"] == [second_producer["row_id"]]
-    suite = by_id["cleanup-capability-eval-suite--scene-procthor-objaverse-val-0"]
-    assert "scene=procthor-objaverse-val/0" in suite["command"]
+    assert "direct-map-build-grounding-dino--scene-procthor-10k-val-0" in by_id
+    assert "direct-map-build-grounding-dino--scene-procthor-objaverse-val-0" in by_id
+    assert "cleanup-capability-eval-suite" in by_id
+    assert "open-ended-goals-eval-suite" in by_id
+    assert "direct-cleanup-runtime-prior-consumer" in by_id
+    assert not any(
+        row_id.startswith("cleanup-capability-eval-suite--scene-")
+        or row_id.startswith("open-ended-goals-eval-suite--scene-")
+        or row_id.startswith("direct-cleanup-runtime-prior-consumer--scene-")
+        for row_id in by_id
+    )
 
 
 def test_cloudml_packs_same_scene_rows_and_preserves_dependency_order() -> None:
@@ -341,8 +348,8 @@ def test_cloudml_keeps_independent_scene_cases_in_parallel_shards(tmp_path: Path
         scenes=("procthor-10k-val/0", "procthor-objaverse-val/0"),
     )
     selected_ids = {
-        "household-direct-world-public-product--scene-procthor-10k-val-0",
-        "household-direct-world-public-product--scene-procthor-objaverse-val-0",
+        "direct-map-build-world-public--scene-procthor-10k-val-0",
+        "direct-map-build-world-public--scene-procthor-objaverse-val-0",
     }
     selected = []
     for row in rows:
