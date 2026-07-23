@@ -34,6 +34,15 @@ just agent::eval execute profile=baseline-core budget=focused \
   execution_target=local max_parallel=4
 ```
 
+Local and CloudML execution share the same frozen benchmark cases. Pass
+`scene=<source>/<index>,...` to expand only rows whose catalog
+`scene_scope=selected`; the current scene-portable rows are the two MapBuild
+product rows. Case identity, dependencies, commands, and result schema are
+resolved before placement. Local scheduling respects shared backend locks,
+while CloudML may package independent scenes into separate parallel shards.
+Do not treat a shard as benchmark identity: short same-scene cases may share a
+shard to amortize worker startup.
+
 Generate pinned CloudML CPU/RTX 4090 shard YAML without submitting jobs:
 
 ```bash
@@ -66,6 +75,9 @@ probes both digest directories before uploading, so repeated baseline refreshes
 reuse the same large archive and code bundle. Workers mount the run manifest,
 asset bundle, and code bundle read-only at `/mnt/cloudml/input`,
 `/mnt/cloudml/assets`, and `/mnt/cloudml/code` respectively.
+The asset archive can contain multiple selected scenes and the versioned
+Objaverse cache. Each fresh worker copies and extracts it once to local scratch;
+workers share the immutable JuiceFS source, not their local extracted cache.
 
 Submit a detached CloudML run only after reviewing the dry-run and accepting
 the infrastructure cost, then monitor and collect it through the same facade:

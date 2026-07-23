@@ -3,7 +3,7 @@ plan_scope: cloudml-juicefs-eval
 status: active
 implementation_allowed: true
 created: 2026-06-18
-last_reviewed: 2026-07-22
+last_reviewed: 2026-07-23
 source:
   - user request to make CloudML a standard eval execution target
   - user approval of the hybrid local and CloudML design on 2026-07-21
@@ -23,10 +23,11 @@ related_context:
 - Session scope: cloudml-eval-execution
 - Parent plan: none
 - Child plans: none
-- Last updated: 2026-07-22
+- Last updated: 2026-07-23
 - Current slice: provider-env staging, preemptible r49 execution, the complete
   CloudML baseline refresh, the MapBuild timeout follow-up, and content-addressed
-  staging are complete; hybrid `auto` execution remains.
+  multi-scene staging and shared local/CloudML case expansion are complete;
+  hybrid `auto` execution remains.
 - Next action: implement dependency-safe local/CloudML handoff, then run a
   representative hybrid baseline.
 - Blocked on: no CloudML or credential-transport blocker. Direct Kimi/MiniMax
@@ -126,9 +127,10 @@ SUCCESS requires all of the following:
    multi-row run and never runs a consumer before its producer artifact exists.
 4. A worker can execute an exact row/shard from a frozen manifest without
    reselecting or mutating unrelated rows.
-5. CloudML dry-run output uses the current `compute cloudml custom_train`
-   target, pinned code/image/input identities, read-only input and run-owned
-   output mounts, and contains no provider secret values.
+5. CloudML dry-run output uses the current
+   `compute cloudml cml -- custom_train submit` adapter route, pinned
+   code/image/input identities, read-only input and run-owned output mounts,
+   and contains no provider secret values.
 6. A real deterministic CloudML smoke writes valid row and harness artifacts
    to JuiceFS and the local collector reproduces the normal aggregate report.
 7. A real RTX 4090-class MuJoCo/DINO smoke proves the GPU image, EGL/rendering,
@@ -316,11 +318,24 @@ As of 2026-07-22:
   `raw_fpv_recovery_exhausted` after producing only 2/4 required grounded
   cleanup chains. The failure is independent of CloudML scheduling and
   preemption.
+- Commits `b0ef5d72` through `fe20788a` make scene selection an
+  execution-neutral harness concern. Local and CloudML now consume the same
+  case IDs, scene axes, commands, dependency identities, and result schema;
+  CloudML shards are placement packages rather than benchmark definitions.
+- Local run `local-multiscene-mapbuild-91d126a0` passed
+  `procthor-10k-val/0` and `procthor-objaverse-val/0` while the shared
+  MolmoSpaces concurrency group correctly serialized the two visual cases.
+  CloudML run `cloudml-multiscene-mapbuild-c316c6d9-live` passed the same two
+  case IDs on separate r49 workers. Their task intervals overlapped; 107.149
+  seconds of summed row execution completed in about 59 seconds, for roughly
+  1.82x execution-stage speedup. Collection returned two rows with no failed
+  shard or missing result.
 
 ## Architecture Contract
 
 ```text
 selector
+  -> execution-neutral benchmark cases (row/suite, provider, scene)
   -> frozen eval harness manifest and dependency DAG
   -> capability scheduler
        -> local worker pool
@@ -333,7 +348,8 @@ selector
 
 CloudML is an Eval Harness execution environment, not a product `backend`.
 Workers execute catalog commands; they do not own selection policy or robot
-strategy.
+strategy. Local and CloudML schedulers consume the same resolved cases;
+`shard_id` records placement and batching, not benchmark identity.
 
 ### Public Maintainer Command
 
@@ -384,6 +400,9 @@ namespaces are isolated.
 ### Sharding Rules
 
 - Group short deterministic rows into one CPU shard to amortize startup.
+- Never mix cases from different scenes in one CloudML shard. Multiple
+  same-scene cases may share a shard when their dependencies and capabilities
+  allow it.
 - Keep producer/consumer artifact chains in one ordered shard unless the
   artifact has been durably committed and verified before dispatch.
 - Give 15-30 minute live provider rows independent shards when provider

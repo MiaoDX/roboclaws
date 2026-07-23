@@ -83,6 +83,21 @@ and `max_parallel=1` preserves the historical serial behavior. Raising
 `max_parallel` runs independent rows concurrently while dependency chains and
 shared local visual-backend groups remain ordered.
 
+Scene expansion happens before execution placement. The harness resolves one
+execution-neutral benchmark case from the catalog row, suite, provider profile,
+seed, and optional `(scene_source, scene_index)` identity, then writes that case
+to the frozen manifest. Local and CloudML schedulers consume the same case IDs,
+commands, dependencies, and result schema; CloudML shards are only remote
+execution packages and do not define a second benchmark model.
+
+Passing `scene=<source>/<index>,...` expands only catalog rows declared
+scene-portable. The current portable rows are the world-public and Grounding
+DINO MapBuild product rows. Cleanup, open-ended, long-horizon, and provider
+matrix rows keep their suite-owned scene contracts until each suite explicitly
+defines portable setup and grading. Locally, multiple visual cases may still
+serialize through the single MolmoSpaces backend lock. On CloudML, cases from
+different scenes are placed in separate workers and may run concurrently.
+
 Build eval images only when `Dockerfile.eval`, the root lockfile, the visual
 grounding lockfile, or the pinned DINO snapshot changes. A baseline refresh
 normally reuses already-published image digests and does not rebuild images:
@@ -138,6 +153,15 @@ seconds without preemption. Their row durations summed to about 4 hours 11
 minutes, an effective 4.6x reduction against serialized work. Two direct
 Kimi/MiniMax rows were explicitly blocked because the internal worker pool
 lacks external egress; they were not silently dropped.
+
+A 2026-07-23 two-scene MapBuild proof used the same case IDs for local and
+CloudML execution on `procthor-10k-val/0` and
+`procthor-objaverse-val/0`. Both local cases passed while respecting the shared
+visual-backend lock. CloudML placed them in two one-r49 shards on different
+workers; both passed, their execution intervals overlapped, and 107.149 seconds
+of summed row work completed in about 59 seconds of row-stage wall time (about
+1.82x). This proves placement-level parallelism without changing benchmark
+identity or grading.
 
 After reviewing the dry-run and accepting the CloudML cost, omit
 `cloudml_dry_run=true` to upload the staging directory and submit detached
