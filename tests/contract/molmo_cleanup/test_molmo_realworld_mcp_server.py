@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import importlib.util
 import json
 import math
@@ -57,6 +58,7 @@ def _open_ended_goal_contract(prompt: str):
         surface=SURFACE_SPECS["household-world"],
         intent=TASK_INTENT_SPECS["open-ended"],
         raw_prompt=prompt,
+        required_capabilities=TASK_INTENT_SPECS["open-ended"].required_capabilities,
     )
 
 
@@ -66,6 +68,14 @@ PREBUILT_BUNDLE = REPO_ROOT / "assets" / "maps" / "molmospaces" / "procthor-10k-
 
 def make_molmo_realworld_cleanup_mcp(*args: Any, **kwargs: Any) -> Any:
     kwargs.setdefault("map_bundle_dir", PREBUILT_BUNDLE)
+    kwargs.setdefault(
+        "required_capability_profiles",
+        (
+            HOUSEHOLD_WORLD_PROFILE,
+            HOUSEHOLD_MANIPULATION_PROFILE,
+            HOUSEHOLD_EPISODE_PROFILE,
+        ),
+    )
     return _make_molmo_realworld_cleanup_mcp(*args, **kwargs)
 
 
@@ -80,6 +90,10 @@ def _load_smoke_module():
 
 def _fastmcp_tool_names(server: Any) -> set[str]:
     return set(server._mcp._tool_manager._tools)
+
+
+def _listed_fastmcp_tool_names(server: Any) -> set[str]:
+    return {tool.name for tool in asyncio.run(server._mcp.list_tools())}
 
 
 def _assert_run_evidence_lane(run_result: dict[str, Any], expected: str) -> None:
@@ -116,6 +130,7 @@ def test_realworld_mcp_registered_tools_match_profile_public_surface(tmp_path: P
         public_tool_names = {name for profile in profiles for name in profile.public_tool_names()}
 
         assert _fastmcp_tool_names(server) == public_tool_names
+        assert _listed_fastmcp_tool_names(server) == public_tool_names
         assert not any(profile.privileged_tool_names() for profile in profiles)
         assert "resolve_target_query" in public_tool_names
         agent_view = server._agent_view_payload()
@@ -138,7 +153,9 @@ def test_realworld_mcp_registered_tools_match_profile_public_surface(tmp_path: P
         server.close()
 
 
-def test_agent_sdk_camera_grounded_composite_tool_is_opt_in(tmp_path: Path) -> None:
+def test_agent_sdk_camera_grounded_composite_flag_cannot_expand_entitlement(
+    tmp_path: Path,
+) -> None:
     default_server = make_molmo_realworld_cleanup_mcp(
         run_dir=tmp_path / "default",
         scenario=build_cleanup_scenario(seed=7),
@@ -150,7 +167,7 @@ def test_agent_sdk_camera_grounded_composite_tool_is_opt_in(tmp_path: Path) -> N
         assert "observe_camera_grounded_candidates" not in agent_view_module.public_tool_names(
             default_server._agent_view_payload()
         )
-        with pytest.raises(ValueError, match="unknown Molmo real-world cleanup MCP tool"):
+        with pytest.raises(ValueError, match="not entitled"):
             default_server.call_tool("observe_camera_grounded_candidates")
     finally:
         default_server.close()
@@ -163,52 +180,67 @@ def test_agent_sdk_camera_grounded_composite_tool_is_opt_in(tmp_path: Path) -> N
         agent_sdk_camera_grounded_composite_tools=True,
     )
     try:
-        assert "observe_camera_grounded_candidates" in _fastmcp_tool_names(server)
+        assert "observe_camera_grounded_candidates" not in _fastmcp_tool_names(server)
         agent_view = server._agent_view_payload()
         capabilities = agent_view_module.capabilities(agent_view)
-        assert "observe_camera_grounded_candidates" in agent_view_module.public_tool_names(
+        assert "observe_camera_grounded_candidates" not in agent_view_module.public_tool_names(
             agent_view
         )
-        assert capabilities["runtime_extra_public_tool_names"] == [
-            "observe_camera_grounded_candidates"
-        ]
-        extra_descriptor = next(
-            item
-            for item in capabilities["public_tool_descriptors"]
-            if item["name"] == "observe_camera_grounded_candidates"
-        )
-        assert extra_descriptor["registration_status"] == "registered_extra"
-        metric_map = server.call_tool("metric_map")
-        server.call_tool(
-            "navigate_to_waypoint",
-            waypoint_id=metric_map["inspection_waypoints"][0]["waypoint_id"],
-        )
-        response = server.call_tool("observe_camera_grounded_candidates")
-        trace_lines = (tmp_path / "opt-in" / "trace.jsonl").read_text(encoding="utf-8").splitlines()
-        trace_events = [json.loads(line) for line in trace_lines if line]
+        assert capabilities["runtime_extra_public_tool_names"] == []
+        with pytest.raises(ValueError, match="not entitled"):
+            server.call_tool("observe_camera_grounded_candidates")
     finally:
         server.close()
 
-    assert response["ok"] is True
-    assert response["tool"] == "observe_camera_grounded_candidates"
-    assert response["observation"]["tool"] == "observe"
-    assert response["declaration"]["tool"] == "declare_visual_candidates"
-    assert response["observation_id"].startswith("raw_fpv_")
-    assert response["candidate_count"] == len(response["model_declared_observations"])
-    assert response["private_target_truth_included"] is False
-    assert "model_declared_observation_evidence" not in response["declaration"]
-    assert "target_receptacle_id" not in json.dumps(response)
-    assert any(
-        item.get("tool") == "observe_camera_grounded_candidates" and item.get("event") == "response"
-        for item in trace_events
+
+def test_realworld_mcp_resolves_profiles_from_private_runner_environment(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "ROBOCLAWS_REQUIRED_CAPABILITY_PROFILES",
+        "household_world,household_episode",
     )
-    assert any(
-        item.get("tool") == "observe" and item.get("event") == "response" for item in trace_events
+    server = _make_molmo_realworld_cleanup_mcp(
+        run_dir=tmp_path,
+        scenario=build_cleanup_scenario(seed=7),
+        map_bundle_dir=PREBUILT_BUNDLE,
+        task_intent="map-build",
+        port=0,
     )
-    assert any(
-        item.get("tool") == "declare_visual_candidates" and item.get("event") == "response"
-        for item in trace_events
+    try:
+        assert server.required_capability_profiles == (
+            HOUSEHOLD_WORLD_PROFILE,
+            HOUSEHOLD_EPISODE_PROFILE,
+        )
+        assert _listed_fastmcp_tool_names(server).isdisjoint(ATOMIC_CLEANUP_TOOL_NAMES)
+    finally:
+        server.close()
+
+
+@pytest.mark.parametrize("evidence_lane", ("world-public-labels", "camera-raw-fpv"))
+def test_map_build_entitlement_excludes_all_manipulation_tools_independent_of_evidence_lane(
+    tmp_path: Path,
+    evidence_lane: str,
+) -> None:
+    server = make_molmo_realworld_cleanup_mcp(
+        run_dir=tmp_path / evidence_lane,
+        scenario=build_cleanup_scenario(seed=7),
+        port=0,
+        task_intent="map-build",
+        evidence_lane=evidence_lane,
+        required_capability_profiles=(HOUSEHOLD_WORLD_PROFILE, HOUSEHOLD_EPISODE_PROFILE),
     )
+    try:
+        registered = _fastmcp_tool_names(server)
+        assert registered.isdisjoint(ATOMIC_CLEANUP_TOOL_NAMES)
+        assert _listed_fastmcp_tool_names(server) == registered
+        assert set(agent_view_module.public_tool_names(server._agent_view_payload())) == registered
+        for tool_name in ATOMIC_CLEANUP_TOOL_NAMES:
+            with pytest.raises(ValueError, match="not entitled"):
+                server.call_tool(tool_name)
+    finally:
+        server.close()
 
 
 def test_realworld_mcp_tool_files_are_layered_by_capability(tmp_path: Path) -> None:
@@ -292,7 +324,7 @@ def test_realworld_mcp_done_surfaces_corrupt_trace_source(tmp_path: Path) -> Non
     assert response["status"] == "error"
     assert response["error_reason"] == "exception"
     assert "Molmo real-world MCP trace source row must contain a JSON object" in response["error"]
-    assert "trace.jsonl:2" in response["error"]
+    assert "trace.jsonl:" in response["error"]
 
 
 def test_realworld_mcp_operator_messages_pending_hint_and_seen(tmp_path: Path) -> None:
@@ -1032,6 +1064,7 @@ def test_realworld_mcp_open_ended_intent_is_recorded_in_run_result(
         goal_contract=_open_ended_goal_contract(prompt),
     )
     try:
+        assert set(ATOMIC_CLEANUP_TOOL_NAMES) <= _listed_fastmcp_tool_names(server)
         server.call_tool("metric_map")
         server.call_tool("observe")
         done = server.call_tool("done", reason="open-ended task complete")

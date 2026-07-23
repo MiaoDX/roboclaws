@@ -7,31 +7,47 @@ from typing import Any
 
 from roboclaws.household.raw_fpv_recovery import raw_fpv_recovery_gate
 from roboclaws.household.realworld_mcp_atomic_tools import (
-    ATOMIC_CLEANUP_TOOL_NAMES,
     atomic_cleanup_handlers,
     register_atomic_cleanup_tools,
 )
 from roboclaws.household.realworld_mcp_semantic_tools import (
-    AGENT_SDK_CAMERA_GROUNDED_COMPOSITE_TOOL_NAMES,
-    SEMANTIC_CLEANUP_TOOL_NAMES,
     agent_sdk_camera_grounded_composite_handlers,
-    register_agent_sdk_camera_grounded_composite_tools,
     register_semantic_cleanup_tools,
     semantic_cleanup_handlers,
+)
+from roboclaws.mcp.entrypoint import MCPProfileRouter
+from roboclaws.mcp.profiles import (
+    HOUSEHOLD_EPISODE_PROFILE,
+    HOUSEHOLD_MANIPULATION_PROFILE,
+    HOUSEHOLD_WORLD_PROFILE,
 )
 
 
 def register_realworld_mcp_tools(server: Any) -> None:
-    """Register public tools in explicit layer order."""
+    """Register exactly the immutable capability-profile union for this run."""
 
-    register_semantic_cleanup_tools(server)
-    register_atomic_cleanup_tools(server)
-    register_lifecycle_tools(server)
-    if _agent_sdk_camera_grounded_composite_enabled(server):
-        register_agent_sdk_camera_grounded_composite_tools(server)
+    handlers = tool_handlers_for_call(server, {})
+    router = MCPProfileRouter(
+        server.required_capability_profiles,
+        handlers,
+        allow_extra_handlers=True,
+    )
+    registrars = {
+        HOUSEHOLD_WORLD_PROFILE: register_semantic_cleanup_tools,
+        HOUSEHOLD_MANIPULATION_PROFILE: register_atomic_cleanup_tools,
+        HOUSEHOLD_EPISODE_PROFILE: register_lifecycle_tools,
+    }
+    registered = tuple(
+        name
+        for profile_id in server.required_capability_profiles
+        for name in registrars[profile_id](server)
+    )
+    if registered != router.public_tool_names():
+        raise AssertionError("household MCP registration drifted from composed profile tools")
+    server.registered_public_tool_names = registered
 
 
-def register_lifecycle_tools(server: Any) -> None:
+def register_lifecycle_tools(server: Any) -> tuple[str, ...]:
     @server._mcp.tool()
     def check_operator_messages(max_messages: int = 10) -> dict:
         """Read queued public operator steering messages at a safe checkpoint."""
@@ -41,6 +57,8 @@ def register_lifecycle_tools(server: Any) -> None:
     def done(reason: str) -> dict:
         """Finish the run and write trace, run_result, and report."""
         return server.call_tool("done", reason=reason)
+
+    return ("check_operator_messages", "done")
 
 
 def dispatch_realworld_mcp_tool(
@@ -70,21 +88,8 @@ def dispatch_realworld_mcp_tool(
 def validate_realworld_mcp_tool_call(server: Any, name: str) -> None:
     if name == "scene_objects":
         raise ValueError("scene_objects is not part of the ADR-0003 real-world MCP contract")
-    if name in _extra_tool_names_for_server(server):
-        return
-    if name not in public_tool_names_for_evidence_lane(server.evidence_lane):
-        raise ValueError(f"unknown Molmo real-world cleanup MCP tool {name!r}")
-
-
-def public_tool_names_for_evidence_lane(
-    evidence_lane: str | None,
-) -> tuple[str, ...]:
-    return (
-        *SEMANTIC_CLEANUP_TOOL_NAMES,
-        *ATOMIC_CLEANUP_TOOL_NAMES,
-        "check_operator_messages",
-        "done",
-    )
+    if name not in server.registered_public_tool_names:
+        raise ValueError(f"MCP tool {name!r} is not entitled for this Robot Run")
 
 
 def tool_handlers_for_call(
@@ -112,14 +117,4 @@ def tool_handlers_for_call(
 
 
 def agent_view_public_tool_names(server: Any, base_tool_names: list[str]) -> list[str]:
-    return [*base_tool_names, *_extra_tool_names_for_server(server)]
-
-
-def _extra_tool_names_for_server(server: Any) -> tuple[str, ...]:
-    if _agent_sdk_camera_grounded_composite_enabled(server):
-        return AGENT_SDK_CAMERA_GROUNDED_COMPOSITE_TOOL_NAMES
-    return ()
-
-
-def _agent_sdk_camera_grounded_composite_enabled(server: Any) -> bool:
-    return bool(getattr(server, "agent_sdk_camera_grounded_composite_tools", False))
+    return list(server.registered_public_tool_names)

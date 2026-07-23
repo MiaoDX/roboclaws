@@ -83,6 +83,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--goal-contract", type=Path)
     parser.add_argument("--goal-contract-json")
     parser.add_argument(
+        "--required-capability-profile",
+        action="append",
+        default=[],
+        help="Resolved immutable MCP capability profile. Repeat in registration order.",
+    )
+    parser.add_argument(
         "--backend",
         choices=(
             SYNTHETIC_BACKEND,
@@ -512,6 +518,7 @@ def run_molmo_realworld_cleanup_agent_server(
     real_movement_enabled: bool = False,
     goal_contract_json: str | None = None,
     goal_contract_path: str | Path | None = None,
+    required_capability_profiles: tuple[str, ...] = (),
     rerun_command: str | None = None,
     agent_sdk_camera_grounded_composite_tools: bool = False,
     robot_view_capture_policy: str = ROBOT_VIEW_CAPTURE_POLICY_FULL,
@@ -575,6 +582,9 @@ def run_molmo_realworld_cleanup_agent_server(
         visual_grounding_base_url=visual_grounding_base_url,
         visual_grounding_timeout_s=visual_grounding_timeout_s,
         goal_contract=goal_contract,
+        required_capability_profiles=(
+            tuple(required_capability_profiles) if required_capability_profiles else None
+        ),
         operator_messages_path=operator_messages_path,
         agent_sdk_camera_grounded_composite_tools=agent_sdk_camera_grounded_composite_tools,
         robot_view_capture_policy=robot_view_capture_policy,
@@ -637,6 +647,7 @@ def main(argv: list[str] | None = None) -> int:
             real_movement_enabled=args.real_movement_enabled,
             goal_contract_json=args.goal_contract_json,
             goal_contract_path=args.goal_contract,
+            required_capability_profiles=tuple(args.required_capability_profile),
             rerun_command=args.rerun_command,
             agent_sdk_camera_grounded_composite_tools=(
                 args.agent_sdk_camera_grounded_composite_tools

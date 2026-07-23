@@ -615,6 +615,11 @@ def test_agibot_adapter_integrates_with_shared_cleanup_mcp_contract(tmp_path: Pa
         run_dir=tmp_path / "run",
         contract=contract,
         map_bundle_dir=PREBUILT_BUNDLE,
+        required_capability_profiles=(
+            HOUSEHOLD_WORLD_PROFILE,
+            HOUSEHOLD_MANIPULATION_PROFILE,
+            HOUSEHOLD_EPISODE_PROFILE,
+        ),
     )
 
     try:

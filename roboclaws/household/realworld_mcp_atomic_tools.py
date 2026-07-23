@@ -16,7 +16,7 @@ ATOMIC_CLEANUP_TOOL_NAMES = (
 )
 
 
-def register_atomic_cleanup_tools(server: Any) -> None:
+def register_atomic_cleanup_tools(server: Any) -> tuple[str, ...]:
     """Register object/receptacle manipulation tools."""
 
     @server._mcp.tool()
@@ -53,6 +53,8 @@ def register_atomic_cleanup_tools(server: Any) -> None:
     def close_receptacle(fixture_id: str) -> dict:
         """Close a public fixture after place_inside."""
         return server.call_tool("close_receptacle", fixture_id=fixture_id)
+
+    return ATOMIC_CLEANUP_TOOL_NAMES
 
 
 def atomic_cleanup_handlers(

@@ -91,7 +91,11 @@ TASK_INTENT_SPECS: dict[str, TaskIntentSpec] = {
         completion_claim_schema="roboclaws_agent_completion_claim_v1",
         evaluation_policy="open_ended",
         skill_name="household-world",
-        required_capabilities=("household_world", "household_episode"),
+        required_capabilities=(
+            "household_world",
+            "household_manipulation",
+            "household_episode",
+        ),
     ),
     "planner-proof": TaskIntentSpec(
         intent_id="planner-proof",

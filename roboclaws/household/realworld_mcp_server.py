@@ -120,6 +120,7 @@ def make_molmo_realworld_cleanup_mcp(
     agent_sdk_camera_grounded_composite_tools: bool = False,
     robot_view_capture_policy: str = ROBOT_VIEW_CAPTURE_POLICY_FULL,
     rerun_command: str | None = None,
+    required_capability_profiles: tuple[str, ...] | None = None,
 ) -> "RealWorldMolmoCleanupMCPServer":
     return RealWorldMolmoCleanupMCPServer(
         run_dir=run_dir,
@@ -149,6 +150,7 @@ def make_molmo_realworld_cleanup_mcp(
         agent_sdk_camera_grounded_composite_tools=agent_sdk_camera_grounded_composite_tools,
         robot_view_capture_policy=robot_view_capture_policy,
         rerun_command=rerun_command,
+        required_capability_profiles=required_capability_profiles,
     )
 
 
@@ -185,6 +187,7 @@ class RealWorldMolmoCleanupMCPServer:
         agent_sdk_camera_grounded_composite_tools: bool = False,
         robot_view_capture_policy: str = ROBOT_VIEW_CAPTURE_POLICY_FULL,
         rerun_command: str | None = None,
+        required_capability_profiles: tuple[str, ...] | None = None,
     ) -> None:
         self.run_dir = Path(run_dir)
         self.run_dir.mkdir(parents=True, exist_ok=True)
@@ -199,6 +202,19 @@ class RealWorldMolmoCleanupMCPServer:
         )
         self.policy_uses_private_truth = False
         self.goal_contract = goal_contract or _goal_contract_from_env()
+        self.required_capability_profiles = tuple(
+            required_capability_profiles
+            if required_capability_profiles is not None
+            else (
+                self.goal_contract.required_capabilities
+                if self.goal_contract is not None
+                else _required_capability_profiles_from_env()
+            )
+        )
+        if not self.required_capability_profiles:
+            raise ValueError(
+                "required capability profiles must be resolved before starting household MCP"
+            )
         self.task_intent = household_runtime_intent(self.goal_contract, task_intent)
         self.task_name = household_task_name(surface=self.task_surface, intent=self.task_intent)
         self.map_bundle_dir = Path(map_bundle_dir) if map_bundle_dir is not None else None
@@ -1217,6 +1233,11 @@ def _goal_contract_from_env() -> GoalContract | None:
     if payload:
         return goal_contract_from_json(payload)
     return None
+
+
+def _required_capability_profiles_from_env() -> tuple[str, ...]:
+    raw = os.environ.get("ROBOCLAWS_REQUIRED_CAPABILITY_PROFILES", "")
+    return tuple(item.strip() for item in raw.split(",") if item.strip())
 
 
 def _startup_probe_host(host: str) -> str:

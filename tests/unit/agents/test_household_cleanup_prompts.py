@@ -68,7 +68,8 @@ def test_map_build_camera_grounded_prompt_uses_composite_cadence_when_enabled() 
     assert "move to the next public waypoint instead of adjusting pose" not in prompt
     assert "Do not resume the older observe plus declare_visual_candidates cadence" in prompt
     assert "declare_visual_candidates for each raw FPV observation" not in prompt
-    assert "Do not pick, place, place_inside" in prompt
+    assert "Manipulation tools are not entitled for this run" in prompt
+    assert "blocked_capability" not in prompt
 
 
 def test_map_build_camera_grounded_baseline_prompt_keeps_two_step_cadence() -> None:

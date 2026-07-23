@@ -57,6 +57,7 @@ HOUSEHOLD_TASK_SPECS: dict[str, TaskSurfaceSpec] = {
         checker_base="household_world",
         required_capabilities=(
             "household_world",
+            "household_manipulation",
             "household_episode",
         ),
         supported_presets=tuple(HOUSEHOLD_PRESET_SPECS),

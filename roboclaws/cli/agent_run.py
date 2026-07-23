@@ -323,6 +323,11 @@ def _molmo_household_run(
         "ROBOCLAWS_TASK_INTENT": resolved_task_intent,
         "ROBOCLAWS_TASK_PRESET": kv.get("task_preset", ""),
         "ROBOCLAWS_TASK_SKILL": skill_name,
+        "ROBOCLAWS_REQUIRED_CAPABILITY_PROFILES": _get(
+            kv,
+            "required_capability_profiles",
+            os.environ.get("ROBOCLAWS_REQUIRED_CAPABILITY_PROFILES", ""),
+        ),
         "ROBOCLAWS_GENERATED_MESS_MANIFEST_PATH": _get(
             kv,
             "generated_mess_manifest_path",

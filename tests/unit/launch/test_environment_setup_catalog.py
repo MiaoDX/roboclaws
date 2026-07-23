@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import importlib.util
+from typing import Any
 
 import pytest
 
+import roboclaws.cli.agent_run as agent_run_module
 from roboclaws.launch.backends import (
     cleanup_implementation_backend_ids,
     map_build_codex_implementation_backend_ids,
@@ -230,6 +232,45 @@ def test_household_non_cleanup_intents_default_to_baseline_setup() -> None:
             '"mode":"baseline"'
             in export_env_from_overrides(plan.overrides)[ENVIRONMENT_SETUP_METADATA_ENV]
         )
+
+    assert map_build.required_capabilities == ("household_world", "household_episode")
+    assert open_ended.required_capabilities == (
+        "household_world",
+        "household_manipulation",
+        "household_episode",
+    )
+    assert map_build.goal_contract.required_capabilities == map_build.required_capabilities
+    assert open_ended.goal_contract.required_capabilities == open_ended.required_capabilities
+    assert "required_capability_profiles=household_world,household_episode" in map_build.argv
+
+
+def test_household_runner_exports_resolved_capability_profiles(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_exec(argv: list[str], *, env: dict[str, str] | None = None) -> int:
+        captured["argv"] = argv
+        captured["env"] = env
+        return 0
+
+    monkeypatch.setattr(agent_run_module, "_exec_or_trace", fake_exec)
+
+    result = agent_run_module.agent_run(
+        [
+            "household-world",
+            "openai-agents-sdk",
+            "world-public-labels",
+            "backend=molmospaces_subprocess",
+            "task_intent=open-ended",
+            "required_capability_profiles=household_world,household_manipulation,household_episode",
+        ]
+    )
+
+    assert result == 0
+    assert captured["env"]["ROBOCLAWS_REQUIRED_CAPABILITY_PROFILES"] == (
+        "household_world,household_manipulation,household_episode"
+    )
 
 
 def test_household_goal_contract_tool_plans_do_not_advertise_static_fixture_projection() -> None:

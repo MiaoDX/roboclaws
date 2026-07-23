@@ -3671,7 +3671,7 @@ def test_openai_agents_camera_grounded_composite_rerenders_map_build_prompt() ->
     assert "One bounded re-observation is allowed" in prompt
     assert "Do not resume the older observe plus declare_visual_candidates cadence" in prompt
     assert "declare_visual_candidates for each raw FPV observation" not in prompt
-    assert "Do not pick, place, place_inside" in prompt
+    assert "Manipulation tools are not entitled for this run" in prompt
 
 
 def test_openai_agents_camera_grounded_composite_runner_rerenders_stale_two_step_prompt(
