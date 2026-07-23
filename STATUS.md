@@ -51,10 +51,11 @@ providers.
 
 ## Next Action
 
-Complete the remaining environment-dependent household MCP proof: MolmoSpaces-backed Isaac
-MapBuild, physical Agibot readiness under existing safety/operator gates, and provider-matrix rows
-whose profiles are available. The Phase A Isaac runtime smoke passes; the Agibot discovery service
-at `10.42.1.101:2379` is currently unreachable.
+Complete the remaining environment-dependent household MCP proof: restore B1 static-costmap
+connectivity and physical Agibot readiness under existing safety/operator gates. Phase A Isaac
+runtime smoke passes and the canonical SDK MapBuild-consumer matrix passes 5/5; the supported B1
+product route is blocked at 0.2 sweep coverage by four `no_static_costmap_path` results, while the
+Agibot discovery service at `10.42.1.101:2379` is unreachable.
 
 For the completed MapBuild quality/eval harness, use:
 
