@@ -1,12 +1,12 @@
 # Household MCP Capability And Backend Unification
 
-- Status: Active; Slices 0-4 complete; final live/local proof gated
+- Status: Active; Slices 0-4 complete; available proof complete, hardware/provider proof gated
 - Canonical plan: `docs/plans/2026-07-23-household-mcp-capability-backend-unification.md`
 - Root goal: Implement the canonical plan through `intuitive-flow`.
-- Current slice: Canonical household owners and stale active surfaces are migrated; final product,
-  live, and local proof remains gated by environment availability.
-- Next action: Re-run the full deterministic and required product/live/local gates in an environment
-  permitting local socket operations and guarded providers/hardware.
+- Current slice: Canonical household owners and stale active surfaces are migrated; available
+  deterministic and repo-local SDK product proof is complete.
+- Next action: Re-run Isaac Lab/physical Agibot gates and provider-matrix rows in an environment
+  permitting local sockets, required credentials, and guarded hardware.
 - Completed evidence: Slice 0/1 commit `ce5e1a12` adds exact profile composition and entitlement.
   Slice 2 converges synthetic, MuJoCo, Isaac Lab, and Agibot on one FastMCP server, one live runner,
   and one checker path; deletes five dedicated Agibot MapBuild implementation modules plus their
@@ -19,6 +19,10 @@
   Slice 4 renames the canonical household server/runtime/backend owners, migrates current callers,
   recipes, checkers, reports, eval catalog, baseline paths, and human docs, deletes superseded
   active modules/tests, and passes 502 focused tests plus 191 rename-relevant live-runner tests.
+  Available product/eval proof also passes open-ended SDK (3/3), cleanup capability SDK (3/3),
+  session-live SDK (1/1), map-build quality (1/1), scene sampler (16/16), smoke regression (1/1),
+  and the post-fix long-horizon smoke (2/2) suites. Provider-model matrix rows are blocked by
+  unavailable profiles; Isaac/physical routes remain hardware-gated.
 - Blocked on: none. The repo-wide Python quality ratchet still reports unrelated stale baseline
   growth plus touched oversized modules; Slice 2 removed its deleted-file baseline entry and its
   local checker complexity delta, while Ruff, format, diff, and focused tests pass. Do not refresh

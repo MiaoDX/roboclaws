@@ -1,4 +1,4 @@
-**Status:** Active; capability, backend, evidence, and canonical owner rename implemented; final live/local proof gated
+**Status:** Active; implementation and available deterministic/live proof complete; Isaac/physical and provider-matrix proof gated
 **Created:** 2026-07-23
 **Last reviewed:** 2026-07-23
 **Current implementation contract:** Household intents share one public surface, skill, exact
@@ -19,11 +19,12 @@ old server ids, tool surfaces, entrypoints, aliases, and readers touched by this
 - Parent plan: none
 - Child plans: none
 - Last updated: 2026-07-23
-- Current slice: Slice 4 complete; final live/local proof is gated by the sandbox environment.
-- Next action: Re-run the full deterministic and required product/live/local gates in an environment
-  permitting local socket operations and the guarded providers/hardware.
+- Current slice: Slice 4 complete; available deterministic and repo-local SDK proof complete.
+- Next action: Re-run Isaac Lab/physical Agibot gates and the provider-model matrix in an environment
+  with the required hardware, credentials, and local socket permissions.
 - Blocked on: full standalone suite has 77 sandbox-denied socket operations with cascading
-  operator-console lock failures; three unrelated MiMo model fixture mismatches remain.
+  operator-console lock failures; three unrelated MiMo fixture mismatches remain. Provider-matrix
+  rows are blocked by unavailable provider profiles; Isaac/physical routes remain hardware-gated.
 - Do not touch from this session: unrelated eval, map/report cleanup, archived plans, `TODOS.md`,
   and `THOUGHTS.md`.
 
