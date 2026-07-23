@@ -280,8 +280,6 @@ def _scene_command(
                 f"map_bundle={scene['map_bundle']}",
             ]
         )
-    elif "agent::eval" in rewritten:
-        rewritten.append(f"scene={scene['scene_id']}")
     return rewritten
 
 

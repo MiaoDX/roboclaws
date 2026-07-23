@@ -639,6 +639,7 @@ payload = {
     "required_cloudml_checks": [
         "asset-cache/molmospaces/assets/mjthor_data_type_to_source_to_versions.json",
         "asset-cache/molmospaces/cache/mjthor_data_type_to_source_to_versions.json",
+        "asset-cache/molmospaces/cache/objects/objaverse",
         "asset-cache/molmospaces/cache/grasps/droid_objaverse",
         "asset-cache/molmospaces/assets/objects/thor",
         "asset-cache/molmospaces/assets/robots/rby1m",

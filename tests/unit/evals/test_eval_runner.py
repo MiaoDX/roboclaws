@@ -72,28 +72,6 @@ def test_eval_runner_default_stamp_is_unique_for_quick_repeated_runs(tmp_path: P
     assert second.results_path.exists()
 
 
-def test_eval_runner_applies_source_aware_scene_override(tmp_path: Path) -> None:
-    captured: list[dict[str, Any]] = []
-
-    def product_runner(**kwargs: Any) -> dict[str, Any]:
-        captured.append(kwargs)
-        return _passing_product_runner(**kwargs)
-
-    run_eval_suite(
-        "smoke_regression",
-        output_root=tmp_path,
-        stamp="scene-override",
-        scene="procthor-objaverse-val/0",
-        product_runner=product_runner,
-    )
-
-    assert captured[0]["scene_source"] == "procthor-objaverse-val"
-    assert captured[0]["scene_index"] == 0
-    assert captured[0]["map_bundle_dir"].endswith(
-        "assets/maps/molmospaces/procthor-objaverse-val/0"
-    )
-
-
 def test_eval_runner_classifies_agent_turn_without_done() -> None:
     failure_class = _failure_class_from_exception(
         RuntimeError("OpenAI Agents SDK turn ended without done after 2 invocation(s)")

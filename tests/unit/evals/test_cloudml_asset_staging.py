@@ -114,6 +114,7 @@ def test_staging_freezes_only_the_selected_scene(tmp_path: Path, scene_index: in
     required = manifest["required_cloudml_checks"]
     assert any(f"/{scene_name}.xml" in path for path in required)
     assert any(path.endswith(f"/{scene_index}/map.yaml") for path in required)
+    assert "asset-cache/molmospaces/cache/objects/objaverse" in required
     with tarfile.open(manifest["staged_assets"]["archive"]["local_path"], "r:gz") as archive:
         names = archive.getnames()
     assert f"molmospaces/assets/scenes/procthor-10k-val/{scene_name}.xml" in names

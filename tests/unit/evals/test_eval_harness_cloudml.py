@@ -317,6 +317,11 @@ def test_catalog_expands_only_scene_portable_map_build_cases(tmp_path: Path) -> 
     assert "open-ended-goals-eval-suite" in by_id
     assert "direct-cleanup-runtime-prior-consumer" in by_id
     assert not any(
+        value.startswith("scene=")
+        for row_id in ("cleanup-capability-eval-suite", "open-ended-goals-eval-suite")
+        for value in by_id[row_id]["command"]
+    )
+    assert not any(
         row_id.startswith("cleanup-capability-eval-suite--scene-")
         or row_id.startswith("open-ended-goals-eval-suite--scene-")
         or row_id.startswith("direct-cleanup-runtime-prior-consumer--scene-")
