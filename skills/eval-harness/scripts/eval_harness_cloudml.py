@@ -629,17 +629,11 @@ def _build_shards(
         row_id = str(row["row_id"])
         if row_id in consumed:
             continue
-        dependencies = [str(value) for value in row.get("depends_on") or []]
-        chain = [by_id[value] for value in dependencies if value in by_id]
-        chain.append(row)
-        chain_ids = {str(value["row_id"]) for value in chain}
-        consumers = [
-            candidate
-            for candidate in gpu_rows
-            if row_id in {str(value) for value in candidate.get("depends_on") or []}
-        ]
-        chain.extend(candidate for candidate in consumers if candidate not in chain)
-        chain_ids.update(str(candidate["row_id"]) for candidate in consumers)
+        packing_group = str(row.get("packing_group") or "")
+        chain_ids = _connected_row_ids(row_id, by_id=by_id, packing_group=packing_group)
+        chain = _dependency_ordered_rows(
+            [candidate for candidate in gpu_rows if str(candidate["row_id"]) in chain_ids]
+        )
         consumed.update(chain_ids)
         suffix = len(shards) + 1
         shards.append(
@@ -656,6 +650,46 @@ def _build_shards(
     return shards
 
 
+def _connected_row_ids(
+    row_id: str, *, by_id: dict[str, dict[str, Any]], packing_group: str
+) -> set[str]:
+    connected = {row_id}
+    while True:
+        expanded = set(connected)
+        for candidate_id, candidate in by_id.items():
+            dependencies = {str(value) for value in candidate.get("depends_on") or []}
+            same_case = bool(
+                packing_group and str(candidate.get("packing_group") or "") == packing_group
+            )
+            if same_case or candidate_id in connected or dependencies.intersection(connected):
+                expanded.add(candidate_id)
+                expanded.update(dependencies.intersection(by_id))
+        if expanded == connected:
+            return connected
+        connected = expanded
+
+
+def _dependency_ordered_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    remaining = list(rows)
+    ordered: list[dict[str, Any]] = []
+    row_ids = {str(row["row_id"]) for row in rows}
+    while remaining:
+        ordered_ids = {str(row["row_id"]) for row in ordered}
+        ready = next(
+            (
+                row
+                for row in remaining
+                if not (
+                    ({str(value) for value in row.get("depends_on") or []} & row_ids) - ordered_ids
+                )
+            ),
+            remaining[0],
+        )
+        ordered.append(ready)
+        remaining.remove(ready)
+    return ordered
+
+
 def _shard(
     suffix: str,
     pool: str,
@@ -670,7 +704,8 @@ def _shard(
     provider_env_keys = sorted(
         {key for row in rows for key in provider_env_keys_by_row.get(str(row["row_id"]), ())}
     )
-    return {
+    scene = _shard_scene(rows)
+    shard = {
         "shard_id": shard_id,
         "worker_pool": pool,
         "row_ids": [str(row["row_id"]) for row in rows],
@@ -681,6 +716,20 @@ def _shard(
         "output_archive_name": cloudml_task.CLOUDML_SHARD_OUTPUT_ARCHIVE,
         **POOL_RESOURCES[pool],
     }
+    if scene:
+        shard["scene"] = scene
+    return shard
+
+
+def _shard_scene(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    scenes = {
+        str(scene.get("scene_id")): dict(scene)
+        for row in rows
+        if (scene := ((row.get("case") or {}).get("scene") or {}))
+    }
+    if len(scenes) > 1:
+        raise ValueError("one CloudML shard cannot contain benchmark cases from multiple scenes")
+    return next(iter(scenes.values()), {})
 
 
 def _relocated_manifest(

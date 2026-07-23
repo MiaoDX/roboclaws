@@ -112,6 +112,7 @@ def _run_eval_harness(mode: str, overrides: dict[str, str]) -> int:
         "preset",
         "evidence_lane",
         "camera_labeler",
+        "scene",
         "output_dir",
         "execution_target",
         "max_parallel",
@@ -283,6 +284,7 @@ def _run_eval_from_overrides(overrides: dict[str, str]):
     live_timeout_s = _optional_float(values.pop("live_timeout_s", None))
     live_stall_timeout_s = _optional_float(values.pop("live_stall_timeout_s", None))
     regrade_source = _optional_path(values.pop("regrade_source", None))
+    scene = values.pop("scene", None)
     if values:
         keys = ", ".join(sorted(values))
         raise ValueError(f"unsupported eval override(s): {keys}")
@@ -298,6 +300,7 @@ def _run_eval_from_overrides(overrides: dict[str, str]):
         live_timeout_s=live_timeout_s,
         live_stall_timeout_s=live_stall_timeout_s,
         regrade_source=regrade_source,
+        scene=scene,
     )
 
 

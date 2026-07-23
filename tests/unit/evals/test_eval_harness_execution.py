@@ -39,6 +39,7 @@ def _row(
     *,
     depends_on: tuple[str, ...] = (),
     concurrency_group: str = "",
+    packing_group: str = "",
 ) -> dict[str, Any]:
     return {
         "schema": "roboclaws_eval_harness_row_v1",
@@ -50,6 +51,7 @@ def _row(
         "requirement": "required",
         "depends_on": list(depends_on),
         "concurrency_group": concurrency_group,
+        "packing_group": packing_group,
         "timeout_s": 10,
         "row_dir": str(tmp_path / "rows" / row_id),
         "command": [sys.executable, "-c", "pass"],
@@ -113,6 +115,37 @@ def test_local_execution_defaults_to_one_serial_worker(tmp_path: Path) -> None:
 
 def test_independent_rows_overlap_with_parallel_workers(tmp_path: Path) -> None:
     manifest = _manifest(tmp_path, _row(tmp_path, "a"), _row(tmp_path, "b"))
+    active = 0
+    max_active = 0
+    lock = threading.Lock()
+
+    def run_row(row: dict[str, Any], manifest: dict[str, Any]) -> None:
+        nonlocal active, max_active
+        with lock:
+            active += 1
+            max_active = max(max_active, active)
+        time.sleep(0.05)
+        with lock:
+            active -= 1
+        _pass_row(row, manifest)
+
+    local_execution.execute_local_rows(
+        manifest,
+        run_row=run_row,
+        row_blockers=_no_blockers,
+        write_row_result=lambda row: None,
+        max_parallel=2,
+    )
+
+    assert max_active == 2
+
+
+def test_cloud_packing_group_does_not_serialize_local_cases(tmp_path: Path) -> None:
+    manifest = _manifest(
+        tmp_path,
+        _row(tmp_path, "a", packing_group="scene:procthor-10k-val/0"),
+        _row(tmp_path, "b", packing_group="scene:procthor-10k-val/0"),
+    )
     active = 0
     max_active = 0
     lock = threading.Lock()
@@ -332,12 +365,15 @@ def test_eval_cli_forwards_execution_overrides(monkeypatch: MonkeyPatch) -> None
             "manifest": "output/eval-harness/frozen.json",
             "row_id": "a,b",
             "shard_id": "worker-2",
+            "scene": "procthor-10k-val/0,procthor-objaverse-val/0",
         },
     )
 
     assert exit_code == 0
     assert captured == [
         "execute",
+        "--scene",
+        "procthor-10k-val/0,procthor-objaverse-val/0",
         "--execution-target",
         "local",
         "--max-parallel",

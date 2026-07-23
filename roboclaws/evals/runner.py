@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Callable
 
@@ -43,6 +43,9 @@ from roboclaws.evals.models import (
 from roboclaws.evals.reports import render_eval_report, results_bundle
 from roboclaws.household.backend_contract import SYNTHETIC_BACKEND
 from roboclaws.household.household_world_episode import run_household_world_episode
+from roboclaws.launch.map_bundles import molmospaces_nav2_map_bundle_path
+from roboclaws.launch.scene_sampler import parse_molmospaces_world_id
+from roboclaws.launch.scene_sampler_sources import sampler_world_id
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUTPUT_ROOT = REPO_ROOT / "output" / "evals"
@@ -73,6 +76,7 @@ def run_eval_suite(
     live_timeout_s: float | None = None,
     live_stall_timeout_s: float | None = None,
     regrade_source: Path | None = None,
+    scene: str | None = None,
     product_runner: ProductRun = run_household_world_episode,
     live_product_runner: ProductRun | None = None,
 ) -> EvalSuiteRun:
@@ -86,6 +90,8 @@ def run_eval_suite(
     suite_path = resolve_suite_path(suite_ref)
     suite = load_eval_suite(suite_path)
     samples = _load_suite_samples(suite)
+    if scene:
+        samples = [_sample_for_scene(sample, scene=scene) for sample in samples]
     engine = agent_engine_spec(agent_engine)
     selected_provider_profile = eval_provider_profile(
         agent_engine=engine.id,
@@ -155,6 +161,33 @@ def run_eval_suite(
         results_path=results_path,
         report_path=report_path,
         bundle=bundle,
+    )
+
+
+def _sample_for_scene(sample: EvalSample, *, scene: str) -> EvalSample:
+    raw_scene = str(scene).strip()
+    if not raw_scene:
+        raise ValueError("scene must be SOURCE/INDEX or a MolmoSpaces world id")
+    world_ref = raw_scene if raw_scene.startswith("molmospaces/") else f"molmospaces/{raw_scene}"
+    parsed = parse_molmospaces_world_id(world_ref)
+    launch_overrides = dict(sample.launch_overrides or {})
+    launch_overrides.update(
+        {
+            "scene_source": parsed.scene_source,
+            "scene_index": parsed.scene_index,
+            "map_bundle": molmospaces_nav2_map_bundle_path(
+                scene_source=parsed.scene_source,
+                scene_index=parsed.scene_index,
+            ).as_posix(),
+        }
+    )
+    return replace(
+        sample,
+        world=sampler_world_id(
+            source=parsed.scene_source,
+            scene_index=parsed.scene_index,
+        ),
+        launch_overrides=launch_overrides,
     )
 
 

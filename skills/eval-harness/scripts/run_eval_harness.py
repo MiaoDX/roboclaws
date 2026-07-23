@@ -80,6 +80,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--preset", default="")
     parser.add_argument("--evidence-lane", default="")
     parser.add_argument("--camera-labeler", default="")
+    parser.add_argument("--scene", action="append", default=[])
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--execution-target", choices=("local", "cloudml", "auto"), default="local")
     parser.add_argument("--max-parallel", type=local_execution.positive_int, default=1)
@@ -142,6 +143,7 @@ def _manifest_from_args(args: argparse.Namespace) -> dict[str, Any]:
         preset=selector._split_csv(args.preset),
         evidence_lane=selector._split_csv(args.evidence_lane),
         camera_labeler=selector._split_csv(args.camera_labeler),
+        scenes=selector._split_csv_values(args.scene),
         output_dir=args.output_dir,
     )
 

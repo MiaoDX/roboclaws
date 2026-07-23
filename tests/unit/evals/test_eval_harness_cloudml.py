@@ -18,6 +18,7 @@ CLOUDML_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "eval_harness
 CLOUDML_LIFECYCLE_PATH = (
     REPO_ROOT / "skills" / "eval-harness" / "scripts" / "eval_harness_cloudml_lifecycle.py"
 )
+ROWS_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "eval_harness_rows.py"
 
 
 def _load_module(name: str, path: Path):
@@ -31,6 +32,7 @@ def _load_module(name: str, path: Path):
 
 cloudml = _load_module("eval_harness_cloudml_test", CLOUDML_PATH)
 cloudml_lifecycle = _load_module("eval_harness_cloudml_lifecycle_test", CLOUDML_LIFECYCLE_PATH)
+rows_module = _load_module("eval_harness_rows_cloudml_test", ROWS_PATH)
 
 
 def _row(
@@ -39,6 +41,7 @@ def _row(
     *,
     provider_profile: str = "",
     depends_on: tuple[str, ...] = (),
+    packing_group: str = "",
 ) -> dict[str, Any]:
     return {
         "schema": "roboclaws_eval_harness_row_v1",
@@ -50,6 +53,7 @@ def _row(
         "requirement": "required",
         "execution_requirements": list(requirements),
         "depends_on": list(depends_on),
+        "packing_group": packing_group,
         "timeout_s": 30,
         "axes": {"provider_profile": provider_profile},
         "row_dir": f"/local/harness/rows/{row_id}",
@@ -242,6 +246,92 @@ def test_dependency_pair_stays_in_one_ordered_shard() -> None:
 
     assert len(plan["shards"]) == 1
     assert plan["shards"][0]["row_ids"] == ["producer", "consumer"]
+
+
+def test_catalog_rows_expose_default_scene_identity_without_forcing_cloud_packing(
+    tmp_path: Path,
+) -> None:
+    rows = rows_module.candidate_rows(output_dir=tmp_path, explicit_axes={})
+    scene_row = next(row for row in rows if row["row_id"] == "direct-map-build-world-public")
+
+    assert scene_row["axes"]["scene_source"] == "procthor-10k-val"
+    assert scene_row["axes"]["scene_index"] == "0"
+    assert scene_row["case_id"] == "direct-map-build-world-public"
+    assert scene_row["case"]["scene"]["scene_id"] == "procthor-10k-val/0"
+    assert scene_row["scene_group"] == "scene:procthor-10k-val/0"
+    assert scene_row["packing_group"] == ""
+    assert "world=molmospaces/val_0" in scene_row["command"]
+
+
+def test_catalog_expands_scene_cases_and_rewrites_dependencies(tmp_path: Path) -> None:
+    rows = rows_module.candidate_rows(
+        output_dir=tmp_path,
+        explicit_axes={},
+        scenes=("procthor-10k-val/0", "procthor-objaverse-val/0"),
+    )
+    by_id = {row["row_id"]: row for row in rows}
+
+    assert list(row["base_row_id"] for row in rows).count("eval-unit-tests") == 1
+    first_producer = by_id["direct-map-build-world-public--scene-procthor-10k-val-0"]
+    second_producer = by_id["direct-map-build-world-public--scene-procthor-objaverse-val-0"]
+    second_consumer = by_id["direct-cleanup-runtime-prior-consumer--scene-procthor-objaverse-val-0"]
+    assert first_producer["axes"]["world"] == "molmospaces/val_0"
+    assert second_producer["axes"]["world"] == "molmospaces/procthor-objaverse-val/0"
+    assert second_consumer["depends_on"] == [second_producer["row_id"]]
+    suite = by_id["cleanup-capability-eval-suite--scene-procthor-objaverse-val-0"]
+    assert "scene=procthor-objaverse-val/0" in suite["command"]
+
+
+def test_cloudml_packs_same_scene_rows_and_preserves_dependency_order() -> None:
+    requirements = ("gpu", "python-env", "artifact-storage", "simulator:mujoco")
+    consumer = _row(
+        "consumer",
+        requirements,
+        depends_on=("producer",),
+        packing_group="scene:procthor-10k-val/0",
+    )
+    peer = _row("peer", requirements, packing_group="scene:procthor-10k-val/0")
+    producer = _row("producer", requirements, packing_group="scene:procthor-10k-val/0")
+    other_scene = _row("other-scene", requirements, packing_group="scene:procthor-10k-val/1")
+
+    plan = cloudml.build_cloudml_plan(
+        _manifest(consumer, peer, producer, other_scene),
+        execution_target="cloudml",
+        run_id="run-1",
+    )
+
+    assert [shard["row_ids"] for shard in plan["shards"]] == [
+        ["peer", "producer", "consumer"],
+        ["other-scene"],
+    ]
+
+
+def test_cloudml_keeps_independent_scene_cases_in_parallel_shards(tmp_path: Path) -> None:
+    rows = rows_module.candidate_rows(
+        output_dir=tmp_path,
+        explicit_axes={},
+        scenes=("procthor-10k-val/0", "procthor-objaverse-val/0"),
+    )
+    selected_ids = {
+        "household-direct-world-public-product--scene-procthor-10k-val-0",
+        "household-direct-world-public-product--scene-procthor-objaverse-val-0",
+    }
+    selected = []
+    for row in rows:
+        if row["row_id"] in selected_ids:
+            row["selected"] = True
+            row["status"] = "not_run"
+            selected.append(row)
+
+    plan = cloudml.build_cloudml_plan(
+        _manifest(*selected), execution_target="cloudml", run_id="run-1"
+    )
+
+    assert len(plan["shards"]) == 2
+    assert {shard["scene"]["scene_id"] for shard in plan["shards"]} == {
+        "procthor-10k-val/0",
+        "procthor-objaverse-val/0",
+    }
 
 
 def test_cloudml_run_id_rejects_path_components() -> None:
