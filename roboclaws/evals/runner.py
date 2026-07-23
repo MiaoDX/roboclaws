@@ -1409,6 +1409,9 @@ def _status_from_graders(grader_outputs: dict[str, Any]) -> tuple[str, str]:
         grader = grader_outputs.get(grader_name, {})
         if grader.get("status") == "failed":
             return "failed", str(grader.get("failure_class") or failure_class)
+    long_horizon = grader_outputs.get(lh.LONG_HORIZON_GRADER_NAME, {})
+    if long_horizon.get("status") == "inconclusive":
+        return "inconclusive", str(long_horizon.get("failure_class") or "grader_inconclusive")
     return "passed", MISSING_NOT_APPLICABLE
 
 

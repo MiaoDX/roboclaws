@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from roboclaws.evals.final_state_evidence import FinalStateEvidence, final_state_evidence_for_run
 from roboclaws.evals.long_horizon import long_horizon_spec
 from roboclaws.evals.models import MISSING_NOT_APPLICABLE, MISSING_UNAVAILABLE, EvalSample
 
@@ -24,16 +25,24 @@ def grade_long_horizon_task(
             "subgoals": {},
         }
     trace_events, trace_errors = _read_trace_events(run_dir / "trace.jsonl")
-    final_locations = (
-        run_result.get("final_locations")
-        if isinstance(run_result.get("final_locations"), dict)
-        else {}
-    )
-    final_containment = (
-        run_result.get("final_containment")
-        if isinstance(run_result.get("final_containment"), dict)
-        else {}
-    )
+    evidence = final_state_evidence_for_run(run_result)
+    if evidence.status != "available":
+        return {
+            "status": "inconclusive",
+            "failure_class": "grader_inconclusive",
+            "task_id": spec.task_id,
+            "failures": [],
+            "subgoals": {},
+            "object_results": {},
+            "evidence_status": evidence.status,
+            "evidence_reason": "authoritative_final_state_unavailable",
+            "evidence_source_provenance": list(evidence.source_provenance),
+            "evidence_source_errors": list(evidence.source_errors),
+            "trace_parse_errors": trace_errors,
+            "first_failure_step": MISSING_UNAVAILABLE,
+        }
+    final_locations = evidence.locations
+    final_containment = evidence.containment
     destinations = set(spec.accepted_destination_ids)
     object_results = {
         object_id: {
@@ -54,9 +63,9 @@ def grade_long_horizon_task(
         "target_observed": _target_observed(run_result, spec.target_object_ids),
         "picked": _tool_count(sequence, "pick") >= len(spec.target_object_ids),
         "placed": all(item["accepted"] for item in object_results.values()),
-        "container_closed": _container_closed(trace_events, spec.cold_object_ids),
+        "container_closed": _container_closed(evidence, spec.cold_object_ids),
         "done_claim": _has_completion_claim(run_result),
-        "hands_empty": _hands_empty(run_result, final_locations=final_locations),
+        "hands_empty": evidence.held_object_state == "empty",
     }
     failures = []
     if trace_errors:
@@ -160,35 +169,27 @@ def _target_observed(run_result: dict[str, Any], object_ids: tuple[str, ...]) ->
     return public_count >= len(object_ids)
 
 
-def _container_closed(trace_events: list[dict[str, Any]], cold_object_ids: tuple[str, ...]) -> bool:
+def _container_closed(evidence: FinalStateEvidence, cold_object_ids: tuple[str, ...]) -> bool:
     if not cold_object_ids:
         return True
-    sequence = _tool_sequence(trace_events)
-    try:
-        place_index = sequence.index("place_inside")
-        close_index = sequence.index("close_receptacle")
-    except ValueError:
-        return False
-    return close_index > place_index
+    receptacle_ids = {
+        str(evidence.containment.get(object_id, {}).get("contained_in") or "")
+        or str(evidence.locations.get(object_id) or "")
+        for object_id in cold_object_ids
+    }
+    return (
+        bool(receptacle_ids)
+        and "" not in receptacle_ids
+        and all(
+            evidence.receptacle_states.get(receptacle_id) == "closed"
+            for receptacle_id in receptacle_ids
+        )
+    )
 
 
 def _has_completion_claim(run_result: dict[str, Any]) -> bool:
     claim = run_result.get("agent_completion_claim")
     return isinstance(claim, dict) and bool(claim.get("completion_summary"))
-
-
-def _hands_empty(run_result: dict[str, Any], *, final_locations: dict[str, Any]) -> bool:
-    if any(str(value) == "held_by_agent" for value in final_locations.values()):
-        return False
-    runtime_map = (
-        run_result.get("runtime_metric_map")
-        if isinstance(run_result.get("runtime_metric_map"), dict)
-        else {}
-    )
-    summary = runtime_map.get("cleanup_worklist_summary") if isinstance(runtime_map, dict) else {}
-    if isinstance(summary, dict) and summary.get("held_object_id"):
-        return False
-    return True
 
 
 def _required_sequence_present(sequence: list[str], required: tuple[str, ...]) -> bool:

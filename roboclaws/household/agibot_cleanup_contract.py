@@ -309,7 +309,7 @@ class AgibotCleanupMCPContract:
             "reason": reason,
             "cleanup_status": completion,
             "score": score,
-            "final_locations": self.scenario.object_locations(),
+            "final_locations": {},
             "final_containment": {},
             "tool_event_counts": dict(self._tool_event_counts),
             "contract": REALWORLD_CONTRACT,

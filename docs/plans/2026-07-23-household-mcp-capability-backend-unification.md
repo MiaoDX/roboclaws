@@ -1,9 +1,9 @@
-**Status:** Active; capability entitlement and backend unification implemented, evidence normalization in progress
+**Status:** Active; capability, backend, and evidence normalization implemented; canonical rename in progress
 **Created:** 2026-07-23
 **Last reviewed:** 2026-07-23
 **Current implementation contract:** Household intents share one public surface, skill, exact
-profile-composed MCP tool surface, common server, and backend adapter path. Private final-state
-evidence and canonical owner names still require normalization.
+profile-composed MCP tool surface, common server, backend adapter path, and evaluator-private
+final-state evidence. Canonical owner names still require normalization.
 **Related ADRs:** ADR-0136, ADR-0140; add a new ADR for task-scoped MCP entitlement and the
 single-server backend contract before implementation.
 **Supersedes / Superseded by:** Narrows and continues the server/profile cleanup direction in
@@ -19,10 +19,9 @@ old server ids, tool surfaces, entrypoints, aliases, and readers touched by this
 - Parent plan: none
 - Child plans: none
 - Last updated: 2026-07-23
-- Current slice: Slice 3, normalize backend and completion evidence.
-- Next action: Define private `FinalStateEvidence`, migrate exact simulator and inconclusive
-  physical producers plus the long-horizon grader, then prove the packet never enters public
-  MCP, Agent View, prompt, or trace surfaces.
+- Current slice: Slice 4, rename canonical owners and remove stale surfaces.
+- Next action: Apply the approved rename/deletion map, migrate current callers and docs, then run
+  stale-reference, focused eval, product-run, and guarded live/local proof.
 - Blocked on: none; final live, Isaac, and physical proof may still require guarded blocker
   evidence.
 - Do not touch from this session: unrelated eval, map/report cleanup, archived plans, `TODOS.md`,

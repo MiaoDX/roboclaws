@@ -686,6 +686,10 @@ def test_agibot_adapter_integrates_with_shared_cleanup_mcp_contract(tmp_path: Pa
     assert run_result["real_robot_readiness"]["backend_variant"] == "agibot_gdk"
     assert run_result["real_robot_readiness"]["physical_cleanup_ready"] is False
     assert run_result["requested_generated_mess_count"] == 0
+    assert "final_locations" not in done
+    assert "final_containment" not in done
+    assert run_result["final_locations"] == {}
+    assert run_result["final_containment"] == {}
     assert "scene_objects" not in trace_text
 
 
