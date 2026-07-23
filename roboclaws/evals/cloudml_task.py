@@ -156,7 +156,7 @@ def image_command(shard: dict[str, Any], *, identity: dict[str, str]) -> str:
         f"rm -rf {bootstrap_root}; mkdir -p {bootstrap_root}; "
         f"tar -xzf {code_archive} -C {bootstrap_root}; "
         "set +e; "
-        f"{bootstrap_root}/roboclaws.git/scripts/dev/run_cloudml_eval_worker.sh; "
+        f"bash {bootstrap_root}/roboclaws.git/scripts/dev/run_cloudml_eval_worker.sh; "
         "worker_exit=$?; set -e; "
         f"test -d {scratch_path}; mkdir -p /tmp/roboclaws-cloudml {remote_path}/markers; "
         f"tar -cf {archive_tmp} -C {scratch_path} .; "

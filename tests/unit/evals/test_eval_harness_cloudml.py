@@ -244,7 +244,10 @@ def test_cloudml_image_command_bootstraps_worker_from_pinned_code_archive() -> N
     command = cloudml.cloudml_task.image_command(shard, identity=identity)
 
     assert "/mnt/cloudml/code/roboclaws-code.tar.gz" in command
-    assert "scripts/dev/run_cloudml_eval_worker.sh" in command
+    assert (
+        "bash /tmp/roboclaws-cloudml/run-r49-001-bootstrap/roboclaws.git/"
+        "scripts/dev/run_cloudml_eval_worker.sh"
+    ) in command
     assert "/opt/roboclaws/bin/run-cloudml-eval-worker" not in command
 
 
