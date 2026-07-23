@@ -353,7 +353,7 @@ def test_operator_console_exposes_product_workflow_metadata() -> None:
     assert {workflow["coverage"]["owner_type"] for workflow in workflows.values()} == {
         "eval_suite",
     }
-    assert workflows["build-map"]["coverage"]["owner_id"] == "map_build_consumer"
+    assert workflows["build-map"]["coverage"]["owner_id"] == "map_build_quality"
     assert workflows["open-task"]["coverage"]["owner_id"] == "open_ended_goals"
     assert workflows["cleanup"]["coverage"]["owner_id"] == "cleanup_capability"
     assert workflows["build-map"]["allows_prior_override"] is False

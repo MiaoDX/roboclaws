@@ -87,6 +87,7 @@ def run_live_eval_trial(
     budget: str,
     repetition_index: int,
     sample_artifacts: dict[str, dict[str, Any]],
+    runtime_map_prior: Path | None,
     agent_engine: str,
     provider_profile: str,
     model: str | None,
@@ -102,6 +103,7 @@ def run_live_eval_trial(
             sample,
             repetition_index=repetition_index,
             sample_artifacts=sample_artifacts,
+            runtime_map_prior=runtime_map_prior,
         )
         failure = dependency_failure(dependency_artifacts)
         if failure is not None:

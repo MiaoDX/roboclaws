@@ -1,0 +1,15 @@
+{
+  "schema": "roboclaws_eval_suite_v1",
+  "suite_id": "household_world.map_build_quality",
+  "version": "2026-07-23",
+  "capability": "household_world",
+  "sample_ids": ["map_build.fixture_focused_seed7"],
+  "sample_refs": ["evals/household_world/samples/map_build/fixture_focused_seed7.json"],
+  "required_graders": ["artifacts", "privacy", "trajectory", "outcome"],
+  "thresholds": {"pass_at_1": 1.0, "private_truth_leak_count": 0, "trajectory_policy_violation_count": 0},
+  "metadata": {
+    "execution_mode": "map_build_quality",
+    "report_family": "builder_quality",
+    "canonical_prior_promotion": "explicit_maintainer_action"
+  }
+}

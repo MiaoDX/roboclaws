@@ -1,6 +1,6 @@
 ---
 plan_scope: recommended-runtime-map-prior-selection
-status: ACTIVE
+status: COMPLETE
 created: 2026-07-01
 last_reviewed: 2026-07-23
 implementation_allowed: true
@@ -20,17 +20,25 @@ related_context:
 
 ## Plan Ledger
 
-Status: ACTIVE
+Status: COMPLETE
 
-Current slice: deterministic selector/catalog implementation is complete;
-the accepted fixed-map consumer-matrix follow-up is not implemented yet.
+Completed 2026-07-23. EvalHarness now separates MapBuild quality, no-prior
+controls, fixed-prior consumers, and explicit same-provider end-to-end runs.
+Canonical priors require explicit maintainer promotion into an immutable,
+content-addressed catalog and fixed-prior results record the selected digest.
 
-Next action: split MapBuild candidate generation from fixed-prior consumer
-matrices, then publish one explicitly promoted canonical prior per scene/map
-identity.
+Proof:
 
-Blocked on: no implementation blocker. Running a fresh live candidate matrix
-still depends on provider/runtime availability.
+- Deterministic one-scene chain passed: MapBuild quality `1/1`, no-prior
+  controls `2/2`, and fixed-prior consumers `2/2` using one SHA-256 identity.
+- OpenAI Agents SDK fixed-prior proof passed `2/2` through
+  `codex-router-responses`; both consumer rows recorded the same prior digest.
+- Focused eval, harness-selector, operator-console, CLI, promotion, cache
+  invalidation, lint, format, and diff checks passed.
+
+Blocked on: none. A fresh alternate-provider candidate matrix remains optional
+refresh evidence and depends on provider/runtime capacity; it is not required
+to implement the accepted reusable-map contract.
 
 ## Goal
 

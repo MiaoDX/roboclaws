@@ -1,0 +1,18 @@
+{
+  "schema": "roboclaws_eval_suite_v1",
+  "suite_id": "household_world.map_consumer_no_prior",
+  "version": "2026-07-23",
+  "capability": "household_world",
+  "sample_ids": ["open_ended.stable_anchor_no_prior_seed7", "cleanup.consumer_no_prior_seed7"],
+  "sample_refs": [
+    "evals/household_world/samples/open_ended/stable_anchor_no_prior_seed7.json",
+    "evals/household_world/samples/cleanup/consumer_no_prior_seed7.json"
+  ],
+  "required_graders": ["artifacts", "privacy", "trajectory", "outcome"],
+  "thresholds": {"pass_at_1": 1.0, "private_truth_leak_count": 0, "trajectory_policy_violation_count": 0},
+  "metadata": {
+    "execution_mode": "no_prior_control",
+    "report_family": "no_prior_control",
+    "map_build_dependency": false
+  }
+}

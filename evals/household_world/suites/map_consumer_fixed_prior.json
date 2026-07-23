@@ -1,0 +1,19 @@
+{
+  "schema": "roboclaws_eval_suite_v1",
+  "suite_id": "household_world.map_consumer_fixed_prior",
+  "version": "2026-07-23",
+  "capability": "household_world",
+  "sample_ids": ["open_ended.stable_anchor_fixture_focused_prior_seed7", "cleanup.consumer_fixture_focused_prior_seed7"],
+  "sample_refs": [
+    "evals/household_world/samples/open_ended/stable_anchor_fixture_focused_prior_seed7.json",
+    "evals/household_world/samples/cleanup/consumer_fixture_focused_prior_seed7.json"
+  ],
+  "required_graders": ["artifacts", "privacy", "trajectory", "outcome"],
+  "thresholds": {"pass_at_1": 1.0, "private_truth_leak_count": 0, "trajectory_policy_violation_count": 0},
+  "metadata": {
+    "execution_mode": "task_matrix_on_fixed_map",
+    "report_family": "fixed_prior_consumer",
+    "runtime_map_prior_access": "read_only",
+    "map_build_dependency": false
+  }
+}

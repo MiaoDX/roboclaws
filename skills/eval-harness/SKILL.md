@@ -192,7 +192,8 @@ Important signals:
 - Eval harness, eval CLI, eval reports, or regression promotion select eval
   unit tests and `smoke_regression`.
 - Runtime Metric Map, map-build, actionability, or waypoint files select
-  `map_build_consumer`.
+  `map_build_quality`; provider consumer rows use `map_consumer_fixed_prior`
+  only when an explicit canonical `runtime_map_prior` is available.
 - Cleanup skill, prompt, MCP policy, checker, or done-readiness files select
   cleanup contract gates, `cleanup_capability`, and focused/full live eval rows.
 - Agent SDK, provider profile, or live-runtime files select route/preflight

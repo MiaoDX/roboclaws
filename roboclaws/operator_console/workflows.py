@@ -111,7 +111,7 @@ WORKFLOWS: tuple[OperatorWorkflow, ...] = (
         preset_id="map-build",
         supports_runtime_map_prior=False,
         scenario_setup=ENVIRONMENT_SETUP_BASELINE,
-        coverage=WorkflowCoverage("eval_suite", "map_build_consumer"),
+        coverage=WorkflowCoverage("eval_suite", "map_build_quality"),
     ),
     OperatorWorkflow(
         id=WORKFLOW_OPEN_TASK,

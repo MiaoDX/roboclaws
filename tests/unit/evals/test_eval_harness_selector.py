@@ -418,10 +418,13 @@ def test_explicit_axes_select_first_class_engine_and_provider_profile(
 def test_map_build_consumer_plan_selects_four_profile_model_matrix(
     tmp_path: Path,
 ) -> None:
+    prior = tmp_path / "canonical-prior.json"
+    prior.write_text('{"schema":"runtime_map_prior_snapshot_v1"}\n', encoding="utf-8")
     manifest = selector.build_eval_harness(
         budget="focused",
         plan=REPO_ROOT / "docs/plans/2026-06-24-map-build-panorama-consumer-experiments.md",
         output_dir=tmp_path / "harness",
+        runtime_map_prior=str(prior),
     )
 
     rows = _selected_rows(manifest)
@@ -443,7 +446,9 @@ def test_map_build_consumer_plan_selects_four_profile_model_matrix(
         "minimax-responses",
     }
     for row in matrix_rows.values():
-        assert "suite=map_build_consumer" in row["command"]
+        assert "suite=map_consumer_fixed_prior" in row["command"]
+        assert f"runtime_map_prior={prior}" in row["command"]
+        assert row["axes"]["suite"] == "map_consumer_fixed_prior"
         assert "agent_engine=openai-agents-sdk" in row["command"]
         assert "live_timeout_s=1500" in row["command"]
         assert "live_execution=run" in row["command"]
