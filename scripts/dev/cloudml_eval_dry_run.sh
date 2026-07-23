@@ -19,7 +19,11 @@ run_mode="${ROBOCLAWS_CLOUDML_RUN_MODE:-product-cleanup}"
 suite="${ROBOCLAWS_CLOUDML_SUITE:-smoke_regression}"
 budget="${ROBOCLAWS_CLOUDML_BUDGET:-focused}"
 input_rel="${ROBOCLAWS_CLOUDML_INPUT_REL:-roboclaws-assets/cleanup-focused}"
-asset_archive_name="${ROBOCLAWS_CLOUDML_ASSET_ARCHIVE_NAME:-cleanup-focused-molmospaces-val0.tar.gz}"
+scene_source="${ROBOCLAWS_CLOUDML_SCENE_SOURCE:-procthor-10k-val}"
+scene_index="${ROBOCLAWS_CLOUDML_SCENE_INDEX:-0}"
+scene_name="val_${scene_index}"
+scene_rel="scenes/${scene_source}"
+asset_archive_name="${ROBOCLAWS_CLOUDML_ASSET_ARCHIVE_NAME:-cleanup-focused-molmospaces-val${scene_index}.tar.gz}"
 asset_cache_mode="${ROBOCLAWS_CLOUDML_ASSET_CACHE_MODE:-local-scratch}"
 asset_cache_root="${ROBOCLAWS_CLOUDML_ASSET_CACHE_ROOT:-/mnt/cloudml/output/roboclaws-asset-cache/cleanup-focused}"
 local_asset_cache_root="${ROBOCLAWS_CLOUDML_LOCAL_ASSET_CACHE_ROOT:-/tmp/roboclaws-asset-cache/cleanup-focused}"
@@ -30,7 +34,7 @@ job_name="${ROBOCLAWS_CLOUDML_JOB_NAME:-roboclaws-cleanup-${code_short}}"
 output_yaml_path="${ROBOCLAWS_CLOUDML_OUTPUT_YAML:-/tmp/roboclaws-cloudml-${stamp}.yaml}"
 code_url="${ROBOCLAWS_CLOUDML_CODE_URL:-https://git.n.xiaomi.com/ipg/infra/roboclaws.git}"
 code_branch="${ROBOCLAWS_CLOUDML_CODE_BRANCH:-main}"
-map_bundle="${ROBOCLAWS_CLOUDML_MAP_BUNDLE:-assets/maps/molmospaces/procthor-10k-val/0}"
+map_bundle="${ROBOCLAWS_CLOUDML_MAP_BUNDLE:-assets/maps/molmospaces/${scene_source}/${scene_index}}"
 product_output_dir="${ROBOCLAWS_CLOUDML_PRODUCT_OUTPUT_DIR:-/mnt/cloudml/output/roboclaws-cleanup-runs/${stamp}}"
 eval_output_dir="${ROBOCLAWS_CLOUDML_EVAL_OUTPUT_DIR:-/mnt/cloudml/output/roboclaws-evals}"
 dry_run="${ROBOCLAWS_CLOUDML_DRY_RUN:-true}"
@@ -65,6 +69,8 @@ Environment overrides:
   ROBOCLAWS_CLOUDML_ASSET_ARCHIVE_NAME
                                   Default: cleanup-focused-molmospaces-val0.tar.gz
                                   under <input_rel>/archives/.
+  ROBOCLAWS_CLOUDML_SCENE_SOURCE   Default: procthor-10k-val
+  ROBOCLAWS_CLOUDML_SCENE_INDEX    Default: 0
   ROBOCLAWS_CLOUDML_ASSET_CACHE_MODE
                                   local-scratch|juicefs-sha. Default: local-scratch.
                                   local-scratch avoids writing 100k+ extracted
@@ -80,7 +86,7 @@ Environment overrides:
                                   submodule sync by unpacking code from JuiceFS.
   ROBOCLAWS_CLOUDML_CODE_ARCHIVE_NAME
                                   Default: roboclaws-code-<code>.tar.gz.
-  ROBOCLAWS_CLOUDML_MAP_BUNDLE    Default: assets/maps/molmospaces/procthor-10k-val/0
+  ROBOCLAWS_CLOUDML_MAP_BUNDLE    Default: assets/maps/molmospaces/<scene-source>/<scene-index>
   ROBOCLAWS_CLOUDML_OUTPUT_YAML   Default: /tmp/roboclaws-cloudml-<stamp>.yaml
   ROBOCLAWS_CLOUDML_DRY_RUN       Default: true. Set false for a real submit.
   ROBOCLAWS_EXECUTOR_ROOT         Default: /home/mi/executor
@@ -88,6 +94,20 @@ Environment overrides:
   ROBOCLAWS_EXECUTOR_CONFIG_PATH  Default: profiles/nvs/miaodongxu.yaml
 USAGE
   exit 0
+fi
+
+if [[ ! "$scene_source" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+  echo "error: ROBOCLAWS_CLOUDML_SCENE_SOURCE must be a safe path segment: $scene_source" >&2
+  exit 2
+fi
+if [[ ! "$scene_index" =~ ^[0-9]+$ ]]; then
+  echo "error: ROBOCLAWS_CLOUDML_SCENE_INDEX must be a non-negative integer: $scene_index" >&2
+  exit 2
+fi
+if [[ "$scene_source" == "procthor-10k-val" && ",0,1,2,3,4,5,7,9," == *",${scene_index},"* ]]; then
+  scene_world="molmospaces/val_${scene_index}"
+else
+  scene_world="molmospaces/${scene_source}/${scene_index}"
 fi
 
 if [[ ! -x "$executor_root/execute.py" ]]; then
@@ -101,7 +121,7 @@ case "$run_mode" in
     cloudml_run_command=(
       just run::surface
       surface=household-world
-      world=molmospaces/val_0
+      "world=${scene_world}"
       backend=mujoco
       preset=cleanup
       agent_engine=direct-runner
@@ -151,6 +171,11 @@ asset_cache_mode=${asset_cache_mode}
 juicefs_asset_cache_root=${asset_cache_root}
 local_asset_cache_root=${local_asset_cache_root}
 map_bundle=${map_bundle}
+scene_source=${scene_source}
+scene_index=${scene_index}
+scene_name=${scene_name}
+scene_world=${scene_world}
+scene_rel=${scene_rel}
 stamp=${stamp}
 run_mode=${run_mode}
 product_output_dir=${product_output_dir}
@@ -232,8 +257,8 @@ if [[ ! -f "\${ready}" ]]; then
     rm -rf "\${tmp}"
     mkdir -p "\${tmp}"
     extract_asset_archive "\${archive_path}" "\${tmp}"
-    test -f "\${tmp}/molmospaces/assets/scenes/procthor-10k-val/val_0.xml"
-    test -f "\${tmp}/molmospaces/assets/scenes/procthor-10k-val/val_0.json"
+    test -f "\${tmp}/molmospaces/assets/\${scene_rel}/\${scene_name}.xml"
+    test -f "\${tmp}/molmospaces/assets/\${scene_rel}/\${scene_name}.json"
     test -d "\${tmp}/molmospaces/assets/objects/thor"
     test -d "\${tmp}/molmospaces/assets/robots/rby1m"
     rm -rf "\${cache_dir}"
@@ -256,14 +281,14 @@ fi
 
 export MLSPACES_ASSETS_DIR=\${cache_dir}/molmospaces/assets
 export MLSPACES_CACHE_DIR=\${cache_dir}/molmospaces/cache
-test -f "\${MLSPACES_ASSETS_DIR}/scenes/procthor-10k-val/val_0.xml"
-test -f "\${MLSPACES_ASSETS_DIR}/scenes/procthor-10k-val/val_0.json"
-test -f "\${MLSPACES_ASSETS_DIR}/scenes/procthor-10k-val/val_0_metadata.json"
-test -f "\${MLSPACES_ASSETS_DIR}/scenes/procthor-10k-val/val_0_ceiling.xml"
-test -d "\${MLSPACES_ASSETS_DIR}/scenes/procthor-10k-val/val_0_assets"
-test -f "\${MLSPACES_ASSETS_DIR}/scenes/procthor-10k-val/mjthor_resources_combined_meta.json.gz"
-test -f "\${MLSPACES_ASSETS_DIR}/scenes/procthor-10k-val/mjthor_resource_file_to_size_mb.json"
-test -f "\${MLSPACES_ASSETS_DIR}/scenes/procthor-10k-val/.procthor-10k-val_val_0.tar.zst_complete_links"
+test -f "\${MLSPACES_ASSETS_DIR}/\${scene_rel}/\${scene_name}.xml"
+test -f "\${MLSPACES_ASSETS_DIR}/\${scene_rel}/\${scene_name}.json"
+test -f "\${MLSPACES_ASSETS_DIR}/\${scene_rel}/\${scene_name}_metadata.json"
+test -f "\${MLSPACES_ASSETS_DIR}/\${scene_rel}/\${scene_name}_ceiling.xml"
+test -d "\${MLSPACES_ASSETS_DIR}/\${scene_rel}/\${scene_name}_assets"
+test -f "\${MLSPACES_ASSETS_DIR}/\${scene_rel}/mjthor_resources_combined_meta.json.gz"
+test -f "\${MLSPACES_ASSETS_DIR}/\${scene_rel}/mjthor_resource_file_to_size_mb.json"
+test -f "\${MLSPACES_ASSETS_DIR}/\${scene_rel}/.\${scene_source}_\${scene_name}.tar.zst_complete_links"
 test -d "\${MLSPACES_ASSETS_DIR}/objects/thor"
 test -d "\${MLSPACES_ASSETS_DIR}/robots/rby1m"
 test -f "\${MLSPACES_ASSETS_DIR}/mjthor_data_type_to_source_to_versions.json"
@@ -364,7 +389,9 @@ cat > "/mnt/cloudml/output/roboclaws-cloudml-entrypoints/\${stamp}.json" <<META
   "archive_sha256": "\${archive_sha}",
   "asset_cache_mode": "\${asset_cache_mode}",
   "cache_dir": "\${cache_dir}",
-  "mlspaces_assets_dir": "\${MLSPACES_ASSETS_DIR}"
+  "mlspaces_assets_dir": "\${MLSPACES_ASSETS_DIR}",
+  "scene_source": "\${scene_source}",
+  "scene_index": \${scene_index}
 }
 META
 

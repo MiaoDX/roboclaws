@@ -149,9 +149,15 @@ def image_command(shard: dict[str, Any], *, identity: dict[str, str]) -> str:
     archive_name = shlex.quote(str(shard["output_archive_name"]))
     shard_id = shlex.quote(str(shard["shard_id"]))
     archive_tmp = shlex.quote(f"/tmp/roboclaws-cloudml/{shard['shard_id']}-output.tar")
+    bootstrap_root = shlex.quote(f"/tmp/roboclaws-cloudml/{shard['shard_id']}-bootstrap")
+    code_archive = shlex.quote(f"{CODE_MOUNT}/{identity['code_archive_name']}")
     shell_command = (
         f"set -Eeuo pipefail; export {exports}; {bootstrap}"
-        "set +e; /opt/roboclaws/bin/run-cloudml-eval-worker; worker_exit=$?; set -e; "
+        f"rm -rf {bootstrap_root}; mkdir -p {bootstrap_root}; "
+        f"tar -xzf {code_archive} -C {bootstrap_root}; "
+        "set +e; "
+        f"{bootstrap_root}/roboclaws.git/scripts/dev/run_cloudml_eval_worker.sh; "
+        "worker_exit=$?; set -e; "
         f"test -d {scratch_path}; mkdir -p /tmp/roboclaws-cloudml {remote_path}/markers; "
         f"tar -cf {archive_tmp} -C {scratch_path} .; "
         f"cp {archive_tmp} {remote_path}/{archive_name}; "

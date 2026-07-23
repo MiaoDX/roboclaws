@@ -220,6 +220,34 @@ def test_cloudml_plan_uses_cpu_and_r49_capability_pools() -> None:
     }
 
 
+def test_cloudml_image_command_bootstraps_worker_from_pinned_code_archive() -> None:
+    shard = {
+        "shard_id": "run-r49-001",
+        "worker_pool": "cloudml-r49",
+        "row_ids": ["case-a"],
+        "max_parallel": 1,
+        "manifest_cloud_path": "/mnt/cloudml/input/manifests/run-r49-001.json",
+        "output_scratch_path": "/tmp/roboclaws-cloudml/output/shards/run-r49-001",
+        "output_mount_path": "/mnt/cloudml/output/shards/run-r49-001",
+        "output_archive_name": "shard-output.tar",
+        "provider_env_keys": [],
+    }
+    identity = {
+        "code_commit": "a" * 40,
+        "code_archive_name": "roboclaws-code.tar.gz",
+        "code_archive_sha256": "b" * 64,
+        "asset_manifest_sha256": "c" * 64,
+        "asset_archive_name": "assets.tar.gz",
+        "asset_archive_sha256": "d" * 64,
+    }
+
+    command = cloudml.cloudml_task.image_command(shard, identity=identity)
+
+    assert "/mnt/cloudml/code/roboclaws-code.tar.gz" in command
+    assert "scripts/dev/run_cloudml_eval_worker.sh" in command
+    assert "/opt/roboclaws/bin/run-cloudml-eval-worker" not in command
+
+
 def test_git_commit_uses_archive_marker_when_git_metadata_is_absent(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

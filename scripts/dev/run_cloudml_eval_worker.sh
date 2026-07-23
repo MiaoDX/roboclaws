@@ -121,6 +121,78 @@ if [[ -n "${ROBOCLAWS_CLOUDML_ASSET_ARCHIVE:-}" ]]; then
   export MLSPACES_CACHE_DIR="$asset_dir/molmospaces/cache"
 fi
 
+mapfile -t frozen_scene < <(
+  /opt/roboclaws/.venv/bin/python - \
+    "$ROBOCLAWS_CLOUDML_ASSET_MANIFEST" \
+    "$ROBOCLAWS_CLOUDML_MANIFEST" \
+    "$ROBOCLAWS_CLOUDML_ROW_IDS" <<'PY'
+import json
+import re
+import sys
+
+asset_payload = json.load(open(sys.argv[1], encoding="utf-8"))
+harness = json.load(open(sys.argv[2], encoding="utf-8"))
+row_ids = set(filter(None, sys.argv[3].split(",")))
+selected_scenes = {
+    scene["scene_id"]: scene
+    for row in harness.get("rows", [])
+    if row.get("row_id") in row_ids
+    if (scene := (row.get("case") or {}).get("scene"))
+}
+if not selected_scenes:
+    raise SystemExit(0)
+if len(selected_scenes) != 1:
+    raise SystemExit("error: CloudML shard contains more than one benchmark scene")
+scene_id, selected = next(iter(selected_scenes.items()))
+available = {
+    scene.get("scene_id"): scene
+    for scene in asset_payload.get("source_assets", {}).get("scenes", [])
+    if isinstance(scene, dict)
+}
+if scene_id not in available:
+    raise SystemExit(f"error: staged assets do not contain shard scene {scene_id}")
+scene = available[scene_id]
+source = scene.get("source")
+index = scene.get("index")
+map_bundle = scene.get("map_bundle")
+world = scene.get("world")
+if not isinstance(source, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", source):
+    raise SystemExit("error: asset manifest scene source is invalid")
+if isinstance(index, bool) or not isinstance(index, int) or index < 0:
+    raise SystemExit("error: asset manifest scene index is invalid")
+if not isinstance(map_bundle, str) or not re.fullmatch(r"(?!/)(?!.*(?:^|/)\.\.(?:/|$)).+", map_bundle):
+    raise SystemExit("error: asset manifest map bundle is not a safe repo-relative path")
+if selected.get("world") != world or selected.get("map_bundle") != map_bundle:
+    raise SystemExit("error: staged scene identity does not match frozen benchmark case")
+print(source)
+print(index)
+print(map_bundle)
+print(world)
+PY
+)
+if [[ "${#frozen_scene[@]}" -ne 0 && "${#frozen_scene[@]}" -ne 4 ]]; then
+  echo "error: asset manifest did not yield a complete frozen scene identity" >&2
+  exit 2
+fi
+map_bundle=""
+if [[ "${#frozen_scene[@]}" -eq 4 ]]; then
+  scene_source="${frozen_scene[0]}"
+  scene_index="${frozen_scene[1]}"
+  map_bundle="${frozen_scene[2]}"
+  scene_world="${frozen_scene[3]}"
+  scene_name="val_${scene_index}"
+  scene_dir="$MLSPACES_ASSETS_DIR/scenes/$scene_source"
+  test -f "$scene_dir/${scene_name}.xml"
+  test -f "$scene_dir/${scene_name}.json"
+  test -f "$scene_dir/${scene_name}_metadata.json"
+  test -f "$scene_dir/${scene_name}_ceiling.xml"
+  test -d "$scene_dir/${scene_name}_assets"
+  test -f "$scene_dir/mjthor_resources_combined_meta.json.gz"
+  test -f "$scene_dir/mjthor_resource_file_to_size_mb.json"
+  test -f "$scene_dir/.${scene_source}_${scene_name}.tar.zst_complete_links"
+  echo "cloudml_scene=${scene_world} source=${scene_source} index=${scene_index}"
+fi
+
 cd "$repo_dir"
 ln -sfn /opt/roboclaws/.venv .venv
 if [[ -x /opt/roboclaws/.venv-visual-grounding/bin/python ]]; then
@@ -132,12 +204,14 @@ uv pip install \
   --no-deps \
   --editable "$repo_dir"
 
-if [[ -f "$asset_dir/roboclaws/assets/maps/molmospaces/procthor-10k-val/0/map.yaml" ]]; then
-  mkdir -p assets/maps/molmospaces/procthor-10k-val
-  rm -rf assets/maps/molmospaces/procthor-10k-val/0
+if [[ -n "$map_bundle" && -f "$asset_dir/roboclaws/$map_bundle/map.yaml" ]]; then
+  mkdir -p "$(dirname "$map_bundle")"
+  rm -rf "$map_bundle"
   ln -sfn \
-    "$asset_dir/roboclaws/assets/maps/molmospaces/procthor-10k-val/0" \
-    assets/maps/molmospaces/procthor-10k-val/0
+    "$asset_dir/roboclaws/$map_bundle" \
+    "$map_bundle"
+  test -f "$map_bundle/map.yaml"
+  test -f "$map_bundle/semantics.json"
 fi
 
 export ROBOCLAWS_EVAL_EXECUTION_TARGET=cloudml
