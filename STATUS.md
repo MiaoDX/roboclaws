@@ -10,6 +10,10 @@ leave a link.
 
 ## Current Focus
 
+Household MCP capability/backend unification has completed implementation Slices 0-4 and all
+available deterministic, SDK, eval, and Phase A Isaac runtime proof. The active capsule is
+`docs/status/active/household-mcp-capability-backend-unification.md`.
+
 MapBuild optimization and testing has reached the current acceptance target:
 `preset=map-build` builds a richer, reliable Runtime Metric Map that helps
 downstream open-ended and cleanup tasks in the focused eval harness.
@@ -47,8 +51,12 @@ providers.
 
 ## Next Action
 
-If continuing repo work, start from the completed MapBuild quality/eval harness
-and choose the next product target explicitly:
+Complete the remaining environment-dependent household MCP proof: MolmoSpaces-backed Isaac
+MapBuild, physical Agibot readiness under existing safety/operator gates, and provider-matrix rows
+whose profiles are available. The Phase A Isaac runtime smoke passes; the Agibot discovery service
+at `10.42.1.101:2379` is currently unreachable.
+
+For the completed MapBuild quality/eval harness, use:
 
 `docs/status/active/map-build-quality-eval-harness.md`
 

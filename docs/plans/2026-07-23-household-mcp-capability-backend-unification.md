@@ -720,3 +720,23 @@ To execute:
 Optional tracking: none
 
 Approval: `LGTM`, `approve`, or `go ahead` approves execution; edits request revision.
+
+## Execution Evidence
+
+Latest local/hardware proof on 2026-07-23:
+
+- `decaf335` fixes the Isaac smoke checker/worker sidecar contract by recovering the worker's final
+  JSON object from the combined Isaac stdout/stderr capture while retaining object validation.
+- `tests/unit/molmo_cleanup/test_isaac_lab_runtime_smoke_checker.py`: 19 passed.
+- `just harness::isaac-runtime-smoke output_dir=output/isaaclab/runtime-smoke-household-mcp
+  stamp=household-mcp-smoke-rerun`: passed with real RTX 3090 rendering, generated Phase A USD
+  loading, indexed and selected public bindings, and four robot-view images.
+- The Isaac smoke explicitly does not prove MolmoSpaces USD scene loading, segmentation, or
+  planner/physics manipulation. Those remain `not_attempted`, `blocked_capability`, and
+  `semantic_pose_only`, respectively.
+- `cd vendors/agibot_sdk && uv run python tools/check_raw_fpv_status.py --cameras default-open`:
+  blocked without movement because robot discovery at `10.42.1.101:2379` is unreachable. Real
+  movement remains prohibited without localization, E-stop, safety gates, and operator approval.
+- Focused Ruff, format, and `git diff --check` pass. The commit hook's repo-wide Python quality
+  ratchet remains blocked by the unrelated stale baseline debt already recorded in the active
+  capsule; its baseline was not refreshed.
