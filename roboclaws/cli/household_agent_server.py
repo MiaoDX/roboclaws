@@ -295,6 +295,8 @@ def _prepare_server_backend_setup(
     agibot_map_artifact_dir: str | Path | None,
     real_movement_enabled: bool,
     task_prompt: str,
+    visual_grounding: str,
+    visual_grounding_timeout_s: float | None,
 ) -> _ServerBackendSetup:
     selected_bundle_dir = selected_nav2_map_bundle_dir(
         map_bundle_dir,
@@ -311,6 +313,8 @@ def _prepare_server_backend_setup(
             agibot_map_artifact_dir=agibot_map_artifact_dir,
             real_movement_enabled=real_movement_enabled,
             task_prompt=task_prompt,
+            visual_grounding_pipeline_id=visual_grounding,
+            visual_grounding_timeout_s=visual_grounding_timeout_s,
             include_robot=include_robot,
             record_robot_views=record_robot_views,
             selected_bundle_dir=selected_bundle_dir,
@@ -351,6 +355,8 @@ def _prepare_agibot_backend_setup(
     agibot_map_artifact_dir: str | Path | None,
     real_movement_enabled: bool,
     task_prompt: str,
+    visual_grounding_pipeline_id: str,
+    visual_grounding_timeout_s: float | None,
     include_robot: bool,
     record_robot_views: bool,
     selected_bundle_dir: Path | None,
@@ -376,6 +382,8 @@ def _prepare_agibot_backend_setup(
         else None,
         scenario=scenario,
         task_prompt=task_prompt,
+        visual_grounding_pipeline_id=visual_grounding_pipeline_id,
+        visual_grounding_timeout_s=visual_grounding_timeout_s,
     )
     return _ServerBackendSetup(
         base_contract=agibot_contract.contract,
@@ -551,6 +559,8 @@ def run_molmo_realworld_cleanup_agent_server(
         agibot_map_artifact_dir=agibot_map_artifact_dir,
         real_movement_enabled=real_movement_enabled,
         task_prompt=task_prompt,
+        visual_grounding=visual_grounding,
+        visual_grounding_timeout_s=visual_grounding_timeout_s,
     )
     url = mcp_url(host, port)
     goal_contract = goal_contract_from_json(goal_contract_json) or goal_contract_from_file(

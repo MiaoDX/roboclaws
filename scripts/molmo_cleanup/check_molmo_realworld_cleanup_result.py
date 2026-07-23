@@ -81,12 +81,6 @@ from scripts.molmo_cleanup.realworld_agent_view_checker import (
 from scripts.molmo_cleanup.realworld_agent_view_checker import (
     assert_runtime_metric_map as _assert_runtime_metric_map,
 )
-from scripts.molmo_cleanup.realworld_agibot_map_build_checker import (
-    AGIBOT_MAP_BUILD_SCHEMA,
-)
-from scripts.molmo_cleanup.realworld_agibot_map_build_checker import (
-    assert_agibot_map_build_result as _assert_agibot_map_build_result,
-)
 from scripts.molmo_cleanup.realworld_base_metric_map_checker import (
     assert_base_metric_map as _assert_base_metric_map,
 )
@@ -412,25 +406,6 @@ def _assert_result(
 ) -> None:
     opts = _result_assert_options(overrides)
     assert data.get("contract") == REALWORLD_CONTRACT, data
-    if data.get("schema") == AGIBOT_MAP_BUILD_SCHEMA:
-        _assert_agibot_map_build_result(
-            data,
-            base,
-            expect_backend=opts["expect_backend"],
-            expect_policy=opts["expect_policy"],
-            expect_profile=opts["expect_profile"],
-            expect_mcp_server=opts["expect_mcp_server"],
-            require_agent_driven=opts["require_agent_driven"],
-            require_camera_model_policy=opts["require_camera_model_policy"],
-            require_runtime_metric_map=opts["require_runtime_metric_map"],
-            require_map_build=opts["require_map_build"],
-            require_agibot_g2_hardware=opts["require_agibot_g2_hardware"],
-            expect_visual_grounding_pipeline=opts["expect_visual_grounding_pipeline"],
-            require_visual_grounding_failure=opts["require_visual_grounding_failure"],
-            min_sweep_coverage=opts["min_sweep_coverage"],
-        )
-        return
-
     enforce_success, semantic_success_gate = _assert_core_run_result(data, opts)
     map_build = _assert_agent_view_and_runtime_map(data, base, opts)
     _assert_private_evaluation_and_semantic_success(
@@ -549,7 +524,7 @@ def _assert_agent_view_and_runtime_map(
         runtime_metric_map = data.get("runtime_metric_map") or _agent_view_runtime_metric_map(
             agent_view
         )
-        _assert_runtime_metric_map(runtime_metric_map, agent_view=agent_view)
+        _assert_runtime_metric_map(runtime_metric_map, agent_view=agent_view, map_build=map_build)
         _assert_runtime_metric_map_quality(runtime_metric_map)
     if opts["require_goal_contract"]:
         _assert_goal_contract(data, base)
@@ -962,7 +937,6 @@ def _assert_map_build_did_not_clean(data: dict[str, Any]) -> None:
     counts = data.get("tool_event_counts") or {}
     cleanup_tools = {
         "navigate_to_object",
-        "navigate_to_visual_candidate",
         "pick",
         "navigate_to_receptacle",
         "open_receptacle",
@@ -1152,7 +1126,8 @@ def _is_map_build(data: dict[str, Any]) -> bool:
         agent_view
     )
     return (
-        data.get("map_build_mode") is True
+        data.get("task_intent") == "map-build"
+        or data.get("map_build_mode") is True
         or runtime_metric_map.get("mode") == "map_build"
         or _is_live_map_build(data)
     )
@@ -1166,7 +1141,7 @@ def _is_live_map_build(data: dict[str, Any]) -> bool:
     return (
         "map-build" in task_identity
         and int(trace.get("cleanup_action_count") or 0) == 0
-        and str(trace.get("loop_style") or "") == "scan_only"
+        and str(trace.get("loop_style") or "") in {"scan_only", "household_world_map_build"}
     )
 
 
@@ -1174,11 +1149,18 @@ def _assert_live_map_build_scan_only(data: dict[str, Any]) -> None:
     assert data.get("task_intent") == "map-build", data
     trace = data.get("cleanup_policy_trace") or {}
     assert trace.get("schema") == CLEANUP_POLICY_TRACE_SCHEMA, trace
-    assert trace.get("loop_style") == "scan_only", trace
+    loop_style = trace.get("loop_style")
+    assert loop_style in {"scan_only", "household_world_map_build"}, trace
     assert int(trace.get("cleanup_action_count") or 0) == 0, trace
-    assert (
-        int(trace.get("observed_waypoint_count") or 0) >= int(trace.get("total_waypoints") or 0) > 0
-    ), trace
+    if loop_style == "scan_only":
+        assert (
+            int(trace.get("observed_waypoint_count") or 0)
+            >= int(trace.get("total_waypoints") or 0)
+            > 0
+        ), trace
+    else:
+        readiness = data.get("real_robot_readiness") or {}
+        assert float(readiness.get("observed_waypoint_rate") or 0.0) >= 1.0, readiness
     assert float(data.get("sweep_coverage_rate") or 0.0) >= 1.0, data
 
 
@@ -1543,6 +1525,7 @@ def _assert_camera_model_policy(
     require_failure: bool = False,
     map_build: bool = False,
 ) -> None:
+    backend_grounding_pipeline = _uses_backend_grounding_pipeline(data, map_build=map_build)
     assert data.get("perception_mode") == CAMERA_MODEL_POLICY_MODE, data
     agent_view = data.get("agent_view") or {}
     evidence = data.get("camera_model_policy_evidence") or (
@@ -1580,7 +1563,33 @@ def _assert_camera_model_policy(
     else:
         assert int(evidence.get("candidate_count") or 0) >= 1, evidence
     assert evidence.get("events"), evidence
-    for event in evidence.get("events") or []:
+    _assert_visual_grounding_event_pipelines(evidence["events"], pipeline_ids=pipeline_ids)
+    assert data.get("raw_fpv_observations"), data
+    counts = data.get("tool_event_counts") or {}
+    if not backend_grounding_pipeline:
+        assert int(counts.get("declare_visual_candidates:request") or 0) >= 1, counts
+    assert "Camera Labeler Evidence" in report_text, report_text[:500]
+    assert "Raw FPV Observations" in report_text, report_text[:500]
+    assert overlay_pipeline_id in report_text, report_text[:500]
+    assert "Bearer " not in json.dumps(data), data
+    assert "Bearer " not in report_text, report_text[:500]
+    if (
+        overlay_pipeline_id not in {"sim", "manual"}
+        and not require_failure
+        and not backend_grounding_pipeline
+    ):
+        _assert_external_visual_grounding_overlays(
+            data,
+            base,
+            report_text,
+            pipeline_id=overlay_pipeline_id,
+        )
+
+
+def _assert_visual_grounding_event_pipelines(
+    events: list[dict[str, Any]], *, pipeline_ids: list[str]
+) -> None:
+    for event in events:
         pipeline = event.get("visual_grounding_pipeline") or {}
         assert pipeline.get("pipeline_id") in pipeline_ids, event
         assert pipeline.get("schema") == "visual_grounding_pipeline_v1", event
@@ -1589,22 +1598,12 @@ def _assert_camera_model_policy(
         assert stages, event
         for stage in stages:
             assert stage.get("stage"), stage
-            assert "latency_ms" in stage, stage
-    assert data.get("raw_fpv_observations"), data
-    counts = data.get("tool_event_counts") or {}
-    assert int(counts.get("declare_visual_candidates:request") or 0) >= 1, counts
-    assert "Camera Labeler Evidence" in report_text, report_text[:500]
-    assert "Raw FPV Observations" in report_text, report_text[:500]
-    assert overlay_pipeline_id in report_text, report_text[:500]
-    assert "Bearer " not in json.dumps(data), data
-    assert "Bearer " not in report_text, report_text[:500]
-    if overlay_pipeline_id not in {"sim", "manual"} and not require_failure:
-        _assert_external_visual_grounding_overlays(
-            data,
-            base,
-            report_text,
-            pipeline_id=overlay_pipeline_id,
-        )
+            if pipeline.get("status") == "ok":
+                assert "latency_ms" in stage, stage
+
+
+def _uses_backend_grounding_pipeline(data: dict[str, Any], *, map_build: bool) -> bool:
+    return map_build and data.get("backend_variant") == "agibot_gdk"
 
 
 def _assert_model_declared_observations(

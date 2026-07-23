@@ -39,6 +39,7 @@ from roboclaws.household.task_intent import (  # noqa: E402
     HOUSEHOLD_INTENT_OPEN_ENDED,
     household_intent_from_goal_contract,
 )
+from roboclaws.household.tasks import HOUSEHOLD_PRESET_SPECS, HOUSEHOLD_TASK_SPECS  # noqa: E402
 from roboclaws.household.visual_grounding import (  # noqa: E402
     SIM_VISUAL_GROUNDING_PIPELINE_ID,
 )
@@ -148,6 +149,15 @@ def run_smoke(
         goal_contract_path
     )
     task_intent = household_intent_from_goal_contract(goal_contract)
+    required_capability_profiles = (
+        goal_contract.required_capabilities
+        if goal_contract is not None and goal_contract.required_capabilities
+        else (
+            HOUSEHOLD_PRESET_SPECS[task_intent].required_capabilities
+            if task_intent in HOUSEHOLD_PRESET_SPECS
+            else HOUSEHOLD_TASK_SPECS["household-world"].required_capabilities
+        )
+    )
     server = make_molmo_realworld_cleanup_mcp(
         run_dir=output_dir,
         scenario=scenario,
@@ -167,6 +177,7 @@ def run_smoke(
         visual_grounding_base_url=visual_grounding_base_url,
         visual_grounding_timeout_s=visual_grounding_timeout_s,
         goal_contract=goal_contract,
+        required_capability_profiles=required_capability_profiles,
     )
     try:
         if task_intent == HOUSEHOLD_INTENT_OPEN_ENDED:

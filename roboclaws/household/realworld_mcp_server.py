@@ -434,6 +434,7 @@ class RealWorldMolmoCleanupMCPServer:
                 self,
                 agent_view_module.public_tool_names(agent_view),
             ),
+            capability_profiles=self.required_capability_profiles,
         )
 
     def _write_live_public_artifacts(self, *, trigger: str) -> None:

@@ -20,7 +20,7 @@ from roboclaws.agents.drivers.household_live import (
     HouseholdLiveRunLease,
     acquire_household_live_run_lease,
     add_household_cleanup_live_runner_args,
-    household_cleanup_server_argv,
+    household_server_argv,
 )
 from roboclaws.agents.drivers.openai_agents_budget import (
     context_budget_failure as _shared_context_budget_failure,
@@ -572,7 +572,7 @@ class LiveOpenAIAgentsCleanupRunner:
             )
 
         command = [
-            *household_cleanup_server_argv(str(self.args.repo_root / ".venv/bin/python")),
+            *household_server_argv(str(self.args.repo_root / ".venv/bin/python")),
             *self.args.server_arg,
         ]
         if camera_grounded_composite_tools_enabled_for_run(

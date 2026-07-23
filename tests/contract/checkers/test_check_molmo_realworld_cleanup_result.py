@@ -10,6 +10,7 @@ import pytest
 from PIL import Image
 
 from roboclaws.household import agent_view as agent_view_module
+from roboclaws.household.agibot_cleanup_contract import AgibotCleanupMCPContract
 from roboclaws.household.manipulation_provenance import (
     MANIPULATION_PROBE_CONTRACT,
     PLANNER_BACKED_PROVENANCE,
@@ -21,6 +22,8 @@ from roboclaws.household.realworld_contract import (
     REALWORLD_CONTRACT,
     forbidden_agent_view_keys,
 )
+from roboclaws.household.realworld_mcp_server import make_molmo_realworld_cleanup_mcp
+from roboclaws.mcp.profiles import HOUSEHOLD_EPISODE_PROFILE, HOUSEHOLD_WORLD_PROFILE
 from scripts.isaac_lab_cleanup.check_b1_map12_readiness import (
     DEFAULT_B1_VISUAL_ROUTE_SCENE_USD,
     NAVIGATION_PROVENANCE,
@@ -373,9 +376,9 @@ def test_checker_accepts_agibot_map_build_artifact(tmp_path: Path) -> None:
         data,
         path.parent,
         expect_task=None,
-        expect_backend="agibot_gdk",
-        expect_policy="map_build_baseline",
-        expect_mcp_server="agibot_map_build",
+        expect_backend="agibot_sdk_runner",
+        expect_policy="realworld_contract_smoke_agent",
+        expect_mcp_server="molmo_cleanup_realworld",
         min_generated_mess_count=0,
         require_agent_driven=True,
         require_camera_model_policy=True,
@@ -399,9 +402,9 @@ def test_checker_rejects_agibot_rehearsal_as_hardware_validation(
             data,
             path.parent,
             expect_task=None,
-            expect_backend="agibot_gdk",
-            expect_policy="map_build_baseline",
-            expect_mcp_server="agibot_map_build",
+            expect_backend="agibot_sdk_runner",
+            expect_policy="realworld_contract_smoke_agent",
+            expect_mcp_server="molmo_cleanup_realworld",
             min_generated_mess_count=0,
             require_agent_driven=True,
             require_camera_model_policy=True,
@@ -425,9 +428,9 @@ def test_checker_accepts_agibot_hardware_map_build_shape(
         data,
         path.parent,
         expect_task=None,
-        expect_backend="agibot_gdk",
-        expect_policy="map_build_baseline",
-        expect_mcp_server="agibot_map_build",
+        expect_backend="agibot_sdk_runner",
+        expect_policy="realworld_contract_smoke_agent",
+        expect_mcp_server="molmo_cleanup_realworld",
         min_generated_mess_count=0,
         require_agent_driven=True,
         require_camera_model_policy=True,
@@ -465,9 +468,9 @@ def test_checker_rejects_sim_visual_grounding_as_agibot_hardware_evidence(
             data,
             path.parent,
             expect_task=None,
-            expect_backend="agibot_gdk",
-            expect_policy="map_build_baseline",
-            expect_mcp_server="agibot_map_build",
+            expect_backend="agibot_sdk_runner",
+            expect_policy="realworld_contract_smoke_agent",
+            expect_mcp_server="molmo_cleanup_realworld",
             min_generated_mess_count=0,
             require_agent_driven=True,
             require_camera_model_policy=True,
@@ -482,8 +485,7 @@ def test_checker_rejects_sim_visual_grounding_as_agibot_hardware_evidence(
     ("field", "value"),
     [
         ("agent_driven", False),
-        ("mcp_server", "molmo_cleanup_realworld"),
-        ("policy", "map_build_baseline"),
+        ("mcp_server", "other"),
         ("evidence_lane", "world-oracle-labels"),
         ("perception_mode", "visible_object_detections"),
     ],
@@ -504,7 +506,7 @@ def test_checker_rejects_non_codex_camera_labels_shape_as_agibot_hardware(
             data,
             path.parent,
             expect_task=None,
-            expect_backend="agibot_gdk",
+            expect_backend="agibot_sdk_runner",
             min_generated_mess_count=0,
             require_map_build=True,
             require_agibot_g2_hardware=True,
@@ -529,48 +531,11 @@ def test_checker_rejects_agibot_hardware_without_runtime_metric_map(
             data,
             path.parent,
             expect_task=None,
-            expect_backend="agibot_gdk",
+            expect_backend="agibot_sdk_runner",
             min_generated_mess_count=0,
             require_map_build=True,
             require_agibot_g2_hardware=True,
             min_sweep_coverage=1.0,
-        )
-
-
-def test_checker_rejects_agibot_map_build_without_map_build_gate(
-    tmp_path: Path,
-) -> None:
-    _require_agibot_sdk_runner()
-    agibot = _load_module(
-        REPO_ROOT / "roboclaws" / "household" / "agibot_map_build_mcp_server.py",
-        "agibot_map_build_mcp_server_no_gate",
-    )
-    checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
-    run_dir = tmp_path / "agibot-map-build"
-    server = agibot.make_agibot_map_build_mcp(
-        run_dir=run_dir,
-        context_json=AGIBOT_CONTEXT_FIXTURE,
-        evidence_lane="camera-grounded-labels",
-        visual_grounding_pipeline_id="grounding-dino",
-    )
-    try:
-        server.call_tool("metric_map")
-        server.call_tool("observe")
-        server.call_tool("done", reason="checker fixture complete")
-    finally:
-        server.close()
-
-    data, path = checker._load_run_results(run_dir / "run_result.json")[0]
-    with pytest.raises(AssertionError):
-        checker._assert_result(
-            data,
-            path.parent,
-            expect_task=None,
-            expect_backend="agibot_gdk",
-            expect_policy="codex_agibot_map_build_pilot",
-            min_generated_mess_count=0,
-            require_camera_model_policy=True,
-            require_runtime_metric_map=True,
         )
 
 
@@ -3726,16 +3691,10 @@ def _external_visual_grounding_checker_result(*, overlay: str) -> dict[str, obje
 
 def _write_agibot_map_build_fixture(tmp_path: Path) -> Path:
     _require_agibot_sdk_runner()
-    agibot = _load_module(
-        REPO_ROOT / "roboclaws" / "household" / "agibot_map_build_mcp_server.py",
-        f"agibot_map_build_mcp_server_{id(tmp_path)}",
-    )
     run_dir = tmp_path / "agibot-map-build"
-    server = agibot.make_agibot_map_build_mcp(
+    server = _make_common_agibot_map_build_server(
         run_dir=run_dir,
         context_json=AGIBOT_CONTEXT_FIXTURE,
-        evidence_lane="camera-grounded-labels",
-        visual_grounding_pipeline_id="grounding-dino",
     )
     try:
         server.call_tool("metric_map")
@@ -3745,6 +3704,22 @@ def _write_agibot_map_build_fixture(tmp_path: Path) -> Path:
     finally:
         server.close()
     return run_dir
+
+
+def _make_common_agibot_map_build_server(*, run_dir: Path, context_json: Path):
+    contract = AgibotCleanupMCPContract(
+        run_dir=run_dir,
+        context_json=context_json,
+        visual_grounding_pipeline_id="grounding-dino",
+    )
+    return make_molmo_realworld_cleanup_mcp(
+        run_dir=run_dir,
+        contract=contract,
+        map_bundle_dir=PREBUILT_BUNDLE,
+        task_intent="map-build",
+        evidence_lane=None,
+        required_capability_profiles=(HOUSEHOLD_WORLD_PROFILE, HOUSEHOLD_EPISODE_PROFILE),
+    )
 
 
 def _promote_agibot_fixture_to_hardware_shape(

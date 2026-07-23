@@ -33,11 +33,6 @@
         "path": "roboclaws/household/agibot_contract_rehearsal.py"
       },
       {
-        "lines": 1187,
-        "max_module_lines": 800,
-        "path": "roboclaws/household/agibot_map_build_mcp_server.py"
-      },
-      {
         "lines": 1158,
         "max_module_lines": 800,
         "path": "roboclaws/household/agibot_sdk_runner.py"

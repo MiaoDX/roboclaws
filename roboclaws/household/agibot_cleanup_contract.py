@@ -10,6 +10,7 @@ from roboclaws.household.agibot_sdk_runner import (
     BLOCKED_MANIPULATION_TOOLS,
     AgibotSDKRunnerAdapter,
 )
+from roboclaws.household.digital_twin_review_assets import attach_map12_review_assets
 from roboclaws.household.manipulation_provenance import BLOCKED_CAPABILITY_PROVENANCE
 from roboclaws.household.profiles import (
     AGIBOT_GDK_BACKEND_VARIANT,
@@ -25,6 +26,15 @@ from roboclaws.household.realworld_contract import (
 )
 from roboclaws.household.scenario import build_cleanup_scenario
 from roboclaws.household.types import CleanupScenario
+from roboclaws.household.visual_grounding import (
+    EXTERNAL_VISUAL_GROUNDING_PROVENANCE,
+    VisualGroundingClient,
+    VisualGroundingContractError,
+    image_payload_for_raw_observation,
+    pipeline_summary_from_response,
+    visual_grounding_client_from_env,
+    visual_grounding_request,
+)
 from roboclaws.mcp.profiles import (
     HOUSEHOLD_EPISODE_PROFILE,
     HOUSEHOLD_MANIPULATION_PROFILE,
@@ -70,12 +80,20 @@ class AgibotCleanupMCPContract:
         agibot_map_artifact_dir: Path | None = None,
         scenario: CleanupScenario | None = None,
         task_prompt: str = "Build a Runtime Metric Map from Agibot G2 public evidence.",
+        visual_grounding_pipeline_id: str = "grounding-dino",
+        visual_grounding_timeout_s: float | None = None,
+        visual_grounding_client: VisualGroundingClient | None = None,
     ) -> None:
+        self.run_dir = Path(run_dir)
         self.scenario = scenario or build_cleanup_scenario(seed=7)
         self.contract = AgibotCleanupBackendSession(self.scenario)
         self.task_prompt = task_prompt
         self.perception_mode = CAMERA_MODEL_POLICY_MODE
-        self.visual_grounding_pipeline_id = "agibot_g2_head_color"
+        self.visual_grounding_pipeline_id = visual_grounding_pipeline_id
+        self.visual_grounding_client = visual_grounding_client or visual_grounding_client_from_env(
+            visual_grounding_pipeline_id,
+            timeout_s=visual_grounding_timeout_s,
+        )
         self.adapter = AgibotSDKRunnerAdapter(
             context_json=context_json,
             run_dir=run_dir,
@@ -366,7 +384,8 @@ class AgibotCleanupMCPContract:
         cleanup_worklist: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         del cleanup_worklist
-        public_metric_map = metric_map if metric_map is not None else self.metric_map()
+        public_metric_map = dict(metric_map if metric_map is not None else self.metric_map())
+        public_metric_map.pop("runtime_metric_map", None)
         public_static_fixture_projection = (
             static_fixture_projection
             if static_fixture_projection is not None
@@ -375,6 +394,7 @@ class AgibotCleanupMCPContract:
         return {
             "schema": "runtime_metric_map_v1",
             "contract": REALWORLD_CONTRACT,
+            "source": "household_world_mcp",
             "freshness": "current_run",
             "source_map_mutated": False,
             "private_truth_included": False,
@@ -393,6 +413,8 @@ class AgibotCleanupMCPContract:
                 ],
                 "contains_runtime_observations": False,
             },
+            "metric_map": public_metric_map,
+            "static_fixture_projection": public_static_fixture_projection,
             "public_semantic_anchors": [],
             "observed_objects": [],
             "map_update_candidates": [],
@@ -441,21 +463,73 @@ class AgibotCleanupMCPContract:
         }
 
     def camera_model_policy_payload(self) -> dict[str, Any]:
+        events = [self._camera_model_policy_event(item) for item in self._raw_fpv_observations]
         return {
             "schema": "camera_model_policy_v1",
             "perception_mode": self.perception_mode,
             "enabled": True,
-            "model_provenance": "agibot_g2_policy_camera",
+            "model_provenance": EXTERNAL_VISUAL_GROUNDING_PROVENANCE,
             "visual_grounding_pipeline_id": self.visual_grounding_pipeline_id,
             "visual_grounding_pipeline_ids": [self.visual_grounding_pipeline_id],
-            "visual_grounding_failure_count": 0,
+            "visual_grounding_failure_count": sum(
+                1
+                for event in events
+                if (event.get("visual_grounding_pipeline") or {}).get("status") != "ok"
+            ),
             "event_count": len(self._raw_fpv_observations),
-            "candidate_count": 0,
+            "candidate_count": sum(int(item.get("candidate_count") or 0) for item in events),
             "unresolved_count": 0,
             "duplicate_rate": 0.0,
-            "events": [],
+            "events": events,
             "private_truth_included": False,
             "policy_note": "Agibot G2 head_color evidence is robot-local public perception.",
+        }
+
+    def _camera_model_policy_event(self, raw: dict[str, Any]) -> dict[str, Any]:
+        pipeline: dict[str, Any]
+        candidates: list[dict[str, Any]] = []
+        if not raw.get("ok") or not (raw.get("image_artifacts") or {}).get("fpv"):
+            pipeline = {
+                "schema": "visual_grounding_pipeline_v1",
+                "pipeline_id": self.visual_grounding_pipeline_id,
+                "status": "failed",
+                "failure_reason": "no_live_camera_pixels",
+                "stages": [
+                    {
+                        "stage": "agibot_head_color_capture",
+                        "producer_id": "agibot_g2_policy_camera",
+                        "status": str(raw.get("status") or "blocked"),
+                    }
+                ],
+            }
+        else:
+            request = visual_grounding_request(
+                run_id="household_world",
+                raw_observation={**raw, "room_id": "", "artifact_status": raw.get("status", "ok")},
+                category_hints=[],
+                public_map_hints=_public_map_hints(self.static_fixture_projection()),
+                pipeline_id=self.visual_grounding_pipeline_id,
+                image=image_payload_for_raw_observation(raw, base_dir=self.run_dir),
+            )
+            try:
+                response = self.visual_grounding_client.request_candidates(request)
+                pipeline = pipeline_summary_from_response(response)
+                candidates = list(response.get("candidates") or [])
+            except VisualGroundingContractError as exc:
+                pipeline = {
+                    "schema": "visual_grounding_pipeline_v1",
+                    "pipeline_id": self.visual_grounding_pipeline_id,
+                    "status": "contract_error",
+                    "failure_reason": "contract_error",
+                    "failure_message": str(exc),
+                    "stages": [],
+                }
+        return {
+            "observation_id": raw.get("observation_id", ""),
+            "room_id": "",
+            "candidate_count": len(candidates),
+            "registered_observed_handles": [],
+            "visual_grounding_pipeline": pipeline,
         }
 
     def policy_view_payload(self) -> dict[str, Any]:
@@ -505,7 +579,7 @@ class AgibotCleanupMCPContract:
         return AGIBOT_SDK_RUNNER_BACKEND
 
     def run_result_overrides(self) -> dict[str, Any]:
-        return {
+        result = {
             "evidence_lane": PHYSICAL_ROBOT_EVIDENCE_LANE,
             "evidence_lane_metadata": agibot_gdk_evidence_metadata(),
             "backend": AGIBOT_SDK_RUNNER_BACKEND,
@@ -534,8 +608,18 @@ class AgibotCleanupMCPContract:
                 "real_movement_enabled": self.real_movement_enabled,
                 "gdk_imported_by_roboclaws": False,
                 "public_tool_boundary": self.public_tool_names(),
+                "subphase_reports": [
+                    {
+                        "stage": str(item.get("stage") or ""),
+                        "status": str(item.get("status") or ""),
+                        "primitive_provenance": str(item.get("primitive_provenance") or ""),
+                    }
+                    for item in self.adapter.subphase_results
+                ],
             },
         }
+        attach_map12_review_assets(self.run_dir, self.adapter.context_payload, result)
+        return result
 
     def real_robot_readiness_payload(self, trace_events: list[dict[str, Any]]) -> dict[str, Any]:
         del trace_events
@@ -552,12 +636,51 @@ class AgibotCleanupMCPContract:
             "backend_variant": AGIBOT_GDK_BACKEND_VARIANT,
             "movement_enabled": self.real_movement_enabled,
             "physical_navigation_pilot": True,
+            "map_build": True,
             "physical_cleanup_ready": False,
             "manipulation_ready": False,
+            "manipulation_blocked": True,
             "visited_waypoint_ids": sorted(self._visited_waypoint_ids),
             "observed_waypoint_ids": sorted(self._observed_waypoint_ids),
             "observed_waypoint_rate": round(observed_rate, 6),
             "human_takeover_stop": False,
+        }
+
+    def cleanup_policy_trace_payload(self, trace_events: list[dict[str, Any]]) -> dict[str, Any]:
+        events = []
+        decisions = {
+            "metric_map": "inspect_public_metric_map",
+            "navigate_to_room": "visit_public_waypoint",
+            "navigate_to_waypoint": "visit_public_waypoint",
+            "navigate_to_receptacle": "visit_public_waypoint",
+            "navigate_to_object": "visit_public_waypoint",
+            "navigate_to_visual_candidate": "visit_public_waypoint",
+            "observe": "observe_head_color",
+        }
+        for trace_event in trace_events:
+            if trace_event.get("event") != "response":
+                continue
+            tool = str(trace_event.get("tool") or "")
+            if tool == "done":
+                continue
+            response = trace_event.get("response") or {}
+            events.append(
+                {
+                    "index": len(events) + 1,
+                    "tool": tool,
+                    "decision": decisions.get(tool, tool),
+                    "status": response.get("status", ""),
+                    "waypoint_id": response.get("waypoint_id", ""),
+                }
+            )
+        return {
+            "schema": "cleanup_policy_trace_v1",
+            "agent_review_kind": "agibot_codex_map_build_review",
+            "agent_reasoning_visible": True,
+            "waypoint_source": "agibot_sdk_agent_view_export",
+            "loop_style": "household_world_map_build",
+            "cleanup_action_count": 0,
+            "events": events,
         }
 
     def _remember_navigation(self, response: dict[str, Any]) -> dict[str, Any]:
@@ -651,3 +774,25 @@ class AgibotCleanupMCPContract:
         self._tool_event_counts[f"{tool}:request"] = (
             self._tool_event_counts.get(f"{tool}:request", 0) + 1
         )
+
+
+def _public_map_hints(static_fixture_projection: dict[str, Any]) -> dict[str, Any]:
+    fixtures = []
+    for room in static_fixture_projection.get("rooms") or []:
+        room_id = str(room.get("room_id") or "")
+        for fixture in room.get("fixtures") or []:
+            fixtures.append(
+                {
+                    "fixture_id": str(fixture.get("fixture_id") or ""),
+                    "room_id": str(fixture.get("room_id") or room_id),
+                    "category": str(fixture.get("category") or ""),
+                    "name": str(fixture.get("name") or ""),
+                    "affordances": list(fixture.get("affordances") or []),
+                }
+            )
+    return {
+        "schema": "visual_grounding_public_map_hints_v1",
+        "source": "public_agent_view_map_evidence",
+        "fixture_hints": fixtures,
+        "private_truth_included": False,
+    }

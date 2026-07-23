@@ -1,21 +1,23 @@
 # Household MCP Capability And Backend Unification
 
-- Status: Active; Slices 0-1 complete, Slice 2 in progress
+- Status: Active; Slices 0-2 complete, Slice 3 in progress
 - Canonical plan: `docs/plans/2026-07-23-household-mcp-capability-backend-unification.md`
 - Root goal: Implement the canonical plan through `intuitive-flow`.
-- Current slice: Move synthetic, MuJoCo, Isaac Lab, and Agibot behind the common household MCP
-  server; merge the Agibot MapBuild lifecycle and delete its dedicated server/tool/CLI route.
-- Next action: Characterize the unique Agibot MapBuild behavior, migrate it into the shared
-  adapter/finalizer, prove parity, and delete the parallel path.
-- Completed evidence: GSD runtimes were repaired but the archived `.planning` shape could not be
-  safely merged without fabricating live project state, so the approved plan and this capsule
-  remain the execution contract. Slice 0/1 commit `ce5e1a12` adds ADR-0147, ordered profile
-  composition, launch-to-server propagation, exact FastMCP registration, MapBuild exclusion,
-  broad Open-ended entitlement, Agent View parity, and physical `blocked_capability` proof.
-- Blocked on: none. The repo-wide Python quality ratchet baseline is stale against clean `HEAD`;
-  Slice 0/1 passed focused tests, Ruff, format, and diff checks and was committed with the hook
-  bypassed rather than refreshing unrelated baseline debt. Recheck after deletion slices reduce
-  the touched oversized modules.
+- Current slice: Define private backend-neutral final-state evidence, exact simulator and
+  unavailable/inconclusive physical producers, and migrate long-horizon grading without a public
+  evidence leak.
+- Next action: Characterize current long-horizon grader inputs and private artifact ownership,
+  add `FinalStateEvidence`, migrate producers/consumers, and run privacy-leak proof.
+- Completed evidence: Slice 0/1 commit `ce5e1a12` adds exact profile composition and entitlement.
+  Slice 2 converges synthetic, MuJoCo, Isaac Lab, and Agibot on one FastMCP server, one live runner,
+  and one checker path; deletes five dedicated Agibot MapBuild implementation modules plus their
+  owner-only tests; preserves Runtime Metric Map, trace, Agent View, report, readiness, camera
+  grounding, locks, and safety behavior; and passes the affected contract/route/checker suites,
+  Ruff, format, and stale-reference checks.
+- Blocked on: none. The repo-wide Python quality ratchet still reports unrelated stale baseline
+  growth plus touched oversized modules; Slice 2 removed its deleted-file baseline entry and its
+  local checker complexity delta, while Ruff, format, diff, and focused tests pass. Do not refresh
+  unrelated baseline debt.
 - Stop gates: entity-budget expansion, public-contract changes outside the approved plan,
   unavailable required live/hardware proof, or conflicts with concurrent edits in owned files.
 - Owned scope: the plan's MCP entitlement, household server/backend, private final-state evidence,

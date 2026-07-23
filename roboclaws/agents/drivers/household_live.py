@@ -109,18 +109,7 @@ def acquire_household_live_run_lease(
     return HouseholdLiveRunLease(lock_file=lock_file)
 
 
-def household_cleanup_server_argv(python_bin: str) -> list[str]:
-    """Return the package entrypoint for the household MCP server."""
-
-    return [
-        python_bin,
-        "-m",
-        HOUSEHOLD_SERVER_MODULE,
-        HOUSEHOLD_SERVER_TASK,
-    ]
-
-
-def map_build_server_argv(python_bin: str) -> list[str]:
+def household_server_argv(python_bin: str) -> list[str]:
     """Return the package entrypoint for the household MCP server."""
 
     return [

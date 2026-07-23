@@ -9,12 +9,6 @@ from PIL import Image
 from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household import agibot_operator_gates as gates
 from roboclaws.household.agibot_cleanup_contract import AgibotCleanupMCPContract
-from roboclaws.household.agibot_map_build_mcp_server import (
-    AGIBOT_MAP_BUILD_TOOLS,
-    MCP_SERVER_NAME,
-    _camera_model_policy_evidence,
-    make_agibot_map_build_mcp,
-)
 from roboclaws.household.agibot_map_defaults import (
     DEFAULT_AGIBOT_CONFIDENCE_LAYER,
     DEFAULT_AGIBOT_CONTEXT_JSON,
@@ -30,12 +24,55 @@ from roboclaws.household.artifact_report import (
     rerender_cleanup_report_from_artifact_path,
 )
 from roboclaws.household.profiles import AGIBOT_SDK_RUNNER_BACKEND
-from roboclaws.household.realworld_mcp_server import make_molmo_realworld_cleanup_mcp
+from roboclaws.household.realworld_mcp_server import (
+    MCP_SERVER_NAME,
+    make_molmo_realworld_cleanup_mcp,
+)
 from roboclaws.mcp.profiles import (
     HOUSEHOLD_EPISODE_PROFILE,
     HOUSEHOLD_MANIPULATION_PROFILE,
     HOUSEHOLD_WORLD_PROFILE,
 )
+
+AGIBOT_MAP_BUILD_TOOLS = (
+    "metric_map",
+    "navigate_to_room",
+    "navigate_to_waypoint",
+    "navigate_to_relative_pose",
+    "observe",
+    "adjust_camera",
+    "declare_visual_candidates",
+    "navigate_to_visual_candidate",
+    "inspect_visible_object",
+    "navigate_to_object",
+    "navigate_to_receptacle",
+    "check_operator_messages",
+    "done",
+)
+
+
+def _make_common_agibot_map_build_server(
+    *,
+    run_dir: Path,
+    context_json: Path,
+    visual_grounding_pipeline_id: str = "grounding-dino",
+    visual_grounding_timeout_s: float | None = None,
+):
+    contract = AgibotCleanupMCPContract(
+        run_dir=run_dir,
+        context_json=context_json,
+        visual_grounding_pipeline_id=visual_grounding_pipeline_id,
+        visual_grounding_timeout_s=visual_grounding_timeout_s,
+    )
+    return make_molmo_realworld_cleanup_mcp(
+        run_dir=run_dir,
+        contract=contract,
+        map_bundle_dir=PREBUILT_BUNDLE,
+        task_intent="map-build",
+        evidence_lane=None,
+        required_capability_profiles=(HOUSEHOLD_WORLD_PROFILE, HOUSEHOLD_EPISODE_PROFILE),
+    )
+
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 COMPLETED_CONTEXT_FIXTURE = REPO_ROOT / "tests" / "fixtures" / "agibot_map_context.completed.json"
@@ -102,14 +139,12 @@ def _assert_agibot_map_build_tool_responses(
     metric_map: dict,
     nav: dict,
     observe: dict,
-    blocked: dict,
     done: dict,
 ) -> None:
     assert metric_map["tool"] == "metric_map"
     assert nav["tool"] == "navigate_to_waypoint"
     assert nav["waypoint_id"] == "wp_sofa_front"
     assert observe["tool"] == "observe"
-    assert blocked["status"] == "blocked_capability"
     assert done["agent_driven"] is True
 
 
@@ -117,11 +152,19 @@ def _assert_agibot_map_build_run_identity(run_result: dict) -> None:
     assert run_result["agent_driven"] is True
     assert run_result["mcp_server"] == MCP_SERVER_NAME
     assert run_result["backend_variant"] == "agibot_gdk"
-    assert run_result["evidence_lane"] == "camera-grounded-labels"
-    assert run_result["backend_evidence"]["evidence_lane"] == "physical-robot-evidence"
+    assert run_result["evidence_lane"] == "physical-robot-evidence"
+    assert run_result["evidence_lane_metadata"]["evidence_lane"] == "physical-robot-evidence"
     assert run_result["perception_mode"] == "camera_model_policy"
     assert run_result["visual_grounding_pipeline_id"] == "grounding-dino"
     assert run_result["raw_fpv_observations"][0]["camera"] == "head_color"
+    capabilities = agent_view_module.capabilities(run_result["agent_view"])
+    assert capabilities["capability_profiles"] == [
+        HOUSEHOLD_WORLD_PROFILE,
+        HOUSEHOLD_EPISODE_PROFILE,
+    ]
+    assert not set(BLOCKED_MANIPULATION_TOOLS) & set(
+        agent_view_module.public_tool_names(run_result["agent_view"])
+    )
 
 
 def _assert_agibot_map_build_policy_trace(run_result: dict) -> None:
@@ -132,14 +175,17 @@ def _assert_agibot_map_build_policy_trace(run_result: dict) -> None:
     assert run_result["cleanup_policy_trace"]["events"][0]["decision"] == (
         "inspect_public_metric_map"
     )
-    assert run_result["cleanup_policy_trace"]["events"][-1]["decision"] == "block_manipulation"
+    assert all(
+        event["tool"] not in BLOCKED_MANIPULATION_TOOLS
+        for event in run_result["cleanup_policy_trace"]["events"]
+    )
 
 
 def _assert_agibot_map_build_runtime_map(run_result: dict, runtime_map: dict) -> None:
     assert run_result["real_robot_readiness"]["map_build"] is True
     assert run_result["real_robot_readiness"]["visited_waypoint_ids"] == ["wp_sofa_front"]
     assert run_result["runtime_metric_map"]["visited_waypoint_ids"] == ["wp_sofa_front"]
-    assert runtime_map["source"] == "agibot_map_build_mcp"
+    assert runtime_map["source"] == "household_world_mcp"
     assert runtime_map["visited_waypoint_ids"] == ["wp_sofa_front"]
 
 
@@ -149,12 +195,13 @@ def _assert_agibot_map_build_artifacts(
     report_text: str,
 ) -> None:
     assert run_result["manipulation_evidence"]["status"] == "blocked_capability"
-    assert "runtime_metric_map.json" in run_result["artifacts"].values()
+    assert any(
+        str(path).endswith("runtime_metric_map.json") for path in run_result["artifacts"].values()
+    )
     assert any(event.get("tool") == "observe" for event in trace_events)
     assert "AgiBot Backend Evidence" in report_text
     assert "Camera Labeler Evidence" in report_text
     assert "grounding-dino" in report_text
-    assert "Agibot intent=map-build" in report_text
 
 
 def _read_physical_pilot_artifacts(run_dir: Path) -> tuple[str, dict, dict, dict]:
@@ -461,10 +508,9 @@ def test_agibot_map_build_mcp_records_agent_driven_public_trace(
     context_path = tmp_path / "agibot_map_context.completed.json"
     context_path.write_text(json.dumps(_completed_context()), encoding="utf-8")
     run_dir = tmp_path / "run"
-    server = make_agibot_map_build_mcp(
+    server = _make_common_agibot_map_build_server(
         run_dir=run_dir,
         context_json=context_path,
-        evidence_lane="camera-grounded-labels",
         visual_grounding_pipeline_id="grounding-dino",
     )
 
@@ -474,7 +520,8 @@ def test_agibot_map_build_mcp_records_agent_driven_public_trace(
             server.call_tool("static_fixture_projection")
         nav = server.call_tool("navigate_to_waypoint", waypoint_id="wp_sofa_front")
         observe = server.call_tool("observe")
-        blocked = server.call_tool("pick", object_id="observed_unknown")
+        with pytest.raises(ValueError, match="not entitled"):
+            server.call_tool("pick", object_id="observed_unknown")
         done = server.call_tool("done", reason="mocked public sweep complete")
     finally:
         server.close()
@@ -488,7 +535,7 @@ def test_agibot_map_build_mcp_records_agent_driven_public_trace(
     ]
     report_text = (run_dir / "report.html").read_text(encoding="utf-8")
 
-    _assert_agibot_map_build_tool_responses(metric_map, nav, observe, blocked, done)
+    _assert_agibot_map_build_tool_responses(metric_map, nav, observe, done)
     _assert_static_fixture_projection_artifact_only(run_result, runtime_map, trace_events)
     _assert_agibot_map_build_run_identity(run_result)
     _assert_camera_grounding_failure_evidence(run_result)
@@ -504,10 +551,9 @@ def test_agibot_map_build_mcp_done_surfaces_corrupt_trace_source(
     context_path = tmp_path / "agibot_map_context.completed.json"
     context_path.write_text(json.dumps(_completed_context()), encoding="utf-8")
     run_dir = tmp_path / "run"
-    server = make_agibot_map_build_mcp(
+    server = _make_common_agibot_map_build_server(
         run_dir=run_dir,
         context_json=context_path,
-        evidence_lane="camera-grounded-labels",
     )
 
     try:
@@ -521,8 +567,8 @@ def test_agibot_map_build_mcp_done_surfaces_corrupt_trace_source(
     assert response["ok"] is False
     assert response["status"] == "error"
     assert response["error_reason"] == "exception"
-    assert "Agibot map-build MCP trace source row must contain a JSON object" in response["error"]
-    assert "trace.jsonl:2" in response["error"]
+    assert "MCP trace source row must contain a JSON object" in response["error"]
+    assert "trace.jsonl:" in response["error"]
 
 
 def test_agibot_map_build_camera_labels_call_external_grounding(
@@ -533,42 +579,25 @@ def test_agibot_map_build_camera_labels_call_external_grounding(
     camera_path.parent.mkdir(parents=True)
     Image.new("RGB", (16, 12), (120, 130, 140)).save(camera_path)
 
-    evidence = _camera_model_policy_evidence(
-        [],
-        perception_mode="camera_model_policy",
-        visual_grounding_pipeline_id="grounding-dino",
-        raw_observations=[
-            {
-                "schema": "raw_fpv_observation_v1",
-                "observation_id": "agibot_observe_001",
-                "source": "agibot_g2_policy_camera",
-                "camera": "head_color",
-                "perception_mode": "camera_model_policy",
-                "status": "ok",
-                "ok": True,
-                "primitive_provenance": "agibot_gdk_head_color_camera",
-                "image_artifacts": {"fpv": "subphases/02-observe/head_color.jpg"},
-            }
-        ],
-        static_fixture_projection={
-            "rooms": [
-                {
-                    "room_id": "living_room",
-                    "fixtures": [
-                        {
-                            "fixture_id": "sofa_01",
-                            "room_id": "living_room",
-                            "category": "sofa",
-                            "name": "sofa",
-                            "affordances": ["support"],
-                        }
-                    ],
-                }
-            ]
-        },
+    contract = AgibotCleanupMCPContract(
         run_dir=tmp_path,
+        context_json=COMPLETED_CONTEXT_FIXTURE,
         visual_grounding_client=grounding_client,
     )
+    contract._raw_fpv_observations = [
+        {
+            "schema": "raw_fpv_observation_v1",
+            "observation_id": "agibot_observe_001",
+            "source": "agibot_g2_policy_camera",
+            "camera": "head_color",
+            "perception_mode": "camera_model_policy",
+            "status": "ok",
+            "ok": True,
+            "primitive_provenance": "agibot_gdk_head_color_camera",
+            "image_artifacts": {"fpv": "subphases/02-observe/head_color.jpg"},
+        }
+    ]
+    evidence = contract.camera_model_policy_payload()
 
     event = evidence["events"][0]
     assert grounding_client.last_request is not None
@@ -577,7 +606,7 @@ def test_agibot_map_build_camera_labels_call_external_grounding(
     assert "static_fixture_projection" not in grounding_client.last_request
     public_hints = grounding_client.last_request["public_map_hints"]
     assert public_hints["source"] == "public_agent_view_map_evidence"
-    assert public_hints["fixture_hints"][0]["fixture_id"] == "sofa_01"
+    assert public_hints["fixture_hints"][0]["fixture_id"]
     assert public_hints["private_truth_included"] is False
     assert evidence["candidate_count"] == 1
     assert evidence["visual_grounding_failure_count"] == 0
@@ -589,16 +618,15 @@ def test_agibot_map_build_server_accepts_visual_grounding_timeout(
     tmp_path: Path,
 ) -> None:
     _require_agibot_sdk_runner()
-    server = make_agibot_map_build_mcp(
+    server = _make_common_agibot_map_build_server(
         run_dir=tmp_path / "run",
         context_json=COMPLETED_CONTEXT_FIXTURE,
-        evidence_lane="camera-grounded-labels",
         visual_grounding_pipeline_id="grounding-dino",
         visual_grounding_timeout_s=9.5,
     )
 
     try:
-        config = getattr(server.visual_grounding_client, "config", None)
+        config = getattr(server.contract.visual_grounding_client, "config", None)
         assert config is not None
         assert config.timeout_s == 9.5
     finally:
