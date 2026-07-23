@@ -9,9 +9,16 @@ from roboclaws.core.rerun import report_rerun_command_from_env
 from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household.advisory_scoring import build_advisory_evaluation
 from roboclaws.household.backend import API_SEMANTIC_PROVENANCE
-from roboclaws.household.backend_contract import CleanupBackendSession
 from roboclaws.household.cleanup_primitive_evidence import (
     cleanup_primitive_evidence_from_substeps,
+)
+from roboclaws.household.household_backend_contract import HouseholdBackendSession
+from roboclaws.household.household_runtime_contract import (
+    CAMERA_MODEL_POLICY_MODE,
+    REALWORLD_CONTRACT,
+    HouseholdRuntimeContract,
+    cleanup_policy_trace_from_events,
+    real_robot_readiness_from_events,
 )
 from roboclaws.household.isaac_lab_backend import (
     ISAAC_SEMANTIC_POSE_PROVENANCE,
@@ -30,13 +37,6 @@ from roboclaws.household.planner_proof_requests import write_planner_proof_reque
 from roboclaws.household.profiles import (
     camera_labeler_from_visual_grounding_pipeline,
     evidence_lane_metadata_for_run,
-)
-from roboclaws.household.realworld_contract import (
-    CAMERA_MODEL_POLICY_MODE,
-    REALWORLD_CONTRACT,
-    RealWorldCleanupContract,
-    cleanup_policy_trace_from_events,
-    real_robot_readiness_from_events,
 )
 from roboclaws.household.report import render_cleanup_report, write_trace_jsonl
 from roboclaws.household.semantic_timeline import (
@@ -60,8 +60,8 @@ from roboclaws.maps.preview import render_runtime_metric_map_preview
 class RealWorldRunArtifactInputs:
     output_dir: Path
     backend: str
-    base_contract: CleanupBackendSession
-    contract: RealWorldCleanupContract
+    base_contract: HouseholdBackendSession
+    contract: HouseholdRuntimeContract
     scenario: CleanupScenario
     seed: int
     task_prompt: str

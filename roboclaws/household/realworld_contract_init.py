@@ -214,7 +214,7 @@ def _init_public_map_projection(target: Any) -> None:
 
 
 def _contract_helpers() -> Any:
-    from roboclaws.household import realworld_contract
+    from roboclaws.household import household_runtime_contract as realworld_contract
 
     return realworld_contract
 

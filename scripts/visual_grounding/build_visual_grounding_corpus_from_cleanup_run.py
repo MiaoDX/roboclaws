@@ -18,7 +18,7 @@ if __package__ in {None, ""}:
 
 from roboclaws.core.json_sources import read_json_object  # noqa: E402
 from roboclaws.household import agent_view as agent_view_module  # noqa: E402
-from roboclaws.household.realworld_contract import (  # noqa: E402
+from roboclaws.household.household_runtime_contract import (  # noqa: E402
     VISUAL_GROUNDING_CATEGORY_HINTS,
 )
 

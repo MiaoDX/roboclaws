@@ -462,7 +462,9 @@ def test_eval_runner_records_live_agent_blocked_identity(tmp_path: Path) -> None
     assert preflight["schema"] == "roboclaws_live_eval_preflight_v1"
     assert preflight["provider_readiness"]["provider_profile"] == "codex-router-responses"
     assert preflight["provider_readiness"]["required_env"] == ["CODEX_BASE_URL", "CODEX_API_KEY"]
-    assert preflight["runtime_readiness"]["required_runtime"] == "OpenAI Agents SDK cleanup runner"
+    assert preflight["runtime_readiness"]["required_runtime"] == (
+        "OpenAI Agents SDK household runner"
+    )
     assert preflight["blocker"] == "live_execution_not_requested"
     assert preflight["runtime_readiness"]["repo_native_live_eval_runner"] == (
         "opt_in_via_live_execution_run"

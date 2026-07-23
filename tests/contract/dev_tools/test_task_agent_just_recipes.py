@@ -30,8 +30,7 @@ OPENCLAW_JUST = JUST_DIR / "openclaw.just"
 MOLMO_JUST = JUST_DIR / "molmo.just"
 AGENT_CLI = REPO_ROOT / "roboclaws" / "cli" / "agent.py"
 CODING_AGENT_ENV = REPO_ROOT / "scripts" / "dev" / "coding_agent_env.sh"
-LIVE_OPENAI_AGENTS_RUNNER = REPO_ROOT / "scripts/molmo_cleanup/run_live_openai_agents_cleanup.py"
-AGIBOT_MAP_BUILD_SDK_RUNNER = LIVE_OPENAI_AGENTS_RUNNER
+LIVE_OPENAI_AGENTS_RUNNER = REPO_ROOT / "scripts/molmo_cleanup/run_live_openai_agents_household.py"
 HOUSEHOLD_LIVE_DRIVER = REPO_ROOT / "roboclaws" / "agents" / "drivers" / "household_live.py"
 HOUSEHOLD_AGENT_SERVER_MODULE = "roboclaws.cli.agent_server"
 CODE_AGENT_ENV_VARS = (
@@ -828,7 +827,7 @@ def test_openai_agents_sdk_cleanup_route_is_active_live_route() -> None:
     molmo_text = MOLMO_JUST.read_text(encoding="utf-8")
 
     assert "openai-agents-live" in molmo_text
-    assert "run_live_openai_agents_cleanup.py" in molmo_text
+    assert "run_live_openai_agents_household.py" in molmo_text
     assert 'policy="openai_agents_agent"' in molmo_text
     assert "--agent-sdk-perf-profile" in molmo_text
     assert "ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE" in molmo_text
@@ -1423,7 +1422,7 @@ def test_map_build_sdk_routes_agibot_backend_to_live_runner() -> None:
     assert route[:3] == [
         "cmd",
         ".venv/bin/python",
-        "scripts/molmo_cleanup/run_live_openai_agents_cleanup.py",
+        "scripts/molmo_cleanup/run_live_openai_agents_household.py",
     ]
     assert "--repo-root" in route
     assert str(REPO_ROOT) in route
@@ -1441,7 +1440,7 @@ def test_map_build_sdk_routes_agibot_backend_to_live_runner() -> None:
     assert "agibot_gdk" in route
     assert "--policy" in route
     assert "openai_agents_agibot_map_build" in route
-    assert str(AGIBOT_MAP_BUILD_SDK_RUNNER.relative_to(REPO_ROOT)) in route
+    assert str(LIVE_OPENAI_AGENTS_RUNNER.relative_to(REPO_ROOT)) in route
     assert "molmo::cleanup" not in route
 
 
@@ -2137,7 +2136,7 @@ def test_openai_agents_cleanup_checker_policy_uses_checker_profile(
 ) -> None:
     module = load_script_module(
         LIVE_OPENAI_AGENTS_RUNNER,
-        "run_live_openai_agents_cleanup_checker_profile_test",
+        "run_live_openai_agents_household_checker_profile_test",
     )
     run_dir = tmp_path / "openai-agents"
     run_dir.mkdir()
@@ -2177,7 +2176,7 @@ def test_openai_agents_cleanup_checker_policy_uses_checker_profile(
         cache_tools_list=True,
     )
 
-    runner = module.LiveOpenAIAgentsCleanupRunner(args)
+    runner = module.LiveOpenAIAgentsHouseholdRunner(args)
     runner._check_result()
 
     assert captured_commands
@@ -2443,13 +2442,11 @@ def test_live_agent_server_routes_use_cli_modules_not_examples() -> None:
     molmo_text = MOLMO_JUST.read_text(encoding="utf-8")
     sdk_runner_text = LIVE_OPENAI_AGENTS_RUNNER.read_text(encoding="utf-8")
     household_live_text = HOUSEHOLD_LIVE_DRIVER.read_text(encoding="utf-8")
-    agibot_runner_text = AGIBOT_MAP_BUILD_SDK_RUNNER.read_text(encoding="utf-8")
 
     assert "roboclaws.cli.agent_server household-world" in molmo_text
     assert "roboclaws.cli.agent_server household-cleanup" not in molmo_text
     assert "examples/molmo_cleanup/molmo_realworld_cleanup_agent_server.py" not in molmo_text
     assert "examples/molmo_cleanup/molmo_realworld_cleanup_agent_server.py" not in sdk_runner_text
-    assert "agibot_map_build_agent_server" not in agibot_runner_text
     assert "household_server_argv" in sdk_runner_text
     assert "household_server_argv" in household_live_text
 
@@ -3376,7 +3373,7 @@ def test_molmo_live_dispatch_is_sdk_only_and_probeable() -> None:
     assert "refusing to choose another port" in molmo_text
     assert "live_status.json" in molmo_text
     assert "tmux_session.txt" not in molmo_text
-    assert "scripts/molmo_cleanup/run_live_openai_agents_cleanup.py" in molmo_text
+    assert "scripts/molmo_cleanup/run_live_openai_agents_household.py" in molmo_text
     assert "acquire_household_live_run_lease" in runner_text
     assert "acquire_visual_backend_slot" in household_live_text
     assert "no MolmoSpaces visual backend slot is available" in household_live_text

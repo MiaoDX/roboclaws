@@ -1,19 +1,19 @@
 from __future__ import annotations
 
-from roboclaws.household.backend_contract import CleanupBackendSession
+from roboclaws.household.household_backend_contract import HouseholdBackendSession
+from roboclaws.household.household_runtime_contract import HouseholdRuntimeContract
 from roboclaws.household.planner_observed_binding import (
     OBSERVED_HANDLE_PLANNER_BINDING_SCHEMA,
     backend_planner_task_binding_from_state,
 )
-from roboclaws.household.realworld_contract import RealWorldCleanupContract
 from roboclaws.household.scenario import build_cleanup_scenario
 
 PREBUILT_BUNDLE = "assets/maps/molmospaces/procthor-10k-val/0"
 
 
 def test_realworld_observed_handle_planner_binding_stays_private() -> None:
-    contract = RealWorldCleanupContract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+    contract = HouseholdRuntimeContract(
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         map_bundle_dir=PREBUILT_BUNDLE,
     )
     detection = _first_detection_by_category(contract, "dish")
@@ -48,8 +48,8 @@ def test_realworld_observed_handle_planner_binding_stays_private() -> None:
 
 
 def test_observed_handle_planner_binding_requires_registered_handle() -> None:
-    contract = RealWorldCleanupContract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+    contract = HouseholdRuntimeContract(
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         map_bundle_dir=PREBUILT_BUNDLE,
     )
 
@@ -90,7 +90,7 @@ def test_backend_planner_task_binding_prefers_runtime_body_names() -> None:
 
 
 def _first_detection_by_category(
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     category: str,
 ) -> dict:
     for waypoint in contract.metric_map()["inspection_waypoints"]:

@@ -829,7 +829,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
           fi
           runner_args=(
             .venv/bin/python
-            scripts/molmo_cleanup/run_live_openai_agents_cleanup.py
+            scripts/molmo_cleanup/run_live_openai_agents_household.py
             --repo-root "$PWD"
             --run-dir "$run_dir"
             --status-path "$status_path"
@@ -1010,7 +1010,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
             --expect-backend "$backend"
             --expect-policy "$policy"
             --expect-profile "$implementation_evidence_lane"
-            --expect-mcp-server molmo_cleanup_realworld
+            --expect-mcp-server household_world
             --min-generated-mess-count "$min_generated_mess_count"
             --require-agent-driven
             --require-advisory-scoring
@@ -1062,7 +1062,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
             --output-dir "$run_dir"
           ;;
         mcp-smoke|openclaw-smoke)
-          policy="realworld_contract_smoke_agent"
+          policy="household_contract_smoke_agent"
           if [[ "$driver" == "openclaw-smoke" ]]; then
             policy="openclaw_agent"
           fi
@@ -1107,8 +1107,8 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
     case "$driver" in
       mcp-smoke)
         checker_args+=(
-          --expect-policy realworld_contract_smoke_agent
-          --expect-mcp-server molmo_cleanup_realworld
+          --expect-policy household_contract_smoke_agent
+          --expect-mcp-server household_world
           --require-agent-driven
         )
         if [[ "$profile_requires_clean_success" == "true" && "$open_ended_intent" != "true" ]]; then
@@ -1118,7 +1118,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
       openclaw-smoke)
         checker_args+=(
           --expect-policy openclaw_agent
-          --expect-mcp-server molmo_cleanup_realworld
+          --expect-mcp-server household_world
           --require-agent-driven
           --require-openclaw-minimum
         )

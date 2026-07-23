@@ -42,22 +42,22 @@ from roboclaws.household.agibot_contract_rehearsal_runtime import (
 )
 from roboclaws.household.agibot_sdk_runner import BLOCKED_MANIPULATION_TOOLS
 from roboclaws.household.backend import API_SEMANTIC_PROVENANCE
-from roboclaws.household.backend_contract import CleanupBackendSession
-from roboclaws.household.household_world_episode import (
-    SYNTHETIC_BACKEND,
-    run_household_world_episode,
-)
-from roboclaws.household.manipulation_provenance import BLOCKED_CAPABILITY_PROVENANCE
-from roboclaws.household.realworld_contract import (
+from roboclaws.household.household_backend_contract import HouseholdBackendSession
+from roboclaws.household.household_runtime_contract import (
     CAMERA_MODEL_POLICY_MODE,
     CLEANUP_WORKLIST_SCHEMA,
     RAW_FPV_ONLY_MODE,
     REALWORLD_CONTRACT,
     RUNTIME_METRIC_MAP_SCHEMA,
     VISIBLE_OBJECT_DETECTIONS_MODE,
-    RealWorldCleanupContract,
+    HouseholdRuntimeContract,
     forbidden_agent_view_keys,
 )
+from roboclaws.household.household_world_episode import (
+    SYNTHETIC_BACKEND,
+    run_household_world_episode,
+)
+from roboclaws.household.manipulation_provenance import BLOCKED_CAPABILITY_PROVENANCE
 from roboclaws.household.report import (
     write_state_snapshot,
 )
@@ -994,8 +994,8 @@ class _CleanupActionSelection:
 
 def _run_cleanup_action_rehearsal(
     *,
-    contract: RealWorldCleanupContract,
-    base_contract: CleanupBackendSession,
+    contract: HouseholdRuntimeContract,
+    base_contract: HouseholdBackendSession,
     metric_map: dict[str, Any],
     static_fixture_projection: dict[str, Any],
     trace_events: list[dict[str, Any]],
@@ -1066,8 +1066,8 @@ def _run_cleanup_action_rehearsal(
 
 def _select_cleanup_action_targets(
     *,
-    contract: RealWorldCleanupContract,
-    base_contract: CleanupBackendSession,
+    contract: HouseholdRuntimeContract,
+    base_contract: HouseholdBackendSession,
     metric_map: dict[str, Any],
     static_fixture_projection: dict[str, Any],
     trace_events: list[dict[str, Any]],
@@ -1138,8 +1138,8 @@ def _select_cleanup_action_targets(
 
 def _record_cleanup_sweep_navigation(
     *,
-    contract: RealWorldCleanupContract,
-    base_contract: CleanupBackendSession,
+    contract: HouseholdRuntimeContract,
+    base_contract: HouseholdBackendSession,
     metric_map: dict[str, Any],
     trace_events: list[dict[str, Any]],
     policy_events: list[dict[str, Any]],
@@ -1175,8 +1175,8 @@ def _record_cleanup_sweep_navigation(
 
 def _record_cleanup_sweep_observation(
     *,
-    contract: RealWorldCleanupContract,
-    base_contract: CleanupBackendSession,
+    contract: HouseholdRuntimeContract,
+    base_contract: HouseholdBackendSession,
     metric_map: dict[str, Any],
     trace_events: list[dict[str, Any]],
     policy_events: list[dict[str, Any]],
@@ -1223,7 +1223,7 @@ def _record_cleanup_sweep_observation(
 
 def _append_cleanup_action_targets(
     *,
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     static_fixture_projection: dict[str, Any],
     selected_targets: list[dict[str, Any]],
     seen_handles: set[str],
@@ -1252,7 +1252,7 @@ def _append_cleanup_action_targets(
 
 def _cleanup_action_target(
     *,
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     static_fixture_projection: dict[str, Any],
     detection: dict[str, Any],
     observation: dict[str, Any],
@@ -1362,7 +1362,7 @@ def _cleanup_actions_payload(
 
 def _record_action_done(
     *,
-    contract: CleanupBackendSession,
+    contract: HouseholdBackendSession,
     trace_events: list[dict[str, Any]],
     started_at: float,
     runtime: str,
@@ -1381,7 +1381,7 @@ def _record_action_done(
 
 def _record_cleanup_action_robot_view(
     *,
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     backend: Any,
     run_dir: Path,
     robot_view_steps: list[dict[str, Any]],
@@ -1411,7 +1411,7 @@ def _record_cleanup_action_robot_view(
 
 def _record_tool_robot_view(
     *,
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     backend: Any,
     run_dir: Path,
     robot_view_steps: list[dict[str, Any]],
@@ -1801,7 +1801,7 @@ def _run_result(
 def _write_snapshot(
     *,
     runtime: str,
-    contract: CleanupBackendSession,
+    contract: HouseholdBackendSession,
     scenario: CleanupScenario,
     output_path: Path,
     title: str,

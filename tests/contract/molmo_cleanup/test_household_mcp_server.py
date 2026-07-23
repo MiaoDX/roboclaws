@@ -11,26 +11,26 @@ import pytest
 
 from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household.backend import ApiSemanticCleanupBackend
-from roboclaws.household.backend_contract import CleanupBackendSession
+from roboclaws.household.household_backend_contract import HouseholdBackendSession
+from roboclaws.household.household_mcp_server import (
+    ROBOT_VIEW_CAPTURE_POLICY_ACTION_TIMELINE,
+)
+from roboclaws.household.household_mcp_server import (
+    make_household_world_mcp as _make_household_world_mcp,
+)
+from roboclaws.household.household_runtime_contract import (
+    CAMERA_MODEL_POLICY_MODE,
+    RAW_FPV_ONLY_MODE,
+    REALWORLD_CONTRACT,
+    HouseholdRuntimeContract,
+)
 from roboclaws.household.isaac_lab_backend import (
     ISAACLAB_ROBOT_VIEW_VARIANT,
     ISAACLAB_SUBPROCESS_BACKEND,
 )
 from roboclaws.household.profiles import WORLD_PUBLIC_LABELS_PROFILE
-from roboclaws.household.realworld_contract import (
-    CAMERA_MODEL_POLICY_MODE,
-    RAW_FPV_ONLY_MODE,
-    REALWORLD_CONTRACT,
-    RealWorldCleanupContract,
-)
 from roboclaws.household.realworld_mcp_atomic_tools import ATOMIC_CLEANUP_TOOL_NAMES
 from roboclaws.household.realworld_mcp_semantic_tools import SEMANTIC_CLEANUP_TOOL_NAMES
-from roboclaws.household.realworld_mcp_server import (
-    ROBOT_VIEW_CAPTURE_POLICY_ACTION_TIMELINE,
-)
-from roboclaws.household.realworld_mcp_server import (
-    make_molmo_realworld_cleanup_mcp as _make_molmo_realworld_cleanup_mcp,
-)
 from roboclaws.household.realworld_visual_candidate_declarations import (
     simulated_declaration_inputs_for_waypoint,
 )
@@ -66,7 +66,7 @@ SMOKE_PATH = REPO_ROOT / "scripts" / "molmo_cleanup" / "run_molmo_realworld_agen
 PREBUILT_BUNDLE = REPO_ROOT / "assets" / "maps" / "molmospaces" / "procthor-10k-val" / "0"
 
 
-def make_molmo_realworld_cleanup_mcp(*args: Any, **kwargs: Any) -> Any:
+def make_household_world_mcp(*args: Any, **kwargs: Any) -> Any:
     kwargs.setdefault("map_bundle_dir", PREBUILT_BUNDLE)
     kwargs.setdefault(
         "required_capability_profiles",
@@ -76,7 +76,7 @@ def make_molmo_realworld_cleanup_mcp(*args: Any, **kwargs: Any) -> Any:
             HOUSEHOLD_EPISODE_PROFILE,
         ),
     )
-    return _make_molmo_realworld_cleanup_mcp(*args, **kwargs)
+    return _make_household_world_mcp(*args, **kwargs)
 
 
 def _load_smoke_module():
@@ -116,7 +116,7 @@ def _first_destination_option_from_done(server: Any, object_id: str) -> dict[str
 
 
 def test_realworld_mcp_registered_tools_match_profile_public_surface(tmp_path: Path) -> None:
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=build_cleanup_scenario(seed=7),
         port=0,
@@ -156,7 +156,7 @@ def test_realworld_mcp_registered_tools_match_profile_public_surface(tmp_path: P
 def test_agent_sdk_camera_grounded_composite_flag_cannot_expand_entitlement(
     tmp_path: Path,
 ) -> None:
-    default_server = make_molmo_realworld_cleanup_mcp(
+    default_server = make_household_world_mcp(
         run_dir=tmp_path / "default",
         scenario=build_cleanup_scenario(seed=7),
         port=0,
@@ -172,7 +172,7 @@ def test_agent_sdk_camera_grounded_composite_flag_cannot_expand_entitlement(
     finally:
         default_server.close()
 
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path / "opt-in",
         scenario=build_cleanup_scenario(seed=7),
         port=0,
@@ -201,7 +201,7 @@ def test_realworld_mcp_resolves_profiles_from_private_runner_environment(
         "ROBOCLAWS_REQUIRED_CAPABILITY_PROFILES",
         "household_world,household_episode",
     )
-    server = _make_molmo_realworld_cleanup_mcp(
+    server = _make_household_world_mcp(
         run_dir=tmp_path,
         scenario=build_cleanup_scenario(seed=7),
         map_bundle_dir=PREBUILT_BUNDLE,
@@ -223,7 +223,7 @@ def test_map_build_entitlement_excludes_all_manipulation_tools_independent_of_ev
     tmp_path: Path,
     evidence_lane: str,
 ) -> None:
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path / evidence_lane,
         scenario=build_cleanup_scenario(seed=7),
         port=0,
@@ -251,7 +251,7 @@ def test_realworld_mcp_tool_files_are_layered_by_capability(tmp_path: Path) -> N
     assert atomic
     assert semantic.isdisjoint(atomic)
 
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=build_cleanup_scenario(seed=7),
         port=0,
@@ -267,7 +267,7 @@ def test_realworld_mcp_tool_files_are_layered_by_capability(tmp_path: Path) -> N
 
 
 def test_realworld_mcp_relative_pose_tool_traces_request_and_response(tmp_path: Path) -> None:
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=build_cleanup_scenario(seed=7),
         port=0,
@@ -306,7 +306,7 @@ def test_realworld_mcp_relative_pose_tool_traces_request_and_response(tmp_path: 
 
 
 def test_realworld_mcp_done_surfaces_corrupt_trace_source(tmp_path: Path) -> None:
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=build_cleanup_scenario(seed=7),
         port=0,
@@ -344,7 +344,7 @@ def test_realworld_mcp_operator_messages_pending_hint_and_seen(tmp_path: Path) -
         + "\n",
         encoding="utf-8",
     )
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path / "attempt",
         scenario=build_cleanup_scenario(seed=7),
         port=0,
@@ -365,7 +365,7 @@ def test_realworld_mcp_operator_messages_pending_hint_and_seen(tmp_path: Path) -
 
 
 def test_realworld_mcp_surface_uses_metric_map_and_visible_handles(tmp_path: Path) -> None:
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=build_cleanup_scenario(seed=7),
         port=0,
@@ -397,7 +397,7 @@ def test_realworld_mcp_surface_uses_metric_map_and_visible_handles(tmp_path: Pat
 
 
 def test_realworld_mcp_can_seed_runtime_metric_map_priors(tmp_path: Path) -> None:
-    prior_server = make_molmo_realworld_cleanup_mcp(
+    prior_server = make_household_world_mcp(
         run_dir=tmp_path / "prior",
         scenario=build_cleanup_scenario(seed=7),
         port=0,
@@ -418,7 +418,7 @@ def test_realworld_mcp_can_seed_runtime_metric_map_priors(tmp_path: Path) -> Non
     finally:
         prior_server.close()
 
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path / "consumer",
         scenario=build_cleanup_scenario(seed=7),
         port=0,
@@ -475,7 +475,7 @@ def test_realworld_mcp_reports_anchor_only_runtime_map_prior_as_loaded(tmp_path:
         "private_truth_included": False,
         "source_map_mutated": False,
     }
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=build_cleanup_scenario(seed=7),
         port=0,
@@ -524,7 +524,7 @@ def test_realworld_mcp_done_persists_facade_rerun_command(
         "just run::surface surface=household-world agent_engine=direct-runner "
         "intent=cleanup evidence_lane=world-public-labels seed=7",
     )
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=build_cleanup_scenario(seed=7),
         port=0,
@@ -547,7 +547,7 @@ def test_realworld_mcp_done_persists_facade_rerun_command(
 
 
 def test_realworld_mcp_defaults_to_base_metric_map(tmp_path: Path) -> None:
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=build_cleanup_scenario(seed=7),
         port=0,
@@ -574,7 +574,7 @@ def test_realworld_mcp_defaults_to_base_metric_map(tmp_path: Path) -> None:
 def test_realworld_mcp_base_metric_map_exposes_actionable_runtime_anchors(
     tmp_path: Path,
 ) -> None:
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=build_cleanup_scenario(seed=7),
         port=0,
@@ -610,7 +610,7 @@ def test_realworld_mcp_base_metric_map_exposes_actionable_runtime_anchors(
 def test_realworld_mcp_resolves_stale_target_query_to_public_anchor(
     tmp_path: Path,
 ) -> None:
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=build_cleanup_scenario(seed=7),
         port=0,
@@ -640,7 +640,7 @@ def test_realworld_mcp_resolves_stale_target_query_to_public_anchor(
 def test_realworld_mcp_rejects_removed_cleanup_composite(
     tmp_path: Path,
 ) -> None:
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=build_cleanup_scenario(seed=7),
         port=0,
@@ -663,7 +663,7 @@ def test_realworld_mcp_rejects_removed_cleanup_composite(
 def test_realworld_mcp_rejects_removed_static_fixture_projection_tool(
     tmp_path: Path,
 ) -> None:
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=build_cleanup_scenario(seed=7),
         port=0,
@@ -683,7 +683,7 @@ def test_realworld_mcp_rejects_removed_static_fixture_projection_tool(
 def test_realworld_mcp_rejects_skipped_semantic_pick_with_public_guidance(
     tmp_path: Path,
 ) -> None:
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=build_cleanup_scenario(seed=7),
         port=0,
@@ -853,10 +853,10 @@ def _empty_cleanup_scenario(scenario_id: str) -> CleanupScenario:
 def _raw_fpv_camera_raw_server(tmp_path: Path) -> Any:
     scenario = build_cleanup_scenario(seed=7)
     backend = MolmoSpacesSubprocessBackend(scenario)
-    return make_molmo_realworld_cleanup_mcp(
+    return make_household_world_mcp(
         run_dir=tmp_path,
         scenario=scenario,
-        base_contract=CleanupBackendSession(scenario, backend=backend),
+        base_contract=HouseholdBackendSession(scenario, backend=backend),
         port=0,
         policy="codex_agent",
         agent_driven=True,
@@ -1021,10 +1021,10 @@ def test_realworld_mcp_world_labels_requested_run_size_does_not_use_raw_fpv_chai
 ) -> None:
     scenario = _empty_cleanup_scenario("mcp-world-public-labels-readiness-policy-test")
     backend = MolmoSpacesSubprocessBackend(scenario)
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=scenario,
-        base_contract=CleanupBackendSession(scenario, backend=backend),
+        base_contract=HouseholdBackendSession(scenario, backend=backend),
         port=0,
         policy="codex_agent",
         agent_driven=True,
@@ -1054,7 +1054,7 @@ def test_realworld_mcp_open_ended_intent_is_recorded_in_run_result(
     tmp_path: Path,
 ) -> None:
     prompt = "我渴了，帮我找些解渴的东西"
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=build_cleanup_scenario(seed=7),
         port=0,
@@ -1092,10 +1092,10 @@ def test_realworld_mcp_camera_grounded_isaac_closeout_writes_run_result(
     prompt = "巡检 B1 / Map 12 digital twin，报告至少一个公开候选目标。"
     scenario = build_cleanup_scenario(seed=7)
     backend = IsaacLabSubprocessBackend(scenario)
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=scenario,
-        base_contract=CleanupBackendSession(scenario, backend=backend),
+        base_contract=HouseholdBackendSession(scenario, backend=backend),
         port=0,
         policy="codex_agent",
         agent_driven=True,
@@ -1167,8 +1167,8 @@ def test_realworld_mcp_can_record_robot_view_timeline(tmp_path: Path) -> None:
     smoke = _load_smoke_module()
     scenario = build_cleanup_scenario(seed=7)
     backend = _FakeVisualBackend(scenario)
-    base_contract = CleanupBackendSession(scenario, backend=backend)
-    server = make_molmo_realworld_cleanup_mcp(
+    base_contract = HouseholdBackendSession(scenario, backend=backend)
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=scenario,
         base_contract=base_contract,
@@ -1179,7 +1179,7 @@ def test_realworld_mcp_can_record_robot_view_timeline(tmp_path: Path) -> None:
     )
     try:
         smoke._drive_public_sweep(server)
-        done = server.call_tool("done", reason="realworld_contract_smoke_agent cleanup complete")
+        done = server.call_tool("done", reason="household_contract_smoke_agent cleanup complete")
     finally:
         server.close()
 
@@ -1204,8 +1204,8 @@ def test_realworld_mcp_action_timeline_policy_skips_report_only_observe_capture(
 ) -> None:
     scenario = build_cleanup_scenario(seed=7)
     backend = _FakeVisualBackend(scenario)
-    base_contract = CleanupBackendSession(scenario, backend=backend)
-    server = make_molmo_realworld_cleanup_mcp(
+    base_contract = HouseholdBackendSession(scenario, backend=backend)
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=scenario,
         base_contract=base_contract,
@@ -1258,8 +1258,8 @@ def test_realworld_mcp_action_timeline_policy_skips_report_only_observe_capture(
 def test_realworld_mcp_raw_fpv_mode_delivers_fpv_image_blocks(tmp_path: Path) -> None:
     scenario = build_cleanup_scenario(seed=7)
     backend = _FakeVisualBackend(scenario)
-    base_contract = CleanupBackendSession(scenario, backend=backend)
-    server = make_molmo_realworld_cleanup_mcp(
+    base_contract = HouseholdBackendSession(scenario, backend=backend)
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=scenario,
         base_contract=base_contract,
@@ -1328,8 +1328,8 @@ def test_realworld_mcp_raw_fpv_compact_state_includes_public_handled_handles(
 ) -> None:
     scenario = build_cleanup_scenario(seed=7)
     backend = _FakeVisualBackend(scenario)
-    base_contract = CleanupBackendSession(scenario, backend=backend)
-    server = make_molmo_realworld_cleanup_mcp(
+    base_contract = HouseholdBackendSession(scenario, backend=backend)
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=scenario,
         base_contract=base_contract,
@@ -1385,8 +1385,8 @@ def test_realworld_mcp_raw_fpv_trace_records_agent_facing_compact_state(
 ) -> None:
     scenario = build_cleanup_scenario(seed=7)
     backend = _FakeVisualBackend(scenario)
-    base_contract = CleanupBackendSession(scenario, backend=backend)
-    server = make_molmo_realworld_cleanup_mcp(
+    base_contract = HouseholdBackendSession(scenario, backend=backend)
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=scenario,
         base_contract=base_contract,
@@ -1432,8 +1432,8 @@ def test_realworld_mcp_raw_fpv_compact_state_lists_actionable_pending_handles(
 ) -> None:
     scenario = build_cleanup_scenario(seed=7)
     backend = _FakeVisualBackend(scenario)
-    base_contract = CleanupBackendSession(scenario, backend=backend)
-    server = make_molmo_realworld_cleanup_mcp(
+    base_contract = HouseholdBackendSession(scenario, backend=backend)
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=scenario,
         base_contract=base_contract,
@@ -1480,8 +1480,8 @@ def test_realworld_mcp_raw_fpv_artifact_filters_private_camera_contract_keys(
     tmp_path: Path,
 ) -> None:
     scenario = build_cleanup_scenario(seed=7)
-    contract = RealWorldCleanupContract(
-        CleanupBackendSession(scenario),
+    contract = HouseholdRuntimeContract(
+        HouseholdBackendSession(scenario),
         perception_mode=RAW_FPV_ONLY_MODE,
         map_bundle_dir=PREBUILT_BUNDLE,
     )
@@ -1514,7 +1514,7 @@ def test_realworld_mcp_raw_fpv_artifact_filters_private_camera_contract_keys(
 def test_realworld_mcp_camera_labels_declare_response_is_agent_compact(
     tmp_path: Path,
 ) -> None:
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=build_cleanup_scenario(seed=7),
         port=0,

@@ -14,6 +14,21 @@ from roboclaws.household.backend import API_SEMANTIC_PROVENANCE
 from roboclaws.household.cleanup_primitive_evidence import (
     validate_cleanup_primitive_evidence,
 )
+from roboclaws.household.household_runtime_contract import (
+    CAMERA_MODEL_POLICY_MODE,
+    CAMERA_MODEL_POLICY_NAME,
+    CAMERA_MODEL_POLICY_SCHEMA,
+    CLEANUP_POLICY_TRACE_SCHEMA,
+    MODEL_DECLARED_OBSERVATIONS_SCHEMA,
+    REAL_ROBOT_MAP_BUNDLE_SCHEMA,
+    REAL_ROBOT_READINESS_SCHEMA,
+    REALWORLD_CONTRACT,
+    SIMULATED_CAMERA_MODEL_PROVENANCE,
+    forbidden_agent_view_keys,
+)
+from roboclaws.household.household_runtime_contract import (
+    RUNTIME_METRIC_MAP_SCHEMA as RUNTIME_METRIC_MAP_SCHEMA,
+)
 from roboclaws.household.isaac_lab_backend import (
     ISAACLAB_ROBOT_VIEW_VARIANT,
     ISAACLAB_SUBPROCESS_BACKEND,
@@ -35,21 +50,6 @@ from roboclaws.household.planner_proof_quality import (
 )
 from roboclaws.household.planner_proof_requests import PLANNER_PROOF_REQUESTS_SCHEMA
 from roboclaws.household.profiles import evidence_lane, validate_evidence_lane_metadata
-from roboclaws.household.realworld_contract import (
-    CAMERA_MODEL_POLICY_MODE,
-    CAMERA_MODEL_POLICY_NAME,
-    CAMERA_MODEL_POLICY_SCHEMA,
-    CLEANUP_POLICY_TRACE_SCHEMA,
-    MODEL_DECLARED_OBSERVATIONS_SCHEMA,
-    REAL_ROBOT_MAP_BUNDLE_SCHEMA,
-    REAL_ROBOT_READINESS_SCHEMA,
-    REALWORLD_CONTRACT,
-    SIMULATED_CAMERA_MODEL_PROVENANCE,
-    forbidden_agent_view_keys,
-)
-from roboclaws.household.realworld_contract import (
-    RUNTIME_METRIC_MAP_SCHEMA as RUNTIME_METRIC_MAP_SCHEMA,
-)
 from roboclaws.household.realworld_runtime_map_targets import (
     LOCALIZATION_STATUS_VIEWPOINT_ONLY,
     POSE_ROLE_BEST_VIEW_POSE,
@@ -785,7 +785,7 @@ def _needs_isaac_runtime(opts: _ResultOptions) -> bool:
 def _assert_openclaw_minimum(data: dict[str, Any]) -> None:
     assert data.get("policy") == "openclaw_agent", data
     assert data.get("agent_driven") is True, data
-    assert data.get("mcp_server") == "molmo_cleanup_realworld", data
+    assert data.get("mcp_server") == "household_world", data
     artifacts = data.get("artifacts") or {}
     assert artifacts.get("trace"), data
     assert artifacts.get("report"), data
@@ -832,7 +832,7 @@ def _assert_clean_agent_run(
     min_complete_count: int | None = None,
 ) -> None:
     assert data.get("agent_driven") is True, data
-    assert data.get("mcp_server") == "molmo_cleanup_realworld", data
+    assert data.get("mcp_server") == "household_world", data
     counts = data.get("tool_event_counts") or {}
     for tool in (
         "metric_map",

@@ -55,7 +55,7 @@
       {
         "lines": 2016,
         "max_module_lines": 800,
-        "path": "roboclaws/household/realworld_contract.py"
+        "path": "roboclaws/household/household_runtime_contract.py"
       },
       {
         "lines": 927,
@@ -65,7 +65,7 @@
       {
         "lines": 1231,
         "max_module_lines": 800,
-        "path": "roboclaws/household/realworld_mcp_server.py"
+        "path": "roboclaws/household/household_mcp_server.py"
       },
       {
         "lines": 1201,
@@ -220,7 +220,7 @@
       {
         "lines": 2204,
         "max_module_lines": 800,
-        "path": "scripts/molmo_cleanup/run_live_openai_agents_cleanup.py"
+        "path": "scripts/molmo_cleanup/run_live_openai_agents_household.py"
       },
       {
         "lines": 1103,
@@ -310,12 +310,12 @@
       {
         "lines": 4118,
         "max_module_lines": 800,
-        "path": "tests/contract/molmo_cleanup/test_molmo_realworld_contract.py"
+        "path": "tests/contract/molmo_cleanup/test_household_runtime_contract.py"
       },
       {
         "lines": 1518,
         "max_module_lines": 800,
-        "path": "tests/contract/molmo_cleanup/test_molmo_realworld_mcp_server.py"
+        "path": "tests/contract/molmo_cleanup/test_household_mcp_server.py"
       },
       {
         "lines": 2142,

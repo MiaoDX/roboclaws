@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from roboclaws.agents.live_runtime import LiveAgentResult
-from scripts.molmo_cleanup.run_live_openai_agents_cleanup import (
+from scripts.molmo_cleanup.run_live_openai_agents_household import (
     IncompleteTurnRecoveryPolicy,
     _compact_continuation_prompt,
     _compact_continuation_state,

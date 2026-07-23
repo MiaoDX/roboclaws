@@ -10,19 +10,19 @@ import pytest
 from PIL import Image
 
 from roboclaws.household import agent_view as agent_view_module
-from roboclaws.household.agibot_cleanup_contract import AgibotCleanupMCPContract
+from roboclaws.household.agibot_household_backend import AgibotHouseholdBackend
+from roboclaws.household.household_mcp_server import make_household_world_mcp
+from roboclaws.household.household_runtime_contract import (
+    CAMERA_MODEL_POLICY_MODE,
+    REALWORLD_CONTRACT,
+    forbidden_agent_view_keys,
+)
 from roboclaws.household.manipulation_provenance import (
     MANIPULATION_PROBE_CONTRACT,
     PLANNER_BACKED_PROVENANCE,
     planner_backed_probe_evidence,
 )
 from roboclaws.household.nav2_map_bundle import attach_nav2_map_bundle_snapshot
-from roboclaws.household.realworld_contract import (
-    CAMERA_MODEL_POLICY_MODE,
-    REALWORLD_CONTRACT,
-    forbidden_agent_view_keys,
-)
-from roboclaws.household.realworld_mcp_server import make_molmo_realworld_cleanup_mcp
 from roboclaws.mcp.profiles import HOUSEHOLD_EPISODE_PROFILE, HOUSEHOLD_WORLD_PROFILE
 from scripts.isaac_lab_cleanup.check_b1_map12_readiness import (
     DEFAULT_B1_VISUAL_ROUTE_SCENE_USD,
@@ -377,8 +377,8 @@ def test_checker_accepts_agibot_map_build_artifact(tmp_path: Path) -> None:
         path.parent,
         expect_task=None,
         expect_backend="agibot_sdk_runner",
-        expect_policy="realworld_contract_smoke_agent",
-        expect_mcp_server="molmo_cleanup_realworld",
+        expect_policy="household_contract_smoke_agent",
+        expect_mcp_server="household_world",
         min_generated_mess_count=0,
         require_agent_driven=True,
         require_camera_model_policy=True,
@@ -403,8 +403,8 @@ def test_checker_rejects_agibot_rehearsal_as_hardware_validation(
             path.parent,
             expect_task=None,
             expect_backend="agibot_sdk_runner",
-            expect_policy="realworld_contract_smoke_agent",
-            expect_mcp_server="molmo_cleanup_realworld",
+            expect_policy="household_contract_smoke_agent",
+            expect_mcp_server="household_world",
             min_generated_mess_count=0,
             require_agent_driven=True,
             require_camera_model_policy=True,
@@ -429,8 +429,8 @@ def test_checker_accepts_agibot_hardware_map_build_shape(
         path.parent,
         expect_task=None,
         expect_backend="agibot_sdk_runner",
-        expect_policy="realworld_contract_smoke_agent",
-        expect_mcp_server="molmo_cleanup_realworld",
+        expect_policy="household_contract_smoke_agent",
+        expect_mcp_server="household_world",
         min_generated_mess_count=0,
         require_agent_driven=True,
         require_camera_model_policy=True,
@@ -469,8 +469,8 @@ def test_checker_rejects_sim_visual_grounding_as_agibot_hardware_evidence(
             path.parent,
             expect_task=None,
             expect_backend="agibot_sdk_runner",
-            expect_policy="realworld_contract_smoke_agent",
-            expect_mcp_server="molmo_cleanup_realworld",
+            expect_policy="household_contract_smoke_agent",
+            expect_mcp_server="household_world",
             min_generated_mess_count=0,
             require_agent_driven=True,
             require_camera_model_policy=True,
@@ -2078,8 +2078,8 @@ def test_checker_accepts_realworld_mcp_smoke_policy(tmp_path: Path) -> None:
         tmp_path,
         expect_task=None,
         expect_backend="api_semantic_synthetic",
-        expect_policy="realworld_contract_smoke_agent",
-        expect_mcp_server="molmo_cleanup_realworld",
+        expect_policy="household_contract_smoke_agent",
+        expect_mcp_server="household_world",
         min_generated_mess_count=5,
         require_agent_driven=True,
         require_clean_agent_run=True,
@@ -2099,7 +2099,7 @@ def test_checker_accepts_openclaw_minimum_gate(tmp_path: Path) -> None:
         expect_task=None,
         expect_backend="api_semantic_synthetic",
         expect_policy="openclaw_agent",
-        expect_mcp_server="molmo_cleanup_realworld",
+        expect_mcp_server="household_world",
         min_generated_mess_count=5,
         require_agent_driven=True,
         require_openclaw_minimum=True,
@@ -2130,7 +2130,7 @@ def test_checker_openclaw_minimum_allows_partial_report_without_semantic_section
         expect_task=None,
         expect_backend="api_semantic_synthetic",
         expect_policy="openclaw_agent",
-        expect_mcp_server="molmo_cleanup_realworld",
+        expect_mcp_server="household_world",
         min_generated_mess_count=5,
         require_agent_driven=True,
         require_openclaw_minimum=True,
@@ -2151,7 +2151,7 @@ def test_checker_rejects_openclaw_minimum_without_public_tool_use(tmp_path: Path
             expect_task=None,
             expect_backend="api_semantic_synthetic",
             expect_policy="openclaw_agent",
-            expect_mcp_server="molmo_cleanup_realworld",
+            expect_mcp_server="household_world",
             min_generated_mess_count=5,
             require_agent_driven=True,
             require_openclaw_minimum=True,
@@ -2171,7 +2171,7 @@ def test_checker_rejects_openclaw_minimum_for_non_openclaw_policy(tmp_path: Path
             expect_task=None,
             expect_backend="api_semantic_synthetic",
             expect_policy=None,
-            expect_mcp_server="molmo_cleanup_realworld",
+            expect_mcp_server="household_world",
             min_generated_mess_count=5,
             require_agent_driven=True,
             require_openclaw_minimum=True,
@@ -2193,8 +2193,8 @@ def test_checker_rejects_scene_objects_in_realworld_trace(tmp_path: Path) -> Non
             tmp_path,
             expect_task=None,
             expect_backend="api_semantic_synthetic",
-            expect_policy="realworld_contract_smoke_agent",
-            expect_mcp_server="molmo_cleanup_realworld",
+            expect_policy="household_contract_smoke_agent",
+            expect_mcp_server="household_world",
             min_generated_mess_count=5,
             require_agent_driven=True,
             require_clean_agent_run=True,
@@ -2215,8 +2215,8 @@ def test_checker_rejects_clean_run_with_semantic_order_errors(tmp_path: Path) ->
             tmp_path,
             expect_task=None,
             expect_backend="api_semantic_synthetic",
-            expect_policy="realworld_contract_smoke_agent",
-            expect_mcp_server="molmo_cleanup_realworld",
+            expect_policy="household_contract_smoke_agent",
+            expect_mcp_server="household_world",
             min_generated_mess_count=5,
             require_agent_driven=True,
             require_clean_agent_run=True,
@@ -2259,8 +2259,8 @@ def test_checker_accepts_clean_run_with_recovered_semantic_order_error(
         tmp_path,
         expect_task=None,
         expect_backend="api_semantic_synthetic",
-        expect_policy="realworld_contract_smoke_agent",
-        expect_mcp_server="molmo_cleanup_realworld",
+        expect_policy="household_contract_smoke_agent",
+        expect_mcp_server="household_world",
         min_generated_mess_count=5,
         require_agent_driven=True,
         require_clean_agent_run=True,
@@ -2299,8 +2299,8 @@ def test_checker_accepts_clean_run_with_successful_retry_after_failed_attempt(
         tmp_path,
         expect_task=None,
         expect_backend="api_semantic_synthetic",
-        expect_policy="realworld_contract_smoke_agent",
-        expect_mcp_server="molmo_cleanup_realworld",
+        expect_policy="household_contract_smoke_agent",
+        expect_mcp_server="household_world",
         min_generated_mess_count=5,
         require_agent_driven=True,
         require_clean_agent_run=True,
@@ -2333,8 +2333,8 @@ def test_checker_rejects_clean_run_when_failed_attempt_never_recovers(
             tmp_path,
             expect_task=None,
             expect_backend="api_semantic_synthetic",
-            expect_policy="realworld_contract_smoke_agent",
-            expect_mcp_server="molmo_cleanup_realworld",
+            expect_policy="household_contract_smoke_agent",
+            expect_mcp_server="household_world",
             min_generated_mess_count=5,
             require_agent_driven=True,
             require_clean_agent_run=True,
@@ -2352,8 +2352,8 @@ def test_checker_can_require_advisory_scoring(tmp_path: Path) -> None:
         tmp_path,
         expect_task=None,
         expect_backend="api_semantic_synthetic",
-        expect_policy="realworld_contract_smoke_agent",
-        expect_mcp_server="molmo_cleanup_realworld",
+        expect_policy="household_contract_smoke_agent",
+        expect_mcp_server="household_world",
         min_generated_mess_count=5,
         require_agent_driven=True,
         require_clean_agent_run=True,
@@ -2426,7 +2426,7 @@ def test_checker_accepts_live_raw_fpv_map_build_shape(tmp_path: Path) -> None:
     result["task_intent"] = "map-build"
     result["policy"] = "codex_agent"
     result["agent_driven"] = True
-    result["mcp_server"] = "molmo_cleanup_realworld"
+    result["mcp_server"] = "household_world"
     result["map_build"] = None
     result["map_build_mode"] = None
     result["cleanup_actions_disabled"] = None
@@ -2475,7 +2475,7 @@ def test_checker_accepts_live_raw_fpv_map_build_shape(tmp_path: Path) -> None:
         expect_backend="api_semantic_synthetic",
         expect_task_name="household-world",
         expect_policy="codex_agent",
-        expect_mcp_server="molmo_cleanup_realworld",
+        expect_mcp_server="household_world",
         min_generated_mess_count=0,
         require_agent_driven=True,
         require_runtime_metric_map=True,
@@ -2501,8 +2501,8 @@ def test_checker_can_require_raw_fpv_model_declared_success_gate(tmp_path: Path)
         tmp_path,
         expect_task=None,
         expect_backend="api_semantic_synthetic",
-        expect_policy="realworld_contract_smoke_agent",
-        expect_mcp_server="molmo_cleanup_realworld",
+        expect_policy="household_contract_smoke_agent",
+        expect_mcp_server="household_world",
         min_generated_mess_count=5,
         require_agent_driven=True,
         require_clean_agent_run=True,
@@ -3299,7 +3299,7 @@ def test_checker_openclaw_minimum_robot_views_allows_partial_visual_actions(
         expect_task=None,
         expect_backend="api_semantic_synthetic",
         expect_policy="openclaw_agent",
-        expect_mcp_server="molmo_cleanup_realworld",
+        expect_mcp_server="household_world",
         min_generated_mess_count=5,
         require_agent_driven=True,
         require_openclaw_minimum=True,
@@ -3342,7 +3342,7 @@ def test_checker_rejects_zero_pixel_focused_surface_action(tmp_path: Path) -> No
             expect_task=None,
             expect_backend="api_semantic_synthetic",
             expect_policy="openclaw_agent",
-            expect_mcp_server="molmo_cleanup_realworld",
+            expect_mcp_server="household_world",
             min_generated_mess_count=5,
             require_agent_driven=True,
             require_openclaw_minimum=True,
@@ -3399,7 +3399,7 @@ def test_checker_accepts_authorized_source_fpv_evidence_for_weak_nav_view(
         expect_task=None,
         expect_backend="api_semantic_synthetic",
         expect_policy="openclaw_agent",
-        expect_mcp_server="molmo_cleanup_realworld",
+        expect_mcp_server="household_world",
         min_generated_mess_count=5,
         require_agent_driven=True,
         require_openclaw_minimum=True,
@@ -3457,7 +3457,7 @@ def test_checker_rejects_weak_nav_view_without_authorized_source_fpv_evidence(
             expect_task=None,
             expect_backend="api_semantic_synthetic",
             expect_policy="openclaw_agent",
-            expect_mcp_server="molmo_cleanup_realworld",
+            expect_mcp_server="household_world",
             min_generated_mess_count=5,
             require_agent_driven=True,
             require_openclaw_minimum=True,
@@ -3499,7 +3499,7 @@ def test_checker_allows_weak_fpv_when_verify_view_is_grounded(tmp_path: Path) ->
         expect_task=None,
         expect_backend="api_semantic_synthetic",
         expect_policy="openclaw_agent",
-        expect_mcp_server="molmo_cleanup_realworld",
+        expect_mcp_server="household_world",
         min_generated_mess_count=5,
         require_agent_driven=True,
         require_openclaw_minimum=True,
@@ -3570,7 +3570,7 @@ def test_checker_allows_segmentation_unavailable_focused_surface_action(tmp_path
         expect_task=None,
         expect_backend="api_semantic_synthetic",
         expect_policy="openclaw_agent",
-        expect_mcp_server="molmo_cleanup_realworld",
+        expect_mcp_server="household_world",
         min_generated_mess_count=5,
         require_agent_driven=True,
         require_openclaw_minimum=True,
@@ -3707,12 +3707,12 @@ def _write_agibot_map_build_fixture(tmp_path: Path) -> Path:
 
 
 def _make_common_agibot_map_build_server(*, run_dir: Path, context_json: Path):
-    contract = AgibotCleanupMCPContract(
+    contract = AgibotHouseholdBackend(
         run_dir=run_dir,
         context_json=context_json,
         visual_grounding_pipeline_id="grounding-dino",
     )
-    return make_molmo_realworld_cleanup_mcp(
+    return make_household_world_mcp(
         run_dir=run_dir,
         contract=contract,
         map_bundle_dir=PREBUILT_BUNDLE,

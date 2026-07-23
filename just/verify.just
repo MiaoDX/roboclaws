@@ -84,7 +84,7 @@ household-world generated_mess_count="10":
     #!/usr/bin/env bash
     set -euo pipefail
     {{standalone_pytest}} -q \
-      tests/contract/molmo_cleanup/test_molmo_realworld_contract.py \
+      tests/contract/molmo_cleanup/test_household_runtime_contract.py \
       tests/contract/molmo_cleanup/test_molmospaces_realworld_cleanup.py \
       tests/contract/checkers/test_check_molmo_realworld_cleanup_result.py \
       tests/contract/reports/test_molmo_cleanup_report.py \
@@ -97,7 +97,7 @@ molmo-realworld-agent-mcp generated_mess_count="10":
     #!/usr/bin/env bash
     set -euo pipefail
     {{standalone_pytest}} -q \
-      tests/contract/molmo_cleanup/test_molmo_realworld_mcp_server.py \
+      tests/contract/molmo_cleanup/test_household_mcp_server.py \
       tests/contract/checkers/test_check_molmo_realworld_cleanup_result.py \
       tests/contract/molmo_cleanup/test_molmo_mcp_smoke_shared_semantic_loop.py \
       tests/contract/dev_tools/test_verify_just_recipes.py
@@ -110,8 +110,8 @@ molmo-realworld-agent-dogfood-kit:
     #!/usr/bin/env bash
     set -euo pipefail
     {{standalone_pytest}} -q \
-      tests/contract/molmo_cleanup/test_molmo_realworld_agent_server.py \
-      tests/contract/molmo_cleanup/test_molmo_realworld_mcp_server.py \
+      tests/contract/molmo_cleanup/test_household_agent_server.py \
+      tests/contract/molmo_cleanup/test_household_mcp_server.py \
       tests/contract/checkers/test_check_molmo_realworld_cleanup_result.py \
       tests/contract/dev_tools/test_verify_just_recipes.py
     just harness::molmo-realworld-agent-dogfood-kit
@@ -122,7 +122,7 @@ molmo-realworld-openclaw-dogfood-kit:
     #!/usr/bin/env bash
     set -euo pipefail
     {{standalone_pytest}} -q \
-      tests/contract/molmo_cleanup/test_molmo_realworld_mcp_server.py \
+      tests/contract/molmo_cleanup/test_household_mcp_server.py \
       tests/contract/checkers/test_check_molmo_realworld_cleanup_result.py \
       tests/contract/dev_tools/test_verify_just_recipes.py
     just harness::molmo-realworld-openclaw-dogfood-kit
@@ -133,7 +133,7 @@ molmo-realworld-openclaw-visual-dogfood-kit generated_mess_count="10":
     #!/usr/bin/env bash
     set -euo pipefail
     {{standalone_pytest}} -q \
-      tests/contract/molmo_cleanup/test_molmo_realworld_mcp_server.py \
+      tests/contract/molmo_cleanup/test_household_mcp_server.py \
       tests/contract/checkers/test_check_molmo_realworld_cleanup_result.py \
       tests/contract/reports/test_molmo_cleanup_report.py \
       tests/contract/dev_tools/test_verify_just_recipes.py
@@ -145,8 +145,8 @@ molmo-realworld-raw-fpv generated_mess_count="10":
     #!/usr/bin/env bash
     set -euo pipefail
     {{standalone_pytest}} -q \
-      tests/contract/molmo_cleanup/test_molmo_realworld_contract.py \
-      tests/contract/molmo_cleanup/test_molmo_realworld_mcp_server.py \
+      tests/contract/molmo_cleanup/test_household_runtime_contract.py \
+      tests/contract/molmo_cleanup/test_household_mcp_server.py \
       tests/contract/reports/test_molmo_cleanup_report.py \
       tests/contract/checkers/test_check_molmo_realworld_cleanup_result.py \
       tests/contract/dev_tools/test_verify_just_recipes.py

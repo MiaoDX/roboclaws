@@ -3,8 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from roboclaws.household import agent_view as agent_view_module
-from roboclaws.household.profiles import CAMERA_GROUNDED_LABELS_LANE
-from roboclaws.household.realworld_contract import (
+from roboclaws.household.household_runtime_contract import (
     CAMERA_MODEL_POLICY_MODE,
     CAMERA_MODEL_POLICY_SCHEMA,
     CLEANUP_WORKLIST_SCHEMA,
@@ -15,6 +14,7 @@ from roboclaws.household.realworld_contract import (
     SIMULATED_CAMERA_MODEL_PROVENANCE,
     forbidden_agent_view_keys,
 )
+from roboclaws.household.profiles import CAMERA_GROUNDED_LABELS_LANE
 from roboclaws.household.visual_grounding import EXTERNAL_VISUAL_GROUNDING_PROVENANCE
 
 

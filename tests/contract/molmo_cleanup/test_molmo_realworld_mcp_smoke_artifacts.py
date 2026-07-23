@@ -8,8 +8,8 @@ from typing import Any
 import pytest
 
 from roboclaws.household import agent_view as agent_view_module
-from roboclaws.household.realworld_contract import REALWORLD_CONTRACT
-from roboclaws.household.realworld_mcp_server import MCP_SERVER_NAME
+from roboclaws.household.household_mcp_server import MCP_SERVER_NAME
+from roboclaws.household.household_runtime_contract import REALWORLD_CONTRACT
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SMOKE_PATH = REPO_ROOT / "scripts" / "molmo_cleanup" / "run_molmo_realworld_agent_mcp_smoke.py"
@@ -78,7 +78,7 @@ def _assert_smoke_run_result(run_result: dict[str, Any]) -> None:
     assert run_result["contract"] == REALWORLD_CONTRACT
     assert run_result["adr_0003_satisfied"] is True
     assert run_result["agent_driven"] is True
-    assert run_result["policy"] == "realworld_contract_smoke_agent"
+    assert run_result["policy"] == "household_contract_smoke_agent"
     assert run_result["policy_uses_private_truth"] is False
     assert run_result["planner_uses_private_manifest"] is False
     assert run_result["mcp_server"] == MCP_SERVER_NAME

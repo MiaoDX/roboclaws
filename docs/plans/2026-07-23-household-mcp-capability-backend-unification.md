@@ -1,4 +1,4 @@
-**Status:** Active; capability, backend, and evidence normalization implemented; canonical rename in progress
+**Status:** Active; capability, backend, evidence, and canonical owner rename implemented; final live/local proof gated
 **Created:** 2026-07-23
 **Last reviewed:** 2026-07-23
 **Current implementation contract:** Household intents share one public surface, skill, exact
@@ -19,11 +19,11 @@ old server ids, tool surfaces, entrypoints, aliases, and readers touched by this
 - Parent plan: none
 - Child plans: none
 - Last updated: 2026-07-23
-- Current slice: Slice 4, rename canonical owners and remove stale surfaces.
-- Next action: Apply the approved rename/deletion map, migrate current callers and docs, then run
-  stale-reference, focused eval, product-run, and guarded live/local proof.
-- Blocked on: none; final live, Isaac, and physical proof may still require guarded blocker
-  evidence.
+- Current slice: Slice 4 complete; final live/local proof is gated by the sandbox environment.
+- Next action: Re-run the full deterministic and required product/live/local gates in an environment
+  permitting local socket operations and the guarded providers/hardware.
+- Blocked on: full standalone suite has 77 sandbox-denied socket operations with cascading
+  operator-console lock failures; three unrelated MiMo model fixture mismatches remain.
 - Do not touch from this session: unrelated eval, map/report cleanup, archived plans, `TODOS.md`,
   and `THOUGHTS.md`.
 

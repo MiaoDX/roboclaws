@@ -38,7 +38,7 @@ from roboclaws.evals.models import (
     EvalSample,
     EvalTrial,
 )
-from roboclaws.household.backend_contract import SYNTHETIC_BACKEND
+from roboclaws.household.household_backend_contract import SYNTHETIC_BACKEND
 from roboclaws.launch.backends import BACKEND_SPECS
 from roboclaws.launch.catalog import SURFACE_SPECS
 from roboclaws.launch.goals import normalize_goal_contract

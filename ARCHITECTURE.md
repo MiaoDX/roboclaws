@@ -144,11 +144,11 @@ Key pieces:
   cleanup flow.
 - `roboclaws/maps/` owns reusable navigation map artifacts, projections, and
   Runtime Map Prior Snapshot conversion.
-- `roboclaws/household/realworld_mcp_server.py` exposes the cleanup MCP
-  capability surface for SDK live agents and future higher-level MCP clients.
-- `roboclaws/cli/household_agent_server.py` and
-  `roboclaws/cli/agibot_map_build_agent_server.py` are thin server adapters
-  that assemble live household MCP server processes behind
+- `roboclaws/household/household_mcp_server.py` exposes the profile-composed
+  household MCP capability surface for SDK live agents and future higher-level
+  MCP clients.
+- `roboclaws/cli/household_agent_server.py` is the thin server adapter that
+  assembles live household MCP server processes behind
   `python -m roboclaws.cli.agent_server ...`.
 - `roboclaws/household/report.py` renders the shared report.
 - `roboclaws/household/camera_control.py` owns the external render-camera

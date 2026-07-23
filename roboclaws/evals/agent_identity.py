@@ -137,10 +137,10 @@ def _runtime_readiness(agent_engine: str) -> dict[str, Any]:
         "product_route_available": "eval runner can call the public run::surface route",
     }
     if agent_engine == "openai-agents-sdk":
-        script = REPO_ROOT / "scripts" / "molmo_cleanup" / "run_live_openai_agents_cleanup.py"
+        script = REPO_ROOT / "scripts" / "molmo_cleanup" / "run_live_openai_agents_household.py"
         runtime.update(
             {
-                "required_runtime": "OpenAI Agents SDK cleanup runner",
+                "required_runtime": "OpenAI Agents SDK household runner",
                 "live_runner_script": "available" if script.exists() else "missing",
             }
         )

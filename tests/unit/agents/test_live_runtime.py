@@ -45,9 +45,9 @@ from roboclaws.agents.prompts.household_cleanup import (
 from scripts.molmo_cleanup.openai_agents_perf_profile import (
     resolve_agent_sdk_perf_profile as _resolve_agent_sdk_perf_profile,
 )
-from scripts.molmo_cleanup.run_live_openai_agents_cleanup import (
+from scripts.molmo_cleanup.run_live_openai_agents_household import (
     IncompleteTurnRecoveryPolicy,
-    LiveOpenAIAgentsCleanupRunner,
+    LiveOpenAIAgentsHouseholdRunner,
     _budget_failure_from_run_state,
     _cache_metrics,
     _compact_continuation_prompt,
@@ -63,7 +63,7 @@ from scripts.molmo_cleanup.run_live_openai_agents_cleanup import (
     _openai_agents_span_metrics,
     _profiled_kickoff_prompt,
 )
-from scripts.molmo_cleanup.run_live_openai_agents_cleanup import (
+from scripts.molmo_cleanup.run_live_openai_agents_household import (
     parse_args as _parse_live_openai_agents_args,
 )
 
@@ -3166,16 +3166,16 @@ def test_openai_agents_cleanup_runner_invokes_sdk_then_checker(tmp_path: Path, m
             )
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup.subprocess.Popen",
+        "scripts.molmo_cleanup.run_live_openai_agents_household.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup._port_accepting",
+        "scripts.molmo_cleanup.run_live_openai_agents_household._port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup.OpenAIAgentsLiveRuntime",
+        "scripts.molmo_cleanup.run_live_openai_agents_household.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
 
@@ -3185,7 +3185,7 @@ def test_openai_agents_cleanup_runner_invokes_sdk_then_checker(tmp_path: Path, m
         return 0
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup._run_and_tee",
+        "scripts.molmo_cleanup.run_live_openai_agents_household._run_and_tee",
         fake_run_and_tee,
     )
     lock_path = tmp_path / "live.lock"
@@ -3222,7 +3222,7 @@ def test_openai_agents_cleanup_runner_invokes_sdk_then_checker(tmp_path: Path, m
         checker_visual_arg=[],
     )
 
-    status = LiveOpenAIAgentsCleanupRunner(args).run()
+    status = LiveOpenAIAgentsHouseholdRunner(args).run()
 
     assert status == 0
     status_payload = json.loads((run_dir / "live_status.json").read_text(encoding="utf-8"))
@@ -3358,7 +3358,7 @@ def test_openai_agents_live_timing_fails_aloud_on_malformed_mcp_timing_source(
             "smoke",
         ]
     )
-    runner = LiveOpenAIAgentsCleanupRunner(args)
+    runner = LiveOpenAIAgentsHouseholdRunner(args)
     (run_dir / source_name).write_text(source_text, encoding="utf-8")
 
     source_error = runner._write_live_timing("finished", 0)
@@ -3426,16 +3426,16 @@ def test_openai_agents_camera_grounded_composite_profile_adds_private_server_fla
             return LiveAgentResult(phase="finished", exit_status=0, run_result_present=True)
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup.subprocess.Popen",
+        "scripts.molmo_cleanup.run_live_openai_agents_household.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup._port_accepting",
+        "scripts.molmo_cleanup.run_live_openai_agents_household._port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup.OpenAIAgentsLiveRuntime",
+        "scripts.molmo_cleanup.run_live_openai_agents_household.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
 
@@ -3444,7 +3444,7 @@ def test_openai_agents_camera_grounded_composite_profile_adds_private_server_fla
         return 0
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup._run_and_tee",
+        "scripts.molmo_cleanup.run_live_openai_agents_household._run_and_tee",
         fake_run_and_tee,
     )
     args = Namespace(
@@ -3483,7 +3483,7 @@ def test_openai_agents_camera_grounded_composite_profile_adds_private_server_fla
         checker_visual_arg=[],
     )
 
-    status = LiveOpenAIAgentsCleanupRunner(args).run()
+    status = LiveOpenAIAgentsHouseholdRunner(args).run()
 
     assert status == 0
     assert server_commands
@@ -3545,20 +3545,20 @@ def test_openai_agents_robot_view_capture_policy_adds_private_server_flag(
             return LiveAgentResult(phase="finished", exit_status=0, run_result_present=True)
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup.subprocess.Popen",
+        "scripts.molmo_cleanup.run_live_openai_agents_household.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup._port_accepting",
+        "scripts.molmo_cleanup.run_live_openai_agents_household._port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup.OpenAIAgentsLiveRuntime",
+        "scripts.molmo_cleanup.run_live_openai_agents_household.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup._run_and_tee",
+        "scripts.molmo_cleanup.run_live_openai_agents_household._run_and_tee",
         lambda *_args, **_kwargs: 0,
     )
     args = Namespace(
@@ -3599,7 +3599,7 @@ def test_openai_agents_robot_view_capture_policy_adds_private_server_flag(
         checker_visual_arg=[],
     )
 
-    status = LiveOpenAIAgentsCleanupRunner(args).run()
+    status = LiveOpenAIAgentsHouseholdRunner(args).run()
 
     assert status == 0
     assert server_commands
@@ -3718,16 +3718,16 @@ def test_openai_agents_camera_grounded_composite_runner_rerenders_stale_two_step
             return LiveAgentResult(phase="finished", exit_status=0, run_result_present=True)
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup.subprocess.Popen",
+        "scripts.molmo_cleanup.run_live_openai_agents_household.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup._port_accepting",
+        "scripts.molmo_cleanup.run_live_openai_agents_household._port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup.OpenAIAgentsLiveRuntime",
+        "scripts.molmo_cleanup.run_live_openai_agents_household.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
 
@@ -3736,7 +3736,7 @@ def test_openai_agents_camera_grounded_composite_runner_rerenders_stale_two_step
         return 0
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup._run_and_tee",
+        "scripts.molmo_cleanup.run_live_openai_agents_household._run_and_tee",
         fake_run_and_tee,
     )
     stale_prompt = render_kickoff_prompt("camera-grounded-labels")
@@ -3776,7 +3776,7 @@ def test_openai_agents_camera_grounded_composite_runner_rerenders_stale_two_step
         checker_visual_arg=[],
     )
 
-    status = LiveOpenAIAgentsCleanupRunner(args).run()
+    status = LiveOpenAIAgentsHouseholdRunner(args).run()
 
     assert status == 0
     assert "declare_visual_candidates with observation_id only" in stale_prompt
@@ -3856,16 +3856,16 @@ def test_openai_agents_cleanup_runner_loads_canonical_skill_context(
             )
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup.subprocess.Popen",
+        "scripts.molmo_cleanup.run_live_openai_agents_household.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup._port_accepting",
+        "scripts.molmo_cleanup.run_live_openai_agents_household._port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup.OpenAIAgentsLiveRuntime",
+        "scripts.molmo_cleanup.run_live_openai_agents_household.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
 
@@ -3874,7 +3874,7 @@ def test_openai_agents_cleanup_runner_loads_canonical_skill_context(
         return 0
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup._run_and_tee",
+        "scripts.molmo_cleanup.run_live_openai_agents_household._run_and_tee",
         fake_run_and_tee,
     )
     args = Namespace(
@@ -3911,7 +3911,7 @@ def test_openai_agents_cleanup_runner_loads_canonical_skill_context(
         checker_visual_arg=[],
     )
 
-    status = LiveOpenAIAgentsCleanupRunner(args).run()
+    status = LiveOpenAIAgentsHouseholdRunner(args).run()
 
     assert status == 0
     assert captured_contexts
@@ -4001,16 +4001,16 @@ def test_openai_agents_cleanup_runner_continues_incomplete_sdk_turn(
             )
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup.subprocess.Popen",
+        "scripts.molmo_cleanup.run_live_openai_agents_household.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup._port_accepting",
+        "scripts.molmo_cleanup.run_live_openai_agents_household._port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup.OpenAIAgentsLiveRuntime",
+        "scripts.molmo_cleanup.run_live_openai_agents_household.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
 
@@ -4020,7 +4020,7 @@ def test_openai_agents_cleanup_runner_continues_incomplete_sdk_turn(
         return 0
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup._run_and_tee",
+        "scripts.molmo_cleanup.run_live_openai_agents_household._run_and_tee",
         fake_run_and_tee,
     )
     args = Namespace(
@@ -4057,7 +4057,7 @@ def test_openai_agents_cleanup_runner_continues_incomplete_sdk_turn(
         checker_visual_arg=[],
     )
 
-    status = LiveOpenAIAgentsCleanupRunner(args).run()
+    status = LiveOpenAIAgentsHouseholdRunner(args).run()
 
     assert status == 0
     assert len(prompts) == 2
@@ -4158,16 +4158,16 @@ def test_openai_agents_cleanup_runner_compact_continuation_excludes_full_prompt(
             return LiveAgentResult(phase="finished", exit_status=0, run_result_present=True)
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup.subprocess.Popen",
+        "scripts.molmo_cleanup.run_live_openai_agents_household.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup._port_accepting",
+        "scripts.molmo_cleanup.run_live_openai_agents_household._port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup.OpenAIAgentsLiveRuntime",
+        "scripts.molmo_cleanup.run_live_openai_agents_household.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
 
@@ -4176,7 +4176,7 @@ def test_openai_agents_cleanup_runner_compact_continuation_excludes_full_prompt(
         return 0
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup._run_and_tee",
+        "scripts.molmo_cleanup.run_live_openai_agents_household._run_and_tee",
         fake_run_and_tee,
     )
     full_prompt = "FULL ORIGINAL PROMPT THAT SHOULD NOT REPEAT"
@@ -4214,7 +4214,7 @@ def test_openai_agents_cleanup_runner_compact_continuation_excludes_full_prompt(
         checker_visual_arg=[],
     )
 
-    status = LiveOpenAIAgentsCleanupRunner(args).run()
+    status = LiveOpenAIAgentsHouseholdRunner(args).run()
 
     assert status == 0
     assert len(prompts) == 2
@@ -4687,20 +4687,20 @@ def test_openai_agents_cleanup_runner_compact_continuation_preserves_composite_c
             return LiveAgentResult(phase="finished", exit_status=0, run_result_present=True)
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup.subprocess.Popen",
+        "scripts.molmo_cleanup.run_live_openai_agents_household.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup._port_accepting",
+        "scripts.molmo_cleanup.run_live_openai_agents_household._port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup.OpenAIAgentsLiveRuntime",
+        "scripts.molmo_cleanup.run_live_openai_agents_household.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup._run_and_tee",
+        "scripts.molmo_cleanup.run_live_openai_agents_household._run_and_tee",
         lambda command, *, cwd, stdout_path, stderr_path, env: 0,
     )
     full_prompt = "FULL ORIGINAL PROMPT THAT SHOULD NOT REPEAT"
@@ -4743,7 +4743,7 @@ def test_openai_agents_cleanup_runner_compact_continuation_preserves_composite_c
         robot_view_capture_policy=None,
     )
 
-    status = LiveOpenAIAgentsCleanupRunner(args).run()
+    status = LiveOpenAIAgentsHouseholdRunner(args).run()
 
     assert status == 0
     assert len(prompts) == 2
@@ -4800,20 +4800,20 @@ def test_openai_agents_cleanup_runner_uses_profiled_compact_kickoff_prompt(
             return LiveAgentResult(phase="finished", exit_status=0, run_result_present=True)
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup.subprocess.Popen",
+        "scripts.molmo_cleanup.run_live_openai_agents_household.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup._port_accepting",
+        "scripts.molmo_cleanup.run_live_openai_agents_household._port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup.OpenAIAgentsLiveRuntime",
+        "scripts.molmo_cleanup.run_live_openai_agents_household.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup._run_and_tee",
+        "scripts.molmo_cleanup.run_live_openai_agents_household._run_and_tee",
         lambda command, *, cwd, stdout_path, stderr_path, env: 0,
     )
     args = Namespace(
@@ -4850,7 +4850,7 @@ def test_openai_agents_cleanup_runner_uses_profiled_compact_kickoff_prompt(
         checker_visual_arg=[],
     )
 
-    status = LiveOpenAIAgentsCleanupRunner(args).run()
+    status = LiveOpenAIAgentsHouseholdRunner(args).run()
 
     assert status == 0
     assert len(prompts) == 1
@@ -5426,16 +5426,16 @@ def test_openai_agents_cleanup_runner_fails_after_bounded_continuation(
             )
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup.subprocess.Popen",
+        "scripts.molmo_cleanup.run_live_openai_agents_household.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup._port_accepting",
+        "scripts.molmo_cleanup.run_live_openai_agents_household._port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup.OpenAIAgentsLiveRuntime",
+        "scripts.molmo_cleanup.run_live_openai_agents_household.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
 
@@ -5445,7 +5445,7 @@ def test_openai_agents_cleanup_runner_fails_after_bounded_continuation(
         return 0
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_cleanup._run_and_tee",
+        "scripts.molmo_cleanup.run_live_openai_agents_household._run_and_tee",
         fake_run_and_tee,
     )
     args = Namespace(
@@ -5482,7 +5482,7 @@ def test_openai_agents_cleanup_runner_fails_after_bounded_continuation(
         checker_visual_arg=[],
     )
 
-    status = LiveOpenAIAgentsCleanupRunner(args).run()
+    status = LiveOpenAIAgentsHouseholdRunner(args).run()
 
     assert status == 1
     assert len(prompts) == 2

@@ -18,10 +18,10 @@ else:
     REPO_ROOT = Path(__file__).resolve().parents[2]
 
 from roboclaws.core.json_sources import read_json_object  # noqa: E402
-from roboclaws.household.backend_contract import CleanupBackendSession  # noqa: E402
-from roboclaws.household.realworld_contract import (  # noqa: E402
+from roboclaws.household.household_backend_contract import HouseholdBackendSession  # noqa: E402
+from roboclaws.household.household_runtime_contract import (  # noqa: E402
     RAW_FPV_ONLY_MODE,
-    RealWorldCleanupContract,
+    HouseholdRuntimeContract,
 )
 from roboclaws.household.subprocess_backend import MolmoSpacesSubprocessBackend  # noqa: E402
 from roboclaws.launch.map_bundles import molmospaces_nav2_map_bundle_path  # noqa: E402
@@ -123,8 +123,8 @@ def generate_sweep_corpus(args: argparse.Namespace) -> dict[str, Any]:
         generated_mess_count=len(generated_manifest["targets"]),
         generated_mess_manifest_path=generated_manifest_path,
     )
-    base_contract = CleanupBackendSession(backend.scenario, backend=backend)
-    contract = RealWorldCleanupContract(
+    base_contract = HouseholdBackendSession(backend.scenario, backend=backend)
+    contract = HouseholdRuntimeContract(
         base_contract,
         perception_mode=RAW_FPV_ONLY_MODE,
         map_bundle_dir=molmospaces_nav2_map_bundle_path(

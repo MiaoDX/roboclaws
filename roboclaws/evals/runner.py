@@ -41,7 +41,7 @@ from roboclaws.evals.models import (
     load_eval_suite,
 )
 from roboclaws.evals.reports import render_eval_report, results_bundle
-from roboclaws.household.backend_contract import SYNTHETIC_BACKEND
+from roboclaws.household.household_backend_contract import SYNTHETIC_BACKEND
 from roboclaws.household.household_world_episode import run_household_world_episode
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

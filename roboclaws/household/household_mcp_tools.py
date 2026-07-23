@@ -1,4 +1,4 @@
-"""Backend/lifecycle glue for layered Molmo cleanup MCP tools."""
+"""Backend and lifecycle glue for profile-composed household MCP tools."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from roboclaws.mcp.profiles import (
 )
 
 
-def register_realworld_mcp_tools(server: Any) -> None:
+def register_household_mcp_tools(server: Any) -> None:
     """Register exactly the immutable capability-profile union for this run."""
 
     handlers = tool_handlers_for_call(server, {})
@@ -61,12 +61,12 @@ def register_lifecycle_tools(server: Any) -> tuple[str, ...]:
     return ("check_operator_messages", "done")
 
 
-def dispatch_realworld_mcp_tool(
+def dispatch_household_mcp_tool(
     server: Any,
     name: str,
     kwargs: dict[str, Any],
 ) -> dict[str, Any]:
-    validate_realworld_mcp_tool_call(server, name)
+    validate_household_mcp_tool_call(server, name)
     if server.done_event.is_set() and name != "done":
         return {"ok": False, "tool": name, "status": "error", "error_reason": "run_done"}
 
@@ -85,7 +85,7 @@ def dispatch_realworld_mcp_tool(
     return handlers[name]()
 
 
-def validate_realworld_mcp_tool_call(server: Any, name: str) -> None:
+def validate_household_mcp_tool_call(server: Any, name: str) -> None:
     if name == "scene_objects":
         raise ValueError("scene_objects is not part of the ADR-0003 real-world MCP contract")
     if name not in server.registered_public_tool_names:

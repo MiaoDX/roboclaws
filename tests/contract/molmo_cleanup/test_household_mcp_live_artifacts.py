@@ -3,19 +3,21 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from roboclaws.household.realworld_mcp_server import make_molmo_realworld_cleanup_mcp
+from roboclaws.household.household_mcp_server import make_household_world_mcp
 from roboclaws.household.scenario import build_cleanup_scenario
+from roboclaws.mcp.profiles import HOUSEHOLD_EPISODE_PROFILE, HOUSEHOLD_WORLD_PROFILE
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PREBUILT_BUNDLE = REPO_ROOT / "assets" / "maps" / "molmospaces" / "procthor-10k-val" / "0"
 
 
-def test_realworld_mcp_writes_live_public_map_artifacts_before_done(tmp_path: Path) -> None:
-    server = make_molmo_realworld_cleanup_mcp(
+def test_household_mcp_writes_live_public_map_artifacts_before_done(tmp_path: Path) -> None:
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=build_cleanup_scenario(seed=7),
         port=0,
         map_bundle_dir=PREBUILT_BUNDLE,
+        required_capability_profiles=(HOUSEHOLD_WORLD_PROFILE, HOUSEHOLD_EPISODE_PROFILE),
     )
     try:
         metric_map = server.call_tool("metric_map")

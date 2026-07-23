@@ -8,7 +8,7 @@ from PIL import Image
 
 from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household import agibot_operator_gates as gates
-from roboclaws.household.agibot_cleanup_contract import AgibotCleanupMCPContract
+from roboclaws.household.agibot_household_backend import AgibotHouseholdBackend
 from roboclaws.household.agibot_map_defaults import (
     DEFAULT_AGIBOT_CONFIDENCE_LAYER,
     DEFAULT_AGIBOT_CONTEXT_JSON,
@@ -23,11 +23,11 @@ from roboclaws.household.artifact_report import (
     is_cleanup_run_result_artifact,
     rerender_cleanup_report_from_artifact_path,
 )
-from roboclaws.household.profiles import AGIBOT_SDK_RUNNER_BACKEND
-from roboclaws.household.realworld_mcp_server import (
+from roboclaws.household.household_mcp_server import (
     MCP_SERVER_NAME,
-    make_molmo_realworld_cleanup_mcp,
+    make_household_world_mcp,
 )
+from roboclaws.household.profiles import AGIBOT_SDK_RUNNER_BACKEND
 from roboclaws.mcp.profiles import (
     HOUSEHOLD_EPISODE_PROFILE,
     HOUSEHOLD_MANIPULATION_PROFILE,
@@ -58,13 +58,13 @@ def _make_common_agibot_map_build_server(
     visual_grounding_pipeline_id: str = "grounding-dino",
     visual_grounding_timeout_s: float | None = None,
 ):
-    contract = AgibotCleanupMCPContract(
+    contract = AgibotHouseholdBackend(
         run_dir=run_dir,
         context_json=context_json,
         visual_grounding_pipeline_id=visual_grounding_pipeline_id,
         visual_grounding_timeout_s=visual_grounding_timeout_s,
     )
-    return make_molmo_realworld_cleanup_mcp(
+    return make_household_world_mcp(
         run_dir=run_dir,
         contract=contract,
         map_bundle_dir=PREBUILT_BUNDLE,
@@ -579,7 +579,7 @@ def test_agibot_map_build_camera_labels_call_external_grounding(
     camera_path.parent.mkdir(parents=True)
     Image.new("RGB", (16, 12), (120, 130, 140)).save(camera_path)
 
-    contract = AgibotCleanupMCPContract(
+    contract = AgibotHouseholdBackend(
         run_dir=tmp_path,
         context_json=COMPLETED_CONTEXT_FIXTURE,
         visual_grounding_client=grounding_client,
@@ -635,11 +635,11 @@ def test_agibot_map_build_server_accepts_visual_grounding_timeout(
 
 def test_agibot_adapter_integrates_with_shared_cleanup_mcp_contract(tmp_path: Path) -> None:
     _require_agibot_sdk_runner()
-    contract = AgibotCleanupMCPContract(
+    contract = AgibotHouseholdBackend(
         run_dir=tmp_path / "run",
         context_json=COMPLETED_CONTEXT_FIXTURE,
     )
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path / "run",
         contract=contract,
         map_bundle_dir=PREBUILT_BUNDLE,
@@ -673,7 +673,7 @@ def test_agibot_adapter_integrates_with_shared_cleanup_mcp_contract(tmp_path: Pa
     assert observe["raw_fpv_observation"]["camera"] == "head_color"
     assert pick["status"] == "blocked_capability"
     assert done["agent_driven"] is True
-    assert run_result["mcp_server"] == "molmo_cleanup_realworld"
+    assert run_result["mcp_server"] == "household_world"
     assert run_result["evidence_lane"] == "physical-robot-evidence"
     assert run_result["evidence_lane_metadata"]["evidence_lane"] == "physical-robot-evidence"
     assert run_result["backend"] == AGIBOT_SDK_RUNNER_BACKEND

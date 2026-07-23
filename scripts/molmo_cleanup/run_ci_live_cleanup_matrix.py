@@ -31,7 +31,7 @@ from roboclaws.household.ci_live_reports import (  # noqa: E402
     write_manifest,
     write_status,
 )
-from roboclaws.household.realworld_contract import DEFAULT_REALWORLD_TASK  # noqa: E402
+from roboclaws.household.household_runtime_contract import DEFAULT_REALWORLD_TASK  # noqa: E402
 
 PROVIDER_TIMING_PROXY_ENV = "ROBOCLAWS_PROVIDER_TIMING_PROXY"
 

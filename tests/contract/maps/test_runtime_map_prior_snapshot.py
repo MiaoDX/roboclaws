@@ -7,14 +7,14 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.household.backend_contract import CleanupBackendSession
+from roboclaws.household.household_backend_contract import HouseholdBackendSession
+from roboclaws.household.household_runtime_contract import (
+    RAW_FPV_ONLY_MODE,
+    HouseholdRuntimeContract,
+)
 from roboclaws.household.household_world_episode import (
     _load_runtime_map_prior,
     run_household_world_episode,
-)
-from roboclaws.household.realworld_contract import (
-    RAW_FPV_ONLY_MODE,
-    RealWorldCleanupContract,
 )
 from roboclaws.household.scenario import build_cleanup_scenario
 from roboclaws.maps.runtime_prior_snapshot import (
@@ -150,8 +150,8 @@ def test_online_and_offline_snapshots_share_consumer_contract_shape() -> None:
 
 
 def test_materialized_online_snapshot_targets_do_not_override_destination_policy() -> None:
-    contract = RealWorldCleanupContract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+    contract = HouseholdRuntimeContract(
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=RAW_FPV_ONLY_MODE,
         map_bundle_dir=CANONICAL_SCENE_BUNDLE,
     )
@@ -186,8 +186,8 @@ def test_materialized_online_snapshot_targets_do_not_override_destination_policy
 
 def test_converted_snapshot_targets_are_exposed_through_cleanup_receptacle_path() -> None:
     snapshot = runtime_prior_snapshot_from_agibot_navigation_memory(ROBOT_MAP_12_FIXTURE)
-    contract = RealWorldCleanupContract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+    contract = HouseholdRuntimeContract(
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=RAW_FPV_ONLY_MODE,
         runtime_map_prior=snapshot["runtime_metric_map"],
         map_bundle_dir=CANONICAL_SCENE_BUNDLE,
@@ -636,8 +636,8 @@ def test_synthetic_cleanup_consumes_converted_snapshot_through_runtime_prior(
 
 
 def _online_minimal_snapshot() -> dict:
-    contract = RealWorldCleanupContract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+    contract = HouseholdRuntimeContract(
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         map_bundle_dir=CANONICAL_SCENE_BUNDLE,
     )
     _observe_until_anchor(contract, anchor_category="fridge", anchor_type="receptacle")
@@ -749,7 +749,7 @@ def _write_minimal_nav2_cleanup_bundle(bundle_dir: Path) -> Path:
 
 
 def _observe_until_anchor(
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     *,
     anchor_category: str,
     anchor_type: str,

@@ -1,4 +1,4 @@
-"""FastMCP bridge for the ADR-0003 MolmoSpaces cleanup contract."""
+"""FastMCP bridge for the household runtime contract."""
 
 from __future__ import annotations
 
@@ -15,21 +15,21 @@ from mcp.server.fastmcp import Image as MCPImage
 
 from roboclaws.core.json_sources import read_jsonl_objects
 from roboclaws.household import agent_view as agent_view_module
-from roboclaws.household.backend_contract import CleanupBackendSession
-from roboclaws.household.realworld_contract import (
+from roboclaws.household.household_backend_contract import HouseholdBackendSession
+from roboclaws.household.household_mcp_tools import (
+    agent_view_public_tool_names,
+    dispatch_household_mcp_tool,
+    register_household_mcp_tools,
+    validate_household_mcp_tool_call,
+)
+from roboclaws.household.household_runtime_contract import (
     CAMERA_MODEL_POLICY_MODE,
     DEFAULT_REALWORLD_TASK,
     RAW_FPV_ONLY_MODE,
     REALWORLD_CONTRACT,
     VISIBLE_OBJECT_DETECTIONS_MODE,
-    RealWorldCleanupContract,
+    HouseholdRuntimeContract,
     raw_fpv_inline_candidate_instruction,
-)
-from roboclaws.household.realworld_mcp_backend import (
-    agent_view_public_tool_names,
-    dispatch_realworld_mcp_tool,
-    register_realworld_mcp_tools,
-    validate_realworld_mcp_tool_call,
 )
 from roboclaws.household.realworld_mcp_run_artifacts import (
     RealWorldMCPDoneArtifactInputs,
@@ -71,19 +71,19 @@ from roboclaws.operator_console.interactions import (
     pending_operator_message_hint,
 )
 
-__all__ = ["MCP_SERVER_NAME", "RealWorldMolmoCleanupMCPServer", "make_molmo_realworld_cleanup_mcp"]
+__all__ = ["MCP_SERVER_NAME", "HouseholdWorldMCPServer", "make_household_world_mcp"]
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 18788
 STARTUP_TIMEOUT_S = 2.0
-MCP_SERVER_NAME = "molmo_cleanup_realworld"
+MCP_SERVER_NAME = "household_world"
 ROBOT_VIEW_CAPTURE_POLICY_FULL = "full"
 ROBOT_VIEW_CAPTURE_POLICY_ACTION_TIMELINE = "action_timeline"
 ROBOT_VIEW_CAPTURE_POLICIES = frozenset(
     {ROBOT_VIEW_CAPTURE_POLICY_FULL, ROBOT_VIEW_CAPTURE_POLICY_ACTION_TIMELINE}
 )
 AGENT_POLICIES = {
-    "realworld_contract_smoke_agent",
+    "household_contract_smoke_agent",
     "codex_agent",
     "claude_code_agent",
     "openclaw_agent",
@@ -91,15 +91,15 @@ AGENT_POLICIES = {
 REPORT_RERUN_COMMAND_ENV = "ROBOCLAWS_REPORT_RERUN_COMMAND"
 
 
-def make_molmo_realworld_cleanup_mcp(
+def make_household_world_mcp(
     *,
     run_dir: Path,
     scenario: CleanupScenario | None = None,
-    base_contract: CleanupBackendSession | None = None,
-    contract: RealWorldCleanupContract | None = None,
+    base_contract: HouseholdBackendSession | None = None,
+    contract: HouseholdRuntimeContract | None = None,
     host: str = DEFAULT_HOST,
     port: int = DEFAULT_PORT,
-    policy: str = "realworld_contract_smoke_agent",
+    policy: str = "household_contract_smoke_agent",
     agent_driven: bool | None = None,
     task_surface: str = "household-world",
     task_intent: str = "cleanup",
@@ -121,8 +121,8 @@ def make_molmo_realworld_cleanup_mcp(
     robot_view_capture_policy: str = ROBOT_VIEW_CAPTURE_POLICY_FULL,
     rerun_command: str | None = None,
     required_capability_profiles: tuple[str, ...] | None = None,
-) -> "RealWorldMolmoCleanupMCPServer":
-    return RealWorldMolmoCleanupMCPServer(
+) -> "HouseholdWorldMCPServer":
+    return HouseholdWorldMCPServer(
         run_dir=run_dir,
         scenario=scenario,
         base_contract=base_contract,
@@ -154,19 +154,19 @@ def make_molmo_realworld_cleanup_mcp(
     )
 
 
-class RealWorldMolmoCleanupMCPServer:
-    """FastMCP server wrapping ``RealWorldCleanupContract`` for agent dogfood."""
+class HouseholdWorldMCPServer:
+    """FastMCP server wrapping ``HouseholdRuntimeContract`` for agent dogfood."""
 
     def __init__(
         self,
         *,
         run_dir: Path,
         scenario: CleanupScenario | None = None,
-        base_contract: CleanupBackendSession | None = None,
-        contract: RealWorldCleanupContract | None = None,
+        base_contract: HouseholdBackendSession | None = None,
+        contract: HouseholdRuntimeContract | None = None,
         host: str = DEFAULT_HOST,
         port: int = DEFAULT_PORT,
-        policy: str = "realworld_contract_smoke_agent",
+        policy: str = "household_contract_smoke_agent",
         agent_driven: bool | None = None,
         task_surface: str = "household-world",
         task_intent: str = "cleanup",
@@ -297,7 +297,7 @@ class RealWorldMolmoCleanupMCPServer:
 
     def _init_fastmcp(self, host: str) -> None:
         self._mcp = FastMCP("roboclaws", host=host, port=self.port)
-        register_realworld_mcp_tools(self)
+        register_household_mcp_tools(self)
 
     def _write_initialized_event(self) -> None:
         self.write_runtime_event(
@@ -317,11 +317,11 @@ class RealWorldMolmoCleanupMCPServer:
         )
 
     def call_tool(self, name: str, **kwargs: Any) -> dict[str, Any]:
-        validate_realworld_mcp_tool_call(self, name)
+        validate_household_mcp_tool_call(self, name)
         request = _json_safe(kwargs)
         self._write_tool_request(name, request)
         try:
-            response = dispatch_realworld_mcp_tool(self, name, kwargs)
+            response = dispatch_household_mcp_tool(self, name, kwargs)
         except Exception as exc:
             response = {
                 "ok": False,
@@ -888,9 +888,9 @@ def _complete_semantic_substep_handles(substeps: list[dict[str, Any]]) -> list[s
 
 def _build_realworld_mcp_contract(
     *,
-    contract: RealWorldCleanupContract | None,
+    contract: HouseholdRuntimeContract | None,
     scenario: CleanupScenario | None,
-    base_contract: CleanupBackendSession | None,
+    base_contract: HouseholdBackendSession | None,
     task_prompt: str,
     static_fixture_projection_mode: str,
     perception_mode: str,
@@ -902,15 +902,15 @@ def _build_realworld_mcp_contract(
     visual_grounding_base_url: str | None,
     visual_grounding_timeout_s: float | None,
     run_dir: Path,
-) -> RealWorldCleanupContract:
+) -> HouseholdRuntimeContract:
     if contract is not None:
         return contract
 
     scenario = scenario or build_cleanup_scenario()
-    base_contract = base_contract or CleanupBackendSession(scenario)
+    base_contract = base_contract or HouseholdBackendSession(scenario)
     acceptance_config = _public_acceptance_config_from_backend(base_contract)
     acceptance_config["task_intent"] = task_intent
-    return RealWorldCleanupContract(
+    return HouseholdRuntimeContract(
         base_contract,
         task_prompt=task_prompt,
         static_fixture_projection_mode=static_fixture_projection_mode,
@@ -1212,7 +1212,7 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
 
 
 def _public_acceptance_config_from_backend(
-    base_contract: CleanupBackendSession | None,
+    base_contract: HouseholdBackendSession | None,
 ) -> dict[str, int]:
     if base_contract is None:
         return {}

@@ -211,7 +211,7 @@ def test_molmo_operator_aliases_map_to_truthful_axes() -> None:
     assert "codex-live" not in text
     assert "claude-live" not in text
     assert "openclaw_agent" in text
-    assert "realworld_contract_smoke_agent" in text
+    assert "household_contract_smoke_agent" in text
 
 
 def test_molmo_axis_runner_distinguishes_smoke_from_current_live_agents() -> None:

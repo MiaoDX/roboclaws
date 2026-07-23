@@ -57,7 +57,7 @@ def acquire_household_live_run_lease(
     started_at_epoch: float,
     extra_lock_payload: dict[str, Any] | None = None,
 ) -> HouseholdLiveRunLease:
-    """Acquire the backend-specific live-run lease used by cleanup runners."""
+    """Acquire the backend-specific live-run lease used by household runners."""
 
     if backend == MOLMOSPACES_SUBPROCESS_BACKEND:
         try:
@@ -133,7 +133,7 @@ def add_household_cleanup_live_runner_args(
     *,
     policy_default: str | None = None,
 ) -> None:
-    """Add shared CLI args for household cleanup live-agent runners."""
+    """Add shared CLI args for household live-agent runners."""
 
     parser.add_argument("--run-dir", type=Path, required=True)
     parser.add_argument("--repo-root", type=Path, required=True)

@@ -11,18 +11,18 @@ from roboclaws.household.agibot_sdk_runner import (
     AgibotSDKRunnerAdapter,
 )
 from roboclaws.household.digital_twin_review_assets import attach_map12_review_assets
+from roboclaws.household.household_runtime_contract import (
+    CAMERA_MODEL_POLICY_MODE,
+    CLEANUP_WORKLIST_SCHEMA,
+    REAL_ROBOT_MAP_BUNDLE_SCHEMA,
+    REALWORLD_CONTRACT,
+)
 from roboclaws.household.manipulation_provenance import BLOCKED_CAPABILITY_PROVENANCE
 from roboclaws.household.profiles import (
     AGIBOT_GDK_BACKEND_VARIANT,
     AGIBOT_SDK_RUNNER_BACKEND,
     PHYSICAL_ROBOT_EVIDENCE_LANE,
     agibot_gdk_evidence_metadata,
-)
-from roboclaws.household.realworld_contract import (
-    CAMERA_MODEL_POLICY_MODE,
-    CLEANUP_WORKLIST_SCHEMA,
-    REAL_ROBOT_MAP_BUNDLE_SCHEMA,
-    REALWORLD_CONTRACT,
 )
 from roboclaws.household.scenario import build_cleanup_scenario
 from roboclaws.household.types import CleanupScenario
@@ -42,8 +42,8 @@ from roboclaws.mcp.profiles import (
 )
 
 
-class AgibotCleanupBackendSession:
-    """CleanupBackendSession-shaped Agibot marker for shared MCP reports."""
+class AgibotHouseholdBackendSession:
+    """HouseholdBackendSession-shaped Agibot marker for shared MCP reports."""
 
     def __init__(self, scenario: CleanupScenario | None = None) -> None:
         self.scenario = scenario or build_cleanup_scenario(seed=7)
@@ -66,7 +66,7 @@ class AgibotCleanupBackendSession:
         return None
 
 
-class AgibotCleanupMCPContract:
+class AgibotHouseholdBackend:
     """Agibot adapter-backed implementation of the shared cleanup MCP contract."""
 
     def __init__(
@@ -86,7 +86,7 @@ class AgibotCleanupMCPContract:
     ) -> None:
         self.run_dir = Path(run_dir)
         self.scenario = scenario or build_cleanup_scenario(seed=7)
-        self.contract = AgibotCleanupBackendSession(self.scenario)
+        self.contract = AgibotHouseholdBackendSession(self.scenario)
         self.task_prompt = task_prompt
         self.perception_mode = CAMERA_MODEL_POLICY_MODE
         self.visual_grounding_pipeline_id = visual_grounding_pipeline_id
