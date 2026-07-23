@@ -25,7 +25,7 @@ def grade_long_horizon_task(
             "subgoals": {},
         }
     trace_events, trace_errors = _read_trace_events(run_dir / "trace.jsonl")
-    evidence = final_state_evidence_for_run(run_result)
+    evidence = final_state_evidence_for_run(run_result, trace_events=trace_events)
     if evidence.status != "available":
         return {
             "status": "inconclusive",

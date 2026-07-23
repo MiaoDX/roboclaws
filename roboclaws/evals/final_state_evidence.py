@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Literal, Mapping, cast
+from typing import Any, Literal, Mapping, Sequence, cast
 
 EvidenceStatus = Literal["available", "inconclusive", "unavailable"]
 HeldObjectState = Literal["empty", "holding", "unknown"]
@@ -81,7 +81,11 @@ def physical_final_state_evidence(
     )
 
 
-def simulator_evidence_from_run_result(run_result: Mapping[str, Any]) -> FinalStateEvidence:
+def simulator_evidence_from_run_result(
+    run_result: Mapping[str, Any],
+    *,
+    trace_events: Sequence[Mapping[str, Any]] = (),
+) -> FinalStateEvidence:
     """Adapt authoritative simulator result state for private grading."""
 
     locations = _string_mapping(run_result.get("final_locations"))
@@ -90,16 +94,23 @@ def simulator_evidence_from_run_result(run_result: Mapping[str, Any]) -> FinalSt
         (object_id for object_id, location in locations.items() if location == "held_by_agent"),
         None,
     )
+    receptacle_states = _string_mapping(run_result.get("final_receptacle_states"))
+    if not receptacle_states:
+        receptacle_states = _simulator_receptacle_states_from_trace(trace_events)
     return exact_simulator_final_state_evidence(
         locations=locations,
         containment=containment,
         held_object_id=held_object_id,
-        receptacle_states=_string_mapping(run_result.get("final_receptacle_states")),
+        receptacle_states=receptacle_states,
         source_provenance=str(run_result.get("backend") or "simulator_authoritative_state"),
     )
 
 
-def final_state_evidence_for_run(run_result: Mapping[str, Any]) -> FinalStateEvidence:
+def final_state_evidence_for_run(
+    run_result: Mapping[str, Any],
+    *,
+    trace_events: Sequence[Mapping[str, Any]] = (),
+) -> FinalStateEvidence:
     """Select a private producer from backend provenance."""
 
     physical_robot = bool(
@@ -110,7 +121,7 @@ def final_state_evidence_for_run(run_result: Mapping[str, Any]) -> FinalStateEvi
         return physical_final_state_evidence(
             source_provenance=(str(run_result.get("backend") or "agibot_gdk"),)
         )
-    return simulator_evidence_from_run_result(run_result)
+    return simulator_evidence_from_run_result(run_result, trace_events=trace_events)
 
 
 def _string_mapping(value: Any) -> dict[str, str]:
@@ -137,3 +148,29 @@ def _optional_confidence(value: Any) -> float | None:
     except (TypeError, ValueError):
         return None
     return min(1.0, max(0.0, confidence))
+
+
+def _simulator_receptacle_states_from_trace(
+    trace_events: Sequence[Mapping[str, Any]],
+) -> dict[str, str]:
+    """Recover exact simulator receptacle state from public tool trace diagnostics."""
+
+    pending_receptacle_ids: list[str] = []
+    states: dict[str, str] = {}
+    for event in trace_events:
+        if not isinstance(event, Mapping):
+            continue
+        tool = str(event.get("tool") or "")
+        response = event.get("response")
+        if not isinstance(response, Mapping):
+            continue
+        if tool == "place_inside":
+            diagnostic = response.get("placement_diagnostic")
+            if isinstance(diagnostic, Mapping):
+                receptacle_id = _optional_string(diagnostic.get("receptacle_id"))
+                if receptacle_id:
+                    pending_receptacle_ids.append(receptacle_id)
+        elif tool == "close_receptacle" and response.get("closed") is True:
+            if pending_receptacle_ids:
+                states[pending_receptacle_ids.pop(0)] = "closed"
+    return states

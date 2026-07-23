@@ -7,6 +7,7 @@ from typing import Any
 from roboclaws.evals.final_state_evidence import (
     exact_simulator_final_state_evidence,
     physical_final_state_evidence,
+    simulator_evidence_from_run_result,
 )
 from roboclaws.evals.live_runtime import live_product_run_kwargs, live_surface_command
 from roboclaws.evals.long_horizon import _call_tool_with_robot_view, long_horizon_spec
@@ -54,6 +55,26 @@ def test_final_state_evidence_producers_distinguish_exact_sim_and_unobservable_p
     assert physical.status == "unavailable"
     assert physical.locations == {}
     assert physical.source_errors == ("authoritative_physical_final_state_unobservable",)
+
+
+def test_simulator_evidence_recovers_closed_receptacle_from_authoritative_trace() -> None:
+    evidence = simulator_evidence_from_run_result(
+        {
+            "backend": "mujoco",
+            "final_locations": {"apple": "refrigerator"},
+            "final_containment": {"apple": {"contained_in": "refrigerator"}},
+        },
+        trace_events=[
+            {
+                "tool": "place_inside",
+                "response": {"placement_diagnostic": {"receptacle_id": "refrigerator"}},
+            },
+            {"tool": "close_receptacle", "response": {"closed": True}},
+        ],
+    )
+
+    assert evidence.status == "available"
+    assert evidence.receptacle_states == {"refrigerator": "closed"}
 
 
 def test_long_horizon_suite_records_manipulation_tool_surface_and_passes(
