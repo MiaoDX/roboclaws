@@ -1,4 +1,4 @@
-**Status:** Preflighted; awaiting execution approval
+**Status:** Approved; GSD handoff blocked by incomplete local GSD installation
 **Created:** 2026-07-23
 **Last reviewed:** 2026-07-23
 **Current implementation contract:** Household intents share one public surface and skill, but
@@ -11,6 +11,22 @@ single-server backend contract before implementation.
 `refactor-reduce-entropy-domain-first-launch-architecture.md`.
 **Backward compatibility:** Not required. Migrate known in-repo callers and fixtures, then delete
 old server ids, tool surfaces, entrypoints, aliases, and readers touched by this refactor.
+
+## Plan Ledger
+
+- Plan status: ACTIVE
+- Session scope: household-mcp-capability-backend-unification
+- Parent plan: none
+- Child plans: none
+- Last updated: 2026-07-23
+- Current slice: GSD ingest and executable phase planning before implementation.
+- Next action: Restore the installed `gsd-ingest-docs` and `gsd-plan-phase` skills, then rerun
+  the unchanged GSD handoff.
+- Blocked on: The local GSD workflow files exist under `~/.claude/get-shit-done/workflows/`, but
+  neither runtime registers the required skills and the bundled `bin/install.js` sync dependency
+  is missing.
+- Do not touch from this session: unrelated eval, map/report cleanup, archived plans, `TODOS.md`,
+  and `THOUGHTS.md`.
 
 # Household MCP Capability And Backend Unification
 
@@ -581,7 +597,7 @@ Record before/after values in the implementation handoff:
 
 ## Preflight Contract
 
-Preflight status: DRAFT
+Preflight status: APPROVED 2026-07-23 by the explicit execution goal
 
 Task source: user request + this plan
 
