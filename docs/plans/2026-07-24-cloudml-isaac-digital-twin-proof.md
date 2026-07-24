@@ -1,4 +1,4 @@
-**Status:** BLOCKED_NEEDS_DECISION at NVIDIA EULA gate
+**Status:** Implementation active; NVIDIA EULA accepted
 **Created:** 2026-07-24
 **Last reviewed:** 2026-07-24
 **Current implementation contract:** Add a dedicated CloudML Isaac Lab capability and image,
@@ -11,26 +11,26 @@ B1/Isaac proof; it does not supersede either one.
 
 ## Plan Ledger
 
-- Plan status: BLOCKED_NEEDS_DECISION
+- Plan status: ACTIVE
 - Session scope: cloudml-isaac-digital-twin-proof
 - Parent plans:
   `docs/plans/2026-06-18-cloudml-juicefs-eval.md` and
   `docs/plans/2026-07-23-household-mcp-capability-backend-unification.md`
 - Child plans: none
 - Last updated: 2026-07-24
-- Current slice: Phase 0 contract and deterministic asset packager plus Phase 2 placement,
-  provenance, stage rows, receipt gates, and synthetic dry-run coverage are implemented.
-- Next action owner: human. Explicitly authorize or decline NVIDIA EULA acceptance for Phase 1
-  image acquisition/build. This does not authorize image publication or any paid r49 task.
-- Blocked on: no planning blocker. NVIDIA image acquisition or runtime execution requires explicit
-  EULA authorization. Registry publication and each paid r49 submission require a separately
-  scoped cost approval.
+- Current slice: Phase 0 and Phase 2 implementation are complete. Phase 1 now has a pinned local
+  image and a passing network-disabled RTX/DINO smoke on an RTX 3090.
+- Next action: publish the proven image only after separate publication approval, then request a
+  separately bounded paid r49 approval for Stage A. NVIDIA EULA acceptance is durable and must not
+  be requested again.
+- Blocked on: registry publication approval, followed separately by paid r49 Stage A approval.
+  NVIDIA EULA acceptance is recorded and is not a blocker.
 - Do not touch from this session: MolmoSpaces+Isaac, digital-twin cleanup, Agibot hardware,
   physical movement, provider selection, eval scoring policy, or unrelated CloudML hybrid work.
 
 ## Preflight Contract
 
-Preflight status: DRAFT
+Preflight status: APPROVED
 
 Task source: user request plus this planning-loop-reviewed plan.
 
@@ -93,9 +93,9 @@ Acceptance:
   waypoints, 25/25 DINO observations, 100 real robot-view images, Base and Runtime Metric Maps, and
   1.0 sweep coverage; every attempt has complete task/image/code/asset/host/runtime provenance;
   CPU MuJoCo, generic r49 DINO, and existing baseline profiles do not regress.
-- BLOCKED_NEEDS_DECISION: stop before NVIDIA EULA acceptance; image publication; each bounded paid
-  r49 envelope; any Isaac/DINO sidecar boundary; retry after failure; repeat Stage C; or any entity-
-  budget expansion trigger. Approval of this DRAFT alone authorizes none of those external actions.
+- BLOCKED_NEEDS_DECISION: NVIDIA EULA acceptance is resolved and persistent. Still stop before
+  image publication; each bounded paid r49 envelope; any Isaac/DINO sidecar boundary; retry after
+  failure; repeat Stage C; or any entity-budget expansion trigger.
 - BLOCKED_NEEDS_LOCAL_VALIDATION: image/offline smoke cannot run on a compatible local GPU/Docker
   runtime, or required Stage A/B/C CloudML evidence is unavailable due to capacity, registry,
   JuiceFS, disk/RAM, driver, runtime, assets, or an unapproved external gate. The implementation is
@@ -126,7 +126,7 @@ Verification:
   Stage A, collect/check its receipt, Stage B, collect/check its receipt, and Stage C on
   non-preemptible queue `11759` r49 tasks; inspect nonblank image/report artifacts and measured
   resource/cost provenance. These gates are intentionally unavailable during preflight because no
-  EULA, publication, or paid-task authorization has been granted.
+  image publication or paid-task authorization has been granted. The EULA gate is resolved.
 - optional: with separate approval, repeat Stage C on a fresh host before maintained-product or
   preemptible promotion; a Stage A repeat proves runtime portability only.
 
@@ -138,8 +138,8 @@ To execute: `/goal execute docs/plans/2026-07-24-cloudml-isaac-digital-twin-proo
 
 Optional tracking: none.
 
-Approval: `LGTM`, `approve`, or `go ahead` approves this implementation contract only; EULA,
-publication, paid r49 tasks, retries, sidecar expansion, and repeat/promotion remain separate gates.
+Approval: NVIDIA EULA acceptance is already explicit and durable. Publication, paid r49 tasks,
+retries, sidecar expansion, and repeat/promotion remain separate gates.
 
 # CloudML Isaac Digital-Twin Proof
 
@@ -194,7 +194,14 @@ and image identity are justified; a new public product route is not.
 
 - Canonical digital twin: `world=b1-map12`, `backend=isaaclab`.
 - MolmoSpaces household scenes remain `backend=mujoco`; MolmoSpaces+Isaac stays retired.
-- Local runtime metadata: Isaac Sim `6.0.0.0`, Isaac Lab `0.54.3`, Torch `2.7.0+cu128`.
+- The original local pip proof used Isaac Sim distribution `6.0.0.0`, Isaac Lab `0.54.3`, and
+  Torch `2.7.0+cu128`. That Isaac Lab revision targets Isaac Sim 5.x and is not the image build
+  contract. The pinned image uses the official Isaac Sim 6-compatible Isaac Lab
+  `v3.0.0-beta2.patch1` revision `ffff603eafc6b74264a5261cc0183d6a65390d78` (distribution
+  `6.1.14`) and Torch `2.10.0+cu128`. The pinned official `isaac-sim:6.0.0` image reports release `6.0.0` from
+  `/isaac-sim/docs/py/VERSION` and exact build
+  `6.0.0-rc.59+release.41464.5f2772bc.gl` from `/isaac-sim/VERSION`; that binary image does not
+  expose an `isaacsim` Python distribution version.
 - Local renderer proof: `isaac_lab_headless_rtx` on an RTX 3090.
 - Candidate CloudML resource: queue `11759` (`robot-dev-common`), one
   `cloudml.ng1r49-8-8.13-107` worker with RTX 4090-class GPU.
@@ -264,8 +271,8 @@ and image identity are justified; a new public product route is not.
 - Split GPU readiness by worker capability: DINO validation remains in the current r49 branch;
   Isaac validation checks the dedicated runtime, GPU/driver, disk, EULA, renderer, and staged
   inputs.
-- CloudML generation and worker entry default to EULA not accepted. Both must reject a missing or
-  false approval receipt; local recipe defaults must not leak into the formal cloud path.
+- CloudML generation and worker entry require the frozen contract's durable EULA acceptance record;
+  local recipe defaults must not substitute for that formal cloud-path evidence.
 - Run Isaac with the dedicated runtime Python rather than installing it into the normal `.venv/`.
 - Capture task ID, queue, cluster, host, GPU, driver, CUDA, image digest, Isaac Sim/Lab versions,
   renderer mode, startup time, peak GPU memory, stage duration, and output hashes.
@@ -388,12 +395,25 @@ Exit: deterministic manifests and commands can be reviewed without local absolut
 
 ### Phase 1: Image And Offline Proof
 
-- Obtain explicit NVIDIA EULA authorization before acquiring/building an image or running a smoke
-  that requires acceptance. This does not authorize registry publication or a paid cloud task.
+- Use the recorded explicit NVIDIA EULA authorization for image acquisition/build and local smoke.
+  It does not authorize registry publication or a paid cloud task and must not be requested again.
 - Implement the dedicated image and build helper.
 - Prove imports, versions, CUDA, RTX headless rendering, and nonblank generated output locally in
   the image with network disabled after build.
 - Pin and record the resulting registry digest.
+
+Local proof completed 2026-07-24:
+
+- `roboclaws-eval:isaac-local` has local immutable image ID
+  `sha256:a5dab3a2bd7350334d644e1cea70cadf96203da01a64b754abfb98de5e58217e` and size
+  `22042441547` bytes. A registry digest remains intentionally unavailable until publication is
+  separately approved.
+- The `--network none` GPU smoke passed on an RTX 3090 with Isaac Sim `6.0.0`, Isaac Sim build
+  `6.0.0-rc.59+release.41464.5f2772bc.gl`, Isaac Lab `6.1.14`, Torch `2.10.0+cu128`, and CUDA
+  `12.8`.
+- The strict runtime checker reported `status=passed`: the generated USD was loaded and indexed,
+  selected bindings resolved, RTX rendering was real, and all FPV/chase/topdown/verify images were
+  present, nonblank, and manually inspected.
 
 Exit: immutable image digest plus offline smoke artifacts. Stop if the supported image cannot run
 on the target CloudML driver contract.
@@ -464,7 +484,6 @@ INTERMEDIATE_ONLY:
 
 BLOCKED_NEEDS_DECISION:
 
-- NVIDIA EULA acceptance before image/runtime use;
 - registry publication and the explicitly bounded non-preemptible r49 cost envelope;
 - adding provider credentials or a new sidecar/service boundary;
 - promoting the opt-in Isaac profile into a routine baseline;
@@ -549,22 +568,23 @@ Exact filenames may narrow during preflight, but ownership should remain:
 ## Recommended Execution Route
 
 After approval of the preflight contract above, execute the whole plan through `$intuitive-flow`.
-Execution starts at Phase 0 and stops at each applicable EULA, publication, paid-task, retry,
-sidecar-expansion, or repeat-run boundary with the measured cost envelope.
+Execution starts at Phase 0 and stops at each applicable publication, paid-task, retry,
+sidecar-expansion, or repeat-run boundary with the measured cost envelope. NVIDIA EULA acceptance
+is already recorded and does not create another stop.
 
 ## Planning-Loop Resolution
 
 Round 1 used three independent, read-only scouts: plan entropy, documentation grill, and
 hardware/cost skepticism. No second round was needed after the findings converged.
 
-- Accepted/merged: explicit non-accepting EULA defaults and early authorization; exact runtime
-  versions; portable asset closure; measured CPU/RAM/disk budget; separately invoked stage rows and
-  acceptance receipts; unconditional DINO parity; Phase 0 DINO packaging decision; and evidence-
-  scoped repeatability.
+- Accepted/merged: explicit durable EULA acceptance; exact runtime versions; portable asset closure;
+  measured CPU/RAM/disk budget; separately invoked stage rows and acceptance receipts;
+  unconditional DINO parity; Phase 0 DINO packaging decision; and evidence-scoped repeatability.
 - Parked: alternate GPU classes/queues, typed asset schema expansion unless the current one-archive
   boundary proves insufficient, and default/preemptible promotion until a separately approved
   fresh-host Stage C repeat exists.
 - Rejected: CPU-only Isaac comparison in this plan; it would test a different contract from the
   required RTX digital twin.
-- Needs user review at execution time: NVIDIA EULA authorization; image publication and bounded
-  paid-task envelope; any sidecar/service boundary; and any later repeat/promotion spend.
+- Needs user review at execution time: image publication and bounded paid-task envelope; any
+  sidecar/service boundary; and any later repeat/promotion spend. NVIDIA EULA acceptance is already
+  resolved and persistent.

@@ -293,17 +293,21 @@ import importlib.metadata
 import json
 import os
 import subprocess
+from pathlib import Path
 
 import torch
 
 assert torch.cuda.is_available(), "CloudML Isaac worker did not expose a CUDA device"
 versions = {
-    "isaac_sim": importlib.metadata.version("isaacsim"),
+    "isaac_sim": Path("/isaac-sim/docs/py/VERSION").read_text().strip(),
+    "isaac_sim_build": Path("/isaac-sim/VERSION").read_text().strip(),
     "isaac_lab": importlib.metadata.version("isaaclab"),
     "torch": torch.__version__,
     "cuda": torch.version.cuda,
 }
 assert all(value and value != "unknown" for value in versions.values())
+assert versions["isaac_sim"] == os.environ["ROBOCLAWS_ISAACSIM_VERSION"]
+assert versions["isaac_sim_build"] == os.environ["ROBOCLAWS_ISAACSIM_BUILD"]
 gpu = torch.cuda.get_device_name(0)
 driver = subprocess.check_output(
     ["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"], text=True

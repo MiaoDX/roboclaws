@@ -399,11 +399,6 @@ def executor_from_environment(
         raise ValueError("execution_target=cloudml requires ROBOCLAWS_CLOUDML_ASSET_MANIFEST")
     required_pools = {str(shard["worker_pool"]) for shard in plan["shards"]}
     if "cloudml-r49-isaac" in required_pools:
-        if not bool_value(os.environ.get("ROBOCLAWS_CLOUDML_ISAAC_EULA_ACCEPTED", "false")):
-            raise ValueError(
-                "Isaac CloudML generation requires explicit "
-                "ROBOCLAWS_CLOUDML_ISAAC_EULA_ACCEPTED=true"
-            )
         _validate_isaac_stage_receipts(plan)
     image_urls = {pool: os.environ.get(POOL_IMAGE_ENV[pool], "") for pool in sorted(required_pools)}
     missing_image_env = sorted(
@@ -781,6 +776,7 @@ def _validate_isaac_proof_contract(payload: dict[str, Any]) -> None:
             "Isaac proof contract has unknown runtime identity: " + ", ".join(missing_versions)
         )
     resource = payload.get("resource") or {}
+    _validate_isaac_eula_acceptance(payload.get("image") or {})
     if resource.get("queue_id") != "11759" or resource.get("preemptible") is not False:
         raise ValueError("Isaac proof contract must use non-preemptible queue 11759")
     measurements = payload.get("local_measurements") or {}
@@ -819,6 +815,11 @@ def _validate_isaac_proof_contract(payload: dict[str, Any]) -> None:
         or stages["C"].get("prior_stage") != "B"
     ):
         raise ValueError("Isaac proof stage ordering must be A, then B after A, then C after B")
+
+
+def _validate_isaac_eula_acceptance(image: dict[str, Any]) -> None:
+    if image.get("eula_accepted") is not True or not image.get("eula_authorization"):
+        raise ValueError("Isaac proof contract must record explicit NVIDIA EULA acceptance")
 
 
 def _validate_isaac_asset_manifest(plan: dict[str, Any], payload: dict[str, Any]) -> None:

@@ -21,7 +21,7 @@ from roboclaws.household.isaac_lab_backend import (
     ISAACLAB_SUBPROCESS_BACKEND,
     IsaacLabSubprocessBackend,
 )
-from scripts.isaac_lab_cleanup import isaac_lab_backend_worker
+from scripts.isaac_lab_cleanup import isaac_lab_backend_worker, isaac_runtime_diagnostics
 
 
 def test_prepare_b1_nurec_scene_unpacks_usdz_reference(tmp_path: Path) -> None:
@@ -197,6 +197,26 @@ def test_isaac_lab_backend_reports_missing_runtime(tmp_path: Path) -> None:
             run_dir=tmp_path,
             python_executable=tmp_path / "missing-python",
         )
+
+
+def test_isaac_runtime_diagnostics_reads_binary_image_versions(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    (tmp_path / "docs" / "py").mkdir(parents=True)
+    (tmp_path / "docs" / "py" / "VERSION").write_text("6.0.0\n", encoding="utf-8")
+    (tmp_path / "VERSION").write_text(
+        "6.0.0-rc.59+release.41464.5f2772bc.gl\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("ISAACSIM_ROOT_PATH", str(tmp_path))
+    monkeypatch.setitem(sys.modules, "isaacsim", types.ModuleType("isaacsim"))
+
+    assert isaac_runtime_diagnostics.module_version("isaacsim") == "6.0.0"
+    assert (
+        isaac_runtime_diagnostics.isaac_sim_build_version()
+        == "6.0.0-rc.59+release.41464.5f2772bc.gl"
+    )
 
 
 def test_isaac_lab_fake_worker_protocol_produces_views_and_semantic_pose(

@@ -280,22 +280,12 @@ def test_cloudml_isaac_row_uses_dedicated_non_preemptible_pool() -> None:
     assert cloudml.POOL_IMAGE_ENV["cloudml-r49-isaac"] == ("ROBOCLAWS_CLOUDML_ISAAC_IMAGE_URL")
 
 
-def test_cloudml_isaac_generation_rejects_missing_eula(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    row = _row(
-        "cloudml-isaac-runtime-smoke",
-        ("gpu", "python-env", "artifact-storage", "simulator:isaaclab", "renderer:rtx"),
-        cloudml_stage="A",
-    )
-    plan = cloudml.build_cloudml_plan(_manifest(row), execution_target="cloudml", run_id="run-1")
-    monkeypatch.setenv(
-        "ROBOCLAWS_CLOUDML_ASSET_MANIFEST",
-        str(_asset_manifest(tmp_path, code_commit=plan["code_commit"])),
-    )
+def test_cloudml_isaac_contract_requires_durable_eula_acceptance() -> None:
+    payload = json.loads(cloudml.ISAAC_PROOF_CONTRACT_PATH.read_text(encoding="utf-8"))
+    payload["image"]["eula_accepted"] = False
 
-    with pytest.raises(ValueError, match="EULA_ACCEPTED=true"):
-        cloudml.executor_dry_run_from_environment(plan)
+    with pytest.raises(ValueError, match="explicit NVIDIA EULA acceptance"):
+        cloudml._validate_isaac_proof_contract(payload)
 
 
 def test_cloudml_isaac_stage_receipt_must_accept_immediately_prior_stage(
@@ -407,7 +397,6 @@ def test_cloudml_isaac_stage_dry_run_is_deterministic(
     executor.chmod(0o755)
     monkeypatch.setenv("ROBOCLAWS_CLOUDML_ASSET_MANIFEST", str(asset_manifest))
     monkeypatch.setenv("ROBOCLAWS_CLOUDML_ISAAC_IMAGE_URL", _image_urls()["cloudml-r49-isaac"])
-    monkeypatch.setenv("ROBOCLAWS_CLOUDML_ISAAC_EULA_ACCEPTED", "true")
     monkeypatch.setenv("ROBOCLAWS_EXECUTOR_PATH", str(executor))
     if prior_stage:
         receipt = tmp_path / "prior-receipt.json"

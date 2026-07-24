@@ -86,9 +86,10 @@ group at a time with:
   --code-commit <full-commit-sha>
 ```
 
-Stages B and C require the corresponding B1 asset closure. Generation fails
-unless `ROBOCLAWS_CLOUDML_ISAAC_EULA_ACCEPTED=true`; B/C also require a passed
-immediately prior receipt through `ROBOCLAWS_CLOUDML_ISAAC_PRIOR_RECEIPT`.
+Stages B and C require the corresponding B1 asset closure. The frozen contract
+records the explicit NVIDIA EULA acceptance, so later runs do not ask again;
+B/C still require a passed immediately prior receipt through
+`ROBOCLAWS_CLOUDML_ISAAC_PRIOR_RECEIPT`.
 This profile is opt-in, non-preemptible, and never part of normal baselines.
 
 `execution_target=auto` keeps direct Kimi/MiniMax and provider rows with missing
