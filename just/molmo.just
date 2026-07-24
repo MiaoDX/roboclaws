@@ -557,6 +557,24 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
     run_root="${output_dir}/${stamp}"
     mkdir -p "$run_root"
 
+    copy_b1_run_artifacts_to_seed_dir() {
+      local artifact_run_dir="$1"
+      if [[ "$backend" != "isaaclab_subprocess" || "$launch_world_id" != "b1-map12" ]]; then
+        return 0
+      fi
+      for b1_run_artifact in \
+        b1_robot_consumption_manifest.json \
+        runtime_map_prior_snapshot.json \
+        runtime_map_prior_targets.json
+      do
+        if [[ ! -f "${output_dir}/${b1_run_artifact}" ]]; then
+          echo "error: required B1 run artifact is missing: ${output_dir}/${b1_run_artifact}" >&2
+          return 1
+        fi
+        cp "${output_dir}/${b1_run_artifact}" "${artifact_run_dir}/${b1_run_artifact}"
+      done
+    }
+
     echo "==> Molmo cleanup matrix"
     echo "    driver   : ${driver}"
     echo "    lane     : ${profile}"
@@ -712,17 +730,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
         fi
         mkdir -p "$run_dir"
         check_visual_grounding_readiness_for_run "$run_dir"
-        if [[ "$backend" == "isaaclab_subprocess" && "$launch_world_id" == "b1-map12" ]]; then
-          for b1_run_artifact in \
-            b1_robot_consumption_manifest.json \
-            runtime_map_prior_snapshot.json \
-            runtime_map_prior_targets.json
-          do
-            if [[ -f "${output_dir}/${b1_run_artifact}" ]]; then
-              cp "${output_dir}/${b1_run_artifact}" "${run_dir}/${b1_run_artifact}"
-            fi
-          done
-        fi
+        copy_b1_run_artifacts_to_seed_dir "$run_dir"
         policy="${driver%-live}_agent"
         if [[ "$driver" == "openai-agents-live" ]]; then
           policy="openai_agents_agent"
@@ -1038,6 +1046,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
       run_dir="${run_root}/seed-${seed}"
       mkdir -p "$run_dir"
       check_visual_grounding_readiness_for_run "$run_dir"
+      copy_b1_run_artifacts_to_seed_dir "$run_dir"
       case "$driver" in
         direct)
           .venv/bin/python -m roboclaws.household.household_world_episode \
