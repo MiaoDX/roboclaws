@@ -1,46 +1,31 @@
 # Household MCP Capability And Backend Unification
 
-- Status: BLOCKED_NEEDS_LOCAL_VALIDATION; Slices 0-4 and available proof complete
+- Status: BLOCKED_NEEDS_LOCAL_VALIDATION; all locally modifiable work and B1/Isaac proof complete
 - Canonical plan: `docs/plans/2026-07-23-household-mcp-capability-backend-unification.md`
 - Root goal: Implement the canonical plan through `intuitive-flow`.
-- Current slice: Canonical household owners and stale active surfaces are migrated; available
-  deterministic and repo-local SDK product proof is complete.
-- Next action: Restore B1 static-costmap connectivity and robot-network access, then rerun B1/Isaac
-  MapBuild and the non-motion Agibot status gate. Real Agibot movement still requires localization,
-  E-stop, safety gates, and operator authorization.
-- Completed evidence: Slice 0/1 commit `ce5e1a12` adds exact profile composition and entitlement.
-  Slice 2 converges synthetic, MuJoCo, Isaac Lab, and Agibot on one FastMCP server, one live runner,
-  and one checker path; deletes five dedicated Agibot MapBuild implementation modules plus their
-  owner-only tests; preserves Runtime Metric Map, trace, Agent View, report, readiness, camera
-  grounding, locks, and safety behavior; and passes the affected contract/route/checker suites,
-  Ruff, format, and stale-reference checks. Slice 3 adds evaluator-private `FinalStateEvidence`,
-  grades simulator completion from authoritative state, classifies unobservable physical final
-  state as inconclusive, removes Agibot scenario placeholders, and passes long-horizon, privacy,
-  simulator, physical-pilot, MCP artifact, checker, Ruff, format, and leak-search proof.
-  Slice 4 renames the canonical household server/runtime/backend owners, migrates current callers,
-  recipes, checkers, reports, eval catalog, baseline paths, and human docs, deletes superseded
-  active modules/tests, and passes 502 focused tests plus 191 rename-relevant live-runner tests.
-  Available product/eval proof also passes open-ended SDK (3/3), cleanup capability SDK (3/3),
-  session-live SDK (1/1), map-build quality (1/1), scene sampler (16/16), smoke regression (1/1),
-  and the post-fix long-horizon smoke (2/2) suites. Isaac runtime smoke now passes with real RTX
-  rendering, a generated Phase A USD stage, selected public USD bindings, and four robot-view
-  images after `decaf335` made the checker recover the worker's final JSON object from captured
-  Isaac logs. The supported `world=b1-map12 backend=isaaclab` MapBuild product route then completed
-  real rendering and 25 Grounding DINO observations, but its checker correctly failed at 0.2 sweep
-  coverage: four of five canonical waypoints returned `blocked_capability/no_static_costmap_path`.
-  MolmoSpaces+Isaac is intentionally retired and is not a missing proof route.
-  Agibot's non-motion raw-FPV status probe is blocked because robot discovery at
-  `10.42.1.101:2379` is unreachable. All four SDK profile health probes now pass, and the canonical
-  `codex-router-responses` focused MapBuild-consumer matrix passes 5/5 across producer, cleanup,
-  and open-ended prior/no-prior cases.
-- Blocked on: B1 static-costmap paths from `meeting_room_b_inspection` to the other four public
-  waypoints are unavailable, and the Agibot discovery service is unreachable. The repo-wide Python
-  quality ratchet also reports unrelated stale baseline growth; do not refresh that baseline.
-- Stop gates: entity-budget expansion, public-contract changes outside the approved plan,
-  unavailable required live/hardware proof, or conflicts with concurrent edits in owned files.
-- Owned scope: the plan's MCP entitlement, household server/backend, private final-state evidence,
-  focused tests, current callers, current human docs, GSD artifacts, and this capsule.
-- Do not touch: unrelated eval/runtime work, archived reports and plans, `TODOS.md`, and
-  `THOUGHTS.md`.
-- Resume command: continue the active goal with `intuitive-flow`; inspect this capsule and current
-  GSD phase state before rereading the full plan.
+- Latest user intent: Defer real Agibot testing; complete every other locally modifiable item.
+- Current slice: Slices 0-4 are complete. B1 route validation uses the authoritative bundle
+  occupancy grid, and direct/live recipes copy required B1 proof artifacts into each seed run.
+- Last proven evidence: `output/household-mcp-proof/b1-mapbuild-direct-fixed/0724_0947` passes the
+  strict checker with 5/5 public waypoints, 25/25 Grounding DINO observations, 100 robot-view
+  images, 1.0 sweep coverage, Runtime Metric Map, Base Metric Map, waypoint honesty, and B1 robot
+  consumption proof. The focused map/recipe contract set passes 182 tests; repo-wide Ruff, format,
+  and diff checks pass. Full pytest reaches 100% with seven reproducible out-of-scope failures in
+  Mimo default-model assertions, CloudML `/mnt` archive handling, and operator-console wrapper-lock
+  readiness.
+- Completed slice summary: Exact task-scoped profiles, one household MCP server/runner/checker,
+  evaluator-private final-state evidence, canonical owner renames, stale surface deletion, SDK and
+  eval matrices, Isaac runtime smoke, and B1 product proof are complete.
+- Next action: None while the Agibot hold remains. After explicit operator resume and restored
+  discovery access, rerun the non-motion raw-FPV status gate before considering movement.
+- Blocker fingerprint: `external-hardware/agibot-discovery-unreachable-and-user-deferred`.
+- Blocked on: Agibot discovery at `10.42.1.101:2379` is unreachable, and physical validation is
+  deferred by operator request. Real movement still requires localization, E-stop, safety gates,
+  and operator authorization. The unrelated repo-wide Python quality-ratchet debt remains
+  untouched.
+- Stop gates: Any Agibot hardware probe or movement while deferred; entity-budget expansion;
+  public-contract changes outside the approved plan; conflicts with concurrent owned-file edits.
+- Do not touch: Real Agibot testing, unrelated eval/runtime work, quality-ratchet baselines,
+  archived reports/plans, `TODOS.md`, and `THOUGHTS.md`.
+- Resume command: After explicit Agibot-validation approval, continue this goal with
+  `intuitive-flow` and read this capsule first.

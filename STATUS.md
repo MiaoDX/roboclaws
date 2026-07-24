@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-07-23
+Last updated: 2026-07-24
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -11,7 +11,9 @@ leave a link.
 ## Current Focus
 
 Household MCP capability/backend unification has completed implementation Slices 0-4 and all
-available deterministic, SDK, eval, and Phase A Isaac runtime proof. The active capsule is
+currently available deterministic, SDK, eval, and B1/Isaac product proof. The supported B1
+MapBuild route now visits all five public waypoints and passes the strict robot-consumption and
+1.0 sweep-coverage gates. The active capsule is
 `docs/status/active/household-mcp-capability-backend-unification.md`.
 
 MapBuild optimization and testing has reached the current acceptance target:
@@ -51,11 +53,9 @@ providers.
 
 ## Next Action
 
-Complete the remaining environment-dependent household MCP proof: restore B1 static-costmap
-connectivity and physical Agibot readiness under existing safety/operator gates. Phase A Isaac
-runtime smoke passes and the canonical SDK MapBuild-consumer matrix passes 5/5; the supported B1
-product route is blocked at 0.2 sweep coverage by four `no_static_costmap_path` results, while the
-Agibot discovery service at `10.42.1.101:2379` is unreachable.
+Hold physical Agibot validation until the operator explicitly resumes it. When robot discovery at
+`10.42.1.101:2379` is reachable again, rerun the non-motion status gate first. Real movement still
+requires localization, E-stop, safety gates, and operator authorization.
 
 For the completed MapBuild quality/eval harness, use:
 
@@ -74,6 +74,9 @@ for plan/diff-driven verification recommendations.
 - No current human blocker for deterministic MapBuild quality-gate work.
 - No current implementation blocker for deterministic or OpenAI Agents SDK smoke
   eval work when using a provider route available on the current network.
+- Agibot hardware validation is deferred by operator request, and the discovery service at
+  `10.42.1.101:2379` remains unreachable. No real-robot movement should run while this hold is in
+  place.
 - The focused MapBuild consumer live matrix has historical evidence across the
   target SDK provider profiles. The default `codex-router-responses` route now
   uses `gpt-5.6-sol` and handles Router transport compatibility internally.

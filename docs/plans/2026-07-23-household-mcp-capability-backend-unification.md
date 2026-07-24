@@ -1,6 +1,6 @@
 **Status:** BLOCKED_NEEDS_LOCAL_VALIDATION; implementation and available proof complete
 **Created:** 2026-07-23
-**Last reviewed:** 2026-07-23
+**Last reviewed:** 2026-07-24
 **Current implementation contract:** Household intents share one public surface, skill, exact
 profile-composed MCP tool surface, common server, backend adapter path, and evaluator-private
 final-state evidence. Canonical owner names are normalized and obsolete active surfaces are deleted.
@@ -18,14 +18,14 @@ old server ids, tool surfaces, entrypoints, aliases, and readers touched by this
 - Session scope: household-mcp-capability-backend-unification
 - Parent plan: none
 - Child plans: none
-- Last updated: 2026-07-23
+- Last updated: 2026-07-24
 - Current slice: Slices 0-4 and all currently available deterministic, SDK, eval, and runtime proof
-  are complete.
-- Next action: Restore B1 static-costmap connectivity and Agibot robot-network access, then rerun
-  the guarded B1 MapBuild and non-motion physical status gates.
-- Blocked on: four of five B1 inspection waypoints return
-  `blocked_capability/no_static_costmap_path`, and Agibot discovery at `10.42.1.101:2379` is
-  unreachable. The unrelated repo-wide quality-ratchet debt remains unchanged.
+  are complete, including the strict B1/Isaac MapBuild product gate.
+- Next action: Keep Agibot hardware validation paused until the operator explicitly resumes it;
+  then restore robot-network access and rerun the non-motion physical status gate before any
+  movement consideration.
+- Blocked on: Agibot discovery at `10.42.1.101:2379` is unreachable and physical validation is
+  deferred by operator request. The unrelated repo-wide quality-ratchet debt remains unchanged.
 - Do not touch from this session: unrelated eval, map/report cleanup, archived plans, `TODOS.md`,
   and `THOUGHTS.md`.
 
@@ -724,7 +724,7 @@ Approval: `LGTM`, `approve`, or `go ahead` approves execution; edits request rev
 
 ## Execution Evidence
 
-Latest local/hardware proof on 2026-07-23:
+Latest local/hardware proof on 2026-07-24:
 
 - `decaf335` fixes the Isaac smoke checker/worker sidecar contract by recovering the worker's final
   JSON object from the combined Isaac stdout/stderr capture while retaining object validation.
@@ -733,11 +733,14 @@ Latest local/hardware proof on 2026-07-23:
   stamp=household-mcp-smoke-rerun`: passed with real RTX 3090 rendering, generated Phase A USD
   loading, indexed and selected public bindings, and four robot-view images.
 - The supported B1 proof route is `world=b1-map12 backend=isaaclab`; MolmoSpaces+Isaac is retired.
-  A direct B1 MapBuild run loaded the canonical Map 12 USD/map, rendered 25 four-view observations,
-  and ran Grounding DINO successfully. Its final checker stopped at 0.2 sweep coverage because
-  navigation from `meeting_room_b_inspection` to the other four public waypoints returned
-  `blocked_capability` with `failure_type=no_static_costmap_path`. This is the plan's required
-  concrete B1 runtime blocker, not a passing MapBuild claim.
+  The route validator now uses the selected Base Metric Map bundle's authoritative occupancy grid
+  instead of rebuilding disconnected free-space islands from semantic room polygons. The direct
+  B1 MapBuild run at
+  `output/household-mcp-proof/b1-mapbuild-direct-fixed/0724_0947` visits all 5/5 public waypoints,
+  records 25/25 Grounding DINO observations and 100 robot-view images, reaches 1.0 sweep coverage,
+  and passes the strict `--require-b1-robot-consumption-proof`, waypoint-honesty, map-build, and
+  Base Metric Map checker gates. Direct and live runs now copy the required B1 consumption/prior
+  artifacts into each seed directory before checking.
 - `cd vendors/agibot_sdk && uv run python tools/check_raw_fpv_status.py --cameras default-open`:
   blocked without movement because robot discovery at `10.42.1.101:2379` is unreachable. Real
   movement remains prohibited without localization, E-stop, safety gates, and operator approval.
@@ -745,6 +748,9 @@ Latest local/hardware proof on 2026-07-23:
   `minimax-responses`, and `kimi-openai-chat`. The maintained focused MapBuild-consumer suite on
   `codex-router-responses` passes 5/5: MapBuild producer plus cleanup and open-ended consumers with
   and without the fixture-focused Runtime Metric Map prior.
-- Focused Ruff, format, and `git diff --check` pass. The commit hook's repo-wide Python quality
-  ratchet remains blocked by the unrelated stale baseline debt already recorded in the active
-  capsule; its baseline was not refreshed.
+- Repo-wide Ruff and format checks plus `git diff --check` pass. The focused map/recipe regression
+  set passes 182 tests. The full pytest suite reaches 100% but retains seven reproducible failures
+  outside this change: stale Mimo model-default assertions, the CloudML image-test `/mnt` archive
+  path, and an operator-console zombie-wrapper readiness case. The commit hook's separate
+  repo-wide Python quality-ratchet debt also remains unchanged; no unrelated baseline was
+  refreshed.
