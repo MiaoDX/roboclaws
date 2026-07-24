@@ -46,6 +46,7 @@ def test_image_command_publishes_archive_and_preserves_worker_exit(tmp_path: Pat
         "code_commit": "a" * 40,
         "code_archive_name": "code.tar.gz",
         "code_archive_sha256": "b" * 64,
+        "asset_manifest_name": "content.json",
         "asset_manifest_sha256": "c" * 64,
     }
     command = cloudml_task.image_command(shard, identity=identity).replace(
@@ -80,6 +81,7 @@ def test_isaac_image_command_exports_frozen_contract_and_asset_group() -> None:
         "code_commit": "a" * 40,
         "code_archive_name": "code.tar.gz",
         "code_archive_sha256": "b" * 64,
+        "asset_manifest_name": "roboclaws_cloudml_isaac_stage_a_assets.json",
         "asset_manifest_sha256": "c" * 64,
         "asset_archive_name": "isaac.tar.gz",
         "asset_archive_sha256": "e" * 64,
@@ -91,4 +93,8 @@ def test_isaac_image_command_exports_frozen_contract_and_asset_group() -> None:
     assert "OMNI_KIT_ACCEPT_EULA=YES" in command
     assert f"ROBOCLAWS_CLOUDML_ISAAC_PROOF_CONTRACT_SHA256={'d' * 64}" in command
     assert "ROBOCLAWS_CLOUDML_ISAAC_ASSET_GROUP=generated-smoke" in command
+    assert (
+        "ROBOCLAWS_CLOUDML_ASSET_MANIFEST="
+        "/mnt/cloudml/input/roboclaws_cloudml_isaac_stage_a_assets.json"
+    ) in command
     assert "ROBOCLAWS_CLOUDML_ASSET_ARCHIVE=/mnt/cloudml/assets/isaac.tar.gz" in command

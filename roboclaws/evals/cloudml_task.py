@@ -125,7 +125,7 @@ def image_command(shard: dict[str, Any], *, identity: dict[str, str]) -> str:
         "ROBOCLAWS_CLOUDML_CODE_ARCHIVE": f"{CODE_MOUNT}/{identity['code_archive_name']}",
         "ROBOCLAWS_CLOUDML_CODE_ARCHIVE_SHA256": identity["code_archive_sha256"],
         "ROBOCLAWS_CLOUDML_ASSET_MANIFEST_SHA256": identity["asset_manifest_sha256"],
-        "ROBOCLAWS_CLOUDML_ASSET_MANIFEST": f"{INPUT_MOUNT}/roboclaws_cloudml_cleanup_assets.json",
+        "ROBOCLAWS_CLOUDML_ASSET_MANIFEST": (f"{INPUT_MOUNT}/{identity['asset_manifest_name']}"),
         "ROBOCLAWS_CLOUDML_MANIFEST": str(shard["manifest_cloud_path"]),
         "ROBOCLAWS_CLOUDML_ROW_IDS": ",".join(shard["row_ids"]),
         "ROBOCLAWS_CLOUDML_SHARD_ID": str(shard["shard_id"]),

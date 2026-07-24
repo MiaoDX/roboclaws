@@ -458,6 +458,7 @@ def test_cloudml_image_command_bootstraps_worker_from_pinned_code_archive() -> N
         "code_commit": "a" * 40,
         "code_archive_name": "roboclaws-code.tar.gz",
         "code_archive_sha256": "b" * 64,
+        "asset_manifest_name": "assets.json",
         "asset_manifest_sha256": "c" * 64,
         "asset_archive_name": "assets.tar.gz",
         "asset_archive_sha256": "d" * 64,

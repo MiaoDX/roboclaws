@@ -18,14 +18,15 @@ B1/Isaac proof; it does not supersede either one.
   `docs/plans/2026-07-23-household-mcp-capability-backend-unification.md`
 - Child plans: none
 - Last updated: 2026-07-24
-- Current slice: Phase 0-2 implementation is complete. The pinned image is published by digest,
-  current queue `11759` r49 capacity is verified, and the eval harness now emits explicit
-  non-retry tasks with the frozen stage timeout plus collector allowance.
-- Next action: generate, inspect, submit, collect, and strictly accept Stage A. Continue to B and C
-  only after the immediately prior receipt passes.
-- Blocked on: no current pre-submit blocker. Any failed stage, retry, resource/cost/scope change,
-  or unavailable CloudML dependency is a stop gate. NVIDIA EULA acceptance is durable and must not
-  be requested again.
+- Current slice: Phase 0-2 implementation is complete. The first Stage A CloudML task
+  `t-20260724210310-e8v58` failed before GPU/runtime preflight because the worker used the legacy
+  cleanup-manifest filename instead of the staged Isaac manifest filename. The content-identity fix
+  is implemented and locally verified; Stage B/C were not generated or submitted.
+- Next action: after separately approving a new Stage A attempt, generate a fresh code archive and
+  dry-run from the fix commit, then submit and strictly accept Stage A before any Stage B work.
+- Blocked on: explicit authorization for one new Stage A task. The approved ladder excluded retries,
+  and the failed task remains recorded with `retryTimes=0`. NVIDIA EULA acceptance is durable and
+  must not be requested again.
 - Do not touch from this session: MolmoSpaces+Isaac, digital-twin cleanup, Agibot hardware,
   physical movement, provider selection, eval scoring policy, or unrelated CloudML hybrid work.
 
@@ -435,6 +436,18 @@ commands, and run-owned output paths.
 
 Publication and the bounded non-preemptible A/B/C ladder were approved on 2026-07-24 with a
 maximum of 2 GPU-hours per stage and 6 GPU-hours total. This approval excludes retries.
+
+First Stage A attempt evidence:
+
+- Task `t-20260724210310-e8v58` used queue `11759`, one guaranteed r49, no preemption, no retry,
+  code commit `d449d73b225fe2f8ce80aa6d546edb3fbd6a0ee6`, and expected image digest
+  `sha256:ce373d74339b1fd8687954a4d0585b531e37c0c80e6b80cd0ddb692267dd1831`.
+- It pulled the 22 GB image successfully, ran for 31 seconds, and exited before Isaac preflight.
+  The terminal marker recorded `exit_code=1`; no row result or acceptance receipt was produced.
+- Root cause: `ROBOCLAWS_CLOUDML_ASSET_MANIFEST` was hard-coded to
+  `roboclaws_cloudml_cleanup_assets.json`, while Isaac staging uploaded
+  `roboclaws_cloudml_isaac_stage_a_assets.json`. The fix preserves the actual manifest filename in
+  content identity and emits an actionable missing-file error.
 
 - Present the measured registry/storage bytes, per-stage timeout, maximum GPU-hours, and current
   capacity before approval. An approval must explicitly name image publication and either Stage A

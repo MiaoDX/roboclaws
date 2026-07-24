@@ -94,7 +94,10 @@ verify_sha256() {
   local path="$1"
   local expected="$2"
   local actual
-  test -f "$path"
+  if [[ ! -f "$path" ]]; then
+    echo "error: required checksum target is missing: $path" >&2
+    exit 1
+  fi
   actual="$(sha256sum "$path" | awk '{print $1}')"
   if [[ "$actual" != "$expected" ]]; then
     echo "error: sha256 mismatch for $path" >&2
