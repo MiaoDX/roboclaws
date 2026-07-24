@@ -1372,7 +1372,6 @@ def test_eval_image_contains_cloudml_worker_entrypoint() -> None:
     worker = (REPO_ROOT / "scripts" / "dev" / "run_cloudml_eval_worker.sh").read_text(
         encoding="utf-8"
     )
-
     assert "run_cloudml_eval_worker.sh /opt/roboclaws/bin/run-cloudml-eval-worker" in dockerfile
     assert "ROBOCLAWS_EVAL_EXECUTION_TARGET=cloudml" in worker
     assert 'source "$ROBOCLAWS_CLOUDML_PROVIDER_ENV_FILE"' in worker
@@ -1382,7 +1381,6 @@ def test_eval_image_contains_cloudml_worker_entrypoint() -> None:
     assert 'source_path="$asset_dir/roboclaws/$relative"' in worker
     assert 'ln -s "$source_path" "$target_path"' in worker
     assert 'uv_runner=("$ROBOCLAWS_ISAACLAB_PYTHON" -m uv)' in worker
-    assert "nvidia-smi --query-gpu=driver_version" in worker
     assert '"$isaac_driver" != "${ROBOCLAWS_CLOUDML_ISAAC_REQUIRED_DRIVER_SERIES}."*' in worker
     assert "cloudml isaac graphics devices:" in worker
     assert "/libGLX_nvidia|libnvidia-glvkspirv|libvulkan\\.so/" in worker

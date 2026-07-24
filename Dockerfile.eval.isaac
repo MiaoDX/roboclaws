@@ -1,7 +1,9 @@
 # syntax=docker/dockerfile:1.7
 ARG ISAACSIM_BASE_IMAGE=nvcr.io/nvidia/isaac-sim@sha256:a9d06fb72cc2b39b2bf1cacc002e9f7cd1a5bbe3c3cfbbcf2e6de3a1d726d101
 ARG DINO_RUNTIME_IMAGE=micr.cloud.mioffice.cn/cc-proxy/miuniverse-staging@sha256:d1d4c398f0677beceb8ab646b11f0bfd9d4d00d9e67a087170de4e23478669a4
+ARG NVIDIA_VULKAN_OVERLAY_IMAGE=micr.cloud.mioffice.cn/cc-proxy/thelastfoot-openpi-g2-training@sha256:2d90ff0525fda7b3980ef8094f3eb432bcb2b1efed8c9bf4b531c0608561bdcb
 FROM ${DINO_RUNTIME_IMAGE} AS dino-runtime
+FROM ${NVIDIA_VULKAN_OVERLAY_IMAGE} AS nvidia-vulkan-overlay
 FROM scratch AS isaaclab-source
 FROM ${ISAACSIM_BASE_IMAGE}
 
@@ -116,8 +118,15 @@ RUN /isaac-sim/python.sh -m uv pip install \
     && ln -sfn /opt/roboclaws/.venv-isaaclab /opt/roboclaws/src/.venv-isaaclab \
     && ln -sfn /opt/roboclaws/.venv-visual-grounding /opt/roboclaws/src/.venv-visual-grounding
 
+COPY --from=nvidia-vulkan-overlay /opt/nvidia-driver-580.105.08 /opt/nvidia-driver-580.105.08
 COPY scripts/dev/run_cloudml_eval_worker.sh /opt/roboclaws/bin/run-cloudml-eval-worker
-RUN chmod +x /opt/roboclaws/bin/run-cloudml-eval-worker
+COPY scripts/dev/configure_nvidia_vulkan_runtime.sh /opt/roboclaws/bin/configure-nvidia-vulkan-runtime
+RUN chmod +x \
+    /opt/roboclaws/bin/run-cloudml-eval-worker \
+    /opt/roboclaws/bin/configure-nvidia-vulkan-runtime \
+    && test -r /opt/nvidia-driver-580.105.08/libGLX_nvidia.so.0 \
+    && test -r /opt/nvidia-driver-580.105.08/libnvidia-glvkspirv.so.580.105.08 \
+    && test -r /opt/nvidia-driver-580.105.08/libnvidia-gpucomp.so.580.105.08
 
 ARG ISAACSIM_RELEASE=6.0.0
 ARG ISAACSIM_BUILD=6.0.0-rc.59+release.41464.5f2772bc.gl
@@ -165,6 +174,8 @@ model = Path(os.environ["VISUAL_GROUNDING_DINO_MODEL_ID"])
 assert (model / ".revision").read_text().strip() == "${GROUNDING_DINO_MODEL_REVISION}"
 print(torch.__version__, torch.version.cuda, transformers.__version__)
 PY
+
+LABEL org.roboclaws.nvidia-vulkan-overlay.digest="sha256:2d90ff0525fda7b3980ef8094f3eb432bcb2b1efed8c9bf4b531c0608561bdcb"
 
 WORKDIR /opt/roboclaws/src
 CMD ["bash"]

@@ -299,10 +299,11 @@ if [[ "$ROBOCLAWS_CLOUDML_WORKER_POOL" == "cloudml-r49-isaac" ]]; then
     exit 2
   fi
   test -x "${ROBOCLAWS_ISAACLAB_PYTHON:-}"
+  source "$repo_dir/scripts/dev/configure_nvidia_vulkan_runtime.sh"
   isaac_gpu="$(nvidia-smi --query-gpu=name --format=csv,noheader | head -n 1 | xargs)"
-  isaac_driver="$(nvidia-smi --query-gpu=driver_version --format=csv,noheader | head -n 1 | xargs)"
+  isaac_driver="$ROBOCLAWS_NVIDIA_DRIVER_VERSION"
   echo "cloudml isaac host: hostname=${HOSTNAME:-unknown} gpu=$isaac_gpu driver=$isaac_driver"
-  echo "cloudml isaac graphics env: capabilities=${NVIDIA_DRIVER_CAPABILITIES:-unset} vk_driver_files=${VK_DRIVER_FILES:-unset}"
+  echo "cloudml isaac graphics env: capabilities=${NVIDIA_DRIVER_CAPABILITIES:-unset} mode=$ROBOCLAWS_NVIDIA_VULKAN_RUNTIME_MODE vk_driver_files=${VK_DRIVER_FILES:-unset} vk_icd_filenames=${VK_ICD_FILENAMES:-unset}"
   echo "cloudml isaac graphics devices:"
   find /dev -maxdepth 1 -name 'nvidia*' -printf '%f %m %u:%g %y\n' 2>/dev/null | sort || true
   echo "cloudml isaac graphics libraries:"
