@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import subprocess
 from pathlib import Path
 
 from roboclaws.evals.cloudml_isaac_assets import prepare_stage
@@ -22,6 +23,12 @@ def main() -> int:
     )
     args = parser.parse_args()
     repo_root = Path(__file__).resolve().parents[2]
+    resolved_commit = subprocess.check_output(
+        ["git", "-C", str(repo_root), "rev-parse", f"{args.code_commit}^{{commit}}"],
+        text=True,
+    ).strip()
+    if resolved_commit != args.code_commit:
+        parser.error("--code-commit must be a full commit SHA present in this repository")
     manifest = prepare_stage(
         repo_root=repo_root,
         contract_path=args.contract,
