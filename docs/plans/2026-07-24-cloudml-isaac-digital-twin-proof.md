@@ -18,18 +18,20 @@ B1/Isaac proof; it does not supersede either one.
   `docs/plans/2026-07-23-household-mcp-capability-backend-unification.md`
 - Child plans: none
 - Last updated: 2026-07-24
-- Current slice: Phase 0-2 implementation is complete. Four distinct Stage A CloudML tasks failed
-  without platform retry. The first three exposed and resolved manifest, Python/`uv`, and optional
-  dependency bootstrap defects. `t-20260724214533-lik6i` reached the real RTX smoke and proved the
-  remaining blocker is CloudML's incompatible NVIDIA driver. Stage B/C were not generated or
-  submitted.
-- Next action: CloudML must expose the approved r49 resource with driver `>=570.158.01`, preferably
-  NVIDIA's recommended `580.95.05`. Recheck with a fresh Stage A attempt and strictly accept it
-  before any Stage B work.
-- Blocked on: external CloudML host-driver state, not human authorization. Repo-scoped CloudML
-  repair/retry attempts remain authorized while the frozen workspace, queue/resource class,
-  concurrency, and cost envelope remain unchanged. Every failed task has `retryTimes=0`; NVIDIA
-  EULA acceptance is durable and must not be requested again.
+- Current slice: Phase 0-2 implementation plus driver-series sampling are complete. Three bounded
+  waves created 25 Stage A tasks across five r49 host groups without platform retry. Three tasks on
+  `slave560` reached driver `580.105.08` and passed CUDA/Isaac preflight, then proved that group is
+  missing the NVIDIA Vulkan driver libraries inside the container. The sampled `570.124.06` groups
+  inject the graphics libraries but remain in Isaac Sim 6.0's rejected driver range. Stage B/C were
+  not generated or submitted.
+- Next action: CloudML must repair `libGLX_nvidia.so.0` and
+  `libnvidia-glvkspirv.so.580.105.08` injection on the 580 r49 group, or expose another r49 group
+  with both a compatible driver and complete Vulkan runtime. Recheck with one fresh Stage A and
+  strictly accept it before any Stage B work.
+- Blocked on: external CloudML host/container-runtime state, not human authorization. Repo-scoped
+  CloudML repair/retry attempts remain authorized while the frozen workspace, queue/resource
+  class, concurrency, and cost envelope remain unchanged. Every created sampling task has
+  `retryTimes=0`; NVIDIA EULA acceptance is durable and must not be requested again.
 - Do not touch from this session: MolmoSpaces+Isaac, digital-twin cleanup, Agibot hardware,
   physical movement, provider selection, eval scoring policy, or unrelated CloudML hybrid work.
 
