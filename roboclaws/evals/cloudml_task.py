@@ -132,13 +132,29 @@ def image_command(shard: dict[str, Any], *, identity: dict[str, str]) -> str:
         values["ROBOCLAWS_CLOUDML_PROVIDER_ENV_FILE"] = (
             f"{PROVIDER_ENV_MOUNT}/{PROVIDER_ENV_FILENAME}"
         )
-    if shard["worker_pool"] == "cloudml-r49":
+    if shard["worker_pool"] in {"cloudml-cpu-mujoco", "cloudml-r49", "cloudml-r49-isaac"}:
         values["ROBOCLAWS_CLOUDML_ASSET_ARCHIVE"] = (
             f"{ASSET_MOUNT}/{identity['asset_archive_name']}"
         )
         values["ROBOCLAWS_CLOUDML_ASSET_ARCHIVE_SHA256"] = identity["asset_archive_sha256"]
+    if shard["worker_pool"] == "cloudml-cpu-mujoco":
+        values["MUJOCO_GL"] = "osmesa"
+        values["PYOPENGL_PLATFORM"] = "osmesa"
+        values["ROBOCLAWS_MOLMOSPACES_MUJOCO_GL"] = "osmesa"
+        values["VISUAL_GROUNDING_DEVICE"] = "cpu"
+    elif shard["worker_pool"] == "cloudml-r49":
         values["VISUAL_GROUNDING_DEVICE"] = "cuda"
         values["VISUAL_GROUNDING_TORCH_DTYPE"] = "auto"
+    elif shard["worker_pool"] == "cloudml-r49-isaac":
+        values["OMNI_KIT_ACCEPT_EULA"] = "YES"
+        values["ROBOCLAWS_CLOUDML_ISAAC_EULA_ACCEPTED"] = "true"
+        values["ROBOCLAWS_ISAACLAB_PYTHON"] = "/opt/roboclaws/.venv-isaaclab/bin/python"
+        values["VISUAL_GROUNDING_DEVICE"] = "cuda"
+        values["VISUAL_GROUNDING_TORCH_DTYPE"] = "auto"
+        values["ROBOCLAWS_CLOUDML_ISAAC_PROOF_CONTRACT_SHA256"] = str(
+            shard["isaac_proof_contract_sha256"]
+        )
+        values["ROBOCLAWS_CLOUDML_ISAAC_ASSET_GROUP"] = str(shard["isaac_asset_group"])
     exports = " ".join(f"{key}={shlex.quote(value)}" for key, value in values.items())
     bootstrap = ""
     if shard.get("provider_env_keys"):

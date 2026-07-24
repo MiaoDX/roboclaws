@@ -42,6 +42,7 @@ def _row(
     provider_profile: str = "",
     depends_on: tuple[str, ...] = (),
     packing_group: str = "",
+    cloudml_stage: str = "",
 ) -> dict[str, Any]:
     return {
         "schema": "roboclaws_eval_harness_row_v1",
@@ -54,6 +55,7 @@ def _row(
         "execution_requirements": list(requirements),
         "depends_on": list(depends_on),
         "packing_group": packing_group,
+        "cloudml_stage": {"stage_id": cloudml_stage} if cloudml_stage else {},
         "timeout_s": 30,
         "axes": {"provider_profile": provider_profile},
         "row_dir": f"/local/harness/rows/{row_id}",
@@ -115,9 +117,14 @@ def _asset_manifest(tmp_path: Path, *, code_commit: str = "a" * 40) -> Path:
 
 
 def _image_urls() -> dict[str, str]:
+    cpu_image = f"micr.cloud.mioffice.cn/team/roboclaws-cpu:commit-abc@sha256:{'c' * 64}"
     return {
-        "cloudml-cpu": (f"micr.cloud.mioffice.cn/team/roboclaws-cpu:commit-abc@sha256:{'c' * 64}"),
+        "cloudml-cpu": cpu_image,
+        "cloudml-cpu-mujoco": cpu_image,
         "cloudml-r49": (f"micr.cloud.mioffice.cn/team/roboclaws-cuda:commit-abc@sha256:{'d' * 64}"),
+        "cloudml-r49-isaac": (
+            f"micr.cloud.mioffice.cn/team/roboclaws-isaac:commit-abc@sha256:{'e' * 64}"
+        ),
     }
 
 
@@ -132,6 +139,7 @@ def _set_image_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     images = _image_urls()
     monkeypatch.setenv("ROBOCLAWS_CLOUDML_CPU_IMAGE_URL", images["cloudml-cpu"])
     monkeypatch.setenv("ROBOCLAWS_CLOUDML_GPU_IMAGE_URL", images["cloudml-r49"])
+    monkeypatch.setenv("ROBOCLAWS_CLOUDML_ISAAC_IMAGE_URL", images["cloudml-r49-isaac"])
 
 
 def _minimal_molmospaces_assets(tmp_path: Path) -> tuple[Path, Path]:
@@ -199,29 +207,248 @@ def _stage_fixture_assets(stage_dir: Path, assets: Path, cache: Path) -> dict[st
     return json.loads((stage_dir / "roboclaws_cloudml_cleanup_assets.json").read_text())
 
 
-def test_cloudml_plan_uses_cpu_and_r49_capability_pools() -> None:
+def test_cloudml_plan_uses_basic_cpu_mujoco_cpu_and_r49_capability_pools() -> None:
     deterministic = _row("deterministic", ("cpu", "python-env", "artifact-storage"))
     simulator = _row(
         "simulator",
-        ("gpu", "python-env", "artifact-storage", "simulator:mujoco"),
+        ("cpu", "python-env", "artifact-storage", "simulator:mujoco"),
+    )
+    detector = _row(
+        "detector",
+        (
+            "gpu",
+            "python-env",
+            "artifact-storage",
+            "simulator:mujoco",
+            "detector:grounding-dino",
+        ),
     )
 
     plan = cloudml.build_cloudml_plan(
-        _manifest(deterministic, simulator), execution_target="cloudml", run_id="run-1"
+        _manifest(deterministic, simulator, detector),
+        execution_target="cloudml",
+        run_id="run-1",
     )
 
     assert [(shard["worker_pool"], shard["row_ids"]) for shard in plan["shards"]] == [
         ("cloudml-cpu", ["deterministic"]),
-        ("cloudml-r49", ["simulator"]),
+        ("cloudml-cpu-mujoco", ["simulator"]),
+        ("cloudml-r49", ["detector"]),
     ]
     assert plan["summary"] == {
-        "selected_row_count": 2,
-        "cloudml_row_count": 2,
+        "selected_row_count": 3,
+        "cloudml_row_count": 3,
         "local_row_count": 0,
         "blocked_row_count": 0,
-        "shard_count": 2,
+        "shard_count": 3,
         "preemptible_shard_count": 0,
     }
+    by_pool = {shard["worker_pool"]: shard for shard in plan["shards"]}
+    assert by_pool["cloudml-cpu"]["queue_id"] == "8151"
+    assert by_pool["cloudml-cpu"]["resource_number"] == 4
+    assert by_pool["cloudml-cpu-mujoco"]["queue_id"] == "8151"
+    assert by_pool["cloudml-cpu-mujoco"]["resource_number"] == 13
+    assert by_pool["cloudml-r49"]["queue_id"] == "11759"
+
+
+def test_cloudml_isaac_row_uses_dedicated_non_preemptible_pool() -> None:
+    row = _row(
+        "cloudml-isaac-runtime-smoke",
+        (
+            "gpu",
+            "python-env",
+            "artifact-storage",
+            "simulator:isaaclab",
+            "renderer:rtx",
+            "detector:grounding-dino",
+        ),
+        cloudml_stage="A",
+    )
+
+    plan = cloudml.build_cloudml_plan(
+        _manifest(row), execution_target="cloudml", run_id="run-1", preemptible=True
+    )
+
+    assert len(plan["shards"]) == 1
+    shard = plan["shards"][0]
+    assert shard["worker_pool"] == "cloudml-r49-isaac"
+    assert shard["preemptible"] is False
+    assert shard["queue_id"] == "11759"
+    assert shard["cloudml_stage_ids"] == ["A"]
+    assert shard["isaac_asset_group"] == "generated-smoke"
+    assert len(shard["isaac_proof_contract_sha256"]) == 64
+    assert cloudml.POOL_IMAGE_ENV["cloudml-r49-isaac"] == ("ROBOCLAWS_CLOUDML_ISAAC_IMAGE_URL")
+
+
+def test_cloudml_isaac_generation_rejects_missing_eula(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    row = _row(
+        "cloudml-isaac-runtime-smoke",
+        ("gpu", "python-env", "artifact-storage", "simulator:isaaclab", "renderer:rtx"),
+        cloudml_stage="A",
+    )
+    plan = cloudml.build_cloudml_plan(_manifest(row), execution_target="cloudml", run_id="run-1")
+    monkeypatch.setenv(
+        "ROBOCLAWS_CLOUDML_ASSET_MANIFEST",
+        str(_asset_manifest(tmp_path, code_commit=plan["code_commit"])),
+    )
+
+    with pytest.raises(ValueError, match="EULA_ACCEPTED=true"):
+        cloudml.executor_dry_run_from_environment(plan)
+
+
+def test_cloudml_isaac_stage_receipt_must_accept_immediately_prior_stage(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    row = _row(
+        "cloudml-b1-map12-navigation-smoke",
+        ("gpu", "python-env", "artifact-storage", "simulator:isaaclab", "renderer:rtx"),
+        cloudml_stage="B",
+    )
+    plan = cloudml.build_cloudml_plan(_manifest(row), execution_target="cloudml", run_id="run-1")
+    with pytest.raises(ValueError, match="accepted Stage A receipt"):
+        cloudml._validate_isaac_stage_receipts(plan)
+
+    receipt = tmp_path / "stage-a-receipt.json"
+    receipt.write_text(
+        json.dumps(
+            {
+                "stage_id": "A",
+                "task_id": "task-a",
+                "checker_result": "passed",
+                "artifact_root": "/collected/task-a",
+                "artifact_hashes": {"report.json": "a" * 64},
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("ROBOCLAWS_CLOUDML_ISAAC_PRIOR_RECEIPT", str(receipt))
+
+    cloudml._validate_isaac_stage_receipts(plan)
+
+    assert plan["shards"][0]["prior_stage_receipt"]["task_id"] == "task-a"
+
+
+def test_cloudml_isaac_contract_rejects_absolute_asset_roots() -> None:
+    payload = json.loads(cloudml.ISAAC_PROOF_CONTRACT_PATH.read_text(encoding="utf-8"))
+    payload["asset_groups"]["b1-navigation"]["roots"].append("/workstation/private/b1")
+
+    with pytest.raises(ValueError, match="repo-relative"):
+        cloudml._validate_isaac_proof_contract(payload)
+
+
+def test_cloudml_isaac_asset_manifest_must_match_stage_contract() -> None:
+    row = _row(
+        "cloudml-b1-map12-navigation-smoke",
+        ("gpu", "python-env", "artifact-storage", "simulator:isaaclab", "renderer:rtx"),
+        cloudml_stage="B",
+    )
+    plan = cloudml.build_cloudml_plan(_manifest(row), execution_target="cloudml", run_id="run-1")
+    shard = plan["shards"][0]
+    payload = {
+        "isaac": {
+            "asset_group": "b1-navigation",
+            "proof_contract_sha256": shard["isaac_proof_contract_sha256"],
+            "roots": ["data/robot-data-lab/scene-engine/data/B1_floor2_slow"],
+        }
+    }
+
+    cloudml._validate_isaac_asset_manifest(plan, payload)
+    payload["isaac"]["asset_group"] = "generated-smoke"
+    with pytest.raises(ValueError, match="asset_group=b1-navigation"):
+        cloudml._validate_isaac_asset_manifest(plan, payload)
+
+
+@pytest.mark.parametrize(
+    ("stage_id", "row_id", "prior_stage"),
+    [
+        ("A", "cloudml-isaac-runtime-smoke", ""),
+        ("B", "cloudml-b1-map12-navigation-smoke", "A"),
+        ("C", "cloudml-b1-map12-map-build-grounding-dino", "B"),
+    ],
+)
+def test_cloudml_isaac_stage_dry_run_is_deterministic(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    stage_id: str,
+    row_id: str,
+    prior_stage: str,
+) -> None:
+    row = _row(
+        row_id,
+        (
+            "gpu",
+            "python-env",
+            "artifact-storage",
+            "simulator:isaaclab",
+            "renderer:rtx",
+            "detector:grounding-dino",
+        ),
+        cloudml_stage=stage_id,
+    )
+    manifest = _manifest(row)
+    manifest["output_dir"] = str(tmp_path / "harness")
+    plan = cloudml.build_cloudml_plan(manifest, execution_target="cloudml", run_id="run-1")
+    plan_path = cloudml.write_cloudml_plan(plan, manifest, output_dir=tmp_path / "harness")
+    shard = plan["shards"][0]
+    stage_dir = tmp_path / "stage"
+    stage_dir.mkdir()
+    asset_manifest = _asset_manifest(stage_dir, code_commit=plan["code_commit"])
+    payload = json.loads(asset_manifest.read_text(encoding="utf-8"))
+    payload["isaac"] = {
+        "asset_group": shard["isaac_asset_group"],
+        "proof_contract_sha256": shard["isaac_proof_contract_sha256"],
+        "roots": [] if stage_id == "A" else ["data/b1"],
+    }
+    asset_manifest.write_text(json.dumps(payload), encoding="utf-8")
+    executor = tmp_path / "exe"
+    executor.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+    executor.chmod(0o755)
+    monkeypatch.setenv("ROBOCLAWS_CLOUDML_ASSET_MANIFEST", str(asset_manifest))
+    monkeypatch.setenv("ROBOCLAWS_CLOUDML_ISAAC_IMAGE_URL", _image_urls()["cloudml-r49-isaac"])
+    monkeypatch.setenv("ROBOCLAWS_CLOUDML_ISAAC_EULA_ACCEPTED", "true")
+    monkeypatch.setenv("ROBOCLAWS_EXECUTOR_PATH", str(executor))
+    if prior_stage:
+        receipt = tmp_path / "prior-receipt.json"
+        receipt.write_text(
+            json.dumps(
+                {
+                    "stage_id": prior_stage,
+                    "task_id": f"task-{prior_stage.lower()}",
+                    "checker_result": "passed",
+                    "artifact_root": f"collected/stage-{prior_stage.lower()}",
+                    "artifact_hashes": {"report.json": "a" * 64},
+                }
+            ),
+            encoding="utf-8",
+        )
+        monkeypatch.setenv("ROBOCLAWS_CLOUDML_ISAAC_PRIOR_RECEIPT", str(receipt))
+
+    cloudml.executor_from_environment(plan, dry_run=True, plan_path=plan_path)
+    first = Path(shard["yaml_path"]).read_bytes()
+    cloudml.executor_from_environment(plan, dry_run=True, plan_path=plan_path)
+    second = Path(shard["yaml_path"]).read_bytes()
+
+    assert first == second
+    task = json.loads(first)
+    command = task["imageConfig"]["imageCommand"]
+    assert shard["isaac_proof_contract_sha256"] in command
+    assert shard["isaac_asset_group"] in command
+    assert "ROBOCLAWS_CLOUDML_ISAAC_EULA_ACCEPTED=true" in command
+    assert "/home/" not in command
+    assert "preemptible" in task and task["preemptible"] is False
+
+
+def test_catalog_keeps_cloudml_isaac_rows_opt_in(tmp_path: Path) -> None:
+    rows = rows_module.candidate_rows(output_dir=tmp_path, explicit_axes={})
+    isaac_rows = [row for row in rows if row["profiles"] == ["cloudml-isaac-proof"]]
+
+    assert [row["cloudml_stage"]["stage_id"] for row in isaac_rows] == ["A", "B", "C"]
+    assert all("baseline-core" not in row["profiles"] for row in isaac_rows)
+    assert all("simulator:isaaclab" in row["execution_requirements"] for row in isaac_rows)
+    assert all("renderer:rtx" in row["execution_requirements"] for row in isaac_rows)
+    assert all(not row["depends_on"] for row in isaac_rows)
 
 
 def test_cloudml_image_command_bootstraps_worker_from_pinned_code_archive() -> None:
@@ -329,6 +556,19 @@ def test_catalog_expands_only_scene_portable_map_build_cases(tmp_path: Path) -> 
     )
 
 
+def test_catalog_reserves_gpu_for_dino_rows(tmp_path: Path) -> None:
+    rows = rows_module.candidate_rows(output_dir=tmp_path, explicit_axes={})
+    live_agent_rows = [row for row in rows if row["expense"] == "live-agent"]
+    dino_rows = [row for row in rows if row["expense"] == "dino"]
+
+    assert live_agent_rows
+    assert all("gpu" not in row["execution_requirements"] for row in live_agent_rows)
+    assert all("simulator:mujoco" in row["execution_requirements"] for row in live_agent_rows)
+    assert dino_rows
+    assert all("gpu" in row["execution_requirements"] for row in dino_rows)
+    assert all("detector:grounding-dino" in row["execution_requirements"] for row in dino_rows)
+
+
 def test_cloudml_packs_same_scene_rows_and_preserves_dependency_order() -> None:
     requirements = ("gpu", "python-env", "artifact-storage", "simulator:mujoco")
     consumer = _row(
@@ -375,6 +615,7 @@ def test_cloudml_keeps_independent_scene_cases_in_parallel_shards(tmp_path: Path
     )
 
     assert len(plan["shards"]) == 2
+    assert {shard["worker_pool"] for shard in plan["shards"]} == {"cloudml-cpu-mujoco"}
     assert {shard["scene"]["scene_id"] for shard in plan["shards"]} == {
         "procthor-10k-val/0",
         "procthor-objaverse-val/0",
@@ -670,14 +911,24 @@ def test_executor_dry_run_rejects_unpinned_image(tmp_path: Path, image: str) -> 
 
 def test_executor_dry_run_selects_image_per_worker_pool(tmp_path: Path) -> None:
     cpu = _row("cpu", ("cpu", "python-env", "artifact-storage"))
-    gpu = _row("gpu", ("gpu", "python-env", "artifact-storage", "simulator:mujoco"))
+    simulator = _row("simulator", ("cpu", "python-env", "artifact-storage", "simulator:mujoco"))
+    gpu = _row(
+        "gpu",
+        (
+            "gpu",
+            "python-env",
+            "artifact-storage",
+            "simulator:mujoco",
+            "detector:grounding-dino",
+        ),
+    )
     plan = cloudml.build_cloudml_plan(
-        _manifest(cpu, gpu),
+        _manifest(cpu, simulator, gpu),
         execution_target="cloudml",
         run_id="run-1",
         preemptible=True,
     )
-    cloudml.write_cloudml_plan(plan, _manifest(cpu, gpu), output_dir=tmp_path)
+    cloudml.write_cloudml_plan(plan, _manifest(cpu, simulator, gpu), output_dir=tmp_path)
     executor = tmp_path / "exe"
     executor.write_text(
         '#!/usr/bin/env bash\necho \'{"dry_run":true,"yaml_path":"/tmp/task.yaml"}\'\n',
@@ -698,16 +949,28 @@ def test_executor_dry_run_selects_image_per_worker_pool(tmp_path: Path) -> None:
 
     shards = {shard["worker_pool"]: shard for shard in plan["shards"]}
     assert shards["cloudml-cpu"]["image_url"] == _image_urls()["cloudml-cpu"]
+    assert shards["cloudml-cpu-mujoco"]["image_url"] == _image_urls()["cloudml-cpu-mujoco"]
     assert shards["cloudml-r49"]["image_url"] == _image_urls()["cloudml-r49"]
     assert shards["cloudml-cpu"]["platform_image_url"] == _image_urls()["cloudml-cpu"].split("@")[0]
     assert shards["cloudml-r49"]["image_digest"] == f"sha256:{'d' * 64}"
     assert shards["cloudml-cpu"]["preemptible"] is False
+    assert shards["cloudml-cpu-mujoco"]["preemptible"] is False
     assert shards["cloudml-r49"]["preemptible"] is True
     assert plan["summary"]["preemptible_shard_count"] == 1
     cpu_yaml = json.loads(Path(shards["cloudml-cpu"]["yaml_path"]).read_text(encoding="utf-8"))
+    simulator_yaml = json.loads(
+        Path(shards["cloudml-cpu-mujoco"]["yaml_path"]).read_text(encoding="utf-8")
+    )
     gpu_yaml = json.loads(Path(shards["cloudml-r49"]["yaml_path"]).read_text(encoding="utf-8"))
     assert cpu_yaml["preemptible"] is False
+    assert simulator_yaml["preemptible"] is False
     assert gpu_yaml["preemptible"] is True
+    simulator_command = simulator_yaml["imageConfig"]["imageCommand"]
+    assert "ROBOCLAWS_CLOUDML_ASSET_ARCHIVE=" in simulator_command
+    assert "MUJOCO_GL=osmesa" in simulator_command
+    assert "PYOPENGL_PLATFORM=osmesa" in simulator_command
+    assert "ROBOCLAWS_MOLMOSPACES_MUJOCO_GL=osmesa" in simulator_command
+    assert "VISUAL_GROUNDING_DEVICE=cpu" in simulator_command
     image_command = gpu_yaml["imageConfig"]["imageCommand"]
     assert "VISUAL_GROUNDING_DEVICE=cuda" in image_command
     assert "VISUAL_GROUNDING_TORCH_DTYPE=auto" in image_command
@@ -1110,6 +1373,9 @@ def test_eval_image_contains_cloudml_worker_entrypoint() -> None:
     assert 'source "$ROBOCLAWS_CLOUDML_PROVIDER_ENV_FILE"' in worker
     assert '"$ROBOCLAWS_CLOUDML_ASSET_MANIFEST"' in worker
     assert '"$ROBOCLAWS_CLOUDML_ASSET_MANIFEST_SHA256"' in worker
+    assert 'verify_sha256 "$contract_path"' in worker
+    assert 'source_path="$asset_dir/roboclaws/$relative"' in worker
+    assert 'ln -s "$source_path" "$target_path"' in worker
     assert "EVAL_IMAGE_VARIANT" in dockerfile
     assert dockerfile.index("RUN uv sync --extra dev") < dockerfile.index("ARG EVAL_IMAGE_VARIANT")
     assert "--extra cuda --frozen" in dockerfile

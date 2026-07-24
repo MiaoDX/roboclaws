@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import datetime as dt
+import hashlib
 import json
 import os
 import re
@@ -21,6 +22,19 @@ POOL_CAPABILITIES = {
         "python-env",
         "artifact-storage",
     },
+    "cloudml-cpu-mujoco": {
+        "cpu",
+        "python-env",
+        "artifact-storage",
+        "simulator:mujoco",
+        "openai-agents-sdk",
+        "network:internal-api-router",
+        "network:internal-mimo-router",
+        "provider:codex-router-responses",
+        "provider:mimo-mify-responses",
+        "provider:mimo-tp-openai-chat",
+        "provider:mimo-inside-openai-chat",
+    },
     "cloudml-r49": {
         "cpu",
         "gpu",
@@ -36,15 +50,36 @@ POOL_CAPABILITIES = {
         "provider:mimo-tp-openai-chat",
         "provider:mimo-inside-openai-chat",
     },
+    "cloudml-r49-isaac": {
+        "cpu",
+        "gpu",
+        "python-env",
+        "artifact-storage",
+        "simulator:isaaclab",
+        "renderer:rtx",
+        "detector:grounding-dino",
+    },
 }
 POOL_RESOURCES = {
     "cloudml-cpu": {
-        "queue_id": "11759",
+        "queue_id": "8151",
         "resource_name": "cloudml.cputype1-108.1-8",
-        "resource_priority": "GUARANTEED_PUBLIC",
+        "resource_priority": "GUARANTEED",
         "resource_number": 4,
     },
+    "cloudml-cpu-mujoco": {
+        "queue_id": "8151",
+        "resource_name": "cloudml.cputype1-108.1-8",
+        "resource_priority": "GUARANTEED",
+        "resource_number": 13,
+    },
     "cloudml-r49": {
+        "queue_id": "11759",
+        "resource_name": "cloudml.ng1r49-8-8.13-107",
+        "resource_priority": "GUARANTEED",
+        "resource_number": 1,
+    },
+    "cloudml-r49-isaac": {
         "queue_id": "11759",
         "resource_name": "cloudml.ng1r49-8-8.13-107",
         "resource_priority": "GUARANTEED",
@@ -53,11 +88,15 @@ POOL_RESOURCES = {
 }
 POOL_IMAGE_ENV = {
     "cloudml-cpu": "ROBOCLAWS_CLOUDML_CPU_IMAGE_URL",
+    "cloudml-cpu-mujoco": "ROBOCLAWS_CLOUDML_CPU_IMAGE_URL",
     "cloudml-r49": "ROBOCLAWS_CLOUDML_GPU_IMAGE_URL",
+    "cloudml-r49-isaac": "ROBOCLAWS_CLOUDML_ISAAC_IMAGE_URL",
 }
 INPUT_MOUNT = cloudml_task.INPUT_MOUNT
 OUTPUT_MOUNT = cloudml_task.OUTPUT_MOUNT
 REPO_ROOT = Path(__file__).resolve().parents[3]
+ISAAC_PROOF_CONTRACT_PATH = REPO_ROOT / "skills/eval-harness/catalog/cloudml_isaac_proof.json"
+ISAAC_PROOF_CONTRACT_SCHEMA = "roboclaws_cloudml_isaac_proof_contract_v1"
 
 
 def bool_value(value: str) -> bool:
@@ -130,6 +169,8 @@ def build_cloudml_plan(
         provider_env_keys_by_row=provider_env_keys_by_row,
         preemptible=preemptible,
     )
+    if any(shard["worker_pool"] == "cloudml-r49-isaac" for shard in shards):
+        _apply_isaac_proof_contract(shards)
     return {
         "schema": PLAN_SCHEMA,
         "generated_at": _utc_now(),
@@ -357,8 +398,17 @@ def executor_from_environment(
     if not asset_manifest:
         raise ValueError("execution_target=cloudml requires ROBOCLAWS_CLOUDML_ASSET_MANIFEST")
     required_pools = {str(shard["worker_pool"]) for shard in plan["shards"]}
+    if "cloudml-r49-isaac" in required_pools:
+        if not bool_value(os.environ.get("ROBOCLAWS_CLOUDML_ISAAC_EULA_ACCEPTED", "false")):
+            raise ValueError(
+                "Isaac CloudML generation requires explicit "
+                "ROBOCLAWS_CLOUDML_ISAAC_EULA_ACCEPTED=true"
+            )
+        _validate_isaac_stage_receipts(plan)
     image_urls = {pool: os.environ.get(POOL_IMAGE_ENV[pool], "") for pool in sorted(required_pools)}
-    missing_image_env = [POOL_IMAGE_ENV[pool] for pool, value in image_urls.items() if not value]
+    missing_image_env = sorted(
+        {POOL_IMAGE_ENV[pool] for pool, value in image_urls.items() if not value}
+    )
     if missing_image_env:
         raise ValueError(
             "execution_target=cloudml requires image environment variable(s): "
@@ -366,6 +416,8 @@ def executor_from_environment(
         )
     asset_manifest_path = Path(asset_manifest)
     payload = json.loads(asset_manifest_path.read_text(encoding="utf-8"))
+    if "cloudml-r49-isaac" in required_pools:
+        _validate_isaac_asset_manifest(plan, payload)
     content_rel = str((payload.get("juicefs") or {}).get("content_rel") or "")
     if not content_rel:
         raise ValueError("CloudML content manifest must define juicefs.content_rel")
@@ -622,24 +674,208 @@ def _build_shards(
                 preemptible=False,
             )
         )
-    gpu_rows = placed["cloudml-r49"]
+    _append_grouped_shards(
+        shards,
+        placed["cloudml-cpu-mujoco"],
+        pool="cloudml-cpu-mujoco",
+        suffix_prefix="cpu-mujoco",
+        run_id=run_id,
+        provider_env_keys_by_row=provider_env_keys_by_row,
+        preemptible=False,
+    )
+    _append_grouped_shards(
+        shards,
+        placed["cloudml-r49"],
+        pool="cloudml-r49",
+        suffix_prefix="r49",
+        run_id=run_id,
+        provider_env_keys_by_row=provider_env_keys_by_row,
+        preemptible=preemptible,
+    )
+    _append_grouped_shards(
+        shards,
+        placed["cloudml-r49-isaac"],
+        pool="cloudml-r49-isaac",
+        suffix_prefix="r49-isaac",
+        run_id=run_id,
+        provider_env_keys_by_row=provider_env_keys_by_row,
+        preemptible=False,
+    )
+    return shards
+
+
+def _validate_isaac_stage_receipts(plan: dict[str, Any]) -> None:
+    expected_prior = {"B": "A", "C": "B"}
+    for shard in plan["shards"]:
+        if shard["worker_pool"] != "cloudml-r49-isaac":
+            continue
+        stages = set(shard.get("cloudml_stage_ids") or [])
+        for stage_id in stages:
+            prior_stage = expected_prior.get(stage_id)
+            if not prior_stage:
+                continue
+            receipt_path = os.environ.get("ROBOCLAWS_CLOUDML_ISAAC_PRIOR_RECEIPT", "")
+            if not receipt_path:
+                raise ValueError(
+                    f"Isaac Stage {stage_id} requires an accepted Stage {prior_stage} receipt"
+                )
+            receipt = json.loads(Path(receipt_path).read_text(encoding="utf-8"))
+            required = {"stage_id", "task_id", "checker_result", "artifact_root", "artifact_hashes"}
+            if not required.issubset(receipt):
+                raise ValueError("Isaac acceptance receipt is incomplete")
+            if receipt["stage_id"] != prior_stage or receipt["checker_result"] != "passed":
+                raise ValueError(
+                    f"Isaac Stage {stage_id} requires a passed Stage {prior_stage} receipt"
+                )
+            if (
+                not receipt["task_id"]
+                or not receipt["artifact_root"]
+                or not receipt["artifact_hashes"]
+            ):
+                raise ValueError("Isaac acceptance receipt has empty identity or artifact fields")
+            shard["prior_stage_receipt"] = {
+                "path": receipt_path,
+                "stage_id": prior_stage,
+                "task_id": receipt["task_id"],
+            }
+
+
+def _apply_isaac_proof_contract(shards: list[dict[str, Any]]) -> None:
+    configured_path = os.environ.get("ROBOCLAWS_CLOUDML_ISAAC_PROOF_CONTRACT", "")
+    path = Path(configured_path) if configured_path else ISAAC_PROOF_CONTRACT_PATH
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("schema") != ISAAC_PROOF_CONTRACT_SCHEMA:
+        raise ValueError(f"Isaac proof contract must use schema {ISAAC_PROOF_CONTRACT_SCHEMA}")
+    _validate_isaac_proof_contract(payload)
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    stage_contracts = payload["stages"]
+    for shard in shards:
+        if shard["worker_pool"] != "cloudml-r49-isaac":
+            continue
+        if len(shard["cloudml_stage_ids"]) != 1:
+            raise ValueError("each Isaac CloudML shard must contain exactly one proof stage")
+        stage_id = shard["cloudml_stage_ids"][0]
+        stage = stage_contracts[stage_id]
+        if shard["row_ids"] != [stage["row_id"]]:
+            raise ValueError(f"Isaac Stage {stage_id} row does not match the proof contract")
+        shard["isaac_proof_contract_sha256"] = digest
+        shard["isaac_asset_group"] = stage["asset_group"]
+        shard["timeout_s"] = int(stage["timeout_s"]) + 600
+
+
+def _validate_isaac_proof_contract(payload: dict[str, Any]) -> None:
+    runtime = payload.get("runtime") or {}
+    required_versions = (
+        "python",
+        "isaac_sim",
+        "isaac_lab",
+        "isaac_lab_revision",
+        "torch",
+        "cuda",
+    )
+    missing_versions = [
+        key for key in required_versions if runtime.get(key) in {None, "", "unknown"}
+    ]
+    if missing_versions:
+        raise ValueError(
+            "Isaac proof contract has unknown runtime identity: " + ", ".join(missing_versions)
+        )
+    resource = payload.get("resource") or {}
+    if resource.get("queue_id") != "11759" or resource.get("preemptible") is not False:
+        raise ValueError("Isaac proof contract must use non-preemptible queue 11759")
+    measurements = payload.get("local_measurements") or {}
+    required_scratch = sum(
+        int(measurements.get(key) or 0)
+        for key in (
+            "isaac_runtime_bytes",
+            "grounding_dino_environment_bytes",
+            "b1_registration_scene_bytes",
+            "b1_visual_route_scene_bytes",
+            "map12_bytes",
+            "generated_robot_usd_bytes",
+            "shader_cache_headroom_bytes",
+            "output_headroom_bytes",
+            "safety_headroom_bytes",
+        )
+    )
+    if int(resource.get("minimum_scratch_bytes") or 0) < required_scratch:
+        raise ValueError("Isaac proof scratch budget is below measured inputs plus headroom")
+    asset_groups = payload.get("asset_groups") or {}
+    stages = payload.get("stages") or {}
+    if set(stages) != {"A", "B", "C"}:
+        raise ValueError("Isaac proof contract must define exactly Stages A, B, and C")
+    for stage_id, stage in stages.items():
+        group_name = str(stage.get("asset_group") or "")
+        group = asset_groups.get(group_name) or {}
+        if stage_id not in group.get("stages", []):
+            raise ValueError(f"Isaac Stage {stage_id} has an invalid asset group")
+        for raw_path in group.get("roots") or []:
+            path = Path(str(raw_path))
+            if path.is_absolute() or ".." in path.parts:
+                raise ValueError(f"Isaac asset root must be repo-relative: {raw_path}")
+    if (
+        stages["A"].get("prior_stage")
+        or stages["B"].get("prior_stage") != "A"
+        or stages["C"].get("prior_stage") != "B"
+    ):
+        raise ValueError("Isaac proof stage ordering must be A, then B after A, then C after B")
+
+
+def _validate_isaac_asset_manifest(plan: dict[str, Any], payload: dict[str, Any]) -> None:
+    isaac = payload.get("isaac") or {}
+    groups = {
+        str(shard["isaac_asset_group"])
+        for shard in plan["shards"]
+        if shard["worker_pool"] == "cloudml-r49-isaac"
+    }
+    if len(groups) != 1:
+        raise ValueError("one Isaac CloudML invocation must use exactly one asset group")
+    expected_group = next(iter(groups))
+    if isaac.get("asset_group") != expected_group:
+        raise ValueError(f"Isaac content manifest must declare asset_group={expected_group}")
+    expected_digest = next(
+        str(shard["isaac_proof_contract_sha256"])
+        for shard in plan["shards"]
+        if shard["worker_pool"] == "cloudml-r49-isaac"
+    )
+    if isaac.get("proof_contract_sha256") != expected_digest:
+        raise ValueError("Isaac content manifest proof contract digest does not match the plan")
+    roots = isaac.get("roots") or []
+    if expected_group != "generated-smoke" and not roots:
+        raise ValueError("Isaac B1 content manifest must record staged asset roots")
+    for raw_path in roots:
+        path = Path(str(raw_path))
+        if path.is_absolute() or ".." in path.parts:
+            raise ValueError(f"Isaac staged asset root must be repo-relative: {raw_path}")
+
+
+def _append_grouped_shards(
+    shards: list[dict[str, Any]],
+    rows: list[dict[str, Any]],
+    *,
+    pool: str,
+    suffix_prefix: str,
+    run_id: str,
+    provider_env_keys_by_row: dict[str, tuple[str, ...]],
+    preemptible: bool,
+) -> None:
     consumed: set[str] = set()
-    by_id = {str(row["row_id"]): row for row in gpu_rows}
-    for row in gpu_rows:
+    by_id = {str(row["row_id"]): row for row in rows}
+    for row in rows:
         row_id = str(row["row_id"])
         if row_id in consumed:
             continue
         packing_group = str(row.get("packing_group") or "")
         chain_ids = _connected_row_ids(row_id, by_id=by_id, packing_group=packing_group)
         chain = _dependency_ordered_rows(
-            [candidate for candidate in gpu_rows if str(candidate["row_id"]) in chain_ids]
+            [candidate for candidate in rows if str(candidate["row_id"]) in chain_ids]
         )
         consumed.update(chain_ids)
         suffix = len(shards) + 1
         shards.append(
             _shard(
-                f"r49-{suffix:03d}",
-                "cloudml-r49",
+                f"{suffix_prefix}-{suffix:03d}",
+                pool,
                 chain,
                 run_id=run_id,
                 width=1,
@@ -647,7 +883,6 @@ def _build_shards(
                 preemptible=preemptible,
             )
         )
-    return shards
 
 
 def _connected_row_ids(
@@ -709,6 +944,11 @@ def _shard(
         "shard_id": shard_id,
         "worker_pool": pool,
         "row_ids": [str(row["row_id"]) for row in rows],
+        "cloudml_stage_ids": [
+            str(stage["stage_id"])
+            for row in rows
+            if (stage := row.get("cloudml_stage")) and stage.get("stage_id")
+        ],
         "max_parallel": width,
         "timeout_s": sum(int(row.get("timeout_s") or 0) for row in rows) + 600,
         "provider_env_keys": provider_env_keys,

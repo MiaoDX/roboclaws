@@ -1,4 +1,4 @@
-**Status:** Preflight draft ready for approval
+**Status:** Implementation active; external image/live gates not authorized
 **Created:** 2026-07-24
 **Last reviewed:** 2026-07-24
 **Current implementation contract:** Add a dedicated CloudML Isaac Lab capability and image,
@@ -11,16 +11,17 @@ B1/Isaac proof; it does not supersede either one.
 
 ## Plan Ledger
 
-- Plan status: PROPOSED
+- Plan status: ACTIVE
 - Session scope: cloudml-isaac-digital-twin-proof
 - Parent plans:
   `docs/plans/2026-06-18-cloudml-juicefs-eval.md` and
   `docs/plans/2026-07-23-household-mcp-capability-backend-unification.md`
 - Child plans: none
 - Last updated: 2026-07-24
-- Current slice: planning-loop and whole-plan preflight complete.
-- Next action: approve the preflight contract, then execute the ordered phases through
-  `$intuitive-flow`.
+- Current slice: Phase 0 contract and deterministic asset packager plus Phase 2 placement,
+  provenance, stage rows, receipt gates, and synthetic dry-run coverage are implemented.
+- Next action: obtain explicit NVIDIA EULA authorization before Phase 1 image acquisition/build;
+  image publication and every paid r49 stage remain separate later approvals.
 - Blocked on: no planning blocker. NVIDIA image acquisition or runtime execution requires explicit
   EULA authorization. Registry publication and each paid r49 submission require a separately
   scoped cost approval.

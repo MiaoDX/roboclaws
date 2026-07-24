@@ -1,0 +1,137 @@
+{
+  "schema": "roboclaws_cloudml_isaac_proof_contract_v1",
+  "runtime": {
+    "python": "3.12",
+    "isaac_sim": "6.0.0.0",
+    "isaac_lab": "0.54.3",
+    "isaac_lab_revision": "84d0ff05a6511d52a31090ce586686ceba56cd84",
+    "torch": "2.7.0+cu128",
+    "cuda": "12.8",
+    "renderer_mode": "isaac_lab_headless_rtx",
+    "visual_grounding_in_image": true
+  },
+  "image": {
+    "environment_variable": "ROBOCLAWS_CLOUDML_ISAAC_IMAGE_URL",
+    "digest_required": true,
+    "eula_environment_variable": "ROBOCLAWS_CLOUDML_ISAAC_EULA_ACCEPTED",
+    "eula_default": false,
+    "offline_smoke_required": true,
+    "publication_status": "not_authorized"
+  },
+  "resource": {
+    "queue_id": "11759",
+    "resource_name": "cloudml.ng1r49-8-8.13-107",
+    "resource_priority": "GUARANTEED",
+    "resource_number": 1,
+    "preemptible": false,
+    "minimum_gpu_memory_bytes": 25769803776,
+    "minimum_host_memory_bytes": 68719476736,
+    "minimum_scratch_bytes": 107374182400,
+    "provider_capacity_status": "unverified_cml_cli_unavailable"
+  },
+  "local_measurements": {
+    "isaac_runtime_bytes": 24450865576,
+    "grounding_dino_environment_bytes": 7334843241,
+    "b1_registration_scene_bytes": 10740273906,
+    "b1_visual_route_scene_bytes": 2655042502,
+    "map12_bytes": 696892,
+    "generated_robot_usd_bytes": 810817,
+    "shader_cache_headroom_bytes": 32212254720,
+    "output_headroom_bytes": 5368709120,
+    "safety_headroom_bytes": 17179869184
+  },
+  "asset_groups": {
+    "generated-smoke": {
+      "stages": ["A"],
+      "roots": [],
+      "generated_only": true,
+      "maximum_archive_bytes": 1048576
+    },
+    "b1-navigation": {
+      "stages": ["B"],
+      "roots": [
+        "data/robot-data-lab/scene-engine/data/2rd_floor_seperated",
+        "data/robot-data-lab/scene-engine/data/B1_floor2_slow",
+        "vendors/agibot_sdk/artifacts/maps/robot_map_12",
+        "assets/maps/b1-map12-scene-correspondences.json",
+        "assets/maps/b1-map12-base-metric-labels.json",
+        "output/isaaclab/robots/rby1m/rby1m_holobase_isaac.usda"
+      ],
+      "generated_only": false,
+      "maximum_archive_bytes": 13400523117
+    },
+    "b1-map-build-grounding-dino": {
+      "stages": ["C"],
+      "roots": [
+        "data/robot-data-lab/scene-engine/data/2rd_floor_seperated",
+        "data/robot-data-lab/scene-engine/data/B1_floor2_slow",
+        "vendors/agibot_sdk/artifacts/maps/robot_map_12",
+        "assets/maps/b1-map12-scene-correspondences.json",
+        "assets/maps/b1-map12-base-metric-labels.json",
+        "output/isaaclab/robots/rby1m/rby1m_holobase_isaac.usda"
+      ],
+      "generated_only": false,
+      "maximum_archive_bytes": 13400523117
+    }
+  },
+  "stages": {
+    "A": {
+      "row_id": "cloudml-isaac-runtime-smoke",
+      "asset_group": "generated-smoke",
+      "timeout_s": 7200,
+      "maximum_gpu_hours": 2.0,
+      "prior_stage": "",
+      "expected_artifacts": ["state.json", "init_result.json", "robot_views_result.json"],
+      "acceptance": {
+        "runtime_versions_known": true,
+        "renderer_mode": "isaac_lab_headless_rtx",
+        "robot_view_image_count": 4,
+        "runtime_smoke_image_count": 1,
+        "require_nonblank_images": true
+      }
+    },
+    "B": {
+      "row_id": "cloudml-b1-map12-navigation-smoke",
+      "asset_group": "b1-navigation",
+      "timeout_s": 7200,
+      "maximum_gpu_hours": 2.0,
+      "prior_stage": "A",
+      "expected_artifacts": ["readiness.json", "navigation_smoke.json", "readiness_with_navigation.json"],
+      "acceptance": {
+        "require_navigation_success": true,
+        "require_alignment": true,
+        "require_nonblank_images": true
+      }
+    },
+    "C": {
+      "row_id": "cloudml-b1-map12-map-build-grounding-dino",
+      "asset_group": "b1-map-build-grounding-dino",
+      "timeout_s": 7200,
+      "maximum_gpu_hours": 2.0,
+      "prior_stage": "B",
+      "expected_artifacts": [
+        "report.json",
+        "base_metric_map_manifest.json",
+        "runtime_metric_map.json",
+        "b1_robot_consumption_manifest.json"
+      ],
+      "acceptance": {
+        "visited_waypoints": 5,
+        "grounding_dino_observations": 25,
+        "robot_view_images": 100,
+        "minimum_sweep_coverage": 1.0,
+        "require_base_metric_map": true,
+        "require_runtime_metric_map": true,
+        "require_waypoint_honesty": true,
+        "require_b1_robot_consumption": true
+      }
+    }
+  },
+  "cost_envelope": {
+    "maximum_registry_bytes": 37580963840,
+    "maximum_asset_bytes_per_stage": 13400523117,
+    "maximum_output_bytes_per_stage": 5368709120,
+    "maximum_total_gpu_hours_first_ladder": 6.0,
+    "monetary_cost_status": "requires_current_cloudml_rate_before_submit"
+  }
+}

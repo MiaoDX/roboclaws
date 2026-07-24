@@ -43,6 +43,11 @@ EXPECTED_ROW_IDS = {
     "direct-map-build-world-public",
     "direct-cleanup-runtime-prior-consumer",
 }
+ISAAC_OPT_IN_ROW_IDS = {
+    "cloudml-isaac-runtime-smoke",
+    "cloudml-b1-map12-navigation-smoke",
+    "cloudml-b1-map12-map-build-grounding-dino",
+}
 
 
 def _load_module(name: str, path: Path):
@@ -79,7 +84,7 @@ def _assert_selected_rows_include(
 def test_row_catalog_loads_current_eval_harness_rows(tmp_path: Path) -> None:
     rows = rows_module.candidate_rows(output_dir=tmp_path, explicit_axes={})
 
-    assert {row["row_id"] for row in rows} == EXPECTED_ROW_IDS
+    assert {row["row_id"] for row in rows} == EXPECTED_ROW_IDS | ISAAC_OPT_IN_ROW_IDS
     assert all(row["schema"] == "roboclaws_eval_harness_row_v1" for row in rows)
     assert rows_module.CATALOG_PATH.name == "rows.json"
 

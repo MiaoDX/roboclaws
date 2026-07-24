@@ -64,6 +64,10 @@ payload = {
     "asset_manifest_sha256": os.environ.get(
         "ROBOCLAWS_CLOUDML_ASSET_MANIFEST_SHA256", ""
     ),
+    "isaac_proof_contract_sha256": os.environ.get(
+        "ROBOCLAWS_CLOUDML_ISAAC_PROOF_CONTRACT_SHA256", ""
+    ),
+    "isaac_asset_group": os.environ.get("ROBOCLAWS_CLOUDML_ISAAC_ASSET_GROUP", ""),
     "finished_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
 }
 Path(os.environ["ROBOCLAWS_CLOUDML_MARKER_PATH"]).write_text(
@@ -119,6 +123,44 @@ if [[ -n "${ROBOCLAWS_CLOUDML_ASSET_ARCHIVE:-}" ]]; then
   tar -xzf "$ROBOCLAWS_CLOUDML_ASSET_ARCHIVE" -C "$asset_dir"
   export MLSPACES_ASSETS_DIR="$asset_dir/molmospaces/assets"
   export MLSPACES_CACHE_DIR="$asset_dir/molmospaces/cache"
+fi
+
+isaac_asset_roots=()
+if [[ "$ROBOCLAWS_CLOUDML_WORKER_POOL" == "cloudml-r49-isaac" ]]; then
+  contract_path="$repo_dir/skills/eval-harness/catalog/cloudml_isaac_proof.json"
+  verify_sha256 "$contract_path" "$ROBOCLAWS_CLOUDML_ISAAC_PROOF_CONTRACT_SHA256"
+  mapfile -t isaac_asset_roots < <(
+    /opt/roboclaws/.venv/bin/python - \
+      "$ROBOCLAWS_CLOUDML_ASSET_MANIFEST" \
+      "$ROBOCLAWS_CLOUDML_ISAAC_ASSET_GROUP" <<'PY'
+import json
+import re
+import sys
+from pathlib import PurePosixPath
+
+payload = json.load(open(sys.argv[1], encoding="utf-8"))
+isaac = payload.get("isaac") or {}
+expected_group = sys.argv[2]
+if isaac.get("asset_group") != expected_group:
+    raise SystemExit(f"error: expected Isaac asset group {expected_group}")
+for raw in isaac.get("roots") or []:
+    path = PurePosixPath(str(raw))
+    if path.is_absolute() or ".." in path.parts or not re.fullmatch(r"[A-Za-z0-9._/-]+", str(path)):
+        raise SystemExit(f"error: unsafe Isaac asset root {raw!r}")
+    print(path)
+PY
+  )
+  for relative in "${isaac_asset_roots[@]}"; do
+    source_path="$asset_dir/roboclaws/$relative"
+    target_path="$repo_dir/$relative"
+    if [[ ! -e "$source_path" ]]; then
+      echo "error: staged Isaac asset root is missing: $relative" >&2
+      exit 2
+    fi
+    mkdir -p "$(dirname "$target_path")"
+    rm -rf -- "$target_path"
+    ln -s "$source_path" "$target_path"
+  done
 fi
 
 object_cache_root="$MLSPACES_CACHE_DIR/objects"
@@ -238,7 +280,37 @@ export ROBOCLAWS_EVAL_WORKER_POOL="$ROBOCLAWS_CLOUDML_WORKER_POOL"
 export ROBOCLAWS_EVAL_CLOUDML_JOB_ID="${CLOUDML_TASK_ID:-${CML_JOB_ID:-}}"
 export ROBOCLAWS_EVAL_CLOUDML_POD_NAME="${HOSTNAME:-}"
 
-if [[ "$ROBOCLAWS_CLOUDML_WORKER_POOL" == "cloudml-r49" ]]; then
+if [[ "$ROBOCLAWS_CLOUDML_WORKER_POOL" == "cloudml-r49-isaac" ]]; then
+  test -n "${ROBOCLAWS_CLOUDML_ISAAC_PROOF_CONTRACT_SHA256:-}"
+  test -n "${ROBOCLAWS_CLOUDML_ISAAC_ASSET_GROUP:-}"
+  if [[ "${ROBOCLAWS_CLOUDML_ISAAC_EULA_ACCEPTED:-false}" != "true" || "${OMNI_KIT_ACCEPT_EULA:-}" != "YES" ]]; then
+    echo "error: Isaac CloudML worker requires explicit EULA acceptance" >&2
+    exit 2
+  fi
+  test -x "${ROBOCLAWS_ISAACLAB_PYTHON:-}"
+  "$ROBOCLAWS_ISAACLAB_PYTHON" - <<'PY'
+import importlib.metadata
+import json
+import os
+import subprocess
+
+import torch
+
+assert torch.cuda.is_available(), "CloudML Isaac worker did not expose a CUDA device"
+versions = {
+    "isaac_sim": importlib.metadata.version("isaacsim"),
+    "isaac_lab": importlib.metadata.version("isaaclab"),
+    "torch": torch.__version__,
+    "cuda": torch.version.cuda,
+}
+assert all(value and value != "unknown" for value in versions.values())
+gpu = torch.cuda.get_device_name(0)
+driver = subprocess.check_output(
+    ["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"], text=True
+).strip()
+print(json.dumps({"runtime": versions, "gpu": gpu, "driver": driver, "eula": True}, sort_keys=True))
+PY
+elif [[ "$ROBOCLAWS_CLOUDML_WORKER_POOL" == "cloudml-r49" ]]; then
   test -x .venv-visual-grounding/bin/python
   .venv-visual-grounding/bin/python - <<'PY'
 import os
