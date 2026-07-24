@@ -91,6 +91,7 @@ def test_isaac_image_command_exports_frozen_contract_and_asset_group() -> None:
 
     assert "ROBOCLAWS_CLOUDML_ISAAC_EULA_ACCEPTED=true" in command
     assert "OMNI_KIT_ACCEPT_EULA=YES" in command
+    assert "ROBOCLAWS_ISAACLAB_PYTHON=/isaac-sim/python.sh" in command
     assert f"ROBOCLAWS_CLOUDML_ISAAC_PROOF_CONTRACT_SHA256={'d' * 64}" in command
     assert "ROBOCLAWS_CLOUDML_ISAAC_ASSET_GROUP=generated-smoke" in command
     assert (

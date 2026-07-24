@@ -156,7 +156,7 @@ def image_command(shard: dict[str, Any], *, identity: dict[str, str]) -> str:
     elif shard["worker_pool"] == "cloudml-r49-isaac":
         values["OMNI_KIT_ACCEPT_EULA"] = "YES"
         values["ROBOCLAWS_CLOUDML_ISAAC_EULA_ACCEPTED"] = "true"
-        values["ROBOCLAWS_ISAACLAB_PYTHON"] = "/opt/roboclaws/.venv-isaaclab/bin/python"
+        values["ROBOCLAWS_ISAACLAB_PYTHON"] = "/isaac-sim/python.sh"
         values["VISUAL_GROUNDING_DEVICE"] = "cuda"
         values["VISUAL_GROUNDING_TORCH_DTYPE"] = "auto"
         values["ROBOCLAWS_CLOUDML_ISAAC_PROOF_CONTRACT_SHA256"] = str(

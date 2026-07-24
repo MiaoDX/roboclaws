@@ -265,7 +265,12 @@ ln -sfn /opt/roboclaws/.venv .venv
 if [[ -x /opt/roboclaws/.venv-visual-grounding/bin/python ]]; then
   ln -sfn /opt/roboclaws/.venv-visual-grounding .venv-visual-grounding
 fi
-uv pip install \
+uv_runner=(uv)
+if [[ "$ROBOCLAWS_CLOUDML_WORKER_POOL" == "cloudml-r49-isaac" ]]; then
+  test -x "${ROBOCLAWS_ISAACLAB_PYTHON:-}"
+  uv_runner=("$ROBOCLAWS_ISAACLAB_PYTHON" -m uv)
+fi
+"${uv_runner[@]}" pip install \
   --python /opt/roboclaws/.venv/bin/python \
   --no-build-isolation \
   --no-deps \

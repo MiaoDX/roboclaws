@@ -1372,6 +1372,8 @@ def test_eval_image_contains_cloudml_worker_entrypoint() -> None:
     assert 'verify_sha256 "$contract_path"' in worker
     assert 'source_path="$asset_dir/roboclaws/$relative"' in worker
     assert 'ln -s "$source_path" "$target_path"' in worker
+    assert 'uv_runner=("$ROBOCLAWS_ISAACLAB_PYTHON" -m uv)' in worker
+    assert '"${uv_runner[@]}" pip install' in worker
     assert "EVAL_IMAGE_VARIANT" in dockerfile
     assert dockerfile.index("RUN uv sync --extra dev") < dockerfile.index("ARG EVAL_IMAGE_VARIANT")
     assert "--extra cuda --frozen" in dockerfile
