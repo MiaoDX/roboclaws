@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-07-24
+Last updated: 2026-07-25
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -72,13 +72,14 @@ for plan/diff-driven verification recommendations.
 ## Current Blockers
 
 - No current human blocker for deterministic MapBuild quality-gate work.
-- The opt-in CloudML B1/Isaac digital-twin proof is stopped at Stage A by inconsistent r49 host
-  graphics injection. Sampling reached three RTX 4090 tasks on driver `580.105.08`, but that host
-  group omits `libGLX_nvidia.so.0` and `libnvidia-glvkspirv.so.580.105.08` from the container even
-  with `NVIDIA_DRIVER_CAPABILITIES=all`; RTX fails at `vkCreateInstance` with
-  `ERROR_INCOMPATIBLE_DRIVER`. The `570.124.06` groups inject those libraries but remain inside
-  Isaac Sim 6.0's rejected driver range. CloudML needs one r49 group with both a compatible driver
-  and complete graphics libraries. No new EULA or per-attempt test approval is required. See
+- The opt-in CloudML B1/Isaac digital-twin proof remains stopped before Stage A acceptance. The
+  pinned Isaac image now carries an exact `580.105.08` NVIDIA Vulkan userspace overlay and selects
+  native libraries for exact `570.124.06`; local RTX/Vulkan smoke and both selector branches pass.
+  A bounded 2026-07-25 CloudML sampling wave used 28 one-GPU tasks plus 8-GPU and 4-GPU placement
+  diagnostics, but the scheduler exposed only driver-570 hosts `slave564`, `slave565`, `slave574`,
+  and `slave589`. Those tasks correctly failed before Isaac startup. A normal one-GPU Stage A must
+  still land on the known `580.105.08` host group and pass before Stage B/C can run. No new EULA or
+  per-attempt test approval is required. See
   `docs/status/active/cloudml-isaac-digital-twin-proof.md`.
 - No current implementation blocker for deterministic or OpenAI Agents SDK smoke
   eval work when using a provider route available on the current network.

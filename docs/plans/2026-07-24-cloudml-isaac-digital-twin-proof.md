@@ -424,6 +424,17 @@ Local proof and publication completed 2026-07-24:
   selected bindings resolved, RTX rendering was real, and all FPV/chase/topdown/verify images were
   present, nonblank, and manually inspected.
 
+Driver-matched image refresh completed 2026-07-25:
+
+- The image now copies the TheLastFoot-proven exact `580.105.08` Vulkan userspace overlay from
+  immutable source digest `sha256:2d90ff0525fda7b3980ef8094f3eb432bcb2b1efed8c9bf4b531c0608561bdcb`.
+  Runtime selection keeps exact `570.124.06` on native injected libraries, activates the overlay
+  only for exact `580.105.08`, sets both Vulkan ICD override variables, and rejects unknown or mixed
+  versions.
+- Local network-disabled RTX smoke passed on RTX 3090 driver `570.211.01`. The refreshed immutable
+  image is
+  `micr.cloud.mioffice.cn/cc-proxy/miuniverse-staging:roboclaws-eval-isaac-vulkan580-4b483e4e-20260725@sha256:6f6c1f9b4a0af8e2725e6842c3906d8ce31b0bb43f221bdd158c13157f7ab3ce`.
+
 Exit: immutable image digest plus offline smoke artifacts. Stop if the supported image cannot run
 on the target CloudML driver contract.
 
@@ -495,6 +506,25 @@ Fourth Stage A attempt evidence:
   weakening renderer evidence, or advancing to Stage B would violate the acceptance contract.
 - Collection recovered one failed row plus its marker, stdout/stderr, generated USD, and init log
   under the run-owned `isaac-stage-a-d618ea4a` output. No Stage A receipt was created.
+
+Driver-matched placement sampling on 2026-07-25:
+
+- Commit `1e1c7cd303214ffaf7f70c63309f1fe15a4ddf9d` produced code archive SHA
+  `9e6f4126e89d3dfce68ed20888b21b261cd3706c7592e28abdf5da375fc366fc` and proof-contract SHA
+  `4d59a8b4fb43543413bec3754fd7eb04b9a244c3ccb82892da33e45133739c96`. The reviewed YAML used the
+  refreshed image digest, one guaranteed r49 GPU, no preemption, no automatic retry, and the 580
+  gate.
+- Twenty-eight one-GPU attempts covered `slave564` (10 tasks), `slave565` (12), and `slave574` (6).
+  An eight-GPU placement diagnostic covered `slave589`; two four-GPU diagnostics covered
+  `slave565`. All 31 tasks reported driver `570.124.06`, used native libraries, had
+  `retryTimes=0`, and stopped before Isaac startup. The multi-GPU diagnostics are placement
+  evidence only and cannot satisfy Stage A acceptance. Representative IDs are one-GPU
+  `t-20260725003836-df1h0`, eight-GPU `t-20260725005104-rxnzc`, and four-GPU
+  `t-20260725005314-y1pox` / `t-20260725005455-ay4e4`.
+- No current task reached the known `580.105.08` host group, so the overlay branch has not yet run
+  in this Roboclaws image on CloudML. Stage A remains unaccepted and Stage B/C remain ungenerated
+  and unsubmitted. The current blocker is compatible-host scheduling availability, not the prior
+  inability to package the missing graphics userspace libraries.
 
 - Present the measured registry/storage bytes, per-stage timeout, maximum GPU-hours, and current
   capacity before approval. An approval must explicitly name image publication and either Stage A
