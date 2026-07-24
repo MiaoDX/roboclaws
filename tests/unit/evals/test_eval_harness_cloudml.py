@@ -425,8 +425,10 @@ def test_cloudml_isaac_stage_dry_run_is_deterministic(
     assert shard["isaac_proof_contract_sha256"] in command
     assert shard["isaac_asset_group"] in command
     assert "ROBOCLAWS_CLOUDML_ISAAC_EULA_ACCEPTED=true" in command
+    assert "timeout --signal=TERM --kill-after=60s 7800s bash" in command
     assert "/home/" not in command
     assert "preemptible" in task and task["preemptible"] is False
+    assert task["retryConfig"]["enableRetry"] is False
 
 
 def test_catalog_keeps_cloudml_isaac_rows_opt_in(tmp_path: Path) -> None:

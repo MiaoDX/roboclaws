@@ -24,7 +24,11 @@
     "eula_accepted": true,
     "eula_authorization": "explicit_user_acceptance_2026-07-24",
     "offline_smoke_required": true,
-    "publication_status": "not_authorized"
+    "publication_status": "published",
+    "published_image": "micr.cloud.mioffice.cn/cc-proxy/miuniverse-staging:roboclaws-eval-isaac-e7e78a1e-20260724@sha256:ce373d74339b1fd8687954a4d0585b531e37c0c80e6b80cd0ddb692267dd1831",
+    "published_tag": "micr.cloud.mioffice.cn/cc-proxy/miuniverse-staging:roboclaws-eval-isaac-e7e78a1e-20260724",
+    "published_digest": "sha256:ce373d74339b1fd8687954a4d0585b531e37c0c80e6b80cd0ddb692267dd1831",
+    "published_local_image_id": "sha256:ce373d74339b1fd8687954a4d0585b531e37c0c80e6b80cd0ddb692267dd1831"
   },
   "resource": {
     "queue_id": "11759",
@@ -35,7 +39,7 @@
     "minimum_gpu_memory_bytes": 25769803776,
     "minimum_host_memory_bytes": 68719476736,
     "minimum_scratch_bytes": 107374182400,
-    "provider_capacity_status": "unverified_cml_cli_unavailable"
+    "provider_capacity_status": "verified_2026-07-24_r49_free_104_of_176"
   },
   "local_measurements": {
     "isaac_runtime_bytes": 24450865576,

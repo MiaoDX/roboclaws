@@ -93,6 +93,11 @@ def write_cml_task_yaml(
         "priority": 5,
         "preemptible": bool(shard.get("preemptible")),
         "framework": "pytorch",
+        "retryConfig": {
+            "enableRetry": False,
+            "maxRetryTimes": 1,
+            "policySets": ["JobFailed"],
+        },
         "resourceConfigs": [
             {
                 "nodeRole": "worker",
@@ -114,6 +119,7 @@ def write_cml_task_yaml(
 
 
 def image_command(shard: dict[str, Any], *, identity: dict[str, str]) -> str:
+    timeout_s = int(shard.get("timeout_s") or 3600)
     values = {
         "ROBOCLAWS_CLOUDML_CODE_COMMIT": identity["code_commit"],
         "ROBOCLAWS_CLOUDML_CODE_ARCHIVE": f"{CODE_MOUNT}/{identity['code_archive_name']}",
@@ -172,7 +178,9 @@ def image_command(shard: dict[str, Any], *, identity: dict[str, str]) -> str:
         f"rm -rf {bootstrap_root}; mkdir -p {bootstrap_root}; "
         f"tar -xzf {code_archive} -C {bootstrap_root}; "
         "set +e; "
-        f"bash {bootstrap_root}/roboclaws.git/scripts/dev/run_cloudml_eval_worker.sh; "
+        "timeout --signal=TERM --kill-after=60s "
+        f"{timeout_s}s bash "
+        f"{bootstrap_root}/roboclaws.git/scripts/dev/run_cloudml_eval_worker.sh; "
         "worker_exit=$?; set -e; "
         f"test -d {scratch_path}; mkdir -p /tmp/roboclaws-cloudml {remote_path}/markers; "
         f"tar -cf {archive_tmp} -C {scratch_path} .; "

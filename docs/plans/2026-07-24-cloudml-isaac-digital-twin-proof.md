@@ -18,13 +18,14 @@ B1/Isaac proof; it does not supersede either one.
   `docs/plans/2026-07-23-household-mcp-capability-backend-unification.md`
 - Child plans: none
 - Last updated: 2026-07-24
-- Current slice: Phase 0 and Phase 2 implementation are complete. Phase 1 now has a pinned local
-  image and a passing network-disabled RTX/DINO smoke on an RTX 3090.
-- Next action: publish the proven image only after separate publication approval, then request a
-  separately bounded paid r49 approval for Stage A. NVIDIA EULA acceptance is durable and must not
+- Current slice: Phase 0-2 implementation is complete. The pinned image is published by digest,
+  current queue `11759` r49 capacity is verified, and the eval harness now emits explicit
+  non-retry tasks with the frozen stage timeout plus collector allowance.
+- Next action: generate, inspect, submit, collect, and strictly accept Stage A. Continue to B and C
+  only after the immediately prior receipt passes.
+- Blocked on: no current pre-submit blocker. Any failed stage, retry, resource/cost/scope change,
+  or unavailable CloudML dependency is a stop gate. NVIDIA EULA acceptance is durable and must not
   be requested again.
-- Blocked on: registry publication approval, followed separately by paid r49 Stage A approval.
-  NVIDIA EULA acceptance is recorded and is not a blocker.
 - Do not touch from this session: MolmoSpaces+Isaac, digital-twin cleanup, Agibot hardware,
   physical movement, provider selection, eval scoring policy, or unrelated CloudML hybrid work.
 
@@ -402,12 +403,12 @@ Exit: deterministic manifests and commands can be reviewed without local absolut
   the image with network disabled after build.
 - Pin and record the resulting registry digest.
 
-Local proof completed 2026-07-24:
+Local proof and publication completed 2026-07-24:
 
 - `roboclaws-eval:isaac-local` has local immutable image ID
-  `sha256:a5dab3a2bd7350334d644e1cea70cadf96203da01a64b754abfb98de5e58217e` and size
-  `22042441547` bytes. A registry digest remains intentionally unavailable until publication is
-  separately approved.
+  `sha256:ce373d74339b1fd8687954a4d0585b531e37c0c80e6b80cd0ddb692267dd1831` and size
+  `22042441664` bytes. The published immutable reference is
+  `micr.cloud.mioffice.cn/cc-proxy/miuniverse-staging:roboclaws-eval-isaac-e7e78a1e-20260724@sha256:ce373d74339b1fd8687954a4d0585b531e37c0c80e6b80cd0ddb692267dd1831`.
 - The `--network none` GPU smoke passed on an RTX 3090 with Isaac Sim `6.0.0`, Isaac Sim build
   `6.0.0-rc.59+release.41464.5f2772bc.gl`, Isaac Lab `6.1.14`, Torch `2.10.0+cu128`, and CUDA
   `12.8`.
@@ -431,6 +432,9 @@ Exit: deterministic tests pass and the reviewed YAML references only pinned code
 commands, and run-owned output paths.
 
 ### Phase 3: Cost-Gated CloudML Proof
+
+Publication and the bounded non-preemptible A/B/C ladder were approved on 2026-07-24 with a
+maximum of 2 GPU-hours per stage and 6 GPU-hours total. This approval excludes retries.
 
 - Present the measured registry/storage bytes, per-stage timeout, maximum GPU-hours, and current
   capacity before approval. An approval must explicitly name image publication and either Stage A
