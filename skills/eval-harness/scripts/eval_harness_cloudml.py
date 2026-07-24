@@ -291,6 +291,8 @@ def _submit_shard(
     dry_run: bool,
 ) -> None:
     platform_image_url, image_digest = cloudml_task.split_image_reference(image_url)
+    shard["platform_image_url"] = platform_image_url
+    shard["image_digest"] = image_digest
     previous_attempt = {
         key: shard[key]
         for key in ("task_id", "job_id", "console_url", "submitted_at", "remote_status")
@@ -299,7 +301,7 @@ def _submit_shard(
     yaml_path = cloudml_task.write_cml_task_yaml(
         shard,
         plan=plan,
-        image_url=image_url,
+        image_url=platform_image_url,
         identity=identity,
         run_input_subpath=run_input_subpath,
         asset_subpath=asset_subpath,
@@ -323,8 +325,6 @@ def _submit_shard(
         payload = _parse_cml_submit_output(result.stdout, stderr=result.stderr)
     shard["executor_argv"] = argv
     shard["image_url"] = image_url
-    shard["platform_image_url"] = platform_image_url
-    shard["image_digest"] = image_digest
     shard["dry_run"] = bool(payload.get("dry_run", dry_run))
     shard["yaml_path"] = str(payload.get("yaml_path") or shard["yaml_path"])
     if dry_run:

@@ -64,6 +64,9 @@ payload = {
     "asset_manifest_sha256": os.environ.get(
         "ROBOCLAWS_CLOUDML_ASSET_MANIFEST_SHA256", ""
     ),
+    "expected_image_digest": os.environ.get(
+        "ROBOCLAWS_CLOUDML_EXPECTED_IMAGE_DIGEST", ""
+    ),
     "isaac_proof_contract_sha256": os.environ.get(
         "ROBOCLAWS_CLOUDML_ISAAC_PROOF_CONTRACT_SHA256", ""
     ),

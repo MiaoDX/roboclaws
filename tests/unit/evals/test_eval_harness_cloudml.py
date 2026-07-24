@@ -749,7 +749,11 @@ def test_executor_dry_run_uses_current_target_pinned_inputs_and_safe_mounts(
     assert plan["shards"][0]["image_url"] == image
     assert plan["shards"][0]["image_digest"] == image.rsplit("@", 1)[1]
     task_yaml = json.loads(Path(plan["shards"][0]["yaml_path"]).read_text(encoding="utf-8"))
-    assert task_yaml["imageConfig"]["imageUrl"] == image
+    assert task_yaml["imageConfig"]["imageUrl"] == image.rsplit("@", 1)[0]
+    assert (
+        f"ROBOCLAWS_CLOUDML_EXPECTED_IMAGE_DIGEST={image.rsplit('@', 1)[1]}"
+        in (task_yaml["imageConfig"]["imageCommand"])
+    )
     assert task_yaml["preemptible"] is False
     mounts = task_yaml["juiceFsMountConfigs"]
     assert mounts[0]["readOnly"] is True
@@ -808,7 +812,7 @@ def test_executor_submits_canonical_cml_yaml(
     assert calls[0][calls[0].index("--filename") + 1] == shard["yaml_path"]
     assert shard["task_id"] == "task-official"
     task_yaml = json.loads(Path(shard["yaml_path"]).read_text(encoding="utf-8"))
-    assert task_yaml["imageConfig"]["imageUrl"] == _image_urls()["cloudml-cpu"]
+    assert task_yaml["imageConfig"]["imageUrl"] == _image_urls()["cloudml-cpu"].split("@")[0]
     assert task_yaml["juiceFsMountConfigs"][0]["readOnly"] is True
     assert task_yaml["juiceFsMountConfigs"][1]["mountPath"] == "/mnt/cloudml/assets"
     assert task_yaml["juiceFsMountConfigs"][2]["mountPath"] == "/mnt/cloudml/code"

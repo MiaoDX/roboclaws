@@ -138,6 +138,8 @@ def image_command(shard: dict[str, Any], *, identity: dict[str, str]) -> str:
         values["ROBOCLAWS_CLOUDML_PROVIDER_ENV_FILE"] = (
             f"{PROVIDER_ENV_MOUNT}/{PROVIDER_ENV_FILENAME}"
         )
+    if shard.get("image_digest"):
+        values["ROBOCLAWS_CLOUDML_EXPECTED_IMAGE_DIGEST"] = str(shard["image_digest"])
     if shard["worker_pool"] in {"cloudml-cpu-mujoco", "cloudml-r49", "cloudml-r49-isaac"}:
         values["ROBOCLAWS_CLOUDML_ASSET_ARCHIVE"] = (
             f"{ASSET_MOUNT}/{identity['asset_archive_name']}"
