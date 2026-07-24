@@ -334,6 +334,7 @@ class HouseholdRuntimeContract:
             static_landmarks_from_fixture_projection(self.static_fixture_projection()),
             start_waypoint_id=start_waypoint_id,
             goal_waypoint_id=waypoint_id,
+            occupancy_grid=self._bundle_occupancy_grid,
         )
         if not route.ok:
             return self._error(

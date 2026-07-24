@@ -4,7 +4,7 @@ from collections import deque
 from dataclasses import dataclass
 from typing import Any
 
-from roboclaws.maps.rasterize import occupancy_grid_from_metric_map, world_to_grid
+from roboclaws.maps.rasterize import OccupancyGrid, occupancy_grid_from_metric_map, world_to_grid
 
 SIM_COSTMAP_PLANNER = "sim_costmap_planner"
 
@@ -40,6 +40,7 @@ def validate_metric_map_route(
     *,
     start_waypoint_id: str,
     goal_waypoint_id: str,
+    occupancy_grid: OccupancyGrid | None = None,
 ) -> StaticRouteResult:
     waypoints = {
         str(item.get("waypoint_id") or ""): item
@@ -64,7 +65,7 @@ def validate_metric_map_route(
             goal_waypoint_id=goal_waypoint_id,
         )
 
-    grid = occupancy_grid_from_metric_map(metric_map, static_landmarks)
+    grid = occupancy_grid or occupancy_grid_from_metric_map(metric_map, static_landmarks)
     start_cell = world_to_grid(float(start.get("x", 0.0)), float(start.get("y", 0.0)), grid)
     goal_cell = world_to_grid(float(goal.get("x", 0.0)), float(goal.get("y", 0.0)), grid)
     if not grid.is_free_cell(*start_cell):

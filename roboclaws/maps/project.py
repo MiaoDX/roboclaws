@@ -10,7 +10,7 @@ from roboclaws.maps.bundle import (
     parse_map_yaml,
     validate_nav2_map_bundle,
 )
-from roboclaws.maps.rasterize import load_pgm
+from roboclaws.maps.rasterize import OccupancyGrid, load_pgm
 from roboclaws.maps.spatial_contract import (
     ALIGNMENT_STATUS_NATIVE,
     GEOMETRY_SOURCE_OPERATOR_NAVIGATION_ZONE,
@@ -32,13 +32,7 @@ def metric_map_from_bundle(
     map_yaml = parse_map_yaml((bundle_dir / "map.yaml").read_text(encoding="utf-8"))
     resolution = float(map_yaml.get("resolution") or DEFAULT_COSTMAP_PARAMETERS["resolution_m"])
     origin = map_yaml.get("origin") if isinstance(map_yaml.get("origin"), list) else [0.0, 0.0, 0.0]
-    image_path = bundle_dir / str(map_yaml.get("image") or "map.pgm")
-    grid = load_pgm(
-        image_path,
-        resolution_m=resolution,
-        origin_x=float(origin[0] if len(origin) > 0 else 0.0),
-        origin_y=float(origin[1] if len(origin) > 1 else 0.0),
-    )
+    grid = _load_bundle_occupancy_grid(bundle_dir, map_yaml)
     map_id = str(semantics.get("map_id") or bundle_dir.name)
     map_version = str(semantics.get("map_version") or "base-metric-map-v1")
     frame_id = _source_map_frame_id(semantics)
@@ -107,6 +101,26 @@ def static_landmarks_from_bundle(bundle_dir: Path) -> list[dict[str, Any]]:
     return [
         dict(item) for item in semantics.get("static_landmarks") or [] if isinstance(item, dict)
     ]
+
+
+def occupancy_grid_from_bundle(bundle_dir: Path) -> OccupancyGrid:
+    _validate_projection_source_bundle(bundle_dir)
+    map_yaml = parse_map_yaml((bundle_dir / "map.yaml").read_text(encoding="utf-8"))
+    return _load_bundle_occupancy_grid(bundle_dir, map_yaml)
+
+
+def _load_bundle_occupancy_grid(
+    bundle_dir: Path,
+    map_yaml: dict[str, Any],
+) -> OccupancyGrid:
+    resolution = float(map_yaml.get("resolution") or DEFAULT_COSTMAP_PARAMETERS["resolution_m"])
+    origin = map_yaml.get("origin") if isinstance(map_yaml.get("origin"), list) else [0.0, 0.0]
+    return load_pgm(
+        bundle_dir / str(map_yaml.get("image") or "map.pgm"),
+        resolution_m=resolution,
+        origin_x=float(origin[0] if len(origin) > 0 else 0.0),
+        origin_y=float(origin[1] if len(origin) > 1 else 0.0),
+    )
 
 
 def _waypoint_pose(waypoint: dict[str, Any]) -> dict[str, float]:
