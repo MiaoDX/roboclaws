@@ -87,7 +87,7 @@
       "row_kind": "product_run",
       "command": [
         "just", "harness::isaac-runtime-smoke",
-        "runtime_python=/opt/roboclaws/.venv-isaaclab/bin/python",
+        "runtime_python=/isaac-sim/python.sh",
         "output_dir={row_dir}/cloudml-isaac-runtime-smoke/run"
       ],
       "axes": {"intent": "isaac-runtime-smoke", "backend": "isaaclab"},
@@ -103,7 +103,7 @@
       "row_kind": "product_run",
       "command": [
         "just", "harness::b1-map12-navigation-smoke",
-        "runtime_python=/opt/roboclaws/.venv-isaaclab/bin/python",
+        "runtime_python=/isaac-sim/python.sh",
         "output_dir={row_dir}/cloudml-b1-map12-navigation-smoke/run"
       ],
       "axes": {"intent": "navigation-smoke", "world": "b1-map12", "backend": "isaaclab"},

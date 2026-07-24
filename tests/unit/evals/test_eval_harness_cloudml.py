@@ -440,6 +440,13 @@ def test_catalog_keeps_cloudml_isaac_rows_opt_in(tmp_path: Path) -> None:
     assert all("simulator:isaaclab" in row["execution_requirements"] for row in isaac_rows)
     assert all("renderer:rtx" in row["execution_requirements"] for row in isaac_rows)
     assert all(not row["depends_on"] for row in isaac_rows)
+    assert "runtime_python=/isaac-sim/python.sh" in isaac_rows[0]["command"]
+    assert "runtime_python=/isaac-sim/python.sh" in isaac_rows[1]["command"]
+    assert all(
+        "/opt/roboclaws/.venv-isaaclab/bin/python" not in argument
+        for row in isaac_rows
+        for argument in row["command"]
+    )
 
 
 def test_cloudml_image_command_bootstraps_worker_from_pinned_code_archive() -> None:
