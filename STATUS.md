@@ -72,6 +72,10 @@ for plan/diff-driven verification recommendations.
 ## Current Blockers
 
 - No current human blocker for deterministic MapBuild quality-gate work.
+- The opt-in CloudML B1/Isaac digital-twin proof is stopped at Stage A: the approved r49 host uses
+  NVIDIA driver `570.124.06`, which Isaac Sim 6.0 rejects for RTX rendering. Resume on compatible
+  r49 capacity with driver `>=570.158.01` (preferably `580.95.05`); no new EULA or per-attempt test
+  approval is required. See `docs/status/active/cloudml-isaac-digital-twin-proof.md`.
 - No current implementation blocker for deterministic or OpenAI Agents SDK smoke
   eval work when using a provider route available on the current network.
 - Agibot hardware validation is deferred by operator request, and the discovery service at

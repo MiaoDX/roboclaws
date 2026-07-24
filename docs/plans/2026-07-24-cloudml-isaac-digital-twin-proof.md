@@ -18,17 +18,18 @@ B1/Isaac proof; it does not supersede either one.
   `docs/plans/2026-07-23-household-mcp-capability-backend-unification.md`
 - Child plans: none
 - Last updated: 2026-07-24
-- Current slice: Phase 0-2 implementation is complete. Three distinct Stage A CloudML tasks failed
-  without platform retry. The first two exposed manifest and Python/`uv` bootstrap defects; those
-  fixes are committed. `t-20260724213659-xkdpj` then passed code installation and the full
-  CUDA/Isaac runtime preflight before an unrelated eager session-live import required missing `mcp`.
-  The import is now lazy locally; Stage B/C were not generated or submitted.
-- Next action: verify and commit the lazy import, generate a fresh code archive and dry-run, then
-  submit and strictly accept a new Stage A attempt before any Stage B work.
-- Blocked on: no current human gate. Repo-scoped CloudML repair/retry attempts are authorized while
-  the frozen workspace, queue/resource class, concurrency, and cost envelope remain unchanged. The
-  failed task remains recorded with `retryTimes=0`; NVIDIA EULA acceptance is durable and must not
-  be requested again.
+- Current slice: Phase 0-2 implementation is complete. Four distinct Stage A CloudML tasks failed
+  without platform retry. The first three exposed and resolved manifest, Python/`uv`, and optional
+  dependency bootstrap defects. `t-20260724214533-lik6i` reached the real RTX smoke and proved the
+  remaining blocker is CloudML's incompatible NVIDIA driver. Stage B/C were not generated or
+  submitted.
+- Next action: CloudML must expose the approved r49 resource with driver `>=570.158.01`, preferably
+  NVIDIA's recommended `580.95.05`. Recheck with a fresh Stage A attempt and strictly accept it
+  before any Stage B work.
+- Blocked on: external CloudML host-driver state, not human authorization. Repo-scoped CloudML
+  repair/retry attempts remain authorized while the frozen workspace, queue/resource class,
+  concurrency, and cost envelope remain unchanged. Every failed task has `retryTimes=0`; NVIDIA
+  EULA acceptance is durable and must not be requested again.
 - Do not touch from this session: MolmoSpaces+Isaac, digital-twin cleanup, Agibot hardware,
   physical movement, provider selection, eval scoring policy, or unrelated CloudML hybrid work.
 
@@ -477,6 +478,21 @@ Third Stage A attempt evidence:
   session-live, operator-console, and then optional `mcp`. The CLI now imports session-live only
   when that mode is selected, keeping the Stage A runtime surface independent of that optional
   product stack.
+
+Fourth Stage A attempt evidence:
+
+- Task `t-20260724214533-lik6i` used the same queue/resource/retry posture, code commit
+  `d618ea4a7a2f52e3710f117520e62a9c2564d9a9`, and expected image digest. It ran for 62 seconds
+  and wrote a terminal marker with `exit_code=1` and complete input identity.
+- Code installation and runtime preflight passed. The selected row ran for 27.099 seconds on RTX
+  4090 with driver `570.124.06`, CUDA `12.8`, Isaac Sim `6.0.0`, Isaac Lab `6.1.14`, and Torch
+  `2.10.0+cu128`, then reached real RTX renderer initialization.
+- Isaac reported that Linux R570 drivers in `[570.00, 570.158.01)` are unsupported and recommended
+  `580.95.05`. RTX scene-renderer creation failed, followed by Warp CUDA error 700 while loading
+  `isaaclab.sensors.kernels`. This is an external host-driver incompatibility; disabling the check,
+  weakening renderer evidence, or advancing to Stage B would violate the acceptance contract.
+- Collection recovered one failed row plus its marker, stdout/stderr, generated USD, and init log
+  under the run-owned `isaac-stage-a-d618ea4a` output. No Stage A receipt was created.
 
 - Present the measured registry/storage bytes, per-stage timeout, maximum GPU-hours, and current
   capacity before approval. An approval must explicitly name image publication and either Stage A
