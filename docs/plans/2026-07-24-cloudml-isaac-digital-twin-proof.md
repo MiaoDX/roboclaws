@@ -1,4 +1,4 @@
-**Status:** Implementation active; external image/live gates not authorized
+**Status:** BLOCKED_NEEDS_DECISION at NVIDIA EULA gate
 **Created:** 2026-07-24
 **Last reviewed:** 2026-07-24
 **Current implementation contract:** Add a dedicated CloudML Isaac Lab capability and image,
@@ -11,7 +11,7 @@ B1/Isaac proof; it does not supersede either one.
 
 ## Plan Ledger
 
-- Plan status: ACTIVE
+- Plan status: BLOCKED_NEEDS_DECISION
 - Session scope: cloudml-isaac-digital-twin-proof
 - Parent plans:
   `docs/plans/2026-06-18-cloudml-juicefs-eval.md` and
@@ -20,8 +20,8 @@ B1/Isaac proof; it does not supersede either one.
 - Last updated: 2026-07-24
 - Current slice: Phase 0 contract and deterministic asset packager plus Phase 2 placement,
   provenance, stage rows, receipt gates, and synthetic dry-run coverage are implemented.
-- Next action: obtain explicit NVIDIA EULA authorization before Phase 1 image acquisition/build;
-  image publication and every paid r49 stage remain separate later approvals.
+- Next action owner: human. Explicitly authorize or decline NVIDIA EULA acceptance for Phase 1
+  image acquisition/build. This does not authorize image publication or any paid r49 task.
 - Blocked on: no planning blocker. NVIDIA image acquisition or runtime execution requires explicit
   EULA authorization. Registry publication and each paid r49 submission require a separately
   scoped cost approval.

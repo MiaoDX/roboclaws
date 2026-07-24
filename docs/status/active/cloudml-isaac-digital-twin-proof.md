@@ -1,6 +1,6 @@
 # CloudML Isaac Digital-Twin Proof
 
-Status: ACTIVE
+Status: BLOCKED
 
 Source plan: `docs/plans/2026-07-24-cloudml-isaac-digital-twin-proof.md`
 
@@ -20,9 +20,12 @@ match the CPU or generic DINO pools, never inherit preemptible submission, rejec
 stage-mismatched content manifest, carry the frozen-contract digest, and B/C reject absent or
 invalid receipts.
 
-Next slice: implement the deterministic Isaac asset-packaging helper, including portable USD
-closure/path validation and per-file/archive hashes, then generate the three dry-run fixtures. The
-CloudML capacity query is still pending because `cml` is not installed on this host.
+Next slice: after explicit NVIDIA EULA authorization, implement and offline-prove the pinned Isaac
+image. Image publication and each paid r49 stage require their own later approvals. The CloudML
+capacity query is also pending because `cml` is not installed on this host.
+
+Blocker fingerprint: `external_approval:nvidia_eula`; Phase 1 image acquisition/build and runtime
+smoke require an explicit EULA decision that the implementation-contract approval did not grant.
 
 Stop condition: do not acquire/build the NVIDIA image without explicit EULA authorization; do not
 publish an image or submit any paid r49 task without separately scoped approval.
