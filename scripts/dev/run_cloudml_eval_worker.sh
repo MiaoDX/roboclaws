@@ -302,6 +302,16 @@ if [[ "$ROBOCLAWS_CLOUDML_WORKER_POOL" == "cloudml-r49-isaac" ]]; then
   isaac_gpu="$(nvidia-smi --query-gpu=name --format=csv,noheader | head -n 1 | xargs)"
   isaac_driver="$(nvidia-smi --query-gpu=driver_version --format=csv,noheader | head -n 1 | xargs)"
   echo "cloudml isaac host: hostname=${HOSTNAME:-unknown} gpu=$isaac_gpu driver=$isaac_driver"
+  echo "cloudml isaac graphics env: capabilities=${NVIDIA_DRIVER_CAPABILITIES:-unset} vk_driver_files=${VK_DRIVER_FILES:-unset}"
+  echo "cloudml isaac graphics devices:"
+  find /dev -maxdepth 1 -name 'nvidia*' -printf '%f %m %u:%g %y\n' 2>/dev/null | sort || true
+  echo "cloudml isaac graphics libraries:"
+  ldconfig -p 2>/dev/null \
+    | awk '/libGLX_nvidia|libnvidia-glvkspirv|libvulkan\.so/{print}' \
+    | sort || true
+  echo "cloudml isaac vulkan icds:"
+  find /etc/vulkan/icd.d /usr/share/vulkan/icd.d -maxdepth 1 -type f -name '*.json' \
+    -print 2>/dev/null | sort || true
   if [[ -n "${ROBOCLAWS_CLOUDML_ISAAC_REQUIRED_DRIVER_SERIES:-}" && \
         "$isaac_driver" != "${ROBOCLAWS_CLOUDML_ISAAC_REQUIRED_DRIVER_SERIES}."* ]]; then
     echo "error: Isaac CloudML worker requires NVIDIA driver series ${ROBOCLAWS_CLOUDML_ISAAC_REQUIRED_DRIVER_SERIES}.*, got $isaac_driver" >&2

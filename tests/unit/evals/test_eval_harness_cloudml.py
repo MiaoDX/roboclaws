@@ -1384,6 +1384,9 @@ def test_eval_image_contains_cloudml_worker_entrypoint() -> None:
     assert 'uv_runner=("$ROBOCLAWS_ISAACLAB_PYTHON" -m uv)' in worker
     assert "nvidia-smi --query-gpu=driver_version" in worker
     assert '"$isaac_driver" != "${ROBOCLAWS_CLOUDML_ISAAC_REQUIRED_DRIVER_SERIES}."*' in worker
+    assert "cloudml isaac graphics devices:" in worker
+    assert "/libGLX_nvidia|libnvidia-glvkspirv|libvulkan\\.so/" in worker
+    assert "cloudml isaac vulkan icds:" in worker
     assert '"${uv_runner[@]}" pip install' in worker
     assert "EVAL_IMAGE_VARIANT" in dockerfile
     assert dockerfile.index("RUN uv sync --extra dev") < dockerfile.index("ARG EVAL_IMAGE_VARIANT")
