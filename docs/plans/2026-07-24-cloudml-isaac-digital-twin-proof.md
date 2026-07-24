@@ -22,11 +22,12 @@ B1/Isaac proof; it does not supersede either one.
   `t-20260724210310-e8v58` failed before GPU/runtime preflight because the worker used the legacy
   cleanup-manifest filename instead of the staged Isaac manifest filename. The content-identity fix
   is implemented and locally verified; Stage B/C were not generated or submitted.
-- Next action: after separately approving a new Stage A attempt, generate a fresh code archive and
-  dry-run from the fix commit, then submit and strictly accept Stage A before any Stage B work.
-- Blocked on: explicit authorization for one new Stage A task. The approved ladder excluded retries,
-  and the failed task remains recorded with `retryTimes=0`. NVIDIA EULA acceptance is durable and
-  must not be requested again.
+- Next action: generate a fresh code archive and dry-run from the fix commit, then submit and
+  strictly accept a new Stage A attempt before any Stage B work.
+- Blocked on: no current human gate. Repo-scoped CloudML repair/retry attempts are authorized while
+  the frozen workspace, queue/resource class, concurrency, and cost envelope remain unchanged. The
+  failed task remains recorded with `retryTimes=0`; NVIDIA EULA acceptance is durable and must not
+  be requested again.
 - Do not touch from this session: MolmoSpaces+Isaac, digital-twin cleanup, Agibot hardware,
   physical movement, provider selection, eval scoring policy, or unrelated CloudML hybrid work.
 
@@ -95,9 +96,10 @@ Acceptance:
   waypoints, 25/25 DINO observations, 100 real robot-view images, Base and Runtime Metric Maps, and
   1.0 sweep coverage; every attempt has complete task/image/code/asset/host/runtime provenance;
   CPU MuJoCo, generic r49 DINO, and existing baseline profiles do not regress.
-- BLOCKED_NEEDS_DECISION: NVIDIA EULA acceptance is resolved and persistent. Still stop before
-  image publication; each bounded paid r49 envelope; any Isaac/DINO sidecar boundary; retry after
-  failure; repeat Stage C; or any entity-budget expansion trigger.
+- BLOCKED_NEEDS_DECISION: NVIDIA EULA acceptance is resolved and persistent. Stop before any
+  material workspace/resource/cost-envelope expansion, Isaac/DINO sidecar boundary, repeat Stage C
+  for promotion, or other entity-budget expansion trigger. In-scope proof attempts do not require
+  per-attempt approval.
 - BLOCKED_NEEDS_LOCAL_VALIDATION: image/offline smoke cannot run on a compatible local GPU/Docker
   runtime, or required Stage A/B/C CloudML evidence is unavailable due to capacity, registry,
   JuiceFS, disk/RAM, driver, runtime, assets, or an unapproved external gate. The implementation is
@@ -124,24 +126,25 @@ Verification:
 - product-run: exercise
   `just run::surface surface=household-world world=b1-map12 backend=isaaclab preset=map-build agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=grounding-dino`
   in the pinned image and require the frozen strict local checker contract before Stage C submit.
-- local-live-manual: after separate approvals, run the offline image RTX/DINO smoke, then CloudML
+- local-live-manual: within the documented workspace/resource/cost envelope, run the offline image
+  RTX/DINO smoke, then CloudML
   Stage A, collect/check its receipt, Stage B, collect/check its receipt, and Stage C on
   non-preemptible queue `11759` r49 tasks; inspect nonblank image/report artifacts and measured
-  resource/cost provenance. These gates are intentionally unavailable during preflight because no
-  image publication or paid-task authorization has been granted. The EULA gate is resolved.
+  resource/cost provenance. The EULA gate is resolved.
 - optional: with separate approval, repeat Stage C on a fresh host before maintained-product or
   preemptible promotion; a Stage A repeat proves runtime portability only.
 
 Execution: main=root supervisor implementing Phase 0-2 first, preserving the shared dirty worktree,
-running deterministic/dry-run gates, and stopping at every approval or live-proof boundary;
+running deterministic/dry-run gates, and stopping at material scope/resource/cost boundaries;
 worker=none; worker-goal=none.
 
 To execute: `/goal execute docs/plans/2026-07-24-cloudml-isaac-digital-twin-proof.md with intuitive-flow`
 
 Optional tracking: none.
 
-Approval: NVIDIA EULA acceptance is already explicit and durable. Publication, paid r49 tasks,
-retries, sidecar expansion, and repeat/promotion remain separate gates.
+Approval: NVIDIA EULA acceptance is already explicit and durable. In-scope publication, paid r49
+proof tasks, and repair/retry attempts follow the repo live-verification policy without separate
+per-attempt gates. Sidecar expansion and repeat/promotion remain separate gates.
 
 # CloudML Isaac Digital-Twin Proof
 
@@ -435,7 +438,9 @@ commands, and run-owned output paths.
 ### Phase 3: Cost-Gated CloudML Proof
 
 Publication and the bounded non-preemptible A/B/C ladder were approved on 2026-07-24 with a
-maximum of 2 GPU-hours per stage and 6 GPU-hours total. This approval excludes retries.
+maximum of 2 GPU-hours per stage and 6 GPU-hours total. A later repo-level instruction authorizes
+in-scope repair/retry attempts without per-attempt confirmation while this envelope and resource
+shape remain unchanged; automatic retry remains disabled and every retry keeps a distinct task ID.
 
 First Stage A attempt evidence:
 
@@ -585,9 +590,9 @@ Exact filenames may narrow during preflight, but ownership should remain:
 ## Recommended Execution Route
 
 After approval of the preflight contract above, execute the whole plan through `$intuitive-flow`.
-Execution starts at Phase 0 and stops at each applicable publication, paid-task, retry,
-sidecar-expansion, or repeat-run boundary with the measured cost envelope. NVIDIA EULA acceptance
-is already recorded and does not create another stop.
+Execution starts at Phase 0 and stops at each material workspace/resource/cost expansion,
+sidecar-expansion, or repeat/promotion boundary. In-scope attempts proceed without per-attempt
+approval. NVIDIA EULA acceptance is already recorded and does not create another stop.
 
 ## Planning-Loop Resolution
 

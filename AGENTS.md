@@ -108,6 +108,16 @@ Live verification policy:
   preflight, or availability proof by default. Do not skip required live proof
   merely because it may use external providers, cost money, or take longer than
   deterministic tests.
+- A human request to complete a repo-scoped live, eval, simulator, or CloudML
+  verification authorizes the in-scope image publication, task submission,
+  monitoring, collection, task stop, and repair/retry attempts needed to finish
+  it. Do not pause for per-stage or per-attempt approval while the workspace,
+  provider, queue/resource class, maximum concurrency, and documented cost
+  envelope remain unchanged. Keep automatic retry disabled unless the test
+  contract explicitly requires it, and record each agent-initiated retry as a
+  new attempt. Ask before a material scope/cost/resource expansion, credential
+  change, destructive deletion, or publication of durable baseline/catalog
+  artifacts.
 - If a live proof is required but cannot run, prove the blocker with the
   repo's guarded preflight/status command output, such as
   `just dev::network-status`, provider readiness, missing credentials, occupied
