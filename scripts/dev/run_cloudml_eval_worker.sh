@@ -299,6 +299,14 @@ if [[ "$ROBOCLAWS_CLOUDML_WORKER_POOL" == "cloudml-r49-isaac" ]]; then
     exit 2
   fi
   test -x "${ROBOCLAWS_ISAACLAB_PYTHON:-}"
+  isaac_gpu="$(nvidia-smi --query-gpu=name --format=csv,noheader | head -n 1 | xargs)"
+  isaac_driver="$(nvidia-smi --query-gpu=driver_version --format=csv,noheader | head -n 1 | xargs)"
+  echo "cloudml isaac host: hostname=${HOSTNAME:-unknown} gpu=$isaac_gpu driver=$isaac_driver"
+  if [[ -n "${ROBOCLAWS_CLOUDML_ISAAC_REQUIRED_DRIVER_SERIES:-}" && \
+        "$isaac_driver" != "${ROBOCLAWS_CLOUDML_ISAAC_REQUIRED_DRIVER_SERIES}."* ]]; then
+    echo "error: Isaac CloudML worker requires NVIDIA driver series ${ROBOCLAWS_CLOUDML_ISAAC_REQUIRED_DRIVER_SERIES}.*, got $isaac_driver" >&2
+    exit 3
+  fi
   "$ROBOCLAWS_ISAACLAB_PYTHON" - <<'PY'
 import importlib.metadata
 import json

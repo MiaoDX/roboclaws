@@ -397,6 +397,7 @@ def test_cloudml_isaac_stage_dry_run_is_deterministic(
     executor.chmod(0o755)
     monkeypatch.setenv("ROBOCLAWS_CLOUDML_ASSET_MANIFEST", str(asset_manifest))
     monkeypatch.setenv("ROBOCLAWS_CLOUDML_ISAAC_IMAGE_URL", _image_urls()["cloudml-r49-isaac"])
+    monkeypatch.setenv("ROBOCLAWS_CLOUDML_ISAAC_REQUIRED_DRIVER_SERIES", "580")
     monkeypatch.setenv("ROBOCLAWS_EXECUTOR_PATH", str(executor))
     if prior_stage:
         receipt = tmp_path / "prior-receipt.json"
@@ -425,6 +426,7 @@ def test_cloudml_isaac_stage_dry_run_is_deterministic(
     assert shard["isaac_proof_contract_sha256"] in command
     assert shard["isaac_asset_group"] in command
     assert "ROBOCLAWS_CLOUDML_ISAAC_EULA_ACCEPTED=true" in command
+    assert "ROBOCLAWS_CLOUDML_ISAAC_REQUIRED_DRIVER_SERIES=580" in command
     assert "timeout --signal=TERM --kill-after=60s 7800s bash" in command
     assert "/home/" not in command
     assert "preemptible" in task and task["preemptible"] is False
@@ -1380,6 +1382,8 @@ def test_eval_image_contains_cloudml_worker_entrypoint() -> None:
     assert 'source_path="$asset_dir/roboclaws/$relative"' in worker
     assert 'ln -s "$source_path" "$target_path"' in worker
     assert 'uv_runner=("$ROBOCLAWS_ISAACLAB_PYTHON" -m uv)' in worker
+    assert "nvidia-smi --query-gpu=driver_version" in worker
+    assert '"$isaac_driver" != "${ROBOCLAWS_CLOUDML_ISAAC_REQUIRED_DRIVER_SERIES}."*' in worker
     assert '"${uv_runner[@]}" pip install' in worker
     assert "EVAL_IMAGE_VARIANT" in dockerfile
     assert dockerfile.index("RUN uv sync --extra dev") < dockerfile.index("ARG EVAL_IMAGE_VARIANT")

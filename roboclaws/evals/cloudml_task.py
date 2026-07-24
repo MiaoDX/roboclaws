@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shlex
 import urllib.parse
@@ -17,6 +18,7 @@ PROVIDER_ENV_MOUNT = "/mnt/cloudml/provider-env"
 PROVIDER_ENV_FILENAME = "provider.env"
 CLOUDML_VOLUME = "robot-intelligent-planning-data"
 CLOUDML_CLUSTER = "wlcb-cloudml"
+ISAAC_REQUIRED_DRIVER_SERIES_ENV = "ROBOCLAWS_CLOUDML_ISAAC_REQUIRED_DRIVER_SERIES"
 
 
 def juicefs_url(subpath: str) -> str:
@@ -163,6 +165,13 @@ def image_command(shard: dict[str, Any], *, identity: dict[str, str]) -> str:
             shard["isaac_proof_contract_sha256"]
         )
         values["ROBOCLAWS_CLOUDML_ISAAC_ASSET_GROUP"] = str(shard["isaac_asset_group"])
+        required_driver_series = os.environ.get(ISAAC_REQUIRED_DRIVER_SERIES_ENV, "").strip()
+        if required_driver_series:
+            if not re.fullmatch(r"[0-9]{3}", required_driver_series):
+                raise ValueError(
+                    f"{ISAAC_REQUIRED_DRIVER_SERIES_ENV} must be a three-digit driver series"
+                )
+            values[ISAAC_REQUIRED_DRIVER_SERIES_ENV] = required_driver_series
     exports = " ".join(f"{key}={shlex.quote(value)}" for key, value in values.items())
     bootstrap = ""
     if shard.get("provider_env_keys"):
