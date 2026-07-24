@@ -26,10 +26,10 @@
     "eula_authorization": "explicit_user_acceptance_2026-07-24",
     "offline_smoke_required": true,
     "publication_status": "published",
-    "published_image": "micr.cloud.mioffice.cn/cc-proxy/miuniverse-staging:roboclaws-eval-isaac-e7e78a1e-20260724@sha256:ce373d74339b1fd8687954a4d0585b531e37c0c80e6b80cd0ddb692267dd1831",
-    "published_tag": "micr.cloud.mioffice.cn/cc-proxy/miuniverse-staging:roboclaws-eval-isaac-e7e78a1e-20260724",
-    "published_digest": "sha256:ce373d74339b1fd8687954a4d0585b531e37c0c80e6b80cd0ddb692267dd1831",
-    "published_local_image_id": "sha256:ce373d74339b1fd8687954a4d0585b531e37c0c80e6b80cd0ddb692267dd1831"
+    "published_image": "micr.cloud.mioffice.cn/cc-proxy/miuniverse-staging:roboclaws-eval-isaac-vulkan580-4b483e4e-20260725@sha256:6f6c1f9b4a0af8e2725e6842c3906d8ce31b0bb43f221bdd158c13157f7ab3ce",
+    "published_tag": "micr.cloud.mioffice.cn/cc-proxy/miuniverse-staging:roboclaws-eval-isaac-vulkan580-4b483e4e-20260725",
+    "published_digest": "sha256:6f6c1f9b4a0af8e2725e6842c3906d8ce31b0bb43f221bdd158c13157f7ab3ce",
+    "published_local_image_id": "sha256:6f6c1f9b4a0af8e2725e6842c3906d8ce31b0bb43f221bdd158c13157f7ab3ce"
   },
   "resource": {
     "queue_id": "11759",
