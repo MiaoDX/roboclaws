@@ -18,13 +18,13 @@ B1/Isaac proof; it does not supersede either one.
   `docs/plans/2026-07-23-household-mcp-capability-backend-unification.md`
 - Child plans: none
 - Last updated: 2026-07-24
-- Current slice: Phase 0-2 implementation is complete. Two distinct Stage A CloudML tasks failed
-  before GPU/runtime preflight. `t-20260724210310-e8v58` exposed the legacy manifest filename and
-  `t-20260724212407-tej6o` then exposed a bare-`uv` bootstrap call. The second review also found a
-  task-time Isaac Python override inconsistent with the image contract. Both bootstrap fixes are
-  implemented locally; Stage B/C were not generated or submitted.
-- Next action: verify and commit the bootstrap fixes, generate a fresh code archive and dry-run,
-  then submit and strictly accept a new Stage A attempt before any Stage B work.
+- Current slice: Phase 0-2 implementation is complete. Three distinct Stage A CloudML tasks failed
+  without platform retry. The first two exposed manifest and Python/`uv` bootstrap defects; those
+  fixes are committed. `t-20260724213659-xkdpj` then passed code installation and the full
+  CUDA/Isaac runtime preflight before an unrelated eager session-live import required missing `mcp`.
+  The import is now lazy locally; Stage B/C were not generated or submitted.
+- Next action: verify and commit the lazy import, generate a fresh code archive and dry-run, then
+  submit and strictly accept a new Stage A attempt before any Stage B work.
 - Blocked on: no current human gate. Repo-scoped CloudML repair/retry attempts are authorized while
   the frozen workspace, queue/resource class, concurrency, and cost envelope remain unchanged. The
   failed task remains recorded with `retryTimes=0`; NVIDIA EULA acceptance is durable and must not
@@ -465,6 +465,18 @@ Second Stage A attempt evidence:
   installs `uv` as a module of `/isaac-sim/python.sh`, not as a bare executable. The worker now uses
   that pinned module runner for the Isaac pool. Task generation also preserves the image's
   `/isaac-sim/python.sh` runtime contract instead of exporting a nonexistent venv Python path.
+
+Third Stage A attempt evidence:
+
+- Task `t-20260724213659-xkdpj` used the same queue/resource/retry posture, code commit
+  `ecbbe579e7bc95fd223ea0f2b4411fd8f20cdae9`, and expected image digest. It ran for 35 seconds
+  after the image pull and wrote a terminal marker with `exit_code=1` and complete input identity.
+- Code installation succeeded. Runtime preflight proved an RTX 4090, driver `570.124.06`, CUDA
+  `12.8`, Isaac Sim `6.0.0`, Isaac Lab `6.1.14`, Torch `2.10.0+cu128`, and EULA acceptance.
+- The selected smoke row did not start because importing the generic eval CLI eagerly imported
+  session-live, operator-console, and then optional `mcp`. The CLI now imports session-live only
+  when that mode is selected, keeping the Stage A runtime surface independent of that optional
+  product stack.
 
 - Present the measured registry/storage bytes, per-stage timeout, maximum GPU-hours, and current
   capacity before approval. An approval must explicitly name image publication and either Stage A

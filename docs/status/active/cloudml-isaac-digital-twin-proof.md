@@ -9,22 +9,25 @@ Control plane: root intuitive-flow session
 Latest intent: continue the bounded CloudML A/B/C proof. NVIDIA EULA acceptance is explicit and
 durable; continue without asking again.
 
-Current slice: two distinct Stage A tasks have failed before GPU/runtime preflight. The first,
+Current slice: three distinct Stage A tasks have failed without platform retry. The first,
 `t-20260724210310-e8v58`, exposed a legacy cleanup-manifest filename; its content-identity fix is
 committed. The second, `t-20260724212407-tej6o`, reached the correct manifest and then failed because
 the shared worker invoked a bare `uv` binary that the Isaac image does not expose. Review also found
 that task generation overrode the image's valid `/isaac-sim/python.sh` runtime with a nonexistent
-path. Both bootstrap defects are now fixed locally with focused contract coverage. Stage B/C were
-not generated or submitted.
+path. Those bootstrap defects are committed. The third, `t-20260724213659-xkdpj`, passed code
+installation and the full CUDA/Isaac runtime preflight, then failed because the generic eval CLI
+eagerly imported the unrelated session-live `mcp` dependency. That import is now lazy locally.
+Stage B/C were not generated or submitted.
 
-Last proof: the second task ran for 32 seconds on an approved guaranteed r49 host with no preemption
-or platform retry. Its failed marker recorded `exit_code=127` plus the expected image, code,
-contract, asset-group, and manifest identities; history logs identify line 268's `uv: command not
-found`. It produced no row result or acceptance receipt. The prior network-disabled RTX 3090 image
-smoke remains accepted.
+Last proof: the third task ran for 35 seconds after image pull on an approved guaranteed r49 host
+with no preemption or platform retry. It proved RTX 4090, driver `570.124.06`, CUDA `12.8`, Isaac Sim
+`6.0.0`, Isaac Lab `6.1.14`, Torch `2.10.0+cu128`, and durable EULA acceptance. Its failed marker
+recorded `exit_code=1` with the expected image, code, contract, asset-group, and manifest identities.
+It produced no row result or acceptance receipt because `mcp` was imported before the selected
+Isaac smoke row started.
 
-Next slice: verify and commit the Isaac bootstrap fix, create a fresh code archive and dry-run, then
-submit a new distinct Stage A attempt and accept it before Stage B.
+Next slice: verify and commit the lazy session-live import, create a fresh code archive and dry-run,
+then submit a new distinct Stage A attempt and accept it before Stage B.
 
 Stop condition: stop only on a material workspace/resource/cost/scope change or an external blocker
 that cannot be repaired inside the frozen ladder. In-scope repair/retry attempts no longer require
