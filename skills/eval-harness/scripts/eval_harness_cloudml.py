@@ -299,7 +299,7 @@ def _submit_shard(
     yaml_path = cloudml_task.write_cml_task_yaml(
         shard,
         plan=plan,
-        image_url=platform_image_url,
+        image_url=image_url,
         identity=identity,
         run_input_subpath=run_input_subpath,
         asset_subpath=asset_subpath,
