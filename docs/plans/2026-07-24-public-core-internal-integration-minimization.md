@@ -19,23 +19,27 @@ the private repository. It is not part of the sanitized public root commit.
 - Parent plans: none
 - Child plans: none
 - Last updated: 2026-07-25
-- Current slice: implementation, sanitized-candidate construction, deterministic verification,
-  package verification, and public MolmoSpaces/MuJoCo product proof are complete.
-- Next action: rebuild the final candidate from this documentation-aligned checkpoint, verify it,
-  and present its immutable evidence for human publication review. Run provider and optional-world
-  live gates only after their documented blockers clear.
+- Current slice: implementation, final sanitized-candidate construction, deterministic
+  verification, package verification, and public MolmoSpaces/MuJoCo product proof are complete.
+- Next action: present the immutable candidate evidence for human publication review. Do not
+  publish without explicit authorization. Run provider and optional-world live gates only after
+  their documented blockers clear.
 - Blocked on: network state is `unknown` because `ROBOCLAWS_WORK_NETWORK_PROBE_URL` is missing;
   Kimi and MiniMax configuration exists but live requests remain fail-closed; all three custom
   Responses variables are missing. Agibot and B1 injected dependency paths are missing, physical
   movement remains unauthorized, and strict Isaac preflight reports 17.0 GiB free against an
   80 GiB minimum plus unaccepted Omniverse EULA terms.
-- Latest proof: candidate `output/public-candidate/20260725-13/repo` is a one-root-commit,
-  no-remote public tree sourced from `3352bb74`; its public and exact internal-term scans,
-  `detect-secrets` baseline comparison, dependency sync, Ruff, complete standalone suite, package
-  build/membership scan, fresh wheel install/import/CLI smoke, and default MolmoSpaces/MuJoCo
-  direct-runner product path pass. Its final product artifacts contain no internal/retired terms,
-  personal source paths, or credential patterns. This candidate is an intermediate checkpoint;
-  the documentation-aligned final candidate is the next proof.
+- Latest proof: final candidate `output/public-candidate/20260725-14/repo` is a one-root-commit,
+  no-remote public tree (`source=e1d38ffa`, `candidate=a684d39a`, membership
+  `a63d736452765693abb683d6832ab49dadb3833992001a3aaf7b638b77f879d1`) with 1,048 source
+  blobs, two generated files, and one public MolmoSpaces gitlink. Public/internal-term scans,
+  exact `detect-secrets` baseline comparison, fresh `uv sync`, complete `ci-required`, package
+  build/membership and extracted-content scans, fresh wheel install/import/CLI smoke, and the
+  default MolmoSpaces/MuJoCo direct-runner product path pass. The final product run reports all
+  terminal success fields, coverage 1.0, and 5/5 exact placements; its artifacts contain no
+  internal/retired terms, personal source paths, or credential patterns. Package SHA-256 values
+  are `88356b34e8a5b7207da51423111ff5728182ba7d5f93d8c64a64af0abb3a97a5` (sdist) and
+  `da46514dd5ce801068809bef849999d124f1aecae2d08cd84ff515728e39e044` (wheel).
 - Do not touch from this plan: simulator/runtime NVIDIA dependencies, Isaac Lab EULA handling,
   unrelated product task semantics/scoring, or unrelated user changes.
 

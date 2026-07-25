@@ -10,16 +10,19 @@ Control plane: root intuitive-flow session / host goal
 Latest intent: execute the approved plan and commit coherent task-owned slices as needed. Public
 push, history rewriting, private asset redistribution, and physical movement remain unauthorized.
 
-Current slice: implementation and deterministic/public-simulation verification are complete.
-Publication and required live validation remain pending.
+Current slice: implementation, final public-candidate construction, and deterministic/public-
+simulation verification are complete. Publication and required live validation remain pending.
 
-Last proof: candidate `output/public-candidate/20260725-13/repo` is a one-root-commit, no-remote tree
-sourced from `3352bb74`, with 1,048 source blobs, two generated files, and only the pinned public
-MolmoSpaces gitlink. Public and internal-term scans, exact `detect-secrets` baseline comparison,
-`uv sync`, Ruff, the full candidate suite, package build/membership checks, fresh wheel install,
-installed import and CLI help pass. Its final default MolmoSpaces/MuJoCo direct run completed
-successfully and its artifacts passed the leakage scan. A documentation-aligned candidate rebuild
-is the next proof.
+Last proof: final candidate `output/public-candidate/20260725-14/repo` is a one-root-commit,
+no-remote tree (`source=e1d38ffa`, `candidate=a684d39a`, membership
+`a63d736452765693abb683d6832ab49dadb3833992001a3aaf7b638b77f879d1`) with 1,048 source
+blobs, two generated files, and only the pinned public MolmoSpaces gitlink. Public/internal-term
+scans, exact `detect-secrets` baseline comparison, fresh `uv sync`, complete `ci-required`, package
+build/membership and extracted-content scans, fresh wheel install/import/CLI smoke, and the final
+default MolmoSpaces/MuJoCo direct run pass. The run reports terminal success, coverage 1.0, 5/5
+exact placements, and a clean artifact leakage scan. Package SHA-256 values are
+`88356b34e8a5b7207da51423111ff5728182ba7d5f93d8c64a64af0abb3a97a5` (sdist) and
+`da46514dd5ce801068809bef849999d124f1aecae2d08cd84ff515728e39e044` (wheel).
 
 Completed batch: provider registry/runtime collapse to `custom-responses`, `minimax-responses`, and
 `kimi-openai-chat`; Router transport and MiMo/NVIDIA hosted-model deletion; benchmark/grid, health,
@@ -31,9 +34,8 @@ helper routes, OpenClaw NVIDIA/MiMo routes, and migrates eval samples to the fin
 The current checkpoint deletes the public CloudML lifecycle, staging, task, content-store, provider
 environment, and dedicated harness ownership; eval execution is now local-only.
 
-Next slice: rebuild and verify the final candidate from the documentation-aligned checkpoint, then
-present it and the blockers for human review. Do not publish without explicit authorization. Rerun
-live provider and optional-world gates only after their blockers clear.
+Next slice: present the candidate and blockers for human review. Do not publish without explicit
+authorization. Rerun live provider and optional-world gates only after their blockers clear.
 
 Next proof: Kimi, MiniMax, and custom Responses live health after network/configuration readiness;
 Agibot non-motion/hardware validation after the operator hold is lifted; strict B1/Isaac validation
