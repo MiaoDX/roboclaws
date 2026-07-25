@@ -39,14 +39,13 @@ def test_apple2apple_grid_axes_cover_requested_comparison(tmp_path: Path) -> Non
     assert grid["schema"] == GRID_SCHEMA
     assert grid["axes"]["prior_modes"] == ["online", "offline"]
     assert [item["route_id"] for item in grid["axes"]["agent_routes"]] == [
-        "agents-sdk-codex-router",
+        "agents-sdk-kimi",
     ]
     assert [item["lane_id"] for item in grid["axes"]["evidence_lanes"]] == [
         "camera-grounded-labels-grounding-dino",
-        "camera-raw-fpv",
     ]
     assert len(grid["setup_rows"]) == 1
-    assert len(grid["rows"]) == 4
+    assert len(grid["rows"]) == 2
 
     setup_command = grid["setup_rows"][0]["command"]
     assert setup_command[:8] == [
@@ -67,10 +66,10 @@ def test_apple2apple_grid_pins_provider_routes_and_perception(tmp_path: Path) ->
     grid = build_apple2apple_test_grid(output_dir=tmp_path / "grid", task="clean")
     rows = _rows_by_id(grid)
 
-    codex_dino = rows["online-agents-sdk-codex-router-camera-grounded-labels-grounding-dino"]
-    assert codex_dino["env"] == {"ROBOCLAWS_PROVIDER_PROFILE": "codex-router-responses"}
-    assert codex_dino["required_env"] == ["CODEX_BASE_URL", "CODEX_API_KEY"]
-    assert codex_dino["command"][:9] == [
+    kimi_dino = rows["online-agents-sdk-kimi-camera-grounded-labels-grounding-dino"]
+    assert kimi_dino["env"] == {"ROBOCLAWS_PROVIDER_PROFILE": "kimi-openai-chat"}
+    assert kimi_dino["required_env"] == ["KIMI_OPENAI_BASE_URL", "KIMI_API_KEY"]
+    assert kimi_dino["command"][:9] == [
         "just",
         "run::surface",
         "surface=household-world",
@@ -78,27 +77,14 @@ def test_apple2apple_grid_pins_provider_routes_and_perception(tmp_path: Path) ->
         "backend=mujoco",
         "intent=cleanup",
         "agent_engine=openai-agents-sdk",
-        "provider_profile=codex-router-responses",
+        "provider_profile=kimi-openai-chat",
         "evidence_lane=camera-grounded-labels",
     ]
-    assert "camera_labeler=grounding-dino" in codex_dino["command"]
-    assert not any(item.startswith("runtime_map_prior=") for item in codex_dino["command"])
+    assert "camera_labeler=grounding-dino" in kimi_dino["command"]
+    assert not any(item.startswith("runtime_map_prior=") for item in kimi_dino["command"])
 
-    offline_raw = rows["offline-agents-sdk-codex-router-camera-raw-fpv"]
-    assert offline_raw["env"] == {"ROBOCLAWS_PROVIDER_PROFILE": "codex-router-responses"}
-    assert offline_raw["command"][:9] == [
-        "just",
-        "run::surface",
-        "surface=household-world",
-        "world=molmospaces/val_0",
-        "backend=mujoco",
-        "intent=cleanup",
-        "agent_engine=openai-agents-sdk",
-        "provider_profile=codex-router-responses",
-        "evidence_lane=camera-raw-fpv",
-    ]
-    assert not any(item.startswith("camera_labeler=") for item in offline_raw["command"])
-    assert f"runtime_map_prior={RUNTIME_MAP_PRIOR_PLACEHOLDER}" in offline_raw["command"]
+    offline_dino = rows["offline-agents-sdk-kimi-camera-grounded-labels-grounding-dino"]
+    assert f"runtime_map_prior={RUNTIME_MAP_PRIOR_PLACEHOLDER}" in offline_dino["command"]
 
 
 def test_apple2apple_grid_cleanup_rows_resolve_through_launch_catalog(tmp_path: Path) -> None:
@@ -112,7 +98,7 @@ def test_apple2apple_grid_cleanup_rows_resolve_through_launch_catalog(tmp_path: 
         assert plan.surface == "household-world"
         assert plan.intent == "cleanup"
         assert plan.agent_engine == "openai-agents-sdk"
-        assert plan.provider_profile == "codex-router-responses"
+        assert plan.provider_profile == "kimi-openai-chat"
         assert plan.profile == axes["evidence_lane"]
 
 
@@ -127,10 +113,10 @@ def test_apple2apple_grid_accepts_explicit_offline_runtime_map_prior(tmp_path: P
 
     assert (
         f"runtime_map_prior={prior}"
-        in rows["offline-agents-sdk-codex-router-camera-grounded-labels-grounding-dino"]["command"]
+        in rows["offline-agents-sdk-kimi-camera-grounded-labels-grounding-dino"]["command"]
     )
     assert RUNTIME_MAP_PRIOR_PLACEHOLDER not in " ".join(
-        rows["offline-agents-sdk-codex-router-camera-grounded-labels-grounding-dino"]["command"]
+        rows["offline-agents-sdk-kimi-camera-grounded-labels-grounding-dino"]["command"]
     )
 
 
@@ -147,9 +133,8 @@ def test_apple2apple_grid_script_dry_run_writes_manifest_and_report(tmp_path: Pa
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["schema"] == GRID_SCHEMA
     assert {row["status"] for row in manifest["rows"]} == {"dry_run"}
-    assert (
-        "online-agents-sdk-codex-router-camera-grounded-labels-grounding-dino"
-        in report_path.read_text(encoding="utf-8")
+    assert "online-agents-sdk-kimi-camera-grounded-labels-grounding-dino" in report_path.read_text(
+        encoding="utf-8"
     )
 
 
@@ -158,13 +143,11 @@ def test_apple2apple_grid_filtered_execute_preserves_existing_rows(tmp_path: Pat
     output_dir = tmp_path / "grid"
     existing = build_apple2apple_test_grid(output_dir=output_dir, task="clean")
     existing_rows = _rows_by_id(existing)
-    preserved_row = existing_rows[
-        "offline-agents-sdk-codex-router-camera-grounded-labels-grounding-dino"
-    ]
+    preserved_row = existing_rows["offline-agents-sdk-kimi-camera-grounded-labels-grounding-dino"]
     preserved_row["status"] = "success"
     preserved_row["exit_status"] = 0
-    preserved_row["run_result_path"] = str(output_dir / "online-codex" / "run_result.json")
-    preserved_row["report_path"] = str(output_dir / "online-codex" / "report.html")
+    preserved_row["run_result_path"] = str(output_dir / "online-kimi" / "run_result.json")
+    preserved_row["report_path"] = str(output_dir / "online-kimi" / "report.html")
     write_grid_manifest(existing, output_dir)
 
     def fake_execute_row(row: dict, _args: argparse.Namespace) -> int:
@@ -182,7 +165,7 @@ def test_apple2apple_grid_filtered_execute_preserves_existing_rows(tmp_path: Pat
             "clean",
             "--execute",
             "--row",
-            "online-agents-sdk-codex-router-camera-raw-fpv",
+            "online-agents-sdk-kimi-camera-grounded-labels-grounding-dino",
         ]
     )
 
@@ -190,16 +173,13 @@ def test_apple2apple_grid_filtered_execute_preserves_existing_rows(tmp_path: Pat
     rows = _rows_by_id(manifest)
     assert status == 0
     assert (
-        rows["offline-agents-sdk-codex-router-camera-grounded-labels-grounding-dino"]["status"]
-        == "success"
+        rows["offline-agents-sdk-kimi-camera-grounded-labels-grounding-dino"]["status"] == "success"
     )
-    assert rows["offline-agents-sdk-codex-router-camera-grounded-labels-grounding-dino"][
+    assert rows["offline-agents-sdk-kimi-camera-grounded-labels-grounding-dino"][
         "run_result_path"
     ].endswith("run_result.json")
-    assert rows["online-agents-sdk-codex-router-camera-raw-fpv"]["status"] == "success"
-    assert (
-        rows["online-agents-sdk-codex-router-camera-grounded-labels-grounding-dino"]["status"]
-        == "not_selected"
+    assert rows["online-agents-sdk-kimi-camera-grounded-labels-grounding-dino"]["status"] == (
+        "success"
     )
 
 
@@ -223,7 +203,7 @@ def test_apple2apple_grid_filtered_execute_fails_on_malformed_existing_manifest(
                 "clean",
                 "--execute",
                 "--row",
-                "online-agents-sdk-codex-router-camera-raw-fpv",
+                "online-agents-sdk-kimi-camera-grounded-labels-grounding-dino",
             ]
         )
 
@@ -248,7 +228,7 @@ def test_apple2apple_grid_filtered_execute_fails_on_non_object_existing_manifest
                 "clean",
                 "--execute",
                 "--row",
-                "online-agents-sdk-codex-router-camera-raw-fpv",
+                "online-agents-sdk-kimi-camera-grounded-labels-grounding-dino",
             ]
         )
 

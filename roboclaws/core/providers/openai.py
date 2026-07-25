@@ -13,29 +13,9 @@ from roboclaws.core.provider_runtime import (
     _record_call_failure,
     _record_call_success,
     action_decision_from_fields,
-    fallback_action_decision,
-    parse_action_decision,
 )
 
 _IMPORT_ERROR = "openai and instructor packages required: pip install openai instructor"
-
-
-def _parse_mimo_message(message: Any) -> dict[str, str]:
-    tool_calls = getattr(message, "tool_calls", None) or []
-    if tool_calls:
-        raw_arguments = getattr(getattr(tool_calls[0], "function", None), "arguments", None)
-        try:
-            args = json.loads(raw_arguments)
-        except (json.JSONDecodeError, TypeError):
-            return fallback_action_decision(raw_arguments).to_dict()
-        if not isinstance(args, dict):
-            return fallback_action_decision(raw_arguments).to_dict()
-        reasoning = args.get("reasoning", getattr(message, "reasoning_content", "") or "")
-        action = args.get("action", "MoveAhead")
-        return action_decision_from_fields(reasoning, action).to_dict()
-    else:
-        content = message.content or ""
-        return parse_action_decision(content).to_dict()
 
 
 class _OpenAIBase:
@@ -153,67 +133,3 @@ class OpenAIProvider(_OpenAIBase):
         _record_call_success(self._status, duration_seconds=time.monotonic() - started)
         self._record_usage(response.usage)
         return action_decision_from_fields(result.reasoning, result.action).to_dict()
-
-
-class NvidiaProvider(OpenAIProvider):
-    def __init__(
-        self,
-        model: str = "meta/llama-4-maverick-17b-128e-instruct",
-        api_key: str | None = None,
-        max_tokens: int = 256,
-    ) -> None:
-        self._init_provider(
-            provider_name="nvidia",
-            model=model,
-            api_key_env="NVIDIA_API_KEY",
-            api_key=api_key,
-            max_tokens=max_tokens,
-            base_url="https://integrate.api.nvidia.com/v1",
-        )
-
-
-class MimoProvider(NvidiaProvider):
-    def __init__(
-        self,
-        model: str = "mimo-v2.5",
-        api_key: str | None = None,
-        max_tokens: int = 2048,
-    ) -> None:
-        self._raw_client = self._init_provider(
-            provider_name="mimo",
-            model=model,
-            api_key_env="MIMO_TP_KEY",
-            api_key=api_key,
-            max_tokens=max_tokens,
-            base_url="https://token-plan-cn.xiaomimimo.com/v1",
-            use_instructor=False,
-        )
-
-    def get_action(
-        self,
-        images: list[str],
-        state: dict[str, Any],
-    ) -> dict[str, Any]:
-        parameters = self._AgentAction.model_json_schema()
-        function_schema = {"name": "AgentAction", "parameters": parameters}
-        tool_schema = {"type": "function", "function": function_schema}
-        started = time.monotonic()
-        try:
-            response = self._raw_client.chat.completions.create(
-                model=self.model,
-                messages=self._messages_with_system(images, state),  # type: ignore[arg-type]
-                max_tokens=self._max_tokens,
-                tools=[tool_schema],
-                tool_choice={"type": "function", "function": {"name": "AgentAction"}},
-            )
-        except Exception as exc:
-            _record_call_failure(
-                self._status,
-                duration_seconds=time.monotonic() - started,
-                error=exc,
-            )
-            raise
-
-        _record_call_success(self._status, duration_seconds=time.monotonic() - started)
-        self._record_usage(response.usage)
-        return _parse_mimo_message(response.choices[0].message)

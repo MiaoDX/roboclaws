@@ -29,9 +29,11 @@ def test_provider_probe_defaults_cover_kimi_and_payload() -> None:
 
     probes = {probe.probe_id: probe for probe in script.build_provider_probes()}
 
-    assert probes["provider:mimo-tp-openai-chat"].max_tokens >= 128
-    assert probes["provider:mimo-inside-openai-chat"].model == "mimo-1000"
-    assert probes["provider:mimo-inside-openai-chat"].max_tokens >= 128
+    assert set(probes) == {
+        "provider:custom-responses",
+        "provider:minimax-responses-m3",
+        "provider:kimi-coding-chat",
+    }
     kimi = probes["provider:kimi-coding-chat"]
     payload = script.kimi_coding_payload(
         prompt="Health check. Reply exactly ok.",
@@ -53,10 +55,12 @@ def test_provider_probe_defaults_exclude_unavailable_official_openai_route() -> 
     assert all(probe.api_key_env != "OPENAI_API_KEY" for probe in probes.values())
 
 
-def test_codex_probes_apply_private_router_headers(monkeypatch) -> None:
+def test_custom_probes_do_not_apply_private_transport_headers(monkeypatch) -> None:
     script = _load_script_module()
     captured: dict[str, object] = {}
-    monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
+    monkeypatch.setenv("CUSTOM_RESPONSES_API_KEY", "fake-custom-key")
+    monkeypatch.setenv("CUSTOM_RESPONSES_BASE_URL", "https://custom.example/v1")
+    monkeypatch.setenv("CUSTOM_RESPONSES_MODEL", "opaque-model")
 
     class FakeModelSettings:
         def __init__(self, **_kwargs) -> None:
@@ -76,7 +80,8 @@ def test_codex_probes_apply_private_router_headers(monkeypatch) -> None:
             captured["async_client"] = kwargs
 
     class FakeResponsesModel:
-        def __init__(self, _model: str, *, openai_client: object) -> None:
+        def __init__(self, model: str, *, openai_client: object) -> None:
+            captured["request_model"] = model
             captured["model_client"] = openai_client
 
     class FakeResponses:
@@ -116,19 +121,53 @@ def test_codex_probes_apply_private_router_headers(monkeypatch) -> None:
     )
 
     agent_probe = {probe.probe_id: probe for probe in script.build_agent_sdk_probes()}[
-        "agents-sdk:codex-router-responses"
+        "agents-sdk:custom-responses"
     ]
     raw_probe = {probe.probe_id: probe for probe in script.build_provider_probes()}[
-        "provider:codex-router-responses"
+        "provider:custom-responses"
     ]
 
     assert script.run_probe(agent_probe, prompt="ok", timeout_s=1.0).status == "PASS"
     assert script.run_probe(raw_probe, prompt="ok", timeout_s=1.0).status == "PASS"
+    assert agent_probe.model == "custom"
+    assert raw_probe.model == "custom"
+    assert captured["request_model"] == "opaque-model"
     for client_key in ("async_client", "sync_client"):
-        window_id = captured[client_key]["default_headers"]["X-Codex-Window-Id"]
-        thread_id, generation = window_id.rsplit(":", 1)
-        assert len(thread_id) == 36
-        assert generation == "0"
+        assert "default_headers" not in captured[client_key]
+
+
+def test_custom_probe_results_redact_endpoint_key_and_request_model(monkeypatch) -> None:
+    script = _load_script_module()
+    canary_url = "https://private-route-canary.example/v1"
+    canary_key = "custom-key-canary-123456"
+    canary_model = "private-model-canary-654321"
+    monkeypatch.setenv("CUSTOM_RESPONSES_BASE_URL", canary_url)
+    monkeypatch.setenv("CUSTOM_RESPONSES_API_KEY", canary_key)
+    monkeypatch.setenv("CUSTOM_RESPONSES_MODEL", canary_model)
+    probe = {probe.probe_id: probe for probe in script.build_provider_probes()}[
+        "provider:custom-responses"
+    ]
+
+    monkeypatch.setattr(
+        script,
+        "_run_responses_probe",
+        lambda *_args, **_kwargs: f"ok {canary_url} {canary_key} {canary_model}",
+    )
+    passed = script.run_probe(probe, prompt="ok", timeout_s=1.0)
+    monkeypatch.setattr(
+        script,
+        "_run_responses_probe",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            RuntimeError(f"failed {canary_url} {canary_key} {canary_model}")
+        ),
+    )
+    failed = script.run_probe(probe, prompt="ok", timeout_s=1.0)
+
+    serialized = json.dumps([passed.__dict__, failed.__dict__])
+    assert passed.model == "custom"
+    assert failed.model == "custom"
+    for canary in (canary_url, canary_key, canary_model):
+        assert canary not in serialized
 
 
 def test_require_all_fails_on_skipped_probe(monkeypatch) -> None:
@@ -176,45 +215,9 @@ def test_agents_sdk_probe_defaults_use_larger_responses_budget() -> None:
     probes = {probe.probe_id: probe for probe in script.build_agent_sdk_probes()}
 
     assert probes["agents-sdk:minimax-responses"].max_tokens >= 256
-    assert probes["agents-sdk:codex-router-responses"].max_tokens >= 256
-    assert probes["agents-sdk:mimo-tp-openai-chat"].max_tokens >= 128
-    assert probes["agents-sdk:mimo-inside-openai-chat"].model == "mimo-1000"
-    assert probes["agents-sdk:mimo-inside-openai-chat"].max_tokens >= 128
+    assert probes["agents-sdk:custom-responses"].max_tokens >= 256
     assert probes["agents-sdk:kimi-openai-chat"].model == "kimi-k2.7-code"
     assert not probes["agents-sdk:kimi-openai-chat"].unsupported_reason
-
-
-def test_provider_chat_probe_sends_thinking_through_extra_body(monkeypatch) -> None:
-    script = _load_script_module()
-    captured: dict[str, object] = {}
-    monkeypatch.setenv("MIMO_TP_KEY", "fake-mimo-key")
-
-    class FakeCompletions:
-        @staticmethod
-        def create(**kwargs):
-            captured["kwargs"] = kwargs
-            message = type("Message", (), {"content": "ok"})()
-            choice = type("Choice", (), {"message": message})()
-            return type("Response", (), {"choices": [choice]})()
-
-    class FakeChat:
-        completions = FakeCompletions()
-
-    class FakeOpenAI:
-        def __init__(self, **kwargs) -> None:
-            captured["client"] = kwargs
-            self.chat = FakeChat()
-
-    monkeypatch.setitem(sys.modules, "openai", type("FakeOpenAIModule", (), {"OpenAI": FakeOpenAI}))
-    probe = {probe.probe_id: probe for probe in script.build_provider_probes()}[
-        "provider:mimo-tp-openai-chat"
-    ]
-
-    result = script.run_probe(probe, prompt="Health check. Reply exactly ok.", timeout_s=1.0)
-
-    assert result.status == "PASS"
-    assert captured["kwargs"]["extra_body"] == {"thinking": {"type": "enabled", "keep": "all"}}
-    assert "thinking" not in captured["kwargs"]
 
 
 def test_kimi_agents_sdk_probe_uses_coding_agent_user_agent_header(
@@ -383,8 +386,8 @@ def test_agents_sdk_public_profile_excludes_internal_routes() -> None:
     selected = script.select_probes(args)
 
     assert {probe.probe_id for probe in selected} == {
+        "agents-sdk:custom-responses",
         "agents-sdk:minimax-responses",
-        "agents-sdk:mimo-tp-openai-chat",
         "agents-sdk:kimi-openai-chat",
     }
     assert not any(

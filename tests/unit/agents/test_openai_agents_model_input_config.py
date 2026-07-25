@@ -46,8 +46,8 @@ def _perf_profile_args(**overrides: object) -> Namespace:
         None,
     )
     values.update(
-        provider_profile="codex-router-responses",
-        model="gpt-5.5",
+        provider_profile="kimi-openai-chat",
+        model="kimi-k2.7-code",
         agent_sdk_perf_profile="",
         continuation_mode="",
         model_thinking_mode="default",

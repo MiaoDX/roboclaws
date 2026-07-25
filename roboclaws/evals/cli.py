@@ -266,7 +266,7 @@ def _run_session_live_from_overrides(overrides: dict[str, str]):
     output_root = Path(values.pop("output_dir", str(DEFAULT_OUTPUT_ROOT)))
     stamp = values.pop("stamp", None)
     agent_engine = values.pop("agent_engine", "openai-agents-sdk")
-    provider_profile = values.pop("provider_profile", "codex-router-responses")
+    provider_profile = values.pop("provider_profile", "kimi-openai-chat")
     live_execution = values.pop("live_execution", "blocked")
     live_timeout_s = _optional_float(values.pop("live_timeout_s", None)) or 900.0
     if values:

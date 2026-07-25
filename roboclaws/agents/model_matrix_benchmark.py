@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 from roboclaws.agents.provider_registry import provider_route_spec, route_base_url
-from roboclaws.agents.provider_transport import provider_default_headers
 from roboclaws.agents.thinking_policy import thinking_request_body_for_wire
 
 WireApi = Literal["openai-chat", "openai-responses", "anthropic-messages"]
@@ -152,6 +151,7 @@ class MatrixCase:
     wire_api: WireApi
     api_key_env: str
     base_url: str
+    request_model: str = ""
     api_key_alt_env: str = ""
     headers: tuple[tuple[str, str], ...] = ()
     expected_support: str = "unknown"
@@ -228,13 +228,9 @@ class CaseResult:
 
 def default_cases() -> tuple[MatrixCase, ...]:
     return (
-        *_codex_env_cases(),
-        *_mify_cases(),
+        *_custom_cases(),
         *_minimax_cases(),
-        *_mimo_token_plan_cases(),
-        *_mimo_inside_cases(),
         *_kimi_cases(),
-        *_nvidia_cases(),
     )
 
 
@@ -263,62 +259,22 @@ def selected_agent_cases(*, case_ids: set[str]) -> tuple[AgentBenchmarkCase, ...
     )
 
 
-def _codex_env_cases() -> tuple[MatrixCase, ...]:
-    route = provider_route_spec("codex-router-responses")
+def _custom_cases() -> tuple[MatrixCase, ...]:
+    route = provider_route_spec("custom-responses")
     base_url = route_base_url(route)
-    model = route.default_model_id
+    model = os.environ.get("CUSTOM_RESPONSES_MODEL", "")
     return (
         MatrixCase(
-            case_id=f"codex-router-responses:{model}:responses",
-            provider_id="codex-router-responses",
-            provider_label="Codex router",
-            model=model,
+            case_id="custom-responses:custom:responses",
+            provider_id="custom-responses",
+            provider_label="Custom Responses",
+            model="custom",
+            request_model=model,
             wire_api="openai-responses",
             api_key_env=route.api_key_env or "",
             base_url=base_url,
             expected_support="native",
-        ),
-        MatrixCase(
-            case_id=f"codex-router-responses:{model}:chat",
-            provider_id="codex-router-responses",
-            provider_label="Codex router",
-            model=model,
-            wire_api="openai-chat",
-            api_key_env=route.api_key_env or "",
-            base_url=base_url,
-            expected_support="probe",
-        ),
-    )
-
-
-def _mify_cases() -> tuple[MatrixCase, ...]:
-    route = provider_route_spec("mimo-mify-responses")
-    anthropic_route = provider_route_spec("mimo-mify-anthropic")
-    base_url = route_base_url(route)
-    return (
-        *(
-            MatrixCase(
-                case_id=f"mimo-mify-responses:{_case_model_id(model)}:{wire}",
-                provider_id="mimo-mify-responses",
-                provider_label="MiMo mify",
-                model=model,
-                wire_api=wire,
-                api_key_env=route.api_key_env or "",
-                base_url=base_url,
-                expected_support="probe" if wire == "openai-chat" else "native",
-            )
-            for model in ("xiaomi/mimo-v2.5", "xiaomi/mimo-v2.5-pro")
-            for wire in ("openai-chat", "openai-responses")
-        ),
-        MatrixCase(
-            case_id="mimo-mify-responses:xiaomi-mimo-v2.5:anthropic",
-            provider_id="mimo-mify-responses",
-            provider_label="MiMo mify",
-            model="xiaomi/mimo-v2.5",
-            wire_api="anthropic-messages",
-            api_key_env=anthropic_route.api_key_env or "",
-            base_url=route_base_url(anthropic_route),
-            expected_support="native",
+            note="Opaque environment-configured model; report identity remains custom.",
         ),
     )
 
@@ -338,61 +294,6 @@ def _minimax_cases() -> tuple[MatrixCase, ...]:
             expected_support="native",
             note="Default MiniMax model; official route is multimodal and supports image input.",
         ),
-    )
-
-
-def _mimo_token_plan_cases() -> tuple[MatrixCase, ...]:
-    chat_route = provider_route_spec("mimo-tp-openai-chat")
-    anthropic_route = provider_route_spec("mimo-tp-anthropic")
-    return (
-        *(
-            MatrixCase(
-                case_id=f"mimo-token-plan:{model}:{wire}",
-                provider_id="mimo-token-plan",
-                provider_label="MiMo token plan",
-                model=model,
-                wire_api=wire,
-                api_key_env=chat_route.api_key_env or "",
-                base_url=route_base_url(chat_route),
-                expected_support="native" if wire == "openai-chat" else "probe",
-            )
-            for model in ("mimo-v2.5", "mimo-v2.5-pro")
-            for wire in ("openai-chat", "openai-responses")
-        ),
-        MatrixCase(
-            case_id="mimo-token-plan:mimo-v2.5:anthropic",
-            provider_id="mimo-token-plan",
-            provider_label="MiMo token plan",
-            model="mimo-v2.5",
-            wire_api="anthropic-messages",
-            api_key_env=anthropic_route.api_key_env or "",
-            base_url=route_base_url(anthropic_route),
-            expected_support="native",
-        ),
-    )
-
-
-def _mimo_inside_cases() -> tuple[MatrixCase, ...]:
-    route = provider_route_spec("mimo-inside-openai-chat")
-    base_url = route_base_url(route)
-    return tuple(
-        MatrixCase(
-            case_id=f"mimo-inside-openai-chat:{model}:{wire}",
-            provider_id="mimo-inside-openai-chat",
-            provider_label="MiMo inside",
-            model=model,
-            wire_api=wire,
-            api_key_env=route.api_key_env or "",
-            base_url=base_url,
-            expected_support="native" if wire == "openai-chat" else "probe",
-            note=(
-                "Default-enabled on-demand UltraSpeed route."
-                if model == "mimo-1000"
-                else "MiMo inside comparison row."
-            ),
-        )
-        for model in ("mimo-v2.5", "mimo-v2.5-pro", "mimo-1000")
-        for wire in ("openai-chat", "openai-responses")
     )
 
 
@@ -416,38 +317,6 @@ def _kimi_cases() -> tuple[MatrixCase, ...]:
             ),
         ),
     )
-
-
-def _nvidia_cases() -> tuple[MatrixCase, ...]:
-    base_url = os.environ.get("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
-    return (
-        MatrixCase(
-            case_id="nvidia:nemotron-nano-vl:chat",
-            provider_id="nvidia",
-            provider_label="NVIDIA",
-            model="nvidia/llama-3.1-nemotron-nano-vl-8b-v1",
-            wire_api="openai-chat",
-            api_key_env="NV_API_KEY",
-            api_key_alt_env="NVIDIA_API_KEY",
-            base_url=base_url,
-            expected_support="native",
-        ),
-        MatrixCase(
-            case_id="nvidia:nemotron-nano-vl:responses",
-            provider_id="nvidia",
-            provider_label="NVIDIA",
-            model="nvidia/llama-3.1-nemotron-nano-vl-8b-v1",
-            wire_api="openai-responses",
-            api_key_env="NV_API_KEY",
-            api_key_alt_env="NVIDIA_API_KEY",
-            base_url=base_url,
-            expected_support="probe",
-        ),
-    )
-
-
-def _case_model_id(model: str) -> str:
-    return model.replace("/", "-")
 
 
 class ModelMatrixStreamSourceError(ValueError):
@@ -515,14 +384,15 @@ def endpoint_url(base_url: str, wire_api: WireApi) -> str:
 
 
 def payload_for_case(case: MatrixCase, *, prompt: str, max_tokens: int) -> dict[str, Any]:
+    request_model = case.request_model or case.model
     if case.wire_api == "openai-chat":
         payload: dict[str, Any] = {
-            "model": case.model,
+            "model": request_model,
             "messages": [{"role": "user", "content": prompt}],
             "max_tokens": max_tokens,
             "stream": False,
         }
-        if case.provider_id == "kimi" and case.model.startswith("kimi-k2.7-code"):
+        if case.provider_id == "kimi" and request_model.startswith("kimi-k2.7-code"):
             payload.update(
                 thinking_request_body_for_wire(
                     provider_profile="kimi-openai-chat",
@@ -533,7 +403,7 @@ def payload_for_case(case: MatrixCase, *, prompt: str, max_tokens: int) -> dict[
         return payload
     if case.wire_api == "openai-responses":
         payload = {
-            "model": case.model,
+            "model": request_model,
             "input": prompt,
             "max_output_tokens": max_tokens,
             "stream": False,
@@ -547,7 +417,7 @@ def payload_for_case(case: MatrixCase, *, prompt: str, max_tokens: int) -> dict[
         )
         return payload
     return {
-        "model": case.model,
+        "model": request_model,
         "max_tokens": max_tokens,
         "messages": [{"role": "user", "content": prompt}],
     }
@@ -562,7 +432,6 @@ def headers_for_case(case: MatrixCase, *, api_key: str) -> dict[str, str]:
         headers["anthropic-version"] = "2023-06-01"
         headers["x-api-key"] = api_key
     headers.update(dict(case.headers))
-    headers.update(provider_default_headers(case.provider_id))
     return headers
 
 

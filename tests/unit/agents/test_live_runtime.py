@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import uuid
 from argparse import Namespace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -102,7 +101,7 @@ def test_live_agent_request_keeps_one_turn_policy_explicit(tmp_path: Path) -> No
 
 def test_openai_agents_default_model_settings_apply_provider_thinking_policy() -> None:
     responses = _default_sdk_model_settings_payload(
-        provider_profile="codex-router-responses",
+        provider_profile="minimax-responses",
         wire_api="responses",
         profile_id="baseline",
     )
@@ -111,24 +110,10 @@ def test_openai_agents_default_model_settings_apply_provider_thinking_policy() -
         wire_api="chat-completions",
         profile_id="baseline",
     )
-    mimo_inside_chat = _default_sdk_model_settings_payload(
-        provider_profile="mimo-inside-openai-chat",
-        wire_api="chat-completions",
-        profile_id="baseline",
-    )
-    disabled_chat = _default_sdk_model_settings_payload(
-        provider_profile="mimo-tp-openai-chat",
-        wire_api="chat-completions",
-        profile_id="baseline",
-        thinking_mode="disabled",
-    )
-
     assert responses["reasoning"] == {"effort": "medium"}
-    assert "truncation" not in responses
+    assert responses["truncation"] == "auto"
     assert "extra_body" not in kimi_chat
     assert kimi_chat["extra_headers"] == {"User-Agent": "claude-code/1.0.0"}
-    assert mimo_inside_chat["extra_body"]["thinking"] == {"type": "disabled"}
-    assert disabled_chat["extra_body"]["thinking"] == {"type": "disabled"}
 
 
 def test_live_agent_request_rejects_invalid_sdk_turn_budget(tmp_path: Path) -> None:
@@ -392,7 +377,7 @@ def test_openai_agents_runtime_classifies_model_service_retryability() -> None:
 
     non_retryable_messages = [
         "invalid api key 401",
-        "codex-router-responses requires CODEX_API_KEY",
+        "kimi-openai-chat requires KIMI_API_KEY",
         "Your input exceeds the context window",
         "tool failed while calling cleanup MCP",
     ]
@@ -441,9 +426,9 @@ def test_openai_agents_retrying_model_retries_transient_once(tmp_path: Path) -> 
         spans_path=spans_path,
         runtime_config={
             "runtime": "openai-agents-live",
-            "provider_profile": "codex-router-responses",
+            "provider_profile": "kimi-openai-chat",
             "wire_api": "responses",
-            "model": "gpt-5.5",
+            "model": "kimi-k2.7-code",
         },
     )
 
@@ -525,9 +510,9 @@ def test_openai_agents_retrying_model_reports_retry_exhaustion(tmp_path: Path) -
         spans_path=spans_path,
         runtime_config={
             "runtime": "openai-agents-live",
-            "provider_profile": "mimo-mify-responses",
+            "provider_profile": "minimax-responses",
             "wire_api": "responses",
-            "model": "xiaomi/mimo-v2.5",
+            "model": "MiniMax-M3",
         },
     )
 
@@ -555,8 +540,8 @@ def test_openai_agents_retrying_model_reports_retry_exhaustion(tmp_path: Path) -
     assert metrics["retry_exhausted"] is True
     assert metrics["failure_classes"] == {"provider_transient_failure": 2}
     assert metrics["provider_reasons"] == {"upstream_unavailable": 2}
-    assert metrics["attempted_models"] == ["xiaomi/mimo-v2.5"]
-    assert metrics["attempted_provider_profiles"] == ["mimo-mify-responses"]
+    assert metrics["attempted_models"] == ["MiniMax-M3"]
+    assert metrics["attempted_provider_profiles"] == ["minimax-responses"]
     assert metrics["attempted_wire_apis"] == ["responses"]
     racing_metrics = _model_racing_observability_metrics(tmp_path)
     assert racing_metrics["available"] is True
@@ -612,9 +597,9 @@ def test_openai_agents_retrying_model_zero_retry_still_records_observability(
         spans_path=tmp_path / "openai-agents-spans.jsonl",
         runtime_config={
             "runtime": "openai-agents-live",
-            "provider_profile": "mimo-mify-responses",
+            "provider_profile": "minimax-responses",
             "wire_api": "responses",
-            "model": "xiaomi/mimo-v2.5",
+            "model": "MiniMax-M3",
         },
     )
 
@@ -678,9 +663,9 @@ def test_openai_agents_retrying_model_races_get_response_and_cancels_loser(
         spans_path=spans_path,
         runtime_config={
             "runtime": "openai-agents-live",
-            "provider_profile": "mimo-mify-responses",
+            "provider_profile": "minimax-responses",
             "wire_api": "responses",
-            "model": "xiaomi/mimo-v2.5",
+            "model": "MiniMax-M3",
             "model_racing_observability": {
                 "schema": "agent_sdk_model_racing_observability_v1",
                 "enabled": True,
@@ -784,9 +769,9 @@ def test_openai_agents_retrying_model_racing_reports_all_arm_failures(
         spans_path=tmp_path / "openai-agents-spans.jsonl",
         runtime_config={
             "runtime": "openai-agents-live",
-            "provider_profile": "mimo-mify-responses",
+            "provider_profile": "minimax-responses",
             "wire_api": "responses",
-            "model": "xiaomi/mimo-v2.5",
+            "model": "MiniMax-M3",
             "model_racing_observability": {
                 "enabled": True,
                 "mode": "get_response_racing_v1",
@@ -867,9 +852,9 @@ def test_openai_agents_retrying_model_does_not_race_stream_response(
         spans_path=tmp_path / "openai-agents-spans.jsonl",
         runtime_config={
             "runtime": "openai-agents-live",
-            "provider_profile": "mimo-mify-responses",
+            "provider_profile": "minimax-responses",
             "wire_api": "responses",
-            "model": "xiaomi/mimo-v2.5",
+            "model": "MiniMax-M3",
             "model_racing_observability": {
                 "enabled": True,
                 "mode": "get_response_racing_v1",
@@ -931,7 +916,7 @@ def test_openai_agents_runtime_turn_completion_does_not_infer_cleanup_success(
     assert trace_payload["message"].startswith("OpenAI Agents SDK result captured")
 
 
-def test_openai_agents_runtime_defaults_to_codex_env_responses_profile(
+def test_openai_agents_runtime_uses_explicit_custom_responses_profile(
     tmp_path: Path, monkeypatch
 ) -> None:
     captured: dict[str, object] = {}
@@ -954,8 +939,9 @@ def test_openai_agents_runtime_defaults_to_codex_env_responses_profile(
             captured["base_url"] = base_url
             captured["default_headers"] = default_headers
 
-    monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
-    monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
+    monkeypatch.setenv("CUSTOM_RESPONSES_BASE_URL", "https://custom.example.test/v1")
+    monkeypatch.setenv("CUSTOM_RESPONSES_API_KEY", "fake-custom-key")
+    monkeypatch.setenv("CUSTOM_RESPONSES_MODEL", "opaque-model")
     monkeypatch.setattr(
         "roboclaws.agents.drivers.openai_agents_live._run_with_async_mcp_server",
         lambda *_args, **_kwargs: SimpleNamespace(final_output="done"),
@@ -995,23 +981,21 @@ def test_openai_agents_runtime_defaults_to_codex_env_responses_profile(
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
+        provider_profile="custom-responses",
     )
 
     OpenAIAgentsLiveRuntime().run(request)
 
-    assert captured["model"] == "gpt-5.6-sol"
-    assert captured["base_url"] == "https://codex.example.test/v1"
-    assert captured["api_key"] == "fake-codex-key"
-    window_id = captured["default_headers"]["X-Codex-Window-Id"]
-    thread_id, generation = window_id.rsplit(":", 1)
-    assert uuid.UUID(thread_id)
-    assert generation == "0"
+    assert captured["model"] == "opaque-model"
+    assert captured["base_url"] == "https://custom.example.test/v1"
+    assert captured["api_key"] == "fake-custom-key"
+    assert captured["default_headers"] is None
     wrapped_model = captured["agent_kwargs"]["model"]
     assert isinstance(wrapped_model, _RetryingModel)
     assert wrapped_model.base_model is captured["responses_model"]
     assert captured["agent_kwargs"]["model_settings"].tool_choice == "auto"
     assert captured["agent_kwargs"]["model_settings"].parallel_tool_calls is False
-    assert not hasattr(captured["agent_kwargs"]["model_settings"], "truncation")
+    assert captured["agent_kwargs"]["model_settings"].truncation == "auto"
     assert not hasattr(captured["agent_kwargs"]["model_settings"], "extra_headers")
     assert captured["runner_kwargs"]["run_config"].trace_include_sensitive_data is False
     assert captured["runner_kwargs"]["run_config"].workflow_name == "roboclaws-openai-agents-live"
@@ -1057,8 +1041,9 @@ def test_openai_agents_runtime_includes_skill_context_without_persisting_body(
         ) -> None:
             pass
 
-    monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
-    monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
+    monkeypatch.setenv("CUSTOM_RESPONSES_BASE_URL", "https://custom.example.test/v1")
+    monkeypatch.setenv("CUSTOM_RESPONSES_API_KEY", "fake-custom-key")
+    monkeypatch.setenv("CUSTOM_RESPONSES_MODEL", "opaque-model")
     monkeypatch.setattr(
         "roboclaws.agents.drivers.openai_agents_live._run_with_async_mcp_server",
         lambda *_args, **_kwargs: SimpleNamespace(final_output="done"),
@@ -1098,6 +1083,7 @@ def test_openai_agents_runtime_includes_skill_context_without_persisting_body(
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
+        provider_profile="custom-responses",
         metadata={
             "skill_context": {
                 "skill_name": "household-world",
@@ -1146,7 +1132,7 @@ def test_openai_agents_runtime_includes_skill_context_without_persisting_body(
     assert skill_text not in events_text
 
 
-def test_openai_agents_runtime_can_use_mimo_openai_chat_profile(
+def test_openai_agents_runtime_applies_kimi_chat_transport_contract(
     tmp_path: Path, monkeypatch
 ) -> None:
     captured: dict[str, object] = {}
@@ -1168,7 +1154,10 @@ def test_openai_agents_runtime_can_use_mimo_openai_chat_profile(
             captured["api_key"] = api_key
             captured["base_url"] = base_url
 
-    monkeypatch.setenv("MIMO_TP_KEY", "fake-mimo-key")
+    monkeypatch.setenv("KIMI_OPENAI_BASE_URL", "https://kimi.example.test/v1")
+    monkeypatch.setenv("KIMI_OPENAI_BASE_URL", "https://kimi.example.test/v1")
+    monkeypatch.setenv("KIMI_OPENAI_BASE_URL", "https://kimi.example.test/v1")
+    monkeypatch.setenv("KIMI_API_KEY", "fake-kimi-key")
     monkeypatch.setattr(
         "roboclaws.agents.drivers.openai_agents_live._run_with_async_mcp_server",
         lambda *_args, **_kwargs: SimpleNamespace(final_output="done"),
@@ -1204,27 +1193,28 @@ def test_openai_agents_runtime_can_use_mimo_openai_chat_profile(
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
-        provider_profile="mimo-tp-openai-chat",
+        provider_profile="kimi-openai-chat",
     )
 
     OpenAIAgentsLiveRuntime().run(request)
 
-    assert captured["model"] == "mimo-v2.5"
-    assert captured["base_url"] == "https://token-plan-cn.xiaomimimo.com/v1"
-    assert captured["api_key"] == "fake-mimo-key"
+    assert captured["model"] == "kimi-k2.7-code"
+    assert captured["base_url"] == "https://kimi.example.test/v1"
+    assert captured["api_key"] == "fake-kimi-key"
     wrapped_model = captured["agent_kwargs"]["model"]
     assert isinstance(wrapped_model, _RetryingModel)
     assert wrapped_model.base_model is captured["chat_model"]
     assert captured["agent_kwargs"]["model_settings"].include_usage is True
     assert captured["agent_kwargs"]["model_settings"].parallel_tool_calls is False
-    assert captured["agent_kwargs"]["model_settings"].extra_body == {
-        "thinking": {"type": "enabled", "keep": "all"}
+    assert not hasattr(captured["agent_kwargs"]["model_settings"], "extra_body")
+    assert captured["agent_kwargs"]["model_settings"].extra_headers == {
+        "User-Agent": "claude-code/1.0.0"
     }
     events = [
         json.loads(line)
         for line in (tmp_path / "run" / "openai-agents-events.jsonl").read_text().splitlines()
     ]
-    assert events[0]["provider_profile"] == "mimo-tp-openai-chat"
+    assert events[0]["provider_profile"] == "kimi-openai-chat"
     assert events[0]["wire_api"] == "chat-completions"
     assert events[0]["sdk_model_settings"]["include_usage"] is True
     assert events[0]["agent_sdk_responses_features"]["available"] is False
@@ -1250,6 +1240,7 @@ def test_openai_agents_runtime_applies_kimi_coding_user_agent(tmp_path: Path, mo
             captured["api_key"] = api_key
             captured["base_url"] = base_url
 
+    monkeypatch.setenv("KIMI_OPENAI_BASE_URL", "https://kimi.example.test/v1")
     monkeypatch.setenv("KIMI_API_KEY", "fake-kimi-key")
     monkeypatch.setattr(
         "roboclaws.agents.drivers.openai_agents_live._run_with_async_mcp_server",
@@ -1306,7 +1297,7 @@ def test_openai_agents_runtime_applies_kimi_coding_user_agent(tmp_path: Path, mo
 
     model_settings = captured["agent_kwargs"]["model_settings"]
     assert captured["model"] == "kimi-k2.7-code"
-    assert captured["base_url"] == "https://api.kimi.com/coding/v1"
+    assert captured["base_url"] == "https://kimi.example.test/v1"
     assert captured["api_key"] == "fake-kimi-key"
     assert model_settings.include_usage is True
     assert not hasattr(model_settings, "extra_body")
@@ -1338,8 +1329,8 @@ def test_openai_agents_runtime_configures_model_input_compaction_filter(
         ) -> None:
             pass
 
-    monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
-    monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
+    monkeypatch.setenv("MM_BASE_URL", "https://minimax.example.test/v1")
+    monkeypatch.setenv("MM_API_KEY", "fake-minimax-key")
     monkeypatch.setattr(
         "roboclaws.agents.drivers.openai_agents_live._run_with_async_mcp_server",
         lambda *_args, **_kwargs: SimpleNamespace(final_output="done"),
@@ -1379,10 +1370,11 @@ def test_openai_agents_runtime_configures_model_input_compaction_filter(
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
+        provider_profile="minimax-responses",
         metadata={
             "agent_sdk_perf_profile": {
                 "profile_id": "custom",
-                "provider_profile": "codex-router-responses",
+                "provider_profile": "minimax-responses",
                 "wire_api": "responses",
                 "model_input_compaction": {
                     "enabled": True,
@@ -1477,8 +1469,8 @@ def test_openai_agents_model_input_filter_warns_before_model_call_on_observe_bud
         captured["filtered_model_data"] = asyncio.run(run_config.call_model_input_filter(data))
         return SimpleNamespace(final_output="continued after observation advisory")
 
-    monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
-    monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
+    monkeypatch.setenv("MM_BASE_URL", "https://minimax.example.test/v1")
+    monkeypatch.setenv("MM_API_KEY", "fake-minimax-key")
     monkeypatch.setattr(
         "roboclaws.agents.drivers.openai_agents_live._run_with_async_mcp_server",
         fake_run_with_async_mcp_server,
@@ -1517,13 +1509,13 @@ def test_openai_agents_model_input_filter_warns_before_model_call_on_observe_bud
         kickoff_prompt="build a map",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
-        provider_profile="codex-router-responses",
+        provider_profile="minimax-responses",
         metadata={
-            "provider_profile": "codex-router-responses",
+            "provider_profile": "minimax-responses",
             "evidence_lane": "camera-grounded-labels",
             "agent_sdk_perf_profile": {
                 "profile_id": "context_managed_v1",
-                "provider_profile": "codex-router-responses",
+                "provider_profile": "minimax-responses",
                 "wire_api": "responses",
                 "context_hard_limit_tokens": None,
                 "max_observe_per_waypoint": 1,
@@ -1674,8 +1666,8 @@ def test_model_input_compaction_rejects_invalid_boolean_settings(
     metadata: dict[str, object],
     setting_name: str,
 ) -> None:
-    monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
-    monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
+    monkeypatch.setenv("KIMI_OPENAI_BASE_URL", "https://kimi.example.test/v1")
+    monkeypatch.setenv("KIMI_API_KEY", "fake-kimi-key")
     request = LiveAgentRequest(
         run_id="household-world",
         skill_name="household-world",
@@ -1698,8 +1690,8 @@ def test_model_input_compaction_rejects_invalid_boolean_settings(
 def test_model_input_compaction_rejects_invalid_direct_policy_limits(
     tmp_path: Path, monkeypatch
 ) -> None:
-    monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
-    monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
+    monkeypatch.setenv("KIMI_OPENAI_BASE_URL", "https://kimi.example.test/v1")
+    monkeypatch.setenv("KIMI_API_KEY", "fake-kimi-key")
     request = LiveAgentRequest(
         run_id="household-world",
         skill_name="household-world",
@@ -1746,8 +1738,8 @@ def test_openai_agents_runtime_rejects_invalid_model_racing_boolean_settings(
     config: dict[str, object],
     setting_name: str,
 ) -> None:
-    monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
-    monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
+    monkeypatch.setenv("KIMI_OPENAI_BASE_URL", "https://kimi.example.test/v1")
+    monkeypatch.setenv("KIMI_API_KEY", "fake-kimi-key")
     request = LiveAgentRequest(
         run_id="household-world",
         skill_name="household-world",
@@ -1799,8 +1791,8 @@ def test_openai_agents_runtime_rejects_invalid_model_racing_numeric_settings(
     setting_name: str,
     message: str,
 ) -> None:
-    monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
-    monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
+    monkeypatch.setenv("KIMI_OPENAI_BASE_URL", "https://kimi.example.test/v1")
+    monkeypatch.setenv("KIMI_API_KEY", "fake-kimi-key")
     request = LiveAgentRequest(
         run_id="household-world",
         skill_name="household-world",
@@ -2022,22 +2014,22 @@ def test_openai_agents_runtime_rejects_invalid_direct_max_turns(
     [
         (
             {"provider_profile": "kimi-openai-chat"},
-            {"ROBOCLAWS_PROVIDER_PROFILE": "codex-router-responses"},
+            {"ROBOCLAWS_PROVIDER_PROFILE": "minimax-responses"},
             "conflicting OpenAI Agents SDK setting provider_profile",
         ),
         (
-            {"model": "gpt-5.5"},
+            {"model": "kimi-k2-5"},
             {"ROBOCLAWS_OPENAI_AGENTS_MODEL": "kimi-k2.7-code"},
             "conflicting OpenAI Agents SDK setting model",
         ),
         (
-            {"base_url": "https://codex-one.example.test/v1"},
-            {"CODEX_BASE_URL": "https://codex-two.example.test/v1"},
+            {"base_url": "https://kimi-one.example.test/v1"},
+            {"KIMI_OPENAI_BASE_URL": "https://kimi-two.example.test/v1"},
             "conflicting OpenAI Agents SDK setting base_url",
         ),
         (
             {"api_key": "metadata-key"},
-            {"CODEX_API_KEY": "env-key"},
+            {"KIMI_API_KEY": "env-key"},
             "conflicting OpenAI Agents SDK setting api_key",
         ),
     ],
@@ -2050,8 +2042,9 @@ def test_openai_agents_runtime_rejects_conflicting_provider_model_env_settings(
     expected_detail: str,
 ) -> None:
     base_env = {
-        "CODEX_BASE_URL": "https://codex.example.test/v1",
-        "CODEX_API_KEY": "fake-codex-key",
+        "ROBOCLAWS_PROVIDER_PROFILE": "kimi-openai-chat",
+        "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
+        "KIMI_API_KEY": "fake-kimi-key",
     }
     base_env.update(env)
     for key, value in base_env.items():
@@ -2075,8 +2068,9 @@ def test_openai_agents_runtime_rejects_conflicting_provider_model_env_settings(
 
 
 def test_openai_agents_runtime_rejects_unknown_model_env(tmp_path: Path, monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
-    monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
+    monkeypatch.setenv("ROBOCLAWS_PROVIDER_PROFILE", "kimi-openai-chat")
+    monkeypatch.setenv("KIMI_OPENAI_BASE_URL", "https://kimi.example.test/v1")
+    monkeypatch.setenv("KIMI_API_KEY", "fake-kimi-key")
     monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_MODEL", "not-in-provider-catalog")
     request = LiveAgentRequest(
         run_id="household-world",
@@ -2101,7 +2095,7 @@ def test_openai_agents_runtime_rejects_route_incompatible_model_env(
 ) -> None:
     monkeypatch.setenv("MM_API_KEY", "fake-mm-key")
     monkeypatch.setenv("ROBOCLAWS_PROVIDER_PROFILE", "minimax-responses")
-    monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_MODEL", "gpt-5.5")
+    monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_MODEL", "kimi-k2.7-code")
     request = LiveAgentRequest(
         run_id="household-world",
         skill_name="household-world",
@@ -2118,7 +2112,7 @@ def test_openai_agents_runtime_rejects_route_incompatible_model_env(
     assert payload["reason"] == "provider_config_failure"
     assert "OpenAI Agents SDK setting model is incompatible" in payload["detail"]
     assert (
-        "model 'gpt-5.5' is incompatible with provider_profile 'minimax-responses'"
+        "model 'kimi-k2.7-code' is incompatible with provider_profile 'minimax-responses'"
         in (payload["detail"])
     )
 
@@ -2144,8 +2138,8 @@ def test_openai_agents_runtime_allows_matching_provider_model_env_aliases(
             captured["api_key"] = api_key
             captured["base_url"] = base_url
 
-    monkeypatch.setenv("MM_BASE_URL", "https://codex.example.test/v1/")
-    monkeypatch.setenv("MM_API_KEY", "fake-codex-key")
+    monkeypatch.setenv("MM_BASE_URL", "https://kimi.example.test/v1/")
+    monkeypatch.setenv("MM_API_KEY", "fake-kimi-key")
     monkeypatch.setenv("ROBOCLAWS_PROVIDER_PROFILE", "minimax-responses")
     monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_MODEL", "MiniMax-M3")
     monkeypatch.setattr(
@@ -2187,8 +2181,8 @@ def test_openai_agents_runtime_allows_matching_provider_model_env_aliases(
         model="minimax",
         metadata={
             "provider_profile": "minimax-responses",
-            "base_url": "https://codex.example.test/v1",
-            "api_key": "fake-codex-key",
+            "base_url": "https://kimi.example.test/v1",
+            "api_key": "fake-kimi-key",
         },
     )
 
@@ -2196,8 +2190,8 @@ def test_openai_agents_runtime_allows_matching_provider_model_env_aliases(
 
     assert result.exit_status == 0
     assert captured["model"] == "MiniMax-M3"
-    assert captured["base_url"] == "https://codex.example.test/v1"
-    assert captured["api_key"] == "fake-codex-key"
+    assert captured["base_url"] == "https://kimi.example.test/v1"
+    assert captured["api_key"] == "fake-kimi-key"
 
 
 def test_model_input_shape_summary_is_aggregate_only() -> None:
@@ -2894,6 +2888,7 @@ def test_openai_agents_runtime_can_use_kimi_openai_chat_profile(
             captured["api_key"] = api_key
             captured["base_url"] = base_url
 
+    monkeypatch.setenv("KIMI_OPENAI_BASE_URL", "https://kimi.example.test/v1")
     monkeypatch.setenv("KIMI_API_KEY", "fake-kimi-key")
     monkeypatch.setattr(
         "roboclaws.agents.drivers.openai_agents_live._run_with_async_mcp_server",
@@ -2936,7 +2931,7 @@ def test_openai_agents_runtime_can_use_kimi_openai_chat_profile(
     OpenAIAgentsLiveRuntime().run(request)
 
     assert captured["model"] == "kimi-k2.7-code"
-    assert captured["base_url"] == "https://api.kimi.com/coding/v1"
+    assert captured["base_url"] == "https://kimi.example.test/v1"
     assert captured["api_key"] == "fake-kimi-key"
     assert captured["agent_kwargs"]["model_settings"].extra_headers == {
         "User-Agent": "claude-code/1.0.0"
@@ -2963,8 +2958,8 @@ def test_openai_agents_runtime_allows_disabling_mcp_tool_list_cache(
         ) -> None:
             pass
 
-    monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
-    monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
+    monkeypatch.setenv("MM_BASE_URL", "https://minimax.example.test/v1")
+    monkeypatch.setenv("MM_API_KEY", "fake-minimax-key")
     monkeypatch.setattr(
         "roboclaws.agents.drivers.openai_agents_live._run_with_async_mcp_server",
         lambda *_args, **_kwargs: SimpleNamespace(final_output="done"),
@@ -3000,6 +2995,7 @@ def test_openai_agents_runtime_allows_disabling_mcp_tool_list_cache(
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
+        provider_profile="minimax-responses",
         metadata={"cache_tools_list": False},
     )
 
@@ -3011,8 +3007,8 @@ def test_openai_agents_runtime_allows_disabling_mcp_tool_list_cache(
 def test_openai_agents_runtime_rejects_invalid_cache_tools_metadata(
     tmp_path: Path, monkeypatch
 ) -> None:
-    monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
-    monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
+    monkeypatch.setenv("KIMI_OPENAI_BASE_URL", "https://kimi.example.test/v1")
+    monkeypatch.setenv("KIMI_API_KEY", "fake-kimi-key")
     request = LiveAgentRequest(
         run_id="household-world",
         skill_name="household-world",
@@ -3059,8 +3055,8 @@ def test_openai_agents_runtime_configures_mcp_client_session_timeout(
         ) -> None:
             pass
 
-    monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
-    monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
+    monkeypatch.setenv("MM_BASE_URL", "https://minimax.example.test/v1")
+    monkeypatch.setenv("MM_API_KEY", "fake-minimax-key")
     monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_MCP_CLIENT_SESSION_TIMEOUT_S", "30")
     monkeypatch.setattr(
         "roboclaws.agents.drivers.openai_agents_live._run_with_async_mcp_server",
@@ -3097,6 +3093,7 @@ def test_openai_agents_runtime_configures_mcp_client_session_timeout(
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
+        provider_profile="minimax-responses",
     )
 
     OpenAIAgentsLiveRuntime().run(request)
@@ -3136,7 +3133,7 @@ def test_openai_agents_cleanup_runner_invokes_sdk_then_checker(tmp_path: Path, m
     class FakeRuntime:
         def run(self, request: LiveAgentRequest) -> LiveAgentResult:
             assert request.mcp_server.url == "http://127.0.0.1:18788/mcp"
-            assert request.provider_profile == "codex-router-responses"
+            assert request.provider_profile == "kimi-openai-chat"
             (request.run_dir / "run_result.json").write_text(
                 json.dumps(
                     {
@@ -3197,8 +3194,8 @@ def test_openai_agents_cleanup_runner_invokes_sdk_then_checker(tmp_path: Path, m
         host="127.0.0.1",
         port=18788,
         lock_path=lock_path,
-        provider_profile="codex-router-responses",
-        model="gpt-5.5",
+        provider_profile="kimi-openai-chat",
+        model="kimi-k2.7-code",
         max_turns=128,
         mcp_client_session_timeout_s=30.0,
         agent_sdk_perf_profile="",
@@ -3246,7 +3243,7 @@ def _assert_context_managed_openai_agents_timing(timing: dict[str, object]) -> N
     assert timing["agent_sdk_perf_profile"]["continuation_mode"] == "state_summary_only"
     assert timing["agent_sdk_perf_profile"]["max_turns"] == 128
     assert timing["agent_sdk_perf_profile"]["max_observe_per_waypoint"] == 1
-    assert timing["agent_sdk_perf_profile"]["context_hard_limit_tokens"] == 128_000
+    assert timing["agent_sdk_perf_profile"]["context_hard_limit_tokens"] == 96_000
     assert timing["agent_sdk_perf_profile"]["model_input_compaction"]["enabled"] is True
     assert (
         timing["agent_sdk_perf_profile"]["context_policy"]["provider_native_compaction"]["mode"]
@@ -3258,10 +3255,10 @@ def _assert_context_managed_openai_agents_timing(timing: dict[str, object]) -> N
         _expected_model_racing_observability()
     )
     assert timing["agent_sdk_perf_profile"]["sdk_model_settings"] == {
+        "extra_headers": {"User-Agent": "claude-code/1.0.0"},
+        "include_usage": True,
         "model_thinking_mode": "default",
         "parallel_tool_calls": False,
-        "prompt_cache_retention": "in_memory",
-        "store": False,
         "tool_choice": "auto",
     }
     assert timing["agent_sdk_perf_profile"]["sdk_run_config"] == {
@@ -3333,9 +3330,9 @@ def test_openai_agents_live_timing_fails_aloud_on_malformed_mcp_timing_source(
             "--status-path",
             str(run_dir / "live_status.json"),
             "--provider-profile",
-            "codex-router-responses",
+            "kimi-openai-chat",
             "--model",
-            "gpt-5.5",
+            "kimi-k2.7-code",
             "--client-url",
             "http://127.0.0.1:18788/mcp",
             "--host",
@@ -3455,8 +3452,8 @@ def test_openai_agents_camera_grounded_composite_profile_adds_private_server_fla
         host="127.0.0.1",
         port=18788,
         lock_path=tmp_path / "live.lock",
-        provider_profile="codex-router-responses",
-        model="gpt-5.5",
+        provider_profile="kimi-openai-chat",
+        model="kimi-k2.7-code",
         max_turns=128,
         mcp_client_session_timeout_s=30.0,
         agent_sdk_perf_profile="context_managed_v1",
@@ -3569,8 +3566,8 @@ def test_openai_agents_robot_view_capture_policy_adds_private_server_flag(
         host="127.0.0.1",
         port=18788,
         lock_path=tmp_path / "live.lock",
-        provider_profile="codex-router-responses",
-        model="gpt-5.5",
+        provider_profile="kimi-openai-chat",
+        model="kimi-k2.7-code",
         max_turns=128,
         mcp_client_session_timeout_s=30.0,
         agent_sdk_perf_profile="context_managed_v1",
@@ -3748,8 +3745,8 @@ def test_openai_agents_camera_grounded_composite_runner_rerenders_stale_two_step
         host="127.0.0.1",
         port=18788,
         lock_path=tmp_path / "live.lock",
-        provider_profile="codex-router-responses",
-        model="gpt-5.5",
+        provider_profile="kimi-openai-chat",
+        model="kimi-k2.7-code",
         max_turns=128,
         mcp_client_session_timeout_s=30.0,
         agent_sdk_perf_profile="context_managed_v1",
@@ -3885,8 +3882,8 @@ def test_openai_agents_cleanup_runner_loads_canonical_skill_context(
         host="127.0.0.1",
         port=18788,
         lock_path=tmp_path / "live.lock",
-        provider_profile="codex-router-responses",
-        model="gpt-5.5",
+        provider_profile="kimi-openai-chat",
+        model="kimi-k2.7-code",
         max_turns=128,
         incomplete_turn_continuation_attempts=2,
         mcp_client_session_timeout_s=30.0,
@@ -4031,8 +4028,8 @@ def test_openai_agents_cleanup_runner_continues_incomplete_sdk_turn(
         host="127.0.0.1",
         port=18788,
         lock_path=tmp_path / "live.lock",
-        provider_profile="codex-router-responses",
-        model="gpt-5.5",
+        provider_profile="kimi-openai-chat",
+        model="kimi-k2.7-code",
         max_turns=128,
         incomplete_turn_continuation_attempts=2,
         mcp_client_session_timeout_s=30.0,
@@ -4188,8 +4185,8 @@ def test_openai_agents_cleanup_runner_compact_continuation_excludes_full_prompt(
         host="127.0.0.1",
         port=18788,
         lock_path=tmp_path / "live.lock",
-        provider_profile="codex-router-responses",
-        model="gpt-5.5",
+        provider_profile="kimi-openai-chat",
+        model="kimi-k2.7-code",
         max_turns=128,
         incomplete_turn_continuation_attempts=2,
         mcp_client_session_timeout_s=30.0,
@@ -4712,8 +4709,8 @@ def test_openai_agents_cleanup_runner_compact_continuation_preserves_composite_c
         host="127.0.0.1",
         port=18788,
         lock_path=tmp_path / "live.lock",
-        provider_profile="mimo-mify-responses",
-        model="xiaomi/mimo-v2.5",
+        provider_profile="minimax-responses",
+        model="MiniMax-M3",
         max_turns=128,
         incomplete_turn_continuation_attempts=2,
         mcp_client_session_timeout_s=30.0,
@@ -4824,8 +4821,8 @@ def test_openai_agents_cleanup_runner_uses_profiled_compact_kickoff_prompt(
         host="127.0.0.1",
         port=18788,
         lock_path=tmp_path / "live.lock",
-        provider_profile="codex-router-responses",
-        model="gpt-5.5",
+        provider_profile="kimi-openai-chat",
+        model="kimi-k2.7-code",
         max_turns=128,
         incomplete_turn_continuation_attempts=2,
         mcp_client_session_timeout_s=30.0,
@@ -5456,8 +5453,8 @@ def test_openai_agents_cleanup_runner_fails_after_bounded_continuation(
         host="127.0.0.1",
         port=18788,
         lock_path=tmp_path / "live.lock",
-        provider_profile="codex-router-responses",
-        model="gpt-5.5",
+        provider_profile="kimi-openai-chat",
+        model="kimi-k2.7-code",
         max_turns=128,
         incomplete_turn_continuation_attempts=1,
         mcp_client_session_timeout_s=30.0,
@@ -5514,8 +5511,8 @@ def _openai_agents_perf_profile_base_args(**overrides) -> Namespace:
         None,
     )
     values.update(
-        provider_profile="codex-router-responses",
-        model="gpt-5.5",
+        provider_profile="kimi-openai-chat",
+        model="kimi-k2.7-code",
         agent_sdk_perf_profile="",
         continuation_mode="",
         model_thinking_mode="default",
@@ -5572,9 +5569,9 @@ def test_openai_agents_perf_profile_resolves_context_managed_defaults(monkeypatc
 
     assert profile["profile_id"] == "context_managed_v1"
     assert profile["source"] == "default"
-    assert profile["provider_profile"] == "codex-router-responses"
-    assert profile["wire_api"] == "responses"
-    assert profile["model_family"] == "gpt"
+    assert profile["provider_profile"] == "kimi-openai-chat"
+    assert profile["wire_api"] == "chat-completions"
+    assert profile["model_family"] == "kimi"
     assert profile["evidence_lane"] == "camera-grounded-labels"
     assert profile["model_thinking_mode"] == "default"
     assert profile["continuation_mode"] == "state_summary_only"
@@ -5582,8 +5579,8 @@ def test_openai_agents_perf_profile_resolves_context_managed_defaults(monkeypatc
     assert profile["max_continuations"] == 1
     assert profile["cache_tools_list"] is True
     assert profile["mcp_client_session_timeout_s"] == 30.0
-    assert profile["context_soft_limit_tokens"] == 96_000
-    assert profile["context_hard_limit_tokens"] == 128_000
+    assert profile["context_soft_limit_tokens"] == 64_000
+    assert profile["context_hard_limit_tokens"] == 96_000
     assert profile["max_observe_per_waypoint"] == 1
     assert profile["raw_fpv_candidate_budget"] is None
     assert profile["context_policy"] == {
@@ -5621,8 +5618,8 @@ def test_openai_agents_perf_profile_resolves_context_managed_defaults(monkeypatc
         "tool_choice": "auto",
         "parallel_tool_calls": False,
         "model_thinking_mode": "default",
-        "store": False,
-        "prompt_cache_retention": "in_memory",
+        "include_usage": True,
+        "extra_headers": {"User-Agent": "claude-code/1.0.0"},
     }
     assert profile["sdk_run_config"] == {
         "trace_include_sensitive_data": False,
@@ -5912,22 +5909,24 @@ def test_openai_agents_perf_profile_rejects_non_positive_enabled_feature_counts(
 
 def test_openai_agents_perf_profile_resolves_managed_and_racing_defaults(monkeypatch) -> None:
     monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", raising=False)
-    gpt = _resolve_agent_sdk_perf_profile(
+    kimi_managed = _resolve_agent_sdk_perf_profile(
         _openai_agents_perf_profile_base_args(agent_sdk_perf_profile="context_managed_v1")
     )
 
-    assert gpt["source"] == "cli"
-    assert gpt["continuation_mode"] == "state_summary_only"
-    assert gpt["max_turns"] == 128
-    assert gpt["max_continuations"] == 1
-    assert gpt["context_soft_limit_tokens"] == 96_000
-    assert gpt["context_hard_limit_tokens"] == 128_000
-    assert gpt["done_retry_budget"] == 1
-    assert "truncation" not in gpt["sdk_model_settings"]
-    assert gpt["sdk_model_settings"]["prompt_cache_retention"] == "in_memory"
-    assert gpt["model_input_compaction"]["candidate_ids"] == ["I", "N", "AC"]
-    assert gpt["model_input_compaction"]["repeated_metric_map_delta"] is True
-    assert gpt["model_input_compaction"]["camera_grounded_history"] == {
+    assert kimi_managed["source"] == "cli"
+    assert kimi_managed["continuation_mode"] == "state_summary_only"
+    assert kimi_managed["max_turns"] == 128
+    assert kimi_managed["max_continuations"] == 1
+    assert kimi_managed["context_soft_limit_tokens"] == 64_000
+    assert kimi_managed["context_hard_limit_tokens"] == 96_000
+    assert kimi_managed["done_retry_budget"] == 1
+    assert "truncation" not in kimi_managed["sdk_model_settings"]
+    assert kimi_managed["sdk_model_settings"]["extra_headers"] == {
+        "User-Agent": "claude-code/1.0.0"
+    }
+    assert kimi_managed["model_input_compaction"]["candidate_ids"] == ["I", "N", "AC"]
+    assert kimi_managed["model_input_compaction"]["repeated_metric_map_delta"] is True
+    assert kimi_managed["model_input_compaction"]["camera_grounded_history"] == {
         "schema": "agent_sdk_camera_grounded_history_policy_v1",
         "enabled": True,
         "mode": "retain_latest_actionable_outputs",
@@ -5938,8 +5937,8 @@ def test_openai_agents_perf_profile_resolves_managed_and_racing_defaults(monkeyp
             "and run artifacts remain complete"
         ),
     }
-    assert gpt["camera_grounded_composite_tools"]["candidate_ids"] == ["O"]
-    assert gpt["camera_grounded_composite_tools"]["enabled"] is True
+    assert kimi_managed["camera_grounded_composite_tools"]["candidate_ids"] == ["O"]
+    assert kimi_managed["camera_grounded_composite_tools"]["enabled"] is True
 
     racing = _resolve_agent_sdk_perf_profile(
         _openai_agents_perf_profile_base_args(model_racing=True, model_racing_arm_count=None)
@@ -5956,38 +5955,39 @@ def test_openai_agents_perf_profile_resolves_managed_and_racing_defaults(monkeyp
     )
 
 
-def test_openai_agents_perf_profile_resolves_mimo_and_chat_defaults(monkeypatch) -> None:
+def test_openai_agents_perf_profile_resolves_minimax_and_kimi_defaults(monkeypatch) -> None:
     monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", raising=False)
-    mimo = _resolve_agent_sdk_perf_profile(
+    minimax = _resolve_agent_sdk_perf_profile(
         _openai_agents_perf_profile_base_args(
-            provider_profile="mimo-mify-responses",
-            model="xiaomi/mimo-v2.5",
+            provider_profile="minimax-responses",
+            model="MiniMax-M3",
             agent_sdk_perf_profile="context_managed_v1",
         )
     )
 
-    assert mimo["provider_profile"] == "mimo-mify-responses"
-    assert mimo["wire_api"] == "responses"
-    assert mimo["model_family"] == "mimo"
-    assert mimo["max_continuations"] == 1
-    assert mimo["context_soft_limit_tokens"] == 64_000
-    assert mimo["context_hard_limit_tokens"] == 96_000
-    assert mimo["sdk_model_settings"]["truncation"] == "auto"
+    assert minimax["provider_profile"] == "minimax-responses"
+    assert minimax["wire_api"] == "responses"
+    assert minimax["model_family"] == "minimax"
+    assert minimax["max_continuations"] == 1
+    assert minimax["context_soft_limit_tokens"] == 64_000
+    assert minimax["context_hard_limit_tokens"] == 96_000
+    assert minimax["sdk_model_settings"]["truncation"] == "auto"
 
     chat = _resolve_agent_sdk_perf_profile(
         _openai_agents_perf_profile_base_args(
-            provider_profile="mimo-tp-openai-chat",
-            model="mimo-v2.5",
+            provider_profile="kimi-openai-chat",
+            model="kimi-k2.7-code",
         )
     )
-    assert chat["provider_profile"] == "mimo-tp-openai-chat"
+    assert chat["provider_profile"] == "kimi-openai-chat"
     assert chat["wire_api"] == "chat-completions"
-    assert chat["model_family"] == "mimo"
+    assert chat["model_family"] == "kimi"
     assert chat["sdk_model_settings"] == {
         "tool_choice": "auto",
         "parallel_tool_calls": False,
         "model_thinking_mode": "default",
         "include_usage": True,
+        "extra_headers": {"User-Agent": "claude-code/1.0.0"},
     }
 
     kimi = _resolve_agent_sdk_perf_profile(
@@ -6006,12 +6006,12 @@ def test_openai_agents_perf_profile_rejects_route_incompatible_model(monkeypatch
 
     with pytest.raises(
         ValueError,
-        match=("model 'gpt-5.5' is incompatible with provider_profile 'minimax-responses'"),
+        match=("model 'kimi-k2.7-code' is incompatible with provider_profile 'minimax-responses'"),
     ):
         _resolve_agent_sdk_perf_profile(
             _openai_agents_perf_profile_base_args(
                 provider_profile="minimax-responses",
-                model="gpt-5.5",
+                model="kimi-k2.7-code",
             )
         )
 
@@ -6034,14 +6034,14 @@ def test_openai_agents_perf_profile_rejects_unknown_model(monkeypatch) -> None:
 def test_openai_agents_perf_profile_accepts_thinking_mode_override(monkeypatch) -> None:
     monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", raising=False)
     profile = _resolve_agent_sdk_perf_profile(
-        _openai_agents_perf_profile_base_args(model_thinking_mode="disabled")
+        _openai_agents_perf_profile_base_args(model_thinking_mode="enabled")
     )
 
-    assert profile["model_thinking_mode"] == "disabled"
-    assert profile["sdk_model_settings"]["model_thinking_mode"] == "disabled"
+    assert profile["model_thinking_mode"] == "enabled"
+    assert profile["sdk_model_settings"]["model_thinking_mode"] == "enabled"
 
 
-def test_openai_agents_perf_profile_resolves_raw_fpv_budget_defaults(monkeypatch) -> None:
+def test_openai_agents_perf_profile_does_not_infer_raw_fpv_support(monkeypatch) -> None:
     monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", raising=False)
     raw = _resolve_agent_sdk_perf_profile(
         _openai_agents_perf_profile_base_args(
@@ -6051,15 +6051,13 @@ def test_openai_agents_perf_profile_resolves_raw_fpv_budget_defaults(monkeypatch
     )
 
     assert raw["max_turns"] == 128
-    assert raw["max_continuations"] == 2
-    assert raw["raw_fpv_candidate_budget"] == 24
-    assert raw["raw_fpv_repeated_failure_limit"] == 3
-    assert raw["max_observe_per_waypoint"] == 4
+    assert raw["max_continuations"] == 1
+    assert raw["raw_fpv_candidate_budget"] is None
+    assert raw["raw_fpv_repeated_failure_limit"] is None
+    assert raw["max_observe_per_waypoint"] == 1
     assert raw["model_input_compaction"]["enabled"] is True
-    assert raw["model_input_compaction"]["raw_fpv_image_memory"] == (
-        _expected_raw_fpv_image_memory_policy(1)
-    )
-    assert raw["model_input_compaction"]["completed_tool_history_limit"] == 24
+    assert raw["model_input_compaction"]["raw_fpv_image_memory"]["enabled"] is False
+    assert raw["model_input_compaction"]["completed_tool_history_limit"] == 0
     assert raw["done_retry_budget"] == 1
 
 
@@ -6091,10 +6089,10 @@ def test_openai_agents_perf_profile_resolves_direct_overrides(monkeypatch) -> No
     assert profile["context_hard_limit_tokens"] == 34
     assert profile["max_observe_per_waypoint"] == 2
     assert profile["raw_fpv_repeated_failure_limit"] == 2
-    assert profile["model_input_compaction"]["candidate_ids"] == ["I", "N", "AA", "AC", "AH"]
+    assert profile["model_input_compaction"]["candidate_ids"] == ["I", "N", "AA", "AC"]
     assert profile["model_input_compaction"]["mode"] == (
         "public_tool_result_summary_v1+repeated_metric_map_delta_v1+raw_fpv_image_memory_v1+"
-        "camera_grounded_history_v1+completed_tool_history_window_v1"
+        "camera_grounded_history_v1"
     )
     assert profile["model_input_compaction"]["enabled"] is True
     assert (
@@ -6126,11 +6124,11 @@ def test_openai_agents_perf_profile_resolves_custom_compaction(monkeypatch) -> N
     assert model_input["enabled"] is True
     assert model_input["mode"] == (
         "public_tool_result_summary_v1+repeated_metric_map_delta_v1+raw_fpv_image_memory_v1+"
-        "camera_grounded_history_v1+completed_tool_history_window_v1"
+        "camera_grounded_history_v1"
     )
     assert model_input["min_chars"] == 80
-    assert model_input["candidate_ids"] == ["I", "N", "AA", "AC", "AH"]
-    assert model_input["completed_tool_history_limit"] == 24
+    assert model_input["candidate_ids"] == ["I", "N", "AA", "AC"]
+    assert model_input["completed_tool_history_limit"] == 0
     assert model_input["hook"] == "RunConfig.call_model_input_filter"
     assert model_input["repeated_metric_map_delta"] is True
     assert model_input["raw_fpv_image_memory"] == _expected_raw_fpv_image_memory_policy(2)
@@ -6265,9 +6263,9 @@ def test_openai_agents_model_racing_observability_metrics_are_aggregate_only(
                     {
                         "schema": "openai_agents_model_racing_observability_v1",
                         "event": "model_racing_arm_start",
-                        "provider_profile": "mimo-mify-responses",
+                        "provider_profile": "minimax-responses",
                         "wire_api": "responses",
-                        "model": "xiaomi/mimo-v2.5",
+                        "model": "MiniMax-M3",
                         "call_index": 0,
                         "arm_id": "call-0-attempt-0-arm-0",
                         "arm_count": 1,
@@ -6281,9 +6279,9 @@ def test_openai_agents_model_racing_observability_metrics_are_aggregate_only(
                     {
                         "schema": "openai_agents_model_racing_observability_v1",
                         "event": "model_racing_arm_finish",
-                        "provider_profile": "mimo-mify-responses",
+                        "provider_profile": "minimax-responses",
                         "wire_api": "responses",
-                        "model": "xiaomi/mimo-v2.5",
+                        "model": "MiniMax-M3",
                         "call_index": 0,
                         "arm_id": "call-0-attempt-0-arm-0",
                         "arm_count": 1,
@@ -6343,8 +6341,8 @@ def test_openai_agents_model_racing_observability_metrics_are_aggregate_only(
     assert metrics["methods"] == ["get_response"]
     assert metrics["racing_modes"] == ["per_arm_observability_v1"]
     assert metrics["final_outcomes"] == {"success": 1}
-    assert metrics["attempted_models"] == ["xiaomi/mimo-v2.5"]
-    assert metrics["attempted_provider_profiles"] == ["mimo-mify-responses"]
+    assert metrics["attempted_models"] == ["MiniMax-M3"]
+    assert metrics["attempted_provider_profiles"] == ["minimax-responses"]
     assert metrics["attempted_wire_apis"] == ["responses"]
     assert "Raw prompts" in metrics["privacy_note"]
 
@@ -6355,8 +6353,8 @@ def test_openai_agents_span_recorder_writes_sanitized_span_events(tmp_path: Path
         spans_path,
         runtime_config={
             "runtime": "openai-agents-live",
-            "provider_profile": "codex-router-responses",
-            "model": "gpt-5.5",
+            "provider_profile": "kimi-openai-chat",
+            "model": "kimi-k2.7-code",
         },
     )
 
@@ -6622,9 +6620,9 @@ def test_openai_agents_model_input_filter_metrics_are_aggregate_only(tmp_path: P
                     {
                         "schema": "openai_agents_model_input_filter_v1",
                         "event": "model_input_filter",
-                        "provider_profile": "codex-router-responses",
+                        "provider_profile": "kimi-openai-chat",
                         "wire_api": "responses",
-                        "model": "gpt-5.5",
+                        "model": "kimi-k2.7-code",
                         "config": {
                             "enabled": True,
                             "mode": "public_tool_result_summary_v1",
@@ -6658,9 +6656,9 @@ def test_openai_agents_model_input_filter_metrics_are_aggregate_only(tmp_path: P
                     {
                         "schema": "openai_agents_model_input_filter_v1",
                         "event": "model_input_filter",
-                        "provider_profile": "codex-router-responses",
+                        "provider_profile": "kimi-openai-chat",
                         "wire_api": "responses",
-                        "model": "gpt-5.5",
+                        "model": "kimi-k2.7-code",
                         "config": {
                             "enabled": True,
                             "mode": "public_tool_result_summary_v1",
@@ -6692,7 +6690,7 @@ def test_openai_agents_model_input_filter_metrics_are_aggregate_only(tmp_path: P
     assert metrics["event_count"] == 2
     assert metrics["enabled"] is True
     assert metrics["modes"] == ["public_tool_result_summary_v1"]
-    assert metrics["attempted_provider_profiles"] == ["codex-router-responses"]
+    assert metrics["attempted_provider_profiles"] == ["kimi-openai-chat"]
     assert metrics["attempted_wire_apis"] == ["responses"]
     assert metrics["compacted_item_count"] == 2
     assert metrics["unchanged_item_count"] == 3
@@ -6727,9 +6725,9 @@ def test_openai_agents_live_timing_timeline_partitions_runner_and_attribution() 
         "intent": "open-ended",
         "task_name": "household-world",
         "runtime": "openai-agents-live",
-        "provider_profile": "codex-router-responses",
+        "provider_profile": "kimi-openai-chat",
         "wire_api": "responses",
-        "model": "gpt-5.5",
+        "model": "kimi-k2.7-code",
         "evidence_lane": "world-public-labels",
         "started_at_epoch": 100.0,
         "openai_agents_start_epoch": 105.0,
@@ -6772,8 +6770,8 @@ def test_openai_agents_live_timing_timeline_partitions_runner_and_attribution() 
             "success_event_count": 1,
             "failure_classes": {"provider_transient_failure": 1},
             "provider_reasons": {"upstream_unavailable": 1},
-            "attempted_models": ["gpt-5.5"],
-            "attempted_provider_profiles": ["codex-router-responses"],
+            "attempted_models": ["kimi-k2.7-code"],
+            "attempted_provider_profiles": ["kimi-openai-chat"],
             "attempted_wire_apis": ["responses"],
             "retry_delay_s_total": 1.0,
             "retry_delay_count": 1,
@@ -6787,8 +6785,8 @@ def test_openai_agents_live_timing_timeline_partitions_runner_and_attribution() 
             "event_count": 2,
             "enabled": True,
             "modes": ["public_tool_result_summary_v1"],
-            "attempted_models": ["gpt-5.5"],
-            "attempted_provider_profiles": ["codex-router-responses"],
+            "attempted_models": ["kimi-k2.7-code"],
+            "attempted_provider_profiles": ["kimi-openai-chat"],
             "attempted_wire_apis": ["responses"],
             "compacted_item_count": 2,
             "unchanged_item_count": 3,
@@ -6897,9 +6895,9 @@ def test_openai_agents_live_timing_timeline_partitions_runner_and_attribution() 
     assert timeline["intent"] == "open-ended"
     assert timeline["task_name"] == "household-world"
     assert timeline["runtime"] == "openai-agents-live"
-    assert timeline["provider_profile"] == "codex-router-responses"
+    assert timeline["provider_profile"] == "kimi-openai-chat"
     assert timeline["wire_api"] == "responses"
-    assert timeline["model"] == "gpt-5.5"
+    assert timeline["model"] == "kimi-k2.7-code"
     assert timeline["evidence_lane"] == "world-public-labels"
     assert [segment["duration_s"] for segment in timeline["runner_segments"]] == [
         5.0,
@@ -6932,8 +6930,8 @@ def test_openai_agents_live_timing_timeline_partitions_runner_and_attribution() 
         "success_event_count": 1,
         "failure_classes": {"provider_transient_failure": 1},
         "provider_reasons": {"upstream_unavailable": 1},
-        "attempted_models": ["gpt-5.5"],
-        "attempted_provider_profiles": ["codex-router-responses"],
+        "attempted_models": ["kimi-k2.7-code"],
+        "attempted_provider_profiles": ["kimi-openai-chat"],
         "attempted_wire_apis": ["responses"],
         "retry_delay_s_total": 1.0,
         "retry_delay_count": 1,
@@ -6947,8 +6945,8 @@ def test_openai_agents_live_timing_timeline_partitions_runner_and_attribution() 
         "event_count": 2,
         "enabled": True,
         "modes": ["public_tool_result_summary_v1"],
-        "attempted_models": ["gpt-5.5"],
-        "attempted_provider_profiles": ["codex-router-responses"],
+        "attempted_models": ["kimi-k2.7-code"],
+        "attempted_provider_profiles": ["kimi-openai-chat"],
         "attempted_wire_apis": ["responses"],
         "compacted_item_count": 2,
         "unchanged_item_count": 3,
@@ -7052,9 +7050,9 @@ def test_openai_agents_live_timing_compact_metrics_surface_structured_detail_err
     timeline = _live_timing_timeline(
         {
             "runtime": "openai-agents-live",
-            "provider_profile": "codex-router-responses",
+            "provider_profile": "kimi-openai-chat",
             "wire_api": "responses",
-            "model": "gpt-5.5",
+            "model": "kimi-k2.7-code",
             "runner_timing": {},
             "agent_sdk_budget_terminal": {
                 "available": True,
@@ -7077,9 +7075,9 @@ def test_openai_agents_live_timing_compact_metrics_tolerates_plaintext_detail() 
     timeline = _live_timing_timeline(
         {
             "runtime": "openai-agents-live",
-            "provider_profile": "codex-router-responses",
+            "provider_profile": "kimi-openai-chat",
             "wire_api": "responses",
-            "model": "gpt-5.5",
+            "model": "kimi-k2.7-code",
             "runner_timing": {},
             "agent_sdk_budget_terminal": {
                 "available": True,
@@ -7102,9 +7100,9 @@ def test_openai_agents_live_timing_compact_metrics_extracts_valid_budget_detail(
     timeline = _live_timing_timeline(
         {
             "runtime": "openai-agents-live",
-            "provider_profile": "codex-router-responses",
+            "provider_profile": "kimi-openai-chat",
             "wire_api": "responses",
-            "model": "gpt-5.5",
+            "model": "kimi-k2.7-code",
             "runner_timing": {},
             "agent_sdk_budget_terminal": {
                 "available": True,

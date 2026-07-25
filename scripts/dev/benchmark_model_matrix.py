@@ -108,6 +108,16 @@ def run_case(
             base_url_configured=False,
             agent_case=agent_case,
         )
+    if case.provider_id == "custom-responses" and not case.request_model:
+        return _skipped_case(
+            case,
+            layer=layer,
+            reason="missing CUSTOM_RESPONSES_MODEL",
+            iterations=iterations,
+            max_tokens=max_tokens,
+            base_url_configured=True,
+            agent_case=agent_case,
+        )
 
     request_headers = headers_for_case(case, api_key=api_key)
     trials = tuple(
@@ -208,7 +218,7 @@ def run_trial(
             output=output,
             completion_tokens=completion_tokens,
         )
-        output_preview = _redact_benchmark_text(output[:120], extra_values=(case.base_url, url))
+        output_preview = _redact_case_text(output[:120], case=case, url=url)
         return TrialResult(
             index=index,
             layer=layer,
@@ -216,7 +226,7 @@ def run_trial(
             elapsed_s=round(elapsed_s, 3),
             agent_case_id=agent_case.case_id if agent_case else "",
             agent_case_label=agent_case.label if agent_case else "",
-            response_model=response_model(case.wire_api, data),
+            response_model=_public_response_model(case, response_model(case.wire_api, data)),
             output_preview=output_preview,
             output_chars=len(output),
             measured_output_tokens=measured_output_tokens,
@@ -238,9 +248,10 @@ def run_trial(
             agent_case_id=agent_case.case_id if agent_case else "",
             agent_case_label=agent_case.label if agent_case else "",
             error_type="HTTPError",
-            error=_redact_benchmark_text(
+            error=_redact_case_text(
                 f"HTTP {exc.code} {exc.reason}: {body[:600]}",
-                extra_values=(case.base_url, url),
+                case=case,
+                url=url,
             ),
         )
     except Exception as exc:  # pragma: no cover - live provider shapes vary
@@ -252,9 +263,10 @@ def run_trial(
             agent_case_id=agent_case.case_id if agent_case else "",
             agent_case_label=agent_case.label if agent_case else "",
             error_type=exc.__class__.__name__,
-            error=_redact_benchmark_text(
+            error=_redact_case_text(
                 str(exc).replace("\n", " ")[:800],
-                extra_values=(case.base_url, url),
+                case=case,
+                url=url,
             ),
         )
 
@@ -316,8 +328,8 @@ def _read_openai_chat_stream_trial(
             elapsed_s=round(elapsed_s, 3),
             agent_case_id=agent_case.case_id if agent_case else "",
             agent_case_label=agent_case.label if agent_case else "",
-            response_model=response_model_name,
-            output_preview=_redact_benchmark_text(output[:120], extra_values=(case.base_url, url)),
+            response_model=_public_response_model(case, response_model_name),
+            output_preview=_redact_case_text(output[:120], case=case, url=url),
             output_chars=len(output),
             measured_output_tokens=measured_output_tokens,
             output_token_count_source=token_source,
@@ -340,9 +352,10 @@ def _read_openai_chat_stream_trial(
             agent_case_id=agent_case.case_id if agent_case else "",
             agent_case_label=agent_case.label if agent_case else "",
             error_type=exc.__class__.__name__,
-            error=_redact_benchmark_text(
+            error=_redact_case_text(
                 str(exc).replace("\n", " ")[:800],
-                extra_values=(case.base_url, url),
+                case=case,
+                url=url,
             ),
         )
 
@@ -371,6 +384,19 @@ def _redact_benchmark_text(text: str, *, extra_values: tuple[str, ...] = ()) -> 
         if value and len(value) >= 6:
             redacted = redacted.replace(value, "[REDACTED]")
     return redacted
+
+
+def _redact_case_text(text: str, *, case: MatrixCase, url: str = "") -> str:
+    return _redact_benchmark_text(
+        text,
+        extra_values=(case.base_url, url, case.request_model),
+    )
+
+
+def _public_response_model(case: MatrixCase, response_model_name: str) -> str:
+    if case.provider_id == "custom-responses":
+        return "custom"
+    return response_model_name
 
 
 def summarize_case(

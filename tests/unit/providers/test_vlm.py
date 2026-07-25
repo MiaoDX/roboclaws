@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -17,7 +16,7 @@ from roboclaws.core.provider_runtime import (
 from roboclaws.core.providers.anthropic import AnthropicProvider
 from roboclaws.core.providers.kimi import KimiCodingProvider, KimiProvider
 from roboclaws.core.providers.mock import MockProvider
-from roboclaws.core.providers.openai import OpenAIProvider, _parse_mimo_message
+from roboclaws.core.providers.openai import OpenAIProvider
 
 # ---------------------------------------------------------------------------
 # Fixtures / helpers
@@ -248,74 +247,6 @@ def test_openai_missing_api_key_raises(monkeypatch):
     with patch.dict("sys.modules", {"openai": mock_openai, "instructor": MagicMock()}):
         with pytest.raises(KeyError):
             OpenAIProvider(model="gpt-4o-mini")
-
-
-# ---------------------------------------------------------------------------
-# MimoProvider response parsing
-# ---------------------------------------------------------------------------
-
-
-def _mimo_message(arguments: str, reasoning_content: str = "") -> SimpleNamespace:
-    return SimpleNamespace(
-        content="",
-        reasoning_content=reasoning_content,
-        tool_calls=[
-            SimpleNamespace(function=SimpleNamespace(arguments=arguments)),
-        ],
-    )
-
-
-def test_parse_mimo_message_uses_tool_call_arguments():
-    message = _mimo_message('{"reasoning": "turn toward target", "action": "RotateLeft"}')
-
-    result = _parse_mimo_message(message)
-
-    assert result == {"reasoning": "turn toward target", "action": "RotateLeft"}
-
-
-def test_parse_mimo_message_uses_reasoning_content_when_tool_reasoning_missing():
-    message = _mimo_message('{"action": "MoveAhead"}', reasoning_content="fallback reasoning")
-
-    result = _parse_mimo_message(message)
-
-    assert result == {"reasoning": "fallback reasoning", "action": "MoveAhead"}
-
-
-def test_parse_mimo_message_recovers_malformed_tool_call_arguments():
-    message = _mimo_message('{"reasoning": "partial", "action":')
-
-    result = _parse_mimo_message(message)
-
-    assert result["action"] == SAFE_FALLBACK_ACTION
-    assert "partial" in result["reasoning"]
-
-
-def test_parse_mimo_message_recovers_non_object_tool_call_arguments():
-    message = _mimo_message('["MoveAhead"]')
-
-    result = _parse_mimo_message(message)
-
-    assert result == {"reasoning": '["MoveAhead"]', "action": SAFE_FALLBACK_ACTION}
-
-
-def test_parse_mimo_message_recovers_missing_tool_call_arguments():
-    message = SimpleNamespace(
-        content="",
-        reasoning_content="",
-        tool_calls=[SimpleNamespace(function=SimpleNamespace())],
-    )
-
-    result = _parse_mimo_message(message)
-
-    assert result == {"reasoning": "", "action": SAFE_FALLBACK_ACTION}
-
-
-def test_parse_mimo_message_validates_tool_call_action():
-    message = _mimo_message('{"reasoning": "bad action", "action": "WalkIntoWall"}')
-
-    result = _parse_mimo_message(message)
-
-    assert result == {"reasoning": "bad action", "action": SAFE_FALLBACK_ACTION}
 
 
 # ---------------------------------------------------------------------------
