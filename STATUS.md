@@ -52,18 +52,18 @@ providers.
 
 ## Next Action
 
-Build the reviewed disposable public root, run tracked/package/history scans, then complete fresh
-clone, deterministic, package, and CLI smoke gates. Provider and optional-world live proofs remain
-separate required evidence; physical Agibot movement stays on hold unless the operator explicitly
-resumes it.
+Review the sanitized one-commit candidate and its remaining live blockers before authorizing any
+publication. Rerun provider and optional-world live gates after network, credentials, disk/EULA,
+and the Agibot operator hold are resolved.
 
 ## Current Blockers
 
-- No blocker for deterministic public-root construction and package verification.
-- Kimi, MiniMax, and configured custom Responses proofs require route-specific credentials and
-  network readiness.
+- Deterministic public-root, runtime, package, and fresh-install verification is complete.
+- Kimi, MiniMax, and configured custom Responses proofs are blocked by `network: unknown` and
+  unset route-specific configuration.
 - Agibot hardware validation is deferred by operator request. No real-robot movement is authorized.
-- B1/Isaac validation requires injected scene/map dependencies and available local Isaac hardware.
+- B1/Isaac strict preflight is blocked by 20.7 GiB free versus 80 GiB required and explicit
+  Omniverse EULA acceptance.
 - Publication remains unauthorized until the reviewed candidate evidence is presented for human
   approval.
 

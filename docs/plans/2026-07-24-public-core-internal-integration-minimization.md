@@ -18,11 +18,17 @@ the private repository. It is not part of the sanitized public root commit.
 - Parent plans: none
 - Child plans: none
 - Last updated: 2026-07-25
-- Current slice: reconcile concurrent eval/coding-agent migration, then Slice 2 remote ownership
-- Next action: wait for the owner-safe commit of currently dirty eval/runtime/network files,
-  re-read their final shape, then remove public CloudML lifecycle ownership and build the candidate.
-- Blocked on: overlapping concurrent edits at the CloudML/Isaac handoff boundary. Required
-  provider, Agibot hardware, B1/Isaac, package, and clean-room proofs remain completion gates.
+- Current slice: deterministic implementation and sanitized public-candidate construction complete.
+- Next action: obtain human confirmation before publication, then rerun provider and optional-world
+  live gates when their documented network, credential, hardware, and safety blockers are cleared.
+- Blocked on: provider network state is `unknown` and required Kimi, MiniMax, and custom Responses
+  configuration is unset; Agibot physical validation remains on operator hold; strict Isaac
+  preflight has only 20.7 GiB free against an 80 GiB minimum and requires explicit EULA acceptance.
+- Latest proof: candidate `/tmp/roboclaws-public.fWAgj9` is a one-commit, no-remote public root at
+  source commit `2839924f`; its public scan, dependency sync, lint, formatting, full standalone
+  suite, explicit/default MolmoSpaces runs, sdist/wheel membership, fresh install, import, and CLI
+  smoke pass. The earlier candidate full suite passed before the packaging-only exclusion change;
+  the source full fast suite passed after that change.
 - Do not touch from this plan: simulator/runtime NVIDIA dependencies, Isaac Lab EULA handling,
   unrelated product task semantics/scoring, or unrelated user changes.
 
