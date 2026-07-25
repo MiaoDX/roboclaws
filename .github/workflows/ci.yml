@@ -43,7 +43,7 @@ jobs:
         run: just agent::verify ci-required
 
       - name: Check public release candidate
-        run: |
+        run: | # pragma: allowlist secret
           candidate_root="$(mktemp -d)"
           trap 'rm -rf "$candidate_root"' EXIT
           .venv/bin/python scripts/dev/build_public_candidate.py --output "$candidate_root"
