@@ -10,25 +10,24 @@ Control plane: root intuitive-flow session / host goal
 Latest intent: execute the approved plan and commit coherent task-owned slices as needed. Public
 push, history rewriting, private asset redistribution, and physical movement remain unauthorized.
 
-Current slice: reconcile the concurrent eval/coding-agent/network migration after its owner-safe
-commit, then remove public-tree CloudML lifecycle ownership. Provider core, optional-world
-dependency isolation, and provider-neutral public defaults are committed checkpoints. Active
-CloudML/Isaac control-plane files remain read-only until their handoff boundary is available.
+Current slice: remove public-tree CloudML lifecycle ownership and build the reviewed public-root
+membership manifest. Provider core, optional-world isolation, provider-neutral defaults, and the
+eval/coding-agent/network/OpenClaw migration are committed checkpoints.
 
-Last proof: 308 focused provider/driver/grid tests pass; the full operator-console unit directory
-passes; Agibot dependency/redaction and map-export tests pass; focused B1 launch/receipt-consumption
-tests pass; provider-neutral `.env.example`, deterministic CI, current public docs, and embedded
-benchmark sources pass focused tests and stale-identity scans.
+Last proof: 308 focused provider/driver/grid tests and the full operator-console unit directory
+pass; focused B1 and Agibot dependency tests pass; Kimi-only OpenClaw, network guard, shell-provider,
+eval schema, and eval runtime tests pass. Ruff and shell syntax pass for the latest changed scope.
 
 Completed batch: provider registry/runtime collapse to `custom-responses`, `minimax-responses`, and
 `kimi-openai-chat`; Router transport and MiMo/NVIDIA hosted-model deletion; benchmark/grid, health,
 CLI, eval-session, and operator-console migration; default discovery hides optional worlds; B1 only
 consumes injected map/scene/alignment/navigation inputs; Agibot dependencies validate before
 subprocess launch; dependency roots are redacted from readiness, traces, errors, and artifacts.
+Commit `00704ad2` additionally removes retired live-provider scripts, CI coupling, bare Codex/Claude
+helper routes, OpenClaw NVIDIA/MiMo routes, and migrates eval samples to the final provider matrix.
 
-Next slice: re-read the final concurrent diff/commit, run stale-profile and eval contract tests,
-then delete public CloudML lifecycle/schema ownership and build the reviewed public-root membership
-manifest. Do not patch the currently dirty eval/runtime/network files before that handoff.
+Next slice: delete public CloudML lifecycle/schema ownership, migrate its callers to external
+operations, then build the reviewed public-root membership manifest and generic release checker.
 
 Next proof: focused eval/runtime and launch-contract tests, exact stale-profile searches, then the
 broader standalone suite.
