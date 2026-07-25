@@ -67,7 +67,8 @@ and the Agibot operator hold are resolved.
 - B1 validation lacks its injected map/scene paths. Isaac strict preflight is additionally blocked
   by 17.0 GiB free versus 80 GiB required and explicit Omniverse EULA acceptance.
 - The exact candidate's dependency-license inventory has one unresolved metadata caveat:
-  non-bundled dev/transitive dependency `beaker-py` declares no license in its published artifacts.
+  MolmoSpaces runtime-extra dependency `beaker-py` 2.x declares no license in its published
+  artifacts, and its referenced source repository is unavailable for verification.
 - Publication remains unauthorized until the reviewed candidate evidence is presented for human
   approval.
 

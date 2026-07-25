@@ -29,8 +29,9 @@ the private repository. It is not part of the sanitized public root commit.
   Responses variables are missing. Agibot and B1 injected dependency paths are missing, physical
   movement remains unauthorized, and strict Isaac preflight reports 17.0 GiB free against an
   80 GiB minimum plus unaccepted Omniverse EULA terms. The exact candidate's license inventory also
-  retains one human-review caveat: non-bundled dev/transitive dependency `beaker-py` publishes no
-  declared license metadata or license file.
+  retains one human-review caveat: MolmoSpaces directly requires `beaker-py>2.0.0`, whose 2.x wheel
+  and sdist publish no license metadata or license file and whose referenced source repository is
+  unavailable. The separately published, Apache-2.0-licensed 1.x line does not satisfy that bound.
 - Latest proof: final candidate `output/public-candidate/20260725-14/repo` is a one-root-commit,
   no-remote public tree (`source=e1d38ffa`, `candidate=a684d39a`, membership
   `a63d736452765693abb683d6832ab49dadb3833992001a3aaf7b638b77f879d1`) with 1,048 source

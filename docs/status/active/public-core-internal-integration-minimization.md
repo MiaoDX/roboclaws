@@ -52,5 +52,7 @@ Current blockers: Kimi and MiniMax live health probes pass, but the Kimi product
 `network: unknown` because its probe URL is missing; all three custom Responses values are absent.
 Agibot and B1 injected dependency paths are missing, Agibot physical movement remains unauthorized,
 and Isaac strict preflight reports 17.0 GiB free versus 80 GiB required plus unaccepted EULA terms.
-The dependency-license inventory also retains one publication-review caveat: non-bundled
-dev/transitive dependency `beaker-py` publishes no declared license metadata or license file.
+The dependency-license inventory also retains one publication-review caveat: MolmoSpaces directly
+requires `beaker-py>2.0.0`, whose 2.x published artifacts have no declared license or license file
+and whose referenced source repository is unavailable; the Apache-2.0-licensed 1.x line does not
+satisfy the dependency bound.
