@@ -726,7 +726,7 @@ def _find_rby1m_isaac_urdf() -> Path | None:
             / "model_holobase_isaac.urdf"
         )
     candidates.extend(
-        Path("/home/mi/.cache/molmospaces/assets").glob(
+        (Path.home() / ".cache" / "molmospaces" / "assets").glob(
             "*/robots/rby1m/curobo_config/urdf/model_holobase_isaac/model_holobase_isaac.urdf"
         )
     )
