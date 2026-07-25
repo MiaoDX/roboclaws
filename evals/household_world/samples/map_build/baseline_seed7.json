@@ -19,8 +19,9 @@
   ],
   "provider_profiles": [
     "not_applicable",
-    "codex-router-responses",
-    "minimax-responses"
+    "custom-responses",
+    "minimax-responses",
+    "kimi-openai-chat"
   ],
   "trial_count": 1,
   "required_graders": [

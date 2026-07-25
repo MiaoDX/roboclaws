@@ -35,6 +35,23 @@ def write_b1_robot_proof_artifacts(root: Path) -> tuple[Path, Path]:
     return alignment_path, navigation_path
 
 
+def write_b1_readiness_fixtures(root: Path) -> dict[str, str]:
+    """Create neutral injected dependencies and proof inputs for B1 console tests."""
+
+    alignment_path, navigation_path = write_b1_robot_proof_artifacts(root)
+    map_bundle = root / "fixtures/b1/map-bundle"
+    scene_usd = root / "fixtures/b1/scene.usd"
+    map_bundle.mkdir(parents=True, exist_ok=True)
+    scene_usd.parent.mkdir(parents=True, exist_ok=True)
+    scene_usd.write_text("#usda 1.0\n", encoding="utf-8")
+    return {
+        "b1_alignment_artifact": str(alignment_path),
+        "b1_navigation_artifact": str(navigation_path),
+        "map_bundle": str(map_bundle),
+        "isaac_scene_usd_path": str(scene_usd),
+    }
+
+
 def _alignment_payload() -> dict[str, object]:
     return {
         "schema": "b1_map12_scene_alignment_residuals_v1",

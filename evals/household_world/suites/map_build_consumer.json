@@ -24,7 +24,7 @@
     "outcome"
   ],
   "thresholds": {
-    "pass_at_1": 1.0,
+    "pass_at_1": 1,
     "private_truth_leak_count": 0,
     "trajectory_policy_violation_count": 0
   },
@@ -40,14 +40,13 @@
       "fixture_focused_prior"
     ],
     "model_matrix_provider_profiles": [
-      "codex-router-responses",
-      "mimo-inside-openai-chat",
-      "kimi-openai-chat",
-      "minimax-responses"
+      "custom-responses",
+      "minimax-responses",
+      "kimi-openai-chat"
     ],
     "parallel_execution": {
       "parallel_group_id": "map_build_consumer_2026_06_24",
-      "provider_cell_count": 4,
+      "provider_cell_count": 3,
       "default_local_concurrency_width": 1,
       "concurrency_policy": "serial_by_default_for_single_molmospaces_visual_backend_slot",
       "isolation_contract": "one eval trial run_dir per provider/profile cell; shared runtime priors are read-only; raise ROBOCLAWS_MOLMO_MAX_VISUAL_BACKENDS explicitly before parallel live MolmoSpaces cells"

@@ -27,7 +27,7 @@ def test_session_live_eval_blocks_when_provider_not_ready(tmp_path: Path) -> Non
     run = run_session_live_eval(
         output_root=tmp_path,
         stamp="blocked",
-        provider_profile="codex-router-responses",
+        provider_profile="kimi-openai-chat",
         live_execution="run",
         env={},
     )
@@ -90,8 +90,8 @@ def test_session_live_eval_runs_headless_console_flow_with_fake_product(
         )
 
     env = {
-        "CODEX_API_KEY": "key",
-        "CODEX_BASE_URL": "https://codex.example.test/v1",
+        "KIMI_API_KEY": "key",
+        "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
         "ROBOCLAWS_SESSION_LIVE_MCP_PORT": "19888",
         "ROBOCLAWS_SESSION_LIVE_ENV_SENTINEL": "visible-to-console",
     }
@@ -102,7 +102,7 @@ def test_session_live_eval_runs_headless_console_flow_with_fake_product(
         run = run_session_live_eval(
             output_root=tmp_path,
             stamp="session",
-            provider_profile="codex-router-responses",
+            provider_profile="kimi-openai-chat",
             live_execution="run",
             live_timeout_s=5,
             env=env,
@@ -154,8 +154,8 @@ def test_session_live_classifies_blocked_next_goal_parent_artifact_gap(
         )
 
     env = {
-        "CODEX_API_KEY": "key",
-        "CODEX_BASE_URL": "https://codex.example.test/v1",
+        "KIMI_API_KEY": "key",
+        "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
         "ROBOCLAWS_SESSION_LIVE_MCP_PORT": "19889",
     }
     with (
@@ -165,7 +165,7 @@ def test_session_live_classifies_blocked_next_goal_parent_artifact_gap(
         run = run_session_live_eval(
             output_root=tmp_path,
             stamp="session-artifact-gap",
-            provider_profile="codex-router-responses",
+            provider_profile="kimi-openai-chat",
             live_execution="run",
             live_timeout_s=5,
             env=env,

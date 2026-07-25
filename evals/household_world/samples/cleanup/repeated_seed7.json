@@ -15,14 +15,13 @@
   "goal_contract_hash": "unavailable",
   "allowed_agent_engines": [
     "direct-runner",
-    "codex-cli",
-    "claude-code",
     "openai-agents-sdk"
   ],
   "provider_profiles": [
     "not_applicable",
-    "codex-router-responses",
-    "mimo-tp-anthropic"
+    "custom-responses",
+    "minimax-responses",
+    "kimi-openai-chat"
   ],
   "trial_count": 3,
   "required_graders": [

@@ -37,10 +37,6 @@ ALLOWED: list[str] = [
     # through this plugin even when ``compaction.memoryFlush`` is disabled,
     # so dropping it leaves the agent without a memory tool path.
     "memory-core",
-    # NVIDIA NIM provider — required when PROVIDER=nvidia (mode=merge);
-    # our explicit ``EXTRA_MODELS_JSON`` for nvidia/nemotron unions into
-    # this plugin's catalog rather than replacing it.
-    "nvidia",
     # Kimi (Moonshot) provider plugin — the manifest at
     # ``/app/dist/extensions/kimi-coding/openclaw.plugin.json`` declares
     # ``"id": "kimi"`` (the directory name "kimi-coding" is NOT the plugin
@@ -51,9 +47,4 @@ ALLOWED: list[str] = [
     # ``plugin not found: kimi-coding (stale config entry ignored)`` —
     # don't regress to dir-name-based ids.
     "kimi",
-    # MiMo (Xiaomi) provider plugin. We currently use a fully custom
-    # ``mimo_openai`` entry under ``mode=replace``, so this is not strictly
-    # load-bearing; included defensively in case any Xiaomi-side helper
-    # path is consulted by the catalog merger.
-    "xiaomi",
 ]

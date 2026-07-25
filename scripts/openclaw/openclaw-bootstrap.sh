@@ -31,8 +31,7 @@
 #   ROBOCLAWS_MCP_ENABLED  Seed Roboclaws MCP tools  (default: 1)
 #   ROBOCLAWS_MCP_URL      URL for the host-side MCP server
 #                                                     (default: http://host.docker.internal:18788/mcp)
-#   PROVIDER     Upstream LLM provider               (auto-detected from env —
-#                                                     nvidia | mimo | kimi)
+#   PROVIDER     Upstream LLM provider               (default: kimi)
 #   MODEL        Model id each agent uses            (default per PROVIDER — see below)
 #   IMAGE_MODEL  Vision model for the Gateway's      (default: same as MODEL;
 #                generic `image` tool path             set this explicitly when
@@ -57,39 +56,19 @@
 #                                                     autonomous loop overrides
 #                                                     with wall_budget + 60.)
 #
-# Provider-specific vars (only the one matching PROVIDER is required):
+# Provider configuration:
 #   KIMI_API_KEY   (PROVIDER=kimi)   Moonshot/Kimi API key
-#   NV_API_KEY     (PROVIDER=nvidia) NVIDIA NIM API key (NVIDIA_API_KEY also accepted)
-#   MIMO_TP_KEY    (PROVIDER=mimo)   MiMo token-plan key
-#
-# Provider-specific mode overrides:
 #   KIMI_PROVIDER_MODE  (PROVIDER=kimi)  custom (default) | plugin
-#   MIMO_PROVIDER_MODE  (PROVIDER=mimo)  openai (default) | anthropic
 #
-# Supported providers + default model (curated to just the one verified-
-# working vision model per provider):
+# Supported provider and default model:
 #
-#   nvidia → nvidia/nvidia/nemotron-nano-12b-v2-vl  (free; vision; multi-image)
 #   kimi   → kimi/k2p5                              (free coding tier; vision;
 #                                                    aliases to kimi-for-coding
 #                                                    upstream which is currently
 #                                                    Kimi 2.6 — see
 #                                                    /app/dist/provider-catalog-BCrO6TZn.js)
-#   mimo   → mimo_openai/mimo-v2.5                 (token-plan; vision+tool-calls
-#                                                    confirmed 2026-05-28)
-#
-# Auto-detection order when PROVIDER is unset: nvidia → mimo → kimi (prefers
-# the verified-working provider; first provider with an API key in env wins).
-#
-# Why these providers and not more: household visual evidence can include
-# image-bearing tool outputs, so the model must support image input. NVIDIA NIM's
-# nvidia/nemotron-nano-12b-v2-vl is the only NIM vision model that
-# survives the end-to-end constraints (image input + tool use from the
-# Gateway's agent framework). Kimi's coding-tier provider via the
-# Gateway plugin accepts multi-image too. Other models we probed hit
-# one of: 1-image cap, no tool-use support on :free, or server-side
-# errors. History lives in docs/human/openclaw/local.md if you want to
-# re-evaluate after NIM / OpenRouter update their free-tier lineup.
+# Kimi's coding-tier provider via the Gateway plugin accepts multi-image input,
+# which is required for household visual evidence.
 #
 # Exit codes:
 #   0  success (token on stdout)
@@ -180,20 +159,7 @@ _cleanup_on_exit() {
 trap _cleanup_on_exit EXIT
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-7200}"
 
-# Auto-detect PROVIDER when unset:
-#   1) nvidia — if NV_API_KEY / NVIDIA_API_KEY is set (verified-working,
-#      free NIM vision model with multi-image support)
-#   2) kimi   — otherwise (free coding tier, vision; resolves to the
-#      current kimi-for-coding upstream alias)
-if [[ -z "${PROVIDER:-}" ]]; then
-    if [[ -n "${NV_API_KEY:-}${NVIDIA_API_KEY:-}" ]]; then
-        PROVIDER="nvidia"
-    elif [[ -n "${MIMO_TP_KEY:-}" ]]; then
-        PROVIDER="mimo"
-    else
-        PROVIDER="kimi"
-    fi
-fi
+PROVIDER="${PROVIDER:-kimi}"
 
 log() { printf '[bootstrap] %s\n' "$*" >&2; }
 die() { log "ERROR: $*"; exit "${2:-1}"; }
@@ -296,90 +262,8 @@ JSON
                 ;;
         esac
         ;;
-    nvidia)
-        # nvidia/nvidia/nemotron-nano-12b-v2-vl — the only NVIDIA NIM
-        # vision model verified end-to-end with the demo:
-        #   • free (cost=$0 in the Gateway's built-in catalog)
-        #   • supports ≥2 images (FPV + overhead map per turn)
-        #   • survives the Gateway's tool-bearing agent framework
-        # Models like meta/llama-3.2-*-vision-instruct cap at 1 image
-        # and 400 on every demo step; minimax/kimi-thinking on NIM
-        # either don't support vision or hit server-side errors.
-        MODEL="${MODEL:-nvidia/nvidia/nemotron-nano-12b-v2-vl}"
-        # NV_API_KEY (roboclaws convention) or NVIDIA_API_KEY (Gateway plugin default).
-        PROVIDER_API_KEY="${NV_API_KEY:-${NVIDIA_API_KEY:-}}"
-        PROVIDER_ENV_VAR="NVIDIA_API_KEY"
-        # NVIDIA NIM OpenAI-compatible endpoint — matches the built-in
-        # Gateway catalog's NVIDIA_BASE_URL
-        # (/app/dist/provider-catalog-C9xZ5Sl52.js) so our override merges
-        # cleanly with the implicit plugin.
-        PROVIDER_BASE_URL="https://integrate.api.nvidia.com/v1"
-        # Single curated entry. Keeping the list short means every model
-        # the bootstrap advertises is known to work; the tests assert on
-        # this invariant so accidental "let me add another" edits trip
-        # the CI free-tier / multi-image checks.
-        EXTRA_MODELS_JSON='[
-            {"id":"nvidia/nemotron-nano-12b-v2-vl","name":"NVIDIA Nemotron Nano 12B V2 VL","input":["text","image"],"reasoning":false,"contextWindow":131072,"maxTokens":4096}
-        ]'
-        PROVIDER_ENTRY_JSON=""  # legacy merge path: nvidia plugin stays in play
-        [[ -n "$PROVIDER_API_KEY" ]] || \
-            die "NV_API_KEY (or NVIDIA_API_KEY) env var is required for PROVIDER=nvidia" 1
-        ;;
-    mimo)
-        PROVIDER_API_KEY="${MIMO_TP_KEY:-}"
-        PROVIDER_ENV_VAR="MIMO_TP_KEY"
-        [[ -n "$PROVIDER_API_KEY" ]] || \
-            die "MIMO_TP_KEY env var is required for PROVIDER=mimo" 1
-
-        MIMO_PROVIDER_MODE="${MIMO_PROVIDER_MODE:-openai}"
-        case "$MIMO_PROVIDER_MODE" in
-            openai)
-                # OpenAI-compatible endpoint; mimo-v2.5 is image-capable
-                # (direct vision), so no image-delegation model is needed.
-                MODEL="${MODEL:-mimo_openai/mimo-v2.5}"
-                PROVIDER_ID_OVERRIDE="mimo_openai"
-                PROVIDER_BASE_URL=""
-                EXTRA_MODELS_JSON="[]"
-                PROVIDER_ENTRY_JSON=$(cat <<JSON
-{
-  "baseUrl": "https://token-plan-cn.xiaomimimo.com/v1",
-  "apiKey": "${PROVIDER_API_KEY}",
-  "auth": "api-key",
-  "api": "openai-completions",
-  "models": [
-    {"id":"mimo-v2.5","name":"MiMo V2.5 (vision+tools)","input":["text","image"],"reasoning":false,"contextWindow":1048576,"maxTokens":32768}
-  ]
-}
-JSON
-)
-                ;;
-            anthropic)
-                # Anthropic-compatible endpoint — mimo-v2.5 vision + tool-calls.
-                MODEL="${MODEL:-mimo_anthropic/mimo-v2.5}"
-                PROVIDER_ID_OVERRIDE="mimo_anthropic"
-                PROVIDER_BASE_URL=""
-                EXTRA_MODELS_JSON="[]"
-                PROVIDER_ENTRY_JSON=$(cat <<JSON
-{
-  "baseUrl": "https://token-plan-cn.xiaomimimo.com/anthropic",
-  "apiKey": "${PROVIDER_API_KEY}",
-  "auth": "api-key",
-  "api": "anthropic-messages",
-  "headers": {"anthropic-version": "2023-06-01"},
-  "models": [
-    {"id":"mimo-v2.5","name":"MiMo V2.5 (anthropic vision+tools)","input":["text","image"],"reasoning":false,"contextWindow":1048576,"maxTokens":32768}
-  ]
-}
-JSON
-)
-                ;;
-            *)
-                die "Unsupported MIMO_PROVIDER_MODE: '$MIMO_PROVIDER_MODE' (supported: openai, anthropic)" 1
-                ;;
-        esac
-        ;;
     *)
-        die "Unsupported PROVIDER: '$PROVIDER' (supported: kimi, nvidia, mimo)" 1
+        die "Unsupported PROVIDER: '$PROVIDER' (supported: kimi)" 1
         ;;
 esac
 
@@ -404,7 +288,6 @@ log "tool profile : $ROBOCLAWS_TOOL_PROFILE"
 log "agents       : $AGENTS (prefix=$AGENT_PREFIX → ${AGENT_PREFIX}0 .. ${AGENT_PREFIX}$((AGENTS-1)))"
 log "provider     : $PROVIDER"
 [[ "$PROVIDER" == "kimi" ]] && log "provider mode: $KIMI_PROVIDER_MODE"
-[[ "$PROVIDER" == "mimo" ]] && log "provider mode: $MIMO_PROVIDER_MODE"
 log "model        : $MODEL"
 log "image model  : ${IMAGE_MODEL:-<auto>}"
 log "skill        : $SKILLS_DIR"
@@ -696,7 +579,7 @@ if plugin_allow:
 # Inject extra model catalog entries so the Gateways model-catalog merger
 # recognizes the models we want to use. Without this, the Gateway rejects
 # models with 400 "Unknown model: <id>" because the pinned images built-in
-# provider plugin catalog does not include newer NIM / OpenRouter models.
+# provider plugin catalog does not include every configured Kimi model.
 # Schema: /app/dist/models-config-*.js — cfg.models.providers.<id>.models[]
 # with { id, name, input, reasoning?, contextWindow?, maxTokens? }
 #
@@ -706,7 +589,7 @@ if plugin_allow:
 #      only this entry drives routing (sidesteps a misbehaving built-in
 #      plugin catalog, e.g. the kimi-coding reasoning-by-default quirk).
 #   2. EXTRA_MODELS_JSON set    → just append models to an existing plugin
-#      provider (mode=merge); used by the nvidia path.
+#      provider (mode=merge).
 # "mode: merge" is the default and merges these into the implicit plugin-
 # supplied entries (see /app/dist/models-config-*.js:planOpenClawModelsJson).
 if provider_entry_json:
@@ -742,7 +625,7 @@ with open(os.path.join(base, "openclaw.json"), "w", encoding="utf-8") as fh:
 #   type in {"api_key", "oauth", "token"} (snake_case)
 #   provider must be non-empty
 #   key is the credential material
-# Provider id matches either the built-in Gateway plugin id (kimi, nvidia)
+# Provider id matches either the built-in Gateway Kimi plugin id
 # or the custom provider id we registered above (anthropic_kimi).  The
 # apiKey in PROVIDER_ENTRY_JSON is the authoritative credential when set,
 # but we still write a legacy profile under the plugin id so downstream
@@ -820,12 +703,12 @@ mount_args=(
     -e "ROBOCLAWS_MCP_URL=${ROBOCLAWS_MCP_URL}"
     # Gateway plugins read the provider key from the env var named by the plugin
     # manifest (providerAuthEnvVars); the value comes from the roboclaws-side
-    # secret (KIMI_API_KEY or NV_API_KEY, depending on PROVIDER).
+    # secret from KIMI_API_KEY.
     -e "${PROVIDER_ENV_VAR}=${PROVIDER_API_KEY}"
 )
 # Optional: bump Gateway log level to DEBUG for upstream-traffic debugging.
-# Set GATEWAY_DEBUG=1 when you need to see what the Gateway sends to Kimi /
-# NVIDIA on a failing call.  Off by default — DEBUG is verbose.
+# Set GATEWAY_DEBUG=1 when you need to see what the Gateway sends to Kimi on a
+# failing call. Off by default because DEBUG is verbose.
 if [[ "${GATEWAY_DEBUG:-0}" == "1" ]]; then
     mount_args+=(-e "OPENCLAW_LOG_LEVEL=debug" -e "DEBUG=*")
     log "GATEWAY_DEBUG=1 — Gateway will log at DEBUG level"

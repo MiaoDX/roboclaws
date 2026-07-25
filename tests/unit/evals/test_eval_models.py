@@ -223,7 +223,7 @@ def test_eval_trial_from_sample_rejects_disallowed_agent_engine() -> None:
             suite=suite,
             trial_id="trial-1",
             repetition_index=0,
-            agent_engine="codex-cli",
+            agent_engine="unsupported-engine",
             runner_class="direct_runner",
         )
 
@@ -361,8 +361,9 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
     assert map_build_sample.allowed_agent_engines == ("direct-runner", "openai-agents-sdk")
     assert map_build_sample.provider_profiles == (
         MISSING_NOT_APPLICABLE,
-        "codex-router-responses",
+        "custom-responses",
         "minimax-responses",
+        "kimi-openai-chat",
     )
 
     map_build_consumer_suite = suites[1]
@@ -379,10 +380,9 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
         "fixture_focused_prior",
     ]
     assert map_build_consumer_suite.metadata["model_matrix_provider_profiles"] == [
-        "codex-router-responses",
-        "mimo-inside-openai-chat",
-        "kimi-openai-chat",
+        "custom-responses",
         "minimax-responses",
+        "kimi-openai-chat",
     ]
 
     fixture_map_build_sample = next(
@@ -391,10 +391,9 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
     assert "map_build_scan_profile" not in fixture_map_build_sample.launch_overrides
     assert fixture_map_build_sample.provider_profiles == (
         MISSING_NOT_APPLICABLE,
-        "codex-router-responses",
-        "mimo-inside-openai-chat",
-        "kimi-openai-chat",
+        "custom-responses",
         "minimax-responses",
+        "kimi-openai-chat",
     )
 
     open_ended_suite = suites[3]
@@ -413,13 +412,13 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
     assert open_ended_sample.preset == MISSING_NOT_APPLICABLE
     assert open_ended_sample.allowed_agent_engines == (
         "direct-runner",
-        "codex-cli",
         "openai-agents-sdk",
     )
     assert open_ended_sample.provider_profiles == (
         MISSING_NOT_APPLICABLE,
-        "codex-router-responses",
+        "custom-responses",
         "minimax-responses",
+        "kimi-openai-chat",
     )
     assert open_ended_sample.grader_config["semantic_satisfaction_authoritative"] is False
     assert open_ended_sample.grader_config["open_ended_category"] == "negative_search"

@@ -732,12 +732,12 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
           roboclaws_assert_openai_agents_network_allowed "OpenAI Agents SDK Molmo cleanup live report"
         fi
         openai_agents_model=""
-        openai_agents_profile="codex-router-responses"
-        openai_agents_profile_summary="codex-router-responses model=gpt-5.6-sol"
+        openai_agents_profile=""
+        openai_agents_profile_summary=""
         if [[ "$driver" == "openai-agents-live" ]]; then
-          openai_agents_profile="$(roboclaws_code_agent_provider ROBOCLAWS_PROVIDER_PROFILE codex-router-responses)"
-          openai_agents_model="$(roboclaws_code_agent_model ROBOCLAWS_OPENAI_AGENTS_MODEL ROBOCLAWS_PROVIDER_PROFILE codex-router-responses)"
-          openai_agents_profile_summary="$(roboclaws_code_agent_profile_summary ROBOCLAWS_PROVIDER_PROFILE ROBOCLAWS_OPENAI_AGENTS_MODEL codex-router-responses)"
+          openai_agents_profile="$(roboclaws_code_agent_provider ROBOCLAWS_PROVIDER_PROFILE)"
+          openai_agents_model="$(roboclaws_code_agent_model ROBOCLAWS_OPENAI_AGENTS_MODEL ROBOCLAWS_PROVIDER_PROFILE)"
+          openai_agents_profile_summary="$(roboclaws_code_agent_profile_summary ROBOCLAWS_PROVIDER_PROFILE ROBOCLAWS_OPENAI_AGENTS_MODEL)"
         fi
         prompt_cleanup_count="$generated_mess_count"
         if [[ "$profile" == "camera-raw-fpv" ]]; then

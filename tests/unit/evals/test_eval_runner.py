@@ -441,7 +441,7 @@ def test_eval_runner_records_live_agent_blocked_identity(tmp_path: Path) -> None
         output_root=tmp_path,
         stamp="live-blocked",
         agent_engine="openai-agents-sdk",
-        provider_profile="codex-router-responses",
+        provider_profile="kimi-openai-chat",
         product_runner=_passing_product_runner,
     )
 
@@ -456,12 +456,15 @@ def test_eval_runner_records_live_agent_blocked_identity(tmp_path: Path) -> None
     assert result["failure_class"] == "model_or_provider_unavailable"
     assert result["identity"]["agent_engine"] == "openai-agents-sdk"
     assert result["identity"]["runner_class"] == "live-agent"
-    assert result["identity"]["provider_profile"] == "codex-router-responses"
+    assert result["identity"]["provider_profile"] == "kimi-openai-chat"
     assert result["grader_outputs"]["runner"]["error_type"] == "LiveAgentEvalNotExecuted"
     preflight = result["grader_outputs"]["runner"]["preflight"]
     assert preflight["schema"] == "roboclaws_live_eval_preflight_v1"
-    assert preflight["provider_readiness"]["provider_profile"] == "codex-router-responses"
-    assert preflight["provider_readiness"]["required_env"] == ["CODEX_BASE_URL", "CODEX_API_KEY"]
+    assert preflight["provider_readiness"]["provider_profile"] == "kimi-openai-chat"
+    assert preflight["provider_readiness"]["required_env"] == [
+        "KIMI_OPENAI_BASE_URL",
+        "KIMI_API_KEY",
+    ]
     assert preflight["runtime_readiness"]["required_runtime"] == (
         "OpenAI Agents SDK household runner"
     )
@@ -488,7 +491,7 @@ def test_eval_runner_runs_live_agent_when_explicitly_enabled(tmp_path: Path) -> 
         output_root=tmp_path,
         stamp="live-run",
         agent_engine="openai-agents-sdk",
-        provider_profile="codex-router-responses",
+        provider_profile="kimi-openai-chat",
         live_execution="run",
         live_timeout_s=12.5,
         live_stall_timeout_s=6.25,
@@ -499,7 +502,7 @@ def test_eval_runner_runs_live_agent_when_explicitly_enabled(tmp_path: Path) -> 
     assert payload["aggregate"]["passed"] == 3
     assert payload["aggregate"]["blocked"] == 0
     assert seen_kwargs[0]["agent_engine"] == "openai-agents-sdk"
-    assert seen_kwargs[0]["provider_profile"] == "codex-router-responses"
+    assert seen_kwargs[0]["provider_profile"] == "kimi-openai-chat"
     assert seen_kwargs[0]["live_timeout_s"] == 12.5
     assert seen_kwargs[0]["live_stall_timeout_s"] == 6.25
     result = payload["results"][0]
@@ -525,7 +528,7 @@ def test_eval_runner_regrades_existing_live_artifacts_without_provider_call(
         output_root=tmp_path,
         stamp="live-source",
         agent_engine="openai-agents-sdk",
-        provider_profile="codex-router-responses",
+        provider_profile="kimi-openai-chat",
         live_execution="run",
         live_product_runner=live_product_runner,
     )
@@ -538,7 +541,7 @@ def test_eval_runner_regrades_existing_live_artifacts_without_provider_call(
         output_root=tmp_path,
         stamp="live-source-regrade",
         agent_engine="openai-agents-sdk",
-        provider_profile="codex-router-responses",
+        provider_profile="kimi-openai-chat",
         regrade_source=source_run.output_dir,
         live_product_runner=forbidden_live_product_runner,
     )
@@ -566,7 +569,7 @@ def test_eval_runner_rejects_live_result_without_effective_run_dir(tmp_path: Pat
         output_root=tmp_path,
         stamp="live-missing-effective-run-dir",
         agent_engine="openai-agents-sdk",
-        provider_profile="codex-router-responses",
+        provider_profile="kimi-openai-chat",
         live_execution="run",
         live_product_runner=live_product_runner,
     )
@@ -600,7 +603,7 @@ def test_eval_runner_rejects_live_effective_run_dir_outside_trial(tmp_path: Path
         output_root=tmp_path,
         stamp="live-escaped-effective-run-dir",
         agent_engine="openai-agents-sdk",
-        provider_profile="codex-router-responses",
+        provider_profile="kimi-openai-chat",
         live_execution="run",
         live_product_runner=live_product_runner,
     )
@@ -625,7 +628,7 @@ def test_eval_runner_classifies_live_provider_failures_as_blocked(tmp_path: Path
         output_root=tmp_path,
         stamp="live-provider-blocked",
         agent_engine="openai-agents-sdk",
-        provider_profile="codex-router-responses",
+        provider_profile="kimi-openai-chat",
         live_execution="run",
         live_product_runner=live_product_runner,
     )
@@ -919,7 +922,7 @@ def test_live_surface_product_fails_aloud_on_malformed_run_result(
         output_root=tmp_path,
         stamp="live-malformed-run-result",
         agent_engine="openai-agents-sdk",
-        provider_profile="codex-router-responses",
+        provider_profile="kimi-openai-chat",
         live_execution="run",
         live_timeout_s=12.5,
     )
@@ -1119,7 +1122,7 @@ def test_live_eval_classifies_budget_runtime_failure(tmp_path: Path, reason: str
         output_root=tmp_path,
         stamp="live-open-ended-observe-budget",
         agent_engine="openai-agents-sdk",
-        provider_profile="codex-router-responses",
+        provider_profile="kimi-openai-chat",
         live_execution="run",
         live_product_runner=live_product_runner,
     )
@@ -1176,7 +1179,7 @@ def test_live_open_ended_eval_grades_artifacts_after_checker_nonzero_exit(
         output_root=tmp_path,
         stamp="live-open-ended-checker-nonzero",
         agent_engine="openai-agents-sdk",
-        provider_profile="codex-router-responses",
+        provider_profile="kimi-openai-chat",
         live_execution="run",
         live_timeout_s=12.5,
     )
@@ -1322,7 +1325,7 @@ def test_live_cleanup_eval_grades_artifacts_after_checker_nonzero_exit(
         output_root=tmp_path,
         stamp="live-cleanup-checker-nonzero",
         agent_engine="openai-agents-sdk",
-        provider_profile="codex-router-responses",
+        provider_profile="kimi-openai-chat",
         live_execution="run",
         live_timeout_s=12.5,
     )
@@ -1752,7 +1755,7 @@ def test_live_surface_command_uses_current_public_launch_axes(tmp_path: Path) ->
         output_root=tmp_path,
         stamp="live-command",
         agent_engine="openai-agents-sdk",
-        provider_profile="codex-router-responses",
+        provider_profile="kimi-openai-chat",
         live_execution="run",
         live_product_runner=live_product_runner,
     )
@@ -1760,7 +1763,7 @@ def test_live_surface_command_uses_current_public_launch_axes(tmp_path: Path) ->
     command = live_surface_command(seen_kwargs[0], output_dir=tmp_path / "surface-run")
     assert "backend=mujoco" in command
     assert "agent_engine=openai-agents-sdk" in command
-    assert "provider_profile=codex-router-responses" in command
+    assert "provider_profile=kimi-openai-chat" in command
     assert "evidence_lane=world-public-labels" in command
     assert "run_preset=smoke" in command
     assert "preset=cleanup" in command
@@ -1786,7 +1789,7 @@ def test_live_surface_command_passes_map_build_camera_labeler(tmp_path: Path) ->
         {
             "eval_sample": sample,
             "agent_engine": "openai-agents-sdk",
-            "provider_profile": "codex-router-responses",
+            "provider_profile": "kimi-openai-chat",
             "evidence_lane": sample.evidence_lane,
             "visual_grounding": sample.camera_labeler,
             "map_build": True,
@@ -1829,7 +1832,7 @@ def test_live_surface_command_uses_no_preset_public_open_task_route(tmp_path: Pa
         output_root=tmp_path,
         stamp="live-open-task-command",
         agent_engine="openai-agents-sdk",
-        provider_profile="codex-router-responses",
+        provider_profile="kimi-openai-chat",
         live_execution="run",
         live_product_runner=live_product_runner,
     )
@@ -1837,7 +1840,7 @@ def test_live_surface_command_uses_no_preset_public_open_task_route(tmp_path: Pa
     command = live_surface_command(seen_kwargs[0], output_dir=tmp_path / "surface-run")
     assert "surface=household-world" in command
     assert "agent_engine=openai-agents-sdk" in command
-    assert "provider_profile=codex-router-responses" in command
+    assert "provider_profile=kimi-openai-chat" in command
     assert "run_preset=smoke" in command
     assert not any(item.startswith("preset=") for item in command)
     assert any(item.startswith("prompt=") for item in command)
@@ -1926,15 +1929,15 @@ def test_eval_runner_rejects_invalid_sample_launch_metadata(
 def test_live_surface_env_sets_provider_and_model_keys(tmp_path: Path) -> None:
     kwargs: dict[str, Any] = {
         "agent_engine": "openai-agents-sdk",
-        "provider_profile": "codex-router-responses",
-        "model": "gpt-5.5",
+        "provider_profile": "kimi-openai-chat",
+        "model": "kimi-k2.7-code",
     }
 
     env = live_surface_env(kwargs, base_env={"PATH": "/bin"})
 
     assert env["PATH"] == "/bin"
-    assert env["ROBOCLAWS_PROVIDER_PROFILE"] == "codex-router-responses"
-    assert env["ROBOCLAWS_CODEX_MODEL"] == "gpt-5.5"
+    assert env["ROBOCLAWS_PROVIDER_PROFILE"] == "kimi-openai-chat"
+    assert env["ROBOCLAWS_OPENAI_AGENTS_MODEL"] == "kimi-k2.7-code"
 
 
 def test_map_build_consumer_suite_passes_runtime_map_prior_between_samples(
@@ -2427,7 +2430,7 @@ def test_cleanup_consumer_fails_when_runtime_map_dependency_is_missing(tmp_path:
         sample_id = kwargs["run_metadata_overrides"]["eval_sample_id"]
         launched_samples.append(sample_id)
         if sample_id == "map_build.fixture_focused_seed7":
-            raise RuntimeError("provider_config_failure: missing CODEX_API_KEY")
+            raise RuntimeError("provider_config_failure: missing KIMI_API_KEY")
         if sample_id.startswith("open_ended."):
             _write_product_artifacts(
                 run_dir,
@@ -2697,13 +2700,13 @@ def test_live_eval_rejects_invalid_runtime_map_dependency_before_launch(
         mutate=lambda sample: sample.update(
             {
                 "allowed_agent_engines": ["openai-agents-sdk"],
-                "provider_profiles": ["codex-router-responses"],
+                "provider_profiles": ["kimi-openai-chat"],
                 "artifact_dependencies": artifact_dependencies,
             }
         ),
         assertion_message=f"live product runner should not launch with invalid {case_name}",
         agent_engine="openai-agents-sdk",
-        provider_profile="codex-router-responses",
+        provider_profile="kimi-openai-chat",
         live_execution="run",
     )
 
@@ -3030,7 +3033,7 @@ def _live_surface_kwargs(
         "scene_source": "procthor-10k-val",
         "scene_index": 0,
         "agent_engine": "openai-agents-sdk",
-        "provider_profile": "codex-router-responses",
+        "provider_profile": "kimi-openai-chat",
         "model": None,
         "live_timeout_s": live_timeout_s,
         "live_stall_timeout_s": live_stall_timeout_s,
