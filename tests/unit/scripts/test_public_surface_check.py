@@ -55,3 +55,31 @@ def test_allows_public_urls_placeholders_and_test_credentials(tmp_path: Path) ->
 
     assert result.returncode == 0
     assert result.stdout.strip() == "public-surface check passed"
+
+
+def test_rejects_a_root_that_is_not_a_git_worktree(tmp_path: Path) -> None:
+    result = subprocess.run(
+        [sys.executable, str(CHECKER), "--root", str(tmp_path)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+    assert result.stdout.strip() == "public-surface check failed: root is not a Git worktree"
+
+
+def test_rejects_an_empty_git_worktree(tmp_path: Path) -> None:
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+
+    result = subprocess.run(
+        [sys.executable, str(CHECKER), "--root", str(tmp_path)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+    assert result.stdout.strip() == (
+        "public-surface check failed: Git worktree has no tracked files"
+    )

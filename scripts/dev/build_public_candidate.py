@@ -15,6 +15,7 @@ EXCLUDED_PATHS = {
     ".gitmodules",
     "CLAUDE.md",
     "PLAN.md",
+    "sidecars/visual-grounding/uv.lock",
     "THOUGHTS.md",
     "TODOS.md",
     "vendors/agibot_sdk",

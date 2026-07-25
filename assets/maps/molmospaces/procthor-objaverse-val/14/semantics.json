@@ -56,7 +56,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 5.45,
       "y": 8.7,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -73,7 +73,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 1.1,
       "y": 7.6,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -90,7 +90,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 7.6,
       "y": 6.5,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -107,7 +107,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 14.1,
       "y": 7.6,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -124,7 +124,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 6.5,
       "y": 14.1,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -141,7 +141,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 13.05,
       "y": 14.1,
-      "yaw": 0.0
+      "yaw": 0
     }
   ],
   "map_id": "molmospaces-procthor-objaverse-val-14_base_metric_map",
@@ -156,7 +156,7 @@
     "scene_index": 14,
     "scene_source": "procthor-objaverse-val",
     "source": "molmospaces_scene_source_map_preparation",
-    "source_artifact": "/home/mi/.cache/molmospaces/assets/L2hvbWUvbWkvd3MvZ29nby9yb2JvY2xhd3MvLnZlbnYvbGliL3B5dGhvbjMuMTIvc2l0ZS1wYWNrYWdlcw/scenes/procthor-objaverse-val/val_14.xml",
+    "source_artifact": "molmospaces://procthor-objaverse-val/14",
     "uses_navigation_memory_as_waypoint_source": false
   },
   "rooms": [
@@ -208,7 +208,7 @@
       "navigation_area_id": "room_5",
       "polygon": [
         {
-          "x": 0.0,
+          "x": 0,
           "y": 2.172
         },
         {
@@ -220,7 +220,7 @@
           "y": 13.032
         },
         {
-          "x": 0.0,
+          "x": 0,
           "y": 13.032
         }
       ],

@@ -43,13 +43,27 @@ PLACEHOLDER_PREFIXES = (
 
 
 def _tracked_files(root: Path) -> list[Path]:
+    worktree = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if worktree.returncode != 0:
+        raise ValueError("root is not a Git worktree")
+    if Path(worktree.stdout.strip()).resolve() != root:
+        raise ValueError("root must be the Git worktree root")
     result = subprocess.run(
         ["git", "ls-files", "-z"],
         cwd=root,
         check=True,
         capture_output=True,
     )
-    return [root / Path(raw.decode()) for raw in result.stdout.split(b"\0") if raw]
+    paths = [root / Path(raw.decode()) for raw in result.stdout.split(b"\0") if raw]
+    if not paths:
+        raise ValueError("Git worktree has no tracked files")
+    return paths
 
 
 def _text(path: Path) -> str | None:
@@ -83,8 +97,10 @@ def _is_private_ip(value: str) -> bool:
 
 
 def _is_credential_name(value: str) -> bool:
-    return value.endswith("_API_KEY") or value in {"PASSWORD", "SECRET", "TOKEN"} or any(
-        value.endswith(suffix) for suffix in ("_PASSWORD", "_SECRET", "_TOKEN")
+    return (
+        value.endswith("_API_KEY")
+        or value in {"PASSWORD", "SECRET", "TOKEN"}
+        or any(value.endswith(suffix) for suffix in ("_PASSWORD", "_SECRET", "_TOKEN"))
     )
 
 
@@ -161,7 +177,13 @@ def main() -> int:
     args = parser.parse_args()
     root = args.root.resolve()
 
-    findings = [finding for path in _tracked_files(root) for finding in scan_file(root, path)]
+    try:
+        tracked_files = _tracked_files(root)
+    except ValueError as exc:
+        print(f"public-surface check failed: {exc}")
+        return 2
+
+    findings = [finding for path in tracked_files for finding in scan_file(root, path)]
     for finding in findings:
         print(f"{finding.path}:{finding.line}: {finding.rule}: <redacted>")
     if findings:

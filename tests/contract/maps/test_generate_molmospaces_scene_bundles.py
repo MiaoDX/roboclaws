@@ -205,6 +205,7 @@ def test_molmospaces_room_category_rules_preserve_priority_and_fallback() -> Non
         "conference_lounge": "living_room",
         "neutral_area": "open_area",
     }
+    assert metric_map["provenance"]["source_artifact"] == "molmospaces://procthor-10k-val/0"
 
 
 def _minimal_metric_map() -> dict[str, object]:

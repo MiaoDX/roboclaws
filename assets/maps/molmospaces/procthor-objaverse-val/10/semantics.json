@@ -52,7 +52,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 2.05,
       "y": 4.15,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -69,7 +69,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 6.2,
       "y": 4.15,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -86,7 +86,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 4.15,
       "y": 1.05,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -103,7 +103,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 10.35,
       "y": 5.15,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -120,7 +120,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 4.15,
       "y": 8.25,
-      "yaw": 0.0
+      "yaw": 0
     }
   ],
   "map_id": "molmospaces-procthor-objaverse-val-10_base_metric_map",
@@ -135,7 +135,7 @@
     "scene_index": 10,
     "scene_source": "procthor-objaverse-val",
     "source": "molmospaces_scene_source_map_preparation",
-    "source_artifact": "/home/mi/.cache/molmospaces/assets/L2hvbWUvbWkvd3MvZ29nby9yb2JvY2xhd3MvLnZlbnYvbGliL3B5dGhvbjMuMTIvc2l0ZS1wYWNrYWdlcw/scenes/procthor-objaverse-val/val_10.xml",
+    "source_artifact": "molmospaces://procthor-objaverse-val/10",
     "uses_navigation_memory_as_waypoint_source": false
   },
   "rooms": [
@@ -148,7 +148,7 @@
       "navigation_area_id": "room_2",
       "polygon": [
         {
-          "x": 0.0,
+          "x": 0,
           "y": 2.068
         },
         {
@@ -160,7 +160,7 @@
           "y": 6.203
         },
         {
-          "x": 0.0,
+          "x": 0,
           "y": 6.203
         }
       ],
@@ -226,19 +226,19 @@
       "navigation_area_id": "room_4",
       "polygon": [
         {
-          "x": 0.0,
-          "y": 0.0
+          "x": 0,
+          "y": 0
         },
         {
           "x": 8.271,
-          "y": 0.0
+          "y": 0
         },
         {
           "x": 8.271,
           "y": 2.068
         },
         {
-          "x": 0.0,
+          "x": 0,
           "y": 2.068
         }
       ],
@@ -304,7 +304,7 @@
       "navigation_area_id": "room_6",
       "polygon": [
         {
-          "x": 0.0,
+          "x": 0,
           "y": 6.203
         },
         {
@@ -316,7 +316,7 @@
           "y": 10.338
         },
         {
-          "x": 0.0,
+          "x": 0,
           "y": 10.338
         }
       ],
