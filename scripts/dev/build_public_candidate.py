@@ -19,6 +19,8 @@ EXCLUDED_PATHS = {
     "THOUGHTS.md",
     "TODOS.md",
     "tests/contract/maps/test_agibot_map_bundle_export.py",
+    "tests/contract/maps/test_base_waypoint_builder.py",
+    "tests/contract/maps/test_cross_environment_semantic_map_parity.py",
     "tests/contract/maps/test_nav2_map_bundle_contract.py",
     "tests/contract/maps/test_robot_map12_consistency.py",
     "tests/contract/maps/test_runtime_map_prior_snapshot.py",
@@ -44,6 +46,7 @@ EXCLUDED_PREFIXES = (
 )
 EXCLUDED_GLOBS = (
     "assets/maps/b1-map12-*",
+    "tests/contract/maps/test_b1_*",
     "tests/fixtures/agibot_*",
 )
 PUBLIC_SUBMODULE_PATH = "vendors/molmospaces"
