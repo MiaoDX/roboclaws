@@ -55,7 +55,7 @@ def _run_tool_mode_from_args(
     *,
     parser: argparse.ArgumentParser,
 ) -> int | None:
-    if overrides and overrides[0] in {"recommend", "execute", "status", "collect"}:
+    if overrides and overrides[0] in {"recommend", "execute"}:
         try:
             return _run_eval_harness(overrides[0], _parse_key_value_args(overrides[1:]))
         except (RuntimeError, TimeoutError, ValueError) as exc:
@@ -96,10 +96,6 @@ def _tool_mode_payload(mode: str, overrides: dict[str, str]) -> dict[str, object
 
 
 def _run_eval_harness(mode: str, overrides: dict[str, str]) -> int:
-    if mode in {"status", "collect"}:
-        return _run_eval_harness_lifecycle(mode, overrides)
-    if mode == "execute" and overrides.get("run"):
-        return _resume_eval_harness_cloudml(overrides)
     values = dict(overrides)
     if values.pop("suite", None):
         raise ValueError(f"{mode} does not accept suite=<suite>; use direct suite mode")
@@ -119,10 +115,7 @@ def _run_eval_harness(mode: str, overrides: dict[str, str]) -> int:
         "scene",
         "runtime_map_prior",
         "output_dir",
-        "execution_target",
         "max_parallel",
-        "cloudml_dry_run",
-        "cloudml_preemptible",
         "manifest",
         "row_id",
         "shard_id",
@@ -135,78 +128,6 @@ def _run_eval_harness(mode: str, overrides: dict[str, str]) -> int:
         keys = ", ".join(sorted(values))
         raise ValueError(f"unsupported eval-harness override(s): {keys}")
     return _load_eval_harness_runner().main(argv)
-
-
-def _resume_eval_harness_cloudml(overrides: dict[str, str]) -> int:
-    values = dict(overrides)
-    run_ref = values.pop("run")
-    retry_shard_ids = tuple(
-        item.strip() for item in values.pop("retry_shard_id", "").split(",") if item.strip()
-    )
-    if values:
-        keys = ", ".join(sorted(values))
-        raise ValueError(f"unsupported eval-harness resume override(s): {keys}")
-    runner = _load_eval_harness_runner()
-    plan, plan_path = runner.cloudml_lifecycle.resume_cloudml_run(
-        runner.cloudml_execution,
-        run_ref,
-        retry_shard_ids=retry_shard_ids,
-    )
-    print(
-        json.dumps(
-            {
-                "run_id": plan["run_id"],
-                "plan": str(plan_path),
-                "submitted_shard_count": sum(1 for shard in plan["shards"] if shard.get("task_id")),
-            },
-            sort_keys=True,
-        )
-    )
-    return 0
-
-
-def _run_eval_harness_lifecycle(mode: str, overrides: dict[str, str]) -> int:
-    values = dict(overrides)
-    run_ref = values.pop("run", "")
-    if not run_ref:
-        raise ValueError(f"{mode} requires run=<run-id-or-output-dir>")
-    runner = _load_eval_harness_runner()
-    if mode == "status":
-        wait = runner.cloudml_execution.bool_value(values.pop("wait", "false"))
-        poll_interval_s = float(values.pop("poll_interval_s", "15"))
-        timeout_s = float(values.pop("timeout_s", "3600"))
-        if values:
-            keys = ", ".join(sorted(values))
-            raise ValueError(f"unsupported eval-harness status override(s): {keys}")
-        summary, plan_path = runner.cloudml_lifecycle.status_cloudml_run(
-            run_ref,
-            wait=wait,
-            poll_interval_s=poll_interval_s,
-            timeout_s=timeout_s,
-        )
-        print(json.dumps({**summary, "plan": str(plan_path)}, sort_keys=True))
-        return 0
-    if values:
-        keys = ", ".join(sorted(values))
-        raise ValueError(f"unsupported eval-harness collect override(s): {keys}")
-    plan, manifest, plan_path = runner.cloudml_lifecycle.collect_cloudml_run(
-        runner.cloudml_execution, run_ref
-    )
-    output_dir = Path(manifest["output_dir"])
-    runner._write_outputs(manifest, output_dir)
-    print(
-        json.dumps(
-            {
-                "run_id": plan["run_id"],
-                "plan": str(plan_path),
-                "manifest": str(output_dir / "eval_harness.json"),
-                "report": str(output_dir / "eval_harness.html"),
-                "collection": plan["collection"],
-            },
-            sort_keys=True,
-        )
-    )
-    return runner._exit_status(manifest)
 
 
 def _run_map_build_report(overrides: dict[str, str]) -> dict[str, str]:
