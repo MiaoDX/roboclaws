@@ -47,10 +47,9 @@ set -a && source .env && set +a
 just dev::network-status
 ```
 
-如果 `network: work`，guarded maintainer routes 禁止。SDK 默认使用 repo-local `.env` 里的
-`CODEX_BASE_URL` + `CODEX_API_KEY`，也可以显式选择 `mimo-mify-responses` 或
-`minimax-responses` profile。不要把 key 写进日志、
-报告或文档。
+每次 SDK 启动都必须显式选择 profile。默认验证使用 `kimi-openai-chat`，并从
+repo-local `.env` 读取 `KIMI_OPENAI_BASE_URL` 和 `KIMI_API_KEY`；也可以显式选择
+`custom-responses` 或 `minimax-responses`。不要把 URL 或 key 写进日志、报告或文档。
 
 ### 2. 离线 Agibot map 转 snapshot
 
@@ -120,7 +119,7 @@ map-build intent + OpenAI Agents SDK engine 组合。可以自动验证 gate 和
 SDK agent 或机器人：
 
 ```bash
-ROBOCLAWS_JUST_TRACE=1 just run::surface surface=household-world world=agibot-g2/map-12 backend=agibot-gdk preset=map-build agent_engine=openai-agents-sdk provider_profile=codex-router-responses evidence_lane=camera-grounded-labels \
+ROBOCLAWS_JUST_TRACE=1 just run::surface surface=household-world world=agibot-g2/map-12 backend=agibot-gdk preset=map-build agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=camera-grounded-labels \
   context_json=output/agibot/map-context/example/agibot_map_context.completed.json \
   output_dir=output/agibot/map-build-hardware \
   policy=openai_agents_agibot_map_build \
@@ -296,7 +295,7 @@ missing-sidecar / adapter-unavailable 证据，而不是伪造候选：
 ```bash
 OPEN_EVIDENCE_REFRESH_PROMPT='基于当前已有 Runtime Metric Map，自主选择 3 个最值得复核的 public semantic anchor 或 inspection waypoint，依次导航过去观察。优先选择 actionability=actionable、needs_review、costmap_disagrees 或缺少当前画面证据的目标；如果目标不可达或证据不清楚，跳过并记录原因。最后调用 done，总结你选择了哪里、为什么选择、每个点看到什么、哪些点被跳过。'
 
-just run::surface surface=household-world world=agibot-g2/map-12 backend=agibot-gdk preset=map-build agent_engine=openai-agents-sdk provider_profile=codex-router-responses evidence_lane=camera-grounded-labels \
+just run::surface surface=household-world world=agibot-g2/map-12 backend=agibot-gdk preset=map-build agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=camera-grounded-labels \
   context_json=output/agibot/map-context/<stamp>/agibot_map_context.completed.json \
   output_dir=output/agibot/map-build-sdk-dry-run \
   policy=openai_agents_agibot_map_build \
@@ -319,7 +318,7 @@ dry run 不能称为 hardware evidence。
 只有 operator 确认 run-level gate 后，才启用 movement：
 
 ```bash
-just run::surface surface=household-world world=agibot-g2/map-12 backend=agibot-gdk preset=map-build agent_engine=openai-agents-sdk provider_profile=codex-router-responses evidence_lane=camera-grounded-labels \
+just run::surface surface=household-world world=agibot-g2/map-12 backend=agibot-gdk preset=map-build agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=camera-grounded-labels \
   context_json=output/agibot/map-context/<stamp>/agibot_map_context.completed.json \
   output_dir=output/agibot/map-build-hardware \
   policy=openai_agents_agibot_map_build \

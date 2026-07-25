@@ -69,7 +69,7 @@ Non-direct selections preserve live-agent identity and produce blocked
 provider/runtime evidence unless live execution is explicitly requested:
 
 ```bash
-just agent::eval suite=cleanup_capability budget=smoke agent_engine=openai-agents-sdk provider_profile=codex-router-responses
+just agent::eval suite=cleanup_capability budget=smoke agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat
 ```
 
 Run an opt-in live provider route only when local provider/runtime requirements
@@ -77,7 +77,7 @@ are available:
 
 ```bash
 just agent::eval suite=open_ended_goals budget=smoke \
-  agent_engine=openai-agents-sdk provider_profile=codex-router-responses \
+  agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat \
   live_execution=run
 ```
 

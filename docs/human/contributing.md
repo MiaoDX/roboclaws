@@ -87,11 +87,12 @@ Repo-local `.env` is the normal local route and is ignored by git. Common keys:
 
 ```bash
 KIMI_API_KEY=
-MIMO_TP_KEY=
-NV_API_KEY=
-XM_LLM_API_KEY=
-CODEX_BASE_URL=
-CODEX_API_KEY=
+KIMI_OPENAI_BASE_URL=
+MM_API_KEY=
+MM_BASE_URL=
+CUSTOM_RESPONSES_API_KEY=
+CUSTOM_RESPONSES_BASE_URL=
+CUSTOM_RESPONSES_MODEL=
 ```
 
 GitHub secrets are needed only for workflows that run live provider profiles.

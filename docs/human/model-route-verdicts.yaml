@@ -1,64 +1,20 @@
 schema: roboclaws_model_route_verdicts_v1
-last_reviewed: 2026-07-22
+last_reviewed: 2026-07-25
 source_of_truth:
   registry: roboclaws/agents/provider_registry.py
   narrative: docs/human/model-matrix.md
 verdicts:
   - agent_engine: openai-agents-sdk
-    provider_route: codex-router-responses
-    provider_profile: codex-router-responses
-    model_id: gpt-5.6-sol
-    route_status: experimental
-    lane_verdicts:
-      structured_labels: experimental
-      camera_grounded_labels: experimental
-      camera_raw_fpv: healthy
-    evidence: 2026-07-14 work-network Responses and OpenAI SDK probes passed; model-matrix health passed 2/2 with GPT-5.6-sol
-    notes: Default active live-agent route when provider capacity is healthy. Requires CODEX_BASE_URL and CODEX_API_KEY; GPT-5.5 remains available as an explicit compatibility model.
-  - agent_engine: openai-agents-sdk
-    provider_route: mimo-mify-responses
-    provider_profile: mimo-mify-responses
-    model_id: xiaomi/mimo-v2.5-pro
-    route_status: healthy
-    lane_verdicts:
-      structured_labels: healthy
-      camera_grounded_labels: healthy
-      camera_raw_fpv: blocked
-    evidence: 2026-07-22 local Chat and Responses probes passed 3/3 each; cleanup worklist tool-call case passed; prior CloudML live row passed 3/3
-    notes: Only default-enabled MiMo route. Uses the Responses gateway directly without the retired text bridge; raw FPV remains blocked because image transport is unverified.
-  - agent_engine: openai-agents-sdk
-    provider_route: mimo-tp-openai-chat
-    provider_profile: mimo-tp-openai-chat
-    model_id: mimo-v2.5
-    route_status: healthy
-    lane_verdicts:
-      structured_labels: healthy
-      camera_grounded_labels: healthy
-      camera_raw_fpv: blocked
-    evidence: local non-raw-FPV Agent SDK cleanup evidence
-    notes: Healthy transport retained for explicit diagnostics, but paused from default and baseline selection while MiMo defaults use Mify Pro. Raw FPV is blocked by route image transport.
-  - agent_engine: openai-agents-sdk
-    provider_route: mimo-inside-openai-chat
-    provider_profile: mimo-inside-openai-chat
-    model_id: mimo-1000
-    route_status: blocked
-    lane_verdicts:
-      structured_labels: experimental
-      camera_grounded_labels: experimental
-      camera_raw_fpv: blocked
-    evidence: 2026-07-22 local probe returned 503 model_not_found / No available channel 3/3; provider owner confirmed mimo-1000 was removed
-    notes: Paused from default and baseline selection. Retained only for explicit diagnostics and historical artifact readability; there is no silent fallback to Mify.
-  - agent_engine: openai-agents-sdk
-    provider_route: kimi-openai-chat
-    provider_profile: kimi-openai-chat
-    model_id: kimi-k2.7-code
+    provider_route: custom-responses
+    provider_profile: custom-responses
+    model_id: custom
     route_status: experimental
     lane_verdicts:
       structured_labels: experimental
       camera_grounded_labels: experimental
       camera_raw_fpv: blocked
-    evidence: output/dev/model-matrix/20260622_170914/model_matrix_benchmark.json plus 2026-06-22 suffix probe with kimi-k2.7-code-highspeed-not-exist
-    notes: Default model is kimi-k2.7-code. Kimi K2.7 Code routes are thinking-only and no longer send the old explicit thinking body. The provider accepts arbitrary K2.7 suffixes and echoes them, so suffix variants are not treated as catalog models.
+    evidence: Route contract and mocked SDK transport proof only; live endpoint proof is configuration-specific.
+    notes: Requires an explicit base URL, API key, and opaque model id. Capabilities remain conservative and raw FPV is blocked until image transport is verified.
   - agent_engine: openai-agents-sdk
     provider_route: minimax-responses
     provider_profile: minimax-responses
@@ -68,8 +24,19 @@ verdicts:
       structured_labels: healthy
       camera_grounded_labels: experimental
       camera_raw_fpv: blocked
-    evidence: local OpenAI Agents SDK cleanup run completed with score.status=success
-    notes: Default MiniMax model. M3 is multimodal and image-capable, but raw FPV remains blocked until runtime image transport is verified for this route.
+    evidence: Local OpenAI Agents SDK structured cleanup completed successfully.
+    notes: Named Responses comparison. Model image capability does not imply verified SDK image transport.
+  - agent_engine: openai-agents-sdk
+    provider_route: kimi-openai-chat
+    provider_profile: kimi-openai-chat
+    model_id: kimi-k2.7-code
+    route_status: experimental
+    lane_verdicts:
+      structured_labels: experimental
+      camera_grounded_labels: experimental
+      camera_raw_fpv: blocked
+    evidence: Prior Kimi SDK and provider probes; current live proof remains route-readiness dependent.
+    notes: Only Chat Completions profile. Kimi K2.7 Code is thinking-only and uses the canonical model id.
 retired_agent_engines:
   - codex-cli
   - claude-code
