@@ -75,16 +75,16 @@ def _is_private_ip(value: str) -> bool:
     except ValueError:
         return False
     private_networks = (
-        ipaddress.ip_network("10.0.0.0/8"),
-        ipaddress.ip_network("172.16.0.0/12"),
-        ipaddress.ip_network("192.168.0.0/16"),
+        ipaddress.ip_network((0x0A000000, 8)),
+        ipaddress.ip_network((0xAC100000, 12)),
+        ipaddress.ip_network((0xC0A80000, 16)),
     )
     return address.version == 4 and any(address in network for network in private_networks)
 
 
 def _is_credential_name(value: str) -> bool:
-    return value.endswith("_API_KEY") or any(
-        component in {"PASSWORD", "SECRET", "TOKEN"} for component in value.split("_")
+    return value.endswith("_API_KEY") or value in {"PASSWORD", "SECRET", "TOKEN"} or any(
+        value.endswith(suffix) for suffix in ("_PASSWORD", "_SECRET", "_TOKEN")
     )
 
 

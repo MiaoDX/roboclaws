@@ -42,6 +42,13 @@ jobs:
       - name: Run required PR gate
         run: just agent::verify ci-required
 
+      - name: Check public release candidate
+        run: |
+          candidate_root="$(mktemp -d)"
+          trap 'rm -rf "$candidate_root"' EXIT
+          .venv/bin/python scripts/dev/build_public_candidate.py --output "$candidate_root"
+          .venv/bin/python scripts/dev/check_public_surface.py --root "$candidate_root"
+
       - name: Upload required-gate output
         uses: actions/upload-artifact@v4
         if: always()

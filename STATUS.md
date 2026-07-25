@@ -10,15 +10,14 @@ leave a link.
 
 ## Current Focus
 
-Household MCP capability/backend unification has completed implementation Slices 0-4 and all
-currently available deterministic, SDK, eval, and B1/Isaac product proof. The supported B1
-MapBuild route now visits all five public waypoints and passes the strict robot-consumption and
-1.0 sweep-coverage gates. The active capsule is
-`docs/status/active/household-mcp-capability-backend-unification.md`.
+Public-core minimization is the current repository focus. The active capsule is
+`docs/status/active/public-core-internal-integration-minimization.md`.
 
-MapBuild optimization and testing has reached the current acceptance target:
-`preset=map-build` builds a richer, reliable Runtime Metric Map that helps
-downstream open-ended and cleanup tasks in the focused eval harness.
+The public runtime now has exactly three explicit OpenAI Agents SDK provider profiles:
+`custom-responses`, `minimax-responses`, and `kimi-openai-chat`. Private remote-operation ownership,
+retired provider routes, bare coding-agent helpers, and unsupported RAW-FPV live transport have
+been removed from the public core. Agibot and B1 remain validation-only worlds with injected
+dependencies and are omitted from default discovery.
 
 The active product shape is:
 
@@ -53,47 +52,20 @@ providers.
 
 ## Next Action
 
-Hold physical Agibot validation until the operator explicitly resumes it. When robot discovery at
-`10.42.1.101:2379` is reachable again, rerun the non-motion status gate first. Real movement still
-requires localization, E-stop, safety gates, and operator authorization.
-
-For the completed MapBuild quality/eval harness, use:
-
-`docs/status/active/map-build-quality-eval-harness.md`
-
-Use:
-
-```bash
-just agent::eval recommend plan=docs/plans/2026-06-26-map-build-quality-eval-harness.md budget=focused
-```
-
-for plan/diff-driven verification recommendations.
+Build the reviewed disposable public root, run tracked/package/history scans, then complete fresh
+clone, deterministic, package, and CLI smoke gates. Provider and optional-world live proofs remain
+separate required evidence; physical Agibot movement stays on hold unless the operator explicitly
+resumes it.
 
 ## Current Blockers
 
-- No current human blocker for deterministic MapBuild quality-gate work.
-- The opt-in CloudML B1/Isaac digital-twin proof remains stopped before Stage A acceptance. The
-  pinned Isaac image now carries an exact `580.105.08` NVIDIA Vulkan userspace overlay and selects
-  native libraries for exact `570.124.06`; local RTX/Vulkan smoke and both selector branches pass.
-  Bounded 2026-07-25 sampling now totals 84 one-GPU tasks plus the earlier 8-GPU and 4-GPU placement
-  diagnostics. The latest 56 one-GPU tasks included six same-second eight-task waves and covered
-  `slave559`, `slave563`, `slave564`, `slave574`, `slave580`, and `slave589`, but every sampled host
-  still reported exact driver `570.124.06`. Those tasks correctly failed before Isaac startup with
-  platform retries disabled. A normal one-GPU Stage A must still land on the known `580.105.08`
-  host group and pass before Stage B/C can run. No new EULA or per-attempt test approval is required.
-  See
-  `docs/status/active/cloudml-isaac-digital-twin-proof.md`.
-- No current implementation blocker for deterministic or OpenAI Agents SDK smoke
-  eval work when using a provider route available on the current network.
-- Agibot hardware validation is deferred by operator request, and the discovery service at
-  `10.42.1.101:2379` remains unreachable. No real-robot movement should run while this hold is in
-  place.
-- The focused MapBuild consumer live matrix has historical evidence across the
-  prior SDK provider profiles. New live runs must select `custom-responses`,
-  `minimax-responses`, or `kimi-openai-chat` explicitly.
-- Broader live-agent `pass^k`, RAW-FPV live cleanup, and
-  validation-required maintainer routes still depend on provider/runtime
-  capacity and route-specific availability proof.
+- No blocker for deterministic public-root construction and package verification.
+- Kimi, MiniMax, and configured custom Responses proofs require route-specific credentials and
+  network readiness.
+- Agibot hardware validation is deferred by operator request. No real-robot movement is authorized.
+- B1/Isaac validation requires injected scene/map dependencies and available local Isaac hardware.
+- Publication remains unauthorized until the reviewed candidate evidence is presented for human
+  approval.
 
 ## Human Review Surface
 
