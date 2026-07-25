@@ -78,6 +78,7 @@ def test_private_optional_world_content_is_excluded() -> None:
         "tests/contract/maps/test_robot_map12_consistency.py",
         "tests/contract/maps/test_b1_map12_label_tool.py",
         "tests/contract/maps/test_base_waypoint_builder.py",
+        "tests/contract/skills/test_scene_gaussian_map_alignment_skill.py",
     )
     for path in excluded:
         assert not module._included(module.TreeEntry("100644", "blob", "0" * 40, path))

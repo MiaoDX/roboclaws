@@ -26,6 +26,7 @@ EXCLUDED_PATHS = {
     "tests/contract/maps/test_runtime_map_prior_snapshot.py",
     "tests/contract/maps/test_scene_room_semantic_overlay.py",
     "tests/contract/molmo_cleanup/test_agibot_digital_twin_review_assets.py",
+    "tests/contract/skills/test_scene_gaussian_map_alignment_skill.py",
     "tests/unit/operator_console/test_render_scene_previews.py",
     "tests/unit/operator_console/test_render_scene_previews_sources.py",
     "tests/unit/operator_console/test_static_assets.py",
