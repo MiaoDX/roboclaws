@@ -50,7 +50,7 @@ jq -c 'select(.type=="custom") | .payload' /tmp/reset.jsonl | tail -5
 Real errors look like:
 
 ```json
-{"provider":"mimo_openai","model":"mimo-v2.5","api":"openai-completions",
+{"provider":"configured_chat","model":"configured-model","api":"openai-completions",
  "error":"request timed out | request timed out"}
 {"...","error":"LLM idle timeout (120s): no response from model"}
 ```

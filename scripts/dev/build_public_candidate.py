@@ -23,6 +23,7 @@ EXCLUDED_PATHS = {
 EXCLUDED_PREFIXES = (
     ".planning/",
     "docs/adr/archive/",
+    "docs/ai/",
     "docs/blog/",
     "docs/plans/",
     "docs/research/",

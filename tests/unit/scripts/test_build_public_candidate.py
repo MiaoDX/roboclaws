@@ -72,6 +72,7 @@ def test_private_optional_world_content_is_excluded() -> None:
         "tests/fixtures/agibot_map_context.completed.json",
         "tests/fixtures/runtime_map_prior/robot_map_12/agibot/source.json",
         "docs/status/active/private-proof.md",
+        "docs/ai/generated-update.md",
         "sidecars/visual-grounding/uv.lock",
     )
     for path in excluded:
