@@ -56,7 +56,7 @@ AGENT_BENCHMARK_CASES: tuple[AgentBenchmarkCase, ...] = (
     AgentBenchmarkCase(
         case_id="cleanup-worklist-plan",
         label="Cleanup worklist next-action plan",
-        source="output/household/verify-done-held-mimo-mify-responses-mimo/0605_1507/seed-7/agent_view.json",
+        source="embedded://cleanup-worklist-plan",
         prompt=(
             "You are driving the Roboclaws household-world cleanup MCP surface. Use only public "
             "evidence. Private scorer truth is unavailable. Given this public cleanup worklist, "
@@ -82,10 +82,7 @@ AGENT_BENCHMARK_CASES: tuple[AgentBenchmarkCase, ...] = (
     AgentBenchmarkCase(
         case_id="runtime-map-summary",
         label="Runtime metric map status summary",
-        source=(
-            "output/evals/household_world_cleanup_capability/20260615_verify_cleanup/"
-            "runs/cleanup_repeated_seed7/trial-0000/runtime_metric_map.json"
-        ),
+        source="embedded://runtime-map-summary",
         prompt=(
             "Summarize this public Runtime Metric Map state for a coding agent about to continue "
             "a cleanup run. Do not invent private destinations. Include: coverage gaps, likely "
@@ -103,7 +100,7 @@ AGENT_BENCHMARK_CASES: tuple[AgentBenchmarkCase, ...] = (
     AgentBenchmarkCase(
         case_id="camera-grounded-composite",
         label="Camera-grounded composite decision",
-        source="docs/status/active/live-agent-runtime-sdk-spike.md",
+        source="embedded://camera-grounded-composite",
         prompt=(
             "You are reviewing a camera-grounded cleanup turn from the OpenAI Agents SDK route. "
             "The optimized route should prefer a composite declare-and-act cadence when visual "
@@ -124,11 +121,11 @@ AGENT_BENCHMARK_CASES: tuple[AgentBenchmarkCase, ...] = (
     AgentBenchmarkCase(
         case_id="sdk-speedup-verdict",
         label="Agent SDK speedup verdict",
-        source="docs/status/active/agent-sdk-speedup-live-refresh-matrix.json",
+        source="embedded://sdk-speedup-verdict",
         prompt=(
             "Given this sanitized Agent SDK performance row, decide whether it is an accepted "
             "speedup, expected-rejected evidence, or blocked evidence. Keep private data out.\n\n"
-            "Row: provider_profile=mimo-mify-responses, model=mimo-v2.5, "
+            "Row: provider_profile=custom-responses, model=custom, "
             "evidence_lane=camera-grounded-labels. "
             "Baseline completed with done and report artifacts. Candidate O+AC completed with "
             "done and same-or-better quality. Observed wall time delta=-659.477s and model API "

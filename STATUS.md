@@ -89,8 +89,8 @@ for plan/diff-driven verification recommendations.
   `10.42.1.101:2379` remains unreachable. No real-robot movement should run while this hold is in
   place.
 - The focused MapBuild consumer live matrix has historical evidence across the
-  target SDK provider profiles. The default `codex-router-responses` route now
-  uses `gpt-5.6-sol` and handles Router transport compatibility internally.
+  prior SDK provider profiles. New live runs must select `custom-responses`,
+  `minimax-responses`, or `kimi-openai-chat` explicitly.
 - Broader live-agent `pass^k`, RAW-FPV live cleanup, and
   validation-required maintainer routes still depend on provider/runtime
   capacity and route-specific availability proof.

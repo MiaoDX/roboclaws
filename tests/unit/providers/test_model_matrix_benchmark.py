@@ -691,7 +691,7 @@ def test_agent_case_summary_carries_case_metadata() -> None:
 
     assert result.agent_case_id == "cleanup-worklist-plan"
     assert result.agent_case_label
-    assert result.agent_case_source.endswith("agent_view.json")
+    assert result.agent_case_source == "embedded://cleanup-worklist-plan"
     assert result.output_preview == "actions..."
 
 

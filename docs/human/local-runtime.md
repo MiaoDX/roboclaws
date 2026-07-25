@@ -12,24 +12,18 @@ Normal users configure keys only; command shape controls behavior.
 Copy `.env.example` to `.env`, then fill only the keys you have:
 
 ```bash
-KIMI_API_KEY=        # Kimi / Moonshot
-MIMO_TP_KEY=        # MiMo
-NV_API_KEY=          # NVIDIA NIM, optional
-
-XM_LLM_BASE_URL=https://api.llm.mioffice.cn/v1  # Internal multi-model aggregator
-XM_LLM_API_KEY=      # SDK mimo-mify-responses key only with explicit ROBOCLAWS_PROVIDER_PROFILE=mimo-mify-responses
-
-CODEX_BASE_URL=      # Default SDK codex-router-responses Responses-compatible endpoint
-CODEX_API_KEY=       # Default SDK codex-router-responses endpoint key
+KIMI_OPENAI_BASE_URL=
+KIMI_API_KEY=
+MM_BASE_URL=
+MM_API_KEY=
+CUSTOM_RESPONSES_BASE_URL=
+CUSTOM_RESPONSES_API_KEY=
+CUSTOM_RESPONSES_MODEL=
 ```
 
-The launch recipes infer the repo-local runtime route from explicit provider
-settings. OpenAI Agents SDK defaults to `codex-router-responses` and requires
-`CODEX_BASE_URL` plus `CODEX_API_KEY` (`gpt-5.6-sol`, Responses API). It does not
-fall back to mimo-mify-responses when `XM_LLM_API_KEY` is present. To use
-mimo-mify-responses, set `ROBOCLAWS_PROVIDER_PROFILE=mimo-mify-responses`
-explicitly; that profile uses `XM_LLM_API_KEY`, `xiaomi/mimo-v2.5-pro`, Responses
-API, and web search disabled.
+Every OpenAI Agents SDK launch selects `custom-responses`, `minimax-responses`,
+or `kimi-openai-chat` explicitly. Environment presence never selects a route,
+and the runtime does not fall back between Responses and Chat Completions.
 
 Run `just dev::network-status` before validation-required maintainer workflows.
 On the work network, guarded OpenClaw routes and system-provider Claude Code

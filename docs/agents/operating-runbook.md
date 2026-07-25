@@ -52,21 +52,19 @@ gitignored. Source it before any real VLM/provider call:
 
 ```bash
 set -a && source .env && set +a
-python -c "import os; assert os.environ.get('KIMI_API_KEY') or os.environ.get('MIMO_TP_KEY') or os.environ.get('NV_API_KEY') or os.environ.get('XM_LLM_API_KEY') or os.environ.get('CODEX_API_KEY') or os.environ.get('MM_API_KEY'), 'No provider key set — did you source .env?'"
+python -c "import os; assert os.environ.get('KIMI_API_KEY') or os.environ.get('CUSTOM_RESPONSES_API_KEY') or os.environ.get('MM_API_KEY'), 'No provider key set - did you source .env?'"
 ```
 
 Current live product route:
 
 - `agent_engine=openai-agents-sdk`
-- default provider profile: `codex-router-responses` with `CODEX_BASE_URL` and
-  `CODEX_API_KEY`; default model `gpt-5.6-sol`
-- explicit alternatives: `mimo-mify-responses` with `XM_LLM_API_KEY`, or
-  `minimax-responses` with `MM_API_KEY`
+- `custom-responses` requires `CUSTOM_RESPONSES_BASE_URL`,
+  `CUSTOM_RESPONSES_API_KEY`, and `CUSTOM_RESPONSES_MODEL`.
+- `minimax-responses` requires `MM_BASE_URL` and `MM_API_KEY`.
+- `kimi-openai-chat` requires `KIMI_OPENAI_BASE_URL` and `KIMI_API_KEY`.
 
-Repo-local OpenAI Agents SDK provider routes may run on the work network. The
-`codex-router-responses` adapter handles Router-specific transport
-compatibility internally, so launchers use the same provider/model contract as
-other SDK routes.
+Every OpenAI Agents SDK launch selects one of these profiles explicitly. The
+runtime never falls back between Responses and Chat Completions transports.
 
 Before OpenClaw Gateway, `just chat::run`, OpenClaw local/integration gates, or
 system-provider Claude Code workflows:
@@ -134,9 +132,9 @@ Examples:
 - Map build:
   `just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=map-build agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=grounding-dino`
 - SDK cleanup:
-  `just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=openai-agents-sdk provider_profile=codex-router-responses evidence_lane=world-public-labels`
+  `just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=world-public-labels`
 - Open household goal:
-  `just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=codex-router-responses prompt="我渴了，帮我找些解渴的东西"`
+  `just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat prompt="我渴了，帮我找些解渴的东西"`
 - Planner proof:
   `just run::surface surface=planner-proof world=planner-proof/default backend=mujoco intent=planner-proof agent_engine=direct-runner mode=dry-run`
 
