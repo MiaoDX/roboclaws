@@ -109,7 +109,7 @@ def test_build_probe_commands_uses_only_ready_requests(tmp_path: Path) -> None:
         "planner_scene": {
             "schema": "planner_cleanup_proof_scene_v1",
             "available": True,
-            "scene_xml": "/tmp/molmospaces-scene.xml",
+            "scene_xml": "~/.cache/molmospaces/scene.xml",
             "backend": "molmospaces_subprocess",
         },
     }
@@ -133,7 +133,7 @@ def test_build_probe_commands_uses_only_ready_requests(tmp_path: Path) -> None:
     assert "--cleanup-planner-object-id" in command
     assert "pickup/body" in command
     assert "--cleanup-scene-xml" in command
-    assert "/tmp/molmospaces-scene.xml" in command
+    assert str(Path.home() / ".cache" / "molmospaces" / "scene.xml") in command
     assert "--task-sampler-robot-placement-profile" in command
     assert "relaxed" in command
     assert commands[0]["run_result"].endswith("run_result.json")
