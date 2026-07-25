@@ -270,45 +270,65 @@ def _unexpected_recovery_tool_gate(
     state: dict[str, Any],
     trace_events: list[dict[str, Any]],
 ) -> dict[str, Any] | None:
-    if state.get("phase") == "heading_coverage":
-        if tool == "navigate_to_waypoint":
-            return _heading_coverage_gate(tool, request, state)
-        if tool == "navigate_to_visual_candidate" and state.get("expected_tool") in {
-            "navigate_to_relative_pose",
-            "done",
-        }:
-            return None
-        if tool == "adjust_camera" and state.get("expected_tool") in {
-            "navigate_to_relative_pose",
-            "done",
-        }:
-            return None
-        if tool in _MANIPULATION_TOOLS:
-            return None
-        if tool == "observe" and _latest_successful_tool(trace_events) in {
-            "place",
-            "place_inside",
-            "close_receptacle",
-        }:
-            return None
+    phase = state.get("phase")
+    if phase == "heading_coverage":
+        return _unexpected_heading_coverage_tool_gate(tool, request, state, trace_events)
+    if phase == "bounded_revisit":
+        return _unexpected_bounded_revisit_tool_gate(tool, state, trace_events)
+    return _unexpected_common_tool_gate(tool, state)
+
+
+def _unexpected_heading_coverage_tool_gate(
+    tool: str,
+    request: dict[str, Any],
+    state: dict[str, Any],
+    trace_events: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    if tool == "navigate_to_waypoint":
+        return _heading_coverage_gate(tool, request, state)
+    if tool in {"navigate_to_visual_candidate", "adjust_camera"} and state.get("expected_tool") in {
+        "navigate_to_relative_pose",
+        "done",
+    }:
+        return None
+    if tool in _MANIPULATION_TOOLS:
+        return None
+    if tool == "observe" and _latest_successful_tool(trace_events) in {
+        "place",
+        "place_inside",
+        "close_receptacle",
+    }:
+        return None
+    return _unexpected_common_tool_gate(tool, state)
+
+
+def _unexpected_bounded_revisit_tool_gate(
+    tool: str,
+    state: dict[str, Any],
+    trace_events: list[dict[str, Any]],
+) -> dict[str, Any] | None:
     if tool == "done":
         if state.get("public_progress_since_latest_done"):
             return None
-        if state.get("phase") == "bounded_revisit":
-            return _blocked(tool, state, "done_without_public_progress")
-    if state.get("phase") == "bounded_revisit" and tool in _MANIPULATION_TOOLS:
+        return _blocked(tool, state, "done_without_public_progress")
+    if tool in _MANIPULATION_TOOLS:
         return None
-    if state.get("phase") == "bounded_revisit" and tool == "adjust_camera":
-        if _latest_successful_tool(trace_events) == "observe":
-            return None
-    if state.get("phase") == "bounded_revisit" and tool == "observe":
-        if _latest_successful_tool(trace_events) in {
-            "adjust_camera",
-            "place",
-            "place_inside",
-            "close_receptacle",
-        }:
-            return None
+    latest_tool = _latest_successful_tool(trace_events)
+    if tool == "adjust_camera" and latest_tool == "observe":
+        return None
+    if tool == "observe" and latest_tool in {
+        "adjust_camera",
+        "place",
+        "place_inside",
+        "close_receptacle",
+    }:
+        return None
+    return _unexpected_common_tool_gate(tool, state)
+
+
+def _unexpected_common_tool_gate(tool: str, state: dict[str, Any]) -> dict[str, Any] | None:
+    if tool == "done" and state.get("public_progress_since_latest_done"):
+        return None
     if tool in _ALWAYS_ALLOWED_RECOVERY_TOOLS:
         return None
     return _blocked(tool, state, "raw_fpv_recovery_step_required")
@@ -447,44 +467,55 @@ def _heading_coverage_step(events: list[dict[str, Any]], blocker: dict[str, Any]
     expected_tool = "navigate_to_waypoint"
     observed_heading_count = 0
     for event in events:
-        if _successful_response(event, "navigate_to_waypoint"):
-            if str(event["response"].get("waypoint_id") or "") == waypoint_id:
-                expected_tool = "observe"
-                observed_heading_count = 0
-            continue
-        if expected_tool == "observe" and _successful_response(event, "observe"):
-            if str(event["response"].get("waypoint_id") or "") == waypoint_id:
-                observed_heading_count += 1
-                expected_tool = (
-                    "done"
-                    if observed_heading_count >= required_count
-                    else "navigate_to_relative_pose"
-                )
-            continue
-        if expected_tool == "navigate_to_relative_pose" and _successful_response(
-            event, "navigate_to_relative_pose"
-        ):
-            delta = (
-                event["response"].get("applied_delta")
-                or event["response"].get("requested_delta")
-                or {}
-            )
-            if (
-                _same_number(delta.get("forward_m"), 0)
-                and _same_number(delta.get("lateral_m"), 0)
-                and _same_number(abs(_number(delta.get("yaw_delta_deg"))), 90)
-            ):
-                expected_tool = "observe"
-            continue
-        if expected_tool == "navigate_to_relative_pose" and _successful_response(
-            event, "adjust_camera"
-        ):
-            expected_tool = "observe_reframe"
-            continue
-        if expected_tool == "observe_reframe" and _successful_response(event, "observe"):
-            if str(event["response"].get("waypoint_id") or "") == waypoint_id:
-                expected_tool = "navigate_to_relative_pose"
+        expected_tool, observed_heading_count = _heading_coverage_transition(
+            event,
+            expected_tool=expected_tool,
+            observed_heading_count=observed_heading_count,
+            waypoint_id=waypoint_id,
+            required_count=required_count,
+        )
     return "observe" if expected_tool == "observe_reframe" else expected_tool
+
+
+def _heading_coverage_transition(
+    event: dict[str, Any],
+    *,
+    expected_tool: str,
+    observed_heading_count: int,
+    waypoint_id: str,
+    required_count: int,
+) -> tuple[str, int]:
+    response = event.get("response") or {}
+    if _successful_response(event, "navigate_to_waypoint"):
+        if str(response.get("waypoint_id") or "") == waypoint_id:
+            return "observe", 0
+        return expected_tool, observed_heading_count
+    if expected_tool == "observe" and _successful_response(event, "observe"):
+        if str(response.get("waypoint_id") or "") == waypoint_id:
+            observed_heading_count += 1
+            next_tool = (
+                "done" if observed_heading_count >= required_count else "navigate_to_relative_pose"
+            )
+            return next_tool, observed_heading_count
+        return expected_tool, observed_heading_count
+    if expected_tool == "navigate_to_relative_pose" and _successful_response(
+        event, "navigate_to_relative_pose"
+    ):
+        delta = response.get("applied_delta") or response.get("requested_delta") or {}
+        if (
+            _same_number(delta.get("forward_m"), 0)
+            and _same_number(delta.get("lateral_m"), 0)
+            and _same_number(abs(_number(delta.get("yaw_delta_deg"))), 90)
+        ):
+            return "observe", observed_heading_count
+    elif expected_tool == "navigate_to_relative_pose" and _successful_response(
+        event, "adjust_camera"
+    ):
+        return "observe_reframe", observed_heading_count
+    elif expected_tool == "observe_reframe" and _successful_response(event, "observe"):
+        if str(response.get("waypoint_id") or "") == waypoint_id:
+            return "navigate_to_relative_pose", observed_heading_count
+    return expected_tool, observed_heading_count
 
 
 def _pending_revisit_step(events: list[dict[str, Any]], eligible: list[str]) -> dict[str, str]:
