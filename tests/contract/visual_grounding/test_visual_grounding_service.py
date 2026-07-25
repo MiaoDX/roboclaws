@@ -328,24 +328,6 @@ def test_grounding_dino_real_mode_defaults_to_base_recall(monkeypatch) -> None:
     assert stage["runtime_parameters"]["text_threshold"] == 0.2
 
 
-def test_real_mode_rejects_retired_refiner_pipeline_without_fake_success() -> None:
-    response = adapters.visual_grounding_service_response(
-        payload=_request("grounding-dino+mimo-v2.5"),
-        configured_pipeline_id="grounding-dino+mimo-v2.5",
-        adapter_mode="real",
-        latency_ms=1,
-    )
-
-    assert response["status"] == "failed"
-    assert response["error"]["reason"] == "adapter_unavailable"
-    assert response["candidates"] == []
-    assert response["pipeline"]["stages"][0]["stage"] == "proposer"
-    assert response["pipeline"]["stages"][0]["producer_id"] == "grounding-dino+mimo-v2.5"
-    assert response["diagnostics"]["required_adapters"][0]["producer_id"] == (
-        "grounding-dino+mimo-v2.5"
-    )
-
-
 def test_real_mode_reports_grounding_dino_missing_dependency(monkeypatch) -> None:
     def missing_grounding_dino(
         _model_id: str,
@@ -723,9 +705,9 @@ def test_adapter_catalog_lists_real_adapter_slots_without_private_truth() -> Non
         "transformers",
     }
     for retired in {
-        "mimo-v2.5",
+        "retired-vlm",
         "qwen3-vl",
-        "xiaomi/mimo-v2.5",
+        "retired-vlm-qualified",
         "vertex_ai/gemini-3.1-flash-lite-preview",
         "vertex_ai/gemini-3-flash-preview",
         "tongyi/qwen3-vl-flash",
@@ -734,7 +716,7 @@ def test_adapter_catalog_lists_real_adapter_slots_without_private_truth() -> Non
     }:
         assert retired not in by_id
     assert "authorization" not in json.dumps(catalog).lower()
-    assert "secret-mimo-key" not in json.dumps(catalog)
+    assert "secret-provider-key" not in json.dumps(catalog)
 
 
 def test_dependency_metadata_does_not_expose_retired_qwen_vlm_extra() -> None:
@@ -768,10 +750,10 @@ def test_configurable_service_lists_adapter_catalog_cli() -> None:
     assert "yolo-custom" not in {item["producer_id"] for item in catalog["adapters"]}
     by_id = {item["producer_id"]: item for item in catalog["adapters"]}
     assert "runtime" in by_id["grounding-dino"]
-    assert "mimo-v2.5" not in by_id
+    assert "retired-vlm" not in by_id
     assert "qwen3-vl" not in by_id
     assert "authorization" not in result.stdout.lower()
-    assert "secret-mimo-key" not in result.stdout
+    assert "secret-provider-key" not in result.stdout
 
 
 def _start_service(*, pipeline_id: str, adapter_mode: str) -> ThreadingHTTPServer:

@@ -148,7 +148,7 @@ def test_b1_launch_rejects_stale_semantic_projection_artifact_axis() -> None:
                 "world=b1-map12",
                 "backend=isaaclab",
                 "agent_engine=openai-agents-sdk",
-                "provider_profile=codex-router-responses",
+                "provider_profile=kimi-openai-chat",
                 "prompt=inspect the digital twin",
                 "evidence_lane=world-public-labels",
                 "b1_semantic_projection_artifact=output/b1-map12/semantic-projection/semantic_projection.json",
@@ -183,7 +183,7 @@ def test_cleanup_surface_exposes_setup_overrides_but_dispatches_private_count() 
             "backend=mujoco",
             "intent=cleanup",
             "agent_engine=openai-agents-sdk",
-            "provider_profile=codex-router-responses",
+            "provider_profile=kimi-openai-chat",
             "evidence_lane=world-public-labels",
             "seed=7",
             "scenario_setup=relocate-cleanup-related-objects",
@@ -213,7 +213,7 @@ def test_household_non_cleanup_intents_default_to_baseline_setup() -> None:
             "backend=mujoco",
             "intent=map-build",
             "agent_engine=openai-agents-sdk",
-            "provider_profile=codex-router-responses",
+            "provider_profile=kimi-openai-chat",
             "evidence_lane=world-public-labels",
         ]
     )
@@ -224,7 +224,7 @@ def test_household_non_cleanup_intents_default_to_baseline_setup() -> None:
             "backend=mujoco",
             "intent=open-ended",
             "agent_engine=openai-agents-sdk",
-            "provider_profile=codex-router-responses",
+            "provider_profile=kimi-openai-chat",
             "evidence_lane=world-public-labels",
             "prompt=帮我找遥控器",
         ]
@@ -304,7 +304,7 @@ def test_surface_rejects_old_public_generated_mess_count() -> None:
                 "backend=mujoco",
                 "intent=cleanup",
                 "agent_engine=openai-agents-sdk",
-                "provider_profile=codex-router-responses",
+                "provider_profile=kimi-openai-chat",
                 "evidence_lane=world-public-labels",
                 "generated_mess_count=3",
             ]
@@ -319,13 +319,13 @@ def test_openai_agents_sdk_accepts_chat_provider_profiles() -> None:
             "backend=mujoco",
             "intent=cleanup",
             "agent_engine=openai-agents-sdk",
-            "provider_profile=mimo-tp-openai-chat",
+            "provider_profile=kimi-openai-chat",
             "evidence_lane=world-public-labels",
         ]
     )
 
-    assert plan.provider_profile == "mimo-tp-openai-chat"
-    assert "provider_profile=mimo-tp-openai-chat" in plan.overrides
+    assert plan.provider_profile == "kimi-openai-chat"
+    assert "provider_profile=kimi-openai-chat" in plan.overrides
 
 
 @pytest.mark.parametrize(
@@ -335,7 +335,10 @@ def test_openai_agents_sdk_accepts_chat_provider_profiles() -> None:
         ("backend", "omit backend= to use the default"),
         ("intent", "omit intent= to use the default"),
         ("preset", "omit preset= to use the default"),
-        ("provider_profile", "omit provider_profile= to use codex-router-responses"),
+        (
+            "provider_profile",
+            "select one of custom-responses|minimax-responses|kimi-openai-chat",
+        ),
     ),
 )
 def test_launch_rejects_explicit_blank_optional_axes(axis: str, hint: str) -> None:
@@ -345,7 +348,7 @@ def test_launch_rejects_explicit_blank_optional_axes(axis: str, hint: str) -> No
         "backend=mujoco",
         "intent=cleanup",
         "agent_engine=openai-agents-sdk",
-        "provider_profile=codex-router-responses",
+        "provider_profile=kimi-openai-chat",
         "evidence_lane=world-public-labels",
     ]
     args = [item for item in args if not item.startswith(f"{axis}=")]
@@ -359,7 +362,7 @@ def test_launch_rejects_explicit_blank_optional_axes(axis: str, hint: str) -> No
 
 @pytest.mark.parametrize(
     ("agent_engine", "provider_profile", "env_key"),
-    (("openai-agents-sdk", "mimo-tp-openai-chat", "ROBOCLAWS_PROVIDER_PROFILE"),),
+    (("openai-agents-sdk", "kimi-openai-chat", "ROBOCLAWS_PROVIDER_PROFILE"),),
 )
 def test_provider_profile_env_export_uses_agent_engine_catalog(
     agent_engine: str,
@@ -424,7 +427,7 @@ def test_retired_engines_are_rejected_before_provider_profile_validation() -> No
                 "backend=mujoco",
                 "intent=cleanup",
                 "agent_engine=codex-cli",
-                "provider_profile=mimo-tp-openai-chat",
+                "provider_profile=kimi-openai-chat",
                 "evidence_lane=world-public-labels",
             ]
         )
@@ -436,7 +439,7 @@ def test_retired_engines_are_rejected_before_provider_profile_validation() -> No
                 "backend=mujoco",
                 "intent=cleanup",
                 "agent_engine=claude-code",
-                "provider_profile=mimo-mify-anthropic",
+                "provider_profile=kimi-openai-chat",
                 "evidence_lane=world-public-labels",
             ]
         )
@@ -460,7 +463,7 @@ def test_surface_rejects_old_public_driver_and_environment_setup() -> None:
                 "backend=mujoco",
                 "intent=cleanup",
                 "agent_engine=openai-agents-sdk",
-                "provider_profile=codex-router-responses",
+                "provider_profile=kimi-openai-chat",
                 "environment_setup=baseline",
             ]
         )
@@ -475,7 +478,7 @@ def test_baseline_rejects_active_relocation_count() -> None:
                 "backend=mujoco",
                 "intent=cleanup",
                 "agent_engine=openai-agents-sdk",
-                "provider_profile=codex-router-responses",
+                "provider_profile=kimi-openai-chat",
                 "evidence_lane=world-public-labels",
                 "scenario_setup=baseline",
                 "relocation_count=3",
@@ -492,7 +495,7 @@ def test_invalid_relocation_count_is_rejected() -> None:
                 "backend=mujoco",
                 "intent=cleanup",
                 "agent_engine=openai-agents-sdk",
-                "provider_profile=codex-router-responses",
+                "provider_profile=kimi-openai-chat",
                 "evidence_lane=world-public-labels",
                 "scenario_setup=relocate-cleanup-related-objects",
                 "relocation_count=-1",
@@ -509,7 +512,7 @@ def test_loose_object_relocation_setup_is_not_publicly_supported() -> None:
                 "backend=mujoco",
                 "intent=cleanup",
                 "agent_engine=openai-agents-sdk",
-                "provider_profile=codex-router-responses",
+                "provider_profile=kimi-openai-chat",
                 "evidence_lane=world-public-labels",
                 "scenario_setup=relocate-loose-objects",
             ]

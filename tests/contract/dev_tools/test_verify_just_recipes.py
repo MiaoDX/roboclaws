@@ -77,7 +77,8 @@ def test_fast_dev_tests_clear_provider_env_for_deterministic_mock_gate() -> None
     assert "command -v pytest" not in script_text
     assert "run 'uv sync --extra dev' in this checkout" in script_text
     assert 'KIMI_API_KEY=""' in script_text
-    assert 'MIMO_TP_KEY=""' in script_text
+    assert 'CUSTOM_RESPONSES_API_KEY=""' in script_text
+    assert 'MM_API_KEY=""' in script_text
     assert "ROBOCLAWS_PYTEST_CLEAR_PROVIDER_ENV=1" in dev_text
 
 

@@ -390,15 +390,8 @@ def test_agents_sdk_public_profile_excludes_internal_routes() -> None:
         "agents-sdk:minimax-responses",
         "agents-sdk:kimi-openai-chat",
     }
-    assert not any(
-        probe.route_id
-        in {
-            "codex-router-responses",
-            "mimo-mify-responses",
-            "mimo-inside-openai-chat",
-        }
-        for probe in selected
-    )
+    public_routes = {"custom-responses", "minimax-responses", "kimi-openai-chat"}
+    assert all(probe.route_id in public_routes for probe in selected)
 
 
 def test_select_probe_can_limit_kimi_route_across_sdk_and_provider_probes() -> None:

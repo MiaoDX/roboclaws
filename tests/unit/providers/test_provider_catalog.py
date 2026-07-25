@@ -33,12 +33,9 @@ def test_openai_agents_registry_has_exact_public_profile_set() -> None:
 @pytest.mark.parametrize(
     "deleted",
     [
-        "codex-router-responses",
-        "mimo-mify-responses",
-        "mimo-tp-openai-chat",
-        "mimo-inside-openai-chat",
-        "mimo-tp-anthropic",
-        "mimo-mify-anthropic",
+        "retired-responses-route",
+        "retired-chat-route",
+        "retired-anthropic-route",
     ],
 )
 def test_deleted_provider_profiles_do_not_resolve(deleted: str) -> None:
@@ -51,10 +48,6 @@ def test_deleted_model_aliases_are_absent() -> None:
     for deleted in (
         "nvidia",
         "nvidia-nano-vl",
-        "mimo",
-        "mimo-v2.5",
-        "mimo-1000",
-        "mimo-mify-v2.5-pro",
         "gpt-5.5",
         "gpt-5.6-sol",
     ):

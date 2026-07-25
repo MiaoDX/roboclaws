@@ -199,13 +199,13 @@ def test_headers_include_kimi_coding_user_agent() -> None:
 def test_missing_key_skips_without_secret_values() -> None:
     script = _load_script_module()
     case = script.MatrixCase(
-        case_id="mimo-inside-openai-chat:mimo-1000:openai-chat",
-        provider_id="mimo-inside-openai-chat",
-        provider_label="MiMo inside",
-        model="mimo-1000",
+        case_id="sample-openai-chat:sample-chat-model:openai-chat",
+        provider_id="sample-openai-chat",
+        provider_label="Sample provider",
+        model="sample-chat-model",
         wire_api="openai-chat",
-        api_key_env="MIMO_API_KEY",
-        base_url="https://mimo.example/v1",
+        api_key_env="SAMPLE_API_KEY",
+        base_url="https://provider.example/v1",
     )
 
     result = script.run_case(
@@ -215,11 +215,11 @@ def test_missing_key_skips_without_secret_values() -> None:
         iterations=1,
         max_tokens=8,
         timeout_s=1.0,
-        env={"MIMO_BASE_URL": "https://secret.example"},
+        env={"SAMPLE_BASE_URL": "https://secret.example"},
     )
 
     assert result.status == "SKIP"
-    assert result.skipped_reason == "missing MIMO_API_KEY"
+    assert result.skipped_reason == "missing SAMPLE_API_KEY"
     assert "secret.example" not in str(result)
 
 
@@ -298,7 +298,7 @@ def test_usage_tokens_and_tps_prefer_provider_usage() -> None:
                 layer="throughput",
                 status="PASS",
                 elapsed_s=2.0,
-                response_model="mimo-v2.5-pro",
+                response_model="sample-chat-model",
                 output_preview="ok " * 40,
                 output_chars=300,
                 measured_output_tokens=200,
@@ -376,13 +376,13 @@ def test_max_tokens_for_layer_uses_stream_budget() -> None:
 def test_first_content_stream_payload_omits_usage_tail(monkeypatch) -> None:
     script = _load_script_module()
     case = script.MatrixCase(
-        case_id="mimo-inside-openai-chat:mimo-1000:openai-chat",
-        provider_id="mimo-inside-openai-chat",
-        provider_label="MiMo inside",
-        model="mimo-1000",
+        case_id="sample-openai-chat:sample-chat-model:openai-chat",
+        provider_id="sample-openai-chat",
+        provider_label="Sample provider",
+        model="sample-chat-model",
         wire_api="openai-chat",
-        api_key_env="MIMO_API_KEY",
-        base_url="https://mimo.example/v1",
+        api_key_env="SAMPLE_API_KEY",
+        base_url="https://provider.example/v1",
     )
     captured: dict[str, object] = {}
 
@@ -400,7 +400,7 @@ def test_first_content_stream_payload_omits_usage_tail(monkeypatch) -> None:
             return iter(
                 [
                     b"event: message\n",
-                    b'data: {"model":"mimo-1000","choices":[{"delta":{"content":"ok"}}]}\n',
+                    b'data: {"model":"sample-chat-model","choices":[{"delta":{"content":"ok"}}]}\n',
                     b"data: [DONE]\n",
                 ]
             )
@@ -432,13 +432,13 @@ def test_first_content_stream_payload_omits_usage_tail(monkeypatch) -> None:
 def test_stream_throughput_payload_requests_usage_tail(monkeypatch) -> None:
     script = _load_script_module()
     case = script.MatrixCase(
-        case_id="mimo-inside-openai-chat:mimo-1000:openai-chat",
-        provider_id="mimo-inside-openai-chat",
-        provider_label="MiMo inside",
-        model="mimo-1000",
+        case_id="sample-openai-chat:sample-chat-model:openai-chat",
+        provider_id="sample-openai-chat",
+        provider_label="Sample provider",
+        model="sample-chat-model",
         wire_api="openai-chat",
-        api_key_env="MIMO_API_KEY",
-        base_url="https://mimo.example/v1",
+        api_key_env="SAMPLE_API_KEY",
+        base_url="https://provider.example/v1",
     )
     captured: dict[str, object] = {}
 
@@ -455,7 +455,7 @@ def test_stream_throughput_payload_requests_usage_tail(monkeypatch) -> None:
         def __iter__(self):
             return iter(
                 [
-                    b'data: {"model":"mimo-1000","choices":[{"delta":{"content":"ok"}}]}\n',
+                    b'data: {"model":"sample-chat-model","choices":[{"delta":{"content":"ok"}}]}\n',
                     b"data: [DONE]\n",
                 ]
             )
@@ -487,13 +487,13 @@ def test_stream_throughput_payload_requests_usage_tail(monkeypatch) -> None:
 def test_stream_trial_rejects_malformed_provider_event_json(monkeypatch) -> None:
     script = _load_script_module()
     case = script.MatrixCase(
-        case_id="mimo-inside-openai-chat:mimo-1000:openai-chat",
-        provider_id="mimo-inside-openai-chat",
-        provider_label="MiMo inside",
-        model="mimo-1000",
+        case_id="sample-openai-chat:sample-chat-model:openai-chat",
+        provider_id="sample-openai-chat",
+        provider_label="Sample provider",
+        model="sample-chat-model",
         wire_api="openai-chat",
-        api_key_env="MIMO_API_KEY",
-        base_url="https://mimo.example/v1",
+        api_key_env="SAMPLE_API_KEY",
+        base_url="https://provider.example/v1",
     )
 
     class _Response:
@@ -536,13 +536,13 @@ def test_stream_trial_rejects_malformed_provider_event_json(monkeypatch) -> None
 def test_stream_trial_rejects_non_object_provider_event_json(monkeypatch) -> None:
     script = _load_script_module()
     case = script.MatrixCase(
-        case_id="mimo-inside-openai-chat:mimo-1000:openai-chat",
-        provider_id="mimo-inside-openai-chat",
-        provider_label="MiMo inside",
-        model="mimo-1000",
+        case_id="sample-openai-chat:sample-chat-model:openai-chat",
+        provider_id="sample-openai-chat",
+        provider_label="Sample provider",
+        model="sample-chat-model",
         wire_api="openai-chat",
-        api_key_env="MIMO_API_KEY",
-        base_url="https://mimo.example/v1",
+        api_key_env="SAMPLE_API_KEY",
+        base_url="https://provider.example/v1",
     )
 
     class _Response:
@@ -584,13 +584,13 @@ def test_stream_trial_rejects_non_object_provider_event_json(monkeypatch) -> Non
 def test_non_stream_trial_rejects_bad_provider_response_json(monkeypatch) -> None:
     script = _load_script_module()
     case = script.MatrixCase(
-        case_id="mimo-inside-openai-chat:mimo-1000:openai-chat",
-        provider_id="mimo-inside-openai-chat",
-        provider_label="MiMo inside",
-        model="mimo-1000",
+        case_id="sample-openai-chat:sample-chat-model:openai-chat",
+        provider_id="sample-openai-chat",
+        provider_label="Sample provider",
+        model="sample-chat-model",
         wire_api="openai-chat",
-        api_key_env="MIMO_API_KEY",
-        base_url="https://mimo.example/v1",
+        api_key_env="SAMPLE_API_KEY",
+        base_url="https://provider.example/v1",
     )
 
     class _Response:
@@ -641,13 +641,13 @@ def test_non_stream_trial_rejects_bad_provider_response_json(monkeypatch) -> Non
     assert "model-matrix provider response source must contain valid JSON object" in (
         malformed.error or ""
     )
-    assert "mimo-inside-openai-chat:mimo-1000:openai-chat health" in (malformed.error or "")
+    assert "sample-openai-chat:sample-chat-model:openai-chat health" in (malformed.error or "")
     assert non_object.status == "FAIL"
     assert non_object.error_type == "ValueError"
     assert "model-matrix provider response source must contain a JSON object" in (
         non_object.error or ""
     )
-    assert "mimo-inside-openai-chat:mimo-1000:openai-chat health" in (non_object.error or "")
+    assert "sample-openai-chat:sample-chat-model:openai-chat health" in (non_object.error or "")
 
 
 def test_agent_cases_are_selectable_and_do_not_store_full_prompt() -> None:

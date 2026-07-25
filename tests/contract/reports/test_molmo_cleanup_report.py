@@ -150,7 +150,7 @@ def test_cleanup_report_prefers_recorded_rerun_command(
     command = (
         "just run::surface surface=household-world world=molmospaces/val_0 "
         "backend=mujoco intent=cleanup agent_engine=openai-agents-sdk "
-        "provider_profile=codex-router-responses evidence_lane=world-public-labels seed=7 "
+        "provider_profile=kimi-openai-chat evidence_lane=world-public-labels seed=7 "
         "scenario_setup=relocate-cleanup-related-objects relocation_count=5 "
         "robot_views=on "
         f"runtime_map_prior={prior} "
@@ -181,7 +181,7 @@ def test_cleanup_report_prefers_recorded_rerun_command(
     assert "just run::surface \\\n" in html
     assert "surface=household-world" in html
     assert "agent_engine=openai-agents-sdk" in html
-    assert "provider_profile=codex-router-responses" in html
+    assert "provider_profile=kimi-openai-chat" in html
     assert f"runtime_map_prior={prior}" in html
     assert run_result["rerun_command"] == command
     assert "household-cleanup direct world-public-labels" not in html

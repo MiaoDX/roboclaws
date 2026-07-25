@@ -576,11 +576,15 @@ def _resolve_provider_profile(
     agent_engine: AgentEngineSpec,
     provider_profile: str | None,
 ) -> str | None:
-    default_profile = agent_engine.default_provider_profile or "no provider"
+    provider_hint = (
+        f"omit provider_profile= to use {agent_engine.default_provider_profile}"
+        if agent_engine.default_provider_profile
+        else f"select one of {'|'.join(agent_engine.supported_provider_profiles)}"
+    )
     _reject_blank_axis(
         provider_profile,
         axis="provider_profile",
-        hint=f"omit provider_profile= to use {default_profile}",
+        hint=provider_hint,
     )
     if not agent_engine.supported_provider_profiles:
         if provider_profile:

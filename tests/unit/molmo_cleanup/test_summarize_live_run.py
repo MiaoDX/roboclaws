@@ -233,7 +233,7 @@ def test_agent_sdk_comparison_manifest_prints_explicit_run_pairs(
                     {
                         "key": "gpt_world_public",
                         "lane": "world-public-labels",
-                        "provider_profile": "codex-router-responses",
+                        "provider_profile": "kimi-openai-chat",
                         "baseline_role": "full_lane_baseline",
                         "baseline_run_dir": str(baseline),
                         "candidate_run_dir": str(candidate),
@@ -249,7 +249,7 @@ def test_agent_sdk_comparison_manifest_prints_explicit_run_pairs(
     output = capsys.readouterr().out
     assert status == 0
     assert "Report performance comparison manifest" in output
-    assert "gpt_world_public | codex-router-responses | world-public-labels" in output
+    assert "gpt_world_public | kimi-openai-chat | world-public-labels" in output
     assert "-30.0s" in output
     assert "-350" in output
     assert "available(max=900)" in output
@@ -449,7 +449,7 @@ def test_agent_sdk_comparison_manifest_prints_terminal_classification(
                     {
                         "key": "raw_fpv",
                         "lane": "camera-raw-fpv",
-                        "provider_profile": "codex-router-responses",
+                        "provider_profile": "kimi-openai-chat",
                         "baseline_role": "diagnostic",
                         "baseline_run_dir": str(baseline),
                         "candidate_run_dir": str(candidate),
@@ -540,7 +540,7 @@ def _write_run(
     (run_dir / "live_timing.json").write_text(
         json.dumps(
             {
-                "provider_profile": "codex-router-responses",
+                "provider_profile": "kimi-openai-chat",
                 "evidence_lane": lane,
                 "runner_timing": {"total_elapsed_s": elapsed_s},
                 "mcp_trace_timing": {"between_tool_gap_s": gap_s},

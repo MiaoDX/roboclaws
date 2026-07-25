@@ -45,7 +45,7 @@ def test_calibrate_model_latency_writes_error_statistics(tmp_path: Path) -> None
     assert packet["fit"]["error_stats"]["sample_count"] == 24
     assert packet["fit"]["error_stats"]["mae_s"] >= 0
     assert packet["fit"]["error_stats"]["rmse_s"] >= 0
-    assert packet["coefficient_sets"][0]["provider_profile"] == "codex-router-responses"
+    assert packet["coefficient_sets"][0]["provider_profile"] == "kimi-openai-chat"
     assert packet["coefficient_sets"][0]["model"] == "gpt-5.5"
     assert packet["validation"]["available"] is False
     assert "holdout_validation_not_requested" in packet["validation"]["limitations"]
@@ -295,7 +295,7 @@ def _model_call_metric_row(
     return {
         "schema": MODEL_CALL_METRIC_SCHEMA,
         "agent_engine": "openai-agents-sdk",
-        "provider_profile": "codex-router-responses",
+        "provider_profile": "kimi-openai-chat",
         "wire_api": "responses",
         "model": "gpt-5.5",
         "attempt_index": 0,
