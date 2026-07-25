@@ -1,7 +1,7 @@
 **Status:** Implementation complete; publication blocked on required local/live validation and
 human approval
 **Created:** 2026-07-24
-**Last reviewed:** 2026-07-25
+**Last reviewed:** 2026-07-26
 **Current implementation contract:** Publish a small, provider-neutral Roboclaws core by replacing
 one private Responses identity with an environment-configured profile, keeping Kimi as the only
 Chat Completions route, retaining Agibot/B1 as explicit validation-only worlds, removing NVIDIA
@@ -18,17 +18,19 @@ the private repository. It is not part of the sanitized public root commit.
 - Session scope: public-core-internal-integration-minimization
 - Parent plans: none
 - Child plans: none
-- Last updated: 2026-07-25
+- Last updated: 2026-07-26
 - Current slice: implementation, final sanitized-candidate construction, deterministic
   verification, package verification, and public MolmoSpaces/MuJoCo product proof are complete.
 - Next action: present the immutable candidate evidence for human publication review. Do not
   publish without explicit authorization. Run provider and optional-world live gates only after
   their documented blockers clear.
-- Blocked on: network state is `unknown` because `ROBOCLAWS_WORK_NETWORK_PROBE_URL` is missing;
-  Kimi and MiniMax configuration exists but live requests remain fail-closed; all three custom
+- Blocked on: Kimi and MiniMax live health probes pass, but the Kimi product route reports
+  `network: unknown` because `ROBOCLAWS_WORK_NETWORK_PROBE_URL` is missing; all three custom
   Responses variables are missing. Agibot and B1 injected dependency paths are missing, physical
   movement remains unauthorized, and strict Isaac preflight reports 17.0 GiB free against an
-  80 GiB minimum plus unaccepted Omniverse EULA terms.
+  80 GiB minimum plus unaccepted Omniverse EULA terms. The exact candidate's license inventory also
+  retains one human-review caveat: non-bundled dev/transitive dependency `beaker-py` publishes no
+  declared license metadata or license file.
 - Latest proof: final candidate `output/public-candidate/20260725-14/repo` is a one-root-commit,
   no-remote public tree (`source=e1d38ffa`, `candidate=a684d39a`, membership
   `a63d736452765693abb683d6832ab49dadb3833992001a3aaf7b638b77f879d1`) with 1,048 source

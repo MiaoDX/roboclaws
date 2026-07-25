@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-07-25
+Last updated: 2026-07-26
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -59,13 +59,15 @@ and the Agibot operator hold are resolved.
 ## Current Blockers
 
 - Deterministic public-root, runtime, package, and fresh-install verification is complete.
-- Kimi and MiniMax configuration is present, but their live proofs are blocked by
-  `network: unknown`; the network probe URL is not configured. Custom Responses also lacks its
+- Kimi and MiniMax live health probes pass. The Kimi product route remains blocked by
+  `network: unknown` because the network probe URL is not configured; Custom Responses lacks its
   required URL, key, and model configuration.
 - Agibot validation lacks its injected runner/map paths and remains on operator hold. No real-robot
   movement is authorized.
 - B1 validation lacks its injected map/scene paths. Isaac strict preflight is additionally blocked
   by 17.0 GiB free versus 80 GiB required and explicit Omniverse EULA acceptance.
+- The exact candidate's dependency-license inventory has one unresolved metadata caveat:
+  non-bundled dev/transitive dependency `beaker-py` declares no license in its published artifacts.
 - Publication remains unauthorized until the reviewed candidate evidence is presented for human
   approval.
 
