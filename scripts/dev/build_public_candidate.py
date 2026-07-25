@@ -137,7 +137,9 @@ def _manifest(source_commit: str, entries: list[TreeEntry]) -> dict[str, object]
 
 def _initialize_public_git(output: Path, gitlinks: list[TreeEntry]) -> str:
     _run(output, "git", "init", "-q", "--initial-branch=main")
-    _run(output, "git", "add", "--all")
+    # Membership was already resolved from the exact source tree. Force-add it so
+    # source ignore rules cannot silently remove reviewed tracked files.
+    _run(output, "git", "add", "--force", "--all")
     for entry in gitlinks:
         _run(
             output,

@@ -34,10 +34,14 @@ def test_build_candidate_uses_source_commit_and_public_membership(tmp_path: Path
     _git(source, "config", "user.name", "Test")
     _git(source, "config", "user.email", "test@example.com")
     (source / "README.md").write_text("public\n", encoding="utf-8")
+    (source / ".gitignore").write_text("data/\n", encoding="utf-8")
+    (source / "data").mkdir()
+    (source / "data" / "reviewed.json").write_text('{"public": true}\n', encoding="utf-8")
     (source / "docs" / "plans").mkdir(parents=True)
     (source / "docs" / "plans" / "private.md").write_text("private\n", encoding="utf-8")
     (source / ".gitmodules").write_text("private source config\n", encoding="utf-8")
-    _git(source, "add", "README.md", "docs/plans/private.md", ".gitmodules")
+    _git(source, "add", "README.md", ".gitignore", "docs/plans/private.md", ".gitmodules")
+    _git(source, "add", "--force", "data/reviewed.json")
     _git(source, "commit", "-q", "-m", "source")
     source_commit = _git(source, "rev-parse", "HEAD")
     _git(
@@ -53,6 +57,7 @@ def test_build_candidate_uses_source_commit_and_public_membership(tmp_path: Path
     result = module.build_candidate(source, output, "HEAD")
 
     assert (output / "README.md").read_text(encoding="utf-8") == "public\n"
+    assert _git(output, "show", "HEAD:data/reviewed.json") == '{"public": true}'
     assert not (output / "docs" / "plans").exists()
     assert "github.com/allenai/molmospaces.git" in (output / ".gitmodules").read_text()
     manifest = json.loads((output / module.MANIFEST_PATH).read_text(encoding="utf-8"))
