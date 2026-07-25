@@ -18,11 +18,11 @@ the private repository. It is not part of the sanitized public root commit.
 - Parent plans: none
 - Child plans: none
 - Last updated: 2026-07-25
-- Current slice: Slice 0 inventory plus the independent Slice 1 provider collapse
-- Next action: land the provider-neutral three-profile runtime without editing the active
-  CloudML/Isaac control-plane files, then isolate optional-world discovery and dependencies.
-- Blocked on: no planning blocker. Required provider, Agibot hardware, B1/Isaac, package, and
-  clean-room proofs remain execution completion gates.
+- Current slice: reconcile concurrent eval/coding-agent migration, then Slice 2 remote ownership
+- Next action: wait for the owner-safe commit of currently dirty eval/runtime/network files,
+  re-read their final shape, then remove public CloudML lifecycle ownership and build the candidate.
+- Blocked on: overlapping concurrent edits at the CloudML/Isaac handoff boundary. Required
+  provider, Agibot hardware, B1/Isaac, package, and clean-room proofs remain completion gates.
 - Do not touch from this plan: simulator/runtime NVIDIA dependencies, Isaac Lab EULA handling,
   unrelated product task semantics/scoring, or unrelated user changes.
 

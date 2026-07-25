@@ -10,14 +10,15 @@ Control plane: root intuitive-flow session / host goal
 Latest intent: execute the approved plan and commit coherent task-owned slices as needed. Public
 push, history rewriting, private asset redistribution, and physical movement remain unauthorized.
 
-Current slice: remove remaining retired provider identities and private remote-operation surfaces
-from active launch scripts, CI, documentation, and tests. Provider core and optional-world
-dependency isolation are committed checkpoints. Active CloudML/Isaac control-plane files remain
-read-only until their owner-safe handoff boundary is available.
+Current slice: reconcile the concurrent eval/coding-agent/network migration after its owner-safe
+commit, then remove public-tree CloudML lifecycle ownership. Provider core, optional-world
+dependency isolation, and provider-neutral public defaults are committed checkpoints. Active
+CloudML/Isaac control-plane files remain read-only until their handoff boundary is available.
 
 Last proof: 308 focused provider/driver/grid tests pass; the full operator-console unit directory
 passes; Agibot dependency/redaction and map-export tests pass; focused B1 launch/receipt-consumption
-tests pass. Ruff passes for both committed provider scope and optional-world scope.
+tests pass; provider-neutral `.env.example`, deterministic CI, current public docs, and embedded
+benchmark sources pass focused tests and stale-identity scans.
 
 Completed batch: provider registry/runtime collapse to `custom-responses`, `minimax-responses`, and
 `kimi-openai-chat`; Router transport and MiMo/NVIDIA hosted-model deletion; benchmark/grid, health,
@@ -25,9 +26,9 @@ CLI, eval-session, and operator-console migration; default discovery hides optio
 consumes injected map/scene/alignment/navigation inputs; Agibot dependencies validate before
 subprocess launch; dependency roots are redacted from readiness, traces, errors, and artifacts.
 
-Next slice: remove remaining retired provider identities and private path defaults from active
-just/CI/scripts/docs, then remove public-tree CloudML lifecycle ownership without touching the
-concurrent Isaac proof implementation until its handoff boundary is clear.
+Next slice: re-read the final concurrent diff/commit, run stale-profile and eval contract tests,
+then delete public CloudML lifecycle/schema ownership and build the reviewed public-root membership
+manifest. Do not patch the currently dirty eval/runtime/network files before that handoff.
 
 Next proof: focused eval/runtime and launch-contract tests, exact stale-profile searches, then the
 broader standalone suite.
