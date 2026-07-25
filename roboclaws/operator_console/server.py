@@ -68,11 +68,11 @@ FOLLOW_UP_AUTOSTART_ATTEMPTS = 30
 FOLLOW_UP_AUTOSTART_RETRY_DELAY_S = 1.0
 
 
-def _registered_preview_asset_names() -> frozenset[str]:
+def _registered_preview_asset_names(*, include_optional_worlds: bool = False) -> frozenset[str]:
     """Return catalog-backed /previews asset names, including scene metadata."""
 
     names: set[str] = set()
-    for world in list_worlds():
+    for world in list_worlds(include_optional_worlds=include_optional_worlds):
         preview_assets = world.get("preview_assets") or {}
         if not isinstance(preview_assets, dict):
             continue
@@ -203,8 +203,15 @@ def _follow_up_launch_request(parent_run_id: str, follow_up: dict[str, object]) 
 class ConsoleRequestHandler(SimpleHTTPRequestHandler):
     """Serve static assets plus JSON APIs."""
 
-    def __init__(self, *args: object, root: Path, **kwargs: object) -> None:
+    def __init__(
+        self,
+        *args: object,
+        root: Path,
+        include_optional_worlds: bool = False,
+        **kwargs: object,
+    ) -> None:
         self.repo_root = root.resolve()
+        self.include_optional_worlds = include_optional_worlds
         self.project_root = Path(__file__).resolve().parents[2]
         static_root = Path(__file__).resolve().parent / "static"
         self.static_root = static_root.resolve()
@@ -326,7 +333,13 @@ class ConsoleRequestHandler(SimpleHTTPRequestHandler):
             self.send_error(HTTPStatus.NOT_FOUND)
             return
         relative_name = path.relative_to(preview_root).as_posix()
-        if relative_name not in _registered_preview_asset_names() or not path.exists():
+        if (
+            relative_name
+            not in _registered_preview_asset_names(
+                include_optional_worlds=self.include_optional_worlds
+            )
+            or not path.exists()
+        ):
             self.send_error(HTTPStatus.NOT_FOUND)
             return
         self._file(path)
@@ -346,22 +359,27 @@ class ConsoleRequestHandler(SimpleHTTPRequestHandler):
     def _routes_payload(self) -> dict[str, object]:
         inventory = runtime_inventory_payload(self.repo_root)
         runtime_tasks = inventory["tasks"]
+        worlds = list_worlds(include_optional_worlds=self.include_optional_worlds)
+        visible_world_ids = {str(world["id"]) for world in worlds}
+        combinations = tuple(
+            selection
+            for selection in list_console_combinations(include_disabled=True)
+            if selection.world_id in visible_world_ids
+        )
         return {
-            "worlds": list(list_worlds()),
+            "worlds": list(worlds),
             "workflows": list(list_workflows()),
             "recommended_priors": list(list_prior_catalog()),
             "evidence_lanes": list(list_evidence_lanes()),
-            "combinations": [
-                selection.to_payload()
-                for selection in list_console_combinations(include_disabled=True)
-            ],
+            "combinations": [selection.to_payload() for selection in combinations],
             "readiness": {
                 selection.id: route_readiness(
                     self.repo_root,
                     selection,
                     runtime_tasks=runtime_tasks,
                 )
-                for selection in list_console_combinations(include_disabled=False)
+                for selection in combinations
+                if selection.enabled
             },
             "runtime": runtime_blockers_from_inventory(inventory),
         }
@@ -584,8 +602,12 @@ class ConsoleRequestHandler(SimpleHTTPRequestHandler):
             self.wfile.write(data)
 
 
-def run_server(root: Path, host: str, port: int) -> None:
-    handler = partial(ConsoleRequestHandler, root=root)
+def run_server(root: Path, host: str, port: int, *, include_optional_worlds: bool = False) -> None:
+    handler = partial(
+        ConsoleRequestHandler,
+        root=root,
+        include_optional_worlds=include_optional_worlds,
+    )
     server = ThreadingHTTPServer((host, port), handler)
     url_host = "127.0.0.1" if host in {"0.0.0.0", "::"} else host
     print(f"Agent Operator Console: http://{url_host}:{port}")
@@ -601,10 +623,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     parser.add_argument("--output-root", type=Path, default=None)
+    parser.add_argument(
+        "--include-optional-worlds",
+        action="store_true",
+        help="Include validation-required Agibot and B1 worlds in console discovery.",
+    )
     args = parser.parse_args(argv)
     if args.output_root is not None:
         os.environ[OUTPUT_ROOT_ENV] = str(args.output_root)
-    run_server(args.repo_root.resolve(), args.host, args.port)
+    run_server(
+        args.repo_root.resolve(),
+        args.host,
+        args.port,
+        include_optional_worlds=args.include_optional_worlds,
+    )
     return 0
 
 

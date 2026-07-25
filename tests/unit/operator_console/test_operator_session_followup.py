@@ -27,9 +27,9 @@ from tests.unit.operator_console.conftest import (
     MUJOCO_OPENAI_AGENTS_OPEN_TASK,  # noqa: F401  re-exported for tests
 )
 
-CODEX_ENV = {
-    "CODEX_BASE_URL": "https://codex.example.test/v1",
-    "CODEX_API_KEY": "key",
+KIMI_ENV = {
+    "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
+    "KIMI_API_KEY": "key",
 }
 
 
@@ -146,7 +146,7 @@ def test_launcher_sanitizes_followup_context_for_child_prompt(tmp_path: Path) ->
                 },
                 overrides={"port": _free_port()},
             ),
-            env=CODEX_ENV,
+            env=KIMI_ENV,
         )
 
     assert state["parent_run_id"] == "parent-run"
@@ -201,7 +201,7 @@ def test_readiness_releases_lock_when_parent_result_finished_before_live_status(
     (attempt_dir / "report.html").write_text("<html>ok</html>", encoding="utf-8")
     ResourceLock(tmp_path, route.lock_name).acquire(run_id=run_id, pid=os.getpid())
 
-    readiness = route_readiness(tmp_path, route, overrides={"port": _free_port()}, env=CODEX_ENV)
+    readiness = route_readiness(tmp_path, route, overrides={"port": _free_port()}, env=KIMI_ENV)
 
     assert readiness["can_start"] is True
     assert readiness["blocker_kind"] == ""
@@ -353,7 +353,7 @@ def test_next_goal_autostart_releases_parent_lock_during_live_status_wind_down(
         pid = 12345
 
     with (
-        patch.dict(os.environ, CODEX_ENV),
+        patch.dict(os.environ, KIMI_ENV),
         patch("roboclaws.operator_console.readiness.DEFAULT_MCP_PORT", mcp_port),
         patch("roboclaws.operator_console.runtime_inventory.DEFAULT_MCP_PORT", mcp_port),
         patch("roboclaws.operator_console.launcher.subprocess.Popen", return_value=FakeProcess()),

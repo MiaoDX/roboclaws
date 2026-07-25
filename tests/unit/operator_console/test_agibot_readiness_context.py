@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import socket
+import sys
 from pathlib import Path
 
 from roboclaws.operator_console.launcher import route_readiness
 from roboclaws.operator_console.routes import get_selection
 
-CODEX_ENV = {
-    "CODEX_BASE_URL": "https://codex.example.test/v1",
-    "CODEX_API_KEY": "key",
+KIMI_ENV = {
+    "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
+    "KIMI_API_KEY": "key",
 }
 AGIBOT_SDK_MAP_BUILD = (
     "agibot-g2/map-12::agibot-gdk::map-build::openai-agents-sdk::camera-grounded-labels"
@@ -51,12 +52,22 @@ def test_agibot_readiness_requires_readable_context_json(tmp_path: Path) -> None
 
 
 def _agibot_readiness(tmp_path: Path, *, context_json: str | Path) -> dict[str, object]:
+    runner_script = tmp_path / "runner.py"
+    runner_script.write_text("# synthetic optional-world runner\n", encoding="utf-8")
+    map_artifact_dir = tmp_path / "map-artifacts"
+    map_artifact_dir.mkdir(exist_ok=True)
     return route_readiness(
         tmp_path,
         get_selection(AGIBOT_SDK_MAP_BUILD),
-        overrides={"context_json": str(context_json), "port": _free_port()},
+        overrides={
+            "context_json": str(context_json),
+            "port": _free_port(),
+            "runner_script": str(runner_script),
+            "runner_python": sys.executable,
+            "agibot_map_artifact_dir": str(map_artifact_dir),
+        },
         gates=AGIBOT_GATES,
-        env=CODEX_ENV,
+        env=KIMI_ENV,
     )
 
 

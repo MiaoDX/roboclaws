@@ -136,6 +136,20 @@ def trace_surface_run_with_plan(*args: str) -> tuple[list[str], list[str]]:
     return result.stdout.strip().split("\t"), result.stderr.strip().split("\t")
 
 
+def _b1_dependency_args(tmp_path: Path) -> tuple[str, ...]:
+    map_bundle = tmp_path / "private-b1-map-canary"
+    map_bundle.mkdir()
+    values = {"isaac_scene_usd_path": tmp_path / "private-b1-scene-canary.usd"}
+    values["b1_alignment_artifact"] = tmp_path / "private-b1-alignment-canary.json"
+    values["b1_navigation_artifact"] = tmp_path / "private-b1-navigation-canary.json"
+    for path in values.values():
+        path.write_text("{}\n", encoding="utf-8")
+    return (
+        f"map_bundle={map_bundle}",
+        *(f"{key}={path}" for key, path in values.items()),
+    )
+
+
 def trace_agent_harness(*args: str) -> list[str]:
     return trace_just("agent::harness", *args)
 
@@ -1477,14 +1491,16 @@ def test_map_build_sdk_rejects_molmospaces_isaac_backend_override() -> None:
     assert "backend=isaaclab_subprocess is scoped to world=b1-map12" in stderr
 
 
-def test_b1_public_launch_routes_isaac_backend_to_current_implementation() -> None:
+def test_b1_public_launch_routes_isaac_backend_to_current_implementation(tmp_path: Path) -> None:
     route, plan_trace = trace_surface_run_with_plan(
         "surface=household-world",
         "world=b1-map12",
         "backend=isaaclab",
         "agent_engine=openai-agents-sdk",
+        "provider_profile=kimi-openai-chat",
         "prompt=inspect the digital twin",
         "evidence_lane=world-public-labels",
+        *_b1_dependency_args(tmp_path),
     )
 
     assert route[:6] == [
@@ -1495,77 +1511,73 @@ def test_b1_public_launch_routes_isaac_backend_to_current_implementation() -> No
         "7",
         "output/household/household-world/open-ended/openai-agents-live-world-public-labels",
     ]
-    assert route[10] == "vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot"
+    assert route[10] == "<configured>"
     assert route[12] == "on"
     assert route[17] == "isaaclab_subprocess"
-    assert route[20] == (
-        "data/robot-data-lab/scene-engine/data/B1_floor2_slow/usda/F2_all/default.usda"
-    )
+    assert route[20] == "<configured>"
     assert route[23:25] == ["household-world", "open-ended"]
-    assert len(route) == 25
+    assert route[26:28] == ["<configured>", "<configured>"]
     assert "world=b1-map12" in plan_trace
     assert "backend=isaaclab" in plan_trace
     target_trace = next(item for item in plan_trace if item.startswith("target=just agent::run "))
     assert "household-world openai-agents-sdk world-public-labels" in target_trace
-    assert "map_bundle=vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot" in target_trace
+    assert "map_bundle=<configured>" in target_trace
     assert "b1_alignment_review=" not in target_trace
-    assert (
-        "isaac_scene_usd_path=data/robot-data-lab/scene-engine/data/"
-        "B1_floor2_slow/usda/F2_all/default.usda"
-    ) in target_trace
+    assert "isaac_scene_usd_path=<configured>" in target_trace
     assert "world=b1-map12" in target_trace
     assert "backend=isaaclab_subprocess" in target_trace
     assert "generated_mess_count=0" in target_trace
-    assert "b1_alignment_artifact=output/b1-map12" not in target_trace
-    assert "b1_navigation_artifact=output/b1-map12" not in target_trace
+    assert "b1_alignment_artifact=<configured>" in target_trace
+    assert "b1_navigation_artifact=<configured>" in target_trace
+    assert str(tmp_path) not in "\n".join([*route, *plan_trace])
     assert "b1_semantic_projection_artifact=" not in target_trace
 
 
-def test_b1_public_launch_supports_camera_grounded_labels() -> None:
+def test_b1_public_launch_supports_camera_grounded_labels(tmp_path: Path) -> None:
     route, plan_trace = trace_surface_run_with_plan(
         "surface=household-world",
         "world=b1-map12",
         "backend=isaaclab",
         "agent_engine=openai-agents-sdk",
+        "provider_profile=kimi-openai-chat",
         "prompt=inspect the digital twin with camera grounded labels",
         "evidence_lane=camera-grounded-labels",
+        *_b1_dependency_args(tmp_path),
     )
 
     assert route[3] == "camera-grounded-labels"
     assert route[13] == "grounding-dino"
     assert route[17] == "isaaclab_subprocess"
-    assert len(route) == 25
+    assert route[26:28] == ["<configured>", "<configured>"]
     target_trace = next(item for item in plan_trace if item.startswith("target=just agent::run "))
     assert "household-world openai-agents-sdk camera-grounded-labels" in target_trace
     assert "backend=isaaclab_subprocess" in target_trace
     assert "camera_labeler=grounding-dino" in target_trace
-    assert "b1_alignment_artifact=output/b1-map12" not in target_trace
-    assert "b1_navigation_artifact=output/b1-map12" not in target_trace
+    assert "b1_alignment_artifact=<configured>" in target_trace
+    assert "b1_navigation_artifact=<configured>" in target_trace
+    assert str(tmp_path) not in "\n".join([*route, *plan_trace])
 
 
-def test_b1_public_launch_passes_explicit_robot_consumption_proof_artifacts() -> None:
+def test_b1_public_launch_passes_explicit_robot_consumption_proof_artifacts(
+    tmp_path: Path,
+) -> None:
     route, plan_trace = trace_surface_run_with_plan(
         "surface=household-world",
         "world=b1-map12",
         "backend=isaaclab",
         "agent_engine=openai-agents-sdk",
+        "provider_profile=kimi-openai-chat",
         "prompt=inspect the digital twin",
         "evidence_lane=world-public-labels",
-        "b1_alignment_artifact=output/b1-map12/alignment/alignment_residuals.json",
-        "b1_navigation_artifact=output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json",
+        *_b1_dependency_args(tmp_path),
     )
 
-    assert route[26] == "output/b1-map12/alignment/alignment_residuals.json"
-    assert route[27] == ("output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json")
+    assert route[26:28] == ["<configured>", "<configured>"]
     assert len(route) == 28
     target_trace = next(item for item in plan_trace if item.startswith("target=just agent::run "))
-    assert "b1_alignment_artifact=output/b1-map12/alignment/alignment_residuals.json" in (
-        target_trace
-    )
-    assert (
-        "b1_navigation_artifact=output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json"
-        in target_trace
-    )
+    assert "b1_alignment_artifact=<configured>" in target_trace
+    assert "b1_navigation_artifact=<configured>" in target_trace
+    assert str(tmp_path) not in "\n".join([*route, *plan_trace])
     assert "b1_semantic_projection_artifact=" not in target_trace
 
 
@@ -1666,18 +1678,18 @@ def test_b1_isaac_camera_grounded_uses_isaac_backend_and_real_grounding_gate() -
     assert "--require-robot-views" in isaac_branch
 
 
-def test_b1_isaac_route_generates_robot_consumption_artifacts() -> None:
+def test_b1_isaac_route_consumes_injected_robot_consumption_artifacts() -> None:
     molmo_text = MOLMO_JUST.read_text(encoding="utf-8")
     b1_compile_branch = molmo_text.split(
         'if [[ "$backend" == "isaaclab_subprocess" && "$launch_world_id" == "b1-map12" ]]',
         1,
     )[1].split("    fi\n    map_bundle_args=()", 1)[0]
 
-    assert "b1-map12-robot-consumption-proof" in b1_compile_branch
-    assert "fit_b1_map12_scene_alignment.py" in b1_compile_branch
-    assert "check_b1_map12_readiness.py" in b1_compile_branch
-    assert "run_b1_map12_navigation_smoke.py" in b1_compile_branch
-    assert "b1_navigation_artifact requires b1_alignment_artifact" in b1_compile_branch
+    assert "fit_b1_map12_scene_alignment.py" not in b1_compile_branch
+    assert "check_b1_map12_readiness.py" not in b1_compile_branch
+    assert "run_b1_map12_navigation_smoke.py" not in b1_compile_branch
+    assert "requires explicit ${required_input}" in b1_compile_branch
+    assert "received invalid ${required_file}" in b1_compile_branch
     assert "output/b1-map12/alignment/alignment_residuals.json" not in b1_compile_branch
     assert "output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json" not in (
         b1_compile_branch

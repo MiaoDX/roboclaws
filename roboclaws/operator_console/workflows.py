@@ -20,7 +20,7 @@ from roboclaws.launch.worlds import WORLD_SPECS
 
 DEFAULT_CAMERA_LABELER = "grounding-dino"
 DEFAULT_RELOCATION_COUNT = "5"
-DEFAULT_PROVIDER_PROFILE = "codex-router-responses"
+DEFAULT_PROVIDER_PROFILE = "kimi-openai-chat"
 
 WORKFLOW_BUILD_MAP = "build-map"
 WORKFLOW_OPEN_TASK = "open-task"

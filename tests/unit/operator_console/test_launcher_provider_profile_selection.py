@@ -13,7 +13,7 @@ from roboclaws.operator_console.launcher import (
     start_console_run,
 )
 from roboclaws.operator_console.routes import get_selection
-from tests.support.b1_robot_proof import write_b1_robot_proof_artifacts
+from tests.support.b1_robot_proof import write_b1_readiness_fixtures
 from tests.unit.operator_console.conftest import (
     B1_OPENAI_AGENTS_OPEN_TASK,  # noqa: F401  re-exported for tests
 )
@@ -32,37 +32,38 @@ def test_provider_gate_rejects_conflicting_provider_profile_env_override(tmp_pat
         route_readiness(
             tmp_path,
             route,
-            env={"XM_LLM_API_KEY": "key"},
-            overrides={"port": _free_port(), "provider_profile": "codex-router-responses"},
-            env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "mimo-mify-responses"},
+            env={"MM_BASE_URL": "https://minimax.example.test/v1", "MM_API_KEY": "key"},
+            overrides={"port": _free_port(), "provider_profile": "kimi-openai-chat"},
+            env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "minimax-responses"},
         )
 
 
 def test_provider_gate_route_selection_overrides_ambient_provider_profile(tmp_path: Path) -> None:
     route = get_selection(B1_OPENAI_AGENTS_OPEN_TASK)
-    write_b1_robot_proof_artifacts(tmp_path)
+    b1_overrides = write_b1_readiness_fixtures(tmp_path)
 
     readiness = route_readiness(
         tmp_path,
         route,
         env={
-            "CODEX_BASE_URL": "https://codex.example.test/v1",
-            "CODEX_API_KEY": "key",
-            "ROBOCLAWS_PROVIDER_PROFILE": "mimo-mify-responses",
+            "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
+            "KIMI_API_KEY": "key",
+            "ROBOCLAWS_PROVIDER_PROFILE": "minimax-responses",
         },
         overrides={
             "port": _free_port(),
-            "provider_profile": "codex-router-responses",
+            "provider_profile": "kimi-openai-chat",
+            **b1_overrides,
         },
     )
 
     assert readiness["can_start"] is True
-    assert readiness["provider"]["provider"] == "codex-router-responses"
+    assert readiness["provider"]["provider"] == "kimi-openai-chat"
 
 
 def test_start_console_run_uses_one_provider_profile_selection(tmp_path: Path) -> None:
     route = get_selection(B1_OPENAI_AGENTS_OPEN_TASK)
-    write_b1_robot_proof_artifacts(tmp_path)
+    b1_overrides = write_b1_readiness_fixtures(tmp_path)
     seen_env: dict[str, str] = {}
 
     class FakeProcess:
@@ -78,15 +79,15 @@ def test_start_console_run_uses_one_provider_profile_selection(tmp_path: Path) -
             tmp_path,
             LaunchRequest(
                 selection_id_override=route.id,
-                provider_profile="mimo-mify-responses",
-                overrides={"port": _free_port()},
+                provider_profile="minimax-responses",
+                overrides={"port": _free_port(), **b1_overrides},
             ),
-            env={"XM_LLM_API_KEY": "key"},
+            env={"MM_BASE_URL": "https://minimax.example.test/v1", "MM_API_KEY": "key"},
         )
 
-    assert seen_env["ROBOCLAWS_PROVIDER_PROFILE"] == "mimo-mify-responses"
-    assert state["provider_profile"] == "mimo-mify-responses"
-    assert "provider_profile=mimo-mify-responses" in state["argv"]
+    assert seen_env["ROBOCLAWS_PROVIDER_PROFILE"] == "minimax-responses"
+    assert state["provider_profile"] == "minimax-responses"
+    assert "provider_profile=minimax-responses" in state["argv"]
     assert state["env_overrides"] == {
-        "ROBOCLAWS_PROVIDER_PROFILE": "mimo-mify-responses",
+        "ROBOCLAWS_PROVIDER_PROFILE": "minimax-responses",
     }

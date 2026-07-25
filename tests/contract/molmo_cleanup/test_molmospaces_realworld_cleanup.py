@@ -9,9 +9,6 @@ import pytest
 
 from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household.agibot_map_bundle import write_agibot_nav2_map_bundle
-from roboclaws.household.agibot_map_defaults import (
-    DEFAULT_AGIBOT_MAP_ARTIFACT_DIR,
-)
 from roboclaws.household.household_runtime_contract import (
     CAMERA_MODEL_POLICY_MODE,
     CAMERA_MODEL_POLICY_NAME,
@@ -43,7 +40,7 @@ AGIBOT_SEMANTIC_ACTIONS_PATH = (
 PREBUILT_BUNDLE = REPO_ROOT / "assets" / "maps" / "molmospaces" / "procthor-10k-val" / "0"
 ROBOT_MAP_9_ARTIFACT = REPO_ROOT / "vendors" / "agibot_sdk" / "artifacts" / "maps" / "robot_map_9"
 ROBOT_MAP_9_CONTEXT = REPO_ROOT / "tests" / "fixtures" / "agibot_robot_map_9_context.completed.json"
-ROBOT_MAP_12_ARTIFACT = DEFAULT_AGIBOT_MAP_ARTIFACT_DIR
+ROBOT_MAP_12_ARTIFACT = REPO_ROOT / "tests" / "fixtures" / "runtime_map_prior" / "robot_map_12"
 
 
 def _require_robot_map_9_artifact() -> None:

@@ -82,9 +82,13 @@ def test_molmospaces_worlds_expose_only_mujoco_while_b1_exposes_isaac() -> None:
             "world=b1-map12",
             "backend=isaaclab",
             "agent_engine=openai-agents-sdk",
-            "provider_profile=codex-router-responses",
+            "provider_profile=kimi-openai-chat",
             "prompt=inspect the digital twin",
             "evidence_lane=world-public-labels",
+            "map_bundle=injected/map-bundle",
+            "isaac_scene_usd_path=injected/scene.usd",
+            "b1_alignment_artifact=injected/alignment.json",
+            "b1_navigation_artifact=injected/navigation.json",
         ]
     )
 
@@ -94,14 +98,15 @@ def test_molmospaces_worlds_expose_only_mujoco_while_b1_exposes_isaac() -> None:
     assert b1.world == "b1-map12"
     assert b1.backend == "isaaclab"
     assert b1.implementation_backend == "isaaclab_subprocess"
-    assert "map_bundle=vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot" in b1.overrides
-    assert not any(item.startswith("b1_alignment_artifact=") for item in b1.overrides)
-    assert not any(item.startswith("b1_navigation_artifact=") for item in b1.overrides)
+    assert "map_bundle=injected/map-bundle" in b1.overrides
+    assert "isaac_scene_usd_path=injected/scene.usd" in b1.overrides
+    assert "b1_alignment_artifact=injected/alignment.json" in b1.overrides
+    assert "b1_navigation_artifact=injected/navigation.json" in b1.overrides
     assert not any(item.startswith("b1_semantic_projection_artifact=") for item in b1.overrides)
     assert "world=b1-map12" in b1.argv
     assert "backend=isaaclab_subprocess" in b1.argv
-    assert not any(item.startswith("b1_alignment_artifact=") for item in b1.argv)
-    assert not any(item.startswith("b1_navigation_artifact=") for item in b1.argv)
+    assert "b1_alignment_artifact=injected/alignment.json" in b1.argv
+    assert "b1_navigation_artifact=injected/navigation.json" in b1.argv
 
 
 def test_b1_launch_accepts_explicit_robot_consumption_proof_artifacts() -> None:
@@ -111,9 +116,11 @@ def test_b1_launch_accepts_explicit_robot_consumption_proof_artifacts() -> None:
             "world=b1-map12",
             "backend=isaaclab",
             "agent_engine=openai-agents-sdk",
-            "provider_profile=codex-router-responses",
+            "provider_profile=kimi-openai-chat",
             "prompt=inspect the digital twin",
             "evidence_lane=world-public-labels",
+            "map_bundle=injected/map-bundle",
+            "isaac_scene_usd_path=injected/scene.usd",
             "b1_alignment_artifact=output/b1-map12/alignment/alignment_residuals.json",
             "b1_navigation_artifact=output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json",
         ]
