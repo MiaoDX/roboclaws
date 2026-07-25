@@ -1,6 +1,6 @@
 **Status:** Implementation active; NVIDIA EULA accepted
 **Created:** 2026-07-24
-**Last reviewed:** 2026-07-24
+**Last reviewed:** 2026-07-25
 **Current implementation contract:** Add a dedicated CloudML Isaac Lab capability and image,
 then prove the existing `world=b1-map12 backend=isaaclab` route on one r49 worker through
 ordered, stop-gated runtime, navigation, and MapBuild stages.
@@ -17,17 +17,15 @@ B1/Isaac proof; it does not supersede either one.
   `docs/plans/2026-06-18-cloudml-juicefs-eval.md` and
   `docs/plans/2026-07-23-household-mcp-capability-backend-unification.md`
 - Child plans: none
-- Last updated: 2026-07-24
-- Current slice: Phase 0-2 implementation plus driver-series sampling are complete. Three bounded
-  waves created 25 Stage A tasks across five r49 host groups without platform retry. Three tasks on
-  `slave560` reached driver `580.105.08` and passed CUDA/Isaac preflight, then proved that group is
-  missing the NVIDIA Vulkan driver libraries inside the container. The sampled `570.124.06` groups
-  inject the graphics libraries but remain in Isaac Sim 6.0's rejected driver range. Stage B/C were
-  not generated or submitted.
-- Next action: CloudML must repair `libGLX_nvidia.so.0` and
-  `libnvidia-glvkspirv.so.580.105.08` injection on the 580 r49 group, or expose another r49 group
-  with both a compatible driver and complete Vulkan runtime. Recheck with one fresh Stage A and
-  strictly accept it before any Stage B work.
+- Last updated: 2026-07-25
+- Current slice: Phase 0-2 implementation and a driver-matched Vulkan image are complete. The image
+  uses native libraries for exact `570.124.06` and a TheLastFoot-derived userspace overlay for exact
+  `580.105.08`. Current bounded placement evidence totals 84 normal one-GPU tasks plus one eight-GPU
+  and two four-GPU diagnostics. The latest six concurrent waves expanded coverage but exposed only
+  `570.124.06`; Stage B/C were not generated or submitted.
+- Next action: when the scheduler exposes the known `580.105.08` r49 group, run one normal one-GPU
+  Stage A with the pinned overlay image and strictly accept overlay selection, Vulkan/RTX startup,
+  and nonblank artifacts before any Stage B work.
 - Blocked on: external CloudML host/container-runtime state, not human authorization. Repo-scoped
   CloudML repair/retry attempts remain authorized while the frozen workspace, queue/resource
   class, concurrency, and cost envelope remain unchanged. Every created sampling task has
@@ -526,9 +524,30 @@ Driver-matched placement sampling on 2026-07-25:
   and unsubmitted. The current blocker is compatible-host scheduling availability, not the prior
   inability to package the missing graphics userspace libraries.
 
-- Present the measured registry/storage bytes, per-stage timeout, maximum GPU-hours, and current
-  capacity before approval. An approval must explicitly name image publication and either Stage A
-  only or a bounded A/B/C ladder; it never covers automatic retries or the later repeat run.
+Additional concurrent placement sampling on 2026-07-25:
+
+- Commit `e9824f25abd37c41b384d95344bee3935a6fd1ac` produced Stage A manifest SHA
+  `202d926e672a177308b6b656a950c2a5adecf729782f6b8106cc5d88d5c29575` and code archive SHA
+  `9be279fb8e03f87085ee9f7ff8468e870aad85804ee005d1c7f3a4faa352d205`; the proof-contract SHA and
+  pinned image digest remained unchanged.
+- Eight sequential tasks followed by six same-second waves of eight normal one-GPU tasks added 56
+  attempts: `slave559` (2), `slave563` (2), `slave564` (21), `slave574` (12), `slave580` (13), and
+  `slave589` (6). Every task was non-preemptible, had `retryTimes=0`, reported exact driver
+  `570.124.06`, selected `mode=native`, and stopped at the required 580-series gate before Isaac.
+- Representative IDs are `t-20260725114930-tjbej`, `t-20260725115948-vd1xo`,
+  `t-20260725115949-pcymd`, `t-20260725120554-5bsav`, `t-20260725120554-m2czj`, and
+  `t-20260725115948-nom12`. Plans and manifests are retained under
+  `/tmp/roboclaws-cloudml-isaac-vulkan580-proof/run-30` through `run-85`.
+- Representative `run-85` status was terminal/failed. Collection recovered the identity-complete
+  terminal marker with `exit_code=3` and correctly rejected acceptance because the driver gate ran
+  before any row result or receipt existed.
+- The concurrent shape distributed placement across more hosts than sequential submission, but it
+  still did not reach `slave560` or another 580-series host. No overlay, RTX, row result, or Stage A
+  acceptance receipt was produced; compatible-host availability remains the only live blocker.
+
+- Keep recording measured registry/storage bytes, per-stage timeout, maximum GPU-hours, and current
+  capacity. Existing authorization covers the pinned image and bounded A/B/C ladder without
+  per-attempt confirmation; it does not enable automatic retries or the later repeat/promotion run.
 - Submit Stage A; collect and accept it before Stage B asset upload/submit.
 - Submit and accept Stage B before Stage C.
 - Submit Stage C and render the final comparison/report packet.
