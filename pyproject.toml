@@ -55,6 +55,15 @@ openai-agents = [
 requires = ["hatchling", "editables"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build]
+exclude = [
+    "/.git",
+    "/.venv",
+    "/dist",
+    "/output",
+    "/vendors",
+]
+
 [tool.hatch.metadata]
 allow-direct-references = true
 
