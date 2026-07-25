@@ -61,6 +61,7 @@ def test_build_candidate_uses_source_commit_and_public_membership(tmp_path: Path
     assert _git(output, "rev-list", "--count", "HEAD") == "1"
     assert _git(output, "remote") == ""
     assert _git(output, "ls-files", "-s", "vendors/molmospaces").startswith("160000 ")
+    assert _git(output, "status", "--porcelain") == ""
 
 
 def test_private_optional_world_content_is_excluded() -> None:

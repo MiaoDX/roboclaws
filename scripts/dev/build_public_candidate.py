@@ -163,7 +163,7 @@ def build_candidate(root: Path, output: Path, source_ref: str) -> dict[str, obje
     for entry in blobs:
         _write_blob(root, output, entry)
     (output / ".gitmodules").write_text(
-        "[submodule \"vendors/molmospaces\"]\n"
+        '[submodule "vendors/molmospaces"]\n'
         "\tpath = vendors/molmospaces\n"
         f"\turl = {PUBLIC_SUBMODULE_URL}\n",
         encoding="utf-8",
@@ -173,6 +173,8 @@ def build_candidate(root: Path, output: Path, source_ref: str) -> dict[str, obje
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     manifest["candidate_commit"] = _initialize_public_git(output, gitlinks)
+    for entry in gitlinks:
+        (output / entry.path).mkdir(parents=True, exist_ok=True)
     return manifest
 
 
