@@ -197,7 +197,7 @@ def test_map_build_matrix_report_renders_quality_costs_and_downstream_deltas(
     run_dir.mkdir(parents=True)
     for name in ("report.html", "run_result.json", "runtime_metric_map.json"):
         (run_dir / name).write_text("{}\n", encoding="utf-8")
-    bundle = _map_build_bundle(tmp_path / "eval", provider_profile="mimo&profile")
+    bundle = _map_build_bundle(tmp_path / "eval", provider_profile="custom&profile")
     bundle["results"][0]["artifacts"] = {
         "report": str(run_dir / "report.html"),
         "run_result": str(run_dir / "run_result.json"),
@@ -221,7 +221,7 @@ def test_map_build_matrix_report_renders_quality_costs_and_downstream_deltas(
     assert quality["request_event_count"] == 60
     assert "MapBuild Quality Matrix" in html
     assert "base 14 -&gt; semantic 30 (+16 runtime)" in html
-    assert "mimo&amp;profile" in html
+    assert "custom&amp;profile" in html
     assert "60 / 60" in html
     assert "obs -2, wp -1, turn 0, adj 0, calls -3" in html
     assert "report.html" in html
