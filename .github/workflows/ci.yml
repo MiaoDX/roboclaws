@@ -48,6 +48,16 @@ jobs:
           trap 'rm -rf "$candidate_root"' EXIT
           .venv/bin/python scripts/dev/build_public_candidate.py --output "$candidate_root"
           .venv/bin/python scripts/dev/check_public_surface.py --root "$candidate_root"
+          current_scan="$(mktemp)"
+          (
+            cd "$candidate_root"
+            uvx --from detect-secrets==1.5.0 detect-secrets scan \
+              --exclude-files '(PUBLIC-MEMBERSHIP\.json|\.secrets\.baseline)' \
+              > "$current_scan"
+            diff -u \
+              <(jq -S '.results' .secrets.baseline) \
+              <(jq -S '.results' "$current_scan")
+          )
 
       - name: Upload required-gate output
         uses: actions/upload-artifact@v4
