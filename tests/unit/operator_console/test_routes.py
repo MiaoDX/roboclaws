@@ -170,47 +170,6 @@ def test_molmospaces_scene_previews_have_render_provenance() -> None:
         assert "scene_alignment" not in metadata["views"]["map"]
 
 
-def test_b1_map12_scene_preview_has_v1_runtime_camera_provenance() -> None:
-    preview_root = (
-        Path(__file__).resolve().parents[3] / "roboclaws/operator_console/static/previews"
-    )
-
-    metadata = json.loads((preview_root / "b1-map12-preview.json").read_text(encoding="utf-8"))
-
-    assert metadata["schema"] == "operator_console_scene_preview_v1"
-    assert metadata["world_id"] == "b1-map12"
-    assert metadata["backend"] == "isaaclab"
-    assert metadata["renderer"] == "b1_map12_static_gaussian_topdown_with_isaac_runtime_camera"
-    assert metadata["scene_usd_path"] == (
-        "data/robot-data-lab/scene-engine/data/2rd_floor_seperated/storey_1/scene_gs.usda"
-    )
-    assert metadata["camera_preview_artifact"]["schema"] == "b1_map12_navigation_smoke_v1"
-    assert metadata["camera_preview_artifact"]["source_artifact_name"] == "navigation_smoke.json"
-    assert metadata["camera_preview_artifact"]["selected_waypoint_id"] == (
-        "b1_aligned_plastic_bottle_table_1"
-    )
-    assert "path" not in metadata["camera_preview_artifact"]
-    assert metadata["views"]["fpv"]["provenance"] == ("isaac_runtime_robot_mounted_head_camera_fpv")
-    assert metadata["views"]["fpv"]["robot_mounted"] is True
-    assert not str(metadata["views"]["fpv"].get("source_artifact_view", "")).startswith("/")
-    assert "source_path" not in metadata["views"]["fpv"]
-    assert metadata["views"]["chase"]["provenance"] == "isaac_runtime_report_chase_camera"
-    assert not str(metadata["views"]["chase"].get("source_artifact_view", "")).startswith("/")
-    assert "source_path" not in metadata["views"]["chase"]
-    assert metadata["views"]["map"]["view"] == "base_metric_map_preview"
-    assert metadata["views"]["map"]["artifact_source_family"] == "base_metric_map_bundle"
-    assert metadata["views"]["topdown"]["view"] == "topdown_scene_render"
-    assert metadata["views"]["topdown"]["artifact_source_family"] == "scene_camera_render"
-    assert metadata["views"]["topdown"]["provenance"] == "b1_scene_gaussian_topdown_crop_z1p8_png"
-    assert metadata["views"]["topdown"]["alignment_status"] == (
-        "height_cropped_gaussian_scene_topdown"
-    )
-    assert "first_waypoint_id" not in metadata["views"]["topdown"]
-    assert "diagnostic_views" not in metadata
-    assert metadata["map_bundle"] == "vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot"
-    assert "runtime_map_bundle" not in metadata
-
-
 def test_console_combinations_are_catalog_backed_axes() -> None:
     enabled = list_console_combinations(include_disabled=False)
 

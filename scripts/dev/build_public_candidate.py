@@ -18,6 +18,15 @@ EXCLUDED_PATHS = {
     "sidecars/visual-grounding/uv.lock",
     "THOUGHTS.md",
     "TODOS.md",
+    "tests/contract/maps/test_agibot_map_bundle_export.py",
+    "tests/contract/maps/test_nav2_map_bundle_contract.py",
+    "tests/contract/maps/test_robot_map12_consistency.py",
+    "tests/contract/maps/test_runtime_map_prior_snapshot.py",
+    "tests/contract/maps/test_scene_room_semantic_overlay.py",
+    "tests/contract/molmo_cleanup/test_agibot_digital_twin_review_assets.py",
+    "tests/unit/operator_console/test_render_scene_previews.py",
+    "tests/unit/operator_console/test_render_scene_previews_sources.py",
+    "tests/unit/operator_console/test_static_assets.py",
     "vendors/agibot_sdk",
 }
 EXCLUDED_PREFIXES = (

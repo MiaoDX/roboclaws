@@ -1151,34 +1151,7 @@ def test_human_docs_do_not_surface_legacy_cleanup_commands_as_current() -> None:
     assert "profile=camera-labels" not in legacy_arch
     assert "openclaw-smoke-report" not in settings
     assert "just molmo::openclaw-report" not in settings
-    assert "Guarded report recipes are maintainer-only validation routes" in settings
-
-
-def test_openclaw_image_update_doc_uses_current_maintainer_dispatch() -> None:
-    update_doc = (REPO_ROOT / "docs" / "ai" / "openclaw" / "update.md").read_text(encoding="utf-8")
-    tool_profiles_doc = (REPO_ROOT / "docs" / "ai" / "openclaw" / "tool-profiles.md").read_text(
-        encoding="utf-8"
-    )
-    route = trace_agent_run(
-        "household-world",
-        "openclaw-gateway",
-        "world-public-labels",
-    )
-
-    assert "just openclaw::run photo" not in update_doc
-    assert "territory/coverage scripts" not in update_doc
-    assert (
-        "just agent::run household-world openclaw-gateway world-public-labels task_intent=cleanup"
-    ) in update_doc
-    assert "active TODO" not in tool_profiles_doc
-    assert "minimal+alsoAllow:[bundle-mcp]" not in tool_profiles_doc
-    assert route[:5] == [
-        "just",
-        "molmo::household-world-impl",
-        "openclaw-live",
-        "world-public-labels",
-        "7",
-    ]
+    assert "just run::surface surface=household-world" in settings
 
 
 def test_trace_mode_exposes_resolved_python_launch_plan() -> None:

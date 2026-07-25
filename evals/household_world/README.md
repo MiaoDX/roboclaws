@@ -81,7 +81,7 @@ just agent::eval suite=open_ended_goals budget=smoke \
   live_execution=run
 ```
 
-Live evals default to a 1200 second wall-clock budget and a 120 second
+Live evals default to a 1200-second wall-clock budget and a 120-second
 no-progress stall timeout. Pass `live_timeout_s=<seconds>` only when you intend
 to override the whole-run wall-clock budget for a specific run.
 
