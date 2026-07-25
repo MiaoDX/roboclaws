@@ -46,8 +46,11 @@ def test_allows_public_urls_placeholders_and_test_credentials(tmp_path: Path) ->
             "/home/user/project",
             "127.0.0.1",
             "SERVICE_API_KEY=",
+            "SECONDARY_API_KEY=...",
             "OTHER_TOKEN=fake-test-token",
             'PASSWORD="${PASSWORD:-}"',
+            'version = "10.3.9.55"',
+            "https://files.example/packages/library-10.3.9.55.whl",
         )
     )
 

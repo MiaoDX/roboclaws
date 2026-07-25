@@ -28,6 +28,7 @@ CREDENTIAL_RE = re.compile(
 )
 PLACEHOLDER_USERS = {"example", "node", "runner", "user", "username"}
 PLACEHOLDER_PREFIXES = (
+    "...",
     "$",
     "<",
     "fake",
@@ -113,7 +114,13 @@ def _private_ip_findings(path: Path, text: str) -> list[Finding]:
     findings: list[Finding] = []
     for match in IPV4_RE.finditer(text):
         value = match.group(0)
-        if _is_private_ip(value):
+        line_start = text.rfind("\n", 0, match.start()) + 1
+        line_end = text.find("\n", match.end())
+        line = text[line_start : line_end if line_end >= 0 else len(text)]
+        prefix = line[: match.start() - line_start]
+        looks_like_version = re.match(r"^\s*version\s*=", line) is not None
+        looks_like_url_path = "://" in prefix and "/" in prefix.split("://", 1)[1]
+        if _is_private_ip(value) and not (looks_like_version or looks_like_url_path):
             findings.append(Finding(path, _line_number(text, match.start()), "private-ip", value))
     return findings
 
