@@ -59,11 +59,13 @@ and the Agibot operator hold are resolved.
 ## Current Blockers
 
 - Deterministic public-root, runtime, package, and fresh-install verification is complete.
-- Kimi, MiniMax, and configured custom Responses proofs are blocked by `network: unknown` and
-  unset route-specific configuration.
-- Agibot hardware validation is deferred by operator request. No real-robot movement is authorized.
-- B1/Isaac strict preflight is blocked by 20.7 GiB free versus 80 GiB required and explicit
-  Omniverse EULA acceptance.
+- Kimi and MiniMax configuration is present, but their live proofs are blocked by
+  `network: unknown`; the network probe URL is not configured. Custom Responses also lacks its
+  required URL, key, and model configuration.
+- Agibot validation lacks its injected runner/map paths and remains on operator hold. No real-robot
+  movement is authorized.
+- B1 validation lacks its injected map/scene paths. Isaac strict preflight is additionally blocked
+  by 17.0 GiB free versus 80 GiB required and explicit Omniverse EULA acceptance.
 - Publication remains unauthorized until the reviewed candidate evidence is presented for human
   approval.
 

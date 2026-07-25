@@ -1,4 +1,5 @@
-**Status:** Approved; implementation active
+**Status:** Implementation complete; publication blocked on required local/live validation and
+human approval
 **Created:** 2026-07-24
 **Last reviewed:** 2026-07-25
 **Current implementation contract:** Publish a small, provider-neutral Roboclaws core by replacing
@@ -13,22 +14,28 @@ the private repository. It is not part of the sanitized public root commit.
 
 ## Plan Ledger
 
-- Plan status: ACTIVE
+- Plan status: ACTIVE (`BLOCKED_NEEDS_LOCAL_VALIDATION`)
 - Session scope: public-core-internal-integration-minimization
 - Parent plans: none
 - Child plans: none
 - Last updated: 2026-07-25
-- Current slice: deterministic implementation and sanitized public-candidate construction complete.
-- Next action: obtain human confirmation before publication, then rerun provider and optional-world
-  live gates when their documented network, credential, hardware, and safety blockers are cleared.
-- Blocked on: provider network state is `unknown` and required Kimi, MiniMax, and custom Responses
-  configuration is unset; Agibot physical validation remains on operator hold; strict Isaac
-  preflight has only 20.7 GiB free against an 80 GiB minimum and requires explicit EULA acceptance.
-- Latest proof: candidate `/tmp/roboclaws-public.fWAgj9` is a one-commit, no-remote public root at
-  source commit `2839924f`; its public scan, dependency sync, lint, formatting, full standalone
-  suite, explicit/default MolmoSpaces runs, sdist/wheel membership, fresh install, import, and CLI
-  smoke pass. The earlier candidate full suite passed before the packaging-only exclusion change;
-  the source full fast suite passed after that change.
+- Current slice: implementation, sanitized-candidate construction, deterministic verification,
+  package verification, and public MolmoSpaces/MuJoCo product proof are complete.
+- Next action: rebuild the final candidate from this documentation-aligned checkpoint, verify it,
+  and present its immutable evidence for human publication review. Run provider and optional-world
+  live gates only after their documented blockers clear.
+- Blocked on: network state is `unknown` because `ROBOCLAWS_WORK_NETWORK_PROBE_URL` is missing;
+  Kimi and MiniMax configuration exists but live requests remain fail-closed; all three custom
+  Responses variables are missing. Agibot and B1 injected dependency paths are missing, physical
+  movement remains unauthorized, and strict Isaac preflight reports 17.0 GiB free against an
+  80 GiB minimum plus unaccepted Omniverse EULA terms.
+- Latest proof: candidate `output/public-candidate/20260725-13/repo` is a one-root-commit,
+  no-remote public tree sourced from `3352bb74`; its public and exact internal-term scans,
+  `detect-secrets` baseline comparison, dependency sync, Ruff, complete standalone suite, package
+  build/membership scan, fresh wheel install/import/CLI smoke, and default MolmoSpaces/MuJoCo
+  direct-runner product path pass. Its final product artifacts contain no internal/retired terms,
+  personal source paths, or credential patterns. This candidate is an intermediate checkpoint;
+  the documentation-aligned final candidate is the next proof.
 - Do not touch from this plan: simulator/runtime NVIDIA dependencies, Isaac Lab EULA handling,
   unrelated product task semantics/scoring, or unrelated user changes.
 
