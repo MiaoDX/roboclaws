@@ -7,19 +7,15 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 SELECTOR_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "select_eval_harness.py"
 
 LIVE_AGENT_ROW_IDS = {
-    "map-build-consumer-openai-agents-sdk-codex-router-responses",
-    "map-build-consumer-openai-agents-sdk-mimo-mify-responses",
+    "map-build-consumer-openai-agents-sdk-custom-responses",
     "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
     "map-build-consumer-openai-agents-sdk-minimax-responses",
     "openai-agents-sdk-open-task-live-eval",
     "openai-agents-sdk-session-live-eval",
     "openai-agents-sdk-cleanup-live-eval",
-    "openai-agents-sdk-cleanup-camera-raw-fpv-live-product",
-    "openai-agents-sdk-codex-router-responses-availability",
 }
 ALTERNATE_PROVIDER_MATRIX_ROW_IDS = {
-    "map-build-consumer-openai-agents-sdk-mimo-mify-responses",
-    "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
+    "map-build-consumer-openai-agents-sdk-custom-responses",
     "map-build-consumer-openai-agents-sdk-minimax-responses",
 }
 
@@ -76,11 +72,10 @@ def test_baseline_live_default_profile_excludes_alternate_provider_sweep(
 
     rows = _selected_rows(manifest)
     assert set(rows) == set(_selected_rows(full)) - ALTERNATE_PROVIDER_MATRIX_ROW_IDS
-    assert manifest["summary"]["selected_row_count"] == 24
-    assert manifest["summary"]["live_agent_eval_row_count"] == 6
+    assert manifest["summary"]["selected_row_count"] == 22
+    assert manifest["summary"]["live_agent_eval_row_count"] == 4
     assert manifest["summary"]["budget_skipped_count"] == 0
     assert all(
-        row["axes"].get("provider_profile") in {None, "codex-router-responses"}
-        for row in rows.values()
+        row["axes"].get("provider_profile") in {None, "kimi-openai-chat"} for row in rows.values()
     )
     assert {signal["id"] for signal in manifest["signals"]} == {"baseline_live_default_profile"}

@@ -44,21 +44,9 @@
     }
   },
   "provider_execution_requirements": {
-    "codex-router-responses": [
-      "provider:codex-router-responses",
-      "network:internal-api-router"
-    ],
-    "mimo-mify-responses": [
-      "provider:mimo-mify-responses",
-      "network:internal-mimo-router"
-    ],
-    "mimo-tp-openai-chat": [
-      "provider:mimo-tp-openai-chat",
-      "network:internal-mimo-router"
-    ],
-    "mimo-inside-openai-chat": [
-      "provider:mimo-inside-openai-chat",
-      "network:internal-mimo-router"
+    "custom-responses": [
+      "provider:custom-responses",
+      "network:configured-endpoint"
     ],
     "kimi-openai-chat": [
       "provider:kimi-openai-chat",
@@ -321,7 +309,7 @@
       ]
     },
     {
-      "row_id": "map-build-consumer-openai-agents-sdk-codex-router-responses",
+      "row_id": "map-build-consumer-openai-agents-sdk-custom-responses",
       "row_kind": "live_agent_eval",
       "command": [
         "just",
@@ -330,16 +318,16 @@
         "runtime_map_prior={runtime_map_prior}",
         "budget=focused",
         "output_dir={eval_output_root}",
-        "stamp=map-build-consumer-openai-agents-sdk-{default_provider}",
+        "stamp=map-build-consumer-openai-agents-sdk-custom-responses",
         "agent_engine=openai-agents-sdk",
-        "provider_profile={default_provider}",
+        "provider_profile=custom-responses",
         "live_timeout_s=1500",
         "live_stall_timeout_s=180",
         "live_execution=run"
       ],
       "axes": {
         "agent_engine": "openai-agents-sdk",
-        "provider_profile": "{default_provider}",
+        "provider_profile": "custom-responses",
         "intent": "map-build-consumer",
         "suite": "map_consumer_fixed_prior",
         "evidence_lane": "world-public-labels",
@@ -350,7 +338,7 @@
         "default_local_concurrency_width": "1",
         "concurrency_policy": "{concurrency_policy}"
       },
-      "reason_selected": "MapBuild consumer plan/model-matrix proof needs this provider profile as a first-class availability-or-behavior cell. Run provider cells serially unless ROBOCLAWS_MOLMO_MAX_VISUAL_BACKENDS is explicitly raised and each live row has an isolated stamp/output root.",
+      "reason_selected": "MapBuild consumer proof keeps the configured custom Responses endpoint as one explicit provider cell.",
       "expense": "live-agent",
       "selection_rule_ids": [
         "map_build"
@@ -359,54 +347,7 @@
         "just",
         "python_env",
         "openai_agents_package",
-        "codex_provider",
-        "runtime_map_prior"
-      ],
-      "profiles": [
-        "baseline-live-default",
-        "baseline-refresh"
-      ]
-    },
-    {
-      "row_id": "map-build-consumer-openai-agents-sdk-mimo-mify-responses",
-      "row_kind": "live_agent_eval",
-      "command": [
-        "just",
-        "agent::eval",
-        "suite=map_consumer_fixed_prior",
-        "runtime_map_prior={runtime_map_prior}",
-        "budget=focused",
-        "output_dir={eval_output_root}",
-        "stamp=map-build-consumer-openai-agents-sdk-mimo-mify-responses",
-        "agent_engine=openai-agents-sdk",
-        "provider_profile=mimo-mify-responses",
-        "live_timeout_s=1500",
-        "live_stall_timeout_s=180",
-        "live_execution=run"
-      ],
-      "axes": {
-        "agent_engine": "openai-agents-sdk",
-        "provider_profile": "mimo-mify-responses",
-        "intent": "map-build-consumer",
-        "suite": "map_consumer_fixed_prior",
-        "evidence_lane": "world-public-labels",
-        "backend": "{default_backend}",
-        "world": "{default_world}",
-        "parallel_group_id": "{map_build_consumer_parallel_group}",
-        "provider_cell_count": "{provider_cell_count}",
-        "default_local_concurrency_width": "1",
-        "concurrency_policy": "{concurrency_policy}"
-      },
-      "reason_selected": "MapBuild consumer plan/model-matrix proof needs this provider profile as a first-class availability-or-behavior cell. Run provider cells serially unless ROBOCLAWS_MOLMO_MAX_VISUAL_BACKENDS is explicitly raised and each live row has an isolated stamp/output root.",
-      "expense": "live-agent",
-      "selection_rule_ids": [
-        "map_build"
-      ],
-      "requires": [
-        "just",
-        "python_env",
-        "openai_agents_package",
-        "codex_provider",
+        "provider_profile",
         "runtime_map_prior"
       ],
       "profiles": [
@@ -452,10 +393,11 @@
         "just",
         "python_env",
         "openai_agents_package",
-        "codex_provider",
+        "provider_profile",
         "runtime_map_prior"
       ],
       "profiles": [
+        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -498,7 +440,7 @@
         "just",
         "python_env",
         "openai_agents_package",
-        "codex_provider",
+        "provider_profile",
         "runtime_map_prior"
       ],
       "profiles": [
@@ -665,7 +607,7 @@
         "just",
         "python_env",
         "openai_agents_package",
-        "codex_provider"
+        "provider_profile"
       ],
       "profiles": [
         "baseline-live-default",
@@ -707,7 +649,7 @@
         "just",
         "python_env",
         "openai_agents_package",
-        "codex_provider"
+        "provider_profile"
       ],
       "profiles": [
         "baseline-live-default",
@@ -748,90 +690,7 @@
         "just",
         "python_env",
         "openai_agents_package",
-        "codex_provider"
-      ],
-      "profiles": [
-        "baseline-live-default",
-        "baseline-refresh"
-      ]
-    },
-    {
-      "row_id": "openai-agents-sdk-cleanup-camera-raw-fpv-live-product",
-      "row_kind": "live_agent_eval",
-      "command": [
-        "just",
-        "run::surface",
-        "surface=household-world",
-        "world={default_world}",
-        "backend={default_backend}",
-        "preset=cleanup",
-        "agent_engine=openai-agents-sdk",
-        "evidence_lane=camera-raw-fpv",
-        "seed={default_seed}",
-        "scenario_setup=relocate-cleanup-related-objects",
-        "relocation_count=5",
-        "output_dir={row_dir}/openai-agents-sdk-cleanup-camera-raw-fpv-live-product/run",
-        "provider_profile={default_provider}"
-      ],
-      "axes": {
-        "agent_engine": "openai-agents-sdk",
-        "provider_profile": "{default_provider}",
-        "intent": "cleanup",
-        "preset": "cleanup",
-        "evidence_lane": "camera-raw-fpv",
-        "backend": "{default_backend}",
-        "world": "{default_world}"
-      },
-      "reason_selected": "RAW-FPV changes need a live SDK cleanup gate through a provider with verified image transport.",
-      "expense": "live-agent",
-      "selection_rule_ids": [
-        "raw_fpv"
-      ],
-      "requires": [
-        "just",
-        "python_env",
-        "openai_agents_package",
-        "codex_provider"
-      ],
-      "profiles": [
-        "baseline-live-default",
-        "baseline-refresh"
-      ]
-    },
-    {
-      "row_id": "openai-agents-sdk-codex-router-responses-availability",
-      "row_kind": "live_agent_eval",
-      "command": [
-        "just",
-        "agent::eval",
-        "suite=open_ended_goals",
-        "budget=smoke",
-        "output_dir={eval_output_root}",
-        "stamp=openai-agents-sdk-{default_provider}-availability",
-        "agent_engine=openai-agents-sdk",
-        "provider_profile={default_provider}",
-        "live_execution=run"
-      ],
-      "axes": {
-        "agent_engine": "openai-agents-sdk",
-        "provider_profile": "{default_provider}",
-        "intent": "open-ended",
-        "preset": "",
-        "evidence_lane": "world-public-labels",
-        "backend": "{default_backend}",
-        "world": "{default_world}"
-      },
-      "reason_selected": "Agent SDK codex-router-responses remains first-class live availability evidence for the default GPT route.",
-      "requirement": "optional",
-      "expense": "live-agent",
-      "selection_rule_ids": [
-        "agent_sdk_codex_env_availability"
-      ],
-      "requires": [
-        "just",
-        "python_env",
-        "openai_agents_package",
-        "codex_provider"
+        "provider_profile"
       ],
       "profiles": [
         "baseline-live-default",

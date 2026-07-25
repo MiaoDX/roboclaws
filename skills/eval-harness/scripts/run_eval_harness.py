@@ -32,7 +32,7 @@ EVAL_HARNESS_MCP_PORT_ENV = "ROBOCLAWS_EVAL_HARNESS_MCP_PORT"
 SESSION_LIVE_MCP_PORT_ENV = "ROBOCLAWS_SESSION_LIVE_MCP_PORT"
 DINO_SIDECAR_STARTUP_TIMEOUT_S = 15.0
 ROW_BLOCKER_REQUIREMENT_PRIORITY = {
-    "codex_provider": 0,
+    "provider_profile": 0,
     "openai_agents_package": 1,
     "just": 2,
     "python_env": 3,
@@ -196,7 +196,7 @@ def _requirement_blocker(
         return _environment_blocker(".venv/bin/python is missing")
     if requirement == "docker" and shutil.which("docker") is None:
         return _environment_blocker("docker is not on PATH")
-    if requirement == "codex_provider":
+    if requirement == "provider_profile":
         return _provider_requirement_blocker(axes)
     if requirement == "openai_agents_package" and not _has_module("agents"):
         return _environment_blocker("openai-agents package is not installed")

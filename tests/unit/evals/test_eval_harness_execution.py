@@ -368,11 +368,11 @@ def test_catalog_resolves_execution_and_provider_requirements(tmp_path: Path) ->
         for row in rows_module.candidate_rows(output_dir=tmp_path, explicit_axes={})
     }
 
-    codex = rows["map-build-consumer-openai-agents-sdk-codex-router-responses"]
+    custom = rows["map-build-consumer-openai-agents-sdk-custom-responses"]
     kimi = rows["map-build-consumer-openai-agents-sdk-kimi-openai-chat"]
     consumer = rows["direct-cleanup-runtime-prior-consumer"]
-    assert "network:internal-api-router" in codex["execution_requirements"]
+    assert "network:configured-endpoint" in custom["execution_requirements"]
     assert "network:external-egress" in kimi["execution_requirements"]
     assert "provider:kimi-openai-chat" in kimi["execution_requirements"]
-    assert codex["timeout_s"] == 3600
+    assert custom["timeout_s"] == 3600
     assert consumer["depends_on"] == ["direct-map-build-world-public"]
