@@ -21,14 +21,17 @@ def test_observe_prioritizes_done_when_cleanup_readiness_is_ready(tmp_path: Path
         required_capability_profiles=(HOUSEHOLD_WORLD_PROFILE, HOUSEHOLD_EPISODE_PROFILE),
     )
     try:
+        metric_map = server.call_tool("metric_map")
         observations = []
-        for waypoint in server.call_tool("metric_map")["inspection_waypoints"]:
+        for waypoint in metric_map["inspection_waypoints"]:
             server.call_tool("navigate_to_waypoint", waypoint_id=waypoint["waypoint_id"])
             observations.append(server.call_tool("observe"))
         done = server.call_tool("done", reason="MCP-visible cleanup readiness is ready")
     finally:
         server.close()
 
+    assert metric_map["inspection_waypoints"][4]["label"] == "Generated exploration candidate 5"
+    assert metric_map["inspection_waypoints"][4]["room_label"] == "Bedroom"
     assert all("required_next_tool" not in item for item in observations[:-1])
     assert observations[-1]["required_next_tool"] == "done"
     assert observations[-1]["completion"] == {
