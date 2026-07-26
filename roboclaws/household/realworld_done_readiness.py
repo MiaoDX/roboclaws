@@ -17,6 +17,7 @@ from roboclaws.household.realworld_agent_view_contract import (
 )
 from roboclaws.household.semantic_acceptability import public_source_requires_cleanup
 from roboclaws.household.task_intent import (
+    HOUSEHOLD_INTENT_CLEANUP,
     HOUSEHOLD_INTENT_MAP_BUILD,
     household_intent_is_open_ended,
     normalize_household_intent,
@@ -279,6 +280,38 @@ def evaluate_done_readiness(
     }
     assert_no_forbidden_agent_view_keys(readiness)
     return readiness
+
+
+def attach_completion_readiness_hint(
+    server: Any,
+    tool: str,
+    response: dict[str, Any],
+) -> dict[str, Any]:
+    if (
+        tool != "observe"
+        or not response.get("ok")
+        or server.task_intent != HOUSEHOLD_INTENT_CLEANUP
+        or server.perception_mode != "visible_object_detections"
+        or response.get("operator_message_pending")
+    ):
+        return response
+    readiness = server.contract.evaluate_done_readiness(
+        semantic_cleanup_evidence=server.done_readiness_evidence(),
+    )
+    if readiness.get("status") != "ready":
+        return response
+    augmented = dict(response)
+    augmented["required_next_tool"] = "done"
+    augmented["completion"] = {
+        "schema": readiness.get("schema", "done_readiness_v1"),
+        "status": "ready",
+        "policy_uses_private_truth": False,
+    }
+    augmented["instruction"] = (
+        "MCP-visible cleanup readiness is ready. Call done now before inspecting another "
+        "object or waypoint; only done producing run_result.json completes the run."
+    )
+    return augmented
 
 
 def pending_cleanup_recovery_hint(
