@@ -229,8 +229,7 @@ def test_molmo_axis_runner_distinguishes_smoke_from_current_live_agents() -> Non
         "just chat::run",
         'bash scripts/dev/network_status.sh --assert-off-work "OpenClaw Molmo cleanup live report"',
         (
-            'roboclaws_assert_openai_agents_network_allowed "OpenAI Agents SDK Molmo cleanup '
-            'live report"'
+            "roboclaws_assert_openai_agents_provider_allowed"
         ),
     ):
         assert expected in text

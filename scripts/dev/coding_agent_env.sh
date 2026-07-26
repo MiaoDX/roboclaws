@@ -140,8 +140,7 @@ roboclaws_code_agent_model() {
   printf '%s\n' "$model"
 }
 
-roboclaws_assert_openai_agents_network_allowed() {
-  local label="${1:-OpenAI Agents SDK}"
+roboclaws_assert_openai_agents_provider_allowed() {
   local provider
   provider="$(roboclaws_code_agent_provider ROBOCLAWS_PROVIDER_PROFILE)" || return
   case "$provider" in
@@ -152,26 +151,7 @@ roboclaws_assert_openai_agents_network_allowed() {
       return 2
       ;;
   esac
-
-  local rc
-  if bash scripts/dev/network_status.sh --is-work-network >/dev/null 2>&1; then
-    rc=0
-  else
-    rc=$?
-  fi
-
-  case "$rc" in
-    0)
-      echo "==> network guard ok: work network with repo-local OpenAI Agents SDK provider (${provider})" >&2
-      ;;
-    1)
-      echo "==> network guard ok: off work network" >&2
-      ;;
-    *)
-      echo "error: cannot determine network status; curl is required for ${label}." >&2
-      return 2
-      ;;
-  esac
+  echo "==> OpenAI Agents SDK provider gate ok (${provider})" >&2
 }
 
 roboclaws_code_agent_profile_summary() {
