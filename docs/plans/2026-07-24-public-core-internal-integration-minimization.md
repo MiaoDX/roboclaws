@@ -1,5 +1,4 @@
-**Status:** Implementation complete; publication blocked on required local/live validation and
-human approval
+**Status:** Agent-fixable implementation and verification complete; publication awaits human review
 **Created:** 2026-07-24
 **Last reviewed:** 2026-07-26
 **Current implementation contract:** Publish a small, provider-neutral Roboclaws core by replacing
@@ -14,34 +13,31 @@ the private repository. It is not part of the sanitized public root commit.
 
 ## Plan Ledger
 
-- Plan status: ACTIVE (`BLOCKED_NEEDS_LOCAL_VALIDATION`)
+- Plan status: COMPLETE (`PUBLICATION_READY`; public push unauthorized)
 - Session scope: public-core-internal-integration-minimization
 - Parent plans: none
 - Child plans: none
 - Last updated: 2026-07-26
-- Current slice: implementation, final sanitized-candidate construction, deterministic
-  verification, package verification, and public MolmoSpaces/MuJoCo product proof are complete.
+- Current slice: implementation, live provider proof, optional-world dependency readiness, final
+  candidate construction, deterministic verification, and package verification are complete.
 - Next action: present the immutable candidate evidence for human publication review. Do not
-  publish without explicit authorization. Run provider and optional-world live gates only after
-  their documented blockers clear.
-- Blocked on: Kimi and MiniMax live health probes pass, but the Kimi product route reports
-  `network: unknown` because `ROBOCLAWS_WORK_NETWORK_PROBE_URL` is missing; all three custom
-  Responses variables are missing. Agibot and B1 injected dependency paths are missing, physical
-  movement remains unauthorized, and strict Isaac preflight reports 17.0 GiB free against an
-  80 GiB minimum plus unaccepted Omniverse EULA terms. The exact candidate's license inventory also
-  retains one human-review caveat: MolmoSpaces directly requires `beaker-py>2.0.0`, whose 2.x wheel
-  and sdist publish no license metadata or license file and whose referenced source repository is
-  unavailable. The separately published, Apache-2.0-licensed 1.x line does not satisfy that bound.
-- Latest proof: final candidate `output/public-candidate/20260725-14/repo` is a one-root-commit,
-  no-remote public tree (`source=e1d38ffa`, `candidate=a684d39a`, membership
-  `a63d736452765693abb683d6832ab49dadb3833992001a3aaf7b638b77f879d1`) with 1,048 source
-  blobs, two generated files, and one public MolmoSpaces gitlink. Public/internal-term scans,
-  exact `detect-secrets` baseline comparison, fresh `uv sync`, complete `ci-required`, package
-  build/membership and extracted-content scans, fresh wheel install/import/CLI smoke, and the
-  default MolmoSpaces/MuJoCo direct-runner product path pass. The final product run reports all
-  terminal success fields, coverage 1.0, and 5/5 exact placements; its artifacts contain no
-  internal/retired terms, personal source paths, or credential patterns. Package SHA-256 values
-  are `88356b34e8a5b7207da51423111ff5728182ba7d5f93d8c64a64af0abb3a97a5` (sdist) and
+  publish without explicit authorization.
+- Blocked on: only human decisions remain. Agibot physical movement requires a present operator and
+  the existing localization/run-enablement/E-stop gates. Strict Isaac execution requires explicit
+  Omniverse EULA acceptance. The exact candidate's license inventory also retains one human-review
+  caveat: `beaker-py` 2.x publishes no license metadata or license file, and its referenced source
+  repository is unavailable.
+- Latest proof: candidate `output/public-candidate/20260726-03/repo` is a one-root-commit, no-remote
+  public tree (`source=18a4056b`, `candidate=823ee7e6`, membership
+  `c06f840face4e891aea4de36e8f3e1205a05723415793105683945a8c67fd453`) with 1,048 source
+  blobs, two generated files, and one public MolmoSpaces gitlink. Fresh `uv sync`, public-surface
+  and exact `detect-secrets` checks, Ruff, focused candidate tests, package build, and isolated
+  wheel import/CLI smoke pass. The four required rows in
+  `output/eval-harness/20260726T001821Z/eval_harness.json` pass. Kimi completes the live parent and
+  linked child session; Custom Responses health and the bounded household product route complete
+  with successful MCP calls and clean endpoint/key/model artifact scans. Full standalone pytest
+  passes. Package SHA-256 values are
+  `26f3072434939938ac1a836a88adae8373cd3c1eaeb35d45d8117aa8d75333d6` (sdist) and
   `da46514dd5ce801068809bef849999d124f1aecae2d08cd84ff515728e39e044` (wheel).
 - Do not touch from this plan: simulator/runtime NVIDIA dependencies, Isaac Lab EULA handling,
   unrelated product task semantics/scoring, or unrelated user changes.
