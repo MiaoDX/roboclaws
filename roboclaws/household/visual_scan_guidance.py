@@ -95,6 +95,34 @@ def non_recommended_candidate_recovery_hint(perception_mode: str) -> str:
     )
 
 
+def non_recommended_candidate_recovery(contract: Any) -> dict[str, Any]:
+    if contract.perception_mode == "raw_fpv_only":
+        return {
+            "required_next_tool": "observe",
+            "recovery_tool_options": [
+                "observe",
+                "navigate_to_relative_pose",
+                "navigate_to_waypoint",
+            ],
+        }
+
+    next_waypoint_id = next(
+        (
+            str(item["waypoint_id"])
+            for item in contract._public_waypoints
+            if str(item["waypoint_id"]) not in contract._observed_waypoint_ids
+        ),
+        "",
+    )
+    if next_waypoint_id:
+        return {
+            "required_next_tool": "navigate_to_waypoint",
+            "next_waypoint_id": next_waypoint_id,
+            "recovery_tool_options": ["navigate_to_waypoint"],
+        }
+    return {"required_next_tool": "done", "recovery_tool_options": ["done"]}
+
+
 def noop_camera_adjustment_hint() -> str:
     return (
         "adjust_camera(0, 0) does not change the camera and does not create a fresh "
