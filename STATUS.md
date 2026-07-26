@@ -17,7 +17,9 @@ The public runtime now has exactly three explicit OpenAI Agents SDK provider pro
 `custom-responses`, `minimax-responses`, and `kimi-openai-chat`. Private remote-operation ownership,
 retired provider routes, bare coding-agent helpers, and unsupported RAW-FPV live transport have
 been removed from the public core. Agibot and B1 remain validation-only worlds with injected
-dependencies and are omitted from default discovery.
+dependencies and are omitted from default discovery. SDK provider launches are gated by provider
+readiness rather than work-network classification; the network guard remains on the OpenClaw and
+system-provider routes that require it.
 
 The active product shape is:
 
@@ -52,20 +54,21 @@ providers.
 
 ## Next Action
 
-Review the sanitized one-commit candidate and its remaining live blockers before authorizing any
-publication. Rerun provider and optional-world live gates after network, credentials, disk/EULA,
-and the Agibot operator hold are resolved.
+Review the refreshed sanitized one-commit candidate and the remaining human gates before
+authorizing any publication. No public push is authorized by the completed refactor proof.
 
 ## Current Blockers
 
-- Deterministic public-root, runtime, package, and fresh-install verification is complete.
-- Kimi and MiniMax live health probes pass. The Kimi product route remains blocked by
-  `network: unknown` because the network probe URL is not configured; Custom Responses lacks its
-  required URL, key, and model configuration.
-- Agibot validation lacks its injected runner/map paths and remains on operator hold. No real-robot
-  movement is authorized.
-- B1 validation lacks its injected map/scene paths. Isaac strict preflight is additionally blocked
-  by 17.0 GiB free versus 80 GiB required and explicit Omniverse EULA acceptance.
+- No agent-fixable refactor verification blocker remains. The focused eval harness passes all four
+  required rows, including the Kimi operator-session live row, and both Kimi and Custom Responses
+  product routes reach terminal MCP reports. Custom provider values were injected process-locally;
+  no retired environment alias was added to source or committed configuration.
+- Agibot and B1 injected dependency readiness passes with the existing local SDK, Map 12 bundle,
+  B1 scene, and alignment/navigation proofs. Real-robot movement remains unauthorized and requires
+  a present operator plus the existing localization, run-enablement, and E-stop gates.
+- Isaac strict preflight now passes disk, GPU, Torch, Isaac Lab, and runtime checks with 602.55 GiB
+  free. Importing Isaac Sim remains blocked on explicit Omniverse EULA acceptance; the refactor did
+  not accept it on the operator's behalf.
 - The exact candidate's dependency-license inventory has one unresolved metadata caveat:
   MolmoSpaces runtime-extra dependency `beaker-py` 2.x declares no license in its published
   artifacts, and its referenced source repository is unavailable for verification.
