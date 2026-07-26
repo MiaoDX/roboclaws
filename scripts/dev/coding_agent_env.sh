@@ -165,6 +165,6 @@ roboclaws_code_agent_profile_summary() {
   base_url="$(roboclaws_code_agent_profile_base_url "$provider")" || return
   key_env="$(roboclaws_code_agent_profile_key_env "$provider")" || return
   wire_api="$(roboclaws_code_agent_profile_wire_api "$provider")" || return
-  printf '%s model=%s base_url=%s key_env=%s protocol=%s\n' \
-    "$provider" "$model" "$base_url" "$key_env" "$wire_api"
+  printf '%s model=%s base_url=<configured> key_env=%s protocol=%s\n' \
+    "$provider" "$model" "$key_env" "$wire_api"
 }
