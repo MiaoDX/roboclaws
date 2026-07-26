@@ -465,9 +465,9 @@ class HouseholdWorldMCPServer:
         augmented = dict(response)
         if tool == "metric_map":
             augmented["instruction"] = (
-                "inspection_waypoints are static map/fixture coverage candidates, "
-                f"not mess hints. Prefer navigate_to_waypoint -> observe. "
-                f"{visual_scan_metric_map_instruction()}"
+                "inspection_waypoints are static map/fixture coverage candidates, not mess hints. "
+                "Generated exploration candidate N means 1-based sweep_index=N, never zero-based. "
+                f"Prefer navigate_to_waypoint -> observe. {visual_scan_metric_map_instruction()}"
             )
         if tool == "observe" and self.perception_mode == CAMERA_MODEL_POLICY_MODE:
             raw = augmented.get("raw_fpv_observation") or {}
