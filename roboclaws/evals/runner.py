@@ -1624,9 +1624,7 @@ def _failure_class_from_exception(exc: Exception) -> str:
         return "agent_no_completion_claim"
     provider_tokens = (
         "access_terminated_error",
-        "provider_transient_failure",
-        "provider_config_failure",
-        "provider_context_failure",
+        "provider_",
         "usage limit for this billing cycle",
         "model_service",
         "error code: 5",

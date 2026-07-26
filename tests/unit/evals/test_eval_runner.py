@@ -82,7 +82,7 @@ def test_eval_runner_classifies_agent_turn_without_done() -> None:
 
 def test_eval_runner_classifies_provider_billing_limit() -> None:
     failure_class = _failure_class_from_exception(
-        RuntimeError("HTTP 403 access_terminated_error: usage limit for this billing cycle")
+        RuntimeError("OpenAI Agents SDK runtime failed: provider_quota_failure")
     )
 
     assert failure_class == "model_or_provider_unavailable"
