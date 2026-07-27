@@ -31,12 +31,17 @@ def candidate_rows(
     runtime_map_prior: str = "",
 ) -> list[dict[str, Any]]:
     row_dir = output_dir / "rows"
+    catalog = _catalog()
+    provider_cell_count = sum(
+        str(row.get("row_id", "")).startswith("map-build-consumer-openai-agents-sdk-")
+        for row in catalog["rows"]
+    )
     context = _render_context(
         output_dir=output_dir,
         explicit_axes=explicit_axes,
         runtime_map_prior=runtime_map_prior,
+        provider_cell_count=provider_cell_count,
     )
-    catalog = _catalog()
     defaults = catalog.get("execution_defaults") or {}
     provider_requirements = catalog.get("provider_execution_requirements") or {}
     base_rows = [
@@ -61,7 +66,11 @@ def _catalog() -> dict[str, Any]:
 
 
 def _render_context(
-    *, output_dir: Path, explicit_axes: dict[str, list[str]], runtime_map_prior: str = ""
+    *,
+    output_dir: Path,
+    explicit_axes: dict[str, list[str]],
+    provider_cell_count: int,
+    runtime_map_prior: str = "",
 ) -> dict[str, str]:
     provider_profiles = explicit_axes.get("provider_profile") or [DEFAULT_PROVIDER_PROFILE]
     agent_sdk_provider = next(
@@ -76,7 +85,7 @@ def _render_context(
         "default_seed": DEFAULT_SEED,
         "default_provider": DEFAULT_PROVIDER_PROFILE,
         "agent_sdk_provider": agent_sdk_provider,
-        "provider_cell_count": "4",
+        "provider_cell_count": str(provider_cell_count),
         "map_build_consumer_parallel_group": "map_build_consumer_2026_06_24",
         "default_local_concurrency_width": "1",
         "concurrency_policy": "serial_by_default_for_single_molmospaces_visual_backend_slot",
