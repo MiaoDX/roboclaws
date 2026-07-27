@@ -1,6 +1,6 @@
 # Restore Codex And MiMo Responses Cells
 
-**Status:** Active
+**Status:** Partially implemented; Codex live proof blocked
 **Created:** 2026-07-27
 **Last reviewed:** 2026-07-27
 **Current implementation contract:** Expose separate `codex-responses` and `mimo-responses`
@@ -12,15 +12,19 @@ those values.
 
 ## Plan Ledger
 
-- Plan status: ACTIVE
+- Plan status: BLOCKED_NEEDS_LOCAL_VALIDATION
 - Session scope: restore-codex-mimo-responses-cells
 - Parent plan: `docs/plans/2026-07-24-public-core-internal-integration-minimization.md`
 - Child plans: none
 - Last updated: 2026-07-27
-- Current slice: migrate the single opaque Responses profile into separate Codex and MiMo profiles.
-- Next action: update the registry/runtime and focused provider tests.
-- Blocked on: none for deterministic implementation; live proof requires both local provider
-  configurations to be ready.
+- Current slice: implementation and MiMo live proof are complete; Codex live proof remains.
+- Next action: resolve Codex provider HTTP 403, rerun health, then execute its fixed-prior row.
+- Blocked on: Codex provider entitlement/configuration. Two explicit request-model attempts returned
+  HTTP 403; no endpoint-specific header compatibility or further model guessing is approved.
+- Latest proof: implementation commit `d449d29a`; MiMo provider health passes and
+  `output/eval-harness/20260727-dual-responses-proof/mimo/household_world_map_consumer_fixed_prior/mimo-responses-fixed-prior/eval_results.json`
+  records 2/2 passing samples. Ruff, format, the full standalone pytest suite, and exact secret
+  scans pass. Codex health is blocked before product execution.
 - Do not touch from this session: provider-specific Router transport/header behavior, MiniMax/Kimi
   semantics, CloudML ownership, simulator scoring, physical movement, publication, or
   `job_config_template.yaml`.
@@ -129,4 +133,3 @@ Preserve blocked/failed attempts and do not publish or promote the resulting bas
   request to publish durable artifacts.
 - Completion requires deterministic proof and both live provider cells, unless a concrete external
   readiness blocker is recorded as `BLOCKED_NEEDS_LOCAL_VALIDATION`.
-

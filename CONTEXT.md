@@ -49,9 +49,11 @@ Agents SDK, OpenClaw Gateway, or a direct deterministic runner.
 _Avoid_: model provider, evidence lane, backend variant
 
 **Provider Profile**:
-The model/provider route used by an Agent Engine: `custom-responses`,
-`minimax-responses`, or `kimi-openai-chat` for the OpenAI Agents SDK. It applies
-to live model-backed engines; deterministic direct runners do not require one.
+The model/provider route used by an Agent Engine: `codex-responses`,
+`mimo-responses`, `minimax-responses`, or `kimi-openai-chat` for the OpenAI
+Agents SDK. It applies to live model-backed engines; deterministic direct
+runners do not require one. Public profile/model labels are separate from local
+endpoint, key, and request-model configuration.
 _Avoid_: agent engine, task intent, evidence lane
 
 **Internal Runner Class**:

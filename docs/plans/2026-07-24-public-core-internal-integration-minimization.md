@@ -10,6 +10,9 @@ model support and retired MiMo routes, and moving private remote operations out 
 `docs/plans/2026-07-24-cloudml-isaac-digital-twin-proof.md`.
 **Publication note:** This transition plan contains private migration vocabulary and must remain in
 the private repository. It is not part of the sanitized public root commit.
+**Provider-matrix supersession:** The single `custom-responses` decision in this completed plan is
+historical. `docs/plans/2026-07-27-restore-codex-mimo-responses-cells.md` owns the current separate
+Codex/MiMo public contract.
 
 ## Plan Ledger
 

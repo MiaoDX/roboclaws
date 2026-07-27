@@ -52,14 +52,16 @@ gitignored. Source it before any real VLM/provider call:
 
 ```bash
 set -a && source .env && set +a
-python -c "import os; assert os.environ.get('KIMI_API_KEY') or os.environ.get('CUSTOM_RESPONSES_API_KEY') or os.environ.get('MM_API_KEY'), 'No provider key set - did you source .env?'"
+python -c "import os; assert os.environ.get('KIMI_API_KEY') or os.environ.get('CODEX_RESPONSES_API_KEY') or os.environ.get('MIMO_RESPONSES_API_KEY') or os.environ.get('MM_API_KEY'), 'No provider key set - did you source .env?'"
 ```
 
 Current live product route:
 
 - `agent_engine=openai-agents-sdk`
-- `custom-responses` requires `CUSTOM_RESPONSES_BASE_URL`,
-  `CUSTOM_RESPONSES_API_KEY`, and `CUSTOM_RESPONSES_MODEL`.
+- `codex-responses` requires `CODEX_RESPONSES_BASE_URL`,
+  `CODEX_RESPONSES_API_KEY`, and `CODEX_RESPONSES_MODEL`.
+- `mimo-responses` requires `MIMO_RESPONSES_BASE_URL`,
+  `MIMO_RESPONSES_API_KEY`, and `MIMO_RESPONSES_MODEL`.
 - `minimax-responses` requires `MM_BASE_URL` and `MM_API_KEY`.
 - `kimi-openai-chat` requires `KIMI_OPENAI_BASE_URL` and `KIMI_API_KEY`.
 

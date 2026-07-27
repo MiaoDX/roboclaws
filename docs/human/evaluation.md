@@ -58,7 +58,7 @@ just agent::eval suite=long_horizon_tasks budget=smoke
 
 `baseline-core` is the normal broad local refresh without live providers.
 `baseline-live-default` adds the normal Kimi live rows. `baseline-refresh` adds
-the explicit three-profile comparison. Rows whose live preflight is not ready
+the explicit four-profile comparison. Rows whose live preflight is not ready
 record blocked evidence instead of being silently skipped.
 
 The harness is local-only. `max_parallel=1` preserves serial behavior; raising
@@ -77,7 +77,8 @@ OpenAI Agents SDK runs always select one profile explicitly:
 | Profile | Wire API | Required configuration |
 | --- | --- | --- |
 | `kimi-openai-chat` | Chat Completions | `KIMI_OPENAI_BASE_URL`, `KIMI_API_KEY` |
-| `custom-responses` | Responses | `CUSTOM_RESPONSES_BASE_URL`, `CUSTOM_RESPONSES_API_KEY`, `CUSTOM_RESPONSES_MODEL` |
+| `codex-responses` | Responses | `CODEX_RESPONSES_BASE_URL`, `CODEX_RESPONSES_API_KEY`, `CODEX_RESPONSES_MODEL` |
+| `mimo-responses` | Responses | `MIMO_RESPONSES_BASE_URL`, `MIMO_RESPONSES_API_KEY`, `MIMO_RESPONSES_MODEL` |
 | `minimax-responses` | Responses | `MM_BASE_URL`, `MM_API_KEY` |
 
 Non-direct suite selections preserve live-agent identity and produce blocked

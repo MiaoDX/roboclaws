@@ -54,8 +54,6 @@ def test_deleted_model_aliases_are_absent() -> None:
     for deleted in (
         "nvidia",
         "nvidia-nano-vl",
-        "gpt-5.5",
-        "gpt-5.6-sol",
     ):
         assert deleted not in aliases
 

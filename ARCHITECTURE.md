@@ -67,8 +67,10 @@ Harness recipes
 - **Agent Engines And Provider Profiles** distinguish the product runtime
   (`agent_engine=openai-agents-sdk` for live agents, or `direct-runner` for
   deterministic proof) from the
-  model/key route (`provider_profile=custom-responses`, `minimax-responses`, or
-  `kimi-openai-chat`).
+  model/key route (`provider_profile=codex-responses`, `mimo-responses`,
+  `minimax-responses`, or `kimi-openai-chat`). Codex and MiMo use separate
+  environment-owned endpoint, key, and request-model triples while sharing the
+  standard Responses transport; artifacts retain only their public labels.
   Retired live engines `codex-cli` and `claude-code` are rejected by current
   launch validation rather than preserved as compatibility aliases.
   `direct-runner` is the deterministic contract/eval baseline, not a live robot

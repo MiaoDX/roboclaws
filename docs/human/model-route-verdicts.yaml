@@ -1,20 +1,31 @@
 schema: roboclaws_model_route_verdicts_v1
-last_reviewed: 2026-07-25
+last_reviewed: 2026-07-27
 source_of_truth:
   registry: roboclaws/agents/provider_registry.py
   narrative: docs/human/model-matrix.md
 verdicts:
   - agent_engine: openai-agents-sdk
-    provider_route: custom-responses
-    provider_profile: custom-responses
-    model_id: custom
+    provider_route: codex-responses
+    provider_profile: codex-responses
+    model_id: codex
     route_status: experimental
     lane_verdicts:
       structured_labels: experimental
       camera_grounded_labels: experimental
       camera_raw_fpv: blocked
-    evidence: Route contract and mocked SDK transport proof only; live endpoint proof is configuration-specific.
-    notes: Requires an explicit base URL, API key, and opaque model id. Capabilities remain conservative and raw FPV is blocked until image transport is verified.
+    evidence: Deterministic route/runtime proof passes; provider health returns HTTP 403 for the current local configuration.
+    notes: Blocked on local provider entitlement/configuration. No endpoint-specific transport or header compatibility is implied.
+  - agent_engine: openai-agents-sdk
+    provider_route: mimo-responses
+    provider_profile: mimo-responses
+    model_id: mimo
+    route_status: experimental
+    lane_verdicts:
+      structured_labels: healthy
+      camera_grounded_labels: experimental
+      camera_raw_fpv: blocked
+    evidence: Provider health passes; the two-sample fixed-prior consumer suite passes with no provider failures or privacy leaks.
+    notes: Requires an explicit local URL, key, and opaque model id. Reports retain only the public profile/model labels.
   - agent_engine: openai-agents-sdk
     provider_route: minimax-responses
     provider_profile: minimax-responses
