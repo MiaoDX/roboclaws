@@ -1,10 +1,10 @@
-**Status:** Agent-fixable implementation and verification complete; publication awaits human review
+**Status:** Implementation and verification complete; publication awaits human review
 **Created:** 2026-07-24
-**Last reviewed:** 2026-07-26
-**Current implementation contract:** Publish a small, provider-neutral Roboclaws core by replacing
-one private Responses identity with an environment-configured profile, keeping Kimi as the only
-Chat Completions route, retaining Agibot/B1 as explicit validation-only worlds, removing NVIDIA
-model support and retired MiMo routes, and moving private remote operations out of Roboclaws.
+**Last reviewed:** 2026-07-27
+**Current implementation contract:** Publish a small Roboclaws core with the provider matrix owned
+by the superseding Codex/MiMo plan, keeping Kimi as the only Chat Completions route, retaining
+Agibot/B1 as explicit validation-only worlds, removing NVIDIA model support, and moving private
+remote operations out of Roboclaws.
 **Related plans:** `docs/plans/refactor-coding-agent-provider-registry.md`,
 `docs/plans/refactor-mimo-v25-migration.md`, and
 `docs/plans/2026-07-24-cloudml-isaac-digital-twin-proof.md`.
@@ -20,7 +20,7 @@ Codex/MiMo public contract.
 - Session scope: public-core-internal-integration-minimization
 - Parent plans: none
 - Child plans: none
-- Last updated: 2026-07-26
+- Last updated: 2026-07-27
 - Current slice: implementation, live provider proof, optional-world dependency readiness, final
   candidate construction, deterministic verification, and package verification are complete.
 - Next action: present the immutable candidate evidence for human publication review. Do not
@@ -28,20 +28,19 @@ Codex/MiMo public contract.
 - Blocked on: only human decisions remain. Agibot physical movement requires a present operator and
   the existing localization/run-enablement/E-stop gates. Strict Isaac execution requires explicit
   Omniverse EULA acceptance. The exact candidate's license inventory also retains one human-review
-  caveat: `beaker-py` 2.x publishes no license metadata or license file, and its referenced source
+  caveat: `beaker-py` 2.6.0 publishes no license metadata or license file, and its referenced source
   repository is unavailable.
-- Latest proof: candidate `output/public-candidate/20260726-03/repo` is a one-root-commit, no-remote
-  public tree (`source=18a4056b`, `candidate=823ee7e6`, membership
-  `c06f840face4e891aea4de36e8f3e1205a05723415793105683945a8c67fd453`) with 1,048 source
-  blobs, two generated files, and one public MolmoSpaces gitlink. Fresh `uv sync`, public-surface
-  and exact `detect-secrets` checks, Ruff, focused candidate tests, package build, and isolated
-  wheel import/CLI smoke pass. The four required rows in
-  `output/eval-harness/20260726T001821Z/eval_harness.json` pass. Kimi completes the live parent and
-  linked child session; Custom Responses health and the bounded household product route complete
-  with successful MCP calls and clean endpoint/key/model artifact scans. Full standalone pytest
-  passes. Package SHA-256 values are
-  `26f3072434939938ac1a836a88adae8373cd3c1eaeb35d45d8117aa8d75333d6` (sdist) and
-  `da46514dd5ce801068809bef849999d124f1aecae2d08cd84ff515728e39e044` (wheel).
+- Latest proof: candidate `output/public-candidate/20260727-04/repo` is a one-root-commit, no-remote
+  public tree (`source=d841f599`, `candidate=30394bb8`, membership
+  `da51f8d6f5e313b392a55ad8d3e976c5f2f2274af0365b4ef999ce6ccbe2a3ed`) with 1,051 source
+  blobs, two generated files, and one public MolmoSpaces gitlink. Generic public-surface, exact
+  `detect-secrets`, private denylist, configured endpoint/key/model, clean-room `uv sync`, Ruff,
+  format, full standalone pytest, direct-runner product, emitted-artifact, package, and isolated
+  wheel import/CLI gates pass. Current Codex and MiMo two-sample fixed-prior suites pass under the
+  superseding provider plan, with the Codex run completing 97 successful model requests and zero
+  provider failures, privacy leaks, or trajectory violations. Package SHA-256 values are
+  `73a189d227a435b4e2ccb5a1ec1602fdcafb2434a405d7551ea14f13a911673e` (sdist) and
+  `3737883cb207133c3c802237833bcfdad0176ccbfb282ae18db63d16182eb136` (wheel).
 - Do not touch from this plan: simulator/runtime NVIDIA dependencies, Isaac Lab EULA handling,
   unrelated product task semantics/scoring, or unrelated user changes.
 

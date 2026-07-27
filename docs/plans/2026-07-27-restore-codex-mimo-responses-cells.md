@@ -13,22 +13,27 @@ and supported default settings.
 
 ## Plan Ledger
 
-- Plan status: BLOCKED_NEEDS_LOCAL_VALIDATION
+- Plan status: COMPLETE (`PUBLICATION_READY`; public push unauthorized)
 - Session scope: restore-codex-mimo-responses-cells
 - Parent plan: `docs/plans/2026-07-24-public-core-internal-integration-minimization.md`
 - Child plans: none
 - Last updated: 2026-07-27
-- Current slice: implementation, deterministic verification, and both provider live proofs are
-  complete.
-- Next action: refresh the sanitized squash candidate before publication review.
-- Blocked on: none for this plan. Publication remains separately unauthorized.
+- Current slice: implementation, deterministic verification, both provider live proofs, and the
+  sanitized public candidate refresh are complete.
+- Next action: present the immutable candidate evidence for human publication review.
+- Blocked on: none for this plan. Publication remains separately unauthorized; the parent plan
+  retains the candidate dependency-license caveat.
 - Latest proof: implementation commit `d449d29a`; MiMo provider health passes and
   `output/eval-harness/20260727-dual-responses-proof/mimo/household_world_map_consumer_fixed_prior/mimo-responses-fixed-prior/eval_results.json`
   records 2/2 passing samples. Codex health passes; controlled A/B probes prove the required header
   and unsupported truncation default. The corrected product profile passes 2/2 fixed-prior samples
   in `output/eval-harness/20260727-dual-responses-proof/codex/household_world_map_consumer_fixed_prior/codex-responses-fixed-prior-rerun2/eval_results.json`
   with 97 successful model requests and zero provider failures, privacy leaks, or trajectory
-  violations.
+  violations. Candidate `output/public-candidate/20260727-04/repo` is a one-root-commit,
+  no-remote public tree (`source=d841f599`, `candidate=30394bb8`, membership
+  `da51f8d6f5e313b392a55ad8d3e976c5f2f2274af0365b4ef999ce6ccbe2a3ed`) whose public-surface,
+  exact secret baseline, private-value, clean-room install, full deterministic test,
+  direct-runner product, package, and isolated wheel-install gates pass.
 - Do not touch from this session: MiniMax/Kimi semantics, CloudML ownership, simulator scoring,
   physical movement, publication, public MCP tool-surface contracts, or `job_config_template.yaml`.
 
