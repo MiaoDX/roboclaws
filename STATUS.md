@@ -25,6 +25,11 @@ pass. The Codex product run completed 97 model requests across open-ended and
 cleanup samples with zero provider failures, privacy leaks, or trajectory
 violations.
 
+The current sanitized candidate carries this four-profile contract as one root
+commit. Its public-surface, secret, internal-identifier, clean-room install,
+full deterministic test, direct-runner product, artifact, package, and isolated
+wheel-install gates pass.
+
 The active product shape is:
 
 - `surface=household-world` for no-preset open household goals.
@@ -58,8 +63,8 @@ providers.
 
 ## Next Action
 
-Refresh the sanitized squash candidate for the restored four-profile provider
-contract, then run publication review. Publication remains unauthorized.
+Review the current immutable candidate and its remaining dependency-license
+caveat. Publication remains unauthorized until explicit human approval.
 
 ## Current Blockers
 
@@ -72,8 +77,6 @@ contract, then run publication review. Publication remains unauthorized.
 - The exact candidate's dependency-license inventory has one unresolved metadata caveat:
   MolmoSpaces runtime-extra dependency `beaker-py` 2.x declares no license in its published
   artifacts, and its referenced source repository is unavailable for verification.
-- The 2026-07-26 sanitized candidate predates this four-cell provider contract
-  and is no longer the release candidate. Publication remains unauthorized.
 
 ## Human Review Surface
 
