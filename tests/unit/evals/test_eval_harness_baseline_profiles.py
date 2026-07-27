@@ -7,7 +7,8 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 SELECTOR_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "select_eval_harness.py"
 
 LIVE_AGENT_ROW_IDS = {
-    "map-build-consumer-openai-agents-sdk-custom-responses",
+    "map-build-consumer-openai-agents-sdk-codex-responses",
+    "map-build-consumer-openai-agents-sdk-mimo-responses",
     "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
     "map-build-consumer-openai-agents-sdk-minimax-responses",
     "openai-agents-sdk-open-task-live-eval",
@@ -15,7 +16,8 @@ LIVE_AGENT_ROW_IDS = {
     "openai-agents-sdk-cleanup-live-eval",
 }
 ALTERNATE_PROVIDER_MATRIX_ROW_IDS = {
-    "map-build-consumer-openai-agents-sdk-custom-responses",
+    "map-build-consumer-openai-agents-sdk-codex-responses",
+    "map-build-consumer-openai-agents-sdk-mimo-responses",
     "map-build-consumer-openai-agents-sdk-minimax-responses",
 }
 

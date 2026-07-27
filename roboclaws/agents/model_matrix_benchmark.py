@@ -125,7 +125,7 @@ AGENT_BENCHMARK_CASES: tuple[AgentBenchmarkCase, ...] = (
         prompt=(
             "Given this sanitized Agent SDK performance row, decide whether it is an accepted "
             "speedup, expected-rejected evidence, or blocked evidence. Keep private data out.\n\n"
-            "Row: provider_profile=custom-responses, model=custom, "
+            "Row: provider_profile=codex-responses, model=codex, "
             "evidence_lane=camera-grounded-labels. "
             "Baseline completed with done and report artifacts. Candidate O+AC completed with "
             "done and same-or-better quality. Observed wall time delta=-659.477s and model API "
@@ -149,6 +149,7 @@ class MatrixCase:
     api_key_env: str
     base_url: str
     request_model: str = ""
+    request_model_env: str = ""
     api_key_alt_env: str = ""
     headers: tuple[tuple[str, str], ...] = ()
     expected_support: str = "unknown"
@@ -225,7 +226,7 @@ class CaseResult:
 
 def default_cases() -> tuple[MatrixCase, ...]:
     return (
-        *_custom_cases(),
+        *_opaque_responses_cases(),
         *_minimax_cases(),
         *_kimi_cases(),
     )
@@ -256,24 +257,28 @@ def selected_agent_cases(*, case_ids: set[str]) -> tuple[AgentBenchmarkCase, ...
     )
 
 
-def _custom_cases() -> tuple[MatrixCase, ...]:
-    route = provider_route_spec("custom-responses")
-    base_url = route_base_url(route)
-    model = os.environ.get("CUSTOM_RESPONSES_MODEL", "")
-    return (
-        MatrixCase(
-            case_id="custom-responses:custom:responses",
-            provider_id="custom-responses",
-            provider_label="Custom Responses",
-            model="custom",
-            request_model=model,
-            wire_api="openai-responses",
-            api_key_env=route.api_key_env or "",
-            base_url=base_url,
-            expected_support="native",
-            note="Opaque environment-configured model; report identity remains custom.",
-        ),
-    )
+def _opaque_responses_cases() -> tuple[MatrixCase, ...]:
+    cases = []
+    for profile in ("codex-responses", "mimo-responses"):
+        route = provider_route_spec(profile)
+        assert route.request_model_env
+        label = route.label.removesuffix(" Responses")
+        cases.append(
+            MatrixCase(
+                case_id=f"{profile}:{route.default_model_id}:responses",
+                provider_id=profile,
+                provider_label=label,
+                model=route.default_model_id,
+                request_model=os.environ.get(route.request_model_env, ""),
+                request_model_env=route.request_model_env,
+                wire_api="openai-responses",
+                api_key_env=route.api_key_env or "",
+                base_url=route_base_url(route),
+                expected_support="native",
+                note=f"Opaque environment-configured model; report identity remains {label}.",
+            )
+        )
+    return tuple(cases)
 
 
 def _minimax_cases() -> tuple[MatrixCase, ...]:

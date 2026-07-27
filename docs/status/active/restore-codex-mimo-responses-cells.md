@@ -9,14 +9,16 @@ Control plane: current main-session intuitive-flow run
 Latest intent: execute the approved dual-profile correction with task-scoped commits and required
 live provider proof.
 
-Current slice: plan checkpoint, then provider registry/runtime migration.
+Current slice: deterministic implementation is complete; align current docs, migrate local
+configuration, and run required live provider plus fixed-prior proofs.
 
-Last proof: user approved public names `codex-responses` and `mimo-responses`; current HEAD still
-has one ambiguous `custom-responses` cell.
+Last proof: focused provider, runtime, probe, benchmark, operator-console, dev-tool, launch, and
+eval tests pass; baseline-refresh selects four fixed-prior provider cells.
 
-Next action: implement the shared dual-profile registry/runtime contract and focused tests.
+Next action: align active/current docs, prove local provider readiness, then run Codex and MiMo
+fixed-prior rows serially.
 
-Next proof: focused provider registry and OpenAI Agents SDK runtime tests.
+Next proof: stale-reference/redaction scan, standard gates, provider health, and two live eval rows.
 
 Stop condition: stop on provider-specific transport needs, ambiguous local credential mapping,
 overlapping owned-file edits, publication, or material external cost/resource expansion.

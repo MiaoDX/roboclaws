@@ -16,7 +16,8 @@ from roboclaws.launch.retired_agent_engines import (
 MODEL_CAP_TEXT = "text"
 MODEL_CAP_IMAGE_INPUT = "image_input"
 
-PROVIDER_PROFILE_CUSTOM_RESPONSES = "custom-responses"
+PROVIDER_PROFILE_CODEX_RESPONSES = "codex-responses"
+PROVIDER_PROFILE_MIMO_RESPONSES = "mimo-responses"
 PROVIDER_PROFILE_MINIMAX_RESPONSES = "minimax-responses"
 PROVIDER_PROFILE_KIMI_OPENAI_CHAT = "kimi-openai-chat"
 
@@ -64,6 +65,7 @@ class ProviderRouteSpec:
     base_url_default: str
     wire_api: str
     wire_source: str
+    request_model_env: str | None = None
     default_use: bool = False
     default_use_note: str = ""
     aliases: tuple[str, ...] = ()
@@ -86,6 +88,32 @@ class ProviderRouteSpec:
 
 def _caps(*values: str) -> frozenset[str]:
     return frozenset(values)
+
+
+def _opaque_responses_route(profile: str, label: str, env: str) -> ProviderRouteSpec:
+    required_env = tuple(f"{env}_{suffix}" for suffix in ("BASE_URL", "API_KEY", "MODEL"))
+    return ProviderRouteSpec(
+        route_id=profile,
+        public_profile=profile,
+        label=f"{label} Responses",
+        supported_engines=("openai-agents-sdk",),
+        default_model_id=label.lower(),
+        required_env_keys=required_env,
+        api_key_env=f"{env}_API_KEY",
+        base_url_env=f"{env}_BASE_URL",
+        base_url_default="",
+        wire_api=WIRE_RESPONSES,
+        wire_source=WIRE_SOURCE_NATIVE,
+        request_model_env=f"{env}_MODEL",
+        default_use=True,
+        default_use_note=f"Environment-configured {label} Responses endpoint.",
+        per_engine_status={"openai-agents-sdk": ROUTE_EXPERIMENTAL},
+        route_capabilities={
+            "image_transport": ROUTE_CAP_UNKNOWN,
+            "tool_call_transport": ROUTE_CAP_SUPPORTED,
+        },
+        status_note="Tool calling requires route-specific live proof.",
+    )
 
 
 _MODEL_SPECS: tuple[ModelSpec, ...] = (
@@ -177,33 +205,8 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
 )
 
 _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
-    ProviderRouteSpec(
-        route_id=PROVIDER_PROFILE_CUSTOM_RESPONSES,
-        public_profile=PROVIDER_PROFILE_CUSTOM_RESPONSES,
-        label="Custom Responses",
-        supported_engines=("openai-agents-sdk",),
-        default_model_id="custom",
-        required_env_keys=(
-            "CUSTOM_RESPONSES_BASE_URL",
-            "CUSTOM_RESPONSES_API_KEY",
-            "CUSTOM_RESPONSES_MODEL",
-        ),
-        api_key_env="CUSTOM_RESPONSES_API_KEY",
-        base_url_env="CUSTOM_RESPONSES_BASE_URL",
-        base_url_default="",
-        wire_api=WIRE_RESPONSES,
-        wire_source=WIRE_SOURCE_NATIVE,
-        default_use=True,
-        default_use_note="Explicit environment-configured standard Responses endpoint.",
-        per_engine_status={
-            "openai-agents-sdk": ROUTE_EXPERIMENTAL,
-        },
-        route_capabilities={
-            "image_transport": ROUTE_CAP_UNKNOWN,
-            "tool_call_transport": ROUTE_CAP_SUPPORTED,
-        },
-        status_note="Tool calling requires route-specific live proof.",
-    ),
+    _opaque_responses_route(PROVIDER_PROFILE_CODEX_RESPONSES, "Codex", "CODEX_RESPONSES"),
+    _opaque_responses_route(PROVIDER_PROFILE_MIMO_RESPONSES, "MiMo", "MIMO_RESPONSES"),
     ProviderRouteSpec(
         route_id=PROVIDER_PROFILE_MINIMAX_RESPONSES,
         public_profile=PROVIDER_PROFILE_MINIMAX_RESPONSES,
@@ -384,11 +387,11 @@ def model_family_for_route_model(provider_profile: str, model_id: str | None = N
 
 def resolve_route_model(route_id: str, model_id: str | None) -> ModelSpec:
     route = provider_route_spec(route_id)
-    if route.public_profile == PROVIDER_PROFILE_CUSTOM_RESPONSES:
+    if route.request_model_env:
         selected = str(model_id or "").strip()
         if not selected:
-            raise ValueError("custom-responses requires CUSTOM_RESPONSES_MODEL")
-        return _custom_model_spec()
+            raise ValueError(f"{route.public_profile} requires {route.request_model_env}")
+        return _opaque_model_spec(route)
     selected = resolve_model(model_id or route.default_model_id)
     compatible_ids = route.compatible_model_ids or (route.default_model_id,)
     compatible_models = tuple(resolve_model(item) for item in compatible_ids)
@@ -466,9 +469,9 @@ def provider_readiness(
             "ok": False,
             "message": str(exc),
         }
-    is_custom = route.public_profile == PROVIDER_PROFILE_CUSTOM_RESPONSES
-    selected_model = "custom" if is_custom else model or route.default_model_id
-    request_model = str(env_map.get("CUSTOM_RESPONSES_MODEL", "")).strip() if is_custom else ""
+    has_opaque_model = bool(route.request_model_env)
+    selected_model = route.default_model_id if has_opaque_model else model or route.default_model_id
+    request_model = _explicit_string(env_map.get(route.request_model_env or ""))
     required_env = list(route.required_env_keys)
     missing_env = [key for key in required_env if not env_map.get(key)]
     if missing_env:
@@ -481,7 +484,7 @@ def provider_readiness(
     try:
         model_spec = resolve_route_model(
             route.public_profile,
-            request_model if is_custom else selected_model,
+            request_model if has_opaque_model else selected_model,
         )
     except KeyError:
         model_spec = None
@@ -491,7 +494,8 @@ def provider_readiness(
         )
     except ValueError as exc:
         model_spec = None
-        message = str(exc)
+        if not missing_env:
+            message = str(exc)
     try:
         route_base_url(route, env=dict(env_map))
         base_url_ok = True
@@ -562,20 +566,20 @@ def openai_agents_runtime_settings(
         raise ValueError(
             f"OpenAI Agents SDK setting provider_profile is unsupported, got {provider!r}"
         ) from exc
-    if route.public_profile == PROVIDER_PROFILE_CUSTOM_RESPONSES:
+    if route.request_model_env:
         explicit_model = _conflict_checked_value(
             "model",
             [("model", model), ("LiveAgentRequest.model", request_model)],
             default="",
             normalizer=lambda value: value,
         )
-        if explicit_model and explicit_model != "custom":
+        if explicit_model and explicit_model != route.default_model_id:
             raise ValueError(
-                "OpenAI Agents SDK custom-responses model is configured only through "
-                "CUSTOM_RESPONSES_MODEL"
+                f"OpenAI Agents SDK {route.public_profile} model is configured only through "
+                f"{route.request_model_env}"
             )
-        provider_request_model = _explicit_string(env_map.get("CUSTOM_RESPONSES_MODEL"))
-        selected_model = "custom"
+        provider_request_model = _explicit_string(env_map.get(route.request_model_env))
+        selected_model = route.default_model_id
     else:
         selected_model = _conflict_checked_value(
             "model",
@@ -588,7 +592,7 @@ def openai_agents_runtime_settings(
                 ),
             ],
             default=route.default_model_id,
-            normalizer=lambda value: _normal_model_id_for_route(route, value),
+            normalizer=_normal_model_id,
         )
         try:
             selected_model = resolve_route_model(route.public_profile, selected_model).model_id
@@ -622,13 +626,14 @@ def openai_agents_runtime_settings(
         ),
         "model": selected_model,
         "request_model": provider_request_model,
+        "request_model_env": route.request_model_env or "",
     }
 
 
 def route_payload(route: ProviderRouteSpec, *, agent_engine: str) -> dict[str, Any]:
     model = (
-        _custom_model_spec()
-        if route.public_profile == PROVIDER_PROFILE_CUSTOM_RESPONSES
+        _opaque_model_spec(route)
+        if route.request_model_env
         else resolve_model(route.default_model_id)
     )
     return {
@@ -719,20 +724,15 @@ def _normal_model_id(value: str) -> str:
     return model.model_id
 
 
-def _normal_model_id_for_route(route: ProviderRouteSpec, value: str) -> str:
-    if route.public_profile == PROVIDER_PROFILE_CUSTOM_RESPONSES:
-        return value.strip()
-    return _normal_model_id(value)
-
-
-def _custom_model_spec() -> ModelSpec:
+def _opaque_model_spec(route: ProviderRouteSpec) -> ModelSpec:
+    assert route.request_model_env
     return ModelSpec(
-        model_id="custom",
+        model_id=route.default_model_id,
         aliases=(),
-        family="custom",
+        family=route.default_model_id,
         model_capabilities=_caps(MODEL_CAP_TEXT),
         default_use=True,
-        default_use_note="Opaque model configured by CUSTOM_RESPONSES_MODEL.",
+        default_use_note=f"Opaque model configured by {route.request_model_env}.",
     )
 
 

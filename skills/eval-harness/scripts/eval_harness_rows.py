@@ -76,7 +76,7 @@ def _render_context(
         "default_seed": DEFAULT_SEED,
         "default_provider": DEFAULT_PROVIDER_PROFILE,
         "agent_sdk_provider": agent_sdk_provider,
-        "provider_cell_count": "3",
+        "provider_cell_count": "4",
         "map_build_consumer_parallel_group": "map_build_consumer_2026_06_24",
         "default_local_concurrency_width": "1",
         "concurrency_policy": "serial_by_default_for_single_molmospaces_visual_backend_slot",

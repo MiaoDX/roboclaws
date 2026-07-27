@@ -232,12 +232,14 @@ def test_openai_agents_route_payload_lists_provider_profiles() -> None:
 
     assert payload["provider_profile"] == "kimi-openai-chat"
     assert payload["supported_provider_profiles"] == [
-        "custom-responses",
+        "codex-responses",
+        "mimo-responses",
         "minimax-responses",
         "kimi-openai-chat",
     ]
     route_by_profile = {route["provider_profile"]: route for route in payload["provider_routes"]}
-    assert route_by_profile["custom-responses"]["default_model_id"] == "custom"
+    assert route_by_profile["codex-responses"]["default_model_id"] == "codex"
+    assert route_by_profile["mimo-responses"]["default_model_id"] == "mimo"
     assert route_by_profile["minimax-responses"]["route_status"] == "healthy"
     assert route_by_profile["kimi-openai-chat"]["wire_api"] == "chat-completions"
     assert route_by_profile["minimax-responses"]["route_capabilities"]["image_transport"] == (

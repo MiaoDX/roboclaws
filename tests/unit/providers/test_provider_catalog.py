@@ -6,7 +6,8 @@ import pytest
 
 from roboclaws.agents.provider_registry import (
     MODEL_CAP_TEXT,
-    PROVIDER_PROFILE_CUSTOM_RESPONSES,
+    PROVIDER_PROFILE_CODEX_RESPONSES,
+    PROVIDER_PROFILE_MIMO_RESPONSES,
     ROUTE_CAP_UNKNOWN,
     _main,
     default_provider_profile,
@@ -21,7 +22,12 @@ from roboclaws.agents.provider_registry import (
     supported_provider_profiles,
 )
 
-EXPECTED_PROFILES = ("custom-responses", "minimax-responses", "kimi-openai-chat")
+EXPECTED_PROFILES = (
+    "codex-responses",
+    "mimo-responses",
+    "minimax-responses",
+    "kimi-openai-chat",
+)
 
 
 def test_openai_agents_registry_has_exact_public_profile_set() -> None:
@@ -62,16 +68,27 @@ def test_kimi_is_only_chat_profile() -> None:
     assert resolve_model(chat_routes[0].default_model_id).family == "kimi"
 
 
-def test_custom_responses_uses_required_environment_and_opaque_model() -> None:
-    route = provider_route_spec(PROVIDER_PROFILE_CUSTOM_RESPONSES)
+@pytest.mark.parametrize(
+    ("profile", "env_prefix", "public_model"),
+    [
+        (PROVIDER_PROFILE_CODEX_RESPONSES, "CODEX_RESPONSES", "codex"),
+        (PROVIDER_PROFILE_MIMO_RESPONSES, "MIMO_RESPONSES", "mimo"),
+    ],
+)
+def test_opaque_responses_routes_use_required_environment_and_public_model(
+    profile: str,
+    env_prefix: str,
+    public_model: str,
+) -> None:
+    route = provider_route_spec(profile)
     assert route.required_env_keys == (
-        "CUSTOM_RESPONSES_BASE_URL",
-        "CUSTOM_RESPONSES_API_KEY",
-        "CUSTOM_RESPONSES_MODEL",
+        f"{env_prefix}_BASE_URL",
+        f"{env_prefix}_API_KEY",
+        f"{env_prefix}_MODEL",
     )
     model = resolve_route_model(route.route_id, "opaque-deployment-model-2026-07")
-    assert model.model_id == "custom"
-    assert model.family == "custom"
+    assert model.model_id == public_model
+    assert model.family == public_model
     assert model.model_capabilities == frozenset({MODEL_CAP_TEXT})
     assert model.aliases == ()
     assert route_capabilities_for_engine(route, "openai-agents-sdk") == {
@@ -80,29 +97,39 @@ def test_custom_responses_uses_required_environment_and_opaque_model() -> None:
     }
 
 
-def test_custom_readiness_requires_url_key_and_model() -> None:
-    missing = provider_readiness(
-        agent_engine="openai-agents-sdk", provider_profile="custom-responses", env={}
-    )
+@pytest.mark.parametrize(
+    ("profile", "env_prefix", "public_model"),
+    [
+        ("codex-responses", "CODEX_RESPONSES", "codex"),
+        ("mimo-responses", "MIMO_RESPONSES", "mimo"),
+    ],
+)
+def test_opaque_readiness_requires_url_key_and_model(
+    profile: str,
+    env_prefix: str,
+    public_model: str,
+) -> None:
+    missing = provider_readiness(agent_engine="openai-agents-sdk", provider_profile=profile, env={})
     assert missing["ok"] is False
     assert missing["missing_env"] == [
-        "CUSTOM_RESPONSES_BASE_URL",
-        "CUSTOM_RESPONSES_API_KEY",
-        "CUSTOM_RESPONSES_MODEL",
+        f"{env_prefix}_BASE_URL",
+        f"{env_prefix}_API_KEY",
+        f"{env_prefix}_MODEL",
     ]
+    assert all(key in missing["message"] for key in missing["missing_env"])
 
     ready = provider_readiness(
         agent_engine="openai-agents-sdk",
-        provider_profile="custom-responses",
+        provider_profile=profile,
         env={
-            "CUSTOM_RESPONSES_BASE_URL": "https://custom.example/v1",
-            "CUSTOM_RESPONSES_API_KEY": "secret",
-            "CUSTOM_RESPONSES_MODEL": "opaque-model",
+            f"{env_prefix}_BASE_URL": "https://provider.example/v1",
+            f"{env_prefix}_API_KEY": "secret",
+            f"{env_prefix}_MODEL": "opaque-model",
         },
     )
     assert ready["ok"] is True
-    assert ready["model"] == "custom"
-    assert ready["model_family"] == "custom"
+    assert ready["model"] == public_model
+    assert ready["model_family"] == public_model
     assert ready["model_capabilities"] == ["text"]
 
 
@@ -119,26 +146,38 @@ def test_openai_agents_settings_require_explicit_profile() -> None:
         )
 
 
-def test_custom_runtime_settings_resolve_environment_model() -> None:
+@pytest.mark.parametrize(
+    ("profile", "env_prefix", "public_model"),
+    [
+        ("codex-responses", "CODEX_RESPONSES", "codex"),
+        ("mimo-responses", "MIMO_RESPONSES", "mimo"),
+    ],
+)
+def test_opaque_runtime_settings_resolve_environment_model(
+    profile: str,
+    env_prefix: str,
+    public_model: str,
+) -> None:
     settings = openai_agents_runtime_settings(
-        provider_profile="custom-responses",
+        provider_profile=profile,
         request_provider_profile=None,
         model=None,
         request_model=None,
         base_url=None,
         api_key=None,
         env={
-            "CUSTOM_RESPONSES_BASE_URL": "https://custom.example/v1/",
-            "CUSTOM_RESPONSES_API_KEY": "secret",
-            "CUSTOM_RESPONSES_MODEL": "opaque-model",
+            f"{env_prefix}_BASE_URL": "https://provider.example/v1/",
+            f"{env_prefix}_API_KEY": "secret",
+            f"{env_prefix}_MODEL": "opaque-model",
         },
     )
-    assert settings["provider_profile"] == "custom-responses"
+    assert settings["provider_profile"] == profile
     assert settings["wire_api"] == "responses"
-    assert settings["base_url"] == "https://custom.example/v1/"
+    assert settings["base_url"] == "https://provider.example/v1/"
     assert settings["api_key"] == "secret"
-    assert settings["model"] == "custom"
+    assert settings["model"] == public_model
     assert settings["request_model"] == "opaque-model"
+    assert settings["request_model_env"] == f"{env_prefix}_MODEL"
 
 
 def test_named_profile_rejects_non_catalog_model() -> None:

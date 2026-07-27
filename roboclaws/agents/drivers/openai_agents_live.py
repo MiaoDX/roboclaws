@@ -31,7 +31,6 @@ from roboclaws.agents.drivers.openai_agents_spans import (
 from roboclaws.agents.live_runtime import LiveAgentRequest, LiveAgentResult, LiveAgentRuntime
 from roboclaws.agents.live_status import LiveAgentFailure
 from roboclaws.agents.provider_registry import (
-    PROVIDER_PROFILE_CUSTOM_RESPONSES,
     PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
     WIRE_CHAT_COMPLETIONS,
     openai_agents_runtime_settings,
@@ -1782,10 +1781,10 @@ def _model_settings(request: LiveAgentRequest) -> dict[str, str]:
         )
     if settings["api_key_env"]:
         _require_setting(settings["provider_profile"], settings["api_key_env"], settings["api_key"])
-    if settings["provider_profile"] == PROVIDER_PROFILE_CUSTOM_RESPONSES:
+    if settings["request_model_env"]:
         _require_setting(
             settings["provider_profile"],
-            "CUSTOM_RESPONSES_MODEL",
+            settings["request_model_env"],
             settings["request_model"],
         )
     return settings
