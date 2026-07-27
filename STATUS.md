@@ -10,15 +10,20 @@ leave a link.
 
 ## Current Focus
 
-Restoring independent Codex and MiMo Responses provider cells is the current
-repository focus. The active capsule is
-`docs/status/active/restore-codex-mimo-responses-cells.md`.
+Independent Codex and MiMo Responses provider cells are restored. The completed
+implementation contract is
+`docs/plans/2026-07-27-restore-codex-mimo-responses-cells.md`.
 
 The public runtime now has exactly four explicit OpenAI Agents SDK provider
 profiles: `codex-responses`, `mimo-responses`, `minimax-responses`, and
 `kimi-openai-chat`. Codex and MiMo share the standard Responses implementation
 but own separate local endpoint, key, and request-model triples. Tracked source
 and emitted artifacts expose only public profile/model labels.
+
+Codex and MiMo provider health and their two-sample fixed-prior consumer suites
+pass. The Codex product run completed 97 model requests across open-ended and
+cleanup samples with zero provider failures, privacy leaks, or trajectory
+violations.
 
 The active product shape is:
 
@@ -53,18 +58,11 @@ providers.
 
 ## Next Action
 
-Resolve the Codex provider HTTP 403 through local entitlement/configuration,
-then rerun Codex health and its fixed-prior row. After both cells are proven,
-refresh the sanitized squash candidate before any publication review.
+Refresh the sanitized squash candidate for the restored four-profile provider
+contract, then run publication review. Publication remains unauthorized.
 
 ## Current Blockers
 
-- Codex Responses deterministic coverage passes, but live provider health
-  returns HTTP 403 with both the current and historically documented request
-  model configurations. This is `BLOCKED_NEEDS_LOCAL_VALIDATION`; the refactor
-  does not restore private Router headers or guess further model IDs.
-- MiMo Responses provider health passes. Its fixed-prior live suite passes 2/2
-  samples with zero provider failures, zero privacy leaks, and terminal reports.
 - Agibot and B1 injected dependency readiness passes with the existing local SDK, Map 12 bundle,
   B1 scene, and alignment/navigation proofs. Real-robot movement remains unauthorized and requires
   a present operator plus the existing localization, run-enablement, and E-stop gates.

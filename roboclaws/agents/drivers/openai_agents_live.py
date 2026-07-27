@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from roboclaws.agents import provider_transport as pt
 from roboclaws.agents.drivers.openai_agents_model_input import (
     _input_compaction_config,
     _model_input_compaction_filter,
@@ -507,7 +508,7 @@ def _apply_provider_default_model_settings(
         headers = dict(payload.get("extra_headers") or {})
         headers.setdefault("User-Agent", KIMI_CODING_USER_AGENT)
         payload["extra_headers"] = headers
-    return payload
+    return pt.compatible_model_settings(provider_profile, payload)
 
 
 def _sdk_run_config_payload(
@@ -916,9 +917,8 @@ def _model_for_request(request: LiveAgentRequest) -> Any:
         "api_key": settings["api_key"],
         "base_url": settings["base_url"],
     }
-    client = AsyncOpenAI(
-        **client_kwargs,
-    )
+    client_kwargs.update(pt.provider_client_options(settings["provider_profile"], request.run_dir))
+    client = AsyncOpenAI(**client_kwargs)
     if settings["wire_api"] == "responses":
         from agents import OpenAIResponsesModel  # type: ignore[import-not-found]
 

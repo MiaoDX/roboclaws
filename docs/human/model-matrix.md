@@ -17,11 +17,13 @@ the profile and does not perform automatic fallback.
 
 Kimi is the only Chat Completions profile. Its thinking-only and public
 provider User-Agent compatibility rules remain explicit. Codex and MiMo are
-conservative, independent cells: text-only catalog capability, unknown image
-transport, no alias, pricing, endpoint default, or endpoint-specific headers.
-MiMo passes provider health and the two-sample fixed-prior consumer suite.
-Codex currently returns HTTP 403 during provider health and remains blocked on
-local provider entitlement/configuration before product evidence can run.
+conservative, independent cells with text-only catalog capability, unknown
+image transport, and no alias, pricing, or endpoint default. Codex uses a thin
+transport adapter for ephemeral request metadata and omits the unsupported
+default `truncation` setting; those details never enter artifacts. MiMo passes
+provider health and the two-sample fixed-prior consumer suite. Codex health and
+its two-sample fixed-prior consumer suite also pass, with zero provider
+failures, privacy leaks, or trajectory violations.
 
 Provider secrets and endpoint/request-model values remain in the gitignored
 `.env`; readiness, benchmark, console, and run artifacts expose only public

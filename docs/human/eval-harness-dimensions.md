@@ -39,13 +39,14 @@ preserved as compatibility aliases.
 
 | Profile | Default model | Wire API | Current role |
 | --- | --- | --- | --- |
-| `codex-responses` | Environment-supplied opaque model, public label `codex` | Responses | Independent Codex cell; currently blocked on provider health with HTTP 403. |
+| `codex-responses` | Environment-supplied opaque model, public label `codex` | Responses | Independent Codex cell with passing fixed-prior live proof. |
 | `mimo-responses` | Environment-supplied opaque model, public label `mimo` | Responses | Independent MiMo cell with passing fixed-prior live proof. |
 | `minimax-responses` | `MiniMax-M3` | Responses | Named public comparison route. |
 | `kimi-openai-chat` | `kimi-k2.7-code` | Chat Completions | Only Chat Completions route and normal live default selection. |
 
-No source-level provider default or transport fallback exists. Commands,
-packets, and console launches serialize the selected profile explicitly.
+No endpoint/model default or transport fallback exists. Codex's thin HTTP
+compatibility adapter is profile-scoped; commands, packets, and console
+launches serialize the selected profile explicitly.
 
 ## Capability Axes
 

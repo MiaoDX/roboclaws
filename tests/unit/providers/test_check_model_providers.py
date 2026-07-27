@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import sys
+import uuid
 from pathlib import Path
 
 
@@ -56,7 +57,7 @@ def test_provider_probe_defaults_exclude_unavailable_official_openai_route() -> 
     assert all(probe.api_key_env != "OPENAI_API_KEY" for probe in probes.values())
 
 
-def test_codex_probes_do_not_apply_private_transport_headers(monkeypatch) -> None:
+def test_codex_probes_apply_required_transport_headers(monkeypatch) -> None:
     script = _load_script_module()
     captured: dict[str, object] = {}
     monkeypatch.setenv("CODEX_RESPONSES_API_KEY", "fake-codex-key")
@@ -134,7 +135,10 @@ def test_codex_probes_do_not_apply_private_transport_headers(monkeypatch) -> Non
     assert raw_probe.model == "codex"
     assert captured["request_model"] == "opaque-model"
     for client_key in ("async_client", "sync_client"):
-        assert "default_headers" not in captured[client_key]
+        window_id = captured[client_key]["default_headers"]["X-Codex-Window-Id"]
+        thread_id, generation = window_id.rsplit(":", 1)
+        assert uuid.UUID(thread_id)
+        assert generation == "0"
 
 
 def test_mimo_probe_results_redact_endpoint_key_and_request_model(monkeypatch) -> None:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import sys
+import uuid
 from pathlib import Path
 
 import pytest
@@ -207,6 +208,25 @@ def test_headers_include_kimi_coding_user_agent() -> None:
     assert "x-api-key" not in headers
     assert "anthropic-version" not in headers
     assert headers["User-Agent"] == "claude-code/1.0.0"
+
+
+def test_headers_include_codex_transport_compatibility_only_for_codex() -> None:
+    script = _load_script_module()
+    cases = {case.case_id: case for case in script.default_cases()}
+
+    codex_headers = script.headers_for_case(
+        cases["codex-responses:codex:responses"],
+        api_key="secret",
+    )
+    mimo_headers = script.headers_for_case(
+        cases["mimo-responses:mimo:responses"],
+        api_key="secret",
+    )
+
+    thread_id, generation = codex_headers["X-Codex-Window-Id"].rsplit(":", 1)
+    assert uuid.UUID(thread_id)
+    assert generation == "0"
+    assert "X-Codex-Window-Id" not in mimo_headers
 
 
 def test_missing_key_skips_without_secret_values() -> None:

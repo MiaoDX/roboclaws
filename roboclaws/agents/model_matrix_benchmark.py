@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 from roboclaws.agents.provider_registry import provider_route_spec, route_base_url
+from roboclaws.agents.provider_transport import provider_default_headers
 from roboclaws.agents.thinking_policy import thinking_request_body_for_wire
 
 WireApi = Literal["openai-chat", "openai-responses", "anthropic-messages"]
@@ -434,6 +435,7 @@ def headers_for_case(case: MatrixCase, *, api_key: str) -> dict[str, str]:
         headers["anthropic-version"] = "2023-06-01"
         headers["x-api-key"] = api_key
     headers.update(dict(case.headers))
+    headers.update(provider_default_headers(case.provider_id))
     return headers
 
 

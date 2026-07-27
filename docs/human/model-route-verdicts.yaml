@@ -10,11 +10,11 @@ verdicts:
     model_id: codex
     route_status: experimental
     lane_verdicts:
-      structured_labels: experimental
+      structured_labels: healthy
       camera_grounded_labels: experimental
       camera_raw_fpv: blocked
-    evidence: Deterministic route/runtime proof passes; provider health returns HTTP 403 for the current local configuration.
-    notes: Blocked on local provider entitlement/configuration. No endpoint-specific transport or header compatibility is implied.
+    evidence: Deterministic proof and provider health pass; the two-sample fixed-prior consumer suite passes with 97 successful model requests and no provider failures, privacy leaks, or trajectory violations.
+    notes: A thin profile-scoped adapter supplies required ephemeral request metadata and omits unsupported default truncation. Reports retain only public profile/model labels.
   - agent_engine: openai-agents-sdk
     provider_route: mimo-responses
     provider_profile: mimo-responses

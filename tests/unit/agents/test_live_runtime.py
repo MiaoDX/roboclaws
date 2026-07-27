@@ -989,13 +989,13 @@ def test_openai_agents_runtime_uses_explicit_codex_responses_profile(
     assert captured["model"] == "opaque-codex-model"
     assert captured["base_url"] == "https://codex.example.test/v1"
     assert captured["api_key"] == "fake-codex-key"
-    assert captured["default_headers"] is None
+    assert captured["default_headers"]["X-Codex-Window-Id"].endswith(":0")
     wrapped_model = captured["agent_kwargs"]["model"]
     assert isinstance(wrapped_model, _RetryingModel)
     assert wrapped_model.base_model is captured["responses_model"]
     assert captured["agent_kwargs"]["model_settings"].tool_choice == "auto"
     assert captured["agent_kwargs"]["model_settings"].parallel_tool_calls is False
-    assert captured["agent_kwargs"]["model_settings"].truncation == "auto"
+    assert not hasattr(captured["agent_kwargs"]["model_settings"], "truncation")
     assert not hasattr(captured["agent_kwargs"]["model_settings"], "extra_headers")
     assert captured["runner_kwargs"]["run_config"].trace_include_sensitive_data is False
     assert captured["runner_kwargs"]["run_config"].workflow_name == "roboclaws-openai-agents-live"

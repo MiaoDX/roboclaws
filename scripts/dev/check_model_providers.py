@@ -23,6 +23,7 @@ from roboclaws.agents.provider_registry import (
     provider_route_spec,
     route_base_url,
 )
+from roboclaws.agents.provider_transport import provider_default_headers
 from roboclaws.agents.thinking_policy import thinking_request_body_for_wire
 from roboclaws.core.dotenv import update_env_from_dotenv_file
 from roboclaws.core.json_sources import parse_json_object_text
@@ -280,6 +281,9 @@ def _run_agents_sdk_probe(
         "timeout": timeout_s,
         "max_retries": 0,
     }
+    default_headers = provider_default_headers(spec.route_id)
+    if default_headers:
+        client_kwargs["default_headers"] = default_headers
     client = AsyncOpenAI(**client_kwargs)
     if spec.wire_api == WIRE_RESPONSES:
         model = OpenAIResponsesModel(_request_model(spec), openai_client=client)
@@ -319,6 +323,9 @@ def _run_responses_probe(
     kwargs: dict[str, Any] = {"api_key": api_key, "timeout": timeout_s, "max_retries": 0}
     if spec.base_url:
         kwargs["base_url"] = spec.base_url
+    default_headers = provider_default_headers(spec.route_id)
+    if default_headers:
+        kwargs["default_headers"] = default_headers
     client = OpenAI(**kwargs)
     response = client.responses.create(
         model=_request_model(spec),
