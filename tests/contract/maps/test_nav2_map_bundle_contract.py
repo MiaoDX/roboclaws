@@ -7,9 +7,9 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from roboclaws.household.backend_contract import CleanupBackendSession
+from roboclaws.household.household_backend_contract import HouseholdBackendSession
+from roboclaws.household.household_runtime_contract import HouseholdRuntimeContract
 from roboclaws.household.nav2_map_bundle import attach_nav2_map_bundle_snapshot
-from roboclaws.household.realworld_contract import RealWorldCleanupContract
 from roboclaws.household.scenario import build_cleanup_scenario
 from roboclaws.maps.bundle import (
     static_landmarks_from_fixture_projection,
@@ -462,8 +462,8 @@ def test_attach_nav2_bundle_snapshot_refuses_agent_view_authoring(tmp_path: Path
 
 
 def test_realworld_contract_projects_from_selected_prebuilt_bundle() -> None:
-    contract = RealWorldCleanupContract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+    contract = HouseholdRuntimeContract(
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         map_bundle_dir=CANONICAL_SCENE_BUNDLE,
     )
 
@@ -493,9 +493,25 @@ def test_realworld_contract_projects_from_selected_prebuilt_bundle() -> None:
     assert navigation["route_validation"]["goal_waypoint_id"] == str(waypoints[-1]["waypoint_id"])
 
 
+def test_realworld_contract_routes_across_b1_bundle_occupancy_grid(tmp_path: Path) -> None:
+    contract = HouseholdRuntimeContract(
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
+        map_bundle_dir=_b1_base_metric_bundle(tmp_path),
+    )
+    waypoints = contract.metric_map()["inspection_waypoints"]
+
+    navigations = [
+        contract.navigate_to_waypoint(str(waypoint["waypoint_id"])) for waypoint in waypoints[1:]
+    ]
+
+    assert all(navigation["ok"] is True for navigation in navigations)
+    assert all(navigation["route_validation"]["ok"] is True for navigation in navigations)
+    assert all(navigation["route_validation"]["path_cell_count"] > 1 for navigation in navigations)
+
+
 def test_realworld_contract_observes_objects_from_selected_base_metric_bundle() -> None:
-    contract = RealWorldCleanupContract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+    contract = HouseholdRuntimeContract(
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         map_bundle_dir=CANONICAL_SCENE_BUNDLE,
     )
 
@@ -509,8 +525,8 @@ def test_realworld_contract_observes_objects_from_selected_base_metric_bundle() 
 
 
 def _agent_view() -> dict:
-    contract = RealWorldCleanupContract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+    contract = HouseholdRuntimeContract(
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         map_bundle_dir=CANONICAL_SCENE_BUNDLE,
     )
     return {
@@ -523,7 +539,7 @@ def _static_landmarks(agent_view: dict) -> list[dict]:
     return static_landmarks_from_fixture_projection(agent_view["static_fixture_projection"])
 
 
-def _first_non_empty_observation(contract: RealWorldCleanupContract) -> dict:
+def _first_non_empty_observation(contract: HouseholdRuntimeContract) -> dict:
     for waypoint in contract.metric_map()["inspection_waypoints"]:
         contract.navigate_to_waypoint(str(waypoint["waypoint_id"]))
         observation = contract.observe()

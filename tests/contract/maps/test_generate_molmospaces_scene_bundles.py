@@ -134,7 +134,11 @@ def test_generation_uses_preparation_evidence_not_agent_view_projection(
             "parameter_hash": "hash",
         }
 
-    monkeypatch.setattr(generator, "build_cleanup_backend_session", lambda **_kwargs: FakeSession())
+    monkeypatch.setattr(
+        generator,
+        "build_household_backend_session",
+        lambda **_kwargs: FakeSession(),
+    )
     monkeypatch.setattr(
         generator,
         "_backend_state_payload",

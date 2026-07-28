@@ -11,6 +11,12 @@ from roboclaws.household.backend import API_SEMANTIC_PROVENANCE
 from roboclaws.household.cleanup_primitive_evidence import (
     cleanup_primitive_evidence_from_substeps,
 )
+from roboclaws.household.household_runtime_contract import (
+    CAMERA_MODEL_POLICY_MODE,
+    REALWORLD_CONTRACT,
+    cleanup_policy_trace_from_events,
+    real_robot_readiness_from_events,
+)
 from roboclaws.household.isaac_lab_backend import (
     ISAACLAB_ROBOT_VIEW_VARIANT,
     ISAACLAB_SUBPROCESS_BACKEND,
@@ -24,12 +30,6 @@ from roboclaws.household.planner_proof_requests import write_planner_proof_reque
 from roboclaws.household.profiles import (
     camera_labeler_from_visual_grounding_pipeline,
     evidence_lane_metadata_for_run,
-)
-from roboclaws.household.realworld_contract import (
-    CAMERA_MODEL_POLICY_MODE,
-    REALWORLD_CONTRACT,
-    cleanup_policy_trace_from_events,
-    real_robot_readiness_from_events,
 )
 from roboclaws.household.report import render_cleanup_report
 from roboclaws.household.report_sections_timing import runtime_timing_from_trace
@@ -204,10 +204,7 @@ def _build_payloads(
         ),
         diagnostics=_diagnostics(inputs, substeps),
         primitive_counts=primitive_provenance_counts(inputs.trace_events),
-        cleanup_policy_trace=cleanup_policy_trace_from_events(
-            inputs.trace_events,
-            inputs.agent_view,
-        ),
+        cleanup_policy_trace=_cleanup_policy_trace(inputs),
         real_robot_readiness=_real_robot_readiness(inputs),
         private_evaluation=private_evaluation,
         advisory_evaluation=build_advisory_evaluation(
@@ -429,6 +426,13 @@ def _real_robot_readiness(inputs: RealWorldMCPDoneArtifactInputs) -> dict[str, A
         trace_events=inputs.trace_events,
         robot_view_steps=inputs.robot_view_steps,
     )
+
+
+def _cleanup_policy_trace(inputs: RealWorldMCPDoneArtifactInputs) -> dict[str, Any]:
+    trace_hook = getattr(inputs.contract, "cleanup_policy_trace_payload", None)
+    if callable(trace_hook):
+        return trace_hook(inputs.trace_events)
+    return cleanup_policy_trace_from_events(inputs.trace_events, inputs.agent_view)
 
 
 def _private_evaluation(inputs: RealWorldMCPDoneArtifactInputs) -> dict[str, Any]:

@@ -26,7 +26,7 @@ def test_realworld_agent_server_prints_openclaw_setup(
     assert "roboclaws__metric_map" in output
     assert "scene_objects" in output
     assert "realworld_cleanup_v1" in output
-    assert "molmo_cleanup_realworld" in output
+    assert "household_world" in output
     assert "Backend       : api_semantic_synthetic" in output
     assert "Visual report : disabled" in output
 

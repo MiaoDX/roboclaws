@@ -3,11 +3,11 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
-from roboclaws.household.backend_contract import CleanupBackendSession
 from roboclaws.household.cleanup_primitive_evidence import (
     cleanup_primitive_evidence_from_substeps,
     validate_cleanup_primitive_evidence,
 )
+from roboclaws.household.household_backend_contract import HouseholdBackendSession
 from roboclaws.household.planner_cleanup_bridge import (
     planner_cleanup_bridge_evidence,
     validate_planner_cleanup_bridge_evidence,
@@ -25,7 +25,7 @@ from roboclaws.household.semantic_timeline import semantic_substeps
 
 def test_planner_primitive_adapter_makes_shared_loop_strict_ready() -> None:
     scenario = build_cleanup_scenario(seed=7)
-    base_contract = CleanupBackendSession(scenario)
+    base_contract = HouseholdBackendSession(scenario)
     executor_calls: list[CleanupPrimitiveRequest] = []
     contract = PlannerBackedCleanupContractAdapter(
         base_contract,
@@ -83,7 +83,7 @@ def test_planner_primitive_adapter_makes_shared_loop_strict_ready() -> None:
 
 def test_planner_primitive_adapter_fails_closed_when_executor_blocks() -> None:
     scenario = build_cleanup_scenario(seed=7)
-    base_contract = CleanupBackendSession(scenario)
+    base_contract = HouseholdBackendSession(scenario)
     executor_calls: list[CleanupPrimitiveRequest] = []
     contract = PlannerBackedCleanupContractAdapter(
         base_contract,
@@ -115,7 +115,7 @@ def test_planner_primitive_adapter_fails_closed_when_executor_blocks() -> None:
 
 def test_planner_primitive_adapter_requires_object_context_before_target_steps() -> None:
     scenario = build_cleanup_scenario(seed=7)
-    base_contract = CleanupBackendSession(scenario)
+    base_contract = HouseholdBackendSession(scenario)
     executor_calls: list[CleanupPrimitiveRequest] = []
     contract = PlannerBackedCleanupContractAdapter(
         base_contract,
@@ -133,7 +133,7 @@ def test_planner_primitive_adapter_requires_object_context_before_target_steps()
 
 def test_default_cleanup_contract_remains_api_semantic_without_executor() -> None:
     scenario = build_cleanup_scenario(seed=7)
-    contract = CleanupBackendSession(scenario)
+    contract = HouseholdBackendSession(scenario)
     trace_events: list[dict[str, Any]] = []
     receptacles = _receptacles_by_id(scenario)
 

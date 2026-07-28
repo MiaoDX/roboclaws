@@ -176,7 +176,7 @@ def test_changed_file_signals_select_expected_eval_harness_rows(tmp_path: Path) 
             "changed_files": [
                 "roboclaws/household/realworld_agent_view_contract.py",
                 "roboclaws/household/realworld_contract_payloads.py",
-                "roboclaws/household/agibot_cleanup_contract.py",
+                "roboclaws/household/agibot_household_backend.py",
             ],
             "present_rows": (
                 "agent-view-contract-tests",

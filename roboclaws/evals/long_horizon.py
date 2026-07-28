@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.evals.models import MISSING_NOT_APPLICABLE, EvalSample
-from roboclaws.household.realworld_contract import RealWorldCleanupContract
+from roboclaws.household.household_runtime_contract import HouseholdRuntimeContract
 from roboclaws.household.semantic_timeline import robot_view_capture_for_tool
 
 LONG_HORIZON_GRADER_NAME = "long_horizon"
@@ -124,7 +124,7 @@ def _call_tool_with_robot_view(
     fn: Any,
     *,
     base_contract: Any,
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     robot_view_steps: list[dict[str, Any]],
     output_dir: Path,
     view_index: int,
@@ -196,7 +196,7 @@ def _record_long_horizon_robot_view(
     )
 
 
-def _internal_object_id(contract: RealWorldCleanupContract, handle: str) -> str | None:
+def _internal_object_id(contract: HouseholdRuntimeContract, handle: str) -> str | None:
     return contract._internal_object_id(handle)  # noqa: SLF001
 
 

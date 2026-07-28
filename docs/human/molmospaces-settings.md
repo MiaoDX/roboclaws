@@ -441,7 +441,7 @@ the current source of truth before claiming a run supports a setting.
 | `python -m roboclaws.household.household_world_episode` | yes | yes | yes | Deterministic household-world demo and checker path. The example path is only a thin wrapper. |
 | `scripts/molmo_cleanup/run_molmo_realworld_agent_mcp_smoke.py` | yes | yes | yes | Dogfood/smoke wrapper used by several just recipes; uses model-declared simulated producers where camera-label declarations are exercised. |
 | `python -m roboclaws.cli.agent_server household-world` | yes | yes | yes | Direct live-agent server CLI exposes raw-FPV declaration tools and supports the `camera_model_policy` declaration path. |
-| `RealWorldCleanupContract` / `realworld_mcp_server` internals | yes | yes | yes | Internals use `declare_visual_candidates` and `navigate_to_visual_candidate` for camera evidence to handle registration. |
+| `HouseholdRuntimeContract` / `realworld_mcp_server` internals | yes | yes | yes | Internals use `declare_visual_candidates` and `navigate_to_visual_candidate` for camera evidence to handle registration. |
 
 ## Command Taxonomy
 

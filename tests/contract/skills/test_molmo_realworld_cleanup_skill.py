@@ -8,12 +8,17 @@ from typing import Any
 import pytest
 
 from roboclaws.household.cleanup_routine import routine_plan
+from roboclaws.household.household_mcp_server import make_household_world_mcp
 from roboclaws.household.profiles import WORLD_PUBLIC_LABELS_PROFILE
-from roboclaws.household.realworld_mcp_server import make_molmo_realworld_cleanup_mcp
 from roboclaws.household.scenario import build_cleanup_scenario
 from roboclaws.household.semantic_timeline import (
     FOCUSED_SEMANTIC_PHASES,
     successful_semantic_phases,
+)
+from roboclaws.mcp.profiles import (
+    HOUSEHOLD_EPISODE_PROFILE,
+    HOUSEHOLD_MANIPULATION_PROFILE,
+    HOUSEHOLD_WORLD_PROFILE,
 )
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -84,12 +89,17 @@ def test_cleanup_skill_prioritizes_done_over_optional_reclean_loops() -> None:
 
 def test_trace_preserving_skill_routine_uses_atomic_public_mcp_tools(tmp_path: Path) -> None:
     routine = _load_routine_module()
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=build_cleanup_scenario(seed=7),
         port=0,
         evidence_lane=WORLD_PUBLIC_LABELS_PROFILE,
         map_bundle_dir=PREBUILT_BUNDLE,
+        required_capability_profiles=(
+            HOUSEHOLD_WORLD_PROFILE,
+            HOUSEHOLD_MANIPULATION_PROFILE,
+            HOUSEHOLD_EPISODE_PROFILE,
+        ),
     )
     try:
         detection = _first_detection_by_category(server, "food")
@@ -142,11 +152,16 @@ def test_trace_preserving_skill_routine_plans_public_open_close_from_static_fixt
     tmp_path: Path,
 ) -> None:
     routine = _load_routine_module()
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=tmp_path,
         scenario=build_cleanup_scenario(seed=7),
         port=0,
         map_bundle_dir=PREBUILT_BUNDLE,
+        required_capability_profiles=(
+            HOUSEHOLD_WORLD_PROFILE,
+            HOUSEHOLD_MANIPULATION_PROFILE,
+            HOUSEHOLD_EPISODE_PROFILE,
+        ),
     )
     try:
         detection = _first_detection_by_category(server, "food")

@@ -23,7 +23,7 @@ from roboclaws.household.apple2apple_test_grid import (  # noqa: E402
     write_grid_manifest,
     write_grid_report,
 )
-from roboclaws.household.realworld_contract import DEFAULT_REALWORLD_TASK  # noqa: E402
+from roboclaws.household.household_runtime_contract import DEFAULT_REALWORLD_TASK  # noqa: E402
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

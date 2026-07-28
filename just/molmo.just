@@ -557,6 +557,24 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
     run_root="${output_dir}/${stamp}"
     mkdir -p "$run_root"
 
+    copy_b1_run_artifacts_to_seed_dir() {
+      local artifact_run_dir="$1"
+      if [[ "$backend" != "isaaclab_subprocess" || "$launch_world_id" != "b1-map12" ]]; then
+        return 0
+      fi
+      for b1_run_artifact in \
+        b1_robot_consumption_manifest.json \
+        runtime_map_prior_snapshot.json \
+        runtime_map_prior_targets.json
+      do
+        if [[ ! -f "${output_dir}/${b1_run_artifact}" ]]; then
+          echo "error: required B1 run artifact is missing: ${output_dir}/${b1_run_artifact}" >&2
+          return 1
+        fi
+        cp "${output_dir}/${b1_run_artifact}" "${artifact_run_dir}/${b1_run_artifact}"
+      done
+    }
+
     echo "==> Molmo cleanup matrix"
     echo "    driver   : ${driver}"
     echo "    lane     : ${profile}"
@@ -712,17 +730,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
         fi
         mkdir -p "$run_dir"
         check_visual_grounding_readiness_for_run "$run_dir"
-        if [[ "$backend" == "isaaclab_subprocess" && "$launch_world_id" == "b1-map12" ]]; then
-          for b1_run_artifact in \
-            b1_robot_consumption_manifest.json \
-            runtime_map_prior_snapshot.json \
-            runtime_map_prior_targets.json
-          do
-            if [[ -f "${output_dir}/${b1_run_artifact}" ]]; then
-              cp "${output_dir}/${b1_run_artifact}" "${run_dir}/${b1_run_artifact}"
-            fi
-          done
-        fi
+        copy_b1_run_artifacts_to_seed_dir "$run_dir"
         policy="${driver%-live}_agent"
         if [[ "$driver" == "openai-agents-live" ]]; then
           policy="openai_agents_agent"
@@ -829,7 +837,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
           fi
           runner_args=(
             .venv/bin/python
-            scripts/molmo_cleanup/run_live_openai_agents_cleanup.py
+            scripts/molmo_cleanup/run_live_openai_agents_household.py
             --repo-root "$PWD"
             --run-dir "$run_dir"
             --status-path "$status_path"
@@ -1010,7 +1018,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
             --expect-backend "$backend"
             --expect-policy "$policy"
             --expect-profile "$implementation_evidence_lane"
-            --expect-mcp-server molmo_cleanup_realworld
+            --expect-mcp-server household_world
             --min-generated-mess-count "$min_generated_mess_count"
             --require-agent-driven
             --require-advisory-scoring
@@ -1038,6 +1046,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
       run_dir="${run_root}/seed-${seed}"
       mkdir -p "$run_dir"
       check_visual_grounding_readiness_for_run "$run_dir"
+      copy_b1_run_artifacts_to_seed_dir "$run_dir"
       case "$driver" in
         direct)
           .venv/bin/python -m roboclaws.household.household_world_episode \
@@ -1062,7 +1071,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
             --output-dir "$run_dir"
           ;;
         mcp-smoke|openclaw-smoke)
-          policy="realworld_contract_smoke_agent"
+          policy="household_contract_smoke_agent"
           if [[ "$driver" == "openclaw-smoke" ]]; then
             policy="openclaw_agent"
           fi
@@ -1107,8 +1116,8 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
     case "$driver" in
       mcp-smoke)
         checker_args+=(
-          --expect-policy realworld_contract_smoke_agent
-          --expect-mcp-server molmo_cleanup_realworld
+          --expect-policy household_contract_smoke_agent
+          --expect-mcp-server household_world
           --require-agent-driven
         )
         if [[ "$profile_requires_clean_success" == "true" && "$open_ended_intent" != "true" ]]; then
@@ -1118,7 +1127,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
       openclaw-smoke)
         checker_args+=(
           --expect-policy openclaw_agent
-          --expect-mcp-server molmo_cleanup_realworld
+          --expect-mcp-server household_world
           --require-agent-driven
           --require-openclaw-minimum
         )

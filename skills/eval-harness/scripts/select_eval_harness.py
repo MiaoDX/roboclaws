@@ -59,7 +59,7 @@ SIGNAL_RULES: tuple[dict[str, Any], ...] = (
         "patterns": (
             r"openai[_-]agents",
             r"agents/drivers/openai_agents_live\.py",
-            r"run_live_openai_agents_cleanup\.py",
+            r"run_live_openai_agents_household\.py",
             r"agent_engine=.?openai-agents-sdk",
             r"Agents? SDK",
         ),
@@ -116,7 +116,7 @@ SIGNAL_RULES: tuple[dict[str, Any], ...] = (
             r"roboclaws/household/agent_view\.py",
             r"realworld_agent_view_contract",
             r"realworld_contract_payloads",
-            r"agibot_cleanup_contract",
+            r"agibot_household_backend",
             r"agent_view\.json",
             r"\bagent view\b",
             r"Agent View",

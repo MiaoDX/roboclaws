@@ -9,7 +9,6 @@ from typing import Any
 
 from PIL import Image, ImageStat
 
-from roboclaws.core.json_sources import read_json_object
 from roboclaws.household.subprocess_backend import _parse_last_json_object
 
 SCHEMA = "roboclaws_isaac_lab_runtime_smoke_check_v1"
@@ -679,7 +678,17 @@ def _read_init_result(path: Path) -> dict[str, Any]:
 def _read_sidecar_json(path: Path | None, *, label: str) -> dict[str, Any]:
     if path is None:
         return {}
-    return read_json_object(path, label=label)
+    text = path.read_text(encoding="utf-8")
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        # Isaac Sim writes diagnostics to stderr; the harness captures both
+        # streams in the sidecar. Recover the worker's final JSON object while
+        # retaining strict object validation.
+        payload = _parse_last_json_object(text)
+    if not isinstance(payload, dict):
+        raise ValueError(f"{label} source must contain valid JSON object: {path}")
+    return payload
 
 
 def _dict(value: Any) -> dict[str, Any]:

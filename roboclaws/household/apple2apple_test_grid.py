@@ -12,7 +12,7 @@ from roboclaws.agents.provider_registry import (
     provider_route_spec,
 )
 from roboclaws.core.rerun import shell_join
-from roboclaws.household.realworld_contract import DEFAULT_REALWORLD_TASK
+from roboclaws.household.household_runtime_contract import DEFAULT_REALWORLD_TASK
 
 GRID_SCHEMA = "molmo_apple2apple_test_grid_v1"
 ROW_SCHEMA = "molmo_apple2apple_test_grid_row_v1"

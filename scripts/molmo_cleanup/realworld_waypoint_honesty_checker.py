@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from roboclaws.household import agent_view as agent_view_module
-from roboclaws.household.realworld_contract import (
+from roboclaws.household.household_runtime_contract import (
     CLEANUP_POLICY_TRACE_SCHEMA,
     CLEANUP_WORKLIST_SCHEMA,
     REAL_ROBOT_MAP_BUNDLE_SCHEMA,

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.household.realworld_contract import (
+from roboclaws.household.household_runtime_contract import (
     _assert_no_forbidden_agent_view_keys,
     forbidden_agent_view_keys,
 )

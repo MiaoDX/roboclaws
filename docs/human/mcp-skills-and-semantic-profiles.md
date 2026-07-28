@@ -387,7 +387,7 @@ describe what public robot capabilities the agent is allowed to rely on.
 | --- | --- |
 | Profile declarations and built-ins | `roboclaws/mcp/profiles.py` |
 | Generic profile router helper | `roboclaws/mcp/entrypoint.py` |
-| Household-world MCP server | `roboclaws/household/realworld_mcp_server.py` |
+| Household-world MCP server | `roboclaws/household/household_mcp_server.py` |
 | Skill library convention | `skills/README.md` |
 | Household-world skill | `skills/household-world/SKILL.md` |
 | Runtime map prior snapshot code | `roboclaws/maps/runtime_prior_snapshot.py` |

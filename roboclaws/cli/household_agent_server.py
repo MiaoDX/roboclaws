@@ -13,32 +13,32 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from roboclaws.household.agibot_cleanup_contract import (
-    AgibotCleanupMCPContract,
+from roboclaws.household.agibot_household_backend import (
+    AgibotHouseholdBackend,
 )
-from roboclaws.household.backend_contract import (
+from roboclaws.household.household_backend_contract import (
     SYNTHETIC_BACKEND,
-    build_cleanup_backend_session,
+    build_household_backend_session,
     validate_cleanup_run_options,
 )
-from roboclaws.household.isaac_lab_backend import ISAACLAB_SUBPROCESS_BACKEND
-from roboclaws.household.nav2_map_bundle import selected_nav2_map_bundle_dir
-from roboclaws.household.profiles import evidence_lane_names
-from roboclaws.household.realworld_contract import (
-    CAMERA_MODEL_POLICY_MODE,
-    DEFAULT_REALWORLD_TASK,
-    RAW_FPV_ONLY_MODE,
-    VISIBLE_OBJECT_DETECTIONS_MODE,
-)
-from roboclaws.household.realworld_mcp_server import (
+from roboclaws.household.household_mcp_server import (
     DEFAULT_HOST,
     DEFAULT_PORT,
     MCP_SERVER_NAME,
     ROBOT_VIEW_CAPTURE_POLICIES,
     ROBOT_VIEW_CAPTURE_POLICY_FULL,
-    RealWorldMolmoCleanupMCPServer,
-    make_molmo_realworld_cleanup_mcp,
+    HouseholdWorldMCPServer,
+    make_household_world_mcp,
 )
+from roboclaws.household.household_runtime_contract import (
+    CAMERA_MODEL_POLICY_MODE,
+    DEFAULT_REALWORLD_TASK,
+    RAW_FPV_ONLY_MODE,
+    VISIBLE_OBJECT_DETECTIONS_MODE,
+)
+from roboclaws.household.isaac_lab_backend import ISAACLAB_SUBPROCESS_BACKEND
+from roboclaws.household.nav2_map_bundle import selected_nav2_map_bundle_dir
+from roboclaws.household.profiles import evidence_lane_names
 from roboclaws.household.scenario import CleanupScenario, build_cleanup_scenario
 from roboclaws.household.subprocess_backend import MOLMOSPACES_SUBPROCESS_BACKEND
 from roboclaws.household.task_intent import (
@@ -63,7 +63,7 @@ class _ServerBackendSetup:
     scenario: CleanupScenario
     selected_bundle_dir: Path | None
     runtime_map_prior: dict[str, Any] | None
-    agibot_contract: AgibotCleanupMCPContract | None
+    agibot_contract: AgibotHouseholdBackend | None
     perception_mode: str
     evidence_lane: str | None
 
@@ -82,6 +82,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--task", default=DEFAULT_REALWORLD_TASK)
     parser.add_argument("--goal-contract", type=Path)
     parser.add_argument("--goal-contract-json")
+    parser.add_argument(
+        "--required-capability-profile",
+        action="append",
+        default=[],
+        help="Resolved immutable MCP capability profile. Repeat in registration order.",
+    )
     parser.add_argument(
         "--backend",
         choices=(
@@ -289,6 +295,8 @@ def _prepare_server_backend_setup(
     agibot_map_artifact_dir: str | Path | None,
     real_movement_enabled: bool,
     task_prompt: str,
+    visual_grounding: str,
+    visual_grounding_timeout_s: float | None,
 ) -> _ServerBackendSetup:
     selected_bundle_dir = selected_nav2_map_bundle_dir(
         map_bundle_dir,
@@ -305,6 +313,8 @@ def _prepare_server_backend_setup(
             agibot_map_artifact_dir=agibot_map_artifact_dir,
             real_movement_enabled=real_movement_enabled,
             task_prompt=task_prompt,
+            visual_grounding_pipeline_id=visual_grounding,
+            visual_grounding_timeout_s=visual_grounding_timeout_s,
             include_robot=include_robot,
             record_robot_views=record_robot_views,
             selected_bundle_dir=selected_bundle_dir,
@@ -345,6 +355,8 @@ def _prepare_agibot_backend_setup(
     agibot_map_artifact_dir: str | Path | None,
     real_movement_enabled: bool,
     task_prompt: str,
+    visual_grounding_pipeline_id: str,
+    visual_grounding_timeout_s: float | None,
     include_robot: bool,
     record_robot_views: bool,
     selected_bundle_dir: Path | None,
@@ -359,7 +371,7 @@ def _prepare_agibot_backend_setup(
             "record_robot_views requires a visual subprocess backend and include_robot"
         )
     scenario = build_cleanup_scenario(seed=seed)
-    agibot_contract = AgibotCleanupMCPContract(
+    agibot_contract = AgibotHouseholdBackend(
         run_dir=output_dir,
         context_json=Path(context_json),
         runner_script=Path(runner_script) if runner_script is not None else None,
@@ -370,6 +382,8 @@ def _prepare_agibot_backend_setup(
         else None,
         scenario=scenario,
         task_prompt=task_prompt,
+        visual_grounding_pipeline_id=visual_grounding_pipeline_id,
+        visual_grounding_timeout_s=visual_grounding_timeout_s,
     )
     return _ServerBackendSetup(
         base_contract=agibot_contract.contract,
@@ -400,7 +414,7 @@ def _prepare_generic_backend_setup(
     perception_mode: str,
     evidence_lane: str | None,
 ) -> _ServerBackendSetup:
-    base_contract = build_cleanup_backend_session(
+    base_contract = build_household_backend_session(
         backend_name=backend,
         run_dir=output_dir,
         seed=seed,
@@ -427,7 +441,7 @@ def _prepare_generic_backend_setup(
 
 def _run_server_until_done(
     *,
-    server: RealWorldMolmoCleanupMCPServer,
+    server: HouseholdWorldMCPServer,
     output_dir: Path,
     url: str,
     poll_interval_s: float,
@@ -512,6 +526,7 @@ def run_molmo_realworld_cleanup_agent_server(
     real_movement_enabled: bool = False,
     goal_contract_json: str | None = None,
     goal_contract_path: str | Path | None = None,
+    required_capability_profiles: tuple[str, ...] = (),
     rerun_command: str | None = None,
     agent_sdk_camera_grounded_composite_tools: bool = False,
     robot_view_capture_policy: str = ROBOT_VIEW_CAPTURE_POLICY_FULL,
@@ -544,6 +559,8 @@ def run_molmo_realworld_cleanup_agent_server(
         agibot_map_artifact_dir=agibot_map_artifact_dir,
         real_movement_enabled=real_movement_enabled,
         task_prompt=task_prompt,
+        visual_grounding=visual_grounding,
+        visual_grounding_timeout_s=visual_grounding_timeout_s,
     )
     url = mcp_url(host, port)
     goal_contract = goal_contract_from_json(goal_contract_json) or goal_contract_from_file(
@@ -553,7 +570,7 @@ def run_molmo_realworld_cleanup_agent_server(
         goal_contract,
         fallback=normalize_household_intent(task_intent),
     )
-    server = make_molmo_realworld_cleanup_mcp(
+    server = make_household_world_mcp(
         run_dir=output_dir,
         scenario=backend_setup.scenario,
         base_contract=backend_setup.base_contract,
@@ -575,6 +592,9 @@ def run_molmo_realworld_cleanup_agent_server(
         visual_grounding_base_url=visual_grounding_base_url,
         visual_grounding_timeout_s=visual_grounding_timeout_s,
         goal_contract=goal_contract,
+        required_capability_profiles=(
+            tuple(required_capability_profiles) if required_capability_profiles else None
+        ),
         operator_messages_path=operator_messages_path,
         agent_sdk_camera_grounded_composite_tools=agent_sdk_camera_grounded_composite_tools,
         robot_view_capture_policy=robot_view_capture_policy,
@@ -637,6 +657,7 @@ def main(argv: list[str] | None = None) -> int:
             real_movement_enabled=args.real_movement_enabled,
             goal_contract_json=args.goal_contract_json,
             goal_contract_path=args.goal_contract,
+            required_capability_profiles=tuple(args.required_capability_profile),
             rerun_command=args.rerun_command,
             agent_sdk_camera_grounded_composite_tools=(
                 args.agent_sdk_camera_grounded_composite_tools

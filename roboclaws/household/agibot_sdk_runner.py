@@ -20,13 +20,13 @@ from roboclaws.household.agibot_operator_gates import (
     operator_run_enablement_gate,
 )
 from roboclaws.household.digital_twin_review_assets import attach_map12_review_assets
-from roboclaws.household.manipulation_provenance import BLOCKED_CAPABILITY_PROVENANCE
-from roboclaws.household.realworld_contract import (
+from roboclaws.household.household_runtime_contract import (
     CLEANUP_WORKLIST_SCHEMA,
     REALWORLD_CONTRACT,
     RUNTIME_METRIC_MAP_SCHEMA,
     forbidden_agent_view_keys,
 )
+from roboclaws.household.manipulation_provenance import BLOCKED_CAPABILITY_PROVENANCE
 from roboclaws.household.report import render_cleanup_report, write_state_snapshot
 from roboclaws.household.scenario import build_cleanup_scenario
 from roboclaws.household.types import CleanupScenario

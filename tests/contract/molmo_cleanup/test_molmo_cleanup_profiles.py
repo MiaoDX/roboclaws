@@ -2,6 +2,12 @@ from __future__ import annotations
 
 import pytest
 
+from roboclaws.household.household_runtime_contract import (
+    CAMERA_MODEL_POLICY_MODE,
+    RAW_FPV_ONLY_MODE,
+    SANITIZED_VISIBLE_OBJECT_DETECTIONS_POLICY,
+    VISIBLE_OBJECT_DETECTIONS_MODE,
+)
 from roboclaws.household.profiles import (
     CAMERA_LABELS_PROFILE,
     CAMERA_RAW_PROFILE,
@@ -16,12 +22,6 @@ from roboclaws.household.profiles import (
     evidence_lane_names,
     validate_evidence_lane_camera_labeler,
     validate_evidence_lane_metadata,
-)
-from roboclaws.household.realworld_contract import (
-    CAMERA_MODEL_POLICY_MODE,
-    RAW_FPV_ONLY_MODE,
-    SANITIZED_VISIBLE_OBJECT_DETECTIONS_POLICY,
-    VISIBLE_OBJECT_DETECTIONS_MODE,
 )
 from roboclaws.household.subprocess_backend import MOLMOSPACES_SUBPROCESS_BACKEND
 

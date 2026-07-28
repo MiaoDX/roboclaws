@@ -53,10 +53,11 @@ HOUSEHOLD_TASK_SPECS: dict[str, TaskSurfaceSpec] = {
         default_profile="world-public-labels",
         supported_profiles=HOUSEHOLD_EVIDENCE_LANES,
         default_backend="molmospaces_subprocess",
-        mcp_server_id="molmo_cleanup_realworld",
+        mcp_server_id="household_world",
         checker_base="household_world",
         required_capabilities=(
             "household_world",
+            "household_manipulation",
             "household_episode",
         ),
         supported_presets=tuple(HOUSEHOLD_PRESET_SPECS),

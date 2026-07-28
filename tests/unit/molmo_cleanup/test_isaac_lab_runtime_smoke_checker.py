@@ -297,11 +297,12 @@ def test_isaac_runtime_smoke_checker_rejects_prefixed_state_sidecar_json(
     )
 
     assert completed.returncode == 1
-    assert completed.stdout == ""
-    assert "Isaac runtime smoke state source must contain valid JSON object" in completed.stderr
+    summary = json.loads(completed.stdout)
+    assert summary["status"] == "failed"
+    assert "state runtime_mode does not match init result" in summary["errors"]
 
 
-def test_isaac_runtime_smoke_checker_rejects_prefixed_robot_views_sidecar_json(
+def test_isaac_runtime_smoke_checker_recovers_prefixed_robot_views_sidecar_json(
     tmp_path: Path,
 ) -> None:
     result = {
@@ -316,15 +317,13 @@ def test_isaac_runtime_smoke_checker_rejects_prefixed_robot_views_sidecar_json(
         result,
         "--require-robot-view-images",
         robot_views=robot_views,
-        robot_views_text='Isaac startup log line\n{"ok": true}\n',
+        robot_views_text="Isaac startup log line\n" + json.dumps(robot_views) + "\n",
     )
 
-    assert completed.returncode == 1
-    assert completed.stdout == ""
-    assert (
-        "Isaac runtime smoke robot views result source must contain valid JSON object"
-        in completed.stderr
-    )
+    assert completed.returncode == 0
+    summary = json.loads(completed.stdout)
+    assert summary["robot_view_status"] == "present"
+    assert summary["status"] == "passed"
 
 
 def test_isaac_runtime_smoke_checker_rejects_generated_usd_for_local_scene_gate(

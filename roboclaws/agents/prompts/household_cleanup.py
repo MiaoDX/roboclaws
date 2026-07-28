@@ -160,8 +160,8 @@ def _with_task(
 MAP_BUILD_RULES = (
     "This run is surface=household-world intent=map-build. "
     "This is not a cleanup run. User task: {task}. "
-    "Do not pick, place, place_inside, open_receptacle, close_receptacle, or clean any "
-    "object. Call metric_map first, build an exact waypoint "
+    "Manipulation tools are not entitled for this run; do not clean any object. "
+    "Call metric_map first, build an exact waypoint "
     "checklist from metric_map.inspection_waypoints, and sweep every inspection "
     "waypoint with navigate_to_waypoint then {waypoint_observe_tool}. Mark a waypoint "
     "complete only after that waypoint_id has a {waypoint_observe_response} response; "

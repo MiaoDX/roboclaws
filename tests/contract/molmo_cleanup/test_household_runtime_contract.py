@@ -14,8 +14,8 @@ from roboclaws.household import (
     realworld_visual_candidate_declarations,
     realworld_visual_candidate_lifecycle,
 )
-from roboclaws.household.backend_contract import CleanupBackendSession
-from roboclaws.household.realworld_contract import (
+from roboclaws.household.household_backend_contract import HouseholdBackendSession
+from roboclaws.household.household_runtime_contract import (
     CAMERA_MODEL_POLICY_MODE,
     CAMERA_MODEL_POLICY_SCHEMA,
     CLEANUP_WORKLIST_SCHEMA,
@@ -30,7 +30,7 @@ from roboclaws.household.realworld_contract import (
     SIMULATED_CAMERA_MODEL_PROVENANCE,
     VISUAL_CANDIDATE_ALREADY_HANDLED_REASON,
     VISUAL_GROUNDING_CATEGORY_HINTS,
-    RealWorldCleanupContract,
+    HouseholdRuntimeContract,
     _declared_category_matches_object,
     cleanup_policy_trace_from_events,
     forbidden_agent_view_keys,
@@ -54,11 +54,11 @@ PREBUILT_BUNDLE = REPO_ROOT / "assets" / "maps" / "molmospaces" / "procthor-10k-
 
 
 def _contract(
-    session: CleanupBackendSession,
+    session: HouseholdBackendSession,
     **kwargs: object,
-) -> RealWorldCleanupContract:
+) -> HouseholdRuntimeContract:
     kwargs.setdefault("map_bundle_dir", PREBUILT_BUNDLE)
-    return RealWorldCleanupContract(session, **kwargs)
+    return HouseholdRuntimeContract(session, **kwargs)
 
 
 def test_visual_candidate_exact_category_matching_does_not_cross_broad_family() -> None:
@@ -163,7 +163,7 @@ class _RelativePoseBackend(_PoseRecordingBackend):
 
 
 def test_realworld_contract_defaults_to_base_metric_map() -> None:
-    contract = _contract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
+    contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
 
     metric_map = contract.metric_map()
     static_fixture_projection = contract.static_fixture_projection()
@@ -176,7 +176,7 @@ def test_realworld_contract_defaults_to_base_metric_map() -> None:
 
 def test_realworld_contract_requires_map_bundle_without_synthetic_opt_in() -> None:
     try:
-        RealWorldCleanupContract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
+        HouseholdRuntimeContract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
     except ValueError as exc:
         assert "map_bundle_dir is required for product runtime base inspection_waypoints" in str(
             exc
@@ -186,7 +186,7 @@ def test_realworld_contract_requires_map_bundle_without_synthetic_opt_in() -> No
 
 
 def test_realworld_public_tools_do_not_expose_private_targets_or_global_inventory() -> None:
-    contract = _contract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
+    contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
 
     metric_map = contract.metric_map()
     static_fixture_projection = contract.static_fixture_projection()
@@ -221,7 +221,7 @@ def test_realworld_public_tools_do_not_expose_private_targets_or_global_inventor
 
 
 def test_world_label_candidate_without_reviewable_fpv_bbox_is_not_actionable() -> None:
-    contract = _contract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
+    contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
     observation = _first_non_empty_observation(contract)
     detection = observation["visible_object_detections"][0]
     handle = detection["object_id"]
@@ -248,7 +248,7 @@ def test_world_label_candidate_without_reviewable_fpv_bbox_is_not_actionable() -
 
 
 def test_world_label_candidate_requires_scan_then_observe_before_navigation() -> None:
-    contract = _contract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
+    contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
     first_observation = _first_non_empty_observation(contract)
     handle = first_observation["visible_object_detections"][0]["object_id"]
 
@@ -277,7 +277,7 @@ def test_world_label_candidate_requires_scan_then_observe_before_navigation() ->
 
 
 def test_zero_camera_adjustment_does_not_confirm_world_label_candidate() -> None:
-    contract = _contract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
+    contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
     first_observation = _first_non_empty_observation(contract)
     handle = first_observation["visible_object_detections"][0]["object_id"]
 
@@ -305,12 +305,12 @@ def test_zero_camera_adjustment_does_not_confirm_world_label_candidate() -> None
 
 
 def test_world_labels_sanitized_observations_omit_destination_oracle_fields() -> None:
-    public_anchor_contract = _contract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
+    public_anchor_contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
     public_anchor_observation = _first_non_empty_observation(public_anchor_contract)
     public_anchor_detection = public_anchor_observation["visible_object_detections"][0]
 
     sanitized_contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         evidence_lane="world-public-labels",
     )
     sanitized_observation = _first_non_empty_observation(sanitized_contract)
@@ -344,7 +344,7 @@ def test_world_labels_sanitized_observations_omit_destination_oracle_fields() ->
 
 def test_world_labels_sanitized_destination_policy_is_public_category_guidance() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         evidence_lane="world-public-labels",
     )
 
@@ -377,7 +377,7 @@ def test_world_labels_sanitized_destination_policy_is_public_category_guidance()
 
 
 def test_realworld_contract_exposes_nav2_shaped_public_map_and_provenance() -> None:
-    contract = _contract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
+    contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
 
     metric_map = contract.metric_map()
     static_fixture_projection = contract.static_fixture_projection()
@@ -407,7 +407,7 @@ def test_realworld_contract_exposes_nav2_shaped_public_map_and_provenance() -> N
 
 
 def _first_detected_metric_map_waypoint(
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     metric_map: dict,
 ) -> tuple[dict, dict, dict]:
     waypoint = {}
@@ -426,7 +426,7 @@ def _first_detected_metric_map_waypoint(
 
 
 def _confirm_pick_and_navigate_to_fixture(
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     detection: dict,
     fixture: dict,
 ) -> tuple[dict, dict]:
@@ -543,7 +543,7 @@ def test_scene_index_backend_prefers_public_usd_fixture_overlay_over_stale_map_b
             success_threshold=1,
         ),
     )
-    session = CleanupBackendSession(scenario)
+    session = HouseholdBackendSession(scenario)
     session.backend.scenario_source = "isaac_scene_index"
     contract = _contract(session)
 
@@ -603,7 +603,7 @@ def test_scene_index_backend_public_map_uses_usd_room_outline_scale() -> None:
             success_threshold=1,
         ),
     )
-    session = CleanupBackendSession(scenario)
+    session = HouseholdBackendSession(scenario)
     session.backend.scenario_source = "isaac_scene_index"
     session.backend.room_outlines = [
         {
@@ -711,7 +711,7 @@ def test_scene_index_backend_room_outline_waypoints_avoid_fixture_occupied_goals
             success_threshold=1,
         ),
     )
-    session = CleanupBackendSession(scenario)
+    session = HouseholdBackendSession(scenario)
     session.backend.scenario_source = "isaac_scene_index"
     session.backend.room_outlines = [
         {
@@ -926,7 +926,7 @@ def _policy_trace_agent_view(inspection_waypoints: list[dict]) -> dict:
 
 def test_runtime_metric_map_keeps_static_and_dynamic_semantics_separate() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=CAMERA_MODEL_POLICY_MODE,
     )
 
@@ -961,7 +961,7 @@ def test_runtime_metric_map_keeps_static_and_dynamic_semantics_separate() -> Non
 
 def test_world_labels_sanitized_runtime_map_keeps_detection_fields_without_destination() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         evidence_lane="world-public-labels",
     )
 
@@ -1002,7 +1002,7 @@ def test_world_labels_sanitized_runtime_map_keeps_detection_fields_without_desti
 
 def test_map_build_fixture_anchors_keep_best_view_waypoint_binding() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         evidence_lane="world-public-labels",
     )
 
@@ -1033,7 +1033,7 @@ def test_map_build_fixture_anchors_keep_best_view_waypoint_binding() -> None:
 
 def test_runtime_metric_map_promotes_only_observed_fixture_viewpoints() -> None:
     contract = _contract(
-        CleanupBackendSession(_empty_cleanup_scenario("map-build-empty-observation-test")),
+        HouseholdBackendSession(_empty_cleanup_scenario("map-build-empty-observation-test")),
         evidence_lane="world-public-labels",
     )
 
@@ -1065,7 +1065,7 @@ def test_runtime_metric_map_promotes_only_observed_fixture_viewpoints() -> None:
 
 def test_runtime_metric_map_snapshot_priors_require_current_confirmation() -> None:
     sweep_contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=CAMERA_MODEL_POLICY_MODE,
     )
     for waypoint in sweep_contract.metric_map()["inspection_waypoints"]:
@@ -1079,7 +1079,7 @@ def test_runtime_metric_map_snapshot_priors_require_current_confirmation() -> No
     prior_snapshot = sweep_contract.agent_view_payload()["runtime_metric_map"]
 
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=CAMERA_MODEL_POLICY_MODE,
         runtime_map_prior=prior_snapshot,
     )
@@ -1152,7 +1152,7 @@ def test_b1_runtime_prior_capabilities_are_agent_visible_through_mcp_flow() -> N
     }
     raw_prior = prior_snapshot["runtime_metric_map"]
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         runtime_map_prior=raw_prior,
     )
 
@@ -1191,7 +1191,7 @@ def test_b1_runtime_prior_capabilities_are_agent_visible_through_mcp_flow() -> N
 
 
 def test_relative_pose_navigation_rejects_noop_and_out_of_bounds_requests() -> None:
-    contract = _contract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
+    contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
 
     noop = contract.navigate_to_relative_pose()
     too_far = contract.navigate_to_relative_pose(forward_m=1.25)
@@ -1210,7 +1210,7 @@ def test_relative_pose_navigation_rejects_noop_and_out_of_bounds_requests() -> N
 def test_relative_pose_navigation_reports_public_delta_and_reobserve_requirement() -> None:
     scenario = build_cleanup_scenario(seed=7)
     backend = _RelativePoseBackend(scenario)
-    contract = _contract(CleanupBackendSession(backend=backend))
+    contract = _contract(HouseholdBackendSession(backend=backend))
 
     response = contract.navigate_to_relative_pose(
         forward_m=0.25,
@@ -1239,7 +1239,7 @@ def test_relative_pose_navigation_reports_public_delta_and_reobserve_requirement
 def test_relative_pose_navigation_strips_private_backend_pose_fields() -> None:
     scenario = build_cleanup_scenario(seed=7)
     backend = _RelativePoseBackend(scenario)
-    contract = _contract(CleanupBackendSession(backend=backend))
+    contract = _contract(HouseholdBackendSession(backend=backend))
 
     response = contract.navigate_to_relative_pose(forward_m=0.25)
 
@@ -1254,7 +1254,7 @@ def test_relative_pose_navigation_strips_private_backend_pose_fields() -> None:
 
 def test_base_metric_map_hides_authored_semantics_and_uses_generated_candidates() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
     )
 
     metric_map = contract.metric_map()
@@ -1273,7 +1273,7 @@ def test_base_metric_map_hides_authored_semantics_and_uses_generated_candidates(
 
 
 def _first_detection_waypoint(
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     metric_map: dict,
 ) -> tuple[dict, dict, dict]:
     waypoint = metric_map["inspection_waypoints"][0]
@@ -1397,7 +1397,7 @@ def test_public_fixture_anchor_allocator_skips_prior_anchor_id_collisions() -> N
 
 
 def test_target_candidates_force_adaptive_public_reinspection_path() -> None:
-    contract = _contract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
+    contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
     first_observation = _first_non_empty_observation(contract)
     handle = first_observation["visible_object_detections"][0]["object_id"]
 
@@ -1483,7 +1483,7 @@ def test_target_candidates_force_adaptive_public_reinspection_path() -> None:
 
 def test_target_query_recovery_resolves_stale_fixture_id_through_public_anchor() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
     )
     _observe_all_public_waypoints(contract)
 
@@ -1513,7 +1513,7 @@ def test_target_query_recovery_resolves_stale_fixture_id_through_public_anchor()
 
 def test_target_query_recovery_not_found_includes_public_search_budget() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
     )
     metric_map = _observe_all_public_waypoints(contract)
 
@@ -1532,7 +1532,7 @@ def test_target_query_recovery_not_found_includes_public_search_budget() -> None
 
 def test_base_metric_runtime_map_current_anchor_overrides_same_id_prior_anchor() -> None:
     seed_contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
     )
     _first_non_empty_observation(seed_contract)
     seed_runtime_map = seed_contract.agent_view_payload()["runtime_metric_map"]
@@ -1554,7 +1554,7 @@ def test_base_metric_runtime_map_current_anchor_overrides_same_id_prior_anchor()
     }
 
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         runtime_map_prior=prior_snapshot,
     )
     _first_non_empty_observation(contract)
@@ -1610,7 +1610,7 @@ def test_runtime_map_prior_anchor_keeps_snapshot_waypoint_without_current_eviden
     }
 
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         runtime_map_prior=prior_snapshot,
     )
     runtime_map = contract.agent_view_payload()["runtime_metric_map"]
@@ -1661,7 +1661,7 @@ def test_runtime_map_prior_anchor_keeps_snapshot_waypoint_without_current_eviden
 
 def test_base_metric_map_keeps_public_waypoint_after_receptacle_navigation() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
     )
 
     observation = _first_non_empty_observation(contract)
@@ -1688,7 +1688,7 @@ def test_base_metric_map_keeps_public_waypoint_after_receptacle_navigation() -> 
 
 def test_base_metric_map_observe_marks_placed_object_non_actionable() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
     )
 
     observation = _first_non_empty_observation(contract)
@@ -1743,7 +1743,7 @@ def test_base_metric_map_observe_marks_placed_object_non_actionable() -> None:
 
 def test_base_metric_map_done_uses_generated_candidate_coverage() -> None:
     contract = _contract(
-        CleanupBackendSession(
+        HouseholdBackendSession(
             CleanupScenario(
                 scenario_id="base-metric-map-done-gate-test",
                 task="build base navigation map",
@@ -1784,7 +1784,7 @@ def test_base_metric_map_done_uses_generated_candidate_coverage() -> None:
 
 
 def test_realworld_detected_handle_can_be_cleaned_without_private_manifest() -> None:
-    contract = _contract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
+    contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
     detection = _confirm_world_label_detection(
         contract,
         _first_detection_by_category(contract, "dish"),
@@ -1805,7 +1805,7 @@ def test_realworld_detected_handle_can_be_cleaned_without_private_manifest() -> 
 
 
 def test_realworld_contract_rejects_skipped_semantic_phases_without_private_truth() -> None:
-    contract = _contract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
+    contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
     detection = _first_detection_by_category(contract, "dish")
     detection = _confirm_world_label_detection(contract, detection)
     target_fixture = _public_destination_fixture_for_detection(contract, detection)
@@ -1832,7 +1832,7 @@ def test_realworld_contract_rejects_skipped_semantic_phases_without_private_trut
 
 
 def test_realworld_contract_rejects_done_with_pending_public_candidates() -> None:
-    contract = _contract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
+    contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
     observation = _first_non_empty_observation(contract)
     detection = observation["visible_object_detections"][0]
     contract._detections_by_handle[detection["object_id"]][  # noqa: SLF001
@@ -1858,7 +1858,7 @@ def test_realworld_contract_rejects_done_with_pending_public_candidates() -> Non
 
 
 def test_visual_scan_failure_removes_stale_candidate_from_done_blockers() -> None:
-    contract = _contract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
+    contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
     observation = _first_non_empty_observation(contract)
     candidate = observation["visible_object_detections"][0]
 
@@ -1878,7 +1878,7 @@ def test_visual_scan_failure_removes_stale_candidate_from_done_blockers() -> Non
 
 def test_open_ended_done_ignores_unrelated_pending_public_candidates() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         task_prompt="我渴了，帮我找些解渴的东西",
         public_acceptance_config={"task_intent": "open-ended"},
     )
@@ -1896,7 +1896,7 @@ def test_open_ended_done_ignores_unrelated_pending_public_candidates() -> None:
 
 def test_map_build_done_ignores_cleanup_candidates_after_complete_sweep() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         public_acceptance_config={"task_intent": "map-build"},
     )
     for waypoint in contract.metric_map()["inspection_waypoints"]:
@@ -1912,7 +1912,7 @@ def test_map_build_done_ignores_cleanup_candidates_after_complete_sweep() -> Non
 
 def test_map_build_done_still_requires_complete_sweep() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         public_acceptance_config={"task_intent": "map-build"},
     )
     observation = _first_non_empty_observation(contract)
@@ -1931,7 +1931,7 @@ def test_map_build_done_still_requires_complete_sweep() -> None:
 
 def test_cleanup_intent_keeps_cleanup_done_policy_for_prompt_text() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         task_prompt="我渴了，帮我找些解渴的东西",
         public_acceptance_config={"task_intent": "cleanup"},
     )
@@ -1948,7 +1948,7 @@ def test_cleanup_intent_keeps_cleanup_done_policy_for_prompt_text() -> None:
 
 
 def test_world_labels_done_rejects_held_public_candidate_with_receptacle_hint() -> None:
-    contract = _contract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
+    contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
     detection = _confirm_world_label_detection(
         contract,
         _first_detection_by_category(contract, "food"),
@@ -1977,7 +1977,7 @@ def test_world_labels_done_rejects_held_public_candidate_with_receptacle_hint() 
 
 
 def test_world_labels_rejects_destination_outside_public_policy() -> None:
-    contract = _contract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
+    contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
     detection = _confirm_world_label_detection(
         contract,
         _first_detection_by_category(contract, "food"),
@@ -2016,7 +2016,7 @@ def test_world_labels_rejects_destination_outside_public_policy() -> None:
 
 def test_open_ended_done_still_rejects_held_public_candidate() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         task_prompt="我渴了，帮我找些解渴的东西",
         public_acceptance_config={"task_intent": "open-ended"},
     )
@@ -2039,7 +2039,7 @@ def test_open_ended_done_still_rejects_held_public_candidate() -> None:
 
 def test_world_labels_sanitized_done_rejects_held_policy_required_object() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         evidence_lane="world-public-labels",
     )
     detection = _confirm_world_label_detection(
@@ -2083,7 +2083,7 @@ def test_world_labels_sanitized_done_rejects_held_policy_required_object() -> No
 
 def test_world_labels_sanitized_done_rejects_policy_required_pending_objects() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         evidence_lane="world-public-labels",
     )
     observation = _first_non_empty_observation(contract)
@@ -2136,7 +2136,7 @@ def test_world_labels_sanitized_done_rejects_policy_required_pending_objects() -
 
 def test_world_labels_sanitized_done_ignores_not_recommended_pending_objects() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         evidence_lane="world-public-labels",
     )
     detection = _first_detection_by_category(contract, "electronics")
@@ -2148,7 +2148,7 @@ def test_world_labels_sanitized_done_ignores_not_recommended_pending_objects() -
 
 
 def test_realworld_contract_rejects_place_inside_before_opening_fridge() -> None:
-    contract = _contract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
+    contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
     detection = _confirm_world_label_detection(
         contract,
         _first_detection_by_category(contract, "food"),
@@ -2182,7 +2182,7 @@ def test_realworld_contract_rejects_place_inside_before_opening_fridge() -> None
 
 
 def test_realworld_contract_routes_bookshelf_as_inside_without_close() -> None:
-    contract = _contract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
+    contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
     detection = _confirm_world_label_detection(
         contract,
         _first_detection_by_category(contract, "book"),
@@ -2215,7 +2215,7 @@ def test_realworld_contract_routes_bookshelf_as_inside_without_close() -> None:
 
 
 def test_realworld_agent_view_payload_keeps_private_evaluation_out() -> None:
-    contract = _contract(CleanupBackendSession(build_cleanup_scenario(seed=7)))
+    contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
 
     contract.metric_map()
     for waypoint in contract.metric_map()["inspection_waypoints"]:
@@ -2234,7 +2234,7 @@ def test_realworld_agent_view_payload_keeps_private_evaluation_out() -> None:
 
 def test_realworld_raw_fpv_mode_suppresses_structured_detections() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=RAW_FPV_ONLY_MODE,
     )
 
@@ -2306,7 +2306,7 @@ def test_realworld_raw_fpv_done_gate_scales_to_small_generated_mess_count() -> N
         ),
     )
     contract = _contract(
-        CleanupBackendSession(scenario),
+        HouseholdBackendSession(scenario),
         perception_mode=RAW_FPV_ONLY_MODE,
         public_acceptance_config={"required_model_declared_observations": 3},
     )
@@ -2332,7 +2332,7 @@ def test_realworld_raw_fpv_done_gate_scales_to_small_generated_mess_count() -> N
 
 def test_realworld_raw_fpv_camera_adjustment_is_bounded_and_resets() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=RAW_FPV_ONLY_MODE,
     )
 
@@ -2356,8 +2356,8 @@ def test_minimal_raw_fpv_waypoint_navigation_moves_backend_before_capture(
 ) -> None:
     scenario = build_cleanup_scenario(seed=7)
     backend = _PoseRecordingBackend(scenario)
-    contract = RealWorldCleanupContract(
-        CleanupBackendSession(scenario, backend=backend),
+    contract = HouseholdRuntimeContract(
+        HouseholdBackendSession(scenario, backend=backend),
         perception_mode=RAW_FPV_ONLY_MODE,
         map_bundle_dir=PREBUILT_BUNDLE,
     )
@@ -2407,7 +2407,7 @@ def test_minimal_raw_fpv_waypoint_navigation_moves_backend_before_capture(
 
 def test_realworld_unresolved_model_declared_candidate_is_unpickable() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=RAW_FPV_ONLY_MODE,
     )
 
@@ -2447,7 +2447,7 @@ def test_realworld_unresolved_model_declared_candidate_is_unpickable() -> None:
 
 def test_realworld_navigate_to_unresolved_visual_candidate_says_continue_sweep() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=RAW_FPV_ONLY_MODE,
     )
 
@@ -2478,7 +2478,7 @@ def test_realworld_raw_fpv_grounding_uses_source_observation_bbox_binding(
     monkeypatch,
 ) -> None:
     scenario = build_cleanup_scenario(seed=7)
-    session = CleanupBackendSession(scenario)
+    session = HouseholdBackendSession(scenario)
     contract = _contract(session, perception_mode=RAW_FPV_ONLY_MODE)
     target = scenario.objects[0]
     target_location = session.object_locations()[target.object_id]
@@ -2571,7 +2571,7 @@ def test_realworld_raw_fpv_grounding_uses_source_observation_bbox_binding(
 
 def test_simulated_raw_fpv_inputs_only_fall_back_for_synthetic_backend(monkeypatch) -> None:
     scenario = build_cleanup_scenario(seed=7)
-    session = CleanupBackendSession(scenario)
+    session = HouseholdBackendSession(scenario)
     contract = _contract(session, perception_mode=RAW_FPV_ONLY_MODE)
     target = scenario.objects[0]
     target_location = session.object_locations()[target.object_id]
@@ -2615,7 +2615,7 @@ def test_simulated_raw_fpv_inputs_only_fall_back_for_synthetic_backend(monkeypat
 
 def test_realworld_unresolved_visual_candidates_do_not_count_as_model_declared_actions() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=RAW_FPV_ONLY_MODE,
     )
 
@@ -2642,7 +2642,7 @@ def test_realworld_unresolved_visual_candidates_do_not_count_as_model_declared_a
 
 def test_realworld_done_does_not_require_unresolved_visual_candidates() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=RAW_FPV_ONLY_MODE,
     )
 
@@ -2683,7 +2683,7 @@ def test_realworld_done_does_not_require_unresolved_visual_candidates() -> None:
 
 def test_realworld_done_rejects_one_missing_public_waypoint() -> None:
     contract = _contract(
-        CleanupBackendSession(
+        HouseholdBackendSession(
             CleanupScenario(
                 scenario_id="missing-waypoint-gate-test",
                 task="check full public sweep",
@@ -2721,7 +2721,9 @@ def test_realworld_done_rejects_one_missing_public_waypoint() -> None:
 
 def test_world_labels_requested_run_size_does_not_enable_raw_fpv_grounded_chain_gate() -> None:
     contract = _contract(
-        CleanupBackendSession(_empty_cleanup_scenario("world-public-labels-readiness-policy-test")),
+        HouseholdBackendSession(
+            _empty_cleanup_scenario("world-public-labels-readiness-policy-test")
+        ),
         public_acceptance_config={"requested_run_size": 5},
     )
 
@@ -2738,7 +2740,7 @@ def test_world_labels_requested_run_size_does_not_enable_raw_fpv_grounded_chain_
 
 def test_camera_raw_requested_run_size_enables_grounded_chain_gate_after_sweep() -> None:
     contract = _contract(
-        CleanupBackendSession(_empty_cleanup_scenario("camera-raw-fpv-readiness-policy-test")),
+        HouseholdBackendSession(_empty_cleanup_scenario("camera-raw-fpv-readiness-policy-test")),
         perception_mode=RAW_FPV_ONLY_MODE,
         public_acceptance_config={"requested_run_size": 5},
     )
@@ -2779,7 +2781,7 @@ def test_camera_raw_requested_run_size_enables_grounded_chain_gate_after_sweep()
 
 def test_world_labels_explicit_grounded_chain_gate_uses_world_label_tooling() -> None:
     contract = _contract(
-        CleanupBackendSession(
+        HouseholdBackendSession(
             _empty_cleanup_scenario("world-public-labels-explicit-readiness-test")
         ),
         public_acceptance_config={"required_grounded_cleanup_chains": 2},
@@ -2803,7 +2805,7 @@ def test_world_labels_explicit_grounded_chain_gate_uses_world_label_tooling() ->
 
 def test_realworld_navigate_to_visual_candidate_returns_grounded_handle() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=RAW_FPV_ONLY_MODE,
     )
 
@@ -2844,7 +2846,7 @@ def test_realworld_raw_fpv_non_recommended_candidate_cannot_navigate_or_pick() -
         ),
     )
     contract = _contract(
-        CleanupBackendSession(scenario),
+        HouseholdBackendSession(scenario),
         perception_mode=RAW_FPV_ONLY_MODE,
     )
 
@@ -2873,7 +2875,7 @@ def test_realworld_raw_fpv_non_recommended_candidate_cannot_navigate_or_pick() -
 
 def test_raw_fpv_done_requires_canonical_distinct_heading_coverage() -> None:
     contract = _contract(
-        CleanupBackendSession(_empty_cleanup_scenario("raw-fpv-heading-coverage-test")),
+        HouseholdBackendSession(_empty_cleanup_scenario("raw-fpv-heading-coverage-test")),
         perception_mode=RAW_FPV_ONLY_MODE,
     )
 
@@ -2900,7 +2902,7 @@ def test_raw_fpv_done_requires_canonical_distinct_heading_coverage() -> None:
 
 def test_raw_fpv_done_requires_bounded_overlap_probe_for_candidate_free_closeout() -> None:
     contract = _contract(
-        CleanupBackendSession(_empty_cleanup_scenario("raw-fpv-overlap-probe-test")),
+        HouseholdBackendSession(_empty_cleanup_scenario("raw-fpv-overlap-probe-test")),
         perception_mode=RAW_FPV_ONLY_MODE,
         public_acceptance_config={"required_grounded_cleanup_chains": 1},
     )
@@ -2945,7 +2947,7 @@ def test_raw_fpv_done_requires_bounded_overlap_probe_for_candidate_free_closeout
 
 def test_open_ended_raw_fpv_done_does_not_require_whole_room_heading_coverage() -> None:
     contract = _contract(
-        CleanupBackendSession(_empty_cleanup_scenario("open-ended-raw-fpv-heading-test")),
+        HouseholdBackendSession(_empty_cleanup_scenario("open-ended-raw-fpv-heading-test")),
         perception_mode=RAW_FPV_ONLY_MODE,
         public_acceptance_config={"task_intent": "open-ended"},
     )
@@ -2962,7 +2964,7 @@ def test_open_ended_raw_fpv_done_does_not_require_whole_room_heading_coverage() 
 
 def test_grounded_chain_gate_counts_only_cleanup_recommended_handles() -> None:
     contract = _contract(
-        CleanupBackendSession(_empty_cleanup_scenario("recommended-chain-count-test")),
+        HouseholdBackendSession(_empty_cleanup_scenario("recommended-chain-count-test")),
         perception_mode=RAW_FPV_ONLY_MODE,
         public_acceptance_config={"required_grounded_cleanup_chains": 2},
     )
@@ -2993,7 +2995,7 @@ def test_grounded_chain_gate_counts_only_cleanup_recommended_handles() -> None:
 
 def test_realworld_raw_fpv_visual_candidate_requires_reviewable_fpv_bbox() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=RAW_FPV_ONLY_MODE,
     )
 
@@ -3032,7 +3034,7 @@ def test_realworld_raw_fpv_visual_candidate_requires_reviewable_fpv_bbox() -> No
 
 def test_minimal_raw_fpv_visual_candidate_can_omit_target_fixture_id() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=RAW_FPV_ONLY_MODE,
     )
 
@@ -3069,7 +3071,7 @@ def test_minimal_raw_fpv_visual_candidate_can_omit_target_fixture_id() -> None:
 
 def test_minimal_raw_fpv_visual_candidate_requires_public_destination() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=RAW_FPV_ONLY_MODE,
     )
 
@@ -3097,7 +3099,7 @@ def test_minimal_raw_fpv_visual_candidate_requires_public_destination() -> None:
 
 def test_realworld_raw_fpv_rejects_already_handled_visual_candidate_without_navigation() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=RAW_FPV_ONLY_MODE,
     )
 
@@ -3165,7 +3167,7 @@ def test_realworld_raw_fpv_rejects_already_handled_visual_candidate_without_navi
 
 def test_realworld_rejects_malformed_model_declared_candidate() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=RAW_FPV_ONLY_MODE,
     )
 
@@ -3234,7 +3236,7 @@ def test_realworld_rejects_malformed_model_declared_candidate() -> None:
 
 def test_minimal_raw_fpv_navigate_validation_returns_schema_recovery() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=RAW_FPV_ONLY_MODE,
     )
 
@@ -3282,7 +3284,7 @@ def test_minimal_raw_fpv_navigate_validation_returns_schema_recovery() -> None:
 
 def test_realworld_model_declared_grounding_accepts_public_category_families() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=RAW_FPV_ONLY_MODE,
     )
 
@@ -3308,7 +3310,7 @@ def test_realworld_model_declared_grounding_accepts_public_category_families() -
 
 def test_realworld_model_declared_grounding_keeps_target_mismatch_as_metadata() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=RAW_FPV_ONLY_MODE,
     )
 
@@ -3334,7 +3336,7 @@ def test_realworld_model_declared_grounding_keeps_target_mismatch_as_metadata() 
 
 def test_realworld_model_declared_grounding_accepts_live_broad_categories() -> None:
     contract = _contract(
-        CleanupBackendSession(_live_style_alias_scenario()),
+        HouseholdBackendSession(_live_style_alias_scenario()),
         perception_mode=RAW_FPV_ONLY_MODE,
     )
 
@@ -3404,7 +3406,7 @@ def test_realworld_model_declared_grounding_accepts_live_broad_categories() -> N
 
 def test_realworld_raw_fpv_grounding_blocks_same_room_fallback() -> None:
     contract = _contract(
-        CleanupBackendSession(_same_room_fallback_scenario()),
+        HouseholdBackendSession(_same_room_fallback_scenario()),
         perception_mode=RAW_FPV_ONLY_MODE,
     )
 
@@ -3434,7 +3436,7 @@ def test_realworld_raw_fpv_grounding_blocks_same_room_fallback() -> None:
 
 def test_realworld_camera_model_policy_registers_model_labelled_candidates() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=CAMERA_MODEL_POLICY_MODE,
     )
 
@@ -3497,7 +3499,7 @@ def test_realworld_camera_model_policy_registers_model_labelled_candidates() -> 
 
 def test_runtime_metric_map_clusters_same_view_fixture_anchors_and_keeps_view_pose_prior() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=CAMERA_MODEL_POLICY_MODE,
     )
 
@@ -3557,7 +3559,7 @@ def test_runtime_metric_map_clusters_same_view_fixture_anchors_and_keeps_view_po
 
 def test_realworld_camera_raw_empty_declare_does_not_fall_back_to_sim_labels() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=RAW_FPV_ONLY_MODE,
     )
 
@@ -3575,7 +3577,7 @@ def test_realworld_camera_raw_empty_declare_does_not_fall_back_to_sim_labels() -
 
 def test_realworld_camera_model_policy_records_sim_pipeline_provenance() -> None:
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=CAMERA_MODEL_POLICY_MODE,
     )
 
@@ -3617,7 +3619,7 @@ def test_realworld_camera_labels_http_failure_is_visible_without_sim_fallback(
         }
     )
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=CAMERA_MODEL_POLICY_MODE,
         visual_grounding_client=client,
         visual_grounding_pipeline_id="grounding-dino",
@@ -3674,7 +3676,7 @@ def test_realworld_camera_labels_missing_raw_image_fails_before_sidecar() -> Non
         }
     )
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=CAMERA_MODEL_POLICY_MODE,
         visual_grounding_client=client,
         visual_grounding_pipeline_id="grounding-dino",
@@ -3731,7 +3733,7 @@ def test_realworld_camera_labels_http_success_uses_destination_resolver(
         }
     )
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=CAMERA_MODEL_POLICY_MODE,
         visual_grounding_client=client,
         visual_grounding_pipeline_id="grounding-dino",
@@ -3818,7 +3820,7 @@ def test_b1_isaac_raw_fpv_artifact_can_feed_camera_grounded_labels(
         }
     )
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=CAMERA_MODEL_POLICY_MODE,
         evidence_lane="camera-grounded-labels",
         visual_grounding_client=client,
@@ -3895,7 +3897,7 @@ def test_realworld_camera_labels_http_destination_hint_is_evidence_only(
         }
     )
     contract = _contract(
-        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=CAMERA_MODEL_POLICY_MODE,
         visual_grounding_client=client,
         visual_grounding_pipeline_id="grounding-dino",
@@ -3954,7 +3956,7 @@ class _StaticVisualGroundingClient:
 
 
 def _attach_raw_fpv_test_image(
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     *,
     tmp_path: Path,
     relative_path: str,
@@ -3965,7 +3967,7 @@ def _attach_raw_fpv_test_image(
     contract._raw_fpv_observations[-1]["image_artifacts"] = {"fpv": str(image_path)}  # noqa: SLF001
 
 
-def _first_non_empty_observation(contract: RealWorldCleanupContract) -> dict:
+def _first_non_empty_observation(contract: HouseholdRuntimeContract) -> dict:
     for waypoint in contract.metric_map()["inspection_waypoints"]:
         contract.navigate_to_waypoint(str(waypoint["waypoint_id"]))
         observation = contract.observe()
@@ -3975,7 +3977,7 @@ def _first_non_empty_observation(contract: RealWorldCleanupContract) -> dict:
 
 
 def _observe_raw_fpv_category(
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     *,
     category: str,
 ) -> dict:
@@ -3992,7 +3994,7 @@ def _observe_raw_fpv_category(
 
 
 def _observe_raw_fpv_heading_sweep(
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     *,
     headings: tuple[float, ...] = (0.0, 90.0, 180.0, 270.0),
 ) -> dict:
@@ -4006,7 +4008,7 @@ def _observe_raw_fpv_heading_sweep(
 
 
 def _set_latest_raw_fpv_heading(
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     heading_degrees: float,
 ) -> None:
     contract._raw_fpv_observations[-1]["camera_control_contract"] = {  # noqa: SLF001
@@ -4017,7 +4019,7 @@ def _set_latest_raw_fpv_heading(
     }
 
 
-def _observe_all_public_waypoints(contract: RealWorldCleanupContract) -> dict:
+def _observe_all_public_waypoints(contract: HouseholdRuntimeContract) -> dict:
     seen: set[str] = set()
     metric_map = contract.metric_map()
     for _ in range(20):
@@ -4038,7 +4040,7 @@ def _observe_all_public_waypoints(contract: RealWorldCleanupContract) -> dict:
 
 
 def _first_detection_by_category(
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     category: str,
 ) -> dict:
     for waypoint in contract.metric_map()["inspection_waypoints"]:
@@ -4051,7 +4053,7 @@ def _first_detection_by_category(
 
 
 def _confirm_world_label_detection(
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     detection: dict,
 ) -> dict:
     contract.adjust_camera(yaw_delta_deg=15)
@@ -4064,7 +4066,7 @@ def _confirm_world_label_detection(
 
 
 def _public_destination_fixture_for_detection(
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     detection: dict,
 ) -> dict:
     _observe_all_public_waypoints(contract)

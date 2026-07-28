@@ -15,7 +15,9 @@ if __package__ in {None, ""}:
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
 
-from roboclaws.household.backend_contract import build_cleanup_backend_session  # noqa: E402
+from roboclaws.household.household_backend_contract import (
+    build_household_backend_session,  # noqa: E402
+)
 from roboclaws.household.subprocess_backend import MOLMOSPACES_SUBPROCESS_BACKEND  # noqa: E402
 from roboclaws.launch.map_bundles import molmospaces_nav2_map_bundle_path  # noqa: E402
 from roboclaws.launch.scene_sampler import eval_sampler_rows, ui_sampler_rows  # noqa: E402
@@ -234,7 +236,7 @@ def _generate_scene_bundle(
     scene_run_dir.mkdir(parents=True, exist_ok=True)
     staged_bundle_dir = scene_run_dir / "bundle"
 
-    session = build_cleanup_backend_session(
+    session = build_household_backend_session(
         backend_name=MOLMOSPACES_SUBPROCESS_BACKEND,
         run_dir=scene_run_dir,
         seed=seed,

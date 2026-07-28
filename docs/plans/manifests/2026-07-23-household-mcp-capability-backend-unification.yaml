@@ -1,0 +1,10 @@
+docs:
+  - path: docs/plans/2026-07-23-household-mcp-capability-backend-unification.md
+    type: PRD
+    precedence: 2
+  - path: docs/adr/0136-use-base-metric-map-and-first-class-household-launch-contracts.md
+    type: ADR
+    precedence: 0
+  - path: docs/adr/0140-use-eval-suites-as-first-class-architecture-layer.md
+    type: ADR
+    precedence: 0

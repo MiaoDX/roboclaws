@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from roboclaws.household.realworld_contract import (
+from roboclaws.household.household_runtime_contract import (
     CAMERA_MODEL_POLICY_MODE,
     MAIN_CLEANUP_AGENT_PRODUCER,
     SIMULATED_CAMERA_MODEL_PROVENANCE,
@@ -31,12 +31,13 @@ SEMANTIC_CLEANUP_TOOL_NAMES = (
 AGENT_SDK_CAMERA_GROUNDED_COMPOSITE_TOOL_NAMES = ("observe_camera_grounded_candidates",)
 
 
-def register_semantic_cleanup_tools(server: Any) -> None:
+def register_semantic_cleanup_tools(server: Any) -> tuple[str, ...]:
     """Register context, navigation, observation, and visual-grounding tools."""
     _register_map_navigation_tools(server)
     _register_observation_tools(server)
     _register_visual_grounding_tools(server)
     _register_target_resolution_tools(server)
+    return SEMANTIC_CLEANUP_TOOL_NAMES
 
 
 def _register_map_navigation_tools(server: Any) -> None:

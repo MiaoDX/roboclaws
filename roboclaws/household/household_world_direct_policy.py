@@ -6,19 +6,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from roboclaws.household.backend_contract import CleanupBackendSession
+from roboclaws.household.household_backend_contract import HouseholdBackendSession
+from roboclaws.household.household_runtime_contract import (
+    CAMERA_MODEL_POLICY_MODE,
+    CAMERA_MODEL_POLICY_NAME,
+    DETERMINISTIC_SWEEP_POLICY,
+    RAW_FPV_ONLY_MODE,
+    HouseholdRuntimeContract,
+)
 from roboclaws.household.map_build_scan_profile import (
     MapBuildScanProfile,
 )
 from roboclaws.household.map_build_scan_profile import (
     map_build_scan_profile as build_map_build_scan_profile,
-)
-from roboclaws.household.realworld_contract import (
-    CAMERA_MODEL_POLICY_MODE,
-    CAMERA_MODEL_POLICY_NAME,
-    DETERMINISTIC_SWEEP_POLICY,
-    RAW_FPV_ONLY_MODE,
-    RealWorldCleanupContract,
 )
 from roboclaws.household.robot_view_camera_control import (
     ROBOT_VIEW_CAMERA_CONTROL_CONTRACT_SCHEMA,
@@ -33,7 +33,7 @@ MAP_BUILD_POLICY = "map_build_baseline"
 ToolCaller = Callable[..., dict[str, Any]]
 ObservationPostprocessor = Callable[..., dict[str, Any]]
 WaypointFilter = Callable[[list[dict[str, Any]]], list[dict[str, Any]]]
-StopAfterWaypoint = Callable[[RealWorldCleanupContract], bool]
+StopAfterWaypoint = Callable[[HouseholdRuntimeContract], bool]
 
 
 @dataclass(frozen=True)
@@ -55,12 +55,12 @@ class DirectHouseholdEpisodePolicyHooks:
     detections_for_policy: Callable[..., list[dict[str, Any]]]
     maybe_clean_visible_object: Callable[..., int]
     map_build_done: Callable[..., dict[str, Any]]
-    failed_score: Callable[[RealWorldCleanupContract], dict[str, Any]]
+    failed_score: Callable[[HouseholdRuntimeContract], dict[str, Any]]
 
 
 def record_direct_household_episode_robot_view(
     *,
-    base_contract: CleanupBackendSession,
+    base_contract: HouseholdBackendSession,
     robot_view_steps: list[dict[str, Any]],
     output_dir: Path,
     view_index: int,
@@ -113,8 +113,8 @@ def run_direct_household_episode_scan(
     *,
     trace_events: list[dict[str, Any]],
     started_at: float,
-    contract: RealWorldCleanupContract,
-    base_contract: CleanupBackendSession,
+    contract: HouseholdRuntimeContract,
+    base_contract: HouseholdBackendSession,
     metric_map: dict[str, Any],
     static_fixture_projection: dict[str, Any],
     robot_view_steps: list[dict[str, Any]],
@@ -188,8 +188,8 @@ def _scan_direct_cleanup_waypoint(
     *,
     trace_events: list[dict[str, Any]],
     started_at: float,
-    contract: RealWorldCleanupContract,
-    base_contract: CleanupBackendSession,
+    contract: HouseholdRuntimeContract,
+    base_contract: HouseholdBackendSession,
     waypoint: dict[str, Any],
     static_fixture_projection: dict[str, Any],
     robot_view_steps: list[dict[str, Any]],
@@ -253,8 +253,8 @@ def _observe_direct_cleanup_waypoint(
     *,
     trace_events: list[dict[str, Any]],
     started_at: float,
-    contract: RealWorldCleanupContract,
-    base_contract: CleanupBackendSession,
+    contract: HouseholdRuntimeContract,
+    base_contract: HouseholdBackendSession,
     robot_view_steps: list[dict[str, Any]],
     output_dir: Path,
     view_index: int,
@@ -383,7 +383,7 @@ def _observe_direct_cleanup_waypoint(
 def _attach_direct_raw_fpv_observation_evidence(
     *,
     response: dict[str, Any],
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     body_heading_deg: float,
 ) -> dict[str, Any]:
     raw = response.get("raw_fpv_observation")
@@ -430,8 +430,8 @@ def _handle_direct_cleanup_detections(
     *,
     trace_events: list[dict[str, Any]],
     started_at: float,
-    contract: RealWorldCleanupContract,
-    base_contract: CleanupBackendSession,
+    contract: HouseholdRuntimeContract,
+    base_contract: HouseholdBackendSession,
     detections: list[dict[str, Any]],
     static_fixture_projection: dict[str, Any],
     robot_view_steps: list[dict[str, Any]],
@@ -454,8 +454,8 @@ def _clean_direct_cleanup_detections(
     *,
     trace_events: list[dict[str, Any]],
     started_at: float,
-    contract: RealWorldCleanupContract,
-    base_contract: CleanupBackendSession,
+    contract: HouseholdRuntimeContract,
+    base_contract: HouseholdBackendSession,
     detections: list[dict[str, Any]],
     static_fixture_projection: dict[str, Any],
     robot_view_steps: list[dict[str, Any]],
@@ -492,8 +492,8 @@ def _clean_pending_detections(
     *,
     trace_events: list[dict[str, Any]],
     started_at: float,
-    contract: RealWorldCleanupContract,
-    base_contract: CleanupBackendSession,
+    contract: HouseholdRuntimeContract,
+    base_contract: HouseholdBackendSession,
     static_fixture_projection: dict[str, Any],
     robot_view_steps: list[dict[str, Any]],
     output_dir: Path,
@@ -550,7 +550,7 @@ def _clean_pending_detections(
 
 
 def _unhandled_worklist_detections(
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     *,
     handled_handles: set[str],
 ) -> list[dict[str, Any]]:
@@ -579,8 +579,8 @@ def complete_direct_household_episode(
     *,
     trace_events: list[dict[str, Any]],
     started_at: float,
-    contract: RealWorldCleanupContract,
-    base_contract: CleanupBackendSession,
+    contract: HouseholdRuntimeContract,
+    base_contract: HouseholdBackendSession,
     episode_policy: DirectHouseholdEpisodePolicy,
     hooks: DirectHouseholdEpisodePolicyHooks,
 ) -> dict[str, Any]:
@@ -609,8 +609,8 @@ def complete_direct_household_episode(
 
 def _done_with_failed_score(
     *,
-    contract: RealWorldCleanupContract,
-    base_contract: CleanupBackendSession,
+    contract: HouseholdRuntimeContract,
+    base_contract: HouseholdBackendSession,
     done: dict[str, Any],
     reason: str,
     hooks: DirectHouseholdEpisodePolicyHooks,

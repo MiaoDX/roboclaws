@@ -9,7 +9,11 @@ from roboclaws.household import (
     realworld_runtime_map_targets,
 )
 from roboclaws.maps.bundle import validate_base_metric_map_v1_bundle
-from roboclaws.maps.project import metric_map_from_bundle, static_landmarks_from_bundle
+from roboclaws.maps.project import (
+    metric_map_from_bundle,
+    occupancy_grid_from_bundle,
+    static_landmarks_from_bundle,
+)
 
 
 def validate_contract_options(
@@ -77,6 +81,7 @@ def init_map_projection(
     target.map_bundle_dir = Path(map_bundle_dir) if map_bundle_dir is not None else None
     target.map_bundle_validation = None
     target._bundle_metric_map_template = None
+    target._bundle_occupancy_grid = None
     target._bundle_static_landmarks_template = None
     if target.map_bundle_dir is None:
         raise ValueError(
@@ -156,6 +161,7 @@ def _init_bundle_map_projection(target: Any) -> None:
     validation.raise_for_errors(label="Base Metric Map v1 bundle")
     target.map_bundle_validation = validation.as_dict()
     target._bundle_metric_map_template = metric_map_from_bundle(target.map_bundle_dir)
+    target._bundle_occupancy_grid = occupancy_grid_from_bundle(target.map_bundle_dir)
     target._bundle_static_landmarks_template = static_landmarks_from_bundle(target.map_bundle_dir)
     target._fixtures = realworld_contract_projection._fixtures_from_bundle_static_landmarks(
         target._bundle_static_landmarks_template
@@ -214,7 +220,7 @@ def _init_public_map_projection(target: Any) -> None:
 
 
 def _contract_helpers() -> Any:
-    from roboclaws.household import realworld_contract
+    from roboclaws.household import household_runtime_contract as realworld_contract
 
     return realworld_contract
 

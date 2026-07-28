@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from roboclaws.household import agent_view as agent_view_module
-from roboclaws.household.realworld_contract import forbidden_agent_view_keys
+from roboclaws.household.household_runtime_contract import forbidden_agent_view_keys
 from roboclaws.maps.base_waypoints import (
     BASE_WAYPOINT_GENERATION_POLICY,
     BASE_WAYPOINT_PURPOSE,
