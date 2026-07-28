@@ -216,13 +216,19 @@ canonical task layer or active compatibility contract.
 
 `just console::run` starts a standalone local operator console for supported
 SDK/direct household routes. The main console screen is a workflow surface:
-choose a scene, inspect scene/map-prior state, then run Build Map, Open Task,
-Cleanup, Open Task With Map, Cleanup With Map, Prepare Standard Mess, or Reset
-Scene. Operator workflows default to `evidence_lane=camera-grounded-labels`
-with `camera_labeler=grounding-dino`; simulator/public-label lanes, provider
+choose a scene, inspect scene/map-prior state, then run Build Map, Open Task, or
+Cleanup. Runtime Map Prior Snapshot use is an optional workflow setting backed
+by the scene recommended-prior catalog or an operator override, not a separate
+top-level "with map" task. Scene preparation actions such as standard mess
+setup and reset are setup/operations controls, not robot-task workflow peers.
+Operator workflows default to `evidence_lane=camera-grounded-labels` with
+`camera_labeler=grounding-dino`; simulator/public-label lanes, provider
 selection, relocation count, and other raw launch axes are Advanced controls.
-With-map workflows require an explicit Runtime Map Prior Snapshot from the
-scene recommended-prior catalog or an operator override. The console does not
+Environment-specific support differences should appear as capability/readiness
+state on the same workflow surface. B1 / Map 12 digital-twin Build Map is an
+experimental Isaac-runtime-gated route; digital-twin cleanup stays unavailable
+until product cleanup execution is proven. Agibot G2 physical cleanup stays
+unavailable until physical manipulation proof exists. The console does not
 expose arbitrary shell commands: workflow launches still translate into
 `just run::surface` args and resolve through the public launch catalog.
 

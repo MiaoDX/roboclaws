@@ -13,13 +13,14 @@ from roboclaws.operator_console.runtime_inventory import (
     runtime_blockers_payload,
     runtime_inventory_payload,
 )
+from tests.unit.operator_console.conftest import (
+    MUJOCO_OPENAI_AGENTS_OPEN_TASK,  # noqa: F401  re-exported for tests
+)
 
 CODEX_ENV = {
     "CODEX_BASE_URL": "https://codex.example.test/v1",
     "CODEX_API_KEY": "key",
 }
-
-from tests.unit.operator_console.conftest import MUJOCO_OPENAI_AGENTS_OPEN_TASK  # noqa: F401  re-exported for tests
 
 
 def test_runtime_inventory_lists_eval_harness_sdk_live_row(tmp_path: Path) -> None:

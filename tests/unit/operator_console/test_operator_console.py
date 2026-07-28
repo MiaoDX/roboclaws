@@ -48,7 +48,10 @@ from tests.support.b1_robot_proof import write_b1_robot_proof_artifacts
 from tests.unit.operator_console.conftest import (  # noqa: F401  re-exported for tests
     AGIBOT_SDK_CLEANUP,
     AGIBOT_SDK_MAP_BUILD,
+    AGIBOT_SDK_OPEN_TASK,
     B1_OPENAI_AGENTS_CAMERA_GROUNDED,
+    B1_OPENAI_AGENTS_CLEANUP,
+    B1_OPENAI_AGENTS_MAP_BUILD,
     B1_OPENAI_AGENTS_OPEN_TASK,
     MUJOCO_OPENAI_AGENTS_OPEN_TASK,
     MUJOCO_SDK_CLEANUP,
@@ -87,6 +90,7 @@ def test_console_route_registry_exposes_agent_routes_and_explains_disabled_route
         MUJOCO_OPENAI_AGENTS_OPEN_TASK,
         AGIBOT_SDK_MAP_BUILD,
         MUJOCO_SDK_MAP_BUILD,
+        B1_OPENAI_AGENTS_MAP_BUILD,
         B1_OPENAI_AGENTS_OPEN_TASK,
         B1_OPENAI_AGENTS_CAMERA_GROUNDED,
     }
@@ -101,6 +105,8 @@ def test_console_route_registry_exposes_agent_routes_and_explains_disabled_route
         "agibot_g2",
     }
     assert "Physical manipulation is not active" in disabled[AGIBOT_SDK_CLEANUP]
+    assert "Physical open task is not product-proven yet" in disabled[AGIBOT_SDK_OPEN_TASK]
+    assert "Digital-twin cleanup is not product-proven yet" in disabled[B1_OPENAI_AGENTS_CLEANUP]
     validate_supported_routes_against_catalog()
 
 
@@ -118,10 +124,12 @@ def test_console_routes_endpoint_exposes_workflows_and_prior_catalog(tmp_path: P
     scene_workflows = {workflow["id"]: workflow for workflow in scene["workflow_actions"]}
 
     assert payload["recommended_priors"] == []
-    assert workflows["cleanup-with-map"]["requires_runtime_map_prior"] is True
+    assert tuple(workflows) == ("build-map", "open-task", "cleanup")
+    assert workflows["cleanup"]["allows_prior_override"] is True
+    assert workflows["cleanup"]["requires_runtime_map_prior"] is False
     assert scene_workflows["open-task"]["default_route_id"].endswith("::camera-grounded-labels")
-    assert scene_workflows["cleanup-with-map"]["enabled"] is False
-    assert scene_workflows["cleanup-with-map"]["allows_prior_override"] is True
+    assert scene_workflows["cleanup"]["enabled"] is True
+    assert scene_workflows["cleanup"]["allows_prior_override"] is True
 
 
 def test_console_route_payload_supports_backend_specific_ui_metadata() -> None:
@@ -130,15 +138,16 @@ def test_console_route_payload_supports_backend_specific_ui_metadata() -> None:
     agibot = get_selection(AGIBOT_SDK_MAP_BUILD).to_payload()
 
     assert mujoco["field_groups"] == ["common"]
-    assert "grounding" not in mujoco["view_modes"]
-    assert {"overview", "fpv", "map", "outputs"}.issubset(set(mujoco["view_modes"]))
+    assert set(mujoco["view_modes"]) == {"overview", "fpv", "map", "grounding", "chase", "outputs"}
+    assert "grounding" not in mujoco["backend_view_modes"]
 
     assert b1["field_groups"] == ["common"]
     assert "grounding" in b1["view_modes"]
+    assert "grounding" in b1["backend_view_modes"]
 
     assert agibot["field_groups"] == ["common", "agibot", "agibot_gates"]
     assert "grounding" in agibot["view_modes"]
-    assert "chase" not in agibot["view_modes"]
+    assert "chase" not in agibot["backend_view_modes"]
 
 
 def test_console_prompt_gating_and_argv_construction_are_fixed_argv(tmp_path: Path) -> None:

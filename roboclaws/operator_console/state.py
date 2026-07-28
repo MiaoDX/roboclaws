@@ -17,15 +17,14 @@ from roboclaws.maps.preview import (
     SCENE_RENDER_SOURCE_FAMILY,
     TOPDOWN_SCENE_RENDER_ROLE,
 )
+from roboclaws.operator_console.grounding_assets import grounding_frames_payload
 from roboclaws.operator_console.jsonl_sources import collect_jsonl_objects
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.redaction import redact_text
-from roboclaws.operator_console.runtime_compat import pid_is_active  # noqa: F401
 from roboclaws.operator_console.routes import ConsoleLaunchSelection
+from roboclaws.operator_console.runtime_compat import pid_is_active  # noqa: F401
 from roboclaws.operator_console.state_checker import checker_status
-from roboclaws.operator_console.state_summary import (
-    camera_angle_summary,
-)
+from roboclaws.operator_console.state_summary import camera_angle_summary
 
 LIVE_RUN_MARKERS = (
     "live_status.json",
@@ -715,11 +714,9 @@ def _latest_view_assets(root: Path, run_dir: Path) -> dict[str, dict[str, Any]]:
             "mtime": str(path.stat().st_mtime),
             **_view_asset_role_metadata(key),
         }
-    if "grounding" in output:
-        output["fpv"] = {
-            **output["grounding"],
-            "display_source": "visual_grounding_overlay",
-        }
+    grounding_frames = grounding_frames_payload(root, run_dir)
+    if grounding_frames:
+        output["grounding_frames"] = grounding_frames
     return output
 
 

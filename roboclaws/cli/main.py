@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 
+from roboclaws.cli.agent import main as agent_main
 from roboclaws.cli.agent_server import main as agent_server_main
 from roboclaws.cli.task_run import die, surface_run_main
 
@@ -16,9 +17,11 @@ def main(argv: list[str] | None = None) -> int:
         from roboclaws.evals.cli import main as eval_main
 
         return eval_main(args[1:])
+    if args and args[0] == "agent":
+        return agent_main(args[1:])
     if args and args[0] == "agent-server":
         return agent_server_main(args[1:])
-    die("expected subcommand: run surface | eval | agent-server")
+    die("expected subcommand: run surface | eval | agent | agent-server")
 
 
 if __name__ == "__main__":

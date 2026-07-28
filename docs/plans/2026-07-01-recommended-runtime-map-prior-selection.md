@@ -39,9 +39,10 @@ Prior Snapshot into the operator-console recommended-prior catalog.
 
 The operator-console result should be:
 
-- with-map workflows are enabled by default when a scene has an accepted catalog
-  prior;
-- the generated launch command passes `runtime_map_prior=<catalog path>`;
+- the Runtime Map Prior selector auto-selects an accepted catalog prior for the
+  selected scene/backend when one exists;
+- the generated launch command passes `runtime_map_prior=<catalog path>` only
+  when the selector has a catalog prior or explicit operator override;
 - no UI path silently falls back to arbitrary latest MapBuild artifacts.
 
 ## Terminology
@@ -155,7 +156,7 @@ Use a compatibility classification:
   publishing new baselines.
 - `blocking_stale`: source map identity no longer matches the scene/backend,
   the artifact is missing or unreadable, or the public/private boundary cannot
-  be verified; do not auto-enable with-map workflows from this entry.
+  be verified; do not auto-select this entry in the Runtime Map Prior selector.
 
 Small doc edits, report wording changes, unrelated evaluator refactors, or
 non-contract metadata changes should not invalidate a catalog prior.
@@ -164,7 +165,8 @@ non-contract metadata changes should not invalidate a catalog prior.
 
 When a selected scene/backend has an accepted non-blocking catalog entry:
 
-- `Open Task With Map` and `Cleanup With Map` are enabled by default.
+- the normal `Open Task` and `Cleanup` workflows show the accepted prior as the
+  selected optional Runtime Map Prior.
 - The command preview and launch request include the catalog
   `runtime_map_prior` path.
 - The UI shows the selected prior provenance and any non-blocking staleness
@@ -173,8 +175,9 @@ When a selected scene/backend has an accepted non-blocking catalog entry:
 
 When no accepted prior exists, keep the current empty state:
 
-- with-map workflows are disabled as `NEEDS MAP`;
-- the UI offers Build Map or explicit override;
+- the Runtime Map Prior selector shows no recommended prior;
+- the UI offers Build Map or explicit override, while normal workflows can
+  still launch without `runtime_map_prior` when their route is otherwise ready;
 - no arbitrary latest artifact becomes the default prior.
 
 ## Implementation Slices
@@ -209,6 +212,6 @@ When no accepted prior exists, keep the current empty state:
   Snapshot with pinned provenance.
 - Compatibility classification distinguishes minor changes from
   `blocking_stale`.
-- Operator console enables with-map workflows only for accepted non-blocking
-  catalog entries or explicit overrides.
+- Operator console auto-selects Runtime Map Prior entries only for accepted
+  non-blocking catalog entries or explicit overrides.
 - Unit/contract coverage proves no fallback to latest artifacts.

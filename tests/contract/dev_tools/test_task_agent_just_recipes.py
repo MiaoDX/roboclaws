@@ -28,6 +28,7 @@ JUST_DIR = REPO_ROOT / "just"
 AGENT_JUST = JUST_DIR / "agent.just"
 OPENCLAW_JUST = JUST_DIR / "openclaw.just"
 MOLMO_JUST = JUST_DIR / "molmo.just"
+AGENT_CLI = REPO_ROOT / "roboclaws" / "cli" / "agent.py"
 CODING_AGENT_ENV = REPO_ROOT / "scripts" / "dev" / "coding_agent_env.sh"
 LIVE_OPENAI_AGENTS_RUNNER = REPO_ROOT / "scripts/molmo_cleanup/run_live_openai_agents_cleanup.py"
 AGIBOT_MAP_BUILD_SDK_RUNNER = (
@@ -456,7 +457,7 @@ def test_agent_harness_no_longer_advertises_agent_validation() -> None:
 
 
 def test_agent_harness_allows_molmo_visual_grounding_benchmark_target() -> None:
-    agent_text = AGENT_JUST.read_text(encoding="utf-8")
+    agent_text = AGENT_CLI.read_text(encoding="utf-8")
     harness_text = (JUST_DIR / "harness.just").read_text(encoding="utf-8")
 
     assert "molmo-visual-grounding-benchmark" in agent_text
@@ -528,15 +529,12 @@ def test_agent_mcp_accepts_canonical_household_dispatch_targets() -> None:
 
 
 def test_agent_mcp_rejects_legacy_household_dispatch_targets() -> None:
-    text = AGENT_JUST.read_text(encoding="utf-8")
-    mcp_recipe = re.search(r"^mcp action=.*?(?=^# |\\Z)", text, re.MULTILINE | re.DOTALL)
-    assert mcp_recipe is not None
-    body = mcp_recipe.group(0)
+    body = AGENT_CLI.read_text(encoding="utf-8")
 
-    assert "household-world.cleanup|cleanup)" in body
-    assert "household-world.map-build|map-build)" in body
-    assert "household-cleanup)" not in body
-    assert "semantic-map-build)" not in body
+    assert '{"household-world.cleanup", "cleanup"}' in body
+    assert '{"household-world.map-build", "map-build"}' in body
+    assert '"household-cleanup"' not in body
+    assert '"semantic-map-build"' not in body
 
 
 def test_surface_prompt_mapping_household_cleanup_sdk_world_labels_default() -> None:
