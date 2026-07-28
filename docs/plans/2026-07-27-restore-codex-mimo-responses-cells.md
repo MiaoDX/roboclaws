@@ -17,21 +17,20 @@ and supported default settings.
 - Session scope: restore-codex-mimo-responses-cells
 - Parent plan: `docs/plans/2026-07-24-public-core-internal-integration-minimization.md`
 - Child plans: none
-- Last updated: 2026-07-27
+- Last updated: 2026-07-28
 - Current slice: implementation, deterministic verification, both provider live proofs, and the
   sanitized public candidate refresh are complete.
 - Next action: present the immutable candidate evidence for human publication review.
-- Blocked on: none for this plan. Publication remains separately unauthorized; the parent plan
-  retains the candidate dependency-license caveat.
+- Blocked on: none for this plan. Publication remains separately unauthorized.
 - Latest proof: implementation commit `d449d29a`; MiMo provider health passes and
   `output/eval-harness/20260727-dual-responses-proof/mimo/household_world_map_consumer_fixed_prior/mimo-responses-fixed-prior/eval_results.json`
   records 2/2 passing samples. Codex health passes; controlled A/B probes prove the required header
   and unsupported truncation default. The corrected product profile passes 2/2 fixed-prior samples
   in `output/eval-harness/20260727-dual-responses-proof/codex/household_world_map_consumer_fixed_prior/codex-responses-fixed-prior-rerun2/eval_results.json`
   with 97 successful model requests and zero provider failures, privacy leaks, or trajectory
-  violations. Candidate `output/public-candidate/20260727-04/repo` is a one-root-commit,
-  no-remote public tree (`source=d841f599`, `candidate=30394bb8`, membership
-  `da51f8d6f5e313b392a55ad8d3e976c5f2f2274af0365b4ef999ce6ccbe2a3ed`) whose public-surface,
+  violations. Candidate `output/public-candidate/20260728-01/repo` is a one-root-commit,
+  no-remote public tree (`source=7a1d7f64`, `candidate=fbdbb24f`, membership
+  `d2c04dabab6179c66d0566442f5be9d0ad107553d5d6b32c51b170122b3e0b16`) whose public-surface,
   exact secret baseline, private-value, clean-room install, full deterministic test,
   direct-runner product, package, and isolated wheel-install gates pass.
 - Do not touch from this session: MiniMax/Kimi semantics, CloudML ownership, simulator scoring,
