@@ -30,6 +30,19 @@ Run the source-aware scene sampler stress suite with:
 just agent::eval suite=scene_sampler_stress budget=smoke
 ```
 
+Run the first long-horizon household task pilot with:
+
+```bash
+just agent::eval suite=long_horizon_tasks budget=smoke
+```
+
+The initial long-horizon sample uses `molmospaces/val_0` and grades a
+multi-object snack restock task with private final-state and trajectory checks.
+It deliberately stays inside existing sim capabilities: navigation,
+observation, pick/place, open/close receptacle, and done. Stairs, elevators,
+parcel unpacking, and drawer-specific interaction are follow-on scene/runtime
+capabilities, not part of this first pilot.
+
 Scene-sampler fixtures are generated from the MolmoSpaces scene catalog, not
 hand-maintained one file at a time. After changing scene candidate indices,
 committed Base Metric Map bundles, room-label manifests, or operator-console
@@ -64,8 +77,12 @@ are available:
 ```bash
 just agent::eval suite=open_ended_goals budget=smoke \
   agent_engine=openai-agents-sdk provider_profile=codex-router-responses \
-  live_execution=run live_timeout_s=120
+  live_execution=run
 ```
+
+Live evals default to a 1200 second wall-clock budget and a 120 second
+no-progress stall timeout. Pass `live_timeout_s=<seconds>` only when you intend
+to override the whole-run wall-clock budget for a specific run.
 
 The smoke budget writes `output/evals/<suite>/<stamp>/eval_results.json`,
 renders `eval_report.html`, and links each eval result back to the underlying

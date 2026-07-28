@@ -29,6 +29,7 @@ SESSION_LIVE_SUITE_SCHEMA = "roboclaws_session_live_eval_suite_v1"
 SESSION_LIVE_RUN_SCHEMA = "roboclaws_session_live_eval_run_v1"
 SESSION_LIVE_SAMPLE_ID = "operator_session.linked_next_goal"
 SESSION_LIVE_SUITE_ID = "operator_session_live"
+SESSION_LIVE_API_TIMEOUT_S = 90
 
 
 @dataclass(frozen=True)
@@ -262,6 +263,7 @@ def _exercise_session_flow(
         "POST",
         f"/api/runs/{parent_run_id}/next-goal",
         {"prompt": "Now inspect one more public waypoint and report useful context."},
+        timeout_s=SESSION_LIVE_API_TIMEOUT_S,
     )
     if next_goal.get("status") != "started":
         raise RuntimeError(f"Next Goal did not start child run: {next_goal.get('start_error')}")
@@ -388,7 +390,14 @@ def _validate_child_context(
         raise RuntimeError(f"child prompt leaked private context: {', '.join(leaked)}")
 
 
-def _api_json(base_url: str, method: str, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+def _api_json(
+    base_url: str,
+    method: str,
+    path: str,
+    payload: dict[str, Any],
+    *,
+    timeout_s: float = 30,
+) -> dict[str, Any]:
     data = None if method == "GET" else json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(
         f"{base_url}{path}",
@@ -397,7 +406,7 @@ def _api_json(base_url: str, method: str, path: str, payload: dict[str, Any]) ->
         headers={"Content-Type": "application/json"},
     )
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
+        with urllib.request.urlopen(request, timeout=timeout_s) as response:
             body = response.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")

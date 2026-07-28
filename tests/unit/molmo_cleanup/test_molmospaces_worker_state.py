@@ -98,6 +98,58 @@ def test_init_state_builds_init_envelope_with_injected_hooks(
     assert written_state["room_outlines"] == [{"room_id": "room_1"}]
 
 
+def test_init_state_private_manifest_preserves_generated_manifest_destinations(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("mujoco")
+    from scripts.molmo_cleanup.molmospaces_worker_state import init_state
+
+    _install_fake_molmospaces_modules(tmp_path, monkeypatch)
+    scene_xml = tmp_path / "scene.xml"
+    scene_xml.write_text("<mujoco/>", encoding="utf-8")
+    state_path = tmp_path / "state.json"
+    model = SimpleNamespace(nbody=1, ngeom=2, njnt=3, nq=4)
+    data = SimpleNamespace(qpos=[0.1, 0.2, 0.3, 0.4])
+    generated_mess_manifest: dict[str, object] = {
+        "schema": "roboclaws_generated_mess_manifest_v1",
+        "targets": [
+            {
+                "object_id": "apple_01",
+                "target_receptacle_id": "sink_01",
+                "valid_receptacle_ids": ["sink_01", "shelf_01"],
+                "start_receptacle_id": "shelf_01",
+                "relation": "on",
+                "placement_index": 0,
+            }
+        ],
+    }
+    hooks = _init_hooks(
+        scene_xml=scene_xml,
+        model=model,
+        data=data,
+        generated_mess_manifest=generated_mess_manifest,
+    )
+
+    init_state(
+        state_path=state_path,
+        seed=7,
+        scene_source="procthor-10k-val",
+        scene_index=3,
+        generated_mess_count=1,
+        generated_mess_manifest_path=tmp_path / "generated_mess_manifest.json",
+        hooks=hooks,
+    )
+
+    written_state = json.loads(state_path.read_text(encoding="utf-8"))
+    assert written_state["private_manifest"]["targets"] == [
+        {
+            "object_id": "apple_01",
+            "valid_receptacle_ids": ["sink_01", "shelf_01"],
+        }
+    ]
+
+
 def test_init_state_seeds_robot_pose_for_targetless_open_task(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -307,6 +359,7 @@ def _init_hooks(
     model: SimpleNamespace,
     data: SimpleNamespace,
     robot_pose: dict[str, object] | None = None,
+    generated_mess_manifest: dict[str, object] | None = None,
 ):
     from scripts.molmo_cleanup.molmospaces_worker_state import MolmoInitHooks
 
@@ -321,11 +374,12 @@ def _init_hooks(
             }
         ],
         collect_receptacles=lambda *_args: [
-            {"receptacle_id": "sink_01", "name": "Sink", "category": "Sink"}
+            {"receptacle_id": "sink_01", "name": "Sink", "category": "Sink"},
+            {"receptacle_id": "shelf_01", "name": "Shelf", "category": "ShelvingUnit"},
         ],
         collect_room_outlines=lambda *_args: [{"room_id": "room_1"}],
         first_receptacle_id=lambda _state: "sink_01",
-        load_generated_mess_manifest=lambda _path: {},
+        load_generated_mess_manifest=lambda _path: generated_mess_manifest or {},
         load_model_data=lambda _scene_xml: (model, data),
         load_robot_model_data=lambda *_args: (model, data),
         ok=lambda tool, **payload: {"ok": True, "tool": tool, "status": "ok", **payload},

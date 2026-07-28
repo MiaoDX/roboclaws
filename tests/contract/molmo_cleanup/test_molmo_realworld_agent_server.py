@@ -71,3 +71,11 @@ def test_realworld_agent_server_client_setup_commands() -> None:
     assert set(commands) == {"OpenClaw"}
     assert commands["OpenClaw"].startswith("SKILLS_DIR=$PWD/skills/molmo-realworld-cleanup ")
     assert "ROBOCLAWS_MCP_URL=http://host.docker.internal:18788/mcp" in commands["OpenClaw"]
+
+
+def test_realworld_agent_server_accepts_generated_mess_manifest_path(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "generated_mess_manifest.json"
+
+    args = server_module.parse_args(["--generated-mess-manifest-path", str(manifest_path)])
+
+    assert args.generated_mess_manifest_path == manifest_path

@@ -13,6 +13,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
+from roboclaws.evals import live_long_horizon
+from roboclaws.evals import long_horizon as lh
 from roboclaws.evals.dependencies import dependency_failure, resolve_artifact_dependencies
 from roboclaws.evals.live_artifacts import (
     discover_live_surface_run_dir,
@@ -189,7 +191,6 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
             output_dir=sample_run_root,
             effective_run_dir=sample_run_dir,
             started_wall_time_s=started_wall_time_s,
-            allow_open_ended_checker_failure=_is_open_ended_eval_sample(kwargs),
         )
         record.update(
             {
@@ -219,7 +220,6 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
         run_result = _load_json(run_result_path)
         if run_result and _live_surface_already_complete(
             sample_run_dir,
-            allow_open_ended_checker_failure=_is_open_ended_eval_sample(kwargs),
             require_terminal_status=False,
         ):
             record["returncode"] = "timeout_after_completion"
@@ -273,7 +273,7 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
                 output_dir=sample_run_root,
                 effective_run_dir=sample_run_dir,
                 elapsed_s=time.monotonic() - started,
-                allow_open_ended_checker_failure=True,
+                allow_cleanup_checker_failure=True,
                 started_wall_time_s=started_wall_time_s,
             )
             run_result["eval_effective_run_dir"] = str(sample_run_dir)
@@ -285,7 +285,6 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
         output_dir=sample_run_root,
         effective_run_dir=sample_run_dir,
         elapsed_s=time.monotonic() - started,
-        allow_open_ended_checker_failure=_is_open_ended_eval_sample(kwargs),
         started_wall_time_s=started_wall_time_s,
     )
     record["effective_run_dir"] = str(sample_run_dir)
@@ -547,10 +546,10 @@ def live_surface_command(kwargs: dict[str, Any], *, output_dir: Path) -> list[st
     if _is_smoke_budget(kwargs):
         command.append("run_preset=smoke")
     else:
-        relocation_count = _generated_mess_count(kwargs)
-        if relocation_count:
-            command.append("scenario_setup=relocate-cleanup-related-objects")
-            command.append(f"relocation_count={relocation_count}")
+        command += live_long_horizon.relocation_args(
+            kwargs,
+            relocation_count=_generated_mess_count(kwargs),
+        )
     runtime_map_prior = str(kwargs.get("runtime_map_prior_path") or "")
     if runtime_map_prior:
         command.append(f"runtime_map_prior={runtime_map_prior}")
@@ -576,14 +575,14 @@ def wait_for_live_surface_completion(
     effective_run_dir: Path,
     elapsed_s: float = 0.0,
     poll_s: float = 1.0,
-    allow_open_ended_checker_failure: bool = False,
+    allow_cleanup_checker_failure: bool = False,
     started_wall_time_s: float | None = None,
 ) -> Path:
     """Validate foreground live-product artifacts after the public route exits."""
 
     if _live_surface_already_complete(
         effective_run_dir,
-        allow_open_ended_checker_failure=allow_open_ended_checker_failure,
+        allow_cleanup_checker_failure=allow_cleanup_checker_failure,
         require_terminal_status=False,
     ):
         return effective_run_dir
@@ -593,7 +592,7 @@ def wait_for_live_surface_completion(
 def _live_surface_already_complete(
     effective_run_dir: Path,
     *,
-    allow_open_ended_checker_failure: bool,
+    allow_cleanup_checker_failure: bool = False,
     require_terminal_status: bool,
 ) -> bool:
     if (effective_run_dir / "run_result.json").is_file() and not require_terminal_status:
@@ -601,14 +600,11 @@ def _live_surface_already_complete(
         if status:
             exit_status = status.get("exit_status")
             if exit_status not in {None, 0}:
-                if allow_open_ended_checker_failure and _is_checker_failure(status):
+                if allow_cleanup_checker_failure and _is_cleanup_checker_failure(status):
                     return True
                 _raise_for_terminal_live_status(effective_run_dir, status)
         return True
-    return _live_surface_run_is_terminal(
-        effective_run_dir,
-        allow_open_ended_checker_failure=allow_open_ended_checker_failure,
-    )
+    return _live_surface_run_is_terminal(effective_run_dir)
 
 
 def live_surface_timeout_s(kwargs: dict[str, Any]) -> float:
@@ -644,7 +640,6 @@ def wait_for_timed_out_live_surface_artifact(
     output_dir: Path,
     effective_run_dir: Path,
     poll_s: float = 1.0,
-    allow_open_ended_checker_failure: bool = False,
     started_wall_time_s: float | None = None,
 ) -> Path:
     """Return the last discovered run dir after a foreground subprocess timeout."""
@@ -722,6 +717,7 @@ def live_product_run_kwargs(
         budget=budget,
         dependency_artifacts=dependency_artifacts,
     )
+    live_long_horizon.attach_generated_mess_manifest(kwargs, sample=sample, run_dir=run_dir)
     kwargs.update(
         {
             "eval_sample": sample,
@@ -753,6 +749,7 @@ def product_run_kwargs(
         "evidence_lane": evidence_lane(sample, budget=budget),
         "map_build": map_build,
         "generated_mess_count": generated_mess_count(sample),
+        "generated_mess_object_ids": lh.generated_mess_object_ids(sample),
         "scene_source": scene_source(sample),
         "scene_index": scene_index(sample),
         "run_metadata_overrides": {
@@ -781,7 +778,7 @@ def product_run_kwargs(
 
 def implementation_backend(sample: EvalSample, *, budget: str) -> str:
     if budget == "smoke":
-        return SYNTHETIC_BACKEND
+        return lh.implementation_backend_for_direct_long_horizon(sample, SYNTHETIC_BACKEND)
     backend = BACKEND_SPECS.get(sample.backend)
     if backend is None:
         return sample.backend
@@ -789,25 +786,25 @@ def implementation_backend(sample: EvalSample, *, budget: str) -> str:
 
 
 def evidence_lane(sample: EvalSample, *, budget: str) -> str:
-    if budget == "smoke":
-        return "smoke"
-    return sample.evidence_lane
+    smoke = budget == "smoke" and not lh.is_long_horizon_sample(sample)
+    return "smoke" if smoke else sample.evidence_lane
 
 
 def camera_labeler(sample: EvalSample) -> str:
     if sample.evidence_lane != "camera-grounded-labels":
         return ""
-    if sample.camera_labeler not in MISSING_SENTINELS:
-        return sample.camera_labeler
-    return "grounding-dino"
+    labeler = sample.camera_labeler
+    return labeler if labeler not in MISSING_SENTINELS else "grounding-dino"
 
 
 def task_prompt(sample: EvalSample) -> str:
     if sample.prompt not in {"", MISSING_NOT_APPLICABLE, MISSING_UNAVAILABLE}:
         return sample.prompt
-    if sample.intent == "map-build":
-        return "帮我建立这个房间的 Runtime Metric Map"
-    return "帮我收拾这个房间"
+    return (
+        "帮我建立这个房间的 Runtime Metric Map"
+        if sample.intent == "map-build"
+        else "帮我收拾这个房间"
+    )
 
 
 def generated_mess_count(sample: EvalSample) -> int:
@@ -817,6 +814,8 @@ def generated_mess_count(sample: EvalSample) -> int:
             reference.get("generated_mess_count"),
             "private_goal_reference.generated_mess_count",
         )
+    if object_ids := lh.generated_mess_object_ids(sample):
+        return len(object_ids)
     launch_overrides = sample.launch_overrides or {}
     for key in ("generated_mess_count", "relocation_count"):
         value = launch_overrides.get(key)
@@ -828,21 +827,15 @@ def generated_mess_count(sample: EvalSample) -> int:
 
 
 def scene_source(sample: EvalSample) -> str:
-    launch_overrides = sample.launch_overrides or {}
-    if "scene_source" not in launch_overrides:
-        return "procthor-10k-val"
     return _non_empty_string_value(
-        launch_overrides.get("scene_source"),
+        (sample.launch_overrides or {}).get("scene_source", "procthor-10k-val"),
         "launch_overrides.scene_source",
     )
 
 
 def scene_index(sample: EvalSample) -> int:
-    launch_overrides = sample.launch_overrides or {}
-    if "scene_index" not in launch_overrides:
-        return 0
     return _non_negative_int_value(
-        launch_overrides.get("scene_index"),
+        (sample.launch_overrides or {}).get("scene_index", 0),
         "launch_overrides.scene_index",
     )
 
@@ -881,9 +874,7 @@ def live_surface_env(kwargs: dict[str, Any], *, base_env: Any) -> dict[str, str]
 
 def live_evidence_lane(kwargs: dict[str, Any]) -> str:
     lane = str(kwargs.get("evidence_lane") or "")
-    if lane == "smoke":
-        return "world-public-labels"
-    return lane or "world-public-labels"
+    return lane if lane and lane != "smoke" else "world-public-labels"
 
 
 def live_camera_labeler(kwargs: dict[str, Any], *, evidence_lane: str) -> str:
@@ -909,9 +900,11 @@ def _is_smoke_budget(kwargs: dict[str, Any]) -> bool:
 
 def _generated_mess_count(kwargs: dict[str, Any]) -> int:
     value = kwargs.get("generated_mess_count")
-    if value is None or value == "":
-        return 0
-    return _non_negative_int_value(value, "generated_mess_count")
+    return (
+        0
+        if value is None or value == ""
+        else _non_negative_int_value(value, "generated_mess_count")
+    )
 
 
 def _live_surface_scene_index(kwargs: dict[str, Any]) -> int:
@@ -945,9 +938,7 @@ def _non_negative_int_value(value: object, setting_name: str) -> int:
 
 
 def _public_backend_from_implementation(backend: str) -> str:
-    if backend in {MISSING_NOT_APPLICABLE, MISSING_UNAVAILABLE, ""}:
-        return "mujoco"
-    if backend == "api_semantic_synthetic":
+    if backend in {MISSING_NOT_APPLICABLE, MISSING_UNAVAILABLE, "", "api_semantic_synthetic"}:
         return "mujoco"
     for spec in BACKEND_SPECS.values():
         if spec.implementation_backend == backend:
@@ -1004,21 +995,12 @@ def _recover_eval_run_result_after_nonzero_checker_exit(
     return _load_json(sample_run_dir / "run_result.json")
 
 
-def _is_open_ended_eval_sample(kwargs: dict[str, Any]) -> bool:
-    sample: EvalSample | None = kwargs.get("eval_sample")
-    return sample is not None and sample.intent == "open-ended"
-
-
 def _is_recoverable_checker_eval_sample(kwargs: dict[str, Any]) -> bool:
     sample: EvalSample | None = kwargs.get("eval_sample")
-    return sample is not None and sample.intent in {"open-ended", "cleanup"}
+    return sample is not None and sample.intent == "cleanup"
 
 
-def _live_surface_run_is_terminal(
-    run_dir: Path,
-    *,
-    allow_open_ended_checker_failure: bool = False,
-) -> bool:
+def _live_surface_run_is_terminal(run_dir: Path) -> bool:
     status = _load_json(run_dir / "live_status.json")
     if not status:
         return False
@@ -1026,13 +1008,11 @@ def _live_surface_run_is_terminal(
     if exit_status == 0:
         return True
     if exit_status not in {None, 0}:
-        if allow_open_ended_checker_failure and _is_checker_failure(status):
-            return True
         _raise_for_terminal_live_status(run_dir, status)
     return False
 
 
-def _is_checker_failure(status: dict[str, Any]) -> bool:
+def _is_cleanup_checker_failure(status: dict[str, Any]) -> bool:
     reason = str(status.get("reason") or "").lower()
     return "cleanup checker exited with status" in reason
 

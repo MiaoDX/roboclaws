@@ -778,6 +778,9 @@ def test_operator_console_next_goal_autostarts_ready_followup(tmp_path: Path) ->
                 "route": route.to_payload(),
                 "phase": "finished",
                 "backend_lock": route.lock_name,
+                "provider_profile": "minimax-responses",
+                "mcp_host": "127.0.0.1",
+                "mcp_port": 19888,
             }
         ),
         encoding="utf-8",
@@ -829,6 +832,11 @@ def test_operator_console_next_goal_autostarts_ready_followup(tmp_path: Path) ->
     assert launch_request.intent_id == "open-ended"
     assert launch_request.operator_session_id == "session-test"
     assert launch_request.parent_run_id == run_id
+    assert launch_request.overrides == {
+        "host": "127.0.0.1",
+        "port": "19888",
+        "provider_profile": "minimax-responses",
+    }
     assert launch_request.next_goal_packet["operator_session_id"] == "session-test"
     assert launch_request.next_goal_packet["parent_run_id"] == run_id
     assert "parent_public_summary" in launch_request.next_goal_packet

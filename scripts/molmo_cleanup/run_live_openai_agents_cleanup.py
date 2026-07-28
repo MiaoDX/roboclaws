@@ -21,7 +21,6 @@ from roboclaws.agents.drivers.household_live import (
     acquire_household_live_run_lease,
     add_household_cleanup_live_runner_args,
     household_cleanup_server_argv,
-    without_full_cleanup_checker_gates,
 )
 from roboclaws.agents.drivers.openai_agents_live import OpenAIAgentsLiveRuntime
 from roboclaws.agents.live_runtime import LiveAgentMCPServer, LiveAgentRequest
@@ -56,6 +55,7 @@ from roboclaws.launch.evaluation import (
     household_intent_id_for_checker,
     merge_checker_flags,
 )
+from roboclaws.launch.open_ended_artifacts import validate_open_ended_artifacts
 from roboclaws.operator_console.interactions import consume_resume_request_for_runner
 from roboclaws.reports.live_performance import (
     extract_model_call_metrics,
@@ -956,24 +956,24 @@ class LiveOpenAIAgentsCleanupRunner:
         self._mark_timing("checker_start")
         task_name = _household_run_id(self.args)
         task_intent = _household_intent(self.args)
-        open_ended_task = task_intent == "open-ended"
+        run_result = self.run_dir / "run_result.json"
+        if not run_result.is_file():
+            raise RuntimeError(f"live run finished without {run_result}")
+        if task_intent == "open-ended":
+            try:
+                validate_open_ended_artifacts(run_result)
+            finally:
+                self._mark_timing("checker_end")
+            print(f"==> report: {self.run_dir / 'report.html'}")
+            return
         checker_profile = str(getattr(self.args, "checker_profile", "") or self.args.profile)
         checker_visual_args = list(self.args.checker_visual_arg)
-        if open_ended_task:
-            checker_visual_args = without_full_cleanup_checker_gates(checker_visual_args)
-        intent_id = household_intent_id_for_checker(
-            task_intent=task_intent,
-            open_ended_task=open_ended_task,
-        )
+        intent_id = household_intent_id_for_checker(task_intent=task_intent)
         checker_policy_args = checker_flags_for_household_intent(
             intent_id=intent_id,
             profile=checker_profile,
             min_generated_mess_count=self.args.min_generated_mess_count,
         )
-        run_result = self.run_dir / "run_result.json"
-        if not run_result.is_file():
-            raise RuntimeError(f"live run finished without {run_result}")
-
         checker_args = [
             str(self.args.repo_root / ".venv/bin/python"),
             CHECKER_SCRIPT,

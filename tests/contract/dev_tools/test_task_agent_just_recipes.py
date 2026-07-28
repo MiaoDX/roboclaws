@@ -844,7 +844,7 @@ def test_household_checker_flags_are_generated_from_intent_policy() -> None:
     assert "--require-clean-agent-run" in cleanup_flags
     assert "--allow-partial-cleanup" not in cleanup_flags
     assert "--require-clean-agent-run" not in open_flags
-    assert "--allow-partial-cleanup" in open_flags
+    assert "--allow-partial-cleanup" not in open_flags
     assert "--require-runtime-metric-map" in map_flags
     assert "--allow-partial-cleanup" in map_flags
 
@@ -2191,83 +2191,6 @@ def test_openai_agents_cleanup_checker_policy_uses_checker_profile(
     assert "--require-real-robot-alignment" in checker_command
     assert checker_command[checker_command.index("--min-semantic-accepted-count") + 1] == "5"
     assert checker_command[checker_command.index("--min-sweep-coverage") + 1] == "1.0"
-
-
-def test_openai_agents_open_ended_checker_drops_full_cleanup_gates(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    module = load_script_module(
-        LIVE_OPENAI_AGENTS_RUNNER,
-        "run_live_openai_agents_cleanup_custom_gate_test",
-    )
-    run_dir = tmp_path / "openai-agents"
-    run_dir.mkdir()
-    (run_dir / "run_result.json").write_text("{}\n", encoding="utf-8")
-    captured_commands: list[list[str]] = []
-
-    def fake_run_and_tee(command, *, cwd, stdout_path, stderr_path, env, **_kwargs):
-        captured_commands.append(command)
-        stdout_path.write_text("checker ok\n", encoding="utf-8")
-        return 0
-
-    monkeypatch.setattr(module, "_run_and_tee", fake_run_and_tee)
-    args = SimpleNamespace(
-        run_dir=run_dir,
-        repo_root=REPO_ROOT,
-        status_path=run_dir / "live_status.json",
-        client_url="http://127.0.0.1:18788/mcp",
-        host="127.0.0.1",
-        port=18788,
-        lock_path=tmp_path / "openai-agents.lock",
-        server_startup_timeout_s=1.0,
-        kickoff_prompt="custom prompt",
-        backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
-        intent="open-ended",
-        policy="openai_agents_agent",
-        task="我渴了，帮我找些解渴的东西",
-        min_generated_mess_count="5",
-        profile="camera-raw-fpv",
-        checker_profile="world-public-labels",
-        server_arg=[],
-        checker_visual_arg=[
-            "--require-robot-views",
-            "--require-raw-fpv-observations",
-            "--require-model-declared-observations",
-            "--min-model-declared-observations",
-            "4",
-            "--min-model-declared-actions",
-            "4",
-            "--min-semantic-accepted-count",
-            "4",
-            "--min-sweep-coverage",
-            "1.0",
-            "--require-clean-agent-run",
-        ],
-        provider_profile="codex-router-responses",
-        model="gpt-5.5",
-        max_turns=128,
-        incomplete_turn_continuation_attempts=0,
-        cache_tools_list=True,
-    )
-
-    runner = module.LiveOpenAIAgentsCleanupRunner(args)
-    runner._check_result()
-
-    assert captured_commands
-    checker_command = captured_commands[0]
-    assert "--allow-partial-cleanup" in checker_command
-    assert checker_command.count("--allow-partial-cleanup") == 1
-    assert checker_command[checker_command.index("--expect-profile") + 1] == ("world-public-labels")
-    assert "--require-robot-views" in checker_command
-    assert "--require-raw-fpv-observations" in checker_command
-    assert "--require-clean-agent-run" not in checker_command
-    assert "--require-model-declared-observations" not in checker_command
-    assert "--min-model-declared-observations" not in checker_command
-    assert "--min-model-declared-actions" not in checker_command
-    assert "--min-semantic-accepted-count" not in checker_command
-    assert "--min-sweep-coverage" not in checker_command
 
 
 def test_molmo_world_labels_prompt_requires_nav2_bundle_checklist() -> None:

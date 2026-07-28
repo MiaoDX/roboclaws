@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from roboclaws.core.json_sources import collect_jsonl_object_rows, read_json_object
+from roboclaws.evals import long_horizon as lh
 from roboclaws.evals.agent_identity import (
     agent_engine_spec,
     blocked_result_from_live_agent_request,
@@ -329,14 +330,13 @@ def _run_trial(
     if failure is not None:
         return _failed_result_from_dependency(trial, run_dir, failure)
     try:
-        run_result = product_runner(
-            **product_run_kwargs(
-                sample,
-                run_dir=run_dir,
-                budget=budget,
-                dependency_artifacts=dependency_artifacts,
-            )
+        kwargs = product_run_kwargs(
+            sample,
+            run_dir=run_dir,
+            budget=budget,
+            dependency_artifacts=dependency_artifacts,
         )
+        run_result = lh.run_trial(sample, product_runner, run_realworld_cleanup, kwargs)
     except Exception as exc:  # noqa: BLE001 - eval packets must classify runner failures.
         return _blocked_result_from_exception(trial, exc)
 
@@ -468,6 +468,7 @@ def _grade_trial(
         "privacy": _privacy_grader(run_result),
         "trajectory": _trajectory_grader(sample=sample, run_dir=run_dir, run_result=run_result),
         "outcome": _outcome_grader(sample=sample, run_dir=run_dir, run_result=run_result),
+        "long_horizon": lh.grade_long_horizon_task(sample, run_dir=run_dir, run_result=run_result),
         "sampler_admission": _sampler_admission_grader(sample=sample),
         "open_ended": _open_ended_grader(sample=sample, run_dir=run_dir, run_result=run_result),
         "efficiency": _efficiency_grader(run_dir=run_dir, run_result=run_result),
@@ -1362,6 +1363,7 @@ def _status_from_graders(grader_outputs: dict[str, Any]) -> tuple[str, str]:
         ("artifacts", "artifact_missing"),
         ("privacy", "private_truth_leak"),
         ("trajectory", "trajectory_policy_violation"),
+        (lh.LONG_HORIZON_GRADER_NAME, "private_goal_not_satisfied"),
         ("sampler_admission", "map_actionability_failure"),
         ("open_ended", "agent_no_completion_claim"),
         ("outcome", "private_goal_not_satisfied"),
@@ -1391,6 +1393,7 @@ def _metrics_from_graders(
             "artifact_readiness",
             MISSING_NOT_APPLICABLE,
         ),
+        **lh.metric_fields(grader_outputs),
         "tool_event_count": efficiency["tool_event_count"],
         "tool_call_count": efficiency.get("tool_call_count", 0),
         "tool_event_counts": efficiency.get("tool_event_counts", {}),
@@ -1703,27 +1706,23 @@ def _json_artifact_error_reason(exc: ValueError) -> str:
 def _skill_name(sample: EvalSample) -> str:
     if sample.intent == "cleanup":
         return "molmo-realworld-cleanup"
-    return "household-open-task"
+    return lh.skill_name(sample, "household-open-task")
 
 
 def _mcp_profile(sample: EvalSample) -> str:
-    if sample.intent == "cleanup":
+    if lh.manipulation_required(sample, sample.intent == "cleanup"):
         return "household_world+household_manipulation"
     return "household_world+household_episode"
 
 
 def _tool_surface(sample: EvalSample) -> tuple[str, ...]:
-    if sample.intent == "cleanup":
+    if lh.manipulation_required(sample, sample.intent == "cleanup"):
         return ("metric_map", "observe", "navigate", "pick", "place", "done")
     return ("metric_map", "observe", "done")
 
 
 def _budget_steps(budget: str) -> int | str:
-    if budget == "smoke":
-        return 50
-    if budget == "focused":
-        return 100
-    return MISSING_UNAVAILABLE
+    return {"smoke": 50, "focused": 100}.get(budget, MISSING_UNAVAILABLE)
 
 
 def _path_token(value: str) -> str:

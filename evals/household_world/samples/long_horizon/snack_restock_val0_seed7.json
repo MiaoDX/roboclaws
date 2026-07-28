@@ -1,0 +1,92 @@
+{
+  "schema": "roboclaws_eval_sample_v1",
+  "sample_id": "long_horizon.snack_restock_val0_seed7",
+  "version": "2026-07-01",
+  "surface": "household-world",
+  "intent": "open-ended",
+  "preset": "not_applicable",
+  "world": "molmospaces/val_0",
+  "backend": "mujoco",
+  "evidence_lane": "world-public-labels",
+  "camera_labeler": "not_applicable",
+  "scenario_setup": "long-horizon-snack-restock",
+  "seed": 7,
+  "prompt": "A snack restock has arrived in the living area. Find the snack-like items, bring them to the kitchen snack area, and place them on the shelf. If you use the fridge for cold food, open it before placing items inside and close it afterwards. Finish only when the items are stored and your hands are empty.",
+  "goal_contract_hash": "unavailable",
+  "allowed_agent_engines": [
+    "direct-runner",
+    "openai-agents-sdk"
+  ],
+  "provider_profiles": [
+    "not_applicable",
+    "codex-router-responses",
+    "minimax-responses"
+  ],
+  "trial_count": 1,
+  "required_graders": [
+    "artifacts",
+    "privacy",
+    "trajectory",
+    "open_ended",
+    "long_horizon"
+  ],
+  "private_goal_reference": {
+    "schema": "household_eval_private_goal_reference_v1",
+    "private_truth_scope": "grader_only",
+    "long_horizon_task": {
+      "task_id": "snack_restock",
+      "target_object_ids": [
+        "bread_5f50f53c9dcfbae4352335033a8b2bb4_1_0_2",
+        "bread_dcb25a3fdc38be63308c7171e734e8a3_1_0_2"
+      ],
+      "accepted_destination_ids": [
+        "shelf_140ccb7e1f5028c7d773229dfe6e1a04_1_0_2",
+        "refrigerator_5e0d26d670a75ae0a52f2ceb08914b0e_1_0_2"
+      ],
+      "cold_object_ids": [],
+      "source_room_ids": [
+        "room_3",
+        "room_4"
+      ],
+      "source_receptacle_ids": [
+        "diningtable_f113cf7f8367e89f709b53cbee1a1c05_2_0_3",
+        "sofa_26757136bf2f1a8029d685a42db38f2a_1_0_3"
+      ],
+      "destination_room_ids": [
+        "room_2"
+      ],
+      "required_tool_sequence": [
+        "metric_map",
+        "observe",
+        "navigate_to_object",
+        "pick",
+        "navigate_to_receptacle",
+        "place_inside",
+        "done"
+      ]
+    }
+  },
+  "grader_config": {
+    "open_ended_category": "long_horizon_manipulation",
+    "expected_goal_outcome": "snack_items_stored",
+    "semantic_satisfaction_authoritative": true,
+    "success_predicate": {
+      "predicate_id": "completion_claim",
+      "authoritative": false
+    },
+    "tags": [
+      "open-ended",
+      "long-horizon",
+      "multi-object",
+      "manipulation",
+      "mujoco"
+    ]
+  },
+  "launch_overrides": {
+    "agent_engine": "direct-runner",
+    "evidence_lane": "world-public-labels",
+    "seed": 7,
+    "scene_source": "procthor-10k-val",
+    "scene_index": 0
+  }
+}

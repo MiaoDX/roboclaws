@@ -201,6 +201,7 @@ def build_cleanup_backend_session(
     robot_name: str = "rby1m",
     generated_mess_count: int = 10,
     generated_mess_object_ids: tuple[str, ...] = (),
+    generated_mess_manifest_path: str | Path | None = None,
     scene_source: str = "procthor-10k-val",
     scene_index: int = 0,
     molmospaces_python: str | Path | None = None,
@@ -220,6 +221,9 @@ def build_cleanup_backend_session(
             robot_name=robot_name,
             generated_mess_count=generated_mess_count,
             generated_mess_object_ids=generated_mess_object_ids,
+            generated_mess_manifest_path=Path(generated_mess_manifest_path)
+            if generated_mess_manifest_path is not None
+            else None,
             scene_source=scene_source,
             scene_index=scene_index,
         )
@@ -232,6 +236,9 @@ def build_cleanup_backend_session(
             robot_name=robot_name,
             generated_mess_count=generated_mess_count,
             generated_mess_object_ids=generated_mess_object_ids,
+            generated_mess_manifest_path=Path(generated_mess_manifest_path)
+            if generated_mess_manifest_path is not None
+            else None,
             scene_source=scene_source,
             scene_index=scene_index,
             map_bundle_dir=Path(map_bundle_dir) if map_bundle_dir is not None else None,
