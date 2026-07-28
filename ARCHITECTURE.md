@@ -99,6 +99,22 @@ Harness recipes
   aggregate metrics such as `pass@k` / `pass^k`, and failure replay. Their first
   maintainer facade is `just agent::eval ...`.
 
+Runtime Map Prior evaluation separates artifact production from consumption:
+
+```text
+MapBuild quality matrix
+  -> accepted selector report
+  -> explicit maintainer promotion
+  -> immutable content-addressed canonical prior
+  -> no-prior controls + parallel fixed-prior provider consumers
+```
+
+The normal provider baseline never rebuilds MapBuild inside each provider cell.
+No-prior controls start directly from the Base Metric Map, while fixed-prior
+consumers receive one explicit read-only canonical artifact and record its
+digest. Same-provider MapBuild plus consumer execution remains an explicit
+end-to-end research profile, not the default comparison matrix.
+
 The real-robot rule is: physical runs should reuse the same surface, intent,
 skill, profile, and MCP tool layers. They differ by backend variant,
 provenance, safety gates, operator map context, and blocked-capability status.

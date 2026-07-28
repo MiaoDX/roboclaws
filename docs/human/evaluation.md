@@ -55,7 +55,10 @@ just agent::eval execute profile=baseline-core budget=focused
 just agent::eval execute profile=baseline-live-default budget=focused
 just agent::eval execute profile=baseline-refresh budget=focused
 just agent::eval suite=smoke_regression budget=smoke
-just agent::eval suite=map_build_consumer budget=smoke
+just agent::eval suite=map_build_quality budget=smoke
+just agent::eval suite=map_consumer_no_prior budget=smoke
+just agent::eval suite=map_consumer_fixed_prior budget=smoke \
+  runtime_map_prior=output/evals/canonical-runtime-map-priors/by-sha256/<digest>/runtime_map_prior_snapshot.json
 just agent::eval suite=cleanup_capability budget=smoke
 just agent::eval suite=scene_sampler_stress budget=smoke
 just agent::eval suite=long_horizon_tasks budget=smoke
@@ -77,6 +80,28 @@ Use `profile=baseline-refresh` for a release/nightly complete refresh. It adds
 the explicit alternate-provider matrix and currently takes roughly 2.5-3.5
 hours. Named baseline profile rows run when their preflight is ready and
 otherwise record blocked evidence; they are not `skipped_by_budget`.
+
+Map evaluation has three normal modes. `map_build_quality` compares builders
+and produces candidate artifacts. `map_consumer_no_prior` runs controls directly
+from the Base Metric Map. `map_consumer_fixed_prior` requires one explicit,
+read-only canonical prior and reuses it across provider cells. The legacy
+`map_build_consumer` suite is the explicit same-provider end-to-end profile; it
+is not part of the normal provider baseline.
+
+After an accepted selector report receives maintainer approval, promote it to
+the content-addressed catalog with:
+
+```bash
+just agent::eval runtime-prior-promote report=<selection-report.json> \
+  manifest=<promotion-manifest.json> \
+  output_dir=output/evals/canonical-runtime-map-priors
+```
+
+The promotion manifest uses schema
+`canonical_runtime_map_prior_promotion_v1`, sets `maintainer_approved` to true,
+and records scene/source-map, backend, builder provider/model, prompt or skill
+version, evidence lane/camera labeler, seed, and map schema identity. Any change
+to those fields creates a different canonical digest.
 
 Harness execution is target-aware. `execution_target=local` remains the default
 and `max_parallel=1` preserves the historical serial behavior. Raising

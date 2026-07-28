@@ -29,6 +29,8 @@
     "trajectory_policy_violation_count": 0
   },
   "metadata": {
+    "execution_mode": "same_provider_end_to_end",
+    "report_family": "end_to_end",
     "runner_scope": "direct-runner-no-prior-denominator-and-openai-agents-live-model-matrix",
     "live_provider_required": false,
     "runtime_map_prior_flow": "map_build.fixture_focused_seed7 -> open-ended and cleanup consumer comparisons",

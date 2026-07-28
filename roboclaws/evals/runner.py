@@ -73,6 +73,7 @@ def run_eval_suite(
     live_timeout_s: float | None = None,
     live_stall_timeout_s: float | None = None,
     regrade_source: Path | None = None,
+    runtime_map_prior: Path | None = None,
     product_runner: ProductRun = run_household_world_episode,
     live_product_runner: ProductRun | None = None,
 ) -> EvalSuiteRun:
@@ -86,6 +87,7 @@ def run_eval_suite(
     suite_path = resolve_suite_path(suite_ref)
     suite = load_eval_suite(suite_path)
     samples = _load_suite_samples(suite)
+    _validate_suite_runtime_map_prior(suite, runtime_map_prior)
     engine = agent_engine_spec(agent_engine)
     selected_provider_profile = eval_provider_profile(
         agent_engine=engine.id,
@@ -121,6 +123,7 @@ def run_eval_suite(
                 budget=budget,
                 repetition_index=repetition_index,
                 sample_artifacts=sample_artifacts,
+                runtime_map_prior=runtime_map_prior,
                 agent_engine=engine.id,
                 provider_profile=selected_provider_profile,
                 model=model,
@@ -211,6 +214,16 @@ def _load_suite_samples(suite: EvalSuite) -> list[EvalSample]:
     return samples
 
 
+def _validate_suite_runtime_map_prior(suite: EvalSuite, runtime_map_prior: Path | None) -> None:
+    mode = str((suite.metadata or {}).get("execution_mode") or "")
+    if mode == "task_matrix_on_fixed_map" and runtime_map_prior is None:
+        raise ValueError(f"eval suite {suite.suite_id!r} requires runtime_map_prior=<path>")
+    if mode != "task_matrix_on_fixed_map" and runtime_map_prior is not None:
+        raise ValueError(
+            "runtime_map_prior suite override is only valid for task_matrix_on_fixed_map suites"
+        )
+
+
 def _trial_from_sample(
     *,
     suite: EvalSuite,
@@ -269,6 +282,7 @@ def _run_trial(
     budget: str,
     repetition_index: int,
     sample_artifacts: dict[str, dict[str, Any]],
+    runtime_map_prior: Path | None,
     agent_engine: str,
     provider_profile: str,
     model: str | None,
@@ -288,6 +302,7 @@ def _run_trial(
                 run_dir=run_dir,
                 repetition_index=repetition_index,
                 sample_artifacts=sample_artifacts,
+                runtime_map_prior=runtime_map_prior,
                 regrade_source_dir=regrade_source_dir,
             )
         if live_execution == "run":
@@ -298,6 +313,7 @@ def _run_trial(
                 budget=budget,
                 repetition_index=repetition_index,
                 sample_artifacts=sample_artifacts,
+                runtime_map_prior=runtime_map_prior,
                 agent_engine=agent_engine,
                 provider_profile=provider_profile,
                 model=model,
@@ -323,6 +339,7 @@ def _run_trial(
             sample,
             repetition_index=repetition_index,
             sample_artifacts=sample_artifacts,
+            runtime_map_prior=runtime_map_prior,
         )
         failure = dependency_failure(dependency_artifacts)
     except Exception as exc:  # noqa: BLE001 - eval packets must classify metadata failures.
@@ -368,6 +385,7 @@ def _regrade_live_eval_trial(
     run_dir: Path,
     repetition_index: int,
     sample_artifacts: dict[str, dict[str, Any]],
+    runtime_map_prior: Path | None,
     regrade_source_dir: Path,
 ) -> EvalResult:
     try:
@@ -375,6 +393,7 @@ def _regrade_live_eval_trial(
             sample,
             repetition_index=repetition_index,
             sample_artifacts=sample_artifacts,
+            runtime_map_prior=runtime_map_prior,
         )
         failure = dependency_failure(dependency_artifacts)
         if failure is not None:

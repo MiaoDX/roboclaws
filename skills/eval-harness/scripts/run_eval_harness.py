@@ -81,6 +81,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--evidence-lane", default="")
     parser.add_argument("--camera-labeler", default="")
     parser.add_argument("--scene", action="append", default=[])
+    parser.add_argument("--runtime-map-prior", default="")
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--execution-target", choices=("local", "cloudml", "auto"), default="local")
     parser.add_argument("--max-parallel", type=local_execution.positive_int, default=1)
@@ -144,6 +145,7 @@ def _manifest_from_args(args: argparse.Namespace) -> dict[str, Any]:
         evidence_lane=selector._split_csv(args.evidence_lane),
         camera_labeler=selector._split_csv(args.camera_labeler),
         scenes=selector._split_csv_values(args.scene),
+        runtime_map_prior=args.runtime_map_prior,
         output_dir=args.output_dir,
     )
 
@@ -629,6 +631,9 @@ def _stop_managed_dino_sidecars() -> None:
 
 
 def _runtime_prior_available(manifest: dict[str, Any]) -> bool:
+    explicit = Path(str(manifest.get("runtime_map_prior") or ""))
+    if str(explicit) != "." and explicit.is_file():
+        return True
     for row in manifest.get("rows") or []:
         if row.get("row_id") != RUNTIME_MAP_PRIOR_SOURCE_ROW_ID:
             continue

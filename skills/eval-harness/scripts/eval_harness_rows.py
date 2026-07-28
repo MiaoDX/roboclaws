@@ -28,9 +28,14 @@ def candidate_rows(
     output_dir: Path,
     explicit_axes: dict[str, list[str]],
     scenes: list[str] | tuple[str, ...] = (),
+    runtime_map_prior: str = "",
 ) -> list[dict[str, Any]]:
     row_dir = output_dir / "rows"
-    context = _render_context(output_dir=output_dir, explicit_axes=explicit_axes)
+    context = _render_context(
+        output_dir=output_dir,
+        explicit_axes=explicit_axes,
+        runtime_map_prior=runtime_map_prior,
+    )
     catalog = _catalog()
     defaults = catalog.get("execution_defaults") or {}
     provider_requirements = catalog.get("provider_execution_requirements") or {}
@@ -55,7 +60,9 @@ def _catalog() -> dict[str, Any]:
     return payload
 
 
-def _render_context(*, output_dir: Path, explicit_axes: dict[str, list[str]]) -> dict[str, str]:
+def _render_context(
+    *, output_dir: Path, explicit_axes: dict[str, list[str]], runtime_map_prior: str = ""
+) -> dict[str, str]:
     provider_profiles = explicit_axes.get("provider_profile") or [DEFAULT_PROVIDER_PROFILE]
     agent_sdk_provider = next(
         (profile for profile in provider_profiles if profile != DEFAULT_PROVIDER_PROFILE),
@@ -73,6 +80,7 @@ def _render_context(*, output_dir: Path, explicit_axes: dict[str, list[str]]) ->
         "map_build_consumer_parallel_group": "map_build_consumer_2026_06_24",
         "default_local_concurrency_width": "1",
         "concurrency_policy": "serial_by_default_for_single_molmospaces_visual_backend_slot",
+        "runtime_map_prior": runtime_map_prior,
     }
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -13,7 +14,14 @@ def resolve_artifact_dependencies(
     *,
     repetition_index: int,
     sample_artifacts: dict[str, dict[str, Any]],
+    runtime_map_prior: Path | None = None,
 ) -> dict[str, Any]:
+    if runtime_map_prior is not None:
+        return {
+            "runtime_map_prior_path": str(runtime_map_prior),
+            "runtime_map_prior_source": "suite_override",
+            "runtime_map_prior_sha256": _file_sha256(runtime_map_prior),
+        }
     dependencies = sample.artifact_dependencies or {}
     launch_overrides = sample.launch_overrides or {}
     if "runtime_map_prior" in dependencies:
@@ -60,7 +68,10 @@ def resolve_artifact_dependencies(
 def dependency_failure(dependency_artifacts: dict[str, Any]) -> dict[str, Any] | None:
     prior_path = str(dependency_artifacts.get("runtime_map_prior_path") or "").strip()
     source_sample_id = str(dependency_artifacts.get("runtime_map_prior_source_sample_id") or "")
-    explicit_source = dependency_artifacts.get("runtime_map_prior_source") == "explicit_path"
+    explicit_source = dependency_artifacts.get("runtime_map_prior_source") in {
+        "explicit_path",
+        "suite_override",
+    }
     if not source_sample_id and not explicit_source:
         return None
     source_status = str(dependency_artifacts.get("runtime_map_prior_source_status") or "")
@@ -120,3 +131,9 @@ def _runtime_map_prior_source_sample_id(value: Any) -> str:
     if not source_sample_id:
         raise ValueError("runtime_map_prior_from_sample must be a non-empty string")
     return source_sample_id
+
+
+def _file_sha256(path: Path) -> str:
+    if not path.is_file():
+        return ""
+    return hashlib.sha256(path.read_bytes()).hexdigest()

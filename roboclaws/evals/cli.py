@@ -7,6 +7,7 @@ import importlib.util
 import json
 from pathlib import Path
 
+from roboclaws.evals.canonical_prior import promote_canonical_runtime_prior
 from roboclaws.evals.map_build_reports import (
     discover_eval_results_paths,
     write_map_build_matrix_report,
@@ -28,6 +29,8 @@ _TOOL_MODE_ALIASES = {
     "map_build_report": "map-build-report",
     "runtime-prior-select": "runtime-prior-select",
     "runtime_prior_select": "runtime-prior-select",
+    "runtime-prior-promote": "runtime-prior-promote",
+    "runtime_prior_promote": "runtime-prior-promote",
     "session-live": "session-live",
     "session_live": "session-live",
 }
@@ -85,6 +88,8 @@ def _tool_mode_payload(mode: str, overrides: dict[str, str]) -> dict[str, object
         return _run_map_build_report(overrides)
     if mode == "runtime-prior-select":
         return _run_runtime_prior_select(overrides)
+    if mode == "runtime-prior-promote":
+        return _run_runtime_prior_promote(overrides)
     if mode == "session-live":
         run = _run_session_live_from_overrides(overrides)
         return {"results": str(run.results_path), "report": str(run.report_path)}
@@ -113,6 +118,7 @@ def _run_eval_harness(mode: str, overrides: dict[str, str]) -> int:
         "evidence_lane",
         "camera_labeler",
         "scene",
+        "runtime_map_prior",
         "output_dir",
         "execution_target",
         "max_parallel",
@@ -236,6 +242,23 @@ def _run_runtime_prior_select(overrides: dict[str, str]) -> dict[str, str]:
     )
 
 
+def _run_runtime_prior_promote(overrides: dict[str, str]) -> dict[str, str]:
+    values = dict(overrides)
+    report = values.pop("report", "")
+    manifest = values.pop("manifest", "")
+    output_dir = Path(values.pop("output_dir", "output/evals/canonical-runtime-map-priors"))
+    if values:
+        keys = ", ".join(sorted(values))
+        raise ValueError(f"unsupported runtime-prior-promote override(s): {keys}")
+    if not report or not manifest:
+        raise ValueError("runtime-prior-promote requires report=<path> and manifest=<path>")
+    return promote_canonical_runtime_prior(
+        selection_report_path=Path(report),
+        promotion_manifest_path=Path(manifest),
+        output_root=output_dir,
+    )
+
+
 def _run_session_live_from_overrides(overrides: dict[str, str]):
     values = dict(overrides)
     budget = values.pop("budget", "smoke")
@@ -284,6 +307,7 @@ def _run_eval_from_overrides(overrides: dict[str, str]):
     live_timeout_s = _optional_float(values.pop("live_timeout_s", None))
     live_stall_timeout_s = _optional_float(values.pop("live_stall_timeout_s", None))
     regrade_source = _optional_path(values.pop("regrade_source", None))
+    runtime_map_prior = _optional_path(values.pop("runtime_map_prior", None))
     if values:
         keys = ", ".join(sorted(values))
         raise ValueError(f"unsupported eval override(s): {keys}")
@@ -299,6 +323,7 @@ def _run_eval_from_overrides(overrides: dict[str, str]):
         live_timeout_s=live_timeout_s,
         live_stall_timeout_s=live_stall_timeout_s,
         regrade_source=regrade_source,
+        runtime_map_prior=runtime_map_prior,
     )
 
 

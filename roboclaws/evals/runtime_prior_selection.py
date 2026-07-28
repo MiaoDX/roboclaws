@@ -508,6 +508,9 @@ def _normalize_catalog_entry(entry: dict[str, Any]) -> dict[str, Any]:
         "source_map_contract": dict(entry.get("source_map_contract") or {}),
         "current_contract": dict(entry.get("current_contract") or {}),
         "evidence": _string_tuple(entry.get("evidence") or ()),
+        "canonical_digest": str(entry.get("canonical_digest") or ""),
+        "artifact_sha256": str(entry.get("artifact_sha256") or ""),
+        "canonical_provenance": str(entry.get("canonical_provenance") or ""),
     }
     return normalized
 

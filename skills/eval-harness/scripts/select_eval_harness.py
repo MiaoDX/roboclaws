@@ -268,6 +268,7 @@ def build_eval_harness(
     evidence_lane: Sequence[str] = (),
     camera_labeler: Sequence[str] = (),
     scenes: Sequence[str] = (),
+    runtime_map_prior: str = "",
     output_dir: Path | None = None,
 ) -> dict[str, Any]:
     plan_text, plan_path = _read_plan(plan)
@@ -306,6 +307,7 @@ def build_eval_harness(
         output_dir=output_dir,
         explicit_axes=explicit_axes,
         scenes=list(scenes),
+        runtime_map_prior=runtime_map_prior,
     )
     _apply_selection_rules(
         rows,
@@ -326,6 +328,7 @@ def build_eval_harness(
         "changed_files": all_changed_files,
         "explicit_axes": explicit_axes,
         "scenes": scene_refs,
+        "runtime_map_prior": runtime_map_prior,
         "signals": signals,
         "summary": {
             "row_count": len(rows),
