@@ -56,6 +56,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("mode", choices=("recommend", "execute"))
     parser.add_argument("--budget", choices=("smoke", "focused", "full"), default="focused")
+    parser.add_argument("--profile", choices=selector.HARNESS_PROFILES, default="adaptive")
     parser.add_argument("--plan", type=Path)
     parser.add_argument("--since")
     parser.add_argument("--changed-file", action="append", default=[])
@@ -74,6 +75,7 @@ def main(argv: list[str] | None = None) -> int:
     manifest = selector.build_eval_harness(
         mode=args.mode,
         budget=args.budget,
+        profile=args.profile,
         plan=args.plan,
         since=args.since,
         changed_files=selector._split_csv_values(args.changed_file),
@@ -574,6 +576,7 @@ def _render_markdown(manifest: dict[str, Any]) -> str:
         "",
         f"- Mode: `{manifest['mode']}`",
         f"- Budget: `{manifest['budget']}`",
+        f"- Profile: `{manifest.get('profile', 'adaptive')}`",
         f"- Selected rows: `{manifest['summary']['selected_row_count']}`",
         "",
         "## Signals",
@@ -636,7 +639,8 @@ def _render_html(manifest: dict[str, Any]) -> str:
         "code{white-space:pre-wrap;}</style></head><body>"
         "<h1>Eval Harness</h1>"
         f"<p>Mode: <code>{html.escape(manifest['mode'])}</code> "
-        f"Budget: <code>{html.escape(manifest['budget'])}</code></p>"
+        f"Budget: <code>{html.escape(manifest['budget'])}</code> "
+        f"Profile: <code>{html.escape(str(manifest.get('profile', 'adaptive')))}</code></p>"
         "<table><thead><tr><th>Row</th><th>Kind</th><th>Status</th>"
         "<th>Outcome</th><th>Failure class</th><th>Blocker</th>"
         "<th>Command</th></tr></thead><tbody>" + "".join(rows) + "</tbody></table></body></html>\n"

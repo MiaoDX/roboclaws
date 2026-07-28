@@ -11,7 +11,36 @@ from pytest import MonkeyPatch
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SELECTOR_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "select_eval_harness.py"
+ROWS_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "eval_harness_rows.py"
 RUNNER_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "run_eval_harness.py"
+
+EXPECTED_ROW_IDS = {
+    "route-trace-contract-tests",
+    "eval-unit-tests",
+    "cleanup-contract-tests",
+    "agent-view-contract-tests",
+    "household-direct-world-public-product",
+    "open-ended-household-contract-tests",
+    "smoke-regression-eval-suite",
+    "map-build-consumer-eval-suite",
+    "map-build-consumer-openai-agents-sdk-codex-router-responses",
+    "map-build-consumer-openai-agents-sdk-mimo-inside-openai-chat",
+    "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
+    "map-build-consumer-openai-agents-sdk-minimax-responses",
+    "open-ended-goals-eval-suite",
+    "scene-sampler-stress-eval-suite",
+    "cleanup-capability-eval-suite",
+    "openai-agents-sdk-open-task-live-eval",
+    "openai-agents-sdk-cleanup-live-eval",
+    "openai-agents-sdk-cleanup-camera-raw-fpv-live-product",
+    "openai-agents-sdk-codex-router-responses-availability",
+    "planner-proof-dry-run-product",
+    "direct-camera-grounded-grounding-dino",
+    "direct-map-build-grounding-dino",
+    "direct-camera-raw-fpv",
+    "direct-map-build-world-public",
+    "direct-cleanup-runtime-prior-consumer",
+}
 
 
 def _load_module(name: str, path: Path):
@@ -24,6 +53,7 @@ def _load_module(name: str, path: Path):
 
 
 selector = _load_module("eval_harness_selector_test", SELECTOR_PATH)
+rows_module = _load_module("eval_harness_rows_test", ROWS_PATH)
 runner = _load_module("eval_harness_runner_test", RUNNER_PATH)
 
 
@@ -42,6 +72,40 @@ def _assert_selected_rows_include(
         assert row_id in rows, f"{case_name}: missing selected row {row_id}"
     for row_id in absent_rows:
         assert row_id not in rows, f"{case_name}: unexpectedly selected {row_id}"
+
+
+def test_row_catalog_loads_current_eval_harness_rows(tmp_path: Path) -> None:
+    rows = rows_module.candidate_rows(output_dir=tmp_path, explicit_axes={})
+
+    assert {row["row_id"] for row in rows} == EXPECTED_ROW_IDS
+    assert all(row["schema"] == "roboclaws_eval_harness_row_v1" for row in rows)
+    assert rows_module.CATALOG_PATH.name == "rows.json"
+
+
+def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
+    tmp_path: Path,
+) -> None:
+    manifest = selector.build_eval_harness(
+        budget="smoke",
+        profile="baseline-refresh",
+        output_dir=tmp_path,
+    )
+
+    rows = _selected_rows(manifest)
+    assert set(rows) == EXPECTED_ROW_IDS
+    assert manifest["profile"] == "baseline-refresh"
+    assert manifest["summary"]["selected_row_count"] == len(EXPECTED_ROW_IDS)
+    assert manifest["summary"]["budget_skipped_count"] == 0
+    assert manifest["summary"]["eval_suite_row_count"] == 5
+    assert manifest["summary"]["live_agent_eval_row_count"] == 8
+    assert rows["openai-agents-sdk-open-task-live-eval"]["status"] == "not_run"
+    assert rows["openai-agents-sdk-cleanup-live-eval"]["status"] == "not_run"
+    assert rows["direct-camera-grounded-grounding-dino"]["status"] == "not_run"
+    assert rows["direct-map-build-grounding-dino"]["status"] == "not_run"
+    assert rows["openai-agents-sdk-codex-router-responses-availability"]["requirement"] == (
+        "optional"
+    )
+    assert {signal["id"] for signal in manifest["signals"]} == {"baseline_refresh_profile"}
 
 
 def test_changed_file_signals_select_expected_eval_harness_rows(tmp_path: Path) -> None:
@@ -702,6 +766,7 @@ def test_recommendation_writes_json_markdown_and_html(tmp_path: Path) -> None:
     assert exit_code == 0
     manifest = json.loads((tmp_path / "eval_harness.json").read_text(encoding="utf-8"))
     assert manifest["schema"] == "roboclaws_eval_harness_manifest_v1"
+    assert manifest["profile"] == "adaptive"
     assert (tmp_path / "eval_harness.md").exists()
     assert (tmp_path / "eval_harness.html").exists()
     assert "openai-agents-sdk-open-task-live-eval" in (tmp_path / "eval_harness.md").read_text(

@@ -58,6 +58,7 @@ def _run_eval_harness(mode: str, overrides: dict[str, str]) -> int:
     argv = [mode]
     for key in (
         "budget",
+        "profile",
         "plan",
         "since",
         "changed_file",

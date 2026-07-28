@@ -26,6 +26,7 @@ else:
 HARNESS_SCHEMA = "roboclaws_eval_harness_manifest_v1"
 DEFAULT_OUTPUT_ROOT = Path("output/eval-harness")
 ROWS_MODULE_PATH = SCRIPT_DIR / "eval_harness_rows.py"
+HARNESS_PROFILES = ("adaptive", "baseline-refresh")
 _ROWS_SPEC = importlib.util.spec_from_file_location("eval_harness_rows", ROWS_MODULE_PATH)
 if _ROWS_SPEC is None or _ROWS_SPEC.loader is None:
     raise RuntimeError(f"could not load eval harness rows at {ROWS_MODULE_PATH}")
@@ -199,6 +200,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--mode", choices=("recommend", "execute"), default="recommend")
     parser.add_argument("--budget", choices=("smoke", "focused", "full"), default="focused")
+    parser.add_argument("--profile", choices=HARNESS_PROFILES, default="adaptive")
     parser.add_argument("--plan", type=Path)
     parser.add_argument("--since")
     parser.add_argument("--changed-file", action="append", default=[])
@@ -217,6 +219,7 @@ def main(argv: list[str] | None = None) -> int:
     manifest = build_eval_harness(
         mode=args.mode,
         budget=args.budget,
+        profile=args.profile,
         plan=args.plan,
         since=args.since,
         changed_files=_split_csv_values(args.changed_file),
@@ -236,6 +239,7 @@ def build_eval_harness(
     *,
     mode: str = "recommend",
     budget: str = "focused",
+    profile: str = "adaptive",
     plan: Path | None = None,
     since: str | None = None,
     changed_files: Sequence[str] = (),
@@ -256,9 +260,16 @@ def build_eval_harness(
         "evidence_lane": _dedupe(evidence_lane),
         "camera_labeler": _dedupe(camera_labeler),
     }
+    if profile not in HARNESS_PROFILES:
+        raise ValueError(f"profile must be one of {', '.join(HARNESS_PROFILES)}")
     if since:
         diff_files = _changed_files_from_git(since)
-    elif plan is None and not changed_files and not _has_explicit_axes(explicit_axes):
+    elif (
+        profile == "adaptive"
+        and plan is None
+        and not changed_files
+        and not _has_explicit_axes(explicit_axes)
+    ):
         diff_files = _changed_files_from_worktree()
     else:
         diff_files = []
@@ -268,15 +279,24 @@ def build_eval_harness(
         changed_files=all_changed_files,
         explicit_axes=explicit_axes,
     )
+    if profile == "baseline-refresh":
+        signals = _merge_signals([*signals, _profile_signal(profile)])
     output_dir = output_dir or _default_output_dir()
     rows = eval_harness_rows.candidate_rows(output_dir=output_dir, explicit_axes=explicit_axes)
-    _apply_selection_rules(rows, signals=signals, budget=budget, explicit_axes=explicit_axes)
+    _apply_selection_rules(
+        rows,
+        signals=signals,
+        budget=budget,
+        profile=profile,
+        explicit_axes=explicit_axes,
+    )
     selected = [row for row in rows if row["selected"]]
     return {
         "schema": HARNESS_SCHEMA,
         "generated_at": _utc_timestamp(),
         "mode": mode,
         "budget": budget,
+        "profile": profile,
         "plan": str(plan_path) if plan_path else "",
         "since": since or "",
         "changed_files": all_changed_files,
@@ -401,40 +421,47 @@ def _apply_selection_rules(
     *,
     signals: list[dict[str, Any]],
     budget: str,
+    profile: str,
     explicit_axes: dict[str, list[str]],
 ) -> None:
     signal_ids = {signal["id"] for signal in signals}
     signal_by_id = {signal["id"]: signal for signal in signals}
     for row in rows:
-        if row.get("requirement") == "optional" and not _explicitly_matches_optional(
-            row,
-            explicit_axes,
-        ):
-            continue
-        matching = [rule_id for rule_id in row["selection_rule_ids"] if rule_id in signal_ids]
-        if _explicitly_matches(row, explicit_axes):
-            matching.append("explicit_override")
-        matching = _dedupe(matching)
-        if not matching:
-            continue
+        if profile == "baseline-refresh":
+            if profile not in row.get("profiles", []):
+                continue
+            matching = ["baseline_refresh_profile"]
+            row["source_signals"] = [signal_by_id["baseline_refresh_profile"]]
+        else:
+            if row.get("requirement") == "optional" and not _explicitly_matches_optional(
+                row,
+                explicit_axes,
+            ):
+                continue
+            matching = [rule_id for rule_id in row["selection_rule_ids"] if rule_id in signal_ids]
+            if _explicitly_matches(row, explicit_axes):
+                matching.append("explicit_override")
+            matching = _dedupe(matching)
+            if not matching:
+                continue
+            row["source_signals"] = [
+                signal_by_id[rule_id]
+                for rule_id in matching
+                if rule_id != "explicit_override" and rule_id in signal_by_id
+            ]
+            if "explicit_override" in matching:
+                row["source_signals"].append(
+                    {
+                        "id": "explicit_override",
+                        "label": "Explicit override",
+                        "matched_patterns": [],
+                        "matched_files": [],
+                        "source": "user_override",
+                    }
+                )
         row["selected"] = True
-        row["source_signals"] = [
-            signal_by_id[rule_id]
-            for rule_id in matching
-            if rule_id != "explicit_override" and rule_id in signal_by_id
-        ]
-        if "explicit_override" in matching:
-            row["source_signals"].append(
-                {
-                    "id": "explicit_override",
-                    "label": "Explicit override",
-                    "matched_patterns": [],
-                    "matched_files": [],
-                    "source": "user_override",
-                }
-            )
         row["skip_reason"] = ""
-        if budget == "smoke" and row["expense"] != "deterministic":
+        if profile == "adaptive" and budget == "smoke" and row["expense"] != "deterministic":
             row["status"] = "skipped_by_budget"
             row["skip_reason"] = "budget=smoke runs deterministic confidence only"
         else:
@@ -466,6 +493,16 @@ def _override_signal(signal_id: str, value: str) -> dict[str, Any]:
         "matched_patterns": [value],
         "matched_files": [],
         "source": "user_override",
+    }
+
+
+def _profile_signal(profile: str) -> dict[str, Any]:
+    return {
+        "id": profile.replace("-", "_") + "_profile",
+        "label": f"Harness profile {profile}",
+        "matched_patterns": [f"profile={profile}"],
+        "matched_files": [],
+        "source": "profile",
     }
 
 
