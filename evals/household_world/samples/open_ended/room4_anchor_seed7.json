@@ -19,7 +19,8 @@
   ],
   "provider_profiles": [
     "not_applicable",
-    "custom-responses",
+    "codex-responses",
+    "mimo-responses",
     "minimax-responses",
     "kimi-openai-chat"
   ],

@@ -42,9 +42,12 @@ CODE_AGENT_ENV_VARS = (
     "ROBOCLAWS_TIMING_PROXY_BIND_PORT",
     "KIMI_API_KEY",
     "OPENAI_API_KEY",
-    "CUSTOM_RESPONSES_BASE_URL",
-    "CUSTOM_RESPONSES_API_KEY",
-    "CUSTOM_RESPONSES_MODEL",
+    "CODEX_RESPONSES_BASE_URL",
+    "CODEX_RESPONSES_API_KEY",
+    "CODEX_RESPONSES_MODEL",
+    "MIMO_RESPONSES_BASE_URL",
+    "MIMO_RESPONSES_API_KEY",
+    "MIMO_RESPONSES_MODEL",
     "KIMI_OPENAI_BASE_URL",
     "MM_BASE_URL",
     "MM_API_KEY",
@@ -2651,7 +2654,8 @@ def test_coding_agent_env_shell_profile_facts_match_python_registry() -> None:
             source "$ROBOCLAWS_HELPER"
             roboclaws_code_agent_profile_default_model minimax-responses
             roboclaws_code_agent_profile_wire_api kimi-openai-chat
-            roboclaws_code_agent_profile_key_env custom-responses
+            roboclaws_code_agent_profile_key_env codex-responses
+            roboclaws_code_agent_profile_key_env mimo-responses
             """,
         ],
         cwd=REPO_ROOT,
@@ -2677,7 +2681,8 @@ def test_coding_agent_env_shell_profile_facts_match_python_registry() -> None:
     assert result.stdout.splitlines() == [
         python_result.stdout.strip(),
         "chat-completions",
-        "CUSTOM_RESPONSES_API_KEY",
+        "CODEX_RESPONSES_API_KEY",
+        "MIMO_RESPONSES_API_KEY",
     ]
 
 
@@ -2708,7 +2713,8 @@ def test_openai_agents_launcher_applies_provider_overrides_per_invocation() -> N
     assert "MM_API_KEY" in helper_text
     assert "MM_BASE_URL" in helper_text
     assert "KIMI_API_KEY" in helper_text
-    assert "CUSTOM_RESPONSES_API_KEY" in helper_text
+    assert "CODEX_RESPONSES_API_KEY" in helper_text
+    assert "MIMO_RESPONSES_API_KEY" in helper_text
 
 
 def test_molmo_live_dispatch_is_sdk_only_and_probeable() -> None:

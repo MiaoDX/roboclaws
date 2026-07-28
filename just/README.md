@@ -54,7 +54,8 @@ Agent engines:
 - `direct-runner`
 
 Provider profiles are selected only for the SDK live engine:
-`custom-responses`, `minimax-responses`, or `kimi-openai-chat`.
+`codex-responses`, `mimo-responses`, `minimax-responses`, or
+`kimi-openai-chat`.
 `direct-runner` is a deterministic contract/eval baseline and does not accept
 `provider_profile`; it is not a live robot agent runtime.
 
@@ -130,8 +131,8 @@ config. Normal users configure keys only; command shape controls behavior.
 
 ```bash
 cp .env.example .env
-# Fill the URL/key variables for the profile you select on the command line.
-# custom-responses also requires CUSTOM_RESPONSES_MODEL.
+# Fill the URL/key/model variables for the profile you select on the command line.
+# codex-responses and mimo-responses each require their complete *_RESPONSES triple.
 ```
 
 Provider selection is explicit and no profile falls back to a different

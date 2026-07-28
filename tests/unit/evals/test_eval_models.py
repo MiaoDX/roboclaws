@@ -361,7 +361,8 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
     assert map_build_sample.allowed_agent_engines == ("direct-runner", "openai-agents-sdk")
     assert map_build_sample.provider_profiles == (
         MISSING_NOT_APPLICABLE,
-        "custom-responses",
+        "codex-responses",
+        "mimo-responses",
         "minimax-responses",
         "kimi-openai-chat",
     )
@@ -380,7 +381,8 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
         "fixture_focused_prior",
     ]
     assert map_build_consumer_suite.metadata["model_matrix_provider_profiles"] == [
-        "custom-responses",
+        "codex-responses",
+        "mimo-responses",
         "minimax-responses",
         "kimi-openai-chat",
     ]
@@ -391,7 +393,8 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
     assert "map_build_scan_profile" not in fixture_map_build_sample.launch_overrides
     assert fixture_map_build_sample.provider_profiles == (
         MISSING_NOT_APPLICABLE,
-        "custom-responses",
+        "codex-responses",
+        "mimo-responses",
         "minimax-responses",
         "kimi-openai-chat",
     )
@@ -416,7 +419,8 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
     )
     assert open_ended_sample.provider_profiles == (
         MISSING_NOT_APPLICABLE,
-        "custom-responses",
+        "codex-responses",
+        "mimo-responses",
         "minimax-responses",
         "kimi-openai-chat",
     )

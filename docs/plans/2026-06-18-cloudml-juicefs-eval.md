@@ -260,7 +260,7 @@ As of 2026-07-22:
   seconds. MiMo Inside reached its configured `mimo-1000` route but failed both
   attempts as `provider_transient_failure/upstream_unavailable`, matching the
   earlier local route result rather than a credential-transport failure.
-- On 2026-07-22, Mify `xiaomi/mimo-v2.5-pro` passed local OpenAI Chat and
+- On 2026-07-22, Mify `<local-mimo-request-model>` passed local OpenAI Chat and
   Responses probes 3/3 each plus a cleanup worklist tool-call case. It is now
   the only default-enabled MiMo route and the alternate-provider baseline row;
   token-plan and Inside routes remain available only for explicit diagnostics.

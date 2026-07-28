@@ -24,6 +24,7 @@ from roboclaws.agents.provider_registry import (
     provider_route_spec,
     route_capabilities_for_engine,
 )
+from roboclaws.agents.provider_transport import compatible_model_settings
 from roboclaws.agents.thinking_policy import normalize_thinking_mode
 from roboclaws.household.household_mcp_server import (
     ROBOT_VIEW_CAPTURE_POLICIES,
@@ -718,7 +719,7 @@ def _sdk_model_settings_for_profile(profile: dict[str, Any]) -> dict[str, Any]:
         settings["include_usage"] = True
         if provider_profile == PROVIDER_PROFILE_KIMI_OPENAI_CHAT:
             settings["extra_headers"] = {"User-Agent": KIMI_CODING_USER_AGENT}
-    return settings
+    return compatible_model_settings(provider_profile, settings)
 
 
 def _sdk_run_config_for_profile(_profile: dict[str, Any]) -> dict[str, Any]:

@@ -58,12 +58,55 @@ just agent::eval suite=long_horizon_tasks budget=smoke
 
 `baseline-core` is the normal broad local refresh without live providers.
 `baseline-live-default` adds the normal Kimi live rows. `baseline-refresh` adds
-the explicit three-profile comparison. Rows whose live preflight is not ready
+the explicit four-profile comparison. Rows whose live preflight is not ready
 record blocked evidence instead of being silently skipped.
 
-The harness is local-only. `max_parallel=1` preserves serial behavior; raising
-it runs independent rows concurrently while dependency chains and shared
-visual-backend groups remain ordered.
+The built-in `just agent::eval execute` worker runs locally. The harness itself
+is execution-neutral: maintainers can freeze selected rows and dispatch them to
+CloudML with the repo-owned
+[`cloudml-eval-ops`](../../skills/cloudml-eval-ops/SKILL.md) skill. That skill
+uses the official `cml` lifecycle commands and executor-backed JuiceFS transfer,
+then returns verified row results to the normal harness report. CloudML remains
+an eval execution environment, not a product `backend`.
+
+This is intentionally a Markdown operations layer rather than a second Python
+control plane or a private companion repository. A request to run or refresh a
+repo-scoped CloudML eval authorizes the bounded preflight, staging, submission,
+monitoring, collection, and repair/retry work described by the skill and
+`AGENTS.md`; material workspace, resource, concurrency, credential, or cost
+expansion still requires confirmation. Durable baseline or catalog publication
+also remains a separate human decision.
+
+For local execution, `max_parallel=1` preserves serial behavior; raising it
+runs independent rows concurrently while dependency chains and shared
+visual-backend groups remain ordered. For CloudML, parallel proof requires
+independent task row intervals that actually overlap, not merely multiple
+successful submissions. Each run retains `plan.json`, append-only task
+receipts, terminal markers, collection verification, and the normal JSON,
+Markdown, and HTML reports under `output/eval-harness/<run-id>/cloudml-ops/`.
+
+The full `baseline-refresh` placement policy uses one selected CloudML row per
+CloudML task, one worker Pod per task, and `max_parallel=1` inside every worker,
+including deterministic CPU rows. Task count is derived from the frozen
+manifest rather than a fixed historical shard count or observed concurrency
+peak. Physical-host isolation is not required. A producer/consumer dependency
+chain runs in two stages: the producer task must durably commit and verify its
+artifact before the consumer task is submitted in a separate Pod.
+
+The default result/capability refresh allows at most two active rows per
+provider. It records provider throttling and does not treat concurrent-run
+latency as comparable performance evidence. A latency or cost baseline instead
+uses at most one active row per provider. External-egress rows run locally with
+`max_parallel=1`, may overlap the CloudML wave, and merge into the same hybrid
+report. A terminal report may preserve explicitly blocked external rows, but it
+is not an accepted complete baseline and must not be published as one.
+
+Grounding DINO remains colocated with its corresponding MuJoCo row: the worker
+Pod runs the simulator/runtime and its local HTTP visual-grounding sidecar. The
+baseline does not use a shared cross-Pod DINO service. r49 tasks use
+`GUARANTEED` resources with `preemptible=true`; CPU tasks remain
+non-preemptible. Scheduler retries stay disabled, and only a classified
+preemption or infrastructure failure may create one additional attempt.
 
 Scene expansion resolves an execution-neutral case from the catalog row,
 suite, provider profile, seed, and optional `(scene_source, scene_index)`
@@ -77,7 +120,8 @@ OpenAI Agents SDK runs always select one profile explicitly:
 | Profile | Wire API | Required configuration |
 | --- | --- | --- |
 | `kimi-openai-chat` | Chat Completions | `KIMI_OPENAI_BASE_URL`, `KIMI_API_KEY` |
-| `custom-responses` | Responses | `CUSTOM_RESPONSES_BASE_URL`, `CUSTOM_RESPONSES_API_KEY`, `CUSTOM_RESPONSES_MODEL` |
+| `codex-responses` | Responses | `CODEX_RESPONSES_BASE_URL`, `CODEX_RESPONSES_API_KEY`, `CODEX_RESPONSES_MODEL` |
+| `mimo-responses` | Responses | `MIMO_RESPONSES_BASE_URL`, `MIMO_RESPONSES_API_KEY`, `MIMO_RESPONSES_MODEL` |
 | `minimax-responses` | Responses | `MM_BASE_URL`, `MM_API_KEY` |
 
 Non-direct suite selections preserve live-agent identity and produce blocked

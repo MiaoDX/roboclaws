@@ -44,8 +44,12 @@
     }
   },
   "provider_execution_requirements": {
-    "custom-responses": [
-      "provider:custom-responses",
+    "codex-responses": [
+      "provider:codex-responses",
+      "network:configured-endpoint"
+    ],
+    "mimo-responses": [
+      "provider:mimo-responses",
       "network:configured-endpoint"
     ],
     "kimi-openai-chat": [
@@ -309,7 +313,7 @@
       ]
     },
     {
-      "row_id": "map-build-consumer-openai-agents-sdk-custom-responses",
+      "row_id": "map-build-consumer-openai-agents-sdk-codex-responses",
       "row_kind": "live_agent_eval",
       "command": [
         "just",
@@ -318,16 +322,16 @@
         "runtime_map_prior={runtime_map_prior}",
         "budget=focused",
         "output_dir={eval_output_root}",
-        "stamp=map-build-consumer-openai-agents-sdk-custom-responses",
+        "stamp=map-build-consumer-openai-agents-sdk-codex-responses",
         "agent_engine=openai-agents-sdk",
-        "provider_profile=custom-responses",
+        "provider_profile=codex-responses",
         "live_timeout_s=1500",
         "live_stall_timeout_s=180",
         "live_execution=run"
       ],
       "axes": {
         "agent_engine": "openai-agents-sdk",
-        "provider_profile": "custom-responses",
+        "provider_profile": "codex-responses",
         "intent": "map-build-consumer",
         "suite": "map_consumer_fixed_prior",
         "evidence_lane": "world-public-labels",
@@ -338,7 +342,53 @@
         "default_local_concurrency_width": "1",
         "concurrency_policy": "{concurrency_policy}"
       },
-      "reason_selected": "MapBuild consumer proof keeps the configured custom Responses endpoint as one explicit provider cell.",
+      "reason_selected": "MapBuild consumer proof keeps Codex Responses as one explicit provider cell.",
+      "expense": "live-agent",
+      "selection_rule_ids": [
+        "map_build"
+      ],
+      "requires": [
+        "just",
+        "python_env",
+        "openai_agents_package",
+        "provider_profile",
+        "runtime_map_prior"
+      ],
+      "profiles": [
+        "baseline-refresh"
+      ]
+    },
+    {
+      "row_id": "map-build-consumer-openai-agents-sdk-mimo-responses",
+      "row_kind": "live_agent_eval",
+      "command": [
+        "just",
+        "agent::eval",
+        "suite=map_consumer_fixed_prior",
+        "runtime_map_prior={runtime_map_prior}",
+        "budget=focused",
+        "output_dir={eval_output_root}",
+        "stamp=map-build-consumer-openai-agents-sdk-mimo-responses",
+        "agent_engine=openai-agents-sdk",
+        "provider_profile=mimo-responses",
+        "live_timeout_s=1500",
+        "live_stall_timeout_s=180",
+        "live_execution=run"
+      ],
+      "axes": {
+        "agent_engine": "openai-agents-sdk",
+        "provider_profile": "mimo-responses",
+        "intent": "map-build-consumer",
+        "suite": "map_consumer_fixed_prior",
+        "evidence_lane": "world-public-labels",
+        "backend": "{default_backend}",
+        "world": "{default_world}",
+        "parallel_group_id": "{map_build_consumer_parallel_group}",
+        "provider_cell_count": "{provider_cell_count}",
+        "default_local_concurrency_width": "1",
+        "concurrency_policy": "{concurrency_policy}"
+      },
+      "reason_selected": "MapBuild consumer proof keeps MiMo Responses as one explicit provider cell.",
       "expense": "live-agent",
       "selection_rule_ids": [
         "map_build"

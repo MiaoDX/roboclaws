@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import sys
+import uuid
 from pathlib import Path
 
 
@@ -30,7 +31,8 @@ def test_provider_probe_defaults_cover_kimi_and_payload() -> None:
     probes = {probe.probe_id: probe for probe in script.build_provider_probes()}
 
     assert set(probes) == {
-        "provider:custom-responses",
+        "provider:codex-responses",
+        "provider:mimo-responses",
         "provider:minimax-responses-m3",
         "provider:kimi-coding-chat",
     }
@@ -55,12 +57,12 @@ def test_provider_probe_defaults_exclude_unavailable_official_openai_route() -> 
     assert all(probe.api_key_env != "OPENAI_API_KEY" for probe in probes.values())
 
 
-def test_custom_probes_do_not_apply_private_transport_headers(monkeypatch) -> None:
+def test_codex_probes_apply_required_transport_headers(monkeypatch) -> None:
     script = _load_script_module()
     captured: dict[str, object] = {}
-    monkeypatch.setenv("CUSTOM_RESPONSES_API_KEY", "fake-custom-key")
-    monkeypatch.setenv("CUSTOM_RESPONSES_BASE_URL", "https://custom.example/v1")
-    monkeypatch.setenv("CUSTOM_RESPONSES_MODEL", "opaque-model")
+    monkeypatch.setenv("CODEX_RESPONSES_API_KEY", "fake-codex-key")
+    monkeypatch.setenv("CODEX_RESPONSES_BASE_URL", "https://codex.example/v1")
+    monkeypatch.setenv("CODEX_RESPONSES_MODEL", "opaque-model")
 
     class FakeModelSettings:
         def __init__(self, **_kwargs) -> None:
@@ -121,31 +123,34 @@ def test_custom_probes_do_not_apply_private_transport_headers(monkeypatch) -> No
     )
 
     agent_probe = {probe.probe_id: probe for probe in script.build_agent_sdk_probes()}[
-        "agents-sdk:custom-responses"
+        "agents-sdk:codex-responses"
     ]
     raw_probe = {probe.probe_id: probe for probe in script.build_provider_probes()}[
-        "provider:custom-responses"
+        "provider:codex-responses"
     ]
 
     assert script.run_probe(agent_probe, prompt="ok", timeout_s=1.0).status == "PASS"
     assert script.run_probe(raw_probe, prompt="ok", timeout_s=1.0).status == "PASS"
-    assert agent_probe.model == "custom"
-    assert raw_probe.model == "custom"
+    assert agent_probe.model == "codex"
+    assert raw_probe.model == "codex"
     assert captured["request_model"] == "opaque-model"
     for client_key in ("async_client", "sync_client"):
-        assert "default_headers" not in captured[client_key]
+        window_id = captured[client_key]["default_headers"]["X-Codex-Window-Id"]
+        thread_id, generation = window_id.rsplit(":", 1)
+        assert uuid.UUID(thread_id)
+        assert generation == "0"
 
 
-def test_custom_probe_results_redact_endpoint_key_and_request_model(monkeypatch) -> None:
+def test_mimo_probe_results_redact_endpoint_key_and_request_model(monkeypatch) -> None:
     script = _load_script_module()
     canary_url = "https://private-route-canary.example/v1"
     canary_key = "custom-key-canary-123456"
     canary_model = "private-model-canary-654321"
-    monkeypatch.setenv("CUSTOM_RESPONSES_BASE_URL", canary_url)
-    monkeypatch.setenv("CUSTOM_RESPONSES_API_KEY", canary_key)
-    monkeypatch.setenv("CUSTOM_RESPONSES_MODEL", canary_model)
+    monkeypatch.setenv("MIMO_RESPONSES_BASE_URL", canary_url)
+    monkeypatch.setenv("MIMO_RESPONSES_API_KEY", canary_key)
+    monkeypatch.setenv("MIMO_RESPONSES_MODEL", canary_model)
     probe = {probe.probe_id: probe for probe in script.build_provider_probes()}[
-        "provider:custom-responses"
+        "provider:mimo-responses"
     ]
 
     monkeypatch.setattr(
@@ -164,8 +169,8 @@ def test_custom_probe_results_redact_endpoint_key_and_request_model(monkeypatch)
     failed = script.run_probe(probe, prompt="ok", timeout_s=1.0)
 
     serialized = json.dumps([passed.__dict__, failed.__dict__])
-    assert passed.model == "custom"
-    assert failed.model == "custom"
+    assert passed.model == "mimo"
+    assert failed.model == "mimo"
     for canary in (canary_url, canary_key, canary_model):
         assert canary not in serialized
 
@@ -215,7 +220,8 @@ def test_agents_sdk_probe_defaults_use_larger_responses_budget() -> None:
     probes = {probe.probe_id: probe for probe in script.build_agent_sdk_probes()}
 
     assert probes["agents-sdk:minimax-responses"].max_tokens >= 256
-    assert probes["agents-sdk:custom-responses"].max_tokens >= 256
+    assert probes["agents-sdk:codex-responses"].max_tokens >= 256
+    assert probes["agents-sdk:mimo-responses"].max_tokens >= 256
     assert probes["agents-sdk:kimi-openai-chat"].model == "kimi-k2.7-code"
     assert not probes["agents-sdk:kimi-openai-chat"].unsupported_reason
 
@@ -386,11 +392,17 @@ def test_agents_sdk_public_profile_excludes_internal_routes() -> None:
     selected = script.select_probes(args)
 
     assert {probe.probe_id for probe in selected} == {
-        "agents-sdk:custom-responses",
+        "agents-sdk:codex-responses",
+        "agents-sdk:mimo-responses",
         "agents-sdk:minimax-responses",
         "agents-sdk:kimi-openai-chat",
     }
-    public_routes = {"custom-responses", "minimax-responses", "kimi-openai-chat"}
+    public_routes = {
+        "codex-responses",
+        "mimo-responses",
+        "minimax-responses",
+        "kimi-openai-chat",
+    }
     assert all(probe.route_id in public_routes for probe in selected)
 
 

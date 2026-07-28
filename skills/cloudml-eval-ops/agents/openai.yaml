@@ -1,0 +1,4 @@
+interface:
+  display_name: "CloudML Eval Ops"
+  short_description: "Run Roboclaws eval rows safely on CloudML"
+  default_prompt: "Use $cloudml-eval-ops to run a bounded Roboclaws eval on CloudML and collect verified receipts."

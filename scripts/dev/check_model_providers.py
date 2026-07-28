@@ -23,6 +23,7 @@ from roboclaws.agents.provider_registry import (
     provider_route_spec,
     route_base_url,
 )
+from roboclaws.agents.provider_transport import provider_default_headers
 from roboclaws.agents.thinking_policy import thinking_request_body_for_wire
 from roboclaws.core.dotenv import update_env_from_dotenv_file
 from roboclaws.core.json_sources import parse_json_object_text
@@ -36,7 +37,8 @@ DEFAULT_TIMEOUT_S = 30.0
 ProbeMode = Literal["agents-sdk", "provider"]
 
 PUBLIC_AGENT_SDK_ROUTE_IDS = (
-    "custom-responses",
+    "codex-responses",
+    "mimo-responses",
     "minimax-responses",
     "kimi-openai-chat",
 )
@@ -92,15 +94,14 @@ def build_agent_sdk_probes(
     probes: list[ProbeSpec] = []
     for route_id in PUBLIC_AGENT_SDK_ROUTE_IDS:
         route = provider_route_spec(route_id)
-        is_custom = route_id == "custom-responses"
         probes.append(
             ProbeSpec(
                 probe_id=f"agents-sdk:{route_id}",
                 mode="agents-sdk",
                 route_id=route_id,
                 wire_api=route.wire_api,
-                model="custom" if is_custom else route.default_model_id,
-                request_model=os.environ.get("CUSTOM_RESPONSES_MODEL", "") if is_custom else "",
+                model=route.default_model_id,
+                request_model=os.environ.get(route.request_model_env or "", ""),
                 api_key_env=route.api_key_env or "",
                 base_url=route_base_url(route),
                 max_tokens=(
@@ -116,17 +117,23 @@ def build_provider_probes(
     responses_max_tokens: int = DEFAULT_RESPONSES_MAX_OUTPUT_TOKENS,
     chat_max_tokens: int = DEFAULT_CHAT_MAX_TOKENS,
 ) -> list[ProbeSpec]:
-    custom_route = provider_route_spec("custom-responses")
+    codex_route = provider_route_spec("codex-responses")
+    mimo_route = provider_route_spec("mimo-responses")
     minimax_route = provider_route_spec("minimax-responses")
     kimi_route = provider_route_spec("kimi-openai-chat")
 
     return [
         _provider_from_route(
-            "custom-responses",
-            custom_route,
+            "codex-responses",
+            codex_route,
             max_tokens=responses_max_tokens,
-            model="custom",
-            request_model=os.environ.get("CUSTOM_RESPONSES_MODEL", ""),
+            request_model=os.environ.get(codex_route.request_model_env or "", ""),
+        ),
+        _provider_from_route(
+            "mimo-responses",
+            mimo_route,
+            max_tokens=responses_max_tokens,
+            request_model=os.environ.get(mimo_route.request_model_env or "", ""),
         ),
         _provider_from_route(
             "minimax-responses-m3", minimax_route, max_tokens=responses_max_tokens
@@ -274,6 +281,9 @@ def _run_agents_sdk_probe(
         "timeout": timeout_s,
         "max_retries": 0,
     }
+    default_headers = provider_default_headers(spec.route_id)
+    if default_headers:
+        client_kwargs["default_headers"] = default_headers
     client = AsyncOpenAI(**client_kwargs)
     if spec.wire_api == WIRE_RESPONSES:
         model = OpenAIResponsesModel(_request_model(spec), openai_client=client)
@@ -313,6 +323,9 @@ def _run_responses_probe(
     kwargs: dict[str, Any] = {"api_key": api_key, "timeout": timeout_s, "max_retries": 0}
     if spec.base_url:
         kwargs["base_url"] = spec.base_url
+    default_headers = provider_default_headers(spec.route_id)
+    if default_headers:
+        kwargs["default_headers"] = default_headers
     client = OpenAI(**kwargs)
     response = client.responses.create(
         model=_request_model(spec),

@@ -30,9 +30,12 @@ roboclaws_provider_registry() {
   local python_cmd
   python_cmd="$(roboclaws_python)" || return
   # shellcheck disable=SC2086
-  CUSTOM_RESPONSES_BASE_URL="${CUSTOM_RESPONSES_BASE_URL:-}" \
-  CUSTOM_RESPONSES_API_KEY="${CUSTOM_RESPONSES_API_KEY:-}" \
-  CUSTOM_RESPONSES_MODEL="${CUSTOM_RESPONSES_MODEL:-}" \
+  CODEX_RESPONSES_BASE_URL="${CODEX_RESPONSES_BASE_URL:-}" \
+  CODEX_RESPONSES_API_KEY="${CODEX_RESPONSES_API_KEY:-}" \
+  CODEX_RESPONSES_MODEL="${CODEX_RESPONSES_MODEL:-}" \
+  MIMO_RESPONSES_BASE_URL="${MIMO_RESPONSES_BASE_URL:-}" \
+  MIMO_RESPONSES_API_KEY="${MIMO_RESPONSES_API_KEY:-}" \
+  MIMO_RESPONSES_MODEL="${MIMO_RESPONSES_MODEL:-}" \
   MM_BASE_URL="${MM_BASE_URL:-}" \
   MM_API_KEY="${MM_API_KEY:-}" \
   KIMI_OPENAI_BASE_URL="${KIMI_OPENAI_BASE_URL:-}" \
@@ -144,10 +147,10 @@ roboclaws_assert_openai_agents_provider_allowed() {
   local provider
   provider="$(roboclaws_code_agent_provider ROBOCLAWS_PROVIDER_PROFILE)" || return
   case "$provider" in
-    custom-responses|minimax-responses|kimi-openai-chat)
+    codex-responses|mimo-responses|minimax-responses|kimi-openai-chat)
       ;;
     *)
-      echo "error: unsupported OpenAI Agents SDK provider '${provider}'; expected custom-responses, minimax-responses, or kimi-openai-chat" >&2
+      echo "error: unsupported OpenAI Agents SDK provider '${provider}'; expected codex-responses, mimo-responses, minimax-responses, or kimi-openai-chat" >&2
       return 2
       ;;
   esac

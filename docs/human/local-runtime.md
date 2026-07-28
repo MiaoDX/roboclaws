@@ -16,14 +16,18 @@ KIMI_OPENAI_BASE_URL=
 KIMI_API_KEY=
 MM_BASE_URL=
 MM_API_KEY=
-CUSTOM_RESPONSES_BASE_URL=
-CUSTOM_RESPONSES_API_KEY=
-CUSTOM_RESPONSES_MODEL=
+CODEX_RESPONSES_BASE_URL=
+CODEX_RESPONSES_API_KEY=
+CODEX_RESPONSES_MODEL=
+MIMO_RESPONSES_BASE_URL=
+MIMO_RESPONSES_API_KEY=
+MIMO_RESPONSES_MODEL=
 ```
 
-Every OpenAI Agents SDK launch selects `custom-responses`, `minimax-responses`,
-or `kimi-openai-chat` explicitly. Environment presence never selects a route,
-and the runtime does not fall back between Responses and Chat Completions.
+Every OpenAI Agents SDK launch selects `codex-responses`, `mimo-responses`,
+`minimax-responses`, or `kimi-openai-chat` explicitly. Environment presence
+never selects a route, and the runtime does not fall back between Responses and
+Chat Completions.
 
 Run `just dev::network-status` before validation-required maintainer workflows.
 On the work network, guarded OpenClaw routes and system-provider Claude Code

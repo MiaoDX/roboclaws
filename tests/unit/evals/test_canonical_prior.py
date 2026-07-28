@@ -37,7 +37,7 @@ def _write_inputs(tmp_path: Path) -> tuple[Path, Path]:
                     "scene_identity": "val_0",
                     "source_map_identity": "map-sha256:abc",
                     "backend": "mujoco",
-                    "builder_provider": "custom-responses",
+                    "builder_provider": "codex-responses",
                     "builder_model": "custom",
                     "prompt_or_skill_version": "household-world-v1",
                     "evidence_lane": "camera-grounded-labels",
