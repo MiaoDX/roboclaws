@@ -22,7 +22,7 @@ harness target *args:
     @exec {{python_bin}} -m roboclaws.cli.main agent harness "$@"
 
 # Manage a household MCP server.
-mcp action="up" server="household-world.cleanup" host="127.0.0.1" port="18788" output_dir=".tmp/roboclaws-mcp/run":
+mcp action="up" server="household-world" host="127.0.0.1" port="18788" output_dir=".tmp/roboclaws-mcp/run":
     @exec {{python_bin}} -m roboclaws.cli.main agent mcp "$@"
 
 # Manage the OpenClaw Gateway lifecycle.

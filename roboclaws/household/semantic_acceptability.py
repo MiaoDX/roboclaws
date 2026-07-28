@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from typing import Any
 
 from roboclaws.household.types import CleanupScenario
@@ -108,6 +108,68 @@ _RUBRIC = {
     },
 }
 
+_SEMANTIC_RANK = {
+    WRONG: 0,
+    QUESTIONABLE: 1,
+    ACCEPTABLE: 2,
+    PREFERRED: 3,
+}
+
+
+def assess_public_semantic_acceptability(
+    object_category: Any,
+    receptacle_category: Any,
+) -> dict[str, str]:
+    """Assess cleanup placement using only public category labels."""
+
+    canonical_object = _lookup_alias(_OBJECT_ALIASES, object_category)
+    canonical_receptacle = _lookup_alias(_RECEPTACLE_ALIASES, receptacle_category)
+    if canonical_object is None:
+        return {
+            "level": UNKNOWN,
+            "reason": "object category has no semantic cleanup rubric",
+        }
+    if canonical_receptacle is None:
+        return {
+            "level": UNKNOWN,
+            "reason": "receptacle category has no semantic cleanup rubric",
+        }
+
+    rule = _RUBRIC.get(canonical_object)
+    if rule is None:
+        return {
+            "level": UNKNOWN,
+            "reason": f"{canonical_object} has no semantic cleanup rubric",
+        }
+    for level in (PREFERRED, ACCEPTABLE, QUESTIONABLE):
+        if canonical_receptacle in rule[level]:
+            return {
+                "level": level,
+                "reason": f"{canonical_object} on {canonical_receptacle} is {level}",
+            }
+    return {
+        "level": WRONG,
+        "reason": (f"{canonical_object} on {canonical_receptacle} is not a cleanup placement"),
+    }
+
+
+def public_source_requires_cleanup(
+    object_category: Any,
+    receptacle_category: Any,
+) -> bool:
+    """Return whether public source semantics justify moving an object."""
+
+    return assess_public_semantic_acceptability(object_category, receptacle_category)["level"] in {
+        QUESTIONABLE,
+        WRONG,
+    }
+
+
+def canonical_public_object_category(object_category: Any) -> str:
+    """Return the public semantic category used to compare visual distractors."""
+
+    return _lookup_alias(_OBJECT_ALIASES, object_category) or _normalize(object_category)
+
 
 def annotate_score_with_semantic_acceptability(
     score: Mapping[str, Any],
@@ -173,6 +235,47 @@ def annotate_score_with_semantic_acceptability(
     return annotated_score
 
 
+def semantic_disturbance_metrics(
+    scenario: CleanupScenario | Mapping[str, Any],
+    initial_locations: Mapping[str, str],
+    final_locations: Mapping[str, str],
+    *,
+    excluded_object_ids: Collection[str] = (),
+) -> dict[str, int]:
+    """Count non-target moves and the subset that made placement semantics worse."""
+
+    objects = _objects_by_id(scenario)
+    receptacles = _receptacles_by_id(scenario)
+    excluded = {str(item) for item in excluded_object_ids}
+    location_change_count = 0
+    disturbance_count = 0
+    for object_id, initial_location_id in initial_locations.items():
+        if object_id in excluded:
+            continue
+        final_location_id = final_locations.get(object_id)
+        if final_location_id in {None, initial_location_id}:
+            continue
+        location_change_count += 1
+        initial_level = _assess_semantic_acceptability(
+            objects.get(object_id),
+            receptacles.get(str(initial_location_id)),
+            initial_location_id,
+        )["level"]
+        final_level = _assess_semantic_acceptability(
+            objects.get(object_id),
+            receptacles.get(str(final_location_id)),
+            final_location_id,
+        )["level"]
+        initial_rank = _SEMANTIC_RANK.get(initial_level)
+        final_rank = _SEMANTIC_RANK.get(final_level)
+        if initial_rank is not None and final_rank is not None and final_rank < initial_rank:
+            disturbance_count += 1
+    return {
+        "disturbance_count": disturbance_count,
+        "non_target_location_change_count": location_change_count,
+    }
+
+
 def _assess_semantic_acceptability(
     obj: Mapping[str, Any] | Any | None,
     receptacle: Mapping[str, Any] | Any | None,
@@ -207,22 +310,7 @@ def _assess_semantic_acceptability(
             "reason": "receptacle category has no semantic cleanup rubric",
         }
 
-    rule = _RUBRIC.get(object_category)
-    if rule is None:
-        return {
-            "level": UNKNOWN,
-            "reason": f"{object_category} has no semantic cleanup rubric",
-        }
-    for level in (PREFERRED, ACCEPTABLE, QUESTIONABLE):
-        if receptacle_category in rule[level]:
-            return {
-                "level": level,
-                "reason": f"{object_category} on {receptacle_category} is {level}",
-            }
-    return {
-        "level": WRONG,
-        "reason": f"{object_category} on {receptacle_category} is not a cleanup placement",
-    }
+    return assess_public_semantic_acceptability(object_category, receptacle_category)
 
 
 def _objects_by_id(

@@ -59,9 +59,14 @@ Current live product route:
 
 - `agent_engine=openai-agents-sdk`
 - default provider profile: `codex-router-responses` with `CODEX_BASE_URL` and
-  `CODEX_API_KEY`
+  `CODEX_API_KEY`; default model `gpt-5.6-sol`
 - explicit alternatives: `mimo-mify-responses` with `XM_LLM_API_KEY`, or
   `minimax-responses` with `MM_API_KEY`
+
+Repo-local OpenAI Agents SDK provider routes may run on the work network. The
+`codex-router-responses` adapter handles Router-specific transport
+compatibility internally, so launchers use the same provider/model contract as
+other SDK routes.
 
 Before OpenClaw Gateway, `just chat::run`, OpenClaw local/integration gates, or
 system-provider Claude Code workflows:

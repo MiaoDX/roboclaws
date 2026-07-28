@@ -33,6 +33,10 @@
   "private_goal_reference": {
     "schema": "household_eval_private_goal_reference_v1",
     "private_truth_scope": "grader_only",
+    "runtime_requirements": {
+      "requires_real_molmospaces_backend": true,
+      "requires_product_evidence_lane": true
+    },
     "long_horizon_task": {
       "task_id": "snack_restock",
       "target_object_ids": [

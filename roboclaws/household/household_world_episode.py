@@ -16,6 +16,14 @@ from roboclaws.household.backend_contract import (
     build_cleanup_backend_session,
     validate_cleanup_run_options,
 )
+from roboclaws.household.household_world_direct_policy import (
+    DirectHouseholdEpisodePolicyHooks,
+    complete_direct_household_episode,
+    direct_household_episode_policy,
+    direct_household_episode_scratchpad,
+    record_direct_household_episode_robot_view,
+    run_direct_household_episode_scan,
+)
 from roboclaws.household.isaac_lab_backend import (
     ISAACLAB_SUBPROCESS_BACKEND,
 )
@@ -50,13 +58,8 @@ from roboclaws.household.realworld_contract import (
     VISIBLE_OBJECT_DETECTIONS_MODE,
     RealWorldCleanupContract,
 )
-from roboclaws.household.realworld_direct_cleanup_loop import (
-    DirectCleanupLoopHooks,
-    complete_direct_cleanup,
-    direct_cleanup_policy_name,
-    direct_cleanup_scratchpad,
-    record_direct_cleanup_robot_view,
-    run_direct_cleanup_scan,
+from roboclaws.household.realworld_done_readiness import (
+    destination_options_for_policy,
 )
 from roboclaws.household.realworld_run_artifacts import (
     RealWorldRunArtifactInputs,
@@ -75,7 +78,11 @@ from roboclaws.household.semantic_timeline import (
 from roboclaws.household.subprocess_backend import (
     MOLMOSPACES_SUBPROCESS_BACKEND,
 )
-from roboclaws.household.task_intent import HOUSEHOLD_INTENT_OPEN_ENDED
+from roboclaws.household.task_intent import (
+    HOUSEHOLD_INTENT_CLEANUP,
+    HOUSEHOLD_INTENT_OPEN_ENDED,
+    household_runtime_intent,
+)
 from roboclaws.household.visual_grounding import (
     SIM_VISUAL_GROUNDING_PIPELINE_ID,
     visual_grounding_client_from_env,
@@ -85,9 +92,7 @@ from roboclaws.maps.runtime_prior_snapshot import read_runtime_map_prior_artifac
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Run the ADR-0003 real-world-style MolmoSpaces cleanup harness."
-    )
+    parser = argparse.ArgumentParser(description="Run the household-world direct product episode.")
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--task", default=DEFAULT_REALWORLD_TASK)
@@ -131,12 +136,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Public cleanup evidence lane or smoke preset selected by the command facade.",
     )
     parser.add_argument(
-        "--map-build",
-        action="store_true",
-        help=(
-            "Visit inspection waypoints and update the runtime metric map without "
-            "attempting cleanup actions."
-        ),
+        "--intent",
+        choices=("cleanup", "map-build", "open-ended"),
+        help="Household task intent used to select the direct episode policy.",
     )
     parser.add_argument(
         "--runtime-map-prior",
@@ -220,7 +222,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def run_realworld_cleanup(
+def run_household_world_episode(
     *,
     output_dir: Path,
     seed: int = 1,
@@ -242,7 +244,7 @@ def run_realworld_cleanup(
     isaac_segmentation_semantic_filter: tuple[str, ...] | None = None,
     map_bundle_dir: str | Path | None = None,
     evidence_lane: str | None = None,
-    map_build: bool = False,
+    intent: str | None = None,
     runtime_map_prior_path: str | Path | None = None,
     planner_proof_run_result: Path | None = None,
     planner_proof_run_results: list[Path] | None = None,
@@ -278,6 +280,7 @@ def run_realworld_cleanup(
     goal_contract = goal_contract_from_json(goal_contract_json) or goal_contract_from_file(
         goal_contract_path
     )
+    task_intent = household_runtime_intent(goal_contract, intent or HOUSEHOLD_INTENT_CLEANUP)
 
     base_contract = build_cleanup_backend_session(
         backend_name=backend,
@@ -333,11 +336,11 @@ def run_realworld_cleanup(
         contract=base_contract,
         scenario=scenario,
         output_path=output_dir / "before.png",
-        title="Before real-world cleanup",
+        title="Before household-world episode",
     )
     robot_view_steps: list[dict[str, Any]] = []
     view_index = 0
-    direct_loop_hooks = DirectCleanupLoopHooks(
+    direct_loop_hooks = DirectHouseholdEpisodePolicyHooks(
         call_tool=_call_tool,
         attach_raw_fpv_robot_view=_attach_raw_fpv_robot_view,
         view_index_after_raw_fpv=_view_index_after_raw_fpv,
@@ -346,7 +349,7 @@ def run_realworld_cleanup(
         map_build_done=_map_build_done,
         failed_score=_failed_score,
     )
-    view_index = record_direct_cleanup_robot_view(
+    view_index = record_direct_household_episode_robot_view(
         base_contract=base_contract,
         robot_view_steps=robot_view_steps,
         output_dir=output_dir,
@@ -371,12 +374,12 @@ def run_realworld_cleanup(
         run_metadata_overrides=run_metadata_overrides,
     )
 
-    policy_name = direct_cleanup_policy_name(
-        map_build=map_build,
+    episode_policy = direct_household_episode_policy(
+        intent=task_intent,
         perception_mode=perception_mode,
     )
-    agent_scratchpad = direct_cleanup_scratchpad(policy_name)
-    view_index = run_direct_cleanup_scan(
+    agent_scratchpad = direct_household_episode_scratchpad(episode_policy.policy_name)
+    view_index = run_direct_household_episode_scan(
         trace_events=trace_events,
         started_at=started_at,
         contract=contract,
@@ -387,7 +390,7 @@ def run_realworld_cleanup(
         output_dir=output_dir,
         view_index=view_index,
         record_robot_views=record_robot_views,
-        map_build=map_build,
+        episode_policy=episode_policy,
         perception_mode=perception_mode,
         planner_proof_evidence=(
             planner_proof_evidence if use_planner_proof_for_cleanup_primitives else None
@@ -399,13 +402,12 @@ def run_realworld_cleanup(
         stop_after_waypoint=_open_ended_prior_stop(open_ended_prior_waypoints),
     )
 
-    done = complete_direct_cleanup(
+    done = complete_direct_household_episode(
         trace_events=trace_events,
         started_at=started_at,
         contract=contract,
         base_contract=base_contract,
-        policy_name=policy_name,
-        map_build=map_build,
+        episode_policy=episode_policy,
         hooks=direct_loop_hooks,
     )
 
@@ -413,9 +415,9 @@ def run_realworld_cleanup(
         contract=base_contract,
         scenario=scenario,
         output_path=output_dir / "after.png",
-        title="After real-world cleanup",
+        title="After household-world episode",
     )
-    view_index = record_direct_cleanup_robot_view(
+    view_index = record_direct_household_episode_robot_view(
         base_contract=base_contract,
         robot_view_steps=robot_view_steps,
         output_dir=output_dir,
@@ -433,7 +435,7 @@ def run_realworld_cleanup(
             scenario=scenario,
             seed=seed,
             task_prompt=task_prompt,
-            policy_name=policy_name,
+            policy_name=episode_policy.policy_name,
             done=done,
             trace_events=trace_events,
             before_snapshot=before_snapshot,
@@ -442,7 +444,7 @@ def run_realworld_cleanup(
             generated_mess_count=generated_mess_count,
             goal_contract=goal_contract,
             agent_scratchpad=agent_scratchpad,
-            map_build=map_build,
+            map_build=episode_policy.requires_map_artifacts,
             runtime_map_prior=runtime_map_prior,
             runtime_map_prior_path=runtime_map_prior_path,
             evidence_lane=evidence_lane,
@@ -626,7 +628,7 @@ def _detections_for_policy(
     if perception_mode == RAW_FPV_ONLY_MODE:
         waypoint = contract._waypoint_by_id(str(raw.get("waypoint_id") or ""))
         candidate_inputs = (
-            realworld_visual_candidate_declarations.simulated_declaration_inputs_for_waypoint(
+            realworld_visual_candidate_declarations.simulated_raw_fpv_inputs_for_observation(
                 contract,
                 waypoint,
                 observation_id=str(raw.get("observation_id", "")),
@@ -845,16 +847,21 @@ def _maybe_clean_visible_object(
     handle = str(detection["object_id"])
     if handle in handled_handles:
         return view_index
+    handled_handles.add(handle)
     agent_scratchpad["observed_handles"].setdefault(handle, {"object_id": handle})
     live_detection = contract.inspect_visible_object(handle)
     if live_detection.get("ok") and isinstance(live_detection.get("detection"), dict):
         detection = dict(live_detection["detection"])
-    target_fixture = contract.target_fixture_for_detection(
-        detection,
-        static_fixture_projection,
-        include_runtime_backend_fixtures=True,
+    target_fixture = _direct_policy_target_fixture(
+        contract=contract,
+        detection=detection,
+        static_fixture_projection=static_fixture_projection,
     )
     if target_fixture is None:
+        contract._mark_visual_scan_unresolved(  # noqa: SLF001
+            handle,
+            reason="no_public_fixture_match",
+        )
         agent_scratchpad["failed_attempts"].append(
             {"object_id": handle, "reason": "no_public_fixture_match"}
         )
@@ -903,7 +910,6 @@ def _maybe_clean_visible_object(
         record_robot_views=record_robot_views,
         planner_proof_evidence=planner_proof_evidence,
     )
-    handled_handles.add(handle)
     agent_scratchpad["observed_handles"][handle].update(
         {
             "object_id": handle,
@@ -935,6 +941,13 @@ def _redirect_if_already_on_inferred_fixture(
         source_fixture_id=str(candidate.support.get("fixture_id") or ""),
     )
     if refreshed_target is None:
+        contract._handled_handles.add(handle)  # noqa: SLF001
+        contract._set_handle_state(  # noqa: SLF001
+            handle,
+            "placed",
+            tool="direct_policy_reconciliation",
+            resolution="already_on_inferred_fixture",
+        )
         agent_scratchpad["notes"].append(
             {"object_id": handle, "reason": "already_on_inferred_fixture"}
         )
@@ -1008,17 +1021,25 @@ def _confirm_visual_scan_candidate(
         None,
     )
     if confirmed is None:
+        contract._mark_visual_scan_unresolved(  # noqa: SLF001
+            handle,
+            reason="visual_scan_confirmation_missing",
+        )
         agent_scratchpad["failed_attempts"].append(
             {"object_id": handle, "reason": "visual_scan_confirmation_missing"}
         )
         return None, view_index
     detection = dict(confirmed)
-    target_fixture = contract.target_fixture_for_detection(
-        detection,
-        static_fixture_projection,
-        include_runtime_backend_fixtures=True,
+    target_fixture = _direct_policy_target_fixture(
+        contract=contract,
+        detection=detection,
+        static_fixture_projection=static_fixture_projection,
     )
     if target_fixture is None:
+        contract._mark_visual_scan_unresolved(  # noqa: SLF001
+            handle,
+            reason="no_public_fixture_match_after_visual_scan",
+        )
         agent_scratchpad["failed_attempts"].append(
             {"object_id": handle, "reason": "no_public_fixture_match_after_visual_scan"}
         )
@@ -1036,6 +1057,65 @@ def _confirm_visual_scan_candidate(
             agent_scratchpad=agent_scratchpad,
         ),
         view_index,
+    )
+
+
+def _direct_policy_target_fixture(
+    *,
+    contract: RealWorldCleanupContract,
+    detection: dict[str, Any],
+    static_fixture_projection: dict[str, Any],
+) -> dict[str, Any] | None:
+    inferred = contract.target_fixture_for_detection(
+        detection,
+        static_fixture_projection,
+        include_runtime_backend_fixtures=True,
+    )
+    if not contract.sanitize_world_labels:
+        return inferred
+    options = destination_options_for_policy(
+        contract,
+        detection.get("destination_policy") or {},
+    )
+    source_fixture_id = str((detection.get("support_estimate") or {}).get("fixture_id") or "")
+    inferred_fixture_id = str((inferred or {}).get("fixture_id") or "")
+    option_fixture_ids = {str(item.get("candidate_fixture_id") or "") for item in options}
+    if inferred_fixture_id and (
+        inferred_fixture_id != source_fixture_id or source_fixture_id in option_fixture_ids
+    ):
+        return inferred
+    selected = _preferred_public_destination_option(detection, options)
+    if selected is None:
+        return inferred
+    candidate = {**detection, **selected}
+    return contract.target_fixture_for_detection(
+        candidate,
+        static_fixture_projection,
+        include_runtime_backend_fixtures=True,
+    )
+
+
+def _preferred_public_destination_option(
+    detection: dict[str, Any],
+    options: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    if not options:
+        return None
+    source_fixture_id = str((detection.get("support_estimate") or {}).get("fixture_id") or "")
+    source_waypoint_id = str(
+        detection.get("waypoint_id")
+        or detection.get("last_waypoint_id")
+        or (detection.get("support_estimate") or {}).get("waypoint_id")
+        or ""
+    )
+    return dict(
+        min(
+            options,
+            key=lambda item: (
+                str(item.get("candidate_fixture_id") or "") != source_fixture_id,
+                str(item.get("waypoint_id") or "") != source_waypoint_id,
+            ),
+        )
     )
 
 
@@ -1172,6 +1252,11 @@ def _attach_raw_fpv_robot_view(
         observation_id,
         views=step.get("views") or {},
         robot_view_label=str(step.get("label", "")),
+        camera_control_contract=(
+            step.get("camera_control_contract")
+            if isinstance(step.get("camera_control_contract"), dict)
+            else None
+        ),
     )
     if attached is None:
         return response
@@ -1203,7 +1288,7 @@ def _trace_event(started_at: float, *, tool: str, event: str, **payload: Any) ->
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    result = run_realworld_cleanup(
+    result = run_household_world_episode(
         output_dir=args.output_dir,
         seed=args.seed,
         task_prompt=args.task,
@@ -1224,7 +1309,7 @@ def main(argv: list[str] | None = None) -> int:
         isaac_segmentation_semantic_filter=tuple(args.isaac_segmentation_semantic_filter or ()),
         map_bundle_dir=args.map_bundle_dir,
         evidence_lane=args.evidence_lane,
-        map_build=args.map_build,
+        intent=args.intent,
         runtime_map_prior_path=args.runtime_map_prior,
         planner_proof_run_results=args.planner_proof_run_result,
         use_planner_proof_for_cleanup_primitives=args.use_planner_proof_for_cleanup_primitives,

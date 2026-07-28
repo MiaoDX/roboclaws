@@ -25,17 +25,17 @@ CODEX_API_KEY=       # Default SDK codex-router-responses endpoint key
 
 The launch recipes infer the repo-local runtime route from explicit provider
 settings. OpenAI Agents SDK defaults to `codex-router-responses` and requires
-`CODEX_BASE_URL` plus `CODEX_API_KEY` (`gpt-5.5`, Responses API). It does not
+`CODEX_BASE_URL` plus `CODEX_API_KEY` (`gpt-5.6-sol`, Responses API). It does not
 fall back to mimo-mify-responses when `XM_LLM_API_KEY` is present. To use
 mimo-mify-responses, set `ROBOCLAWS_PROVIDER_PROFILE=mimo-mify-responses`
 explicitly; that profile uses `XM_LLM_API_KEY`, `xiaomi/mimo-v2.5`, Responses
 API, and web search disabled.
 
 Run `just dev::network-status` before validation-required maintainer workflows.
-On the work network, guarded maintainer routes and system-provider Claude Code
-are blocked; the repo-local SDK `codex-router-responses` route
-(`CODEX_BASE_URL` plus `CODEX_API_KEY`) and explicit SDK
-`mimo-mify-responses` override remain allowed. Agent-facing work-network
+On the work network, guarded OpenClaw routes and system-provider Claude Code
+remain blocked. Repo-local OpenAI Agents SDK provider routes are allowed;
+provider-specific transport compatibility is internal to each adapter.
+Agent-facing work-network
 restrictions and examples are documented in
 [`docs/agents/operating-runbook.md`](../agents/operating-runbook.md).
 

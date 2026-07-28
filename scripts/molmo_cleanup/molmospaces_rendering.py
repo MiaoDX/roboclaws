@@ -211,14 +211,25 @@ def render_segmentation(
 ) -> Any:
     width, height = render_dimensions(width, height)
     ensure_offscreen_framebuffer(model, width=width, height=height)
-    renderer = mujoco.Renderer(model, height=height, width=width, max_geom=20000)
-    renderer.update_scene(data, camera=camera)
-    renderer.render()
-    renderer.enable_segmentation_rendering()
-    renderer.update_scene(data, camera=camera)
-    segmentation = renderer.render()
-    renderer.close()
-    return segmentation
+    quality = model.vis.quality
+    offsamples = int(quality.offsamples)
+    renderer = None
+    try:
+        # MSAA blends RGB-encoded segmentation ids at geometry edges. MuJoCo
+        # then treats those blended colors as ids and may index past its map.
+        quality.offsamples = 0
+        renderer = mujoco.Renderer(model, height=height, width=width, max_geom=20000)
+        renderer.update_scene(data, camera=camera)
+        renderer.render()
+        renderer.enable_segmentation_rendering()
+        renderer.update_scene(data, camera=camera)
+        return renderer.render()
+    finally:
+        try:
+            if renderer is not None:
+                renderer.close()
+        finally:
+            quality.offsamples = offsamples
 
 
 def segmentation_box(
@@ -391,11 +402,15 @@ def inflate_bbox(
     center_y = (top + bottom) // 2
     half_width = max((right - left) // 2 + pad, min_size // 2)
     half_height = max((bottom - top) // 2 + pad, min_size // 2)
+    clipped_left = max(0, center_x - half_width)
+    clipped_top = max(29, center_y - half_height)
+    clipped_right = min(width - 1, center_x + half_width)
+    clipped_bottom = min(height - 1, center_y + half_height)
     return (
-        max(0, center_x - half_width),
-        max(29, center_y - half_height),
-        min(width - 1, center_x + half_width),
-        min(height - 1, center_y + half_height),
+        min(clipped_left, clipped_right),
+        clipped_top,
+        clipped_right,
+        max(clipped_top, clipped_bottom),
     )
 
 

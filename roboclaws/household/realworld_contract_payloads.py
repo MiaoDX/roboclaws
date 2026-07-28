@@ -11,6 +11,9 @@ from roboclaws.household import (
     realworld_runtime_map_contract,
     realworld_runtime_map_targets,
 )
+from roboclaws.household.semantic_acceptability import (
+    public_source_requires_cleanup,
+)
 from roboclaws.mcp.profiles import (
     HOUSEHOLD_EPISODE_PROFILE,
     HOUSEHOLD_MANIPULATION_PROFILE,
@@ -587,12 +590,22 @@ def cleanup_worklist_payload(
             contract,
             source_fixture_id,
         )
+        internal_source_fixture_id = (
+            contract.internal_fixture_id_for_public_reference(source_fixture_id)
+            or source_fixture_id
+        )
+        source_fixture = contract._fixtures.get(internal_source_fixture_id) or {}
+        source_requires_cleanup = public_source_requires_cleanup(
+            detection.get("category"),
+            source_fixture.get("category") or source_fixture.get("name"),
+        )
         state = str(lifecycle.get("state", "pending"))
         cleanup_recommended = bool(
             grounding_status not in {"ambiguous", "unresolved"}
             and actionability_status == "actionable"
             and public_candidate_fixture_id
             and public_candidate_fixture_id != public_source_fixture_id
+            and source_requires_cleanup
             and state not in non_actionable_handle_states
         )
         candidate_source = (

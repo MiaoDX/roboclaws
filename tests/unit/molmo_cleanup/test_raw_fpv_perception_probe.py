@@ -968,6 +968,8 @@ def test_raw_fpv_visual_labeler_provider_groups_images_and_fans_out_predictions(
     assert errors == []
     assert len(calls) == 1
     assert calls[0]["model"] == "gpt-5.5"
+    window_id = calls[0]["extra_headers"]["X-Codex-Window-Id"]
+    assert window_id.endswith(":0")
     assert set(predictions) == {frame.frame_id for frame in frames}
     assert len(predictions[frames[0].frame_id]["labels"]) == 1
     assert len(predictions[frames[1].frame_id]["labels"]) == 1
@@ -1188,7 +1190,7 @@ def test_raw_fpv_visual_labeler_uses_provider_default_for_blank_model(
 
     assert status == "provider_ok"
     assert errors == []
-    assert calls[0]["model"] == "gpt-5.5"
+    assert calls[0]["model"] == "gpt-5.6-sol"
     assert predictions[frames[0].frame_id]["labels"] == []
 
 

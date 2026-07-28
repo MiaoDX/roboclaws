@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 from roboclaws.agents.provider_registry import provider_route_spec, route_base_url
+from roboclaws.agents.provider_transport import provider_default_headers
 from roboclaws.agents.thinking_policy import thinking_request_body_for_wire
 
 WireApi = Literal["openai-chat", "openai-responses", "anthropic-messages"]
@@ -265,22 +266,23 @@ def selected_agent_cases(*, case_ids: set[str]) -> tuple[AgentBenchmarkCase, ...
 def _codex_env_cases() -> tuple[MatrixCase, ...]:
     route = provider_route_spec("codex-router-responses")
     base_url = route_base_url(route)
+    model = route.default_model_id
     return (
         MatrixCase(
-            case_id="codex-router-responses:gpt-5.5:responses",
+            case_id=f"codex-router-responses:{model}:responses",
             provider_id="codex-router-responses",
             provider_label="Codex router",
-            model="gpt-5.5",
+            model=model,
             wire_api="openai-responses",
             api_key_env=route.api_key_env or "",
             base_url=base_url,
             expected_support="native",
         ),
         MatrixCase(
-            case_id="codex-router-responses:gpt-5.5:chat",
+            case_id=f"codex-router-responses:{model}:chat",
             provider_id="codex-router-responses",
             provider_label="Codex router",
-            model="gpt-5.5",
+            model=model,
             wire_api="openai-chat",
             api_key_env=route.api_key_env or "",
             base_url=base_url,
@@ -560,6 +562,7 @@ def headers_for_case(case: MatrixCase, *, api_key: str) -> dict[str, str]:
         headers["anthropic-version"] = "2023-06-01"
         headers["x-api-key"] = api_key
     headers.update(dict(case.headers))
+    headers.update(provider_default_headers(case.provider_id))
     return headers
 
 

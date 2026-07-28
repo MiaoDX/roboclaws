@@ -11,7 +11,6 @@ DEFAULT_WORLD = "molmospaces/val_0"
 DEFAULT_BACKEND = "mujoco"
 DEFAULT_SEED = "7"
 DEFAULT_PROVIDER_PROFILE = "codex-router-responses"
-DEFAULT_AGENT_SDK_PROVIDER_PROFILE = "minimax-responses"
 
 
 def candidate_rows(
@@ -34,7 +33,7 @@ def _render_context(*, output_dir: Path, explicit_axes: dict[str, list[str]]) ->
     provider_profiles = explicit_axes.get("provider_profile") or [DEFAULT_PROVIDER_PROFILE]
     agent_sdk_provider = next(
         (profile for profile in provider_profiles if profile != DEFAULT_PROVIDER_PROFILE),
-        DEFAULT_AGENT_SDK_PROVIDER_PROFILE,
+        DEFAULT_PROVIDER_PROFILE,
     )
     return {
         "row_dir": str(output_dir / "rows"),

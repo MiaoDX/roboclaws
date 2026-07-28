@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -833,6 +834,22 @@ def _raw_fpv_camera_raw_server(tmp_path: Path) -> Any:
     )
 
 
+def _complete_raw_fpv_heading_coverage(server: Any) -> None:
+    metric_map = server.call_tool("metric_map")
+    for waypoint in metric_map["inspection_waypoints"]:
+        server.call_tool("navigate_to_waypoint", waypoint_id=waypoint["waypoint_id"])
+        for heading in (0.0, 90.0, 180.0, 270.0):
+            server.call_tool("observe")
+            server.contract._raw_fpv_observations[-1][  # noqa: SLF001
+                "camera_control_contract"
+            ] = {
+                "robot_pose": {
+                    "pose_source": "relative_robot_frame",
+                    "theta": math.radians(heading),
+                }
+            }
+
+
 def _sweep_with_unresolved_raw_fpv_declarations(
     server: Any,
     *,
@@ -944,6 +961,7 @@ def test_realworld_mcp_raw_fpv_camera_raw_done_requires_complete_live_chains(
     server = _raw_fpv_camera_raw_server(tmp_path)
     try:
         _sweep_with_unresolved_raw_fpv_declarations(server, declaration_count=5)
+        _complete_raw_fpv_heading_coverage(server)
         done = server.call_tool("done", reason="codex finished early after sweep")
     finally:
         server.close()
@@ -951,12 +969,10 @@ def test_realworld_mcp_raw_fpv_camera_raw_done_requires_complete_live_chains(
     assert done["ok"] is False
     assert done["tool"] == "done"
     assert done["status"] == "blocked"
-    assert done["error_reason"] == "insufficient_grounded_cleanup_chains"
-    assert done["required_tool"] == "navigate_to_visual_candidate"
-    assert done["complete_semantic_substep_objects"] == 0
-    assert done["required_complete_semantic_substep_objects"] == 4
+    assert done["error_reason"] == "insufficient_raw_fpv_overlap_probe_coverage"
+    assert done["required_tool"] == "navigate_to_waypoint"
     assert done["completion"]["status"] == "blocked"
-    blocker = done["completion"]["blockers"][0]
+    blocker = done["completion"]["blockers"][-1]
     assert blocker["type"] == "insufficient_grounded_cleanup_chains"
     assert blocker["current"] == 0
     assert blocker["required"] == 4
@@ -1102,6 +1118,7 @@ def test_realworld_mcp_raw_fpv_camera_raw_done_allows_complete_live_chains(
     server = _raw_fpv_camera_raw_server(tmp_path)
     try:
         handled = _complete_raw_fpv_cleanup_chains(server, required_count=5)
+        _complete_raw_fpv_heading_coverage(server)
         done = server.call_tool("done", reason="enough grounded chains completed")
         run_result = json.loads(Path(done["run_result"]).read_text(encoding="utf-8"))
     finally:

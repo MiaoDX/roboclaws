@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import base64
 import copy
 import hashlib
+import io
 import json
 import os
 import re
@@ -14,13 +16,16 @@ from typing import Any
 from roboclaws.agents.drivers.openai_agents_budget import (
     OpenAIAgentsBudgetExceededError,
     openai_agents_budget_failure,
+    openai_agents_observe_budget_advisory,
 )
 from roboclaws.agents.live_runtime import LiveAgentRequest
 from roboclaws.core.json_sources import parse_json_object_text
 
 DEFAULT_MODEL_INPUT_COMPACTION_MIN_CHARS = 1200
+MAX_RETAINED_METRIC_MAP_CHARS = 128_000
 MODEL_INPUT_COMPACTION_MIN_CHARS_ENV = "ROBOCLAWS_OPENAI_AGENTS_INPUT_COMPACTION_MIN_CHARS"
 RAW_FPV_OBSERVATION_ID_RE = re.compile(r"raw_fpv_\d+")
+RAW_FPV_RETAINED_JPEG_QUALITY = 75
 
 
 def _input_compaction_config(request: LiveAgentRequest) -> dict[str, Any]:
@@ -48,6 +53,12 @@ def _input_compaction_config(request: LiveAgentRequest) -> dict[str, Any]:
             "filter is model-facing only; MCP traces, reports, and run artifacts remain complete"
         ),
     }
+    history_limit = _nonnegative_int(
+        config.get("completed_tool_history_limit"),
+        default=0,
+        setting_name="model_input_compaction.completed_tool_history_limit",
+    )
+    payload["completed_tool_history_limit"] = history_limit
     raw_fpv_image_memory = config.get("raw_fpv_image_memory")
     if isinstance(raw_fpv_image_memory, dict):
         payload["raw_fpv_image_memory"] = _raw_fpv_image_memory_policy(raw_fpv_image_memory)
@@ -96,6 +107,29 @@ def _positive_int(
     return parsed
 
 
+def _nonnegative_int(value: Any, *, default: int, setting_name: str) -> int:
+    if value is None or value == "":
+        return default
+    if isinstance(value, bool):
+        raise ValueError(
+            f"OpenAI Agents SDK setting {setting_name} must be zero or a positive integer, "
+            f"got {value!r}"
+        )
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"OpenAI Agents SDK setting {setting_name} must be zero or a positive integer, "
+            f"got {value!r}"
+        ) from exc
+    if parsed < 0:
+        raise ValueError(
+            f"OpenAI Agents SDK setting {setting_name} must be zero or a positive integer, "
+            f"got {value!r}"
+        )
+    return parsed
+
+
 def _model_input_compaction_filter(
     events_path: Path,
     *,
@@ -118,8 +152,22 @@ def _model_input_compaction_filter(
             profile=budget_profile or {},
             timing=budget_timing or {},
         )
+        budget_advisory = _observe_budget_advisory_before_model_call(
+            run_dir,
+            events_path=events_path,
+            runtime_config=runtime_config,
+            profile=budget_profile or {},
+            timing=budget_timing or {},
+        )
+        instructions = _instructions_with_observe_budget_advisory(instructions, budget_advisory)
         if not _model_input_compaction_enabled(config):
-            return model_data
+            if budget_advisory is None:
+                return model_data
+            return _model_input_data_like(
+                model_data,
+                input_items=original_items,
+                instructions=instructions,
+            )
         filtered_items, metrics = _compact_model_input_items(
             original_items,
             min_chars=int(config.get("min_chars") or DEFAULT_MODEL_INPUT_COMPACTION_MIN_CHARS),
@@ -133,6 +181,7 @@ def _model_input_compaction_filter(
             camera_grounded_history=config.get("camera_grounded_history")
             if isinstance(config.get("camera_grounded_history"), dict)
             else None,
+            completed_tool_history_limit=int(config.get("completed_tool_history_limit") or 0),
         )
         _append_model_input_filter_event(
             events_path,
@@ -151,7 +200,7 @@ def _model_input_compaction_filter(
 
 
 def _model_input_compaction_enabled(config: dict[str, Any]) -> bool:
-    if config.get("enabled"):
+    if config.get("enabled") or int(config.get("completed_tool_history_limit") or 0) > 0:
         return True
     for key in ("raw_fpv_image_memory", "camera_grounded_history"):
         nested = config.get(key)
@@ -168,7 +217,13 @@ def _raise_budget_failure_before_model_call(
     profile: dict[str, Any],
     timing: dict[str, Any],
 ) -> None:
-    failure = openai_agents_budget_failure(run_dir, timing, profile)
+    spans_path = events_path.with_name(events_path.name.replace("events", "spans", 1))
+    failure = openai_agents_budget_failure(
+        run_dir,
+        timing,
+        profile,
+        context_spans_path=spans_path,
+    )
     if failure is None:
         return
     _append_model_input_budget_event(
@@ -179,6 +234,51 @@ def _raise_budget_failure_before_model_call(
         failure=failure,
     )
     raise OpenAIAgentsBudgetExceededError(failure)
+
+
+def _observe_budget_advisory_before_model_call(
+    run_dir: Path,
+    *,
+    events_path: Path,
+    runtime_config: dict[str, Any],
+    profile: dict[str, Any],
+    timing: dict[str, Any],
+) -> dict[str, Any] | None:
+    advisory = openai_agents_observe_budget_advisory(run_dir, timing, profile)
+    if advisory is None:
+        return None
+    _append_model_input_budget_advisory_event(
+        events_path,
+        runtime_config=runtime_config,
+        advisory=advisory,
+    )
+    return advisory
+
+
+def _instructions_with_observe_budget_advisory(
+    instructions: Any,
+    advisory: dict[str, Any] | None,
+) -> Any:
+    if advisory is None or not isinstance(instructions, (str, type(None))):
+        return instructions
+    observe_budget = int(advisory.get("max_observe_per_waypoint") or 0)
+    over_budget = advisory.get("observe_over_budget_by_waypoint")
+    counts = over_budget if isinstance(over_budget, dict) else {}
+    waypoint_summary = ", ".join(
+        f"{waypoint_id} (count={count})" for waypoint_id, count in sorted(counts.items())[:12]
+    )
+    note = (
+        "Observation cadence advisory: the following public waypoint_id values have "
+        f"exceeded the preferred limit of {observe_budget} successful observe response(s): "
+        f"{waypoint_summary}. Continue the task instead of terminating. Reuse existing "
+        "evidence, navigate to another waypoint, or record public ambiguity. Re-observe one "
+        "of these waypoint_ids only after a public tool requests it or a successful camera, "
+        "pose, or world-state change can produce materially new evidence; otherwise call done "
+        "when the task contract is satisfied."
+    )
+    if not instructions:
+        return note
+    return f"{instructions.rstrip()}\n\n{note}"
 
 
 def _model_input_data_like(model_data: Any, *, input_items: list[Any], instructions: Any) -> Any:
@@ -206,7 +306,14 @@ def _compact_model_input_items(
     repeated_metric_map_delta: bool = True,
     raw_fpv_image_memory: dict[str, Any] | None = None,
     camera_grounded_history: dict[str, Any] | None = None,
+    completed_tool_history_limit: int = 0,
 ) -> tuple[list[Any], dict[str, Any]]:
+    items, history_metrics, original_item_count, original_input_bytes = (
+        _prepare_model_input_history(
+            items,
+            completed_tool_history_limit=completed_tool_history_limit,
+        )
+    )
     image_policy = _raw_fpv_image_memory_policy(raw_fpv_image_memory)
     image_plan = _raw_fpv_image_memory_plan(items, image_policy)
     image_metrics = _new_raw_fpv_image_memory_metrics(image_policy)
@@ -217,21 +324,24 @@ def _compact_model_input_items(
         camera_policy,
         tool_names_by_call_id=tool_names_by_call_id,
     )
-    camera_metrics = _new_camera_grounded_history_metrics(camera_policy)
+    camera_metrics, latest_tool_output_index = (
+        _new_camera_grounded_history_metrics(camera_policy),
+        _latest_oversized_tool_output_index(items, min_chars=min_chars),
+    )
     filtered: list[Any] = []
     items_seen: dict[str, int] = {}
     metric_map_seen = False
     metric_map_output_count = 0
     repeated_metric_map_output_count = 0
     metric_map_delta_compacted_count = 0
+    oversized_metric_map_compacted_count = 0
     metric_map_bytes_before = 0
     metric_map_bytes_after = 0
-    input_bytes_before = 0
+    input_bytes_before = original_input_bytes
     input_bytes_after = 0
     compacted_count = 0
     for index, item in enumerate(items):
         item_bytes = _json_size_bytes(item)
-        input_bytes_before += item_bytes
         image_info = image_plan.get(index)
         if image_info is not None:
             candidate, candidate_kind = _raw_fpv_image_memory_candidate(
@@ -252,6 +362,7 @@ def _compact_model_input_items(
                 item,
                 min_chars=min_chars,
                 metric_map_seen=metric_map_seen,
+                preserve_generic_output=index == latest_tool_output_index,
                 public_tool_output_summary=public_tool_output_summary,
                 repeated_metric_map_delta=repeated_metric_map_delta,
                 tool_names_by_call_id=tool_names_by_call_id,
@@ -271,6 +382,8 @@ def _compact_model_input_items(
             compacted_count += 1
             if candidate_kind == "repeated_metric_map_delta":
                 metric_map_delta_compacted_count += 1
+            elif candidate_kind == "oversized_metric_map_snapshot":
+                oversized_metric_map_compacted_count += 1
         filtered.append(filtered_item)
         filtered_item_bytes = _json_size_bytes(filtered_item)
         input_bytes_after += filtered_item_bytes
@@ -278,7 +391,7 @@ def _compact_model_input_items(
             metric_map_bytes_after += filtered_item_bytes
     return filtered, {
         "schema": "agent_sdk_model_input_compaction_metrics_v1",
-        "input_item_count": len(items),
+        "input_item_count": original_item_count,
         "compacted_item_count": compacted_count,
         "unchanged_item_count": len(items) - compacted_count,
         "repeated_item_count": sum(count - 1 for count in items_seen.values() if count > 1),
@@ -288,12 +401,141 @@ def _compact_model_input_items(
         "metric_map_output_count": metric_map_output_count,
         "repeated_metric_map_output_count": repeated_metric_map_output_count,
         "metric_map_delta_compacted_count": metric_map_delta_compacted_count,
+        "oversized_metric_map_compacted_count": oversized_metric_map_compacted_count,
         "metric_map_bytes_before": metric_map_bytes_before,
         "metric_map_bytes_after": metric_map_bytes_after,
         "metric_map_bytes_reduced": max(0, metric_map_bytes_before - metric_map_bytes_after),
         **image_metrics,
         **camera_metrics,
+        **history_metrics,
     }
+
+
+def _prepare_model_input_history(
+    items: list[Any],
+    *,
+    completed_tool_history_limit: int,
+) -> tuple[list[Any], dict[str, Any], int, int]:
+    original_item_count = len(items)
+    original_input_bytes = sum(_json_size_bytes(item) for item in items)
+    windowed, metrics = _window_completed_tool_history(
+        items,
+        completed_tool_history_limit=completed_tool_history_limit,
+    )
+    return windowed, metrics, original_item_count, original_input_bytes
+
+
+def _window_completed_tool_history(
+    items: list[Any],
+    *,
+    completed_tool_history_limit: int,
+) -> tuple[list[Any], dict[str, Any]]:
+    metrics = {
+        "completed_tool_history_limit": max(0, completed_tool_history_limit),
+        "completed_tool_history_bundle_count": 0,
+        "completed_tool_history_retained_count": 0,
+        "completed_tool_history_evicted_count": 0,
+        "completed_tool_history_item_count_before": len(items),
+        "completed_tool_history_item_count_after": len(items),
+        "completed_tool_history_bytes_reduced": 0,
+    }
+    if completed_tool_history_limit <= 0:
+        return items, metrics
+
+    payloads, call_indices, completed_ids, metric_map_call_ids = _completed_tool_history_state(
+        items
+    )
+    ordered_completed_ids = sorted(
+        completed_ids,
+        key=lambda call_id: max(call_indices.get(call_id) or [-1]),
+    )
+    recent_ids = set(ordered_completed_ids[-completed_tool_history_limit:])
+    incomplete_ids = set(call_indices) - completed_ids
+    retained_ids = recent_ids | incomplete_ids | metric_map_call_ids
+    recent_indices = [
+        index for call_id in recent_ids | incomplete_ids for index in call_indices.get(call_id, [])
+    ]
+    cutoff = _completed_tool_history_cutoff(
+        payloads,
+        min(recent_indices) if recent_indices else len(items),
+    )
+
+    retained = [
+        item
+        for index, (item, payload) in enumerate(zip(items, payloads, strict=True))
+        if _retain_completed_tool_history_item(
+            index,
+            payload,
+            retained_ids=retained_ids,
+            cutoff=cutoff,
+        )
+    ]
+
+    metrics.update(
+        {
+            "completed_tool_history_bundle_count": len(completed_ids),
+            "completed_tool_history_retained_count": len(completed_ids & retained_ids),
+            "completed_tool_history_evicted_count": len(completed_ids - retained_ids),
+            "completed_tool_history_item_count_after": len(retained),
+            "completed_tool_history_bytes_reduced": max(
+                0,
+                sum(_json_size_bytes(item) for item in items)
+                - sum(_json_size_bytes(item) for item in retained),
+            ),
+        }
+    )
+    return retained, metrics
+
+
+def _completed_tool_history_cutoff(payloads: list[Any], cutoff: int) -> int:
+    while cutoff > 0:
+        previous = payloads[cutoff - 1]
+        if not isinstance(previous, dict) or str(previous.get("type") or "") != "reasoning":
+            break
+        cutoff -= 1
+    return cutoff
+
+
+def _completed_tool_history_state(
+    items: list[Any],
+) -> tuple[list[Any], dict[str, list[int]], set[str], set[str]]:
+    payloads = [_to_jsonable(item) for item in items]
+    call_indices: dict[str, list[int]] = {}
+    call_item_ids: set[str] = set()
+    output_item_ids: set[str] = set()
+    metric_map_call_ids: set[str] = set()
+    tool_names = _tool_names_by_call_id(items)
+    for index, payload in enumerate(payloads):
+        if not isinstance(payload, dict):
+            continue
+        call_id = str(payload.get("call_id") or "")
+        if not call_id:
+            continue
+        call_indices.setdefault(call_id, []).append(index)
+        item_type = str(payload.get("type") or "")
+        if item_type in {"function_call", "computer_call", "mcp_call"}:
+            call_item_ids.add(call_id)
+        if item_type in {"function_call_output", "computer_call_output", "mcp_approval_response"}:
+            output_item_ids.add(call_id)
+        if str(tool_names.get(call_id) or "") == "metric_map":
+            metric_map_call_ids.add(call_id)
+    return payloads, call_indices, call_item_ids & output_item_ids, metric_map_call_ids
+
+
+def _retain_completed_tool_history_item(
+    index: int,
+    payload: Any,
+    *,
+    retained_ids: set[str],
+    cutoff: int,
+) -> bool:
+    payload = payload if isinstance(payload, dict) else {}
+    if str(payload.get("role") or "") in {"user", "system", "developer"}:
+        return True
+    call_id = str(payload.get("call_id") or "")
+    if call_id:
+        return call_id in retained_ids
+    return index >= cutoff
 
 
 def _compaction_candidate(
@@ -301,6 +543,7 @@ def _compaction_candidate(
     *,
     min_chars: int,
     metric_map_seen: bool,
+    preserve_generic_output: bool,
     public_tool_output_summary: bool,
     repeated_metric_map_delta: bool,
     tool_names_by_call_id: dict[str, str] | None = None,
@@ -326,7 +569,16 @@ def _compaction_candidate(
         tool_names_by_call_id=tool_names_by_call_id,
     )
     if repeated_metric_map_delta and is_metric_map_output and not metric_map_seen:
-        return None, ""
+        if len(output_text) <= MAX_RETAINED_METRIC_MAP_CHARS:
+            return None, ""
+        compacted = copy.deepcopy(payload)
+        summary = json.dumps(
+            _oversized_metric_map_snapshot_summary(output_text, item_type=item_type),
+            sort_keys=True,
+        )
+        if len(summary) < len(output_text):
+            compacted[output_key] = summary
+            return compacted, "oversized_metric_map_snapshot"
     if repeated_metric_map_delta and metric_map_seen and is_metric_map_output:
         compacted = copy.deepcopy(payload)
         summary = json.dumps(
@@ -336,7 +588,7 @@ def _compaction_candidate(
         if len(summary) < len(output_text):
             compacted[output_key] = summary
             return compacted, "repeated_metric_map_delta"
-    if not public_tool_output_summary or len(output_text) < min_chars:
+    if preserve_generic_output or not public_tool_output_summary or len(output_text) < min_chars:
         return None, ""
     compacted = copy.deepcopy(payload)
     compacted[output_key] = json.dumps(
@@ -344,6 +596,28 @@ def _compaction_candidate(
         sort_keys=True,
     )
     return compacted, "generic_public_tool_output_summary"
+
+
+def _latest_oversized_tool_output_index(items: list[Any], *, min_chars: int) -> int | None:
+    for index in range(len(items) - 1, -1, -1):
+        payload = _to_jsonable(items[index])
+        if not isinstance(payload, dict):
+            continue
+        if str(payload.get("type") or "") not in {
+            "function_call_output",
+            "computer_call_output",
+            "mcp_call",
+            "mcp_approval_response",
+        }:
+            continue
+        output_key = "output" if "output" in payload else "content" if "content" in payload else ""
+        if not output_key:
+            continue
+        output = payload.get(output_key)
+        output_text = output if isinstance(output, str) else json.dumps(output, sort_keys=True)
+        if len(output_text) >= min_chars:
+            return index
+    return None
 
 
 def _raw_fpv_image_memory_policy(config: dict[str, Any] | None) -> dict[str, Any]:
@@ -379,6 +653,7 @@ def _new_raw_fpv_image_memory_metrics(policy: dict[str, Any]) -> dict[str, Any]:
         "raw_fpv_image_item_count": 0,
         "raw_fpv_image_retained_count": 0,
         "raw_fpv_image_evicted_count": 0,
+        "raw_fpv_image_transcoded_count": 0,
         "raw_fpv_image_bytes_before": 0,
         "raw_fpv_image_bytes_after": 0,
         "raw_fpv_image_bytes_reduced": 0,
@@ -418,6 +693,34 @@ def _raw_fpv_image_info(item: Any) -> dict[str, Any] | None:
     payload = _to_jsonable(item)
     if not isinstance(payload, dict):
         return None
+    output_key = "output" if "output" in payload else "content" if "content" in payload else ""
+    output = payload.get(output_key) if output_key else None
+    if isinstance(output, list):
+        for content_index, content in enumerate(output):
+            if not isinstance(content, dict) or str(content.get("type") or "") not in {
+                "image",
+                "input_image",
+            }:
+                continue
+            image_url = str(content.get("image_url") or "")
+            if not image_url:
+                continue
+            mime = ""
+            if image_url.startswith("data:") and ";base64," in image_url:
+                mime = image_url[5:].split(";", 1)[0]
+            material = image_url.encode("utf-8")
+            text = json.dumps(payload, sort_keys=True)
+            matches = RAW_FPV_OBSERVATION_ID_RE.findall(text)
+            return {
+                "observation_id": matches[-1] if matches else "",
+                "mime_type": mime or "image/unknown",
+                "format": mime.removeprefix("image/") if mime.startswith("image/") else "",
+                "data_bytes": len(material),
+                "item_bytes": _json_size_bytes(payload),
+                "sha256": hashlib.sha256(material).hexdigest(),
+                "nested_output_key": output_key,
+                "nested_content_index": content_index,
+            }
     data = payload.get("data")
     if isinstance(data, (bytes, bytearray)):
         data_len = len(data)
@@ -455,6 +758,15 @@ def _raw_fpv_image_memory_candidate(
     metrics["raw_fpv_image_bytes_before"] += _json_size_bytes(item)
     if image_info.get("retain_full_frame"):
         metrics["raw_fpv_image_retained_count"] += 1
+        transcoded = _transcode_retained_raw_fpv_image(item, image_info=image_info)
+        if transcoded is not None and _json_size_bytes(transcoded) < _json_size_bytes(item):
+            metrics["raw_fpv_image_transcoded_count"] += 1
+            metrics["raw_fpv_image_bytes_after"] += _json_size_bytes(transcoded)
+            metrics["raw_fpv_image_bytes_reduced"] = max(
+                0,
+                metrics["raw_fpv_image_bytes_before"] - metrics["raw_fpv_image_bytes_after"],
+            )
+            return transcoded, "raw_fpv_retained_frame_jpeg"
         metrics["raw_fpv_image_bytes_after"] += _json_size_bytes(item)
         return None, ""
     summary = {
@@ -476,17 +788,75 @@ def _raw_fpv_image_memory_candidate(
         ),
         "private_artifact_policy": policy.get("private_artifact_policy"),
     }
-    if _json_size_bytes(summary) >= _json_size_bytes(item):
+    nested_output_key = str(image_info.get("nested_output_key") or "")
+    nested_content_index = image_info.get("nested_content_index")
+    if nested_output_key and isinstance(nested_content_index, int):
+        candidate = copy.deepcopy(_to_jsonable(item))
+        output = candidate.get(nested_output_key) if isinstance(candidate, dict) else None
+        if isinstance(output, list) and 0 <= nested_content_index < len(output):
+            output[nested_content_index] = {
+                "type": "input_text",
+                "text": json.dumps(summary, sort_keys=True),
+            }
+        else:
+            candidate = summary
+    else:
+        candidate = summary
+    if _json_size_bytes(candidate) >= _json_size_bytes(item):
         metrics["raw_fpv_image_retained_count"] += 1
         metrics["raw_fpv_image_bytes_after"] += _json_size_bytes(item)
         return None, ""
     metrics["raw_fpv_image_evicted_count"] += 1
-    metrics["raw_fpv_image_bytes_after"] += _json_size_bytes(summary)
+    metrics["raw_fpv_image_bytes_after"] += _json_size_bytes(candidate)
     metrics["raw_fpv_image_bytes_reduced"] = max(
         0,
         metrics["raw_fpv_image_bytes_before"] - metrics["raw_fpv_image_bytes_after"],
     )
-    return summary, "raw_fpv_image_memory"
+    return candidate, "raw_fpv_image_memory"
+
+
+def _transcode_retained_raw_fpv_image(
+    item: Any,
+    *,
+    image_info: dict[str, Any],
+) -> Any | None:
+    nested_output_key = str(image_info.get("nested_output_key") or "")
+    nested_content_index = image_info.get("nested_content_index")
+    if not nested_output_key or not isinstance(nested_content_index, int):
+        return None
+    candidate = copy.deepcopy(_to_jsonable(item))
+    output = candidate.get(nested_output_key) if isinstance(candidate, dict) else None
+    if not isinstance(output, list) or not 0 <= nested_content_index < len(output):
+        return None
+    content = output[nested_content_index]
+    if not isinstance(content, dict):
+        return None
+    image_url = str(content.get("image_url") or "")
+    if not image_url.startswith("data:image/") or ";base64," not in image_url:
+        return None
+    header, encoded = image_url.split(",", 1)
+    if not header.lower().startswith(("data:image/png;", "data:image/webp;", "data:image/jpeg;")):
+        return None
+    try:
+        from PIL import Image
+
+        source = base64.b64decode(encoded, validate=True)
+        with Image.open(io.BytesIO(source)) as image:
+            rgb = image.convert("RGB")
+            destination = io.BytesIO()
+            rgb.save(
+                destination,
+                format="JPEG",
+                quality=RAW_FPV_RETAINED_JPEG_QUALITY,
+                optimize=True,
+            )
+    except Exception:
+        return None
+    jpeg = destination.getvalue()
+    if not jpeg or len(jpeg) >= len(source):
+        return None
+    content["image_url"] = f"data:image/jpeg;base64,{base64.b64encode(jpeg).decode('ascii')}"
+    return candidate
 
 
 def _camera_grounded_history_policy(config: dict[str, Any] | None) -> dict[str, Any]:
@@ -962,6 +1332,129 @@ def _repeated_metric_map_delta_summary(output_text: str, *, item_type: str) -> d
     }
 
 
+def _oversized_metric_map_snapshot_summary(
+    output_text: str,
+    *,
+    item_type: str,
+) -> dict[str, Any]:
+    decoded = _decode_tool_output_payload(output_text)
+    metric_map = decoded.get("metric_map") if isinstance(decoded, dict) else None
+    if not isinstance(metric_map, dict) and isinstance(decoded, dict):
+        metric_map = decoded
+    metric_map = metric_map if isinstance(metric_map, dict) else {}
+    runtime_map = (
+        metric_map.get("runtime_metric_map")
+        if isinstance(metric_map.get("runtime_metric_map"), dict)
+        else {}
+    )
+    return {
+        "schema": "roboclaws_oversized_metric_map_snapshot_v1",
+        "item_type": item_type,
+        "original_chars": len(output_text),
+        "original_sha256": hashlib.sha256(output_text.encode("utf-8")).hexdigest(),
+        "map_id": str(metric_map.get("map_id") or ""),
+        "map_version": str(metric_map.get("map_version") or ""),
+        "mode": str(metric_map.get("mode") or ""),
+        "inspection_waypoints": _compact_public_rows(
+            metric_map.get("inspection_waypoints"),
+            keys=(
+                "waypoint_id",
+                "room_id",
+                "room_label",
+                "label",
+                "category",
+                "actionability",
+                "target_actionability_status",
+                "verified_navigation",
+            ),
+            limit=64,
+        ),
+        "public_semantic_anchors": _compact_public_rows(
+            runtime_map.get("public_semantic_anchors") or metric_map.get("public_semantic_anchors"),
+            keys=(
+                "anchor_id",
+                "anchor_type",
+                "category",
+                "label",
+                "waypoint_id",
+                "room_id",
+                "actionability",
+                "recommended_tool",
+            ),
+            limit=64,
+        ),
+        "observed_objects": _compact_public_rows(
+            runtime_map.get("observed_objects"),
+            keys=(
+                "candidate_id",
+                "object_id",
+                "category",
+                "waypoint_id",
+                "room_id",
+                "candidate_state",
+                "actionability",
+                "actionability_status",
+                "target_actionability_status",
+                "localization_status",
+                "required_tool",
+                "source_observation_id",
+            ),
+            limit=64,
+        ),
+        "target_candidates": _compact_public_rows(
+            runtime_map.get("target_candidates"),
+            keys=(
+                "candidate_id",
+                "object_id",
+                "category",
+                "waypoint_id",
+                "room_id",
+                "candidate_state",
+                "actionability",
+                "actionability_status",
+                "target_actionability_status",
+                "localization_status",
+                "source_observation_id",
+                "required_tool",
+                "candidate_fixture_id",
+                "candidate_fixture_category",
+                "recommended_tool",
+                "destination_options",
+            ),
+            limit=64,
+        ),
+        "cleanup_worklist_summary": runtime_map.get("cleanup_worklist_summary")
+        or metric_map.get("cleanup_worklist_summary")
+        or {},
+        "summary": (
+            "Oversized current metric_map projected to actionable public fields before this "
+            "SDK model call. Use metric_map again only when a missing public field is required; "
+            "Roboclaws trace/report artifacts retain the complete response."
+        ),
+        "private_artifact_policy": (
+            "model-facing public metric-map projection only; no private scorer truth is added"
+        ),
+    }
+
+
+def _compact_public_rows(
+    value: Any,
+    *,
+    keys: tuple[str, ...],
+    limit: int,
+) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    rows = []
+    for item in value[:limit]:
+        if not isinstance(item, dict):
+            continue
+        row = {key: item[key] for key in keys if key in item}
+        if row:
+            rows.append(row)
+    return rows
+
+
 def _public_tool_output_summary(output_text: str, *, item_type: str) -> dict[str, Any]:
     return {
         "schema": "roboclaws_public_tool_output_summary_v1",
@@ -1046,6 +1539,38 @@ def _append_model_input_budget_event(
                     "Aggregate budget guard metadata only. Raw prompts, model text, tool "
                     "payload bodies, image payloads, credentials, and private truth are "
                     "not stored by this event."
+                ),
+            }
+        ),
+    )
+
+
+def _append_model_input_budget_advisory_event(
+    events_path: Path,
+    *,
+    runtime_config: dict[str, Any],
+    advisory: dict[str, Any],
+) -> None:
+    _append_event(
+        events_path,
+        _drop_empty(
+            {
+                "schema": "openai_agents_model_input_budget_advisory_v1",
+                "event": "model_input_budget_advisory",
+                "ts_epoch": time.time(),
+                "runtime": runtime_config.get("runtime"),
+                "provider_profile": runtime_config.get("provider_profile"),
+                "wire_api": runtime_config.get("wire_api"),
+                "model": runtime_config.get("model"),
+                "profile_id": advisory.get("profile_id"),
+                "evidence_lane": advisory.get("evidence_lane"),
+                "reason": advisory.get("reason"),
+                "detail_schema": advisory.get("schema"),
+                "detail_summary": _budget_detail_summary(advisory),
+                "privacy_note": (
+                    "Public waypoint ids and aggregate observation counts only. Raw prompts, "
+                    "model text, tool payload bodies, image payloads, credentials, and private "
+                    "truth are not stored by this event."
                 ),
             }
         ),

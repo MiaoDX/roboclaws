@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from roboclaws.household.generated_mess import (
+    generated_mess_public_distractor_settlement_plan,
     valid_generated_mess_placement_index,
     valid_generated_mess_relation,
 )
@@ -48,6 +49,45 @@ def seed_generated_mess_placements(
     diagnostics = [
         dict(item) for item in state.get("mess_placement_diagnostics", []) if isinstance(item, dict)
     ]
+    raw_objects = state.get("objects")
+    objects = list(raw_objects.values()) if isinstance(raw_objects, dict) else []
+    receptacles = list(hooks.receptacles_by_id(state).values())
+    target_object_ids = {
+        str(target.get("object_id") or "")
+        for target in targets
+        if str(target.get("object_id") or "")
+    }
+    settlement_plan = generated_mess_public_distractor_settlement_plan(
+        objects,
+        receptacles,
+        excluded_object_ids=target_object_ids,
+    )
+    for index, settlement in enumerate(settlement_plan):
+        object_id = settlement["object_id"]
+        receptacle_id = settlement["target_receptacle_id"]
+        receptacle = hooks.receptacles_by_id(state)[receptacle_id]
+        relation = "inside" if hooks.receptacle_prefers_inside(receptacle) else "on"
+        placement_index = len(targets) + index
+        placement_resolution = apply_object_location(
+            state,
+            object_id=object_id,
+            receptacle_id=receptacle_id,
+            relation=relation,
+            placement_index=placement_index,
+            source="public_cleanup_background_settlement",
+            hooks=hooks,
+        )
+        diagnostics.append(
+            hooks.isaac_placement_diagnostic(
+                state=state,
+                object_id=object_id,
+                receptacle_id=receptacle_id,
+                relation=relation,
+                source="public_cleanup_background_settlement",
+                placement_index=placement_index,
+                placement_resolution=placement_resolution,
+            )
+        )
     for index, target in enumerate(targets):
         object_id = str(target.get("object_id") or "")
         if not object_id:

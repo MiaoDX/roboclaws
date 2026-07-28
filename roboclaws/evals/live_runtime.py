@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import signal
 import subprocess
 import sys
 import tempfile
@@ -19,6 +20,10 @@ from roboclaws.evals.dependencies import dependency_failure, resolve_artifact_de
 from roboclaws.evals.live_artifacts import (
     discover_live_surface_run_dir,
     load_live_eval_json,
+)
+from roboclaws.evals.live_retry import (
+    LIVE_TRIAL_ATTEMPTS_FILENAME,
+    run_with_model_call_stall_retry,
 )
 from roboclaws.evals.live_timeout import (
     LiveEvalTimeoutError,
@@ -101,22 +106,26 @@ def run_live_eval_trial(
         failure = dependency_failure(dependency_artifacts)
         if failure is not None:
             return hooks.failed_result_from_dependency(trial, run_dir, failure)
-        run_result = live_product_runner(
-            **live_product_run_kwargs(
-                sample,
-                run_dir=run_dir,
-                budget=budget,
-                dependency_artifacts=dependency_artifacts,
-                agent_engine=agent_engine,
-                provider_profile=provider_profile,
-                model=model,
-                live_timeout_s=live_timeout_s,
-                live_stall_timeout_s=live_stall_timeout_s,
+
+        def run_attempt(attempt_run_dir: Path) -> tuple[dict[str, Any], Path]:
+            result = live_product_runner(
+                **live_product_run_kwargs(
+                    sample,
+                    run_dir=attempt_run_dir,
+                    budget=budget,
+                    dependency_artifacts=dependency_artifacts,
+                    agent_engine=agent_engine,
+                    provider_profile=provider_profile,
+                    model=model,
+                    live_timeout_s=live_timeout_s,
+                    live_stall_timeout_s=live_stall_timeout_s,
+                )
             )
-        )
-        effective_run_dir = _live_eval_effective_run_dir(
-            run_result,
-            trial_run_dir=run_dir,
+            return result, _live_eval_effective_run_dir(result, trial_run_dir=attempt_run_dir)
+
+        run_result, effective_run_dir = run_with_model_call_stall_retry(
+            run_dir=run_dir,
+            run_attempt=run_attempt,
         )
     except Exception as exc:  # noqa: BLE001 - eval packets must classify runner failures.
         return hooks.blocked_result_from_exception(trial, exc)
@@ -129,6 +138,9 @@ def run_live_eval_trial(
     )
     status, failure_class = hooks.status_from_graders(grader_outputs)
     artifacts = hooks.artifact_paths(effective_run_dir)
+    attempts_path = run_dir / LIVE_TRIAL_ATTEMPTS_FILENAME
+    if attempts_path.is_file():
+        artifacts["live_trial_attempts"] = str(attempts_path)
     metrics = hooks.metrics_from_graders(
         grader_outputs,
         status=status,
@@ -321,6 +333,7 @@ def _run_live_surface_foreground_process(
                 stdout=stdout_file,
                 stderr=stderr_file,
                 text=True,
+                start_new_session=True,
             )
             while True:
                 now = time.monotonic()
@@ -469,17 +482,18 @@ def _glob_progress_signature(run_dir: Path, pattern: str) -> tuple[tuple[str, bo
 def _terminate_live_surface_process(process: subprocess.Popen[Any]) -> None:
     if process.poll() is not None:
         return
+    process_group_id = process.pid
     try:
-        process.terminate()
+        os.killpg(process_group_id, signal.SIGTERM)
     except OSError:
         return
     try:
         process.wait(timeout=5.0)
-        return
     except subprocess.TimeoutExpired:
         pass
+    # The `just` wrapper can exit before its product child; finish the whole group.
     try:
-        process.kill()
+        os.killpg(process_group_id, signal.SIGKILL)
     except OSError:
         return
     try:
@@ -545,11 +559,10 @@ def live_surface_command(kwargs: dict[str, Any], *, output_dir: Path) -> list[st
         command.append("preset=map-build")
     if _is_smoke_budget(kwargs):
         command.append("run_preset=smoke")
-    else:
-        command += live_long_horizon.relocation_args(
-            kwargs,
-            relocation_count=_generated_mess_count(kwargs),
-        )
+    command += live_long_horizon.relocation_args(
+        kwargs,
+        relocation_count=_generated_mess_count(kwargs),
+    )
     runtime_map_prior = str(kwargs.get("runtime_map_prior_path") or "")
     if runtime_map_prior:
         command.append(f"runtime_map_prior={runtime_map_prior}")
@@ -740,14 +753,13 @@ def product_run_kwargs(
 ) -> dict[str, Any]:
     """Return shared cleanup product-run kwargs for direct and live eval trials."""
 
-    map_build = sample.intent == "map-build" or sample.preset == "map-build"
     kwargs: dict[str, Any] = {
         "output_dir": run_dir,
         "seed": sample.seed,
         "task_prompt": task_prompt(sample),
         "backend": implementation_backend(sample, budget=budget),
         "evidence_lane": evidence_lane(sample, budget=budget),
-        "map_build": map_build,
+        "intent": sample.intent,
         "generated_mess_count": generated_mess_count(sample),
         "generated_mess_object_ids": lh.generated_mess_object_ids(sample),
         "scene_source": scene_source(sample),
@@ -778,7 +790,11 @@ def product_run_kwargs(
 
 def implementation_backend(sample: EvalSample, *, budget: str) -> str:
     if budget == "smoke":
-        return lh.implementation_backend_for_direct_long_horizon(sample, SYNTHETIC_BACKEND)
+        runtime_requirements = _sample_runtime_requirements(sample)
+        if runtime_requirements.get("requires_real_molmospaces_backend") is True:
+            backend = BACKEND_SPECS.get(sample.backend)
+            return backend.implementation_backend if backend is not None else sample.backend
+        return SYNTHETIC_BACKEND
     backend = BACKEND_SPECS.get(sample.backend)
     if backend is None:
         return sample.backend
@@ -786,8 +802,15 @@ def implementation_backend(sample: EvalSample, *, budget: str) -> str:
 
 
 def evidence_lane(sample: EvalSample, *, budget: str) -> str:
-    smoke = budget == "smoke" and not lh.is_long_horizon_sample(sample)
+    runtime_requirements = _sample_runtime_requirements(sample)
+    smoke = budget == "smoke" and not runtime_requirements.get("requires_product_evidence_lane")
     return "smoke" if smoke else sample.evidence_lane
+
+
+def _sample_runtime_requirements(sample: EvalSample) -> dict[str, Any]:
+    reference = sample.private_goal_reference
+    requirements = reference.get("runtime_requirements")
+    return dict(requirements) if isinstance(requirements, dict) else {}
 
 
 def camera_labeler(sample: EvalSample) -> str:
@@ -997,7 +1020,7 @@ def _recover_eval_run_result_after_nonzero_checker_exit(
 
 def _is_recoverable_checker_eval_sample(kwargs: dict[str, Any]) -> bool:
     sample: EvalSample | None = kwargs.get("eval_sample")
-    return sample is not None and sample.intent == "cleanup"
+    return sample is not None and sample.intent in {"cleanup", "open-ended"}
 
 
 def _live_surface_run_is_terminal(run_dir: Path) -> bool:

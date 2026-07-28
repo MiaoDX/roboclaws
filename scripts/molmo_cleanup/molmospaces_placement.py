@@ -87,14 +87,16 @@ def direct_support_placement(
     bottom_offset = object_bottom_offset(model, data, obj, hooks=hooks)
     clearance = direct_support_clearance(obj, receptacle)
     candidate_count = 0
-    for surface in sorted(
+    ordered_surfaces = sorted(
         surfaces,
         key=lambda item: (
             float(item.get("area_m2") or 0.0),
             float(item.get("top_z") or 0.0),
         ),
         reverse=True,
-    ):
+    )
+    for surface in ordered_surfaces:
+        best_candidate: tuple[float, list[float]] | None = None
         for candidate in surface_candidate_positions(
             surface,
             footprint=footprint,
@@ -105,7 +107,7 @@ def direct_support_placement(
             candidate_count += 1
             if not candidate_has_direct_support(candidate, surface, footprint):
                 continue
-            if not candidate_is_clear_of_dynamic_objects(
+            clearance_score = candidate_dynamic_clearance_score(
                 model,
                 data,
                 state,
@@ -114,8 +116,20 @@ def direct_support_placement(
                 footprint=footprint,
                 bottom_offset=bottom_offset,
                 hooks=hooks,
-            ):
-                continue
+            )
+            if candidate_is_clear_of_dynamic_objects(
+                model,
+                data,
+                state,
+                obj,
+                candidate,
+                footprint=footprint,
+                bottom_offset=bottom_offset,
+                hooks=hooks,
+            ) and (best_candidate is None or clearance_score > best_candidate[0]):
+                best_candidate = (clearance_score, candidate)
+        if best_candidate is not None:
+            _, candidate = best_candidate
             return {
                 "position": candidate,
                 "support_status": "direct_support",
@@ -245,6 +259,54 @@ def candidate_is_clear_of_dynamic_objects(
             continue
         return False
     return True
+
+
+def candidate_dynamic_clearance_score(
+    model: mujoco.MjModel,
+    data: mujoco.MjData,
+    state: dict[str, Any],
+    obj: dict[str, Any],
+    position: list[float],
+    *,
+    footprint: tuple[float, float],
+    bottom_offset: float,
+    hooks: MolmoPlacementHooks,
+) -> float:
+    """Return the smallest XY edge gap to another dynamic object.
+
+    The score is only used to rank public placement candidates. It does not
+    expose object identities or alter the private evaluator contract.
+    """
+    object_id = str(obj.get("object_id") or "")
+    candidate_x = float(position[0])
+    candidate_y = float(position[1])
+    candidate_bottom = float(position[2]) - float(bottom_offset)
+    candidate_top = candidate_bottom + max(object_height(model, data, obj, hooks=hooks), 0.04)
+    best = math.inf
+    for other in state.get("objects", {}).values():
+        if str(other.get("object_id") or "") == object_id:
+            continue
+        if other.get("location_relation") == "held":
+            continue
+        other_aabb = object_world_aabb(model, data, other, hooks=hooks)
+        if other_aabb is None:
+            continue
+        if other_aabb["max_z"] < candidate_bottom - 0.03:
+            continue
+        if other_aabb["min_z"] > candidate_top + 0.12:
+            continue
+        gap_x = max(
+            float(other_aabb["min_x"]) - (candidate_x + float(footprint[0])),
+            (candidate_x - float(footprint[0])) - float(other_aabb["max_x"]),
+            0.0,
+        )
+        gap_y = max(
+            float(other_aabb["min_y"]) - (candidate_y + float(footprint[1])),
+            (candidate_y - float(footprint[1])) - float(other_aabb["max_y"]),
+            0.0,
+        )
+        best = min(best, math.hypot(gap_x, gap_y))
+    return 999.0 if math.isinf(best) else round(float(best), 6)
 
 
 def elevated_position_over_surface(

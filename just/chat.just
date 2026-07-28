@@ -16,7 +16,7 @@ run provider="mimo" model="" plugin="false" clean="false" reuse="false" keep_gat
       exit 1
     fi
     if [[ -z "${SKILLS_DIR:-}" ]]; then
-      export SKILLS_DIR="$PWD/skills/molmo-realworld-cleanup"
+      export SKILLS_DIR="$PWD/skills/household-world"
     fi
 
     if [[ "{{clean}}" == "true" ]]; then

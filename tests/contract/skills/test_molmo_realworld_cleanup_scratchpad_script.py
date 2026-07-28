@@ -6,11 +6,7 @@ import sys
 from pathlib import Path
 
 SCRIPT = (
-    Path(__file__).resolve().parents[3]
-    / "skills"
-    / "molmo-realworld-cleanup"
-    / "scripts"
-    / "scratchpad.py"
+    Path(__file__).resolve().parents[3] / "skills" / "household-world" / "scripts" / "scratchpad.py"
 )
 
 

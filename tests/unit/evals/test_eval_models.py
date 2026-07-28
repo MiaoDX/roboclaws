@@ -79,7 +79,7 @@ def test_direct_runner_eval_sample_and_result_round_trip(tmp_path: Path) -> None
         runner_class="direct_runner",
         provider_profile=MISSING_NOT_APPLICABLE,
         model=MISSING_NOT_APPLICABLE,
-        skill_name="molmo-realworld-cleanup",
+        skill_name="household-world",
         prompt_source=MISSING_NOT_APPLICABLE,
         mcp_profile="household_world+household_manipulation",
         tool_surface=["metric_map", "observe", "done"],

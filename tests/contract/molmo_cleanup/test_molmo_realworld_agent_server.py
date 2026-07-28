@@ -22,7 +22,7 @@ def test_realworld_agent_server_prints_openclaw_setup(
     assert "run claude mcp add" not in output
     assert "restart this server with --host 0.0.0.0 for OpenClaw" in output
     assert "ROBOCLAWS_MCP_URL=http://host.docker.internal:18788/mcp" in output
-    assert "skills/molmo-realworld-cleanup/SKILL.md" in output
+    assert "skills/household-world/SKILL.md" in output
     assert "roboclaws__metric_map" in output
     assert "scene_objects" in output
     assert "realworld_cleanup_v1" in output
@@ -60,7 +60,7 @@ def test_realworld_agent_server_open_ended_setup_does_not_prompt_full_sweep(
     assert "Treat the operator task as the authoritative goal scope." in output
     assert "Observe only as needed for the open-ended task" in output
     assert "Act only on task-relevant observed_* objects." in output
-    assert "skills/molmo-realworld-cleanup/SKILL.md" not in output
+    assert "skills/household-world/SKILL.md" not in output
     assert "Sweep waypoints" not in output
     assert "Clean plausible observed_* objects with navigate->pick" not in output
 
@@ -69,7 +69,7 @@ def test_realworld_agent_server_client_setup_commands() -> None:
     commands = server_module.client_setup_commands("http://127.0.0.1:18788/mcp")
 
     assert set(commands) == {"OpenClaw"}
-    assert commands["OpenClaw"].startswith("SKILLS_DIR=$PWD/skills/molmo-realworld-cleanup ")
+    assert commands["OpenClaw"].startswith("SKILLS_DIR=$PWD/skills/household-world ")
     assert "ROBOCLAWS_MCP_URL=http://host.docker.internal:18788/mcp" in commands["OpenClaw"]
 
 

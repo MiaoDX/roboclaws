@@ -390,7 +390,7 @@ def main() -> None:
             require_isaac_scene_index_map_context=(args.require_isaac_scene_index_map_context),
             require_robot_head_camera_fpv=args.require_robot_head_camera_fpv,
         )
-    print(f"molmo-realworld-cleanup ok: {args.path} ({len(run_results)} run(s))")
+    print(f"household-world ok: {args.path} ({len(run_results)} run(s))")
 
 
 def _load_run_results(path: Path) -> list[tuple[dict[str, Any], Path]]:
@@ -1161,21 +1161,17 @@ def _is_map_build(data: dict[str, Any]) -> bool:
 def _is_live_map_build(data: dict[str, Any]) -> bool:
     trace = data.get("cleanup_policy_trace") or {}
     task_identity = {
-        str(data.get("task_name") or ""),
         str(data.get("task_intent") or ""),
     }
     return (
-        bool({"household-world.map-build", "map-build"} & task_identity)
+        "map-build" in task_identity
         and int(trace.get("cleanup_action_count") or 0) == 0
         and str(trace.get("loop_style") or "") == "scan_only"
     )
 
 
 def _assert_live_map_build_scan_only(data: dict[str, Any]) -> None:
-    assert (
-        data.get("task_name") == "household-world.map-build"
-        or data.get("task_intent") == "map-build"
-    ), data
+    assert data.get("task_intent") == "map-build", data
     trace = data.get("cleanup_policy_trace") or {}
     assert trace.get("schema") == CLEANUP_POLICY_TRACE_SCHEMA, trace
     assert trace.get("loop_style") == "scan_only", trace

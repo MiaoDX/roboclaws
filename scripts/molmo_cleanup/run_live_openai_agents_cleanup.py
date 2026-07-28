@@ -49,6 +49,7 @@ from roboclaws.agents.prompts.household_cleanup import (
 )
 from roboclaws.agents.thinking_policy import THINKING_MODES
 from roboclaws.core.json_sources import read_json_value, read_jsonl_objects
+from roboclaws.household.raw_fpv_guidance import raw_fpv_edge_reframe_instruction
 from roboclaws.household.realworld_mcp_server import ROBOT_VIEW_CAPTURE_POLICY_FULL
 from roboclaws.household.task_intent import (
     household_intent_from_args as _household_intent,
@@ -70,6 +71,18 @@ from roboclaws.reports.live_performance import (
 from scripts.molmo_cleanup.live_status_writer import LiveRunStatusWriter
 from scripts.molmo_cleanup.openai_agents_budget import (
     raw_fpv_budget_failure as _raw_fpv_budget_failure,
+)
+from scripts.molmo_cleanup.openai_agents_budget import (
+    raw_fpv_budget_metrics as _raw_fpv_budget_metrics,
+)
+from scripts.molmo_cleanup.openai_agents_continuation_state import (
+    candidate_attempt_counts_by_waypoint,
+    candidate_outcomes_by_waypoint,
+    latest_done_completion_blockers,
+    raw_fpv_revisit_waypoints,
+    reconcile_remaining_observes_with_heading_blocker,
+    remaining_observes_by_waypoint,
+    waypoints_by_observation_recency,
 )
 from scripts.molmo_cleanup.openai_agents_metrics import (
     model_input_filter_metrics as _model_input_filter_metrics,
@@ -419,7 +432,7 @@ def main(argv: list[str] | None = None) -> int:
 class LiveOpenAIAgentsCleanupRunner:
     def __init__(self, args: argparse.Namespace) -> None:
         self.args = args
-        self.skill_name = str(getattr(args, "skill_name", "") or "molmo-realworld-cleanup")
+        self.skill_name = str(getattr(args, "skill_name", "") or "household-world")
         self.run_dir = args.run_dir
         self.status_path = args.status_path
         self.timing_path = self.run_dir / "live_timing.json"
@@ -621,30 +634,20 @@ class LiveOpenAIAgentsCleanupRunner:
             attempt_summary = _sdk_attempt_summary(result, attempt_index=attempt_index)
             attempts.append(attempt_summary)
             self.live_timing["openai_agents_attempts"] = attempts
-            if result.exit_status not in {0, None}:
+            context_budget_recovery = _is_context_budget_result(result)
+            turn_budget_recovery = _is_turn_budget_result(result)
+            budget_recovery = context_budget_recovery or turn_budget_recovery
+            if result.exit_status not in {0, None} and not budget_recovery:
                 break
             if (self.run_dir / "run_result.json").is_file():
                 break
-            handoff = _explicit_operator_handoff_requested(self.args)
-            if handoff and self.server_proc is not None and self.server_proc.poll() is None:
-                attempt_summary["recovery_action"] = "operator_handoff"
-                attempt_summary["recovery_reason"] = OPERATOR_HANDOFF_REASON
-                self.operator_handoff_active = True
-                self._write_status(
-                    "paused",
-                    reason=OPERATOR_HANDOFF_REASON,
-                    resume_available=True,
-                    detail=handoff,
-                )
-                print(
-                    "==> OpenAI Agents SDK requested an operator handoff; keeping "
-                    "MCP server alive for manual control"
-                )
+            if self._start_operator_handoff_if_requested(attempt_summary):
                 break
-            self._raise_agent_sdk_budget_failure_if_any(
-                attempt_index=attempt_index,
-                stage="after",
-            )
+            if not context_budget_recovery:
+                self._raise_agent_sdk_budget_failure_if_any(
+                    attempt_index=attempt_index,
+                    stage="after",
+                )
             continuation_prompt = recovery_policy.continuation_prompt(
                 original_prompt=self.initial_kickoff_prompt,
                 result=result,
@@ -656,7 +659,11 @@ class LiveOpenAIAgentsCleanupRunner:
             if continuation_prompt is None:
                 break
             attempt_summary["recovery_action"] = "continue"
-            attempt_summary["recovery_reason"] = recovery_policy.reason
+            attempt_summary["recovery_reason"] = _continuation_recovery_reason(
+                context_budget_recovery=context_budget_recovery,
+                turn_budget_recovery=turn_budget_recovery,
+                default_reason=recovery_policy.reason,
+            )
             attempt_summary["continuation_prompt_chars"] = len(continuation_prompt)
             attempt_summary["continuation_prompt_estimated_tokens"] = _estimated_tokens_from_chars(
                 len(continuation_prompt)
@@ -677,19 +684,7 @@ class LiveOpenAIAgentsCleanupRunner:
             "trace_id": result.trace_id,
             "provider_session_id": result.provider_session_id,
         }
-        if result.exit_status not in {0, None}:
-            failure = _failure_from_sdk_result(
-                result,
-                run_dir=self.run_dir,
-                timing=self.live_timing,
-                profile=self.agent_sdk_perf_profile,
-            )
-            if result.reason == "agent_sdk_turn_budget_exceeded":
-                self.live_timing["agent_sdk_budget_terminal"] = failure.status_fields()
-            raise LiveAgentRunFailure(
-                f"OpenAI Agents SDK runtime failed: {failure.reason}",
-                failure,
-            )
+        self._raise_sdk_result_failure(result)
         if self.operator_handoff_active:
             return
         if not (self.run_dir / "run_result.json").is_file():
@@ -698,8 +693,46 @@ class LiveOpenAIAgentsCleanupRunner:
                 f"{len(attempts)} OpenAI Agents SDK invocation(s)"
             )
 
+    def _start_operator_handoff_if_requested(self, attempt_summary: dict[str, Any]) -> bool:
+        handoff = _explicit_operator_handoff_requested(self.args)
+        if not handoff or self.server_proc is None or self.server_proc.poll() is not None:
+            return False
+        attempt_summary["recovery_action"] = "operator_handoff"
+        attempt_summary["recovery_reason"] = OPERATOR_HANDOFF_REASON
+        self.operator_handoff_active = True
+        self._write_status(
+            "paused",
+            reason=OPERATOR_HANDOFF_REASON,
+            resume_available=True,
+            detail=handoff,
+        )
+        print(
+            "==> OpenAI Agents SDK requested an operator handoff; keeping "
+            "MCP server alive for manual control"
+        )
+        return True
+
+    def _raise_sdk_result_failure(self, result: Any) -> None:
+        if result.exit_status in {0, None}:
+            return
+        failure = _failure_from_sdk_result(
+            result,
+            run_dir=self.run_dir,
+            timing=self.live_timing,
+            profile=self.agent_sdk_perf_profile,
+        )
+        if result.reason in {
+            "agent_sdk_turn_budget_exceeded",
+            "provider_context_budget_exceeded",
+        }:
+            self.live_timing["agent_sdk_budget_terminal"] = failure.status_fields()
+        raise LiveAgentRunFailure(
+            f"OpenAI Agents SDK runtime failed: {failure.reason}",
+            failure,
+        )
+
     def _raise_agent_sdk_budget_failure_if_any(self, *, attempt_index: int, stage: str) -> None:
-        budget_failure = _budget_failure_from_run_state(
+        budget_failure = _raw_fpv_budget_failure(
             self.run_dir,
             self.live_timing,
             self.agent_sdk_perf_profile,
@@ -1163,19 +1196,26 @@ class IncompleteTurnRecoveryPolicy:
             return None
         if (run_dir / "run_result.json").is_file():
             return None
-        if getattr(result, "exit_status", None) not in {0, None}:
+        context_budget_recovery = _is_context_budget_result(result)
+        turn_budget_recovery = _is_turn_budget_result(result)
+        budget_recovery = context_budget_recovery or turn_budget_recovery
+        if getattr(result, "exit_status", None) not in {0, None} and not budget_recovery:
             return None
-        if getattr(result, "phase", "") != "agent-turn-complete":
+        if getattr(result, "phase", "") != "agent-turn-complete" and not budget_recovery:
             return None
         profile = profile or {}
         context_metrics = context_metrics or {}
         continuation_mode = str(profile.get("continuation_mode") or "repeat_full_prompt")
         total_input_tokens = _int_or_none(context_metrics.get("total_input_tokens"))
         soft_limit = _int_or_none(profile.get("context_soft_limit_tokens"))
-        if continuation_mode == "state_summary_only" or (
-            soft_limit is not None
-            and total_input_tokens is not None
-            and total_input_tokens >= soft_limit
+        if (
+            budget_recovery
+            or continuation_mode == "state_summary_only"
+            or (
+                soft_limit is not None
+                and total_input_tokens is not None
+                and total_input_tokens >= soft_limit
+            )
         ):
             return _compact_continuation_prompt(
                 run_dir,
@@ -1183,6 +1223,27 @@ class IncompleteTurnRecoveryPolicy:
                 context_metrics=context_metrics,
             )
         return f"{original_prompt.rstrip()}\n\n{self.continuation_suffix}\n"
+
+
+def _is_context_budget_result(result: Any) -> bool:
+    return str(getattr(result, "reason", "") or "") == "provider_context_budget_exceeded"
+
+
+def _is_turn_budget_result(result: Any) -> bool:
+    return str(getattr(result, "reason", "") or "") == "agent_sdk_turn_budget_exceeded"
+
+
+def _continuation_recovery_reason(
+    *,
+    context_budget_recovery: bool,
+    turn_budget_recovery: bool,
+    default_reason: str,
+) -> str:
+    if context_budget_recovery:
+        return "context_budget_compact_continuation"
+    if turn_budget_recovery:
+        return "turn_budget_compact_continuation"
+    return default_reason
 
 
 def _profiled_kickoff_prompt(args: argparse.Namespace, *, profile: dict[str, Any]) -> str:
@@ -1428,19 +1489,83 @@ def _compact_continuation_prompt(
     )
     profile_guidance = _compact_continuation_profile_guidance(profile)
     profile_guidance_section = f"\n\n{profile_guidance}" if profile_guidance else ""
+    intent = str(state.get("intent") or "cleanup")
+    task_guidance = _compact_continuation_task_guidance(intent)
     return (
-        "Continuation recovery for the same live household cleanup run.\n\n"
+        f"Continuation recovery for the same live household {intent} run.\n\n"
         "Use this compact public state packet instead of replaying the original "
-        "kickoff prompt. Do not summarize progress as a final answer. Inspect "
-        "current public MCP state if needed, continue only missing cleanup work, "
-        "and call done only after MCP-visible public state satisfies the task. "
+        "kickoff prompt. Do not summarize progress as a final answer. "
+        f"{task_guidance} "
+        "Call done only after MCP-visible public state satisfies the task. "
         "The runner will count success only when MCP done produces run_result.json."
         f"{profile_guidance_section}\n\n"
         f"compact_continuation_state:\n{json.dumps(state, ensure_ascii=False, sort_keys=True)}\n"
     )
 
 
+def _compact_continuation_task_guidance(intent: str) -> str:
+    if intent == "map-build":
+        return (
+            "Continue only missing public map sweep and Runtime Metric Map evidence work. "
+            "Do not pick, place, or perform cleanup manipulation for a map-build task. "
+            "Use completed_waypoints and latest_done_blockers before requesting fresh MCP state."
+        )
+    if intent == "open-ended":
+        return (
+            "Preserve goal_summary and continue only the missing search, inspection, or "
+            "task-relevant action. Do not switch into whole-room cleanup unless the goal asks "
+            "for cleanup."
+        )
+    return (
+        "Continue missing cleanup work in this order: first finish held entries in "
+        "actionable_pending_candidates using their destination_options; then advance pending "
+        "entries with their required_tool; then continue the public sweep at "
+        "next_unvisited_waypoint. Do not broad re-sweep while an actionable held or pending "
+        "candidate remains."
+    )
+
+
 def _compact_continuation_profile_guidance(profile: dict[str, Any]) -> str:
+    if profile.get("raw_fpv_candidate_budget") is not None:
+        return (
+            "RAW-FPV continuation: if latest_done_blockers is non-empty, do not call done "
+            "again until its public current values reach required or trace-reconciled progress "
+            "shows a new completion chain. A heading-coverage blocker has first priority: use "
+            "remaining_observes_by_waypoint and visit only a waypoint whose remaining count is "
+            "positive until that blocker is resolved. Do not consume raw_fpv_revisit_waypoints "
+            "while a heading-coverage blocker remains. Do not broad re-sweep exhausted "
+            "waypoints; the bounded raw_fpv_revisit_waypoints pass below is the only exception. "
+            "If latest_done_blockers contains insufficient_raw_fpv_overlap_probe_coverage, "
+            "follow its next_waypoint_id and required_camera_adjustment exactly: navigate there, "
+            "call adjust_camera(yaw_delta_deg=45, pitch_delta_deg=20) once, then observe the "
+            "fresh diagonal overlap view even when the normal waypoint observe count is exhausted. "
+            "If latest_done_blockers contains insufficient_raw_fpv_heading_coverage, follow "
+            "its next_waypoint_id and stay at that waypoint for a complete deterministic body "
+            "sweep: observe the canonical pose, then call "
+            "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90) followed by "
+            "observe three consecutive times before leaving. Do not return to canonical or switch "
+            "waypoints after only one relative rotation. Treat remaining_observes_by_waypoint as "
+            "the public distinct-heading deficit, not a hard cap on recovery observations. "
+            "After heading coverage is complete, if insufficient_grounded_cleanup_chains still "
+            "remains and no held or pending candidate exists, visit raw_fpv_revisit_waypoints in "
+            "order. This is a bounded public recovery pass over otherwise scan-exhausted "
+            "waypoints: visit each listed waypoint at most once, call "
+            "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=45) once, then "
+            "observe exactly one fresh diagonal view. Act only on a high-confidence candidate in "
+            "that fresh observation, never copy an old source observation, bbox, or public "
+            "candidate id, and stop the pass when the public chain gate is met or the list is "
+            "exhausted. Do not revisit waypoints absent from that list. "
+            "Prefer candidate_free_scan_waypoints in the "
+            "listed most-recently-observed-first order before revisiting waypoints that already "
+            "produced candidate attempts; this preserves the latest FPV context and current pose. "
+            "An empty default FPV view is not evidence that the whole room is clear. Act on each "
+            "fresh high-confidence visible candidate "
+            "with navigate_to_visual_candidate and complete its pick/place chain. "
+            + raw_fpv_edge_reframe_instruction()
+            + " Respect raw_fpv_candidate_budget.remaining and do not retry entries "
+            "listed in recent_failed_candidate_attempts. Do not call "
+            "metric_map again when completed_waypoints already contains the public checklist."
+        )
     composite = profile.get("camera_grounded_composite_tools")
     if not isinstance(composite, dict) or not bool(composite.get("enabled")):
         return ""
@@ -1470,6 +1595,47 @@ def _compact_continuation_state(
     public_pending = _public_pending_object_handles(trace_events)
     blocked_candidates = _blocked_candidates(trace_events)
     recent_failures = _recent_tool_failures(trace_events)
+    observe_counts = _observe_counts_by_waypoint(trace_events)
+    latest_done_blockers = _latest_done_blockers(trace_events)
+    latest_done_action_state = _latest_done_public_action_state(trace_events)
+    budget_metrics = _raw_fpv_budget_metrics(trace_events)
+    max_observes = _int_or_none(profile.get("max_observe_per_waypoint"))
+    known_waypoints = _inspection_waypoint_ids(trace_events) or list(observe_counts)
+    remaining_observes = remaining_observes_by_waypoint(
+        known_waypoints,
+        observe_counts,
+        max_observes=max_observes,
+    )
+    reconcile_remaining_observes_with_heading_blocker(
+        remaining_observes,
+        latest_done_blockers,
+    )
+    candidate_attempt_counts = candidate_attempt_counts_by_waypoint(trace_events)
+    candidate_outcomes = candidate_outcomes_by_waypoint(trace_events, known_waypoints)
+    scan_priority = waypoints_by_observation_recency(trace_events)
+    scan_priority.extend(
+        waypoint_id for waypoint_id in known_waypoints if waypoint_id not in scan_priority
+    )
+    candidate_free_waypoints = [
+        waypoint_id
+        for waypoint_id in scan_priority
+        if remaining_observes.get(waypoint_id) != 0
+        and candidate_attempt_counts.get(waypoint_id, 0) == 0
+    ]
+    exhausted_waypoints = [
+        waypoint_id for waypoint_id, remaining in remaining_observes.items() if remaining == 0
+    ]
+    candidate_limit = _int_or_none(profile.get("raw_fpv_candidate_budget"))
+    candidate_attempted = int(budget_metrics.get("candidate_attempt_count") or 0)
+    revisit_waypoints = raw_fpv_revisit_waypoints(
+        trace_events,
+        known_waypoints=known_waypoints,
+        candidate_outcomes=candidate_outcomes,
+        latest_done_blockers=latest_done_blockers,
+        has_pending_candidates=bool(
+            public_pending or latest_done_action_state["actionable_pending_candidates"]
+        ),
+    )
     return {
         "schema": "compact_agent_state_v1",
         "surface": goal_contract.get("surface") or "household-world",
@@ -1483,10 +1649,230 @@ def _compact_continuation_state(
         "public_pending_object_handles": public_pending[-32:],
         "blocked_candidates": blocked_candidates[-12:],
         "recent_tool_failures": recent_failures[-8:],
+        "observe_counts_by_waypoint": observe_counts,
+        "candidate_attempt_counts_by_waypoint": candidate_attempt_counts,
+        "raw_fpv_waypoint_candidate_outcomes": candidate_outcomes,
+        "raw_fpv_revisit_waypoints": revisit_waypoints,
+        "candidate_free_scan_waypoints": candidate_free_waypoints,
+        "remaining_observes_by_waypoint": remaining_observes,
+        "scan_exhausted_waypoints": exhausted_waypoints,
+        "raw_fpv_candidate_budget": {
+            "attempted": candidate_attempted,
+            "limit": candidate_limit,
+            "remaining": max(0, candidate_limit - candidate_attempted)
+            if candidate_limit is not None
+            else None,
+        },
+        "recent_failed_candidate_attempts": _compact_failed_candidate_attempts(
+            budget_metrics.get("failed_candidate_attempts_sample") or []
+        ),
+        "latest_done_blockers": latest_done_blockers,
+        "actionable_pending_candidates": latest_done_action_state["actionable_pending_candidates"],
+        "next_unvisited_waypoint": latest_done_action_state["next_unvisited_waypoint"],
+        "unvisited_waypoint_ids": latest_done_action_state["unvisited_waypoint_ids"],
         "remaining_public_gates": _remaining_public_gates(completed_waypoints, public_pending),
-        "next_requested_action": _next_requested_action(completed_waypoints, public_pending),
+        "next_requested_action": _next_requested_action(
+            completed_waypoints,
+            public_pending,
+            actionable_pending=latest_done_action_state["actionable_pending_candidates"],
+            next_unvisited_waypoint=latest_done_action_state["next_unvisited_waypoint"],
+        ),
         "context_metrics": _compact_metric_group(context_metrics),
     }
+
+
+def _observe_counts_by_waypoint(trace_events: list[dict[str, Any]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for event in trace_events:
+        if event.get("event") != "response" or event.get("tool") != "observe":
+            continue
+        response = event.get("response") if isinstance(event.get("response"), dict) else {}
+        if response.get("ok") is not True:
+            continue
+        waypoint_id = str(response.get("waypoint_id") or "")
+        if waypoint_id:
+            counts[waypoint_id] = counts.get(waypoint_id, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _latest_done_blockers(trace_events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    event_index, blockers = latest_done_completion_blockers(trace_events)
+    if event_index is None:
+        return []
+    normalized = [
+        {
+            key: blocker[key]
+            for key in (
+                "type",
+                "current",
+                "required",
+                "required_tool",
+                "next_waypoint_id",
+                "policy_id",
+                "sweep_coverage_rate",
+                "observed_waypoint_count",
+                "total_waypoints",
+                "current_distinct_heading_count",
+                "required_distinct_heading_count",
+                "distinct_heading_counts_by_waypoint",
+                "incomplete_waypoint_ids",
+                "followup_tool",
+                "required_camera_adjustment",
+                "candidate_free_waypoint_ids",
+                "probed_candidate_free_waypoint_ids",
+                "recovery_hint",
+            )
+            if key in blocker
+        }
+        for blocker in blockers
+    ]
+    progress_after_done = len(_successful_placement_handles(trace_events[event_index + 1 :]))
+    if progress_after_done:
+        _reconcile_grounded_chain_progress(normalized, progress_after_done)
+    return normalized
+
+
+def _reconcile_grounded_chain_progress(
+    blockers: list[dict[str, Any]], progress_after_done: int
+) -> None:
+    for blocker in blockers:
+        if blocker.get("type") != "insufficient_grounded_cleanup_chains":
+            continue
+        current = _int_or_none(blocker.get("current"))
+        required = _int_or_none(blocker.get("required"))
+        if current is None:
+            continue
+        blocker["current"] = (
+            min(required, current + progress_after_done)
+            if required
+            else (current + progress_after_done)
+        )
+        blocker["progress_since_latest_done"] = progress_after_done
+        blocker["progress_source"] = "trace_reconciled_after_done"
+
+
+def _latest_done_public_action_state(trace_events: list[dict[str, Any]]) -> dict[str, Any]:
+    _, blockers = latest_done_completion_blockers(trace_events)
+    pending_blockers = [
+        item for item in blockers if item.get("type") == "pending_cleanup_candidates"
+    ]
+    pending = [
+        candidate
+        for blocker in pending_blockers
+        for candidates in [blocker.get("pending_cleanup_candidates")]
+        if isinstance(candidates, list)
+        for candidate in candidates
+        if isinstance(candidate, dict)
+    ]
+    sweep = next(
+        (item for item in blockers if item.get("type") == "insufficient_sweep_coverage"),
+        {},
+    )
+    raw_unvisited = sweep.get("unvisited_waypoint_ids")
+    unvisited_waypoints = (
+        [str(item) for item in raw_unvisited if str(item)][:32]
+        if isinstance(raw_unvisited, list)
+        else []
+    )
+    next_waypoint = str(sweep.get("next_waypoint_id") or "")
+    if not next_waypoint and unvisited_waypoints:
+        next_waypoint = unvisited_waypoints[0]
+    return {
+        "actionable_pending_candidates": _public_actionable_pending_candidates(pending),
+        "next_unvisited_waypoint": next_waypoint,
+        "unvisited_waypoint_ids": unvisited_waypoints,
+    }
+
+
+def _public_actionable_pending_candidates(
+    pending: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    sanitized: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    for candidate in pending:
+        public_id = str(candidate.get("object_id") or "")
+        if not public_id or public_id in seen_ids:
+            continue
+        seen_ids.add(public_id)
+        item = {
+            key: candidate[key]
+            for key in (
+                "object_id",
+                "category",
+                "state",
+                "candidate_state",
+                "required_tool",
+            )
+            if key in candidate
+        }
+        options = candidate.get("destination_options")
+        if isinstance(options, list):
+            item["destination_options"] = [
+                {
+                    key: option[key]
+                    for key in (
+                        "candidate_fixture_id",
+                        "candidate_fixture_category",
+                        "recommended_tool",
+                        "candidate_source",
+                        "waypoint_id",
+                    )
+                    if key in option
+                }
+                for option in options[:8]
+                if isinstance(option, dict)
+            ]
+        sanitized.append(item)
+        if len(sanitized) >= 12:
+            break
+    sanitized.sort(key=lambda item: 0 if item.get("state") == "held" else 1)
+    return sanitized
+
+
+def _inspection_waypoint_ids(trace_events: list[dict[str, Any]]) -> list[str]:
+    for event in trace_events:
+        if event.get("event") != "response" or event.get("tool") != "metric_map":
+            continue
+        response = event.get("response") if isinstance(event.get("response"), dict) else {}
+        raw_waypoints = response.get("inspection_waypoints")
+        if not isinstance(raw_waypoints, list):
+            continue
+        return [
+            str(item.get("waypoint_id") or "")
+            for item in raw_waypoints
+            if isinstance(item, dict) and item.get("waypoint_id")
+        ]
+    return []
+
+
+def _compact_failed_candidate_attempts(
+    attempts: list[dict[str, Any]],
+) -> list[dict[str, str]]:
+    return [
+        {
+            "source_observation_id": str(item.get("source_observation_id") or ""),
+            "waypoint_id": str(item.get("waypoint_id") or ""),
+            "category": str(item.get("category") or ""),
+            "region": str(item.get("region") or ""),
+            "error_reason": str(item.get("failure_reason") or "tool_failed"),
+        }
+        for item in attempts[-12:]
+        if isinstance(item, dict)
+    ]
+
+
+def _successful_placement_handles(trace_events: list[dict[str, Any]]) -> list[str]:
+    handles: list[str] = []
+    for event in trace_events:
+        if event.get("event") != "response" or event.get("tool") not in {"place", "place_inside"}:
+            continue
+        response = event.get("response") if isinstance(event.get("response"), dict) else {}
+        if response.get("ok") is not True:
+            continue
+        handle = str(response.get("object_id") or response.get("held_object_id") or "")
+        if handle and handle not in handles:
+            handles.append(handle)
+    return handles
 
 
 def _goal_contract_summary(trace_events: list[dict[str, Any]]) -> dict[str, Any]:
@@ -1516,6 +1902,8 @@ def _completed_waypoints(trace_events: list[dict[str, Any]]) -> list[str]:
         if event.get("event") != "response" or event.get("tool") != "observe":
             continue
         response = event.get("response") if isinstance(event.get("response"), dict) else {}
+        if response.get("ok") is not True:
+            continue
         waypoint_id = str(response.get("waypoint_id") or "")
         if waypoint_id and waypoint_id not in completed:
             completed.append(waypoint_id)
@@ -1523,16 +1911,7 @@ def _completed_waypoints(trace_events: list[dict[str, Any]]) -> list[str]:
 
 
 def _handled_object_handles(trace_events: list[dict[str, Any]]) -> list[str]:
-    handled: list[str] = []
-    for event in trace_events:
-        if event.get("event") != "response" or event.get("tool") not in {"place", "place_inside"}:
-            continue
-        response = event.get("response") if isinstance(event.get("response"), dict) else {}
-        for key in ("object_id", "held_object_id", "source_object_id", "target_object_id"):
-            value = str(response.get(key) or "")
-            if value and value not in handled:
-                handled.append(value)
-    return handled
+    return _successful_placement_handles(trace_events)
 
 
 def _public_pending_object_handles(trace_events: list[dict[str, Any]]) -> list[str]:
@@ -1573,7 +1952,14 @@ def _blocked_candidates(trace_events: list[dict[str, Any]]) -> list[dict[str, st
             or response.get("source_observation_id")
             or ""
         )
-        reason = str(response.get("reason") or response.get("error") or status or "tool_failed")
+        reason = str(
+            response.get("error_reason")
+            or response.get("failure_reason")
+            or response.get("reason")
+            or response.get("error")
+            or status
+            or "tool_failed"
+        )
         item = {
             "public_id": public_id,
             "reason": reason[:160],
@@ -1620,9 +2006,20 @@ def _remaining_public_gates(completed_waypoints: list[str], pending: list[str]) 
     return gates
 
 
-def _next_requested_action(completed_waypoints: list[str], pending: list[str]) -> str:
-    if pending:
+def _next_requested_action(
+    completed_waypoints: list[str],
+    pending: list[str],
+    *,
+    actionable_pending: list[dict[str, Any]] | None = None,
+    next_unvisited_waypoint: str = "",
+) -> str:
+    actionable_pending = actionable_pending or []
+    if any(item.get("state") == "held" for item in actionable_pending):
+        return "finish held candidates using public destination_options before other work"
+    if actionable_pending or pending:
         return "clean the public pending handles before broad re-sweep"
+    if next_unvisited_waypoint:
+        return f"navigate_to_waypoint({next_unvisited_waypoint}), then observe"
     if not completed_waypoints:
         return "call metric_map, navigate_to_waypoint, then observe"
     return "inspect public MCP state, finish missing objects or waypoints, then call done"

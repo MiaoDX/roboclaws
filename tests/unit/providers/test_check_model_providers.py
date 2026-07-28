@@ -53,6 +53,84 @@ def test_provider_probe_defaults_exclude_unavailable_official_openai_route() -> 
     assert all(probe.api_key_env != "OPENAI_API_KEY" for probe in probes.values())
 
 
+def test_codex_probes_apply_private_router_headers(monkeypatch) -> None:
+    script = _load_script_module()
+    captured: dict[str, object] = {}
+    monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
+
+    class FakeModelSettings:
+        def __init__(self, **_kwargs) -> None:
+            pass
+
+    class FakeAgent:
+        def __init__(self, **_kwargs) -> None:
+            pass
+
+    class FakeRunner:
+        @staticmethod
+        def run_sync(*_args, **_kwargs):
+            return type("Result", (), {"final_output": "ok"})()
+
+    class FakeAsyncOpenAI:
+        def __init__(self, **kwargs) -> None:
+            captured["async_client"] = kwargs
+
+    class FakeResponsesModel:
+        def __init__(self, _model: str, *, openai_client: object) -> None:
+            captured["model_client"] = openai_client
+
+    class FakeResponses:
+        @staticmethod
+        def create(**_kwargs):
+            return type("Response", (), {"status": "completed", "output_text": "ok"})()
+
+    class FakeOpenAI:
+        def __init__(self, **kwargs) -> None:
+            captured["sync_client"] = kwargs
+            self.responses = FakeResponses()
+
+    monkeypatch.setitem(
+        sys.modules,
+        "agents",
+        type(
+            "FakeAgentsModule",
+            (),
+            {
+                "Agent": FakeAgent,
+                "ModelSettings": FakeModelSettings,
+                "OpenAIChatCompletionsModel": object,
+                "OpenAIResponsesModel": FakeResponsesModel,
+                "Runner": FakeRunner,
+                "set_tracing_disabled": staticmethod(lambda *_args, **_kwargs: None),
+            },
+        ),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "openai",
+        type(
+            "FakeOpenAIModule",
+            (),
+            {"AsyncOpenAI": FakeAsyncOpenAI, "OpenAI": FakeOpenAI},
+        ),
+    )
+
+    agent_probe = {probe.probe_id: probe for probe in script.build_agent_sdk_probes()}[
+        "agents-sdk:codex-router-responses"
+    ]
+    raw_probe = {probe.probe_id: probe for probe in script.build_provider_probes()}[
+        "provider:codex-router-responses"
+    ]
+
+    assert script.run_probe(agent_probe, prompt="ok", timeout_s=1.0).status == "PASS"
+    assert script.run_probe(raw_probe, prompt="ok", timeout_s=1.0).status == "PASS"
+    for client_key in ("async_client", "sync_client"):
+        window_id = captured[client_key]["default_headers"]["X-Codex-Window-Id"]
+        thread_id, generation = window_id.rsplit(":", 1)
+        assert len(thread_id) == 36
+        assert generation == "0"
+
+
 def test_require_all_fails_on_skipped_probe(monkeypatch) -> None:
     script = _load_script_module()
     monkeypatch.delenv("MM_API_KEY", raising=False)

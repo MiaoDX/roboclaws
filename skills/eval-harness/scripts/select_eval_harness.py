@@ -26,7 +26,12 @@ else:
 HARNESS_SCHEMA = "roboclaws_eval_harness_manifest_v1"
 DEFAULT_OUTPUT_ROOT = Path("output/eval-harness")
 ROWS_MODULE_PATH = SCRIPT_DIR / "eval_harness_rows.py"
-HARNESS_PROFILES = ("adaptive", "baseline-refresh")
+HARNESS_PROFILES = (
+    "adaptive",
+    "baseline-core",
+    "baseline-live-default",
+    "baseline-refresh",
+)
 _ROWS_SPEC = importlib.util.spec_from_file_location("eval_harness_rows", ROWS_MODULE_PATH)
 if _ROWS_SPEC is None or _ROWS_SPEC.loader is None:
     raise RuntimeError(f"could not load eval harness rows at {ROWS_MODULE_PATH}")
@@ -61,10 +66,11 @@ SIGNAL_RULES: tuple[dict[str, Any], ...] = (
     },
     {
         "id": "cleanup_skill",
-        "label": "Cleanup skill or prompt",
+        "label": "Household-world skill or prompt",
         "patterns": (
-            r"skills/molmo-realworld-cleanup/",
+            r"skills/household-world/",
             r"household_cleanup",
+            r"household[-_]world",
             r"semantic_cleanup_loop",
             r"trace_preserving_cleanup",
             r"\bcleanup\b",
@@ -79,6 +85,16 @@ SIGNAL_RULES: tuple[dict[str, Any], ...] = (
             r"task_intent",
             r"completion_claim",
             r"agent-declared",
+        ),
+    },
+    {
+        "id": "long_horizon",
+        "label": "Long-horizon household tasks",
+        "patterns": (
+            r"long[-_]horizon",
+            r"long_horizon_tasks",
+            r"roboclaws/evals/long_horizon",
+            r"evals/.*/long_horizon",
         ),
     },
     {
@@ -279,7 +295,7 @@ def build_eval_harness(
         changed_files=all_changed_files,
         explicit_axes=explicit_axes,
     )
-    if profile == "baseline-refresh":
+    if profile != "adaptive":
         signals = _merge_signals([*signals, _profile_signal(profile)])
     output_dir = output_dir or _default_output_dir()
     rows = eval_harness_rows.candidate_rows(output_dir=output_dir, explicit_axes=explicit_axes)
@@ -427,11 +443,12 @@ def _apply_selection_rules(
     signal_ids = {signal["id"] for signal in signals}
     signal_by_id = {signal["id"]: signal for signal in signals}
     for row in rows:
-        if profile == "baseline-refresh":
+        if profile != "adaptive":
             if profile not in row.get("profiles", []):
                 continue
-            matching = ["baseline_refresh_profile"]
-            row["source_signals"] = [signal_by_id["baseline_refresh_profile"]]
+            profile_signal_id = f"{profile.replace('-', '_')}_profile"
+            matching = [profile_signal_id]
+            row["source_signals"] = [signal_by_id[profile_signal_id]]
         else:
             if row.get("requirement") == "optional" and not _explicitly_matches_optional(
                 row,

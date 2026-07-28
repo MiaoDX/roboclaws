@@ -370,6 +370,22 @@ def place_inside_object(
     )
 
 
+def _placement_index_for_object(state: dict[str, Any], object_id: str) -> int:
+    selected_object_ids = [str(value) for value in state.get("selected_object_ids", [])]
+    if object_id in selected_object_ids:
+        return selected_object_ids.index(object_id)
+
+    selected = set(selected_object_ids)
+    other_pickupable_ids = sorted(
+        str(candidate_id)
+        for candidate_id, candidate in state.get("objects", {}).items()
+        if str(candidate_id) not in selected and bool(candidate.get("pickupable", True))
+    )
+    if object_id not in other_pickupable_ids:
+        raise ValueError(f"unknown pickupable object: {object_id}")
+    return len(selected_object_ids) + other_pickupable_ids.index(object_id)
+
+
 def place_object_at_receptacle(
     state: dict[str, Any],
     receptacle_id: str,
@@ -400,7 +416,7 @@ def place_object_at_receptacle(
         state=state,
         object_id=object_id,
         receptacle_id=receptacle_id,
-        index=state["selected_object_ids"].index(object_id),
+        index=_placement_index_for_object(state, object_id),
         relation=relation,
     )
     target_position = placement_resolution["position"]

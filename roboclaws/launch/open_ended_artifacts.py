@@ -73,7 +73,14 @@ def _artifact_path(base: Path, run_result: dict[str, Any], name: str, *, fallbac
     artifacts = _dict_value(run_result, "artifacts")
     raw_path = str(artifacts.get(name) or fallback)
     path = Path(raw_path)
-    return path if path.is_absolute() else base / path
+    if path.is_absolute():
+        return path
+    run_relative = base / path
+    if run_relative.is_file():
+        return run_relative
+    if path.is_file():
+        return path
+    return run_relative
 
 
 def main(argv: list[str] | None = None) -> int:

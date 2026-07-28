@@ -30,10 +30,10 @@ profile, public/private boundaries are clear, and traces can preserve substeps.
 
 ## Maintained Skills
 
-- `household-open-task`: default household-world open-task behavior over public
-  map, observation, target-query, and episode capabilities.
-- `molmo-realworld-cleanup`: household cleanup behavior over public household
-  world, manipulation, and episode capabilities.
+- `household-world`: household-world behavior over public map, observation,
+  target-query, manipulation, runtime-map, and episode capabilities. Cleanup,
+  map-build, and open-ended goals are sections selected by GoalContract,
+  TaskIntentSpec, and optional TaskPresetSpec.
 - `eval-harness`: adaptive validation/eval orchestration that selects and
   optionally executes deterministic gates, product rows, eval suites,
   live-agent evals, perception rows, simulator rows, and map/cleanup-consumer

@@ -409,7 +409,7 @@ def test_launcher_holds_lock_before_spawning_process(tmp_path: Path) -> None:
     assert state["selected_intent"] == "open-ended"
     assert state["next_goal_packet"] == {"schema": "operator_console_next_goal_packet_v1"}
     assert state["prompt_preview"]["operator_prompt"] == "收拾桌面上的杯子"
-    assert state["prompt_preview"]["source"] == "household-open-task"
+    assert state["prompt_preview"]["source"] == "household-world"
     assert (
         "This run is surface=household-world intent=open-ended"
         in (state["prompt_preview"]["agent_kickoff_prompt"])
@@ -1269,7 +1269,7 @@ def test_provider_gate_ignores_code_agent_model_alias_for_openai_agents(
 
     assert readiness["can_start"] is True
     assert readiness["provider"]["provider"] == "codex-router-responses"
-    assert readiness["provider"]["model"] == "gpt-5.5"
+    assert readiness["provider"]["model"] == "gpt-5.6-sol"
 
 
 def test_provider_gate_blocks_incompatible_openai_agents_model_env(tmp_path: Path) -> None:

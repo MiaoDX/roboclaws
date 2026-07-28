@@ -28,7 +28,7 @@ from roboclaws.evals.live_runtime import (
     run_live_eval_trial,
     run_live_surface_product,
 )
-from roboclaws.evals.live_timeout import live_exception_debug_fields
+from roboclaws.evals.live_timeout import LiveEvalTimeoutError, live_exception_debug_fields
 from roboclaws.evals.map_build_quality import grade_runtime_metric_map_quality
 from roboclaws.evals.models import (
     MISSING_NOT_APPLICABLE,
@@ -42,7 +42,7 @@ from roboclaws.evals.models import (
 )
 from roboclaws.evals.reports import render_eval_report, results_bundle
 from roboclaws.household.backend_contract import SYNTHETIC_BACKEND
-from roboclaws.household.realworld_cleanup import run_realworld_cleanup
+from roboclaws.household.household_world_episode import run_household_world_episode
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUTPUT_ROOT = REPO_ROOT / "output" / "evals"
@@ -73,7 +73,7 @@ def run_eval_suite(
     live_timeout_s: float | None = None,
     live_stall_timeout_s: float | None = None,
     regrade_source: Path | None = None,
-    product_runner: ProductRun = run_realworld_cleanup,
+    product_runner: ProductRun = run_household_world_episode,
     live_product_runner: ProductRun | None = None,
 ) -> EvalSuiteRun:
     """Run a repo-native deterministic eval suite."""
@@ -336,7 +336,7 @@ def _run_trial(
             budget=budget,
             dependency_artifacts=dependency_artifacts,
         )
-        run_result = lh.run_trial(sample, product_runner, run_realworld_cleanup, kwargs)
+        run_result = product_runner(**kwargs)
     except Exception as exc:  # noqa: BLE001 - eval packets must classify runner failures.
         return _blocked_result_from_exception(trial, exc)
 
@@ -849,6 +849,7 @@ def _open_ended_grader(
         error
         for error in (
             _json_source_error(run_dir / "advisory_evaluation.json", advisory_error),
+            *_open_ended_goal_contract_source_errors(run_dir),
             *(predicate.get("source_errors") or []),
         )
         if error
@@ -887,6 +888,22 @@ def _open_ended_grader(
         "success_predicate": predicate,
         "source_errors": source_errors,
     }
+
+
+def _open_ended_goal_contract_source_errors(run_dir: Path) -> tuple[dict[str, str], ...]:
+    path = run_dir / "goal_contract.json"
+    if not path.exists():
+        return ()
+    contract, reason = _load_optional_json_mapping(path)
+    if reason:
+        return (_json_source_error(path, reason),)
+    errors: list[dict[str, str]] = []
+    if contract.get("schema") != "roboclaws_goal_contract_v1":
+        errors.append({"path": str(path), "reason": "invalid_goal_contract_schema"})
+    for key in ("surface", "intent", "normalized_goal", "goal_scope"):
+        if not str(contract.get(key) or "").strip():
+            errors.append({"path": str(path), "reason": f"missing_goal_contract_{key}"})
+    return tuple(errors)
 
 
 def _open_ended_success_predicate(
@@ -1536,9 +1553,21 @@ def _blocked_result_from_exception(trial: EvalTrial, exc: Exception) -> EvalResu
 
 
 def _failure_class_from_exception(exc: Exception) -> str:
+    if isinstance(exc, LiveEvalTimeoutError) and exc.timeout_kind == "wall_clock_budget_exhausted":
+        return "budget_exhausted"
     if isinstance(exc, (ImportError, ModuleNotFoundError, TimeoutError)):
         return "environment_blocked"
     message = str(exc).lower()
+    if any(
+        token in message
+        for token in (
+            "agent_sdk_turn_budget_exceeded",
+            "budget_exhausted",
+            "observe_budget_exhausted",
+            "provider_context_budget_exceeded",
+        )
+    ):
+        return "budget_exhausted"
     environment_tokens = ("no module named", "not installed", "unavailable", "timed out", "mcp")
     if "another interactive codex molmo cleanup session appears to be active" in message:
         return "environment_blocked"
@@ -1569,10 +1598,14 @@ def _failure_class_from_exception(exc: Exception) -> str:
     )
     if any(token in message for token in tool_argument_tokens):
         return "tool_argument_invalid"
+    if "turn ended without done" in message:
+        return "agent_no_completion_claim"
     provider_tokens = (
+        "access_terminated_error",
         "provider_transient_failure",
         "provider_config_failure",
         "provider_context_failure",
+        "usage limit for this billing cycle",
         "model_service",
         "error code: 5",
         "error code: 429",
@@ -1704,9 +1737,9 @@ def _json_artifact_error_reason(exc: ValueError) -> str:
 
 
 def _skill_name(sample: EvalSample) -> str:
-    if sample.intent == "cleanup":
-        return "molmo-realworld-cleanup"
-    return lh.skill_name(sample, "household-open-task")
+    if sample.surface == "household-world":
+        return "household-world"
+    return MISSING_UNAVAILABLE
 
 
 def _mcp_profile(sample: EvalSample) -> str:

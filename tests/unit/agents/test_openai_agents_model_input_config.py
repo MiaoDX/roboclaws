@@ -22,8 +22,8 @@ def _live_request_with_compaction(
     if min_chars is not None:
         config["min_chars"] = min_chars
     return LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -145,8 +145,8 @@ def test_input_compaction_accepts_disabled_nested_zero_retention_from_perf_profi
         )
     )
     request = LiveAgentRequest(
-        run_id="household-world.open-ended",
-        skill_name="household-open-task",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="inspect the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -164,8 +164,8 @@ def test_input_compaction_accepts_disabled_nested_zero_retention_from_perf_profi
 
 def test_input_compaction_rejects_enabled_nested_zero_retention(tmp_path: Path) -> None:
     request = LiveAgentRequest(
-        run_id="household-world.open-ended",
-        skill_name="household-open-task",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="inspect the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",

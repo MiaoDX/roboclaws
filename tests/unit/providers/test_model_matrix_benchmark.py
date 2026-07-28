@@ -21,7 +21,7 @@ def test_default_cases_cover_routes_and_wire_formats() -> None:
 
     cases = {case.case_id: case for case in script.default_cases()}
 
-    assert "codex-router-responses:gpt-5.5:responses" in cases
+    assert "codex-router-responses:gpt-5.6-sol:responses" in cases
     assert "mimo-mify-responses:xiaomi-mimo-v2.5:openai-chat" in cases
     assert "mimo-mify-responses:xiaomi-mimo-v2.5:openai-responses" in cases
     assert "mimo-mify-responses:xiaomi-mimo-v2.5:anthropic" in cases
@@ -148,6 +148,49 @@ def test_headers_include_kimi_coding_user_agent() -> None:
     assert "x-api-key" not in headers
     assert "anthropic-version" not in headers
     assert headers["User-Agent"] == "claude-code/1.0.0"
+
+
+def test_headers_hide_codex_router_compatibility_in_transport() -> None:
+    script = _load_script_module()
+    cases = {case.case_id: case for case in script.default_cases()}
+
+    headers = script.headers_for_case(
+        cases["codex-router-responses:gpt-5.6-sol:responses"],
+        api_key="secret",
+    )
+
+    window_id = headers["X-Codex-Window-Id"]
+    thread_id, generation = window_id.rsplit(":", 1)
+    assert generation == "0"
+    assert len(thread_id) == 36
+
+
+def test_codex_benchmark_reuses_window_id_across_case_iterations(monkeypatch) -> None:
+    monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
+    script = _load_script_module()
+    case = {case.case_id: case for case in script.default_cases()}[
+        "codex-router-responses:gpt-5.6-sol:responses"
+    ]
+    captured_headers: list[dict[str, str]] = []
+
+    def fake_run_trial(_case, *, index, layer, request_headers, **_kwargs):
+        captured_headers.append(request_headers)
+        return script.TrialResult(index=index, layer=layer, status="PASS", elapsed_s=0.01)
+
+    monkeypatch.setattr(script, "run_trial", fake_run_trial)
+
+    script.run_case(
+        case,
+        layer="health",
+        prompt="ok",
+        iterations=2,
+        max_tokens=16,
+        timeout_s=1.0,
+        env={"CODEX_API_KEY": "secret"},
+    )
+
+    assert len(captured_headers) == 2
+    assert captured_headers[0]["X-Codex-Window-Id"] == captured_headers[1]["X-Codex-Window-Id"]
 
 
 def test_missing_key_skips_without_secret_values() -> None:

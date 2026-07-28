@@ -7,6 +7,8 @@ from typing import Any, Callable
 import mujoco
 
 from roboclaws.household.generated_mess import (
+    generated_mess_public_cleanup_start_pool,
+    generated_mess_public_distractor_settlement_plan,
     valid_generated_mess_placement_index,
     valid_generated_mess_relation,
 )
@@ -121,25 +123,67 @@ def seed_misplaced_objects(
         target_receptacle_id(target, manifest_targets.get(str(target["object_id"])))
         for target in targets
     }
-    wrong_pool = [
-        item
-        for item in state["receptacles"].values()
-        if item["receptacle_id"] not in target_receptacle_ids
-        and not hooks.receptacle_requires_open(item)
-    ]
-    if not wrong_pool:
-        wrong_pool = [
-            item
-            for item in state["receptacles"].values()
-            if item["receptacle_id"] not in target_receptacle_ids
-        ]
-    if not wrong_pool:
-        wrong_pool = list(state["receptacles"].values())
+    target_object_ids = {str(target["object_id"]) for target in targets}
+    receptacles = list(state["receptacles"].values())
+    settlement_plan = generated_mess_public_distractor_settlement_plan(
+        list(state["objects"].values()),
+        receptacles,
+        excluded_object_ids=target_object_ids,
+    )
+    for index, settlement in enumerate(settlement_plan):
+        object_id = settlement["object_id"]
+        receptacle_id = settlement["target_receptacle_id"]
+        receptacle = state["receptacles"][receptacle_id]
+        relation = "inside" if hooks.receptacle_prefers_inside(receptacle) else "on"
+        state["objects"][object_id]["contained_in"] = (
+            receptacle_id if relation == "inside" else None
+        )
+        state["objects"][object_id]["location_relation"] = relation
+        placement_resolution = hooks.resolve_placement(
+            model,
+            data,
+            state=state,
+            object_id=object_id,
+            receptacle_id=receptacle_id,
+            index=len(targets) + index,
+            relation=relation,
+        )
+        placement_position = placement_resolution["position"]
+        hooks.set_free_body_position(
+            model,
+            data,
+            state["objects"][object_id]["body_name"],
+            placement_position,
+        )
+        mujoco.mj_forward(model, data)
+        hooks.refresh_object_positions(model, data, state)
+        diagnostic = hooks.placement_diagnostic(
+            state=state,
+            object_id=object_id,
+            receptacle_id=receptacle_id,
+            relation=relation,
+            requested_position=placement_position,
+            source="public_cleanup_background_settlement",
+            placement_index=len(targets) + index,
+            placement_resolution=placement_resolution,
+        )
+        state.setdefault("mess_placement_diagnostics", []).append(diagnostic)
     for index, target in enumerate(targets):
         manifest_target = manifest_targets.get(str(target["object_id"]))
         target_id = target_receptacle_id(target, manifest_target)
         placement_index = target_placement_index(index, manifest_target)
-        wrong = target_start_receptacle(state, target, wrong_pool, index, manifest_target)
+        start_pool = (
+            list(state["receptacles"].values())
+            if manifest_target
+            else generated_mess_public_cleanup_start_pool(
+                target,
+                receptacles,
+                excluded_receptacle_ids=target_receptacle_ids,
+                objects=list(state["objects"].values()),
+                excluded_object_ids=target_object_ids,
+            )
+        )
+        wrong = target_start_receptacle(state, target, start_pool, index, manifest_target)
         state["objects"][target["object_id"]]["target_receptacle_id"] = target_id
         state["objects"][target["object_id"]]["seeded_start_receptacle_id"] = wrong["receptacle_id"]
         relation = target_relation(wrong, manifest_target, hooks=hooks)
@@ -240,6 +284,14 @@ def target_start_receptacle_id(state: dict[str, Any], target: dict[str, Any]) ->
         start_receptacle_id = str(manifest_target.get("start_receptacle_id") or "")
         if start_receptacle_id:
             return start_receptacle_id
+    seeded_start_receptacle_id = str(
+        (state.get("objects", {}).get(str(target.get("object_id") or ""), {}) or {}).get(
+            "seeded_start_receptacle_id"
+        )
+        or ""
+    )
+    if seeded_start_receptacle_id:
+        return seeded_start_receptacle_id
     return first_wrong_receptacle(state, target)
 
 
@@ -325,11 +377,12 @@ def read_locations(
     mujoco.mj_forward(model, data)
     receptacles = list(state["receptacles"].values())
     locations = {}
-    for object_id in state["selected_object_ids"]:
+    for object_id, obj in state["objects"].items():
+        if not bool(obj.get("pickupable", True)):
+            continue
         if object_id == state.get("held_object_id"):
             locations[object_id] = HELD_LOCATION_ID
             continue
-        obj = state["objects"][object_id]
         if obj.get("contained_in"):
             locations[object_id] = str(obj["contained_in"])
             continue
@@ -342,8 +395,9 @@ def read_locations(
 
 def read_containment(state: dict[str, Any]) -> dict[str, dict[str, str]]:
     containment = {}
-    for object_id in state.get("selected_object_ids", []):
-        obj = state["objects"][object_id]
+    for object_id, obj in state.get("objects", {}).items():
+        if not bool(obj.get("pickupable", True)):
+            continue
         if obj.get("contained_in") or obj.get("location_relation"):
             containment[object_id] = {
                 "contained_in": obj.get("contained_in"),

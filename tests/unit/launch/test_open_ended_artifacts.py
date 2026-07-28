@@ -25,6 +25,17 @@ def test_open_ended_artifact_checker_accepts_seed_run_root(tmp_path: Path) -> No
     )
 
 
+def test_open_ended_artifact_checker_accepts_cwd_relative_declared_path(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    run_dir = Path("output/evals/open-ended/seed-7")
+    _write_open_ended_run(run_dir, declared_goal_contract=run_dir / "goal_contract.json")
+
+    assert validate_open_ended_artifacts(run_dir) == (run_dir,)
+
+
 def test_open_ended_artifact_checker_rejects_mismatched_goal_contract(tmp_path: Path) -> None:
     run_dir = tmp_path / "seed-7"
     _write_open_ended_run(run_dir, artifact_goal="different goal")
@@ -33,7 +44,12 @@ def test_open_ended_artifact_checker_rejects_mismatched_goal_contract(tmp_path: 
         validate_open_ended_artifacts(run_dir)
 
 
-def _write_open_ended_run(run_dir: Path, *, artifact_goal: str = "find a drink") -> None:
+def _write_open_ended_run(
+    run_dir: Path,
+    *,
+    artifact_goal: str = "find a drink",
+    declared_goal_contract: Path | str = "goal_contract.json",
+) -> None:
     run_dir.mkdir(parents=True)
     run_contract = {
         "schema": "roboclaws_goal_contract_v1",
@@ -55,7 +71,7 @@ def _write_open_ended_run(run_dir: Path, *, artifact_goal: str = "find a drink")
                     "schema": "roboclaws_agent_completion_claim_v1",
                     "completion_summary": "done",
                 },
-                "artifacts": {"goal_contract": "goal_contract.json"},
+                "artifacts": {"goal_contract": str(declared_goal_contract)},
             }
         )
         + "\n"

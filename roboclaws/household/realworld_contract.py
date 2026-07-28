@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from roboclaws.core.json_sources import read_json_value
 from roboclaws.household import (
     realworld_agent_view_contract,
     realworld_contract_init,
@@ -32,6 +33,8 @@ from roboclaws.household.realworld_policy_trace import (
 from roboclaws.household.robot_view_pose import room_for_point
 from roboclaws.household.semantic_acceptability import (
     annotate_score_with_semantic_acceptability,
+    public_source_requires_cleanup,
+    semantic_disturbance_metrics,
 )
 from roboclaws.household.semantic_timeline import SEMANTIC_LOOP_VARIANT
 from roboclaws.household.target_query import resolve_target_query
@@ -127,6 +130,7 @@ _pose_stamped_waypoints_present = realworld_contract_projection._pose_stamped_wa
 _public_destination_policy_for_category = (
     realworld_contract_projection._public_destination_policy_for_category
 )
+_normalize_fixture_category_label = realworld_contract_projection._normalize_fixture_category_label
 _public_room_hint_payload = realworld_contract_projection._public_room_hint_payload
 _recommended_place_tool = realworld_contract_projection._recommended_place_tool
 _room_category_from_label = realworld_contract_projection._room_category_from_label
@@ -571,7 +575,7 @@ class RealWorldCleanupContract:
             visible_object_detections=[
                 self._agent_visible_detection_payload(detection) for detection in detections
             ],
-            visible_fixture_detections=fixture_observations,
+            visible_fixture_detections=self._public_fixture_reference_payload(fixture_observations),
             held_object_id=self._held_handle,
             perception_source=perception_source,
             private_target_truth_included=False,
@@ -815,16 +819,32 @@ class RealWorldCleanupContract:
             self._current_receptacle_for_handle = None
             self._opened_receptacle_for_handle = None
             self._set_handle_state(object_id, "held", tool="pick")
-        return self._public_manipulation_response("pick", object_id, picked)
+        result = self._public_manipulation_response("pick", object_id, picked)
+        if picked.get("ok"):
+            result.update(self._destination_policy_context(object_id))
+            result["required_next_tool"] = "navigate_to_receptacle"
+        return result
 
     def navigate_to_receptacle(self, fixture_id: str) -> dict[str, Any]:
         requested_fixture_id = str(fixture_id)
         internal_fixture_id = self._internal_fixture_id_for_public_anchor(requested_fixture_id)
         if internal_fixture_id not in self._fixtures:
+            recovery: dict[str, Any] = {}
+            if self._held_handle is not None:
+                recovery = {
+                    "object_id": self._held_handle,
+                    "required_tool": "navigate_to_receptacle",
+                    "recovery_hint": (
+                        "Choose candidate_fixture_id from destination_options; do not invent "
+                        "or reuse non-public fixture ids."
+                    ),
+                    **self._destination_policy_context(self._held_handle),
+                }
             return self._error(
                 "navigate_to_receptacle",
                 "stale_reference",
                 fixture_id=requested_fixture_id,
+                **recovery,
             )
         if self._held_handle is None:
             return self._semantic_order_error(
@@ -836,6 +856,13 @@ class RealWorldCleanupContract:
                     "Use navigate_to_object -> pick first."
                 ),
             )
+        destination_policy_error = self._destination_policy_error(
+            self._held_handle,
+            requested_fixture_id=requested_fixture_id,
+            internal_fixture_id=internal_fixture_id,
+        )
+        if destination_policy_error is not None:
+            return destination_policy_error
         response = self.contract.navigate_to_receptacle(internal_fixture_id)
         if not response.get("ok"):
             return self._public_error_from_private(
@@ -875,6 +902,52 @@ class RealWorldCleanupContract:
             state_mutation=response.get("state_mutation"),
             navigation_status=response.get("status"),
         )
+
+    def _destination_policy_error(
+        self,
+        handle: str,
+        *,
+        requested_fixture_id: str,
+        internal_fixture_id: str,
+    ) -> dict[str, Any] | None:
+        context = self._destination_policy_context(handle)
+        policy = context["destination_policy"]
+        allowed_categories = {
+            _normalize_fixture_category_label(item)
+            for item in policy.get("acceptable_fixture_categories") or []
+        }
+        fixture = self._fixtures.get(internal_fixture_id) or {}
+        requested_category = _normalize_fixture_category_label(
+            fixture.get("category") or fixture.get("name")
+        )
+        if requested_category in allowed_categories:
+            return None
+        return self._error(
+            "navigate_to_receptacle",
+            "destination_policy_mismatch",
+            object_id=handle,
+            fixture_id=requested_fixture_id,
+            receptacle_id=requested_fixture_id,
+            fixture_category=requested_category,
+            destination_policy=policy,
+            destination_options=context["destination_options"],
+            required_tool="navigate_to_receptacle",
+            recovery_hint=(
+                "Choose candidate_fixture_id from destination_options. The requested fixture "
+                "category is not allowed by this object's public destination policy."
+            ),
+        )
+
+    def _destination_policy_context(self, handle: str) -> dict[str, Any]:
+        detection = self._detections_by_handle.get(handle) or {}
+        policy = _public_destination_policy_for_category(detection.get("category"))
+        return {
+            "destination_policy": policy,
+            "destination_options": realworld_done_readiness.destination_options_for_policy(
+                self,
+                policy,
+            ),
+        }
 
     def open_receptacle(self, fixture_id: str) -> dict[str, Any]:
         requested_fixture_id = str(fixture_id)
@@ -1219,6 +1292,7 @@ class RealWorldCleanupContract:
                 item["image_artifacts"] = {"fpv": str(fpv_path)}
                 item["fpv_image"] = str(fpv_path)
                 item["artifact_status"] = "recorded"
+                self._attach_private_raw_fpv_bindings(observation_id, str(fpv_path))
             if robot_view_label:
                 item["robot_view_label"] = robot_view_label
             if camera_control_contract:
@@ -1228,6 +1302,27 @@ class RealWorldCleanupContract:
             _assert_no_forbidden_agent_view_keys(item)
             return dict(item)
         return None
+
+    def _attach_private_raw_fpv_bindings(
+        self,
+        observation_id: str,
+        fpv_path: str,
+    ) -> None:
+        resolved = Path(fpv_path)
+        if not resolved.is_absolute() and self.visual_grounding_artifact_base_dir is not None:
+            resolved = self.visual_grounding_artifact_base_dir / resolved
+        bindings_path = resolved.with_suffix(".bindings.private.json")
+        if not bindings_path.is_file():
+            return
+        payload = read_json_value(bindings_path, label="RAW-FPV private visual bindings")
+        if not isinstance(payload, dict) or payload.get("schema") != "raw_fpv_private_bindings_v1":
+            raise ValueError(f"invalid RAW-FPV private visual bindings: {bindings_path}")
+        bindings = payload.get("bindings")
+        if not isinstance(bindings, list):
+            raise ValueError(
+                f"RAW-FPV private visual bindings must contain a list: {bindings_path}"
+            )
+        self._private_raw_fpv_bindings_by_observation_id[observation_id] = payload
 
     def _place(self, fixture_id: str, *, inside: bool) -> dict[str, Any]:
         requested_fixture_id = str(fixture_id)
@@ -1365,12 +1460,21 @@ class RealWorldCleanupContract:
         )
         public_candidate_fixture_id = self._public_fixture_reference_id(candidate_fixture_id)
         public_source_fixture_id = self._public_fixture_reference_id(source_fixture_id)
+        internal_source_fixture_id = (
+            self.internal_fixture_id_for_public_reference(source_fixture_id) or source_fixture_id
+        )
+        source_fixture = self._fixtures.get(internal_source_fixture_id) or {}
+        source_requires_cleanup = public_source_requires_cleanup(
+            detection.get("category"),
+            source_fixture.get("category") or source_fixture.get("name"),
+        )
         return {
             "candidate_fixture_id": public_candidate_fixture_id,
             "candidate_fixture_category": str(candidate.get("category") or ""),
             "cleanup_recommended": bool(
                 public_candidate_fixture_id
                 and public_candidate_fixture_id != public_source_fixture_id
+                and source_requires_cleanup
                 and not self._handle_is_non_actionable(str(detection.get("object_id") or ""))
                 and _candidate_state(detection) == CANDIDATE_STATE_NAVIGATION_AUTHORIZED
             ),
@@ -1489,11 +1593,13 @@ class RealWorldCleanupContract:
         total_waypoints = len(self._waypoints)
         coverage = len(self._observed_waypoint_ids) / total_waypoints if total_waypoints else 1.0
         target_ids = {target.object_id for target in self.scenario.private_manifest.targets}
-        disturbance_count = sum(
-            1
-            for object_id, start in self._initial_locations.items()
-            if object_id not in target_ids and final_locations.get(object_id) not in {None, start}
+        disturbance = semantic_disturbance_metrics(
+            self.scenario,
+            self._initial_locations,
+            final_locations,
+            excluded_object_ids=target_ids,
         )
+        disturbance_count = disturbance["disturbance_count"]
         completion_status = (
             "success"
             if mess_rate >= 0.70 and coverage >= 0.90 and disturbance_count <= 2
@@ -1505,6 +1611,7 @@ class RealWorldCleanupContract:
             "mess_restoration_rate": round(mess_rate, 6),
             "sweep_coverage_rate": round(coverage, 6),
             "disturbance_count": disturbance_count,
+            "non_target_location_change_count": disturbance["non_target_location_change_count"],
             "completion_status": completion_status,
         }
 
@@ -1671,6 +1778,16 @@ class RealWorldCleanupContract:
         item["state"] = state
         item.update({key: value for key, value in updates.items() if value is not None})
         lifecycle[handle] = item
+
+    def _mark_visual_scan_unresolved(self, handle: str, *, reason: str) -> None:
+        self._set_handle_state(
+            handle,
+            "unresolved",
+            tool="observe",
+            grounding_status="unresolved",
+            actionability_status="needs_clarification",
+            visual_scan_failure_reason=reason,
+        )
 
     def _waypoint_by_id(self, waypoint_id: str) -> dict[str, Any] | None:
         generated = self._generated_inspection_waypoints.get(str(waypoint_id))
