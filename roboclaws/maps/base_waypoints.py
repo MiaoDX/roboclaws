@@ -44,6 +44,12 @@ class BaseWaypointBuildError(ValueError):
     """Raised when a navigation area cannot produce a valid base waypoint."""
 
 
+def generated_exploration_candidate_label(sweep_index: int) -> str:
+    if sweep_index <= 0:
+        raise ValueError("generated exploration candidate sweep_index must be positive")
+    return f"Generated exploration candidate {sweep_index}"
+
+
 @dataclass(frozen=True)
 class BaseWaypointBuilderConfig:
     frame_id: str
@@ -80,6 +86,8 @@ class BaseWaypointBuilder:
                 raise BaseWaypointBuildError(
                     f"navigation area {area_id} has no clearance-safe free inspection pose"
                 )
+            sweep_index = len(waypoints) + 1
+            room_label = str(area.get("room_label") or area.get("label") or area_id)
             waypoints.append(
                 {
                     "waypoint_id": f"{area_id}_inspection",
@@ -89,11 +97,12 @@ class BaseWaypointBuilder:
                     "yaw": self._config.yaw,
                     "room_id": str(area.get("room_id") or area_id),
                     "navigation_area_id": area_id,
-                    "label": str(area.get("room_label") or area.get("label") or area_id),
+                    "label": generated_exploration_candidate_label(sweep_index),
+                    "room_label": room_label,
                     "purpose": BASE_WAYPOINT_PURPOSE,
                     "waypoint_source": self._config.waypoint_source,
                     "generation_policy": self._config.generation_policy,
-                    "sweep_index": len(waypoints) + 1,
+                    "sweep_index": sweep_index,
                     "source_label_id": str(area.get("source_label_id") or ""),
                     "clearance_radius_m": self._config.clearance_radius_m,
                     "source_polygon_index": int(area.get("source_polygon_index") or index),

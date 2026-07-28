@@ -388,7 +388,7 @@ def test_realworld_mcp_surface_uses_metric_map_and_visible_handles(tmp_path: Pat
     assert metric_map["contract"] == REALWORLD_CONTRACT
     assert metric_map["schema"] == "real_robot_map_bundle_v1"
     assert metric_map["map_bundle"]["environment_id"] == "molmospaces-procthor-10k-val-0"
-    assert "static map/fixture coverage candidates" in metric_map["instruction"]
+    assert "1-based sweep_index=N" in metric_map["instruction"]
     assert "objects" not in metric_map
     assert observation["visible_object_detections"]
     assert observation["visible_object_detections"][0]["object_id"].startswith("observed_")

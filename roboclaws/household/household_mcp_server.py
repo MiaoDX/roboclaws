@@ -15,6 +15,7 @@ from mcp.server.fastmcp import Image as MCPImage
 
 from roboclaws.core.json_sources import read_jsonl_objects
 from roboclaws.household import agent_view as agent_view_module
+from roboclaws.household import realworld_done_readiness
 from roboclaws.household.household_backend_contract import HouseholdBackendSession
 from roboclaws.household.household_mcp_tools import (
     agent_view_public_tool_names,
@@ -38,9 +39,7 @@ from roboclaws.household.realworld_mcp_run_artifacts import (
 from roboclaws.household.realworld_run_artifacts import (
     write_runtime_metric_map_preview_artifact,
 )
-from roboclaws.household.report import (
-    write_state_snapshot,
-)
+from roboclaws.household.report import write_state_snapshot
 from roboclaws.household.scenario import build_cleanup_scenario
 from roboclaws.household.semantic_timeline import (
     camera_offsets_from_raw_fpv_observation,
@@ -333,6 +332,7 @@ class HouseholdWorldMCPServer:
         response = self._augment_response(name, request, response)
         if name != "check_operator_messages":
             response = self._attach_operator_message_hint(response)
+        response = realworld_done_readiness.attach_completion_readiness_hint(self, name, response)
         response = self._attach_raw_fpv_artifact_if_needed(name, response)
         self._write_tool_response(name, response)
         if name == "done" and response.get("ok"):
@@ -465,9 +465,9 @@ class HouseholdWorldMCPServer:
         augmented = dict(response)
         if tool == "metric_map":
             augmented["instruction"] = (
-                "inspection_waypoints are static map/fixture coverage candidates, "
-                f"not mess hints. Prefer navigate_to_waypoint -> observe. "
-                f"{visual_scan_metric_map_instruction()}"
+                "inspection_waypoints are static map/fixture coverage candidates, not mess hints. "
+                "Generated exploration candidate N means 1-based sweep_index=N, never zero-based. "
+                f"Prefer navigate_to_waypoint -> observe. {visual_scan_metric_map_instruction()}"
             )
         if tool == "observe" and self.perception_mode == CAMERA_MODEL_POLICY_MODE:
             raw = augmented.get("raw_fpv_observation") or {}
