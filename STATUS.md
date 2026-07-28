@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-07-27
+Last updated: 2026-07-28
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -63,8 +63,8 @@ providers.
 
 ## Next Action
 
-Review the current immutable candidate and its remaining dependency-license
-caveat. Publication remains unauthorized until explicit human approval.
+Review the current immutable candidate and explicitly authorize publication.
+Publication remains unauthorized until that approval.
 
 ## Current Blockers
 
@@ -74,9 +74,6 @@ caveat. Publication remains unauthorized until explicit human approval.
 - Isaac strict preflight now passes disk, GPU, Torch, Isaac Lab, and runtime checks with 602.55 GiB
   free. Importing Isaac Sim remains blocked on explicit Omniverse EULA acceptance; the refactor did
   not accept it on the operator's behalf.
-- The exact candidate's dependency-license inventory has one unresolved metadata caveat:
-  MolmoSpaces runtime-extra dependency `beaker-py` 2.x declares no license in its published
-  artifacts, and its referenced source repository is unavailable for verification.
 
 ## Human Review Surface
 
