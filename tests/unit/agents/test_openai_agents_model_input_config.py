@@ -138,7 +138,11 @@ def test_input_compaction_accepts_disabled_nested_zero_retention_from_perf_profi
 ) -> None:
     monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", raising=False)
     profile = resolve_agent_sdk_perf_profile(
-        _perf_profile_args(provider_profile="minimax-responses", model="")
+        _perf_profile_args(
+            provider_profile="minimax-responses",
+            model="",
+            agent_sdk_perf_profile="baseline",
+        )
     )
     request = LiveAgentRequest(
         run_id="household-world.open-ended",

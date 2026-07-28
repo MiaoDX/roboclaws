@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from roboclaws.agents.drivers.openai_agents_budget import OpenAIAgentsBudgetExceededError
 from roboclaws.agents.drivers.openai_agents_model_input import (
     _input_compaction_config,
     _model_input_compaction_filter,
@@ -398,7 +399,8 @@ def _instructions_with_skill_context(request: LiveAgentRequest) -> tuple[str, di
     instructions = (
         "Canonical skill context for this private OpenAI Agents SDK run:\n\n"
         f"{content.rstrip()}\n\n"
-        "Run-specific kickoff instructions:\n\n"
+        "Run-specific kickoff instructions override any conflicting generic skill-context "
+        "guidance for this run:\n\n"
         f"{request.kickoff_prompt}"
     )
     return instructions, summary
@@ -486,9 +488,13 @@ def _sdk_run_config_payload(
         key: value for key, value in _drop_empty(_to_jsonable(configured)).items() if key in allowed
     }
     filter_config = _input_compaction_config(request)
-    if filter_config.get("enabled") and events_path is not None:
+    budget_profile = profile if isinstance(profile, dict) else {}
+    if (
+        filter_config.get("enabled") or _model_input_budget_guard_configured(budget_profile)
+    ) and events_path is not None:
         payload["call_model_input_filter"] = _model_input_compaction_filter(
             events_path,
+            run_dir=request.run_dir,
             runtime_config=_runtime_config(
                 request,
                 mcp_client_session_timeout_configured=_mcp_client_session_timeout_seconds(request)[
@@ -497,6 +503,11 @@ def _sdk_run_config_payload(
                 mcp_client_session_timeout_s=_mcp_client_session_timeout_seconds(request)[1],
             ),
             config=filter_config,
+            budget_profile=budget_profile,
+            budget_timing={
+                "evidence_lane": metadata.get("evidence_lane") or metadata.get("profile") or "",
+                "profile": metadata.get("profile") or "",
+            },
         )
     return payload
 
@@ -535,6 +546,18 @@ def _default_sdk_run_config_payload() -> dict[str, Any]:
         "trace_include_sensitive_data": False,
         "workflow_name": "roboclaws-openai-agents-live",
     }
+
+
+def _model_input_budget_guard_configured(profile: dict[str, Any]) -> bool:
+    return any(
+        profile.get(key) is not None
+        for key in (
+            "context_hard_limit_tokens",
+            "max_observe_per_waypoint",
+            "raw_fpv_candidate_budget",
+            "raw_fpv_repeated_failure_limit",
+        )
+    )
 
 
 def _bool_setting(
@@ -1783,6 +1806,8 @@ def _non_negative_float(value: Any, *, setting_name: str, env_name: str, default
 
 
 def _failure_from_exception(exc: Exception) -> LiveAgentFailure:
+    if isinstance(exc, OpenAIAgentsBudgetExceededError):
+        return exc.failure
     detail = str(exc)
     if exc.__class__.__name__ == "MaxTurnsExceeded":
         return LiveAgentFailure(

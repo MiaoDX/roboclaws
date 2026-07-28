@@ -17,6 +17,7 @@ from roboclaws.agents.drivers.openai_agents_live import (
 from roboclaws.agents.provider_registry import (
     PROVIDER_PROFILE_CODEX_RESPONSES,
     PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
+    ROUTE_CAP_SUPPORTED,
     WIRE_CHAT_COMPLETIONS,
     WIRE_RESPONSES,
     model_family_for_route_model,
@@ -31,6 +32,11 @@ from roboclaws.household.realworld_mcp_server import (
 )
 
 DEFAULT_INCOMPLETE_TURN_CONTINUATION_ATTEMPTS = 2
+AGENT_SDK_PERF_PROFILE_BASELINE = "baseline"
+AGENT_SDK_PERF_PROFILE_CONTEXT_MANAGED_V1 = "context_managed_v1"
+REMOVED_AGENT_SDK_PERF_PROFILES = frozenset(
+    {"gpt_compact_v1", "mimo_compact_v1", "raw_fpv_budgeted_v1", "custom"}
+)
 AGENT_SDK_PERF_PROFILE_ENV = "ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE"
 CONTINUATION_MODE_ENV = "ROBOCLAWS_OPENAI_AGENTS_CONTINUATION_MODE"
 CONTEXT_SOFT_LIMIT_ENV = "ROBOCLAWS_OPENAI_AGENTS_CONTEXT_SOFT_LIMIT_TOKENS"
@@ -81,8 +87,14 @@ def resolve_agent_sdk_perf_profile(args: argparse.Namespace) -> dict[str, Any]:
     model = str(getattr(args, "model", "") or "")
     model_family = model_family_for_route_model(provider_profile, model or None)
     route = provider_route_spec(provider_profile)
+    evidence_lane = _evidence_lane_for_args(args)
     profile_id, profile_source = _profile_id_with_source(args, provider_profile, model_family)
-    defaults = _profile_defaults(profile_id)
+    defaults = _profile_defaults(
+        profile_id,
+        route=route,
+        model_family=model_family,
+        evidence_lane=evidence_lane,
+    )
     payload = {
         "schema": "agent_sdk_perf_profile_v1",
         "profile_id": profile_id,
@@ -94,6 +106,8 @@ def resolve_agent_sdk_perf_profile(args: argparse.Namespace) -> dict[str, Any]:
         "route_status_note": route.status_note,
         "route_capabilities": route_capabilities_for_engine(route, "openai-agents-sdk"),
         "model_family": model_family,
+        "evidence_lane": evidence_lane,
+        "context_policy": defaults["context_policy"],
         "model_thinking_mode": normalize_thinking_mode(
             getattr(args, "model_thinking_mode", "default"),
             default="default",
@@ -218,24 +232,47 @@ def _profile_id_with_source(
         return profile_id, "cli"
     if env_value:
         return _validate_profile_id(env_value), "environment"
-    return "baseline", "default"
+    return AGENT_SDK_PERF_PROFILE_CONTEXT_MANAGED_V1, "default"
 
 
 def _validate_profile_id(value: str) -> str:
     profile_id = value.strip()
+    if profile_id in REMOVED_AGENT_SDK_PERF_PROFILES:
+        supported = ", ".join(
+            (AGENT_SDK_PERF_PROFILE_CONTEXT_MANAGED_V1, AGENT_SDK_PERF_PROFILE_BASELINE)
+        )
+        raise ValueError(
+            "removed OpenAI Agents SDK performance profile "
+            f"{profile_id!r}; use {AGENT_SDK_PERF_PROFILE_CONTEXT_MANAGED_V1!r} for managed "
+            f"runs or {AGENT_SDK_PERF_PROFILE_BASELINE!r} for explicit comparison. "
+            f"Supported values: {supported}."
+        )
     if profile_id not in {
-        "baseline",
-        "gpt_compact_v1",
-        "mimo_compact_v1",
-        "raw_fpv_budgeted_v1",
-        "custom",
+        AGENT_SDK_PERF_PROFILE_BASELINE,
+        AGENT_SDK_PERF_PROFILE_CONTEXT_MANAGED_V1,
     }:
-        raise ValueError(f"unsupported OpenAI Agents SDK performance profile '{value}'")
+        supported = ", ".join(
+            (AGENT_SDK_PERF_PROFILE_CONTEXT_MANAGED_V1, AGENT_SDK_PERF_PROFILE_BASELINE)
+        )
+        raise ValueError(
+            f"unsupported OpenAI Agents SDK performance profile {value!r}; "
+            f"supported values: {supported}"
+        )
     return profile_id
 
 
-def _profile_defaults(profile_id: str) -> dict[str, Any]:
+def _profile_defaults(
+    profile_id: str,
+    *,
+    route: Any,
+    model_family: str,
+    evidence_lane: str,
+) -> dict[str, Any]:
     baseline = {
+        "context_policy": _context_policy(
+            source_level_tool_output_reduction=False,
+            deterministic_model_input_compaction=False,
+        ),
         "continuation_mode": "repeat_full_prompt",
         "max_turns": DEFAULT_OPENAI_AGENTS_MAX_TURNS,
         "max_continuations": DEFAULT_INCOMPLETE_TURN_CONTINUATION_ATTEMPTS,
@@ -301,59 +338,107 @@ def _profile_defaults(profile_id: str) -> dict[str, Any]:
             "private_artifact_policy": MODEL_RACING_OBSERVABILITY_POLICY,
         },
     }
-    if profile_id in {"baseline", "custom"}:
+    if profile_id == AGENT_SDK_PERF_PROFILE_BASELINE:
         return baseline
-    if profile_id == "gpt_compact_v1":
+    if profile_id == AGENT_SDK_PERF_PROFILE_CONTEXT_MANAGED_V1:
+        soft_limit, hard_limit = _provider_context_limits(route=route, model_family=model_family)
+        raw_fpv_enabled = _raw_fpv_context_management_enabled(
+            route=route,
+            evidence_lane=evidence_lane,
+        )
         return {
             **baseline,
+            "context_policy": _context_policy(
+                source_level_tool_output_reduction=True,
+                deterministic_model_input_compaction=True,
+            ),
             "continuation_mode": "state_summary_only",
             "max_continuations": 1,
-            "done_retry_budget": 2,
-            "max_observe_per_waypoint": 1,
-            "context_soft_limit_tokens": 96_000,
-            "context_hard_limit_tokens": 128_000,
-        }
-    if profile_id == "mimo_compact_v1":
-        return {
-            **baseline,
-            "continuation_mode": "state_summary_only",
-            "max_continuations": 1,
-            "done_retry_budget": 2,
-            "max_observe_per_waypoint": 1,
-            "context_soft_limit_tokens": 64_000,
-            "context_hard_limit_tokens": 96_000,
-        }
-    if profile_id == "raw_fpv_budgeted_v1":
-        return {
-            **baseline,
-            "continuation_mode": "state_summary_only",
-            "max_turns": 40,
-            "max_continuations": 1,
-            "raw_fpv_candidate_budget": 24,
-            "raw_fpv_repeated_failure_limit": 3,
             "done_retry_budget": 1,
             "max_observe_per_waypoint": 1,
-            "context_soft_limit_tokens": 64_000,
-            "context_hard_limit_tokens": 96_000,
+            "context_soft_limit_tokens": soft_limit,
+            "context_hard_limit_tokens": hard_limit,
+            "raw_fpv_candidate_budget": 24 if raw_fpv_enabled else None,
+            "raw_fpv_repeated_failure_limit": 3 if raw_fpv_enabled else None,
             "model_input_compaction": {
                 "schema": "agent_sdk_model_input_compaction_v1",
                 "enabled": True,
                 "mode": (
                     "public_tool_result_summary_v1+repeated_metric_map_delta_v1+"
-                    "raw_fpv_image_memory_v1"
+                    "camera_grounded_history_v1"
+                    + ("+raw_fpv_image_memory_v1" if raw_fpv_enabled else "")
                 ),
                 "min_chars": 1200,
                 "raw_fpv_image_memory": {
                     "schema": "agent_sdk_raw_fpv_image_memory_policy_v1",
-                    "enabled": True,
-                    "mode": "retain_latest_full_frame",
-                    "retained_full_frame_limit": 1,
-                    "candidate_ids": ["AA"],
+                    "enabled": raw_fpv_enabled,
+                    "mode": "retain_latest_full_frame" if raw_fpv_enabled else "off",
+                    "retained_full_frame_limit": 1 if raw_fpv_enabled else 0,
+                    "candidate_ids": ["AA"] if raw_fpv_enabled else [],
                     "private_artifact_policy": RAW_FPV_IMAGE_MEMORY_POLICY,
                 },
+                "camera_grounded_history": {
+                    "schema": "agent_sdk_camera_grounded_history_policy_v1",
+                    "enabled": True,
+                    "mode": "retain_latest_actionable_outputs",
+                    "retained_recent_outputs": 4,
+                    "candidate_ids": ["AC"],
+                    "private_artifact_policy": CAMERA_GROUNDED_HISTORY_POLICY,
+                },
+            },
+            "camera_grounded_composite_tools": {
+                "schema": "agent_sdk_camera_grounded_composite_tools_v1",
+                "enabled": True,
+                "tool_names": ["observe_camera_grounded_candidates"],
+                "candidate_ids": ["O"],
+                "private_artifact_policy": (
+                    "SDK-private MCP tool addition only; default public MCP/profile tools remain "
+                    "unchanged"
+                ),
             },
         }
     raise ValueError(f"unsupported OpenAI Agents SDK performance profile '{profile_id}'")
+
+
+def _context_policy(
+    *,
+    source_level_tool_output_reduction: bool,
+    deterministic_model_input_compaction: bool,
+) -> dict[str, Any]:
+    return {
+        "schema": "agent_sdk_context_policy_v1",
+        "source_level_tool_output_reduction": source_level_tool_output_reduction,
+        "deterministic_model_input_compaction": deterministic_model_input_compaction,
+        "provider_native_compaction": {
+            "mode": "off",
+            "threshold_tokens": None,
+            "provider_capability": "",
+            "proof_artifact": "",
+        },
+    }
+
+
+def _provider_context_limits(*, route: Any, model_family: str) -> tuple[int, int]:
+    if route.wire_api == WIRE_RESPONSES and model_family == "gpt":
+        return 96_000, 128_000
+    return 64_000, 96_000
+
+
+def _raw_fpv_context_management_enabled(*, route: Any, evidence_lane: str) -> bool:
+    if evidence_lane != "camera-raw-fpv":
+        return False
+    return (
+        route.route_capability("image_transport", agent_engine="openai-agents-sdk")
+        == ROUTE_CAP_SUPPORTED
+    )
+
+
+def _evidence_lane_for_args(args: argparse.Namespace) -> str:
+    for attr in ("evidence_lane", "profile"):
+        value = str(getattr(args, attr, "") or "").strip()
+        if value:
+            return value
+    return ""
 
 
 def _model_input_compaction_profile(

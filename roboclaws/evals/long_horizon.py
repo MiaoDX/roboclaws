@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import json
 import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from roboclaws.evals.models import MISSING_NOT_APPLICABLE, MISSING_UNAVAILABLE, EvalSample
+from roboclaws.evals.models import MISSING_NOT_APPLICABLE, EvalSample
 from roboclaws.household.backend_contract import build_cleanup_backend_session
 from roboclaws.household.realworld_contract import (
     DEFAULT_REALWORLD_TASK,
@@ -20,6 +19,7 @@ from roboclaws.household.realworld_run_artifacts import (
     finalize_realworld_cleanup_run,
 )
 from roboclaws.household.report import write_state_snapshot
+from roboclaws.household.semantic_timeline import robot_view_capture_for_tool
 from roboclaws.household.skill_scratchpad import empty_skill_scratchpad
 from roboclaws.household.visual_grounding import SIM_VISUAL_GROUNDING_PIPELINE_ID
 from roboclaws.launch.backends import BACKEND_SPECS, SYNTHETIC_CLEANUP_IMPLEMENTATION_BACKEND
@@ -108,10 +108,12 @@ def run_scripted_long_horizon_trial(
     output_dir.mkdir(parents=True, exist_ok=True)
     selected_object_ids = generated_mess_object_ids or spec.target_object_ids
     selected_count = generated_mess_count or len(selected_object_ids)
+    record_robot_views = True
     runtime_map_prior = read_runtime_map_prior_artifact(runtime_map_prior_path)
     base_contract = build_cleanup_backend_session(
         backend_name=backend,
         run_dir=output_dir,
+        include_robot=record_robot_views,
         seed=seed,
         generated_mess_count=selected_count,
         generated_mess_object_ids=selected_object_ids,
@@ -137,10 +139,21 @@ def run_scripted_long_horizon_trial(
     )
     trace_events: list[dict[str, Any]] = []
     started_at = time.time()
+    robot_view_steps: list[dict[str, Any]] = []
+    view_index = 0
     before_snapshot = _write_snapshot(
         contract=base_contract,
         output_path=output_dir / "before.png",
         title="Before long-horizon task",
+    )
+    view_index = _record_long_horizon_robot_view(
+        base_contract=base_contract,
+        robot_view_steps=robot_view_steps,
+        output_dir=output_dir,
+        view_index=view_index,
+        action="before",
+        label_suffix="before",
+        record_robot_views=record_robot_views,
     )
     metric_map = _call_tool(trace_events, started_at, "metric_map", {}, contract.metric_map)
     _call_tool(
@@ -150,7 +163,17 @@ def run_scripted_long_horizon_trial(
         {"query": "snack restock shelf fridge kitchen"},
         lambda: contract.resolve_target_query("snack restock shelf fridge kitchen"),
     )
-    _observe_all_waypoints(trace_events, started_at, contract, metric_map)
+    view_index = _observe_all_waypoints(
+        trace_events,
+        started_at,
+        base_contract,
+        contract,
+        metric_map,
+        robot_view_steps=robot_view_steps,
+        output_dir=output_dir,
+        view_index=view_index,
+        record_robot_views=record_robot_views,
+    )
     destination_id = _selected_destination_id(spec, cold=False)
     cold_destination_id = _selected_destination_id(spec, cold=True) or destination_id
     for object_id in spec.target_object_ids:
@@ -159,14 +182,19 @@ def run_scripted_long_horizon_trial(
             cold_destination_id if object_id in spec.cold_object_ids else destination_id
         )
         destination = _public_destination_id(contract, private_destination)
-        _move_one_target(
+        view_index = _move_one_target(
             trace_events=trace_events,
             started_at=started_at,
+            base_contract=base_contract,
             contract=contract,
             object_handle=handle,
             destination_id=destination,
             use_inside=_destination_requires_inside(contract, private_destination),
             requires_open=object_id in spec.cold_object_ids,
+            robot_view_steps=robot_view_steps,
+            output_dir=output_dir,
+            view_index=view_index,
+            record_robot_views=record_robot_views,
         )
     done = _call_tool(
         trace_events,
@@ -190,6 +218,15 @@ def run_scripted_long_horizon_trial(
         output_path=output_dir / "after.png",
         title="After long-horizon task",
     )
+    view_index = _record_long_horizon_robot_view(
+        base_contract=base_contract,
+        robot_view_steps=robot_view_steps,
+        output_dir=output_dir,
+        view_index=view_index,
+        action="after",
+        label_suffix="after",
+        record_robot_views=record_robot_views,
+    )
     scratchpad = empty_skill_scratchpad(
         note="Deterministic eval-only proof for long-horizon household task feasibility."
     )
@@ -209,7 +246,7 @@ def run_scripted_long_horizon_trial(
             trace_events=trace_events,
             before_snapshot=before_snapshot,
             after_snapshot=after_snapshot,
-            robot_view_steps=[],
+            robot_view_steps=robot_view_steps,
             generated_mess_count=selected_count,
             goal_contract=goal_contract,
             agent_scratchpad=scratchpad,
@@ -218,7 +255,7 @@ def run_scripted_long_horizon_trial(
             runtime_map_prior_path=runtime_map_prior_path,
             evidence_lane=evidence_lane,
             perception_mode=VISIBLE_OBJECT_DETECTIONS_MODE,
-            record_robot_views=False,
+            record_robot_views=record_robot_views,
             selected_bundle_dir=Path(map_bundle_dir) if map_bundle_dir is not None else None,
             planner_proof_evidence=None,
             use_planner_proof_for_cleanup_primitives=False,
@@ -239,70 +276,11 @@ def grade_long_horizon_task(
     run_dir: Path,
     run_result: dict[str, Any],
 ) -> dict[str, Any]:
-    spec = long_horizon_spec(sample)
-    if spec is None:
-        return {
-            "status": "not_applicable",
-            "failure_class": MISSING_NOT_APPLICABLE,
-            "subgoals": {},
-        }
-    trace_events, trace_errors = _read_trace_events(run_dir / "trace.jsonl")
-    final_locations = (
-        run_result.get("final_locations")
-        if isinstance(run_result.get("final_locations"), dict)
-        else {}
+    from roboclaws.evals.long_horizon_grader import (
+        grade_long_horizon_task as grade_long_horizon_task_impl,
     )
-    final_containment = (
-        run_result.get("final_containment")
-        if isinstance(run_result.get("final_containment"), dict)
-        else {}
-    )
-    destinations = set(spec.accepted_destination_ids)
-    object_results = {
-        object_id: {
-            "final_location": str(final_locations.get(object_id) or MISSING_UNAVAILABLE),
-            "accepted": str(final_locations.get(object_id) or "") in destinations,
-            "contained_in": str((final_containment.get(object_id) or {}).get("contained_in") or "")
-            if isinstance(final_containment.get(object_id), dict)
-            else "",
-        }
-        for object_id in spec.target_object_ids
-    }
-    sequence = _tool_sequence(trace_events)
-    subgoals = {
-        "map_acquired": "metric_map" in sequence,
-        "source_visited": _visited_any_room(trace_events, spec.source_room_ids),
-        "destination_reached": _destination_reached(trace_events, destinations)
-        or all(item["accepted"] for item in object_results.values()),
-        "target_observed": _target_observed(run_result, spec.target_object_ids),
-        "picked": _tool_count(sequence, "pick") >= len(spec.target_object_ids),
-        "placed": all(item["accepted"] for item in object_results.values()),
-        "container_closed": _container_closed(trace_events, spec.cold_object_ids),
-        "done_claim": _has_completion_claim(run_result),
-        "hands_empty": _hands_empty(run_result, final_locations=final_locations),
-    }
-    failures = []
-    if trace_errors:
-        failures.append("trace_json_invalid")
-    if not all(subgoals.values()):
-        failures.extend(name for name, passed in subgoals.items() if not passed)
-    if not _required_sequence_present(sequence, spec.required_tool_sequence):
-        failures.append("required_tool_sequence_missing")
-    if _private_truth_leaked(run_dir, run_result):
-        failures.append("private_truth_leak")
-    failure_class = _long_horizon_failure_class(failures)
-    return {
-        "status": "failed" if failures else "passed",
-        "failure_class": failure_class if failures else MISSING_NOT_APPLICABLE,
-        "task_id": spec.task_id,
-        "failures": failures,
-        "subgoals": subgoals,
-        "object_results": object_results,
-        "trace_parse_errors": trace_errors,
-        "first_failure_step": _first_failure_step(trace_events, failures),
-        "required_tool_sequence": list(spec.required_tool_sequence),
-        "observed_tool_sequence": sequence,
-    }
+
+    return grade_long_horizon_task_impl(sample, run_dir=run_dir, run_result=run_result)
 
 
 def generated_mess_object_ids(sample: EvalSample) -> tuple[str, ...]:
@@ -412,9 +390,15 @@ def _destination_requires_inside(
 def _observe_all_waypoints(
     trace_events: list[dict[str, Any]],
     started_at: float,
+    base_contract: Any,
     contract: RealWorldCleanupContract,
     metric_map: dict[str, Any],
-) -> None:
+    *,
+    robot_view_steps: list[dict[str, Any]],
+    output_dir: Path,
+    view_index: int,
+    record_robot_views: bool,
+) -> int:
     for waypoint in metric_map.get("inspection_waypoints") or []:
         waypoint_id = str(waypoint.get("waypoint_id") or "")
         if not waypoint_id:
@@ -426,92 +410,165 @@ def _observe_all_waypoints(
             {"waypoint_id": waypoint_id},
             lambda selected=waypoint_id: contract.navigate_to_waypoint(selected),
         )
-        _call_tool(trace_events, started_at, "observe", {}, contract.observe)
+        _observe, view_index = _call_tool_with_robot_view(
+            trace_events,
+            started_at,
+            "observe",
+            {},
+            contract.observe,
+            base_contract=base_contract,
+            contract=contract,
+            robot_view_steps=robot_view_steps,
+            output_dir=output_dir,
+            view_index=view_index,
+            record_robot_views=record_robot_views,
+        )
+    return view_index
 
 
 def _move_one_target(
     *,
     trace_events: list[dict[str, Any]],
     started_at: float,
+    base_contract: Any,
     contract: RealWorldCleanupContract,
     object_handle: str,
     destination_id: str,
     use_inside: bool,
     requires_open: bool,
-) -> None:
+    robot_view_steps: list[dict[str, Any]],
+    output_dir: Path,
+    view_index: int,
+    record_robot_views: bool,
+) -> int:
     _navigate_to_object_source_waypoint(trace_events, started_at, contract, object_handle)
-    navigate = _call_tool(
+    navigate, view_index = _call_tool_with_robot_view(
         trace_events,
         started_at,
         "navigate_to_object",
         {"object_id": object_handle},
         lambda: contract.navigate_to_object(object_handle),
+        base_contract=base_contract,
+        contract=contract,
+        robot_view_steps=robot_view_steps,
+        output_dir=output_dir,
+        view_index=view_index,
+        record_robot_views=record_robot_views,
     )
     if _needs_visual_recovery(navigate):
         _recover_visual_evidence(trace_events, started_at, contract, object_handle)
-        _call_tool(
+        _retry_navigate, view_index = _call_tool_with_robot_view(
             trace_events,
             started_at,
             "navigate_to_object",
             {"object_id": object_handle},
             lambda: contract.navigate_to_object(object_handle),
+            base_contract=base_contract,
+            contract=contract,
+            robot_view_steps=robot_view_steps,
+            output_dir=output_dir,
+            view_index=view_index,
+            record_robot_views=record_robot_views,
         )
-    pick = _call_tool(
+    pick, view_index = _call_tool_with_robot_view(
         trace_events,
         started_at,
         "pick",
         {"object_id": object_handle},
         lambda: contract.pick(object_handle),
+        base_contract=base_contract,
+        contract=contract,
+        robot_view_steps=robot_view_steps,
+        output_dir=output_dir,
+        view_index=view_index,
+        record_robot_views=record_robot_views,
     )
     if _needs_visual_recovery(pick):
         _recover_visual_evidence(trace_events, started_at, contract, object_handle)
-        _call_tool(
+        _retry_pick, view_index = _call_tool_with_robot_view(
             trace_events,
             started_at,
             "pick",
             {"object_id": object_handle},
             lambda: contract.pick(object_handle),
+            base_contract=base_contract,
+            contract=contract,
+            robot_view_steps=robot_view_steps,
+            output_dir=output_dir,
+            view_index=view_index,
+            record_robot_views=record_robot_views,
         )
-    _call_tool(
+    _navigate_destination, view_index = _call_tool_with_robot_view(
         trace_events,
         started_at,
         "navigate_to_receptacle",
         {"fixture_id": destination_id},
         lambda: contract.navigate_to_receptacle(destination_id),
+        base_contract=base_contract,
+        contract=contract,
+        robot_view_steps=robot_view_steps,
+        output_dir=output_dir,
+        view_index=view_index,
+        record_robot_views=record_robot_views,
     )
     if use_inside and requires_open:
-        _call_tool(
+        _open, view_index = _call_tool_with_robot_view(
             trace_events,
             started_at,
             "open_receptacle",
             {"fixture_id": destination_id},
             lambda: contract.open_receptacle(destination_id),
+            base_contract=base_contract,
+            contract=contract,
+            robot_view_steps=robot_view_steps,
+            output_dir=output_dir,
+            view_index=view_index,
+            record_robot_views=record_robot_views,
         )
     if use_inside:
-        _call_tool(
+        _place_inside, view_index = _call_tool_with_robot_view(
             trace_events,
             started_at,
             "place_inside",
             {"fixture_id": destination_id},
             lambda: contract.place_inside(destination_id),
+            base_contract=base_contract,
+            contract=contract,
+            robot_view_steps=robot_view_steps,
+            output_dir=output_dir,
+            view_index=view_index,
+            record_robot_views=record_robot_views,
         )
         if not requires_open:
-            return
-        _call_tool(
+            return view_index
+        _close, view_index = _call_tool_with_robot_view(
             trace_events,
             started_at,
             "close_receptacle",
             {"fixture_id": destination_id},
             lambda: contract.close_receptacle(destination_id),
+            base_contract=base_contract,
+            contract=contract,
+            robot_view_steps=robot_view_steps,
+            output_dir=output_dir,
+            view_index=view_index,
+            record_robot_views=record_robot_views,
         )
-        return
-    _call_tool(
+        return view_index
+    _place, view_index = _call_tool_with_robot_view(
         trace_events,
         started_at,
         "place",
         {"fixture_id": destination_id},
         lambda: contract.place(destination_id),
+        base_contract=base_contract,
+        contract=contract,
+        robot_view_steps=robot_view_steps,
+        output_dir=output_dir,
+        view_index=view_index,
+        record_robot_views=record_robot_views,
     )
+    return view_index
 
 
 def _navigate_to_object_source_waypoint(
@@ -585,6 +642,90 @@ def _call_tool(
     return response
 
 
+def _call_tool_with_robot_view(
+    events: list[dict[str, Any]],
+    started_at: float,
+    tool: str,
+    request: dict[str, Any],
+    fn: Any,
+    *,
+    base_contract: Any,
+    contract: RealWorldCleanupContract,
+    robot_view_steps: list[dict[str, Any]],
+    output_dir: Path,
+    view_index: int,
+    record_robot_views: bool,
+) -> tuple[dict[str, Any], int]:
+    response = _call_tool(events, started_at, tool, request, fn)
+    if not response.get("ok"):
+        return response, view_index
+    capture = robot_view_capture_for_tool(
+        tool,
+        request,
+        response,
+        object_id_transform=lambda value: (
+            _internal_object_id(contract, value) if value is not None else None
+        ),
+    )
+    if capture is None:
+        return response, view_index
+    view_index = _record_long_horizon_robot_view(
+        base_contract=base_contract,
+        robot_view_steps=robot_view_steps,
+        output_dir=output_dir,
+        view_index=view_index,
+        action=str(capture["action"]),
+        label_suffix=str(capture["label_suffix"]),
+        record_robot_views=record_robot_views,
+        focus_object_id=capture.get("focus_object_id"),
+        focus_receptacle_id=contract.internal_fixture_id_for_public_reference(
+            capture.get("focus_receptacle_id")
+        ),
+        semantic_phase=capture.get("semantic_phase"),
+        action_evidence=capture.get("action_evidence"),
+        camera_yaw_offset_deg=float(capture.get("camera_yaw_offset_deg") or 0.0),
+        camera_pitch_offset_deg=float(capture.get("camera_pitch_offset_deg") or 0.0),
+    )
+    return response, view_index
+
+
+def _record_long_horizon_robot_view(
+    *,
+    base_contract: Any,
+    robot_view_steps: list[dict[str, Any]],
+    output_dir: Path,
+    view_index: int,
+    action: str,
+    label_suffix: str,
+    record_robot_views: bool,
+    focus_object_id: str | None = None,
+    focus_receptacle_id: str | None = None,
+    semantic_phase: str | None = None,
+    action_evidence: dict[str, Any] | None = None,
+    camera_yaw_offset_deg: float = 0.0,
+    camera_pitch_offset_deg: float = 0.0,
+) -> int:
+    if not record_robot_views:
+        return view_index
+    return base_contract.record_robot_view_step(
+        steps=robot_view_steps,
+        output_dir=output_dir,
+        index=view_index,
+        action=action,
+        label_suffix=label_suffix,
+        focus_object_id=focus_object_id,
+        focus_receptacle_id=focus_receptacle_id,
+        semantic_phase=semantic_phase,
+        action_evidence=action_evidence,
+        camera_yaw_offset_deg=camera_yaw_offset_deg,
+        camera_pitch_offset_deg=camera_pitch_offset_deg,
+    )
+
+
+def _internal_object_id(contract: RealWorldCleanupContract, handle: str) -> str | None:
+    return contract._internal_object_id(handle)  # noqa: SLF001
+
+
 def _trace_event(started_at: float, *, tool: str, event: str, **payload: Any) -> dict[str, Any]:
     return {
         "ts": round(time.time() - started_at, 6),
@@ -610,185 +751,3 @@ def _null_map_build_scan_profile() -> Any:
     from roboclaws.household.map_build_scan_profile import map_build_scan_profile
 
     return map_build_scan_profile()
-
-
-def _read_trace_events(path: Path) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
-    events: list[dict[str, Any]] = []
-    errors: list[dict[str, str]] = []
-    try:
-        lines = path.read_text(encoding="utf-8").splitlines()
-    except FileNotFoundError:
-        return [], [{"path": str(path), "error": "missing"}]
-    for line_number, line in enumerate(lines, start=1):
-        if not line.strip():
-            continue
-        try:
-            item = json.loads(line)
-        except json.JSONDecodeError as exc:
-            errors.append({"path": str(path), "line": str(line_number), "error": exc.msg})
-            continue
-        if isinstance(item, dict):
-            events.append(item)
-        else:
-            errors.append({"path": str(path), "line": str(line_number), "error": "not_object"})
-    return events, errors
-
-
-def _tool_sequence(trace_events: list[dict[str, Any]]) -> list[str]:
-    return [
-        str(event.get("tool") or "")
-        for event in trace_events
-        if event.get("event") == "response" and event.get("tool")
-    ]
-
-
-def _tool_count(sequence: list[str], tool: str) -> int:
-    return sum(1 for item in sequence if item == tool)
-
-
-def _visited_any_room(trace_events: list[dict[str, Any]], room_ids: tuple[str, ...]) -> bool:
-    if not room_ids:
-        return True
-    expected = set(room_ids)
-    for event in trace_events:
-        if event.get("event") != "response":
-            continue
-        response = event.get("response") if isinstance(event.get("response"), dict) else {}
-        if str(response.get("current_room_id") or response.get("room_id") or "") in expected:
-            return True
-    return False
-
-
-def _destination_reached(trace_events: list[dict[str, Any]], destinations: set[str]) -> bool:
-    for event in trace_events:
-        if event.get("event") != "response":
-            continue
-        if event.get("tool") not in {
-            "navigate_to_receptacle",
-            "place",
-            "place_inside",
-            "close_receptacle",
-        }:
-            continue
-        response = event.get("response") if isinstance(event.get("response"), dict) else {}
-        for key in ("fixture_id", "receptacle_id", "location_id", "contained_in"):
-            if str(response.get(key) or "") in destinations:
-                return True
-    return False
-
-
-def _target_observed(run_result: dict[str, Any], object_ids: tuple[str, ...]) -> bool:
-    runtime_map = (
-        run_result.get("runtime_metric_map")
-        if isinstance(run_result.get("runtime_metric_map"), dict)
-        else {}
-    )
-    observed = runtime_map.get("observed_objects") if isinstance(runtime_map, dict) else []
-    if not isinstance(observed, list):
-        return False
-    public_count = sum(1 for item in observed if isinstance(item, dict) and item.get("object_id"))
-    return public_count >= len(object_ids)
-
-
-def _container_closed(trace_events: list[dict[str, Any]], cold_object_ids: tuple[str, ...]) -> bool:
-    if not cold_object_ids:
-        return True
-    sequence = _tool_sequence(trace_events)
-    try:
-        place_index = sequence.index("place_inside")
-        close_index = sequence.index("close_receptacle")
-    except ValueError:
-        return False
-    return close_index > place_index
-
-
-def _has_completion_claim(run_result: dict[str, Any]) -> bool:
-    claim = run_result.get("agent_completion_claim")
-    return isinstance(claim, dict) and bool(claim.get("completion_summary"))
-
-
-def _hands_empty(run_result: dict[str, Any], *, final_locations: dict[str, Any]) -> bool:
-    if any(str(value) == "held_by_agent" for value in final_locations.values()):
-        return False
-    runtime_map = (
-        run_result.get("runtime_metric_map")
-        if isinstance(run_result.get("runtime_metric_map"), dict)
-        else {}
-    )
-    summary = runtime_map.get("cleanup_worklist_summary") if isinstance(runtime_map, dict) else {}
-    if isinstance(summary, dict) and summary.get("held_object_id"):
-        return False
-    return True
-
-
-def _required_sequence_present(sequence: list[str], required: tuple[str, ...]) -> bool:
-    if not required:
-        return True
-    start = 0
-    for tool in required:
-        try:
-            index = sequence.index(tool, start)
-        except ValueError:
-            return False
-        start = index + 1
-    return True
-
-
-def _private_truth_leaked(run_dir: Path, run_result: dict[str, Any]) -> bool:
-    forbidden = {
-        "private_manifest",
-        "acceptable_destinations",
-        "target_object_ids",
-        "accepted_destination_ids",
-        "long_horizon_task",
-    }
-    agent_view = run_result.get("agent_view")
-    if _contains_forbidden_key(agent_view, forbidden):
-        return True
-    path = run_dir / "agent_view.json"
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (FileNotFoundError, json.JSONDecodeError):
-        payload = {}
-    if _contains_forbidden_key(payload, forbidden):
-        return True
-    trace_events, _errors = _read_trace_events(run_dir / "trace.jsonl")
-    return any(_contains_forbidden_key(event, forbidden) for event in trace_events)
-
-
-def _contains_forbidden_key(value: Any, forbidden: set[str]) -> bool:
-    if isinstance(value, dict):
-        return bool(forbidden.intersection(value)) or any(
-            _contains_forbidden_key(item, forbidden) for item in value.values()
-        )
-    if isinstance(value, list):
-        return any(_contains_forbidden_key(item, forbidden) for item in value)
-    return False
-
-
-def _long_horizon_failure_class(failures: list[str]) -> str:
-    if "private_truth_leak" in failures:
-        return "private_truth_leak"
-    if "trace_json_invalid" in failures:
-        return "artifact_missing"
-    if "required_tool_sequence_missing" in failures:
-        return "trajectory_policy_violation"
-    if any(item in failures for item in ("placed", "hands_empty", "container_closed")):
-        return "private_goal_not_satisfied"
-    if "target_observed" in failures:
-        return "perception_miss"
-    if any(item in failures for item in ("source_visited", "destination_reached")):
-        return "trajectory_policy_violation"
-    return "partial_progress_only"
-
-
-def _first_failure_step(trace_events: list[dict[str, Any]], failures: list[str]) -> int | str:
-    if not failures:
-        return MISSING_NOT_APPLICABLE
-    for index, event in enumerate(trace_events, start=1):
-        if event.get("event") != "response":
-            continue
-        response = event.get("response") if isinstance(event.get("response"), dict) else {}
-        if response.get("ok") is False:
-            return index
-    return MISSING_UNAVAILABLE
