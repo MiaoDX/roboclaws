@@ -18,7 +18,7 @@ DEFAULT_SCENE_SOURCE = "procthor-10k-val"
 DEFAULT_SCENE_INDEX = "0"
 DEFAULT_BACKEND = "mujoco"
 DEFAULT_SEED = "7"
-DEFAULT_PROVIDER_PROFILE = "codex-router-responses"
+DEFAULT_PROVIDER_PROFILE = "kimi-openai-chat"
 SCENE_CASE_SCHEMA = "roboclaws_eval_harness_case_v1"
 SCENE_SCOPE_SELECTED = "selected"
 
@@ -76,7 +76,7 @@ def _render_context(
         "default_seed": DEFAULT_SEED,
         "default_provider": DEFAULT_PROVIDER_PROFILE,
         "agent_sdk_provider": agent_sdk_provider,
-        "provider_cell_count": "4",
+        "provider_cell_count": "3",
         "map_build_consumer_parallel_group": "map_build_consumer_2026_06_24",
         "default_local_concurrency_width": "1",
         "concurrency_policy": "serial_by_default_for_single_molmospaces_visual_backend_slot",
@@ -126,7 +126,6 @@ def _row(
         "requires": list(raw.get("requires") or []),
         "execution_requirements": _dedupe(execution_requirements),
         "depends_on": list(raw.get("depends_on") or []),
-        "cloudml_stage": dict(raw.get("cloudml_stage") or {}),
         "timeout_s": int(raw.get("timeout_s", execution.get("timeout_s")) or 0),
         "concurrency_group": str(
             raw.get("concurrency_group", execution.get("concurrency_group")) or ""

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import sys
 from pathlib import Path
 
 import pytest
@@ -11,8 +13,6 @@ from roboclaws.household import agibot_operator_gates as gates
 from roboclaws.household.agibot_household_backend import AgibotHouseholdBackend
 from roboclaws.household.agibot_map_defaults import (
     DEFAULT_AGIBOT_CONFIDENCE_LAYER,
-    DEFAULT_AGIBOT_CONTEXT_JSON,
-    DEFAULT_AGIBOT_MAP_ARTIFACT_DIR,
 )
 from roboclaws.household.agibot_sdk_runner import (
     BLOCKED_MANIPULATION_TOOLS,
@@ -58,9 +58,11 @@ def _make_common_agibot_map_build_server(
     visual_grounding_pipeline_id: str = "grounding-dino",
     visual_grounding_timeout_s: float | None = None,
 ):
+    _require_agibot_sdk_runner()
     contract = AgibotHouseholdBackend(
         run_dir=run_dir,
         context_json=context_json,
+        **_sdk_kwargs(),
         visual_grounding_pipeline_id=visual_grounding_pipeline_id,
         visual_grounding_timeout_s=visual_grounding_timeout_s,
     )
@@ -76,37 +78,33 @@ def _make_common_agibot_map_build_server(
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 COMPLETED_CONTEXT_FIXTURE = REPO_ROOT / "tests" / "fixtures" / "agibot_map_context.completed.json"
-ROBOT_MAP_9_CONTEXT_FIXTURE = (
-    REPO_ROOT / "tests" / "fixtures" / "agibot_robot_map_9_context.completed.json"
+ROBOT_MAP_12_CONTEXT_FIXTURE = (
+    REPO_ROOT / "tests" / "fixtures" / "agibot_robot_map_12_context.completed.json"
 )
-ROBOT_MAP_9_ARTIFACT = REPO_ROOT / "vendors" / "agibot_sdk" / "artifacts" / "maps" / "robot_map_9"
-ROBOT_MAP_12_CONTEXT_FIXTURE = DEFAULT_AGIBOT_CONTEXT_JSON
-ROBOT_MAP_12_ARTIFACT = DEFAULT_AGIBOT_MAP_ARTIFACT_DIR
-AGIBOT_SDK_RUNNER_PATH = (
-    REPO_ROOT / "vendors" / "agibot_sdk" / "tools" / "run_agibot_cleanup_backend.py"
-)
+ROBOT_MAP_12_ARTIFACT = REPO_ROOT / "tests" / "fixtures" / "runtime_map_prior" / "robot_map_12"
+
+
+def _configured_runner_path() -> Path | None:
+    value = os.environ.get("ROBOCLAWS_AGIBOT_RUNNER_SCRIPT", "").strip()
+    return Path(value) if value else None
+
+
 PREBUILT_BUNDLE = REPO_ROOT / "assets" / "maps" / "molmospaces" / "procthor-10k-val" / "0"
 
 
 def _require_agibot_sdk_runner() -> None:
-    if not AGIBOT_SDK_RUNNER_PATH.is_file():
-        pytest.skip("Agibot SDK vendor runner is unavailable in this checkout")
+    runner = _configured_runner_path()
+    if runner is None or not runner.is_file():
+        pytest.skip("ROBOCLAWS_AGIBOT_RUNNER_SCRIPT is not configured")
 
 
-def _require_robot_map_9_artifact() -> None:
-    if not (
-        (ROBOT_MAP_9_ARTIFACT / "source.json").is_file()
-        or (ROBOT_MAP_9_ARTIFACT / "agibot" / "source.json").is_file()
-    ):
-        pytest.skip("Agibot robot_map_9 artifact is unavailable in this checkout")
-
-
-def _require_robot_map_12_artifact() -> None:
-    if not (
-        (ROBOT_MAP_12_ARTIFACT / "source.json").is_file()
-        or (ROBOT_MAP_12_ARTIFACT / "agibot" / "source.json").is_file()
-    ):
-        pytest.skip("Agibot robot_map_12 artifact is unavailable in this checkout")
+def _sdk_kwargs() -> dict:
+    _require_agibot_sdk_runner()
+    return {
+        "runner_script": _configured_runner_path(),
+        "runner_python": sys.executable,
+        "agibot_map_artifact_dir": ROBOT_MAP_12_ARTIFACT,
+    }
 
 
 def _assert_static_fixture_projection_artifact_only(
@@ -245,6 +243,7 @@ def test_physical_agibot_pilot_uses_sdk_runner_reports_without_movement(
     run_result = run_physical_agibot_cleanup_pilot(
         run_dir=tmp_path / "run",
         context_json=context_path,
+        **_sdk_kwargs(),
     )
 
     run_dir = tmp_path / "run"
@@ -308,73 +307,14 @@ def test_physical_agibot_pilot_uses_sdk_runner_reports_without_movement(
     assert rerender_cleanup_report_from_artifact_path(run_dir) == run_dir / "report.html"
 
 
-def test_physical_agibot_pilot_report_uses_robot_map_9_artifact(tmp_path: Path) -> None:
-    _require_agibot_sdk_runner()
-    _require_robot_map_9_artifact()
-    context_path = tmp_path / "agibot_robot_map_9_context.completed.json"
-    context_path.write_text(json.dumps(_robot_map_9_context()), encoding="utf-8")
-
-    run_result = run_physical_agibot_cleanup_pilot(
-        run_dir=tmp_path / "run",
-        context_json=context_path,
-        agibot_map_artifact_dir=ROBOT_MAP_9_ARTIFACT,
-        waypoint_id="east_lab_scan",
-    )
-
-    run_dir = tmp_path / "run"
-    agent_view = run_result["agent_view"]
-    metric_map = agent_view_module.base_metric_map(agent_view)
-    bundle = run_result["nav2_map_bundle"]
-    report_text = (run_dir / "report.html").read_text(encoding="utf-8")
-    subphase_result = json.loads(
-        (run_dir / "subphases" / "01-agent-view" / "run_result.json").read_text(encoding="utf-8")
-    )
-    subphase_report = (run_dir / "subphases" / "01-agent-view" / "report.html").read_text(
-        encoding="utf-8"
-    )
-
-    assert metric_map["map_id"] == "agibot-robot-map-9"
-    assert metric_map["occupancy_grid_artifact"] == "map_artifacts/occupancy.pgm"
-    assert metric_map["map_preview_artifact"] == "map_artifacts/map_preview.png"
-    assert len(metric_map["rooms"]) >= 4
-    assert bundle["environment_id"] == "agibot-robot-map-9"
-    assert bundle["source_bundle_root"] == str(ROBOT_MAP_9_ARTIFACT)
-    assert bundle["source_provenance"] == "agibot_gdk_map_artifact"
-    assert (run_dir / "map_bundle" / "map.pgm").stat().st_size > 600_000
-    assert (run_dir / "map_bundle" / "preview.png").is_file()
-    assert not (run_dir / "map_bundle" / "report_static_navigation_map.png").exists()
-    assert subphase_result["privacy_check"]["ok"] is True
-    assert "Nav2 Map Bundle" in report_text
-    assert "agibot-robot-map-9" in report_text
-    assert "<span>Status</span><strong>Rehearsal</strong>" in report_text
-    assert "physical_agibot_navigation_pilot_rehearsal" in report_text
-    assert 'id="report-tab-timeline"' in report_text
-    assert "No robot-view timeline captured" in report_text
-    assert '<details class="robot-timeline-details"' not in report_text
-    assert 'id="report-tab-actions"' in report_text
-    assert "No semantic cleanup actions recorded" in report_text
-    assert "AgiBot Backend Evidence" in report_text
-    assert "One Roboclaws pilot run" in report_text
-    assert "metric_map" in report_text
-    assert "navigate_to_waypoint" in report_text
-    assert "Dry-run blocked" in report_text
-    assert "Next confidence layer" in report_text
-    assert DEFAULT_AGIBOT_CONFIDENCE_LAYER in report_text
-    assert "semantic cleanup actions, MolmoSpaces simulation, and real GDK execution" in report_text
-    assert "Fetched AgiBot occupancy map artifact" in subphase_report
-    assert "map_artifacts/map_preview.png" in subphase_report
-
-
 def test_physical_agibot_pilot_report_uses_default_robot_map_12_artifact(
     tmp_path: Path,
 ) -> None:
     _require_agibot_sdk_runner()
-    _require_robot_map_12_artifact()
-
     run_result = run_physical_agibot_cleanup_pilot(
         run_dir=tmp_path / "run",
         context_json=ROBOT_MAP_12_CONTEXT_FIXTURE,
-        agibot_map_artifact_dir=ROBOT_MAP_12_ARTIFACT,
+        **_sdk_kwargs(),
         waypoint_id="central_floor_scan",
     )
 
@@ -402,6 +342,7 @@ def test_agibot_adapter_resolves_public_navigation_tool_family(tmp_path: Path) -
     adapter = AgibotSDKRunnerAdapter(
         context_json=context_path,
         run_dir=tmp_path / "run",
+        **_sdk_kwargs(),
     )
 
     room_nav = adapter.navigate_to_room(room_id="living_room")
@@ -449,6 +390,7 @@ def test_agibot_bounded_local_nudge_uses_operator_config_with_conservative_caps(
     adapter = AgibotSDKRunnerAdapter(
         context_json=context_path,
         run_dir=tmp_path / "run",
+        **_sdk_kwargs(),
     )
 
     candidate_nav = adapter.navigate_to_visual_candidate(
@@ -484,6 +426,7 @@ def test_agibot_bounded_local_nudge_rejects_unconfirmed_or_loose_operator_config
     adapter = AgibotSDKRunnerAdapter(
         context_json=context_path,
         run_dir=tmp_path / "run",
+        **_sdk_kwargs(),
     )
 
     candidate_nav = adapter.navigate_to_visual_candidate(
@@ -582,6 +525,7 @@ def test_agibot_map_build_camera_labels_call_external_grounding(
     contract = AgibotHouseholdBackend(
         run_dir=tmp_path,
         context_json=COMPLETED_CONTEXT_FIXTURE,
+        **_sdk_kwargs(),
         visual_grounding_client=grounding_client,
     )
     contract._raw_fpv_observations = [
@@ -638,6 +582,7 @@ def test_agibot_adapter_integrates_with_shared_cleanup_mcp_contract(tmp_path: Pa
     contract = AgibotHouseholdBackend(
         run_dir=tmp_path / "run",
         context_json=COMPLETED_CONTEXT_FIXTURE,
+        **_sdk_kwargs(),
     )
     server = make_household_world_mcp(
         run_dir=tmp_path / "run",
@@ -701,6 +646,7 @@ def test_physical_agibot_real_movement_requires_operator_gates(tmp_path: Path) -
     run_result = run_physical_agibot_cleanup_pilot(
         run_dir=tmp_path / "run",
         context_json=context_path,
+        **_sdk_kwargs(),
         real_movement_enabled=True,
     )
 
@@ -795,10 +741,6 @@ def test_physical_agibot_localization_gate_enforces_optional_thresholds() -> Non
 
 def _completed_context() -> dict:
     return json.loads(COMPLETED_CONTEXT_FIXTURE.read_text(encoding="utf-8"))
-
-
-def _robot_map_9_context() -> dict:
-    return json.loads(ROBOT_MAP_9_CONTEXT_FIXTURE.read_text(encoding="utf-8"))
 
 
 class _StaticAgibotVisualGroundingClient:

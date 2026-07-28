@@ -61,7 +61,7 @@ def run_session_live_eval(
     budget: str = "smoke",
     stamp: str | None = None,
     agent_engine: str = "openai-agents-sdk",
-    provider_profile: str = "codex-router-responses",
+    provider_profile: str = "kimi-openai-chat",
     live_execution: str = "blocked",
     live_timeout_s: float = 900.0,
     env: dict[str, str] | None = None,

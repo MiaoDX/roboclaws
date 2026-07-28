@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Source before starting Vulkan or Isaac in a CloudML container.
+# Source before starting Vulkan or Isaac in a container with the pinned driver overlay.
 
 _roboclaws_overlay_version=580.105.08
 _roboclaws_overlay_root=${ROBOCLAWS_NVIDIA_OVERLAY_ROOT:-/opt/nvidia-driver-${_roboclaws_overlay_version}}

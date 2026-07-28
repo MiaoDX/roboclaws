@@ -825,7 +825,7 @@ def test_agent_sdk_perf_matrix_summarizes_candidate_coverage(
         extra_rows=[
             {
                 "row_id": "rejected_f",
-                "provider_profile": "codex-router-responses",
+                "provider_profile": "kimi-openai-chat",
                 "model": "gpt-5.5",
                 "evidence_lane": "world-public-labels",
                 "candidate_group": "group0_foundation",
@@ -847,7 +847,7 @@ def test_agent_sdk_perf_matrix_summarizes_candidate_coverage(
             },
             {
                 "row_id": "blocked_p",
-                "provider_profile": "codex-router-responses",
+                "provider_profile": "kimi-openai-chat",
                 "model": "gpt-5.5",
                 "evidence_lane": "camera-raw-fpv",
                 "candidate_group": "group0_foundation",
@@ -965,7 +965,7 @@ def _write_manifest(
     rows: list[dict[str, object]] = [
         {
             "row_id": "gpt_world_public_group0",
-            "provider_profile": "codex-router-responses",
+            "provider_profile": "kimi-openai-chat",
             "model": "gpt-5.5",
             "evidence_lane": lane,
             "candidate_group": "group0_foundation",
@@ -1043,7 +1043,7 @@ def _write_run(
     run_dir.mkdir()
     timing = {
         "runtime": "openai-agents-live",
-        "provider_profile": "codex-router-responses",
+        "provider_profile": "kimi-openai-chat",
         "wire_api": "responses",
         "model": "gpt-5.5",
         "evidence_lane": "world-public-labels",
@@ -1107,7 +1107,7 @@ def _write_model_call_metrics(
         "event": "span_end",
         "span_type": "response",
         "duration_s": duration_s,
-        "provider_profile": "codex-router-responses",
+        "provider_profile": "kimi-openai-chat",
         "wire_api": "responses",
         "model": "gpt-5.5",
         "usage": {

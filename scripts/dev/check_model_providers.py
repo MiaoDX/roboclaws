@@ -23,10 +23,10 @@ from roboclaws.agents.provider_registry import (
     provider_route_spec,
     route_base_url,
 )
-from roboclaws.agents.provider_transport import provider_default_headers
 from roboclaws.agents.thinking_policy import thinking_request_body_for_wire
 from roboclaws.core.dotenv import update_env_from_dotenv_file
 from roboclaws.core.json_sources import parse_json_object_text
+from roboclaws.operator_console.redaction import redact_text
 
 DEFAULT_PROMPT = "Health check. Reply exactly ok."
 DEFAULT_RESPONSES_MAX_OUTPUT_TOKENS = 256
@@ -36,8 +36,8 @@ DEFAULT_TIMEOUT_S = 30.0
 ProbeMode = Literal["agents-sdk", "provider"]
 
 PUBLIC_AGENT_SDK_ROUTE_IDS = (
+    "custom-responses",
     "minimax-responses",
-    "mimo-tp-openai-chat",
     "kimi-openai-chat",
 )
 
@@ -52,6 +52,7 @@ class ProbeSpec:
     base_url: str
     max_tokens: int
     route_id: str = ""
+    request_model: str = ""
     api_key_alt_env: str = ""
     provider_note: str = ""
     unsupported_reason: str = ""
@@ -89,22 +90,17 @@ def build_agent_sdk_probes(
     chat_max_tokens: int = DEFAULT_CHAT_MAX_TOKENS,
 ) -> list[ProbeSpec]:
     probes: list[ProbeSpec] = []
-    for route_id in (
-        "codex-router-responses",
-        "mimo-mify-responses",
-        "minimax-responses",
-        "mimo-tp-openai-chat",
-        "mimo-inside-openai-chat",
-        "kimi-openai-chat",
-    ):
+    for route_id in PUBLIC_AGENT_SDK_ROUTE_IDS:
         route = provider_route_spec(route_id)
+        is_custom = route_id == "custom-responses"
         probes.append(
             ProbeSpec(
                 probe_id=f"agents-sdk:{route_id}",
                 mode="agents-sdk",
                 route_id=route_id,
                 wire_api=route.wire_api,
-                model=route.default_model_id,
+                model="custom" if is_custom else route.default_model_id,
+                request_model=os.environ.get("CUSTOM_RESPONSES_MODEL", "") if is_custom else "",
                 api_key_env=route.api_key_env or "",
                 base_url=route_base_url(route),
                 max_tokens=(
@@ -120,28 +116,29 @@ def build_provider_probes(
     responses_max_tokens: int = DEFAULT_RESPONSES_MAX_OUTPUT_TOKENS,
     chat_max_tokens: int = DEFAULT_CHAT_MAX_TOKENS,
 ) -> list[ProbeSpec]:
-    codex = provider_route_spec("codex-router-responses")
-    mify_route = provider_route_spec("mimo-mify-responses")
+    custom_route = provider_route_spec("custom-responses")
     minimax_route = provider_route_spec("minimax-responses")
-    mimo = provider_route_spec("mimo-tp-openai-chat")
-    mimo_inside = provider_route_spec("mimo-inside-openai-chat")
+    kimi_route = provider_route_spec("kimi-openai-chat")
 
     return [
-        _provider_from_route("codex-router-responses", codex, max_tokens=responses_max_tokens),
-        _provider_from_route("mimo-mify-responses", mify_route, max_tokens=responses_max_tokens),
+        _provider_from_route(
+            "custom-responses",
+            custom_route,
+            max_tokens=responses_max_tokens,
+            model="custom",
+            request_model=os.environ.get("CUSTOM_RESPONSES_MODEL", ""),
+        ),
         _provider_from_route(
             "minimax-responses-m3", minimax_route, max_tokens=responses_max_tokens
         ),
-        _provider_from_route("mimo-tp-openai-chat", mimo, max_tokens=chat_max_tokens),
-        _provider_from_route("mimo-inside-openai-chat", mimo_inside, max_tokens=chat_max_tokens),
         ProbeSpec(
             probe_id="provider:kimi-coding-chat",
             mode="provider",
-            route_id="kimi-openai-chat",
-            wire_api=WIRE_CHAT_COMPLETIONS,
-            model="kimi-k2.7-code",
-            api_key_env="KIMI_API_KEY",
-            base_url=os.environ.get("KIMI_OPENAI_BASE_URL", "https://api.kimi.com/coding/v1"),
+            route_id=kimi_route.route_id,
+            wire_api=kimi_route.wire_api,
+            model=kimi_route.default_model_id,
+            api_key_env=kimi_route.api_key_env or "",
+            base_url=route_base_url(kimi_route),
             max_tokens=chat_max_tokens,
             provider_note=(
                 "Kimi coding requires a Claude-Code-compatible User-Agent header. "
@@ -150,26 +147,24 @@ def build_provider_probes(
                 "and omits temperature because the provider pins model-specific values."
             ),
         ),
-        ProbeSpec(
-            probe_id="provider:nvidia-chat",
-            mode="provider",
-            wire_api=WIRE_CHAT_COMPLETIONS,
-            model="nvidia/llama-3.1-nemotron-nano-vl-8b-v1",
-            api_key_env="NV_API_KEY",
-            api_key_alt_env="NVIDIA_API_KEY",
-            base_url=os.environ.get("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1"),
-            max_tokens=chat_max_tokens,
-        ),
     ]
 
 
-def _provider_from_route(name: str, route: Any, *, max_tokens: int) -> ProbeSpec:
+def _provider_from_route(
+    name: str,
+    route: Any,
+    *,
+    max_tokens: int,
+    model: str | None = None,
+    request_model: str = "",
+) -> ProbeSpec:
     return ProbeSpec(
         probe_id=f"provider:{name}",
         mode="provider",
         route_id=route.route_id,
         wire_api=route.wire_api,
-        model=route.default_model_id,
+        model=model if model is not None else route.default_model_id,
+        request_model=request_model,
         api_key_env=route.api_key_env or "",
         base_url=route_base_url(route),
         max_tokens=max_tokens,
@@ -220,7 +215,7 @@ def run_probe(
             output = _run_chat_probe(spec, prompt=prompt, timeout_s=timeout_s, api_key=api_key)
         else:
             raise RuntimeError(f"unsupported wire API: {spec.wire_api}")
-        output = output.strip()
+        output = _redact_probe_text(output.strip(), spec=spec)
         if not output:
             raise RuntimeError("provider call completed without visible output")
         return ProbeResult(
@@ -241,7 +236,7 @@ def run_probe(
             status="FAIL",
             elapsed_s=round(time.monotonic() - started, 3),
             error_type=exc.__class__.__name__,
-            error=str(exc).replace("\n", " ")[:800],
+            error=_redact_probe_text(str(exc).replace("\n", " ")[:800], spec=spec),
         )
 
 
@@ -279,14 +274,11 @@ def _run_agents_sdk_probe(
         "timeout": timeout_s,
         "max_retries": 0,
     }
-    default_headers = provider_default_headers(spec.route_id)
-    if default_headers:
-        client_kwargs["default_headers"] = default_headers
     client = AsyncOpenAI(**client_kwargs)
     if spec.wire_api == WIRE_RESPONSES:
-        model = OpenAIResponsesModel(spec.model, openai_client=client)
+        model = OpenAIResponsesModel(_request_model(spec), openai_client=client)
     elif spec.wire_api == WIRE_CHAT_COMPLETIONS:
-        model = OpenAIChatCompletionsModel(spec.model, openai_client=client)
+        model = OpenAIChatCompletionsModel(_request_model(spec), openai_client=client)
     else:
         raise RuntimeError(f"unsupported Agents SDK wire API: {spec.wire_api}")
     model_settings_payload: dict[str, Any] = {"max_tokens": spec.max_tokens}
@@ -321,12 +313,9 @@ def _run_responses_probe(
     kwargs: dict[str, Any] = {"api_key": api_key, "timeout": timeout_s, "max_retries": 0}
     if spec.base_url:
         kwargs["base_url"] = spec.base_url
-    default_headers = provider_default_headers(spec.route_id)
-    if default_headers:
-        kwargs["default_headers"] = default_headers
     client = OpenAI(**kwargs)
     response = client.responses.create(
-        model=spec.model,
+        model=_request_model(spec),
         input=prompt,
         max_output_tokens=spec.max_tokens,
         temperature=0,
@@ -358,7 +347,7 @@ def _run_chat_probe(
 
     client = OpenAI(api_key=api_key, base_url=spec.base_url, timeout=timeout_s, max_retries=0)
     response = client.chat.completions.create(
-        model=spec.model,
+        model=_request_model(spec),
         messages=[{"role": "user", "content": prompt}],
         max_tokens=spec.max_tokens,
         extra_body=thinking_request_body_for_wire(
@@ -383,7 +372,11 @@ def _run_kimi_coding_probe(
 ) -> str:
     import httpx  # type: ignore[import-not-found]
 
-    payload = kimi_coding_payload(prompt=prompt, model=spec.model, max_tokens=spec.max_tokens)
+    payload = kimi_coding_payload(
+        prompt=prompt,
+        model=_request_model(spec),
+        max_tokens=spec.max_tokens,
+    )
     with httpx.Client(base_url=spec.base_url, timeout=timeout_s) as client:
         response = client.post(
             "/chat/completions",
@@ -434,6 +427,18 @@ def kimi_coding_payload(*, prompt: str, model: str, max_tokens: int) -> dict[str
             mode="default",
         ),
     }
+
+
+def _request_model(spec: ProbeSpec) -> str:
+    return spec.request_model or spec.model
+
+
+def _redact_probe_text(text: str, *, spec: ProbeSpec) -> str:
+    redacted = redact_text(text)
+    for value in (spec.base_url, spec.request_model):
+        if value and len(value) >= 6:
+            redacted = redacted.replace(value, "[REDACTED]")
+    return redacted
 
 
 def select_probes(args: argparse.Namespace) -> list[ProbeSpec]:

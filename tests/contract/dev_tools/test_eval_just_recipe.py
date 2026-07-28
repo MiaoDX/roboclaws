@@ -17,7 +17,7 @@ def test_agent_eval_public_facade_routes_to_eval_cli() -> None:
         "budget=smoke",
         "stamp=trace",
         "agent_engine=openai-agents-sdk",
-        "provider_profile=codex-router-responses",
+        "provider_profile=kimi-openai-chat",
         "live_execution=run",
         "live_timeout_s=30",
         "regrade_source=output/evals/household_world_cleanup_capability/source-run",
@@ -27,7 +27,7 @@ def test_agent_eval_public_facade_routes_to_eval_cli() -> None:
     assert "suite=smoke_regression" in trace
     assert "budget=smoke" in trace
     assert "agent_engine=openai-agents-sdk" in trace
-    assert "provider_profile=codex-router-responses" in trace
+    assert "provider_profile=kimi-openai-chat" in trace
     assert "live_execution=run" in trace
     assert "live_timeout_s=30" in trace
     assert "regrade_source=output/evals/household_world_cleanup_capability/source-run" in trace
@@ -144,18 +144,6 @@ def test_agent_eval_dispatch_honors_configured_python() -> None:
     assert trace[:5] == ["cmd", sys.executable, "-m", "roboclaws.cli.main", "eval"]
 
 
-def test_agent_eval_public_facade_routes_cloudml_lifecycle() -> None:
-    status_trace = _trace_agent_eval("status", "run=eval-20260721", "wait=false")
-    collect_trace = _trace_agent_eval("collect", "run=output/eval-harness/20260721")
-    resume_trace = _trace_agent_eval("execute", "run=eval-20260721")
-
-    for trace in (status_trace, collect_trace, resume_trace):
-        assert trace[:5] == ["cmd", ".venv/bin/python", "-m", "roboclaws.cli.main", "eval"]
-    assert status_trace[-3:] == ["status", "run=eval-20260721", "wait=false"]
-    assert collect_trace[-2:] == ["collect", "run=output/eval-harness/20260721"]
-    assert resume_trace[-2:] == ["execute", "run=eval-20260721"]
-
-
 def test_current_eval_docs_use_default_live_eval_budget() -> None:
     from roboclaws.evals import live_runtime
 
@@ -198,7 +186,7 @@ def test_surface_cleanup_live_run_dir_reaches_molmo_impl() -> None:
         "surface=household-world",
         "preset=cleanup",
         "agent_engine=openai-agents-sdk",
-        "provider_profile=codex-router-responses",
+        "provider_profile=kimi-openai-chat",
         "evidence_lane=world-public-labels",
         "seed=7",
         "output_dir=/tmp/roboclaws-eval-surface-test",

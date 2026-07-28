@@ -31,7 +31,6 @@ HARNESS_PROFILES = (
     "baseline-core",
     "baseline-live-default",
     "baseline-refresh",
-    "cloudml-isaac-proof",
 )
 _ROWS_SPEC = importlib.util.spec_from_file_location("eval_harness_rows", ROWS_MODULE_PATH)
 if _ROWS_SPEC is None or _ROWS_SPEC.loader is None:
@@ -40,14 +39,6 @@ eval_harness_rows = importlib.util.module_from_spec(_ROWS_SPEC)
 _ROWS_SPEC.loader.exec_module(eval_harness_rows)
 
 SIGNAL_RULES: tuple[dict[str, Any], ...] = (
-    {
-        "id": "cloudml_isaac_proof",
-        "label": "CloudML Isaac digital-twin proof",
-        "patterns": (
-            r"cloudml[-_ ]isaac[-_ ]digital[-_ ]twin[-_ ]proof",
-            r"cloudml-r49-isaac",
-        ),
-    },
     {
         "id": "eval_harness",
         "label": "Eval harness or suite",

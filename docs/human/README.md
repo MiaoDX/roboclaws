@@ -25,7 +25,6 @@ AI agents should also read these docs when they need human-facing context.
 
 ## Specialized Runbooks
 
-- [CloudML experiment flow](cloudml-experiment-flow.md)
 - [Agibot G2 Cleanup Pilot](agibot-g2-cleanup-pilot.md)
 - [Architecture hygiene review](architecture-hygiene-review.md)
 

@@ -33,7 +33,7 @@ pull-image:
     fi
 
 [group('gateway')]
-gateway action="up" token_file=".openclaw-token" provider="mimo" agents="1":
+gateway action="up" token_file=".openclaw-token" provider="kimi" agents="1":
     #!/usr/bin/env bash
     set -euo pipefail
 

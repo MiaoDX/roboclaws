@@ -364,6 +364,12 @@ def _prepare_agibot_backend_setup(
 ) -> _ServerBackendSetup:
     if context_json is None or str(context_json) == "":
         raise ValueError("backend=agibot_gdk requires --context-json")
+    if runner_script is None or str(runner_script) == "":
+        raise ValueError("backend=agibot_gdk requires --runner-script")
+    if runner_python is None or str(runner_python) == "":
+        raise ValueError("backend=agibot_gdk requires --runner-python")
+    if agibot_map_artifact_dir is None or str(agibot_map_artifact_dir) == "":
+        raise ValueError("backend=agibot_gdk requires --agibot-map-artifact-dir")
     if include_robot:
         raise ValueError("robot inclusion requires a visual subprocess backend")
     if record_robot_views:
@@ -374,12 +380,10 @@ def _prepare_agibot_backend_setup(
     agibot_contract = AgibotHouseholdBackend(
         run_dir=output_dir,
         context_json=Path(context_json),
-        runner_script=Path(runner_script) if runner_script is not None else None,
+        runner_script=Path(runner_script),
         runner_python=runner_python,
         real_movement_enabled=real_movement_enabled,
-        agibot_map_artifact_dir=Path(agibot_map_artifact_dir)
-        if agibot_map_artifact_dir is not None
-        else None,
+        agibot_map_artifact_dir=Path(agibot_map_artifact_dir),
         scenario=scenario,
         task_prompt=task_prompt,
         visual_grounding_pipeline_id=visual_grounding_pipeline_id,

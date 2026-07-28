@@ -6,11 +6,6 @@ import datetime as dt
 import json
 from pathlib import Path
 
-from roboclaws.household.agibot_map_defaults import (
-    DEFAULT_AGIBOT_CONTEXT_JSON,
-    DEFAULT_AGIBOT_MAP_ALIAS,
-    DEFAULT_AGIBOT_MAP_ARTIFACT_DIR,
-)
 from roboclaws.household.agibot_sdk_runner import run_physical_agibot_cleanup_pilot
 
 
@@ -24,7 +19,7 @@ def main() -> int:
     parser.add_argument(
         "--context-json",
         type=Path,
-        default=DEFAULT_AGIBOT_CONTEXT_JSON,
+        required=True,
         help="Completed agibot_gdk_map_context_authoring_v1 JSON.",
     )
     parser.add_argument(
@@ -35,20 +30,18 @@ def main() -> int:
     )
     parser.add_argument("--run-dir", type=Path, help="Exact output run directory.")
     parser.add_argument("--waypoint-id", help="Waypoint id to use for the pilot navigation stage.")
-    parser.add_argument("--runner-python", help="Python executable for the SDK runner.")
+    parser.add_argument("--runner-python", required=True, help="Injected SDK Python executable.")
     parser.add_argument(
         "--runner-script",
         type=Path,
-        help="Override path to vendors/agibot_sdk/tools/run_agibot_cleanup_backend.py.",
+        required=True,
+        help="Path to the injected AgiBot SDK runner script.",
     )
     parser.add_argument(
         "--agibot-map-artifact-dir",
         type=Path,
-        default=DEFAULT_AGIBOT_MAP_ARTIFACT_DIR,
-        help=(
-            "Fetched AgiBot map artifact root. Defaults to "
-            f"vendors/agibot_sdk/artifacts/maps/{DEFAULT_AGIBOT_MAP_ALIAS}."
-        ),
+        required=True,
+        help="Path to the injected AgiBot map artifact root.",
     )
     parser.add_argument(
         "--real-movement-enabled",

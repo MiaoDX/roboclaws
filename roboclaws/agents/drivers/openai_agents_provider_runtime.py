@@ -51,9 +51,12 @@ def _configuration_or_auth_failure(lowered: str, detail: str) -> LiveAgentFailur
     config_markers = (
         "roboclaws_openai_agents_",
         "openai agents sdk setting",
-        "requires codex_base_url",
-        "requires codex_api_key",
-        "requires xm_llm_api_key",
+        "requires custom_responses_base_url",
+        "requires custom_responses_api_key",
+        "requires custom_responses_model",
+        "requires kimi_openai_base_url",
+        "requires kimi_api_key",
+        "requires mm_base_url",
         "requires mm_api_key",
         "supports responses provider",
     )

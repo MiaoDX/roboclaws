@@ -67,8 +67,8 @@ Harness recipes
 - **Agent Engines And Provider Profiles** distinguish the product runtime
   (`agent_engine=openai-agents-sdk` for live agents, or `direct-runner` for
   deterministic proof) from the
-  model/key route (`provider_profile=codex-router-responses`,
-  `mimo-mify-responses`, `minimax-responses`, and related profiles).
+  model/key route (`provider_profile=custom-responses`, `minimax-responses`, or
+  `kimi-openai-chat`).
   Retired live engines `codex-cli` and `claude-code` are rejected by current
   launch validation rather than preserved as compatibility aliases.
   `direct-runner` is the deterministic contract/eval baseline, not a live robot
@@ -193,9 +193,9 @@ just run::surface surface=<surface> agent_engine=<engine> [world=<world>] [backe
 Examples:
 
 ```bash
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=map-build agent_engine=openai-agents-sdk provider_profile=codex-router-responses evidence_lane=camera-grounded-labels camera_labeler=grounding-dino scenario_setup=baseline seed=7
+just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=map-build agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=camera-grounded-labels camera_labeler=grounding-dino scenario_setup=baseline seed=7
 just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=direct-runner evidence_lane=world-public-labels scenario_setup=relocate-cleanup-related-objects seed=7
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=codex-router-responses prompt="find something useful to drink"
+just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat prompt="find something useful to drink"
 just run::surface surface=planner-proof world=planner-proof/default backend=mujoco intent=planner-proof agent_engine=direct-runner mode=dry-run
 just console::run
 ```

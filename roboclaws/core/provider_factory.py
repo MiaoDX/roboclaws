@@ -7,7 +7,7 @@ from roboclaws.core.provider_runtime import VLMProvider
 from roboclaws.core.providers.anthropic import AnthropicProvider
 from roboclaws.core.providers.kimi import KimiCodingProvider, KimiProvider
 from roboclaws.core.providers.mock import MockProvider
-from roboclaws.core.providers.openai import MimoProvider, NvidiaProvider, OpenAIProvider
+from roboclaws.core.providers.openai import OpenAIProvider
 
 _PROVIDER_CLASSES: dict[str, type[Any]] = {
     "mock": MockProvider,
@@ -15,8 +15,6 @@ _PROVIDER_CLASSES: dict[str, type[Any]] = {
     "kimi": KimiProvider,
     "kimi-coding": KimiCodingProvider,
     "anthropic": AnthropicProvider,
-    "nvidia": NvidiaProvider,
-    "mimo": MimoProvider,
 }
 
 

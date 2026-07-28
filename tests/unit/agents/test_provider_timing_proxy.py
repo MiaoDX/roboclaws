@@ -49,7 +49,7 @@ def test_start_provider_timing_proxy_rejects_invalid_bind_port_env(
                 run_dir=tmp_path,
                 upstream_base_url="https://provider.example.test/v1",
                 agent_engine="codex-cli",
-                provider_profile="codex-router-responses",
+                provider_profile="kimi-openai-chat",
             )
         )
     except RuntimeError as exc:
@@ -75,7 +75,7 @@ def test_start_provider_timing_proxy_rejects_out_of_range_bind_port_env(
                 run_dir=tmp_path,
                 upstream_base_url="https://provider.example.test/v1",
                 agent_engine="codex-cli",
-                provider_profile="codex-router-responses",
+                provider_profile="kimi-openai-chat",
             )
         )
     except RuntimeError as exc:
@@ -179,7 +179,7 @@ def test_start_provider_timing_proxy_fails_on_invalid_ready_source(
                 run_dir=tmp_path,
                 upstream_base_url="https://provider.example.test/v1",
                 agent_engine="codex-cli",
-                provider_profile="codex-router-responses",
+                provider_profile="kimi-openai-chat",
                 startup_timeout_s=1,
             )
         )
@@ -270,7 +270,7 @@ def _proxy_config(
         metrics_path=tmp_path / "run" / "provider_request_metrics.jsonl",
         bind_port=proxy_port,
         agent_engine="codex-cli",
-        provider_profile="codex-router-responses",
+        provider_profile="kimi-openai-chat",
         model="gpt-5.5",
     )
 
@@ -303,7 +303,7 @@ def _assert_proxy_metrics(tmp_path: Path) -> None:
     row = rows[0]
     assert row["schema"] == "roboclaws_provider_request_metric_v1"
     assert row["agent_engine"] == "codex-cli"
-    assert row["provider_profile"] == "codex-router-responses"
+    assert row["provider_profile"] == "kimi-openai-chat"
     assert row["method"] == "POST"
     assert row["path"] == "/v1/responses"
     assert row["status_code"] == 200

@@ -17,9 +17,9 @@ from tests.unit.operator_console.conftest import (
     MUJOCO_OPENAI_AGENTS_OPEN_TASK,  # noqa: F401  re-exported for tests
 )
 
-CODEX_ENV = {
-    "CODEX_BASE_URL": "https://codex.example.test/v1",
-    "CODEX_API_KEY": "key",
+KIMI_ENV = {
+    "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
+    "KIMI_API_KEY": "key",
 }
 
 
@@ -67,7 +67,7 @@ def test_runtime_inventory_lists_eval_harness_sdk_live_row(tmp_path: Path) -> No
         encoding="utf-8",
     )
     (run_dir / "driver.log").write_text(
-        "Authorization: Bearer SECRET_TOKEN_VALUE\nCODEX_API_KEY=secret-key-value\n",
+        "Authorization: Bearer SECRET_TOKEN_VALUE\nKIMI_API_KEY=secret-key-value\n",
         encoding="utf-8",
     )
     manifest = {
@@ -537,7 +537,7 @@ def test_readiness_names_background_eval_owner_before_start(tmp_path: Path) -> N
         tmp_path,
         route,
         overrides={"port": "18788"},
-        env=CODEX_ENV,
+        env=KIMI_ENV,
     )
 
     assert readiness["can_start"] is False

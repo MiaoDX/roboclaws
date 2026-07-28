@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
-import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -61,27 +61,45 @@ class AgibotSDKRunnerAdapter:
         *,
         context_json: Path,
         run_dir: Path,
-        runner_script: Path | None = None,
-        runner_python: str | Path | None = None,
+        runner_script: Path,
+        runner_python: str | Path,
         real_movement_enabled: bool = False,
-        agibot_map_artifact_dir: Path | None = None,
+        agibot_map_artifact_dir: Path,
     ) -> None:
         self.context_json = Path(context_json).resolve()
         self.run_dir = Path(run_dir).resolve()
-        self.run_dir.mkdir(parents=True, exist_ok=True)
-        repo_root = Path(__file__).resolve().parents[2]
-        self.runner_script = (
-            runner_script
-            or (repo_root / "vendors" / "agibot_sdk" / "tools" / "run_agibot_cleanup_backend.py")
-        ).resolve()
-        self.runner_python = str(runner_python or sys.executable)
+        self.runner_script = Path(runner_script).expanduser().resolve()
+        self.runner_python = _resolve_executable(runner_python)
         self.real_movement_enabled = bool(real_movement_enabled)
-        self.agibot_map_artifact_dir = (
-            Path(agibot_map_artifact_dir).resolve() if agibot_map_artifact_dir else None
-        )
+        self.agibot_map_artifact_dir = Path(agibot_map_artifact_dir).expanduser().resolve()
+        self._validate_dependencies()
+        self.run_dir.mkdir(parents=True, exist_ok=True)
         self.subphase_results: list[dict[str, Any]] = []
         self._agent_view_result: dict[str, Any] | None = None
         self._context_payload: dict[str, Any] | None = None
+
+    def _validate_dependencies(self) -> None:
+        invalid = []
+        if not self.context_json.is_file():
+            invalid.append("context_json")
+        if not self.runner_script.is_file():
+            invalid.append("runner_script")
+        if not self.agibot_map_artifact_dir.is_dir():
+            invalid.append("agibot_map_artifact_dir")
+        if invalid:
+            raise AgibotSDKRunnerError(
+                "Agibot SDK runner dependency check failed: invalid " + ", ".join(invalid)
+            )
+
+    def _redactions(self) -> dict[str, str]:
+        return {
+            self.runner_python: "<runner-python>",
+            str(self.runner_script): "<runner-script>",
+            str(self.runner_script.parent.parent): "<runner-root>",
+            str(self.context_json): "<context-json>",
+            str(self.agibot_map_artifact_dir): "<agibot-map-artifact-dir>",
+            str(self.run_dir): "<run-dir>",
+        }
 
     @property
     def agent_view_path(self) -> Path:
@@ -369,28 +387,38 @@ class AgibotSDKRunnerAdapter:
         stage_dir = self.run_dir / "subphases" / stage_name
         stage_dir.mkdir(parents=True, exist_ok=True)
         command = [self.runner_python, str(self.runner_script), *args]
-        proc = subprocess.run(
-            command,
-            cwd=self.runner_script.parent.parent,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
-        )
-        (stage_dir / "runner_stdout.txt").write_text(proc.stdout, encoding="utf-8")
-        (stage_dir / "runner_stderr.txt").write_text(proc.stderr, encoding="utf-8")
+        try:
+            proc = subprocess.run(
+                command,
+                cwd=self.runner_script.parent.parent,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+        except OSError as exc:
+            raise AgibotSDKRunnerError(
+                f"SDK runner process could not start for {stage_name}: {type(exc).__name__}"
+            ) from None
+        redactions = self._redactions()
+        stdout = _redact_text(proc.stdout, redactions)
+        stderr = _redact_text(proc.stderr, redactions)
+        (stage_dir / "runner_stdout.txt").write_text(stdout, encoding="utf-8")
+        (stage_dir / "runner_stderr.txt").write_text(stderr, encoding="utf-8")
         result_path = stage_dir / "run_result.json"
         if not result_path.is_file():
             raise AgibotSDKRunnerError(
                 f"SDK runner failed before writing run_result.json for {stage_name}: "
-                f"exit={proc.returncode} stderr={proc.stderr.strip()}"
+                f"exit={proc.returncode} stderr={stderr.strip()}"
             )
-        result = _load_json(result_path)
+        result = _redact_payload(_load_json(result_path), redactions)
         result["returncode"] = proc.returncode
-        result["command"] = command
+        result["command"] = _redact_payload(command, redactions)
         result["report_path"] = str(stage_dir / "report.html")
         result["stdout_path"] = str(stage_dir / "runner_stdout.txt")
         result["stderr_path"] = str(stage_dir / "runner_stderr.txt")
+        _write_json(result_path, _redact_payload(result, redactions))
+        _redact_artifact_tree(stage_dir, redactions)
         self.subphase_results.append(result)
         if proc.returncode and stage_name == "01-agent-view":
             raise AgibotSDKRunnerError(
@@ -403,10 +431,10 @@ def run_physical_agibot_cleanup_pilot(
     *,
     run_dir: Path,
     context_json: Path,
-    runner_script: Path | None = None,
-    runner_python: str | Path | None = None,
+    runner_script: Path,
+    runner_python: str | Path,
     real_movement_enabled: bool = False,
-    agibot_map_artifact_dir: Path | None = None,
+    agibot_map_artifact_dir: Path,
     waypoint_id: str | None = None,
     scenario: CleanupScenario | None = None,
 ) -> dict[str, Any]:
@@ -613,8 +641,8 @@ def run_physical_agibot_cleanup_pilot(
         "agibot_sdk_runner": {
             "schema": "agibot_sdk_runner_boundary_v1",
             "backend_variant": evidence_profiles.AGIBOT_GDK_BACKEND_VARIANT,
-            "runner_script": str(adapter.runner_script),
-            "agibot_map_artifact_dir": str(agibot_map_artifact_dir or ""),
+            "runner_script_configured": True,
+            "agibot_map_artifact_dir_configured": True,
             "real_movement_enabled": real_movement_enabled,
             "next_confidence_layer": DEFAULT_AGIBOT_CONFIDENCE_LAYER,
             "subphase_reports": subphase_reports,
@@ -674,6 +702,7 @@ def run_physical_agibot_cleanup_pilot(
         run_result["artifacts"]["nav2_occupancy_image"] = "map_bundle/map.pgm"
         run_result["artifacts"]["nav2_map_preview"] = "map_bundle/preview.png"
     attach_map12_review_assets(run_dir, adapter.context_payload, run_result)
+    run_result = _redact_payload(run_result, adapter._redactions())
     (run_dir / "run_result.json").write_text(
         json.dumps(run_result, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
@@ -687,6 +716,7 @@ def run_physical_agibot_cleanup_pilot(
         after_snapshot=after_snapshot,
         robot_view_steps=[],
     )
+    _redact_artifact_tree(run_dir, adapter._redactions())
     return run_result
 
 
@@ -1139,6 +1169,57 @@ def _empty_score() -> dict[str, Any]:
 
 def _initial_locations(scenario: CleanupScenario) -> dict[str, str]:
     return {item.object_id: item.location_id for item in scenario.objects}
+
+
+def _resolve_executable(value: str | Path) -> str:
+    raw = str(value).strip()
+    resolved = shutil.which(raw)
+    if resolved:
+        return str(Path(resolved).resolve())
+    candidate = Path(raw).expanduser()
+    if candidate.is_file() and os.access(candidate, os.X_OK):
+        return str(candidate.resolve())
+    raise AgibotSDKRunnerError("Agibot SDK runner dependency check failed: invalid runner_python")
+
+
+def _redact_payload(value: Any, replacements: dict[str, str]) -> Any:
+    if isinstance(value, dict):
+        return {key: _redact_payload(item, replacements) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_redact_payload(item, replacements) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_redact_payload(item, replacements) for item in value)
+    if isinstance(value, str):
+        return _redact_text(value, replacements)
+    return value
+
+
+def _redact_text(value: str, replacements: dict[str, str]) -> str:
+    redacted = value
+    for private_value, label in sorted(
+        replacements.items(), key=lambda item: len(item[0]), reverse=True
+    ):
+        if private_value:
+            redacted = redacted.replace(private_value, label)
+    return redacted
+
+
+def _redact_artifact_tree(root: Path, replacements: dict[str, str]) -> None:
+    for path in root.rglob("*"):
+        if not path.is_file() or path.suffix.lower() not in {
+            ".html",
+            ".json",
+            ".jsonl",
+            ".log",
+            ".txt",
+            ".yaml",
+            ".yml",
+        }:
+            continue
+        text = path.read_text(encoding="utf-8")
+        redacted = _redact_text(text, replacements)
+        if redacted != text:
+            path.write_text(redacted, encoding="utf-8")
 
 
 def _load_json(path: Path) -> dict[str, Any]:

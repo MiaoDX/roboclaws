@@ -7,6 +7,10 @@ import shlex
 import sys
 from typing import NoReturn
 
+from roboclaws.cli.agent_common import (
+    OPTIONAL_WORLD_TRACE_REDACTION_KEYS,
+    _redact_trace_args,
+)
 from roboclaws.launch.catalog import LaunchError, resolve_surface_launch
 from roboclaws.launch.plans import LaunchPlan
 from roboclaws.launch.runners import export_env_from_overrides
@@ -34,7 +38,10 @@ def print_launch_trace(plan: LaunchPlan) -> None:
         f"checker={plan.checker_id}",
         f"skill={plan.skill_name}",
         f"goal={plan.goal_contract.normalized_goal}",
-        f"target={shlex.join(plan.argv)}",
+        "target="
+        + shlex.join(_redact_trace_args(plan.argv, keys=OPTIONAL_WORLD_TRACE_REDACTION_KEYS))
+        if plan.world in {"agibot-g2/map-12", "b1-map12"}
+        else f"target={shlex.join(_redact_trace_args(plan.argv))}",
     )
     print("\t".join(fields), file=sys.stderr)
 

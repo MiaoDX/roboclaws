@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Detect whether this machine is on the office work network.
 #
-# The office network is identified by reachability of
-# https://api-router.evad.mioffice.cn/. Any HTTP response means the endpoint is
-# reachable; connection failure means this is not the work network.
+# The office network is identified by reachability of an operator-configured
+# probe URL. Any HTTP response means the endpoint is reachable; connection
+# failure means this is not the work network.
 
 set -euo pipefail
 
-probe_url="${ROBOCLAWS_WORK_NETWORK_PROBE_URL:-https://api-router.evad.mioffice.cn/}"
+probe_url="${ROBOCLAWS_WORK_NETWORK_PROBE_URL:-}"
 connect_timeout="${ROBOCLAWS_WORK_NETWORK_CONNECT_TIMEOUT:-1}"
 max_time="${ROBOCLAWS_WORK_NETWORK_MAX_TIME:-3}"
 
@@ -19,13 +19,16 @@ Usage:
   scripts/dev/network_status.sh --is-work-network
 
 Environment:
-  ROBOCLAWS_WORK_NETWORK_PROBE_URL       override the office-network probe URL
+  ROBOCLAWS_WORK_NETWORK_PROBE_URL       required office-network probe URL
   ROBOCLAWS_WORK_NETWORK_CONNECT_TIMEOUT curl connect timeout in seconds
   ROBOCLAWS_WORK_NETWORK_MAX_TIME        curl max time in seconds
 EOF
 }
 
 probe_work_network() {
+  if [[ -z "$probe_url" ]]; then
+    return 2
+  fi
   if ! command -v curl >/dev/null 2>&1; then
     return 2
   fi
@@ -67,7 +70,11 @@ print_status() {
       ;;
     *)
       echo "network: unknown"
-      echo "probe: could not run curl against $probe_url"
+      if [[ -n "$probe_url" ]]; then
+        echo "probe: could not run curl against $probe_url"
+      else
+        echo "probe: ROBOCLAWS_WORK_NETWORK_PROBE_URL is not configured"
+      fi
       echo "guard: OpenClaw and SDK live-agent routes fail closed when they require a network decision"
       ;;
   esac
@@ -103,7 +110,7 @@ case "$mode" in
         echo "==> network guard ok: off work network (${probe_url} unreachable)" >&2
         ;;
       *)
-        echo "error: cannot determine network status; curl is required for ${label}." >&2
+        echo "error: cannot determine network status for ${label}; configure ROBOCLAWS_WORK_NETWORK_PROBE_URL and ensure curl is available." >&2
         exit 2
         ;;
     esac

@@ -371,10 +371,6 @@ def _start_attempt(
     row["worker_pool"] = worker_pool
     row["shard_id"] = shard_id
     row["worker_id"] = worker_id
-    if os.environ.get("ROBOCLAWS_EVAL_CLOUDML_JOB_ID"):
-        row["cloudml_job_id"] = os.environ["ROBOCLAWS_EVAL_CLOUDML_JOB_ID"]
-    if os.environ.get("ROBOCLAWS_EVAL_CLOUDML_POD_NAME"):
-        row["cloudml_pod_name"] = os.environ["ROBOCLAWS_EVAL_CLOUDML_POD_NAME"]
     row["started_at"] = _utc_now()
 
 

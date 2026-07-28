@@ -187,7 +187,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     add_household_cleanup_live_runner_args(parser, policy_default="openai_agents_agent")
-    parser.add_argument("--provider-profile", default="codex-router-responses")
+    parser.add_argument("--provider-profile", required=True)
     parser.add_argument("--model", default="")
     parser.add_argument(
         "--max-turns",

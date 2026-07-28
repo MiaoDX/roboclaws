@@ -290,26 +290,6 @@ def test_runner_records_provenance_timing_and_redacted_row_result(
     assert "hidden_targets" not in json.dumps(payload)
 
 
-def test_cloudml_worker_environment_records_remote_provenance(
-    tmp_path: Path, monkeypatch: MonkeyPatch
-) -> None:
-    row = _row(tmp_path, "a")
-    manifest = _manifest(tmp_path, row)
-    monkeypatch.setenv("ROBOCLAWS_EVAL_EXECUTION_TARGET", "cloudml")
-    monkeypatch.setenv("ROBOCLAWS_EVAL_WORKER_POOL", "cloudml-r49")
-    monkeypatch.setenv("ROBOCLAWS_EVAL_CLOUDML_JOB_ID", "t-demo")
-    monkeypatch.setenv("ROBOCLAWS_EVAL_CLOUDML_POD_NAME", "pod-demo")
-    monkeypatch.setattr(runner, "_run_row", _pass_row)
-    monkeypatch.setattr(runner, "_row_blockers", _no_blockers)
-
-    runner._execute_harness(manifest, shard_id="shard-7")
-
-    assert row["execution_target"] == "cloudml"
-    assert row["worker_pool"] == "cloudml-r49"
-    assert row["cloudml_job_id"] == "t-demo"
-    assert row["cloudml_pod_name"] == "pod-demo"
-
-
 def test_frozen_manifest_executes_exact_rows_without_selection(
     tmp_path: Path, monkeypatch: MonkeyPatch
 ) -> None:
@@ -358,10 +338,7 @@ def test_eval_cli_forwards_execution_overrides(monkeypatch: MonkeyPatch) -> None
     exit_code = cli._run_eval_harness(
         "execute",
         {
-            "execution_target": "local",
             "max_parallel": "4",
-            "cloudml_dry_run": "true",
-            "cloudml_preemptible": "true",
             "manifest": "output/eval-harness/frozen.json",
             "row_id": "a,b",
             "shard_id": "worker-2",
@@ -374,14 +351,8 @@ def test_eval_cli_forwards_execution_overrides(monkeypatch: MonkeyPatch) -> None
         "execute",
         "--scene",
         "procthor-10k-val/0,procthor-objaverse-val/0",
-        "--execution-target",
-        "local",
         "--max-parallel",
         "4",
-        "--cloudml-dry-run",
-        "true",
-        "--cloudml-preemptible",
-        "true",
         "--manifest",
         "output/eval-harness/frozen.json",
         "--row-id",
@@ -397,11 +368,11 @@ def test_catalog_resolves_execution_and_provider_requirements(tmp_path: Path) ->
         for row in rows_module.candidate_rows(output_dir=tmp_path, explicit_axes={})
     }
 
-    codex = rows["map-build-consumer-openai-agents-sdk-codex-router-responses"]
+    custom = rows["map-build-consumer-openai-agents-sdk-custom-responses"]
     kimi = rows["map-build-consumer-openai-agents-sdk-kimi-openai-chat"]
     consumer = rows["direct-cleanup-runtime-prior-consumer"]
-    assert "network:internal-api-router" in codex["execution_requirements"]
+    assert "network:configured-endpoint" in custom["execution_requirements"]
     assert "network:external-egress" in kimi["execution_requirements"]
     assert "provider:kimi-openai-chat" in kimi["execution_requirements"]
-    assert codex["timeout_s"] == 3600
+    assert custom["timeout_s"] == 3600
     assert consumer["depends_on"] == ["direct-map-build-world-public"]

@@ -19,10 +19,8 @@ from roboclaws.household.agibot_map_bundle import (  # noqa: E402
 )
 from roboclaws.household.agibot_map_defaults import (  # noqa: E402
     DEFAULT_AGIBOT_CONFIDENCE_LAYER,
-    DEFAULT_AGIBOT_CONTEXT_JSON,
     DEFAULT_AGIBOT_ENVIRONMENT_ID,
     DEFAULT_AGIBOT_MAP_ALIAS,
-    DEFAULT_AGIBOT_MAP_ARTIFACT_DIR,
 )
 from roboclaws.household.artifact_report import (  # noqa: E402
     rerender_cleanup_report_from_artifact_path,
@@ -33,8 +31,6 @@ from roboclaws.household.household_world_episode import (  # noqa: E402
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CONTEXT_JSON = DEFAULT_AGIBOT_CONTEXT_JSON
-DEFAULT_MAP_ARTIFACT_DIR = DEFAULT_AGIBOT_MAP_ARTIFACT_DIR
 CONFIDENCE_LAYER = DEFAULT_AGIBOT_CONFIDENCE_LAYER
 NEXT_CONFIDENCE_LAYER = "MolmoSpaces Agibot Contract Rehearsal"
 
@@ -75,14 +71,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--context-json",
         type=Path,
-        default=DEFAULT_CONTEXT_JSON,
+        required=True,
         help="Completed agibot_gdk_map_context_authoring_v1 JSON.",
     )
     parser.add_argument(
         "--agibot-map-artifact-dir",
         type=Path,
-        default=DEFAULT_MAP_ARTIFACT_DIR,
-        help=f"Fetched AgiBot map artifact root, defaulting to {DEFAULT_AGIBOT_MAP_ALIAS}.",
+        required=True,
+        help="Path to the injected AgiBot map artifact root.",
     )
     parser.add_argument(
         "--output-dir",
@@ -100,8 +96,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def run_agibot_robot_map_9_semantic_actions(
     *,
     run_dir: Path,
-    context_json: Path = DEFAULT_CONTEXT_JSON,
-    agibot_map_artifact_dir: Path = DEFAULT_MAP_ARTIFACT_DIR,
+    context_json: Path,
+    agibot_map_artifact_dir: Path,
     seed: int = 7,
     generated_mess_count: int = 5,
 ) -> dict[str, Any]:

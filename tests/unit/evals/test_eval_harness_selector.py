@@ -23,8 +23,7 @@ EXPECTED_ROW_IDS = {
     "open-ended-household-contract-tests",
     "smoke-regression-eval-suite",
     "map-build-consumer-eval-suite",
-    "map-build-consumer-openai-agents-sdk-codex-router-responses",
-    "map-build-consumer-openai-agents-sdk-mimo-mify-responses",
+    "map-build-consumer-openai-agents-sdk-custom-responses",
     "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
     "map-build-consumer-openai-agents-sdk-minimax-responses",
     "open-ended-goals-eval-suite",
@@ -34,19 +33,12 @@ EXPECTED_ROW_IDS = {
     "openai-agents-sdk-open-task-live-eval",
     "openai-agents-sdk-session-live-eval",
     "openai-agents-sdk-cleanup-live-eval",
-    "openai-agents-sdk-cleanup-camera-raw-fpv-live-product",
-    "openai-agents-sdk-codex-router-responses-availability",
     "planner-proof-dry-run-product",
     "direct-camera-grounded-grounding-dino",
     "direct-map-build-grounding-dino",
     "direct-camera-raw-fpv",
     "direct-map-build-world-public",
     "direct-cleanup-runtime-prior-consumer",
-}
-ISAAC_OPT_IN_ROW_IDS = {
-    "cloudml-isaac-runtime-smoke",
-    "cloudml-b1-map12-navigation-smoke",
-    "cloudml-b1-map12-map-build-grounding-dino",
 }
 
 
@@ -84,32 +76,9 @@ def _assert_selected_rows_include(
 def test_row_catalog_loads_current_eval_harness_rows(tmp_path: Path) -> None:
     rows = rows_module.candidate_rows(output_dir=tmp_path, explicit_axes={})
 
-    assert {row["row_id"] for row in rows} == EXPECTED_ROW_IDS | ISAAC_OPT_IN_ROW_IDS
+    assert {row["row_id"] for row in rows} == EXPECTED_ROW_IDS
     assert all(row["schema"] == "roboclaws_eval_harness_row_v1" for row in rows)
     assert rows_module.CATALOG_PATH.name == "rows.json"
-
-
-def test_cloudml_isaac_proof_plan_and_profile_select_only_opt_in_rows(
-    tmp_path: Path, monkeypatch: MonkeyPatch
-) -> None:
-    monkeypatch.setattr(selector, "REPO_ROOT", tmp_path)
-    plan = tmp_path / "cloudml-isaac-digital-twin-proof.md"
-    plan.write_text("# CloudML Isaac Digital-Twin Proof\n", encoding="utf-8")
-
-    from_plan = selector.build_eval_harness(
-        plan=plan,
-        budget="focused",
-        profile="adaptive",
-        output_dir=tmp_path / "from-plan",
-    )
-    from_profile = selector.build_eval_harness(
-        budget="focused",
-        profile="cloudml-isaac-proof",
-        output_dir=tmp_path / "from-profile",
-    )
-
-    assert set(_selected_rows(from_plan)) == ISAAC_OPT_IN_ROW_IDS
-    assert set(_selected_rows(from_profile)) == ISAAC_OPT_IN_ROW_IDS
 
 
 def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
@@ -127,7 +96,7 @@ def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
     assert manifest["summary"]["selected_row_count"] == len(EXPECTED_ROW_IDS)
     assert manifest["summary"]["budget_skipped_count"] == 0
     assert manifest["summary"]["eval_suite_row_count"] == 6
-    assert manifest["summary"]["live_agent_eval_row_count"] == 9
+    assert manifest["summary"]["live_agent_eval_row_count"] == 6
     assert rows["openai-agents-sdk-open-task-live-eval"]["status"] == "not_run"
     assert rows["openai-agents-sdk-cleanup-live-eval"]["status"] == "not_run"
     assert "live_stall_timeout_s=180" in rows["openai-agents-sdk-cleanup-live-eval"]["command"]
@@ -136,7 +105,7 @@ def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
         for row_id, row in rows.items()
         if row_id.startswith("map-build-consumer-openai-agents-sdk-")
     ]
-    assert len(provider_rows) == 4
+    assert len(provider_rows) == 3
     assert all("live_timeout_s=1500" in row["command"] for row in provider_rows)
     assert all("live_stall_timeout_s=180" in row["command"] for row in provider_rows)
     assert rows["direct-camera-grounded-grounding-dino"]["status"] == "not_run"
@@ -144,12 +113,6 @@ def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
     assert rows["long-horizon-tasks-eval-suite"]["status"] == "not_run"
     assert rows["long-horizon-tasks-eval-suite"]["expense"] == "local-sim"
     assert "suite=long_horizon_tasks" in rows["long-horizon-tasks-eval-suite"]["command"]
-    raw_fpv_row = rows["openai-agents-sdk-cleanup-camera-raw-fpv-live-product"]
-    assert raw_fpv_row["axes"]["provider_profile"] == "codex-router-responses"
-    assert "provider_profile=codex-router-responses" in raw_fpv_row["command"]
-    assert rows["openai-agents-sdk-codex-router-responses-availability"]["requirement"] == (
-        "optional"
-    )
     assert {signal["id"] for signal in manifest["signals"]} == {"baseline_refresh_profile"}
 
 
@@ -175,7 +138,7 @@ def test_changed_file_signals_select_expected_eval_harness_rows(tmp_path: Path) 
                 "openai-agents-sdk-open-task-live-eval",
                 "openai-agents-sdk-session-live-eval",
             ),
-            "absent_rows": ("openai-agents-sdk-codex-router-responses-availability",),
+            "absent_rows": (),
         },
         {
             "name": "visual_grounding",
@@ -185,10 +148,7 @@ def test_changed_file_signals_select_expected_eval_harness_rows(tmp_path: Path) 
         {
             "name": "raw_fpv",
             "changed_files": ["roboclaws/household/raw_fpv_guidance.py"],
-            "present_rows": (
-                "direct-camera-raw-fpv",
-                "openai-agents-sdk-cleanup-camera-raw-fpv-live-product",
-            ),
+            "present_rows": ("direct-camera-raw-fpv",),
         },
         {
             "name": "agent_view_module",
@@ -219,8 +179,7 @@ def test_changed_file_signals_select_expected_eval_harness_rows(tmp_path: Path) 
                 "direct-map-build-world-public",
                 "direct-cleanup-runtime-prior-consumer",
                 "map-build-consumer-eval-suite",
-                "map-build-consumer-openai-agents-sdk-codex-router-responses",
-                "map-build-consumer-openai-agents-sdk-mimo-mify-responses",
+                "map-build-consumer-openai-agents-sdk-custom-responses",
                 "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
                 "map-build-consumer-openai-agents-sdk-minimax-responses",
             ),
@@ -336,7 +295,7 @@ def test_explicit_intent_axes_select_expected_eval_harness_rows(tmp_path: Path) 
                 "openai-agents-sdk-open-task-live-eval",
                 "openai-agents-sdk-session-live-eval",
             ),
-            "absent_rows": ("openai-agents-sdk-codex-router-responses-availability",),
+            "absent_rows": (),
         },
         {
             "name": "planner_proof",
@@ -425,7 +384,7 @@ def test_explicit_axes_select_first_class_engine_and_provider_profile(
     manifest = selector.build_eval_harness(
         budget="focused",
         agent_engine=["openai-agents-sdk"],
-        provider_profile=["mimo-mify-responses"],
+        provider_profile=["custom-responses"],
         evidence_lane=["camera-grounded-labels"],
         camera_labeler=["grounding-dino"],
         output_dir=tmp_path,
@@ -433,17 +392,17 @@ def test_explicit_axes_select_first_class_engine_and_provider_profile(
 
     rows = _selected_rows(manifest)
     assert rows["openai-agents-sdk-open-task-live-eval"]["axes"]["provider_profile"] == (
-        "mimo-mify-responses"
+        "custom-responses"
     )
     assert rows["openai-agents-sdk-session-live-eval"]["axes"]["provider_profile"] == (
-        "mimo-mify-responses"
+        "custom-responses"
     )
     assert rows["direct-camera-grounded-grounding-dino"]["axes"]["camera_labeler"] == (
         "grounding-dino"
     )
 
 
-def test_map_build_consumer_plan_selects_four_profile_model_matrix(
+def test_map_build_consumer_plan_selects_three_profile_model_matrix(
     tmp_path: Path,
 ) -> None:
     prior = tmp_path / "canonical-prior.json"
@@ -462,14 +421,12 @@ def test_map_build_consumer_plan_selects_four_profile_model_matrix(
         if row_id.startswith("map-build-consumer-openai-agents-sdk-")
     }
     assert set(matrix_rows) == {
-        "map-build-consumer-openai-agents-sdk-codex-router-responses",
-        "map-build-consumer-openai-agents-sdk-mimo-mify-responses",
+        "map-build-consumer-openai-agents-sdk-custom-responses",
         "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
         "map-build-consumer-openai-agents-sdk-minimax-responses",
     }
     assert {row["axes"]["provider_profile"] for row in matrix_rows.values()} == {
-        "codex-router-responses",
-        "mimo-mify-responses",
+        "custom-responses",
         "kimi-openai-chat",
         "minimax-responses",
     }
@@ -480,7 +437,7 @@ def test_map_build_consumer_plan_selects_four_profile_model_matrix(
         assert "agent_engine=openai-agents-sdk" in row["command"]
         assert "live_timeout_s=1500" in row["command"]
         assert "live_execution=run" in row["command"]
-        assert row["axes"]["provider_cell_count"] == "4"
+        assert row["axes"]["provider_cell_count"] == "3"
         assert row["axes"]["default_local_concurrency_width"] == "1"
         assert row["axes"]["concurrency_policy"] == (
             "serial_by_default_for_single_molmospaces_visual_backend_slot"
@@ -499,16 +456,16 @@ def test_explicit_provider_axis_selects_matching_map_build_consumer_matrix_rows(
     rows = _selected_rows(manifest)
     assert "map-build-consumer-openai-agents-sdk-kimi-openai-chat" in rows
     assert "map-build-consumer-openai-agents-sdk-minimax-responses" in rows
-    assert "map-build-consumer-openai-agents-sdk-mimo-mify-responses" not in rows
+    assert "map-build-consumer-openai-agents-sdk-custom-responses" not in rows
 
 
-def test_explicit_codex_env_selects_agent_sdk_availability_evidence(
+def test_explicit_custom_profile_selects_agent_sdk_behavior_rows(
     tmp_path: Path,
 ) -> None:
     manifest = selector.build_eval_harness(
         budget="focused",
         agent_engine=["openai-agents-sdk"],
-        provider_profile=["codex-router-responses"],
+        provider_profile=["custom-responses"],
         intent=["open-ended"],
         output_dir=tmp_path,
     )
@@ -516,23 +473,19 @@ def test_explicit_codex_env_selects_agent_sdk_availability_evidence(
     rows = _selected_rows(manifest)
     behavior_row = rows["openai-agents-sdk-open-task-live-eval"]
     session_row = rows["openai-agents-sdk-session-live-eval"]
-    availability_row = rows["openai-agents-sdk-codex-router-responses-availability"]
-    assert behavior_row["axes"]["provider_profile"] == "codex-router-responses"
-    assert session_row["axes"]["provider_profile"] == "codex-router-responses"
+    assert behavior_row["axes"]["provider_profile"] == "custom-responses"
+    assert session_row["axes"]["provider_profile"] == "custom-responses"
     assert session_row["requirement"] == "required"
     assert behavior_row["requirement"] == "required"
-    assert availability_row["axes"]["provider_profile"] == "codex-router-responses"
-    assert availability_row["requirement"] == "optional"
-    assert manifest["summary"]["optional_row_count"] == 1
+    assert manifest["summary"]["optional_row_count"] == 0
 
 
 def test_execute_marks_live_row_blocked_when_provider_is_missing(
     tmp_path: Path,
     monkeypatch: MonkeyPatch,
 ) -> None:
-    monkeypatch.delenv("CODEX_BASE_URL", raising=False)
-    monkeypatch.delenv("CODEX_API_KEY", raising=False)
-    monkeypatch.delenv("XM_LLM_API_KEY", raising=False)
+    monkeypatch.delenv("KIMI_OPENAI_BASE_URL", raising=False)
+    monkeypatch.delenv("KIMI_API_KEY", raising=False)
     manifest = selector.build_eval_harness(
         mode="execute",
         budget="focused",
@@ -550,11 +503,11 @@ def test_execute_marks_live_row_blocked_when_provider_is_missing(
     )
 
 
-def test_provider_blocker_rejects_unknown_profile_even_when_codex_env_exists(
+def test_provider_blocker_rejects_unknown_profile_even_when_provider_env_exists(
     monkeypatch: MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
-    monkeypatch.setenv("CODEX_API_KEY", "key")
+    monkeypatch.setenv("KIMI_OPENAI_BASE_URL", "https://kimi.example.test/v1")
+    monkeypatch.setenv("KIMI_API_KEY", "fake-key")
 
     blocker = runner._provider_requirement_blocker(
         {"agent_engine": "openai-agents-sdk", "provider_profile": "not-a-provider-route"}
@@ -644,10 +597,10 @@ def test_sdk_live_product_row_records_foreground_command_outputs(
 ) -> None:
     manifest = selector.build_eval_harness(
         budget="focused",
-        changed_files=["roboclaws/household/raw_fpv_guidance.py"],
+        changed_files=["skills/household-world/SKILL.md"],
         output_dir=tmp_path,
     )
-    row = _selected_rows(manifest)["openai-agents-sdk-cleanup-camera-raw-fpv-live-product"]
+    row = _selected_rows(manifest)["openai-agents-sdk-cleanup-live-eval"]
 
     class FakeProcess:
         returncode = 0
@@ -675,10 +628,10 @@ def test_successful_row_rerun_clears_previous_blocker_metadata(
 ) -> None:
     manifest = selector.build_eval_harness(
         budget="focused",
-        changed_files=["roboclaws/household/raw_fpv_guidance.py"],
+        changed_files=["skills/household-world/SKILL.md"],
         output_dir=tmp_path,
     )
-    row = _selected_rows(manifest)["openai-agents-sdk-cleanup-camera-raw-fpv-live-product"]
+    row = _selected_rows(manifest)["openai-agents-sdk-cleanup-live-eval"]
     row.update(
         {
             "status": "blocked",
