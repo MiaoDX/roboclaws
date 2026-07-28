@@ -32,6 +32,12 @@ just agent::eval execute plan=docs/plans/example.md budget=focused
 just agent::eval execute since=origin/main budget=focused
 ```
 
+Refresh the current full baseline after a large code change:
+
+```bash
+just agent::eval execute profile=baseline-refresh budget=focused
+```
+
 Run one versioned suite directly as a lower-level row/debugging path:
 
 ```bash
@@ -47,11 +53,18 @@ just agent::eval promote-regression \
   regression_sample_id=regression.<name>
 ```
 
-## Budgets
+## Profiles And Budgets
 
 - `recommend`: never executes rows; it lists commands and preflight needs.
+- `profile=adaptive`: default mode; select rows from plan text, diff paths, and
+  explicit axes.
+- `profile=baseline-refresh`: select the catalog baseline set directly:
+  deterministic gates, all current eval suites, direct product rows, DINO rows,
+  Codex CLI live rows, and OpenAI Agents SDK live rows. Selected rows run or
+  record explicit blocked evidence; they are not converted to
+  `skipped_by_budget`.
 - `execute budget=smoke`: deterministic confidence only; selected expensive or
-  live rows are recorded as skipped by user budget.
+  live rows are recorded as skipped by user budget in `profile=adaptive`.
 - `execute budget=focused`: default maintainer mode; selected required live
   rows must run or record explicit blocked evidence.
 - `execute budget=full`: run required and recommended selected rows unless
@@ -82,8 +95,11 @@ The manifest schema is `roboclaws_eval_harness_manifest_v1`. Rows use
 
 ## Selection Rules
 
-The selector is deterministic and rule-table based over plan text, git diff
-paths, and explicit overrides. It does not use an LLM classifier.
+The selector is deterministic and rule-table based over the row catalog, plan
+text, git diff paths, and explicit overrides. It does not use an LLM
+classifier. Row policy lives in this skill and `catalog/rows.json`; Python
+scripts only load rows, expand paths/profiles, select, execute, and write
+manifests/reports.
 
 Important signals:
 

@@ -1532,7 +1532,7 @@ def _failure_class_from_exception(exc: Exception) -> str:
     if isinstance(exc, (ImportError, ModuleNotFoundError, TimeoutError)):
         return "environment_blocked"
     message = str(exc).lower()
-    environment_tokens = ("no module named", "not installed", "unavailable", "timed out")
+    environment_tokens = ("no module named", "not installed", "unavailable", "timed out", "mcp")
     if "another interactive codex molmo cleanup session appears to be active" in message:
         return "environment_blocked"
     if any(token in message for token in environment_tokens):

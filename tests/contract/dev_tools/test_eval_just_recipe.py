@@ -65,6 +65,7 @@ def test_agent_eval_public_facade_routes_eval_harness_recommend() -> None:
         "recommend",
         "plan=docs/plans/2026-06-15-eval-harness-skill-entrypoint.md",
         "budget=focused",
+        "profile=baseline-refresh",
         "output_dir=output/eval-harness/trace",
     )
 
@@ -72,6 +73,7 @@ def test_agent_eval_public_facade_routes_eval_harness_recommend() -> None:
     assert "recommend" in trace
     assert "plan=docs/plans/2026-06-15-eval-harness-skill-entrypoint.md" in trace
     assert "budget=focused" in trace
+    assert "profile=baseline-refresh" in trace
     assert "output_dir=output/eval-harness/trace" in trace
 
 

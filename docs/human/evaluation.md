@@ -14,6 +14,10 @@ The maintained user-facing skill is `@eval-harness`. The old separate
 to it, but active plan/diff validation should use `just agent::eval
 recommend|execute`.
 
+For the current row, engine, provider, intent, and evidence-lane inventory used
+to discuss baseline scoping and pruning, see
+[Eval harness dimensions](eval-harness-dimensions.md).
+
 An eval suite answers whether a capability is improving over time, not whether a
 single demo happened to complete. The expected flow is:
 
@@ -47,13 +51,22 @@ The deterministic runner is available through:
 ```bash
 just agent::eval recommend plan=docs/plans/example.md budget=focused
 just agent::eval execute since=origin/main budget=focused
+just agent::eval execute profile=baseline-refresh budget=focused
 just agent::eval suite=smoke_regression budget=smoke
 just agent::eval suite=map_build_consumer budget=smoke
 just agent::eval suite=cleanup_capability budget=smoke
 just agent::eval suite=scene_sampler_stress budget=smoke
 ```
 
-These suites run direct-runner household samples without provider keys, write
+Use `profile=baseline-refresh` after large code changes when the goal is to
+refresh the whole current baseline instead of selecting rows from a diff. It
+selects the catalog baseline: deterministic gates, the five current eval
+suites, direct product rows, Grounding DINO product rows, Codex CLI live evals,
+and OpenAI Agents SDK live evals. Selected live or DINO rows run when their
+preflight is ready and otherwise record blocked evidence; they are not
+`skipped_by_budget`.
+
+Direct suites run direct-runner household samples without provider keys, write
 `output/evals/<suite>/<stamp>/eval_results.json`, and render
 `eval_report.html` with links to the underlying product run artifacts. Smoke
 budget uses the synthetic cleanup backend for local determinism while eval

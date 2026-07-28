@@ -391,7 +391,7 @@ def test_eval_runner_classifies_environment_blocked_exception(tmp_path: Path) ->
     result = payload["results"][0]
     assert result["status"] == "blocked"
     assert result["failure_class"] == "environment_blocked"
-    assert result["grader_outputs"]["runner"]["error_type"] == "ModuleNotFoundError"
+    assert result["grader_outputs"]["runner"]["error_type"] == "RuntimeError"
 
 
 def test_eval_runner_records_repetition_metrics(tmp_path: Path) -> None:
@@ -940,8 +940,8 @@ def test_live_surface_product_does_not_recover_sdk_artifact_after_timeout(
         raise live_runtime.subprocess.TimeoutExpired(
             cmd=command,
             timeout=5.0,
-            output=f"Artifacts: {run_dir}\n",
-            stderr="",
+            output=f"Artifacts: {run_dir}\n".encode(),
+            stderr=b"still running",
         )
 
     monkeypatch.setattr(live_runtime.subprocess, "run", fake_run)
@@ -2919,7 +2919,7 @@ def _missing_artifact_product_runner(**kwargs: Any) -> dict[str, Any]:
 
 
 def _blocked_product_runner(**kwargs: Any) -> dict[str, Any]:
-    raise ModuleNotFoundError("No module named 'molmospaces'")
+    raise RuntimeError("requested MCP port is already accepting connections")
 
 
 def _live_surface_kwargs(run_dir: Path, *, live_timeout_s: float | None = None) -> dict[str, Any]:
