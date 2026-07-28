@@ -87,9 +87,7 @@ down:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    echo "==> cleaning up roboclaws MCP registrations" >&2
-    codex mcp remove roboclaws >/dev/null 2>&1 || true
-    claude mcp remove roboclaws >/dev/null 2>&1 || true
+    echo "==> stopping roboclaws MCP server" >&2
 
     if [[ -f "{{server_pid_file}}" ]]; then
       server_pid="$(cat "{{server_pid_file}}" || true)"

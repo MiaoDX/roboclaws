@@ -10,8 +10,9 @@ from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.routes import get_selection
 from roboclaws.operator_console.state import derive_operator_state
 from tests.support.b1_robot_proof import write_b1_robot_proof_artifacts
-
-from tests.unit.operator_console.conftest import B1_OPENAI_AGENTS_OPEN_TASK  # noqa: F401  re-exported for tests
+from tests.unit.operator_console.conftest import (
+    B1_OPENAI_AGENTS_OPEN_TASK,  # noqa: F401  re-exported for tests
+)
 
 CODEX_ENV = {
     "CODEX_BASE_URL": "https://codex.example.test/v1",

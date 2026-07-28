@@ -159,7 +159,7 @@ def _request_field_gate(
             blocks_start=gate.required,
         )
     try:
-        payload = read_json_object(context_path, label=label)
+        read_json_object(context_path, label=label)
     except ValueError as exc:
         if exc.__cause__ is None:
             return GateEvaluation(

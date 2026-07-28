@@ -74,10 +74,11 @@ just console::run
 
 The console uses the same world/backend/preset/agent-engine catalog for local
 SDK/direct runs, but its main screen is organized around product workflow
-actions: Build Map, Open Task, Cleanup, with-map variants, standard mess
-preparation, and reset. Advanced controls expose raw launch axes for
-maintainers; browser-submitted launches still resolve through the public
-catalog rather than arbitrary shell commands.
+actions: Build Map, Open Task, and Cleanup. Runtime Map Prior Snapshot use is a
+workflow setting, while standard mess preparation and reset are scene setup or
+operations controls. Advanced controls expose raw launch axes for maintainers;
+browser-submitted launches still resolve through the public catalog rather than
+arbitrary shell commands.
 
 ## Demo Matrix
 

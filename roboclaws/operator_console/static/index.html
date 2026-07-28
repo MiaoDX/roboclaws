@@ -188,32 +188,32 @@
       <main class="workspace">
         <nav class="view-modes" aria-label="Workspace view modes">
           <button class="view-mode active" data-view="overview">Overview</button>
-          <button class="view-mode" data-view="fpv">FPV(+Grounding)</button>
-          <button class="view-mode" data-view="map">Metric Map</button>
-          <button class="view-mode" data-view="chase">Chase</button>
-          <button class="view-mode" data-view="topdown">Top2Down</button>
+          <button class="view-mode" data-view="fpv">Camera</button>
+          <button class="view-mode" data-view="map">Map</button>
+          <button class="view-mode" data-view="grounding">Perception</button>
+          <button class="view-mode" data-view="chase">Third-person</button>
           <button class="view-mode" data-view="outputs">Outputs</button>
         </nav>
         <section id="visual-grid" class="view-grid mode-overview">
           <article class="image-panel" data-panel="fpv">
-            <div class="panel-header"><span data-panel-title="fpv">FPV(+Grounding)</span><button data-copy="fpv">Copy Path</button></div>
+            <div class="panel-header"><span data-panel-title="fpv">Camera</span><button data-copy="fpv">Copy Path</button></div>
             <div class="image-frame ratio-4-3" id="fpv-frame">No frame yet. Waiting for the first observation artifact.</div>
           </article>
           <article class="image-panel" data-panel="grounding" hidden>
-            <div class="panel-header"><span data-panel-title="grounding">Grounding</span><button data-copy="grounding">Copy Path</button></div>
-            <div class="image-frame ratio-4-3" id="grounding-frame">No grounding result yet.</div>
+            <div class="panel-header"><span data-panel-title="grounding">Perception</span><button data-copy="grounding">Copy Path</button></div>
+            <div class="image-frame ratio-4-3" id="grounding-frame">Perception output unavailable until a camera-grounded run writes an overlay.</div>
           </article>
           <article class="image-panel" data-panel="map">
-            <div class="panel-header"><span data-panel-title="map">Metric Map</span><button data-copy="map">Copy Path</button></div>
-            <div class="image-frame" id="map-frame">Metric Map preview has not been written yet.</div>
+            <div class="panel-header"><span data-panel-title="map">Map</span><button data-copy="map">Copy Path</button></div>
+            <div class="image-frame" id="map-frame">Map preview has not been written yet.</div>
           </article>
           <article class="image-panel" data-panel="topdown">
-            <div class="panel-header"><span data-panel-title="topdown">Top2Down</span><button data-copy="topdown">Copy Path</button></div>
-            <div class="image-frame" id="topdown-frame">Top2Down scene view has not been written yet.</div>
+            <div class="panel-header"><span data-panel-title="topdown">Top-down Scene</span><button data-copy="topdown">Copy Path</button></div>
+            <div class="image-frame" id="topdown-frame">Top-down scene view has not been written yet.</div>
           </article>
           <article class="image-panel" data-panel="chase" hidden>
-            <div class="panel-header"><span data-panel-title="chase">Chase</span><button data-copy="chase">Copy Path</button></div>
-            <div class="image-frame ratio-16-9" id="chase-frame">Chase view unavailable for this backend.</div>
+            <div class="panel-header"><span data-panel-title="chase">Third-person</span><button data-copy="chase">Copy Path</button></div>
+            <div class="image-frame ratio-16-9" id="chase-frame">Third-person view unavailable for this backend.</div>
           </article>
           <article id="outputs-panel" class="outputs-panel" data-panel="outputs" hidden>
             <h2>Outputs</h2>

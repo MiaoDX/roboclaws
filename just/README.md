@@ -218,18 +218,6 @@ To inspect the sidecar adapter slots without starting a service:
 Detailed sidecar dependency and corpus commands live in
 `docs/human/molmospaces-settings.md`.
 
-Prompt mappings for agents:
-
-| Prompt | Command |
-|---|---|
-| "run the map-build task" | `just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=map-build agent_engine=openai-agents-sdk provider_profile=codex-router-responses evidence_lane=camera-grounded-labels camera_labeler=grounding-dino` |
-| "run the map-build contract baseline" | `just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=map-build agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=grounding-dino` |
-| "run the map-build task with the SDK" | `just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=map-build agent_engine=openai-agents-sdk provider_profile=codex-router-responses evidence_lane=camera-grounded-labels camera_labeler=grounding-dino` |
-| "run the household cleanup task with the SDK" | `just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=openai-agents-sdk provider_profile=codex-router-responses evidence_lane=world-public-labels` |
-| "run an open-ended household goal with the SDK" | `just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=codex-router-responses prompt="我渴了，帮我找些解渴的东西"` |
-| "run the household cleanup camera raw lane" | `just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=direct-runner evidence_lane=camera-raw-fpv` |
-| "run the planner proof dry run" | `just run::surface surface=planner-proof world=planner-proof/default backend=mujoco intent=planner-proof agent_engine=direct-runner mode=dry-run` |
-
 ## Maintainer Dispatch
 
 Use `agent::*` only when you are intentionally bypassing the human task grammar:

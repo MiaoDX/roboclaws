@@ -264,9 +264,7 @@ def task_phase_from_payloads(
     return str(state.get("phase") or "unknown")
 
 
-def task_phase_from_paths(
-    display_run_dir: Path, state: dict[str, Any], *, read_json: Any
-) -> str:
+def task_phase_from_paths(display_run_dir: Path, state: dict[str, Any], *, read_json: Any) -> str:
     live_status = read_json(display_run_dir / "live_status.json")
     run_result = read_json(display_run_dir / "run_result.json")
     return task_phase_from_payloads(live_status, state, run_result)
@@ -299,4 +297,3 @@ def existing_terminal_reason(
             if value:
                 return str(value)
     return ""
-

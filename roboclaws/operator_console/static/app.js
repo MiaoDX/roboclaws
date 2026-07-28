@@ -26,6 +26,7 @@ const MANUAL_CONTROL_STEP_M = 0.25;
 const MANUAL_CONTROL_TURN_DEG = 15;
 const DEFAULT_UI_INTENT = "open-ended";
 const DEFAULT_WORKFLOW_ID = "open-task";
+const STABLE_VIEW_MODES = new Set(["overview", "fpv", "map", "grounding", "chase", "outputs"]);
 
 const els = {
   appShell: document.querySelector(".app-shell"),
@@ -369,18 +370,10 @@ function workflowForRoute(route) {
   if (!route) {
     return preferredWorkflowForWorld();
   }
-  const routeHasRuntimePrior = (route.default_overrides || []).some((item) =>
-    String(item).startsWith("runtime_map_prior=")
-  );
   const workflows = workflowActionsForWorld(
     state.worlds.find((world) => world.id === route.world_id) || state.selectedWorld
   );
   return (
-    workflows.find(
-      (workflow) =>
-        workflow.intent_id === route.intent_id &&
-        Boolean(workflow.requires_runtime_map_prior) === routeHasRuntimePrior
-    ) ||
     workflows.find((workflow) => workflow.intent_id === route.intent_id) ||
     preferredWorkflowForWorld()
   );
@@ -390,8 +383,8 @@ function workflowIntent(workflow) {
   return (workflow && workflow.intent_id) || "";
 }
 
-function workflowRequiresPrior(workflow = selectedWorkflow()) {
-  return Boolean(workflow && workflow.requires_runtime_map_prior);
+function workflowSupportsPrior(workflow = selectedWorkflow()) {
+  return Boolean(workflow && workflow.allows_prior_override);
 }
 
 function workflowHasRoute(workflow = selectedWorkflow()) {
@@ -399,6 +392,9 @@ function workflowHasRoute(workflow = selectedWorkflow()) {
 }
 
 function selectedRuntimeMapPrior(workflow = selectedWorkflow()) {
+  if (!workflowSupportsPrior(workflow)) {
+    return null;
+  }
   const override = els.runtimeMapPriorInput.value.trim();
   if (override) {
     return { path: override, source: "operator_override", status: "operator-selected" };
@@ -411,9 +407,6 @@ function workflowIsStartable(workflow = selectedWorkflow()) {
     return false;
   }
   if (workflow.enabled === false) {
-    return Boolean(workflowRequiresPrior(workflow) && selectedRuntimeMapPrior(workflow));
-  }
-  if (workflowRequiresPrior(workflow) && !selectedRuntimeMapPrior(workflow)) {
     return false;
   }
   return true;
@@ -526,7 +519,7 @@ function renderSceneState(route) {
   } else {
     els.mapPriorState.innerHTML = `
       <strong>No recommended prior</strong>
-      <p>Build Map or provide an explicit Runtime Map Prior Snapshot override for with-map workflows.</p>
+      <p>Open Task and Cleanup can launch without a prior, or use Build Map and select an accepted Runtime Map Prior Snapshot later.</p>
       <p class="field-help">${escapeHtml(world.label || world.id || "scene")} / ${escapeHtml(backend)}</p>
     `;
   }
@@ -570,7 +563,7 @@ function workflowStatusDisplay(workflow, route, readiness) {
     return { label: "UNAVAILABLE", className: "blocked" };
   }
   if (!workflowIsStartable(workflow)) {
-    return { label: "NEEDS MAP", className: "needs_action" };
+    return { label: "UNAVAILABLE", className: "blocked" };
   }
   if (selectedWorkflow() && workflow.id === selectedWorkflow().id && readiness.can_start === false) {
     return routeStatusDisplay(route, readiness);
@@ -857,12 +850,13 @@ function renderSelectedRouteSummary(route, readiness) {
   const interpretation = launchInterpretation(route);
   const workflow = selectedWorkflow();
   const blockerHtml = backgroundBlockerSummaryHtml(readiness);
+  const evidenceLabel = evidenceLaneLabel(route);
   els.selectedRouteSummary.innerHTML = `
     <div class="route-card-title">
       <span>${escapeHtml(workflow ? workflow.label : route.label)}</span>
       <span class="badge ${status.className}">${status.label}</span>
     </div>
-    <div class="meta-label">${escapeHtml(route.agent_engine_label || route.agent_engine_id)} / ${escapeHtml(route.evidence_lane)}</div>
+    <div class="meta-label" title="${escapeHtml(route.evidence_lane)}">${escapeHtml(route.agent_engine_label || route.agent_engine_id)} / ${escapeHtml(evidenceLabel)}</div>
     <div class="field-help">${escapeHtml(route.world_label || route.world_id)} / ${escapeHtml(route.backend_label || route.backend_id)}</div>
     <div class="field-help">${escapeHtml(interpretation.intentLabel)} / ${escapeHtml(
       interpretation.goalScope
@@ -876,6 +870,17 @@ function renderSelectedRouteSummary(route, readiness) {
       refreshRuntimeTasks();
     });
   }
+}
+
+function evidenceLaneLabel(route) {
+  if (!route) {
+    return "";
+  }
+  if (route.evidence_lane_label) {
+    return route.evidence_lane_label;
+  }
+  const lane = state.evidenceLanes.find((item) => item.id === route.evidence_lane);
+  return (lane && lane.label) || route.evidence_lane || "";
 }
 
 function backgroundBlockerSummaryHtml(readiness) {
@@ -981,7 +986,7 @@ function commandPreview(route) {
     parts.push(`prompt=${prompt}`);
   }
   const prior = selectedRuntimeMapPrior(workflow);
-  if (prior && workflowRequiresPrior(workflow)) {
+  if (prior && workflowSupportsPrior(workflow)) {
     parts = withoutKeys(parts, ["runtime_map_prior"]);
     parts.push(`runtime_map_prior=${prior.path}`);
   }
@@ -1254,7 +1259,7 @@ function renderStartAction(route, readiness) {
     : !workflowHasCatalogRoute
     ? "This workflow is unavailable for the selected scene/backend."
     : workflowBlocked
-    ? "This workflow needs a Runtime Map Prior Snapshot. Provide an override or run Build Map first."
+    ? (workflow && workflow.disabled_reason) || "This workflow is unavailable for the selected scene/backend."
     : backgroundBlockerText || readiness.blocker || route.unsupported_reason || "";
 }
 
@@ -1413,7 +1418,7 @@ async function refreshSelectedRouteReadiness() {
   });
   const workflow = selectedWorkflow();
   const prior = selectedRuntimeMapPrior(workflow);
-  if (workflowRequiresPrior(workflow) && prior && prior.path) {
+  if (workflowSupportsPrior(workflow) && prior && prior.path) {
     params.set("runtime_map_prior", prior.path);
   }
   if (selectedProviderProfile()) {
@@ -1549,14 +1554,14 @@ function confirmLaunch() {
       <dt>World</dt><dd>${escapeHtml(route.world_label || route.world_id)}</dd>
       <dt>Backend</dt><dd>${escapeHtml(route.backend_label || route.backend_id)}</dd>
       <dt>Agent</dt><dd>${escapeHtml(route.agent_engine_label || route.agent_engine_id)}</dd>
-      <dt>Evidence</dt><dd>${escapeHtml(route.evidence_lane)}</dd>
+      <dt>Evidence</dt><dd title="${escapeHtml(route.evidence_lane)}">${escapeHtml(evidenceLaneLabel(route))}</dd>
       <dt>Workflow</dt><dd>${escapeHtml(workflow ? workflow.label : "route launch")}</dd>
       <dt>Intent</dt><dd>${escapeHtml(interpretation.intentLabel)}</dd>
       <dt>Goal scope</dt><dd>${escapeHtml(interpretation.goalScope)}</dd>
       <dt>Checker</dt><dd>${escapeHtml(interpretation.checker)}</dd>
       <dt>Evaluation</dt><dd>${escapeHtml(interpretation.evaluation)}</dd>
       ${providerRows}
-      ${workflowRequiresPrior(workflow) ? `<dt>Map Prior</dt><dd>${escapeHtml(prior ? prior.path : "missing")}</dd>` : ""}
+      ${workflowSupportsPrior(workflow) && prior ? `<dt>Map Prior</dt><dd>${escapeHtml(prior.path)}</dd>` : ""}
       <dt>Lock</dt><dd>${escapeHtml(route.lock_name)}</dd>
       ${movementRows}
       <dt>Prompt</dt><dd>${promptSource}</dd>
@@ -1681,7 +1686,7 @@ function launchRequestBody(route = state.selectedRoute) {
   const workflow = selectedWorkflow();
   const prior = selectedRuntimeMapPrior(workflow);
   const overrides = launchOverrides(route);
-  if (workflowRequiresPrior(workflow) && prior && prior.path) {
+  if (workflowSupportsPrior(workflow) && prior && prior.path) {
     overrides.runtime_map_prior = prior.path;
   }
   return {
@@ -2192,7 +2197,7 @@ function renderViews(assets, route = state.selectedRoute) {
   setImageSlot(
     "fpv",
     displayAssets.fpv,
-    "Missing run FPV artifact: expected robot_views/*.fpv.png."
+    artifactEmptyText(route, "fpv", "Missing run camera artifact: expected robot_views/*.fpv.png.")
   );
   const metricMapAsset =
     sourceAssets.runtime_map || sourceAssets.map || routePreviewAsset(route, "map");
@@ -2200,23 +2205,28 @@ function renderViews(assets, route = state.selectedRoute) {
   setImageSlot(
     "map",
     metricMapAsset,
-    "Missing Metric Map artifact: expected runtime_metric_map_preview.png or map_bundle/preview.png."
+    artifactEmptyText(
+      route,
+      "map",
+      "Missing Map artifact: expected runtime_metric_map_preview.png or map_bundle/preview.png."
+    )
   );
   setImageSlot(
     "topdown",
     sourceAssets.topdown || routePreviewAsset(route, "topdown"),
-    "Missing run Top2Down artifact: expected a run-local topdown image."
+    artifactEmptyText(route, "topdown", "Missing run top-down artifact: expected a run-local topdown image.")
   );
-  const chaseEmptyText = routeHasView(route, "chase")
-    ? "Missing run chase artifact: expected robot_views/*.chase.png."
-    : "Chase view unavailable for this backend.";
-  const chaseAsset = routeHasView(route, "chase")
-    ? sourceAssets.chase || routePreviewAsset(route, "chase")
-    : null;
   displayAssets.topdown = sourceAssets.topdown || routePreviewAsset(route, "topdown");
-  displayAssets.chase = chaseAsset;
-  setImageSlot("chase", displayAssets.chase, chaseEmptyText);
-  setImageSlot("grounding", sourceAssets.grounding, "No grounding result yet.");
+  displayAssets.chase = sourceAssets.chase || routePreviewAsset(route, "chase");
+  setImageSlot(
+    "chase",
+    displayAssets.chase,
+    artifactEmptyText(route, "chase", "Missing run third-person artifact: expected robot_views/*.chase.png.")
+  );
+  renderGroundingSlot(
+    sourceAssets,
+    artifactEmptyText(route, "grounding", "No perception overlay has been written yet.")
+  );
   state.latestViewAssets = displayAssets;
   ensureActiveViewAvailable(route);
   renderViewModes(route);
@@ -2228,14 +2238,36 @@ function renderSelectedScenePreview(route = state.selectedRoute) {
   }
   const previews = route && route.preview_assets ? route.preview_assets : {};
   state.latestViewAssets = previews;
-  setImageSlot("fpv", previews.fpv, "No scene FPV preview is available.");
-  setImageSlot("map", previews.map, "No base Metric Map preview is available.");
-  setImageSlot("topdown", previews.topdown, "No Top2Down scene preview is available.");
-  setImageSlot("grounding", null, "Grounding will appear after a camera-grounded run starts.");
-  const chaseEmptyText = routeHasView(route, "chase")
-    ? "Chase preview will appear after a run starts."
-    : "Chase view unavailable for this backend.";
-  setImageSlot("chase", routeHasView(route, "chase") ? previews.chase : null, chaseEmptyText);
+  setImageSlot("fpv", previews.fpv, artifactEmptyText(route, "fpv", "No scene camera preview is available."));
+  setImageSlot("map", previews.map, artifactEmptyText(route, "map", "No base Map preview is available."));
+  setImageSlot(
+    "topdown",
+    previews.topdown,
+    artifactEmptyText(route, "topdown", "No top-down scene preview is available.")
+  );
+  setImageSlot(
+    "grounding",
+    null,
+    artifactEmptyText(route, "grounding", "Perception output will appear after a camera-grounded run starts.")
+  );
+  setImageSlot(
+    "chase",
+    previews.chase,
+    artifactEmptyText(route, "chase", "Third-person preview will appear after a run starts.")
+  );
+}
+
+function artifactEmptyText(route, view, fallback) {
+  if (routeHasView(route, view)) {
+    return fallback;
+  }
+  return {
+    fpv: "Camera view unavailable for this backend.",
+    map: "Map view unavailable for this backend.",
+    grounding: "Perception view unavailable for this backend.",
+    chase: "Third-person view unavailable for this backend.",
+    topdown: "Top-down scene view unavailable for this backend.",
+  }[view] || `${imageLabel(view)} view unavailable for this backend.`;
 }
 
 function setImageSlot(name, asset, emptyText) {
@@ -2278,21 +2310,116 @@ function setImageSlot(name, asset, emptyText) {
   });
 }
 
+function renderGroundingSlot(assets, emptyText) {
+  const slot = document.getElementById("grounding-frame");
+  if (!slot) {
+    return;
+  }
+  updatePanelTitle("grounding", imageLabel("grounding"));
+  const framePayload = assets && assets.grounding_frames;
+  const frames = framePayload && Array.isArray(framePayload.frames) ? framePayload.frames : [];
+  if (!frames.length) {
+    setImageSlot("grounding", assets && assets.grounding, emptyText);
+    return;
+  }
+  const copyAsset = firstGroundingFrameAsset(frames);
+  updateCopyButton("grounding", copyAsset);
+  const candidateCount = framePayload.candidate_count || groundingCandidateCount(frames);
+  slot.innerHTML = `
+    <div class="grounding-gallery" data-frame-count="${frames.length}" data-candidate-count="${candidateCount}">
+      <div class="grounding-gallery-summary">
+        ${frames.length} frame${frames.length === 1 ? "" : "s"} / ${candidateCount} candidate${candidateCount === 1 ? "" : "s"}
+      </div>
+      <div class="grounding-frame-list">
+        ${frames.map((frame) => groundingFrameHtml(frame)).join("")}
+      </div>
+    </div>
+  `;
+  slot.querySelectorAll(".grounding-image-button").forEach((button) => {
+    button.addEventListener("click", () => {
+      openImageDialog({
+        src: button.dataset.imageSrc || "",
+        title: button.dataset.imageTitle || imageLabel("grounding"),
+        path: button.dataset.imagePath || "",
+      });
+    });
+  });
+}
+
+function firstGroundingFrameAsset(frames) {
+  const first = frames.find((frame) => frame && frame.image && frame.image.path);
+  return first ? first.image : null;
+}
+
+function groundingCandidateCount(frames) {
+  return frames.reduce((total, frame) => total + ((frame && frame.candidates && frame.candidates.length) || 0), 0);
+}
+
+function groundingFrameHtml(frame) {
+  const image = (frame && frame.image) || {};
+  const src = image.href || artifactHref(image.path);
+  const observationId = frame.observation_id || "raw_fpv";
+  const candidates = Array.isArray(frame.candidates) ? frame.candidates : [];
+  return `
+    <article class="grounding-frame-card">
+      <div class="grounding-frame-header">
+        <span>${escapeHtml(observationId)}</span>
+        <span>${candidates.length} candidate${candidates.length === 1 ? "" : "s"}</span>
+      </div>
+      <button
+        type="button"
+        class="grounding-image-button"
+        data-image-src="${escapeHtml(src)}"
+        data-image-title="${escapeHtml(`Perception ${observationId}`)}"
+        data-image-path="${escapeHtml(image.path || "")}"
+        aria-label="Open ${escapeHtml(observationId)} perception frame"
+        title="Open perception frame"
+      >
+        <img alt="${escapeHtml(observationId)} camera frame" src="${escapeHtml(src)}" />
+        <span class="grounding-box-layer" aria-hidden="true">
+          ${candidates.map((candidate, index) => groundingCandidateBoxHtml(candidate, index)).join("")}
+        </span>
+      </button>
+    </article>
+  `;
+}
+
+function groundingCandidateBoxHtml(candidate, index) {
+  const bbox = Array.isArray(candidate.bbox_xywh) ? candidate.bbox_xywh : [];
+  if (bbox.length !== 4) {
+    return "";
+  }
+  const [x, y, width, height] = bbox.map((value) => Math.max(0, Math.min(1, Number(value) || 0)));
+  const label = groundingCandidateLabel(candidate, index);
+  return `
+    <span
+      class="grounding-box"
+      style="left:${x * 100}%;top:${y * 100}%;width:${width * 100}%;height:${height * 100}%"
+    >
+      <span class="grounding-box-label">${escapeHtml(label)}</span>
+    </span>
+  `;
+}
+
+function groundingCandidateLabel(candidate, index) {
+  const category = candidate.category || `candidate ${index + 1}`;
+  const confidence =
+    typeof candidate.confidence === "number" ? ` ${Math.round(candidate.confidence * 100)}%` : "";
+  return `${category}${confidence}`;
+}
+
 function routePreviewAsset(route, name) {
   const previews = route && route.preview_assets ? route.preview_assets : {};
   return previews[name] || null;
 }
 
 function imageLabel(name, asset = {}) {
-  if (name === "fpv" && asset.display_source === "visual_grounding_overlay") {
-    return "FPV(+Grounding)";
-  }
   const labels = {
-    fpv: "FPV(+Grounding)",
-    map: "Metric Map",
-    topdown: "Top2Down",
-    grounding: "Grounding",
-    chase: "Chase",
+    fpv: "Camera",
+    map: "Map",
+    topdown: "Top-down Scene",
+    grounding: "Perception",
+    chase: "Third-person",
   };
   return labels[name] || name;
 }
@@ -2316,7 +2443,13 @@ function updateCopyButton(name, asset) {
 async function copyVisualPath(name) {
   const asset =
     state.latestViewAssets &&
-    (name === "map"
+    (name === "grounding"
+      ? firstGroundingFrameAsset(
+          state.latestViewAssets.grounding_frames && state.latestViewAssets.grounding_frames.frames
+            ? state.latestViewAssets.grounding_frames.frames
+            : []
+        ) || state.latestViewAssets.grounding
+      : name === "map"
       ? state.latestViewAssets.runtime_map || state.latestViewAssets.map
       : state.latestViewAssets[name]);
   if (!asset || !asset.path) {
@@ -2361,7 +2494,9 @@ function renderViewModes(route = state.selectedRoute) {
 
   document.querySelectorAll(".view-mode").forEach((button) => {
     const enabled = modes.has(button.dataset.view);
-    button.hidden = !enabled;
+    button.hidden = !STABLE_VIEW_MODES.has(button.dataset.view);
+    button.disabled = !enabled;
+    button.title = enabled ? "" : "Unavailable for this backend.";
     button.classList.toggle("active", enabled && button.dataset.view === activeView);
   });
 
@@ -2382,13 +2517,21 @@ function ensureActiveViewAvailable(route = state.selectedRoute) {
 }
 
 function routeViewModes(route) {
-  const modes = new Set(route.view_modes || ["overview", "fpv", "map", "outputs"]);
-  modes.add("topdown");
+  const modes = new Set(route && route.view_modes ? route.view_modes : []);
+  for (const view of STABLE_VIEW_MODES) {
+    modes.add(view);
+  }
   return modes;
 }
 
 function routeHasView(route, view) {
-  return new Set((route && route.view_modes) || []).has(view);
+  if (["overview", "outputs"].includes(view)) {
+    return true;
+  }
+  if (view === "topdown") {
+    return Boolean(routePreviewAsset(route, "topdown"));
+  }
+  return new Set((route && route.backend_view_modes) || (route && route.view_modes) || []).has(view);
 }
 
 function isAgibotRoute(route) {

@@ -10,7 +10,6 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 JUST_DIR = REPO_ROOT / "just"
-AGENT_JUST = JUST_DIR / "agent.just"
 HARNESS_JUST = JUST_DIR / "harness.just"
 
 
@@ -41,10 +40,8 @@ def trace_agent_harness(*args: str) -> list[str]:
 
 
 def test_agent_harness_allows_isaac_runtime_preflight_target() -> None:
-    agent_text = AGENT_JUST.read_text(encoding="utf-8")
     harness_text = HARNESS_JUST.read_text(encoding="utf-8")
 
-    assert "isaac-runtime-preflight" in agent_text
     assert re.search(r"^isaac-runtime-preflight \*overrides:", harness_text, re.MULTILINE)
     assert "check_isaac_lab_runtime.py" in harness_text
     recipe_match = re.search(
@@ -70,10 +67,8 @@ def test_agent_harness_allows_isaac_runtime_preflight_target() -> None:
 
 
 def test_agent_harness_allows_isaac_runtime_smoke_target() -> None:
-    agent_text = AGENT_JUST.read_text(encoding="utf-8")
     harness_text = HARNESS_JUST.read_text(encoding="utf-8")
 
-    assert "isaac-runtime-smoke" in agent_text
     assert re.search(r"^isaac-runtime-smoke \*overrides:", harness_text, re.MULTILINE)
     assert "isaac_lab_backend_worker.py" in harness_text
     assert "check_isaac_lab_runtime_smoke_result.py" in harness_text
@@ -120,22 +115,16 @@ def test_agent_harness_allows_isaac_runtime_smoke_target() -> None:
 
 
 def test_agent_harness_removes_molmospaces_isaac_usd_reference_target() -> None:
-    agent_text = AGENT_JUST.read_text(encoding="utf-8")
     harness_text = HARNESS_JUST.read_text(encoding="utf-8")
 
-    assert "molmo-isaac-usd-references" not in agent_text
-    assert "isaac-usd-references" not in agent_text
     assert "install_molmospaces_usd_references.py" not in harness_text
     assert not re.search(r"^molmo-isaac-usd-references \*overrides:", harness_text, re.MULTILINE)
     assert not re.search(r"^isaac-usd-references \*overrides:", harness_text, re.MULTILINE)
 
 
 def test_agent_harness_removes_molmospaces_isaac_cleanup_targets() -> None:
-    agent_text = AGENT_JUST.read_text(encoding="utf-8")
     harness_text = HARNESS_JUST.read_text(encoding="utf-8")
 
-    assert "molmo-isaac-cleanup-smoke" not in agent_text
-    assert "molmo-isaac-prepared-cleanup-smoke" not in agent_text
     assert not re.search(r"^molmo-isaac-cleanup-smoke \*overrides:", harness_text, re.MULTILINE)
     assert not re.search(
         r"^molmo-isaac-prepared-cleanup-smoke \*overrides:",
@@ -147,10 +136,8 @@ def test_agent_harness_removes_molmospaces_isaac_cleanup_targets() -> None:
 
 
 def test_agent_harness_allows_b1_map12_navigation_smoke_target() -> None:
-    agent_text = AGENT_JUST.read_text(encoding="utf-8")
     harness_text = HARNESS_JUST.read_text(encoding="utf-8")
 
-    assert "b1-map12-navigation-smoke" in agent_text
     assert re.search(r"^b1-map12-navigation-smoke \*overrides:", harness_text, re.MULTILINE)
     assert "check_b1_map12_readiness.py" in harness_text
     assert "run_b1_map12_navigation_smoke.py" in harness_text
