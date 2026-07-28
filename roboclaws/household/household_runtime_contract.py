@@ -19,7 +19,7 @@ from roboclaws.household import (
     realworld_visual_candidates,
 )
 from roboclaws.household.backend import API_SEMANTIC_PROVENANCE
-from roboclaws.household.backend_contract import CleanupBackendSession
+from roboclaws.household.household_backend_contract import HouseholdBackendSession
 from roboclaws.household.planner_observed_binding import (
     observed_handle_planner_binding,
 )
@@ -180,10 +180,10 @@ _FORBIDDEN_AGENT_VIEW_KEYS = frozenset(
 )
 
 
-class RealWorldCleanupContract:
+class HouseholdRuntimeContract:
     """ADR-0003 public/private cleanup contract.
 
-    The wrapped ``CleanupBackendSession`` still owns state mutation and
+    The wrapped ``HouseholdBackendSession`` still owns state mutation and
     deterministic private scoring. This contract is the public agent boundary:
     it exposes metric navigation, room-level static fixture projection, and robot-local
     observed object handles instead of a global object-inventory oracle.
@@ -191,7 +191,7 @@ class RealWorldCleanupContract:
 
     def __init__(
         self,
-        contract: CleanupBackendSession,
+        contract: HouseholdBackendSession,
         *,
         task_prompt: str = DEFAULT_REALWORLD_TASK,
         static_fixture_projection_mode: str = "room_only",
@@ -334,6 +334,7 @@ class RealWorldCleanupContract:
             static_landmarks_from_fixture_projection(self.static_fixture_projection()),
             start_waypoint_id=start_waypoint_id,
             goal_waypoint_id=waypoint_id,
+            occupancy_grid=self._bundle_occupancy_grid,
         )
         if not route.ok:
             return self._error(

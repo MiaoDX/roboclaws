@@ -26,7 +26,7 @@ from roboclaws.agents.provider_registry import (
     route_capabilities_for_engine,
 )
 from roboclaws.agents.thinking_policy import normalize_thinking_mode
-from roboclaws.household.realworld_mcp_server import (
+from roboclaws.household.household_mcp_server import (
     ROBOT_VIEW_CAPTURE_POLICIES,
     ROBOT_VIEW_CAPTURE_POLICY_FULL,
 )

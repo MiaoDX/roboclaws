@@ -33,6 +33,7 @@ class GoalContract:
     assumptions: tuple[str, ...]
     tool_plan: tuple[str, ...]
     success_criteria: tuple[str, ...]
+    required_capabilities: tuple[str, ...] = ()
     clarification_needed: bool = False
     clarification_question: str = ""
     safety_notes: tuple[str, ...] = ()
@@ -53,6 +54,7 @@ def normalize_goal_contract(
     surface: TaskSurfaceSpec,
     intent: TaskIntentSpec,
     raw_prompt: str = "",
+    required_capabilities: tuple[str, ...] = (),
 ) -> GoalContract:
     """Build the deterministic first-slice goal contract for a launch."""
 
@@ -69,6 +71,7 @@ def normalize_goal_contract(
         assumptions=_assumptions_for_intent(intent.intent_id, prompt),
         tool_plan=_tool_plan_for_intent(intent.intent_id),
         success_criteria=_success_criteria_for_intent(intent.intent_id, prompt),
+        required_capabilities=required_capabilities,
         clarification_needed=False,
         clarification_question="",
         safety_notes=_safety_notes_for_surface(surface.surface_id),
@@ -106,6 +109,9 @@ def goal_contract_from_payload(payload: dict[str, Any]) -> GoalContract:
         assumptions=tuple(str(item) for item in payload.get("assumptions") or ()),
         tool_plan=tuple(str(item) for item in payload.get("tool_plan") or ()),
         success_criteria=tuple(str(item) for item in payload.get("success_criteria") or ()),
+        required_capabilities=tuple(
+            str(item) for item in payload.get("required_capabilities") or ()
+        ),
         clarification_needed=bool(payload.get("clarification_needed")),
         clarification_question=str(payload.get("clarification_question") or ""),
         safety_notes=tuple(str(item) for item in payload.get("safety_notes") or ()),

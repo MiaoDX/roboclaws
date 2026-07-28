@@ -3,8 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from roboclaws.household import agent_view as agent_view_module
-from roboclaws.household.profiles import CAMERA_GROUNDED_LABELS_LANE
-from roboclaws.household.realworld_contract import (
+from roboclaws.household.household_runtime_contract import (
     CAMERA_MODEL_POLICY_MODE,
     CAMERA_MODEL_POLICY_SCHEMA,
     CLEANUP_WORKLIST_SCHEMA,
@@ -15,6 +14,7 @@ from roboclaws.household.realworld_contract import (
     SIMULATED_CAMERA_MODEL_PROVENANCE,
     forbidden_agent_view_keys,
 )
+from roboclaws.household.profiles import CAMERA_GROUNDED_LABELS_LANE
 from roboclaws.household.visual_grounding import EXTERNAL_VISUAL_GROUNDING_PROVENANCE
 
 
@@ -28,8 +28,9 @@ def assert_public_agent_view(
     _assert_agent_view_core(agent_view)
     runtime_map = agent_view_module.runtime_metric_map(agent_view)
     if runtime_map:
-        assert_runtime_metric_map(runtime_map, agent_view=agent_view)
-    _assert_cleanup_worklist(agent_view)
+        assert_runtime_metric_map(runtime_map, agent_view=agent_view, map_build=map_build)
+    if not map_build:
+        _assert_cleanup_worklist(agent_view)
     _assert_policy_view(agent_view)
     _assert_no_forbidden_keys(agent_view)
     if agent_view_module.perception_mode(agent_view) == "raw_fpv_only":
@@ -53,13 +54,15 @@ def assert_runtime_metric_map(
     runtime_metric_map: dict[str, Any],
     *,
     agent_view: dict[str, Any],
+    map_build: bool = False,
 ) -> None:
     _assert_runtime_map_core(runtime_metric_map)
     _assert_static_map(runtime_metric_map)
     _assert_public_semantic_anchors(runtime_metric_map)
     _assert_runtime_observed_objects(runtime_metric_map, agent_view)
-    _assert_target_candidates(runtime_metric_map)
-    _assert_target_search_summary(runtime_metric_map)
+    if not map_build:
+        _assert_target_candidates(runtime_metric_map)
+        _assert_target_search_summary(runtime_metric_map)
     _assert_map_update_candidates(runtime_metric_map)
     _assert_no_forbidden_keys(runtime_metric_map)
 
@@ -86,7 +89,7 @@ def _assert_cleanup_worklist(agent_view: dict[str, Any]) -> None:
 def _assert_policy_view(agent_view: dict[str, Any]) -> None:
     policy_view = agent_view_module.policy_view(agent_view)
     if policy_view:
-        assert policy_view.get("chase_camera_policy_input") is False, policy_view
+        assert policy_view.get("chase_camera_policy_input", False) is False, policy_view
 
 
 def _assert_raw_fpv_agent_view(agent_view: dict[str, Any]) -> None:
@@ -125,7 +128,10 @@ def _assert_camera_model_agent_view(
     observed = agent_view_module.observed_objects(agent_view)
     if not observed and (open_ended_intent or map_build):
         assert agent_view_module.model_declared_observations(agent_view) == [], agent_view
-        assert agent_view_module.runtime_metric_map(agent_view).get("target_candidates"), agent_view
+        if open_ended_intent:
+            assert agent_view_module.runtime_metric_map(agent_view).get("target_candidates"), (
+                agent_view
+            )
         return
     assert observed, agent_view
     for item in observed:

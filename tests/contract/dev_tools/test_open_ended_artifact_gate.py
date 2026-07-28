@@ -10,7 +10,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 MOLMO_JUST = REPO_ROOT / "just" / "molmo.just"
-LIVE_OPENAI_AGENTS_RUNNER = REPO_ROOT / "scripts/molmo_cleanup/run_live_openai_agents_cleanup.py"
+LIVE_OPENAI_AGENTS_RUNNER = REPO_ROOT / "scripts/molmo_cleanup/run_live_openai_agents_household.py"
 
 
 def test_molmo_open_ended_recipe_uses_artifact_gate_before_cleanup_checker() -> None:
@@ -39,7 +39,7 @@ def test_openai_agents_open_ended_uses_artifact_gate_not_cleanup_checker(
 ) -> None:
     module = _load_script_module(
         LIVE_OPENAI_AGENTS_RUNNER,
-        "run_live_openai_agents_cleanup_custom_gate_test",
+        "run_live_openai_agents_household_custom_gate_test",
     )
     run_dir = tmp_path / "openai-agents"
     _write_open_ended_artifacts(run_dir)
@@ -51,7 +51,7 @@ def test_openai_agents_open_ended_uses_artifact_gate_not_cleanup_checker(
         return 0
 
     monkeypatch.setattr(module, "_run_and_tee", fake_run_and_tee)
-    runner = module.LiveOpenAIAgentsCleanupRunner(_open_ended_runner_args(tmp_path, run_dir))
+    runner = module.LiveOpenAIAgentsHouseholdRunner(_open_ended_runner_args(tmp_path, run_dir))
     runner._check_result()
 
     assert captured_commands == []

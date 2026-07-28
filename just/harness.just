@@ -86,8 +86,8 @@ molmo-realworld-agent-mcp seeds="1" output_dir="output/molmo-realworld-agent-mcp
     .venv/bin/python scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py \
       --expect-task "{{task}}" \
       --expect-backend molmospaces_subprocess \
-      --expect-policy realworld_contract_smoke_agent \
-      --expect-mcp-server molmo_cleanup_realworld \
+      --expect-policy household_contract_smoke_agent \
+      --expect-mcp-server household_world \
       --expect-seeds "${seed_csv}" \
       --min-generated-mess-count "{{generated_mess_count}}" \
       --require-robot-views \
@@ -108,13 +108,13 @@ molmo-realworld-agent-dogfood-kit seed="7" output_dir="output/molmo-realworld-ag
       --seed "{{seed}}" \
       --backend api_semantic_synthetic \
       --task "{{task}}" \
-      --policy realworld_contract_smoke_agent \
+      --policy household_contract_smoke_agent \
       --output-dir "$run_dir"
     .venv/bin/python scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py \
       --expect-task "{{task}}" \
       --expect-backend api_semantic_synthetic \
-      --expect-policy realworld_contract_smoke_agent \
-      --expect-mcp-server molmo_cleanup_realworld \
+      --expect-policy household_contract_smoke_agent \
+      --expect-mcp-server household_world \
       --min-generated-mess-count 5 \
       --require-agent-driven \
       --require-clean-agent-run \
@@ -141,7 +141,7 @@ molmo-realworld-openclaw-dogfood-kit seed="7" output_dir="output/molmo-realworld
       --expect-task "{{task}}" \
       --expect-backend api_semantic_synthetic \
       --expect-policy openclaw_agent \
-      --expect-mcp-server molmo_cleanup_realworld \
+      --expect-mcp-server household_world \
       --min-generated-mess-count 5 \
       --require-agent-driven \
       --require-openclaw-minimum \
@@ -172,7 +172,7 @@ molmo-realworld-openclaw-visual-dogfood-kit seed="7" output_dir="output/molmo-re
       --expect-task "{{task}}" \
       --expect-backend molmospaces_subprocess \
       --expect-policy openclaw_agent \
-      --expect-mcp-server molmo_cleanup_realworld \
+      --expect-mcp-server household_world \
       --min-generated-mess-count "{{generated_mess_count}}" \
       --require-agent-driven \
       --require-openclaw-minimum \

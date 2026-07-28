@@ -156,7 +156,7 @@ def test_rerender_cleanup_report_from_run_result_uses_shared_visual_core(
         "cleanup_status": "success",
         "contract": "realworld_cleanup_v1",
         "agent_driven": True,
-        "mcp_server": "molmo_cleanup_realworld",
+        "mcp_server": "household_world",
         "policy": "codex_agent",
         "primitive_provenance": "api_semantic",
         "scenario_id": scenario.scenario_id,

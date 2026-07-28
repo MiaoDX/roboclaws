@@ -6,9 +6,9 @@ import time
 from pathlib import Path
 from typing import Any
 
+from roboclaws.household.household_runtime_contract import REALWORLD_CONTRACT
 from roboclaws.household.manipulation_provenance import BLOCKED_CAPABILITY_PROVENANCE
 from roboclaws.household.profiles import MOLMOSPACES_SIM_BACKEND
-from roboclaws.household.realworld_contract import REALWORLD_CONTRACT
 
 EXECUTION_BACKEND = MOLMOSPACES_SIM_BACKEND
 NAVIGATION_BACKEND = MOLMOSPACES_SIM_BACKEND

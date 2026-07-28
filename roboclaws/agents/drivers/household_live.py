@@ -57,7 +57,7 @@ def acquire_household_live_run_lease(
     started_at_epoch: float,
     extra_lock_payload: dict[str, Any] | None = None,
 ) -> HouseholdLiveRunLease:
-    """Acquire the backend-specific live-run lease used by cleanup runners."""
+    """Acquire the backend-specific live-run lease used by household runners."""
 
     if backend == MOLMOSPACES_SUBPROCESS_BACKEND:
         try:
@@ -109,18 +109,7 @@ def acquire_household_live_run_lease(
     return HouseholdLiveRunLease(lock_file=lock_file)
 
 
-def household_cleanup_server_argv(python_bin: str) -> list[str]:
-    """Return the package entrypoint for the household MCP server."""
-
-    return [
-        python_bin,
-        "-m",
-        HOUSEHOLD_SERVER_MODULE,
-        HOUSEHOLD_SERVER_TASK,
-    ]
-
-
-def map_build_server_argv(python_bin: str) -> list[str]:
+def household_server_argv(python_bin: str) -> list[str]:
     """Return the package entrypoint for the household MCP server."""
 
     return [
@@ -144,7 +133,7 @@ def add_household_cleanup_live_runner_args(
     *,
     policy_default: str | None = None,
 ) -> None:
-    """Add shared CLI args for household cleanup live-agent runners."""
+    """Add shared CLI args for household live-agent runners."""
 
     parser.add_argument("--run-dir", type=Path, required=True)
     parser.add_argument("--repo-root", type=Path, required=True)

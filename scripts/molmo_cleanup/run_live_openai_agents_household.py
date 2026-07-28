@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run one experimental OpenAI Agents SDK Molmo cleanup live-agent session."""
+"""Run one OpenAI Agents SDK household-world live-agent session."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from roboclaws.agents.drivers.household_live import (
     HouseholdLiveRunLease,
     acquire_household_live_run_lease,
     add_household_cleanup_live_runner_args,
-    household_cleanup_server_argv,
+    household_server_argv,
 )
 from roboclaws.agents.drivers.openai_agents_budget import (
     context_budget_failure as _shared_context_budget_failure,
@@ -49,8 +49,8 @@ from roboclaws.agents.prompts.household_cleanup import (
 )
 from roboclaws.agents.thinking_policy import THINKING_MODES
 from roboclaws.core.json_sources import read_json_value, read_jsonl_objects
+from roboclaws.household.household_mcp_server import ROBOT_VIEW_CAPTURE_POLICY_FULL
 from roboclaws.household.raw_fpv_guidance import raw_fpv_edge_reframe_instruction
-from roboclaws.household.realworld_mcp_server import ROBOT_VIEW_CAPTURE_POLICY_FULL
 from roboclaws.household.task_intent import (
     household_intent_from_args as _household_intent,
 )
@@ -426,10 +426,10 @@ def _stable_prefix_packet(
 
 
 def main(argv: list[str] | None = None) -> int:
-    return LiveOpenAIAgentsCleanupRunner(parse_args(argv)).run()
+    return LiveOpenAIAgentsHouseholdRunner(parse_args(argv)).run()
 
 
-class LiveOpenAIAgentsCleanupRunner:
+class LiveOpenAIAgentsHouseholdRunner:
     def __init__(self, args: argparse.Namespace) -> None:
         self.args = args
         self.skill_name = str(getattr(args, "skill_name", "") or "household-world")
@@ -559,7 +559,7 @@ class LiveOpenAIAgentsCleanupRunner:
         self.run_lease.release_visual_slot()
 
     def _start_server(self) -> None:
-        print("==> OpenAI Agents SDK Molmo cleanup runner")
+        print("==> OpenAI Agents SDK household runner")
         print(f"    repo    : {self.args.repo_root}")
         print(f"    run dir : {self.run_dir}")
         print(f"    MCP URL : {self.args.client_url}")
@@ -572,7 +572,7 @@ class LiveOpenAIAgentsCleanupRunner:
             )
 
         command = [
-            *household_cleanup_server_argv(str(self.args.repo_root / ".venv/bin/python")),
+            *household_server_argv(str(self.args.repo_root / ".venv/bin/python")),
             *self.args.server_arg,
         ]
         if camera_grounded_composite_tools_enabled_for_run(
@@ -1027,7 +1027,7 @@ class LiveOpenAIAgentsCleanupRunner:
             "--expect-profile",
             checker_profile,
             "--expect-mcp-server",
-            "molmo_cleanup_realworld",
+            "household_world",
             "--min-generated-mess-count",
             self.args.min_generated_mess_count,
             *merge_checker_flags(checker_policy_args, checker_visual_args),

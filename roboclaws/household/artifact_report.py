@@ -111,10 +111,7 @@ def is_cleanup_run_result(run_result: dict[str, Any]) -> bool:
         isinstance(run_result.get("score"), dict)
         and isinstance(run_result.get("semantic_substeps"), list)
         and contract.startswith("realworld")
-        and (
-            "cleanup_status" in run_result
-            or run_result.get("mcp_server") == "molmo_cleanup_realworld"
-        )
+        and ("cleanup_status" in run_result or run_result.get("mcp_server") == "household_world")
     )
 
 

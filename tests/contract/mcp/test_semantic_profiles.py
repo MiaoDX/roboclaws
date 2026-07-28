@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from typing import Any
 
 import pytest
 
+import roboclaws.mcp.entrypoint as entrypoint_module
 from roboclaws.mcp.entrypoint import (
     MCPProfileRouter,
     load_contract_profile,
@@ -44,6 +46,14 @@ class FakeFastMCP:
 def _handlers(profile_id: str) -> dict[str, Any]:
     return {
         name: (lambda **_: {"ok": True})
+        for name in contract_profile(profile_id).public_tool_names()
+    }
+
+
+def _composed_handlers(profile_ids: tuple[str, ...]) -> dict[str, Any]:
+    return {
+        name: (lambda **_: {"ok": True})
+        for profile_id in profile_ids
         for name in contract_profile(profile_id).public_tool_names()
     }
 
@@ -152,6 +162,61 @@ def test_router_registers_only_selected_profile_public_tools() -> None:
     assert set(fake_mcp.tools) == set(registered)
     assert "pick" not in fake_mcp.tools
     assert "done" not in fake_mcp.tools
+
+
+@pytest.mark.parametrize(
+    ("profile_ids", "excluded"),
+    (
+        ((HOUSEHOLD_WORLD_PROFILE, HOUSEHOLD_EPISODE_PROFILE), {"pick", "place"}),
+        (
+            (
+                HOUSEHOLD_WORLD_PROFILE,
+                HOUSEHOLD_MANIPULATION_PROFILE,
+                HOUSEHOLD_EPISODE_PROFILE,
+            ),
+            set(),
+        ),
+    ),
+)
+def test_router_composes_ordered_profile_tool_union(
+    profile_ids: tuple[str, ...],
+    excluded: set[str],
+) -> None:
+    router = MCPProfileRouter(profile_ids, _composed_handlers(profile_ids))
+    expected = tuple(
+        name
+        for profile_id in profile_ids
+        for name in contract_profile(profile_id).public_tool_names()
+    )
+
+    assert router.public_tool_names() == expected
+    assert excluded.isdisjoint(router.public_tool_names())
+
+
+def test_router_rejects_duplicate_profiles() -> None:
+    with pytest.raises(ValueError, match="duplicate MCP contract profiles: household_world"):
+        MCPProfileRouter(
+            (HOUSEHOLD_WORLD_PROFILE, HOUSEHOLD_WORLD_PROFILE),
+            _handlers(HOUSEHOLD_WORLD_PROFILE),
+        )
+
+
+def test_router_rejects_conflicting_tool_descriptors(monkeypatch: pytest.MonkeyPatch) -> None:
+    world = contract_profile(HOUSEHOLD_WORLD_PROFILE)
+    conflict = replace(
+        world,
+        profile_id="conflict",
+        public_tools=(replace(world.public_tools[0], summary="conflicting summary"),),
+    )
+    profiles = {world.profile_id: world, conflict.profile_id: conflict}
+    monkeypatch.setattr(entrypoint_module, "load_contract_profile", profiles.__getitem__)
+
+    with pytest.raises(ValueError, match="conflicting public tool descriptor 'metric_map'"):
+        MCPProfileRouter(
+            (world.profile_id, conflict.profile_id),
+            {"metric_map": lambda: {"ok": True}},
+            allow_extra_handlers=True,
+        )
 
 
 def test_register_profile_tools_helper_registers_selected_public_tools() -> None:

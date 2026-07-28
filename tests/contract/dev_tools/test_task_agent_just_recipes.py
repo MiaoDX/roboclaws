@@ -30,10 +30,7 @@ OPENCLAW_JUST = JUST_DIR / "openclaw.just"
 MOLMO_JUST = JUST_DIR / "molmo.just"
 AGENT_CLI = REPO_ROOT / "roboclaws" / "cli" / "agent.py"
 CODING_AGENT_ENV = REPO_ROOT / "scripts" / "dev" / "coding_agent_env.sh"
-LIVE_OPENAI_AGENTS_RUNNER = REPO_ROOT / "scripts/molmo_cleanup/run_live_openai_agents_cleanup.py"
-AGIBOT_MAP_BUILD_SDK_RUNNER = (
-    REPO_ROOT / "scripts" / "molmo_cleanup" / "run_live_openai_agents_agibot_map_build.py"
-)
+LIVE_OPENAI_AGENTS_RUNNER = REPO_ROOT / "scripts/molmo_cleanup/run_live_openai_agents_household.py"
 HOUSEHOLD_LIVE_DRIVER = REPO_ROOT / "roboclaws" / "agents" / "drivers" / "household_live.py"
 HOUSEHOLD_AGENT_SERVER_MODULE = "roboclaws.cli.agent_server"
 CODE_AGENT_ENV_VARS = (
@@ -830,7 +827,7 @@ def test_openai_agents_sdk_cleanup_route_is_active_live_route() -> None:
     molmo_text = MOLMO_JUST.read_text(encoding="utf-8")
 
     assert "openai-agents-live" in molmo_text
-    assert "run_live_openai_agents_cleanup.py" in molmo_text
+    assert "run_live_openai_agents_household.py" in molmo_text
     assert 'policy="openai_agents_agent"' in molmo_text
     assert "--agent-sdk-perf-profile" in molmo_text
     assert "ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE" in molmo_text
@@ -860,7 +857,7 @@ def test_openai_agents_runner_script_uses_runtime_contract_and_checker() -> None
 
     assert "OpenAIAgentsLiveRuntime" in runner_text
     assert "LiveAgentRequest" in runner_text
-    assert "household_cleanup_server_argv" in runner_text
+    assert "household_server_argv" in runner_text
     assert "CHECKER_SCRIPT" in runner_text
     assert "run_result.json" in runner_text
 
@@ -983,6 +980,7 @@ def test_surface_router_is_importable_source_of_truth() -> None:
         "world=molmospaces/val_0",
         "backend=mujoco",
         "skill_name=household-world",
+        "required_capability_profiles=household_world,household_manipulation,household_episode",
         "backend=molmospaces_subprocess",
         "generated_mess_count=5",
     )
@@ -1024,6 +1022,7 @@ def test_surface_launch_plan_exposes_domain_metadata_before_dispatch() -> None:
         "world=agibot-g2/map-12",
         "backend=agibot-gdk",
         "skill_name=household-world",
+        "required_capability_profiles=household_world,household_manipulation,household_episode",
         "backend=agibot_gdk",
         "generated_mess_count=5",
     )
@@ -1177,6 +1176,7 @@ def test_trace_mode_exposes_resolved_python_launch_plan() -> None:
         "map_bundle=assets/maps/molmospaces/procthor-10k-val/0 "
         "task_surface=household-world task_intent=cleanup task_preset=cleanup "
         "world=molmospaces/val_0 backend=mujoco skill_name=household-world "
+        "required_capability_profiles=household_world,household_manipulation,household_episode "
         "backend=molmospaces_subprocess generated_mess_count=5"
     ) in plan_trace
 
@@ -1213,6 +1213,7 @@ def test_python_launch_plan_accepts_world_labels_sanitized_lane() -> None:
         "world=molmospaces/val_0",
         "backend=mujoco",
         "skill_name=household-world",
+        "required_capability_profiles=household_world,household_manipulation,household_episode",
         "backend=molmospaces_subprocess",
         "generated_mess_count=5",
     )
@@ -1421,7 +1422,7 @@ def test_map_build_sdk_routes_agibot_backend_to_live_runner() -> None:
     assert route[:3] == [
         "cmd",
         ".venv/bin/python",
-        "scripts/molmo_cleanup/run_live_openai_agents_agibot_map_build.py",
+        "scripts/molmo_cleanup/run_live_openai_agents_household.py",
     ]
     assert "--repo-root" in route
     assert str(REPO_ROOT) in route
@@ -1431,7 +1432,7 @@ def test_map_build_sdk_routes_agibot_backend_to_live_runner() -> None:
     assert "--server-arg=tests/fixtures/agibot_map_context.completed.json" in route
     assert "--server-arg=--evidence-lane" in route
     assert "--server-arg=camera-grounded-labels" in route
-    assert "--server-arg=--camera-labeler" in route
+    assert "--server-arg=--visual-grounding" in route
     assert "--server-arg=grounding-dino" in route
     assert "--server-arg=--visual-grounding-timeout-s" in route
     assert "--server-arg=12.5" in route
@@ -1439,7 +1440,7 @@ def test_map_build_sdk_routes_agibot_backend_to_live_runner() -> None:
     assert "agibot_gdk" in route
     assert "--policy" in route
     assert "openai_agents_agibot_map_build" in route
-    assert str(AGIBOT_MAP_BUILD_SDK_RUNNER.relative_to(REPO_ROOT)) in route
+    assert str(LIVE_OPENAI_AGENTS_RUNNER.relative_to(REPO_ROOT)) in route
     assert "molmo::cleanup" not in route
 
 
@@ -1603,20 +1604,29 @@ def test_b1_runtime_bundle_branch_exports_canonical_runtime_prior_artifacts() ->
     assert 'map_bundle_dir="$b1_runtime_map_bundle_dir"' in b1_branch
 
 
-def test_b1_live_agent_run_copies_robot_consumption_artifacts_to_seed_run_dir() -> None:
+def test_b1_runs_copy_robot_consumption_artifacts_to_each_seed_run_dir() -> None:
     molmo_text = MOLMO_JUST.read_text(encoding="utf-8")
+    copy_helper = molmo_text.split("    copy_b1_run_artifacts_to_seed_dir() {", 1)[1].split(
+        "\n    }",
+        1,
+    )[0]
     live_run_setup = molmo_text.split('run_dir="${run_root}/seed-${seed}"', 1)[1].split(
         'policy="${driver%-live}_agent"',
         1,
     )[0]
+    direct_run_setup = molmo_text.split("    for seed in $seeds; do", 1)[1].split(
+        '      case "$driver" in',
+        1,
+    )[0]
 
-    assert 'launch_world_id" == "b1-map12"' in live_run_setup
-    assert "b1_robot_consumption_manifest.json" in live_run_setup
-    assert "runtime_map_prior_snapshot.json" in live_run_setup
-    assert "runtime_map_prior_targets.json" in live_run_setup
-    assert 'cp "${output_dir}/${b1_run_artifact}" "${run_dir}/${b1_run_artifact}"' in (
-        live_run_setup
-    )
+    assert 'launch_world_id" != "b1-map12"' in copy_helper
+    assert "b1_robot_consumption_manifest.json" in copy_helper
+    assert "runtime_map_prior_snapshot.json" in copy_helper
+    assert "runtime_map_prior_targets.json" in copy_helper
+    assert 'cp "${output_dir}/${b1_run_artifact}"' in copy_helper
+    assert '"${artifact_run_dir}/${b1_run_artifact}"' in copy_helper
+    assert 'copy_b1_run_artifacts_to_seed_dir "$run_dir"' in live_run_setup
+    assert 'copy_b1_run_artifacts_to_seed_dir "$run_dir"' in direct_run_setup
 
 
 def test_b1_isaac_route_uses_b1_robot_consumption_checker_gate() -> None:
@@ -2135,7 +2145,7 @@ def test_openai_agents_cleanup_checker_policy_uses_checker_profile(
 ) -> None:
     module = load_script_module(
         LIVE_OPENAI_AGENTS_RUNNER,
-        "run_live_openai_agents_cleanup_checker_profile_test",
+        "run_live_openai_agents_household_checker_profile_test",
     )
     run_dir = tmp_path / "openai-agents"
     run_dir.mkdir()
@@ -2175,7 +2185,7 @@ def test_openai_agents_cleanup_checker_policy_uses_checker_profile(
         cache_tools_list=True,
     )
 
-    runner = module.LiveOpenAIAgentsCleanupRunner(args)
+    runner = module.LiveOpenAIAgentsHouseholdRunner(args)
     runner._check_result()
 
     assert captured_commands
@@ -2421,7 +2431,7 @@ def test_map_build_live_prompt_disables_cleanup_actions() -> None:
     assert "This is not a cleanup run" in prompt
     assert "User task: 帮我建立这个房间的 Runtime Metric Map" in prompt
     assert "Use the bundled household-world skill instructions" in prompt
-    assert "Do not pick, place, place_inside" in prompt
+    assert "Manipulation tools are not entitled for this run" in prompt
     assert "sweep every inspection waypoint" in prompt
     assert "declare_visual_candidates" in prompt
     assert "adjust_camera" in prompt
@@ -2441,16 +2451,13 @@ def test_live_agent_server_routes_use_cli_modules_not_examples() -> None:
     molmo_text = MOLMO_JUST.read_text(encoding="utf-8")
     sdk_runner_text = LIVE_OPENAI_AGENTS_RUNNER.read_text(encoding="utf-8")
     household_live_text = HOUSEHOLD_LIVE_DRIVER.read_text(encoding="utf-8")
-    agibot_runner_text = AGIBOT_MAP_BUILD_SDK_RUNNER.read_text(encoding="utf-8")
 
     assert "roboclaws.cli.agent_server household-world" in molmo_text
     assert "roboclaws.cli.agent_server household-cleanup" not in molmo_text
     assert "examples/molmo_cleanup/molmo_realworld_cleanup_agent_server.py" not in molmo_text
     assert "examples/molmo_cleanup/molmo_realworld_cleanup_agent_server.py" not in sdk_runner_text
-    assert "examples/molmo_cleanup/agibot_map_build_agent_server.py" not in agibot_runner_text
-    assert "household_cleanup_server_argv" in sdk_runner_text
-    assert "map_build_server_argv" in household_live_text
-    assert "map_build_server_argv" in agibot_runner_text
+    assert "household_server_argv" in sdk_runner_text
+    assert "household_server_argv" in household_live_text
 
 
 def test_agent_server_cli_accepts_canonical_household_targets(
@@ -2472,12 +2479,6 @@ def test_agent_server_cli_accepts_canonical_household_targets(
         "roboclaws.cli.household_agent_server",
         types.SimpleNamespace(main=fake_main("cleanup")),
     )
-    monkeypatch.setitem(
-        sys.modules,
-        "roboclaws.cli.agibot_map_build_agent_server",
-        types.SimpleNamespace(main=fake_main("map-build")),
-    )
-
     assert agent_server.main(["household-world", "--host", "127.0.0.1"]) == 0
     assert agent_server.main(["household-world", "--policy", "codex_agent"]) == 0
     assert calls == [
@@ -2500,12 +2501,6 @@ def test_agent_server_cli_rejects_legacy_household_targets(
         "roboclaws.cli.household_agent_server",
         types.SimpleNamespace(main=fail_if_called),
     )
-    monkeypatch.setitem(
-        sys.modules,
-        "roboclaws.cli.agibot_map_build_agent_server",
-        types.SimpleNamespace(main=fail_if_called),
-    )
-
     assert agent_server.main(["household-cleanup"]) == 2
     assert agent_server.main(["semantic-map-build"]) == 2
 
@@ -3387,7 +3382,7 @@ def test_molmo_live_dispatch_is_sdk_only_and_probeable() -> None:
     assert "refusing to choose another port" in molmo_text
     assert "live_status.json" in molmo_text
     assert "tmux_session.txt" not in molmo_text
-    assert "scripts/molmo_cleanup/run_live_openai_agents_cleanup.py" in molmo_text
+    assert "scripts/molmo_cleanup/run_live_openai_agents_household.py" in molmo_text
     assert "acquire_household_live_run_lease" in runner_text
     assert "acquire_visual_backend_slot" in household_live_text
     assert "no MolmoSpaces visual backend slot is available" in household_live_text

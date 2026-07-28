@@ -4,6 +4,11 @@ import json
 from pathlib import Path
 from typing import Any
 
+from roboclaws.evals.final_state_evidence import (
+    exact_simulator_final_state_evidence,
+    physical_final_state_evidence,
+    simulator_evidence_from_run_result,
+)
 from roboclaws.evals.live_runtime import live_product_run_kwargs, live_surface_command
 from roboclaws.evals.long_horizon import _call_tool_with_robot_view, long_horizon_spec
 from roboclaws.evals.long_horizon_manifest import generated_mess_manifest
@@ -32,6 +37,44 @@ def test_long_horizon_suite_fixture_declares_private_grader() -> None:
         "long_horizon.food_restock_chinese_val0_seed7",
     )
     assert "long_horizon" in suite.required_graders
+
+
+def test_final_state_evidence_producers_distinguish_exact_sim_and_unobservable_physical() -> None:
+    simulator = exact_simulator_final_state_evidence(
+        locations={TARGET_A: SHELF},
+        containment={},
+        held_object_id=None,
+        receptacle_states={},
+        source_provenance="simulator_state",
+    )
+    physical = physical_final_state_evidence(source_provenance=("agibot_gdk",))
+
+    assert simulator.status == "available"
+    assert simulator.confidence == 1.0
+    assert simulator.held_object_state == "empty"
+    assert physical.status == "unavailable"
+    assert physical.locations == {}
+    assert physical.source_errors == ("authoritative_physical_final_state_unobservable",)
+
+
+def test_simulator_evidence_recovers_closed_receptacle_from_authoritative_trace() -> None:
+    evidence = simulator_evidence_from_run_result(
+        {
+            "backend": "mujoco",
+            "final_locations": {"apple": "refrigerator"},
+            "final_containment": {"apple": {"contained_in": "refrigerator"}},
+        },
+        trace_events=[
+            {
+                "tool": "place_inside",
+                "response": {"placement_diagnostic": {"receptacle_id": "refrigerator"}},
+            },
+            {"tool": "close_receptacle", "response": {"closed": True}},
+        ],
+    )
+
+    assert evidence.status == "available"
+    assert evidence.receptacle_states == {"refrigerator": "closed"}
 
 
 def test_long_horizon_suite_records_manipulation_tool_surface_and_passes(
@@ -289,6 +332,69 @@ def test_long_horizon_grader_rejects_incomplete_final_state(tmp_path: Path) -> N
     assert "placed" in result["grader_outputs"]["long_horizon"]["failures"]
 
 
+def test_long_horizon_physical_placeholder_state_is_inconclusive(tmp_path: Path) -> None:
+    sample = load_eval_sample(
+        REPO_ROOT / "evals/household_world/samples/long_horizon/snack_restock_val0_seed7.json"
+    )
+    object_ids = (TARGET_A, TARGET_B)
+    _write_long_horizon_artifacts(tmp_path, object_ids=object_ids)
+    run_result = _long_horizon_run_result(tmp_path, object_ids=object_ids)
+    run_result.update(
+        {
+            "backend": "agibot_sdk_runner",
+            "backend_variant": "agibot_gdk",
+            "final_locations": {object_id: SHELF for object_id in object_ids},
+        }
+    )
+
+    from roboclaws.evals.long_horizon import grade_long_horizon_task
+
+    grade = grade_long_horizon_task(sample, run_dir=tmp_path, run_result=run_result)
+
+    assert grade["status"] == "inconclusive"
+    assert grade["failure_class"] == "grader_inconclusive"
+    assert grade["evidence_reason"] == "authoritative_final_state_unavailable"
+    assert grade["failures"] == []
+    assert grade["object_results"] == {}
+
+    public_payloads = [
+        run_result["agent_view"],
+        run_result.get("task_prompt", ""),
+        (tmp_path / "trace.jsonl").read_text(encoding="utf-8"),
+    ]
+    serialized = json.dumps(public_payloads)
+    assert "FinalStateEvidence" not in serialized
+    assert "final_state_evidence" not in serialized
+
+
+def test_long_horizon_eval_result_propagates_physical_inconclusive(tmp_path: Path) -> None:
+    def product_runner(**kwargs: Any) -> dict[str, Any]:
+        run_dir = Path(kwargs["output_dir"])
+        object_ids = tuple(kwargs["generated_mess_object_ids"])
+        _write_long_horizon_artifacts(run_dir, object_ids=object_ids)
+        result = _long_horizon_run_result(run_dir, object_ids=object_ids)
+        result.update(
+            {
+                "backend": "agibot_sdk_runner",
+                "backend_variant": "agibot_gdk",
+                "final_locations": {object_id: SHELF for object_id in object_ids},
+            }
+        )
+        return result
+
+    run = run_eval_suite(
+        "long_horizon_tasks",
+        output_root=tmp_path,
+        budget="smoke",
+        stamp="long-horizon-physical-inconclusive",
+        product_runner=product_runner,
+    )
+
+    result = json.loads(run.results_path.read_text())["results"][0]
+    assert result["status"] == "inconclusive"
+    assert result["failure_class"] == "grader_inconclusive"
+
+
 def test_long_horizon_grader_rejects_tool_response_private_truth_leak(
     tmp_path: Path,
 ) -> None:
@@ -444,6 +550,7 @@ def _long_horizon_run_result(
         "agent_view": {"schema": "agent_view"},
         "final_locations": final_locations,
         "final_containment": {},
+        "final_receptacle_states": {FRIDGE: "closed"},
     }
 
 

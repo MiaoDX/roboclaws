@@ -56,8 +56,8 @@ SLOW_MODULES = {
     # CI-safe but too expensive for commit-time scoped hooks.
     "test_isaac_lab_backend.py",
     "test_molmospaces_realworld_cleanup.py",
-    "test_molmo_realworld_contract.py",
-    "test_molmo_realworld_mcp_server.py",
+    "test_household_runtime_contract.py",
+    "test_household_mcp_server.py",
     "test_molmospaces_agibot_contract_rehearsal.py",
     "test_agibot_map_evidence_refresh_report.py",
 }

@@ -13,23 +13,23 @@ if __package__ in {None, ""}:
         sys.path.insert(0, str(repo_root))
 
 from roboclaws.core.json_sources import read_json_object  # noqa: E402
-from roboclaws.household.backend_contract import (  # noqa: E402
+from roboclaws.household.household_backend_contract import (  # noqa: E402
     SYNTHETIC_BACKEND,
-    build_cleanup_backend_session,
+    build_household_backend_session,
     validate_cleanup_run_options,
 )
-from roboclaws.household.nav2_map_bundle import selected_nav2_map_bundle_dir  # noqa: E402
-from roboclaws.household.profiles import (  # noqa: E402
-    evidence_lane_names,
+from roboclaws.household.household_mcp_server import (  # noqa: E402
+    make_household_world_mcp,
 )
-from roboclaws.household.realworld_contract import (  # noqa: E402
+from roboclaws.household.household_runtime_contract import (  # noqa: E402
     CAMERA_MODEL_POLICY_MODE,
     DEFAULT_REALWORLD_TASK,
     RAW_FPV_ONLY_MODE,
     VISIBLE_OBJECT_DETECTIONS_MODE,
 )
-from roboclaws.household.realworld_mcp_server import (  # noqa: E402
-    make_molmo_realworld_cleanup_mcp,
+from roboclaws.household.nav2_map_bundle import selected_nav2_map_bundle_dir  # noqa: E402
+from roboclaws.household.profiles import (  # noqa: E402
+    evidence_lane_names,
 )
 from roboclaws.household.semantic_cleanup_loop import (  # noqa: E402
     run_semantic_cleanup_loop,
@@ -39,6 +39,7 @@ from roboclaws.household.task_intent import (  # noqa: E402
     HOUSEHOLD_INTENT_OPEN_ENDED,
     household_intent_from_goal_contract,
 )
+from roboclaws.household.tasks import HOUSEHOLD_PRESET_SPECS, HOUSEHOLD_TASK_SPECS  # noqa: E402
 from roboclaws.household.visual_grounding import (  # noqa: E402
     SIM_VISUAL_GROUNDING_PIPELINE_ID,
 )
@@ -57,7 +58,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--task", default=DEFAULT_REALWORLD_TASK)
     parser.add_argument("--goal-contract", type=Path)
     parser.add_argument("--goal-contract-json")
-    parser.add_argument("--policy", default="realworld_contract_smoke_agent")
+    parser.add_argument("--policy", default="household_contract_smoke_agent")
     parser.add_argument(
         "--backend",
         choices=(SYNTHETIC_BACKEND, MOLMOSPACES_SUBPROCESS_BACKEND),
@@ -103,7 +104,7 @@ def run_smoke(
     output_dir: Path,
     seed: int = 1,
     task: str = DEFAULT_REALWORLD_TASK,
-    policy: str = "realworld_contract_smoke_agent",
+    policy: str = "household_contract_smoke_agent",
     backend: str = SYNTHETIC_BACKEND,
     generated_mess_count: int = 10,
     generated_mess_object_ids: tuple[str, ...] = (),
@@ -133,7 +134,7 @@ def run_smoke(
     )
     runtime_map_prior = _load_runtime_map_prior(runtime_map_prior_path)
 
-    base_contract = build_cleanup_backend_session(
+    base_contract = build_household_backend_session(
         backend_name=backend,
         run_dir=output_dir,
         seed=seed,
@@ -148,7 +149,16 @@ def run_smoke(
         goal_contract_path
     )
     task_intent = household_intent_from_goal_contract(goal_contract)
-    server = make_molmo_realworld_cleanup_mcp(
+    required_capability_profiles = (
+        goal_contract.required_capabilities
+        if goal_contract is not None and goal_contract.required_capabilities
+        else (
+            HOUSEHOLD_PRESET_SPECS[task_intent].required_capabilities
+            if task_intent in HOUSEHOLD_PRESET_SPECS
+            else HOUSEHOLD_TASK_SPECS["household-world"].required_capabilities
+        )
+    )
+    server = make_household_world_mcp(
         run_dir=output_dir,
         scenario=scenario,
         base_contract=base_contract,
@@ -167,6 +177,7 @@ def run_smoke(
         visual_grounding_base_url=visual_grounding_base_url,
         visual_grounding_timeout_s=visual_grounding_timeout_s,
         goal_contract=goal_contract,
+        required_capability_profiles=required_capability_profiles,
     )
     try:
         if task_intent == HOUSEHOLD_INTENT_OPEN_ENDED:

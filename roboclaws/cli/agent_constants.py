@@ -28,6 +28,7 @@ AGENT_RUN_KEYS = {
     "prompt",
     "provider",
     "provider_profile",
+    "required_capability_profiles",
     "regrade_source",
     "camera_labeler",
     "evidence_lane",

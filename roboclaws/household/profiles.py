@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from roboclaws.household.realworld_contract import (
+from roboclaws.household.household_runtime_contract import (
     CAMERA_MODEL_POLICY_MODE,
     RAW_FPV_ONLY_MODE,
     SANITIZED_VISIBLE_OBJECT_DETECTIONS_POLICY,

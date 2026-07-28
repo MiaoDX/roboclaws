@@ -8,7 +8,7 @@ from roboclaws.household import (
     realworld_visual_candidate_lifecycle,
     realworld_visual_candidates,
 )
-from roboclaws.household.backend_contract import SYNTHETIC_BACKEND
+from roboclaws.household.household_backend_contract import SYNTHETIC_BACKEND
 from roboclaws.household.raw_fpv_guidance import (
     raw_fpv_visual_candidate_recovery,
     raw_fpv_visual_candidate_recovery_hint,

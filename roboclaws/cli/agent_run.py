@@ -323,6 +323,11 @@ def _molmo_household_run(
         "ROBOCLAWS_TASK_INTENT": resolved_task_intent,
         "ROBOCLAWS_TASK_PRESET": kv.get("task_preset", ""),
         "ROBOCLAWS_TASK_SKILL": skill_name,
+        "ROBOCLAWS_REQUIRED_CAPABILITY_PROFILES": _get(
+            kv,
+            "required_capability_profiles",
+            os.environ.get("ROBOCLAWS_REQUIRED_CAPABILITY_PROFILES", ""),
+        ),
         "ROBOCLAWS_GENERATED_MESS_MANIFEST_PATH": _get(
             kv,
             "generated_mess_manifest_path",
@@ -492,7 +497,7 @@ def _agibot_gdk_live_map_build(
     )
     cmd = [
         ".venv/bin/python",
-        "scripts/molmo_cleanup/run_live_openai_agents_agibot_map_build.py",
+        "scripts/molmo_cleanup/run_live_openai_agents_household.py",
         "--repo-root",
         os.getcwd(),
         "--run-dir",
@@ -505,6 +510,8 @@ def _agibot_gdk_live_map_build(
         host,
         "--port",
         port,
+        "--lock-path",
+        f"{run_dir}/household-live.lock",
         "--provider-profile",
         _get(
             kv,
@@ -524,6 +531,12 @@ def _agibot_gdk_live_map_build(
         os.environ.get("ROBOCLAWS_AGIBOT_MAP_BUILD_LIVE_SERVER_STARTUP_TIMEOUT_S", "600"),
         "--kickoff-prompt",
         prompt,
+        "--profile",
+        profile,
+        "--checker-profile",
+        profile,
+        "--min-generated-mess-count",
+        "0",
         "--backend",
         backend,
         "--policy",
@@ -555,6 +568,10 @@ def _agibot_gdk_server_args(
         port,
         "--output-dir",
         run_dir,
+        "--backend",
+        "agibot_gdk",
+        "--intent",
+        "map-build",
         "--context-json",
         context_json,
         "--policy",
@@ -565,9 +582,11 @@ def _agibot_gdk_server_args(
         profile,
     ]
     if profile == "camera-grounded-labels":
-        server_args.extend(["--camera-labeler", camera_labeler])
+        server_args.extend(["--visual-grounding", camera_labeler])
     if visual_grounding_timeout_s not in {"", "auto"}:
         server_args.extend(["--visual-grounding-timeout-s", visual_grounding_timeout_s])
+    for capability_profile in ("household_world", "household_episode"):
+        server_args.extend(["--required-capability-profile", capability_profile])
     _append_optional(server_args, kv, "runner_python", "--runner-python")
     _append_optional(server_args, kv, "runner_script", "--runner-script")
     _append_optional(server_args, kv, "agibot_map_artifact_dir", "--agibot-map-artifact-dir")

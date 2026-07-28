@@ -29,7 +29,7 @@ VISUAL_BACKENDS = frozenset({MOLMOSPACES_SUBPROCESS_BACKEND, ISAACLAB_SUBPROCESS
 CLEANUP_BACKEND_EVIDENCE_SCHEMA = "roboclaws_cleanup_backend_evidence_v1"
 
 
-class CleanupBackendSession:
+class HouseholdBackendSession:
     """Direct-call state mutation session for ADR-0003 cleanup surfaces.
 
     This is not an agent-facing MCP surface. It keeps the semantic cleanup
@@ -192,7 +192,7 @@ class CleanupBackendSession:
         )
 
 
-def build_cleanup_backend_session(
+def build_household_backend_session(
     *,
     backend_name: str = SYNTHETIC_BACKEND,
     run_dir: Path,
@@ -210,7 +210,7 @@ def build_cleanup_backend_session(
     isaac_enable_segmentation: bool = False,
     isaac_segmentation_data_types: tuple[str, ...] | None = None,
     isaac_segmentation_semantic_filter: tuple[str, ...] | None = None,
-) -> CleanupBackendSession:
+) -> HouseholdBackendSession:
     backend_instance: Any | None = None
     if backend_name == MOLMOSPACES_SUBPROCESS_BACKEND:
         backend_instance = MolmoSpacesSubprocessBackend(
@@ -227,7 +227,7 @@ def build_cleanup_backend_session(
             scene_source=scene_source,
             scene_index=scene_index,
         )
-        return CleanupBackendSession(backend_instance.scenario, backend=backend_instance)
+        return HouseholdBackendSession(backend_instance.scenario, backend=backend_instance)
     if backend_name == ISAACLAB_SUBPROCESS_BACKEND:
         backend_instance = IsaacLabSubprocessBackend(
             run_dir=run_dir,
@@ -247,11 +247,11 @@ def build_cleanup_backend_session(
             segmentation_data_types=isaac_segmentation_data_types,
             segmentation_semantic_filter=isaac_segmentation_semantic_filter,
         )
-        return CleanupBackendSession(backend_instance.scenario, backend=backend_instance)
+        return HouseholdBackendSession(backend_instance.scenario, backend=backend_instance)
     scenario = build_cleanup_scenario(seed=seed)
     if generated_mess_count == 0:
         scenario = scenario_without_private_targets(scenario)
-    return CleanupBackendSession(scenario)
+    return HouseholdBackendSession(scenario)
 
 
 def cleanup_backend_name(backend: Any, *, override: str = "") -> str:

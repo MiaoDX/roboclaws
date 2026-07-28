@@ -41,7 +41,7 @@ from roboclaws.evals.models import (
     load_eval_suite,
 )
 from roboclaws.evals.reports import render_eval_report, results_bundle
-from roboclaws.household.backend_contract import SYNTHETIC_BACKEND
+from roboclaws.household.household_backend_contract import SYNTHETIC_BACKEND
 from roboclaws.household.household_world_episode import run_household_world_episode
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -1409,6 +1409,9 @@ def _status_from_graders(grader_outputs: dict[str, Any]) -> tuple[str, str]:
         grader = grader_outputs.get(grader_name, {})
         if grader.get("status") == "failed":
             return "failed", str(grader.get("failure_class") or failure_class)
+    long_horizon = grader_outputs.get(lh.LONG_HORIZON_GRADER_NAME, {})
+    if long_horizon.get("status") == "inconclusive":
+        return "inconclusive", str(long_horizon.get("failure_class") or "grader_inconclusive")
     return "passed", MISSING_NOT_APPLICABLE
 
 

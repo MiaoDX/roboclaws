@@ -473,12 +473,21 @@ def public_tool_names(payload: dict[str, Any]) -> list[str]:
     return list(capabilities(payload).get("public_tool_names") or [])
 
 
-def with_public_tool_names(payload: dict[str, Any], names: Iterable[str]) -> dict[str, Any]:
+def with_public_tool_names(
+    payload: dict[str, Any],
+    names: Iterable[str],
+    *,
+    capability_profiles: Iterable[str] | None = None,
+) -> dict[str, Any]:
     updated = copy.deepcopy(require_agent_view(payload))
     current = capabilities(updated)
     updated[SECTION_CAPABILITIES] = _capabilities_payload(
         public_tool_names=names,
-        capability_profiles=current.get("capability_profiles") or (),
+        capability_profiles=(
+            capability_profiles
+            if capability_profiles is not None
+            else current.get("capability_profiles") or ()
+        ),
         blocked_capabilities=current.get("blocked_capabilities") or (),
     )
     return updated

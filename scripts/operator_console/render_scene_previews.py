@@ -22,11 +22,11 @@ else:
     REPO_ROOT = Path(__file__).resolve().parents[2]
 
 from roboclaws.core.json_sources import read_json_object  # noqa: E402
-from roboclaws.household.backend_contract import CleanupBackendSession  # noqa: E402
 from roboclaws.household.camera_control import canonical_scene_camera_control_request  # noqa: E402
-from roboclaws.household.realworld_contract import (  # noqa: E402
+from roboclaws.household.household_backend_contract import HouseholdBackendSession  # noqa: E402
+from roboclaws.household.household_runtime_contract import (  # noqa: E402
     RAW_FPV_ONLY_MODE,
-    RealWorldCleanupContract,
+    HouseholdRuntimeContract,
 )
 from roboclaws.household.subprocess_backend import MolmoSpacesSubprocessBackend  # noqa: E402
 from roboclaws.launch.map_bundles import molmospaces_nav2_map_bundle_path  # noqa: E402
@@ -219,8 +219,8 @@ def render_molmospaces_preview(
         generated_mess_count=0,
     )
     try:
-        contract = RealWorldCleanupContract(
-            CleanupBackendSession(backend.scenario, backend=backend),
+        contract = HouseholdRuntimeContract(
+            HouseholdBackendSession(backend.scenario, backend=backend),
             perception_mode=RAW_FPV_ONLY_MODE,
             map_bundle_dir=map_bundle_dir,
         )
@@ -1031,7 +1031,7 @@ def _b1_camera_label_from_view_path(raw_path: Any) -> str:
 
 def _static_navigation_preview(
     *,
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     run_dir: Path,
     width: int,
     height: int,
@@ -1212,7 +1212,7 @@ def _preview_metadata(
 
 def _select_chase_preview(
     *,
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     backend: MolmoSpacesSubprocessBackend,
     run_dir: Path,
     width: int,

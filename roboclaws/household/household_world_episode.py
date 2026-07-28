@@ -10,11 +10,22 @@ from pathlib import Path
 from typing import Any, Callable
 
 from roboclaws.household import realworld_visual_candidate_declarations
-from roboclaws.household.backend_contract import (
+from roboclaws.household.household_backend_contract import (
     SYNTHETIC_BACKEND,
-    CleanupBackendSession,
-    build_cleanup_backend_session,
+    HouseholdBackendSession,
+    build_household_backend_session,
     validate_cleanup_run_options,
+)
+from roboclaws.household.household_runtime_contract import (
+    CAMERA_MODEL_POLICY_MODE,
+    CAMERA_MODEL_POLICY_NAME,
+    DEFAULT_REALWORLD_TASK,
+    MAIN_CLEANUP_AGENT_PRODUCER,
+    RAW_FPV_ONLY_MODE,
+    REALWORLD_CONTRACT,
+    SIMULATED_CAMERA_MODEL_PROVENANCE,
+    VISIBLE_OBJECT_DETECTIONS_MODE,
+    HouseholdRuntimeContract,
 )
 from roboclaws.household.household_world_direct_policy import (
     DirectHouseholdEpisodePolicyHooks,
@@ -46,17 +57,6 @@ from roboclaws.household.planner_proof_bundle import (
 )
 from roboclaws.household.profiles import (
     evidence_lane_names,
-)
-from roboclaws.household.realworld_contract import (
-    CAMERA_MODEL_POLICY_MODE,
-    CAMERA_MODEL_POLICY_NAME,
-    DEFAULT_REALWORLD_TASK,
-    MAIN_CLEANUP_AGENT_PRODUCER,
-    RAW_FPV_ONLY_MODE,
-    REALWORLD_CONTRACT,
-    SIMULATED_CAMERA_MODEL_PROVENANCE,
-    VISIBLE_OBJECT_DETECTIONS_MODE,
-    RealWorldCleanupContract,
 )
 from roboclaws.household.realworld_done_readiness import (
     destination_options_for_policy,
@@ -282,7 +282,7 @@ def run_household_world_episode(
     )
     task_intent = household_runtime_intent(goal_contract, intent or HOUSEHOLD_INTENT_CLEANUP)
 
-    base_contract = build_cleanup_backend_session(
+    base_contract = build_household_backend_session(
         backend_name=backend,
         run_dir=output_dir,
         seed=seed,
@@ -300,7 +300,7 @@ def run_household_world_episode(
         isaac_segmentation_semantic_filter=isaac_segmentation_semantic_filter,
     )
     scenario = base_contract.scenario
-    contract = RealWorldCleanupContract(
+    contract = HouseholdRuntimeContract(
         base_contract,
         task_prompt=task_prompt,
         static_fixture_projection_mode=static_fixture_projection_mode,
@@ -551,18 +551,18 @@ def _prior_waypoint_filter(
 
 def _open_ended_prior_stop(
     waypoint_ids: tuple[str, ...],
-) -> Callable[[RealWorldCleanupContract], bool] | None:
+) -> Callable[[HouseholdRuntimeContract], bool] | None:
     if not waypoint_ids:
         return None
     priority = set(waypoint_ids)
 
-    def stop_after_current_confirmation(contract: RealWorldCleanupContract) -> bool:
+    def stop_after_current_confirmation(contract: HouseholdRuntimeContract) -> bool:
         return bool(priority.intersection(contract._observed_waypoint_ids))  # noqa: SLF001
 
     return stop_after_current_confirmation
 
 
-def _failed_score(contract: RealWorldCleanupContract) -> dict[str, Any]:
+def _failed_score(contract: HouseholdRuntimeContract) -> dict[str, Any]:
     total_targets = len(contract.scenario.private_manifest.targets)
     return {
         "status": "failed",
@@ -588,8 +588,8 @@ def _failed_score(contract: RealWorldCleanupContract) -> dict[str, Any]:
 
 
 def _map_build_done(
-    contract: RealWorldCleanupContract,
-    base_contract: CleanupBackendSession,
+    contract: HouseholdRuntimeContract,
+    base_contract: HouseholdBackendSession,
     reason: str,
 ) -> dict[str, Any]:
     done = base_contract.done(reason=reason)
@@ -618,7 +618,7 @@ def _detections_for_policy(
     *,
     trace_events: list[dict[str, Any]],
     started_at: float,
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     observation: dict[str, Any],
     perception_mode: str,
 ) -> list[dict[str, Any]]:
@@ -708,8 +708,8 @@ def _clean_visible_object(
     *,
     trace_events: list[dict[str, Any]],
     started_at: float,
-    contract: RealWorldCleanupContract,
-    base_contract: CleanupBackendSession,
+    contract: HouseholdRuntimeContract,
+    base_contract: HouseholdBackendSession,
     detection: dict[str, Any],
     target_fixture: dict[str, Any],
     robot_view_steps: list[dict[str, Any]],
@@ -831,8 +831,8 @@ def _maybe_clean_visible_object(
     *,
     trace_events: list[dict[str, Any]],
     started_at: float,
-    contract: RealWorldCleanupContract,
-    base_contract: CleanupBackendSession,
+    contract: HouseholdRuntimeContract,
+    base_contract: HouseholdBackendSession,
     detection: dict[str, Any],
     static_fixture_projection: dict[str, Any],
     robot_view_steps: list[dict[str, Any]],
@@ -928,7 +928,7 @@ def _maybe_clean_visible_object(
 
 def _redirect_if_already_on_inferred_fixture(
     *,
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     handle: str,
     candidate: _VisibleObjectCandidate,
     agent_scratchpad: dict[str, Any],
@@ -963,8 +963,8 @@ def _confirm_visual_scan_candidate(
     *,
     trace_events: list[dict[str, Any]],
     started_at: float,
-    contract: RealWorldCleanupContract,
-    base_contract: CleanupBackendSession,
+    contract: HouseholdRuntimeContract,
+    base_contract: HouseholdBackendSession,
     handle: str,
     candidate: _VisibleObjectCandidate,
     static_fixture_projection: dict[str, Any],
@@ -1062,7 +1062,7 @@ def _confirm_visual_scan_candidate(
 
 def _direct_policy_target_fixture(
     *,
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     detection: dict[str, Any],
     static_fixture_projection: dict[str, Any],
 ) -> dict[str, Any] | None:
@@ -1121,7 +1121,7 @@ def _preferred_public_destination_option(
 
 def _current_worklist_target_fixture(
     *,
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     object_id: str,
     source_fixture_id: str,
 ) -> dict[str, Any] | None:
@@ -1141,7 +1141,7 @@ def _current_worklist_target_fixture(
 
 def _write_snapshot(
     *,
-    contract: CleanupBackendSession,
+    contract: HouseholdBackendSession,
     scenario: Any,
     output_path: Path,
     title: str,
@@ -1157,13 +1157,13 @@ def _write_snapshot(
     )
 
 
-def _internal_object_id(contract: RealWorldCleanupContract, handle: str) -> str | None:
+def _internal_object_id(contract: HouseholdRuntimeContract, handle: str) -> str | None:
     return contract._internal_object_id(handle)
 
 
 def _cleanup_loop_contract_for_target(
     *,
-    contract: RealWorldCleanupContract,
+    contract: HouseholdRuntimeContract,
     planner_proof_evidence: dict[str, Any] | None,
     object_id: str,
     target_receptacle_id: str,
@@ -1220,8 +1220,8 @@ def _call_tool(
 def _attach_raw_fpv_robot_view(
     *,
     response: dict[str, Any],
-    contract: RealWorldCleanupContract,
-    base_contract: CleanupBackendSession,
+    contract: HouseholdRuntimeContract,
+    base_contract: HouseholdBackendSession,
     robot_view_steps: list[dict[str, Any]],
     output_dir: Path,
     view_index_ref: list[int],

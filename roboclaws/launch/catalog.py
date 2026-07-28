@@ -239,7 +239,13 @@ def _resolve_launch(
         intent=intent,
         preset=preset,
     )
-    goal_contract = normalize_goal_contract(surface=surface, intent=intent, raw_prompt=prompt)
+    required_capabilities = preset.required_capabilities if preset else intent.required_capabilities
+    goal_contract = normalize_goal_contract(
+        surface=surface,
+        intent=intent,
+        raw_prompt=prompt,
+        required_capabilities=required_capabilities,
+    )
     plan_overrides = _overrides_with_surface_context(
         overrides,
         surface_id=surface.surface_id,
@@ -251,6 +257,7 @@ def _resolve_launch(
         provider_profile=resolved_provider_profile,
         skill_name=preset.skill_name if preset else intent.skill_name,
         goal_contract_json=goal_contract.to_json(),
+        required_capability_profiles=required_capabilities,
     )
     dispatch_overrides = (
         *_without_dispatch_stripped_overrides(plan_overrides),
@@ -293,13 +300,7 @@ def _resolve_launch(
         checker_id=intent.checker_id,
         skill_name=preset.skill_name if preset else intent.skill_name,
         mcp_server_id=surface.mcp_server_id,
-        required_capabilities=(
-            preset.required_capabilities
-            if preset
-            else tuple(
-                dict.fromkeys((*surface.required_capabilities, *intent.required_capabilities))
-            )
-        ),
+        required_capabilities=required_capabilities,
         required_artifacts=intent.required_artifacts,
         goal_contract=goal_contract,
         evaluation_id=evaluation.evaluation_id,
@@ -744,6 +745,7 @@ def _overrides_with_surface_context(
     provider_profile: str | None,
     skill_name: str,
     goal_contract_json: str,
+    required_capability_profiles: tuple[str, ...],
 ) -> tuple[str, ...]:
     merged = _without_overrides(overrides, _SURFACE_CONTEXT_STRIPPED_OVERRIDE_KEYS)
     return _with_missing_overrides(
@@ -758,6 +760,11 @@ def _overrides_with_surface_context(
             ("provider_profile", provider_profile or "", False),
             ("skill_name", skill_name, False),
             ("goal_contract_json", goal_contract_json, True),
+            (
+                "required_capability_profiles",
+                ",".join(required_capability_profiles),
+                True,
+            ),
         ),
     )
 

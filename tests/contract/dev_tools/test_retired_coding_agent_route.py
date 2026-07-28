@@ -40,7 +40,7 @@ def test_current_live_dispatch_does_not_reference_retired_route() -> None:
 
     combined = "\n".join([justfile, molmo_text, ci_text])
     assert "mod code" not in justfile
-    assert "scripts/molmo_cleanup/run_live_openai_agents_cleanup.py" in molmo_text
+    assert "scripts/molmo_cleanup/run_live_openai_agents_household.py" in molmo_text
     for retired in (
         "Build pinned coding-agent CLI image",
         "Dockerfile.coding-agents",

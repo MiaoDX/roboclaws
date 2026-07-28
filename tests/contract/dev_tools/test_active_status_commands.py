@@ -105,7 +105,7 @@ def test_adaptive_inspection_live_proof_command_uses_current_map_build_route() -
 def test_cleanup_rerun_command_fixtures_use_current_live_engine() -> None:
     fixture_paths = [
         REPO_ROOT / "tests" / "contract" / "reports" / "test_molmo_cleanup_report.py",
-        REPO_ROOT / "tests" / "contract" / "molmo_cleanup" / "test_molmo_realworld_mcp_server.py",
+        REPO_ROOT / "tests" / "contract" / "molmo_cleanup" / "test_household_mcp_server.py",
         REPO_ROOT
         / "tests"
         / "contract"

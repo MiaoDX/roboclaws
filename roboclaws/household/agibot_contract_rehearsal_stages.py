@@ -45,13 +45,13 @@ from roboclaws.household.agibot_contract_rehearsal_runtime import (
 from roboclaws.household.agibot_contract_rehearsal_runtime import (
     write_stage_artifact as _write_stage_artifact,
 )
-from roboclaws.household.backend_contract import CleanupBackendSession
 from roboclaws.household.cleanup_primitive_evidence import (
     cleanup_primitive_evidence_from_substeps,
 )
-from roboclaws.household.realworld_contract import (
+from roboclaws.household.household_backend_contract import HouseholdBackendSession
+from roboclaws.household.household_runtime_contract import (
     VISIBLE_OBJECT_DETECTIONS_MODE,
-    RealWorldCleanupContract,
+    HouseholdRuntimeContract,
 )
 from roboclaws.household.report import (
     render_cleanup_report,
@@ -92,8 +92,8 @@ class _RehearsalTraceState:
 @dataclass(frozen=True)
 class _ContractRehearsalSession:
     scenario: CleanupScenario
-    base_contract: CleanupBackendSession
-    contract: RealWorldCleanupContract
+    base_contract: HouseholdBackendSession
+    contract: HouseholdRuntimeContract
     backend_instance: MolmoSpacesSubprocessBackend | None
 
 
@@ -213,11 +213,11 @@ def _build_contract_rehearsal_session(
             generated_mess_count=options.generated_mess_count,
         )
         scenario = backend_instance.scenario
-        base_contract = CleanupBackendSession(scenario, backend=backend_instance)
+        base_contract = HouseholdBackendSession(scenario, backend=backend_instance)
     else:
         scenario = build_cleanup_scenario(seed=options.seed)
-        base_contract = CleanupBackendSession(scenario)
-    contract = RealWorldCleanupContract(
+        base_contract = HouseholdBackendSession(scenario)
+    contract = HouseholdRuntimeContract(
         base_contract,
         task_prompt=scenario.task,
         static_fixture_projection_mode="exact_fixtures",
