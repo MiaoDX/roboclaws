@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import socket
 import threading
 import urllib.error
 import urllib.request
@@ -17,10 +18,7 @@ from roboclaws.operator_console.control import _serialize_tool_result
 from roboclaws.operator_console.routes import get_selection
 from roboclaws.operator_console.server import ConsoleRequestHandler
 
-MUJOCO_OPENAI_AGENTS_OPEN_TASK = (
-    "molmospaces/procthor-objaverse-val/0::mujoco::open-task::openai-agents-sdk::"
-    "world-public-labels"
-)
+from tests.unit.operator_console.conftest import MUJOCO_OPENAI_AGENTS_OPEN_TASK  # noqa: F401  re-exported for tests
 
 
 def test_control_endpoint_rejects_malformed_tool_response_text(tmp_path: Path) -> None:
@@ -69,7 +67,31 @@ def test_control_tool_response_rejects_non_object_json_text() -> None:
         _serialize_tool_result(result)
 
 
-def _write_running_operator_control_state(root: Path, run_id: str) -> Path:
+def test_control_endpoint_expands_mcp_connection_exception_group(tmp_path: Path) -> None:
+    run_id = "unreachable-mcp-run"
+    mcp_url = f"http://127.0.0.1:{_closed_local_port()}/mcp"
+    run_dir = _write_running_operator_control_state(tmp_path, run_id, mcp_url=mcp_url)
+
+    with _console_server(tmp_path) as (host, port):
+        payload = _blocked_operator_control_payload(host, port, run_id, {"action": "observe"})
+
+    assert payload["error"] == (
+        f"control call failed: MCP endpoint is not reachable at {mcp_url}: "
+        "All connection attempts failed"
+    )
+    rows = _jsonl_rows(run_dir / "operator_control.jsonl")
+    assert "unhandled errors in a TaskGroup" not in rows[1]["error"]
+    assert rows[1]["error"] == (
+        f"MCP endpoint is not reachable at {mcp_url}: All connection attempts failed"
+    )
+
+
+def _write_running_operator_control_state(
+    root: Path,
+    run_id: str,
+    *,
+    mcp_url: str = "http://127.0.0.1:19999/mcp",
+) -> Path:
     route = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
     run_dir = root / "output" / "operator-console" / "runs" / run_id
     run_dir.mkdir(parents=True)
@@ -80,12 +102,18 @@ def _write_running_operator_control_state(root: Path, run_id: str) -> Path:
                 "route": route.to_payload(),
                 "phase": "running",
                 "backend_lock": route.lock_name,
-                "mcp_url": "http://127.0.0.1:19999/mcp",
+                "mcp_url": mcp_url,
             }
         ),
         encoding="utf-8",
     )
     return run_dir
+
+
+def _closed_local_port() -> int:
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
 
 
 def _blocked_operator_control_payload(

@@ -12,14 +12,11 @@ from roboclaws.operator_console.state import (
     resolve_display_run_dir,
 )
 
-MUJOCO_SDK_CLEANUP = (
-    "molmospaces/procthor-objaverse-val/0::mujoco::cleanup::openai-agents-sdk::world-public-labels"
+from tests.unit.operator_console.conftest import (  # noqa: F401  re-exported for tests
+    B1_OPENAI_AGENTS_OPEN_TASK,
+    MUJOCO_SDK_CLEANUP,
+    MUJOCO_SDK_MAP_BUILD,
 )
-MUJOCO_SDK_MAP_BUILD = (
-    "molmospaces/procthor-objaverse-val/0::mujoco::map-build::openai-agents-sdk::"
-    "world-public-labels"
-)
-B1_OPENAI_AGENTS_OPEN_TASK = "b1-map12::isaaclab::open-task::openai-agents-sdk::world-public-labels"
 
 
 def test_state_derives_latest_tool_checker_and_artifact_links(tmp_path: Path) -> None:
@@ -352,7 +349,7 @@ def test_state_marks_dead_live_status_owner_as_failed(tmp_path: Path, monkeypatc
         ),
         encoding="utf-8",
     )
-    (attempt_dir / "driver.log").write_text("==> Codex turn 1/1\n", encoding="utf-8")
+    (attempt_dir / "driver.log").write_text("==> OpenAI Agents SDK turn 1/1\n", encoding="utf-8")
     monkeypatch.setattr("roboclaws.operator_console.state.pid_is_active", lambda pid: False)
 
     state = derive_operator_state(tmp_path, run_dir, get_selection(MUJOCO_SDK_CLEANUP))
@@ -405,7 +402,7 @@ def test_state_summarizes_nested_mcp_trace_responses_for_live_decision(
         + "\n",
         encoding="utf-8",
     )
-    (attempt_dir / "codex-events.jsonl").write_text(
+    (attempt_dir / "openai-agents-events.jsonl").write_text(
         json.dumps(
             {
                 "type": "item.completed",
@@ -463,7 +460,7 @@ def test_state_surfaces_malformed_agent_event_source_error(tmp_path: Path) -> No
         json.dumps({"event": "response", "tool": "observe", "ok": True}) + "\n",
         encoding="utf-8",
     )
-    (attempt_dir / "codex-events.jsonl").write_text(
+    (attempt_dir / "openai-agents-events.jsonl").write_text(
         "{not-json}\n"
         + json.dumps(
             {
@@ -489,75 +486,6 @@ def test_state_surfaces_malformed_agent_event_source_error(tmp_path: Path) -> No
     assert [(error["label"], error["reason"]) for error in state["source_errors"]] == [
         ("Agent Events", "invalid JSON at line 1 column 2")
     ]
-
-
-def test_state_summarizes_claude_events_for_live_decision(tmp_path: Path) -> None:
-    run_dir = tmp_path / "output" / "operator-console" / "runs" / "wrapper-run"
-    attempt_dir = run_dir / "0608_2118" / "seed-7"
-    attempt_dir.mkdir(parents=True)
-    (run_dir / "operator_state.json").write_text(
-        json.dumps(
-            {
-                "run_id": "wrapper-run",
-                "route": get_selection(MUJOCO_SDK_CLEANUP).to_payload(),
-                "phase": "starting",
-                "backend_lock": "molmospaces_mujoco",
-            }
-        ),
-        encoding="utf-8",
-    )
-    (attempt_dir / "live_status.json").write_text(
-        json.dumps({"phase": "running-sdk"}),
-        encoding="utf-8",
-    )
-    (attempt_dir / "trace.jsonl").write_text(
-        json.dumps(
-            {
-                "event": "response",
-                "tool": "metric_map",
-                "request": {},
-                "response": {"ok": True, "status": "ok", "tool": "metric_map"},
-            }
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    (attempt_dir / "claude-events.jsonl").write_text(
-        json.dumps(
-            {
-                "type": "assistant",
-                "message": {
-                    "content": [
-                        {"type": "thinking", "thinking": "hidden scratchpad"},
-                        {"type": "text", "text": "I will sweep every waypoint before cleanup."},
-                    ]
-                },
-            }
-        )
-        + "\n"
-        + json.dumps(
-            {
-                "type": "user",
-                "message": {
-                    "content": [
-                        {"type": "text", "text": "tool result that should not become decision"}
-                    ]
-                },
-            }
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    state = derive_operator_state(tmp_path, run_dir, get_selection(MUJOCO_SDK_CLEANUP))
-
-    assert state["status"] == "running-sdk"
-    assert (
-        state["latest_public_decision_evidence"]["decision"]
-        == "I will sweep every waypoint before cleanup."
-    )
-    labels = {item["label"] for item in state["artifact_paths"]}
-    assert "Claude Events" in labels
 
 
 def test_state_pairs_split_request_response_tool_trace_for_latest_tool(
@@ -1293,6 +1221,33 @@ def test_state_keeps_manual_control_available_for_paused_handoff_attempt(
     assert state["controls"]["supports_paused_handoff_resume"] is True
 
 
+def test_state_holds_manual_control_until_live_mcp_phase_is_ready(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "output" / "operator-console" / "runs" / "wrapper-run"
+    route = get_selection(B1_OPENAI_AGENTS_OPEN_TASK)
+    run_dir.mkdir(parents=True)
+    (run_dir / "operator_state.json").write_text(
+        json.dumps(
+            {
+                "run_id": "wrapper-run",
+                "route": route.to_payload(),
+                "phase": "starting",
+                "backend_lock": route.lock_name,
+                "mcp_url": "http://127.0.0.1:18788/mcp",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    state = derive_operator_state(tmp_path, run_dir, route)
+
+    assert state["phase"] == "starting"
+    assert state["controls"]["relative_navigation_control_available"] is False
+    assert state["controls"]["relative_navigation_control_pending"] is True
+    assert state["controls"]["next_goal_available"] is False
+
+
 def test_state_reports_blocked_resume_for_paused_handoff_without_runner_support(
     tmp_path: Path,
 ) -> None:
@@ -1399,7 +1354,7 @@ def test_state_surfaces_openai_agents_artifacts(tmp_path: Path) -> None:
 
     assert state["status"] == "running-sdk"
     labels = {item["label"] for item in state["artifact_paths"]}
-    assert "OpenAI Agents Events" in labels
+    assert "Agent Events" in labels
     assert "OpenAI Agents Trace" in labels
 
 

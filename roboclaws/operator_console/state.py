@@ -19,25 +19,18 @@ from roboclaws.maps.preview import (
 )
 from roboclaws.operator_console.jsonl_sources import collect_jsonl_objects
 from roboclaws.operator_console.locks import ResourceLock
-from roboclaws.operator_console.process_status import pid_is_active
 from roboclaws.operator_console.redaction import redact_text
+from roboclaws.operator_console.runtime_compat import pid_is_active  # noqa: F401
 from roboclaws.operator_console.routes import ConsoleLaunchSelection
 from roboclaws.operator_console.state_checker import checker_status
 from roboclaws.operator_console.state_summary import (
     camera_angle_summary,
-    is_failure_string,
-    is_open_ended_run_result,
-    is_success_string,
-    run_result_has_failure,
-    run_result_success,
 )
 
 LIVE_RUN_MARKERS = (
     "live_status.json",
     "run_result.json",
     "trace.jsonl",
-    "codex-events.jsonl",
-    "claude-events.jsonl",
     "report.html",
     "runtime_metric_map.json",
     "tmux_session.txt",
@@ -46,11 +39,7 @@ LIVE_RUN_MARKERS = (
     "openai-agents-trace.json",
 )
 
-AGENT_EVENT_GLOBS = (
-    "codex-events*.jsonl",
-    "claude-events*.jsonl",
-    "openai-agents-events*.jsonl",
-)
+AGENT_EVENT_GLOBS = ("openai-agents-events*.jsonl",)
 
 
 @dataclass(frozen=True)
@@ -177,7 +166,14 @@ def derive_operator_state(
         and not controls_terminal
         and not operator_handoff_paused
     )
-    relative_control_available = bool(supports_relative_control and not controls_terminal)
+    relative_control_pending = bool(
+        supports_relative_control
+        and not controls_terminal
+        and _relative_control_startup_pending(phase)
+    )
+    relative_control_available = bool(
+        supports_relative_control and not controls_terminal and not relative_control_pending
+    )
     stop_available = _stop_available(
         root=root,
         run_id=run_id,
@@ -231,8 +227,8 @@ def derive_operator_state(
             "supports_operator_steer": bool(route.supports_operator_steer) if route else False,
             "supports_paused_handoff_resume": supports_resume,
             "relative_navigation_control_available": relative_control_available,
+            "relative_navigation_control_pending": relative_control_pending,
             "supports_relative_navigation_control": supports_relative_control,
-            "pause_available": bool(route.pause_supported) if route else False,
             "stop_available": stop_available,
             "emergency_stop_required": bool(route.emergency_stop_required) if route else False,
         },
@@ -471,20 +467,15 @@ def _read_jsonl_source(
 def _last_robot_tool_jsonl(rows: list[dict[str, Any]]) -> dict[str, Any]:
     for index in range(len(rows) - 1, -1, -1):
         payload = rows[index]
-        if isinstance(payload, dict) and _is_robot_tool_trace(payload):
-            return _paired_tool_trace(payload, rows[:index])
+        if isinstance(payload, dict):
+            tool = str(payload.get("tool") or payload.get("tool_name") or "")
+            if tool and tool != "<runtime>":
+                return _paired_tool_trace(payload, rows[:index])
     return {}
 
 
 def _camera_angle_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     return camera_angle_summary(rows)
-
-
-def _is_robot_tool_trace(payload: dict[str, Any]) -> bool:
-    tool = str(payload.get("tool") or payload.get("tool_name") or "")
-    if not tool or tool == "<runtime>":
-        return False
-    return True
 
 
 def _paired_tool_trace(trace: dict[str, Any], previous: list[dict[str, Any]]) -> dict[str, Any]:
@@ -534,6 +525,8 @@ def _numeric_trace_time(trace: dict[str, Any] | None) -> float | None:
 
 
 def _float_or_zero(value: Any) -> float:
+    """Parse a float with operator-state precision (3dp). Distinct from
+    state_summary._float_or_zero which keeps full precision."""
     try:
         number = float(value)
     except (TypeError, ValueError):
@@ -559,11 +552,7 @@ def _latest_agent_message(run_dir: Path) -> tuple[str, tuple[JsonSourceError, ..
 
 
 def _agent_event_label(path: Path) -> str:
-    name = path.name
-    if name.startswith("claude-events"):
-        return "Claude Events"
-    if name.startswith("openai-agents-events"):
-        return "OpenAI Agents Events"
+    del path
     return "Agent Events"
 
 
@@ -644,9 +633,7 @@ def _artifact_links(run_dir: Path) -> list[ArtifactLink]:
         ("Report", "report.html", "html"),
         ("Run Result", "run_result.json", "json"),
         ("Trace", "trace.jsonl", "jsonl"),
-        ("Agent Events", "codex-events.jsonl", "jsonl"),
-        ("Claude Events", "claude-events.jsonl", "jsonl"),
-        ("OpenAI Agents Events", "openai-agents-events.jsonl", "jsonl"),
+        ("Agent Events", "openai-agents-events.jsonl", "jsonl"),
         ("OpenAI Agents Trace", "openai-agents-trace.json", "json"),
         ("Driver Log", "driver.log", "log"),
         ("Checker Output", "checker.log", "log"),
@@ -761,26 +748,6 @@ def _artifact_href(root: Path, path: Path) -> str:
     return f"/artifacts/{path.relative_to(root)}?v={path.stat().st_mtime_ns}"
 
 
-def _run_result_success(run_result: dict[str, Any]) -> bool:
-    return run_result_success(run_result)
-
-
-def _run_result_has_failure(run_result: dict[str, Any]) -> bool:
-    return run_result_has_failure(run_result)
-
-
-def _is_open_ended_run_result(run_result: dict[str, Any]) -> bool:
-    return is_open_ended_run_result(run_result)
-
-
-def _is_success_string(value: Any) -> bool:
-    return is_success_string(value)
-
-
-def _is_failure_string(value: Any) -> bool:
-    return is_failure_string(value)
-
-
 def _terminal_reason(
     status: dict[str, Any], live_status: dict[str, Any], run_result: dict[str, Any]
 ) -> str:
@@ -828,6 +795,14 @@ def _control_terminal_state(phase: str, status: str, terminal_reason: str) -> bo
         or status.lower() in terminal_values
         or terminal_reason.lower() in terminal_values
     )
+
+
+def _relative_control_startup_pending(phase: str) -> bool:
+    return phase.lower() in {
+        "queued",
+        "starting",
+        "starting-server",
+    }
 
 
 def _operator_handoff_paused(phase: str, terminal_reason: str) -> bool:

@@ -15,23 +15,20 @@ from roboclaws.household.visual_backend_slots import (
     VisualBackendSlotError,
     list_visual_backend_slots,
 )
+from roboclaws.operator_console.launch_support import (
+    DockerMountSourceError,
+    docker_container_mount_sources,
+)
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root, operator_output_request_path
-from roboclaws.operator_console.process_status import pid_is_active
 from roboclaws.operator_console.redaction import redact_text
-from roboclaws.operator_console.routes import ConsoleLaunchSelection
+from roboclaws.operator_console.routes import ConsoleLaunchSelection, selection_task_selector
+from roboclaws.operator_console.runtime_compat import float_or_none, pid_is_active  # noqa: F401
 from roboclaws.operator_console.state import resolve_display_run_dir
-from roboclaws.operator_console.terminal_runs import task_phase_from_paths
+from roboclaws.operator_console.state_summary import TERMINAL_RUN_PHASES, task_phase_from_paths
 
 DEFAULT_MCP_HOST, DEFAULT_MCP_PORT = "127.0.0.1", 18788
 ACTIVE_STATUSES = {"running", "launched", "blocked"}
-TERMINAL_PHASES = {
-    "failed",
-    "finished",
-    "passed",
-    "stopped_by_operator",
-    "human_takeover_stop",
-}
 LIVE_MARKERS = (
     "live_status.json",
     "run_result.json",
@@ -272,7 +269,7 @@ def _operator_run_task(root: Path, run_dir: Path) -> dict[str, Any] | None:
         run_dir=run_dir,
         display_run_dir=display_run_dir,
         started_at=str(state.get("started_at") or ""),
-        started_at_epoch=_float_or_none(state.get("started_at_epoch")),
+        started_at_epoch=float_or_none(state.get("started_at_epoch")),
         artifacts=artifacts,
         actions=actions,
     )
@@ -440,7 +437,7 @@ def _tmux_tasks(root: Path) -> list[dict[str, Any]]:
         name = parts[0].strip() if parts else ""
         if not _repo_tmux_session(name):
             continue
-        started = _float_or_none(parts[1] if len(parts) > 1 else None)
+        started = float_or_none(parts[1] if len(parts) > 1 else None)
         resources = [_resource("tmux_session", name, session_id=name, active=True)]
         tasks.append(
             _task(
@@ -452,10 +449,6 @@ def _tmux_tasks(root: Path) -> list[dict[str, Any]]:
                 resources=resources,
                 session_id=name,
                 started_at_epoch=started,
-                actions=[
-                    _command_action("Attach", f"tmux attach -t {name}"),
-                    _command_action("Copy Stop Command", f"tmux kill-session -t {name}"),
-                ],
             )
         )
     return tasks
@@ -485,7 +478,6 @@ def _port_owner_tasks(root: Path, ports: list[int]) -> list[dict[str, Any]]:
                 resource=f"MCP port {DEFAULT_MCP_HOST}:{port}",
                 resources=resources,
                 pid=owner,
-                actions=[_command_action("Inspect Port", f"lsof -nP -iTCP:{port} -sTCP:LISTEN")],
             )
         )
     return tasks
@@ -534,10 +526,6 @@ def _docker_tasks(root: Path) -> list[dict[str, Any]]:
                 resources=resources,
                 container_id=container_id,
                 artifacts=[],
-                actions=[
-                    _command_action("Inspect", f"docker inspect {container_id}"),
-                    _command_action("Copy Stop Command", f"docker stop --time 5 {container_id}"),
-                ],
                 extra={"image": image, "docker_status": status},
             )
         )
@@ -655,12 +643,10 @@ def _run_actions(
             }
         )
     session = _tmux_session_name(display_run_dir) if display_run_dir else ""
-    if session and (not require_live_tmux or _tmux_session_exists(session)):
-        actions.append(_command_action("Attach", f"tmux attach -t {session}"))
-        actions.append(_command_action("Copy Stop Command", f"tmux kill-session -t {session}"))
+    if session and require_live_tmux and not _tmux_session_exists(session):
+        session = ""
     driver_log = display_run_dir / "driver.log" if display_run_dir else None
     if driver_log and driver_log.is_file():
-        actions.append(_command_action("Tail Log", f"tail -f {driver_log}"))
         request_path = operator_output_request_path(root, driver_log)
         if request_path:
             actions.append(
@@ -746,10 +732,6 @@ def _artifact(root: Path, path: Path, label: str, *, kind: str) -> dict[str, Any
     }
 
 
-def _command_action(label: str, command: str) -> dict[str, str]:
-    return {"type": "copy_command", "label": label, "command": redact_text(command)}
-
-
 def _status_from_phase(
     phase: str,
     *,
@@ -759,7 +741,7 @@ def _status_from_phase(
     has_live_resource: bool | None = None,
 ) -> str:
     normalized = str(phase or "").strip().lower()
-    if normalized in TERMINAL_PHASES:
+    if normalized in TERMINAL_RUN_PHASES:
         return "terminal"
     if tmux_session and _tmux_session_exists(tmux_session):
         return "running"
@@ -902,8 +884,7 @@ def _route_id_from_axes(axes: dict[str, Any]) -> str:
     lane = str(axes.get("evidence_lane") or "")
     if not all((world, backend, intent, engine, lane)):
         return ""
-    task = intent if intent in {"cleanup", "map-build"} else "open-task"
-    return "::".join((world, backend, task, engine, lane))
+    return "::".join((world, backend, selection_task_selector(intent), engine, lane))
 
 
 def _summary(tasks: list[dict[str, Any]]) -> dict[str, Any]:
@@ -960,7 +941,7 @@ def _dedupe_resources(resources: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def _sort_key(task: dict[str, Any]) -> tuple[float, str]:
-    epoch = _float_or_none(task.get("started_at_epoch")) or _mtime_for_task(task)
+    epoch = float_or_none(task.get("started_at_epoch")) or _mtime_for_task(task)
     return epoch, str(task.get("id") or "")
 
 
@@ -1141,23 +1122,22 @@ def _split_docker_ps(line: str) -> tuple[str, str, str, str]:
 
 
 def _docker_mount_sources(container_id: str) -> tuple[list[Path], str]:
-    result = _run_command(["docker", "inspect", "--format", "{{json .Mounts}}", container_id])
-    if result is None or result.returncode != 0:
-        return [], ""
     try:
-        mounts = json.loads(result.stdout)
-    except json.JSONDecodeError as exc:
-        return [], f"invalid_json:{exc.msg}"
-    output: list[Path] = []
-    if not isinstance(mounts, list):
-        return [], "invalid_json_array"
-    for mount in mounts:
-        if not isinstance(mount, dict):
-            return [], f"invalid_json_object:{type(mount).__name__}"
-        if not mount.get("Source"):
-            continue
-        output.append(Path(str(mount["Source"])).resolve())
-    return output, ""
+        return docker_container_mount_sources(container_id, run_command=subprocess.run), ""
+    except DockerMountSourceError as exc:
+        return [], _docker_mount_source_error_reason(exc)
+
+
+def _docker_mount_source_error_reason(error: DockerMountSourceError) -> str:
+    message = str(error)
+    if "contain invalid JSON" in message:
+        return "invalid_json"
+    if "must be a JSON array" in message:
+        return "invalid_json_array"
+    object_marker = "must contain JSON objects; got "
+    if object_marker in message:
+        return f"invalid_json_object:{message.rsplit(object_marker, 1)[1]}"
+    return "invalid_docker_mounts"
 
 
 def _docker_mount_source_error_task(
@@ -1186,7 +1166,6 @@ def _docker_mount_source_error_task(
             )
         ],
         container_id=container_id,
-        actions=[_command_action("Inspect", f"docker inspect {container_id}")],
         extra={
             "image": image,
             "docker_status": status,
@@ -1205,6 +1184,8 @@ def _path_is_repo_relevant(root: Path, path: Path) -> bool:
 
 
 def _host_probe_enabled(root: Path) -> bool:
+    """Skip host-probe (tmux / port / docker) when not running from a repo root."""
+
     return (root / "pyproject.toml").is_file() and (root / "roboclaws").is_dir()
 
 
@@ -1251,13 +1232,6 @@ def _int_or_none(value: Any) -> int | None:
     return parsed if parsed > 0 else None
 
 
-def _float_or_none(value: Any) -> float | None:
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
 def _age_seconds(started_at_epoch: float | None) -> float | None:
     if started_at_epoch is None:
         return None
@@ -1265,7 +1239,7 @@ def _age_seconds(started_at_epoch: float | None) -> float | None:
 
 
 def _recent_epoch(value: Any, *, window_s: float) -> bool:
-    epoch = _float_or_none(value)
+    epoch = float_or_none(value)
     return bool(epoch and time.time() - epoch <= window_s)
 
 

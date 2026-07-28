@@ -11,7 +11,7 @@ from typing import Any
 
 from roboclaws.core.json_sources import read_json_object
 from roboclaws.operator_console.paths import console_output_root
-from roboclaws.operator_console.process_status import pid_is_active
+from roboclaws.operator_console.runtime_compat import float_or_none, pid_is_active  # noqa: F401
 
 
 @dataclass(frozen=True)
@@ -64,7 +64,7 @@ class ResourceLock:
             held=True,
             owner_run_id=str(payload.get("run_id") or ""),
             pid=pid if isinstance(pid, int) else None,
-            acquired_at=_float_or_none(payload.get("acquired_at")),
+            acquired_at=float_or_none(payload.get("acquired_at")),
             stale=stale,
         )
 
@@ -107,10 +107,3 @@ class ResourceLock:
         if not force and state.owner_run_id and state.owner_run_id != run_id:
             raise ResourceLockError(f"lock {self.name} is owned by {state.owner_run_id}")
         self.path.unlink(missing_ok=True)
-
-
-def _float_or_none(value: Any) -> float | None:
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None

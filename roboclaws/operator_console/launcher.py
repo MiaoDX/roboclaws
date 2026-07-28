@@ -21,13 +21,7 @@ from roboclaws.core.dotenv import load_dotenv_file
 from roboclaws.core.json_sources import read_json_object
 from roboclaws.household.evidence_lane_policy import evidence_lane_compatibility
 from roboclaws.launch.catalog import LaunchError, resolve_surface_launch
-from roboclaws.launch.environment_setup import (
-    ENVIRONMENT_SETUP_BASELINE,
-    ENVIRONMENT_SETUP_OPTIONS,
-    RELOCATION_SETUP_OPTIONS,
-)
 from roboclaws.operator_console import context_packets
-from roboclaws.operator_console.history import append_run_history
 from roboclaws.operator_console.interactions import (
     MESSAGE_LOG,
     RESUME_REQUEST_LOG,
@@ -36,13 +30,14 @@ from roboclaws.operator_console.interactions import (
 from roboclaws.operator_console.launch_support import (
     DockerMountSourceError,
     apply_env_overrides,
+    build_surface_launch_args,
     docker_container_ids_with_mount,
+    launch_prompt_for_intent,
     provider_env_overrides_for_route,
     public_env_overrides,
 )
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root
-from roboclaws.operator_console.process_status import pid_is_active
 from roboclaws.operator_console.prompt_preview import (
     PromptPreviewRequest,
     build_prompt_preview,
@@ -50,10 +45,11 @@ from roboclaws.operator_console.prompt_preview import (
 )
 from roboclaws.operator_console.readiness import route_gate_rows
 from roboclaws.operator_console.routes import (
-    DEFAULT_PROMPTS,
     ConsoleLaunchSelection,
     get_selection,
+    selection_task_selector,
 )
+from roboclaws.operator_console.runtime_compat import pid_is_active  # noqa: F401
 from roboclaws.operator_console.runtime_inventory import (
     background_blocker_message,
     blocking_tasks_for_route,
@@ -61,9 +57,14 @@ from roboclaws.operator_console.runtime_inventory import (
     runtime_inventory_payload,
 )
 from roboclaws.operator_console.state import resolve_display_run_dir
-from roboclaws.operator_console.terminal_runs import (
+from roboclaws.operator_console.state_summary import (
     existing_terminal_phase,
     existing_terminal_reason,
+)
+from roboclaws.operator_console.workflows import (
+    get_operator_workflow,
+    runtime_map_prior_for_workflow,
+    runtime_prior_override_exists,
 )
 
 RUN_ID_SAFE_RE = re.compile(r"[^A-Za-z0-9_.-]+")
@@ -99,19 +100,17 @@ class LaunchRequest:
     parent_run_id: str = ""
     next_goal_packet: dict[str, Any] | None = None
     selection_id_override: str = ""
+    workflow_id: str = ""
 
     @property
     def selection_id(self) -> str:
         if self.world_id and self.backend_id and self.intent_id and self.agent_engine_id:
             lane = self.evidence_lane or "world-public-labels"
-            task_selector = (
-                self.intent_id if self.intent_id in {"cleanup", "map-build"} else "open-task"
-            )
             return "::".join(
                 (
                     self.world_id,
                     self.backend_id,
-                    task_selector,
+                    selection_task_selector(self.intent_id),
                     self.agent_engine_id,
                     lane,
                 )
@@ -147,51 +146,15 @@ def build_launch_argv(
 ) -> list[str]:
     """Build a fixed argv list for a console route."""
 
-    selected_intent = str(intent or route.intent_id)
-    selected_prompt = _launch_prompt_for_intent(route, selected_intent, prompt)
-    selected_preset = route.preset_id if selected_intent == route.intent_id else ""
-    request_overrides = _normalized_launch_overrides(
-        route,
-        overrides or {},
-        selected_intent=selected_intent,
-    )
-    _validate_override_keys(route, request_overrides)
     output_dir = console_output_root(root) / "runs" / run_id
-    overridden_keys = set(request_overrides)
-    if request_overrides.get("scenario_setup") == ENVIRONMENT_SETUP_BASELINE:
-        overridden_keys.add("relocation_count")
-    default_overrides = [
-        item
-        for item in route.launch_default_overrides
-        if _override_key(item) not in overridden_keys
-    ]
-    args = _base_launch_args(
+    args = build_surface_launch_args(
         route,
-        selected_intent=selected_intent,
-        selected_preset=selected_preset,
-        scenario_setup=request_overrides.pop("scenario_setup", route.scenario_setup),
-        default_overrides=default_overrides,
+        selected_intent=intent,
+        prompt=prompt,
+        overrides=overrides,
+        output_dir=output_dir,
+        error_type=ConsoleLaunchError,
     )
-    provider_profile = request_overrides.pop("provider_profile", route.provider_profile or "")
-    if provider_profile:
-        args.append(f"provider_profile={provider_profile}")
-    args.append(f"output_dir={output_dir}")
-    for key in route.required_overrides:
-        value = request_overrides.get(key)
-        if not value:
-            raise ConsoleLaunchError(f"missing required route parameter: {key}")
-        args.append(f"{key}={value}")
-    for key in sorted(request_overrides):
-        if key in route.required_overrides:
-            continue
-        args.append(f"{key}={request_overrides[key]}")
-    if selected_prompt:
-        if not route.supports_prompt:
-            raise ConsoleLaunchError(
-                "This route cannot accept a custom prompt safely. Use the default task prompt."
-            )
-        args.append(f"prompt={selected_prompt}")
-
     try:
         resolve_surface_launch(args)
     except LaunchError as exc:
@@ -199,28 +162,80 @@ def build_launch_argv(
     return ["just", "run::surface", *args]
 
 
-def _base_launch_args(
+def build_workflow_launch_argv(
     route: ConsoleLaunchSelection,
     *,
-    selected_intent: str,
-    selected_preset: str,
-    scenario_setup: str,
-    default_overrides: list[str],
+    workflow_id: str,
+    root: Path,
+    run_id: str,
+    prompt: str = "",
+    overrides: dict[str, str] | None = None,
 ) -> list[str]:
-    args = [
-        f"surface={route.surface}",
-        f"world={route.world_id}",
-        f"backend={route.backend_id}",
-        f"agent_engine={route.agent_engine_id}",
-        f"evidence_lane={route.evidence_lane}",
-        f"scenario_setup={scenario_setup}",
-        *default_overrides,
-    ]
-    if selected_preset:
-        args.insert(3, f"preset={selected_preset}")
-    elif selected_intent != "open-ended":
-        args.insert(3, f"intent={selected_intent}")
-    return args
+    """Build argv for an operator workflow action through the route catalog."""
+
+    workflow = get_operator_workflow(workflow_id)
+    if workflow.intent_id != route.intent_id:
+        raise ConsoleLaunchError(
+            f"workflow {workflow.id} requires intent {workflow.intent_id}, "
+            f"but route uses {route.intent_id}"
+        )
+    request_overrides = dict(overrides or {})
+    request_overrides.setdefault("scenario_setup", workflow.scenario_setup)
+    try:
+        runtime_map_prior = runtime_map_prior_for_workflow(
+            workflow=workflow,
+            world_id=route.world_id,
+            backend_id=route.backend_id,
+            override_path=str(request_overrides.get("runtime_map_prior") or ""),
+        )
+    except ValueError as exc:
+        raise ConsoleLaunchError(str(exc)) from exc
+    if runtime_map_prior:
+        if not runtime_prior_override_exists(runtime_map_prior, root=root):
+            raise ConsoleLaunchError(f"runtime_map_prior path does not exist: {runtime_map_prior}")
+        request_overrides["runtime_map_prior"] = runtime_map_prior
+    elif (
+        "runtime_map_prior" in request_overrides
+        and not str(request_overrides["runtime_map_prior"]).strip()
+    ):
+        raise ConsoleLaunchError("runtime_map_prior override cannot be empty")
+    return build_launch_argv(
+        route,
+        root=root,
+        run_id=run_id,
+        intent=workflow.intent_id,
+        prompt=prompt,
+        overrides=request_overrides,
+    )
+
+
+def _build_request_launch_argv(
+    route: ConsoleLaunchSelection,
+    request: LaunchRequest,
+    *,
+    root: Path,
+    run_id: str,
+    selected_intent: str,
+    launch_prompt: str,
+    overrides: dict[str, str],
+) -> list[str]:
+    if request.workflow_id:
+        return build_workflow_launch_argv(
+            route,
+            workflow_id=request.workflow_id,
+            root=root,
+            run_id=run_id,
+            prompt=launch_prompt,
+            overrides=overrides,
+        )
+    return build_launch_argv(
+        route,
+        root=root,
+        run_id=run_id,
+        intent=selected_intent,
+        prompt=launch_prompt,
+        overrides=overrides,
+    )
 
 
 def start_console_run(
@@ -261,7 +276,7 @@ def start_console_run(
         if route.supports_paused_handoff_resume:
             overrides.setdefault("operator_resume_requests_path", str(run_dir / RESUME_REQUEST_LOG))
         selected_intent = request.intent_id or route.intent_id
-        launch_prompt = _launch_prompt_for_intent(route, selected_intent, request.prompt)
+        launch_prompt = launch_prompt_for_intent(route, selected_intent, request.prompt)
         preview = build_prompt_preview(
             route,
             PromptPreviewRequest(
@@ -271,12 +286,13 @@ def start_console_run(
                 env_overrides=prompt_preview_env(run_env, env_overrides),
             ),
         )
-        argv = build_launch_argv(
+        argv = _build_request_launch_argv(
             route,
+            request,
             root=root,
             run_id=run_id,
-            intent=selected_intent,
-            prompt=launch_prompt,
+            selected_intent=selected_intent,
+            launch_prompt=launch_prompt,
             overrides=overrides,
         )
         mcp_host, mcp_port = requested_mcp_endpoint(overrides)
@@ -312,6 +328,7 @@ def start_console_run(
         "agent_kickoff_prompt": preview["agent_kickoff_prompt"],
         "launch_selection": route.to_payload(),
         "route": route.to_payload(),
+        "workflow_id": request.workflow_id,
         "selected_intent": selected_intent,
         "world_id": route.world_id,
         "backend_id": route.backend_id,
@@ -336,14 +353,6 @@ def start_console_run(
         "run_dir": str(run_dir),
     }
     (run_dir / "operator_state.json").write_text(json.dumps(state, indent=2), encoding="utf-8")
-    append_run_history(
-        root,
-        run_id=run_id,
-        selection=route,
-        run_dir=run_dir,
-        started_at_epoch=started_at_epoch,
-        started_at=started_at,
-    )
     return state
 
 
@@ -418,17 +427,6 @@ def route_readiness(
         "provider": provider_status,
         "gates": gate_rows,
     }
-
-
-def _launch_prompt_for_intent(
-    route: ConsoleLaunchSelection,
-    selected_intent: str,
-    prompt: str,
-) -> str:
-    text = str(prompt or "").strip()
-    if text or selected_intent != "open-ended":
-        return text
-    return DEFAULT_PROMPTS.get(selected_intent, route.task_prompt_default)
 
 
 def stop_console_run(root: Path, run_id: str, *, emergency: bool = False) -> dict[str, Any]:
@@ -514,93 +512,6 @@ def _route_lock_readiness(
 
 def _lock_source_error_message(error: _JsonSourceError) -> str:
     return f"Backend lock owner source error: {error.path.name} {error.reason}"
-
-
-def _validate_override_keys(route: ConsoleLaunchSelection, overrides: dict[str, str]) -> None:
-    allowed = {
-        "seed",
-        "seeds",
-        "scenario_setup",
-        "provider_profile",
-        "relocation_count",
-        "context_json",
-        "visual_grounding_timeout",
-        "visual_grounding_timeout_s",
-        "scene_source",
-        "scene_index",
-        "isaac_scene_usd_path",
-        "map_bundle",
-        "b1_alignment_artifact",
-        "b1_navigation_artifact",
-        "robot_views",
-        "record_robot_views",
-        "real_movement_enabled",
-        "run_dir",
-        "policy",
-        "host",
-        "port",
-        "operator_messages_path",
-        "operator_resume_requests_path",
-        "operator_session_context_json",
-    }
-    for key, value in overrides.items():
-        if key not in allowed:
-            raise ConsoleLaunchError(f"unsupported route parameter: {key}")
-        if "\x00" in value:
-            raise ConsoleLaunchError(f"invalid NUL byte in route parameter: {key}")
-        if key == "port":
-            _parse_port(value)
-        if key == "scenario_setup" and value not in ENVIRONMENT_SETUP_OPTIONS:
-            allowed_values = "|".join(ENVIRONMENT_SETUP_OPTIONS)
-            raise ConsoleLaunchError(
-                f"unsupported scenario_setup: {value}; expected {allowed_values}"
-            )
-        if key == "relocation_count":
-            _parse_nonnegative_int(value, key)
-    for key in route.required_overrides:
-        if key not in allowed:
-            raise ConsoleLaunchError(f"route registry uses unsupported parameter: {key}")
-
-
-def _normalized_launch_overrides(
-    route: ConsoleLaunchSelection,
-    overrides: dict[str, str],
-    *,
-    selected_intent: str,
-) -> dict[str, str]:
-    normalized = {str(key): str(value) for key, value in overrides.items()}
-    if "generated_mess_count" in normalized:
-        raise ConsoleLaunchError(
-            "generated_mess_count is no longer a public route parameter; "
-            "use scenario_setup and relocation_count"
-        )
-    default_map = {
-        _override_key(item): item.split("=", 1)[1]
-        for item in route.launch_default_overrides
-        if "=" in item
-    }
-    setup = str(
-        normalized.get("scenario_setup")
-        or (
-            default_map.get("scenario_setup")
-            if selected_intent == route.intent_id
-            else ENVIRONMENT_SETUP_BASELINE
-        )
-        or route.scenario_setup
-    )
-    if setup not in ENVIRONMENT_SETUP_OPTIONS:
-        allowed_values = "|".join(ENVIRONMENT_SETUP_OPTIONS)
-        raise ConsoleLaunchError(f"unsupported scenario_setup: {setup}; expected {allowed_values}")
-    normalized["scenario_setup"] = setup
-    if setup in RELOCATION_SETUP_OPTIONS:
-        relocation_count = str(
-            normalized.get("relocation_count") or default_map.get("relocation_count") or "5"
-        )
-        _parse_nonnegative_int(relocation_count, "relocation_count")
-        normalized["relocation_count"] = relocation_count
-    else:
-        normalized.pop("relocation_count", None)
-    return normalized
 
 
 def _provider_status(route: ConsoleLaunchSelection, env_map: dict[str, str]) -> dict[str, Any]:
@@ -731,7 +642,7 @@ def _display_run_attachable(
         return False
     if phase:
         return True
-    if active_pid and _pid_exists(active_pid):
+    if active_pid and pid_is_active(active_pid):
         return True
     if _tmux_session_active(display_run_dir):
         return True
@@ -822,9 +733,9 @@ def _terminate_process_group(pid: int | None) -> None:
         return
     _signal_process_group_or_pid(pid, signal.SIGTERM)
     deadline = time.monotonic() + 1.0
-    while _pid_exists(pid) and time.monotonic() < deadline:
+    while pid_is_active(pid) and time.monotonic() < deadline:
         time.sleep(0.05)
-    if _pid_exists(pid):
+    if pid_is_active(pid):
         _signal_process_group_or_pid(pid, signal.SIGKILL)
 
 
@@ -948,10 +859,6 @@ def _read_json_source(path: Path) -> dict[str, Any]:
         raise _JsonSourceError(path, f"cannot be read: {exc}") from exc
 
 
-def _pid_exists(pid: int) -> bool:
-    return pid_is_active(pid)
-
-
 def _tmux_session_active(display_run_dir: Path) -> bool:
     session_path = display_run_dir / "tmux_session.txt"
     if not session_path.is_file():
@@ -987,30 +894,6 @@ def _kill_tmux_session(display_run_dir: Path) -> None:
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-
-
-def _override_key(value: str) -> str:
-    return value.split("=", 1)[0]
-
-
-def _parse_port(value: str) -> int:
-    try:
-        port = int(str(value).strip())
-    except ValueError as exc:
-        raise ConsoleLaunchError(f"invalid MCP port: {value}") from exc
-    if not 1 <= port <= 65535:
-        raise ConsoleLaunchError(f"invalid MCP port: {value}")
-    return port
-
-
-def _parse_nonnegative_int(raw: str, key: str) -> int:
-    try:
-        value = int(str(raw).strip())
-    except ValueError as exc:
-        raise ConsoleLaunchError(f"{key} must be an integer") from exc
-    if value < 0:
-        raise ConsoleLaunchError(f"{key} must be >= 0")
-    return value
 
 
 def _new_run_id(route: ConsoleLaunchSelection) -> str:

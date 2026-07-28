@@ -85,6 +85,7 @@ def run_operator_control(
             },
         )
     except Exception as exc:
+        error = _control_call_error(exc, mcp_url=mcp_url)
         response_row = _append_control_row(
             run_dir,
             {
@@ -93,11 +94,11 @@ def run_operator_control(
                 "action": action,
                 "arguments": arguments,
                 "mcp_url": mcp_url,
-                "error": str(exc),
+                "error": error,
             },
         )
         _update_operator_state_with_control(run_dir, response_row)
-        raise OperatorControlError(f"control call failed: {exc}", status=502) from exc
+        raise OperatorControlError(f"control call failed: {error}", status=502) from exc
 
     _update_operator_state_with_control(run_dir, response_row)
     return {
@@ -126,6 +127,11 @@ def _validate_control_state(
         raise OperatorControlError("route does not support relative navigation control", status=409)
     if controls.get("next_goal_available"):
         raise OperatorControlError("terminal run cannot be controlled", status=409)
+    if controls.get("relative_navigation_control_pending"):
+        raise OperatorControlError(
+            "manual control is waiting for the MCP endpoint to become ready",
+            status=409,
+        )
     if not controls.get("relative_navigation_control_available"):
         raise OperatorControlError("relative navigation control is unavailable", status=409)
 
@@ -187,6 +193,38 @@ def _serialize_tool_result(result: Any) -> dict[str, Any]:
                         label="operator control MCP tool response",
                     )
     return payload
+
+
+def _control_call_error(exc: BaseException, *, mcp_url: str) -> str:
+    leaves = _exception_leaves(exc)
+    if not leaves:
+        leaves = [exc]
+    details = "; ".join(_exception_detail(leaf) for leaf in leaves)
+    if any(_is_connection_error(leaf) for leaf in leaves):
+        return f"MCP endpoint is not reachable at {mcp_url}: {details}"
+    return details
+
+
+def _exception_leaves(exc: BaseException) -> list[BaseException]:
+    if isinstance(exc, BaseExceptionGroup):
+        leaves: list[BaseException] = []
+        for subexception in exc.exceptions:
+            leaves.extend(_exception_leaves(subexception))
+        return leaves
+    return [exc]
+
+
+def _exception_detail(exc: BaseException) -> str:
+    text = str(exc).strip()
+    if text:
+        return text
+    return exc.__class__.__name__
+
+
+def _is_connection_error(exc: BaseException) -> bool:
+    name = exc.__class__.__name__.lower()
+    text = str(exc).lower()
+    return "connecterror" in name or "connection" in text
 
 
 def _append_control_row(run_dir: Path, row: dict[str, Any]) -> dict[str, Any]:

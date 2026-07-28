@@ -52,6 +52,28 @@ LOCAL_ASSET_TESTS = {
     },
 }
 
+SLOW_MODULES = {
+    # CI-safe but too expensive for commit-time scoped hooks.
+    "test_isaac_lab_backend.py",
+    "test_molmospaces_realworld_cleanup.py",
+    "test_molmo_realworld_contract.py",
+    "test_molmo_realworld_mcp_server.py",
+    "test_molmospaces_agibot_contract_rehearsal.py",
+    "test_agibot_map_evidence_refresh_report.py",
+}
+
+SLOW_TESTS = {
+    "test_agibot_evidence_refresh_prompt.py": {
+        "test_agibot_molmospaces_sim_rehearsal_records_open_evidence_refresh_prompt",
+    },
+    "test_molmo_mcp_smoke_shared_semantic_loop.py": {
+        "test_realworld_mcp_smoke_uses_shared_fixture_style_semantic_loop",
+    },
+    "test_molmo_realworld_mcp_smoke_artifacts.py": {
+        "test_realworld_mcp_smoke_writes_agent_artifacts",
+    },
+}
+
 LAYER_DIRS = ("local", "slow", "integration", "contract", "regression", "unit")
 
 REGRESSION_NAME_PARTS = (
@@ -86,6 +108,8 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     for item in items:
         layer = _layer_for_item(item)
         item.add_marker(getattr(pytest.mark, layer))
+        if _is_slow_item(item):
+            item.add_marker(pytest.mark.slow)
 
 
 def _layer_for_item(item: pytest.Item) -> str:
@@ -121,3 +145,10 @@ def _directory_layer(item: pytest.Item, path: Path) -> str:
     if relative_parts and relative_parts[0] in LAYER_DIRS:
         return relative_parts[0]
     return ""
+
+
+def _is_slow_item(item: pytest.Item) -> bool:
+    filename = Path(str(item.path)).name
+    if filename in SLOW_MODULES:
+        return True
+    return item.name.split("[", 1)[0] in SLOW_TESTS.get(filename, set())

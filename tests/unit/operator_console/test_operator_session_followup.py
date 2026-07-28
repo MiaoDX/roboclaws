@@ -11,6 +11,8 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from roboclaws.operator_console.launcher import (
     ConsoleLaunchError,
     LaunchRequest,
@@ -20,16 +22,14 @@ from roboclaws.operator_console.launcher import (
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.routes import get_selection
-from roboclaws.operator_console.server import ConsoleRequestHandler
+from roboclaws.operator_console.server import ConsoleRequestHandler, _follow_up_launch_request
 
 CODEX_ENV = {
     "CODEX_BASE_URL": "https://codex.example.test/v1",
     "CODEX_API_KEY": "key",
 }
-MUJOCO_OPENAI_AGENTS_OPEN_TASK = (
-    "molmospaces/procthor-objaverse-val/0::mujoco::open-task::openai-agents-sdk::"
-    "world-public-labels"
-)
+
+from tests.unit.operator_console.conftest import MUJOCO_OPENAI_AGENTS_OPEN_TASK  # noqa: F401  re-exported for tests
 
 
 def _free_port() -> str:
@@ -80,6 +80,42 @@ def _post_next_goal(host: str, port: int, run_id: str) -> dict[str, object]:
     )
     with urllib.request.urlopen(request) as response:
         return json.loads(response.read().decode("utf-8"))
+
+
+def test_followup_launch_request_uses_route_registry_for_selection_axes() -> None:
+    route = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
+
+    request = _follow_up_launch_request(
+        "parent-run",
+        {
+            "selection_id": route.id,
+            "body": "Run the next sweep",
+            "operator_session_id": "session-test",
+            "next_goal_packet": {"schema": "operator_console_next_goal_packet_v1"},
+        },
+    )
+
+    assert request.selection_id_override == route.id
+    assert request.selection_id == route.id
+    assert request.intent_id == route.intent_id
+    assert request.world_id == route.world_id
+    assert request.backend_id == route.backend_id
+    assert request.agent_engine_id == route.agent_engine_id
+    assert request.evidence_lane == route.evidence_lane
+    assert request.prompt == "Run the next sweep"
+    assert request.operator_session_id == "session-test"
+    assert request.parent_run_id == "parent-run"
+
+
+def test_followup_launch_request_rejects_unknown_selection_id() -> None:
+    with pytest.raises(KeyError):
+        _follow_up_launch_request(
+            "parent-run",
+            {
+                "selection_id": "unknown::selection",
+                "body": "Run the next sweep",
+            },
+        )
 
 
 def test_launcher_sanitizes_followup_context_for_child_prompt(tmp_path: Path) -> None:
@@ -225,6 +261,7 @@ def test_next_goal_autostart_retries_visual_slot_wind_down(tmp_path: Path) -> No
 def test_next_goal_autostart_releases_parent_lock_during_live_status_wind_down(
     tmp_path: Path,
 ) -> None:
+    mcp_port = int(_free_port())
     route = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
     run_id = "parent-wind-down-run"
     run_dir = tmp_path / "output" / "operator-console" / "runs" / run_id
@@ -266,6 +303,8 @@ def test_next_goal_autostart_releases_parent_lock_during_live_status_wind_down(
 
     with (
         patch.dict(os.environ, CODEX_ENV),
+        patch("roboclaws.operator_console.readiness.DEFAULT_MCP_PORT", mcp_port),
+        patch("roboclaws.operator_console.runtime_inventory.DEFAULT_MCP_PORT", mcp_port),
         patch("roboclaws.operator_console.launcher.subprocess.Popen", return_value=FakeProcess()),
         _console_server(tmp_path) as (host, port),
     ):

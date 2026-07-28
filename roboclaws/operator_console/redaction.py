@@ -42,11 +42,9 @@ def redact_text(text: str, *, env: Mapping[str, str] | None = None) -> str:
     redacted = text
     for value in _secret_values(env_map):
         redacted = redacted.replace(value, "[REDACTED]")
-    for pattern in SECRET_PATTERNS:
-        redacted = pattern.sub(
-            lambda match: f"{match.group(1)}[REDACTED]" if match.groups() else "[REDACTED]",
-            redacted,
-        )
+    for pattern in SECRET_PATTERNS[:3]:
+        redacted = pattern.sub(r"\1[REDACTED]", redacted)
+    redacted = SECRET_PATTERNS[3].sub("[REDACTED]", redacted)
     return redacted
 
 
