@@ -96,6 +96,14 @@ def test_content_store_uses_digest_paths_and_reuses_remote_cache(
     assert len(persisted) == 3
 
 
+def test_content_identity_preserves_the_actual_manifest_filename(tmp_path: Path) -> None:
+    manifest = _manifest(tmp_path)
+
+    identity = cloudml_content_store.load_identity(manifest)
+
+    assert identity["asset_manifest_name"] == "content.json"
+
+
 def test_content_store_does_not_reuse_partial_remote_cache(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

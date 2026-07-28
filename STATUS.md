@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-07-24
+Last updated: 2026-07-25
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -72,6 +72,17 @@ for plan/diff-driven verification recommendations.
 ## Current Blockers
 
 - No current human blocker for deterministic MapBuild quality-gate work.
+- The opt-in CloudML B1/Isaac digital-twin proof remains stopped before Stage A acceptance. The
+  pinned Isaac image now carries an exact `580.105.08` NVIDIA Vulkan userspace overlay and selects
+  native libraries for exact `570.124.06`; local RTX/Vulkan smoke and both selector branches pass.
+  Bounded 2026-07-25 sampling now totals 84 one-GPU tasks plus the earlier 8-GPU and 4-GPU placement
+  diagnostics. The latest 56 one-GPU tasks included six same-second eight-task waves and covered
+  `slave559`, `slave563`, `slave564`, `slave574`, `slave580`, and `slave589`, but every sampled host
+  still reported exact driver `570.124.06`. Those tasks correctly failed before Isaac startup with
+  platform retries disabled. A normal one-GPU Stage A must still land on the known `580.105.08`
+  host group and pass before Stage B/C can run. No new EULA or per-attempt test approval is required.
+  See
+  `docs/status/active/cloudml-isaac-digital-twin-proof.md`.
 - No current implementation blocker for deterministic or OpenAI Agents SDK smoke
   eval work when using a provider route available on the current network.
 - Agibot hardware validation is deferred by operator request, and the discovery service at

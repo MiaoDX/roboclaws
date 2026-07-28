@@ -27,6 +27,7 @@ def load_identity(path: Path) -> dict[str, str]:
         "asset_archive_name": str(asset_archive.get("name") or ""),
         "asset_archive_sha256": str(asset_archive.get("sha256") or ""),
         "asset_archive_local_path": str(asset_archive.get("local_path") or ""),
+        "asset_manifest_name": path.name,
         "asset_manifest_sha256": _sha256_file(path),
     }
     missing = [key for key, value in identity.items() if not value]

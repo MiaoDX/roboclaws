@@ -126,6 +126,7 @@ def _row(
         "requires": list(raw.get("requires") or []),
         "execution_requirements": _dedupe(execution_requirements),
         "depends_on": list(raw.get("depends_on") or []),
+        "cloudml_stage": dict(raw.get("cloudml_stage") or {}),
         "timeout_s": int(raw.get("timeout_s", execution.get("timeout_s")) or 0),
         "concurrency_group": str(
             raw.get("concurrency_group", execution.get("concurrency_group")) or ""

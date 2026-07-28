@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 import platform
+from pathlib import Path
 from typing import Any
 
 from scripts.isaac_lab_cleanup.isaac_render_diagnostics import (
@@ -13,7 +15,24 @@ def module_version(module_name: str) -> str | None:
         module = __import__(module_name)
     except Exception:
         return None
-    return str(getattr(module, "__version__", "unknown"))
+    version = str(getattr(module, "__version__", "unknown"))
+    if module_name == "isaacsim" and version == "unknown":
+        return _isaac_sim_version_file("docs/py/VERSION") or version
+    return version
+
+
+def isaac_sim_build_version() -> str | None:
+    return _isaac_sim_version_file("VERSION")
+
+
+def _isaac_sim_version_file(relative_path: str) -> str | None:
+    root = Path(os.environ.get("ISAACSIM_ROOT_PATH", "/isaac-sim"))
+    path = root / relative_path
+    try:
+        value = path.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    return value or None
 
 
 def runtime_diagnostics(
@@ -28,9 +47,11 @@ def runtime_diagnostics(
 ) -> dict[str, Any]:
     isaac_lab_version = real_smoke.get("isaac_lab_version") if real_smoke else None
     isaac_sim_version = real_smoke.get("isaac_sim_version") if real_smoke else None
+    isaac_sim_build = real_smoke.get("isaac_sim_build") if real_smoke else None
     if runtime_mode == "real":
         isaac_lab_version = isaac_lab_version or module_version("isaaclab")
         isaac_sim_version = isaac_sim_version or module_version("isaacsim")
+        isaac_sim_build = isaac_sim_build or isaac_sim_build_version()
     cuda_available = False
     gpu_name = ""
     gpu_vram_mb = None
@@ -59,6 +80,7 @@ def runtime_diagnostics(
         "runtime_mode": runtime_mode,
         "python_version": platform.python_version(),
         "isaac_sim_version": isaac_sim_version,
+        "isaac_sim_build": isaac_sim_build,
         "isaac_lab_version": isaac_lab_version,
         "cuda_available": cuda_available,
         "gpu_name": gpu_name,

@@ -171,6 +171,18 @@ non-preemptible. A preempted shard must be resumed as a new explicit attempt.
 The task-level preemptible flag is independent of CloudML resource priority; it
 does not require a separate `BEST_EFFORT` r49 resource class.
 
+The current placement policy uses queue `8151` (`robot-rfm-workflow`) on
+`alicn-bj-cloudml-prod-3` for CPU work. Deterministic gates use 4 CPU / 32 GiB;
+non-DINO MuJoCo and live-agent shards use 13 CPU / 104 GiB, the CPU image, and
+OSMesa. Independent dependency/scene groups are emitted as separate MuJoCo CPU
+shards, so the queue can scale them horizontally. Queue `11759`
+(`robot-dev-common`) on `wlcb-cloudml-prod` is reserved for rows with an
+explicit CUDA requirement: currently Grounding DINO and the separately
+capability-gated B1 Isaac proof. The Isaac route remains opt-in and
+non-preemptible until its NVIDIA image and Stage A-C live evidence are
+separately authorized and accepted. MuJoCo by itself is a CPU requirement and
+must not select r49.
+
 The 2026-07-22 complete baseline proof selected 27 rows and placed 25 eligible
 rows into 15 CloudML shards: one CPU shard and 14 preemptible r49 GPU shards.
 All 15 tasks were created within 19 seconds and completed in 54 minutes 12
