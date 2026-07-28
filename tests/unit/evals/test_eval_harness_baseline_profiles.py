@@ -54,6 +54,11 @@ def test_baseline_core_profile_selects_non_live_baseline_rows(tmp_path: Path) ->
     assert manifest["summary"]["live_agent_eval_row_count"] == 0
     assert manifest["summary"]["budget_skipped_count"] == 0
     assert {signal["id"] for signal in manifest["signals"]} == {"baseline_core_profile"}
+    assert (
+        "tests/contract/molmo_cleanup/test_household_mcp_server.py::"
+        "test_agent_sdk_camera_grounded_composite_flag_cannot_expand_entitlement"
+        in rows["agent-view-contract-tests"]["command"]
+    )
 
 
 def test_baseline_live_default_profile_excludes_alternate_provider_sweep(

@@ -41,6 +41,9 @@ def failure_from_exception(exc: Exception) -> LiveAgentFailure:
     failure = _response_shape_or_context_failure(lowered, detail)
     if failure is not None:
         return failure
+    failure = _provider_quota_failure(lowered, detail)
+    if failure is not None:
+        return failure
     failure = _transient_provider_failure(lowered, detail)
     if failure is not None:
         return failure
@@ -91,6 +94,23 @@ def _response_shape_or_context_failure(lowered: str, detail: str) -> LiveAgentFa
     )
     if any(item in lowered for item in context_markers):
         return LiveAgentFailure("provider_context_failure", retryable=False, detail=detail)
+    return None
+
+
+def _provider_quota_failure(lowered: str, detail: str) -> LiveAgentFailure | None:
+    quota_markers = (
+        "access_terminated_error",
+        "usage limit for this billing cycle",
+        "reached your usage limit",
+    )
+    if any(item in lowered for item in quota_markers):
+        return LiveAgentFailure(
+            "provider_quota_failure",
+            retryable=False,
+            provider_reason="billing_limit",
+            resume_available=False,
+            detail=detail,
+        )
     return None
 
 

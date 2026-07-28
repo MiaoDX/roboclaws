@@ -152,7 +152,7 @@
         "tests/contract/molmo_cleanup/test_household_runtime_contract.py::test_realworld_camera_labels_missing_raw_image_fails_before_sidecar",
         "tests/contract/molmo_cleanup/test_household_runtime_contract.py::test_realworld_camera_labels_http_success_uses_destination_resolver",
         "tests/contract/molmo_cleanup/test_household_mcp_server.py::test_realworld_mcp_registered_tools_match_profile_public_surface",
-        "tests/contract/molmo_cleanup/test_household_mcp_server.py::test_agent_sdk_camera_grounded_composite_tool_is_opt_in",
+        "tests/contract/molmo_cleanup/test_household_mcp_server.py::test_agent_sdk_camera_grounded_composite_flag_cannot_expand_entitlement",
         "tests/contract/molmo_cleanup/test_household_mcp_server.py::test_realworld_mcp_rejects_removed_static_fixture_projection_tool",
         "tests/contract/mcp/test_semantic_profiles.py",
         "tests/unit/molmo_cleanup/test_visual_grounding.py::test_visual_grounding_request_rejects_static_fixture_projection_field",

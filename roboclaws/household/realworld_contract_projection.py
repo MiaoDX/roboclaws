@@ -892,7 +892,7 @@ def _public_base_waypoints_from_artifact(
         waypoint["yaw"] = float(source.get("yaw", 0.0))
         waypoint["room_id"] = room_id
         waypoint["room_label"] = room_label
-        waypoint.setdefault("label", f"Inspection waypoint {index}")
+        waypoint["label"] = f"Generated exploration candidate {int(source['sweep_index'])}"
         waypoint.setdefault("purpose", "base_metric_map_exploration")
         waypoint.setdefault("waypoint_source", "map_artifact_inspection_waypoint")
         waypoint.setdefault("coverage_estimate", round(1.0 / max(len(source_waypoints), 1), 6))

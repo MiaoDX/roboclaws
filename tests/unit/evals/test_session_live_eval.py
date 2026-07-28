@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from roboclaws.evals.session_live import (
     SESSION_LIVE_API_TIMEOUT_S,
+    _blocked_parent_provider_result,
     _wait_for_terminal,
     run_session_live_eval,
 )
@@ -37,6 +38,38 @@ def test_session_live_eval_blocks_when_provider_not_ready(tmp_path: Path) -> Non
     assert result["status"] == "blocked"
     assert result["failure_class"] == "model_or_provider_unavailable"
     assert payload["aggregate"]["blocked"] == 1
+
+
+def test_session_live_parent_provider_failure_preempts_steer_grading(tmp_path: Path) -> None:
+    run_dir = tmp_path / "parent" / "timestamp" / "seed-7"
+    run_dir.mkdir(parents=True)
+    (run_dir / "live_status.json").write_text(
+        json.dumps(
+            {
+                "phase": "failed",
+                "reason": "provider_quota_failure",
+                "provider_reason": "billing_limit",
+                "retryable": False,
+                "resume_available": False,
+                "exit_status": 1,
+                "detail": "private provider error detail",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = _blocked_parent_provider_result(
+        parent_dir=tmp_path / "parent",
+        parent_state={"phase": "failed"},
+        provider_profile="kimi-openai-chat",
+    )
+
+    assert result is not None
+    assert result["status"] == "blocked"
+    assert result["failure_class"] == "model_or_provider_unavailable"
+    details = result["grader_outputs"]["session_live"]["details"]
+    assert details["parent_live_status"]["reason"] == "provider_quota_failure"
+    assert "detail" not in details["parent_live_status"]
 
 
 def test_session_live_eval_runs_headless_console_flow_with_fake_product(

@@ -257,6 +257,13 @@ def _exercise_session_flow(
 
     parent_state = _wait_for_terminal(base_url, parent_run_id, deadline=deadline)
     parent_dir = console_output_root(root) / "runs" / parent_run_id
+    provider_blocker = _blocked_parent_provider_result(
+        parent_dir=parent_dir,
+        parent_state=parent_state,
+        provider_profile=provider_profile,
+    )
+    if provider_blocker is not None:
+        return provider_blocker
     if not _parent_consumed_steer(parent_dir):
         raise RuntimeError("parent did not consume steer through check_operator_messages")
 
@@ -329,6 +336,50 @@ def _wait_for_terminal(base_url: str, run_id: str, *, deadline: float) -> dict[s
                 return state
         time.sleep(1.0)
     raise RuntimeError(f"run {run_id} did not reach terminal state before timeout")
+
+
+def _blocked_parent_provider_result(
+    *,
+    parent_dir: Path,
+    parent_state: dict[str, Any],
+    provider_profile: str,
+) -> dict[str, Any] | None:
+    live_status_paths = sorted(
+        parent_dir.rglob("live_status.json"),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    for path in live_status_paths:
+        try:
+            live_status = _read_json_object(path)
+        except (OSError, ValueError):
+            continue
+        reason = str(live_status.get("reason") or "")
+        if not reason.startswith("provider_"):
+            continue
+        public_status = {
+            key: live_status.get(key)
+            for key in (
+                "phase",
+                "reason",
+                "provider_reason",
+                "retryable",
+                "resume_available",
+                "exit_status",
+            )
+            if key in live_status
+        }
+        return _blocked_result(
+            provider_profile=provider_profile,
+            reason=f"parent run failed: {reason}",
+            failure_class="model_or_provider_unavailable",
+            details={
+                "parent_state": parent_state,
+                "parent_live_status": public_status,
+                "parent_live_status_path": str(path),
+            },
+        )
+    return None
 
 
 def _parent_consumed_steer(parent_dir: Path) -> bool:

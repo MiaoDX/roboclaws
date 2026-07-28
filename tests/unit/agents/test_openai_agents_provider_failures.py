@@ -193,3 +193,24 @@ def test_kimi_missing_choices_is_observable_and_retried_once(tmp_path: Path) -> 
     assert "final_outcome" not in failures[0]
     assert failures[0]["retryable"] is True
     assert failures[0]["retry_exhausted"] is False
+
+
+def test_kimi_billing_limit_is_provider_quota_failure_without_retry() -> None:
+    message = (
+        "Error code: 403 - {'error': {'message': \"You've reached your usage limit "
+        'for this billing cycle. Your quota will be refreshed in the next cycle.", '
+        "'type': 'access_terminated_error'}}"
+    )
+
+    should_retry, failure = _should_retry_model_service_failure(
+        RuntimeError(message),
+        attempt_index=0,
+        retry_attempts=1,
+    )
+
+    assert should_retry is False
+    assert failure.reason == "provider_quota_failure"
+    assert failure.provider_reason == "billing_limit"
+    assert failure.retryable is False
+    assert failure.resume_available is False
+    assert failure.detail == message

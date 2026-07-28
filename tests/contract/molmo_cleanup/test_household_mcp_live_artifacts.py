@@ -6,9 +6,41 @@ from pathlib import Path
 from roboclaws.household.household_mcp_server import make_household_world_mcp
 from roboclaws.household.scenario import build_cleanup_scenario
 from roboclaws.mcp.profiles import HOUSEHOLD_EPISODE_PROFILE, HOUSEHOLD_WORLD_PROFILE
+from tests.contract.molmo_cleanup.test_household_mcp_server import _empty_cleanup_scenario
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PREBUILT_BUNDLE = REPO_ROOT / "assets" / "maps" / "molmospaces" / "procthor-10k-val" / "0"
+
+
+def test_observe_prioritizes_done_when_cleanup_readiness_is_ready(tmp_path: Path) -> None:
+    server = make_household_world_mcp(
+        run_dir=tmp_path,
+        scenario=_empty_cleanup_scenario("completion-ready-observe"),
+        port=0,
+        map_bundle_dir=PREBUILT_BUNDLE,
+        required_capability_profiles=(HOUSEHOLD_WORLD_PROFILE, HOUSEHOLD_EPISODE_PROFILE),
+    )
+    try:
+        metric_map = server.call_tool("metric_map")
+        observations = []
+        for waypoint in metric_map["inspection_waypoints"]:
+            server.call_tool("navigate_to_waypoint", waypoint_id=waypoint["waypoint_id"])
+            observations.append(server.call_tool("observe"))
+        done = server.call_tool("done", reason="MCP-visible cleanup readiness is ready")
+    finally:
+        server.close()
+
+    assert metric_map["inspection_waypoints"][4]["label"] == "Generated exploration candidate 5"
+    assert metric_map["inspection_waypoints"][4]["room_label"] == "Bedroom"
+    assert all("required_next_tool" not in item for item in observations[:-1])
+    assert observations[-1]["required_next_tool"] == "done"
+    assert observations[-1]["completion"] == {
+        "schema": "done_readiness_v1",
+        "status": "ready",
+        "policy_uses_private_truth": False,
+    }
+    assert "Call done now" in observations[-1]["instruction"]
+    assert done["ok"] is True
 
 
 def test_household_mcp_writes_live_public_map_artifacts_before_done(tmp_path: Path) -> None:

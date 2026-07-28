@@ -1273,6 +1273,7 @@ def visual_evidence_actionability_error(
     )
     declaration = detection.get("model_declared_observation") or {}
     if detection.get("cleanup_recommended") is False and status == "actionable":
+        recovery = visual_scan_guidance.non_recommended_candidate_recovery(contract)
         return contract._error(
             tool,
             "visual_candidate_not_cleanup_recommended",
@@ -1281,8 +1282,7 @@ def visual_evidence_actionability_error(
             candidate_fixture_category=str(detection.get("candidate_fixture_category") or ""),
             cleanup_recommended=False,
             recommended_tool="",
-            required_next_tool="observe",
-            recovery_tool_options=["observe", "navigate_to_relative_pose", "navigate_to_waypoint"],
+            **recovery,
             actionability_status="not_recommended",
             candidate_state=CANDIDATE_STATE_VISUALLY_CONFIRMED,
             visual_grounding_evidence=evidence,
