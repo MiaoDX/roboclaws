@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from roboclaws.agents import provider_transport as pt
 from roboclaws.agents.drivers.openai_agents_model_input import (
     _input_compaction_config,
     _model_input_compaction_filter,
@@ -31,7 +32,6 @@ from roboclaws.agents.drivers.openai_agents_spans import (
 from roboclaws.agents.live_runtime import LiveAgentRequest, LiveAgentResult, LiveAgentRuntime
 from roboclaws.agents.live_status import LiveAgentFailure
 from roboclaws.agents.provider_registry import (
-    PROVIDER_PROFILE_CUSTOM_RESPONSES,
     PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
     WIRE_CHAT_COMPLETIONS,
     openai_agents_runtime_settings,
@@ -508,7 +508,7 @@ def _apply_provider_default_model_settings(
         headers = dict(payload.get("extra_headers") or {})
         headers.setdefault("User-Agent", KIMI_CODING_USER_AGENT)
         payload["extra_headers"] = headers
-    return payload
+    return pt.compatible_model_settings(provider_profile, payload)
 
 
 def _sdk_run_config_payload(
@@ -917,9 +917,8 @@ def _model_for_request(request: LiveAgentRequest) -> Any:
         "api_key": settings["api_key"],
         "base_url": settings["base_url"],
     }
-    client = AsyncOpenAI(
-        **client_kwargs,
-    )
+    client_kwargs.update(pt.provider_client_options(settings["provider_profile"], request.run_dir))
+    client = AsyncOpenAI(**client_kwargs)
     if settings["wire_api"] == "responses":
         from agents import OpenAIResponsesModel  # type: ignore[import-not-found]
 
@@ -1782,10 +1781,10 @@ def _model_settings(request: LiveAgentRequest) -> dict[str, str]:
         )
     if settings["api_key_env"]:
         _require_setting(settings["provider_profile"], settings["api_key_env"], settings["api_key"])
-    if settings["provider_profile"] == PROVIDER_PROFILE_CUSTOM_RESPONSES:
+    if settings["request_model_env"]:
         _require_setting(
             settings["provider_profile"],
-            "CUSTOM_RESPONSES_MODEL",
+            settings["request_model_env"],
             settings["request_model"],
         )
     return settings

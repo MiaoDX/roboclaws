@@ -23,7 +23,8 @@ EXPECTED_ROW_IDS = {
     "open-ended-household-contract-tests",
     "smoke-regression-eval-suite",
     "map-build-consumer-eval-suite",
-    "map-build-consumer-openai-agents-sdk-custom-responses",
+    "map-build-consumer-openai-agents-sdk-codex-responses",
+    "map-build-consumer-openai-agents-sdk-mimo-responses",
     "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
     "map-build-consumer-openai-agents-sdk-minimax-responses",
     "open-ended-goals-eval-suite",
@@ -96,7 +97,7 @@ def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
     assert manifest["summary"]["selected_row_count"] == len(EXPECTED_ROW_IDS)
     assert manifest["summary"]["budget_skipped_count"] == 0
     assert manifest["summary"]["eval_suite_row_count"] == 6
-    assert manifest["summary"]["live_agent_eval_row_count"] == 6
+    assert manifest["summary"]["live_agent_eval_row_count"] == 7
     assert rows["openai-agents-sdk-open-task-live-eval"]["status"] == "not_run"
     assert rows["openai-agents-sdk-cleanup-live-eval"]["status"] == "not_run"
     assert "live_stall_timeout_s=180" in rows["openai-agents-sdk-cleanup-live-eval"]["command"]
@@ -105,7 +106,7 @@ def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
         for row_id, row in rows.items()
         if row_id.startswith("map-build-consumer-openai-agents-sdk-")
     ]
-    assert len(provider_rows) == 3
+    assert len(provider_rows) == 4
     assert all("live_timeout_s=1500" in row["command"] for row in provider_rows)
     assert all("live_stall_timeout_s=180" in row["command"] for row in provider_rows)
     assert rows["direct-camera-grounded-grounding-dino"]["status"] == "not_run"
@@ -179,7 +180,8 @@ def test_changed_file_signals_select_expected_eval_harness_rows(tmp_path: Path) 
                 "direct-map-build-world-public",
                 "direct-cleanup-runtime-prior-consumer",
                 "map-build-consumer-eval-suite",
-                "map-build-consumer-openai-agents-sdk-custom-responses",
+                "map-build-consumer-openai-agents-sdk-codex-responses",
+                "map-build-consumer-openai-agents-sdk-mimo-responses",
                 "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
                 "map-build-consumer-openai-agents-sdk-minimax-responses",
             ),
@@ -378,31 +380,32 @@ def test_smoke_budget_records_relevant_expensive_rows_as_user_budget_skipped(
     assert rows["cleanup-contract-tests"]["status"] == "not_run"
 
 
+@pytest.mark.parametrize("profile", ["codex-responses", "mimo-responses"])
 def test_explicit_axes_select_first_class_engine_and_provider_profile(
     tmp_path: Path,
+    profile: str,
 ) -> None:
     manifest = selector.build_eval_harness(
         budget="focused",
         agent_engine=["openai-agents-sdk"],
-        provider_profile=["custom-responses"],
+        provider_profile=[profile],
         evidence_lane=["camera-grounded-labels"],
         camera_labeler=["grounding-dino"],
         output_dir=tmp_path,
     )
 
     rows = _selected_rows(manifest)
-    assert rows["openai-agents-sdk-open-task-live-eval"]["axes"]["provider_profile"] == (
-        "custom-responses"
-    )
-    assert rows["openai-agents-sdk-session-live-eval"]["axes"]["provider_profile"] == (
-        "custom-responses"
-    )
+    assert rows["openai-agents-sdk-open-task-live-eval"]["axes"]["provider_profile"] == (profile)
+    assert rows["openai-agents-sdk-session-live-eval"]["axes"]["provider_profile"] == (profile)
     assert rows["direct-camera-grounded-grounding-dino"]["axes"]["camera_labeler"] == (
         "grounding-dino"
     )
+    assert rows["openai-agents-sdk-open-task-live-eval"]["requirement"] == "required"
+    assert rows["openai-agents-sdk-session-live-eval"]["requirement"] == "required"
+    assert manifest["summary"]["optional_row_count"] == 0
 
 
-def test_map_build_consumer_change_selects_three_profile_model_matrix(
+def test_map_build_consumer_change_selects_four_profile_model_matrix(
     tmp_path: Path,
 ) -> None:
     prior = tmp_path / "canonical-prior.json"
@@ -421,12 +424,14 @@ def test_map_build_consumer_change_selects_three_profile_model_matrix(
         if row_id.startswith("map-build-consumer-openai-agents-sdk-")
     }
     assert set(matrix_rows) == {
-        "map-build-consumer-openai-agents-sdk-custom-responses",
+        "map-build-consumer-openai-agents-sdk-codex-responses",
+        "map-build-consumer-openai-agents-sdk-mimo-responses",
         "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
         "map-build-consumer-openai-agents-sdk-minimax-responses",
     }
     assert {row["axes"]["provider_profile"] for row in matrix_rows.values()} == {
-        "custom-responses",
+        "codex-responses",
+        "mimo-responses",
         "kimi-openai-chat",
         "minimax-responses",
     }
@@ -437,7 +442,7 @@ def test_map_build_consumer_change_selects_three_profile_model_matrix(
         assert "agent_engine=openai-agents-sdk" in row["command"]
         assert "live_timeout_s=1500" in row["command"]
         assert "live_execution=run" in row["command"]
-        assert row["axes"]["provider_cell_count"] == "3"
+        assert row["axes"]["provider_cell_count"] == "4"
         assert row["axes"]["default_local_concurrency_width"] == "1"
         assert row["axes"]["concurrency_policy"] == (
             "serial_by_default_for_single_molmospaces_visual_backend_slot"
@@ -456,28 +461,8 @@ def test_explicit_provider_axis_selects_matching_map_build_consumer_matrix_rows(
     rows = _selected_rows(manifest)
     assert "map-build-consumer-openai-agents-sdk-kimi-openai-chat" in rows
     assert "map-build-consumer-openai-agents-sdk-minimax-responses" in rows
-    assert "map-build-consumer-openai-agents-sdk-custom-responses" not in rows
-
-
-def test_explicit_custom_profile_selects_agent_sdk_behavior_rows(
-    tmp_path: Path,
-) -> None:
-    manifest = selector.build_eval_harness(
-        budget="focused",
-        agent_engine=["openai-agents-sdk"],
-        provider_profile=["custom-responses"],
-        intent=["open-ended"],
-        output_dir=tmp_path,
-    )
-
-    rows = _selected_rows(manifest)
-    behavior_row = rows["openai-agents-sdk-open-task-live-eval"]
-    session_row = rows["openai-agents-sdk-session-live-eval"]
-    assert behavior_row["axes"]["provider_profile"] == "custom-responses"
-    assert session_row["axes"]["provider_profile"] == "custom-responses"
-    assert session_row["requirement"] == "required"
-    assert behavior_row["requirement"] == "required"
-    assert manifest["summary"]["optional_row_count"] == 0
+    assert "map-build-consumer-openai-agents-sdk-codex-responses" not in rows
+    assert "map-build-consumer-openai-agents-sdk-mimo-responses" not in rows
 
 
 def test_execute_marks_live_row_blocked_when_provider_is_missing(

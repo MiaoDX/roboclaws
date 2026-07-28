@@ -90,7 +90,7 @@ Use these names consistently in implementation and docs:
   as `codex-env`, `mify`, `minimax`, `mimo-openai-chat`, or
   `kimi-openai-chat`.
 - `model_id`: concrete model string sent to the runtime, such as `gpt-5.5`,
-  `xiaomi/mimo-v2.5-pro`, `MiniMax-M3`, or `MiniMax-M2.7-highspeed`.
+  `<local-mimo-request-model>`, `MiniMax-M3`, or `MiniMax-M2.7-highspeed`.
 - `model_family`: semantic family such as `gpt`, `mimo`, `minimax`, `kimi`,
   `nvidia`, `anthropic`, or `mock`.
 - `model_capabilities`: model-level capability facts independent of provider

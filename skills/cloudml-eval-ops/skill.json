@@ -1,0 +1,37 @@
+{
+  "schema": "roboclaws_skill_manifest_v1",
+  "name": "cloudml-eval-ops",
+  "summary": "Execute frozen Eval Harness rows on CloudML through official lifecycle and storage tools with durable receipts and verified collection.",
+  "abstraction_level": "agent_skill",
+  "role": "private_eval_operations",
+  "status": "active",
+  "mcp": {
+    "profiles": [],
+    "required_tools": [],
+    "optional_tools": [],
+    "privileged_tools": [],
+    "boundary_notes": "This maintainer skill orchestrates execution of existing eval rows. It does not add robot capabilities, task strategy, provider substitution, or private evaluator truth."
+  },
+  "capability_requirements": {
+    "profiles": [],
+    "backend_variants": [],
+    "notes": "Requires an existing CML context, official cml resource/train commands, executor storage operations, pinned images/assets, and the capabilities declared by each selected eval row."
+  },
+  "scripts": [],
+  "evidence_outputs": [
+    "eval_harness.json",
+    "cloudml-ops/plan.json",
+    "cloudml-ops/task-receipts.jsonl",
+    "cloudml-ops/collection.json",
+    "eval_harness.md",
+    "eval_harness.html"
+  ],
+  "lifecycle": {
+    "refactor_signals": [
+      "agents repeatedly implement the same manifest merge or identity validation logic",
+      "unattended scheduling requires a stable non-agent control loop",
+      "the official cml or executor ownership boundary changes"
+    ],
+    "promote_to_mcp_when": []
+  }
+}

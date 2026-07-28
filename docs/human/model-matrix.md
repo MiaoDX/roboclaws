@@ -1,11 +1,12 @@
 # Model And Provider Matrix
 
 OpenAI Agents SDK launches require an explicit `provider_profile`. Roboclaws
-supports three profiles and never retries one wire API through another.
+supports four profiles and never retries one wire API through another.
 
 | Profile | Wire API | Model identity | Required environment |
 | --- | --- | --- | --- |
-| `custom-responses` | Responses | Public label `custom`; opaque request model from environment | `CUSTOM_RESPONSES_BASE_URL`, `CUSTOM_RESPONSES_API_KEY`, `CUSTOM_RESPONSES_MODEL` |
+| `codex-responses` | Responses | Public label `codex`; opaque request model from environment | `CODEX_RESPONSES_BASE_URL`, `CODEX_RESPONSES_API_KEY`, `CODEX_RESPONSES_MODEL` |
+| `mimo-responses` | Responses | Public label `mimo`; opaque request model from environment | `MIMO_RESPONSES_BASE_URL`, `MIMO_RESPONSES_API_KEY`, `MIMO_RESPONSES_MODEL` |
 | `minimax-responses` | Responses | Public MiniMax catalog model | `MM_BASE_URL`, `MM_API_KEY` |
 | `kimi-openai-chat` | Chat Completions | `kimi-k2.7-code` | `KIMI_OPENAI_BASE_URL`, `KIMI_API_KEY` |
 
@@ -15,11 +16,15 @@ message/delta semantics. The runtime selects the matching SDK model class from
 the profile and does not perform automatic fallback.
 
 Kimi is the only Chat Completions profile. Its thinking-only and public
-provider User-Agent compatibility rules remain explicit. The custom profile is
-conservative: text-only catalog capability, unknown image transport, no alias,
-pricing, or endpoint-specific headers. Tool calling must be proven against the
-configured endpoint before it is treated as live evidence.
+provider User-Agent compatibility rules remain explicit. Codex and MiMo are
+conservative, independent cells with text-only catalog capability, unknown
+image transport, and no alias, pricing, or endpoint default. Codex uses a thin
+transport adapter for ephemeral request metadata and omits the unsupported
+default `truncation` setting; those details never enter artifacts. MiMo passes
+provider health and the two-sample fixed-prior consumer suite. Codex health and
+its two-sample fixed-prior consumer suite also pass, with zero provider
+failures, privacy leaks, or trajectory violations.
 
-Provider secrets and custom endpoint/model values remain in the gitignored
+Provider secrets and endpoint/request-model values remain in the gitignored
 `.env`; readiness, benchmark, console, and run artifacts expose only public
 profile/model labels.

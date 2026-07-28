@@ -108,11 +108,11 @@ def run_case(
             base_url_configured=False,
             agent_case=agent_case,
         )
-    if case.provider_id == "custom-responses" and not case.request_model:
+    if case.request_model_env and not case.request_model:
         return _skipped_case(
             case,
             layer=layer,
-            reason="missing CUSTOM_RESPONSES_MODEL",
+            reason=f"missing {case.request_model_env}",
             iterations=iterations,
             max_tokens=max_tokens,
             base_url_configured=True,
@@ -394,8 +394,8 @@ def _redact_case_text(text: str, *, case: MatrixCase, url: str = "") -> str:
 
 
 def _public_response_model(case: MatrixCase, response_model_name: str) -> str:
-    if case.provider_id == "custom-responses":
-        return "custom"
+    if case.request_model_env:
+        return case.model
     return response_model_name
 
 

@@ -196,10 +196,10 @@ def _manifest(prior: Path) -> dict[str, object]:
         },
         "candidates": [
             {
-                "candidate_id": "custom-responses-map-build",
+                "candidate_id": "codex-responses-map-build",
                 "profile_key": [
                     "openai-agents-sdk",
-                    "custom-responses",
+                    "codex-responses",
                     "not_applicable",
                     "camera-grounded-labels",
                     "grounding-dino",
@@ -209,7 +209,7 @@ def _manifest(prior: Path) -> dict[str, object]:
                 "runtime_map_prior": str(prior),
                 "source_map_identity": "map-bundle-sha256:abc",
                 "run_id": "run-map-build-1",
-                "producer": {"provider_profile": "custom-responses"},
+                "producer": {"provider_profile": "codex-responses"},
                 "usage": {"total_cost_usd": 0.12},
                 "artifact_schema_versions": {
                     "runtime_map_prior_snapshot": "runtime_map_prior_snapshot_v1"
@@ -278,7 +278,7 @@ def _identity(sample_id: str) -> dict[str, object]:
         "sample_id": sample_id,
         "trial_id": f"{sample_id}-0000",
         "agent_engine": "openai-agents-sdk",
-        "provider_profile": "custom-responses",
+        "provider_profile": "codex-responses",
         "model": "not_applicable",
         "evidence_lane": "camera-grounded-labels",
         "camera_labeler": "grounding-dino",

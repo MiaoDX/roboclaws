@@ -506,15 +506,16 @@ direct navigation demos. Normal users configure keys only; command shape
 controls behavior.
 
 ```bash
-KIMI_OPENAI_BASE_URL=https://api.moonshot.ai/v1
+KIMI_OPENAI_BASE_URL=
 KIMI_API_KEY=<your-key>
 ```
 
 Every SDK launch selects one profile explicitly. `kimi-openai-chat` uses the
 Kimi variables above. `minimax-responses` uses `MM_BASE_URL` and `MM_API_KEY`.
-`custom-responses` uses `CUSTOM_RESPONSES_BASE_URL`,
-`CUSTOM_RESPONSES_API_KEY`, and `CUSTOM_RESPONSES_MODEL`. The runtime does not
-fall back between profiles or between Chat Completions and Responses.
+`codex-responses` uses the `CODEX_RESPONSES_*` triple; `mimo-responses` uses
+the `MIMO_RESPONSES_*` triple. Endpoint, key, and request-model values stay in
+the gitignored local environment. The runtime does not fall back between
+profiles or between Chat Completions and Responses.
 
 ```bash
 just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=world-public-labels seed=7 scenario_setup=relocate-cleanup-related-objects relocation_count=5

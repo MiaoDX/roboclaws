@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-07-26
+Last updated: 2026-07-28
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -10,16 +10,25 @@ leave a link.
 
 ## Current Focus
 
-Public-core minimization is the current repository focus. The active capsule is
-`docs/status/active/public-core-internal-integration-minimization.md`.
+Independent Codex and MiMo Responses provider cells are restored. The completed
+implementation contract is
+`docs/plans/2026-07-27-restore-codex-mimo-responses-cells.md`.
 
-The public runtime now has exactly three explicit OpenAI Agents SDK provider profiles:
-`custom-responses`, `minimax-responses`, and `kimi-openai-chat`. Private remote-operation ownership,
-retired provider routes, bare coding-agent helpers, and unsupported RAW-FPV live transport have
-been removed from the public core. Agibot and B1 remain validation-only worlds with injected
-dependencies and are omitted from default discovery. SDK provider launches are gated by provider
-readiness rather than work-network classification; the network guard remains on the OpenClaw and
-system-provider routes that require it.
+The public runtime now has exactly four explicit OpenAI Agents SDK provider
+profiles: `codex-responses`, `mimo-responses`, `minimax-responses`, and
+`kimi-openai-chat`. Codex and MiMo share the standard Responses implementation
+but own separate local endpoint, key, and request-model triples. Tracked source
+and emitted artifacts expose only public profile/model labels.
+
+Codex and MiMo provider health and their two-sample fixed-prior consumer suites
+pass. The Codex product run completed 97 model requests across open-ended and
+cleanup samples with zero provider failures, privacy leaks, or trajectory
+violations.
+
+The current sanitized candidate carries this four-profile contract as one root
+commit. Its public-surface, secret, internal-identifier, clean-room install,
+full deterministic test, direct-runner product, artifact, package, and isolated
+wheel-install gates pass.
 
 The active product shape is:
 
@@ -54,26 +63,17 @@ providers.
 
 ## Next Action
 
-Review the refreshed sanitized one-commit candidate and the remaining human gates before
-authorizing any publication. No public push is authorized by the completed refactor proof.
+Review the current immutable candidate and explicitly authorize publication.
+Publication remains unauthorized until that approval.
 
 ## Current Blockers
 
-- No agent-fixable refactor verification blocker remains. The focused eval harness passes all four
-  required rows, including the Kimi operator-session live row, and both Kimi and Custom Responses
-  product routes reach terminal MCP reports. Custom provider values were injected process-locally;
-  no retired environment alias was added to source or committed configuration.
 - Agibot and B1 injected dependency readiness passes with the existing local SDK, Map 12 bundle,
   B1 scene, and alignment/navigation proofs. Real-robot movement remains unauthorized and requires
   a present operator plus the existing localization, run-enablement, and E-stop gates.
 - Isaac strict preflight now passes disk, GPU, Torch, Isaac Lab, and runtime checks with 602.55 GiB
   free. Importing Isaac Sim remains blocked on explicit Omniverse EULA acceptance; the refactor did
   not accept it on the operator's behalf.
-- The exact candidate's dependency-license inventory has one unresolved metadata caveat:
-  MolmoSpaces runtime-extra dependency `beaker-py` 2.x declares no license in its published
-  artifacts, and its referenced source repository is unavailable for verification.
-- Publication remains unauthorized until the reviewed candidate evidence is presented for human
-  approval.
 
 ## Human Review Surface
 
@@ -90,6 +90,7 @@ authorizing any publication. No public push is authorized by the completed refac
 ## Current Source Links
 
 Plans:
+`docs/plans/2026-07-27-restore-codex-mimo-responses-cells.md`,
 `docs/plans/2026-07-01-recommended-runtime-map-prior-selection.md`,
 `docs/plans/2026-06-26-map-build-quality-eval-harness.md`,
 `docs/plans/2026-06-20-cross-environment-map-waypoint-source-of-truth.md`,

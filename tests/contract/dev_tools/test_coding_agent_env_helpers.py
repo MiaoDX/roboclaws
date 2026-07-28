@@ -134,25 +134,29 @@ def test_profile_summary_uses_final_kimi_contract() -> None:
     assert "protocol=chat-completions" in result.stdout
 
 
-def test_profile_summary_redacts_custom_endpoint() -> None:
-    endpoint_canary = "https://private-endpoint-canary.example.test/v1"
-    result = run_helper(
-        f"""
-        set -euo pipefail
-        source "$ROBOCLAWS_HELPER"
-        ROBOCLAWS_PROVIDER_PROFILE=custom-responses
-        CUSTOM_RESPONSES_BASE_URL={endpoint_canary}
-        CUSTOM_RESPONSES_API_KEY=fake-custom-key
-        CUSTOM_RESPONSES_MODEL=opaque-custom-model
-        roboclaws_code_agent_profile_summary \
-          ROBOCLAWS_PROVIDER_PROFILE ROBOCLAWS_OPENAI_AGENTS_MODEL
-        """
-    )
+def test_profile_summaries_redact_opaque_responses_endpoints() -> None:
+    for profile, env_prefix, public_model in (
+        ("codex-responses", "CODEX_RESPONSES", "codex"),
+        ("mimo-responses", "MIMO_RESPONSES", "mimo"),
+    ):
+        endpoint_canary = f"https://{public_model}-private-canary.example.test/v1"
+        result = run_helper(
+            f"""
+            set -euo pipefail
+            source "$ROBOCLAWS_HELPER"
+            ROBOCLAWS_PROVIDER_PROFILE={profile}
+            {env_prefix}_BASE_URL={endpoint_canary}
+            {env_prefix}_API_KEY=fake-provider-key
+            {env_prefix}_MODEL=opaque-provider-model
+            roboclaws_code_agent_profile_summary \
+              ROBOCLAWS_PROVIDER_PROFILE ROBOCLAWS_OPENAI_AGENTS_MODEL
+            """
+        )
 
-    assert result.returncode == 0
-    assert "custom-responses model=custom base_url=<configured>" in result.stdout
-    assert endpoint_canary not in result.stdout
-    assert endpoint_canary not in result.stderr
+        assert result.returncode == 0
+        assert f"{profile} model={public_model} base_url=<configured>" in result.stdout
+        assert endpoint_canary not in result.stdout
+        assert endpoint_canary not in result.stderr
 
 
 def test_python_helper_requires_repo_venv_without_system_fallback() -> None:

@@ -49,7 +49,7 @@ just dev::network-status
 
 每次 SDK 启动都必须显式选择 profile。默认验证使用 `kimi-openai-chat`，并从
 repo-local `.env` 读取 `KIMI_OPENAI_BASE_URL` 和 `KIMI_API_KEY`；也可以显式选择
-`custom-responses` 或 `minimax-responses`。不要把 URL 或 key 写进日志、报告或文档。
+`codex-responses`、`mimo-responses` 或 `minimax-responses`。不要把 URL、key 或实际请求模型写进日志、报告或文档。
 
 ### 2. 离线 Agibot map 转 snapshot
 

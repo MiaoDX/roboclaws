@@ -25,6 +25,8 @@ Task-routed reads:
 - GSD phase execution/resume: `.planning/STATE.md` plus the current phase file.
 - Pre-GSD plan shaping/review/handoff: `docs/plans/<slug>.md`.
 - Design rationale or scenario specs: `docs/human/technical-design.md`.
+- CloudML eval staging, submission, monitoring, collection, or parallel proof:
+  `skills/cloudml-eval-ops/SKILL.md`.
 - Domain vocabulary: `docs/human/domain.md` and `docs/agents/domain.md`.
 - Parked work or future ideas: `TODOS.md` or `THOUGHTS.md`, only when asked.
 - Claude-specific behavior: `CLAUDE.md`, only when running under Claude Code or

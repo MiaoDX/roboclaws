@@ -12,7 +12,7 @@ from roboclaws.agents.thinking_policy import (
 def test_default_thinking_policy_maps_by_wire_api() -> None:
     responses = apply_model_thinking_policy(
         {"store": False},
-        provider_profile="custom-responses",
+        provider_profile="codex-responses",
         wire_api="responses",
         mode="default",
     )
