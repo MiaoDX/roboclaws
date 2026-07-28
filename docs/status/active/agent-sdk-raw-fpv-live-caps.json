@@ -6,7 +6,8 @@
   "planned_live_rows": 2,
   "max_wall_clock_s_per_row": 2700,
   "concurrency": 1,
-  "provider_profile": "codex-env",
+  "provider_profile": "codex-router-responses",
+  "historical_provider_profile": "codex-env",
   "wire_api": "responses",
   "model": "gpt-5.5",
   "surface": "household-world",
@@ -51,10 +52,11 @@
       "reason": "camera-raw-fpv requires verified image transport for openai-agents-sdk+mify; registry marks image_transport=unknown."
     },
     "selected": {
-      "provider_profile": "codex-env",
+      "provider_profile": "codex-router-responses",
+      "historical_provider_profile": "codex-env",
       "model": "gpt-5.5",
       "status": "allowed",
-      "reason": "provider registry marks image_transport=supported for openai-agents-sdk+codex-env."
+      "reason": "provider registry marks image_transport=supported for openai-agents-sdk+codex-router-responses."
     }
   },
   "backend_gate": {
@@ -75,7 +77,7 @@
   "claim_scope": "diagnostic live raw-FPV row only; not a cleanup-pass or normalized speed claim",
   "outcome": {
     "status": "blocked",
-    "reason": "No raw-FPV behavior evidence was produced because the only verified OpenAI Agents SDK image-transport route hit repeated provider_transient_failure before task work.",
+    "reason": "No raw-FPV behavior evidence was produced because the then-named Codex Responses OpenAI Agents SDK image-transport route hit repeated provider_transient_failure before task work.",
     "mify_attempt": {
       "status": "blocked",
       "reason": "camera-raw-fpv requires verified image transport for openai-agents-sdk+mify; registry marks image_transport=unknown."
@@ -99,6 +101,6 @@
       }
     ],
     "raw_fpv_behavior_evidence": "unavailable",
-    "next": "Retry P/AA only after codex-env upstream availability recovers or another OpenAI Agents SDK route has verified image_transport=supported; do not bypass the raw-FPV image-transport guard."
+    "next": "Retry P/AA with codex-router-responses only after current Codex router upstream availability is healthy, or after another OpenAI Agents SDK route has verified image_transport=supported; do not bypass the raw-FPV image-transport guard."
   }
 }

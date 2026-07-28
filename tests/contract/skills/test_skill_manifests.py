@@ -66,13 +66,19 @@ def test_manifest_mcp_tools_match_declared_profiles() -> None:
         assert set(mcp.get("privileged_tools", [])) <= privileged_names
 
 
-def test_manifest_scripts_exist_and_stay_inside_skill_dir() -> None:
+def test_manifest_scripts_exist_and_respect_declared_owner() -> None:
     for skill_dir in _tracked_skill_dirs():
         manifest = _load_manifest(skill_dir)
         for script in manifest.get("scripts", []):
             script_path = (skill_dir / script["path"]).resolve()
             assert script_path.exists()
-            assert skill_dir.resolve() in script_path.parents
+            owner = script.get("owner", "skill")
+            if owner == "skill":
+                assert skill_dir.resolve() in script_path.parents
+            elif owner == "repo":
+                assert ROOT.resolve() in script_path.parents
+            else:
+                raise AssertionError(f"unknown script owner {owner!r} in {skill_dir}")
 
 
 def test_active_skills_use_public_surface_run_commands() -> None:

@@ -60,9 +60,9 @@ and do not send the old explicit `thinking` body. Live route verdicts are
 recorded in
 `docs/human/model-route-verdicts.yaml`.
 
-`just code::codex-provider-smoke` and
-`scripts/dev/coding_agent_docker.sh` are manual debugging helpers only. They are
-not current product launch paths.
+The old Docker-backed Codex/Claude helper route has been removed. Use
+`just run::surface ... agent_engine=openai-agents-sdk` for live provider runs
+and `just agent::mcp up|down` for manual MCP server debugging.
 
 ## MCP Lifecycle
 
@@ -84,17 +84,6 @@ Normal live-agent runs start and stop the appropriate server themselves. The
 private implementation entrypoint is `python -m roboclaws.cli.agent_server`;
 the maintainer facade uses canonical dispatch targets such as
 `household-world.cleanup` and `household-world.map-build`.
-
-## Isolated Agent Workspace
-
-Docker-backed coding-agent tasks mount a generated workspace at
-`/workspace/task` and task skills under `/workspace/skills/<name>`. Repo source,
-`.git`, root agent instructions, and unrelated skills are not mounted into the
-agent context. Current task mappings use `skills/molmo-realworld-cleanup`.
-
-For Codex, the container also mounts an empty read-only `CODEX_HOME/skills`, so
-system Codex skills are unavailable. Recipe-owned prompts should include the
-operative task constraints and refer only to the mounted task skill.
 
 ## Artifacts
 

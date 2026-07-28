@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 import os
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -67,7 +66,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--skip-uv-sync", action="store_true")
     parser.add_argument("--skip-prewarm", action="store_true")
-    parser.add_argument("--skip-version-check", action="store_true")
     parser.add_argument("--continue-on-error", action="store_true")
     return parser.parse_args(argv)
 
@@ -103,8 +101,6 @@ def _run_preflight_or_statuses(
     if args.dry_run or not _any_entry_has_secret(entries):
         return None
     try:
-        if not args.skip_version_check:
-            _version_checks(args, entries)
         if not args.skip_uv_sync:
             _run_checked([args.uv_bin, "sync", "--extra", "dev", "--extra", "molmospaces"])
         if not args.skip_prewarm:
@@ -318,8 +314,6 @@ def _live_report_rerun_command(entry: MolmoLiveModelEntry, args: argparse.Namesp
 
 
 def _model_env_key(entry: MolmoLiveModelEntry) -> str:
-    if entry.agent_engine == "claude-code":
-        return "ROBOCLAWS_CLAUDE_MODEL"
     if entry.agent_engine == "openai-agents-sdk":
         return "ROBOCLAWS_OPENAI_AGENTS_MODEL"
     raise ValueError(f"unsupported Molmo live agent engine: {entry.agent_engine}")
@@ -344,20 +338,6 @@ def _prewarm(args: argparse.Namespace, *, generated_mess_count: int) -> None:
             "rby1m",
         ]
     )
-
-
-def _version_checks(
-    args: argparse.Namespace,
-    entries: tuple[MolmoLiveModelEntry, ...],
-) -> None:
-    required_binaries = (
-        {"claude"} if any(entry.agent_engine == "claude-code" for entry in entries) else set()
-    )
-    for binary in sorted(required_binaries):
-        resolved = shutil.which(binary)
-        if not resolved:
-            raise RuntimeError(f"{binary} command not found")
-        _run_checked([resolved, "--version"])
 
 
 def _any_entry_has_secret(entries: tuple[MolmoLiveModelEntry, ...]) -> bool:

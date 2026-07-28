@@ -149,12 +149,12 @@ def test_cleanup_report_prefers_recorded_rerun_command(
     prior = "output/household/household-world/map-build/anchor/seed-7/runtime_metric_map.json"
     command = (
         "just run::surface surface=household-world world=molmospaces/val_0 "
-        "backend=mujoco intent=cleanup agent_engine=codex-cli "
+        "backend=mujoco intent=cleanup agent_engine=openai-agents-sdk "
         "provider_profile=codex-router-responses evidence_lane=world-public-labels seed=7 "
         "scenario_setup=relocate-cleanup-related-objects relocation_count=5 "
         "robot_views=on "
         f"runtime_map_prior={prior} "
-        "output_dir=output/household/cleanup/codex-from-semantic-map-with-views"
+        "output_dir=output/household/cleanup/sdk-from-semantic-map-with-views"
     )
     monkeypatch.setenv(
         "ROBOCLAWS_REPORT_RERUN_COMMAND",
@@ -180,7 +180,7 @@ def test_cleanup_report_prefers_recorded_rerun_command(
     html = report_path.read_text(encoding="utf-8")
     assert "just run::surface \\\n" in html
     assert "surface=household-world" in html
-    assert "agent_engine=codex-cli" in html
+    assert "agent_engine=openai-agents-sdk" in html
     assert "provider_profile=codex-router-responses" in html
     assert f"runtime_map_prior={prior}" in html
     assert run_result["rerun_command"] == command

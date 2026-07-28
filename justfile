@@ -21,8 +21,6 @@ mod dev       'just/dev.just'
 [private]
 mod mcp       'just/mcp.just'
 [private]
-mod code      'just/code.just'
-[private]
 mod harness   'just/harness.just'
 [private]
 mod verify    'just/verify.just'

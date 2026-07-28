@@ -8,9 +8,11 @@ refactor slices until the stop condition is met.
 
 Current slice:
 
-- PARKED after post-Slice-33 discovery pass 2. Two independent fresh passes
-  found no clear safe autonomous P1/P2 slice after shrink attempts, so the
-  campaign stop condition is met.
+- Saturation reached after Slice 42. Two independent post-Slice-42 discovery
+  passes found no new clear safe P1/P2 cleanup slice after deduping historical
+  plan/status evidence, explicit retired-route rejection guards, current
+  map-mode rejection guards, parked live-matrix JSON, and broad retired
+  Codex/Claude runner-script deletion that needs a separate migration decision.
 
 Last proven evidence:
 
@@ -145,6 +147,111 @@ Last proven evidence:
   bar: remaining candidates require public command migration, broader
   test-suite/report restructuring, domain-contract decisions, or would only
   move lines without deleting, merging, or canonicalizing a real concept.
+- Fresh post-`ce26d3ca` discovery found the quality ratchet now passes after
+  later baseline/contract updates, but the opt-in Molmo live CI workflow still
+  carried one stale `claude-code-kimi-k2.6` matrix entry and one stale Pages
+  artifact download step. Slice 34 aligned the workflow to the live-report
+  registry owner and added
+  `tests/unit/molmo_cleanup/test_ci_live_workflow_entries.py` so future
+  workflow matrix/download entries match `MODEL_ENTRIES`. Focused CI-live
+  report tests, stale-reference search, touched-file Ruff, touched-file format
+  check, the Python quality ratchet, and `git diff --check` passed.
+- Fresh post-Slice-34 discovery found the last Claude Code Molmo live CI entry
+  still reached a retired public launch engine. `just run::surface ... agent_engine=claude-code`
+  fails with `unsupported agent_engine 'claude-code'`, so that row could only
+  produce a failed opt-in CI leg. Slice 35 removed
+  `claude-code-mimo-v2.5` from `MODEL_ENTRIES`, the GitHub Actions matrix, and
+  Pages artifact downloads; removed the dead `--skip-version-check`/Claude
+  binary branch from `run_ci_live_cleanup_matrix.py` and rehearsal recipes; and
+  strengthened the registry/workflow guard to prove each entry resolves through
+  the canonical launch catalog. Focused CI-live tests, dry-run single/all
+  matrix commands, stale-reference search, touched-file Ruff, Python quality
+  ratchet, and `git diff --check` passed. The pre-commit scoped Molmo suite
+  also exposed and fixed an environment-dependent Isaac fake-backend assertion:
+  imported robot USD artifacts may coexist with a missing URDF source while
+  still recording the missing-URDF blocker.
+- Fresh post-Slice-35 discovery found the MolmoSpaces apple-to-apple grid was
+  still a current `just` recipe and contract-tested maintainer surface, but
+  its cleanup rows launched retired `codex-cli` and `claude-code` engines.
+  Slice 36 collapsed the active grid to the current OpenAI Agents SDK Codex
+  router route, kept the online/offline Runtime Metric Map and camera-lane
+  axes, and added a regression test that resolves every generated cleanup row
+  through `roboclaws.launch.catalog.resolve_surface_launch`. Focused
+  apple2apple tests, recipe contract tests, stale retired-engine search for
+  the grid, touched-file Ruff, Python quality ratchet, and `git diff --check`
+  passed.
+- Fresh post-Slice-36 discovery found live human-doc source drift:
+  `ARCHITECTURE.md` embeds `docs/architecture.svg`, and the diagram's
+  agent-engine layer still presented `codex-cli` and `claude-code` as current
+  cards. Slice 37 updated the diagram to show the active SDK/direct engines
+  and a retired-engine rejection note, then added
+  `tests/contract/dev_tools/test_architecture_diagram.py` to keep the diagram
+  aligned with current launch docs. Focused diagram/public-engine tests,
+  stale-card search, touched-file Ruff, Python quality ratchet, and
+  `git diff --check` passed.
+- Fresh post-Slice-37 discovery found a current false-confidence retry command
+  in `docs/status/active/open-ended-household-default-architecture.md`: the
+  capsule described the remaining SDK product proof as blocked on `codex-env`
+  upstream health, but the current launch catalog rejects
+  `provider_profile=codex-env` for `openai-agents-sdk`. Slice 38 updated the
+  active rerun command and blocker text to `codex-router-responses` and added
+  `tests/contract/dev_tools/test_active_status_commands.py` to resolve that
+  current status command through the public launch catalog. Focused status-doc
+  tests, stale-command search, touched-file Ruff, Python quality ratchet, and
+  `git diff --check` passed.
+- Fresh post-Slice-38 discovery found current active-status JSON drift:
+  `docs/status/active/agent-sdk-raw-fpv-live-caps.json` still selected
+  `provider_profile=codex-env` and told agents to retry after `codex-env`
+  upstream availability recovered. Slice 39 updated the current retry route to
+  `codex-router-responses`, kept `codex-env` only as historical route
+  vocabulary for the old failed attempts, and extended
+  `tests/contract/dev_tools/test_active_status_commands.py` to prove the route
+  resolves through `roboclaws.launch` and still has provider-registry
+  `image_transport=supported`. Focused status-caps tests, stale current-route
+  search, touched-file Ruff, Python quality ratchet, and `git diff --check`
+  passed.
+- Fresh post-Slice-39 discovery found current retry-policy drift in the
+  live-agent runtime performance closeout surfaces: the active capsule and
+  parked follow-up plan still said to retry GPT/P/AA when `codex-env` recovered.
+  Slice 40 updated those current policy sentences to `codex-router-responses`
+  while preserving old matrix rows and output paths as historical evidence, and
+  extended `tests/contract/dev_tools/test_active_status_commands.py` to reject
+  the obsolete retry wording. Focused status-doc tests, stale-policy search,
+  touched-file Ruff, Python quality ratchet, and `git diff --check` passed.
+- Fresh post-Slice-40 discovery found a current false-confidence proof command
+  in `docs/plans/2026-06-11-live-agent-adaptive-inspection-triggerability.md`:
+  the optional live-proof block still launched retired `codex-cli` with
+  `provider_profile=codex-env` and `map_mode=minimal`. Slice 41 migrated that
+  runnable command to `preset=map-build`,
+  `agent_engine=openai-agents-sdk`, and
+  `provider_profile=codex-router-responses` while keeping historical plan text
+  intact. Focused status-doc tests, touched-file Ruff, trace launch
+  resolution, stale-command search, Python quality ratchet, and
+  `git diff --check` passed.
+- Fresh post-Slice-41 discovery found test-source drift in cleanup report/MCP
+  rerun-command fixtures: three current contract tests still used
+  `agent_engine=codex-cli` while asserting recorded command preservation and
+  rendered report text. Slice 42 migrated those fixtures to
+  `agent_engine=openai-agents-sdk` with `provider_profile=codex-router-responses`
+  and added an active-status guard that allows only explicit retired-route
+  rejection tests to keep `agent_engine=codex-cli`. Focused report/MCP/demo
+  rerun-command tests, active-status guard tests, touched-file Ruff, stale
+  retired-engine search, Python quality ratchet, and `git diff --check`
+  passed.
+- Fresh post-Slice-42 discovery pass 1 rechecked current active docs/tests/code
+  for retired `codex-cli` / `claude-code`, obsolete `codex-env`,
+  `map_mode=minimal`, and stale retry wording. Remaining active-surface hits
+  were campaign history, explicit retired-engine rejection tests, public
+  `map_mode` rejection guards, or intentional absence assertions; plan hits
+  were historical or parked evidence.
+- Fresh post-Slice-42 discovery pass 2 independently checked active JSON
+  capsules, script surfaces, just recipes, workflows, and the retired
+  Codex/Claude live runner scripts. Active JSON hits were historical live
+  matrix rows/output dirs; the RAW-FPV strategy capsule is already
+  STOP-reached; `run_live_codex_cleanup.py` / `run_live_claude_cleanup.py` are
+  no longer public `just` dispatch surfaces but still have broad legacy tests
+  and report parsing. Removing them is parked as a separate runner-script /
+  manual-debug migration, not an autonomous slice.
 
 Completed slice batch:
 
@@ -220,21 +327,47 @@ Completed slice batch:
   into the existing agent-layer live timing owner.
 - Slice 33: merged duplicate operator-console JSONL source-error formatting in
   the interactions owner.
+- Slice 34: removed the stale opt-in CI live-report `claude-code-kimi-k2.6`
+  workflow matrix/download surfaces and added a regression guard tying the
+  workflow to the `MODEL_ENTRIES` registry.
+- Slice 35: removed the broken opt-in CI live-report `claude-code-mimo-v2.5`
+  registry/workflow row and deleted the now-dead Claude version-check branch
+  from the live CI matrix runner.
+- Slice 36: migrated the current MolmoSpaces apple-to-apple grid away from
+  retired `codex-cli` / `claude-code` launch rows to the active
+  `openai-agents-sdk` Codex router route and added launch-catalog validation
+  for generated cleanup rows.
+- Slice 37: aligned the top-level architecture diagram's agent-engine layer
+  with the current SDK/direct public engine set and added a focused diagram
+  guard.
+- Slice 38: updated the active open-ended household proof capsule away from the
+  obsolete `codex-env` provider profile and guarded its current rerun command
+  through the launch catalog.
+- Slice 39: updated the active RAW-FPV live caps JSON away from the obsolete
+  `codex-env` retry route and guarded its current provider profile through the
+  launch catalog plus provider registry.
+- Slice 40: updated current live-agent performance retry policy away from the
+  obsolete `codex-env` recovery trigger and guarded the policy text.
+- Slice 41: updated the adaptive inspection plan's current optional live-proof
+  command away from the retired `codex-cli` / `codex-env` route and guarded the
+  command through the launch catalog.
+- Slice 42: migrated cleanup report/MCP rerun-command contract fixtures away
+  from retired `agent_engine=codex-cli` while preserving command rendering and
+  persistence behavior.
 
 Next proof:
 
 ```bash
 .venv/bin/python scripts/dev/check_python_quality_ratchet.py
-# Expect remaining failures to be oversized-module baseline drift only.
+# Resume only after new code lands or a human accepts a parked migration scope.
 ```
 
 Stop condition:
 
 - Stop for public contract migration, unavailable proof, external/hardware
   evidence, or two consecutive fresh post-HEAD no-clear-candidate handoffs.
-- Current stop reason: met. Post-Slice-33 discovery passes 1 and 2 found no
-  clear safe P1/P2 autonomous slice after parking public migrations and broad
-  oversized-module restructuring.
+- Current stop reason: met after Slice 42; two fresh post-HEAD discovery passes
+  found no new clear safe P1/P2 slice.
 
 No-touch scope:
 
@@ -285,6 +418,8 @@ Parked work:
   drift across household, launch, operator-console, scripts, and large tests;
   select only owner-local shrink slices that delete, merge, canonicalize, or
   clearly deepen a real owner concept.
+- Fresh post-`ce26d3ca` quality-ratchet proof passes:
+  `python-quality-ratchet: ok (2 Ruff violations at/below baseline, 83 oversized modules at/below baseline)`.
 - No-clear pass 1 after Slice 33: public MolmoSpaces alias/checker-flag
   migrations remain parked; `operator_console.state` already centralizes JSON
   source errors; remaining oversized owners need broader domain contracts or
@@ -296,3 +431,9 @@ Parked work:
   owner; public MolmoSpaces `val_*` aliases remain documented/tested launch
   surfaces; remaining quality-ratchet failures are oversized-module baseline
   drift that needs a new owner-specific plan or reviewed baseline decision.
+- No-clear passes 1 and 2 after Slice 42: remaining stale-route hits are
+  historical plan/status evidence, explicit rejection guards, current public
+  `map_mode` rejection tests, historical live-matrix JSON rows, or parked
+  RAW-FPV strategy text. Retired Codex/Claude live runner script deletion needs
+  a separate approved migration because only legacy/manual-debug tests and
+  historical report readers still exercise those scripts.

@@ -5,7 +5,7 @@ from pathlib import Path
 from roboclaws.cli import household_agent_server as server_module
 
 
-def test_realworld_agent_server_prints_codex_claude_and_openclaw_setup(
+def test_realworld_agent_server_prints_openclaw_setup(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -17,14 +17,9 @@ def test_realworld_agent_server_prints_codex_claude_and_openclaw_setup(
 
     output = capsys.readouterr().out
     assert "Molmo real-world cleanup MCP server is ready." in output
-    assert (
-        "scripts/dev/coding_agent_docker.sh run codex mcp add roboclaws "
-        "--url http://127.0.0.1:18788/mcp"
-    ) in output
-    assert (
-        "scripts/dev/coding_agent_docker.sh run claude mcp add --transport http "
-        "roboclaws http://127.0.0.1:18788/mcp"
-    ) in output
+    assert "coding_agent_docker.sh" not in output
+    assert "run codex mcp add" not in output
+    assert "run claude mcp add" not in output
     assert "restart this server with --host 0.0.0.0 for OpenClaw" in output
     assert "ROBOCLAWS_MCP_URL=http://host.docker.internal:18788/mcp" in output
     assert "skills/molmo-realworld-cleanup/SKILL.md" in output
@@ -73,13 +68,6 @@ def test_realworld_agent_server_open_ended_setup_does_not_prompt_full_sweep(
 def test_realworld_agent_server_client_setup_commands() -> None:
     commands = server_module.client_setup_commands("http://127.0.0.1:18788/mcp")
 
-    assert commands["Codex"] == (
-        "scripts/dev/coding_agent_docker.sh run codex mcp add roboclaws "
-        "--url http://127.0.0.1:18788/mcp"
-    )
-    assert commands["Claude Code"] == (
-        "scripts/dev/coding_agent_docker.sh run claude mcp add --transport http "
-        "roboclaws http://127.0.0.1:18788/mcp"
-    )
+    assert set(commands) == {"OpenClaw"}
     assert commands["OpenClaw"].startswith("SKILLS_DIR=$PWD/skills/molmo-realworld-cleanup ")
     assert "ROBOCLAWS_MCP_URL=http://host.docker.internal:18788/mcp" in commands["OpenClaw"]

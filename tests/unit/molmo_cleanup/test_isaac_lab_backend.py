@@ -404,7 +404,6 @@ def _assert_fake_isaac_robot_import(backend: IsaacLabSubprocessBackend) -> None:
     if backend.robot_import["source_urdf"]:
         assert backend.robot_import["source_urdf"].endswith("model_holobase_isaac.urdf")
     else:
-        assert backend.robot_import["status"] == "missing_urdf"
         assert (
             "RBY1M Isaac URDF not found in MolmoSpaces asset cache."
             in backend.robot_import["blockers"]

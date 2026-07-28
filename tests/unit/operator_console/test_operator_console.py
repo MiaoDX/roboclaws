@@ -702,57 +702,6 @@ def test_operator_console_routes_endpoint_exposes_evidence_lane_matrix(tmp_path:
     )
 
 
-def test_operator_console_messup_preview_endpoint_is_non_launching(tmp_path: Path) -> None:
-    seen: dict[str, object] = {}
-
-    def fake_preview(root, **kwargs):  # noqa: ANN001, ANN003, ANN202
-        seen["root"] = root
-        seen.update(kwargs)
-        return {
-            "schema": "operator_console_messup_preview_v1",
-            "ok": False,
-            "status": "partial",
-            "requested_count": 10,
-            "eligible_count": 2,
-            "message": "only 2 targets; baseline remains available",
-        }
-
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
-        request = urllib.request.Request(
-            f"http://{host}:{port}/api/messup-preview",
-            method="POST",
-            data=json.dumps(
-                {
-                    "world_id": "molmospaces/val_1",
-                    "backend_id": "mujoco",
-                    "scenario_setup": "relocate-cleanup-related-objects",
-                    "relocation_count": "10",
-                    "seed": "7",
-                }
-            ).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-        )
-        with patch("roboclaws.operator_console.server.preview_messup", fake_preview):
-            with urllib.request.urlopen(request) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
-
-    assert payload["ok"] is False
-    assert payload["status"] == "partial"
-    assert seen["root"] == tmp_path
-    assert seen["world_id"] == "molmospaces/val_1"
-    assert seen["backend_id"] == "mujoco"
-    assert seen["relocation_count"] == "10"
-
-
 def test_operator_console_serves_scene_preview_assets(tmp_path: Path) -> None:
     registered_previews = _registered_preview_asset_names()
     _assert_registered_scene_preview_assets(registered_previews)

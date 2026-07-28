@@ -7,6 +7,10 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+from roboclaws.agents.provider_registry import (
+    PROVIDER_PROFILE_CODEX_RESPONSES,
+    provider_route_spec,
+)
 from roboclaws.core.rerun import shell_join
 from roboclaws.household.realworld_contract import DEFAULT_REALWORLD_TASK
 
@@ -38,25 +42,13 @@ class EvidenceLane:
 
 AGENT_ROUTES: tuple[AgentRoute, ...] = (
     AgentRoute(
-        route_id="codex-api-router",
-        label="Codex API router",
-        driver="codex",
-        agent_engine="codex-cli",
-        provider_profile="codex-router-responses",
-        env={"ROBOCLAWS_PROVIDER_PROFILE": "codex-router-responses"},
-        required_env=("CODEX_BASE_URL", "CODEX_API_KEY"),
-    ),
-    AgentRoute(
-        route_id="claude-mimo-v25",
-        label="Claude Code MiMo v2.5",
-        driver="claude",
-        agent_engine="claude-code",
-        provider_profile="mimo-tp-anthropic",
-        env={
-            "ROBOCLAWS_PROVIDER_PROFILE": "mimo-tp-anthropic",
-            "ROBOCLAWS_CLAUDE_MODEL": "mimo-v2.5",
-        },
-        required_env=("MIMO_TP_KEY",),
+        route_id="agents-sdk-codex-router",
+        label="OpenAI Agents SDK Codex router",
+        driver="openai-agents-sdk",
+        agent_engine="openai-agents-sdk",
+        provider_profile=PROVIDER_PROFILE_CODEX_RESPONSES,
+        env={"ROBOCLAWS_PROVIDER_PROFILE": PROVIDER_PROFILE_CODEX_RESPONSES},
+        required_env=provider_route_spec(PROVIDER_PROFILE_CODEX_RESPONSES).required_env_keys,
     ),
 )
 
@@ -127,8 +119,8 @@ def build_apple2apple_test_grid(
         "name": "molmospaces_apple2apple_g2_grid",
         "description": (
             "Apple-to-apple MolmoSpaces cleanup grid for online/offline Runtime "
-            "Metric Map comparison across Codex API-router and Claude Code "
-            "Kimi/MiMo routes, with Grounding DINO and RAW_FPV evidence lanes."
+            "Metric Map comparison through the OpenAI Agents SDK Codex router "
+            "route, with Grounding DINO and RAW_FPV evidence lanes."
         ),
         "seed": seed,
         "generated_mess_count": generated_mess_count,

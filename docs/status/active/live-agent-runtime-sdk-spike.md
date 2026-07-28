@@ -563,9 +563,9 @@ Parked work:
     full-frame policy is insufficient.
   - Full provider/model x evidence-lane matrix before broad speed claims. The
     scoped `world-public-labels` B pass has one completed MiMo Chat row and
-    two provider blockers; retry GPT `codex-env` only after the transient 502
-    gate clears, and retry `kimi-openai-chat` only after the provider route is
-    allowed for this use.
+    two provider blockers; retry GPT with the current `codex-router-responses`
+    route only after Codex router upstream availability is healthy, and retry
+    `kimi-openai-chat` only after the provider route is allowed for this use.
   - Candidate C per-model-call racing is implemented and live-tested, but the
     current two-arm policy is rejected as faster-but-worse; do not rerun it
     unchanged.

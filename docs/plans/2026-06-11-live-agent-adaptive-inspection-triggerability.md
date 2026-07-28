@@ -402,9 +402,9 @@ inspection."
 VISUAL_GROUNDING_BASE_URL=http://127.0.0.1:18881 \
 VISUAL_GROUNDING_TIMEOUT_S=120 \
 just run::surface surface=household-world world=molmospaces/val_0 \
-  backend=mujoco intent=map-build agent_engine=codex-cli \
-  provider_profile=codex-env evidence_lane=camera-grounded-labels \
-  camera_labeler=grounding-dino map_mode=minimal scenario_setup=baseline seed=7 \
+  backend=mujoco preset=map-build agent_engine=openai-agents-sdk \
+  provider_profile=codex-router-responses evidence_lane=camera-grounded-labels \
+  camera_labeler=grounding-dino scenario_setup=baseline seed=7 \
   prompt="build a semantic map and inspect the sink/food-storage area until public evidence is actionable or the public search budget is exhausted"
 ```
 

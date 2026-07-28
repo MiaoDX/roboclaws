@@ -1,6 +1,6 @@
 # Refactor: Architecture Cleanup Campaign
 
-**Status:** PARKED
+**Status:** Parked - saturated after Slice 42
 **Created:** 2026-06-23
 **Source:** `$intuitive-reduce-entropy` saturation scan,
 `$improve-codebase-architecture` report-only review, `$intuitive-refactor`
@@ -65,9 +65,11 @@ Stop/park criteria:
 
 Current stop reason:
 
-- Met: post-Slice-33 discovery passes 1 and 2 found no clear safe P1/P2
-  autonomous slice after parking public migrations and broad oversized-module
-  restructuring.
+- Met after Slice 42. Two independent post-Slice-42 discovery passes found no
+  new clear safe P1/P2 cleanup slice after deduping historical plan/status
+  evidence, explicit retired-route rejection guards, current map-mode
+  rejection guards, parked live-matrix JSON, and broad retired Codex/Claude
+  runner-script deletion that needs a separate migration decision.
 
 Discovery source:
 
@@ -112,6 +114,15 @@ Surface metrics:
 | Deepen MolmoSpaces category rules | 0 | 1 | 0 | 1 | preserved |
 | Move Codex live timing to agent owner | 0 | 1 | 1 | 0 | preserved |
 | Merge operator-console source-error helpers | 0 | 1 | 0 | 0 | preserved |
+| Align Molmo live CI workflow with report registry | 1 | 1 | 0 | 1 | preserved |
+| Remove retired Claude Code live CI entry | 2 | 1 | 0 | 2 | preserved |
+| Migrate apple2apple grid to active SDK route | 1 | 1 | 0 | 1 | preserved |
+| Align architecture diagram engine layer | 2 | 1 | 0 | 1 | preserved |
+| Update active open-ended proof provider route | 1 | 1 | 0 | 1 | preserved |
+| Update active RAW-FPV live retry provider route | 1 | 1 | 0 | 1 | preserved |
+| Update live-agent retry policy provider route | 1 | 1 | 0 | 1 | preserved |
+| Update adaptive inspection live proof route | 1 | 1 | 0 | 1 | preserved |
+| Update cleanup rerun-command fixtures to SDK route | 1 | 1 | 0 | 4 | preserved |
 
 Low-value stop signal:
 
@@ -143,12 +154,95 @@ Next clear candidates:
   rows. Slice 30 split the operator-console assertion helpers, so the ratchet
   now reports only oversized-module baseline drift.
 
-Broader oversized-module growth remains architecture pressure, not one
-autonomous slice: several touched modules grew beyond the recorded baseline and
-need owner-specific refactors or a reviewed baseline refresh after clear new
-complexity violations are removed. Post-Slice-33 discovery passes 1 and 2 found
-no further clear safe P1/P2 autonomous slice, so this campaign is parked by its
-stop condition.
+The quality-ratchet proof now passes at `ce26d3ca` after later
+baseline/contract updates:
+`python-quality-ratchet: ok (2 Ruff violations at/below baseline, 83 oversized modules at/below baseline)`.
+Fresh post-`ce26d3ca` discovery found one current false-confidence candidate:
+the opt-in Molmo live CI workflow still scheduled/downloaded
+`claude-code-kimi-k2.6`, while the `MODEL_ENTRIES` registry no longer declares
+that entry. Slice 34 removed the stale workflow matrix/download surfaces and
+added a focused guard tying the workflow to the registry.
+
+Next clear candidates:
+
+- Fresh post-Slice-34 discovery found the remaining `claude-code-mimo-v2.5`
+  live CI entry was registry/workflow-consistent but still launched retired
+  `agent_engine=claude-code`, which the current public launch route rejects.
+  Slice 35 removed that broken opt-in CI row and the runner's now-dead Claude
+  version-check branch.
+
+Next clear candidates:
+
+- Fresh post-Slice-35 discovery found that `just molmo::apple2apple-grid`
+  still generated cleanup rows for retired `agent_engine=codex-cli` and
+  `agent_engine=claude-code`, while current launch validation rejects both.
+  Slice 36 migrated the active grid to the current `openai-agents-sdk` Codex
+  router route, preserved the online/offline and camera evidence axes, and
+  added a launch-catalog regression guard for generated cleanup rows.
+
+Next clear candidates:
+
+- Fresh post-Slice-36 discovery found that `ARCHITECTURE.md` embedded
+  `docs/architecture.svg`, but that first-screen diagram still showed
+  `codex-cli` and `claude-code` as peer agent-engine cards. Slice 37 removed
+  those stale current cards, kept the active `direct-runner` /
+  `openai-agents-sdk` engine set, added an explicit retired-engine rejection
+  note, and guarded the diagram text.
+
+Next clear candidates:
+
+- Fresh post-Slice-37 discovery found that
+  `docs/status/active/open-ended-household-default-architecture.md` still
+  described the remaining SDK proof as blocked on `codex-env` and gave a
+  `provider_profile=codex-env` rerun command. Current launch validation now
+  rejects that profile for `openai-agents-sdk`, so Slice 38 updated the capsule
+  to `codex-router-responses` and added an active-status command guard.
+
+Next clear candidates:
+
+- Fresh post-Slice-38 discovery found that
+  `docs/status/active/agent-sdk-raw-fpv-live-caps.json` still named
+  `provider_profile=codex-env` as the selected RAW-FPV retry route and told
+  agents to wait for `codex-env` upstream availability. Current provider and
+  launch surfaces now use `codex-router-responses`, and the raw-FPV perception
+  probe accepts `codex-router-responses` rather than `codex-env`, so Slice 39
+  migrated the active caps JSON to the current route while preserving the old
+  failed attempts as historical evidence.
+
+Next clear candidates:
+
+- Fresh post-Slice-39 discovery found that current live-agent runtime
+  performance policy still said to retry GPT/P/AA when `codex-env` recovered.
+  Slice 40 updated the current policy wording in
+  `docs/status/active/live-agent-runtime-sdk-spike.md` and
+  `docs/plans/live-agent-runtime-sdk-perf-followups.md` to use
+  `codex-router-responses`, while leaving historical matrix rows and output
+  paths unchanged.
+
+Next clear candidates:
+
+- Fresh post-Slice-40 discovery found that
+  `docs/plans/2026-06-11-live-agent-adaptive-inspection-triggerability.md`
+  still carried a current optional live-proof command for retired
+  `agent_engine=codex-cli` and `provider_profile=codex-env`, plus the legacy
+  `map_mode=minimal` override. Slice 41 migrated that command to
+  `preset=map-build`, `agent_engine=openai-agents-sdk`, and
+  `provider_profile=codex-router-responses`, and guarded it through
+  `roboclaws.launch.catalog.resolve_surface_launch`.
+
+Next clear candidates:
+
+- Fresh post-Slice-41 discovery found that cleanup report and MCP
+  rerun-command contract fixtures still used `agent_engine=codex-cli` even
+  though current launch validation rejects that engine and the tests only prove
+  command preservation/rendering. Slice 42 migrated the fixtures to the current
+  `openai-agents-sdk` / `codex-router-responses` route and added a guard that
+  keeps retired-engine mentions limited to explicit rejection tests.
+
+Next clear candidates:
+
+- None. Post-Slice-42 saturation discovery did not find a new clear safe P1/P2
+  slice.
 
 Checked and parked:
 
@@ -206,10 +300,74 @@ Checked and parked:
   bar: remaining candidates require public command migration, broader
   test-suite/report restructuring, domain-contract decisions, or would only
   move lines without deleting, merging, or canonicalizing a real concept.
+- Fresh post-`ce26d3ca` discovery confirmed the quality ratchet now passes, but
+  found current CI workflow drift against the live-report registry. Slice 34
+  removed the stale `claude-code-kimi-k2.6` workflow matrix entry and stale
+  Pages artifact download step, then added a registry/workflow sync guard in
+  `tests/unit/molmo_cleanup/test_ci_live_workflow_entries.py`.
+- Fresh post-Slice-34 discovery found the last Claude Code Molmo live CI entry
+  still launched a retired public engine. `just run::surface ... agent_engine=claude-code`
+  fails before useful work, so `claude-code-mimo-v2.5` was false confidence in
+  the opt-in CI matrix. Slice 35 removed it from the registry, workflow matrix,
+  and Pages artifact downloads, removed the runner/rehearsal `--skip-version-check`
+  branch that existed only for the Claude binary check, and made the
+  registry/workflow guard resolve every entry through `roboclaws.launch`.
+- Fresh post-Slice-35 discovery found the current MolmoSpaces apple-to-apple
+  grid recipe still generated retired-engine launch rows. Slice 36 collapsed
+  the grid's active agent route axis to the current OpenAI Agents SDK Codex
+  router route and added a guard that resolves every generated cleanup row
+  through `roboclaws.launch.catalog.resolve_surface_launch`.
+- Fresh post-Slice-36 discovery found current human-doc diagram drift:
+  `docs/architecture.svg` still listed retired `codex-cli` and `claude-code`
+  as current agent-engine cards even though the surrounding architecture text
+  and public launch validation reject them. Slice 37 aligned the diagram and
+  added a focused guard under `tests/contract/dev_tools/`.
+- Fresh post-Slice-37 discovery found current active-status drift:
+  `docs/status/active/open-ended-household-default-architecture.md` used the
+  obsolete `codex-env` provider profile in a current rerun command. Slice 38
+  migrated that capsule to the current `codex-router-responses` route and
+  guarded the command through `roboclaws.launch.catalog.resolve_surface_launch`.
+- Fresh post-Slice-38 discovery found current active-status JSON drift:
+  `docs/status/active/agent-sdk-raw-fpv-live-caps.json` used the obsolete
+  `codex-env` provider profile for the selected RAW-FPV retry route. Slice 39
+  migrated the current retry profile to `codex-router-responses`, kept
+  `codex-env` only as historical route vocabulary, and guarded the route
+  through the launch catalog plus provider-registry image-transport capability.
+- Fresh post-Slice-39 discovery found current retry-policy drift in
+  `docs/status/active/live-agent-runtime-sdk-spike.md` and
+  `docs/plans/live-agent-runtime-sdk-perf-followups.md`: both still used
+  `codex-env` as the future recovery trigger for GPT/P/AA retry work. Slice 40
+  updated only current policy text to the current `codex-router-responses`
+  route and guarded the wording.
+- Fresh post-Slice-40 discovery found current live-proof route drift in
+  `docs/plans/2026-06-11-live-agent-adaptive-inspection-triggerability.md`:
+  the optional proof command still used retired `codex-cli` / `codex-env`
+  launch axes and `map_mode=minimal`. Slice 41 updated only the current
+  runnable command to the canonical map-build SDK route and guarded it through
+  launch resolution.
+- Fresh post-Slice-41 discovery found current test-source drift in
+  cleanup report/MCP rerun-command fixtures: they used retired
+  `agent_engine=codex-cli` as the preserved command despite only testing
+  persistence/rendering. Slice 42 migrated those fixtures to the current SDK
+  route and guarded the test surfaces against reintroducing the retired engine
+  outside explicit rejection tests.
+- Post-Slice-42 discovery pass 1 rechecked current active docs/tests/code for
+  retired `codex-cli` / `claude-code`, obsolete `codex-env`,
+  `map_mode=minimal`, and stale retry wording. Remaining active-surface hits
+  were campaign history, explicit retired-engine rejection tests, public
+  `map_mode` rejection guards, or intentional absence assertions; plan hits
+  were historical or parked evidence.
+- Post-Slice-42 discovery pass 2 independently checked active JSON capsules,
+  script surfaces, just recipes, workflows, and the retired Codex/Claude live
+  runner scripts. Active JSON hits were historical live matrix rows/output
+  dirs; the RAW-FPV strategy capsule is already STOP-reached; the retired live
+  runner scripts are no longer public `just` dispatch surfaces but still have
+  broad legacy tests and report parsing. Removing them is parked as a separate
+  runner-script / manual-debug migration, not an autonomous cleanup slice.
 
-The campaign is parked from the quality-ratchet proof surface. Reopen only with
-a new accepted owner-specific plan, a public migration decision, or a reviewed
-baseline decision.
+The campaign is parked after Slice 42 because the saturation stop rule is met.
+Resume only after new code lands, the user accepts a parked migration scope, or
+fresh evidence changes one parked item's unblocker/risk.
 
 The campaign resumed on explicit user instruction after the final verified
 Slice 28 stop.
