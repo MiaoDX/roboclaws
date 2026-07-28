@@ -134,21 +134,8 @@ def _refresh_cloudml_status(plan: dict[str, Any], *, executor_path: Path) -> dic
     submitted = [shard for shard in shards if shard.get("task_id")]
     for shard in submitted:
         task_id = str(shard["task_id"])
-        result = subprocess.run(
-            [
-                str(executor_path),
-                "compute",
-                "cloudml",
-                "custom_train",
-                "describe",
-                "--job_id",
-                task_id,
-                "--json",
-            ],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
+        argv = _describe_argv(executor_path, task_id=task_id)
+        result = subprocess.run(argv, check=False, capture_output=True, text=True)
         if result.returncode != 0:
             raise RuntimeError(
                 f"CloudML status query failed for {task_id}: "
@@ -198,6 +185,19 @@ def _refresh_cloudml_status(plan: dict[str, Any], *, executor_path: Path) -> dic
     }
     plan["status"] = summary
     return summary
+
+
+def _describe_argv(executor_path: Path, *, task_id: str) -> list[str]:
+    return [
+        str(executor_path),
+        "compute",
+        "cloudml",
+        "cml",
+        "--",
+        "custom_train",
+        "describe",
+        task_id,
+    ]
 
 
 def _normalize_cloudml_state(value: str) -> str:

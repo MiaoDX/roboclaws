@@ -2768,7 +2768,7 @@ def test_coding_agent_codex_explicit_mify_profile_uses_xm_key() -> None:
     assert result.stdout.splitlines() == [
         "mimo-mify-responses",
         "-c",
-        'model="xiaomi/mimo-v2.5"',
+        'model="xiaomi/mimo-v2.5-pro"',
         "-c",
         'model_provider="mimo-mify-responses"',
         "-c",

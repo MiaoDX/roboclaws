@@ -210,16 +210,13 @@ def evaluate_done_readiness(
         required_tool = str(pending[0].get("required_tool") or "navigate_to_object")
         if any(str(item.get("state") or "") == "held" for item in pending):
             required_tool = "navigate_to_receptacle"
-        if required_tool == "adjust_camera":
-            recovery_hint = visual_scan_done_recovery_hint()
-        else:
-            recovery_hint = (
-                "Clean pending observed handles before done. For held objects, select a "
-                "public destination_options.candidate_fixture_id and call "
-                "navigate_to_receptacle -> open? -> place/place_inside. For pending "
-                "objects, call navigate_to_object -> pick first. Use "
-                "destination_options.recommended_tool when candidate_fixture_id is empty."
-            )
+        recovery_hint = pending_cleanup_recovery_hint(
+            pending,
+            required_tool=required_tool,
+            visual_scan_hint=(
+                visual_scan_done_recovery_hint() if required_tool == "adjust_camera" else ""
+            ),
+        )
         blockers.append(
             {
                 "type": "pending_cleanup_candidates",
@@ -282,6 +279,28 @@ def evaluate_done_readiness(
     }
     assert_no_forbidden_agent_view_keys(readiness)
     return readiness
+
+
+def pending_cleanup_recovery_hint(
+    pending: Sequence[dict[str, Any]],
+    *,
+    required_tool: str,
+    visual_scan_hint: str = "",
+) -> str:
+    handles = [str(item.get("object_id") or "") for item in pending if item.get("object_id")]
+    first_handle = handles[0] if handles else "the first returned handle"
+    ordered_handles = ", ".join(handles)
+    prefix = f"{visual_scan_hint.rstrip()} " if visual_scan_hint else ""
+    return (
+        prefix + "Treat the authoritative pending_cleanup_candidates list as the bounded cleanup "
+        f"worklist: [{ordered_handles}]. Start with {first_handle} using its returned "
+        f"required_tool={required_tool}, then follow that candidate's destination_options and "
+        "recommended_tool. Do not inspect unrelated handles or expand the waypoint sweep while "
+        "a listed candidate remains actionable. Visit a generated inspection waypoint only when "
+        "that same candidate explicitly returns its generated_inspection_waypoint_id. After a "
+        "successful placement or a public terminal rejection, continue with the next returned "
+        "handle; call done again only after this bounded list is exhausted."
+    )
 
 
 def done_readiness_blocked_response(

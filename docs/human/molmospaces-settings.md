@@ -515,7 +515,7 @@ SDK repo workflows default to `codex-router-responses` and require
 `CODEX_BASE_URL` plus `CODEX_API_KEY` (`gpt-5.6-sol`, Responses API). They do not
 fall back to `mimo-mify-responses` when `XM_LLM_API_KEY` is present. To use
 `mimo-mify-responses`, set `ROBOCLAWS_PROVIDER_PROFILE=mimo-mify-responses`
-explicitly; that profile uses `XM_LLM_API_KEY`, `xiaomi/mimo-v2.5`, Responses
+explicitly; that profile uses `XM_LLM_API_KEY`, `xiaomi/mimo-v2.5-pro`, Responses
 API, and web search disabled. Retired `codex-cli` and `claude-code` engines are
 not current public live-agent recipes. Guarded maintainer routes stay outside
 normal hosted/current run guidance until their validation proof is green.

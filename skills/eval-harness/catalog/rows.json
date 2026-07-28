@@ -332,6 +332,7 @@
         "stamp=map-build-consumer-openai-agents-sdk-{default_provider}",
         "agent_engine=openai-agents-sdk",
         "provider_profile={default_provider}",
+        "live_timeout_s=1500",
         "live_stall_timeout_s=180",
         "live_execution=run"
       ],
@@ -365,7 +366,7 @@
       ]
     },
     {
-      "row_id": "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
+      "row_id": "map-build-consumer-openai-agents-sdk-mimo-mify-responses",
       "row_kind": "live_agent_eval",
       "command": [
         "just",
@@ -373,15 +374,16 @@
         "suite=map_build_consumer",
         "budget=focused",
         "output_dir={eval_output_root}",
-        "stamp=map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
+        "stamp=map-build-consumer-openai-agents-sdk-mimo-mify-responses",
         "agent_engine=openai-agents-sdk",
-        "provider_profile=mimo-tp-openai-chat",
+        "provider_profile=mimo-mify-responses",
+        "live_timeout_s=1500",
         "live_stall_timeout_s=180",
         "live_execution=run"
       ],
       "axes": {
         "agent_engine": "openai-agents-sdk",
-        "provider_profile": "mimo-tp-openai-chat",
+        "provider_profile": "mimo-mify-responses",
         "intent": "map-build-consumer",
         "suite": "map_build_consumer",
         "evidence_lane": "world-public-labels",
@@ -419,6 +421,7 @@
         "stamp=map-build-consumer-openai-agents-sdk-kimi-openai-chat",
         "agent_engine=openai-agents-sdk",
         "provider_profile=kimi-openai-chat",
+        "live_timeout_s=1500",
         "live_stall_timeout_s=180",
         "live_execution=run"
       ],
@@ -462,6 +465,7 @@
         "stamp=map-build-consumer-openai-agents-sdk-minimax-responses",
         "agent_engine=openai-agents-sdk",
         "provider_profile=minimax-responses",
+        "live_timeout_s=1500",
         "live_stall_timeout_s=180",
         "live_execution=run"
       ],
@@ -907,6 +911,7 @@
     {
       "row_id": "direct-map-build-grounding-dino",
       "row_kind": "product_run",
+      "scene_scope": "selected",
       "command": [
         "just",
         "run::surface",
@@ -990,6 +995,7 @@
     {
       "row_id": "direct-map-build-world-public",
       "row_kind": "product_run",
+      "scene_scope": "selected",
       "command": [
         "just",
         "run::surface",

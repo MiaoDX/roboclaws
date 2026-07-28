@@ -226,6 +226,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--preset", default="")
     parser.add_argument("--evidence-lane", default="")
     parser.add_argument("--camera-labeler", default="")
+    parser.add_argument("--scene", action="append", default=[])
     parser.add_argument("--output-dir", type=Path)
     return parser.parse_args(argv)
 
@@ -245,6 +246,7 @@ def main(argv: list[str] | None = None) -> int:
         preset=_split_csv(args.preset),
         evidence_lane=_split_csv(args.evidence_lane),
         camera_labeler=_split_csv(args.camera_labeler),
+        scenes=_split_csv_values(args.scene),
         output_dir=args.output_dir,
     )
     print(json.dumps(manifest, indent=2, sort_keys=True))
@@ -265,6 +267,7 @@ def build_eval_harness(
     preset: Sequence[str] = (),
     evidence_lane: Sequence[str] = (),
     camera_labeler: Sequence[str] = (),
+    scenes: Sequence[str] = (),
     output_dir: Path | None = None,
 ) -> dict[str, Any]:
     plan_text, plan_path = _read_plan(plan)
@@ -298,7 +301,12 @@ def build_eval_harness(
     if profile != "adaptive":
         signals = _merge_signals([*signals, _profile_signal(profile)])
     output_dir = output_dir or _default_output_dir()
-    rows = eval_harness_rows.candidate_rows(output_dir=output_dir, explicit_axes=explicit_axes)
+    scene_refs = eval_harness_rows.parse_scene_refs(list(scenes))
+    rows = eval_harness_rows.candidate_rows(
+        output_dir=output_dir,
+        explicit_axes=explicit_axes,
+        scenes=list(scenes),
+    )
     _apply_selection_rules(
         rows,
         signals=signals,
@@ -317,6 +325,7 @@ def build_eval_harness(
         "since": since or "",
         "changed_files": all_changed_files,
         "explicit_axes": explicit_axes,
+        "scenes": scene_refs,
         "signals": signals,
         "summary": {
             "row_count": len(rows),

@@ -8,7 +8,7 @@ SELECTOR_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "select_eval
 
 LIVE_AGENT_ROW_IDS = {
     "map-build-consumer-openai-agents-sdk-codex-router-responses",
-    "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
+    "map-build-consumer-openai-agents-sdk-mimo-mify-responses",
     "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
     "map-build-consumer-openai-agents-sdk-minimax-responses",
     "openai-agents-sdk-open-task-live-eval",
@@ -18,7 +18,7 @@ LIVE_AGENT_ROW_IDS = {
     "openai-agents-sdk-codex-router-responses-availability",
 }
 ALTERNATE_PROVIDER_MATRIX_ROW_IDS = {
-    "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
+    "map-build-consumer-openai-agents-sdk-mimo-mify-responses",
     "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
     "map-build-consumer-openai-agents-sdk-minimax-responses",
 }

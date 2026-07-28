@@ -23,10 +23,16 @@ Useful explicit profiles:
 
 | Provider profile | Wire API | Default model | Notes |
 | --- | --- | --- | --- |
-| `mimo-mify-responses` | Responses | `xiaomi/mimo-v2.5` | Explicit OpenAI Agents SDK route. |
+| `mimo-mify-responses` | Responses | `xiaomi/mimo-v2.5-pro` | Default-enabled MiMo route. Chat, Responses, tool calling, and CloudML live probes are healthy. |
 | `minimax-responses` | Responses | `MiniMax-M3` | Explicit OpenAI Agents SDK route. |
 | `kimi-openai-chat` | OpenAI Chat | `kimi-k2.7-code` | Experimental OpenAI Agents SDK route. Keep the canonical model id; Kimi accepts arbitrary K2.7 suffixes and echoes them. |
-| `mimo-inside-openai-chat` | OpenAI Chat | `mimo-1000` | On-demand benchmark/text route, not a product cleanup default. |
+
+Paused diagnostic profiles:
+
+| Provider profile | Wire API | Model | Notes |
+| --- | --- | --- | --- |
+| `mimo-tp-openai-chat` | OpenAI Chat | `mimo-v2.5` | Retained for explicit diagnostics; excluded from default route and baseline selection. |
+| `mimo-inside-openai-chat` | OpenAI Chat | `mimo-1000` | Retained for diagnostics and historical artifacts; the upstream channel has been removed. |
 
 ## Route Rules
 
@@ -44,6 +50,8 @@ Useful explicit profiles:
   it.
 - Do not infer route health from model capability alone; use
   `model-route-verdicts.yaml`.
+- MiMo defaults use only `mimo-mify-responses` with
+  `xiaomi/mimo-v2.5-pro`. Paused routes never silently fall back to Mify.
 - On the work network, repo-local OpenAI Agents SDK routes may run after normal
   provider readiness checks. OpenClaw and system-provider guards still apply.
 
