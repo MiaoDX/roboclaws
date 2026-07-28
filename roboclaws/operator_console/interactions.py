@@ -285,11 +285,8 @@ def operator_message_state(root: Path, run_dir: Path) -> dict[str, Any]:
         "message_count": len(rows),
         "pending_steer_count": len(pending_steer),
         "operator_message_pending": bool(pending_steer),
-        "resume_request_count": len(resume_rows),
         "pending_resume_count": len(pending_resume),
         "operator_resume_pending": bool(pending_resume),
-        "latest_resume_request": resume_rows[-1] if resume_rows else {},
-        "latest_message": rows[-1] if rows else {},
         "source_errors": [*source_errors, *resume_source_errors],
         "source_error": bool(source_errors or resume_source_errors),
     }
@@ -509,8 +506,6 @@ def _public_artifact_scope(artifacts: list[Any]) -> list[dict[str, str]]:
         "Run Result",
         "Trace",
         "Agent Events",
-        "Claude Events",
-        "OpenAI Agents Events",
         "Runtime Map",
         "Actionable Map",
     }

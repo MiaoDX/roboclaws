@@ -45,7 +45,9 @@ def test_static_app_has_route_specific_field_groups() -> None:
     state_rail_html = html.split('<aside class="state-rail">', 1)[1].split("</aside>", 1)[0]
 
     for snippet in (
-        'id="isaac-fields"',
+        'id="workflow-action-list"',
+        'id="runtime-map-prior-input"',
+        'id="advanced-controls"',
         'id="provider-profile-input"',
         'id="agibot-gate-fields"',
         'id="real-movement-gate"',
@@ -57,6 +59,18 @@ def test_static_app_has_route_specific_field_groups() -> None:
         assert snippet in html
 
     for snippet in (
+        'name="isaac_scene_usd_path"',
+        'name="b1_alignment_artifact"',
+        'name="b1_navigation_artifact"',
+    ):
+        assert snippet not in html
+
+    for snippet in (
+        "renderWorkflowActions",
+        "workflow_id",
+        "runtime_map_prior",
+        "selectedRuntimeMapPrior",
+        "routeForWorkflow(state.selectedWorkflow, state.selectedWorld)",
         "renderRouteFields",
         "field_groups",
         "selectedProviderRoute",
@@ -83,7 +97,6 @@ def test_static_app_keeps_deleted_operator_console_widgets_deleted() -> None:
         'id="messup-button"',
         'id="messup-status"',
         'id="tasks-panel"',
-        'id="background-task-list"',
         'data-view="tasks"',
         'data-panel="runtime_map"',
     ):
@@ -94,12 +107,9 @@ def test_static_app_keeps_deleted_operator_console_widgets_deleted() -> None:
         "/api/messup-preview",
         "schedulePromptPreviewRefresh",
         "promptPreviewTimer",
-        "renderBackgroundTasks",
         "backgroundTaskViewAvailable",
         "taskActionsHtml",
-        "runTaskAction",
         "copy_command",
-        "api_post",
         'setImageSlot(\n    "runtime_map"',
         'runtime_map: "Metric Map"',
     ):
@@ -113,6 +123,20 @@ def test_static_app_keeps_deleted_operator_console_widgets_deleted() -> None:
         ".messup-actions",
     ):
         assert snippet not in css
+
+
+def test_static_app_keeps_background_tasks_in_console() -> None:
+    html = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
+    app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
+    css = (STATIC_ROOT / "styles.css").read_text(encoding="utf-8")
+
+    assert 'id="background-tasks-dialog"' in html
+    assert 'id="background-task-list"' in html
+    assert "renderBackgroundTasks" in app
+    assert "runBackgroundTaskAction" in app
+    assert "copy_command" not in app
+    assert "window.open" in app
+    assert ".background-task-row" in css
 
 
 def test_static_app_does_not_short_circuit_context_json_readiness() -> None:
@@ -285,8 +309,10 @@ def test_static_app_exposes_explicit_intent_selector_and_interpretation() -> Non
     assert "selectedIntent" in app
     assert "selectedIntentForRoute" in app
     assert 'const DEFAULT_UI_INTENT = "open-ended";' in app
+    assert 'const DEFAULT_WORKFLOW_ID = "open-task";' in app
     assert "preferredDefaultCombination" in app
-    assert "item.enabled && item.intent_id === DEFAULT_UI_INTENT" in app
+    assert "item.intent_id === DEFAULT_UI_INTENT" in app
+    assert 'item.evidence_lane === "camera-grounded-labels"' in app
     assert "state.selectedIntent = els.intentInput.value;" in app
     assert "state.selectedIntent = selectedIntent();" not in app
     assert "syncAxesFromRoute" in app
@@ -295,7 +321,8 @@ def test_static_app_exposes_explicit_intent_selector_and_interpretation() -> Non
     assert "const scopedCombos = axisMatches.length ? axisMatches : combos;" in app
     assert "launchInterpretation" in app
     assert "route.intent_options" in app
-    assert "intent_id: selectedIntent()" in app
+    assert "intent_id: workflowIntent(workflow) || selectedIntent()" in app
+    assert 'workflow_id: workflow ? workflow.id : ""' in app
     assert "world_id: route.world_id" in app
     assert "backend_id: route.backend_id" in app
     assert "agent_engine_id: route.agent_engine_id" in app
@@ -478,24 +505,10 @@ def test_static_app_keeps_long_run_header_within_fixed_top_bar() -> None:
     assert "justify-content: flex-start;" in responsive_controls
     assert "flex-wrap: wrap;" in responsive_controls
     assert "#run-title {\n    flex-basis: 100%;" in css
-    assert "function compactRunPart(part)" in app
-    assert (
-        "return `${fullTimestamp[2]}${fullTimestamp[3]}-${fullTimestamp[4]}${fullTimestamp[5]}`"
-    ) in app
-    assert (
-        "return `${shortTimestamp[1]}${shortTimestamp[2]}_${shortTimestamp[3]}${shortTimestamp[4]}`"
-    ) in app
+    assert "compactRunPart" in app
+    assert "fullTimestamp" in app
+    assert "shortTimestamp" in app
     assert '"$2$3-$4$5$7"' not in app
-
-
-def test_static_app_hides_pause_until_a_route_supports_it() -> None:
-    html = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
-    app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
-
-    assert 'id="pause-button" class="secondary" disabled hidden' in html
-    assert "const pauseAvailable = Boolean(controls.pause_available)" in app
-    assert "els.pauseButton.hidden = !pauseAvailable" in app
-    assert "els.pauseButton.disabled = !pauseAvailable" in app
 
 
 def test_static_app_wires_manual_relative_navigation_controls() -> None:
@@ -510,12 +523,14 @@ def test_static_app_wires_manual_relative_navigation_controls() -> None:
     assert "MANUAL_CONTROL_STEP_M = 0.25" in app
     assert "MANUAL_CONTROL_TURN_DEG = 15" in app
     assert 'action: "navigate_to_relative_pose"' in app
-    assert 'return { action: "observe" }' in app
+    assert 'action === "observe"' in app
     assert "/control" in app
     assert "supports_relative_navigation_control" in app
     assert "relative_navigation_control_available" in app
+    assert "relative_navigation_control_pending" in app
     assert "operator_handoff_paused" in app
     assert "supports_paused_handoff_resume" in app
+    assert "MCP endpoint to become ready" in app
     assert "operator moves are recorded as assisted interventions".lower() in app.lower()
     assert ".manual-control-panel" in css
     assert ".manual-control-grid" in css

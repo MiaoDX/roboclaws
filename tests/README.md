@@ -31,12 +31,14 @@ tests/
 ./scripts/dev/run_pytest_standalone.sh -m unit -q
 ./scripts/dev/run_pytest_standalone.sh -m contract -q
 ./scripts/dev/run_pytest_standalone.sh -m regression -q
-./scripts/dev/run_pytest_standalone.sh -m "not integration" -q
+./scripts/dev/run_pytest_standalone.sh -m "not integration and not local and not slow" -q
 ```
 
 `tests/conftest.py` auto-marks tests from the top-level folder. It still has a
 filename fallback for any short-lived legacy flat files, but new tests should go
 directly into the right layer and domain folder.
+
+Slow tight-loop exclusions are maintained in `tests/conftest.py`.
 
 ## Keep Or Delete
 

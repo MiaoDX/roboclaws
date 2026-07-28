@@ -39,7 +39,7 @@ BACKEND_SPECS: dict[str, BackendSpec] = {
         implementation_backend="isaaclab_subprocess",
         lock_name="isaac_gpu",
         resource_kind="gpu",
-        field_groups=("common", "isaac"),
+        field_groups=("common",),
         view_modes=("overview", "fpv", "map", "grounding", "chase", "outputs"),
         gates=("isaac_preflight",),
     ),

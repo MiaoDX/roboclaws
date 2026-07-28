@@ -18,10 +18,8 @@ CODEX_ENV = {
     "CODEX_BASE_URL": "https://codex.example.test/v1",
     "CODEX_API_KEY": "key",
 }
-MUJOCO_OPENAI_AGENTS_OPEN_TASK = (
-    "molmospaces/procthor-objaverse-val/0::mujoco::open-task::openai-agents-sdk::"
-    "world-public-labels"
-)
+
+from tests.unit.operator_console.conftest import MUJOCO_OPENAI_AGENTS_OPEN_TASK  # noqa: F401  re-exported for tests
 
 
 def test_runtime_inventory_lists_eval_harness_sdk_live_row(tmp_path: Path) -> None:
@@ -33,9 +31,23 @@ def test_runtime_inventory_lists_eval_harness_sdk_live_row(tmp_path: Path) -> No
         / "rows"
         / "openai-agents-sdk-cleanup-camera-raw-fpv-live-product"
     )
+    open_task_row_dir = (
+        tmp_path
+        / "output"
+        / "eval-harness"
+        / "focused"
+        / "rows"
+        / "openai-agents-sdk-open-task-live-eval"
+    )
     run_dir = row_dir / "run" / "0615_1225" / "seed-7"
     run_dir.mkdir(parents=True)
+    open_task_run_dir = open_task_row_dir / "run" / "0615_1226" / "seed-7"
+    open_task_run_dir.mkdir(parents=True)
     (run_dir / "live_status.json").write_text(
+        json.dumps({"phase": "running-sdk", "started_at_epoch": 1.0}),
+        encoding="utf-8",
+    )
+    (open_task_run_dir / "live_status.json").write_text(
         json.dumps({"phase": "running-sdk", "started_at_epoch": 1.0}),
         encoding="utf-8",
     )
@@ -73,7 +85,21 @@ def test_runtime_inventory_lists_eval_harness_sdk_live_row(tmp_path: Path) -> No
                     "agent_engine": "openai-agents-sdk",
                     "evidence_lane": "camera-raw-fpv",
                 },
-            }
+            },
+            {
+                "row_id": "openai-agents-sdk-open-task-live-eval",
+                "row_kind": "live_agent_eval",
+                "row_dir": str(open_task_row_dir),
+                "status": "ran",
+                "outcome": "passed",
+                "axes": {
+                    "world": "molmospaces/val_0",
+                    "backend": "mujoco",
+                    "intent": "open-ended",
+                    "agent_engine": "openai-agents-sdk",
+                    "evidence_lane": "world-public-labels",
+                },
+            },
         ]
     }
     (tmp_path / "output" / "eval-harness" / "focused" / "eval_harness.json").write_text(
@@ -94,15 +120,23 @@ def test_runtime_inventory_lists_eval_harness_sdk_live_row(tmp_path: Path) -> No
     assert task["route_id"] == (
         "molmospaces/val_0::mujoco::cleanup::openai-agents-sdk::camera-raw-fpv"
     )
+    open_task = next(
+        item
+        for item in payload["tasks"]
+        if item["id"] == "eval-row:openai-agents-sdk-open-task-live-eval"
+    )
+    assert open_task["route_id"] == (
+        "molmospaces/val_0::mujoco::open-task::openai-agents-sdk::world-public-labels"
+    )
     assert any(resource["kind"] == "tmux_session" for resource in task["resources"])
     assert any(resource["kind"] == "visual_slot" for resource in task["resources"])
-    assert not any(action["label"] == "Attach" for action in task["actions"])
-    assert not any(action["type"] == "api_post" for action in task["actions"])
+    assert not any(action["label"] == "Attach" for action in task.get("actions", []))
+    assert not any(action["type"] == "api_post" for action in task.get("actions", []))
     artifacts = {item["label"]: item for item in task["artifacts"]}
     assert artifacts["Driver log"]["path"] == str(run_dir / "driver.log")
     assert artifacts["Driver log"]["href"] == ""
     assert artifacts["Eval harness manifest"]["href"] == ""
-    assert not any(action["label"] == "Open Log" for action in task["actions"])
+    assert not any(action["label"] == "Open Log" for action in task.get("actions", []))
     assert "SECRET_TOKEN_VALUE" not in json.dumps(task)
     assert "secret-key-value" not in json.dumps(task)
 

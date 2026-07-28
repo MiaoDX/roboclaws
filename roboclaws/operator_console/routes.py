@@ -22,6 +22,15 @@ from roboclaws.launch.environment_setup import (
 )
 from roboclaws.launch.intents import TASK_INTENT_SPECS
 from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS, WORLD_SPECS
+from roboclaws.operator_console.workflows import (
+    DEFAULT_PROVIDER_PROFILE,
+    OperatorWorkflow,
+    get_operator_workflow,
+    list_operator_workflows,
+    list_recommended_priors,
+    recommended_prior_for,
+    workflow_payload_for_world,
+)
 
 DEFAULT_PROMPTS = {
     "cleanup": "帮我收拾这个房间",
@@ -73,7 +82,6 @@ class ConsoleLaunchSelection:
     supports_operator_steer: bool = False
     supports_paused_handoff_resume: bool = False
     supports_relative_navigation_control: bool = False
-    pause_supported: bool = False
     emergency_stop_required: bool = False
 
     @property
@@ -82,7 +90,7 @@ class ConsoleLaunchSelection:
             (
                 self.world_id,
                 self.backend_id,
-                self.preset_id or "open-task",
+                selection_task_selector(self.intent_id),
                 self.agent_engine_id,
                 self.evidence_lane,
             )
@@ -160,9 +168,7 @@ class ConsoleLaunchSelection:
             "backend_id": self.backend_id,
             "backend_label": backend.label,
             "intent_id": self.intent_id,
-            "intent": self.intent_id,
             "preset_id": self.preset_id,
-            "preset": self.preset_id,
             "agent_engine_id": self.agent_engine_id,
             "agent_engine_label": engine.label,
             "agent_engine_availability": engine.availability,
@@ -186,7 +192,6 @@ class ConsoleLaunchSelection:
             "supports_operator_steer": self.supports_operator_steer,
             "supports_paused_handoff_resume": self.supports_paused_handoff_resume,
             "supports_relative_navigation_control": self.supports_relative_navigation_control,
-            "pause_supported": self.pause_supported,
             "emergency_stop_required": self.emergency_stop_required,
             "required_overrides": list(self.required_overrides),
             "default_overrides": list(self.default_overrides),
@@ -194,8 +199,6 @@ class ConsoleLaunchSelection:
             "preview_assets": _preview_assets_payload(world.preview_assets),
             "gates": [gate.to_payload() for gate in self.gates],
             "required_gates": [gate.to_payload() for gate in self.gates if gate.required],
-            "state": "enabled" if self.enabled else "disabled",
-            "blocker": self.unsupported_reason,
             "default_prompt": self.task_prompt_default,
             "prompt_disabled_reason": (
                 ""
@@ -208,13 +211,7 @@ class ConsoleLaunchSelection:
             "field_groups": list(backend.field_groups),
             "view_modes": list(backend.view_modes),
             "argv_preview": ["just", "run::surface", *self.base_args()],
-            "command_preview": ["just", "run::surface", *self.base_args()],
             "intent_options": [_intent_option(self.intent_id)],
-            "default_intent": self.intent_id,
-            "supported_intents": [self.intent_id],
-            "preset_options": [_preset_option(self.preset_id)] if self.preset_id else [],
-            "default_preset": self.preset_id,
-            "supported_presets": [self.preset_id] if self.preset_id else [],
         }
         return payload
 
@@ -261,20 +258,6 @@ AGIBOT_ESTOP_GATE = RouteGate(
     severity="capability",
     help_text="Required only when real movement is enabled.",
 )
-B1_ALIGNMENT_ARTIFACT_GATE = RouteGate(
-    id="b1_alignment_artifact",
-    label="B1 verified alignment artifact available",
-    kind="request_field",
-    help_text=(
-        "Optional: leave empty to generate a B1 / Map 12 alignment residual JSON at launch."
-    ),
-)
-B1_NAVIGATION_ARTIFACT_GATE = RouteGate(
-    id="b1_navigation_artifact",
-    label="B1 verified navigation smoke artifact available",
-    kind="request_field",
-    help_text="Optional: leave empty to generate a B1 / Map 12 navigation smoke JSON at launch.",
-)
 
 
 def list_worlds(*, include_hidden: bool = False) -> tuple[dict[str, Any], ...]:
@@ -297,9 +280,29 @@ def list_worlds(*, include_hidden: bool = False) -> tuple[dict[str, Any], ...]:
                 "availability": world.availability,
                 "preview_assets": _preview_assets_payload(world.preview_assets),
                 "sampler_metadata": dict(world.sampler_metadata or {}),
+                "recommended_prior": (
+                    recommended_prior.to_payload()
+                    if (recommended_prior := recommended_prior_for(world.id, world.default_backend))
+                    else None
+                ),
+                "workflow_actions": list(
+                    _workflow_payloads_for_world(world.id, world.default_backend)
+                ),
             }
         )
     return tuple(rows)
+
+
+def list_workflows() -> tuple[dict[str, Any], ...]:
+    """Return product workflow metadata for the main operator-console UI."""
+
+    return tuple(workflow.to_payload() for workflow in list_operator_workflows())
+
+
+def list_prior_catalog() -> tuple[dict[str, Any], ...]:
+    """Return accepted Runtime Map Prior Snapshot catalog rows."""
+
+    return tuple(entry.to_payload() for entry in list_recommended_priors())
 
 
 def list_evidence_lanes() -> tuple[dict[str, str], ...]:
@@ -312,6 +315,12 @@ def list_evidence_lanes() -> tuple[dict[str, str], ...]:
         }
         for lane in cleanup_evidence_lane_names()
     )
+
+
+def selection_task_selector(intent_id: str) -> str:
+    """Return the task segment used by canonical console selection ids."""
+
+    return intent_id if intent_id in {"cleanup", "map-build"} else "open-task"
 
 
 def _preview_assets_payload(items: tuple[tuple[str, str], ...]) -> dict[str, dict[str, str]]:
@@ -337,6 +346,16 @@ def get_selection(selection_id: str) -> ConsoleLaunchSelection:
     raise KeyError(selection_id)
 
 
+def default_workflow_selection_id(world_id: str, workflow_id: str) -> str:
+    """Return the product-default route id for an operator workflow."""
+
+    workflow = get_operator_workflow(workflow_id)
+    selection = _default_workflow_selection(world_id, workflow)
+    if selection is None:
+        raise KeyError(f"{world_id}:{workflow_id}")
+    return selection.id
+
+
 def validate_supported_routes_against_catalog() -> None:
     """Fail if supported console combinations drift away from launch catalog."""
 
@@ -345,6 +364,48 @@ def validate_supported_routes_against_catalog() -> None:
             resolve_surface_launch(selection.base_args())
         except LaunchError as exc:  # pragma: no cover - assertion context
             raise AssertionError(f"invalid console selection {selection.id}: {exc}") from exc
+
+
+def _workflow_payloads_for_world(world_id: str, backend_id: str) -> tuple[dict[str, Any], ...]:
+    rows: list[dict[str, Any]] = []
+    for workflow in list_operator_workflows():
+        payload = workflow_payload_for_world(workflow, world_id=world_id, backend_id=backend_id)
+        selection = _default_workflow_selection(world_id, workflow)
+        payload["default_route_id"] = selection.id if selection else ""
+        payload["default_route_label"] = selection.label if selection else ""
+        if selection is None:
+            payload["enabled"] = False
+            payload["disabled_reason"] = (
+                payload.get("disabled_reason")
+                or "No catalog-backed route supports this workflow for the selected scene."
+            )
+        rows.append(payload)
+    return tuple(rows)
+
+
+def _default_workflow_selection(
+    world_id: str,
+    workflow: OperatorWorkflow,
+) -> ConsoleLaunchSelection | None:
+    world = WORLD_SPECS.get(world_id)
+    backend_id = world.default_backend if world else ""
+    candidates = [
+        selection
+        for selection in list_console_combinations(include_disabled=False)
+        if selection.world_id == world_id
+        and selection.backend_id == backend_id
+        and selection.intent_id == workflow.intent_id
+        and selection.evidence_lane == CAMERA_GROUNDED_LABELS_LANE
+    ]
+    if not candidates:
+        return None
+    preferred = [
+        selection
+        for selection in candidates
+        if selection.agent_engine_id == "openai-agents-sdk"
+        and selection.provider_profile == DEFAULT_PROVIDER_PROFILE
+    ]
+    return (preferred or candidates)[0]
 
 
 def _common_gates() -> tuple[RouteGate, ...]:
@@ -387,11 +448,7 @@ def _enabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
             evidence_lanes=ISAAC_SUPPORTED_EVIDENCE_LANES,
             camera_labeler=SIMULATION_CAMERA_LABELER,
             scenario_setup=ENVIRONMENT_SETUP_BASELINE,
-            gates=(
-                *common_gates,
-                B1_ALIGNMENT_ARTIFACT_GATE,
-                B1_NAVIGATION_ARTIFACT_GATE,
-            ),
+            gates=common_gates,
             required_overrides=B1_ROBOT_PROOF_REQUIRED_OVERRIDES,
             default_overrides=("seed=7",),
             supports_operator_steer=True,
@@ -498,7 +555,6 @@ def _selection(
     supports_operator_steer: bool = False,
     supports_paused_handoff_resume: bool = False,
     supports_relative_navigation_control: bool = False,
-    pause_supported: bool = False,
     emergency_stop_required: bool = False,
 ) -> ConsoleLaunchSelection:
     setup = scenario_setup or (
@@ -525,7 +581,6 @@ def _selection(
         supports_operator_steer=supports_operator_steer,
         supports_paused_handoff_resume=supports_paused_handoff_resume,
         supports_relative_navigation_control=supports_relative_navigation_control,
-        pause_supported=pause_supported,
         emergency_stop_required=emergency_stop_required,
     )
 
@@ -549,7 +604,6 @@ def _lane_selections(
     supports_operator_steer: bool = False,
     supports_paused_handoff_resume: bool = False,
     supports_relative_navigation_control: bool = False,
-    pause_supported: bool = False,
     emergency_stop_required: bool = False,
 ) -> tuple[ConsoleLaunchSelection, ...]:
     rows: list[ConsoleLaunchSelection] = []
@@ -578,7 +632,6 @@ def _lane_selections(
                 supports_operator_steer=supports_operator_steer,
                 supports_paused_handoff_resume=supports_paused_handoff_resume,
                 supports_relative_navigation_control=supports_relative_navigation_control,
-                pause_supported=pause_supported,
                 emergency_stop_required=emergency_stop_required,
             )
         )
@@ -586,18 +639,7 @@ def _lane_selections(
 
 
 def _intent_option(intent_id: str) -> dict[str, str]:
-    spec = TASK_INTENT_SPECS.get(intent_id)
-    if spec is None:
-        return {
-            "id": intent_id,
-            "label": _intent_label(intent_id),
-            "prompt_id": "",
-            "checker_id": "",
-            "goal_scope": "",
-            "evaluation_policy": "",
-            "done_readiness_policy": "",
-            "checker_policy": "",
-        }
+    spec = TASK_INTENT_SPECS[intent_id]
     return {
         "id": intent_id,
         "label": _intent_label(intent_id),
@@ -607,14 +649,6 @@ def _intent_option(intent_id: str) -> dict[str, str]:
         "evaluation_policy": spec.evaluation_policy,
         "done_readiness_policy": spec.done_readiness_policy,
         "checker_policy": spec.checker_policy,
-    }
-
-
-def _preset_option(preset_id: str) -> dict[str, str]:
-    return {
-        "id": preset_id,
-        "label": _intent_label(preset_id),
-        "intent_id": preset_id,
     }
 
 

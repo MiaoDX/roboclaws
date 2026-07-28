@@ -51,7 +51,10 @@ from roboclaws.operator_console.routes import (
     get_selection,
     list_console_combinations,
     list_evidence_lanes,
+    list_prior_catalog,
+    list_workflows,
     list_worlds,
+    selection_task_selector,
 )
 from roboclaws.operator_console.runtime_inventory import (
     requested_mcp_endpoint,
@@ -61,7 +64,6 @@ from roboclaws.operator_console.runtime_inventory import (
 )
 from roboclaws.operator_console.state import derive_operator_state, redacted_artifact_text
 
-PAUSE_UNAVAILABLE_REASON = "Pause is unavailable for this route. Use Stop or Emergency Stop."
 FOLLOW_UP_AUTOSTART_ATTEMPTS = 30
 FOLLOW_UP_AUTOSTART_RETRY_DELAY_S = 1.0
 
@@ -88,10 +90,6 @@ def _registered_preview_asset_names() -> frozenset[str]:
     return frozenset(names)
 
 
-def _selection_task_selector(intent_id: str) -> str:
-    return intent_id if intent_id in {"cleanup", "map-build"} else "open-task"
-
-
 def _readiness_selection_id(query: dict[str, list[str]]) -> str:
     selection_id = str(query.get("selection_id", [""])[0])
     if selection_id:
@@ -105,7 +103,7 @@ def _readiness_selection_id(query: dict[str, list[str]]) -> str:
         (
             world_id,
             backend_id,
-            _selection_task_selector(intent_id),
+            selection_task_selector(intent_id),
             agent_engine_id,
             evidence_lane,
         )
@@ -146,6 +144,7 @@ def _launch_request_from_payload(payload: dict[str, object]) -> LaunchRequest:
         parent_run_id=str(payload.get("parent_run_id") or ""),
         next_goal_packet=dict(payload.get("next_goal_packet") or {}),
         selection_id_override=str(payload.get("selection_id") or ""),
+        workflow_id=str(payload.get("workflow_id") or ""),
     )
 
 
@@ -179,34 +178,19 @@ def _retryable_follow_up_start_error(error: str) -> bool:
 
 def _follow_up_launch_request(parent_run_id: str, follow_up: dict[str, object]) -> LaunchRequest:
     selection_id = str(follow_up.get("selection_id") or "")
-    launch_parts = _selection_launch_parts(selection_id)
+    route = get_selection(selection_id)
     return LaunchRequest(
         selection_id_override=selection_id,
-        intent_id=str(follow_up.get("intent") or "") or launch_parts.get("intent_id", ""),
+        intent_id=str(follow_up.get("intent") or "") or route.intent_id,
         prompt=str(follow_up.get("body") or ""),
         operator_session_id=str(follow_up.get("operator_session_id") or ""),
         parent_run_id=parent_run_id,
         next_goal_packet=dict(follow_up.get("next_goal_packet") or {}),
-        world_id=launch_parts.get("world_id", ""),
-        backend_id=launch_parts.get("backend_id", ""),
-        agent_engine_id=launch_parts.get("agent_engine_id", ""),
-        evidence_lane=launch_parts.get("evidence_lane", ""),
+        world_id=route.world_id,
+        backend_id=route.backend_id,
+        agent_engine_id=route.agent_engine_id,
+        evidence_lane=route.evidence_lane,
     )
-
-
-def _selection_launch_parts(selection_id: str) -> dict[str, str]:
-    if not selection_id:
-        return {}
-    parts = selection_id.split("::")
-    if len(parts) != 5:
-        return {}
-    return {
-        "world_id": parts[0],
-        "backend_id": parts[1],
-        "intent_id": "open-ended" if parts[2] == "open-task" else parts[2],
-        "agent_engine_id": parts[3],
-        "evidence_lane": parts[4],
-    }
 
 
 class ConsoleRequestHandler(SimpleHTTPRequestHandler):
@@ -318,7 +302,6 @@ class ConsoleRequestHandler(SimpleHTTPRequestHandler):
             "next-goal": self._serve_next_goal,
             "resume": self._serve_resume,
             "control": self._serve_control_post,
-            "pause": self._serve_pause_post,
             "stop": self._serve_stop_post,
             "emergency-stop": self._serve_emergency_stop_post,
         }
@@ -358,12 +341,10 @@ class ConsoleRequestHandler(SimpleHTTPRequestHandler):
         runtime_tasks = inventory["tasks"]
         return {
             "worlds": list(list_worlds()),
+            "workflows": list(list_workflows()),
+            "recommended_priors": list(list_prior_catalog()),
             "evidence_lanes": list(list_evidence_lanes()),
             "combinations": [
-                selection.to_payload()
-                for selection in list_console_combinations(include_disabled=True)
-            ],
-            "routes": [
                 selection.to_payload()
                 for selection in list_console_combinations(include_disabled=True)
             ],
@@ -402,6 +383,7 @@ class ConsoleRequestHandler(SimpleHTTPRequestHandler):
                     "real_movement_enabled",
                     "scenario_setup",
                     "provider_profile",
+                    "runtime_map_prior",
                     "isaac_scene_usd_path",
                     "b1_alignment_artifact",
                     "b1_navigation_artifact",
@@ -441,9 +423,6 @@ class ConsoleRequestHandler(SimpleHTTPRequestHandler):
 
     def _serve_run_get(self, parsed: ParseResult) -> None:
         run_id = unquote(parsed.path.removeprefix("/api/runs/"))
-        if run_id.endswith("/pause"):
-            self._serve_pause_get(run_id.removesuffix("/pause"))
-            return
         if run_id.endswith("/messages"):
             self._serve_run_messages_get(run_id.removesuffix("/messages"))
             return
@@ -451,15 +430,6 @@ class ConsoleRequestHandler(SimpleHTTPRequestHandler):
         route = get_selection(selection_id) if selection_id else None
         run_dir = console_output_root(self.repo_root) / "runs" / run_id
         self._json(derive_operator_state(self.repo_root, run_dir, route))
-
-    def _serve_pause_get(self, run_id: str) -> None:
-        self._json(
-            {
-                "run_id": run_id,
-                "paused": False,
-                "reason": PAUSE_UNAVAILABLE_REASON,
-            }
-        )
 
     def _serve_run_messages_get(self, run_id: str) -> None:
         try:
@@ -530,10 +500,6 @@ class ConsoleRequestHandler(SimpleHTTPRequestHandler):
             ),
             status=201,
         )
-
-    def _serve_pause_post(self, run_id: str, payload: dict[str, object]) -> None:
-        del payload
-        self._serve_pause_get(run_id)
 
     def _serve_control_post(self, run_id: str, payload: dict[str, object]) -> None:
         try:
@@ -646,7 +612,6 @@ def _parse_run_action_path(path: str) -> tuple[str, str] | None:
         "messages",
         "resume",
         "control",
-        "pause",
         "stop",
     ):
         suffix = f"/{action}"

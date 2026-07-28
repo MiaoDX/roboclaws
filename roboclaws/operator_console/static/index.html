@@ -23,7 +23,6 @@
             Background Tasks
           </button>
           <button id="latest-result-button" class="secondary">Latest Result</button>
-          <button id="pause-button" class="secondary" disabled hidden>Pause Agent</button>
           <button id="stop-button" class="danger" disabled>Stop Run</button>
           <button id="emergency-button" class="emergency" disabled>Emergency Stop</button>
         </div>
@@ -40,8 +39,26 @@
         <section class="rail-section">
           <h2>Setup</h2>
           <div id="selected-route-summary" class="selected-route-summary">
-            Choose a world or scene to configure backend, task, agent engine, and evidence.
+            Choose a world or scene, then run a supported workflow action.
           </div>
+          <section id="scene-state-summary" class="scene-state-summary">
+            <h2>Scene State</h2>
+            <div id="map-prior-state" class="evidence-box">No map prior selected.</div>
+            <label>
+              Runtime Map Prior Override
+              <input
+                id="runtime-map-prior-input"
+                name="runtime_map_prior"
+                placeholder="path/to/runtime_map_prior_snapshot.json"
+              />
+            </label>
+          </section>
+          <section class="workflow-panel">
+            <h2>Workflow</h2>
+            <div id="workflow-action-list" class="workflow-action-list"></div>
+          </section>
+          <details id="advanced-controls" class="advanced-controls">
+            <summary>Advanced</summary>
           <div id="launch-axis-fields" class="route-fields">
           <label>
             Backend
@@ -105,32 +122,6 @@
             <input id="context-json-input" name="context_json" placeholder="Agibot context path" />
           </label>
           </div>
-          <div id="isaac-fields" class="route-fields" hidden>
-            <label>
-              Isaac scene USD path
-              <input
-                id="isaac-scene-input"
-                name="isaac_scene_usd_path"
-                placeholder="Optional prepared scene path"
-              />
-            </label>
-            <label>
-              B1 alignment artifact override
-              <input
-                id="b1-alignment-artifact-input"
-                name="b1_alignment_artifact"
-                placeholder="Optional: leave empty to generate at launch"
-              />
-            </label>
-            <label>
-              B1 navigation artifact override
-              <input
-                id="b1-navigation-artifact-input"
-                name="b1_navigation_artifact"
-                placeholder="Optional: leave empty to generate at launch"
-              />
-            </label>
-          </div>
           <div id="agibot-gate-fields" class="route-fields" hidden>
           <label class="check-row">
             <input id="localization-gate" type="checkbox" />
@@ -149,6 +140,7 @@
             Real movement enabled
           </label>
           </div>
+          </details>
           <section class="operator-message-panel">
             <h2>Operator Input</h2>
             <div class="operator-mode-tabs" role="group" aria-label="Operator input mode">
@@ -278,6 +270,19 @@
           <button value="cancel" class="secondary">Cancel</button>
           <button id="confirm-action" value="confirm" class="primary">Launch Run</button>
         </div>
+      </form>
+    </dialog>
+
+    <dialog id="background-tasks-dialog" class="background-tasks-dialog">
+      <form method="dialog">
+        <div class="dialog-header">
+          <div>
+            <h2>Background Tasks</h2>
+            <div id="background-tasks-summary" class="field-help"></div>
+          </div>
+          <button value="close" class="secondary">Close</button>
+        </div>
+        <div id="background-task-list" class="background-task-list"></div>
       </form>
     </dialog>
 

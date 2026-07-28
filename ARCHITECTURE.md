@@ -215,9 +215,16 @@ and Molmo-specific profile names are historical/report-only terms, not the
 canonical task layer or active compatibility contract.
 
 `just console::run` starts a standalone local operator console for supported
-SDK/direct household routes. The console does not expose arbitrary shell
-commands: world, backend, intent, agent engine, provider profile, evidence lane,
-and scenario setup all resolve through the public launch catalog.
+SDK/direct household routes. The main console screen is a workflow surface:
+choose a scene, inspect scene/map-prior state, then run Build Map, Open Task,
+Cleanup, Open Task With Map, Cleanup With Map, Prepare Standard Mess, or Reset
+Scene. Operator workflows default to `evidence_lane=camera-grounded-labels`
+with `camera_labeler=grounding-dino`; simulator/public-label lanes, provider
+selection, relocation count, and other raw launch axes are Advanced controls.
+With-map workflows require an explicit Runtime Map Prior Snapshot from the
+scene recommended-prior catalog or an operator override. The console does not
+expose arbitrary shell commands: workflow launches still translate into
+`just run::surface` args and resolve through the public launch catalog.
 
 Operator Console long interaction is modeled as **Operator Session chaining**,
 not as one persistent agent process. A Robot Run remains one auditable episode:

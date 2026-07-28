@@ -10,6 +10,7 @@ from roboclaws.agents.prompts.household_cleanup import (
     render_map_build_prompt,
 )
 from roboclaws.launch.catalog import LaunchError, resolve_surface_launch
+from roboclaws.operator_console.launch_support import build_surface_launch_args
 from roboclaws.operator_console.routes import ConsoleLaunchSelection
 
 AGIBOT_MAP_BUILD_WRAPPER_SUMMARY = (
@@ -163,62 +164,17 @@ def _goal_contract(
     raw_prompt: str,
     overrides: dict[str, str],
 ) -> Any:
-    args = _goal_contract_launch_args(route, intent_id, raw_prompt, overrides)
+    args = build_surface_launch_args(
+        route,
+        selected_intent=intent_id,
+        prompt=raw_prompt,
+        overrides=overrides,
+        require_route_overrides=False,
+    )
     try:
         return resolve_surface_launch(args).goal_contract
     except LaunchError:
         return None
-
-
-def _goal_contract_launch_args(
-    route: ConsoleLaunchSelection,
-    intent_id: str,
-    raw_prompt: str,
-    overrides: dict[str, str],
-) -> list[str]:
-    args = [
-        f"surface={route.surface}",
-        f"world={route.world_id}",
-        f"backend={route.backend_id}",
-        f"agent_engine={route.agent_engine_id}",
-        f"evidence_lane={route.evidence_lane}",
-        f"scenario_setup={overrides.get('scenario_setup') or route.scenario_setup}",
-    ]
-    if intent_id in {"cleanup", "map-build"}:
-        args.insert(3, f"preset={intent_id}")
-    elif intent_id:
-        args.insert(3, f"intent={intent_id}")
-    provider_profile = overrides.get("provider_profile") or route.provider_profile
-    if provider_profile:
-        args.append(f"provider_profile={provider_profile}")
-    if raw_prompt:
-        args.append(f"prompt={raw_prompt}")
-    _append_missing_launch_defaults(args, route.launch_default_overrides)
-    _append_prompt_preview_overrides(args, overrides)
-    return args
-
-
-def _append_missing_launch_defaults(args: list[str], defaults: tuple[str, ...]) -> None:
-    present_keys = {_override_key(item) for item in args}
-    for item in defaults:
-        key = _override_key(item)
-        if key and key not in present_keys:
-            args.append(item)
-            present_keys.add(key)
-
-
-def _append_prompt_preview_overrides(args: list[str], overrides: dict[str, str]) -> None:
-    for key, value in sorted(overrides.items()):
-        if key in {
-            "scenario_setup",
-            "provider_profile",
-            "operator_messages_path",
-            "operator_resume_requests_path",
-            "operator_session_context_json",
-        }:
-            continue
-        if value:
-            args.append(f"{key}={value}")
 
 
 def _target_cleanup_count(
@@ -280,9 +236,3 @@ def _summary(*, source: str, wrapper_notes: list[str]) -> str:
     if wrapper_notes:
         parts.append("plus live-route wrapper")
     return "; ".join(parts)
-
-
-def _override_key(item: str) -> str:
-    if "=" not in item:
-        return ""
-    return item.split("=", 1)[0].removeprefix("--").replace("-", "_")

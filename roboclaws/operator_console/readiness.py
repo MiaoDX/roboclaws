@@ -10,10 +10,6 @@ from typing import Any
 from roboclaws.core.json_sources import read_json_object
 from roboclaws.operator_console.routes import ConsoleLaunchSelection
 from roboclaws.operator_console.runtime_inventory import port_owner_task
-from scripts.isaac_lab_cleanup.check_b1_map12_readiness import (
-    validate_alignment_residual_artifact,
-    validate_navigation_smoke_artifact,
-)
 
 DEFAULT_MCP_HOST = "127.0.0.1"
 DEFAULT_MCP_PORT = 18788
@@ -60,13 +56,7 @@ def _evaluate_route_gate(
     provider_status: dict[str, Any],
     runtime_tasks: list[dict[str, Any]] | None,
 ) -> GateEvaluation:
-    evaluators = {
-        "provider_key": _provider_key_gate,
-        "mcp_port_free": _mcp_port_gate,
-        "request_field": _request_field_gate,
-        "operator_gate": _operator_gate,
-    }
-    evaluator = evaluators.get(gate.kind)
+    evaluator = _GATE_EVALUATORS.get(gate.kind)
     if evaluator is None:
         return GateEvaluation(severity=gate.severity, blocks_start=gate.required)
     return evaluator(root, route, gate, override_map, gate_map, provider_status, runtime_tasks)
@@ -145,21 +135,11 @@ def _request_field_gate(
     runtime_tasks: list[dict[str, Any]] | None,
 ) -> GateEvaluation:
     del gate_map, provider_status, runtime_tasks
-    b1_artifact_gate = route.world_id == "b1-map12" and gate.id in {
-        "b1_alignment_artifact",
-        "b1_navigation_artifact",
-    }
     raw_override = str(override_map.get(gate.id) or "").strip()
     raw_path = raw_override or _route_default_override(route, gate.id).strip()
     kind = _request_field_kind(gate.id)
     label = str(getattr(gate, "label", None) or gate.id)
     if not raw_path:
-        if b1_artifact_gate:
-            return GateEvaluation(
-                evidence="generated at launch",
-                severity=gate.severity,
-                blocks_start=False,
-            )
         return GateEvaluation(
             ok=False,
             message=str(getattr(gate, "help_text", None) or f"Attach {label}."),
@@ -171,52 +151,38 @@ def _request_field_gate(
     if not context_path.is_absolute():
         context_path = root / context_path
     if not context_path.is_file():
-        blocks_start = bool(gate.required or b1_artifact_gate)
         return GateEvaluation(
             ok=False,
             message=f"{label} was not found: {raw_path}",
             kind=kind,
             severity=gate.severity,
-            blocks_start=blocks_start,
+            blocks_start=gate.required,
         )
     try:
         payload = read_json_object(context_path, label=label)
     except ValueError as exc:
-        blocks_start = bool(gate.required or b1_artifact_gate)
         if exc.__cause__ is None:
             return GateEvaluation(
                 ok=False,
                 message=f"{label} must contain a JSON object: {raw_path}",
                 kind=kind,
                 severity=gate.severity,
-                blocks_start=blocks_start,
+                blocks_start=gate.required,
             )
         return GateEvaluation(
             ok=False,
             message=f"{label} is not readable JSON: {raw_path} ({exc})",
             kind=kind,
             severity=gate.severity,
-            blocks_start=blocks_start,
+            blocks_start=gate.required,
         )
     except OSError as exc:
-        blocks_start = bool(gate.required or b1_artifact_gate)
         return GateEvaluation(
             ok=False,
             message=f"{label} is not readable JSON: {raw_path} ({exc})",
             kind=kind,
             severity=gate.severity,
-            blocks_start=blocks_start,
-        )
-    contract_errors = _request_field_contract_errors(route, gate.id, payload)
-    if contract_errors:
-        blocks_start = bool(gate.required or b1_artifact_gate)
-        return GateEvaluation(
-            ok=False,
-            message=f"{label} failed contract: {'; '.join(contract_errors)}",
-            evidence=str(context_path),
-            kind=kind,
-            severity=gate.severity,
-            blocks_start=blocks_start,
+            blocks_start=gate.required,
         )
     return GateEvaluation(
         evidence=str(context_path),
@@ -229,20 +195,6 @@ def _request_field_kind(gate_id: str) -> str:
     if gate_id == "context_json":
         return "needs_agibot_context"
     return "needs_route_parameter"
-
-
-def _request_field_contract_errors(
-    route: ConsoleLaunchSelection,
-    gate_id: str,
-    payload: dict[str, Any],
-) -> list[str]:
-    if route.world_id != "b1-map12":
-        return []
-    if gate_id == "b1_alignment_artifact":
-        return validate_alignment_residual_artifact(payload)
-    if gate_id == "b1_navigation_artifact":
-        return validate_navigation_smoke_artifact(payload, require_files=True)
-    return []
 
 
 def _route_default_override(route: ConsoleLaunchSelection, key: str) -> str:
@@ -319,6 +271,14 @@ def _parse_port(value: str) -> int:
     if not 1 <= port <= 65535:
         raise _console_launch_error(f"invalid MCP port: {value}")
     return port
+
+
+_GATE_EVALUATORS: dict[str, Any] = {
+    "provider_key": _provider_key_gate,
+    "mcp_port_free": _mcp_port_gate,
+    "request_field": _request_field_gate,
+    "operator_gate": _operator_gate,
+}
 
 
 def _console_launch_error(message: str) -> ValueError:

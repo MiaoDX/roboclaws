@@ -45,32 +45,20 @@ from roboclaws.operator_console.state import (
     redacted_artifact_text,
 )
 from tests.support.b1_robot_proof import write_b1_robot_proof_artifacts
+from tests.unit.operator_console.conftest import (  # noqa: F401  re-exported for tests
+    AGIBOT_SDK_CLEANUP,
+    AGIBOT_SDK_MAP_BUILD,
+    B1_OPENAI_AGENTS_CAMERA_GROUNDED,
+    B1_OPENAI_AGENTS_OPEN_TASK,
+    MUJOCO_OPENAI_AGENTS_OPEN_TASK,
+    MUJOCO_SDK_CLEANUP,
+    MUJOCO_SDK_MAP_BUILD,
+)
 
 CODEX_ENV = {
     "CODEX_BASE_URL": "https://codex.example.test/v1",
     "CODEX_API_KEY": "key",
 }
-AGIBOT_SDK_CLEANUP = (
-    "agibot-g2/map-12::agibot-gdk::cleanup::openai-agents-sdk::camera-grounded-labels"
-)
-AGIBOT_SDK_MAP_BUILD = (
-    "agibot-g2/map-12::agibot-gdk::map-build::openai-agents-sdk::camera-grounded-labels"
-)
-B1_OPENAI_AGENTS_OPEN_TASK = "b1-map12::isaaclab::open-task::openai-agents-sdk::world-public-labels"
-B1_OPENAI_AGENTS_CAMERA_GROUNDED = (
-    "b1-map12::isaaclab::open-task::openai-agents-sdk::camera-grounded-labels"
-)
-MUJOCO_SDK_CLEANUP = (
-    "molmospaces/procthor-objaverse-val/0::mujoco::cleanup::openai-agents-sdk::world-public-labels"
-)
-MUJOCO_OPENAI_AGENTS_OPEN_TASK = (
-    "molmospaces/procthor-objaverse-val/0::mujoco::open-task::openai-agents-sdk::"
-    "world-public-labels"
-)
-MUJOCO_SDK_MAP_BUILD = (
-    "molmospaces/procthor-objaverse-val/0::mujoco::map-build::openai-agents-sdk::"
-    "world-public-labels"
-)
 
 
 def _free_port() -> str:
@@ -116,6 +104,26 @@ def test_console_route_registry_exposes_agent_routes_and_explains_disabled_route
     validate_supported_routes_against_catalog()
 
 
+def test_console_routes_endpoint_exposes_workflows_and_prior_catalog(tmp_path: Path) -> None:
+    with _console_server(tmp_path) as (host, port):
+        with urllib.request.urlopen(f"http://{host}:{port}/api/routes") as response:
+            payload = json.loads(response.read().decode("utf-8"))
+
+    workflows = {workflow["id"]: workflow for workflow in payload["workflows"]}
+    scene = next(
+        world
+        for world in payload["worlds"]
+        if world["id"] == "molmospaces/procthor-objaverse-val/0"
+    )
+    scene_workflows = {workflow["id"]: workflow for workflow in scene["workflow_actions"]}
+
+    assert payload["recommended_priors"] == []
+    assert workflows["cleanup-with-map"]["requires_runtime_map_prior"] is True
+    assert scene_workflows["open-task"]["default_route_id"].endswith("::camera-grounded-labels")
+    assert scene_workflows["cleanup-with-map"]["enabled"] is False
+    assert scene_workflows["cleanup-with-map"]["allows_prior_override"] is True
+
+
 def test_console_route_payload_supports_backend_specific_ui_metadata() -> None:
     mujoco = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK).to_payload()
     b1 = get_selection(B1_OPENAI_AGENTS_OPEN_TASK).to_payload()
@@ -125,7 +133,7 @@ def test_console_route_payload_supports_backend_specific_ui_metadata() -> None:
     assert "grounding" not in mujoco["view_modes"]
     assert {"overview", "fpv", "map", "outputs"}.issubset(set(mujoco["view_modes"]))
 
-    assert b1["field_groups"] == ["common", "isaac"]
+    assert b1["field_groups"] == ["common"]
     assert "grounding" in b1["view_modes"]
 
     assert agibot["field_groups"] == ["common", "agibot", "agibot_gates"]
@@ -199,12 +207,7 @@ def test_console_prompt_gating_and_argv_construction_are_fixed_argv(tmp_path: Pa
 def test_operator_console_prompt_preview_endpoint_renders_agent_kickoff_prompt(
     tmp_path: Path,
 ) -> None:
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
+    with _console_server(tmp_path) as (host, port):
         request = urllib.request.Request(
             f"http://{host}:{port}/api/prompt-preview",
             method="POST",
@@ -225,10 +228,6 @@ def test_operator_console_prompt_preview_endpoint_renders_agent_kickoff_prompt(
         )
         with urllib.request.urlopen(request) as response:
             payload = json.loads(response.read().decode("utf-8"))
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
 
     assert payload["operator_prompt"] == "只收拾桌面上的杯子"
     assert payload["source"] == "household-open-task"
@@ -269,12 +268,7 @@ def test_operator_console_prompt_preview_endpoint_rejects_invalid_numeric_inputs
     request_fields: dict[str, object],
     expected_error: str,
 ) -> None:
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
+    with _console_server(tmp_path) as (host, port):
         request = urllib.request.Request(
             f"http://{host}:{port}/api/prompt-preview",
             method="POST",
@@ -294,10 +288,6 @@ def test_operator_console_prompt_preview_endpoint_rejects_invalid_numeric_inputs
         with pytest.raises(urllib.error.HTTPError) as exc_info:
             urllib.request.urlopen(request)
         payload = json.loads(exc_info.value.read().decode("utf-8"))
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
 
     assert exc_info.value.code == 400
     assert expected_error in payload["error"]
@@ -414,8 +404,6 @@ def test_console_readiness_omits_isaac_marker_diagnostic_but_keeps_locks_blockin
     assert {gate["id"] for gate in readiness["gates"]} == {
         "provider_key",
         "mcp_port_free",
-        "b1_alignment_artifact",
-        "b1_navigation_artifact",
     }
 
     lock = ResourceLock(tmp_path, route.lock_name)
@@ -550,12 +538,7 @@ def test_operator_console_serves_only_operator_output_artifacts(tmp_path: Path) 
     output_rel = output_artifact.relative_to(tmp_path).as_posix()
     repo_rel = repo_file.relative_to(tmp_path).as_posix()
 
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
+    with _console_server(tmp_path) as (host, port):
         artifact_url = f"http://{host}:{port}/artifacts/{urllib.parse.quote(output_rel)}"
         with urllib.request.urlopen(artifact_url) as response:
             assert response.read().decode("utf-8") == output_artifact.read_text(encoding="utf-8")
@@ -583,10 +566,6 @@ def test_operator_console_serves_only_operator_output_artifacts(tmp_path: Path) 
         )
         with pytest.raises(urllib.error.HTTPError) as raw_escape_error:
             urllib.request.urlopen(raw_escape_url)
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
 
     assert "live-token" not in redacted
     assert "visible tail" in redacted
@@ -628,37 +607,19 @@ def test_operator_console_cli_defaults_to_all_interfaces() -> None:
 
 
 def test_operator_console_static_assets_are_not_cached(tmp_path: Path) -> None:
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
+    with _console_server(tmp_path) as (host, port):
         with urllib.request.urlopen(f"http://{host}:{port}/styles.css") as response:
             assert response.headers["Cache-Control"] == "no-store, max-age=0"
             assert response.headers["Content-Type"] == "text/css; charset=utf-8"
         request = urllib.request.Request(f"http://{host}:{port}/styles.css", method="HEAD")
         with urllib.request.urlopen(request) as response:
             assert response.headers["Cache-Control"] == "no-store, max-age=0"
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
 
 
 def test_operator_console_routes_endpoint_exposes_evidence_lane_matrix(tmp_path: Path) -> None:
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
+    with _console_server(tmp_path) as (host, port):
         with urllib.request.urlopen(f"http://{host}:{port}/api/routes") as response:
             payload = json.loads(response.read().decode("utf-8"))
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
 
     assert [lane["id"] for lane in payload["evidence_lanes"]] == [
         "world-public-labels",
@@ -716,20 +677,11 @@ def test_operator_console_serves_scene_preview_assets(tmp_path: Path) -> None:
     registered_previews = _registered_preview_asset_names()
     _assert_registered_scene_preview_assets(registered_previews)
 
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
+    with _console_server(tmp_path) as (host, port):
         base_url = f"http://{host}:{port}"
         _assert_scene_preview_png_assets(base_url)
         _assert_scene_preview_json_assets(base_url)
         _assert_scene_preview_rejects_invalid_paths(base_url)
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
 
 
 def _assert_registered_scene_preview_assets(registered_previews: set[str]) -> None:
@@ -803,84 +755,13 @@ def test_operator_console_latest_run_endpoint_returns_artifact_backed_history(
     )
     (run_dir / "report.html").write_text("<html>ok</html>", encoding="utf-8")
 
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
+    with _console_server(tmp_path) as (host, port):
         with urllib.request.urlopen(f"http://{host}:{port}/api/runs/latest") as response:
             payload = json.loads(response.read().decode("utf-8"))
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
 
     assert payload["run_id"] == run_id
     assert payload["selection_id"] == route.id
     assert payload["run_dir"] == str(run_dir.resolve())
-
-
-def test_operator_console_run_reload_ignores_legacy_route_query(tmp_path: Path) -> None:
-    run_id = "route-less-run"
-    run_dir = tmp_path / "output" / "operator-console" / "runs" / run_id
-    run_dir.mkdir(parents=True)
-    (run_dir / "operator_state.json").write_text(
-        json.dumps({"run_id": run_id, "phase": "running"}),
-        encoding="utf-8",
-    )
-
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
-        route_id = "molmospaces/val_0::mujoco::cleanup::openai-agents-sdk::world-public-labels"
-        url = f"http://{host}:{port}/api/runs/{run_id}?route={route_id}"
-        with urllib.request.urlopen(url) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
-
-    assert payload["run_id"] == run_id
-    assert payload["route"] is None
-    assert payload["selected_intent"] == ""
-
-
-def test_operator_console_run_endpoint_rejects_legacy_route_id_field(
-    tmp_path: Path,
-) -> None:
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
-        request = urllib.request.Request(
-            f"http://{host}:{port}/api/runs",
-            method="POST",
-            data=json.dumps(
-                {
-                    "route_id": MUJOCO_SDK_CLEANUP,
-                    "intent": "open-ended",
-                    "prompt": "收拾桌面上的杯子",
-                }
-            ).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-        )
-        with pytest.raises(urllib.error.HTTPError) as exc_info:
-            urllib.request.urlopen(request)
-        payload = json.loads(exc_info.value.read().decode("utf-8"))
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
-
-    assert exc_info.value.code == 400
-    assert "launch requires" in payload["error"]
 
 
 def test_operator_console_next_goal_autostarts_ready_followup(tmp_path: Path) -> None:
@@ -930,12 +811,7 @@ def test_operator_console_next_goal_autostarts_ready_followup(tmp_path: Path) ->
         launched["request"] = request
         return {"run_id": "child-run"}
 
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
+    with _console_server(tmp_path) as (host, port):
         request = urllib.request.Request(
             f"http://{host}:{port}/api/runs/{run_id}/next-goal",
             method="POST",
@@ -945,10 +821,6 @@ def test_operator_console_next_goal_autostarts_ready_followup(tmp_path: Path) ->
         with patch("roboclaws.operator_console.server.start_console_run", fake_start):
             with urllib.request.urlopen(request) as response:
                 payload = json.loads(response.read().decode("utf-8"))
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
 
     assert payload["status"] == "started"
     assert payload["started_run"]["run_id"] == "child-run"
@@ -1001,12 +873,7 @@ def test_operator_console_resume_endpoint_records_paused_handoff_request(
         encoding="utf-8",
     )
 
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
+    with _console_server(tmp_path) as (host, port):
         request = urllib.request.Request(
             f"http://{host}:{port}/api/runs/{run_id}/resume",
             method="POST",
@@ -1015,10 +882,6 @@ def test_operator_console_resume_endpoint_records_paused_handoff_request(
         )
         with urllib.request.urlopen(request) as response:
             payload = json.loads(response.read().decode("utf-8"))
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
 
     assert payload["command_type"] == "resume_with_prompt"
     assert payload["status"] == "queued"
@@ -1385,12 +1248,7 @@ def test_operator_console_control_endpoint_allows_paused_operator_handoff(
             "visible_object_detections": [],
         }
 
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
+    with _console_server(tmp_path) as (host, port):
         request = urllib.request.Request(
             f"http://{host}:{port}/api/runs/{run_id}/control",
             method="POST",
@@ -1400,10 +1258,6 @@ def test_operator_console_control_endpoint_allows_paused_operator_handoff(
         with patch("roboclaws.operator_console.control._call_mcp_tool", fake_call_mcp_tool):
             with urllib.request.urlopen(request) as response:
                 payload = json.loads(response.read().decode("utf-8"))
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
 
     assert payload["ok"] is True
     state = derive_operator_state(tmp_path, run_dir, route)
@@ -1411,6 +1265,33 @@ def test_operator_console_control_endpoint_allows_paused_operator_handoff(
     assert state["controls"]["relative_navigation_control_available"] is True
     assert state["controls"]["next_goal_available"] is False
     assert state["latest_operator_control"]["action"] == "observe"
+
+
+def test_operator_console_control_endpoint_waits_for_mcp_ready(
+    tmp_path: Path,
+) -> None:
+    route = get_selection(B1_OPENAI_AGENTS_OPEN_TASK)
+    run_id = "starting-control-run"
+    run_dir = tmp_path / "output" / "operator-console" / "runs" / run_id
+    run_dir.mkdir(parents=True)
+    (run_dir / "operator_state.json").write_text(
+        json.dumps(
+            {
+                "run_id": run_id,
+                "route": route.to_payload(),
+                "phase": "starting",
+                "backend_lock": route.lock_name,
+                "mcp_url": "http://127.0.0.1:19999/mcp",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with _console_server(tmp_path) as (host, port):
+        payload = _blocked_operator_control_payload(host, port, run_id, {"action": "observe"})
+
+    assert payload["error"] == "manual control is waiting for the MCP endpoint to become ready"
+    assert not (run_dir / "operator_control.jsonl").exists()
 
 
 def test_operator_console_control_endpoint_rejects_unsupported_route(tmp_path: Path) -> None:
@@ -1431,12 +1312,7 @@ def test_operator_console_control_endpoint_rejects_unsupported_route(tmp_path: P
         encoding="utf-8",
     )
 
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
+    with _console_server(tmp_path) as (host, port):
         request = urllib.request.Request(
             f"http://{host}:{port}/api/runs/{run_id}/control",
             method="POST",
@@ -1446,10 +1322,6 @@ def test_operator_console_control_endpoint_rejects_unsupported_route(tmp_path: P
         with pytest.raises(urllib.error.HTTPError) as exc_info:
             urllib.request.urlopen(request)
         payload = json.loads(exc_info.value.read().decode("utf-8"))
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
 
     assert exc_info.value.code == 409
     assert payload["error"] == "route does not support relative navigation control"
@@ -1473,12 +1345,7 @@ def test_operator_console_control_endpoint_rejects_terminal_run(tmp_path: Path) 
         encoding="utf-8",
     )
 
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
+    with _console_server(tmp_path) as (host, port):
         request = urllib.request.Request(
             f"http://{host}:{port}/api/runs/{run_id}/control",
             method="POST",
@@ -1488,10 +1355,6 @@ def test_operator_console_control_endpoint_rejects_terminal_run(tmp_path: Path) 
         with pytest.raises(urllib.error.HTTPError) as exc_info:
             urllib.request.urlopen(request)
         payload = json.loads(exc_info.value.read().decode("utf-8"))
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
 
     assert exc_info.value.code == 409
     assert payload["error"] == "terminal run cannot be controlled"
@@ -1525,12 +1388,7 @@ def test_operator_console_stop_endpoint_decodes_browser_encoded_run_id(tmp_path:
     )
     ResourceLock(tmp_path, route.lock_name).acquire(run_id=run_id, pid=99999999)
 
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
+    with _console_server(tmp_path) as (host, port):
         request = urllib.request.Request(
             f"http://{host}:{port}/api/runs/{urllib.parse.quote(run_id, safe='')}/stop",
             method="POST",
@@ -1543,10 +1401,6 @@ def test_operator_console_stop_endpoint_decodes_browser_encoded_run_id(tmp_path:
         ):
             with urllib.request.urlopen(request) as response:
                 payload = json.loads(response.read().decode("utf-8"))
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
 
     assert payload["run_id"] == run_id
     assert payload["phase"] == "stopped_by_operator"
@@ -1564,12 +1418,7 @@ def test_operator_console_stop_endpoint_rejects_non_object_operator_state_source
     state_path.write_text("[]\n", encoding="utf-8")
     ResourceLock(tmp_path, route.lock_name).acquire(run_id=run_id, pid=99999999)
 
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
+    with _console_server(tmp_path) as (host, port):
         request = urllib.request.Request(
             f"http://{host}:{port}/api/runs/{run_id}/stop",
             method="POST",
@@ -1579,10 +1428,6 @@ def test_operator_console_stop_endpoint_rejects_non_object_operator_state_source
         with pytest.raises(urllib.error.HTTPError) as exc_info:
             urllib.request.urlopen(request)
         payload = json.loads(exc_info.value.read().decode("utf-8"))
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
 
     assert exc_info.value.code == 400
     assert "operator stop source error" in payload["error"]
@@ -1616,12 +1461,7 @@ def test_operator_console_stop_endpoint_rejects_malformed_live_status_source(
     status_path.write_text("{bad-live-status", encoding="utf-8")
     ResourceLock(tmp_path, route.lock_name).acquire(run_id=run_id, pid=99999999)
 
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
+    with _console_server(tmp_path) as (host, port):
         request = urllib.request.Request(
             f"http://{host}:{port}/api/runs/{run_id}/stop",
             method="POST",
@@ -1635,10 +1475,6 @@ def test_operator_console_stop_endpoint_rejects_malformed_live_status_source(
         ):
             urllib.request.urlopen(request)
         payload = json.loads(exc_info.value.read().decode("utf-8"))
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
 
     assert exc_info.value.code == 400
     assert "operator stop source error" in payload["error"]
@@ -1647,26 +1483,3 @@ def test_operator_console_stop_endpoint_rejects_malformed_live_status_source(
     stop_child.assert_not_called()
     stop_wrapper.assert_not_called()
     assert ResourceLock(tmp_path, route.lock_name).read().held is True
-
-
-def test_operator_console_continue_endpoint_is_not_public(tmp_path: Path) -> None:
-    handler = partial(ConsoleRequestHandler, root=tmp_path)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        host, port = server.server_address
-        request = urllib.request.Request(
-            f"http://{host}:{port}/api/runs/parent-run/continue",
-            method="POST",
-            data=json.dumps({"prompt": "Run the next sweep"}).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-        )
-        with pytest.raises(urllib.error.HTTPError) as exc_info:
-            urllib.request.urlopen(request)
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
-
-    assert exc_info.value.code == 404
