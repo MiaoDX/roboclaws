@@ -61,6 +61,7 @@ from roboclaws.reports.live_performance import (
     extract_model_call_metrics,
     write_model_call_metrics_jsonl,
 )
+from scripts.molmo_cleanup.live_status_writer import LiveRunStatusWriter
 from scripts.molmo_cleanup.openai_agents_budget import (
     raw_fpv_budget_failure as _raw_fpv_budget_failure,
 )
@@ -136,7 +137,6 @@ OPERATOR_HANDOFF_WAIT_MARKERS = (
     "等待",
     "我现在停止",
 )
-
 
 DEFAULT_INCOMPLETE_TURN_CONTINUATION_PROMPT = """
 Continuation recovery for the same live household cleanup run:
@@ -423,6 +423,12 @@ class LiveOpenAIAgentsCleanupRunner:
         self.server_log_file: BinaryIO | None = None
         self.server_log_thread: threading.Thread | None = None
         self.run_lease = HouseholdLiveRunLease()
+        self.status_writer = LiveRunStatusWriter(
+            run_dir=self.run_dir,
+            status_path=self.status_path,
+            started_at_epoch=self.started_at_epoch,
+            lease_status_fields=self.run_lease.status_fields,
+        )
         self.operator_handoff_active = False
         self.agent_sdk_perf_profile = _resolve_agent_sdk_perf_profile(args)
         self.skill_context = _load_agent_sdk_skill_context(
@@ -476,6 +482,7 @@ class LiveOpenAIAgentsCleanupRunner:
         self.run_dir.mkdir(parents=True, exist_ok=True)
         try:
             self._acquire_lock()
+            self.status_writer.start_heartbeat()
             self._write_status("starting-server")
             self._start_server()
             self._wait_for_mcp_ready()
@@ -491,6 +498,7 @@ class LiveOpenAIAgentsCleanupRunner:
             self._write_live_timing("failed", 130, reason="keyboard_interrupt")
             self._cleanup_server()
             self._release_visual_slot()
+            self.status_writer.stop_heartbeat()
             return 130
         except LiveAgentRunFailure as exc:
             print(f"error: {exc}", file=sys.stderr)
@@ -498,6 +506,7 @@ class LiveOpenAIAgentsCleanupRunner:
             self._write_live_timing("failed", 1, **exc.failure.status_fields())
             self._cleanup_server()
             self._release_visual_slot()
+            self.status_writer.stop_heartbeat()
             return 1
         except Exception as exc:
             print(f"error: {exc}", file=sys.stderr)
@@ -505,11 +514,13 @@ class LiveOpenAIAgentsCleanupRunner:
             self._write_live_timing("failed", 1, reason=str(exc))
             self._cleanup_server()
             self._release_visual_slot()
+            self.status_writer.stop_heartbeat()
             return 1
 
         self._write_live_timing("finished", 0)
         self._write_status("finished", 0)
         self._release_visual_slot()
+        self.status_writer.stop_heartbeat()
         return 0
 
     def _acquire_lock(self) -> None:
@@ -1117,25 +1128,9 @@ class LiveOpenAIAgentsCleanupRunner:
         resume_available: bool | None = None,
         detail: str = "",
     ) -> None:
-        payload: dict[str, object] = {
-            "phase": phase,
-            "started_at_epoch": self.started_at_epoch,
-        }
-        if reason:
-            payload["reason"] = reason
-        if provider_reason:
-            payload["provider_reason"] = provider_reason
-        if retryable is not None:
-            payload["retryable"] = retryable
-        if resume_available is not None:
-            payload["resume_available"] = resume_available
-        if detail:
-            payload["detail"] = detail
-        payload.update(self.run_lease.status_fields())
-        if exit_status is not None:
-            payload["finished_at_epoch"] = time.time()
-            payload["exit_status"] = exit_status
-        self.status_path.write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
+        self.status_writer.write(
+            phase, exit_status, reason, provider_reason, retryable, resume_available, detail
+        )
 
 
 @dataclass(frozen=True)

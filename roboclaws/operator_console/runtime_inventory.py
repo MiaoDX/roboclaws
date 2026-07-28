@@ -21,9 +21,9 @@ from roboclaws.operator_console.process_status import pid_is_active
 from roboclaws.operator_console.redaction import redact_text
 from roboclaws.operator_console.routes import ConsoleLaunchSelection
 from roboclaws.operator_console.state import resolve_display_run_dir
+from roboclaws.operator_console.terminal_runs import task_phase_from_paths
 
-DEFAULT_MCP_HOST = "127.0.0.1"
-DEFAULT_MCP_PORT = 18788
+DEFAULT_MCP_HOST, DEFAULT_MCP_PORT = "127.0.0.1", 18788
 ACTIVE_STATUSES = {"running", "launched", "blocked"}
 TERMINAL_PHASES = {
     "failed",
@@ -227,7 +227,7 @@ def _operator_run_task(root: Path, run_dir: Path) -> dict[str, Any] | None:
         return None
     display_run_dir = resolve_display_run_dir(run_dir)
     live_status = _read_json(display_run_dir / "live_status.json")
-    phase = str(live_status.get("phase") or state.get("phase") or "unknown")
+    phase = task_phase_from_paths(display_run_dir, state, read_json=_read_json)
     pid = _int_or_none(live_status.get("pid")) or _int_or_none(state.get("pid"))
     status = _status_from_phase(
         phase,

@@ -3308,6 +3308,77 @@ def test_realworld_camera_labels_http_success_uses_destination_resolver(
     _assert_no_forbidden_keys(response)
 
 
+def test_b1_isaac_raw_fpv_artifact_can_feed_camera_grounded_labels(
+    tmp_path: Path,
+) -> None:
+    client = _StaticVisualGroundingClient(
+        {
+            "schema": VISUAL_GROUNDING_RESPONSE_SCHEMA,
+            "status": "ok",
+            "pipeline": {
+                "pipeline_id": "grounding-dino",
+                "stages": [
+                    {
+                        "stage": "proposer",
+                        "producer_id": "grounding-dino",
+                        "model_id": "fixture:grounding-dino",
+                        "status": "ok",
+                        "latency_ms": 4,
+                    }
+                ],
+            },
+            "candidates": [
+                {
+                    "category": "mug",
+                    "image_region": {"type": "bbox", "value": [0.2, 0.2, 0.4, 0.4]},
+                    "confidence": 0.8,
+                }
+            ],
+        }
+    )
+    contract = _contract(
+        CleanupBackendSession(build_cleanup_scenario(seed=7)),
+        perception_mode=CAMERA_MODEL_POLICY_MODE,
+        evidence_lane="camera-grounded-labels",
+        visual_grounding_client=client,
+        visual_grounding_pipeline_id="grounding-dino",
+        visual_grounding_artifact_base_dir=tmp_path,
+        public_acceptance_config={
+            "backend": "isaaclab_subprocess",
+            "task_intent": "open-ended",
+        },
+    )
+    observation = _observe_raw_fpv_category(contract, category="mug")
+    _attach_raw_fpv_test_image(
+        contract,
+        tmp_path=tmp_path,
+        relative_path="robot_views/b1_raw_fpv_001.png",
+    )
+
+    response = contract.declare_visual_candidates(
+        observation["raw_fpv_observation"]["observation_id"]
+    )
+    evidence = contract.camera_model_policy_payload()
+
+    assert client.last_request is not None
+    assert client.last_request["schema"] == "visual_grounding_request_v2"
+    assert client.last_request["image"]["bytes_base64"]
+    assert client.last_request["pipeline_request"]["pipeline_id"] == "grounding-dino"
+    assert client.last_request["public_map_hints"]["private_truth_included"] is False
+    assert response["ok"] is True
+    assert response["model_declared_observations"]
+    assert evidence["enabled"] is True
+    assert evidence["visual_grounding_pipeline_id"] == "grounding-dino"
+    assert evidence["visual_grounding_failure_count"] == 0
+    assert evidence["candidate_count"] >= 1
+    agent_view = contract.agent_view_payload()
+    assert (
+        agent_view_module.camera_model_policy_evidence(agent_view)["visual_grounding_pipeline_id"]
+        == "grounding-dino"
+    )
+    _assert_no_forbidden_keys(response)
+
+
 def test_realworld_camera_labels_http_destination_hint_is_evidence_only(
     tmp_path: Path,
 ) -> None:

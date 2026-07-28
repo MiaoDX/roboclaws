@@ -23,6 +23,7 @@ from roboclaws.operator_console.launcher import (
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.routes import get_selection
+from scripts.isaac_lab_cleanup.check_b1_map12_readiness import DEFAULT_B1_VISUAL_ROUTE_SCENE_USD
 
 CODEX_ENV = {
     "CODEX_BASE_URL": "https://codex.example.test/v1",
@@ -32,6 +33,9 @@ AGIBOT_SDK_MAP_BUILD = (
     "agibot-g2/map-12::agibot-gdk::map-build::openai-agents-sdk::camera-grounded-labels"
 )
 B1_OPENAI_AGENTS_OPEN_TASK = "b1-map12::isaaclab::open-task::openai-agents-sdk::world-public-labels"
+B1_OPENAI_AGENTS_CAMERA_GROUNDED = (
+    "b1-map12::isaaclab::open-task::openai-agents-sdk::camera-grounded-labels"
+)
 MUJOCO_SDK_CLEANUP = (
     "molmospaces/procthor-objaverse-val/0::mujoco::cleanup::openai-agents-sdk::world-public-labels"
 )
@@ -68,14 +72,17 @@ def test_launcher_readiness_layers_isaac_and_agibot_gates(tmp_path: Path) -> Non
         overrides={"port": _free_port()},
         env=CODEX_ENV,
     )
-    assert b1_map12["can_start"] is False
-    assert b1_map12["blocker_kind"] == "needs_route_parameter"
+    assert b1_map12["can_start"] is True
+    assert b1_map12["blocker_kind"] == ""
     assert {gate["id"] for gate in b1_map12["gates"]} == {
         "provider_key",
         "mcp_port_free",
         "b1_alignment_artifact",
         "b1_navigation_artifact",
     }
+    proof_gates = [gate for gate in b1_map12["gates"] if gate["id"].startswith("b1_")]
+    assert {gate["evidence"] for gate in proof_gates} == {"generated at launch"}
+    assert {gate["blocks_start"] for gate in proof_gates} == {False}
 
     alignment_artifact.write_text("{}", encoding="utf-8")
     navigation_artifact.write_text("{}", encoding="utf-8")
@@ -89,7 +96,9 @@ def test_launcher_readiness_layers_isaac_and_agibot_gates(tmp_path: Path) -> Non
         },
         env=CODEX_ENV,
     )
-    assert b1_map12["can_start"] is True
+    assert b1_map12["can_start"] is False
+    assert b1_map12["blocker_kind"] == "needs_route_parameter"
+    assert "failed contract" in str(b1_map12["blocker"])
 
     context_path = tmp_path / "context.json"
     context_path.write_text("{}", encoding="utf-8")
@@ -122,6 +131,92 @@ def test_launcher_readiness_layers_isaac_and_agibot_gates(tmp_path: Path) -> Non
     assert "Real movement is enabled" in movement["blocker"]
 
 
+def test_launcher_readiness_rejects_explicit_stale_b1_navigation_artifact(
+    tmp_path: Path,
+) -> None:
+    alignment_artifact = tmp_path / "alignment_residuals.json"
+    navigation_artifact = tmp_path / "navigation_smoke.json"
+    alignment_artifact.write_text(
+        json.dumps(
+            {
+                "schema": "b1_map12_scene_alignment_residuals_v1",
+                "global_alignment_status": "verified",
+                "bbox_seed_policy": "known_poor_seed_only",
+                "manipulation_supported": False,
+                "object_receptacle_usd_binding_status": "blocked_out_of_scope",
+                "selected_transform": {"source": "reviewed_correspondence_fit"},
+                "selected_transform_type": "rigid_2d",
+                "residual_evidence": {
+                    "status": "available",
+                    "matched_anchor_count": 6,
+                    "transform_source": "reviewed_correspondence_fit",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    navigation_artifact.write_text(
+        json.dumps(
+            {
+                "schema": "b1_map12_navigation_smoke_v1",
+                "status": "passed",
+                "robot_navigation_supported": True,
+                "robot_navigation_provenance": "isaac_b1_map12_navigation_smoke",
+                "navigation_provenance": "kinematic_pose_driven",
+                "alignment_artifact": str(alignment_artifact),
+                "b1_scene_usd": (
+                    "data/robot-data-lab/scene-engine/data/2rd_floor_seperated/"
+                    "storey_1/configuration/scene_base.usd"
+                ),
+                "alignment_transform_source": "reviewed_correspondence_fit",
+                "planner_backed": False,
+                "semantic_source": "robot_map_12_navigation_memory_overlay",
+                "semantic_usd_binding_status": "blocked_until_segmentation_or_manifest",
+                "manipulation_supported": False,
+                "navigation_waypoint_count": 2,
+                "waypoint_evidence": [
+                    {
+                        "waypoint_id": "a",
+                        "scene_usd": str(DEFAULT_B1_VISUAL_ROUTE_SCENE_USD),
+                        "robot_pose_applied": True,
+                        "alignment_artifact": str(alignment_artifact),
+                        "alignment_transform_source": "reviewed_correspondence_fit",
+                        "robot_pose": {"x": 0, "y": 0},
+                        "views": {"fpv": "missing-a.png"},
+                    },
+                    {
+                        "waypoint_id": "b",
+                        "scene_usd": str(DEFAULT_B1_VISUAL_ROUTE_SCENE_USD),
+                        "robot_pose_applied": True,
+                        "alignment_artifact": str(alignment_artifact),
+                        "alignment_transform_source": "reviewed_correspondence_fit",
+                        "robot_pose": {"x": 1, "y": 1},
+                        "views": {"fpv": "missing-b.png"},
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    readiness = route_readiness(
+        tmp_path,
+        get_selection(B1_OPENAI_AGENTS_OPEN_TASK),
+        overrides={
+            "port": _free_port(),
+            "b1_alignment_artifact": str(alignment_artifact),
+            "b1_navigation_artifact": str(navigation_artifact),
+        },
+        env=CODEX_ENV,
+    )
+
+    assert readiness["can_start"] is False
+    assert readiness["blocker_kind"] == "needs_route_parameter"
+    assert "navigation artifact must render the verified B1_floor2_slow visual route" in str(
+        readiness["blocker"]
+    )
+
+
 def test_launcher_builds_route_specific_overrides(tmp_path: Path) -> None:
     route = get_selection(AGIBOT_SDK_MAP_BUILD)
     argv = build_launch_argv(
@@ -136,6 +231,19 @@ def test_launcher_builds_route_specific_overrides(tmp_path: Path) -> None:
     assert f"output_dir={tmp_path / 'output' / 'operator-console' / 'runs' / 'run-1'}" in argv
     assert f"context_json={tmp_path / 'context.json'}" in argv
     assert "real_movement_enabled=true" in argv
+
+
+def test_b1_camera_grounded_launch_includes_default_camera_labeler(tmp_path: Path) -> None:
+    route = get_selection(B1_OPENAI_AGENTS_CAMERA_GROUNDED)
+
+    argv = build_launch_argv(route, root=tmp_path, run_id="run-1")
+
+    assert "world=b1-map12" in argv
+    assert "backend=isaaclab" in argv
+    assert "evidence_lane=camera-grounded-labels" in argv
+    assert "camera_labeler=grounding-dino" in argv
+    assert not any(item.startswith("b1_alignment_artifact=") for item in argv)
+    assert not any(item.startswith("b1_navigation_artifact=") for item in argv)
 
 
 def test_launcher_replaces_route_default_overrides(tmp_path: Path) -> None:

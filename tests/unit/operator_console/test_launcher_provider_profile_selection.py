@@ -13,19 +13,9 @@ from roboclaws.operator_console.launcher import (
     start_console_run,
 )
 from roboclaws.operator_console.routes import get_selection
+from tests.support.b1_robot_proof import write_b1_robot_proof_artifacts
 
 B1_OPENAI_AGENTS_OPEN_TASK = "b1-map12::isaaclab::open-task::openai-agents-sdk::world-public-labels"
-
-
-def _b1_required_overrides(tmp_path: Path) -> dict[str, str]:
-    alignment_artifact = tmp_path / "alignment_residuals.json"
-    navigation_artifact = tmp_path / "navigation_smoke.json"
-    alignment_artifact.write_text("{}\n", encoding="utf-8")
-    navigation_artifact.write_text("{}\n", encoding="utf-8")
-    return {
-        "b1_alignment_artifact": str(alignment_artifact),
-        "b1_navigation_artifact": str(navigation_artifact),
-    }
 
 
 def _free_port() -> str:
@@ -49,6 +39,7 @@ def test_provider_gate_rejects_conflicting_provider_profile_env_override(tmp_pat
 
 def test_provider_gate_route_selection_overrides_ambient_provider_profile(tmp_path: Path) -> None:
     route = get_selection(B1_OPENAI_AGENTS_OPEN_TASK)
+    write_b1_robot_proof_artifacts(tmp_path)
 
     readiness = route_readiness(
         tmp_path,
@@ -61,7 +52,6 @@ def test_provider_gate_route_selection_overrides_ambient_provider_profile(tmp_pa
         overrides={
             "port": _free_port(),
             "provider_profile": "codex-router-responses",
-            **_b1_required_overrides(tmp_path),
         },
     )
 
@@ -71,6 +61,7 @@ def test_provider_gate_route_selection_overrides_ambient_provider_profile(tmp_pa
 
 def test_start_console_run_uses_one_provider_profile_selection(tmp_path: Path) -> None:
     route = get_selection(B1_OPENAI_AGENTS_OPEN_TASK)
+    write_b1_robot_proof_artifacts(tmp_path)
     seen_env: dict[str, str] = {}
 
     class FakeProcess:
@@ -87,7 +78,7 @@ def test_start_console_run_uses_one_provider_profile_selection(tmp_path: Path) -
             LaunchRequest(
                 selection_id_override=route.id,
                 provider_profile="mimo-mify-responses",
-                overrides={"port": _free_port(), **_b1_required_overrides(tmp_path)},
+                overrides={"port": _free_port()},
             ),
             env={"XM_LLM_API_KEY": "key"},
         )

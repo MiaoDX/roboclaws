@@ -1,5 +1,6 @@
 {
   "backend": "isaaclab",
+  "base_metric_labels": "assets/maps/b1-map12-base-metric-labels.json",
   "camera_preview_artifact": {
     "accepted_candidate_count": 2,
     "alignment_artifact": "output/b1-map12/alignment/alignment_residuals.json",
@@ -7,21 +8,23 @@
     "candidate_count": 2,
     "schema": "b1_map12_navigation_smoke_v1",
     "selected_action": "navigation_smoke",
-    "selected_label": "b1_aligned_long_table",
-    "selected_waypoint_id": "b1_aligned_long_table",
+    "selected_label": "b1_aligned_plastic_bottle_table_1",
+    "selected_waypoint_id": "b1_aligned_plastic_bottle_table_1",
     "source_artifact_name": "navigation_smoke.json",
-    "source_artifact_sha256": "6da855520a7197b31743894731a46a85bec6dd9dc374df6d7eee6e0a6edabd28",
+    "source_artifact_sha256": "6e337cfae113fc402649c6f2f1f77195d5d2e37419514fc14f898c0abd67f0c7",
     "source_artifact_status": "external_local_verification_artifact",
     "source_kind": "navigation_smoke_waypoint_evidence"
   },
-  "generated_at": "2026-06-18T15:35:32Z",
+  "generated_at": "2026-06-29T07:21:56Z",
+  "map_bundle": "vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot",
   "render_resolution": {
     "height": 560,
     "width": 900
   },
-  "renderer": "b1_map12_isaac_runtime_camera_previews",
+  "renderer": "b1_map12_static_gaussian_topdown_with_isaac_runtime_camera",
+  "room_semantics": "assets/maps/b1-map12-room-semantics.json",
   "scene_source": "b1-gaussian-digital-twin",
-  "scene_usd_path": "data/robot-data-lab/scene-engine/data/B1_floor2_slow/usda/F2_all/default.usda",
+  "scene_usd_path": "data/robot-data-lab/scene-engine/data/2rd_floor_seperated/storey_1/scene_gs.usda",
   "schema": "operator_console_scene_preview_v1",
   "views": {
     "chase": {
@@ -32,41 +35,41 @@
       "image_diagnostics": {
         "channel_extrema_rgb": [
           [
-            89,
-            235
+            16,
+            228
           ],
           [
-            84,
+            16,
             231
           ],
           [
-            78,
+            16,
             235
           ]
         ],
-        "edge_fraction_over_16": 0.055188,
-        "edge_fraction_over_8": 0.068875,
+        "edge_fraction_over_16": 0.066062,
+        "edge_fraction_over_8": 0.093625,
         "height": 560,
-        "max_channel_range": 157.0,
-        "max_stddev": 41.55,
+        "max_channel_range": 219.0,
+        "max_stddev": 71.029,
         "mean_rgb": [
-          201.958,
-          202.38,
-          203.515
+          177.499,
+          178.76,
+          180.437
         ],
         "schema": "operator_console_preview_image_diagnostics_v1",
-        "thumbnail_color_count": 2678,
+        "thumbnail_color_count": 1034,
         "visual_status": "reviewable",
         "width": 900
       },
-      "label": "b1_aligned_long_table",
+      "label": "b1_aligned_plastic_bottle_table_1",
       "path": "b1-map12-chase.png",
       "policy_note": "Chase is report evidence, not agent-facing policy input.",
       "provenance": "isaac_runtime_report_chase_camera",
       "source": "backend_local_report_chase_camera",
-      "source_artifact_view": "waypoint_02_views/b1_aligned_long_table.chase.png",
+      "source_artifact_view": "waypoint_01_views/b1_aligned_plastic_bottle_table_1.chase.png",
       "view": "chase_camera",
-      "waypoint_id": "b1_aligned_long_table"
+      "waypoint_id": "b1_aligned_plastic_bottle_table_1"
     },
     "fpv": {
       "action": "navigation_smoke",
@@ -77,41 +80,212 @@
       "image_diagnostics": {
         "channel_extrema_rgb": [
           [
-            20,
-            241
+            33,
+            228
           ],
           [
-            23,
-            240
+            30,
+            231
           ],
           [
-            22,
-            241
+            28,
+            235
           ]
         ],
-        "edge_fraction_over_16": 0.076563,
-        "edge_fraction_over_8": 0.12225,
+        "edge_fraction_over_16": 0.067062,
+        "edge_fraction_over_8": 0.074438,
         "height": 560,
-        "max_channel_range": 221.0,
-        "max_stddev": 62.759,
+        "max_channel_range": 207.0,
+        "max_stddev": 82.198,
         "mean_rgb": [
-          183.721,
-          187.213,
-          189.635
+          165.793,
+          167.547,
+          169.91
         ],
         "schema": "operator_console_preview_image_diagnostics_v1",
-        "thumbnail_color_count": 2818,
+        "thumbnail_color_count": 308,
         "visual_status": "reviewable",
         "width": 900
       },
-      "label": "b1_aligned_long_table",
+      "label": "b1_aligned_plastic_bottle_table_1",
       "path": "b1-map12-fpv.png",
       "provenance": "isaac_runtime_robot_mounted_head_camera_fpv",
       "robot_mounted": true,
       "source": "isaac_lab_camera_rgb_robot_mounted_head_camera:fpv",
-      "source_artifact_view": "waypoint_02_views/b1_aligned_long_table.fpv.png",
+      "source_artifact_view": "waypoint_01_views/b1_aligned_plastic_bottle_table_1.fpv.png",
       "view": "raw_fpv",
-      "waypoint_id": "b1_aligned_long_table"
+      "waypoint_id": "b1_aligned_plastic_bottle_table_1"
+    },
+    "map": {
+      "alignment_status": "verified_source_map_frame",
+      "artifact_source_family": "base_metric_map_bundle",
+      "image_diagnostics": {
+        "channel_extrema_rgb": [
+          [
+            16,
+            254
+          ],
+          [
+            40,
+            254
+          ],
+          [
+            50,
+            255
+          ]
+        ],
+        "edge_fraction_over_16": 0.15275,
+        "edge_fraction_over_8": 0.186,
+        "height": 560,
+        "max_channel_range": 238.0,
+        "max_stddev": 19.719,
+        "mean_rgb": [
+          243.105,
+          245.087,
+          248.321
+        ],
+        "schema": "operator_console_preview_image_diagnostics_v1",
+        "thumbnail_color_count": 1135,
+        "visual_status": "reviewable",
+        "width": 900
+      },
+      "path": "b1-map12-map.png",
+      "provenance": "b1_map12_base_metric_map_preview_png",
+      "view": "base_metric_map_preview",
+      "visual_role": "base_metric_map_preview"
+    },
+    "topdown": {
+      "alignment_status": "height_cropped_gaussian_scene_topdown",
+      "artifact_source_family": "scene_camera_render",
+      "camera": {
+        "calibration_status": "explicit_scene_xy_bounds_topdown_v1",
+        "camera_mode": "near_vertical_topdown_perspective",
+        "camera_model": "canonical_eye_target_camera_v1",
+        "coordinate_convention": "b1_rebuilt_scene_usd_world_candidate",
+        "coordinate_frame": "b1_rebuilt_scene_usd_world_candidate",
+        "eye": [
+          -7.354534,
+          -2.956725,
+          32.0
+        ],
+        "label": "B1 Gaussian scene near-vertical top-down",
+        "lens": {
+          "focal_length_mm": 18.0,
+          "vertical_fov_deg": 55.0
+        },
+        "target": [
+          -7.354534,
+          -2.906725,
+          0.6
+        ],
+        "topdown_camera_policy": {
+          "camera_y_offset_m": 0.05,
+          "reason": "Isaac Lab's look-at helper is singular when eye and target share the same XY under world Z-up, so near-vertical topdown records a tiny explicit XY offset.",
+          "requested_camera_mode": "near-vertical-topdown"
+        },
+        "up": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "view_id": "top2down"
+      },
+      "capture_status": "captured",
+      "geometry_status": "rendered_gaussian_scene_topdown",
+      "height_px": 640,
+      "horizontal_axes": [
+        "x",
+        "y"
+      ],
+      "image_diagnostics": {
+        "channel_extrema_rgb": [
+          [
+            0,
+            228
+          ],
+          [
+            0,
+            231
+          ],
+          [
+            0,
+            235
+          ]
+        ],
+        "edge_fraction_over_16": 0.124188,
+        "edge_fraction_over_8": 0.188125,
+        "height": 560,
+        "max_channel_range": 235.0,
+        "max_stddev": 78.775,
+        "mean_rgb": [
+          60.302,
+          59.807,
+          58.011
+        ],
+        "schema": "operator_console_preview_image_diagnostics_v1",
+        "thumbnail_color_count": 3087,
+        "visual_status": "reviewable",
+        "width": 900
+      },
+      "path": "b1-map12-topdown.png",
+      "pixel_to_scene_xyz": {
+        "eye": [
+          -7.354534,
+          -2.956725,
+          32.0
+        ],
+        "formula": "ray = perspective_camera_ray(pixel); scene_xyz = ray intersect z=0",
+        "height_px": 640,
+        "note": "Scene picks intersect the perspective camera ray with z=0 in the recorded scene frame. Different camera heights/FOVs change visibility and ray geometry; review the recorded camera request before accepting anchors.",
+        "projection_model": "camera_ray_intersection_with_z_plane",
+        "source": "rendered_gaussian_scene_topdown_ray_plane_pick",
+        "status": "perspective_ray_plane_z0",
+        "target": [
+          -7.354534,
+          -2.906725,
+          0.6
+        ],
+        "vertical_fov_deg": 55.0,
+        "width_px": 960,
+        "world_up": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "z_plane": 0.0
+      },
+      "prepared_scene_usd": "output/b1-map12/scene-gaussian-topdown-crop-z1p8/prepared-nurec-crop-max-z-1p800/scene_gs.cropped_nurec.usda",
+      "provenance": "b1_scene_gaussian_topdown_crop_z1p8_png",
+      "scene_usd": "data/robot-data-lab/scene-engine/data/2rd_floor_seperated/storey_1/scene_gs.usda",
+      "scene_visibility_policy": {
+        "crop_max_z": 1.8,
+        "cropped_default_usd": "output/b1-map12/scene-gaussian-topdown-crop-z1p8/prepared-nurec-crop-max-z-1p800/default.usda",
+        "cropped_gauss_usd": "output/b1-map12/scene-gaussian-topdown-crop-z1p8/prepared-nurec-crop-max-z-1p800/gauss.usda",
+        "cropped_scene_usd": "output/b1-map12/scene-gaussian-topdown-crop-z1p8/prepared-nurec-crop-max-z-1p800/scene_gs.cropped_nurec.usda",
+        "original_crop_max_bounds": [
+          9.281567,
+          7.441333,
+          4.3845134
+        ],
+        "source": "explicit_nurec_crop_max_z",
+        "source_default_usd": "output/b1-map12/prepared-nurec-scene/storey_1/xm_large_scene_unpacked/default.usda",
+        "source_gauss_usd": "output/b1-map12/prepared-nurec-scene/storey_1/xm_large_scene_unpacked/gauss.usda",
+        "source_nurec_asset": "output/b1-map12/prepared-nurec-scene/storey_1/xm_large_scene_unpacked/xm_large_scene.nurec",
+        "status": "applied"
+      },
+      "scene_xy_bounds": {
+        "max_x": 8.074257851,
+        "max_y": 7.29890047,
+        "min_x": -22.783325195,
+        "min_y": -13.112351418
+      },
+      "source_image": "output/b1-map12/scene-gaussian-topdown-crop-z1p8/views/top2down.png",
+      "source_packet": "output/b1-map12/scene-gaussian-topdown-crop-z1p8/scene_gaussian_topdown.json",
+      "source_status": "captured_gaussian_topdown_packet",
+      "up_axis": "z",
+      "view": "topdown_scene_render",
+      "visual_role": "topdown_scene_render",
+      "width_px": 960
     }
   },
   "world_id": "b1-map12"

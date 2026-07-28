@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
@@ -19,6 +20,8 @@ class SemanticPoseRobotViewRequest:
     target_images: dict[str, Path]
     width: int
     height: int
+    camera_yaw_offset_deg: float = 0.0
+    camera_pitch_offset_deg: float = 0.0
     render_settle_frames: int = 0
     isaac_aa_op: int | None = None
     isaac_tonemap_op: int | None = None
@@ -111,7 +114,7 @@ def _capture_kwargs(
     scene_usd: Path,
 ) -> dict[str, Any]:
     kwargs: dict[str, Any] = {
-        "state": request.state,
+        "state": _state_with_camera_adjustment(request),
         "scene_usd": scene_usd,
         "view_paths": request.target_images,
         "width": request.width,
@@ -130,6 +133,29 @@ def _capture_kwargs(
     }
     kwargs.update({key: value for key, value in optional.items() if value is not None})
     return kwargs
+
+
+def _state_with_camera_adjustment(request: SemanticPoseRobotViewRequest) -> dict[str, Any]:
+    yaw_offset = float(request.camera_yaw_offset_deg or 0.0)
+    pitch_offset = float(request.camera_pitch_offset_deg or 0.0)
+    if not yaw_offset and not pitch_offset:
+        return request.state
+    adjusted = dict(request.state)
+    semantic_pose_state = dict(_dict(adjusted.get("semantic_pose_state")))
+    robot_pose = dict(_dict(semantic_pose_state.get("robot_pose")))
+    if pitch_offset:
+        base_pitch = float(robot_pose.get("head_pitch") or 0.0)
+        robot_pose["head_pitch"] = base_pitch + math.radians(pitch_offset)
+        robot_pose["head_pitch_source"] = "camera_pitch_offset_deg"
+    robot_pose["camera_adjustment"] = {
+        "yaw_delta_deg": yaw_offset,
+        "pitch_delta_deg": pitch_offset,
+        "pitch_applied_to_static_head_camera": bool(pitch_offset),
+        "yaw_application": "not_applied_static_head_camera",
+    }
+    semantic_pose_state["robot_pose"] = robot_pose
+    adjusted["semantic_pose_state"] = semantic_pose_state
+    return adjusted
 
 
 def _robot_view_images(capture: dict[str, Any]) -> dict[str, str]:

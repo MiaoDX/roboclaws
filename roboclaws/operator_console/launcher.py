@@ -26,6 +26,7 @@ from roboclaws.launch.environment_setup import (
     ENVIRONMENT_SETUP_OPTIONS,
     RELOCATION_SETUP_OPTIONS,
 )
+from roboclaws.operator_console import context_packets
 from roboclaws.operator_console.history import append_run_history
 from roboclaws.operator_console.interactions import (
     MESSAGE_LOG,
@@ -60,6 +61,10 @@ from roboclaws.operator_console.runtime_inventory import (
     runtime_inventory_payload,
 )
 from roboclaws.operator_console.state import resolve_display_run_dir
+from roboclaws.operator_console.terminal_runs import (
+    existing_terminal_phase,
+    existing_terminal_reason,
+)
 
 RUN_ID_SAFE_RE = re.compile(r"[^A-Za-z0-9_.-]+")
 
@@ -231,10 +236,14 @@ def start_console_run(
     gate_payload = request.gates or {}
     overrides = dict(request.overrides or {})
     env_overrides = dict(request.env_overrides or {})
+    next_goal_packet = context_packets.sanitize_operator_context_packet(request.next_goal_packet)
     if request.provider_profile:
         overrides.setdefault("provider_profile", request.provider_profile)
     if request.scenario_setup:
         overrides.setdefault("scenario_setup", request.scenario_setup)
+    operator_session_context_json = context_packets.context_packet_json(next_goal_packet)
+    if operator_session_context_json:
+        overrides.setdefault("operator_session_context_json", operator_session_context_json)
     env_overrides = provider_env_overrides_for_route(
         route, overrides, env_overrides, error_type=ConsoleLaunchError
     )
@@ -297,7 +306,7 @@ def start_console_run(
         "run_id": run_id,
         "operator_session_id": session["operator_session_id"],
         "parent_run_id": request.parent_run_id,
-        "next_goal_packet": request.next_goal_packet or {},
+        "next_goal_packet": next_goal_packet,
         "prompt_preview": preview,
         "operator_prompt": preview["operator_prompt"],
         "agent_kickoff_prompt": preview["agent_kickoff_prompt"],
@@ -434,19 +443,19 @@ def stop_console_run(root: Path, run_id: str, *, emergency: bool = False) -> dic
     display_run_dir = resolve_display_run_dir(run_dir)
     terminal_phase = "human_takeover_stop" if emergency else "stopped_by_operator"
     try:
-        existing_terminal_phase = _existing_terminal_phase(display_run_dir, state)
-        existing_terminal_reason = (
-            _existing_terminal_reason(display_run_dir, state) if existing_terminal_phase else ""
+        existing_phase = _existing_terminal_phase(display_run_dir, state)
+        terminal_reason = (
+            _existing_terminal_reason(display_run_dir, state) if existing_phase else ""
         )
     except _JsonSourceError as exc:
         raise _operator_stop_source_error(exc) from exc
     _stop_live_child_run(display_run_dir)
     pid = state.get("pid")
     _terminate_process_group(pid if isinstance(pid, int) else None)
-    if existing_terminal_phase:
-        state["phase"] = existing_terminal_phase
-        state["terminal_reason"] = existing_terminal_reason or (
-            state.get("terminal_reason") or existing_terminal_phase
+    if existing_phase:
+        state["phase"] = existing_phase
+        state["terminal_reason"] = terminal_reason or (
+            state.get("terminal_reason") or existing_phase
         )
     else:
         try:
@@ -532,6 +541,7 @@ def _validate_override_keys(route: ConsoleLaunchSelection, overrides: dict[str, 
         "port",
         "operator_messages_path",
         "operator_resume_requests_path",
+        "operator_session_context_json",
     }
     for key, value in overrides.items():
         if key not in allowed:
@@ -728,15 +738,6 @@ def _display_run_attachable(
     return False
 
 
-TERMINAL_RUN_PHASES = {
-    "failed",
-    "finished",
-    "passed",
-    "stopped_by_operator",
-    "human_takeover_stop",
-}
-
-
 def _release_terminal_owner_lock(root: Path, lock_state: Any) -> bool:
     if not lock_state.held or not lock_state.owner_run_id:
         return False
@@ -753,22 +754,19 @@ def _release_terminal_owner_lock(root: Path, lock_state: Any) -> bool:
 
 
 def _existing_terminal_phase(display_run_dir: Path, state: dict[str, Any]) -> str:
-    live_status = _read_optional_json_source(display_run_dir / "live_status.json")
-    for payload in (live_status, state):
-        phase = str(payload.get("phase") or "").strip().lower()
-        if phase in TERMINAL_RUN_PHASES:
-            return phase
-    return ""
+    return existing_terminal_phase(
+        display_run_dir,
+        state,
+        read_json=_read_optional_json_source,
+    )
 
 
 def _existing_terminal_reason(display_run_dir: Path, state: dict[str, Any]) -> str:
-    live_status = _read_optional_json_source(display_run_dir / "live_status.json")
-    for payload in (live_status, state):
-        for key in ("terminal_reason", "reason", "error_reason", "terminate_reason"):
-            value = payload.get(key)
-            if value:
-                return str(value)
-    return ""
+    return existing_terminal_reason(
+        display_run_dir,
+        state,
+        read_json=_read_optional_json_source,
+    )
 
 
 def _live_run_pid(display_run_dir: Path) -> int | None:

@@ -18,6 +18,7 @@ from roboclaws.reports.live_performance import (
     compare_report_performance_metrics,
     extract_report_performance_metrics,
 )
+from scripts.molmo_cleanup.live_debug_summary import debug_snapshot_lines
 
 DEFAULT_SEARCH_ROOT = Path("output/molmo/codex-report")
 LIVE_RUN_DISCOVERY_FILES = (
@@ -146,6 +147,9 @@ def _runner_summary(status: dict[str, Any]) -> dict[str, Any]:
         "started_at": _format_epoch(started),
         "finished_at": _format_epoch(finished),
         "elapsed_s": elapsed,
+        "debug_snapshot": status.get("debug_snapshot")
+        if isinstance(status.get("debug_snapshot"), dict)
+        else {},
     }
 
 
@@ -246,6 +250,7 @@ def _print_summary(summary: dict[str, Any]) -> None:
     )
     if runner["finished_at"] != "unknown":
         print(f"finished: {runner['finished_at']}")
+    _print_debug_snapshot(runner.get("debug_snapshot") or {})
 
     trace = summary["trace"]
     print(
@@ -522,6 +527,11 @@ def _print_timing(timing: dict[str, Any]) -> None:
     _print_profile_timing(timing.get("profile") or {})
     _print_report_performance_timing(timing.get("performance") or {})
     _print_skipped_work(timing.get("skipped_work") or [])
+
+
+def _print_debug_snapshot(snapshot: dict[str, Any]) -> None:
+    for line in debug_snapshot_lines(snapshot):
+        print(line)
 
 
 def _print_runner_timing(runner: dict[str, Any]) -> None:

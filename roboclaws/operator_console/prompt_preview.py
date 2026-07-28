@@ -82,7 +82,11 @@ def build_prompt_preview(
     source = "operator-task"
     if route.surface == "household-world":
         if selected_intent == "map-build":
-            kickoff_prompt = render_map_build_prompt(lane, operator_prompt)
+            kickoff_prompt = render_map_build_prompt(
+                lane,
+                operator_prompt,
+                operator_session_context_json=overrides.get("operator_session_context_json", ""),
+            )
             source = "household-map-build"
         elif selected_intent in {"cleanup", "open-ended"}:
             kickoff_prompt = render_kickoff_prompt(
@@ -95,6 +99,7 @@ def build_prompt_preview(
                 max_observe_per_waypoint=max_observe,
                 done_retry_budget=done_retry_budget,
                 camera_grounded_composite_tools=composite_tools,
+                operator_session_context_json=overrides.get("operator_session_context_json", ""),
             )
             source = (
                 "household-open-task" if selected_intent == "open-ended" else "household-cleanup"
@@ -209,6 +214,7 @@ def _append_prompt_preview_overrides(args: list[str], overrides: dict[str, str])
             "provider_profile",
             "operator_messages_path",
             "operator_resume_requests_path",
+            "operator_session_context_json",
         }:
             continue
         if value:

@@ -44,6 +44,7 @@ from roboclaws.operator_console.state import (
     derive_operator_state,
     redacted_artifact_text,
 )
+from tests.support.b1_robot_proof import write_b1_robot_proof_artifacts
 
 CODEX_ENV = {
     "CODEX_BASE_URL": "https://codex.example.test/v1",
@@ -56,6 +57,9 @@ AGIBOT_SDK_MAP_BUILD = (
     "agibot-g2/map-12::agibot-gdk::map-build::openai-agents-sdk::camera-grounded-labels"
 )
 B1_OPENAI_AGENTS_OPEN_TASK = "b1-map12::isaaclab::open-task::openai-agents-sdk::world-public-labels"
+B1_OPENAI_AGENTS_CAMERA_GROUNDED = (
+    "b1-map12::isaaclab::open-task::openai-agents-sdk::camera-grounded-labels"
+)
 MUJOCO_SDK_CLEANUP = (
     "molmospaces/procthor-objaverse-val/0::mujoco::cleanup::openai-agents-sdk::world-public-labels"
 )
@@ -96,7 +100,7 @@ def test_console_route_registry_exposes_agent_routes_and_explains_disabled_route
         AGIBOT_SDK_MAP_BUILD,
         MUJOCO_SDK_MAP_BUILD,
         B1_OPENAI_AGENTS_OPEN_TASK,
-        B1_OPENAI_AGENTS_OPEN_TASK,
+        B1_OPENAI_AGENTS_CAMERA_GROUNDED,
     }
     assert {route.agent_engine_id for route in supported} >= {
         "openai-agents-sdk",
@@ -403,9 +407,10 @@ def test_console_readiness_omits_isaac_marker_diagnostic_but_keeps_locks_blockin
     tmp_path: Path,
 ) -> None:
     route = get_selection(B1_OPENAI_AGENTS_OPEN_TASK)
+    write_b1_robot_proof_artifacts(tmp_path)
     readiness = route_readiness(tmp_path, route, overrides={"port": _free_port()}, env=CODEX_ENV)
-    assert readiness["can_start"] is False
-    assert readiness["blocker_kind"] == "needs_route_parameter"
+    assert readiness["can_start"] is True
+    assert readiness["blocker_kind"] == ""
     assert {gate["id"] for gate in readiness["gates"]} == {
         "provider_key",
         "mcp_port_free",
@@ -675,7 +680,11 @@ def test_operator_console_routes_endpoint_exposes_evidence_lane_matrix(tmp_path:
         "/previews/molmospaces-procthor-objaverse-val-10-chase.png"
     )
     assert worlds["b1-map12"]["preview_assets"]["fpv"]["href"] == "/previews/b1-map12-fpv.png"
+    assert worlds["b1-map12"]["preview_assets"]["map"]["href"] == "/previews/b1-map12-map.png"
     assert worlds["b1-map12"]["preview_assets"]["chase"]["href"] == ("/previews/b1-map12-chase.png")
+    assert worlds["b1-map12"]["preview_assets"]["topdown"]["href"] == (
+        "/previews/b1-map12-topdown.png"
+    )
     assert (
         worlds[world_id]["preview_assets"]["topdown"]["href"]
         != (worlds[world_id]["preview_assets"]["map"]["href"])
@@ -694,9 +703,10 @@ def test_operator_console_routes_endpoint_exposes_evidence_lane_matrix(tmp_path:
     assert routes[
         "molmospaces/procthor-objaverse-val/0::mujoco::map-build::openai-agents-sdk::camera-grounded-labels"
     ]["enabled"]
-    assert not routes["b1-map12::isaaclab::open-task::openai-agents-sdk::camera-grounded-labels"][
-        "enabled"
-    ]
+    assert routes[B1_OPENAI_AGENTS_CAMERA_GROUNDED]["enabled"]
+    assert (
+        "camera_labeler=grounding-dino" in routes[B1_OPENAI_AGENTS_CAMERA_GROUNDED]["argv_preview"]
+    )
     assert not any(
         "::isaaclab::" in route_id for route_id in routes if route_id.startswith("molmospaces/")
     )
@@ -727,8 +737,8 @@ def _assert_registered_scene_preview_assets(registered_previews: set[str]) -> No
     assert "molmospaces-procthor-objaverse-val-10-preview.json" in registered_previews
     assert "molmospaces-procthor-10k-val-11-map.png" in registered_previews
     assert "molmospaces-procthor-10k-val-11-preview.json" in registered_previews
-    assert "b1-map12-map.png" not in registered_previews
-    assert "b1-map12-topdown.png" not in registered_previews
+    assert "b1-map12-map.png" in registered_previews
+    assert "b1-map12-topdown.png" in registered_previews
     assert "b1-map12-fpv.png" in registered_previews
     assert "b1-map12-chase.png" in registered_previews
     assert "b1-map12-preview.json" in registered_previews
@@ -745,7 +755,9 @@ def _assert_scene_preview_png_assets(base_url: str) -> None:
         "molmospaces-procthor-10k-val-11-topdown.png",
         "molmospaces-procthor-10k-val-11-chase.png",
         "b1-map12-fpv.png",
+        "b1-map12-map.png",
         "b1-map12-chase.png",
+        "b1-map12-topdown.png",
     ):
         with urllib.request.urlopen(f"{base_url}/previews/{asset_name}") as response:
             assert response.headers["Content-Type"] == "image/png"
@@ -760,9 +772,11 @@ def _assert_scene_preview_json_assets(base_url: str) -> None:
         assert preview["views"]["chase"]["view"] == "chase_camera"
     with urllib.request.urlopen(f"{base_url}/previews/b1-map12-preview.json") as response:
         preview = json.loads(response.read().decode("utf-8"))
-        assert preview["renderer"] == "b1_map12_isaac_runtime_camera_previews"
+        assert preview["renderer"] == "b1_map12_static_gaussian_topdown_with_isaac_runtime_camera"
         assert preview["views"]["fpv"]["view"] == "raw_fpv"
+        assert preview["views"]["map"]["view"] == "base_metric_map_preview"
         assert preview["views"]["chase"]["view"] == "chase_camera"
+        assert preview["views"]["topdown"]["view"] == "topdown_scene_render"
 
 
 def _assert_scene_preview_rejects_invalid_paths(base_url: str) -> None:
@@ -943,6 +957,9 @@ def test_operator_console_next_goal_autostarts_ready_followup(tmp_path: Path) ->
     assert launch_request.intent_id == "open-ended"
     assert launch_request.operator_session_id == "session-test"
     assert launch_request.parent_run_id == run_id
+    assert launch_request.next_goal_packet["operator_session_id"] == "session-test"
+    assert launch_request.next_goal_packet["parent_run_id"] == run_id
+    assert "parent_public_summary" in launch_request.next_goal_packet
 
 
 def test_operator_console_resume_endpoint_records_paused_handoff_request(

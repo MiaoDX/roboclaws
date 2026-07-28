@@ -27,6 +27,16 @@ _Avoid_: generated mess count, public target count
 The robot or policy that perceives the messy scene and decides how to restore it.
 _Avoid_: Placer
 
+**Robot Run**:
+One auditable execution episode with fixed prompt, surface axes, artifacts,
+checker result, and report after terminal status.
+_Avoid_: persistent background agent
+
+**Operator Session**:
+A durable operator interaction thread that can link multiple Robot Runs through
+Steer, paused-handoff Resume, and terminal-parent Next Goal.
+_Avoid_: single long-lived agent process, active-run goal queue
+
 **Scorer**:
 A private evaluator that compares the final scene state against acceptable
 cleanup outcomes.

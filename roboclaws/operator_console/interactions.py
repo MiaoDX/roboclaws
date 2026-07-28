@@ -9,6 +9,10 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.core.json_sources import read_json_object
+from roboclaws.operator_console.context_packets import (
+    sanitize_operator_context_packet,
+    strip_private_payload,
+)
 from roboclaws.operator_console.jsonl_sources import JsonlSourceIssue, collect_jsonl_objects
 from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.routes import ConsoleLaunchSelection, get_selection
@@ -34,15 +38,6 @@ TERMINAL_STATUSES = {
     "emergency_stopped",
     "failed",
 }
-
-PRIVATE_TERMS = (
-    "generated_mess_set",
-    "acceptable_destination_sets",
-    "private_manifest",
-    "target_receptacle_id",
-    "private_target_truth",
-    "global_movable_object_inventory",
-)
 
 
 class InteractionError(ValueError):
@@ -473,7 +468,7 @@ def _next_goal_packet(
             "do not mutate or reinterpret the parent run report."
         ),
     }
-    return _strip_private_payload(packet)
+    return sanitize_operator_context_packet(packet)
 
 
 def _resume_request_packet(
@@ -504,7 +499,7 @@ def _resume_request_packet(
             "Steer messages as resume input."
         ),
     }
-    return _strip_private_payload(packet)
+    return sanitize_operator_context_packet(packet)
 
 
 def _public_artifact_scope(artifacts: list[Any]) -> list[dict[str, str]]:
@@ -693,7 +688,7 @@ def _write_session(root: Path, session: dict[str, Any]) -> None:
 
 
 def _append_message(run_dir: Path, message: dict[str, Any]) -> None:
-    _append_jsonl(run_dir / MESSAGE_LOG, _strip_private_payload(message))
+    _append_jsonl(run_dir / MESSAGE_LOG, strip_private_payload(message))
 
 
 def _read_message_rows_with_source_errors(
@@ -835,24 +830,6 @@ def _format_epoch(epoch: float) -> str:
 
 def _clean_text(value: str) -> str:
     return " ".join(str(value or "").split())
-
-
-def _strip_private_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    text = json.dumps(payload, ensure_ascii=False, sort_keys=True)
-    for term in PRIVATE_TERMS:
-        text = text.replace(term, "[redacted_private_field]")
-    try:
-        redacted = json.loads(text)
-    except json.JSONDecodeError:
-        return payload
-    return redacted if isinstance(redacted, dict) else payload
-
-
-def _strip_private_terms(text: str) -> str:
-    output = text
-    for term in PRIVATE_TERMS:
-        output = output.replace(term, "[redacted_private_field]")
-    return output
 
 
 def _first_artifact_href(artifacts: list[Any], label: str) -> str:

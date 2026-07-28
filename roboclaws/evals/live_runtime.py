@@ -7,6 +7,7 @@ import math
 import os
 import subprocess
 import sys
+import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,6 +17,11 @@ from roboclaws.evals.dependencies import dependency_failure, resolve_artifact_de
 from roboclaws.evals.live_artifacts import (
     discover_live_surface_run_dir,
     load_live_eval_json,
+)
+from roboclaws.evals.live_timeout import (
+    LiveEvalTimeoutError,
+    cleanup_timed_out_live_children,
+    live_timeout_snapshot,
 )
 from roboclaws.evals.models import (
     MISSING_NOT_APPLICABLE,
@@ -34,8 +40,24 @@ from roboclaws.launch.map_bundles import molmospaces_nav2_map_bundle_path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ProductRun = Callable[..., dict[str, Any]]
-DEFAULT_LIVE_TIMEOUT_S = 3600.0
+DEFAULT_LIVE_WALL_CLOCK_BUDGET_S = 1200.0
+DEFAULT_LIVE_STALL_TIMEOUT_S = 120.0
 DEFAULT_LIVE_TIMEOUT_COMPLETION_GRACE_S = 30.0
+LIVE_PROCESS_POLL_S = 1.0
+
+
+@dataclass(frozen=True)
+class LiveSurfaceProcessResult:
+    """Foreground process result plus live eval budget diagnostics."""
+
+    returncode: int | str
+    stdout: str
+    stderr: str
+    timeout_kind: str | None = None
+    wall_clock_budget_s: float | None = None
+    stall_timeout_s: float | None = None
+    elapsed_s: float = 0.0
+    last_progress_elapsed_s: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -62,6 +84,7 @@ def run_live_eval_trial(
     provider_profile: str,
     model: str | None,
     live_timeout_s: float | None,
+    live_stall_timeout_s: float | None,
     live_product_runner: ProductRun,
     hooks: LiveTrialHooks,
 ) -> EvalResult:
@@ -86,6 +109,7 @@ def run_live_eval_trial(
                 provider_profile=provider_profile,
                 model=model,
                 live_timeout_s=live_timeout_s,
+                live_stall_timeout_s=live_stall_timeout_s,
             )
         )
         effective_run_dir = _live_eval_effective_run_dir(
@@ -129,7 +153,8 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
     sample_run_dir = live_surface_run_dir(kwargs, output_dir=sample_run_root)
     command = live_surface_command(kwargs, output_dir=sample_run_root)
     env = live_surface_env(kwargs, base_env=os.environ)
-    timeout_s = explicit_live_surface_timeout_s(kwargs)
+    wall_clock_budget_s = live_wall_clock_budget_s(kwargs)
+    stall_timeout_s = live_stall_timeout_s(kwargs)
     started_wall_time_s = time.time()
     started = time.monotonic()
     record: dict[str, Any] = {
@@ -138,25 +163,25 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
         "stdout": "",
         "stderr": "",
         "effective_run_dir": str(sample_run_dir),
+        "wall_clock_budget_s": wall_clock_budget_s,
+        "stall_timeout_s": stall_timeout_s,
     }
-    try:
-        completed = subprocess.run(
-            command,
-            cwd=REPO_ROOT,
-            env=env,
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=timeout_s,
-        )
-    except subprocess.TimeoutExpired as exc:
-        timeout_stdout = _subprocess_text_output(exc.stdout)
-        timeout_stderr = _subprocess_text_output(exc.stderr)
+    completed = _run_live_surface_foreground_process(
+        command,
+        env=env,
+        kwargs=kwargs,
+        output_dir=sample_run_root,
+        fallback_run_dir=sample_run_dir,
+        started_wall_time_s=started_wall_time_s,
+        wall_clock_budget_s=wall_clock_budget_s,
+        stall_timeout_s=stall_timeout_s,
+    )
+    if completed.timeout_kind is not None:
         sample_run_dir = discover_live_surface_run_dir(
             kwargs,
             output_dir=sample_run_root,
             fallback_run_dir=sample_run_dir,
-            stdout=timeout_stdout,
+            stdout=completed.stdout,
             started_wall_time_s=started_wall_time_s,
         )
         sample_run_dir = wait_for_timed_out_live_surface_artifact(
@@ -168,14 +193,27 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
         )
         record.update(
             {
-                "returncode": "timeout",
-                "stdout": timeout_stdout,
-                "stderr": timeout_stderr,
-                "timeout_s": timeout_s,
+                "returncode": completed.returncode,
+                "stdout": completed.stdout,
+                "stderr": completed.stderr,
+                "timeout_kind": completed.timeout_kind,
+                "timeout_s": wall_clock_budget_s,
+                "wall_clock_budget_s": wall_clock_budget_s,
+                "stall_timeout_s": stall_timeout_s,
+                "timeout_elapsed_s": completed.elapsed_s,
+                "timeout_last_progress_elapsed_s": completed.last_progress_elapsed_s,
                 "timeout_completion_grace_s": live_timeout_completion_grace_s(),
                 "effective_run_dir": str(sample_run_dir),
                 "live_status": _load_json(sample_run_dir / "live_status.json"),
             }
+        )
+        record["timeout_debug_snapshot"] = live_timeout_snapshot(
+            sample_run_dir,
+            live_status=record["live_status"],
+            timeout_s=wall_clock_budget_s,
+            timeout_kind=completed.timeout_kind,
+            wall_clock_budget_s=wall_clock_budget_s,
+            stall_timeout_s=stall_timeout_s,
         )
         run_result_path = sample_run_dir / "run_result.json"
         run_result = _load_json(run_result_path)
@@ -188,8 +226,24 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
             _write_live_eval_command_record(run_dir / "live_eval_command.json", record)
             run_result["eval_effective_run_dir"] = str(sample_run_dir)
             return run_result
+        record["timeout_child_cleanup"] = cleanup_timed_out_live_children(sample_run_dir)
         _write_live_eval_command_record(run_dir / "live_eval_command.json", record)
-        raise TimeoutError(f"live eval trial timed out after {timeout_s:g}s") from exc
+        message = _live_timeout_message(
+            timeout_kind=completed.timeout_kind,
+            wall_clock_budget_s=wall_clock_budget_s,
+            stall_timeout_s=stall_timeout_s,
+        )
+        raise LiveEvalTimeoutError(
+            message,
+            timeout_s=wall_clock_budget_s,
+            timeout_kind=completed.timeout_kind,
+            wall_clock_budget_s=wall_clock_budget_s,
+            stall_timeout_s=stall_timeout_s,
+            effective_run_dir=sample_run_dir,
+            live_status=record["live_status"],
+            timeout_debug_snapshot=record["timeout_debug_snapshot"],
+            command_record=record,
+        )
 
     sample_run_dir = discover_live_surface_run_dir(
         kwargs,
@@ -243,6 +297,221 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
         raise RuntimeError(f"live surface run finished without {run_result_path}")
     run_result["eval_effective_run_dir"] = str(sample_run_dir)
     return run_result
+
+
+def _run_live_surface_foreground_process(
+    command: list[str],
+    *,
+    env: dict[str, str],
+    kwargs: dict[str, Any],
+    output_dir: Path,
+    fallback_run_dir: Path,
+    started_wall_time_s: float,
+    wall_clock_budget_s: float,
+    stall_timeout_s: float,
+) -> LiveSurfaceProcessResult:
+    started = time.monotonic()
+    last_progress_at = started
+    last_progress_signature: tuple[Any, ...] | None = None
+    with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as stdout_file:
+        with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as stderr_file:
+            process = subprocess.Popen(  # noqa: S603 - command is repo-local public route.
+                command,
+                cwd=REPO_ROOT,
+                env=env,
+                stdout=stdout_file,
+                stderr=stderr_file,
+                text=True,
+            )
+            while True:
+                now = time.monotonic()
+                elapsed_s = max(now - started, 0.0)
+                stdout_text = _temporary_file_text(stdout_file)
+                effective_run_dir = _live_surface_run_dir_for_monitor(
+                    kwargs,
+                    output_dir=output_dir,
+                    fallback_run_dir=fallback_run_dir,
+                    stdout=stdout_text,
+                    started_wall_time_s=started_wall_time_s,
+                )
+                progress_signature = _live_surface_progress_signature(effective_run_dir)
+                if last_progress_signature is None:
+                    last_progress_signature = progress_signature
+                elif progress_signature != last_progress_signature:
+                    last_progress_signature = progress_signature
+                    last_progress_at = now
+
+                returncode = process.poll()
+                if returncode is not None:
+                    return LiveSurfaceProcessResult(
+                        returncode=returncode,
+                        stdout=_temporary_file_text(stdout_file),
+                        stderr=_temporary_file_text(stderr_file),
+                        wall_clock_budget_s=wall_clock_budget_s,
+                        stall_timeout_s=stall_timeout_s,
+                        elapsed_s=elapsed_s,
+                        last_progress_elapsed_s=max(last_progress_at - started, 0.0),
+                    )
+                if elapsed_s >= wall_clock_budget_s:
+                    _terminate_live_surface_process(process)
+                    return LiveSurfaceProcessResult(
+                        returncode="wall_clock_budget_exhausted",
+                        stdout=_temporary_file_text(stdout_file),
+                        stderr=_temporary_file_text(stderr_file),
+                        timeout_kind="wall_clock_budget_exhausted",
+                        wall_clock_budget_s=wall_clock_budget_s,
+                        stall_timeout_s=stall_timeout_s,
+                        elapsed_s=elapsed_s,
+                        last_progress_elapsed_s=max(last_progress_at - started, 0.0),
+                    )
+                stalled_s = max(now - last_progress_at, 0.0)
+                if stalled_s >= stall_timeout_s:
+                    _terminate_live_surface_process(process)
+                    return LiveSurfaceProcessResult(
+                        returncode="stall_timeout",
+                        stdout=_temporary_file_text(stdout_file),
+                        stderr=_temporary_file_text(stderr_file),
+                        timeout_kind="stall_timeout",
+                        wall_clock_budget_s=wall_clock_budget_s,
+                        stall_timeout_s=stall_timeout_s,
+                        elapsed_s=elapsed_s,
+                        last_progress_elapsed_s=max(last_progress_at - started, 0.0),
+                    )
+                time.sleep(
+                    min(
+                        LIVE_PROCESS_POLL_S,
+                        max(wall_clock_budget_s - elapsed_s, 0.0),
+                        max(stall_timeout_s - stalled_s, 0.0),
+                    )
+                )
+
+
+def _live_surface_run_dir_for_monitor(
+    kwargs: dict[str, Any],
+    *,
+    output_dir: Path,
+    fallback_run_dir: Path,
+    stdout: str,
+    started_wall_time_s: float,
+) -> Path:
+    try:
+        return discover_live_surface_run_dir(
+            kwargs,
+            output_dir=output_dir,
+            fallback_run_dir=fallback_run_dir,
+            stdout=stdout,
+            started_wall_time_s=started_wall_time_s,
+        )
+    except RuntimeError:
+        return fallback_run_dir
+
+
+def _live_surface_progress_signature(run_dir: Path) -> tuple[Any, ...]:
+    status = _load_json_for_progress(run_dir / "live_status.json")
+    snapshot = (
+        status.get("debug_snapshot") if isinstance(status.get("debug_snapshot"), dict) else {}
+    )
+    progress = snapshot.get("progress") if isinstance(snapshot.get("progress"), dict) else {}
+    tool_counts = (
+        snapshot.get("tool_response_counts")
+        if isinstance(snapshot.get("tool_response_counts"), dict)
+        else {}
+    )
+    return (
+        str(status.get("phase") or ""),
+        status.get("exit_status"),
+        _file_progress_signature(run_dir / "run_result.json"),
+        _file_progress_signature(run_dir / "report.html"),
+        _file_progress_signature(run_dir / "trace.jsonl"),
+        _glob_progress_signature(run_dir, "openai-agents-events*.jsonl"),
+        snapshot.get("run_result_present"),
+        snapshot.get("report_present"),
+        snapshot.get("trace_event_count"),
+        snapshot.get("trace_request_count"),
+        snapshot.get("trace_response_count"),
+        snapshot.get("last_trace_event"),
+        snapshot.get("last_trace_response"),
+        snapshot.get("last_trace_wallclock_elapsed_s"),
+        tuple(sorted((str(key), value) for key, value in progress.items())),
+        tuple(sorted((str(key), value) for key, value in tool_counts.items())),
+        snapshot.get("openai_agents_event_count"),
+        snapshot.get("last_openai_agents_event"),
+        snapshot.get("last_openai_agents_ts_epoch"),
+        snapshot.get("model_service_attempt_count"),
+        snapshot.get("model_service_success_count"),
+        snapshot.get("model_service_failure_count"),
+        snapshot.get("model_racing_arm_start_count"),
+        snapshot.get("model_racing_arm_finish_count"),
+    )
+
+
+def _load_json_for_progress(path: Path) -> dict[str, Any]:
+    try:
+        return _load_json(path)
+    except (OSError, ValueError):
+        return {}
+
+
+def _file_progress_signature(path: Path) -> tuple[bool, int, int]:
+    try:
+        stat = path.stat()
+    except OSError:
+        return (False, 0, 0)
+    return (True, stat.st_size, stat.st_mtime_ns)
+
+
+def _glob_progress_signature(run_dir: Path, pattern: str) -> tuple[tuple[str, bool, int, int], ...]:
+    return tuple(
+        (path.name, *_file_progress_signature(path))
+        for path in sorted(run_dir.glob(pattern), key=lambda item: item.name)
+    )
+
+
+def _terminate_live_surface_process(process: subprocess.Popen[Any]) -> None:
+    if process.poll() is not None:
+        return
+    try:
+        process.terminate()
+    except OSError:
+        return
+    try:
+        process.wait(timeout=5.0)
+        return
+    except subprocess.TimeoutExpired:
+        pass
+    try:
+        process.kill()
+    except OSError:
+        return
+    try:
+        process.wait(timeout=5.0)
+    except subprocess.TimeoutExpired:
+        return
+
+
+def _temporary_file_text(file_obj: Any) -> str:
+    try:
+        file_obj.flush()
+        position = file_obj.tell()
+        file_obj.seek(0)
+        text = file_obj.read()
+        file_obj.seek(position)
+    except OSError:
+        return ""
+    return _subprocess_text_output(text)
+
+
+def _live_timeout_message(
+    *,
+    timeout_kind: str,
+    wall_clock_budget_s: float,
+    stall_timeout_s: float,
+) -> str:
+    if timeout_kind == "stall_timeout":
+        return f"live eval trial stalled after {stall_timeout_s:g}s without progress"
+    if timeout_kind == "wall_clock_budget_exhausted":
+        return f"live eval trial exceeded wall-clock budget after {wall_clock_budget_s:g}s"
+    return f"live eval trial timed out after {wall_clock_budget_s:g}s"
 
 
 def live_surface_command(kwargs: dict[str, Any], *, output_dir: Path) -> list[str]:
@@ -343,17 +612,25 @@ def _live_surface_already_complete(
 
 
 def live_surface_timeout_s(kwargs: dict[str, Any]) -> float:
+    return live_wall_clock_budget_s(kwargs)
+
+
+def live_wall_clock_budget_s(kwargs: dict[str, Any]) -> float:
     timeout_s = kwargs.get("live_timeout_s")
     if timeout_s is None:
-        return DEFAULT_LIVE_TIMEOUT_S
+        return DEFAULT_LIVE_WALL_CLOCK_BUDGET_S
     return _positive_timeout_value(timeout_s, "live_timeout_s")
 
 
 def explicit_live_surface_timeout_s(kwargs: dict[str, Any]) -> float | None:
-    timeout_s = kwargs.get("live_timeout_s")
+    return live_wall_clock_budget_s(kwargs)
+
+
+def live_stall_timeout_s(kwargs: dict[str, Any]) -> float:
+    timeout_s = kwargs.get("live_stall_timeout_s")
     if timeout_s is None:
-        return None
-    return _positive_timeout_value(timeout_s, "live_timeout_s")
+        return DEFAULT_LIVE_STALL_TIMEOUT_S
+    return _positive_timeout_value(timeout_s, "live_stall_timeout_s")
 
 
 def _live_surface_wait_deadline(*, timeout_s: float, elapsed_s: float) -> float:
@@ -435,6 +712,7 @@ def live_product_run_kwargs(
     provider_profile: str,
     model: str | None,
     live_timeout_s: float | None,
+    live_stall_timeout_s: float | None,
 ) -> dict[str, Any]:
     """Return product-run kwargs plus live-agent routing metadata."""
 
@@ -451,6 +729,7 @@ def live_product_run_kwargs(
             "provider_profile": provider_profile,
             "model": model,
             "live_timeout_s": live_timeout_s,
+            "live_stall_timeout_s": live_stall_timeout_s,
         }
     )
     return kwargs

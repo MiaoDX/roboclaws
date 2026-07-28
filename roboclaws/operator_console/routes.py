@@ -33,16 +33,8 @@ AGIBOT_CAMERA_LABELER = "grounding-dino"
 SIMULATION_CAMERA_LABELER = "grounding-dino"
 
 REAL_EVIDENCE_LANES = cleanup_evidence_lane_names()
-ISAAC_SUPPORTED_EVIDENCE_LANES = tuple(
-    lane for lane in REAL_EVIDENCE_LANES if lane != CAMERA_GROUNDED_LABELS_LANE
-)
-ISAAC_UNSUPPORTED_EVIDENCE_LANES = (CAMERA_GROUNDED_LABELS_LANE,)
-MOLMOSPACES_DEFAULT_CLEANUP_TARGET_COUNT = 5
-MOLMOSPACES_MUJOCO_DEFAULT_CLEANUP_WORLD_IDS: tuple[str, ...] = ()
-B1_ROBOT_PROOF_REQUIRED_OVERRIDES = (
-    "b1_alignment_artifact",
-    "b1_navigation_artifact",
-)
+ISAAC_SUPPORTED_EVIDENCE_LANES = REAL_EVIDENCE_LANES
+B1_ROBOT_PROOF_REQUIRED_OVERRIDES: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -271,15 +263,17 @@ AGIBOT_ESTOP_GATE = RouteGate(
 )
 B1_ALIGNMENT_ARTIFACT_GATE = RouteGate(
     id="b1_alignment_artifact",
-    label="B1 alignment residual artifact attached",
+    label="B1 verified alignment artifact available",
     kind="request_field",
-    help_text="Attach the explicit verified B1 / Map 12 alignment residual JSON.",
+    help_text=(
+        "Optional: leave empty to generate a B1 / Map 12 alignment residual JSON at launch."
+    ),
 )
 B1_NAVIGATION_ARTIFACT_GATE = RouteGate(
     id="b1_navigation_artifact",
-    label="B1 navigation smoke artifact attached",
+    label="B1 verified navigation smoke artifact available",
     kind="request_field",
-    help_text="Attach the explicit verified B1 / Map 12 navigation smoke JSON.",
+    help_text="Optional: leave empty to generate a B1 / Map 12 navigation smoke JSON at launch.",
 )
 
 
@@ -391,6 +385,7 @@ def _enabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
             "openai-agents-sdk",
             "codex-router-responses",
             evidence_lanes=ISAAC_SUPPORTED_EVIDENCE_LANES,
+            camera_labeler=SIMULATION_CAMERA_LABELER,
             scenario_setup=ENVIRONMENT_SETUP_BASELINE,
             gates=(
                 *common_gates,
@@ -410,21 +405,20 @@ def _molmospaces_enabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
     rows: list[ConsoleLaunchSelection] = []
     common_gates = _common_gates()
     for world_id in MOLMOSPACES_CONSOLE_WORLD_IDS:
-        if world_id in MOLMOSPACES_MUJOCO_DEFAULT_CLEANUP_WORLD_IDS:
-            rows.extend(
-                _lane_selections(
-                    world_id,
-                    "mujoco",
-                    "cleanup",
-                    "openai-agents-sdk",
-                    "codex-router-responses",
-                    gates=common_gates,
-                    default_overrides=("seed=7",),
-                    supports_operator_steer=True,
-                    supports_paused_handoff_resume=True,
-                    supports_relative_navigation_control=True,
-                )
+        rows.extend(
+            _lane_selections(
+                world_id,
+                "mujoco",
+                "cleanup",
+                "openai-agents-sdk",
+                "codex-router-responses",
+                gates=common_gates,
+                default_overrides=("seed=7",),
+                supports_operator_steer=True,
+                supports_paused_handoff_resume=True,
+                supports_relative_navigation_control=True,
             )
+        )
         rows.extend(
             _lane_selections(
                 world_id,
@@ -469,24 +463,6 @@ def _molmospaces_enabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
 
 def _disabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
     return (
-        *_disabled_molmospaces_cleanup_combinations(),
-        *_lane_selections(
-            "b1-map12",
-            "isaaclab",
-            "open-ended",
-            "openai-agents-sdk",
-            "codex-router-responses",
-            evidence_lanes=ISAAC_UNSUPPORTED_EVIDENCE_LANES,
-            scenario_setup=ENVIRONMENT_SETUP_BASELINE,
-            enabled=False,
-            unsupported_reason=(
-                "Isaac Lab camera-grounded labels are not wired yet; use world labels or raw FPV."
-            ),
-            gates=_common_gates(),
-            required_overrides=B1_ROBOT_PROOF_REQUIRED_OVERRIDES,
-            default_overrides=("seed=7",),
-            supports_operator_steer=True,
-        ),
         _selection(
             "agibot-g2/map-12",
             "agibot-gdk",
@@ -502,36 +478,6 @@ def _disabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
             emergency_stop_required=True,
         ),
     )
-
-
-def _disabled_molmospaces_cleanup_combinations() -> tuple[ConsoleLaunchSelection, ...]:
-    rows: list[ConsoleLaunchSelection] = []
-    for world_id in MOLMOSPACES_CONSOLE_WORLD_IDS:
-        if world_id not in MOLMOSPACES_MUJOCO_DEFAULT_CLEANUP_WORLD_IDS:
-            reason = (
-                "This scene does not expose at least "
-                f"{MOLMOSPACES_DEFAULT_CLEANUP_TARGET_COUNT} generated cleanup targets "
-                "under the current cleanup rules. Use Map Build or choose a cleanup-ready scene."
-            )
-            for agent_engine_id, provider_profile in (
-                ("openai-agents-sdk", "codex-router-responses"),
-            ):
-                rows.extend(
-                    _lane_selections(
-                        world_id,
-                        "mujoco",
-                        "cleanup",
-                        agent_engine_id,
-                        provider_profile,
-                        enabled=False,
-                        unsupported_reason=reason,
-                        gates=_common_gates(),
-                        default_overrides=("seed=7",),
-                        supports_operator_steer=True,
-                        supports_paused_handoff_resume=True,
-                    )
-                )
-    return tuple(rows)
 
 
 def _selection(

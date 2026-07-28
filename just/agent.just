@@ -153,7 +153,7 @@ run dispatch_target agent_engine mode="" *overrides:
         regrade_source|\
         camera_labeler|evidence_lane|profile|real_movement_enabled|rehearsal_mode|robot_name|run_dir|runner_python|runner_script|\
         runtime|runtime_map_prior|molmospaces_python|generated_mess_object_ids|\
-        operator_messages_path|operator_resume_requests_path|skill_name|task_intent|task_preset|task_surface|goal_contract_json|goal_contract_path|\
+        operator_messages_path|operator_resume_requests_path|operator_session_context_json|skill_name|task_intent|task_preset|task_surface|goal_contract_json|goal_contract_path|\
         scene_index|scene_source|seed|seeds|map_build|task|timeout_s|world|\
         isaac_scene_usd_path|\
         visual_grounding|visual_grounding_timeout|visual_grounding_timeout_s|wall_budget|waypoint_id)
@@ -336,6 +336,7 @@ run dispatch_target agent_engine mode="" *overrides:
         fi
         goal_contract_json="$(get goal_contract_json "${ROBOCLAWS_GOAL_CONTRACT_JSON:-}")"
         goal_contract_path="$(get goal_contract_path "${ROBOCLAWS_GOAL_CONTRACT_PATH:-}")"
+        operator_session_context_json="$(get operator_session_context_json "${ROBOCLAWS_OPERATOR_SESSION_CONTEXT_JSON:-}")"
         goal_contract_args=()
         if [[ -n "$goal_contract_json" ]]; then
           goal_contract_args+=(--goal-contract-json "$goal_contract_json")
@@ -667,6 +668,7 @@ run dispatch_target agent_engine mode="" *overrides:
         fi
         ROBOCLAWS_GOAL_CONTRACT_JSON="$goal_contract_json" \
           ROBOCLAWS_GOAL_CONTRACT_PATH="$goal_contract_path" \
+          ROBOCLAWS_OPERATOR_SESSION_CONTEXT_JSON="$operator_session_context_json" \
           ROBOCLAWS_LAUNCH_WORLD_ID="$world_id" \
           ROBOCLAWS_MOLMO_RUN_DIR_OVERRIDE="$run_dir_override" \
           ROBOCLAWS_TASK_INTENT="$resolved_task_intent" \

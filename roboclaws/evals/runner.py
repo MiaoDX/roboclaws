@@ -27,6 +27,7 @@ from roboclaws.evals.live_runtime import (
     run_live_eval_trial,
     run_live_surface_product,
 )
+from roboclaws.evals.live_timeout import live_exception_debug_fields
 from roboclaws.evals.map_build_quality import grade_runtime_metric_map_quality
 from roboclaws.evals.models import (
     MISSING_NOT_APPLICABLE,
@@ -44,7 +45,6 @@ from roboclaws.household.realworld_cleanup import run_realworld_cleanup
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUTPUT_ROOT = REPO_ROOT / "output" / "evals"
-
 ProductRun = Callable[..., dict[str, Any]]
 
 
@@ -70,6 +70,7 @@ def run_eval_suite(
     model: str | None = None,
     live_execution: str = "blocked",
     live_timeout_s: float | None = None,
+    live_stall_timeout_s: float | None = None,
     regrade_source: Path | None = None,
     product_runner: ProductRun = run_realworld_cleanup,
     live_product_runner: ProductRun | None = None,
@@ -124,6 +125,7 @@ def run_eval_suite(
                 model=model,
                 live_execution=live_execution,
                 live_timeout_s=live_timeout_s,
+                live_stall_timeout_s=live_stall_timeout_s,
                 regrade_source_dir=regrade_source_dir,
                 product_runner=product_runner,
                 live_product_runner=live_product_runner,
@@ -271,6 +273,7 @@ def _run_trial(
     model: str | None,
     live_execution: str,
     live_timeout_s: float | None,
+    live_stall_timeout_s: float | None,
     regrade_source_dir: Path | None,
     product_runner: ProductRun,
     live_product_runner: ProductRun | None,
@@ -298,6 +301,7 @@ def _run_trial(
                 provider_profile=provider_profile,
                 model=model,
                 live_timeout_s=live_timeout_s,
+                live_stall_timeout_s=live_stall_timeout_s,
                 live_product_runner=live_product_runner or run_live_surface_product,
                 hooks=LiveTrialHooks(
                     failed_result_from_dependency=_failed_result_from_dependency,
@@ -1511,17 +1515,17 @@ def _prior_use_verdict(
 def _blocked_result_from_exception(trial: EvalTrial, exc: Exception) -> EvalResult:
     failure_class = _failure_class_from_exception(exc)
     blocked = failure_class in {"environment_blocked", "model_or_provider_unavailable"}
+    runner_output: dict[str, Any] = {
+        "status": "blocked" if blocked else "failed",
+        "error_type": type(exc).__name__,
+        "message": str(exc),
+    }
+    runner_output.update(live_exception_debug_fields(exc))
     return EvalResult.from_trial(
         trial,
         status="blocked" if blocked else "failed",
         failure_class=failure_class,
-        grader_outputs={
-            "runner": {
-                "status": "blocked" if blocked else "failed",
-                "error_type": type(exc).__name__,
-                "message": str(exc),
-            }
-        },
+        grader_outputs={"runner": runner_output},
         artifacts={},
         metrics={"pass": 0.0},
         limitations=(*trial.limitations, "product_run_failed_before_grading"),
