@@ -2003,6 +2003,76 @@ def test_map_build_consumer_suite_passes_runtime_map_prior_between_samples(
     )
 
 
+def test_no_prior_control_suite_never_launches_map_build(tmp_path: Path) -> None:
+    seen_intents: list[str] = []
+
+    def product_runner(**kwargs: Any) -> dict[str, Any]:
+        run_dir = Path(kwargs["output_dir"])
+        seen_intents.append(str(kwargs["intent"]))
+        if kwargs["intent"] == "open-ended":
+            _write_product_artifacts(
+                run_dir, completion_status="success", include_goal_contract=True
+            )
+            return _run_result(
+                run_dir,
+                completion_status="success",
+                task_intent="open-ended",
+                final_status="success",
+                include_completion_claim=True,
+            )
+        _write_product_artifacts(run_dir, completion_status="success")
+        return _run_result(run_dir, completion_status="success")
+
+    run_eval_suite(
+        "map_consumer_no_prior",
+        output_root=tmp_path,
+        stamp="no-prior",
+        product_runner=product_runner,
+    )
+
+    assert seen_intents == ["open-ended", "cleanup"]
+
+
+def test_fixed_prior_suite_reuses_one_digest_without_map_build(tmp_path: Path) -> None:
+    prior = tmp_path / "runtime_map_prior_snapshot.json"
+    prior.write_text('{"schema":"runtime_map_prior_snapshot_v1"}\n', encoding="utf-8")
+    seen: list[tuple[str, str]] = []
+
+    def product_runner(**kwargs: Any) -> dict[str, Any]:
+        run_dir = Path(kwargs["output_dir"])
+        seen.append((str(kwargs["intent"]), str(kwargs["runtime_map_prior_path"])))
+        if kwargs["intent"] == "open-ended":
+            _write_product_artifacts(
+                run_dir, completion_status="success", include_goal_contract=True
+            )
+            return _run_result(
+                run_dir,
+                completion_status="success",
+                task_intent="open-ended",
+                final_status="success",
+                include_completion_claim=True,
+            )
+        _write_product_artifacts(run_dir, completion_status="success")
+        return _run_result(run_dir, completion_status="success")
+
+    run = run_eval_suite(
+        "map_consumer_fixed_prior",
+        output_root=tmp_path,
+        stamp="fixed",
+        runtime_map_prior=prior,
+        product_runner=product_runner,
+    )
+
+    assert seen == [("open-ended", str(prior)), ("cleanup", str(prior))]
+    payload = json.loads(run.results_path.read_text())
+    dependencies = [
+        result["grader_outputs"]["artifacts"]["resolved_dependencies"]
+        for result in payload["results"]
+    ]
+    assert len({item["runtime_map_prior_sha256"] for item in dependencies}) == 1
+    assert {item["runtime_map_prior_source"] for item in dependencies} == {"suite_override"}
+
+
 def test_focused_map_build_eval_passes_camera_labeler_to_product_runner(
     tmp_path: Path,
 ) -> None:

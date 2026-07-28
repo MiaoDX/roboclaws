@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-07-14
+Last updated: 2026-07-23
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -26,6 +26,8 @@ Current household map/runtime contracts:
 - Base Metric Map is the required start-of-run map context.
 - Runtime Metric Map owns map-build and observation semantic evidence.
 - Runtime Map Prior Snapshot is the downstream prior wrapper.
+- Canonical Runtime Map Priors are explicitly promoted, content-addressed, and
+  reused read-only across normal provider consumer matrices.
 - Product runtime, smoke helpers, and current tests fail loudly when a required
   Base Metric Map bundle is missing.
 
@@ -35,7 +37,8 @@ available through:
 ```bash
 just agent::eval suite=smoke_regression budget=smoke
 just agent::eval suite=open_ended_goals budget=smoke
-just agent::eval suite=map_build_consumer budget=smoke
+just agent::eval suite=map_build_quality budget=smoke
+just agent::eval suite=map_consumer_no_prior budget=smoke
 ```
 
 Live eval execution is opt-in with `live_execution=run`; default non-direct eval
@@ -84,6 +87,7 @@ for plan/diff-driven verification recommendations.
 ## Current Source Links
 
 Plans:
+`docs/plans/2026-07-01-recommended-runtime-map-prior-selection.md`,
 `docs/plans/2026-06-26-map-build-quality-eval-harness.md`,
 `docs/plans/2026-06-20-cross-environment-map-waypoint-source-of-truth.md`,
 `docs/plans/2026-06-18-b1-map12-semantic-and-public-nav-followups.md`,
