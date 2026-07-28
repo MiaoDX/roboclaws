@@ -38,19 +38,18 @@ def test_execute_assigns_isolated_mcp_port_to_live_rows(
     captured: list[tuple[str, dict[str, str]]] = []
     monkeypatch.setattr(runner, "_row_blockers", lambda row, manifest: [])
 
-    def fake_run(command: list[str], **kwargs: Any) -> Any:
-        env = kwargs.get("env")
-        assert isinstance(env, dict)
-        captured.append((" ".join(command), env))
+    class FakeProcess:
+        returncode = 0
 
-        class _Result:
-            returncode = 0
-            stdout = ""
-            stderr = ""
+        def __init__(self, command: list[str], **kwargs: Any) -> None:
+            env = kwargs.get("env")
+            assert isinstance(env, dict)
+            captured.append((" ".join(command), env))
 
-        return _Result()
+        def communicate(self, timeout: float | None = None) -> tuple[str, str]:
+            return "", ""
 
-    monkeypatch.setattr(runner.subprocess, "run", fake_run)
+    monkeypatch.setattr(runner.local_execution.subprocess, "Popen", FakeProcess)
     manifest = selector.build_eval_harness(
         mode="execute",
         budget="focused",

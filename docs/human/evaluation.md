@@ -78,6 +78,85 @@ the explicit alternate-provider matrix and currently takes roughly 2.5-3.5
 hours. Named baseline profile rows run when their preflight is ready and
 otherwise record blocked evidence; they are not `skipped_by_budget`.
 
+Harness execution is target-aware. `execution_target=local` remains the default
+and `max_parallel=1` preserves the historical serial behavior. Raising
+`max_parallel` runs independent rows concurrently while dependency chains and
+shared local visual-backend groups remain ordered.
+
+Build eval images only when `Dockerfile.eval`, the root lockfile, the visual
+grounding lockfile, or the pinned DINO snapshot changes. A baseline refresh
+normally reuses already-published image digests and does not rebuild images:
+
+```bash
+ROBOCLAWS_EVAL_IMAGE_VARIANT=cpu \
+ROBOCLAWS_EVAL_CODE_REF=HEAD \
+ROBOCLAWS_EVAL_PUSH=false \
+  scripts/dev/build_push_eval_image.sh
+
+ROBOCLAWS_EVAL_IMAGE_VARIANT=cuda \
+ROBOCLAWS_EVAL_CODE_REF=HEAD \
+ROBOCLAWS_EVAL_DINO_CACHE_DIR="$HOME/.cache/huggingface/hub/models--IDEA-Research--grounding-dino-base" \
+ROBOCLAWS_EVAL_PUSH=false \
+  scripts/dev/build_push_eval_image.sh
+```
+
+Both commands run an offline eval smoke. The CUDA build also requires the
+pinned DINO revision in the supplied Hugging Face cache and copies it into the
+image; it does not fetch model assets from the public Hub. After local proof,
+set `ROBOCLAWS_EVAL_PUSH=true` only when publishing is intended, then use the
+reported registry `@sha256:` identity below. Cold builds can take tens of
+minutes, especially for CUDA wheels, but cached rebuilds and baseline execution
+do not pay that setup cost.
+
+CloudML planning uses the same frozen manifest and row identities:
+
+```bash
+ROBOCLAWS_CLOUDML_CPU_IMAGE_URL='<cpu-image>@sha256:<digest>' \
+ROBOCLAWS_CLOUDML_GPU_IMAGE_URL='<cuda-image>@sha256:<digest>' \
+ROBOCLAWS_CLOUDML_ASSET_MANIFEST=/path/to/roboclaws_cloudml_cleanup_assets.json \
+  just agent::eval execute profile=baseline-core budget=focused \
+  execution_target=cloudml cloudml_dry_run=true
+```
+
+With `cloudml_dry_run=true`, this generates executor `custom_train` YAML for
+CPU and RTX 4090 shards without uploading or submitting. Inputs are mounted
+read-only, outputs use a run-owned writable JuiceFS prefix, and
+code/image/asset identities are pinned. Only image variables for pools selected
+by the plan are required, so a CPU-only run does not need a CUDA image. The CUDA
+image contains the pinned Grounding DINO model snapshot and CUDA sidecar venv;
+the CPU image stays smaller and does not install those dependencies.
+
+After reviewing the dry-run and accepting the CloudML cost, omit
+`cloudml_dry_run=true` to upload the staging directory and submit detached
+jobs. The plan persists each task ID immediately, so a partial submission is
+resumable:
+
+```bash
+ROBOCLAWS_CLOUDML_CPU_IMAGE_URL='<cpu-image>@sha256:<digest>' \
+ROBOCLAWS_CLOUDML_GPU_IMAGE_URL='<cuda-image>@sha256:<digest>' \
+ROBOCLAWS_CLOUDML_ASSET_MANIFEST=/path/to/roboclaws_cloudml_cleanup_assets.json \
+  just agent::eval execute profile=baseline-core budget=focused \
+  execution_target=cloudml output_dir=output/eval-harness/<run>
+just agent::eval execute run=output/eval-harness/<run>
+```
+
+Status is a single query by default. Waiting is opt-in. Collection downloads
+the run-owned JuiceFS output, requires terminal markers and exact row/shard
+identities, then rewrites the normal harness JSON, Markdown, and HTML reports:
+
+```bash
+just agent::eval status run=output/eval-harness/<run>
+just agent::eval status run=output/eval-harness/<run> wait=true timeout_s=3600
+just agent::eval collect run=output/eval-harness/<run>
+```
+
+Direct Kimi/MiniMax require external egress. API Router/MiMo are reachable from
+CloudML, but live provider rows remain explicitly blocked there until executor
+supports a secret reference or workload identity; plaintext key injection is
+not supported. `execution_target=auto` currently supports placement dry-runs
+only because a real hybrid run still needs dependency-safe handoff between
+CloudML producer rows and local provider consumers.
+
 Direct suites run direct-runner household samples without provider keys, write
 `output/evals/<suite>/<stamp>/eval_results.json`, and render
 `eval_report.html` with links to the underlying product run artifacts. Smoke

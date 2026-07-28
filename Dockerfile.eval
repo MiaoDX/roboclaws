@@ -1,4 +1,5 @@
 ARG PYTHON_IMAGE=python:3.12-slim-bookworm@sha256:76d4b7b6305788c6b4c6a19d6a22a3921bf802e9af4d5e1e5bd771208dba74bf
+FROM scratch AS grounding-dino-cache
 FROM ${PYTHON_IMAGE}
 
 ARG JUST_VERSION=1.51.0
@@ -60,6 +61,58 @@ RUN uv sync --extra dev --frozen --no-install-project \
         "hatchling==${HATCHLING_VERSION}" \
         "editables==${EDITABLES_VERSION}" \
     && "$ROBOCLAWS_DEVTOOLS_PYTHON" -c "import numpy, PIL, jinja2"
+
+ARG EVAL_IMAGE_VARIANT=cpu
+COPY sidecars/visual-grounding/pyproject.toml sidecars/visual-grounding/uv.lock \
+    /opt/roboclaws/sidecars/visual-grounding/
+RUN set -eux; \
+    case "$EVAL_IMAGE_VARIANT" in \
+      cpu) ;; \
+      cuda) \
+        UV_PROJECT_ENVIRONMENT=/opt/roboclaws/.venv-visual-grounding \
+          uv sync --project /opt/roboclaws/sidecars/visual-grounding \
+            --extra cuda --frozen; \
+        /opt/roboclaws/.venv-visual-grounding/bin/python -c \
+          "import torch, transformers; assert torch.version.cuda; print(torch.__version__, torch.version.cuda, transformers.__version__)" \
+        ;; \
+      *) echo "unsupported EVAL_IMAGE_VARIANT: $EVAL_IMAGE_VARIANT" >&2; exit 1 ;; \
+    esac
+
+ARG GROUNDING_DINO_MODEL_ID=IDEA-Research/grounding-dino-base
+ARG GROUNDING_DINO_MODEL_REVISION=12bdfa3120f3e7ec7b434d90674b3396eccf88eb
+RUN --mount=type=bind,from=grounding-dino-cache,target=/tmp/grounding-dino-cache,ro \
+    set -eux; \
+    case "$EVAL_IMAGE_VARIANT" in \
+      cpu) ;; \
+      cuda) \
+        model_source="/tmp/grounding-dino-cache/snapshots/$GROUNDING_DINO_MODEL_REVISION"; \
+        model_target=/opt/roboclaws/models/grounding-dino-base; \
+        test -f "$model_source/config.json"; \
+        test -f "$model_source/model.safetensors"; \
+        mkdir -p "$model_target"; \
+        cp -L \
+          "$model_source/config.json" \
+          "$model_source/model.safetensors" \
+          "$model_source/preprocessor_config.json" \
+          "$model_source/special_tokens_map.json" \
+          "$model_source/tokenizer_config.json" \
+          "$model_source/tokenizer.json" \
+          "$model_source/vocab.txt" \
+          "$model_target/"; \
+        printf '%s\n' "$GROUNDING_DINO_MODEL_REVISION" > "$model_target/.revision"; \
+        ;; \
+      *) echo "unsupported EVAL_IMAGE_VARIANT: $EVAL_IMAGE_VARIANT" >&2; exit 1 ;; \
+    esac
+
+ENV HF_HOME=/opt/roboclaws/huggingface
+ENV HF_HUB_OFFLINE=1
+ENV TRANSFORMERS_OFFLINE=1
+ENV VISUAL_GROUNDING_DINO_MODEL_ID=/opt/roboclaws/models/grounding-dino-base
+ENV VISUAL_GROUNDING_DINO_SOURCE_ID=${GROUNDING_DINO_MODEL_ID}
+ENV VISUAL_GROUNDING_DINO_MODEL_REVISION=${GROUNDING_DINO_MODEL_REVISION}
+
+COPY scripts/dev/run_cloudml_eval_worker.sh /opt/roboclaws/bin/run-cloudml-eval-worker
+RUN chmod +x /opt/roboclaws/bin/run-cloudml-eval-worker
 
 WORKDIR /workspace/roboclaws
 CMD ["bash"]

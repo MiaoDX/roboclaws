@@ -24,6 +24,9 @@ if str(REPO_ROOT) not in sys.path:
 from roboclaws.core.json_sources import read_json_object  # noqa: E402
 
 SELECTOR_PATH = SCRIPT_DIR / "select_eval_harness.py"
+LOCAL_EXECUTION_PATH = SCRIPT_DIR / "eval_harness_local_execution.py"
+CLOUDML_EXECUTION_PATH = SCRIPT_DIR / "eval_harness_cloudml.py"
+CLOUDML_LIFECYCLE_PATH = SCRIPT_DIR / "eval_harness_cloudml_lifecycle.py"
 DEFAULT_VISUAL_GROUNDING_BASE_URL = "http://127.0.0.1:18880"
 PROVIDER_TIMING_PROXY_ENV = "ROBOCLAWS_PROVIDER_TIMING_PROXY"
 DINO_SIDECAR_AUTOSTART_ENV = "ROBOCLAWS_EVAL_HARNESS_AUTOSTART_DINO_SIDECAR"
@@ -41,11 +44,20 @@ ROW_BLOCKER_REQUIREMENT_PRIORITY = {
 }
 RUNTIME_MAP_PRIOR_SOURCE_ROW_ID = "direct-map-build-world-public"
 
-spec = importlib.util.spec_from_file_location("eval_harness_selector", SELECTOR_PATH)
-if spec is None or spec.loader is None:
-    raise RuntimeError(f"could not load selector at {SELECTOR_PATH}")
-selector = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(selector)
+
+def _load_script(name: str, path: Path) -> Any:
+    script_spec = importlib.util.spec_from_file_location(name, path)
+    if script_spec is None or script_spec.loader is None:
+        raise RuntimeError(f"could not load {name} at {path}")
+    module = importlib.util.module_from_spec(script_spec)
+    script_spec.loader.exec_module(module)
+    return module
+
+
+selector = _load_script("eval_harness_selector", SELECTOR_PATH)
+local_execution = _load_script("eval_harness_local_execution", LOCAL_EXECUTION_PATH)
+cloudml_execution = _load_script("eval_harness_cloudml", CLOUDML_EXECUTION_PATH)
+cloudml_lifecycle = _load_script("eval_harness_cloudml_lifecycle", CLOUDML_LIFECYCLE_PATH)
 
 
 _MANAGED_DINO_SIDECARS: list[dict[str, Any]] = []
@@ -69,12 +81,53 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--evidence-lane", default="")
     parser.add_argument("--camera-labeler", default="")
     parser.add_argument("--output-dir", type=Path)
+    parser.add_argument("--execution-target", choices=("local", "cloudml", "auto"), default="local")
+    parser.add_argument("--max-parallel", type=local_execution.positive_int, default=1)
+    parser.add_argument("--cloudml-dry-run", type=cloudml_execution.bool_value, default=False)
+    parser.add_argument("--manifest", type=Path)
+    parser.add_argument("--row-id", action="append", default=[])
+    parser.add_argument("--shard-id", default="local-main")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    manifest = selector.build_eval_harness(
+    row_ids = selector._split_csv_values(args.row_id)
+    manifest = _manifest_from_args(args)
+    output_dir = Path(manifest["output_dir"])
+    output_dir.mkdir(parents=True, exist_ok=True)
+    if args.mode == "execute":
+        if args.execution_target == "local":
+            _execute_harness(
+                manifest,
+                row_ids=row_ids,
+                max_parallel=args.max_parallel,
+                shard_id=args.shard_id,
+            )
+        else:
+            _write_outputs(manifest, output_dir)
+            cloudml_execution.prepare_cloudml_execution(
+                manifest,
+                execution_target=args.execution_target,
+                row_ids=row_ids,
+                run_id=args.shard_id if args.shard_id != "local-main" else "",
+                dry_run=args.cloudml_dry_run,
+            )
+    _write_outputs(manifest, output_dir)
+    print(f"eval harness manifest: {output_dir / 'eval_harness.json'}")
+    print(f"eval harness report: {output_dir / 'eval_harness.html'}")
+    return _exit_status(manifest, row_ids=row_ids)
+
+
+def _manifest_from_args(args: argparse.Namespace) -> dict[str, Any]:
+    if args.manifest is not None:
+        if args.mode != "execute":
+            raise ValueError("--manifest is only supported in execute mode")
+        manifest = _load_frozen_manifest(args.manifest)
+        manifest["mode"] = "execute"
+        manifest["frozen_manifest_path"] = str(args.manifest)
+        return manifest
+    return selector.build_eval_harness(
         mode=args.mode,
         budget=args.budget,
         profile=args.profile,
@@ -89,30 +142,36 @@ def main(argv: list[str] | None = None) -> int:
         camera_labeler=selector._split_csv(args.camera_labeler),
         output_dir=args.output_dir,
     )
-    output_dir = Path(manifest["output_dir"])
-    output_dir.mkdir(parents=True, exist_ok=True)
-    if args.mode == "execute":
-        _execute_harness(manifest)
-    _write_outputs(manifest, output_dir)
-    print(f"eval harness manifest: {output_dir / 'eval_harness.json'}")
-    print(f"eval harness report: {output_dir / 'eval_harness.html'}")
-    return _exit_status(manifest)
 
 
-def _execute_harness(manifest: dict[str, Any]) -> None:
+def _load_frozen_manifest(path: Path) -> dict[str, Any]:
+    manifest = _load_required_json_object(path, label="eval harness manifest")
+    if manifest.get("schema") != "roboclaws_eval_harness_manifest_v1":
+        raise ValueError(f"{path} is not an eval harness manifest")
+    if not isinstance(manifest.get("rows"), list):
+        raise ValueError(f"{path} eval harness manifest must contain a rows list")
+    if not manifest.get("output_dir"):
+        raise ValueError(f"{path} eval harness manifest must define output_dir")
+    return manifest
+
+
+def _execute_harness(
+    manifest: dict[str, Any],
+    *,
+    row_ids: list[str] | tuple[str, ...] = (),
+    max_parallel: int = 1,
+    shard_id: str = "local-main",
+) -> None:
     try:
-        for row in manifest["rows"]:
-            if not row.get("selected"):
-                continue
-            if row.get("status") == "skipped_by_budget":
-                continue
-            blockers = _row_blockers(row, manifest)
-            if blockers:
-                row["status"] = "blocked"
-                row["blocker_category"] = blockers[0]["category"]
-                row["blockers"] = blockers
-                continue
-            _run_row(row, manifest)
+        local_execution.execute_local_rows(
+            manifest,
+            run_row=_run_row,
+            row_blockers=_row_blockers,
+            write_row_result=_write_row_result,
+            row_ids=row_ids,
+            max_parallel=max_parallel,
+            shard_id=shard_id,
+        )
     finally:
         _stop_managed_dino_sidecars()
 
@@ -173,26 +232,32 @@ def _run_row(row: dict[str, Any], manifest: dict[str, Any]) -> None:
     stderr_path = row_dir / "stderr.log"
     command = _resolve_row_command(row, manifest)
     env = _row_environment(row)
-    result = subprocess.run(
+    timeout_s = float(row.get("timeout_s") or 0) or None
+    returncode, stdout, stderr, timed_out = local_execution.run_local_command(
         command,
         cwd=REPO_ROOT,
-        check=False,
-        capture_output=True,
-        text=True,
         env=env,
+        timeout_s=timeout_s,
     )
-    stdout_path.write_text(result.stdout, encoding="utf-8")
-    stderr_path.write_text(result.stderr, encoding="utf-8")
-    row["status"] = "ran"
-    row["exit_code"] = result.returncode
-    row["outcome"] = "passed" if result.returncode == 0 else "failed"
+    if timed_out:
+        row["status"] = "ran"
+        row["exit_code"] = 124
+        row["outcome"] = "failed"
+        row["failure_class"] = "harness_row_timeout"
+        row["failure_detail"] = f"row exceeded timeout_s={timeout_s:g}"
+    else:
+        row["status"] = "ran"
+        row["exit_code"] = returncode
+        row["outcome"] = "passed" if returncode == 0 else "failed"
+    stdout_path.write_text(stdout, encoding="utf-8")
+    stderr_path.write_text(stderr, encoding="utf-8")
     row["output_artifacts"] = [
         _display_path(stdout_path),
         _display_path(stderr_path),
     ]
     _attach_eval_outputs(row)
     _classify_eval_result_row(row)
-    _classify_failed_row(row, stderr=result.stderr, stdout=result.stdout)
+    _classify_failed_row(row, stderr=stderr, stdout=stdout)
 
 
 def _row_environment(row: dict[str, Any]) -> dict[str, str]:
@@ -587,6 +652,21 @@ def _write_outputs(manifest: dict[str, Any], output_dir: Path) -> None:
     html_path.write_text(_render_html(manifest), encoding="utf-8")
 
 
+def _write_row_result(row: dict[str, Any]) -> None:
+    row_dir = Path(row["row_dir"])
+    row_dir.mkdir(parents=True, exist_ok=True)
+    result_path = row_dir / "row_result.json"
+    artifacts = list(row.get("output_artifacts") or [])
+    result_display_path = _display_path(result_path)
+    if result_display_path not in artifacts:
+        artifacts.append(result_display_path)
+    row["output_artifacts"] = artifacts
+    result_path.write_text(
+        json.dumps(_redacted_manifest(row), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
 def _redacted_manifest(value: Any) -> Any:
     private_keys = {
         "private_goal_reference",
@@ -685,18 +765,23 @@ def _render_html(manifest: dict[str, Any]) -> str:
     )
 
 
-def _exit_status(manifest: dict[str, Any]) -> int:
+def _exit_status(manifest: dict[str, Any], *, row_ids: list[str] | tuple[str, ...] = ()) -> int:
+    requested = {str(row_id) for row_id in row_ids}
+
+    def in_scope(row: dict[str, Any]) -> bool:
+        return str(row.get("row_id")) in requested if requested else bool(row.get("selected"))
+
     blocked = [
         row
         for row in manifest["rows"]
-        if row.get("selected")
+        if in_scope(row)
         and row.get("status") == "blocked"
         and row.get("requirement", "required") == "required"
     ]
     failed = [
         row
         for row in manifest["rows"]
-        if row.get("selected")
+        if in_scope(row)
         and row.get("requirement", "required") == "required"
         and row.get("status") == "ran"
         and (row.get("exit_code") or row.get("outcome") == "failed")
