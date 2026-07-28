@@ -475,7 +475,7 @@ def test_realworld_mcp_done_persists_facade_rerun_command(
     prior = "output/household/household-world/map-build/anchor/seed-7/runtime_metric_map.json"
     command = (
         "just run::surface surface=household-world world=molmospaces/val_0 "
-        "backend=mujoco intent=cleanup agent_engine=codex-cli "
+        "backend=mujoco intent=cleanup agent_engine=openai-agents-sdk "
         "provider_profile=codex-router-responses evidence_lane=world-public-labels seed=7 "
         "scenario_setup=relocate-cleanup-related-objects relocation_count=5 "
         "robot_views=on "

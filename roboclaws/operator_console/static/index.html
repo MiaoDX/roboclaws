@@ -19,7 +19,7 @@
           </div>
         </div>
         <div class="global-controls">
-          <button id="background-tasks-button" class="secondary view-mode" data-view="tasks" hidden>
+          <button id="background-tasks-button" class="secondary" hidden>
             Background Tasks
           </button>
           <button id="latest-result-button" class="secondary">Latest Result</button>
@@ -94,12 +94,6 @@
             Relocation count
             <input id="relocation-count-input" name="relocation_count" value="5" />
           </label>
-          <div class="messup-actions">
-            <button id="messup-button" type="button" class="secondary">Try Mess-up</button>
-            <div id="messup-status" class="field-help">
-              Mess-up check is optional and does not block baseline tests.
-            </div>
-          </div>
           <label>
             Agent port
             <input id="port-input" name="port" value="18788" />
@@ -186,8 +180,9 @@
           <div class="char-count" id="char-count">0 / 2000</div>
           <details id="prompt-preview-panel" class="prompt-preview-panel">
             <summary>Agent Prompt</summary>
+            <button id="prompt-preview-button" type="button" class="secondary">Preview Prompt</button>
             <div id="prompt-preview-summary" class="field-help">
-              Prompt preview updates after route and goal changes.
+              Preview the full agent prompt before launch.
             </div>
             <pre id="prompt-preview-text" class="prompt-preview-text"></pre>
           </details>
@@ -220,10 +215,6 @@
             <div class="panel-header"><span data-panel-title="map">Metric Map</span><button data-copy="map">Copy Path</button></div>
             <div class="image-frame" id="map-frame">Metric Map preview has not been written yet.</div>
           </article>
-          <article class="image-panel" data-panel="runtime_map">
-            <div class="panel-header"><span data-panel-title="runtime_map">Metric Map</span><button data-copy="runtime_map">Copy Path</button></div>
-            <div class="image-frame" id="runtime_map-frame">Runtime metric map preview has not been written yet.</div>
-          </article>
           <article class="image-panel" data-panel="topdown">
             <div class="panel-header"><span data-panel-title="topdown">Top2Down</span><button data-copy="topdown">Copy Path</button></div>
             <div class="image-frame" id="topdown-frame">Top2Down scene view has not been written yet.</div>
@@ -235,14 +226,6 @@
           <article id="outputs-panel" class="outputs-panel" data-panel="outputs" hidden>
             <h2>Outputs</h2>
             <div id="artifact-list" class="artifact-list"></div>
-          </article>
-          <article id="tasks-panel" class="tasks-panel" data-panel="tasks" hidden>
-            <div class="tasks-header">
-              <h2>Background Tasks</h2>
-              <button id="refresh-tasks-button" class="secondary" type="button">Refresh</button>
-            </div>
-            <div id="background-task-summary" class="field-help">No blocking background resources loaded.</div>
-            <div id="background-task-list" class="task-table"></div>
           </article>
         </section>
       </main>

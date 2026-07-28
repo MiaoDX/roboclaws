@@ -61,8 +61,8 @@ just agent::mcp up|down
 just agent::gateway up|down|pull-image
 ```
 
-Lower modules such as `molmo::*`, `harness::*`, `verify::*`, `mcp::*`,
-`code::*`, and `chat::*` are private implementation details.
+Lower modules such as `molmo::*`, `harness::*`, `verify::*`, `mcp::*`, and
+`chat::*` are private implementation details.
 They remain runnable for debugging, but they are hidden from `just --summary`
 and should not be the first response to natural-language run requests.
 

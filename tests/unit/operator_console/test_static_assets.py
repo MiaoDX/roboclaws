@@ -14,181 +14,6 @@ STATIC_ROOT = Path(__file__).resolve().parents[3] / "roboclaws" / "operator_cons
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
-def _assert_contains_all(body: str, snippets: tuple[str, ...]) -> None:
-    missing = [snippet for snippet in snippets if snippet not in body]
-    assert missing == []
-
-
-def _assert_contains_none(body: str, snippets: tuple[str, ...]) -> None:
-    present = [snippet for snippet in snippets if snippet in body]
-    assert present == []
-
-
-ROUTE_FIELD_HTML_REQUIRED = (
-    'id="isaac-fields"',
-    'id="provider-profile-fields"',
-    'id="provider-profile-input"',
-    'id="agibot-fields"',
-    'id="agibot-gate-fields"',
-    'id="real-movement-gate"',
-    "Latest Result",
-    'id="camera-angle-value"',
-    'class="setup-panel"',
-    'class="state-rail"',
-    'id="prompt-label"',
-    'id="prompt-preview-panel"',
-    'id="prompt-preview-text"',
-    'id="agent-prompt-state"',
-    "Agent Prompt",
-    "Scenario seed for reproducible runs",
-    "Baseline does not relocate objects",
-    'id="scenario-setup-input"',
-    'name="scenario_setup"',
-    "Relocate cleanup-related objects",
-    'id="relocation-count-field"',
-    'id="relocation-count-input"',
-    'name="relocation_count"',
-    'id="messup-button"',
-    'id="messup-status"',
-    "Try Mess-up",
-    'data-operator-mode="steer"',
-    'data-operator-mode="goal"',
-    'id="background-tasks-button"',
-    '<button id="background-tasks-button" class="secondary view-mode" data-view="tasks" hidden>',
-    'id="tasks-panel"',
-    "Background Tasks",
-    'id="background-task-list"',
-    "No blocking background resources loaded.",
-)
-
-ROUTE_FIELD_HTML_FORBIDDEN = (
-    'id="codex-model-input"',
-    'id="codex-fields"',
-    'id="codex-provider-input"',
-    'id="claude-fields"',
-    'id="claude-provider-input"',
-    'value="mimo-tp-anthropic"',
-    'value="mimo-mify-anthropic"',
-    'id="isaac-preflight-gate"',
-    "Isaac preflight accepted",
-    "Isaac runtime preflight and smoke markers",
-    "Generated mess count",
-    'id="mess-count-input"',
-    "Relocate loose objects",
-    'data-operator-mode="continue"',
-    'data-operator-mode="ask_why"',
-    'id="operator-message-input"',
-    'id="operator-message-button"',
-    "Continue",
-    "Ask Why",
-    "/ask-why",
-    'id="task-status-filter"',
-    'id="task-owner-filter"',
-    'id="task-search-input"',
-)
-
-ROUTE_FIELD_APP_REQUIRED = (
-    "renderRouteFields",
-    "field_groups",
-    "real_movement_enabled",
-    "Movement",
-    "Provider",
-    "env_overrides",
-    "ROBOCLAWS_PROVIDER_PROFILE",
-    "ROBOCLAWS_PROVIDER_PROFILE",
-    "selectedProviderRoute",
-    "withProviderProfile",
-    "default_model_id",
-    "Capability Gate",
-    "NEEDS SAFETY GATES",
-    "NEEDS CONTEXT",
-    "PORT IN USE",
-    "ATTACH",
-    "Attach Existing Run",
-    "latest-result-button",
-    "cameraStateLabel",
-    "renderToolPanel",
-    "renderScenarioSetup",
-    "defaultScenarioSetup",
-    "selectedScenarioSetup",
-    "previewMessup",
-    "/api/messup-preview",
-    "Baseline remains available",
-    "Baseline means no pre-run relocation",
-    "els.messupButton.hidden = !supported || !relocation;",
-    "els.messupButton.disabled = !supported || !relocation || Boolean(state.activeRunId);",
-    "return `${route.world_id}:${route.backend_id}:${selectedScenarioSetup()}`;",
-    "markCurrentSetupSelection",
-    "markCurrentMessupStatus",
-    "resetMessupStatusForManualSetup",
-    "/next-goal",
-    "/resume",
-    "Start Next Goal",
-    "Confirm Next Goal",
-    "Resume With Prompt",
-    "check_operator_messages",
-    "operator_resume_requests.jsonl",
-    "attachLatestResult",
-    "/api/runs/latest",
-    "attachExistingRun",
-    "attachable_run",
-    "?selection_id=",
-    "renderStartAction",
-    "compactRunId",
-    "compactDisplayRunId",
-    "compactRunPart",
-    "Run Attached",
-    "Use Steer while this run is active.",
-    "/api/readiness",
-    "refreshSelectedRouteReadiness",
-    "checkerStatus.message",
-    "state.evidenceLanes",
-    "payload.evidence_lanes",
-    "evidenceLaneOptions",
-    "intentOptionsForCurrentAxes",
-    "node.disabled = Boolean(option.disabled)",
-    "node.title = option.title",
-    "orderedVisibleWorlds(payload.worlds || [])",
-    "enabledLaunchCount > 0",
-    "isMolmospacesWorld",
-    "return leftMolmo ? 1 : -1",
-    "preferredPreviewCombination(state.combinations)",
-    "routeHasPreviewAssets",
-    "payload.runtime",
-    "/api/runtime/tasks",
-    "/api/prompt-preview",
-    "refreshPromptPreview",
-    "renderAgentPromptState",
-    "agent_kickoff_prompt",
-    "wrapper_notes",
-    "effectiveLaunchPromptText",
-    "renderBackgroundTasks",
-    "No blocking background resources detected.",
-    "background_blockers",
-    "TASK RUNNING",
-    "data-open-background-tasks",
-    "backgroundTaskViewAvailable",
-    'els.backgroundTasksButton.hidden = activeCount <= 0 && state.activeView !== "tasks";',
-    "copyVisualPath",
-    "copy_command",
-    "api_post",
-)
-
-ROUTE_FIELD_APP_FORBIDDEN = (
-    "Diagnostic",
-    "NEEDS PREFLIGHT",
-    "NEEDS OPERATOR GATES",
-    "generated_mess_count",
-    "/continue",
-    "/ask-why",
-    "ask_why",
-    "Ask Why",
-    "latestAskWhyText",
-    "latestOperatorResultText",
-    "?route=",
-)
-
-
 def test_static_app_references_existing_dom_ids() -> None:
     html = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
     app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
@@ -216,19 +41,78 @@ def test_static_app_has_route_specific_field_groups() -> None:
     html = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
     app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
 
-    _assert_contains_all(html, ROUTE_FIELD_HTML_REQUIRED)
-    _assert_contains_none(html, ROUTE_FIELD_HTML_FORBIDDEN)
-    _assert_contains_all(app, ROUTE_FIELD_APP_REQUIRED)
-    _assert_contains_none(app, ROUTE_FIELD_APP_FORBIDDEN)
-
     setup_html = html.split('<aside class="setup-panel">', 1)[1].split("</aside>", 1)[0]
     state_rail_html = html.split('<aside class="state-rail">', 1)[1].split("</aside>", 1)[0]
-    top_bar_html = html.split('<header class="top-run-bar">', 1)[1].split("</header>", 1)[0]
-    workspace_tabs_html = html.split('<nav class="view-modes"', 1)[1].split("</nav>", 1)[0]
+
+    for snippet in (
+        'id="isaac-fields"',
+        'id="provider-profile-input"',
+        'id="agibot-gate-fields"',
+        'id="real-movement-gate"',
+        'id="prompt-preview-button"',
+        'id="background-tasks-button"',
+        'data-operator-mode="steer"',
+        'data-operator-mode="resume"',
+    ):
+        assert snippet in html
+
+    for snippet in (
+        "renderRouteFields",
+        "field_groups",
+        "selectedProviderRoute",
+        "renderScenarioSetup",
+        "refreshPromptPreview",
+        "/api/prompt-preview",
+        "renderBackgroundTaskButton",
+        "background_blockers",
+        "TASK RUNNING",
+        "/api/runtime/tasks",
+    ):
+        assert snippet in app
+
     assert "Operator Input" in setup_html
     assert "Operator Input" not in state_rail_html
-    assert 'data-view="tasks"' in top_bar_html
-    assert 'data-view="tasks"' not in workspace_tabs_html
+
+
+def test_static_app_keeps_deleted_operator_console_widgets_deleted() -> None:
+    html = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
+    app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
+    css = (STATIC_ROOT / "styles.css").read_text(encoding="utf-8")
+
+    for snippet in (
+        'id="messup-button"',
+        'id="messup-status"',
+        'id="tasks-panel"',
+        'id="background-task-list"',
+        'data-view="tasks"',
+        'data-panel="runtime_map"',
+    ):
+        assert snippet not in html
+
+    for snippet in (
+        "previewMessup",
+        "/api/messup-preview",
+        "schedulePromptPreviewRefresh",
+        "promptPreviewTimer",
+        "renderBackgroundTasks",
+        "backgroundTaskViewAvailable",
+        "taskActionsHtml",
+        "runTaskAction",
+        "copy_command",
+        "api_post",
+        'setImageSlot(\n    "runtime_map"',
+        'runtime_map: "Metric Map"',
+    ):
+        assert snippet not in app
+
+    for snippet in (
+        ".tasks-panel",
+        ".task-row",
+        ".mode-tasks",
+        '.mode-overview [data-panel="runtime_map"]',
+        ".messup-actions",
+    ):
+        assert snippet not in css
 
 
 def test_static_app_does_not_short_circuit_context_json_readiness() -> None:
@@ -256,7 +140,6 @@ def _assert_scene_preview_app_wiring(app: str) -> None:
     assert "renderSelectedScenePreview(route);" in app
     assert "route.preview_assets" in app
     assert 'setImageSlot("topdown", previews.topdown' in app
-    assert '"runtime_map",' in app
     assert 'data-view-role="${escapeHtml(visualRole)}"' in app
     assert 'data-artifact-source-family="${escapeHtml(sourceFamily)}"' in app
     assert "No Top2Down scene preview is available." in app

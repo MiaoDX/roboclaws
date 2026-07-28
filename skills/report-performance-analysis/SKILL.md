@@ -13,9 +13,9 @@ unstable provider and network conditions.
 1. Read `references/metric-contract.md`.
 2. Identify the run directory or comparison manifest.
 3. Run fixed scripts before answering:
-   - One run: `scripts/extract_live_report_metrics.py <run_dir>`
-   - Two runs or manifest: `scripts/compare_live_report_metrics.py ...`
-   - Calibration data: `scripts/calibrate_model_latency.py ...`
+   - One run: `../../scripts/reports/extract_live_report_metrics.py <run_dir>`
+   - Two runs or manifest: `../../scripts/reports/compare_live_report_metrics.py ...`
+   - Calibration data: `../../scripts/reports/calibrate_model_latency.py ...`
 4. Answer from generated JSON packets. Do not scrape `report.html`, raw prompt
    text, model text, full tool payloads, private evaluator truth, or compact
    continuation state.
@@ -37,7 +37,7 @@ unstable provider and network conditions.
 Extract one run:
 
 ```bash
-.venv/bin/python skills/report-performance-analysis/scripts/extract_live_report_metrics.py \
+.venv/bin/python scripts/reports/extract_live_report_metrics.py \
   output/path/to/seed-7 \
   --output output/report-performance-analysis/metrics.json \
   --write-model-call-metrics
@@ -46,7 +46,7 @@ Extract one run:
 Compare two runs:
 
 ```bash
-.venv/bin/python skills/report-performance-analysis/scripts/compare_live_report_metrics.py \
+.venv/bin/python scripts/reports/compare_live_report_metrics.py \
   --baseline-run-dir output/baseline/seed-7 \
   --candidate-run-dir output/candidate/seed-7 \
   --output output/report-performance-analysis/comparison.json
@@ -55,12 +55,12 @@ Compare two runs:
 Compare with explicit normalized timing:
 
 ```bash
-.venv/bin/python skills/report-performance-analysis/scripts/calibrate_model_latency.py \
+.venv/bin/python scripts/reports/calibrate_model_latency.py \
   --output output/report-performance-analysis/calibration.json \
   output/baseline/seed-7/model_call_metrics.jsonl \
   output/candidate/seed-7/model_call_metrics.jsonl
 
-.venv/bin/python skills/report-performance-analysis/scripts/compare_live_report_metrics.py \
+.venv/bin/python scripts/reports/compare_live_report_metrics.py \
   --baseline-run-dir output/baseline/seed-7 \
   --candidate-run-dir output/candidate/seed-7 \
   --calibration output/report-performance-analysis/calibration.json \
@@ -70,7 +70,7 @@ Compare with explicit normalized timing:
 Compare a manifest:
 
 ```bash
-.venv/bin/python skills/report-performance-analysis/scripts/compare_live_report_metrics.py \
+.venv/bin/python scripts/reports/compare_live_report_metrics.py \
   --manifest skills/report-performance-analysis/templates/comparison-manifest.json \
   --output output/report-performance-analysis/comparison.json
 ```

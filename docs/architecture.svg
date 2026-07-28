@@ -94,18 +94,15 @@
   <rect x="84" y="424" width="176" height="44" class="card"/>
   <text x="106" y="448" class="card-title">direct-runner</text>
   <text x="106" y="464" class="card-text">deterministic path</text>
-  <rect x="292" y="424" width="160" height="44" class="card"/>
-  <text x="314" y="448" class="card-title">codex-cli</text>
-  <text x="314" y="464" class="card-text">coding agent</text>
-  <rect x="484" y="424" width="166" height="44" class="card"/>
-  <text x="506" y="448" class="card-title">claude-code</text>
-  <text x="506" y="464" class="card-text">coding agent</text>
-  <rect x="682" y="424" width="204" height="44" class="card"/>
-  <text x="704" y="448" class="card-title">openai-agents-sdk</text>
-  <text x="704" y="464" class="card-text">active stabilization</text>
-  <rect x="918" y="424" width="276" height="44" class="warn-chip"/>
-  <text x="936" y="448" class="small">OpenClaw / Hermes-style frameworks</text>
-  <text x="936" y="464" class="small">later clients after lower routes stabilize</text>
+  <rect x="292" y="424" width="224" height="44" class="core-card"/>
+  <text x="314" y="448" class="core-title">openai-agents-sdk</text>
+  <text x="314" y="464" class="core-text">active live-agent route</text>
+  <rect x="548" y="424" width="258" height="44" class="warn-chip"/>
+  <text x="566" y="448" class="small">Retired coding-agent engines</text>
+  <text x="566" y="464" class="small">are rejected by launch validation</text>
+  <rect x="838" y="424" width="356" height="44" class="warn-chip"/>
+  <text x="856" y="448" class="small">OpenClaw / Hermes-style frameworks stay outside</text>
+  <text x="856" y="464" class="small">the normal public engine list until validated</text>
 
   <rect x="84" y="556" width="246" height="44" class="core-card"/>
   <text x="106" y="580" class="core-title">household_world</text>

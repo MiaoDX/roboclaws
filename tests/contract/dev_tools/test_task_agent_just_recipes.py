@@ -19,23 +19,16 @@ from roboclaws.agents.prompts.household_cleanup import (
 )
 from roboclaws.launch import resolve_surface_launch
 from roboclaws.launch.catalog import LaunchError
-from roboclaws.launch.evaluation import (
-    checker_flags_for_household_intent,
-    household_intent_id_for_checker,
-)
+from roboclaws.launch.evaluation import checker_flags_for_household_intent
 from roboclaws.launch.runners import export_env_from_overrides
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 JUSTFILE = REPO_ROOT / "justfile"
 JUST_DIR = REPO_ROOT / "just"
 AGENT_JUST = JUST_DIR / "agent.just"
-CODE_JUST = JUST_DIR / "code.just"
 OPENCLAW_JUST = JUST_DIR / "openclaw.just"
 MOLMO_JUST = JUST_DIR / "molmo.just"
 CODING_AGENT_ENV = REPO_ROOT / "scripts" / "dev" / "coding_agent_env.sh"
-CODING_AGENT_DOCKER = REPO_ROOT / "scripts" / "dev" / "coding_agent_docker.sh"
-LIVE_CODEX_RUNNER = REPO_ROOT / "scripts" / "molmo_cleanup" / "run_live_codex_cleanup.py"
-LIVE_CLAUDE_RUNNER = REPO_ROOT / "scripts" / "molmo_cleanup" / "run_live_claude_cleanup.py"
 LIVE_OPENAI_AGENTS_RUNNER = REPO_ROOT / "scripts/molmo_cleanup/run_live_openai_agents_cleanup.py"
 AGIBOT_MAP_BUILD_SDK_RUNNER = (
     REPO_ROOT / "scripts" / "molmo_cleanup" / "run_live_openai_agents_agibot_map_build.py"
@@ -391,7 +384,6 @@ def test_justfile_marks_implementation_modules_private() -> None:
         "chat",
         "dev",
         "mcp",
-        "code",
         "harness",
         "verify",
         "molmo",
@@ -402,6 +394,7 @@ def test_justfile_marks_implementation_modules_private() -> None:
             re.MULTILINE,
         )
 
+    assert "mod code" not in text
     assert re.search(r"^mod agent\s+'just/agent\.just'$", text, re.MULTILINE)
     assert re.search(r"^mod run\s+'just/run\.just'$", text, re.MULTILINE)
 
@@ -2083,224 +2076,140 @@ def test_molmo_live_kickoff_prompt_receives_success_threshold_for_camera_raw() -
     assert "--task-intent-mode" not in text
 
 
-def test_live_codex_camera_raw_default_gate_uses_generated_mess_success_threshold() -> None:
-    flags = checker_flags_for_household_intent(
-        intent_id="cleanup",
-        profile="camera-raw-fpv",
-        min_generated_mess_count="5",
+def test_openai_agents_cleanup_checker_policy_uses_checker_profile(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_script_module(
+        LIVE_OPENAI_AGENTS_RUNNER,
+        "run_live_openai_agents_cleanup_checker_profile_test",
     )
-    text = LIVE_CODEX_RUNNER.read_text(encoding="utf-8")
+    run_dir = tmp_path / "openai-agents"
+    run_dir.mkdir()
+    (run_dir / "run_result.json").write_text("{}\n", encoding="utf-8")
+    captured_commands: list[list[str]] = []
 
-    assert flags[flags.index("--min-model-declared-observations") + 1] == "4"
-    assert flags[flags.index("--min-model-declared-actions") + 1] == "4"
-    assert flags[flags.index("--min-semantic-accepted-count") + 1] == "4"
-    assert "checker_flags_for_household_intent" in text
-    assert "merge_checker_flags" in text
-    assert "def _raw_fpv_required_cleanup_count" not in text
-    assert "math.ceil(generated_mess_count * 0.70)" not in text
-    assert '"--min-semantic-accepted-count", "7"' not in text
+    def fake_run_and_tee(command, *, cwd, stdout_path, stderr_path, env, **_kwargs):
+        captured_commands.append(command)
+        stdout_path.write_text("checker ok\n", encoding="utf-8")
+        return 0
+
+    monkeypatch.setattr(module, "_run_and_tee", fake_run_and_tee)
+    args = SimpleNamespace(
+        run_dir=run_dir,
+        repo_root=REPO_ROOT,
+        status_path=run_dir / "live_status.json",
+        client_url="http://127.0.0.1:18788/mcp",
+        host="127.0.0.1",
+        port=18788,
+        lock_path=tmp_path / "openai-agents.lock",
+        server_startup_timeout_s=1.0,
+        kickoff_prompt="custom prompt",
+        backend="molmospaces_subprocess",
+        run_id="household-world.cleanup",
+        intent="cleanup",
+        policy="openai_agents_agent",
+        task="帮我收拾这个房间",
+        min_generated_mess_count="5",
+        profile="smoke",
+        checker_profile="world-public-labels",
+        server_arg=[],
+        checker_visual_arg=[],
+        provider_profile="codex-router-responses",
+        model="gpt-5.5",
+        max_turns=128,
+        incomplete_turn_continuation_attempts=0,
+        cache_tools_list=True,
+    )
+
+    runner = module.LiveOpenAIAgentsCleanupRunner(args)
+    runner._check_result()
+
+    assert captured_commands
+    checker_command = captured_commands[0]
+    assert checker_command[checker_command.index("--expect-profile") + 1] == ("world-public-labels")
+    assert "--require-clean-agent-run" in checker_command
+    assert "--require-waypoint-honesty" in checker_command
+    assert "--require-real-robot-alignment" in checker_command
+    assert checker_command[checker_command.index("--min-semantic-accepted-count") + 1] == "5"
+    assert checker_command[checker_command.index("--min-sweep-coverage") + 1] == "1.0"
 
 
-def test_live_runners_cleanup_checker_policy_uses_checker_profile(
+def test_openai_agents_open_ended_checker_drops_full_cleanup_gates(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    modules = [
-        (
-            load_script_module(LIVE_CODEX_RUNNER, "run_live_codex_cleanup_checker_profile_test"),
-            "LiveCodexCleanupRunner",
-            {
-                "tmux_session": "checker-profile-test",
-                "codex_bin": "codex",
-                "codex_model": "",
-                "codex_provider_summary": "test",
-                "codex_model_arg": [],
-            },
-        ),
-        (
-            load_script_module(LIVE_CLAUDE_RUNNER, "run_live_claude_cleanup_checker_profile_test"),
-            "LiveClaudeCleanupRunner",
-            {
-                "claude_bin": "claude",
-                "claude_provider_summary": "test",
-                "claude_model_arg": [],
-                "claude_env": [],
-            },
-        ),
-        (
-            load_script_module(
-                LIVE_OPENAI_AGENTS_RUNNER,
-                "run_live_openai_agents_cleanup_checker_profile_test",
-            ),
-            "LiveOpenAIAgentsCleanupRunner",
-            {
-                "provider_profile": "codex-router-responses",
-                "model": "gpt-5.5",
-                "max_turns": 128,
-                "incomplete_turn_continuation_attempts": 0,
-                "cache_tools_list": True,
-            },
-        ),
-    ]
+    module = load_script_module(
+        LIVE_OPENAI_AGENTS_RUNNER,
+        "run_live_openai_agents_cleanup_custom_gate_test",
+    )
+    run_dir = tmp_path / "openai-agents"
+    run_dir.mkdir()
+    (run_dir / "run_result.json").write_text("{}\n", encoding="utf-8")
+    captured_commands: list[list[str]] = []
 
-    for module, runner_name, extra_args in modules:
-        run_dir = tmp_path / runner_name
-        run_dir.mkdir()
-        (run_dir / "run_result.json").write_text("{}\n", encoding="utf-8")
-        captured_commands: list[list[str]] = []
+    def fake_run_and_tee(command, *, cwd, stdout_path, stderr_path, env, **_kwargs):
+        captured_commands.append(command)
+        stdout_path.write_text("checker ok\n", encoding="utf-8")
+        return 0
 
-        def fake_run_and_tee(command, *, cwd, stdout_path, stderr_path, env, **_kwargs):
-            captured_commands.append(command)
-            stdout_path.write_text("checker ok\n", encoding="utf-8")
-            return 0
+    monkeypatch.setattr(module, "_run_and_tee", fake_run_and_tee)
+    args = SimpleNamespace(
+        run_dir=run_dir,
+        repo_root=REPO_ROOT,
+        status_path=run_dir / "live_status.json",
+        client_url="http://127.0.0.1:18788/mcp",
+        host="127.0.0.1",
+        port=18788,
+        lock_path=tmp_path / "openai-agents.lock",
+        server_startup_timeout_s=1.0,
+        kickoff_prompt="custom prompt",
+        backend="molmospaces_subprocess",
+        run_id="household-world.cleanup",
+        intent="open-ended",
+        policy="openai_agents_agent",
+        task="我渴了，帮我找些解渴的东西",
+        min_generated_mess_count="5",
+        profile="camera-raw-fpv",
+        checker_profile="world-public-labels",
+        server_arg=[],
+        checker_visual_arg=[
+            "--require-robot-views",
+            "--require-raw-fpv-observations",
+            "--require-model-declared-observations",
+            "--min-model-declared-observations",
+            "4",
+            "--min-model-declared-actions",
+            "4",
+            "--min-semantic-accepted-count",
+            "4",
+            "--min-sweep-coverage",
+            "1.0",
+            "--require-clean-agent-run",
+        ],
+        provider_profile="codex-router-responses",
+        model="gpt-5.5",
+        max_turns=128,
+        incomplete_turn_continuation_attempts=0,
+        cache_tools_list=True,
+    )
 
-        monkeypatch.setattr(module, "_run_and_tee", fake_run_and_tee)
-        args = SimpleNamespace(
-            run_dir=run_dir,
-            repo_root=REPO_ROOT,
-            status_path=run_dir / "live_status.json",
-            client_url="http://127.0.0.1:18788/mcp",
-            host="127.0.0.1",
-            port=18788,
-            lock_path=tmp_path / f"{runner_name}.lock",
-            server_startup_timeout_s=1.0,
-            kickoff_prompt="custom prompt",
-            backend="molmospaces_subprocess",
-            run_id="household-world.cleanup",
-            intent="cleanup",
-            policy="codex_agent" if "Codex" in runner_name else "test_agent",
-            task="帮我收拾这个房间",
-            min_generated_mess_count="5",
-            profile="smoke",
-            checker_profile="world-public-labels",
-            server_arg=[],
-            checker_visual_arg=[],
-            **extra_args,
-        )
+    runner = module.LiveOpenAIAgentsCleanupRunner(args)
+    runner._check_result()
 
-        runner = getattr(module, runner_name)(args)
-        runner._check_result()
-
-        assert captured_commands, runner_name
-        checker_command = captured_commands[0]
-        assert checker_command[checker_command.index("--expect-profile") + 1] == (
-            "world-public-labels"
-        )
-        assert "--require-clean-agent-run" in checker_command
-        assert "--require-waypoint-honesty" in checker_command
-        assert "--require-real-robot-alignment" in checker_command
-        assert checker_command[checker_command.index("--min-semantic-accepted-count") + 1] == "5"
-        assert checker_command[checker_command.index("--min-sweep-coverage") + 1] == "1.0"
-
-
-def test_live_runners_open_ended_checker_drops_full_cleanup_gates(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    modules = [
-        (
-            load_script_module(LIVE_CODEX_RUNNER, "run_live_codex_cleanup_custom_gate_test"),
-            "LiveCodexCleanupRunner",
-            {
-                "tmux_session": "custom-gate-test",
-                "codex_bin": "codex",
-                "codex_model": "",
-                "codex_provider_summary": "test",
-                "codex_model_arg": [],
-            },
-        ),
-        (
-            load_script_module(LIVE_CLAUDE_RUNNER, "run_live_claude_cleanup_custom_gate_test"),
-            "LiveClaudeCleanupRunner",
-            {
-                "claude_bin": "claude",
-                "claude_provider_summary": "test",
-                "claude_model_arg": [],
-                "claude_env": [],
-            },
-        ),
-        (
-            load_script_module(
-                LIVE_OPENAI_AGENTS_RUNNER,
-                "run_live_openai_agents_cleanup_custom_gate_test",
-            ),
-            "LiveOpenAIAgentsCleanupRunner",
-            {
-                "provider_profile": "codex-router-responses",
-                "model": "gpt-5.5",
-                "max_turns": 128,
-                "incomplete_turn_continuation_attempts": 0,
-                "cache_tools_list": True,
-            },
-        ),
-    ]
-
-    for module, runner_name, extra_args in modules:
-        run_dir = tmp_path / runner_name
-        run_dir.mkdir()
-        (run_dir / "run_result.json").write_text("{}\n", encoding="utf-8")
-        captured_commands: list[list[str]] = []
-
-        def fake_run_and_tee(command, *, cwd, stdout_path, stderr_path, env, **_kwargs):
-            captured_commands.append(command)
-            stdout_path.write_text("checker ok\n", encoding="utf-8")
-            return 0
-
-        monkeypatch.setattr(module, "_run_and_tee", fake_run_and_tee)
-        args = SimpleNamespace(
-            run_dir=run_dir,
-            repo_root=REPO_ROOT,
-            status_path=run_dir / "live_status.json",
-            client_url="http://127.0.0.1:18788/mcp",
-            host="127.0.0.1",
-            port=18788,
-            lock_path=tmp_path / f"{runner_name}.lock",
-            server_startup_timeout_s=1.0,
-            kickoff_prompt="custom prompt",
-            backend="molmospaces_subprocess",
-            run_id="household-world.cleanup",
-            policy="codex_agent" if "Codex" in runner_name else "test_agent",
-            task="我渴了，帮我找些解渴的东西",
-            min_generated_mess_count="5",
-            profile="camera-raw-fpv",
-            checker_profile="world-public-labels",
-            server_arg=[],
-            checker_visual_arg=[
-                "--require-robot-views",
-                "--require-raw-fpv-observations",
-                "--require-model-declared-observations",
-                "--min-model-declared-observations",
-                "4",
-                "--min-model-declared-actions",
-                "4",
-                "--min-semantic-accepted-count",
-                "4",
-                "--min-sweep-coverage",
-                "1.0",
-                "--require-clean-agent-run",
-            ],
-            **extra_args,
-        )
-
-        monkeypatch.setenv("ROBOCLAWS_TASK_INTENT", "open-ended")
-        runner = getattr(module, runner_name)(args)
-        runner._check_result()
-
-        assert captured_commands, runner_name
-        checker_command = captured_commands[0]
-        assert "--allow-partial-cleanup" in checker_command
-        assert checker_command.count("--allow-partial-cleanup") == 1
-        assert checker_command[checker_command.index("--expect-profile") + 1] == (
-            "world-public-labels"
-        )
-        assert "--require-robot-views" in checker_command
-        assert "--require-raw-fpv-observations" in checker_command
-        assert "--require-clean-agent-run" not in checker_command
-        assert "--require-model-declared-observations" not in checker_command
-        assert "--min-model-declared-observations" not in checker_command
-        assert "--min-model-declared-actions" not in checker_command
-        assert "--min-semantic-accepted-count" not in checker_command
-        assert "--min-sweep-coverage" not in checker_command
+    assert captured_commands
+    checker_command = captured_commands[0]
+    assert "--allow-partial-cleanup" in checker_command
+    assert checker_command.count("--allow-partial-cleanup") == 1
+    assert checker_command[checker_command.index("--expect-profile") + 1] == ("world-public-labels")
+    assert "--require-robot-views" in checker_command
+    assert "--require-raw-fpv-observations" in checker_command
+    assert "--require-clean-agent-run" not in checker_command
+    assert "--require-model-declared-observations" not in checker_command
+    assert "--min-model-declared-observations" not in checker_command
+    assert "--min-model-declared-actions" not in checker_command
+    assert "--min-semantic-accepted-count" not in checker_command
+    assert "--min-sweep-coverage" not in checker_command
 
 
 def test_molmo_world_labels_prompt_requires_nav2_bundle_checklist() -> None:
@@ -2494,15 +2403,17 @@ def test_map_build_live_prompt_disables_cleanup_actions() -> None:
 
 def test_live_agent_server_routes_use_cli_modules_not_examples() -> None:
     molmo_text = MOLMO_JUST.read_text(encoding="utf-8")
-    codex_runner_text = LIVE_CODEX_RUNNER.read_text(encoding="utf-8")
+    sdk_runner_text = LIVE_OPENAI_AGENTS_RUNNER.read_text(encoding="utf-8")
+    household_live_text = HOUSEHOLD_LIVE_DRIVER.read_text(encoding="utf-8")
     agibot_runner_text = AGIBOT_MAP_BUILD_SDK_RUNNER.read_text(encoding="utf-8")
 
     assert "roboclaws.cli.agent_server household-world.cleanup" in molmo_text
     assert "roboclaws.cli.agent_server household-cleanup" not in molmo_text
     assert "examples/molmo_cleanup/molmo_realworld_cleanup_agent_server.py" not in molmo_text
-    assert "examples/molmo_cleanup/molmo_realworld_cleanup_agent_server.py" not in codex_runner_text
-    assert "examples/molmo_cleanup/agibot_map_build_agent_server.py" not in (agibot_runner_text)
-    assert "household_cleanup_server_argv" in codex_runner_text
+    assert "examples/molmo_cleanup/molmo_realworld_cleanup_agent_server.py" not in sdk_runner_text
+    assert "examples/molmo_cleanup/agibot_map_build_agent_server.py" not in agibot_runner_text
+    assert "household_cleanup_server_argv" in sdk_runner_text
+    assert "map_build_server_argv" in household_live_text
     assert "map_build_server_argv" in agibot_runner_text
 
 
@@ -2582,22 +2493,52 @@ def test_agent_server_cli_errors_use_canonical_targets(
 
 
 def test_molmo_cleanup_recipe_passes_goal_contract_to_all_household_runners() -> None:
-    molmo_text = MOLMO_JUST.read_text(encoding="utf-8")
-    agent_text = AGENT_JUST.read_text(encoding="utf-8")
-
-    assert 'ROBOCLAWS_GOAL_CONTRACT_JSON="$goal_contract_json" \\' in agent_text
-    assert 'ROBOCLAWS_GOAL_CONTRACT_PATH="$goal_contract_path" \\' in agent_text
-    assert 'ROBOCLAWS_TASK_INTENT="$resolved_task_intent" \\' in agent_text
-    assert 'run_just molmo::household-world-impl "${molmo_args[@]}"' in agent_text
-    assert 'goal_contract_json="${goal_contract_json:-${ROBOCLAWS_GOAL_CONTRACT_JSON:-}}"' in (
-        molmo_text
+    plan = resolve_surface_launch(
+        (
+            "surface=household-world",
+            "agent_engine=openai-agents-sdk",
+            "preset=cleanup",
+            "evidence_lane=world-public-labels",
+        )
     )
-    assert 'if [[ -z "$goal_contract_json" && -z "$goal_contract_path" ]]; then' in molmo_text
-    assert "normalize_goal_contract" in molmo_text
-    assert 'goal_contract_args+=(--goal-contract-json "$goal_contract_json")' in molmo_text
-    assert '"${goal_contract_args[@]}" \\' in molmo_text
-    assert 'prompt_args+=("${goal_contract_args[@]}")' in molmo_text
-    assert 'server_args+=("${goal_contract_args[@]}")' in molmo_text
+    exported_env = export_env_from_overrides(plan.overrides)
+
+    assert json.loads(exported_env["ROBOCLAWS_GOAL_CONTRACT_JSON"])["intent"] == "cleanup"
+    assert exported_env["ROBOCLAWS_TASK_INTENT"] == "cleanup"
+    assert exported_env["ROBOCLAWS_TASK_SKILL"] == "molmo-realworld-cleanup"
+
+    env = os.environ.copy()
+    env.update(
+        {
+            "ROBOCLAWS_JUST_TRACE": "1",
+            "ROBOCLAWS_GOAL_CONTRACT_JSON": exported_env["ROBOCLAWS_GOAL_CONTRACT_JSON"],
+            "ROBOCLAWS_GOAL_CONTRACT_PATH": "/tmp/roboclaws-goal-contract.json",
+        }
+    )
+    result = subprocess.run(
+        [
+            just_bin(),
+            "molmo::household-world-impl",
+            "direct",
+            "world-public-labels",
+            "7",
+            "output/test-goal-contract-trace",
+            "clean",
+            "1",
+        ],
+        cwd=REPO_ROOT,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    route = result.stdout.strip().split("\t")
+
+    assert route[0:4] == ["just", "molmo::household-world-impl", "direct", "world-public-labels"]
+    assert route[-2:] == [
+        exported_env["ROBOCLAWS_GOAL_CONTRACT_JSON"],
+        "/tmp/roboclaws-goal-contract.json",
+    ]
 
 
 def test_ci_does_not_define_codex_live_proof() -> None:
@@ -3356,66 +3297,34 @@ def test_coding_agent_claude_simple_mode_can_be_overridden() -> None:
     assert "env:CLAUDE_CODE_SIMPLE=0" in result.stdout.splitlines()
 
 
-def test_coding_agent_launchers_apply_provider_overrides_per_invocation() -> None:
-    code_text = CODE_JUST.read_text(encoding="utf-8")
-    molmo_text = MOLMO_JUST.read_text(encoding="utf-8")
+def test_openai_agents_launcher_applies_provider_overrides_per_invocation() -> None:
     helper_text = CODING_AGENT_ENV.read_text(encoding="utf-8")
-    docker_text = CODING_AGENT_DOCKER.read_text(encoding="utf-8")
-    runner_text = LIVE_CODEX_RUNNER.read_text(encoding="utf-8")
 
-    assert "source scripts/dev/coding_agent_env.sh" in code_text
-    assert "roboclaws_load_dotenv .env" in code_text
-    assert "roboclaws_codex_provider_args codex_model_args" in code_text
-    assert "roboclaws_claude_provider_args claude_model_args claude_env_args" not in code_text
-    assert not re.search(r"^codex\s", code_text, re.MULTILINE)
-    assert not re.search(r"^cc\s", code_text, re.MULTILINE)
+    plan = resolve_surface_launch(
+        (
+            "surface=household-world",
+            "agent_engine=openai-agents-sdk",
+            "provider_profile=mimo-mify-responses",
+            "preset=cleanup",
+            "evidence_lane=world-public-labels",
+        )
+    )
+    exported_env = export_env_from_overrides(plan.overrides)
 
-    assert "source scripts/dev/coding_agent_env.sh" in molmo_text
-    assert "roboclaws_code_agent_provider ROBOCLAWS_PROVIDER_PROFILE codex-router-responses" in (
-        molmo_text
+    assert plan.provider_profile == "mimo-mify-responses"
+    assert exported_env["ROBOCLAWS_PROVIDER_PROFILE"] == "mimo-mify-responses"
+    assert plan.argv[:4] == (
+        "just",
+        "agent::run",
+        "household-world.cleanup",
+        "openai-agents-sdk",
     )
-    assert "roboclaws_code_agent_model ROBOCLAWS_OPENAI_AGENTS_MODEL" in molmo_text
-    assert "roboclaws_codex_provider_args codex_model_args" not in molmo_text
-    assert "roboclaws_claude_provider_args claude_model_args claude_env_args" not in molmo_text
-    assert "scripts/dev/coding_agent_docker.sh ensure" not in molmo_text
-    assert 'scripts/dev/coding_agent_docker.sh install-wrappers "$docker_shim_dir"' not in (
-        molmo_text
-    )
-    assert '"--codex-model-arg=$arg"' not in molmo_text
-    assert "--codex-provider-summary" not in molmo_text
-    assert "XM_LLM_API_KEY" not in molmo_text
-    assert "XM_LLM_BASE_URL" not in molmo_text
-    assert "XM_LLM_API_KEY" in docker_text
-    assert "XM_LLM_BASE_URL" in docker_text
-    assert "MM_API_KEY" not in molmo_text
-    assert "MM_BASE_URL" not in molmo_text
-    assert "MM_API_KEY" in docker_text
-    assert "MM_BASE_URL" in docker_text
+    assert "provider_profile=mimo-mify-responses" not in plan.argv
+
     assert "MM_API_KEY" in helper_text
     assert "MM_BASE_URL" in helper_text
-    assert "ROBOCLAWS_PROVIDER_TIMING_PROXY" in docker_text
-    assert "ROBOCLAWS_TIMING_PROXY_UPSTREAM_BASE_URL" in docker_text
-    assert "ROBOCLAWS_PROVIDER_TIMING_PROXY" not in molmo_text
-    assert "ROBOCLAWS_TIMING_PROXY_BIND_PORT" not in molmo_text
-    assert "*self.args.codex_model_arg" in runner_text
-    assert "codex_provider_summary" in runner_text
-    assert 'FULL_PERMISSION_ARG = "--dangerously-bypass-approvals-and-sandbox"' in runner_text
-    assert '--claude-bin "$claude_bin"' not in molmo_text
     assert "ANTHROPIC_BASE_URL" in helper_text
     assert "ANTHROPIC_API_KEY" in helper_text
-
-
-def test_codex_provider_smoke_requires_repo_local_endpoint() -> None:
-    code_text = CODE_JUST.read_text(encoding="utf-8")
-
-    assert re.search(r"^codex-provider-smoke ", code_text, re.MULTILINE)
-    assert "codex-router-responses is the default" in code_text
-    assert "ROBOCLAWS_PROVIDER_PROFILE=mimo-mify-responses" in code_text
-    assert "minimax-responses with MM_API_KEY" in code_text
-    assert "--sandbox read-only" in code_text
-    assert "--ephemeral" in code_text
-    assert "--ignore-user-config" in code_text
-    assert "no system-provider fallback was used" in code_text
 
 
 def test_molmo_live_dispatch_is_sdk_only_and_probeable() -> None:
@@ -3451,27 +3360,6 @@ def test_molmo_live_dispatch_is_sdk_only_and_probeable() -> None:
     assert "scripts/molmo_cleanup/summarize_live_run.py" in molmo_text
     assert 'live_lock_backend="${backend//[^A-Za-z0-9_.-]/-}"' in molmo_text
     assert '--lock-path "$openai_agents_lock_path"' in molmo_text
-
-
-def test_map_build_codex_live_passes_task_identity_to_server_and_checker() -> None:
-    molmo_text = MOLMO_JUST.read_text(encoding="utf-8")
-    runner_text = LIVE_CODEX_RUNNER.read_text(encoding="utf-8")
-    server_args_match = re.search(r"server_args=\(\n(?P<body>.*?)\n\s+\)", molmo_text, re.DOTALL)
-
-    assert server_args_match is not None
-    assert '--intent "$task_intent"' in server_args_match.group("body")
-    assert "--server-arg=--task-name" not in molmo_text
-    assert '--task-name "$task_name"' not in molmo_text
-    assert '"--expect-task-name",' in runner_text
-    assert "household_task_name_from_args" in runner_text
-    assert "household_intent_id_for_checker" in runner_text
-    assert 'MAP_BUILD_SERVER_TASK = "household-world.map-build"' in (
-        HOUSEHOLD_LIVE_DRIVER.read_text(encoding="utf-8")
-    )
-    assert (
-        household_intent_id_for_checker(task_intent="map-build", open_ended_task=False)
-        == "map-build"
-    )
 
 
 def test_lower_level_just_modules_do_not_call_task_or_agent_facades() -> None:

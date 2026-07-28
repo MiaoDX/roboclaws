@@ -49,15 +49,6 @@ class MolmoLiveModelEntry:
 
 MODEL_ENTRIES: tuple[MolmoLiveModelEntry, ...] = (
     MolmoLiveModelEntry(
-        name="claude-code-mimo-v2.5",
-        label="Claude Code + MiMo v2.5",
-        agent_engine="claude-code",
-        provider_profile="mimo-tp-anthropic",
-        model="mimo-v2.5",
-        secret_env="MIMO_TP_KEY",
-        profile="world-public-labels",
-    ),
-    MolmoLiveModelEntry(
         name="agents-sdk-mimo-v2.5",
         label="OpenAI Agents SDK + MiMo v2.5",
         agent_engine="openai-agents-sdk",

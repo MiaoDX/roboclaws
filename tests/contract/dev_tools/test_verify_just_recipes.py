@@ -144,18 +144,6 @@ def test_pre_commit_no_longer_infers_retired_domains() -> None:
     assert "tests/unit/games" not in hook_text
 
 
-def test_molmo_apple2apple_grid_recipe_resolves_ci_python() -> None:
-    text = MOLMO_JUST.read_text(encoding="utf-8")
-    recipe = re.search(r"^apple2apple-grid[\s\S]*?(?=^# |\Z)", text, re.MULTILINE)
-
-    assert recipe is not None
-    body = recipe.group(0)
-    assert 'python_bin="${ROBOCLAWS_PYTHON:-}"' in body
-    assert 'python_bin=".venv/bin/python"' in body
-    assert 'python_bin="python3"' in body
-    assert '"$python_bin" scripts/molmo_cleanup/run_molmo_apple2apple_test_grid.py' in body
-
-
 def test_verify_delegates_scenario_gates_to_harness() -> None:
     text = VERIFY_JUST.read_text(encoding="utf-8")
 

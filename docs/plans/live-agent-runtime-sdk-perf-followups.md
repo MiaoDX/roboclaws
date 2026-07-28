@@ -109,7 +109,7 @@ Calibration limitation:
 | F: action-timeline visual capture | Rejected | Capture time dropped, but cleanup quality regressed and total wall/model time increased. |
 | I/N/AB: broad model-input compaction / repeated map compaction / Responses feature audit | Rejected for current policy | Bytes/tokens dropped heavily, but behavior broke or slowed. Do not rerun unchanged. |
 | C/D: model-call racing plus per-arm observability | Rejected for current policy | Racing reduced wall time but regressed cleanup quality and increased model API work. D observability remains useful for any future racing row. |
-| P/AA: raw-FPV repeated-failure rail and image memory | Blocked live, accepted deterministic prep | Retry only after verified image transport or `codex-env` upstream availability changes. |
+| P/AA: raw-FPV repeated-failure rail and image memory | Blocked live, accepted deterministic prep | Retry only with the current `codex-router-responses` route after Codex router upstream availability is healthy, or after another SDK route has verified image transport. |
 | H/K/E/M/L/X | Bypassed, deferred, merged, or conditional | No active row is justified by current Q/Y evidence. X is required only before promoting private/opt-in behavior. |
 
 ## Interpretation
@@ -155,8 +155,8 @@ Do not:
 Reopen only if one of these changes:
 
 - A faster model/provider candidate is ready for a controlled bake-off.
-- A provider with verified raw-FPV image transport is available, or `codex-env`
-  recovers enough to retry P/AA.
+- A provider with verified raw-FPV image transport is available, or the current
+  `codex-router-responses` route is healthy enough to retry P/AA.
 - New Q/Y evidence shows a material remaining bucket that O+AC does not address.
 - A reviewed calibration or cross-run validation dataset reaches acceptable
   explanatory power.

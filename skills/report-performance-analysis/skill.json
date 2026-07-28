@@ -19,18 +19,21 @@
   },
   "scripts": [
     {
-      "path": "scripts/extract_live_report_metrics.py",
+      "path": "../../scripts/reports/extract_live_report_metrics.py",
       "kind": "extractor",
+      "owner": "repo",
       "summary": "Extract one run's sanitized report performance packet."
     },
     {
-      "path": "scripts/compare_live_report_metrics.py",
+      "path": "../../scripts/reports/compare_live_report_metrics.py",
       "kind": "comparison",
+      "owner": "repo",
       "summary": "Compare two runs or a manifest of report performance packets."
     },
     {
-      "path": "scripts/calibrate_model_latency.py",
+      "path": "../../scripts/reports/calibrate_model_latency.py",
       "kind": "calibration",
+      "owner": "repo",
       "summary": "Build calibration data for normalized model-latency estimates."
     }
   ],

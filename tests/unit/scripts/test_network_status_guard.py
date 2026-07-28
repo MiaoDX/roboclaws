@@ -323,8 +323,7 @@ def test_current_and_manual_debug_just_recipes_use_network_guard() -> None:
     molmo_text = (JUST_DIR / "molmo.just").read_text(encoding="utf-8")
     assert "roboclaws_assert_openai_agents_network_allowed" in molmo_text
 
-    code_text = (JUST_DIR / "code.just").read_text(encoding="utf-8")
-    assert "roboclaws_assert_codex_network_allowed" in code_text
+    assert not (JUST_DIR / "code.just").exists()
 
     agent_text = (JUST_DIR / "agent.just").read_text(encoding="utf-8")
     assert "unsupported agent_engine 'codex-cli'" in agent_text
