@@ -29,6 +29,7 @@ OPEN_ENDED_SUITE = REPO_ROOT / "evals" / "household_world" / "suites" / "open_en
 SCENE_SAMPLER_SUITE = (
     REPO_ROOT / "evals" / "household_world" / "suites" / "scene_sampler_stress.json"
 )
+LONG_HORIZON_SUITE = REPO_ROOT / "evals" / "household_world" / "suites" / "long_horizon_tasks.json"
 EVAL_FILE_LOADERS = [(load_eval_suite, "suite.json"), (load_eval_sample, "sample.json")]
 
 
@@ -310,6 +311,7 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
         load_eval_suite(CLEANUP_SUITE),
         load_eval_suite(OPEN_ENDED_SUITE),
         load_eval_suite(SCENE_SAMPLER_SUITE),
+        load_eval_suite(LONG_HORIZON_SUITE),
     ]
     loaded = [load_eval_sample(path) for path in sample_paths]
     assert {sample.sample_id for sample in loaded} == {
@@ -325,6 +327,7 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
         "open_ended.room4_anchor_seed7",
         "open_ended.stable_anchor_fixture_focused_prior_seed7",
         "open_ended.stable_anchor_no_prior_seed7",
+        "long_horizon.snack_restock_val0_seed7",
         "scene_sampler.procthor-10k-val.0.map_build",
         "scene_sampler.procthor-10k-val.10.map_build",
         "scene_sampler.procthor-10k-val.11.map_build",
@@ -434,7 +437,9 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
         "waypoint_id": "room_6_inspection",
     }
 
-    scene_suite = suites[-1]
+    scene_suite = next(
+        suite for suite in suites if suite.suite_id == "household_world.scene_sampler_stress"
+    )
     assert scene_suite.suite_id == "household_world.scene_sampler_stress"
     assert "sampler_admission" in scene_suite.required_graders
     projection = scene_suite.metadata["sampler_projection"]

@@ -8,11 +8,15 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
 
-from roboclaws.evals.session_live import run_session_live_eval
+from roboclaws.evals.session_live import SESSION_LIVE_API_TIMEOUT_S, run_session_live_eval
 from roboclaws.operator_console.interactions import check_operator_messages_for_mcp
 from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.routes import get_selection
-from roboclaws.operator_console.server import ConsoleRequestHandler
+from roboclaws.operator_console.server import (
+    FOLLOW_UP_AUTOSTART_ATTEMPTS,
+    FOLLOW_UP_AUTOSTART_RETRY_DELAY_S,
+    ConsoleRequestHandler,
+)
 
 
 def test_session_live_eval_blocks_when_provider_not_ready(tmp_path: Path) -> None:
@@ -111,6 +115,12 @@ def test_session_live_eval_runs_headless_console_flow_with_fake_product(
     assert os.environ.get("ROBOCLAWS_OPERATOR_CONSOLE_OUTPUT_ROOT") is None
     assert seen_eval_env["ROBOCLAWS_SESSION_LIVE_ENV_SENTINEL"] == "visible-to-console"
     assert os.environ.get("ROBOCLAWS_SESSION_LIVE_ENV_SENTINEL") is None
+
+
+def test_session_live_next_goal_timeout_covers_autostart_retry_window() -> None:
+    server_retry_window_s = FOLLOW_UP_AUTOSTART_ATTEMPTS * FOLLOW_UP_AUTOSTART_RETRY_DELAY_S
+
+    assert SESSION_LIVE_API_TIMEOUT_S > server_retry_window_s
 
 
 def _consume_parent_steer_then_finish(run_dir: Path, state: dict[str, object]) -> None:

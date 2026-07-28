@@ -29,6 +29,7 @@ FAILURE_CLASSES = frozenset(
         "tool_argument_invalid",
         "tool_noop_or_repeated_failure",
         "perception_miss",
+        "manipulation_failure",
         "map_actionability_failure",
         "planner_proof_missing_or_failed",
         "model_or_provider_unavailable",

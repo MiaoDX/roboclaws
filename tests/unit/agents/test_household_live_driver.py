@@ -7,7 +7,6 @@ import pytest
 
 from roboclaws.agents.drivers.household_live import (
     acquire_household_live_run_lease,
-    without_full_cleanup_checker_gates,
 )
 from roboclaws.household.visual_backend_slots import MOLMOSPACES_SUBPROCESS_BACKEND
 
@@ -97,25 +96,3 @@ def test_household_live_run_lease_rejects_invalid_visual_slot_limit(
 
     assert "invalid MolmoSpaces visual backend slot config" in str(exc_info.value)
     assert "ROBOCLAWS_MOLMO_MAX_VISUAL_BACKENDS must be a positive integer" in str(exc_info.value)
-
-
-def test_without_full_cleanup_checker_gates_keeps_open_task_checks() -> None:
-    assert without_full_cleanup_checker_gates(
-        [
-            "--require-robot-views",
-            "--require-model-declared-observations",
-            "--min-model-declared-observations",
-            "4",
-            "--min-model-declared-actions",
-            "4",
-            "--min-semantic-accepted-count",
-            "4",
-            "--min-sweep-coverage",
-            "1.0",
-            "--require-clean-agent-run",
-            "--allow-partial-cleanup",
-        ]
-    ) == [
-        "--require-robot-views",
-        "--allow-partial-cleanup",
-    ]

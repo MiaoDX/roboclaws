@@ -23,13 +23,14 @@ from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.routes import get_selection
 from roboclaws.operator_console.server import ConsoleRequestHandler, _follow_up_launch_request
+from tests.unit.operator_console.conftest import (
+    MUJOCO_OPENAI_AGENTS_OPEN_TASK,  # noqa: F401  re-exported for tests
+)
 
 CODEX_ENV = {
     "CODEX_BASE_URL": "https://codex.example.test/v1",
     "CODEX_API_KEY": "key",
 }
-
-from tests.unit.operator_console.conftest import MUJOCO_OPENAI_AGENTS_OPEN_TASK  # noqa: F401  re-exported for tests
 
 
 def _free_port() -> str:
@@ -241,6 +242,56 @@ def test_next_goal_autostart_retries_visual_slot_wind_down(tmp_path: Path) -> No
         if attempts == 1:
             raise ConsoleLaunchError(
                 "Background task visual-slot:1 is using Molmo visual slot 1 and 127.0.0.1:59777."
+            )
+        return {"run_id": "child-run"}
+
+    with _console_server(tmp_path) as (host, port):
+        with (
+            patch("roboclaws.operator_console.server.FOLLOW_UP_AUTOSTART_ATTEMPTS", 2),
+            patch("roboclaws.operator_console.server.FOLLOW_UP_AUTOSTART_RETRY_DELAY_S", 0),
+            patch("roboclaws.operator_console.server.start_console_run", fake_start),
+        ):
+            payload = _post_next_goal(str(host), int(port), run_id)
+
+    assert payload["status"] == "started"
+    assert payload["started_run"]["run_id"] == "child-run"
+    assert payload["autostart_attempts"] == 2
+    assert "start_error" not in payload
+
+
+def test_next_goal_autostart_retries_parent_backend_lock_wind_down(tmp_path: Path) -> None:
+    route = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
+    run_id = "parent-backend-lock-wind-down"
+    run_dir = tmp_path / "output" / "operator-console" / "runs" / run_id
+    run_dir.mkdir(parents=True)
+    (run_dir / "operator_state.json").write_text(
+        json.dumps(
+            {
+                "run_id": run_id,
+                "operator_session_id": "session-test",
+                "selected_intent": "open-ended",
+                "route": route.to_payload(),
+                "phase": "finished",
+                "backend_lock": route.lock_name,
+            }
+        ),
+        encoding="utf-8",
+    )
+    _write_session(tmp_path, run_id)
+    (run_dir / "run_result.json").write_text(
+        json.dumps({"task_surface": "household-world", "final_status": "success"}),
+        encoding="utf-8",
+    )
+    (run_dir / "report.html").write_text("<html>ok</html>", encoding="utf-8")
+    attempts = 0
+
+    def fake_start(root, request):  # noqa: ANN001, ANN202
+        del root, request
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise ConsoleLaunchError(
+                f"Background task operator-run:{run_id} is using molmospaces_mujoco and 12345."
             )
         return {"run_id": "child-run"}
 

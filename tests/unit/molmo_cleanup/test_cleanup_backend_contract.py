@@ -87,6 +87,38 @@ def test_synthetic_backend_factory_can_build_baseline_scenario(tmp_path: Path) -
     assert session.backend.scenario.private_manifest.success_threshold == 0
 
 
+def test_molmospaces_backend_factory_forwards_generated_mess_manifest_path(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from roboclaws.household import backend_contract
+
+    calls: list[dict[str, Any]] = []
+
+    class FakeMolmoSpacesBackend:
+        backend = "molmospaces_subprocess"
+
+        def __init__(self, **kwargs: Any) -> None:
+            calls.append(kwargs)
+            self.scenario = build_cleanup_scenario(seed=3)
+
+    monkeypatch.setattr(
+        backend_contract,
+        "MolmoSpacesSubprocessBackend",
+        FakeMolmoSpacesBackend,
+    )
+    manifest_path = tmp_path / "generated_mess_manifest.json"
+
+    build_cleanup_backend_session(
+        backend_name=backend_contract.MOLMOSPACES_SUBPROCESS_BACKEND,
+        run_dir=tmp_path,
+        generated_mess_count=1,
+        generated_mess_manifest_path=manifest_path,
+    )
+
+    assert calls[0]["generated_mess_manifest_path"] == manifest_path
+
+
 def test_synthetic_runtime_metadata_attaches_normalized_backend_evidence(
     tmp_path: Path,
 ) -> None:

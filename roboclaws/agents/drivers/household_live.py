@@ -111,24 +111,6 @@ def acquire_household_live_run_lease(
     return HouseholdLiveRunLease(lock_file=lock_file)
 
 
-def without_full_cleanup_checker_gates(args: list[str]) -> list[str]:
-    """Return checker args with full-cleanup-only gates removed for open tasks."""
-
-    filtered: list[str] = []
-    skip_value = False
-    for arg in args:
-        if skip_value:
-            skip_value = False
-            continue
-        if arg in FULL_CLEANUP_CHECKER_VALUE_FLAGS:
-            skip_value = True
-            continue
-        if arg in FULL_CLEANUP_CHECKER_BOOL_FLAGS:
-            continue
-        filtered.append(arg)
-    return filtered
-
-
 def household_cleanup_server_argv(python_bin: str) -> list[str]:
     """Return the package entrypoint for the household cleanup MCP server."""
 
@@ -157,22 +139,6 @@ def _run_id_from_run_dir(run_dir: Path) -> str:
     if parent:
         return f"{parent}/{name}"
     return name
-
-
-FULL_CLEANUP_CHECKER_VALUE_FLAGS = frozenset(
-    {
-        "--min-semantic-accepted-count",
-        "--min-model-declared-observations",
-        "--min-model-declared-actions",
-        "--min-sweep-coverage",
-    }
-)
-FULL_CLEANUP_CHECKER_BOOL_FLAGS = frozenset(
-    {
-        "--require-clean-agent-run",
-        "--require-model-declared-observations",
-    }
-)
 
 
 def add_household_cleanup_live_runner_args(

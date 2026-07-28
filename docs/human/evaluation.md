@@ -56,17 +56,18 @@ just agent::eval suite=smoke_regression budget=smoke
 just agent::eval suite=map_build_consumer budget=smoke
 just agent::eval suite=cleanup_capability budget=smoke
 just agent::eval suite=scene_sampler_stress budget=smoke
+just agent::eval suite=long_horizon_tasks budget=smoke
 just agent::eval session-live budget=smoke \
   agent_engine=openai-agents-sdk provider_profile=<profile> live_execution=run
 ```
 
 Use `profile=baseline-refresh` after large code changes when the goal is to
 refresh the whole current baseline instead of selecting rows from a diff. It
-selects the catalog baseline: deterministic gates, the five current eval
-suites, direct product rows, Grounding DINO product rows, Codex CLI live evals,
-and OpenAI Agents SDK live evals. Selected live or DINO rows run when their
-preflight is ready and otherwise record blocked evidence; they are not
-`skipped_by_budget`.
+selects the catalog baseline: deterministic gates, current eval suites listed
+in the eval catalog, direct product rows, Grounding DINO product rows, Codex CLI
+live evals, and OpenAI Agents SDK live evals. Selected live or DINO rows run
+when their preflight is ready and otherwise record blocked evidence; they are
+not `skipped_by_budget`.
 
 Direct suites run direct-runner household samples without provider keys, write
 `output/evals/<suite>/<stamp>/eval_results.json`, and render
@@ -74,6 +75,19 @@ Direct suites run direct-runner household samples without provider keys, write
 budget uses the synthetic cleanup backend for local determinism while eval
 identity still records the sample's public surface, world, backend, evidence
 lane, and missing live-provider fields explicitly.
+The `long_horizon_tasks` pilot is the exception: smoke budget runs the real
+MolmoSpaces implementation backend for `molmospaces/val_0` so it can prove
+multi-room navigation, visual confirmation, pick/place, and private final-state
+grading in the target sim scene.
+
+`long_horizon_tasks` currently contains the first snack-restock pilot. It uses
+the public household-world open-task route plus a private `long_horizon` grader
+that checks target final placement, empty hands at `done`, required public tool
+sequence, source/destination progress, artifact readiness, and private-truth
+leakage. The v1 task deliberately stays within existing sim primitives:
+navigation, observation, camera adjustment, pick, place/place_inside, optional
+open/close receptacle, and done. Stairs, elevators, parcel unpacking, and
+drawer-specific interaction remain future scene/runtime capabilities.
 
 `cleanup_capability` records repeated cleanup trials and reports `pass@k` plus
 `pass^k` aggregate metrics. Live-agent eval identity can be requested with
@@ -87,8 +101,12 @@ when needed, and grades the SDK product artifacts written under that run dir:
 ```bash
 just agent::eval suite=cleanup_capability budget=smoke \
   agent_engine=openai-agents-sdk provider_profile=codex-router-responses \
-  live_execution=run live_timeout_s=120
+  live_execution=run
 ```
+
+Live evals default to a 1200 second wall-clock budget and a 120 second
+no-progress stall timeout. Pass `live_timeout_s=<seconds>` only when you intend
+to override the whole-run wall-clock budget for a specific run.
 
 The eval result records blocked provider/runtime conditions separately from
 agent behavior when the selected live route cannot finish.

@@ -101,6 +101,23 @@ Use `just/README.md` for the full launch-axis grammar. Prefer `agent::eval
 recommend|execute` when choosing verification gates for plans, diffs, PRs, or
 handoffs.
 
+Live verification policy:
+
+- When a change touches live-agent, provider, runtime, operator-console launch,
+  eval harness, or artifact-selection behavior, run the relevant live,
+  preflight, or availability proof by default. Do not skip required live proof
+  merely because it may use external providers, cost money, or take longer than
+  deterministic tests.
+- If a live proof is required but cannot run, prove the blocker with the
+  repo's guarded preflight/status command output, such as
+  `just dev::network-status`, provider readiness, missing credentials, occupied
+  runtime resources, or unavailable hardware. Record the concrete blocker and
+  stop instead of silently substituting only deterministic tests.
+- For candidate-selection workflows, run or regrade the candidate matrix first
+  when the required providers/runtimes are available, then present the ranked
+  accepted candidates for human confirmation before publishing durable catalog
+  or baseline artifacts.
+
 ## 3) Architecture Rules
 
 Read `ARCHITECTURE.md` before changing architecture-facing behavior.
