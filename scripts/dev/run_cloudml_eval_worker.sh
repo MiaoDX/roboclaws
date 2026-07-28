@@ -64,6 +64,13 @@ payload = {
     "asset_manifest_sha256": os.environ.get(
         "ROBOCLAWS_CLOUDML_ASSET_MANIFEST_SHA256", ""
     ),
+    "expected_image_digest": os.environ.get(
+        "ROBOCLAWS_CLOUDML_EXPECTED_IMAGE_DIGEST", ""
+    ),
+    "isaac_proof_contract_sha256": os.environ.get(
+        "ROBOCLAWS_CLOUDML_ISAAC_PROOF_CONTRACT_SHA256", ""
+    ),
+    "isaac_asset_group": os.environ.get("ROBOCLAWS_CLOUDML_ISAAC_ASSET_GROUP", ""),
     "finished_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
 }
 Path(os.environ["ROBOCLAWS_CLOUDML_MARKER_PATH"]).write_text(
@@ -87,7 +94,10 @@ verify_sha256() {
   local path="$1"
   local expected="$2"
   local actual
-  test -f "$path"
+  if [[ ! -f "$path" ]]; then
+    echo "error: required checksum target is missing: $path" >&2
+    exit 1
+  fi
   actual="$(sha256sum "$path" | awk '{print $1}')"
   if [[ "$actual" != "$expected" ]]; then
     echo "error: sha256 mismatch for $path" >&2
@@ -119,6 +129,44 @@ if [[ -n "${ROBOCLAWS_CLOUDML_ASSET_ARCHIVE:-}" ]]; then
   tar -xzf "$ROBOCLAWS_CLOUDML_ASSET_ARCHIVE" -C "$asset_dir"
   export MLSPACES_ASSETS_DIR="$asset_dir/molmospaces/assets"
   export MLSPACES_CACHE_DIR="$asset_dir/molmospaces/cache"
+fi
+
+isaac_asset_roots=()
+if [[ "$ROBOCLAWS_CLOUDML_WORKER_POOL" == "cloudml-r49-isaac" ]]; then
+  contract_path="$repo_dir/skills/eval-harness/catalog/cloudml_isaac_proof.json"
+  verify_sha256 "$contract_path" "$ROBOCLAWS_CLOUDML_ISAAC_PROOF_CONTRACT_SHA256"
+  mapfile -t isaac_asset_roots < <(
+    /opt/roboclaws/.venv/bin/python - \
+      "$ROBOCLAWS_CLOUDML_ASSET_MANIFEST" \
+      "$ROBOCLAWS_CLOUDML_ISAAC_ASSET_GROUP" <<'PY'
+import json
+import re
+import sys
+from pathlib import PurePosixPath
+
+payload = json.load(open(sys.argv[1], encoding="utf-8"))
+isaac = payload.get("isaac") or {}
+expected_group = sys.argv[2]
+if isaac.get("asset_group") != expected_group:
+    raise SystemExit(f"error: expected Isaac asset group {expected_group}")
+for raw in isaac.get("roots") or []:
+    path = PurePosixPath(str(raw))
+    if path.is_absolute() or ".." in path.parts or not re.fullmatch(r"[A-Za-z0-9._/-]+", str(path)):
+        raise SystemExit(f"error: unsafe Isaac asset root {raw!r}")
+    print(path)
+PY
+  )
+  for relative in "${isaac_asset_roots[@]}"; do
+    source_path="$asset_dir/roboclaws/$relative"
+    target_path="$repo_dir/$relative"
+    if [[ ! -e "$source_path" ]]; then
+      echo "error: staged Isaac asset root is missing: $relative" >&2
+      exit 2
+    fi
+    mkdir -p "$(dirname "$target_path")"
+    rm -rf -- "$target_path"
+    ln -s "$source_path" "$target_path"
+  done
 fi
 
 object_cache_root="$MLSPACES_CACHE_DIR/objects"
@@ -217,7 +265,12 @@ ln -sfn /opt/roboclaws/.venv .venv
 if [[ -x /opt/roboclaws/.venv-visual-grounding/bin/python ]]; then
   ln -sfn /opt/roboclaws/.venv-visual-grounding .venv-visual-grounding
 fi
-uv pip install \
+uv_runner=(uv)
+if [[ "$ROBOCLAWS_CLOUDML_WORKER_POOL" == "cloudml-r49-isaac" ]]; then
+  test -x "${ROBOCLAWS_ISAACLAB_PYTHON:-}"
+  uv_runner=("$ROBOCLAWS_ISAACLAB_PYTHON" -m uv)
+fi
+"${uv_runner[@]}" pip install \
   --python /opt/roboclaws/.venv/bin/python \
   --no-build-isolation \
   --no-deps \
@@ -238,7 +291,60 @@ export ROBOCLAWS_EVAL_WORKER_POOL="$ROBOCLAWS_CLOUDML_WORKER_POOL"
 export ROBOCLAWS_EVAL_CLOUDML_JOB_ID="${CLOUDML_TASK_ID:-${CML_JOB_ID:-}}"
 export ROBOCLAWS_EVAL_CLOUDML_POD_NAME="${HOSTNAME:-}"
 
-if [[ "$ROBOCLAWS_CLOUDML_WORKER_POOL" == "cloudml-r49" ]]; then
+if [[ "$ROBOCLAWS_CLOUDML_WORKER_POOL" == "cloudml-r49-isaac" ]]; then
+  test -n "${ROBOCLAWS_CLOUDML_ISAAC_PROOF_CONTRACT_SHA256:-}"
+  test -n "${ROBOCLAWS_CLOUDML_ISAAC_ASSET_GROUP:-}"
+  if [[ "${ROBOCLAWS_CLOUDML_ISAAC_EULA_ACCEPTED:-false}" != "true" || "${OMNI_KIT_ACCEPT_EULA:-}" != "YES" ]]; then
+    echo "error: Isaac CloudML worker requires explicit EULA acceptance" >&2
+    exit 2
+  fi
+  test -x "${ROBOCLAWS_ISAACLAB_PYTHON:-}"
+  source "$repo_dir/scripts/dev/configure_nvidia_vulkan_runtime.sh"
+  isaac_gpu="$(nvidia-smi --query-gpu=name --format=csv,noheader | head -n 1 | xargs)"
+  isaac_driver="$ROBOCLAWS_NVIDIA_DRIVER_VERSION"
+  echo "cloudml isaac host: hostname=${HOSTNAME:-unknown} gpu=$isaac_gpu driver=$isaac_driver"
+  echo "cloudml isaac graphics env: capabilities=${NVIDIA_DRIVER_CAPABILITIES:-unset} mode=$ROBOCLAWS_NVIDIA_VULKAN_RUNTIME_MODE vk_driver_files=${VK_DRIVER_FILES:-unset} vk_icd_filenames=${VK_ICD_FILENAMES:-unset}"
+  echo "cloudml isaac graphics devices:"
+  find /dev -maxdepth 1 -name 'nvidia*' -printf '%f %m %u:%g %y\n' 2>/dev/null | sort || true
+  echo "cloudml isaac graphics libraries:"
+  ldconfig -p 2>/dev/null \
+    | awk '/libGLX_nvidia|libnvidia-glvkspirv|libvulkan\.so/{print}' \
+    | sort || true
+  echo "cloudml isaac vulkan icds:"
+  find /etc/vulkan/icd.d /usr/share/vulkan/icd.d -maxdepth 1 -type f -name '*.json' \
+    -print 2>/dev/null | sort || true
+  if [[ -n "${ROBOCLAWS_CLOUDML_ISAAC_REQUIRED_DRIVER_SERIES:-}" && \
+        "$isaac_driver" != "${ROBOCLAWS_CLOUDML_ISAAC_REQUIRED_DRIVER_SERIES}."* ]]; then
+    echo "error: Isaac CloudML worker requires NVIDIA driver series ${ROBOCLAWS_CLOUDML_ISAAC_REQUIRED_DRIVER_SERIES}.*, got $isaac_driver" >&2
+    exit 3
+  fi
+  "$ROBOCLAWS_ISAACLAB_PYTHON" - <<'PY'
+import importlib.metadata
+import json
+import os
+import subprocess
+from pathlib import Path
+
+import torch
+
+assert torch.cuda.is_available(), "CloudML Isaac worker did not expose a CUDA device"
+versions = {
+    "isaac_sim": Path("/isaac-sim/docs/py/VERSION").read_text().strip(),
+    "isaac_sim_build": Path("/isaac-sim/VERSION").read_text().strip(),
+    "isaac_lab": importlib.metadata.version("isaaclab"),
+    "torch": torch.__version__,
+    "cuda": torch.version.cuda,
+}
+assert all(value and value != "unknown" for value in versions.values())
+assert versions["isaac_sim"] == os.environ["ROBOCLAWS_ISAACSIM_VERSION"]
+assert versions["isaac_sim_build"] == os.environ["ROBOCLAWS_ISAACSIM_BUILD"]
+gpu = torch.cuda.get_device_name(0)
+driver = subprocess.check_output(
+    ["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"], text=True
+).strip()
+print(json.dumps({"runtime": versions, "gpu": gpu, "driver": driver, "eula": True}, sort_keys=True))
+PY
+elif [[ "$ROBOCLAWS_CLOUDML_WORKER_POOL" == "cloudml-r49" ]]; then
   test -x .venv-visual-grounding/bin/python
   .venv-visual-grounding/bin/python - <<'PY'
 import os

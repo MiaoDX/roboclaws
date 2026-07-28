@@ -76,7 +76,7 @@ def capture_isaac_lab_scene_camera_views(
     hooks: IsaacSceneCameraCaptureHooks,
 ) -> dict[str, Any]:
     import isaaclab.sim as sim_utils
-    import isaacsim.core.utils.stage as stage_utils
+    import isaacsim.core.experimental.utils.stage as stage_utils
     import numpy as np
     import torch
     from isaaclab.sensors.camera import Camera, CameraCfg
@@ -245,8 +245,8 @@ def _prepare_scene_camera_capture(
     hooks: IsaacSceneCameraCaptureHooks,
     stage_utils: Any,
 ) -> _SceneCameraSetup:
-    opened = stage_utils.open_stage(str(request.scene_usd))
-    if opened is False:
+    opened, _ = stage_utils.open_stage(str(request.scene_usd))
+    if not opened:
         raise RuntimeError(f"Isaac Sim failed to open generated USD stage: {request.scene_usd}")
     hooks.wait_for_stage_load(stage_utils, request.simulation_app)
     hooks.load_current_stage_payloads(stage_utils)

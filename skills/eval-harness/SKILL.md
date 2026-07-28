@@ -63,6 +63,35 @@ Normal baseline runs reuse published digests and do not rebuild images.
 `cloudml_preemptible=true` applies only to r49 GPU shards and borrows idle
 capacity from their `GUARANTEED` resource. CPU shards stay non-preemptible.
 
+CloudML placement reserves r49 for rows that explicitly require CUDA, currently
+the Grounding DINO rows. Deterministic gates and non-DINO MuJoCo/live-agent
+rows use queue `8151` (`robot-rfm-workflow`) on
+`alicn-bj-cloudml-prod-3`: small gates use 4 CPU / 32 GiB, while each MuJoCo
+shard uses 13 CPU / 104 GiB with OSMesa and the CPU image. Independent MuJoCo
+dependency/scene groups become separate CPU shards so additional queue
+capacity reduces wall time. Queue `11759` (`robot-dev-common`) and r49 remain
+the CUDA route; adding a new GPU consumer requires an explicit `gpu`
+execution requirement rather than relying on `simulator:mujoco` alone.
+
+The B1 Isaac proof uses the separate `cloudml-r49-isaac` capability and
+`ROBOCLAWS_CLOUDML_ISAAC_IMAGE_URL`. Its frozen runtime, resource, asset-group,
+stage, and cost contract is `catalog/cloudml_isaac_proof.json`. Stage one asset
+group at a time with:
+
+```bash
+.venv/bin/python scripts/dev/stage_cloudml_isaac_assets.py \
+  --stage A \
+  --output-dir /tmp/roboclaws-cloudml-isaac-stage-a \
+  --code-archive /path/to/pinned-code.tar.gz \
+  --code-commit <full-commit-sha>
+```
+
+Stages B and C require the corresponding B1 asset closure. The frozen contract
+records the explicit NVIDIA EULA acceptance, so later runs do not ask again;
+B/C still require a passed immediately prior receipt through
+`ROBOCLAWS_CLOUDML_ISAAC_PRIOR_RECEIPT`.
+This profile is opt-in, non-preemptible, and never part of normal baselines.
+
 `execution_target=auto` keeps direct Kimi/MiniMax and provider rows with missing
 local environment on the local worker. It never substitutes another provider
 identity. Real hybrid submission remains disabled until the local/cloud

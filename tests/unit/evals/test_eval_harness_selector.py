@@ -43,6 +43,11 @@ EXPECTED_ROW_IDS = {
     "direct-map-build-world-public",
     "direct-cleanup-runtime-prior-consumer",
 }
+ISAAC_OPT_IN_ROW_IDS = {
+    "cloudml-isaac-runtime-smoke",
+    "cloudml-b1-map12-navigation-smoke",
+    "cloudml-b1-map12-map-build-grounding-dino",
+}
 
 
 def _load_module(name: str, path: Path):
@@ -79,9 +84,32 @@ def _assert_selected_rows_include(
 def test_row_catalog_loads_current_eval_harness_rows(tmp_path: Path) -> None:
     rows = rows_module.candidate_rows(output_dir=tmp_path, explicit_axes={})
 
-    assert {row["row_id"] for row in rows} == EXPECTED_ROW_IDS
+    assert {row["row_id"] for row in rows} == EXPECTED_ROW_IDS | ISAAC_OPT_IN_ROW_IDS
     assert all(row["schema"] == "roboclaws_eval_harness_row_v1" for row in rows)
     assert rows_module.CATALOG_PATH.name == "rows.json"
+
+
+def test_cloudml_isaac_proof_plan_and_profile_select_only_opt_in_rows(
+    tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setattr(selector, "REPO_ROOT", tmp_path)
+    plan = tmp_path / "cloudml-isaac-digital-twin-proof.md"
+    plan.write_text("# CloudML Isaac Digital-Twin Proof\n", encoding="utf-8")
+
+    from_plan = selector.build_eval_harness(
+        plan=plan,
+        budget="focused",
+        profile="adaptive",
+        output_dir=tmp_path / "from-plan",
+    )
+    from_profile = selector.build_eval_harness(
+        budget="focused",
+        profile="cloudml-isaac-proof",
+        output_dir=tmp_path / "from-profile",
+    )
+
+    assert set(_selected_rows(from_plan)) == ISAAC_OPT_IN_ROW_IDS
+    assert set(_selected_rows(from_profile)) == ISAAC_OPT_IN_ROW_IDS
 
 
 def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(

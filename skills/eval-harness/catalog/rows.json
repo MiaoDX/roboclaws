@@ -31,9 +31,21 @@
       "timeout_s": 1800,
       "concurrency_group": "visual-backend"
     },
-    "live-agent": {
+    "isaac-cloudml": {
       "execution_requirements": [
         "gpu",
+        "python-env",
+        "artifact-storage",
+        "simulator:isaaclab",
+        "renderer:rtx",
+        "detector:grounding-dino"
+      ],
+      "timeout_s": 7200,
+      "concurrency_group": "isaac-cloudml"
+    },
+    "live-agent": {
+      "execution_requirements": [
+        "cpu",
         "python-env",
         "artifact-storage",
         "simulator:mujoco",
@@ -70,6 +82,55 @@
     ]
   },
   "rows": [
+    {
+      "row_id": "cloudml-isaac-runtime-smoke",
+      "row_kind": "product_run",
+      "command": [
+        "just", "harness::isaac-runtime-smoke",
+        "runtime_python=/isaac-sim/python.sh",
+        "output_dir={row_dir}/cloudml-isaac-runtime-smoke/run"
+      ],
+      "axes": {"intent": "isaac-runtime-smoke", "backend": "isaaclab"},
+      "reason_selected": "Opt-in CloudML Stage A proves the pinned Isaac runtime and RTX renderer before B1 assets are used.",
+      "expense": "isaac-cloudml",
+      "selection_rule_ids": ["cloudml_isaac_proof"],
+      "requires": ["just", "isaaclab"],
+      "cloudml_stage": {"stage_id": "A"},
+      "profiles": ["cloudml-isaac-proof"]
+    },
+    {
+      "row_id": "cloudml-b1-map12-navigation-smoke",
+      "row_kind": "product_run",
+      "command": [
+        "just", "harness::b1-map12-navigation-smoke",
+        "runtime_python=/isaac-sim/python.sh",
+        "output_dir={row_dir}/cloudml-b1-map12-navigation-smoke/run"
+      ],
+      "axes": {"intent": "navigation-smoke", "world": "b1-map12", "backend": "isaaclab"},
+      "reason_selected": "Opt-in CloudML Stage B proves staged B1 composition and navigation after accepted Stage A evidence.",
+      "expense": "isaac-cloudml",
+      "selection_rule_ids": ["cloudml_isaac_proof"],
+      "requires": ["just", "isaaclab"],
+      "cloudml_stage": {"stage_id": "B"},
+      "profiles": ["cloudml-isaac-proof"]
+    },
+    {
+      "row_id": "cloudml-b1-map12-map-build-grounding-dino",
+      "row_kind": "product_run",
+      "command": [
+        "just", "run::surface", "surface=household-world", "world=b1-map12",
+        "backend=isaaclab", "preset=map-build", "agent_engine=direct-runner",
+        "evidence_lane=camera-grounded-labels", "camera_labeler=grounding-dino",
+        "output_dir={row_dir}/cloudml-b1-map12-map-build-grounding-dino/run"
+      ],
+      "axes": {"intent": "map-build", "preset": "map-build", "world": "b1-map12", "backend": "isaaclab", "agent_engine": "direct-runner", "evidence_lane": "camera-grounded-labels", "camera_labeler": "grounding-dino"},
+      "reason_selected": "Opt-in CloudML Stage C proves strict B1 MapBuild parity after accepted Stage B evidence.",
+      "expense": "isaac-cloudml",
+      "selection_rule_ids": ["cloudml_isaac_proof"],
+      "requires": ["just", "isaaclab", "visual_grounding"],
+      "cloudml_stage": {"stage_id": "C"},
+      "profiles": ["cloudml-isaac-proof"]
+    },
     {
       "row_id": "route-trace-contract-tests",
       "row_kind": "deterministic_gate",

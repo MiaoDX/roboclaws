@@ -1,0 +1,703 @@
+**Status:** Implementation active; NVIDIA EULA accepted
+**Created:** 2026-07-24
+**Last reviewed:** 2026-07-25
+**Current implementation contract:** Add a dedicated CloudML Isaac Lab capability and image,
+then prove the existing `world=b1-map12 backend=isaaclab` route on one r49 worker through
+ordered, stop-gated runtime, navigation, and MapBuild stages.
+**Related ADRs:** ADR-0136 and ADR-0140; no new ADR unless implementation changes the public
+world/backend contract or the durable CloudML placement policy.
+**Supersedes / Superseded by:** Extends the CloudML execution plan and the completed local
+B1/Isaac proof; it does not supersede either one.
+
+## Plan Ledger
+
+- Plan status: ACTIVE
+- Session scope: cloudml-isaac-digital-twin-proof
+- Parent plans:
+  `docs/plans/2026-06-18-cloudml-juicefs-eval.md` and
+  `docs/plans/2026-07-23-household-mcp-capability-backend-unification.md`
+- Child plans: none
+- Last updated: 2026-07-25
+- Current slice: Phase 0-2 implementation and a driver-matched Vulkan image are complete. The image
+  uses native libraries for exact `570.124.06` and a TheLastFoot-derived userspace overlay for exact
+  `580.105.08`. Current bounded placement evidence totals 84 normal one-GPU tasks plus one eight-GPU
+  and two four-GPU diagnostics. The latest six concurrent waves expanded coverage but exposed only
+  `570.124.06`; Stage B/C were not generated or submitted.
+- Next action: when the scheduler exposes the known `580.105.08` r49 group, run one normal one-GPU
+  Stage A with the pinned overlay image and strictly accept overlay selection, Vulkan/RTX startup,
+  and nonblank artifacts before any Stage B work.
+- Blocked on: external CloudML host/container-runtime state, not human authorization. Repo-scoped
+  CloudML repair/retry attempts remain authorized while the frozen workspace, queue/resource
+  class, concurrency, and cost envelope remain unchanged. Every created sampling task has
+  `retryTimes=0`; NVIDIA EULA acceptance is durable and must not be requested again.
+- Do not touch from this session: MolmoSpaces+Isaac, digital-twin cleanup, Agibot hardware,
+  physical movement, provider selection, eval scoring policy, or unrelated CloudML hybrid work.
+
+## Preflight Contract
+
+Preflight status: APPROVED
+
+Task source: user request plus this planning-loop-reviewed plan.
+
+Canonical source: `docs/plans/2026-07-24-cloudml-isaac-digital-twin-proof.md`
+
+Route: durable `$intuitive-flow`; the root session owns phase ordering, approval gates, integration,
+and final success/blocker judgment.
+
+Goal: make the existing B1 / Map 12 Isaac Lab MapBuild route reproducible on CloudML r49 through a
+pinned image, portable assets, explicit capability placement, and three separately accepted live
+stages without changing ordinary MuJoCo baselines.
+
+Scope:
+
+- Freeze the accepted local Isaac/DINO runtime, commands, checker flags, portable asset closure,
+  target resource budget, and per-stage cost envelope.
+- Add one dedicated Isaac image identity and `cloudml-r49-isaac` capability while retaining the
+  existing CPU MuJoCo and r49 DINO pools.
+- Extend the existing content-addressed CloudML staging and worker boundary for Isaac inputs,
+  runtime readiness, provenance, and run-owned outputs.
+- Add three independent opt-in rows for generic runtime, B1 navigation, and the camera-grounded
+  Grounding DINO MapBuild proof; accept each task before generating or submitting the next.
+- Prove the frozen public B1 route on one non-preemptible r49 worker at a time and collect reports
+  compatible with the strict accepted local gates.
+- Keep repeatability/default promotion optional and separately approved after the first Stage C
+  success.
+
+Non-goals: no MolmoSpaces+Isaac restoration, digital-twin cleanup, CPU-only Isaac benchmark,
+physical Agibot work, provider-backed agent run, public launch-axis change, new storage service,
+transparent retry, routine-baseline inclusion, or preemptible/default promotion in the first proof.
+
+Entity budget: reuse=Eval Harness row/catalog/plan lifecycle, current CloudML adapter and content
+store, JuiceFS, run-owned output collection, existing Isaac/DINO commands and strict checkers;
+remove/merge=keep one CloudML adapter, one content store, and existing-schema per-stage archives,
+with no cross-task DAG or all-at-once executable profile; new=one pinned Isaac image identity, one
+Isaac capability/pool, three opt-in row IDs, acceptance receipts, and the smallest portable asset
+packaging helper required by the existing manifest boundary; expansion triggers=another GPU class
+or Isaac version, typed manifest schema, provider credentials, distributed/multi-GPU execution,
+sidecar/service boundary, public route change, cleanup enablement, or default/preemptible promotion
+requires re-approval.
+
+Context: must-read=this plan, `STATUS.md`, `ARCHITECTURE.md`,
+`docs/agents/operating-runbook.md`, `docs/human/evaluation.md`,
+`docs/plans/2026-06-18-cloudml-juicefs-eval.md`,
+`docs/plans/2026-07-23-household-mcp-capability-backend-unification.md`,
+`skills/eval-harness/SKILL.md`, `skills/eval-harness/catalog/rows.json`,
+`skills/eval-harness/scripts/eval_harness_cloudml.py`,
+`roboclaws/evals/cloudml_task.py`, `roboclaws/evals/cloudml_content_store.py`,
+`scripts/dev/run_cloudml_eval_worker.sh`, `just/harness.just`, and `just/molmo.just`;
+useful=the accepted local B1 proof capsule and its exact artifacts, current CloudML CPU/GPU proof
+reports, `Dockerfile.eval`, and focused tests named below; avoid-unless-needed=broad `output/` scans,
+historical Isaac AOV/debug plans, shipped retrospectives, unrelated `.planning/` history, provider
+incident logs, `TODOS.md`, and `THOUGHTS.md`.
+
+Acceptance:
+
+- SUCCESS: a pinned dedicated image and portable content-addressed inputs select only
+  `cloudml-r49-isaac`; deterministic/dry-run gates pass; Stage A proves exact runtime identity and
+  nonblank RTX rendering; Stage B proves staged B1 composition and navigation; Stage C proves 5/5
+  waypoints, 25/25 DINO observations, 100 real robot-view images, Base and Runtime Metric Maps, and
+  1.0 sweep coverage; every attempt has complete task/image/code/asset/host/runtime provenance;
+  CPU MuJoCo, generic r49 DINO, and existing baseline profiles do not regress.
+- BLOCKED_NEEDS_DECISION: NVIDIA EULA acceptance is resolved and persistent. Stop before any
+  material workspace/resource/cost-envelope expansion, Isaac/DINO sidecar boundary, repeat Stage C
+  for promotion, or other entity-budget expansion trigger. In-scope proof attempts do not require
+  per-attempt approval.
+- BLOCKED_NEEDS_LOCAL_VALIDATION: image/offline smoke cannot run on a compatible local GPU/Docker
+  runtime, or required Stage A/B/C CloudML evidence is unavailable due to capacity, registry,
+  JuiceFS, disk/RAM, driver, runtime, assets, or an unapproved external gate. The implementation is
+  not complete or merge-ready until Stage C passes.
+- INTERMEDIATE_ONLY: Phase 0-2 code, deterministic tests, image build metadata, dry-run YAML, Stage
+  A, or Stage B may be committed only as an explicitly reported checkpoint; none proves the cloud
+  digital-twin product route.
+- No regressions: ordinary MuJoCo remains CPU-eligible unless a row explicitly requires DINO/CUDA;
+  current CPU and DINO image variables/pools, baseline profiles, launch axes, eval scoring, artifact
+  privacy, and no-fallback semantics remain unchanged.
+
+Verification:
+
+- deterministic: `ruff check .`; `ruff format --check .`;
+  `./scripts/dev/run_pytest_standalone.sh -q tests/unit/evals`;
+  `./scripts/dev/run_pytest_standalone.sh -q tests/unit/molmo_cleanup/test_isaac_lab_runtime_smoke_checker.py tests/contract/maps/test_b1_map12_verified_alignment.py tests/contract/dev_tools/test_isaac_runtime_preflight_just_recipe.py`.
+- integration: run
+  `just agent::eval recommend plan=docs/plans/2026-07-24-cloudml-isaac-digital-twin-proof.md budget=focused`;
+  generate each proposed `cloudml-isaac-runtime-smoke`, `cloudml-b1-map12-navigation-smoke`, and
+  `cloudml-b1-map12-map-build-grounding-dino` row separately with
+  `just agent::eval execute ... execution_target=cloudml cloudml_dry_run=true row_id=<stage-row>`;
+  require deterministic YAML apart from attempt identity, pinned image/assets, no secret or
+  workstation path, and a valid prior-stage acceptance receipt for B/C.
+- product-run: exercise
+  `just run::surface surface=household-world world=b1-map12 backend=isaaclab preset=map-build agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=grounding-dino`
+  in the pinned image and require the frozen strict local checker contract before Stage C submit.
+- local-live-manual: within the documented workspace/resource/cost envelope, run the offline image
+  RTX/DINO smoke, then CloudML
+  Stage A, collect/check its receipt, Stage B, collect/check its receipt, and Stage C on
+  non-preemptible queue `11759` r49 tasks; inspect nonblank image/report artifacts and measured
+  resource/cost provenance. The EULA gate is resolved.
+- optional: with separate approval, repeat Stage C on a fresh host before maintained-product or
+  preemptible promotion; a Stage A repeat proves runtime portability only.
+
+Execution: main=root supervisor implementing Phase 0-2 first, preserving the shared dirty worktree,
+running deterministic/dry-run gates, and stopping at material scope/resource/cost boundaries;
+worker=none; worker-goal=none.
+
+To execute: `/goal execute docs/plans/2026-07-24-cloudml-isaac-digital-twin-proof.md with intuitive-flow`
+
+Optional tracking: none.
+
+Approval: NVIDIA EULA acceptance is already explicit and durable. In-scope publication, paid r49
+proof tasks, and repair/retry attempts follow the repo live-verification policy without separate
+per-attempt gates. Sidecar expansion and repeat/promotion remain separate gates.
+
+# CloudML Isaac Digital-Twin Proof
+
+## Outcome
+
+Make the already-supported B1 / Map 12 digital twin reproducible on CloudML without changing its
+product meaning:
+
+```text
+frozen B1/Map12 case + pinned code + pinned Isaac image + content-addressed assets
+  -> simulator:isaaclab + renderer:rtx capability match
+  -> queue 11759 r49 worker
+  -> generic Isaac runtime smoke
+  -> B1 / Map 12 navigation smoke
+  -> direct-runner MapBuild product proof
+  -> collected CloudML artifacts with local-proof-compatible checkers
+```
+
+The public route remains:
+
+```text
+surface=household-world
+world=b1-map12
+backend=isaaclab
+preset=map-build
+agent_engine=direct-runner
+evidence_lane=camera-grounded-labels
+camera_labeler=grounding-dino
+```
+
+CloudML is an execution target for that route, not a new world, backend, preset, agent engine, or
+digital-twin product surface.
+
+## Why This Work Exists
+
+The local hardware proof is strong but not portable. On 2026-07-24, the repo proved real Isaac
+headless RTX rendering and a strict B1 MapBuild run on a local RTX 3090, including 5/5 public
+waypoints, 25/25 Grounding DINO observations, 100 robot-view images, and 1.0 sweep coverage.
+CloudML currently cannot reproduce that claim because:
+
+- the eval placement model has no `simulator:isaaclab` or `renderer:rtx` capability;
+- `cloudml-r49` assumes the MuJoCo/Grounding DINO image and worker bootstrap;
+- `Dockerfile.eval` has CPU and CUDA/DINO variants but no Isaac Sim/Lab runtime;
+- the B1 scene, Map 12 bundle, robot USD, and alignment inputs are not a frozen CloudML asset set;
+- no CloudML artifact records the Isaac runtime/image/driver/GPU provenance.
+
+Demand gate: pass. Reusing the generic CUDA image would create false confidence because CUDA and
+Grounding DINO readiness do not prove Isaac Sim imports or RTX rendering. A separate capability
+and image identity are justified; a new public product route is not.
+
+## Current Evidence And Constraints
+
+- Canonical digital twin: `world=b1-map12`, `backend=isaaclab`.
+- MolmoSpaces household scenes remain `backend=mujoco`; MolmoSpaces+Isaac stays retired.
+- The original local pip proof used Isaac Sim distribution `6.0.0.0`, Isaac Lab `0.54.3`, and
+  Torch `2.7.0+cu128`. That Isaac Lab revision targets Isaac Sim 5.x and is not the image build
+  contract. The pinned image uses the official Isaac Sim 6-compatible Isaac Lab
+  `v3.0.0-beta2.patch1` revision `ffff603eafc6b74264a5261cc0183d6a65390d78` (distribution
+  `6.1.14`) and Torch `2.10.0+cu128`. The pinned official `isaac-sim:6.0.0` image reports release `6.0.0` from
+  `/isaac-sim/docs/py/VERSION` and exact build
+  `6.0.0-rc.59+release.41464.5f2772bc.gl` from `/isaac-sim/VERSION`; that binary image does not
+  expose an `isaacsim` Python distribution version.
+- Local renderer proof: `isaac_lab_headless_rtx` on an RTX 3090.
+- Candidate CloudML resource: queue `11759` (`robot-dev-common`), one
+  `cloudml.ng1r49-8-8.13-107` worker with RTX 4090-class GPU.
+- Initial runs must be non-preemptible so infrastructure compatibility failures are not confused
+  with scheduler eviction. Preemptible execution is a later cost optimization.
+- The local preflight currently uses 80 GiB as a lower-bound warning, not as a proven CloudML
+  capacity requirement. Phase 0 must calculate target-task scratch and memory budgets from the
+  image/runtime, compressed and expanded assets, shader/cache data, outputs, and safety margin.
+- Current B1 asset sizes are approximately 11 GiB for
+  `2rd_floor_seperated`, 2.5 GiB for `B1_floor2_slow`, under 1 MiB for Map 12, and under 1 MiB
+  for the generated robot USD. Do not upload all B1 data for the generic smoke.
+- NVIDIA EULA acceptance must be explicit in the image/runtime contract and recorded as a boolean,
+  never inferred from GPU selection.
+- Collected Stage A provenance must report exact, non-`unknown` Isaac Sim, Isaac Lab, Torch, and
+  CUDA versions; an image tag or build declaration alone is insufficient.
+
+## Scope
+
+### 1. Dedicated Isaac Image Contract
+
+- Add one reproducible Isaac image path, separate from the current CPU and CUDA/DINO eval images.
+- Pin the base image, Isaac Sim, Isaac Lab source revision/package, Python, CUDA/Torch, and repo
+  dependency lock inputs.
+- Prefer an NVIDIA/Isaac-supported base or the repo-local Isaac Lab Docker source over installing
+  the full runtime at task startup.
+- Build/import smoke must prove `torch.cuda.is_available()`, Isaac imports, expected versions,
+  RTX headless startup, and a nonblank generated-scene render.
+- Publish the immutable digest only after the local/container smoke passes.
+- Use a distinct environment variable such as `ROBOCLAWS_CLOUDML_ISAAC_IMAGE_URL`; do not overload
+  `ROBOCLAWS_CLOUDML_GPU_IMAGE_URL` and hide runtime identity.
+
+### 2. Explicit CloudML Capability And Placement
+
+- Add a dedicated worker pool such as `cloudml-r49-isaac` with at least `gpu`,
+  `simulator:isaaclab`, `renderer:rtx`, `python-env`, and `artifact-storage`.
+- Keep `cloudml-r49` as the MuJoCo/Grounding DINO route.
+- Select the Isaac pool only for rows that explicitly require `simulator:isaaclab`; GPU alone is
+  insufficient.
+- Reuse queue `11759` and the existing r49 resource shape for the first proof.
+- Fail with `no_eligible_worker_pool` or an Isaac-specific readiness error when the image,
+  capability, GPU, disk, EULA, or assets are missing. No MuJoCo or local fallback is allowed.
+- Keep the first three proof stages as explicit attempts with separate task IDs and artifact roots.
+
+### 3. Frozen Isaac Asset Set
+
+- Extend the existing content-addressed CloudML input boundary rather than adding another storage
+  service.
+- Create separate asset groups so the generic runtime smoke uses only generated/control assets,
+  while B1 stages add the scene, Map 12, robot USD inputs, alignment artifact, Base Metric Map,
+  waypoint requests, and required metadata.
+- Preserve relative USD references or rewrite them deterministically during asset preparation;
+  the worker must not depend on workstation absolute paths.
+- Freeze the transitive USD, robot URDF/mesh, alignment, and map dependency closure actually
+  consumed by the proof. Reject absolute workstation paths in manifests, text metadata, and
+  composed USD dependencies; do not archive both complete B1 roots when a smaller verified closure
+  is sufficient.
+- Record per-file or per-archive hashes, total bytes, source provenance, and the exact staged path
+  consumed by each stage.
+- Probe JuiceFS content-addressed objects before upload and reuse matching immutable inputs.
+- Do not stage provider secrets for the generic or direct-runner proof.
+- Prefer one existing-schema immutable asset archive per separately invoked stage. Add a typed
+  asset-manifest schema only if Phase 0 proves the current content-store identity cannot represent
+  the required closure and provenance.
+
+### 4. Isaac-Aware Worker Bootstrap And Provenance
+
+- Split GPU readiness by worker capability: DINO validation remains in the current r49 branch;
+  Isaac validation checks the dedicated runtime, GPU/driver, disk, EULA, renderer, and staged
+  inputs.
+- CloudML generation and worker entry require the frozen contract's durable EULA acceptance record;
+  local recipe defaults must not substitute for that formal cloud-path evidence.
+- Run Isaac with the dedicated runtime Python rather than installing it into the normal `.venv/`.
+- Capture task ID, queue, cluster, host, GPU, driver, CUDA, image digest, Isaac Sim/Lab versions,
+  renderer mode, startup time, peak GPU memory, stage duration, and output hashes.
+- Preserve the current run-owned output mount and collector envelope.
+- Keep CloudML transport/bootstrap thin; invoke existing Isaac scripts and product commands instead
+  of copying task strategy into the adapter.
+
+### 5. Ordered Live Proof Ladder
+
+Each stage is a new explicit CloudML task and starts only after the previous stage is accepted.
+Implement A/B/C as three separately invoked opt-in row executions. Do not use row `depends_on` for
+this ladder because the current harness deliberately packs dependency-connected rows into one
+task, and do not expose an executable profile that submits all three concurrently. Collection of
+each stage writes an acceptance receipt containing the stage ID, task ID, checker result, artifact
+root, and artifact hashes; receipt verification is a local control-plane precondition for
+generating or submitting the next stage.
+
+#### Stage A: Generic Runtime Smoke
+
+Run the existing strict Isaac runtime smoke against its generated scene. Require:
+
+- exact pinned, non-`unknown` runtime versions and visible RTX 4090-class GPU;
+- renderer mode `isaac_lab_headless_rtx`;
+- loaded USD stage and selected public bindings;
+- four robot-view images plus the runtime smoke image;
+- all required images nonblank and checker pass;
+- collected state, logs, GPU samples, timing, and image hashes.
+
+Stop after Stage A on import, driver, shader/cache, disk, renderer, blank-image, output-mount, or
+collector failure. Do not upload the full B1 asset set to debug a generic runtime failure.
+
+#### Stage B: B1 / Map 12 Navigation Smoke
+
+Stage only the B1 navigation asset group and run the existing readiness and navigation smoke.
+Require:
+
+- asset and alignment readiness with no missing referenced files;
+- robot USD readiness;
+- successful real Isaac render of the selected B1 scene;
+- all requested navigation poses accepted by the existing strict checker;
+- nonblank robot-view/report/preview artifacts;
+- collected navigation and readiness artifacts with immutable input provenance.
+
+Stop after Stage B if the B1 USD cannot compose from the staged root, camera evidence is blank,
+alignment/readiness fails, or navigation does not pass. Do not continue to a product agent run.
+
+#### Stage C: Direct-Runner MapBuild Product Proof
+
+Run the frozen public route with `agent_engine=direct-runner`,
+`evidence_lane=camera-grounded-labels`, and `camera_labeler=grounding-dino`. Require parity with the
+accepted local product proof:
+
+- 5/5 public waypoints visited;
+- 25/25 expected Grounding DINO observations;
+- 100 robot-view images and non-placeholder provenance;
+- Base Metric Map and Runtime Metric Map artifacts;
+- 1.0 sweep coverage;
+- strict B1 robot-consumption, waypoint-honesty, map-build, and Base Metric Map gates;
+- full CloudML task/image/asset/runtime provenance in the collected report.
+
+Grounding DINO may run in the same dedicated Isaac image only if its pinned model and CUDA
+sidecar pass the existing readiness contract. Phase 0 must resolve and offline-prove that packaging
+choice before image implementation. Otherwise keep Stage C blocked for explicit review of a
+two-process/sidecar boundary; do not silently omit observations or substitute public labels.
+
+### 6. Eval Harness And Documentation Integration
+
+- Add the smallest row/case representation needed to select the three Isaac proof stages without
+  turning the normal baseline profiles into an expensive default.
+- Keep `baseline-core`, `baseline-live-default`, and ordinary MuJoCo refresh behavior unchanged.
+- Give the Isaac proof an explicit opt-in profile or row set until repeatability and cost are known.
+- Teach dry-run, status, retry, collect, and reports about the Isaac pool and immutable inputs.
+- Document the default placement matrix: CPU MuJoCo on queue 8151, DINO MuJoCo on r49, and Isaac
+  digital twin on the dedicated r49 Isaac capability.
+- Record successful proof in human docs only after Stage C passes; before that, report the exact
+  failed or blocked stage.
+
+## Non-Goals
+
+- No MolmoSpaces+Isaac route, compatibility alias, or hidden backend fallback.
+- No digital-twin cleanup enablement or cleanup product-readiness claim.
+- No Agibot physical probe, robot connection, or movement.
+- No OpenAI Agents SDK or provider call in the first CloudML proof.
+- No CPU-only Isaac benchmark; RTX rendering is a required capability, not an optimization toggle.
+- No full provider/task/evidence-lane Cartesian matrix.
+- No scheduler-transparent retry. Every retry is a new explicit attempt.
+- No default inclusion in routine baselines until cost and repeatability are measured.
+- No image build or package download during a formal CloudML evidence task.
+
+## Entity Budget
+
+- Reuse: CloudML plan/shard lifecycle, JuiceFS content-addressed inputs, run-owned outputs,
+  collectors/reports, existing Isaac preflight/smoke/navigation/product commands, and strict
+  checkers.
+- Add: one Isaac image identity, one Isaac worker capability/pool, existing-schema per-stage asset
+  archives, acceptance receipts, and opt-in eval rows/profile.
+- Avoid: a second CloudML adapter, a new storage backend, duplicated Isaac task scripts, a new
+  public launch axis, or a generic plugin framework.
+- Expansion triggers requiring review: another GPU class, more than one Isaac version, provider
+  credentials, distributed/multi-GPU Isaac, a sidecar service boundary, or cleanup enablement.
+
+## Implementation Phases
+
+### Phase 0: Reconcile Runtime And Frozen Case
+
+- Select and record the exact Isaac Sim/Lab/Torch/CUDA versions and Isaac Lab source revision from
+  the accepted local proof.
+- Define the generated-smoke and B1 asset groups, enumerate referenced USD dependencies, and
+  measure the minimal portable closure and archive sizes.
+- Decide whether the pinned Isaac image can host the existing DINO sidecar and model offline. Stop
+  for sidecar-boundary review before image implementation if it cannot.
+- Freeze Stage A/B/C commands, checker flags, expected artifacts, and timeouts.
+- Measure or obtain the target r49 CPU, RAM, scratch-disk, driver, and GPU contract. Calculate
+  compressed-plus-expanded asset, image/runtime, shader/cache, and output headroom rather than
+  inheriting the local 80 GiB threshold.
+- Produce per-stage timeout, maximum GPU-hour, registry-byte, asset-byte, and storage estimates
+  before any image push or CloudML submit.
+
+Exit: deterministic manifests and commands can be reviewed without local absolute paths.
+
+### Phase 1: Image And Offline Proof
+
+- Use the recorded explicit NVIDIA EULA authorization for image acquisition/build and local smoke.
+  It does not authorize registry publication or a paid cloud task and must not be requested again.
+- Implement the dedicated image and build helper.
+- Prove imports, versions, CUDA, RTX headless rendering, and nonblank generated output locally in
+  the image with network disabled after build.
+- Pin and record the resulting registry digest.
+
+Local proof and publication completed 2026-07-24:
+
+- `roboclaws-eval:isaac-local` has local immutable image ID
+  `sha256:ce373d74339b1fd8687954a4d0585b531e37c0c80e6b80cd0ddb692267dd1831` and size
+  `22042441664` bytes. The published immutable reference is
+  `micr.cloud.mioffice.cn/cc-proxy/miuniverse-staging:roboclaws-eval-isaac-e7e78a1e-20260724@sha256:ce373d74339b1fd8687954a4d0585b531e37c0c80e6b80cd0ddb692267dd1831`.
+- The `--network none` GPU smoke passed on an RTX 3090 with Isaac Sim `6.0.0`, Isaac Sim build
+  `6.0.0-rc.59+release.41464.5f2772bc.gl`, Isaac Lab `6.1.14`, Torch `2.10.0+cu128`, and CUDA
+  `12.8`.
+- The strict runtime checker reported `status=passed`: the generated USD was loaded and indexed,
+  selected bindings resolved, RTX rendering was real, and all FPV/chase/topdown/verify images were
+  present, nonblank, and manually inspected.
+
+Driver-matched image refresh completed 2026-07-25:
+
+- The image now copies the TheLastFoot-proven exact `580.105.08` Vulkan userspace overlay from
+  immutable source digest `sha256:2d90ff0525fda7b3980ef8094f3eb432bcb2b1efed8c9bf4b531c0608561bdcb`.
+  Runtime selection keeps exact `570.124.06` on native injected libraries, activates the overlay
+  only for exact `580.105.08`, sets both Vulkan ICD override variables, and rejects unknown or mixed
+  versions.
+- Local network-disabled RTX smoke passed on RTX 3090 driver `570.211.01`. The refreshed immutable
+  image is
+  `micr.cloud.mioffice.cn/cc-proxy/miuniverse-staging:roboclaws-eval-isaac-vulkan580-4b483e4e-20260725@sha256:6f6c1f9b4a0af8e2725e6842c3906d8ce31b0bb43f221bdd158c13157f7ab3ce`.
+
+Exit: immutable image digest plus offline smoke artifacts. Stop if the supported image cannot run
+on the target CloudML driver contract.
+
+### Phase 2: Placement, Staging, And Dry Run
+
+- Add capability matching, resource/image mapping, Isaac bootstrap, asset groups, and provenance.
+- Add three independent opt-in stage rows, acceptance receipts, and next-stage receipt validation;
+  do not express the stop gates with `depends_on`.
+- Add unit/contract tests for pool selection, missing capability/image/EULA/assets, deterministic
+  YAML, no fallback, retry identity, and redaction.
+- Generate and inspect all three CloudML dry-run tasks without submission.
+
+Exit: deterministic tests pass and the reviewed YAML references only pinned code, image, assets,
+commands, and run-owned output paths.
+
+### Phase 3: Cost-Gated CloudML Proof
+
+Publication and the bounded non-preemptible A/B/C ladder were approved on 2026-07-24 with a
+maximum of 2 GPU-hours per stage and 6 GPU-hours total. A later repo-level instruction authorizes
+in-scope repair/retry attempts without per-attempt confirmation while this envelope and resource
+shape remain unchanged; automatic retry remains disabled and every retry keeps a distinct task ID.
+
+First Stage A attempt evidence:
+
+- Task `t-20260724210310-e8v58` used queue `11759`, one guaranteed r49, no preemption, no retry,
+  code commit `d449d73b225fe2f8ce80aa6d546edb3fbd6a0ee6`, and expected image digest
+  `sha256:ce373d74339b1fd8687954a4d0585b531e37c0c80e6b80cd0ddb692267dd1831`.
+- It pulled the 22 GB image successfully, ran for 31 seconds, and exited before Isaac preflight.
+  The terminal marker recorded `exit_code=1`; no row result or acceptance receipt was produced.
+- Root cause: `ROBOCLAWS_CLOUDML_ASSET_MANIFEST` was hard-coded to
+  `roboclaws_cloudml_cleanup_assets.json`, while Isaac staging uploaded
+  `roboclaws_cloudml_isaac_stage_a_assets.json`. The fix preserves the actual manifest filename in
+  content identity and emits an actionable missing-file error.
+
+Second Stage A attempt evidence:
+
+- Task `t-20260724212407-tej6o` used queue `11759`, one guaranteed r49, no preemption, no retry,
+  code commit `bff97f1d33aefb9b53fb2a13a615e50f4e4d1404`, and the same expected image digest.
+- It ran for 32 seconds and wrote a terminal marker with `exit_code=127`, the expected image, code,
+  contract, asset-group, and manifest identities. It produced no row result or acceptance receipt.
+- History logs show `run_cloudml_eval_worker.sh: line 268: uv: command not found`. The Isaac image
+  installs `uv` as a module of `/isaac-sim/python.sh`, not as a bare executable. The worker now uses
+  that pinned module runner for the Isaac pool. Task generation also preserves the image's
+  `/isaac-sim/python.sh` runtime contract instead of exporting a nonexistent venv Python path.
+
+Third Stage A attempt evidence:
+
+- Task `t-20260724213659-xkdpj` used the same queue/resource/retry posture, code commit
+  `ecbbe579e7bc95fd223ea0f2b4411fd8f20cdae9`, and expected image digest. It ran for 35 seconds
+  after the image pull and wrote a terminal marker with `exit_code=1` and complete input identity.
+- Code installation succeeded. Runtime preflight proved an RTX 4090, driver `570.124.06`, CUDA
+  `12.8`, Isaac Sim `6.0.0`, Isaac Lab `6.1.14`, Torch `2.10.0+cu128`, and EULA acceptance.
+- The selected smoke row did not start because importing the generic eval CLI eagerly imported
+  session-live, operator-console, and then optional `mcp`. The CLI now imports session-live only
+  when that mode is selected, keeping the Stage A runtime surface independent of that optional
+  product stack.
+
+Fourth Stage A attempt evidence:
+
+- Task `t-20260724214533-lik6i` used the same queue/resource/retry posture, code commit
+  `d618ea4a7a2f52e3710f117520e62a9c2564d9a9`, and expected image digest. It ran for 62 seconds
+  and wrote a terminal marker with `exit_code=1` and complete input identity.
+- Code installation and runtime preflight passed. The selected row ran for 27.099 seconds on RTX
+  4090 with driver `570.124.06`, CUDA `12.8`, Isaac Sim `6.0.0`, Isaac Lab `6.1.14`, and Torch
+  `2.10.0+cu128`, then reached real RTX renderer initialization.
+- Isaac reported that Linux R570 drivers in `[570.00, 570.158.01)` are unsupported and recommended
+  `580.95.05`. RTX scene-renderer creation failed, followed by Warp CUDA error 700 while loading
+  `isaaclab.sensors.kernels`. This is an external host-driver incompatibility; disabling the check,
+  weakening renderer evidence, or advancing to Stage B would violate the acceptance contract.
+- Collection recovered one failed row plus its marker, stdout/stderr, generated USD, and init log
+  under the run-owned `isaac-stage-a-d618ea4a` output. No Stage A receipt was created.
+
+Driver-matched placement sampling on 2026-07-25:
+
+- Commit `1e1c7cd303214ffaf7f70c63309f1fe15a4ddf9d` produced code archive SHA
+  `9e6f4126e89d3dfce68ed20888b21b261cd3706c7592e28abdf5da375fc366fc` and proof-contract SHA
+  `4d59a8b4fb43543413bec3754fd7eb04b9a244c3ccb82892da33e45133739c96`. The reviewed YAML used the
+  refreshed image digest, one guaranteed r49 GPU, no preemption, no automatic retry, and the 580
+  gate.
+- Twenty-eight one-GPU attempts covered `slave564` (10 tasks), `slave565` (12), and `slave574` (6).
+  An eight-GPU placement diagnostic covered `slave589`; two four-GPU diagnostics covered
+  `slave565`. All 31 tasks reported driver `570.124.06`, used native libraries, had
+  `retryTimes=0`, and stopped before Isaac startup. The multi-GPU diagnostics are placement
+  evidence only and cannot satisfy Stage A acceptance. Representative IDs are one-GPU
+  `t-20260725003836-df1h0`, eight-GPU `t-20260725005104-rxnzc`, and four-GPU
+  `t-20260725005314-y1pox` / `t-20260725005455-ay4e4`.
+- No current task reached the known `580.105.08` host group, so the overlay branch has not yet run
+  in this Roboclaws image on CloudML. Stage A remains unaccepted and Stage B/C remain ungenerated
+  and unsubmitted. The current blocker is compatible-host scheduling availability, not the prior
+  inability to package the missing graphics userspace libraries.
+
+Additional concurrent placement sampling on 2026-07-25:
+
+- Commit `e9824f25abd37c41b384d95344bee3935a6fd1ac` produced Stage A manifest SHA
+  `202d926e672a177308b6b656a950c2a5adecf729782f6b8106cc5d88d5c29575` and code archive SHA
+  `9be279fb8e03f87085ee9f7ff8468e870aad85804ee005d1c7f3a4faa352d205`; the proof-contract SHA and
+  pinned image digest remained unchanged.
+- Eight sequential tasks followed by six same-second waves of eight normal one-GPU tasks added 56
+  attempts: `slave559` (2), `slave563` (2), `slave564` (21), `slave574` (12), `slave580` (13), and
+  `slave589` (6). Every task was non-preemptible, had `retryTimes=0`, reported exact driver
+  `570.124.06`, selected `mode=native`, and stopped at the required 580-series gate before Isaac.
+- Representative IDs are `t-20260725114930-tjbej`, `t-20260725115948-vd1xo`,
+  `t-20260725115949-pcymd`, `t-20260725120554-5bsav`, `t-20260725120554-m2czj`, and
+  `t-20260725115948-nom12`. Plans and manifests are retained under
+  `/tmp/roboclaws-cloudml-isaac-vulkan580-proof/run-30` through `run-85`.
+- Representative `run-85` status was terminal/failed. Collection recovered the identity-complete
+  terminal marker with `exit_code=3` and correctly rejected acceptance because the driver gate ran
+  before any row result or receipt existed.
+- The concurrent shape distributed placement across more hosts than sequential submission, but it
+  still did not reach `slave560` or another 580-series host. No overlay, RTX, row result, or Stage A
+  acceptance receipt was produced; compatible-host availability remains the only live blocker.
+
+- Keep recording measured registry/storage bytes, per-stage timeout, maximum GPU-hours, and current
+  capacity. Existing authorization covers the pinned image and bounded A/B/C ladder without
+  per-attempt confirmation; it does not enable automatic retries or the later repeat/promotion run.
+- Submit Stage A; collect and accept it before Stage B asset upload/submit.
+- Submit and accept Stage B before Stage C.
+- Submit Stage C and render the final comparison/report packet.
+
+Exit: Stage C acceptance passes, or the plan remains active with one precise failed-stage blocker
+and its artifacts.
+
+### Phase 4: Optional Repeatability And Promotion
+
+- Keep the first accepted Stage C as completion of this CloudML proof; routine/default promotion is
+  not implicit in that success.
+- With separate paid approval, repeat a selected stage on a fresh r49 host/task and compare startup,
+  render, task, GPU memory/utilization, and output hashes.
+- A fresh-host Stage A repeat proves only image/driver portability. Preemptible or maintained
+  product placement requires a second accepted Stage C on a fresh host.
+- Update current docs and plan ledger with measured cost and only the policy supported by the
+  repeated stage.
+
+Exit: repeatability evidence supports the narrowly stated policy, or the route stays
+explicit/non-preemptible. This phase is not required for the first-proof success condition.
+
+## Acceptance
+
+SUCCESS requires all of the following:
+
+1. Isaac rows require `simulator:isaaclab` and cannot match CPU or generic DINO pools.
+2. The dedicated image is immutable, version-pinned, locally/offline proven, and selected only by
+   the Isaac pool.
+3. CloudML dry-run tasks are deterministic and contain no secret values or workstation absolute
+   paths.
+4. Stage A passes on a real r49 worker with RTX rendering and nonblank images.
+5. Stage B passes B1 asset/readiness/navigation and image gates from staged immutable inputs.
+6. Stage C matches the current strict local B1 MapBuild acceptance contract.
+7. Every attempt records task, image, code, asset, host, GPU/runtime, timing, and artifact identity.
+8. Failure at any stage blocks later paid stages with an actionable artifact, without fallback.
+9. Ordinary CPU MuJoCo and r49 DINO placement and existing baseline profiles do not regress.
+10. The first-proof profile remains opt-in and non-preemptible after Stage C success. Any later
+    preemptible or maintained-product promotion is supported by a separately approved second
+    Stage C on a fresh host.
+
+INTERMEDIATE_ONLY:
+
+- image build/import success without real RTX rendering;
+- deterministic tests and CloudML dry-run;
+- Stage A or Stage B without Stage C;
+- a product run that weakens local checker flags or omits required B1 evidence.
+
+BLOCKED_NEEDS_DECISION:
+
+- registry publication and the explicitly bounded non-preemptible r49 cost envelope;
+- adding provider credentials or a new sidecar/service boundary;
+- promoting the opt-in Isaac profile into a routine baseline;
+- enabling preemptible execution before repeatability evidence.
+
+BLOCKED_NEEDS_EXTERNAL_STATE:
+
+- no eligible r49 capacity, registry access, JuiceFS access, sufficient task disk, compatible
+  driver, or reachable immutable assets;
+- the approved NVIDIA/Isaac package source cannot be materialized into the pinned image.
+
+## Verification
+
+Planning/dry-run recommendation:
+
+```bash
+just agent::eval recommend \
+  plan=docs/plans/2026-07-24-cloudml-isaac-digital-twin-proof.md \
+  budget=focused
+```
+
+Deterministic implementation gates:
+
+```bash
+ruff check .
+ruff format --check .
+./scripts/dev/run_pytest_standalone.sh -q tests/unit/evals
+./scripts/dev/run_pytest_standalone.sh -q \
+  tests/unit/molmo_cleanup/test_isaac_lab_runtime_smoke_checker.py \
+  tests/contract/maps/test_b1_map12_verified_alignment.py \
+  tests/contract/dev_tools/test_isaac_runtime_preflight_just_recipe.py
+```
+
+Image and integration gates:
+
+- Build the pinned Isaac image and run its post-build smoke with network disabled.
+- Validate `nvidia-smi`, CUDA/Torch, Isaac imports, versions, disk, EULA state, and RTX renderer.
+- Generate Stage A/B/C CloudML YAML twice and require byte-identical task inputs apart from run and
+  task identity.
+- Probe every JuiceFS digest before submit and verify collected output/archive hashes.
+- Search YAML, logs, manifests, and reports for secret values and workstation absolute paths.
+
+Live gates:
+
+- Stage A generic Isaac runtime smoke on one non-preemptible r49 task.
+- Stage B B1 / Map 12 navigation smoke on a new invocation after Stage A receipt acceptance.
+- Stage C direct-runner, camera-grounded, Grounding DINO B1 MapBuild on a new invocation after
+  Stage B receipt acceptance.
+- Separately approved fresh-host Stage C repeat before preemptible or maintained-product promotion.
+
+## Risks And Stop Gates
+
+| Risk | Required response |
+| --- | --- |
+| Isaac image is very large or build is network-fragile | Build once, pin digest, prove offline; never install in evidence tasks. |
+| CloudML driver is incompatible with pinned Isaac/CUDA | Stop at Phase 1/Stage A and record exact driver/runtime evidence. |
+| Target CPU, RAM, or scratch disk is below the measured stage budget | Block before asset upload, extraction, or renderer startup. |
+| B1 USD contains absolute or missing references | Fail asset preparation/readiness; do not patch paths ad hoc in the live task. |
+| RTX 4090 VRAM is insufficient | Stop with peak-memory and renderer diagnostics; do not silently lower evidence requirements. |
+| Stage C needs both Isaac and DINO dependencies | Resolve and offline-prove one pinned image in Phase 0/1 or return for explicit sidecar-boundary review before image publication. |
+| Shader/cache startup dominates cost | Record separately; optimize only after the first correct proof. |
+| Output differs from local proof | Classify runtime/platform versus behavioral difference before changing gates. |
+| A task is preempted | Record an explicit failed/preempted attempt and resubmit only after review. |
+
+## Expected Changed Surfaces
+
+Exact filenames may narrow during preflight, but ownership should remain:
+
+- CloudML placement and row requirements:
+  `skills/eval-harness/scripts/eval_harness_cloudml.py`, catalog/row helpers, and focused tests.
+- Image/build contract: a dedicated Isaac Dockerfile or a clearly separated build target plus
+  `scripts/dev/` build/offline-smoke helpers.
+- Worker/bootstrap and task envelope: `roboclaws/evals/cloudml_task.py`,
+  `scripts/dev/run_cloudml_eval_worker.sh`, and tests.
+- Content-addressed assets: existing `roboclaws/evals/cloudml_content_store.py` boundary and an
+  Isaac-specific packaging helper; extend the manifest schema only if Phase 0 proves the current
+  one-archive identity cannot represent the required closure and provenance.
+- Existing Isaac commands/checkers: reuse; change only for portable path/runtime injection or
+  missing provenance required by the cloud proof.
+- Docs: `skills/eval-harness/SKILL.md`, `docs/human/evaluation.md`, and this plan after live proof.
+
+## Recommended Execution Route
+
+After approval of the preflight contract above, execute the whole plan through `$intuitive-flow`.
+Execution starts at Phase 0 and stops at each material workspace/resource/cost expansion,
+sidecar-expansion, or repeat/promotion boundary. In-scope attempts proceed without per-attempt
+approval. NVIDIA EULA acceptance is already recorded and does not create another stop.
+
+## Planning-Loop Resolution
+
+Round 1 used three independent, read-only scouts: plan entropy, documentation grill, and
+hardware/cost skepticism. No second round was needed after the findings converged.
+
+- Accepted/merged: explicit durable EULA acceptance; exact runtime versions; portable asset closure;
+  measured CPU/RAM/disk budget; separately invoked stage rows and acceptance receipts;
+  unconditional DINO parity; Phase 0 DINO packaging decision; and evidence-scoped repeatability.
+- Parked: alternate GPU classes/queues, typed asset schema expansion unless the current one-archive
+  boundary proves insufficient, and default/preemptible promotion until a separately approved
+  fresh-host Stage C repeat exists.
+- Rejected: CPU-only Isaac comparison in this plan; it would test a different contract from the
+  required RTX digital twin.
+- Needs user review at execution time: image publication and bounded paid-task envelope; any
+  sidecar/service boundary; and any later repeat/promotion spend. NVIDIA EULA acceptance is already
+  resolved and persistent.

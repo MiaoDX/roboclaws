@@ -18,7 +18,6 @@ from roboclaws.evals.runtime_prior_selection import (
     discover_runtime_prior_eval_results,
     write_runtime_prior_selection,
 )
-from roboclaws.evals.session_live import run_session_live_eval
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EVAL_HARNESS_RUNNER = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "run_eval_harness.py"
@@ -260,6 +259,8 @@ def _run_runtime_prior_promote(overrides: dict[str, str]) -> dict[str, str]:
 
 
 def _run_session_live_from_overrides(overrides: dict[str, str]):
+    from roboclaws.evals.session_live import run_session_live_eval
+
     values = dict(overrides)
     budget = values.pop("budget", "smoke")
     output_root = Path(values.pop("output_dir", str(DEFAULT_OUTPUT_ROOT)))

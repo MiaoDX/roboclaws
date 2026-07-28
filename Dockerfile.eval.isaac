@@ -1,0 +1,181 @@
+# syntax=docker/dockerfile:1.7
+ARG ISAACSIM_BASE_IMAGE=nvcr.io/nvidia/isaac-sim@sha256:a9d06fb72cc2b39b2bf1cacc002e9f7cd1a5bbe3c3cfbbcf2e6de3a1d726d101
+ARG DINO_RUNTIME_IMAGE=micr.cloud.mioffice.cn/cc-proxy/miuniverse-staging@sha256:d1d4c398f0677beceb8ab646b11f0bfd9d4d00d9e67a087170de4e23478669a4
+ARG NVIDIA_VULKAN_OVERLAY_IMAGE=micr.cloud.mioffice.cn/cc-proxy/thelastfoot-openpi-g2-training@sha256:2d90ff0525fda7b3980ef8094f3eb432bcb2b1efed8c9bf4b531c0608561bdcb
+FROM ${DINO_RUNTIME_IMAGE} AS dino-runtime
+FROM ${NVIDIA_VULKAN_OVERLAY_IMAGE} AS nvidia-vulkan-overlay
+FROM scratch AS isaaclab-source
+FROM ${ISAACSIM_BASE_IMAGE}
+
+ARG ISAACLAB_REVISION=ffff603eafc6b74264a5261cc0183d6a65390d78
+ARG ISAACLAB_VERSION=6.1.14
+ARG ISAACSIM_VERSION=6.0.0.0
+ARG TORCH_VERSION=2.10.0+cu128
+ARG CUDA_VERSION=12.8
+ARG JUST_VERSION=1.51.0
+ARG UV_VERSION=0.9.27
+ARG GROUNDING_DINO_MODEL_ID=IDEA-Research/grounding-dino-base
+ARG GROUNDING_DINO_MODEL_REVISION=12bdfa3120f3e7ec7b434d90674b3396eccf88eb
+ARG TARGETARCH
+
+LABEL org.opencontainers.image.title="roboclaws-eval-isaac"
+LABEL org.opencontainers.image.description="Pinned Isaac Sim/Lab RTX and Grounding DINO runtime for the B1 CloudML proof"
+LABEL org.opencontainers.image.base.digest="sha256:a9d06fb72cc2b39b2bf1cacc002e9f7cd1a5bbe3c3cfbbcf2e6de3a1d726d101"
+LABEL org.roboclaws.dino-runtime.digest="sha256:d1d4c398f0677beceb8ab646b11f0bfd9d4d00d9e67a087170de4e23478669a4"
+LABEL org.roboclaws.isaaclab.revision=${ISAACLAB_REVISION}
+
+SHELL ["/bin/bash", "-c"]
+ENV ACCEPT_EULA=Y
+ENV OMNI_KIT_ACCEPT_EULA=YES
+ENV OMNI_KIT_ALLOW_ROOT=1
+ENV PRIVACY_CONSENT=Y
+ENV ISAACSIM_ROOT_PATH=/isaac-sim
+ENV ISAACLAB_PATH=/opt/roboclaws/isaaclab
+ENV ROBOCLAWS_ISAACLAB_PYTHON=/isaac-sim/python.sh
+ENV ROBOCLAWS_DEVTOOLS_PYTHON=/opt/roboclaws/.venv/bin/python
+ENV UV_PROJECT_ENVIRONMENT=/opt/roboclaws/.venv
+ENV UV_LINK_MODE=copy
+ENV PATH=/opt/roboclaws/.venv/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV HF_HOME=/opt/roboclaws/huggingface
+ENV HF_HUB_OFFLINE=1
+ENV TRANSFORMERS_OFFLINE=1
+ENV VISUAL_GROUNDING_DINO_MODEL_ID=/opt/roboclaws/models/grounding-dino-base
+ENV VISUAL_GROUNDING_DINO_SOURCE_ID=${GROUNDING_DINO_MODEL_ID}
+ENV VISUAL_GROUNDING_DINO_MODEL_REVISION=${GROUNDING_DINO_MODEL_REVISION}
+ENV ROBOCLAWS_ISAACLAB_REVISION=${ISAACLAB_REVISION}
+
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        ca-certificates \
+        cmake \
+        curl \
+        git \
+        jq \
+        libglib2.0-0 \
+        ncurses-term \
+        pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    case "${TARGETARCH:-amd64}" in \
+      amd64) just_target="x86_64-unknown-linux-musl" ;; \
+      *) echo "unsupported TARGETARCH for the Isaac image: ${TARGETARCH:-unset}" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL \
+      "https://github.com/casey/just/releases/download/${JUST_VERSION}/just-${JUST_VERSION}-${just_target}.tar.gz" \
+      -o /tmp/just.tar.gz; \
+    tar -xzf /tmp/just.tar.gz -C /usr/local/bin just; \
+    rm /tmp/just.tar.gz; \
+    just --version
+
+RUN /isaac-sim/python.sh -m pip install --no-cache-dir "uv==${UV_VERSION}"
+
+COPY --from=isaaclab-source / ${ISAACLAB_PATH}/
+RUN chmod +x ${ISAACLAB_PATH}/isaaclab.sh \
+    && ln -sfn /isaac-sim ${ISAACLAB_PATH}/_isaac_sim \
+    && cd ${ISAACLAB_PATH} \
+    && ./isaaclab.sh -i core \
+    && mkdir -p /opt/roboclaws/.venv-isaaclab \
+    && printf '%s\n' "${ISAACLAB_REVISION}" > /opt/roboclaws/.venv-isaaclab/.isaaclab-revision
+
+ARG HATCHLING_VERSION=1.27.0
+ARG EDITABLES_VERSION=0.6
+WORKDIR /opt/roboclaws
+COPY pyproject.toml uv.lock README.md LICENSE ./
+RUN /isaac-sim/python.sh -m uv sync --frozen --no-install-project \
+    && /isaac-sim/python.sh -m uv pip install \
+      --python "$ROBOCLAWS_DEVTOOLS_PYTHON" \
+      "hatchling==${HATCHLING_VERSION}" \
+      "editables==${EDITABLES_VERSION}" \
+    && "$ROBOCLAWS_DEVTOOLS_PYTHON" -c "import numpy, PIL, jinja2"
+
+COPY --from=dino-runtime /usr/local/bin/python3.12 /usr/local/bin/python3.12
+COPY --from=dino-runtime /usr/local/lib/libpython3.12.so.1.0 /usr/local/lib/libpython3.12.so.1.0
+COPY --from=dino-runtime /usr/local/lib/python3.12 /usr/local/lib/python3.12
+COPY --from=dino-runtime /opt/roboclaws/.venv-visual-grounding \
+    /opt/roboclaws/.venv-visual-grounding
+COPY --from=dino-runtime /opt/roboclaws/models/grounding-dino-base \
+    /opt/roboclaws/models/grounding-dino-base
+RUN ln -sfn python3.12 /usr/local/bin/python3 \
+    && test -f /opt/roboclaws/models/grounding-dino-base/config.json \
+    && test -f /opt/roboclaws/models/grounding-dino-base/model.safetensors \
+    && test "$(cat /opt/roboclaws/models/grounding-dino-base/.revision)" = \
+      "${GROUNDING_DINO_MODEL_REVISION}"
+
+COPY pyproject.toml uv.lock README.md LICENSE justfile /opt/roboclaws/src/
+COPY roboclaws /opt/roboclaws/src/roboclaws
+COPY scripts /opt/roboclaws/src/scripts
+COPY just /opt/roboclaws/src/just
+COPY skills /opt/roboclaws/src/skills
+RUN /isaac-sim/python.sh -m uv pip install \
+      --python /opt/roboclaws/.venv/bin/python \
+      --no-build-isolation \
+      --no-deps \
+      --editable /opt/roboclaws/src \
+    && ln -sfn /opt/roboclaws/.venv /opt/roboclaws/src/.venv \
+    && ln -sfn /opt/roboclaws/.venv-isaaclab /opt/roboclaws/src/.venv-isaaclab \
+    && ln -sfn /opt/roboclaws/.venv-visual-grounding /opt/roboclaws/src/.venv-visual-grounding
+
+COPY --from=nvidia-vulkan-overlay /opt/nvidia-driver-580.105.08 /opt/nvidia-driver-580.105.08
+COPY scripts/dev/run_cloudml_eval_worker.sh /opt/roboclaws/bin/run-cloudml-eval-worker
+COPY scripts/dev/configure_nvidia_vulkan_runtime.sh /opt/roboclaws/bin/configure-nvidia-vulkan-runtime
+RUN chmod +x \
+    /opt/roboclaws/bin/run-cloudml-eval-worker \
+    /opt/roboclaws/bin/configure-nvidia-vulkan-runtime \
+    && test -r /opt/nvidia-driver-580.105.08/libGLX_nvidia.so.0 \
+    && test -r /opt/nvidia-driver-580.105.08/libnvidia-glvkspirv.so.580.105.08 \
+    && test -r /opt/nvidia-driver-580.105.08/libnvidia-gpucomp.so.580.105.08
+
+ARG ISAACSIM_RELEASE=6.0.0
+ARG ISAACSIM_BUILD=6.0.0-rc.59+release.41464.5f2772bc.gl
+LABEL org.roboclaws.isaacsim.distribution=${ISAACSIM_VERSION}
+LABEL org.roboclaws.isaacsim.version=${ISAACSIM_RELEASE}
+LABEL org.roboclaws.isaacsim.build=${ISAACSIM_BUILD}
+ENV ROBOCLAWS_ISAACSIM_VERSION=${ISAACSIM_RELEASE}
+ENV ROBOCLAWS_ISAACSIM_BUILD=${ISAACSIM_BUILD}
+RUN /isaac-sim/python.sh - <<PY
+import importlib.metadata
+from pathlib import Path
+import torch
+
+expected = {
+    "isaaclab": "${ISAACLAB_VERSION}",
+    "torch": "${TORCH_VERSION}",
+}
+actual = {name: importlib.metadata.version(name) for name in expected}
+for name, version in expected.items():
+    if actual[name] != version:
+        raise SystemExit(f"{name} version mismatch: {actual[name]} != {version}")
+if torch.version.cuda != "${CUDA_VERSION}":
+    raise SystemExit(f"CUDA version mismatch: {torch.version.cuda} != ${CUDA_VERSION}")
+isaac_sim_version = Path("/isaac-sim/docs/py/VERSION").read_text().strip()
+isaac_sim_build = Path("/isaac-sim/VERSION").read_text().strip()
+if isaac_sim_version != "${ISAACSIM_RELEASE}":
+    raise SystemExit(
+        f"Isaac Sim version mismatch: {isaac_sim_version} != ${ISAACSIM_RELEASE}"
+    )
+if isaac_sim_build != "${ISAACSIM_BUILD}":
+    raise SystemExit(f"Isaac Sim build mismatch: {isaac_sim_build} != ${ISAACSIM_BUILD}")
+print(actual, torch.version.cuda, isaac_sim_version, isaac_sim_build)
+PY
+RUN /opt/roboclaws/.venv-visual-grounding/bin/python - <<PY
+import os
+from pathlib import Path
+
+import torch
+import transformers
+
+assert torch.__version__ == "2.7.1+cu128"
+assert torch.version.cuda == "12.8"
+assert transformers.__version__ == "4.57.6"
+model = Path(os.environ["VISUAL_GROUNDING_DINO_MODEL_ID"])
+assert (model / ".revision").read_text().strip() == "${GROUNDING_DINO_MODEL_REVISION}"
+print(torch.__version__, torch.version.cuda, transformers.__version__)
+PY
+
+LABEL org.roboclaws.nvidia-vulkan-overlay.digest="sha256:2d90ff0525fda7b3980ef8094f3eb432bcb2b1efed8c9bf4b531c0608561bdcb"
+
+WORKDIR /opt/roboclaws/src
+CMD ["bash"]

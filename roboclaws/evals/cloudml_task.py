@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shlex
 import urllib.parse
@@ -17,6 +18,7 @@ PROVIDER_ENV_MOUNT = "/mnt/cloudml/provider-env"
 PROVIDER_ENV_FILENAME = "provider.env"
 CLOUDML_VOLUME = "robot-intelligent-planning-data"
 CLOUDML_CLUSTER = "wlcb-cloudml"
+ISAAC_REQUIRED_DRIVER_SERIES_ENV = "ROBOCLAWS_CLOUDML_ISAAC_REQUIRED_DRIVER_SERIES"
 
 
 def juicefs_url(subpath: str) -> str:
@@ -93,6 +95,11 @@ def write_cml_task_yaml(
         "priority": 5,
         "preemptible": bool(shard.get("preemptible")),
         "framework": "pytorch",
+        "retryConfig": {
+            "enableRetry": False,
+            "maxRetryTimes": 1,
+            "policySets": ["JobFailed"],
+        },
         "resourceConfigs": [
             {
                 "nodeRole": "worker",
@@ -114,12 +121,13 @@ def write_cml_task_yaml(
 
 
 def image_command(shard: dict[str, Any], *, identity: dict[str, str]) -> str:
+    timeout_s = int(shard.get("timeout_s") or 3600)
     values = {
         "ROBOCLAWS_CLOUDML_CODE_COMMIT": identity["code_commit"],
         "ROBOCLAWS_CLOUDML_CODE_ARCHIVE": f"{CODE_MOUNT}/{identity['code_archive_name']}",
         "ROBOCLAWS_CLOUDML_CODE_ARCHIVE_SHA256": identity["code_archive_sha256"],
         "ROBOCLAWS_CLOUDML_ASSET_MANIFEST_SHA256": identity["asset_manifest_sha256"],
-        "ROBOCLAWS_CLOUDML_ASSET_MANIFEST": f"{INPUT_MOUNT}/roboclaws_cloudml_cleanup_assets.json",
+        "ROBOCLAWS_CLOUDML_ASSET_MANIFEST": (f"{INPUT_MOUNT}/{identity['asset_manifest_name']}"),
         "ROBOCLAWS_CLOUDML_MANIFEST": str(shard["manifest_cloud_path"]),
         "ROBOCLAWS_CLOUDML_ROW_IDS": ",".join(shard["row_ids"]),
         "ROBOCLAWS_CLOUDML_SHARD_ID": str(shard["shard_id"]),
@@ -132,13 +140,38 @@ def image_command(shard: dict[str, Any], *, identity: dict[str, str]) -> str:
         values["ROBOCLAWS_CLOUDML_PROVIDER_ENV_FILE"] = (
             f"{PROVIDER_ENV_MOUNT}/{PROVIDER_ENV_FILENAME}"
         )
-    if shard["worker_pool"] == "cloudml-r49":
+    if shard.get("image_digest"):
+        values["ROBOCLAWS_CLOUDML_EXPECTED_IMAGE_DIGEST"] = str(shard["image_digest"])
+    if shard["worker_pool"] in {"cloudml-cpu-mujoco", "cloudml-r49", "cloudml-r49-isaac"}:
         values["ROBOCLAWS_CLOUDML_ASSET_ARCHIVE"] = (
             f"{ASSET_MOUNT}/{identity['asset_archive_name']}"
         )
         values["ROBOCLAWS_CLOUDML_ASSET_ARCHIVE_SHA256"] = identity["asset_archive_sha256"]
+    if shard["worker_pool"] == "cloudml-cpu-mujoco":
+        values["MUJOCO_GL"] = "osmesa"
+        values["PYOPENGL_PLATFORM"] = "osmesa"
+        values["ROBOCLAWS_MOLMOSPACES_MUJOCO_GL"] = "osmesa"
+        values["VISUAL_GROUNDING_DEVICE"] = "cpu"
+    elif shard["worker_pool"] == "cloudml-r49":
         values["VISUAL_GROUNDING_DEVICE"] = "cuda"
         values["VISUAL_GROUNDING_TORCH_DTYPE"] = "auto"
+    elif shard["worker_pool"] == "cloudml-r49-isaac":
+        values["OMNI_KIT_ACCEPT_EULA"] = "YES"
+        values["ROBOCLAWS_CLOUDML_ISAAC_EULA_ACCEPTED"] = "true"
+        values["ROBOCLAWS_ISAACLAB_PYTHON"] = "/isaac-sim/python.sh"
+        values["VISUAL_GROUNDING_DEVICE"] = "cuda"
+        values["VISUAL_GROUNDING_TORCH_DTYPE"] = "auto"
+        values["ROBOCLAWS_CLOUDML_ISAAC_PROOF_CONTRACT_SHA256"] = str(
+            shard["isaac_proof_contract_sha256"]
+        )
+        values["ROBOCLAWS_CLOUDML_ISAAC_ASSET_GROUP"] = str(shard["isaac_asset_group"])
+        required_driver_series = os.environ.get(ISAAC_REQUIRED_DRIVER_SERIES_ENV, "").strip()
+        if required_driver_series:
+            if not re.fullmatch(r"[0-9]{3}", required_driver_series):
+                raise ValueError(
+                    f"{ISAAC_REQUIRED_DRIVER_SERIES_ENV} must be a three-digit driver series"
+                )
+            values[ISAAC_REQUIRED_DRIVER_SERIES_ENV] = required_driver_series
     exports = " ".join(f"{key}={shlex.quote(value)}" for key, value in values.items())
     bootstrap = ""
     if shard.get("provider_env_keys"):
@@ -156,7 +189,9 @@ def image_command(shard: dict[str, Any], *, identity: dict[str, str]) -> str:
         f"rm -rf {bootstrap_root}; mkdir -p {bootstrap_root}; "
         f"tar -xzf {code_archive} -C {bootstrap_root}; "
         "set +e; "
-        f"bash {bootstrap_root}/roboclaws.git/scripts/dev/run_cloudml_eval_worker.sh; "
+        "timeout --signal=TERM --kill-after=60s "
+        f"{timeout_s}s bash "
+        f"{bootstrap_root}/roboclaws.git/scripts/dev/run_cloudml_eval_worker.sh; "
         "worker_exit=$?; set -e; "
         f"test -d {scratch_path}; mkdir -p /tmp/roboclaws-cloudml {remote_path}/markers; "
         f"tar -cf {archive_tmp} -C {scratch_path} .; "
