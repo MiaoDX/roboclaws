@@ -22,6 +22,9 @@ from roboclaws.agents.drivers.household_live import (
     add_household_cleanup_live_runner_args,
     household_cleanup_server_argv,
 )
+from roboclaws.agents.drivers.openai_agents_budget import (
+    context_budget_failure as _shared_context_budget_failure,
+)
 from roboclaws.agents.drivers.openai_agents_live import OpenAIAgentsLiveRuntime
 from roboclaws.agents.live_runtime import LiveAgentMCPServer, LiveAgentRequest
 from roboclaws.agents.live_status import LiveAgentFailure
@@ -40,7 +43,10 @@ from roboclaws.agents.live_timing import round_duration as _round_duration
 from roboclaws.agents.live_timing import (
     runner_timing_breakdown as _runner_timing_breakdown,
 )
-from roboclaws.agents.prompts.household_cleanup import render_kickoff_prompt
+from roboclaws.agents.prompts.household_cleanup import (
+    render_kickoff_prompt,
+    render_map_build_prompt,
+)
 from roboclaws.agents.thinking_policy import THINKING_MODES
 from roboclaws.core.json_sources import read_json_value, read_jsonl_objects
 from roboclaws.household.realworld_mcp_server import ROBOT_VIEW_CAPTURE_POLICY_FULL
@@ -211,7 +217,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default="",
         help=(
             "Private OpenAI Agents SDK performance profile id. Known values: "
-            "baseline, gpt_compact_v1, mimo_compact_v1, raw_fpv_budgeted_v1, custom."
+            "context_managed_v1, baseline."
         ),
     )
     parser.add_argument("--continuation-mode", default="")
@@ -1192,12 +1198,20 @@ def _profiled_kickoff_prompt(args: argparse.Namespace, *, profile: dict[str, Any
     ):
         return original
     intent = _household_intent(args)
-    can_render = intent == "cleanup" and lane in {
-        "world-public-labels",
-        "camera-grounded-labels",
-        "camera-raw-fpv",
-    }
+    can_render = lane in {"world-public-labels", "camera-grounded-labels", "camera-raw-fpv"}
     if not can_render:
+        return original
+    if intent == "map-build":
+        try:
+            return render_map_build_prompt(
+                lane,
+                str(getattr(args, "task", "") or "build a Runtime Metric Map of this room"),
+                camera_grounded_composite_tools=composite_tools,
+                max_observe_per_waypoint=_int_or_none(profile.get("max_observe_per_waypoint")),
+            )
+        except ValueError:
+            return original
+    if intent != "cleanup":
         return original
     target_cleanup_count = _target_cleanup_count_for_prompt(args, lane=lane)
     try:
@@ -1398,33 +1412,7 @@ def _context_budget_failure(
     timing: dict[str, Any],
     profile: dict[str, Any],
 ) -> LiveAgentFailure | None:
-    hard_limit = _int_or_none(profile.get("context_hard_limit_tokens"))
-    if hard_limit is None:
-        return None
-    context_metrics = _context_metrics(run_dir, timing)
-    current_input = _int_or_none(context_metrics.get("max_input_tokens"))
-    if current_input is None or current_input < hard_limit:
-        return None
-    detail = json.dumps(
-        {
-            "schema": "agent_sdk_context_budget_terminal_v1",
-            "profile_id": profile.get("profile_id") or "baseline",
-            "context_hard_limit_tokens": hard_limit,
-            "current_input_tokens": current_input,
-            "max_input_tokens": current_input,
-            "total_input_tokens": context_metrics.get("total_input_tokens"),
-            "total_uncached_input_tokens": context_metrics.get("total_uncached_input_tokens"),
-            "response_span_count": context_metrics.get("response_span_count"),
-            "evidence_source": context_metrics.get("source") or "unavailable",
-        },
-        sort_keys=True,
-    )
-    return LiveAgentFailure(
-        "provider_context_budget_exceeded",
-        retryable=False,
-        resume_available=False,
-        detail=detail,
-    )
+    return _shared_context_budget_failure(run_dir, timing, profile)
 
 
 def _compact_continuation_prompt(

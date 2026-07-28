@@ -9,6 +9,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from roboclaws.agents.drivers.openai_agents_budget import OpenAIAgentsBudgetExceededError
 from roboclaws.agents.drivers.openai_agents_live import (
     OpenAIAgentsLiveRuntime,
     _default_sdk_model_settings_payload,
@@ -31,7 +32,10 @@ from roboclaws.agents.live_runtime import (
 from roboclaws.agents.live_status import LiveAgentFailure
 from roboclaws.agents.live_timing import live_timing_timeline as _live_timing_timeline
 from roboclaws.agents.live_timing import mcp_control_plane_metrics as _mcp_control_plane_metrics
-from roboclaws.agents.prompts.household_cleanup import render_kickoff_prompt
+from roboclaws.agents.prompts.household_cleanup import (
+    render_kickoff_prompt,
+    render_map_build_prompt,
+)
 from scripts.molmo_cleanup.openai_agents_perf_profile import (
     resolve_agent_sdk_perf_profile as _resolve_agent_sdk_perf_profile,
 )
@@ -1014,6 +1018,10 @@ def test_openai_agents_runtime_includes_skill_context_without_persisting_body(
     )
     instructions = str(captured["agent_kwargs"]["instructions"])
     assert "Canonical skill context" in instructions
+    assert (
+        "Run-specific kickoff instructions override any conflicting generic skill-context "
+        "guidance for this run"
+    ) in instructions
     assert skill_text in instructions
     assert instructions.endswith("clean the room")
     artifact = json.loads(
@@ -1300,22 +1308,160 @@ def test_openai_agents_runtime_configures_model_input_compaction_filter(
     assert "call_model_input_filter" not in events[0]["sdk_run_config"]
 
 
+def test_openai_agents_model_input_filter_fails_before_model_call_on_observe_budget(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    class FakeOpenAIResponsesModel:
+        def __init__(self, model: str, *, openai_client: object) -> None:
+            captured["model"] = model
+
+    class FakeAsyncOpenAI:
+        def __init__(self, *, api_key: str, base_url: str) -> None:
+            pass
+
+    def fake_run_with_async_mcp_server(_server, _agent, request, _events_path, *, run_config):
+        data = SimpleNamespace(
+            model_data=SimpleNamespace(
+                input=[{"role": "user", "content": "continue map build"}],
+                instructions="inspect the next waypoint",
+            )
+        )
+        (request.run_dir / "trace.jsonl").write_text(
+            "\n".join(
+                json.dumps(item)
+                for item in [
+                    {
+                        "event": "response",
+                        "tool": "observe",
+                        "response": {"ok": True, "waypoint_id": "generated_exploration_001"},
+                    },
+                    {
+                        "event": "response",
+                        "tool": "observe",
+                        "response": {"ok": True, "waypoint_id": "generated_exploration_001"},
+                    },
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        raise asyncio.run(run_config.call_model_input_filter(data))
+
+    monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
+    monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
+    monkeypatch.setattr(
+        "roboclaws.agents.drivers.openai_agents_live._run_with_async_mcp_server",
+        fake_run_with_async_mcp_server,
+    )
+    monkeypatch.setitem(
+        __import__("sys").modules,
+        "agents",
+        SimpleNamespace(
+            Agent=lambda **kwargs: captured.setdefault("agent_kwargs", kwargs),
+            Runner=SimpleNamespace(
+                run_sync=lambda *_args, **kwargs: captured.setdefault("runner_kwargs", kwargs)
+            ),
+            ModelSettings=FakeModelSettings,
+            RunConfig=FakeRunConfig,
+            OpenAIResponsesModel=FakeOpenAIResponsesModel,
+        ),
+    )
+    monkeypatch.setitem(
+        __import__("sys").modules,
+        "agents.mcp",
+        SimpleNamespace(
+            MCPServerStreamableHttp=lambda **kwargs: SimpleNamespace(
+                __aenter__=lambda: None,
+                kwargs=kwargs,
+            )
+        ),
+    )
+    monkeypatch.setitem(
+        __import__("sys").modules,
+        "openai",
+        SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
+    )
+    request = LiveAgentRequest(
+        run_id="household-world.map-build",
+        skill_name="household-map-build",
+        kickoff_prompt="build a map",
+        mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
+        run_dir=tmp_path / "run",
+        provider_profile="codex-router-responses",
+        metadata={
+            "provider_profile": "codex-router-responses",
+            "evidence_lane": "camera-grounded-labels",
+            "agent_sdk_perf_profile": {
+                "profile_id": "context_managed_v1",
+                "provider_profile": "codex-router-responses",
+                "wire_api": "responses",
+                "context_hard_limit_tokens": None,
+                "max_observe_per_waypoint": 1,
+                "raw_fpv_candidate_budget": None,
+                "raw_fpv_repeated_failure_limit": None,
+                "model_input_compaction": {"enabled": False, "mode": "off"},
+            },
+        },
+    )
+
+    result = OpenAIAgentsLiveRuntime().run(request)
+
+    assert result.exit_status == 1
+    assert result.reason == "observe_budget_exhausted"
+    assert result.retryable is False
+    detail = json.loads(result.detail)
+    assert detail["schema"] == "agent_sdk_raw_fpv_budget_terminal_v1"
+    assert detail["evidence_lane"] == "camera-grounded-labels"
+    assert detail["observe_over_budget_by_waypoint"] == {"generated_exploration_001": 2}
+    events = [
+        json.loads(line)
+        for line in (tmp_path / "run" / "openai-agents-events.jsonl").read_text().splitlines()
+    ]
+    assert events[0]["model_input_compaction"]["enabled"] is False
+    budget_event = next(item for item in events if item.get("event") == "model_input_budget_guard")
+    assert budget_event["reason"] == "observe_budget_exhausted"
+    assert budget_event["detail_schema"] == "agent_sdk_raw_fpv_budget_terminal_v1"
+    assert budget_event["detail_summary"]["observe_over_budget_by_waypoint"] == {
+        "generated_exploration_001": 2
+    }
+
+
+def test_openai_agents_budget_exception_preserves_failure_classification() -> None:
+    exc = OpenAIAgentsBudgetExceededError(
+        LiveAgentFailure(
+            "provider_context_budget_exceeded",
+            retryable=False,
+            resume_available=False,
+            detail='{"schema":"agent_sdk_context_budget_terminal_v1"}',
+        )
+    )
+
+    failure = _failure_from_exception(exc)
+
+    assert failure.reason == "provider_context_budget_exceeded"
+    assert failure.retryable is False
+    assert failure.detail == '{"schema":"agent_sdk_context_budget_terminal_v1"}'
+
+
 def test_model_input_compaction_reduces_oversized_public_tool_outputs() -> None:
     large_output = json.dumps(
         {
-            "metric_map": {
-                "inspection_waypoints": [
-                    {"waypoint_id": f"wp_{idx}", "room": "kitchen", "objects": ["cup", "plate"]}
-                    for idx in range(20)
-                ]
-            }
+            "tool": "inspect_visible_object",
+            "object_id": "object_1",
+            "public_observations": [
+                {"note": f"large public observation payload {idx}", "objects": ["cup", "plate"]}
+                for idx in range(20)
+            ],
         }
     )
     items = [
         {"role": "user", "content": "clean the room"},
         {
             "type": "function_call_output",
-            "call_id": "call_metric_map",
+            "call_id": "call_inspect_visible_object",
             "output": large_output,
         },
     ]
@@ -1326,11 +1472,11 @@ def test_model_input_compaction_reduces_oversized_public_tool_outputs() -> None:
     assert metrics["compacted_item_count"] == 1
     assert metrics["input_bytes_after"] < metrics["input_bytes_before"]
     assert filtered[0] == items[0]
-    assert filtered[1]["call_id"] == "call_metric_map"
+    assert filtered[1]["call_id"] == "call_inspect_visible_object"
     replacement = json.loads(filtered[1]["output"])
     assert replacement["schema"] == "roboclaws_public_tool_output_summary_v1"
     assert replacement["original_chars"] == len(large_output)
-    assert "wp_19" not in json.dumps(filtered)
+    assert "large public observation payload 19" not in json.dumps(filtered)
 
 
 def test_model_input_compaction_rejects_invalid_min_chars_env(tmp_path: Path, monkeypatch) -> None:
@@ -2002,6 +2148,56 @@ def test_model_input_compaction_summarizes_repeated_metric_map_outputs() -> None
     assert metrics["metric_map_delta_compacted_count"] == 1
     assert metrics["metric_map_bytes_after"] < metrics["metric_map_bytes_before"]
     assert metrics["metric_map_bytes_reduced"] > 0
+
+
+def test_model_input_compaction_keeps_first_metric_map_output_with_opaque_call_ids() -> None:
+    first_map = {
+        "ok": True,
+        "tool": "metric_map",
+        "map_id": "home",
+        "map_version": "v1",
+        "inspection_waypoints": [
+            {
+                "waypoint_id": f"room_{idx}_inspection",
+                "room_id": f"room_{idx}",
+                "label": "inspection waypoint",
+            }
+            for idx in range(80)
+        ],
+    }
+    second_map = {
+        **first_map,
+        "map_version": "v2",
+        "runtime_metric_map": {"observed_objects": [{"object_id": "book_1"}]},
+    }
+    items = [
+        {"type": "function_call", "call_id": "call_opaque_1", "name": "metric_map"},
+        {
+            "type": "function_call_output",
+            "call_id": "call_opaque_1",
+            "output": json.dumps(first_map),
+        },
+        {"type": "function_call", "call_id": "call_opaque_2", "name": "metric_map"},
+        {
+            "type": "function_call_output",
+            "call_id": "call_opaque_2",
+            "output": json.dumps(second_map),
+        },
+    ]
+
+    filtered, metrics = _compact_model_input_items(items, min_chars=1200)
+
+    assert filtered[1] == items[1]
+    replacement = json.loads(filtered[3]["output"])
+    assert replacement["schema"] == "roboclaws_repeated_metric_map_delta_summary_v1"
+    assert replacement["map_version"] == "v2"
+    assert replacement["inspection_waypoint_count"] == 80
+    assert "room_79_inspection" in filtered[1]["output"]
+    assert "room_79_inspection" not in filtered[3]["output"]
+    assert metrics["metric_map_output_count"] == 2
+    assert metrics["repeated_metric_map_output_count"] == 1
+    assert metrics["metric_map_delta_compacted_count"] == 1
+    assert metrics["metric_map_bytes_before"] > metrics["metric_map_bytes_after"]
 
 
 def test_model_input_compaction_evicted_raw_fpv_images_keep_latest_frame() -> None:
@@ -2725,11 +2921,11 @@ def test_openai_agents_cleanup_runner_invokes_sdk_then_checker(tmp_path: Path, m
     assert status_payload["phase"] == "finished"
     assert status_payload["exit_status"] == 0
     timing = json.loads((run_dir / "live_timing.json").read_text(encoding="utf-8"))
-    _assert_baseline_openai_agents_timing(timing)
+    _assert_context_managed_openai_agents_timing(timing)
     _assert_openai_agents_timeline_and_checker(timing, checker_commands)
 
 
-def _assert_baseline_openai_agents_timing(timing: dict[str, object]) -> None:
+def _assert_context_managed_openai_agents_timing(timing: dict[str, object]) -> None:
     assert timing["runtime"] == "openai-agents-live"
     assert timing["surface"] == "household-world"
     assert timing["intent"] == "cleanup"
@@ -2737,9 +2933,17 @@ def _assert_baseline_openai_agents_timing(timing: dict[str, object]) -> None:
     assert timing["evidence_lane"] == "smoke"
     assert timing["mcp_client_session_timeout_s"] == 30.0
     assert timing["agent_sdk_perf_profile"]["schema"] == "agent_sdk_perf_profile_v1"
-    assert timing["agent_sdk_perf_profile"]["profile_id"] == "baseline"
-    assert timing["agent_sdk_perf_profile"]["continuation_mode"] == "repeat_full_prompt"
+    assert timing["agent_sdk_perf_profile"]["profile_id"] == "context_managed_v1"
+    assert timing["agent_sdk_perf_profile"]["source"] == "default"
+    assert timing["agent_sdk_perf_profile"]["continuation_mode"] == "state_summary_only"
     assert timing["agent_sdk_perf_profile"]["max_turns"] == 128
+    assert timing["agent_sdk_perf_profile"]["max_observe_per_waypoint"] == 1
+    assert timing["agent_sdk_perf_profile"]["context_hard_limit_tokens"] == 128_000
+    assert timing["agent_sdk_perf_profile"]["model_input_compaction"]["enabled"] is True
+    assert (
+        timing["agent_sdk_perf_profile"]["context_policy"]["provider_native_compaction"]["mode"]
+        == "off"
+    )
     assert timing["agent_sdk_perf_profile"]["model_service_retry_attempts"] == 1
     assert timing["agent_sdk_perf_profile"]["model_service_retry_sleep_s"] == 1.0
     assert timing["agent_sdk_perf_profile"]["model_racing_observability"] == (
@@ -2748,6 +2952,7 @@ def _assert_baseline_openai_agents_timing(timing: dict[str, object]) -> None:
     assert timing["agent_sdk_perf_profile"]["sdk_model_settings"] == {
         "model_thinking_mode": "default",
         "parallel_tool_calls": False,
+        "prompt_cache_retention": "in_memory",
         "store": False,
         "tool_choice": "auto",
     }
@@ -2946,7 +3151,7 @@ def test_openai_agents_camera_grounded_composite_profile_adds_private_server_fla
         model="gpt-5.5",
         max_turns=128,
         mcp_client_session_timeout_s=30.0,
-        agent_sdk_perf_profile="mimo_compact_v1",
+        agent_sdk_perf_profile="context_managed_v1",
         continuation_mode="",
         model_input_compaction=None,
         model_input_compaction_min_chars=None,
@@ -3060,7 +3265,7 @@ def test_openai_agents_robot_view_capture_policy_adds_private_server_flag(
         model="gpt-5.5",
         max_turns=128,
         mcp_client_session_timeout_s=30.0,
-        agent_sdk_perf_profile="mimo_compact_v1",
+        agent_sdk_perf_profile="context_managed_v1",
         continuation_mode="",
         model_input_compaction=None,
         model_input_compaction_min_chars=None,
@@ -3124,6 +3329,40 @@ def test_openai_agents_camera_grounded_composite_rerenders_stale_two_step_prompt
     assert "observe_camera_grounded_candidates instead of a separate observe" in prompt
     assert "declare_visual_candidates with observation_id only" not in prompt
     assert _kickoff_prompt_source(args, profile) == "profile-rendered-lane-default"
+
+
+def test_openai_agents_camera_grounded_composite_rerenders_map_build_prompt() -> None:
+    stale_prompt = render_map_build_prompt(
+        "camera-grounded-labels",
+        "build a Runtime Metric Map",
+    )
+    args = Namespace(
+        kickoff_prompt=stale_prompt,
+        profile="camera-grounded-labels",
+        run_id="household-world.map-build",
+        intent="map-build",
+        task="build a Runtime Metric Map",
+        min_generated_mess_count="0",
+    )
+    profile = {
+        "raw_fpv_candidate_budget": 24,
+        "max_observe_per_waypoint": 1,
+        "done_retry_budget": 1,
+        "camera_grounded_composite_tools": {
+            "enabled": True,
+            "tool_names": ["observe_camera_grounded_candidates"],
+        },
+    }
+
+    prompt = _profiled_kickoff_prompt(args, profile=profile)
+
+    assert "declare_visual_candidates for each raw FPV observation" in stale_prompt
+    assert "observe_camera_grounded_candidates" in prompt
+    assert "after navigating to each public inspection waypoint" in prompt
+    assert "Use at most one observe_camera_grounded_candidates response per waypoint_id" in prompt
+    assert "Do not resume the older observe plus declare_visual_candidates cadence" in prompt
+    assert "declare_visual_candidates for each raw FPV observation" not in prompt
+    assert "Do not pick, place, place_inside" in prompt
 
 
 def test_openai_agents_camera_grounded_composite_runner_rerenders_stale_two_step_prompt(
@@ -3204,7 +3443,7 @@ def test_openai_agents_camera_grounded_composite_runner_rerenders_stale_two_step
         model="gpt-5.5",
         max_turns=128,
         mcp_client_session_timeout_s=30.0,
-        agent_sdk_perf_profile="mimo_compact_v1",
+        agent_sdk_perf_profile="context_managed_v1",
         continuation_mode="",
         model_input_compaction=None,
         model_input_compaction_min_chars=None,
@@ -3596,7 +3835,7 @@ def test_openai_agents_cleanup_runner_compact_continuation_excludes_full_prompt(
                     exit_status=0,
                     run_result_present=False,
                 )
-            assert request.metadata["agent_sdk_perf_profile"]["profile_id"] == "gpt_compact_v1"
+            assert request.metadata["agent_sdk_perf_profile"]["profile_id"] == "context_managed_v1"
             (request.run_dir / "run_result.json").write_text(
                 json.dumps(
                     {
@@ -3647,7 +3886,7 @@ def test_openai_agents_cleanup_runner_compact_continuation_excludes_full_prompt(
         max_turns=128,
         incomplete_turn_continuation_attempts=2,
         mcp_client_session_timeout_s=30.0,
-        agent_sdk_perf_profile="gpt_compact_v1",
+        agent_sdk_perf_profile="context_managed_v1",
         continuation_mode="",
         context_soft_limit_tokens=None,
         context_hard_limit_tokens=None,
@@ -3795,7 +4034,7 @@ def test_openai_agents_cleanup_runner_compact_continuation_preserves_composite_c
         max_turns=128,
         incomplete_turn_continuation_attempts=2,
         mcp_client_session_timeout_s=30.0,
-        agent_sdk_perf_profile="mimo_compact_v1",
+        agent_sdk_perf_profile="context_managed_v1",
         continuation_mode="",
         context_soft_limit_tokens=None,
         context_hard_limit_tokens=None,
@@ -3907,7 +4146,7 @@ def test_openai_agents_cleanup_runner_uses_profiled_compact_kickoff_prompt(
         max_turns=128,
         incomplete_turn_continuation_attempts=2,
         mcp_client_session_timeout_s=30.0,
-        agent_sdk_perf_profile="gpt_compact_v1",
+        agent_sdk_perf_profile="context_managed_v1",
         continuation_mode="",
         context_soft_limit_tokens=None,
         context_hard_limit_tokens=None,
@@ -4039,7 +4278,7 @@ def test_openai_agents_budget_guard_uses_current_context_not_cumulative_tokens(
         run_dir,
         {"evidence_lane": "world-public-labels", "cache_tools_list": True},
         {
-            "profile_id": "mimo_compact_v1",
+            "profile_id": "context_managed_v1",
             "context_hard_limit_tokens": 96_000,
             "raw_fpv_candidate_budget": None,
             "max_observe_per_waypoint": None,
@@ -4093,7 +4332,7 @@ def test_openai_agents_budget_guard_classifies_raw_fpv_candidate_exhaustion(
         run_dir,
         {"evidence_lane": "camera-raw-fpv", "cache_tools_list": True},
         {
-            "profile_id": "raw_fpv_budgeted_v1",
+            "profile_id": "context_managed_v1",
             "context_hard_limit_tokens": None,
             "raw_fpv_candidate_budget": 2,
             "max_observe_per_waypoint": None,
@@ -4152,7 +4391,7 @@ def test_openai_agents_budget_guard_classifies_repeated_raw_fpv_failures(
         run_dir,
         {"evidence_lane": "camera-raw-fpv", "cache_tools_list": True},
         {
-            "profile_id": "raw_fpv_budgeted_v1",
+            "profile_id": "context_managed_v1",
             "context_hard_limit_tokens": None,
             "raw_fpv_candidate_budget": 24,
             "raw_fpv_repeated_failure_limit": 3,
@@ -4173,6 +4412,50 @@ def test_openai_agents_budget_guard_classifies_repeated_raw_fpv_failures(
         "source_observation_locality_unresolved"
     )
     assert "image_region" not in json.dumps(detail)
+
+
+def test_openai_agents_budget_guard_classifies_label_lane_observe_budget(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    events = [
+        {
+            "event": "response",
+            "tool": "observe",
+            "response": {"ok": True, "waypoint_id": "generated_exploration_001"},
+        },
+        {
+            "event": "response",
+            "tool": "observe",
+            "response": {"ok": True, "waypoint_id": "generated_exploration_001"},
+        },
+    ]
+    (run_dir / "trace.jsonl").write_text(
+        "\n".join(json.dumps(item) for item in events) + "\n",
+        encoding="utf-8",
+    )
+
+    failure = _budget_failure_from_run_state(
+        run_dir,
+        {"evidence_lane": "camera-grounded-labels", "cache_tools_list": True},
+        {
+            "profile_id": "context_managed_v1",
+            "context_hard_limit_tokens": None,
+            "raw_fpv_candidate_budget": None,
+            "raw_fpv_repeated_failure_limit": None,
+            "max_observe_per_waypoint": 1,
+        },
+    )
+
+    assert failure is not None
+    assert failure.reason == "observe_budget_exhausted"
+    detail = json.loads(failure.detail)
+    assert detail["schema"] == "agent_sdk_raw_fpv_budget_terminal_v1"
+    assert detail["evidence_lane"] == "camera-grounded-labels"
+    assert detail["reasons"] == ["observe_budget_exhausted"]
+    assert detail["observe_over_budget_by_waypoint"] == {"generated_exploration_001": 2}
+    assert detail["raw_fpv_candidate_budget"] is None
 
 
 def test_openai_agents_cleanup_runner_fails_after_bounded_continuation(
@@ -4349,26 +4632,50 @@ def _expected_raw_fpv_image_memory_policy(retained_full_frame_limit: int) -> dic
     }
 
 
-def test_openai_agents_perf_profile_resolves_baseline_defaults(monkeypatch) -> None:
+def test_openai_agents_perf_profile_resolves_context_managed_defaults(monkeypatch) -> None:
     monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", raising=False)
     monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_MCP_CLIENT_SESSION_TIMEOUT_S", raising=False)
-    baseline = _resolve_agent_sdk_perf_profile(_openai_agents_perf_profile_base_args())
+    profile = _resolve_agent_sdk_perf_profile(
+        _openai_agents_perf_profile_base_args(profile="camera-grounded-labels")
+    )
 
-    assert baseline["profile_id"] == "baseline"
-    assert baseline["source"] == "default"
-    assert baseline["provider_profile"] == "codex-router-responses"
-    assert baseline["wire_api"] == "responses"
-    assert baseline["model_family"] == "gpt"
-    assert baseline["model_thinking_mode"] == "default"
-    assert baseline["continuation_mode"] == "repeat_full_prompt"
-    assert baseline["max_turns"] == 128
-    assert baseline["max_continuations"] == 2
-    assert baseline["cache_tools_list"] is True
-    assert baseline["mcp_client_session_timeout_s"] == 30.0
-    assert baseline["context_soft_limit_tokens"] is None
-    assert baseline["camera_grounded_composite_tools"]["enabled"] is False
-    assert baseline["camera_grounded_composite_tools"]["tool_names"] == []
-    assert baseline["robot_view_capture_policy"] == {
+    assert profile["profile_id"] == "context_managed_v1"
+    assert profile["source"] == "default"
+    assert profile["provider_profile"] == "codex-router-responses"
+    assert profile["wire_api"] == "responses"
+    assert profile["model_family"] == "gpt"
+    assert profile["evidence_lane"] == "camera-grounded-labels"
+    assert profile["model_thinking_mode"] == "default"
+    assert profile["continuation_mode"] == "state_summary_only"
+    assert profile["max_turns"] == 128
+    assert profile["max_continuations"] == 1
+    assert profile["cache_tools_list"] is True
+    assert profile["mcp_client_session_timeout_s"] == 30.0
+    assert profile["context_soft_limit_tokens"] == 96_000
+    assert profile["context_hard_limit_tokens"] == 128_000
+    assert profile["max_observe_per_waypoint"] == 1
+    assert profile["raw_fpv_candidate_budget"] is None
+    assert profile["context_policy"] == {
+        "schema": "agent_sdk_context_policy_v1",
+        "source_level_tool_output_reduction": True,
+        "deterministic_model_input_compaction": True,
+        "provider_native_compaction": {
+            "mode": "off",
+            "threshold_tokens": None,
+            "provider_capability": "",
+            "proof_artifact": "",
+        },
+    }
+    assert profile["model_input_compaction"]["enabled"] is True
+    assert profile["model_input_compaction"]["mode"] == (
+        "public_tool_result_summary_v1+repeated_metric_map_delta_v1+camera_grounded_history_v1"
+    )
+    assert profile["model_input_compaction"]["camera_grounded_history"]["enabled"] is True
+    assert profile["camera_grounded_composite_tools"]["enabled"] is True
+    assert profile["camera_grounded_composite_tools"]["tool_names"] == [
+        "observe_camera_grounded_candidates"
+    ]
+    assert profile["robot_view_capture_policy"] == {
         "schema": "agent_sdk_robot_view_capture_policy_v1",
         "policy": "full",
         "candidate_ids": [],
@@ -4378,37 +4685,72 @@ def test_openai_agents_perf_profile_resolves_baseline_defaults(monkeypatch) -> N
             "full report robot-view capture; default public route behavior unchanged"
         ),
     }
-    assert baseline["model_racing_observability"] == _expected_model_racing_observability()
-    assert baseline["sdk_model_settings"] == {
+    assert profile["model_racing_observability"] == _expected_model_racing_observability()
+    assert profile["sdk_model_settings"] == {
         "tool_choice": "auto",
         "parallel_tool_calls": False,
         "model_thinking_mode": "default",
         "store": False,
+        "prompt_cache_retention": "in_memory",
     }
-    assert baseline["sdk_run_config"] == {
+    assert profile["sdk_run_config"] == {
         "trace_include_sensitive_data": False,
         "workflow_name": "roboclaws-openai-agents-live",
     }
 
 
+def test_openai_agents_perf_profile_resolves_explicit_baseline_defaults(monkeypatch) -> None:
+    monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", raising=False)
+    baseline = _resolve_agent_sdk_perf_profile(
+        _openai_agents_perf_profile_base_args(agent_sdk_perf_profile="baseline")
+    )
+
+    assert baseline["profile_id"] == "baseline"
+    assert baseline["source"] == "cli"
+    assert baseline["continuation_mode"] == "repeat_full_prompt"
+    assert baseline["max_continuations"] == 2
+    assert baseline["context_soft_limit_tokens"] is None
+    assert baseline["context_hard_limit_tokens"] is None
+    assert baseline["model_input_compaction"]["enabled"] is False
+    assert baseline["camera_grounded_composite_tools"]["enabled"] is False
+    assert baseline["context_policy"]["source_level_tool_output_reduction"] is False
+    assert baseline["context_policy"]["deterministic_model_input_compaction"] is False
+
+
 def test_openai_agents_perf_profile_rejects_conflicting_cli_and_env(monkeypatch) -> None:
-    monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", "mimo_compact_v1")
+    monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", "baseline")
 
     with pytest.raises(ValueError, match="conflicting OpenAI Agents SDK performance profile"):
         _resolve_agent_sdk_perf_profile(
-            _openai_agents_perf_profile_base_args(agent_sdk_perf_profile="gpt_compact_v1")
+            _openai_agents_perf_profile_base_args(agent_sdk_perf_profile="context_managed_v1")
         )
 
 
 def test_openai_agents_perf_profile_accepts_matching_cli_and_env(monkeypatch) -> None:
-    monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", "gpt_compact_v1")
+    monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", "context_managed_v1")
 
     profile = _resolve_agent_sdk_perf_profile(
-        _openai_agents_perf_profile_base_args(agent_sdk_perf_profile="gpt_compact_v1")
+        _openai_agents_perf_profile_base_args(agent_sdk_perf_profile="context_managed_v1")
     )
 
-    assert profile["profile_id"] == "gpt_compact_v1"
+    assert profile["profile_id"] == "context_managed_v1"
     assert profile["source"] == "cli+environment"
+
+
+@pytest.mark.parametrize(
+    "removed_profile",
+    ["gpt_compact_v1", "mimo_compact_v1", "raw_fpv_budgeted_v1", "custom"],
+)
+def test_openai_agents_perf_profile_rejects_removed_profile_ids(
+    monkeypatch,
+    removed_profile: str,
+) -> None:
+    monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", raising=False)
+
+    with pytest.raises(ValueError, match="removed OpenAI Agents SDK performance profile"):
+        _resolve_agent_sdk_perf_profile(
+            _openai_agents_perf_profile_base_args(agent_sdk_perf_profile=removed_profile)
+        )
 
 
 def test_openai_agents_perf_profile_rejects_conflicting_cli_and_env_settings(
@@ -4463,7 +4805,6 @@ def test_openai_agents_perf_profile_accepts_matching_cli_and_env_settings(
 
     profile = _resolve_agent_sdk_perf_profile(
         _openai_agents_perf_profile_base_args(
-            agent_sdk_perf_profile="custom",
             continuation_mode="state_summary_only",
             max_turns=9,
             mcp_client_session_timeout_s=45.0,
@@ -4638,10 +4979,10 @@ def test_openai_agents_perf_profile_rejects_non_positive_enabled_feature_counts(
         _resolve_agent_sdk_perf_profile(_openai_agents_perf_profile_base_args(**overrides))
 
 
-def test_openai_agents_perf_profile_resolves_compact_and_racing_defaults(monkeypatch) -> None:
+def test_openai_agents_perf_profile_resolves_managed_and_racing_defaults(monkeypatch) -> None:
     monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", raising=False)
     gpt = _resolve_agent_sdk_perf_profile(
-        _openai_agents_perf_profile_base_args(agent_sdk_perf_profile="gpt_compact_v1")
+        _openai_agents_perf_profile_base_args(agent_sdk_perf_profile="context_managed_v1")
     )
 
     assert gpt["source"] == "cli"
@@ -4650,24 +4991,24 @@ def test_openai_agents_perf_profile_resolves_compact_and_racing_defaults(monkeyp
     assert gpt["max_continuations"] == 1
     assert gpt["context_soft_limit_tokens"] == 96_000
     assert gpt["context_hard_limit_tokens"] == 128_000
-    assert gpt["done_retry_budget"] == 2
+    assert gpt["done_retry_budget"] == 1
     assert "truncation" not in gpt["sdk_model_settings"]
     assert gpt["sdk_model_settings"]["prompt_cache_retention"] == "in_memory"
-    assert gpt["model_input_compaction"]["candidate_ids"] == []
-    assert gpt["model_input_compaction"]["repeated_metric_map_delta"] is False
+    assert gpt["model_input_compaction"]["candidate_ids"] == ["I", "N", "AC"]
+    assert gpt["model_input_compaction"]["repeated_metric_map_delta"] is True
     assert gpt["model_input_compaction"]["camera_grounded_history"] == {
         "schema": "agent_sdk_camera_grounded_history_policy_v1",
-        "enabled": False,
-        "mode": "off",
-        "retained_recent_outputs": 0,
-        "candidate_ids": [],
+        "enabled": True,
+        "mode": "retain_latest_actionable_outputs",
+        "retained_recent_outputs": 4,
+        "candidate_ids": ["AC"],
         "private_artifact_policy": (
             "model-facing camera-grounded history compaction only; MCP traces, reports, "
             "and run artifacts remain complete"
         ),
     }
     assert gpt["camera_grounded_composite_tools"]["candidate_ids"] == ["O"]
-    assert gpt["camera_grounded_composite_tools"]["enabled"] is False
+    assert gpt["camera_grounded_composite_tools"]["enabled"] is True
 
     racing = _resolve_agent_sdk_perf_profile(
         _openai_agents_perf_profile_base_args(model_racing=True, model_racing_arm_count=None)
@@ -4690,7 +5031,7 @@ def test_openai_agents_perf_profile_resolves_mimo_and_chat_defaults(monkeypatch)
         _openai_agents_perf_profile_base_args(
             provider_profile="mimo-mify-responses",
             model="xiaomi/mimo-v2.5",
-            agent_sdk_perf_profile="mimo_compact_v1",
+            agent_sdk_perf_profile="context_managed_v1",
         )
     )
 
@@ -4772,10 +5113,13 @@ def test_openai_agents_perf_profile_accepts_thinking_mode_override(monkeypatch) 
 def test_openai_agents_perf_profile_resolves_raw_fpv_budget_defaults(monkeypatch) -> None:
     monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", raising=False)
     raw = _resolve_agent_sdk_perf_profile(
-        _openai_agents_perf_profile_base_args(agent_sdk_perf_profile="raw_fpv_budgeted_v1")
+        _openai_agents_perf_profile_base_args(
+            agent_sdk_perf_profile="context_managed_v1",
+            profile="camera-raw-fpv",
+        )
     )
 
-    assert raw["max_turns"] == 40
+    assert raw["max_turns"] == 128
     assert raw["max_continuations"] == 1
     assert raw["raw_fpv_candidate_budget"] == 24
     assert raw["raw_fpv_repeated_failure_limit"] == 3
@@ -4786,11 +5130,12 @@ def test_openai_agents_perf_profile_resolves_raw_fpv_budget_defaults(monkeypatch
     assert raw["done_retry_budget"] == 1
 
 
-def test_openai_agents_perf_profile_resolves_custom_overrides(monkeypatch) -> None:
+def test_openai_agents_perf_profile_resolves_direct_overrides(monkeypatch) -> None:
     monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", raising=False)
-    custom = _resolve_agent_sdk_perf_profile(
+    profile = _resolve_agent_sdk_perf_profile(
         _openai_agents_perf_profile_base_args(
-            agent_sdk_perf_profile="custom",
+            agent_sdk_perf_profile="context_managed_v1",
+            profile="camera-raw-fpv",
             continuation_mode="state_summary_only",
             max_turns=9,
             incomplete_turn_continuation_attempts=3,
@@ -4806,29 +5151,33 @@ def test_openai_agents_perf_profile_resolves_custom_overrides(monkeypatch) -> No
         )
     )
 
-    assert custom["profile_id"] == "custom"
-    assert custom["max_turns"] == 9
-    assert custom["max_continuations"] == 3
-    assert custom["context_soft_limit_tokens"] == 12
-    assert custom["context_hard_limit_tokens"] == 34
-    assert custom["max_observe_per_waypoint"] == 2
-    assert custom["raw_fpv_repeated_failure_limit"] == 2
-    assert custom["model_input_compaction"]["candidate_ids"] == ["AA"]
-    assert custom["model_input_compaction"]["mode"] == "raw_fpv_image_memory_v1"
-    assert custom["model_input_compaction"]["enabled"] is True
-    assert (
-        custom["model_input_compaction"]["raw_fpv_image_memory"]["retained_full_frame_limit"] == 2
+    assert profile["profile_id"] == "context_managed_v1"
+    assert profile["max_turns"] == 9
+    assert profile["max_continuations"] == 3
+    assert profile["context_soft_limit_tokens"] == 12
+    assert profile["context_hard_limit_tokens"] == 34
+    assert profile["max_observe_per_waypoint"] == 2
+    assert profile["raw_fpv_repeated_failure_limit"] == 2
+    assert profile["model_input_compaction"]["candidate_ids"] == ["I", "N", "AA", "AC"]
+    assert profile["model_input_compaction"]["mode"] == (
+        "public_tool_result_summary_v1+repeated_metric_map_delta_v1+raw_fpv_image_memory_v1+"
+        "camera_grounded_history_v1"
     )
-    assert custom["model_input_compaction"]["camera_grounded_history"]["enabled"] is False
-    assert custom["robot_view_capture_policy"]["policy"] == "action_timeline"
-    assert custom["robot_view_capture_policy"]["candidate_ids"] == ["F"]
+    assert profile["model_input_compaction"]["enabled"] is True
+    assert (
+        profile["model_input_compaction"]["raw_fpv_image_memory"]["retained_full_frame_limit"] == 2
+    )
+    assert profile["model_input_compaction"]["camera_grounded_history"]["enabled"] is True
+    assert profile["robot_view_capture_policy"]["policy"] == "action_timeline"
+    assert profile["robot_view_capture_policy"]["candidate_ids"] == ["F"]
 
 
 def test_openai_agents_perf_profile_resolves_custom_compaction(monkeypatch) -> None:
     monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", raising=False)
     compaction = _resolve_agent_sdk_perf_profile(
         _openai_agents_perf_profile_base_args(
-            agent_sdk_perf_profile="custom",
+            agent_sdk_perf_profile="context_managed_v1",
+            profile="camera-raw-fpv",
             model_input_compaction=True,
             model_input_compaction_min_chars=80,
             raw_fpv_image_memory=True,

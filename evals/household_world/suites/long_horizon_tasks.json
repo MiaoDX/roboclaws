@@ -1,13 +1,15 @@
 {
   "schema": "roboclaws_eval_suite_v1",
   "suite_id": "household_world.long_horizon_tasks",
-  "version": "2026-07-01",
+  "version": "2026-07-02",
   "capability": "household_world_long_horizon_tasks",
   "sample_ids": [
-    "long_horizon.snack_restock_val0_seed7"
+    "long_horizon.snack_restock_val0_seed7",
+    "long_horizon.food_restock_chinese_val0_seed7"
   ],
   "sample_refs": [
-    "evals/household_world/samples/long_horizon/snack_restock_val0_seed7.json"
+    "evals/household_world/samples/long_horizon/snack_restock_val0_seed7.json",
+    "evals/household_world/samples/long_horizon/food_restock_chinese_val0_seed7.json"
   ],
   "required_graders": [
     "artifacts",
@@ -27,6 +29,7 @@
     "runner_scope": "public household open-task route with private long-horizon grader",
     "public_route_shape": "surface=household-world prompt=<goal>",
     "identity_intent": "open-ended",
+    "relationship_to_open_ended": "long_horizon_tasks is a focused open-ended eval subset, not a separate public task axis",
     "live_provider_required": true,
     "semantic_satisfaction": "authoritative_private_state_grader",
     "pilot_scene": "molmospaces/val_0",
