@@ -154,8 +154,8 @@ def test_current_eval_docs_use_default_live_eval_budget() -> None:
     for path in current_docs:
         text = path.read_text(encoding="utf-8")
         assert "live_execution=run live_timeout_s=120" not in text
-        assert f"{live_runtime.DEFAULT_LIVE_WALL_CLOCK_BUDGET_S:g} second wall-clock budget" in text
-        assert f"{live_runtime.DEFAULT_LIVE_STALL_TIMEOUT_S:g} second" in text
+        assert f"{live_runtime.DEFAULT_LIVE_WALL_CLOCK_BUDGET_S:g}-second wall-clock budget" in text
+        assert f"{live_runtime.DEFAULT_LIVE_STALL_TIMEOUT_S:g}-second" in text
 
 
 def test_eval_harness_recommend_rejects_suite_override() -> None:

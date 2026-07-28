@@ -67,8 +67,8 @@ just agent::eval promote-regression \
   direct local-simulator product rows, and DINO product rows. It excludes all
   live-provider rows and is the normal broad local refresh.
 - `profile=baseline-live-default`: select `baseline-core` plus the current
-  default GPT Router live-agent capability rows. It excludes the MiMo, Kimi,
-  and MiniMax map-build provider sweep.
+  Kimi live-agent capability rows. It excludes the custom Responses and
+  MiniMax alternate-provider rows.
 - `profile=baseline-refresh`: select the catalog baseline set directly:
   deterministic gates, all current eval suites including long-horizon tasks,
   direct product rows, DINO rows, all default live rows, and the explicit

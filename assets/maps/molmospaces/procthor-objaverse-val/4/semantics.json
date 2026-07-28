@@ -48,7 +48,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 6.95,
       "y": 7.85,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -65,7 +65,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 1.75,
       "y": 7.85,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -82,7 +82,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 8.7,
       "y": 4.35,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -99,7 +99,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 2.6,
       "y": 4.35,
-      "yaw": 0.0
+      "yaw": 0
     }
   ],
   "map_id": "molmospaces-procthor-objaverse-val-4_base_metric_map",
@@ -114,7 +114,7 @@
     "scene_index": 4,
     "scene_source": "procthor-objaverse-val",
     "source": "molmospaces_scene_source_map_preparation",
-    "source_artifact": "/home/mi/.cache/molmospaces/assets/L2hvbWUvbWkvd3MvZ29nby9yb2JvY2xhd3MvLnZlbnYvbGliL3B5dGhvbjMuMTIvc2l0ZS1wYWNrYWdlcw/scenes/procthor-objaverse-val/val_4.xml",
+    "source_artifact": "molmospaces://procthor-objaverse-val/4",
     "uses_navigation_memory_as_waypoint_source": false
   },
   "rooms": [
@@ -166,7 +166,7 @@
       "navigation_area_id": "room_5",
       "polygon": [
         {
-          "x": 0.0,
+          "x": 0,
           "y": 3.483
         },
         {
@@ -178,7 +178,7 @@
           "y": 12.191
         },
         {
-          "x": 0.0,
+          "x": 0,
           "y": 12.191
         }
       ],
@@ -206,11 +206,11 @@
       "polygon": [
         {
           "x": 5.225,
-          "y": 0.0
+          "y": 0
         },
         {
           "x": 12.191,
-          "y": 0.0
+          "y": 0
         },
         {
           "x": 12.191,
@@ -244,19 +244,19 @@
       "navigation_area_id": "room_7",
       "polygon": [
         {
-          "x": 0.0,
-          "y": 0.0
+          "x": 0,
+          "y": 0
         },
         {
           "x": 5.225,
-          "y": 0.0
+          "y": 0
         },
         {
           "x": 5.225,
           "y": 8.708
         },
         {
-          "x": 0.0,
+          "x": 0,
           "y": 8.708
         }
       ],

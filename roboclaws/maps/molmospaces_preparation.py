@@ -76,7 +76,7 @@ def prepare_molmospaces_base_metric_map(
             "source": "molmospaces_scene_source_map_preparation",
             "scene_source": scene_source,
             "scene_index": int(scene_index),
-            "source_artifact": str(source_path or backend_state.get("scene_xml") or ""),
+            "source_artifact": f"molmospaces://{scene_source}/{int(scene_index)}",
             "room_label_source": "molmospaces_scene_room_outlines",
             "contains_static_fixtures": False,
             "contains_receptacles": False,

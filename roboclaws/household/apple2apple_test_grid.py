@@ -112,8 +112,8 @@ def build_apple2apple_test_grid(
         "name": "molmospaces_apple2apple_g2_grid",
         "description": (
             "Apple-to-apple MolmoSpaces cleanup grid for online/offline Runtime "
-            "Metric Map comparison through the OpenAI Agents SDK Codex router "
-            "route, with Grounding DINO and RAW_FPV evidence lanes."
+            "Metric Map comparison through the OpenAI Agents SDK Kimi Chat route, "
+            "with Grounding DINO evidence."
         ),
         "seed": seed,
         "generated_mess_count": generated_mess_count,

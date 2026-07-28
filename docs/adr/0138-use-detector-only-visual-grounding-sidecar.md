@@ -29,9 +29,8 @@ camera labelers or current validation routes.
 
 Retire hosted VLM visual-grounding camera labelers, refiner stages, and direct
 producer stages from active code, command examples, tests, and benchmark
-promotion logic. This includes hosted Gemini, MiMo, Qwen, Tongyi, SiliconFlow,
-and similar VLM slots when used as camera-labeler/refiner/direct-producer
-routes.
+promotion logic. This includes any hosted VLM slot used as a
+camera-labeler/refiner/direct-producer route.
 
 Do not remove generic model/provider routing used by Codex, Claude Code,
 OpenAI Agents SDK, OpenClaw text routes, model matrix flows, or future explicit

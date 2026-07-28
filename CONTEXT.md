@@ -44,14 +44,14 @@ source with `backend=isaaclab`, not as a separate Gaussian backend.
 _Avoid_: task intent, world id, provider profile
 
 **Agent Engine**:
-The operator-facing control engine that drives the run, such as Codex CLI,
-Claude Code, OpenAI Agents SDK, or a direct deterministic runner.
+The operator-facing control engine that drives the run, currently the OpenAI
+Agents SDK, OpenClaw Gateway, or a direct deterministic runner.
 _Avoid_: model provider, evidence lane, backend variant
 
 **Provider Profile**:
-The model/provider route used by an Agent Engine, such as `codex-router-responses`, `mify`,
-`kimi-anthropic`, or `mimo-tp-anthropic`. It applies to live model-backed engines;
-deterministic direct runners do not require one.
+The model/provider route used by an Agent Engine: `custom-responses`,
+`minimax-responses`, or `kimi-openai-chat` for the OpenAI Agents SDK. It applies
+to live model-backed engines; deterministic direct runners do not require one.
 _Avoid_: agent engine, task intent, evidence lane
 
 **Internal Runner Class**:

@@ -402,14 +402,14 @@ def test_explicit_axes_select_first_class_engine_and_provider_profile(
     )
 
 
-def test_map_build_consumer_plan_selects_three_profile_model_matrix(
+def test_map_build_consumer_change_selects_three_profile_model_matrix(
     tmp_path: Path,
 ) -> None:
     prior = tmp_path / "canonical-prior.json"
     prior.write_text('{"schema":"runtime_map_prior_snapshot_v1"}\n', encoding="utf-8")
     manifest = selector.build_eval_harness(
         budget="focused",
-        plan=REPO_ROOT / "docs/plans/2026-06-24-map-build-panorama-consumer-experiments.md",
+        changed_files=["roboclaws/maps/runtime_prior_snapshot.py"],
         output_dir=tmp_path / "harness",
         runtime_map_prior=str(prior),
     )

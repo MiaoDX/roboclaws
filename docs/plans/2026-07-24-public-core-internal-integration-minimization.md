@@ -1,6 +1,6 @@
-**Status:** Approved; implementation active
+**Status:** Agent-fixable implementation and verification complete; publication awaits human review
 **Created:** 2026-07-24
-**Last reviewed:** 2026-07-25
+**Last reviewed:** 2026-07-26
 **Current implementation contract:** Publish a small, provider-neutral Roboclaws core by replacing
 one private Responses identity with an environment-configured profile, keeping Kimi as the only
 Chat Completions route, retaining Agibot/B1 as explicit validation-only worlds, removing NVIDIA
@@ -13,16 +13,32 @@ the private repository. It is not part of the sanitized public root commit.
 
 ## Plan Ledger
 
-- Plan status: ACTIVE
+- Plan status: COMPLETE (`PUBLICATION_READY`; public push unauthorized)
 - Session scope: public-core-internal-integration-minimization
 - Parent plans: none
 - Child plans: none
-- Last updated: 2026-07-25
-- Current slice: reconcile concurrent eval/coding-agent migration, then Slice 2 remote ownership
-- Next action: wait for the owner-safe commit of currently dirty eval/runtime/network files,
-  re-read their final shape, then remove public CloudML lifecycle ownership and build the candidate.
-- Blocked on: overlapping concurrent edits at the CloudML/Isaac handoff boundary. Required
-  provider, Agibot hardware, B1/Isaac, package, and clean-room proofs remain completion gates.
+- Last updated: 2026-07-26
+- Current slice: implementation, live provider proof, optional-world dependency readiness, final
+  candidate construction, deterministic verification, and package verification are complete.
+- Next action: present the immutable candidate evidence for human publication review. Do not
+  publish without explicit authorization.
+- Blocked on: only human decisions remain. Agibot physical movement requires a present operator and
+  the existing localization/run-enablement/E-stop gates. Strict Isaac execution requires explicit
+  Omniverse EULA acceptance. The exact candidate's license inventory also retains one human-review
+  caveat: `beaker-py` 2.x publishes no license metadata or license file, and its referenced source
+  repository is unavailable.
+- Latest proof: candidate `output/public-candidate/20260726-03/repo` is a one-root-commit, no-remote
+  public tree (`source=18a4056b`, `candidate=823ee7e6`, membership
+  `c06f840face4e891aea4de36e8f3e1205a05723415793105683945a8c67fd453`) with 1,048 source
+  blobs, two generated files, and one public MolmoSpaces gitlink. Fresh `uv sync`, public-surface
+  and exact `detect-secrets` checks, Ruff, focused candidate tests, package build, and isolated
+  wheel import/CLI smoke pass. The four required rows in
+  `output/eval-harness/20260726T001821Z/eval_harness.json` pass. Kimi completes the live parent and
+  linked child session; Custom Responses health and the bounded household product route complete
+  with successful MCP calls and clean endpoint/key/model artifact scans. Full standalone pytest
+  passes. Package SHA-256 values are
+  `26f3072434939938ac1a836a88adae8373cd3c1eaeb35d45d8117aa8d75333d6` (sdist) and
+  `da46514dd5ce801068809bef849999d124f1aecae2d08cd84ff515728e39e044` (wheel).
 - Do not touch from this plan: simulator/runtime NVIDIA dependencies, Isaac Lab EULA handling,
   unrelated product task semantics/scoring, or unrelated user changes.
 

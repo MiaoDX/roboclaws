@@ -3,7 +3,7 @@
   "pylint_too_many_lines": {
     "files": [
       {
-        "lines": 1968,
+        "lines": 1883,
         "max_module_lines": 800,
         "path": "roboclaws/agents/drivers/openai_agents_live.py"
       },
@@ -13,17 +13,17 @@
         "path": "roboclaws/agents/drivers/openai_agents_model_input.py"
       },
       {
-        "lines": 1066,
+        "lines": 902,
         "max_module_lines": 800,
         "path": "roboclaws/agents/provider_registry.py"
       },
       {
-        "lines": 1053,
+        "lines": 1055,
         "max_module_lines": 800,
         "path": "roboclaws/evals/live_runtime.py"
       },
       {
-        "lines": 1781,
+        "lines": 1809,
         "max_module_lines": 800,
         "path": "roboclaws/evals/runner.py"
       },
@@ -33,12 +33,22 @@
         "path": "roboclaws/household/agibot_contract_rehearsal.py"
       },
       {
-        "lines": 1158,
+        "lines": 1239,
         "max_module_lines": 800,
         "path": "roboclaws/household/agibot_sdk_runner.py"
       },
       {
-        "lines": 1322,
+        "lines": 1253,
+        "max_module_lines": 800,
+        "path": "roboclaws/household/household_mcp_server.py"
+      },
+      {
+        "lines": 2087,
+        "max_module_lines": 800,
+        "path": "roboclaws/household/household_runtime_contract.py"
+      },
+      {
+        "lines": 1327,
         "max_module_lines": 800,
         "path": "roboclaws/household/household_world_episode.py"
       },
@@ -53,19 +63,9 @@
         "path": "roboclaws/household/planner_task_feasibility.py"
       },
       {
-        "lines": 2016,
-        "max_module_lines": 800,
-        "path": "roboclaws/household/household_runtime_contract.py"
-      },
-      {
         "lines": 927,
         "max_module_lines": 800,
         "path": "roboclaws/household/realworld_contract_projection.py"
-      },
-      {
-        "lines": 1231,
-        "max_module_lines": 800,
-        "path": "roboclaws/household/household_mcp_server.py"
       },
       {
         "lines": 1201,
@@ -73,7 +73,7 @@
         "path": "roboclaws/household/realworld_runtime_map_targets.py"
       },
       {
-        "lines": 1373,
+        "lines": 1372,
         "max_module_lines": 800,
         "path": "roboclaws/household/realworld_visual_candidate_lifecycle.py"
       },
@@ -103,7 +103,7 @@
         "path": "roboclaws/household/semantic_timeline.py"
       },
       {
-        "lines": 804,
+        "lines": 815,
         "max_module_lines": 800,
         "path": "roboclaws/launch/catalog.py"
       },
@@ -133,7 +133,7 @@
         "path": "roboclaws/operator_console/interactions.py"
       },
       {
-        "lines": 931,
+        "lines": 944,
         "max_module_lines": 800,
         "path": "roboclaws/operator_console/launcher.py"
       },
@@ -188,7 +188,7 @@
         "path": "scripts/maps/render_b1_scene_topdown_diagnostic.py"
       },
       {
-        "lines": 2202,
+        "lines": 2201,
         "max_module_lines": 800,
         "path": "scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py"
       },
@@ -198,7 +198,7 @@
         "path": "scripts/molmo_cleanup/molmospaces_subprocess_worker.py"
       },
       {
-        "lines": 895,
+        "lines": 890,
         "max_module_lines": 800,
         "path": "scripts/molmo_cleanup/openai_agents_perf_profile.py"
       },
@@ -218,7 +218,7 @@
         "path": "scripts/molmo_cleanup/run_codex_cleanup_apple2apple_summary.py"
       },
       {
-        "lines": 2204,
+        "lines": 2192,
         "max_module_lines": 800,
         "path": "scripts/molmo_cleanup/run_live_openai_agents_household.py"
       },
@@ -233,7 +233,7 @@
         "path": "scripts/molmo_cleanup/run_molmo_planner_proof_bundle_from_requests.py"
       },
       {
-        "lines": 2010,
+        "lines": 1659,
         "max_module_lines": 800,
         "path": "scripts/molmo_cleanup/run_raw_fpv_perception_probe.py"
       },
@@ -283,12 +283,12 @@
         "path": "tests/contract/checkers/test_check_molmo_planner_proof_bundle_runner_result.py"
       },
       {
-        "lines": 5292,
+        "lines": 5267,
         "max_module_lines": 800,
         "path": "tests/contract/checkers/test_check_molmo_realworld_cleanup_result.py"
       },
       {
-        "lines": 3459,
+        "lines": 2782,
         "max_module_lines": 800,
         "path": "tests/contract/dev_tools/test_task_agent_just_recipes.py"
       },
@@ -303,19 +303,19 @@
         "path": "tests/contract/maps/test_b1_map12_verified_alignment.py"
       },
       {
-        "lines": 811,
+        "lines": 815,
         "max_module_lines": 800,
         "path": "tests/contract/maps/test_runtime_map_prior_snapshot.py"
       },
       {
-        "lines": 4118,
-        "max_module_lines": 800,
-        "path": "tests/contract/molmo_cleanup/test_household_runtime_contract.py"
-      },
-      {
-        "lines": 1518,
+        "lines": 1549,
         "max_module_lines": 800,
         "path": "tests/contract/molmo_cleanup/test_household_mcp_server.py"
+      },
+      {
+        "lines": 4206,
+        "max_module_lines": 800,
+        "path": "tests/contract/molmo_cleanup/test_household_runtime_contract.py"
       },
       {
         "lines": 2142,
@@ -323,7 +323,7 @@
         "path": "tests/contract/molmo_cleanup/test_scene_camera_comparison.py"
       },
       {
-        "lines": 1000,
+        "lines": 899,
         "max_module_lines": 800,
         "path": "tests/contract/openclaw/test_openclaw_bootstrap.py"
       },
@@ -333,22 +333,22 @@
         "path": "tests/contract/reports/test_molmo_cleanup_report.py"
       },
       {
-        "lines": 848,
+        "lines": 830,
         "max_module_lines": 800,
         "path": "tests/contract/visual_grounding/test_visual_grounding_service.py"
       },
       {
-        "lines": 7134,
+        "lines": 7138,
         "max_module_lines": 800,
         "path": "tests/unit/agents/test_live_runtime.py"
       },
       {
-        "lines": 823,
+        "lines": 849,
         "max_module_lines": 800,
         "path": "tests/unit/evals/test_eval_harness_selector.py"
       },
       {
-        "lines": 3328,
+        "lines": 3419,
         "max_module_lines": 800,
         "path": "tests/unit/evals/test_eval_runner.py"
       },
@@ -363,12 +363,12 @@
         "path": "tests/unit/molmo_cleanup/test_agent_sdk_perf_matrix.py"
       },
       {
-        "lines": 5479,
+        "lines": 5499,
         "max_module_lines": 800,
         "path": "tests/unit/molmo_cleanup/test_isaac_lab_backend.py"
       },
       {
-        "lines": 898,
+        "lines": 897,
         "max_module_lines": 800,
         "path": "tests/unit/molmo_cleanup/test_isaac_lab_runtime_smoke_checker.py"
       },
@@ -383,7 +383,7 @@
         "path": "tests/unit/molmo_cleanup/test_molmo_planner_proof_requests.py"
       },
       {
-        "lines": 2140,
+        "lines": 1818,
         "max_module_lines": 800,
         "path": "tests/unit/molmo_cleanup/test_raw_fpv_perception_probe.py"
       },
@@ -398,12 +398,12 @@
         "path": "tests/unit/molmo_cleanup/test_robot_camera_visual_parity_summary.py"
       },
       {
-        "lines": 1409,
+        "lines": 1410,
         "max_module_lines": 800,
         "path": "tests/unit/operator_console/test_launcher.py"
       },
       {
-        "lines": 1502,
+        "lines": 1513,
         "max_module_lines": 800,
         "path": "tests/unit/operator_console/test_operator_console.py"
       },

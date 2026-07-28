@@ -19,10 +19,8 @@ VERIFY_PATH = REPO_ROOT / "scripts" / "agibot" / "verify_waypoints_with_pnc.py"
 SDK_RUNNER_PATH = REPO_ROOT / "vendors" / "agibot_sdk" / "tools" / "run_agibot_cleanup_backend.py"
 RAW_FPV_CHECK_PATH = REPO_ROOT / "vendors" / "agibot_sdk" / "tools" / "check_raw_fpv_status.py"
 NAV_ARTIFACTS_PATH = REPO_ROOT / "vendors" / "agibot_sdk" / "tools" / "agibot_nav_artifacts.py"
-SIX_CAMERA_CAPTURE_PATH = (
-    REPO_ROOT / "vendors" / "agibot_sdk" / "tools" / "capture_six_camera_views.py"
-)
-COMPLETED_CONTEXT_FIXTURE = REPO_ROOT / "tests" / "fixtures" / "agibot_map_context.completed.json"
+SIX_CAMERA_CAPTURE_PATH = REPO_ROOT / "vendors/agibot_sdk/tools/capture_six_camera_views.py"
+COMPLETED_CONTEXT_FIXTURE = REPO_ROOT / "tests" / "fixtures" / "public_map_context.synthetic.json"
 
 
 def _require_agibot_sdk_runner() -> None:
@@ -1046,6 +1044,8 @@ def _capture_manifest(waypoint_id: str, *, x: float, y: float) -> dict:
 
 
 def _load_module(path: Path, name: str):
+    if not path.is_file():
+        pytest.skip(f"optional integration module is unavailable: {path.name}")
     spec = importlib.util.spec_from_file_location(name, path)
     assert spec is not None
     module = importlib.util.module_from_spec(spec)

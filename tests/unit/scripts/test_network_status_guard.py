@@ -67,10 +67,9 @@ def test_assert_off_work_allows_when_probe_is_unreachable(tmp_path: Path) -> Non
     assert "network guard ok" in result.stderr
 
 
-def test_openai_agents_provider_guard_allows_minimax_profile_on_work_network(
-    tmp_path: Path,
-) -> None:
-    env = _fake_curl(tmp_path, "204")
+def test_openai_agents_provider_gate_allows_minimax_without_network_probe() -> None:
+    env = os.environ.copy()
+    env.pop("ROBOCLAWS_WORK_NETWORK_PROBE_URL", None)
     env["ROBOCLAWS_PROVIDER_PROFILE"] = "minimax-responses"
     env["MM_API_KEY"] = "fake-mm-key"
 
@@ -81,7 +80,7 @@ def test_openai_agents_provider_guard_allows_minimax_profile_on_work_network(
             """
             set -euo pipefail
             source "$ROBOCLAWS_HELPER"
-            roboclaws_assert_openai_agents_network_allowed "OpenAI Agents SDK"
+            roboclaws_assert_openai_agents_provider_allowed
             """,
         ],
         cwd=REPO_ROOT,
@@ -91,13 +90,12 @@ def test_openai_agents_provider_guard_allows_minimax_profile_on_work_network(
         text=True,
     )
 
-    assert "repo-local OpenAI Agents SDK provider (minimax-responses)" in result.stderr
+    assert "OpenAI Agents SDK provider gate ok (minimax-responses)" in result.stderr
 
 
-def test_openai_agents_provider_guard_requires_explicit_profile_on_work_network(
-    tmp_path: Path,
-) -> None:
-    env = _fake_curl(tmp_path, "204")
+def test_openai_agents_provider_gate_requires_explicit_profile() -> None:
+    env = os.environ.copy()
+    env.pop("ROBOCLAWS_WORK_NETWORK_PROBE_URL", None)
     env.pop("ROBOCLAWS_PROVIDER_PROFILE", None)
 
     result = subprocess.run(
@@ -107,7 +105,7 @@ def test_openai_agents_provider_guard_requires_explicit_profile_on_work_network(
             """
             set -euo pipefail
             source "$ROBOCLAWS_HELPER"
-            roboclaws_assert_openai_agents_network_allowed "OpenAI Agents SDK"
+            roboclaws_assert_openai_agents_provider_allowed
             """,
         ],
         cwd=REPO_ROOT,
@@ -120,8 +118,9 @@ def test_openai_agents_provider_guard_requires_explicit_profile_on_work_network(
     assert "requires explicit ROBOCLAWS_PROVIDER_PROFILE selection" in result.stderr
 
 
-def test_openai_agents_provider_guard_allows_chat_profile_on_work_network(tmp_path: Path) -> None:
-    env = _fake_curl(tmp_path, "204")
+def test_openai_agents_provider_gate_allows_chat_without_network_probe() -> None:
+    env = os.environ.copy()
+    env.pop("ROBOCLAWS_WORK_NETWORK_PROBE_URL", None)
     env["ROBOCLAWS_PROVIDER_PROFILE"] = "kimi-openai-chat"
     env["KIMI_OPENAI_BASE_URL"] = "https://kimi.example.test/v1"
     env["KIMI_API_KEY"] = "fake-kimi-key"
@@ -133,7 +132,7 @@ def test_openai_agents_provider_guard_allows_chat_profile_on_work_network(tmp_pa
             """
             set -euo pipefail
             source "$ROBOCLAWS_HELPER"
-            roboclaws_assert_openai_agents_network_allowed "OpenAI Agents SDK"
+            roboclaws_assert_openai_agents_provider_allowed
             """,
         ],
         cwd=REPO_ROOT,
@@ -143,7 +142,7 @@ def test_openai_agents_provider_guard_allows_chat_profile_on_work_network(tmp_pa
         text=True,
     )
 
-    assert "repo-local OpenAI Agents SDK provider (kimi-openai-chat)" in result.stderr
+    assert "OpenAI Agents SDK provider gate ok (kimi-openai-chat)" in result.stderr
 
 
 def test_current_and_manual_debug_just_recipes_use_network_guard() -> None:
@@ -166,7 +165,7 @@ def test_current_and_manual_debug_just_recipes_use_network_guard() -> None:
         assert "bash scripts/dev/network_status.sh --assert-off-work" in text, path
 
     molmo_text = (JUST_DIR / "molmo.just").read_text(encoding="utf-8")
-    assert "roboclaws_assert_openai_agents_network_allowed" in molmo_text
+    assert "roboclaws_assert_openai_agents_provider_allowed" in molmo_text
 
     assert not (JUST_DIR / "code.just").exists()
 

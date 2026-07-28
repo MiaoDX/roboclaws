@@ -5665,19 +5665,12 @@ def test_openai_agents_perf_profile_accepts_matching_cli_and_env(monkeypatch) ->
     assert profile["source"] == "cli+environment"
 
 
-@pytest.mark.parametrize(
-    "removed_profile",
-    ["gpt_compact_v1", "mimo_compact_v1", "raw_fpv_budgeted_v1", "custom"],
-)
-def test_openai_agents_perf_profile_rejects_removed_profile_ids(
-    monkeypatch,
-    removed_profile: str,
-) -> None:
+def test_openai_agents_perf_profile_rejects_unknown_profile_id(monkeypatch) -> None:
     monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", raising=False)
 
-    with pytest.raises(ValueError, match="removed OpenAI Agents SDK performance profile"):
+    with pytest.raises(ValueError, match="unsupported OpenAI Agents SDK performance profile"):
         _resolve_agent_sdk_perf_profile(
-            _openai_agents_perf_profile_base_args(agent_sdk_perf_profile=removed_profile)
+            _openai_agents_perf_profile_base_args(agent_sdk_perf_profile="unknown_profile")
         )
 
 

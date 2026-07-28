@@ -729,7 +729,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
         elif [[ "$driver" == "openai-agents-live" ]]; then
           source scripts/dev/coding_agent_env.sh
           roboclaws_load_dotenv .env
-          roboclaws_assert_openai_agents_network_allowed "OpenAI Agents SDK Molmo cleanup live report"
+          roboclaws_assert_openai_agents_provider_allowed
         fi
         openai_agents_model=""
         openai_agents_profile=""

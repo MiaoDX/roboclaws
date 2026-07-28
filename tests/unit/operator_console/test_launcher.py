@@ -1140,8 +1140,8 @@ def test_provider_gate_auto_loads_kimi_env_from_repo_dotenv(tmp_path: Path, monk
         tmp_path,
         get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK),
         overrides={"port": _free_port()},
+        env={},
     )
-
     assert readiness["can_start"] is True
     assert load_repo_dotenv(tmp_path, {})["KIMI_API_KEY"] == "from-dotenv"
     assert readiness["provider"]["provider"] == "kimi-openai-chat"

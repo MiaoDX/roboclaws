@@ -201,7 +201,7 @@ def build_probe_commands(
             command.extend(["--torch-extensions-dir", str(torch_extensions_dir)])
         scene_xml = str((manifest.get("planner_scene") or {}).get("scene_xml") or "")
         if scene_xml:
-            command.extend(["--cleanup-scene-xml", scene_xml])
+            command.extend(["--cleanup-scene-xml", str(Path(scene_xml).expanduser())])
         tools = _request_tools(request)
         planner_probe_args = dict(request.get("planner_probe_args") or {})
         if tools:

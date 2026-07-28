@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.core.json_sources import parse_json_object_text, read_json_object
+from roboclaws.household.artifact_paths import home_relative_paths, resolve_home_relative_paths
 
 type WorkerCommandHandler = Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]]
 
@@ -184,7 +185,7 @@ def json_object_from_text(text: str) -> dict[str, Any]:
 
 
 def read_state(path: Path) -> dict[str, Any]:
-    return read_json_object(path, label="MolmoSpaces worker state")
+    return resolve_home_relative_paths(read_json_object(path, label="MolmoSpaces worker state"))
 
 
 def write_state(
@@ -195,7 +196,8 @@ def write_state(
 ) -> None:
     refresh_runtime_render_state(state)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    persisted = home_relative_paths(state)
+    path.write_text(json.dumps(persisted, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def count_tool_request(state: dict[str, Any], tool: str) -> None:
@@ -205,8 +207,10 @@ def count_tool_request(state: dict[str, Any], tool: str) -> None:
 
 
 def ok_response(tool: str, **payload: Any) -> dict[str, Any]:
-    return {"ok": True, "tool": tool, "status": "ok", **payload}
+    return home_relative_paths({"ok": True, "tool": tool, "status": "ok", **payload})
 
 
 def error_response(tool: str, error_reason: str, **payload: Any) -> dict[str, Any]:
-    return {"ok": False, "tool": tool, "status": "error", "error_reason": error_reason, **payload}
+    return home_relative_paths(
+        {"ok": False, "tool": tool, "status": "error", "error_reason": error_reason, **payload}
+    )

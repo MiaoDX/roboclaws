@@ -9,7 +9,7 @@ Date: 2026-06-22
 ADR-0140 made eval suites first-class benchmark artifacts. ADR-0141 made
 `eval-harness` the maintained maintainer orchestration facade. The harness now
 has enough rows to cover deterministic gates, product runs, eval suites,
-Grounding DINO perception rows, live Codex rows, and OpenAI Agents SDK rows.
+Grounding DINO perception rows, and OpenAI Agents SDK rows.
 
 That breadth is useful for baseline refreshes after large code changes, but it
 can also create the wrong incentive: adding every possible engine, provider,
@@ -20,10 +20,8 @@ The current visible dimensions are:
 
 - execution layer: deterministic gate, eval suite, product run, live-agent eval;
 - cost/runtime: deterministic, local simulator, Grounding DINO, live agent;
-- agent engine: direct runner, Codex CLI, Claude Code, OpenAI Agents SDK, and
-  validation-required OpenClaw Gateway;
-- provider profile family: Codex router, MiMo, Kimi, MiniMax, and internal
-  gateways;
+- agent engine: direct runner and OpenAI Agents SDK;
+- provider profile family: custom Responses, MiniMax Responses, and Kimi Chat;
 - intent: open-ended household goals, cleanup, map-build, and planner proof;
 - evidence lane: world-public labels, camera-raw FPV, and camera-grounded
   labels via Grounding DINO;
@@ -40,11 +38,8 @@ The harness may expose coarse selection groups such as:
 - `full` / `baseline-refresh`: the currently accepted complete baseline set;
 - `core`: deterministic gates, current eval suites, and local simulator product
   rows;
-- `coding-agent`: live coding-agent rows, split further by `codex` and
-  `claude-code` when both are intentionally maintained;
 - `agent-sdk`: OpenAI Agents SDK rows;
-- `providers`: explicit provider-route probes, with narrower groups for
-  internal providers and all-provider sweeps;
+- `providers`: explicit provider-route probes and all-provider sweeps;
 - `open-ended`, `cleanup`, and `map-build`: capability-intent slices;
 - `perception-dino` and `raw-fpv`: evidence-lane/perception slices.
 
@@ -80,8 +75,8 @@ default baseline.
   `skills/eval-harness/catalog/rows.json` before adding more selection logic.
 - `baseline-refresh` can remain the complete accepted baseline, but smaller
   groups should become the normal way to ask focused questions.
-- Claude Code and broader provider coverage should be added only when there is
-  a clear current product claim or regression risk to protect.
+- Broader provider coverage should be added only when there is a clear current
+  product claim or regression risk to protect.
 - `all-providers` should remain expensive and explicit. It is not a default
   baseline.
 - Deprecated or low-value groups may be stripped later without compatibility

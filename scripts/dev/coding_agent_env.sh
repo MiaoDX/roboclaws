@@ -140,8 +140,7 @@ roboclaws_code_agent_model() {
   printf '%s\n' "$model"
 }
 
-roboclaws_assert_openai_agents_network_allowed() {
-  local label="${1:-OpenAI Agents SDK}"
+roboclaws_assert_openai_agents_provider_allowed() {
   local provider
   provider="$(roboclaws_code_agent_provider ROBOCLAWS_PROVIDER_PROFILE)" || return
   case "$provider" in
@@ -152,26 +151,7 @@ roboclaws_assert_openai_agents_network_allowed() {
       return 2
       ;;
   esac
-
-  local rc
-  if bash scripts/dev/network_status.sh --is-work-network >/dev/null 2>&1; then
-    rc=0
-  else
-    rc=$?
-  fi
-
-  case "$rc" in
-    0)
-      echo "==> network guard ok: work network with repo-local OpenAI Agents SDK provider (${provider})" >&2
-      ;;
-    1)
-      echo "==> network guard ok: off work network" >&2
-      ;;
-    *)
-      echo "error: cannot determine network status; curl is required for ${label}." >&2
-      return 2
-      ;;
-  esac
+  echo "==> OpenAI Agents SDK provider gate ok (${provider})" >&2
 }
 
 roboclaws_code_agent_profile_summary() {
@@ -185,6 +165,6 @@ roboclaws_code_agent_profile_summary() {
   base_url="$(roboclaws_code_agent_profile_base_url "$provider")" || return
   key_env="$(roboclaws_code_agent_profile_key_env "$provider")" || return
   wire_api="$(roboclaws_code_agent_profile_wire_api "$provider")" || return
-  printf '%s model=%s base_url=%s key_env=%s protocol=%s\n' \
-    "$provider" "$model" "$base_url" "$key_env" "$wire_api"
+  printf '%s model=%s base_url=<configured> key_env=%s protocol=%s\n' \
+    "$provider" "$model" "$key_env" "$wire_api"
 }

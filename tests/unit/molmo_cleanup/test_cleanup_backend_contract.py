@@ -144,6 +144,37 @@ def test_synthetic_runtime_metadata_attaches_normalized_backend_evidence(
     assert "isaac_runtime" not in run_result
 
 
+def test_molmospaces_runtime_metadata_omits_absolute_operator_home(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    home = tmp_path / "operator-home"
+    monkeypatch.setenv("HOME", str(home))
+    backend = SimpleNamespace(
+        backend="molmospaces_subprocess",
+        python_executable=home / "venv" / "bin" / "python",
+        scene_xml=str(home / ".cache" / "molmospaces" / "scene.xml"),
+        runtime={},
+        model_stats={},
+        metadata_object_count=0,
+        requested_generated_mess_count=0,
+        generated_mess_count=0,
+        robot=None,
+    )
+    run_result = {"artifacts": {}}
+
+    attach_cleanup_backend_runtime_metadata(
+        run_result=run_result,
+        backend=backend,
+        run_dir=tmp_path,
+    )
+
+    runtime = run_result["molmospaces_runtime"]
+    assert runtime["python_executable"] == "~/venv/bin/python"
+    assert runtime["scene_xml"] == "~/.cache/molmospaces/scene.xml"
+    assert str(home) not in json.dumps(run_result)
+
+
 def test_cleanup_backend_session_exposes_optional_backend_capabilities(
     tmp_path: Path,
 ) -> None:

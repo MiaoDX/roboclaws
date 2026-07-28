@@ -1,0 +1,62 @@
+{
+  "driveable_ways": [],
+  "fixtures": [
+    {
+      "category": "sofa",
+      "fixture_id": "sofa",
+      "footprint": [],
+      "label": "Sofa",
+      "pose": {"x": 2.0, "y": 2.4, "yaw": 0.0},
+      "preferred_inspection_waypoint_id": "wp_sofa_front",
+      "room_id": "living_room"
+    }
+  ],
+  "frame_id": "map",
+  "inspection_waypoints": [
+    {
+      "fixture_id": "sofa",
+      "label": "Sofa front",
+      "purpose": "inspect_fixture",
+      "reachability_status": "verified",
+      "room_id": "living_room",
+      "verification": {
+        "navigation_backend": "agibot_gdk",
+        "primitive_provenance": "agibot_gdk_normal_navi",
+        "reachability_status": "verified",
+        "schema": "agibot_gdk_pnc_waypoint_verification_v1"
+      },
+      "visited": false,
+      "waypoint_id": "wp_sofa_front",
+      "waypoint_source": "operator_recorded_pose",
+      "x": 1.8,
+      "y": 1.8,
+      "yaw": 1.57
+    }
+  ],
+  "map_source": {
+    "is_curr_map": true,
+    "map_id": 3,
+    "map_name": "office_floor_1",
+    "type": "agibot_gdk_map_context"
+  },
+  "map_version": "synthetic-test-v1",
+  "robot_pose": {
+    "pose_source": "agibot_gdk_slam_get_curr_pose",
+    "x": 1.0,
+    "y": 1.5,
+    "yaw": 0.2
+  },
+  "rooms": [
+    {
+      "polygon": [
+        {"x": 0.0, "y": 0.0},
+        {"x": 4.0, "y": 0.0},
+        {"x": 4.0, "y": 3.0},
+        {"x": 0.0, "y": 3.0}
+      ],
+      "room_id": "living_room",
+      "room_label": "Living room"
+    }
+  ],
+  "schema": "agibot_gdk_map_context_authoring_v1"
+}
