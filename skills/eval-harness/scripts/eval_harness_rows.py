@@ -18,15 +18,27 @@ def candidate_rows(
 ) -> list[dict[str, Any]]:
     row_dir = output_dir / "rows"
     context = _render_context(output_dir=output_dir, explicit_axes=explicit_axes)
-    return [_row(raw, row_dir=row_dir, context=context) for raw in _catalog_rows()]
+    catalog = _catalog()
+    defaults = catalog.get("execution_defaults") or {}
+    provider_requirements = catalog.get("provider_execution_requirements") or {}
+    return [
+        _row(
+            raw,
+            row_dir=row_dir,
+            context=context,
+            defaults=defaults,
+            provider_requirements=provider_requirements,
+        )
+        for raw in catalog["rows"]
+    ]
 
 
-def _catalog_rows() -> list[dict[str, Any]]:
+def _catalog() -> dict[str, Any]:
     payload = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
     rows = payload.get("rows")
     if not isinstance(rows, list):
         raise ValueError(f"{CATALOG_PATH} must contain a rows list")
-    return rows
+    return payload
 
 
 def _render_context(*, output_dir: Path, explicit_axes: dict[str, list[str]]) -> dict[str, str]:
@@ -50,10 +62,26 @@ def _render_context(*, output_dir: Path, explicit_axes: dict[str, list[str]]) ->
     }
 
 
-def _row(raw: dict[str, Any], *, row_dir: Path, context: dict[str, str]) -> dict[str, Any]:
+def _row(
+    raw: dict[str, Any],
+    *,
+    row_dir: Path,
+    context: dict[str, str],
+    defaults: dict[str, Any],
+    provider_requirements: dict[str, Any],
+) -> dict[str, Any]:
     row_id = str(raw["row_id"])
     command = _render_list(raw["command"], context)
     axes = _render_dict(raw.get("axes") or {}, context)
+    expense = str(raw["expense"])
+    execution = defaults.get(expense) or {}
+    execution_requirements = list(
+        raw.get("execution_requirements", execution.get("execution_requirements")) or []
+    )
+    provider_profile = str(axes.get("provider_profile") or "")
+    if provider_profile:
+        execution_requirements.append(f"provider:{provider_profile}")
+        execution_requirements.extend(provider_requirements.get(provider_profile) or [])
     return {
         "schema": ROW_SCHEMA,
         "row_id": row_id,
@@ -66,8 +94,14 @@ def _row(raw: dict[str, Any], *, row_dir: Path, context: dict[str, str]) -> dict
         "source_signals": [],
         "selected": False,
         "requirement": str(raw.get("requirement") or "required"),
-        "expense": str(raw["expense"]),
+        "expense": expense,
         "requires": list(raw.get("requires") or []),
+        "execution_requirements": _dedupe(execution_requirements),
+        "depends_on": list(raw.get("depends_on") or []),
+        "timeout_s": int(raw.get("timeout_s", execution.get("timeout_s")) or 0),
+        "concurrency_group": str(
+            raw.get("concurrency_group", execution.get("concurrency_group")) or ""
+        ),
         "profiles": list(raw.get("profiles") or []),
         "status": "skipped_irrelevant",
         "blocker_category": "",
@@ -89,3 +123,7 @@ def _render_text(value: str, context: dict[str, str]) -> str:
     for key, replacement in context.items():
         value = value.replace("{" + key + "}", replacement)
     return value
+
+
+def _dedupe(values: list[Any]) -> list[str]:
+    return list(dict.fromkeys(str(value) for value in values if str(value)))

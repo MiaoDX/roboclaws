@@ -30,7 +30,56 @@ Execute relevant rows for a plan or diff:
 ```bash
 just agent::eval execute plan=docs/plans/example.md budget=focused
 just agent::eval execute since=origin/main budget=focused
+just agent::eval execute profile=baseline-core budget=focused \
+  execution_target=local max_parallel=4
 ```
+
+Generate pinned CloudML CPU/RTX 4090 shard YAML without submitting jobs:
+
+```bash
+ROBOCLAWS_CLOUDML_CPU_IMAGE_URL='<cpu-image>@sha256:<digest>' \
+ROBOCLAWS_CLOUDML_GPU_IMAGE_URL='<cuda-image>@sha256:<digest>' \
+ROBOCLAWS_CLOUDML_ASSET_MANIFEST=/path/to/roboclaws_cloudml_cleanup_assets.json \
+  just agent::eval execute profile=baseline-core budget=focused \
+  execution_target=cloudml cloudml_dry_run=true
+```
+
+CloudML uses separate CPU and CUDA image digests. Build them through
+`scripts/dev/build_push_eval_image.sh` with
+`ROBOCLAWS_EVAL_IMAGE_VARIANT=cpu|cuda`; use
+`ROBOCLAWS_EVAL_PUSH=false` for local proof. The CUDA build requires
+`ROBOCLAWS_EVAL_DINO_CACHE_DIR` to contain the pinned Grounding DINO snapshot,
+so it remains reproducible when the public Hugging Face Hub is unreachable.
+Normal baseline runs reuse published digests and do not rebuild images.
+
+`execution_target=auto` keeps direct Kimi/MiniMax and any provider row that
+cannot receive a secure CloudML secret on the local worker. It never substitutes
+another provider identity. Real hybrid submission remains disabled until the
+local/cloud dependency handoff is implemented; `auto` is currently a placement
+dry-run only.
+
+Submit a detached CloudML run only after reviewing the dry-run and accepting
+the infrastructure cost, then monitor and collect it through the same facade:
+
+```bash
+ROBOCLAWS_CLOUDML_CPU_IMAGE_URL='<cpu-image>@sha256:<digest>' \
+ROBOCLAWS_CLOUDML_GPU_IMAGE_URL='<cuda-image>@sha256:<digest>' \
+ROBOCLAWS_CLOUDML_ASSET_MANIFEST=/path/to/roboclaws_cloudml_cleanup_assets.json \
+  just agent::eval execute profile=baseline-core budget=focused \
+  execution_target=cloudml output_dir=output/eval-harness/<run>
+just agent::eval status run=output/eval-harness/<run>
+just agent::eval status run=output/eval-harness/<run> wait=true timeout_s=3600
+just agent::eval collect run=output/eval-harness/<run>
+```
+
+If submission stops after some shards have task IDs, use `just agent::eval
+execute run=output/eval-harness/<run>` to submit only missing shards. Pass
+`retry_shard_id=<shard-id>` only for an intentional new attempt; the prior task
+identity remains in `previous_attempts`.
+
+CloudML live provider rows remain explicitly blocked until executor supports a
+secret reference or workload identity. Never put provider keys in commands,
+task YAML, JuiceFS staging, or harness artifacts.
 
 Refresh the current baseline at the appropriate cost tier:
 
