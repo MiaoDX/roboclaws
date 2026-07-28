@@ -127,9 +127,10 @@ def test_static_app_renders_scene_preview_assets() -> None:
 
     _assert_scene_preview_app_wiring(app)
     molmospaces_preview_files = _assert_molmospaces_preview_files(preview_dir)
-    _assert_b1_world_spec_omits_static_map_previews()
+    _assert_b1_world_spec_has_four_preview_assets()
+    _assert_agibot_map12_world_spec_reuses_safe_b1_review_assets()
     _assert_molmospaces_preview_metadata(preview_dir)
-    _assert_b1_camera_preview_metadata(preview_dir)
+    _assert_b1_preview_metadata(preview_dir)
     assert not any(name.startswith("molmospaces-val_6-") for name in molmospaces_preview_files)
     assert not any(name.startswith("molmospaces-val_8-") for name in molmospaces_preview_files)
     assert not (preview_dir / "ai2thor-floorplan201-topdown.png").exists()
@@ -230,32 +231,47 @@ def _assert_preview_png_files_exist(preview_dir: Path, preview_by_view: dict[str
         assert path.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
 
 
-def _assert_b1_world_spec_omits_static_map_previews() -> None:
+def _assert_b1_world_spec_has_four_preview_assets() -> None:
     b1_preview_assets = dict(WORLD_SPECS["b1-map12"].preview_assets)
-    assert "topdown" not in b1_preview_assets
-    assert "map" not in b1_preview_assets
+    assert set(b1_preview_assets) == {"fpv", "map", "chase", "topdown"}
 
 
-def _assert_b1_camera_preview_metadata(preview_dir: Path) -> None:
-    for view_name in ("fpv", "chase"):
+def _assert_agibot_map12_world_spec_reuses_safe_b1_review_assets() -> None:
+    agibot_preview_assets = dict(WORLD_SPECS["agibot-g2/map-12"].preview_assets)
+    assert agibot_preview_assets == {
+        "map": "/previews/b1-map12-map.png",
+        "topdown": "/previews/b1-map12-topdown.png",
+    }
+
+
+def _assert_b1_preview_metadata(preview_dir: Path) -> None:
+    for view_name in ("fpv", "map", "chase", "topdown"):
         path = preview_dir / f"b1-map12-{view_name}.png"
         assert path.is_file()
         assert path.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
-    assert not (preview_dir / "b1-map12-map.png").exists()
-    assert not (preview_dir / "b1-map12-topdown.png").exists()
     b1_metadata = json.loads((preview_dir / "b1-map12-preview.json").read_text(encoding="utf-8"))
     assert b1_metadata["world_id"] == "b1-map12"
     assert b1_metadata["backend"] == "isaaclab"
-    assert b1_metadata["renderer"] == "b1_map12_isaac_runtime_camera_previews"
+    assert b1_metadata["renderer"] == ("b1_map12_static_gaussian_topdown_with_isaac_runtime_camera")
     assert b1_metadata["scene_usd_path"] == (
-        "data/robot-data-lab/scene-engine/data/B1_floor2_slow/usda/F2_all/default.usda"
+        "data/robot-data-lab/scene-engine/data/2rd_floor_seperated/storey_1/scene_gs.usda"
     )
     assert b1_metadata["views"]["fpv"]["view"] == "raw_fpv"
     assert b1_metadata["views"]["chase"]["view"] == "chase_camera"
+    assert b1_metadata["views"]["fpv"]["waypoint_id"] == "b1_aligned_plastic_bottle_table_1"
+    assert b1_metadata["views"]["chase"]["waypoint_id"] == "b1_aligned_plastic_bottle_table_1"
     assert "source_artifact_sha256" in b1_metadata["camera_preview_artifact"]
     assert "path" not in b1_metadata["camera_preview_artifact"]
-    assert "map" not in b1_metadata["views"]
-    assert "topdown" not in b1_metadata["views"]
+    assert b1_metadata["views"]["map"]["view"] == "base_metric_map_preview"
+    assert b1_metadata["views"]["map"]["artifact_source_family"] == "base_metric_map_bundle"
+    assert b1_metadata["views"]["topdown"]["view"] == "topdown_scene_render"
+    assert b1_metadata["views"]["topdown"]["artifact_source_family"] == "scene_camera_render"
+    assert b1_metadata["views"]["topdown"]["provenance"] == (
+        "b1_scene_gaussian_topdown_crop_z1p8_png"
+    )
+    assert b1_metadata["views"]["topdown"]["alignment_status"] == (
+        "height_cropped_gaussian_scene_topdown"
+    )
     assert "diagnostic_views" not in b1_metadata
 
 

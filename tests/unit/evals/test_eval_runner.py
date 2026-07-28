@@ -473,6 +473,7 @@ def test_eval_runner_runs_live_agent_when_explicitly_enabled(tmp_path: Path) -> 
         provider_profile="codex-router-responses",
         live_execution="run",
         live_timeout_s=12.5,
+        live_stall_timeout_s=6.25,
         live_product_runner=live_product_runner,
     )
 
@@ -482,6 +483,7 @@ def test_eval_runner_runs_live_agent_when_explicitly_enabled(tmp_path: Path) -> 
     assert seen_kwargs[0]["agent_engine"] == "openai-agents-sdk"
     assert seen_kwargs[0]["provider_profile"] == "codex-router-responses"
     assert seen_kwargs[0]["live_timeout_s"] == 12.5
+    assert seen_kwargs[0]["live_stall_timeout_s"] == 6.25
     result = payload["results"][0]
     assert result["identity"]["runner_class"] == "live-agent"
     assert result["artifacts"]["run_result"].endswith(
@@ -676,7 +678,7 @@ def test_live_surface_product_discovers_timestamped_run_dir(
         )
         return _completed_process(returncode=0)
 
-    monkeypatch.setattr(live_runtime.subprocess, "run", fake_run)
+    _patch_live_surface_popen(monkeypatch, live_runtime, fake_run)
 
     result = live_runtime.run_live_surface_product(**_live_surface_kwargs(tmp_path / "trial-0000"))
 
@@ -706,7 +708,7 @@ def test_live_surface_product_rejects_stale_sibling_run_artifacts(
     ) -> Any:
         return _completed_process(returncode=0)
 
-    monkeypatch.setattr(live_runtime.subprocess, "run", fake_run)
+    _patch_live_surface_popen(monkeypatch, live_runtime, fake_run)
     kwargs = _live_surface_kwargs(trial_dir, live_timeout_s=1.0)
     kwargs["agent_engine"] = "openai-agents-sdk"
 
@@ -735,7 +737,7 @@ def test_live_surface_product_rejects_mixed_fresh_and_stale_artifacts(
         (run_dir / "live_status.json").write_text('{"phase": "finished", "exit_status": 0}\n')
         return _completed_process(returncode=0)
 
-    monkeypatch.setattr(live_runtime.subprocess, "run", fake_run)
+    _patch_live_surface_popen(monkeypatch, live_runtime, fake_run)
     kwargs = _live_surface_kwargs(trial_dir, live_timeout_s=1.0)
     kwargs["agent_engine"] = "openai-agents-sdk"
 
@@ -762,7 +764,7 @@ def test_live_surface_product_rejects_stdout_artifacts_path_outside_surface_root
             stdout=f"Artifacts: {stale_trial_dir}\n",
         )
 
-    monkeypatch.setattr(live_runtime.subprocess, "run", fake_run)
+    _patch_live_surface_popen(monkeypatch, live_runtime, fake_run)
     kwargs = _live_surface_kwargs(trial_dir, live_timeout_s=1.0)
     kwargs["agent_engine"] = "openai-agents-sdk"
 
@@ -789,7 +791,7 @@ def test_live_surface_product_rejects_stdout_artifacts_path_without_seed_leaf(
             stdout=f"Artifacts: {wrong_leaf_dir}\n",
         )
 
-    monkeypatch.setattr(live_runtime.subprocess, "run", fake_run)
+    _patch_live_surface_popen(monkeypatch, live_runtime, fake_run)
     kwargs = _live_surface_kwargs(trial_dir, live_timeout_s=1.0)
     kwargs["agent_engine"] = "openai-agents-sdk"
 
@@ -842,7 +844,7 @@ def test_live_surface_product_requires_sdk_run_result_after_foreground_success(
     def fake_sleep(seconds: float) -> None:
         sleeps.append(seconds)
 
-    monkeypatch.setattr(live_runtime.subprocess, "run", fake_run)
+    _patch_live_surface_popen(monkeypatch, live_runtime, fake_run)
     monkeypatch.setattr(live_runtime.time, "sleep", fake_sleep)
 
     with pytest.raises(RuntimeError, match="live surface run finished without"):
@@ -853,17 +855,14 @@ def test_live_surface_product_requires_sdk_run_result_after_foreground_success(
     assert sleeps == []
 
 
-def test_live_surface_product_preserves_unbounded_subprocess_timeout_by_default(
+def test_live_surface_product_uses_default_live_budgets(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     from roboclaws.evals import live_runtime
 
-    seen_timeout = object()
-
     def fake_run(command: list[str], **kwargs: Any) -> Any:
-        nonlocal seen_timeout
-        seen_timeout = kwargs.get("timeout")
+        assert "timeout" not in kwargs
         output_arg = next(item for item in command if item.startswith("output_dir="))
         run_dir = Path(output_arg.removeprefix("output_dir=")) / "0615_0310" / "seed-7"
         _write_product_artifacts(run_dir, completion_status="success")
@@ -873,11 +872,13 @@ def test_live_surface_product_preserves_unbounded_subprocess_timeout_by_default(
         (run_dir / "live_status.json").write_text('{"phase": "finished", "exit_status": 0}\n')
         return _completed_process(returncode=0)
 
-    monkeypatch.setattr(live_runtime.subprocess, "run", fake_run)
+    _patch_live_surface_popen(monkeypatch, live_runtime, fake_run)
 
     live_runtime.run_live_surface_product(**_live_surface_kwargs(tmp_path / "trial-0000"))
 
-    assert seen_timeout is None
+    command_record = json.loads((tmp_path / "trial-0000" / "live_eval_command.json").read_text())
+    assert command_record["wall_clock_budget_s"] == 1200.0
+    assert command_record["stall_timeout_s"] == 120.0
 
 
 def test_live_surface_product_fails_aloud_on_malformed_run_result(
@@ -893,7 +894,7 @@ def test_live_surface_product_fails_aloud_on_malformed_run_result(
         (run_dir / "run_result.json").write_text("{", encoding="utf-8")
         return _completed_process(returncode=0)
 
-    monkeypatch.setattr(live_runtime.subprocess, "run", fake_run)
+    _patch_live_surface_popen(monkeypatch, live_runtime, fake_run)
 
     run = run_eval_suite(
         "cleanup_capability",
@@ -915,48 +916,6 @@ def test_live_surface_product_fails_aloud_on_malformed_run_result(
     assert runner["status"] == "failed"
     assert runner["error_type"] == "ValueError"
     assert "invalid live eval JSON artifact" in runner["message"]
-
-
-def test_live_surface_product_does_not_recover_sdk_artifact_after_timeout(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    from roboclaws.evals import live_runtime
-
-    timeout_run_dir: Path | None = None
-    sleeps: list[float] = []
-
-    def fake_sleep(seconds: float) -> None:
-        sleeps.append(seconds)
-
-    def fake_run(command: list[str], **_kwargs: Any) -> Any:
-        output_arg = next(item for item in command if item.startswith("output_dir="))
-        output_dir = Path(output_arg.removeprefix("output_dir="))
-        run_dir = output_dir / "0615_0311" / "seed-7"
-        run_dir.mkdir(parents=True, exist_ok=True)
-        (run_dir / "live_status.json").write_text('{"phase": "running"}\n')
-        nonlocal timeout_run_dir
-        timeout_run_dir = run_dir
-        raise live_runtime.subprocess.TimeoutExpired(
-            cmd=command,
-            timeout=5.0,
-            output=f"Artifacts: {run_dir}\n".encode(),
-            stderr=b"still running",
-        )
-
-    monkeypatch.setattr(live_runtime.subprocess, "run", fake_run)
-    monkeypatch.setattr(live_runtime.time, "sleep", fake_sleep)
-
-    with pytest.raises(TimeoutError, match="live eval trial timed out after 5s"):
-        live_runtime.run_live_surface_product(
-            **_live_surface_kwargs(tmp_path / "trial-0000", live_timeout_s=5.0)
-        )
-
-    assert sleeps == []
-    assert timeout_run_dir is not None
-    record = json.loads((tmp_path / "trial-0000" / "live_eval_command.json").read_text())
-    assert record["returncode"] == "timeout"
-    assert record["timeout_completion_grace_s"] == 30.0
 
 
 def test_live_timeout_completion_grace_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -1001,6 +960,40 @@ def test_live_surface_timeout_rejects_invalid_config(value: str) -> None:
         live_runtime.live_surface_timeout_s(kwargs)
 
 
+@pytest.mark.parametrize("value", ["0", "-1", "nan", "inf", "soon"])
+def test_live_stall_timeout_rejects_invalid_config(value: str) -> None:
+    from roboclaws.evals import live_runtime
+
+    kwargs = _live_surface_kwargs(
+        Path("trial-0000"),
+        live_stall_timeout_s=value,  # type: ignore[arg-type]
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=r"live_stall_timeout_s must be a positive finite number of seconds",
+    ):
+        live_runtime.live_stall_timeout_s(kwargs)
+
+
+def test_live_surface_timeout_accessors_use_split_defaults_and_overrides() -> None:
+    from roboclaws.evals import live_runtime
+
+    defaults = _live_surface_kwargs(Path("trial-0000"))
+    assert live_runtime.live_wall_clock_budget_s(defaults) == 1200.0
+    assert live_runtime.live_surface_timeout_s(defaults) == 1200.0
+    assert live_runtime.explicit_live_surface_timeout_s(defaults) == 1200.0
+    assert live_runtime.live_stall_timeout_s(defaults) == 120.0
+
+    explicit = _live_surface_kwargs(
+        Path("trial-0000"),
+        live_timeout_s=300.0,
+        live_stall_timeout_s=7.5,
+    )
+    assert live_runtime.live_wall_clock_budget_s(explicit) == 300.0
+    assert live_runtime.live_stall_timeout_s(explicit) == 7.5
+
+
 def test_live_surface_product_does_not_wait_after_sdk_process_success(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1020,7 +1013,7 @@ def test_live_surface_product_does_not_wait_after_sdk_process_success(
     def fake_sleep(seconds: float) -> None:
         sleep_count["value"] += 1
 
-    monkeypatch.setattr(live_runtime.subprocess, "run", fake_run)
+    _patch_live_surface_popen(monkeypatch, live_runtime, fake_run)
     monkeypatch.setattr(live_runtime.time, "sleep", fake_sleep)
 
     with pytest.raises(RuntimeError, match="live surface run finished without"):
@@ -1053,7 +1046,7 @@ def test_live_surface_product_accepts_sdk_run_result_without_terminal_status(
     def fake_sleep(seconds: float) -> None:
         sleeps.append(seconds)
 
-    monkeypatch.setattr(live_runtime.subprocess, "run", fake_run)
+    _patch_live_surface_popen(monkeypatch, live_runtime, fake_run)
     monkeypatch.setattr(live_runtime.time, "sleep", fake_sleep)
 
     result = live_runtime.run_live_surface_product(
@@ -1083,7 +1076,7 @@ def test_live_surface_product_rejects_failed_live_status(
         )
         return _completed_process(returncode=0)
 
-    monkeypatch.setattr(live_runtime.subprocess, "run", fake_run)
+    _patch_live_surface_popen(monkeypatch, live_runtime, fake_run)
 
     with pytest.raises(RuntimeError, match="live surface run reported failed status 1"):
         live_runtime.run_live_surface_product(
@@ -1126,7 +1119,7 @@ def test_live_open_ended_eval_grades_artifacts_after_checker_nonzero_exit(
             stderr="cleanup checker exited with status 1",
         )
 
-    monkeypatch.setattr(live_runtime.subprocess, "run", fake_run)
+    _patch_live_surface_popen(monkeypatch, live_runtime, fake_run)
 
     run = run_eval_suite(
         "open_ended_goals",
@@ -1207,7 +1200,7 @@ def test_live_open_ended_eval_recovers_checker_nonzero_foreground_artifact(
     def fake_monotonic() -> float:
         return clock["now"]
 
-    monkeypatch.setattr(live_runtime.subprocess, "run", fake_run)
+    _patch_live_surface_popen(monkeypatch, live_runtime, fake_run)
     monkeypatch.setattr(live_runtime.time, "sleep", fake_sleep)
     monkeypatch.setattr(live_runtime.time, "monotonic", fake_monotonic)
     sample = load_eval_sample(
@@ -1292,7 +1285,7 @@ def test_live_cleanup_eval_grades_artifacts_after_checker_nonzero_exit(
         )
         return _completed_process(returncode=1, stderr="cleanup checker exited with status 1")
 
-    monkeypatch.setattr(live_runtime.subprocess, "run", fake_run)
+    _patch_live_surface_popen(monkeypatch, live_runtime, fake_run)
 
     run = run_eval_suite(
         "map_build_consumer",
@@ -2922,7 +2915,12 @@ def _blocked_product_runner(**kwargs: Any) -> dict[str, Any]:
     raise RuntimeError("requested MCP port is already accepting connections")
 
 
-def _live_surface_kwargs(run_dir: Path, *, live_timeout_s: float | None = None) -> dict[str, Any]:
+def _live_surface_kwargs(
+    run_dir: Path,
+    *,
+    live_timeout_s: float | None = None,
+    live_stall_timeout_s: float | None = None,
+) -> dict[str, Any]:
     return {
         "output_dir": run_dir,
         "seed": 7,
@@ -2935,6 +2933,7 @@ def _live_surface_kwargs(run_dir: Path, *, live_timeout_s: float | None = None) 
         "provider_profile": "codex-router-responses",
         "model": None,
         "live_timeout_s": live_timeout_s,
+        "live_stall_timeout_s": live_stall_timeout_s,
     }
 
 
@@ -3003,6 +3002,45 @@ def _completed_process(*, returncode: int, stdout: str = "", stderr: str = "") -
             "stderr": stderr,
         },
     )()
+
+
+def _patch_live_surface_popen(
+    monkeypatch: pytest.MonkeyPatch,
+    live_runtime: Any,
+    fake_run: Callable[..., Any],
+) -> None:
+    class FakePopen:
+        def __init__(
+            self,
+            command: list[str],
+            *,
+            stdout: Any = None,
+            stderr: Any = None,
+            **kwargs: Any,
+        ) -> None:
+            kwargs.pop("cwd", None)
+            kwargs.pop("env", None)
+            kwargs.pop("text", None)
+            self.completed = fake_run(command, **kwargs)
+            self.returncode = self.completed.returncode
+            if stdout is not None:
+                stdout.write(str(getattr(self.completed, "stdout", "") or ""))
+            if stderr is not None:
+                stderr.write(str(getattr(self.completed, "stderr", "") or ""))
+
+        def poll(self) -> int:
+            return self.returncode
+
+        def terminate(self) -> None:
+            return None
+
+        def kill(self) -> None:
+            return None
+
+        def wait(self, timeout: float | None = None) -> int:
+            return self.returncode
+
+    monkeypatch.setattr(live_runtime.subprocess, "Popen", FakePopen)
 
 
 def _write_product_artifacts(

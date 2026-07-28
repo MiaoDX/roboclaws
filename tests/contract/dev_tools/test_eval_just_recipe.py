@@ -60,6 +60,24 @@ def test_agent_eval_public_facade_routes_map_build_report_cli() -> None:
     assert "output_dir=output/evals/map-build-matrix-report" in trace
 
 
+def test_agent_eval_public_facade_routes_session_live_cli() -> None:
+    trace = _trace_agent_eval(
+        "session-live",
+        "budget=smoke",
+        "stamp=openai-agents-sdk-session-live-eval",
+        "agent_engine=openai-agents-sdk",
+        "provider_profile=minimax-responses",
+        "live_execution=run",
+    )
+
+    assert trace[:5] == ["cmd", ".venv/bin/python", "-m", "roboclaws.cli.main", "eval"]
+    assert "session-live" in trace
+    assert "stamp=openai-agents-sdk-session-live-eval" in trace
+    assert "agent_engine=openai-agents-sdk" in trace
+    assert "provider_profile=minimax-responses" in trace
+    assert "live_execution=run" in trace
+
+
 def test_agent_eval_public_facade_routes_eval_harness_recommend() -> None:
     trace = _trace_agent_eval(
         "recommend",

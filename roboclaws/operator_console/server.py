@@ -6,6 +6,7 @@ import argparse
 import json
 import mimetypes
 import os
+import time
 from functools import partial
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -61,6 +62,8 @@ from roboclaws.operator_console.runtime_inventory import (
 from roboclaws.operator_console.state import derive_operator_state, redacted_artifact_text
 
 PAUSE_UNAVAILABLE_REASON = "Pause is unavailable for this route. Use Stop or Emergency Stop."
+FOLLOW_UP_AUTOSTART_ATTEMPTS = 30
+FOLLOW_UP_AUTOSTART_RETRY_DELAY_S = 1.0
 
 
 def _registered_preview_asset_names() -> frozenset[str]:
@@ -148,11 +151,30 @@ def _launch_request_from_payload(payload: dict[str, object]) -> LaunchRequest:
 
 def _try_autostart_follow_up(root: Path, parent_run_id: str, follow_up: dict[str, object]) -> None:
     launch = _follow_up_launch_request(parent_run_id, follow_up)
-    try:
-        follow_up["started_run"] = start_console_run(root, launch)
-        follow_up["status"] = "started"
-    except ConsoleLaunchError as exc:
-        follow_up["start_error"] = str(exc)
+    for attempt in range(1, FOLLOW_UP_AUTOSTART_ATTEMPTS + 1):
+        try:
+            follow_up["started_run"] = start_console_run(root, launch)
+            follow_up["status"] = "started"
+            follow_up["autostart_attempts"] = attempt
+            follow_up.pop("start_error", None)
+            return
+        except ConsoleLaunchError as exc:
+            follow_up["start_error"] = str(exc)
+            follow_up["autostart_attempts"] = attempt
+            if attempt >= FOLLOW_UP_AUTOSTART_ATTEMPTS or not _retryable_follow_up_start_error(
+                str(exc)
+            ):
+                return
+            time.sleep(FOLLOW_UP_AUTOSTART_RETRY_DELAY_S)
+
+
+def _retryable_follow_up_start_error(error: str) -> bool:
+    normalized = error.lower()
+    return (
+        "background task visual-slot:" in normalized
+        or "molmo visual slot" in normalized
+        or "visual backend slot" in normalized
+    )
 
 
 def _follow_up_launch_request(parent_run_id: str, follow_up: dict[str, object]) -> LaunchRequest:

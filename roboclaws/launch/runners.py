@@ -11,6 +11,7 @@ from roboclaws.launch.environment_setup_metadata import (
 _TASK_ENV_OVERRIDES = (
     ("goal_contract_json", "ROBOCLAWS_GOAL_CONTRACT_JSON"),
     ("goal_contract_path", "ROBOCLAWS_GOAL_CONTRACT_PATH"),
+    ("operator_session_context_json", "ROBOCLAWS_OPERATOR_SESSION_CONTEXT_JSON"),
     ("task_surface", "ROBOCLAWS_TASK_SURFACE"),
     ("task_intent", "ROBOCLAWS_TASK_INTENT"),
     ("task_preset", "ROBOCLAWS_TASK_PRESET"),

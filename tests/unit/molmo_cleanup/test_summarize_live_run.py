@@ -64,6 +64,26 @@ def test_open_ended_summary_uses_claim_headline_instead_of_cleanup_score(
                 "elapsed_s": 1.0,
                 "started_at": "2026-06-09 18:55:31 CST",
                 "finished_at": "2026-06-09 18:58:47 CST",
+                "debug_snapshot": {
+                    "elapsed_s": 300.0,
+                    "run_result_present": False,
+                    "report_present": False,
+                    "last_trace_event": "observe:response",
+                    "last_trace_response": "observe:response",
+                    "progress": {
+                        "metric_map": 1,
+                        "resolve_target_query": 1,
+                        "observe": 4,
+                        "navigate_to_waypoint": 3,
+                        "pick": 0,
+                        "place": 0,
+                        "done": 0,
+                    },
+                    "openai_agents_event_counts": {
+                        "model_service_attempt": 5,
+                        "model_service_success": 4,
+                    },
+                },
             },
             "trace": {
                 "events": 0,
@@ -95,6 +115,9 @@ def test_open_ended_summary_uses_claim_headline_instead_of_cleanup_score(
     assert "result: open-ended claim=present cleanup_score=failed" in output
     assert "claim: Found an apple that satisfies the thirst goal." in output
     assert "result: failed completion=failed" not in output
+    assert "debug snapshot: elapsed=5m00s result=False report=False" in output
+    assert "debug progress: metric_map=1 resolve=1 observe=4" in output
+    assert "debug model events: model_service_attempt=5 model_service_success=4" in output
 
 
 def test_agent_sdk_comparison_manifest_rejects_smoke_full_lane(

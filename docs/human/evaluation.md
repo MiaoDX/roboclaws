@@ -56,6 +56,8 @@ just agent::eval suite=smoke_regression budget=smoke
 just agent::eval suite=map_build_consumer budget=smoke
 just agent::eval suite=cleanup_capability budget=smoke
 just agent::eval suite=scene_sampler_stress budget=smoke
+just agent::eval session-live budget=smoke \
+  agent_engine=openai-agents-sdk provider_profile=<profile> live_execution=run
 ```
 
 Use `profile=baseline-refresh` after large code changes when the goal is to
@@ -90,6 +92,15 @@ just agent::eval suite=cleanup_capability budget=smoke \
 
 The eval result records blocked provider/runtime conditions separately from
 agent behavior when the selected live route cannot finish.
+
+`session-live` is the Operator Session chaining live eval. It uses the
+headless operator-console API to start an OpenAI Agents SDK open-ended parent
+run, send active-run Steer, verify the parent consumed Steer through
+`check_operator_messages`, wait for terminal parent artifacts, post Next Goal,
+verify the child run inherited session and parent metadata plus sanitized
+follow-up context, then wait for the child terminal state. Provider keys,
+OpenAI Agents SDK package availability, port conflicts, and runtime readiness
+blockers are reported as blocked evidence instead of agent behavior failures.
 
 Completed live eval artifacts can be regraded after grader changes without
 launching a provider route:

@@ -31,6 +31,7 @@ EXPECTED_ROW_IDS = {
     "scene-sampler-stress-eval-suite",
     "cleanup-capability-eval-suite",
     "openai-agents-sdk-open-task-live-eval",
+    "openai-agents-sdk-session-live-eval",
     "openai-agents-sdk-cleanup-live-eval",
     "openai-agents-sdk-cleanup-camera-raw-fpv-live-product",
     "openai-agents-sdk-codex-router-responses-availability",
@@ -97,7 +98,7 @@ def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
     assert manifest["summary"]["selected_row_count"] == len(EXPECTED_ROW_IDS)
     assert manifest["summary"]["budget_skipped_count"] == 0
     assert manifest["summary"]["eval_suite_row_count"] == 5
-    assert manifest["summary"]["live_agent_eval_row_count"] == 8
+    assert manifest["summary"]["live_agent_eval_row_count"] == 9
     assert rows["openai-agents-sdk-open-task-live-eval"]["status"] == "not_run"
     assert rows["openai-agents-sdk-cleanup-live-eval"]["status"] == "not_run"
     assert rows["direct-camera-grounded-grounding-dino"]["status"] == "not_run"
@@ -126,7 +127,10 @@ def test_changed_file_signals_select_expected_eval_harness_rows(tmp_path: Path) 
         {
             "name": "agent_sdk",
             "changed_files": ["roboclaws/agents/drivers/openai_agents_live.py"],
-            "present_rows": ("openai-agents-sdk-open-task-live-eval",),
+            "present_rows": (
+                "openai-agents-sdk-open-task-live-eval",
+                "openai-agents-sdk-session-live-eval",
+            ),
             "absent_rows": ("openai-agents-sdk-codex-router-responses-availability",),
         },
         {
@@ -189,6 +193,7 @@ def test_changed_file_signals_select_expected_eval_harness_rows(tmp_path: Path) 
                 "open-ended-household-contract-tests",
                 "open-ended-goals-eval-suite",
                 "openai-agents-sdk-open-task-live-eval",
+                "openai-agents-sdk-session-live-eval",
             ),
             "absent_rows": (
                 "map-build-consumer-eval-suite",
@@ -280,6 +285,7 @@ def test_explicit_intent_axes_select_expected_eval_harness_rows(tmp_path: Path) 
                 "open-ended-household-contract-tests",
                 "open-ended-goals-eval-suite",
                 "openai-agents-sdk-open-task-live-eval",
+                "openai-agents-sdk-session-live-eval",
             ),
             "absent_rows": ("openai-agents-sdk-codex-router-responses-availability",),
         },
@@ -380,6 +386,9 @@ def test_explicit_axes_select_first_class_engine_and_provider_profile(
     assert rows["openai-agents-sdk-open-task-live-eval"]["axes"]["provider_profile"] == (
         "mimo-mify-responses"
     )
+    assert rows["openai-agents-sdk-session-live-eval"]["axes"]["provider_profile"] == (
+        "mimo-mify-responses"
+    )
     assert rows["direct-camera-grounded-grounding-dino"]["axes"]["camera_labeler"] == (
         "grounding-dino"
     )
@@ -451,8 +460,11 @@ def test_explicit_codex_env_selects_agent_sdk_availability_evidence(
 
     rows = _selected_rows(manifest)
     behavior_row = rows["openai-agents-sdk-open-task-live-eval"]
+    session_row = rows["openai-agents-sdk-session-live-eval"]
     availability_row = rows["openai-agents-sdk-codex-router-responses-availability"]
     assert behavior_row["axes"]["provider_profile"] == "minimax-responses"
+    assert session_row["axes"]["provider_profile"] == "minimax-responses"
+    assert session_row["requirement"] == "required"
     assert behavior_row["requirement"] == "required"
     assert availability_row["axes"]["provider_profile"] == "codex-router-responses"
     assert availability_row["requirement"] == "optional"

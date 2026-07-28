@@ -19,6 +19,7 @@ from roboclaws.household.agibot_operator_gates import (
     operator_localization_gate,
     operator_run_enablement_gate,
 )
+from roboclaws.household.digital_twin_review_assets import attach_map12_review_assets
 from roboclaws.household.manipulation_provenance import BLOCKED_CAPABILITY_PROVENANCE
 from roboclaws.household.realworld_contract import (
     CLEANUP_WORKLIST_SCHEMA,
@@ -410,7 +411,6 @@ def run_physical_agibot_cleanup_pilot(
     scenario: CleanupScenario | None = None,
 ) -> dict[str, Any]:
     """Run the AgiBot real-robot cleanup backend pilot through the SDK CLI boundary."""
-
     run_dir = Path(run_dir).resolve()
     run_dir.mkdir(parents=True, exist_ok=True)
     scenario = scenario or build_cleanup_scenario(seed=7)
@@ -425,7 +425,6 @@ def run_physical_agibot_cleanup_pilot(
     started_at = time.time()
     trace_events: list[dict[str, Any]] = []
     policy_events: list[dict[str, Any]] = []
-
     before_snapshot = write_state_snapshot(
         scenario,
         _initial_locations(scenario),
@@ -674,6 +673,7 @@ def run_physical_agibot_cleanup_pilot(
         run_result["artifacts"]["nav2_map_yaml"] = "map_bundle/map.yaml"
         run_result["artifacts"]["nav2_occupancy_image"] = "map_bundle/map.pgm"
         run_result["artifacts"]["nav2_map_preview"] = "map_bundle/preview.png"
+    attach_map12_review_assets(run_dir, adapter.context_payload, run_result)
     (run_dir / "run_result.json").write_text(
         json.dumps(run_result, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",

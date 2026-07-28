@@ -11,6 +11,10 @@ from roboclaws.household.backend import API_SEMANTIC_PROVENANCE
 from roboclaws.household.cleanup_primitive_evidence import (
     cleanup_primitive_evidence_from_substeps,
 )
+from roboclaws.household.isaac_lab_backend import (
+    ISAACLAB_ROBOT_VIEW_VARIANT,
+    ISAACLAB_SUBPROCESS_BACKEND,
+)
 from roboclaws.household.manipulation_provenance import (
     api_semantic_manipulation_evidence,
 )
@@ -378,7 +382,11 @@ def _attach_robot_view_metadata(
 ) -> None:
     if not inputs.robot_view_steps:
         return
-    run_result["view_variant"] = ROBOT_VIEW_VARIANT
+    run_result["view_variant"] = (
+        ISAACLAB_ROBOT_VIEW_VARIANT
+        if _backend_name(inputs) == ISAACLAB_SUBPROCESS_BACKEND
+        else ROBOT_VIEW_VARIANT
+    )
     run_result["robot_view_steps"] = inputs.robot_view_steps
     run_result["robot_view_capture_policy"] = inputs.robot_view_capture_policy
     run_result["robot_view_camera_control"] = robot_view_camera_control_summary(

@@ -134,6 +134,8 @@ def write_robot_views(
         views,
         width=args.render_width,
         height=args.render_height,
+        camera_yaw_offset_deg=float(args.camera_yaw_offset_deg or 0.0),
+        camera_pitch_offset_deg=float(args.camera_pitch_offset_deg or 0.0),
         render_settle_frames=int(args.render_settle_frames or 0),
         isaac_aa_op=args.isaac_aa_op,
         isaac_tonemap_op=args.isaac_tonemap_op,

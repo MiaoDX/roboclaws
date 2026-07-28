@@ -17,6 +17,7 @@ from roboclaws.household.agibot_map_build_mcp_tools import (
     register_agibot_map_build_tools,
 )
 from roboclaws.household.agibot_sdk_runner import BLOCKED_MANIPULATION_TOOLS, AgibotSDKRunnerAdapter
+from roboclaws.household.digital_twin_review_assets import attach_map12_review_assets
 from roboclaws.household.manipulation_provenance import BLOCKED_CAPABILITY_PROVENANCE
 from roboclaws.household.profiles import (
     AGIBOT_GDK_BACKEND_VARIANT,
@@ -424,6 +425,7 @@ class AgibotMapBuildMCPServer:
             json.dumps(run_result["runtime_metric_map"], indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
+        attach_map12_review_assets(self.run_dir, self.adapter.context_payload, run_result)
         report_path = render_cleanup_report(
             run_dir=self.run_dir,
             scenario=self.scenario,
@@ -1152,9 +1154,7 @@ def _subphase_reports(results: list[dict[str, Any]], run_dir: Path) -> list[dict
 
 
 def _runtime_timing(trace_events: list[dict[str, Any]]) -> dict[str, Any]:
-    elapsed = 0.0
-    if trace_events:
-        elapsed = float(trace_events[-1].get("wallclock_elapsed") or 0.0)
+    elapsed = float(trace_events[-1].get("wallclock_elapsed") or 0.0) if trace_events else 0.0
     return {
         "total_elapsed_s": elapsed,
         "tool_handler_s": 0.0,

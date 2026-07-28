@@ -533,6 +533,47 @@
       ]
     },
     {
+      "row_id": "openai-agents-sdk-session-live-eval",
+      "row_kind": "live_agent_eval",
+      "command": [
+        "just",
+        "agent::eval",
+        "session-live",
+        "budget=smoke",
+        "output_dir={eval_output_root}",
+        "stamp=openai-agents-sdk-session-live-eval",
+        "agent_engine=openai-agents-sdk",
+        "provider_profile={agent_sdk_provider}",
+        "live_execution=run"
+      ],
+      "axes": {
+        "agent_engine": "openai-agents-sdk",
+        "provider_profile": "{agent_sdk_provider}",
+        "intent": "operator-session",
+        "preset": "",
+        "evidence_lane": "world-public-labels",
+        "backend": "{default_backend}",
+        "world": "{default_world}"
+      },
+      "reason_selected": "Operator Session chaining changes need live SDK evidence that Steer is consumed and terminal Next Goal starts a linked child run with sanitized follow-up context.",
+      "expense": "live-agent",
+      "selection_rule_ids": [
+        "agent_sdk",
+        "open_ended",
+        "launch_catalog",
+        "eval_harness"
+      ],
+      "requires": [
+        "just",
+        "python_env",
+        "openai_agents_package",
+        "codex_provider"
+      ],
+      "profiles": [
+        "baseline-refresh"
+      ]
+    },
+    {
       "row_id": "openai-agents-sdk-cleanup-live-eval",
       "row_kind": "live_agent_eval",
       "command": [

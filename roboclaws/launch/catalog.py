@@ -82,6 +82,7 @@ _LAUNCH_ONLY_OVERRIDE_KEYS = (
     "skill_name",
     "goal_contract_json",
     "goal_contract_path",
+    "operator_session_context_json",
     "evidence_lane",
     "profile",
     "report",
@@ -197,6 +198,8 @@ def _resolve_launch(
         surface,
         intent,
         preset,
+        world,
+        backend,
         raw_mode,
         overrides,
     )
@@ -464,6 +467,8 @@ def _resolve_evidence_mode(
     surface: TaskSurfaceSpec,
     intent: TaskIntentSpec,
     preset: TaskPresetSpec | None,
+    world: WorldSpec,
+    backend: BackendSpec,
     raw_mode: str,
     overrides: tuple[str, ...],
 ) -> tuple[str, str | None, str | None, tuple[str, ...]]:
@@ -486,6 +491,8 @@ def _resolve_evidence_mode(
             surface=surface,
             intent=intent,
             preset=preset,
+            world=world,
+            backend=backend,
             evidence_lane=evidence_lane,
             overrides=overrides,
         )
@@ -523,9 +530,19 @@ def _default_household_evidence_mode(
     surface: TaskSurfaceSpec,
     intent: TaskIntentSpec,
     preset: TaskPresetSpec | None,
+    world: WorldSpec,
+    backend: BackendSpec,
     evidence_lane: str | None,
     overrides: tuple[str, ...],
 ) -> tuple[str | None, tuple[str, ...]]:
+    if (
+        evidence_lane == "camera-grounded-labels"
+        and surface.surface_id == "household-world"
+        and world.id == "b1-map12"
+        and backend.id == "isaaclab"
+        and _override_value(overrides, "camera_labeler") is None
+    ):
+        overrides = (*overrides, "camera_labeler=grounding-dino")
     if evidence_lane:
         return evidence_lane, overrides
     if (
