@@ -13,50 +13,82 @@ from roboclaws.evals.map_build_reports import (
 )
 from roboclaws.evals.regression import promote_regression_from_cli_overrides
 from roboclaws.evals.runner import DEFAULT_OUTPUT_ROOT, run_eval_suite
+from roboclaws.evals.runtime_prior_selection import (
+    discover_runtime_prior_eval_results,
+    write_runtime_prior_selection,
+)
 from roboclaws.evals.session_live import run_session_live_eval
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EVAL_HARNESS_RUNNER = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "run_eval_harness.py"
+_TOOL_MODE_ALIASES = {
+    "promote-regression": "promote-regression",
+    "promote_regression": "promote-regression",
+    "map-build-report": "map-build-report",
+    "map_build_report": "map-build-report",
+    "runtime-prior-select": "runtime-prior-select",
+    "runtime_prior_select": "runtime-prior-select",
+    "session-live": "session-live",
+    "session_live": "session-live",
+}
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run Roboclaws eval tools.")
     parser.add_argument("overrides", nargs="*", help="key=value overrides.")
     args = parser.parse_args(argv)
-    if args.overrides and args.overrides[0] in {"recommend", "execute"}:
-        try:
-            return _run_eval_harness(args.overrides[0], _parse_key_value_args(args.overrides[1:]))
-        except ValueError as exc:
-            parser.exit(2, f"error: {exc}\n")
-    if args.overrides and args.overrides[0] in {"promote-regression", "promote_regression"}:
-        try:
-            promotion = promote_regression_from_cli_overrides(
-                _parse_key_value_args(args.overrides[1:])
-            )
-        except ValueError as exc:
-            parser.exit(2, f"error: {exc}\n")
-        print(json.dumps(promotion, sort_keys=True))
-        return 0
-    if args.overrides and args.overrides[0] in {"map-build-report", "map_build_report"}:
-        try:
-            report = _run_map_build_report(_parse_key_value_args(args.overrides[1:]))
-        except ValueError as exc:
-            parser.exit(2, f"error: {exc}\n")
-        print(json.dumps(report, sort_keys=True))
-        return 0
-    if args.overrides and args.overrides[0] in {"session-live", "session_live"}:
-        try:
-            run = _run_session_live_from_overrides(_parse_key_value_args(args.overrides[1:]))
-        except ValueError as exc:
-            parser.exit(2, f"error: {exc}\n")
-        print(json.dumps({"results": str(run.results_path), "report": str(run.report_path)}))
-        return 0
+    tool_result = _run_tool_mode_from_args(args.overrides, parser=parser)
+    if tool_result is not None:
+        return tool_result
     try:
         run = _run_eval_from_overrides(_parse_key_value_args(args.overrides))
     except ValueError as exc:
         parser.exit(2, f"error: {exc}\n")
     print(json.dumps({"results": str(run.results_path), "report": str(run.report_path)}))
     return 0
+
+
+def _run_tool_mode_from_args(
+    overrides: list[str],
+    *,
+    parser: argparse.ArgumentParser,
+) -> int | None:
+    if overrides and overrides[0] in {"recommend", "execute"}:
+        try:
+            return _run_eval_harness(overrides[0], _parse_key_value_args(overrides[1:]))
+        except ValueError as exc:
+            parser.exit(2, f"error: {exc}\n")
+    mode = _TOOL_MODE_ALIASES.get(overrides[0]) if overrides else None
+    if mode is not None:
+        return _run_json_tool_mode(mode, _parse_key_value_args(overrides[1:]), parser=parser)
+    return None
+
+
+def _run_json_tool_mode(
+    mode: str,
+    overrides: dict[str, str],
+    *,
+    parser: argparse.ArgumentParser,
+) -> int:
+    try:
+        payload = _tool_mode_payload(mode, overrides)
+    except ValueError as exc:
+        parser.exit(2, f"error: {exc}\n")
+    print(json.dumps(payload, sort_keys=True))
+    return 0
+
+
+def _tool_mode_payload(mode: str, overrides: dict[str, str]) -> dict[str, object]:
+    if mode == "promote-regression":
+        return promote_regression_from_cli_overrides(overrides)
+    if mode == "map-build-report":
+        return _run_map_build_report(overrides)
+    if mode == "runtime-prior-select":
+        return _run_runtime_prior_select(overrides)
+    if mode == "session-live":
+        run = _run_session_live_from_overrides(overrides)
+        return {"results": str(run.results_path), "report": str(run.report_path)}
+    raise ValueError(f"unsupported eval tool mode: {mode}")
 
 
 def _run_eval_harness(mode: str, overrides: dict[str, str]) -> int:
@@ -97,6 +129,24 @@ def _run_map_build_report(overrides: dict[str, str]) -> dict[str, str]:
         raise ValueError(f"unsupported map-build-report override(s): {keys}")
     eval_results_paths = discover_eval_results_paths(raw_eval_results)
     return write_map_build_matrix_report(
+        eval_results_paths=eval_results_paths,
+        output_dir=output_dir,
+    )
+
+
+def _run_runtime_prior_select(overrides: dict[str, str]) -> dict[str, str]:
+    values = dict(overrides)
+    manifest_ref = values.pop("manifest", "")
+    raw_eval_results = values.pop("eval_results", "")
+    output_dir = Path(values.pop("output_dir", "output/evals/runtime-prior-selection"))
+    if values:
+        keys = ", ".join(sorted(values))
+        raise ValueError(f"unsupported runtime-prior-select override(s): {keys}")
+    if not manifest_ref:
+        raise ValueError("runtime-prior-select requires manifest=<path>")
+    eval_results_paths = discover_runtime_prior_eval_results(raw_eval_results)
+    return write_runtime_prior_selection(
+        manifest_path=Path(manifest_ref),
         eval_results_paths=eval_results_paths,
         output_dir=output_dir,
     )

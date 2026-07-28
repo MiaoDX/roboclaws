@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
+from roboclaws.operator_console import workflows as console_workflows
 from roboclaws.operator_console.launcher import (
     ConsoleLaunchError,
     LaunchRequest,
@@ -31,6 +32,7 @@ from tests.unit.operator_console.conftest import (  # noqa: F401  re-exported fo
     MUJOCO_OPENAI_AGENTS_OPEN_TASK,
     MUJOCO_SDK_CLEANUP,
 )
+from tests.unit.operator_console.test_routes import _write_prior_catalog
 
 CODEX_ENV = {
     "CODEX_BASE_URL": "https://codex.example.test/v1",
@@ -181,6 +183,59 @@ def test_workflow_launch_requires_explicit_runtime_prior_when_catalog_is_empty(
 
     assert f"runtime_map_prior={prior}" in argv
     assert "scenario_setup=relocate-cleanup-related-objects" in argv
+
+
+def test_workflow_launch_uses_accepted_catalog_prior_by_default(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    route = get_selection(
+        "molmospaces/procthor-objaverse-val/0::mujoco::cleanup::openai-agents-sdk::"
+        "camera-grounded-labels"
+    )
+    prior = tmp_path / "runtime_map_prior_snapshot.json"
+    prior.write_text('{"schema":"runtime_map_prior_snapshot_v1"}\n', encoding="utf-8")
+    catalog = tmp_path / "recommended_runtime_map_priors.json"
+    _write_prior_catalog(catalog, prior)
+    monkeypatch.setattr(console_workflows, "RECOMMENDED_PRIOR_CATALOG_PATH", catalog)
+
+    argv = build_workflow_launch_argv(
+        route,
+        workflow_id="cleanup-with-map",
+        root=tmp_path,
+        run_id="run-1",
+    )
+
+    assert f"runtime_map_prior={prior}" in argv
+    assert "scenario_setup=relocate-cleanup-related-objects" in argv
+
+
+def test_workflow_launch_explicit_prior_override_wins_over_catalog(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    route = get_selection(
+        "molmospaces/procthor-objaverse-val/0::mujoco::cleanup::openai-agents-sdk::"
+        "camera-grounded-labels"
+    )
+    catalog_prior = tmp_path / "catalog_prior.json"
+    catalog_prior.write_text('{"schema":"runtime_map_prior_snapshot_v1"}\n', encoding="utf-8")
+    override_prior = tmp_path / "override_prior.json"
+    override_prior.write_text('{"schema":"runtime_map_prior_snapshot_v1"}\n', encoding="utf-8")
+    catalog = tmp_path / "recommended_runtime_map_priors.json"
+    _write_prior_catalog(catalog, catalog_prior)
+    monkeypatch.setattr(console_workflows, "RECOMMENDED_PRIOR_CATALOG_PATH", catalog)
+
+    argv = build_workflow_launch_argv(
+        route,
+        workflow_id="cleanup-with-map",
+        root=tmp_path,
+        run_id="run-1",
+        overrides={"runtime_map_prior": str(override_prior)},
+    )
+
+    assert f"runtime_map_prior={override_prior}" in argv
+    assert f"runtime_map_prior={catalog_prior}" not in argv
 
 
 def test_workflow_launch_rejects_nonexistent_runtime_prior_override(tmp_path: Path) -> None:
