@@ -1023,7 +1023,7 @@ def test_state_treats_open_ended_cleanup_score_failure_as_advisory(
         encoding="utf-8",
     )
     (attempt_dir / "report.html").write_text("<html></html>", encoding="utf-8")
-    (attempt_dir / "checker.log").write_text("molmo-realworld-cleanup ok\n", encoding="utf-8")
+    (attempt_dir / "checker.log").write_text("household-world ok\n", encoding="utf-8")
 
     state = derive_operator_state(tmp_path, run_dir, route)
 
@@ -1073,7 +1073,7 @@ def test_state_keeps_cleanup_score_failure_authoritative_for_cleanup(
         encoding="utf-8",
     )
     (attempt_dir / "report.html").write_text("<html></html>", encoding="utf-8")
-    (attempt_dir / "checker.log").write_text("molmo-realworld-cleanup ok\n", encoding="utf-8")
+    (attempt_dir / "checker.log").write_text("household-world ok\n", encoding="utf-8")
 
     state = derive_operator_state(tmp_path, run_dir, route)
 

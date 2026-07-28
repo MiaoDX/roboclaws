@@ -97,7 +97,7 @@ def _open_ended_runner_args(tmp_path: Path, run_dir: Path) -> SimpleNamespace:
         server_startup_timeout_s=1.0,
         kickoff_prompt="custom prompt",
         backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         intent="open-ended",
         policy="openai_agents_agent",
         task="我渴了，帮我找些解渴的东西",

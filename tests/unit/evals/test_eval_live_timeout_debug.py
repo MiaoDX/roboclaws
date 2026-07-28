@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import signal
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +17,7 @@ def test_live_surface_product_records_timeout_debug_snapshot(
     tmp_path: Path,
 ) -> None:
     timeout_run_dir: Path | None = None
+    popen_kwargs: dict[str, Any] = {}
     sleeps: list[float] = []
     clock = {"now": 0.0}
 
@@ -27,6 +29,8 @@ def test_live_surface_product_records_timeout_debug_snapshot(
         return clock["now"]
 
     class FakePopen:
+        pid = 4321
+
         def __init__(
             self,
             command: list[str],
@@ -35,6 +39,7 @@ def test_live_surface_product_records_timeout_debug_snapshot(
             stderr: Any = None,
             **_kwargs: Any,
         ) -> None:
+            popen_kwargs.update(_kwargs)
             output_arg = next(item for item in command if item.startswith("output_dir="))
             output_dir = Path(output_arg.removeprefix("output_dir="))
             run_dir = output_dir / "0615_0311" / "seed-7"
@@ -78,6 +83,7 @@ def test_live_surface_product_records_timeout_debug_snapshot(
             return 143
 
     monkeypatch.setattr(live_runtime.subprocess, "Popen", FakePopen)
+    monkeypatch.setattr(live_runtime.os, "killpg", lambda _pid, _signal: None)
     monkeypatch.setattr(live_runtime.time, "monotonic", fake_monotonic)
     monkeypatch.setattr(live_runtime.time, "sleep", fake_sleep)
 
@@ -98,6 +104,7 @@ def test_live_surface_product_records_timeout_debug_snapshot(
     assert exc_info.value.live_status["phase"] == "running-sdk"
     assert sleeps == [1.0, 1.0, 1.0, 1.0, 1.0]
     assert timeout_run_dir is not None
+    assert popen_kwargs["start_new_session"] is True
     record = json.loads((tmp_path / "trial-0000" / "live_eval_command.json").read_text())
     assert record["returncode"] == "stall_timeout"
     assert record["timeout_kind"] == "stall_timeout"
@@ -115,7 +122,36 @@ def test_live_surface_product_records_timeout_debug_snapshot(
     )
 
 
-def test_live_eval_timeout_snapshot_reaches_blocked_result(
+def test_live_surface_timeout_terminates_the_entire_process_group(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    signals: list[tuple[int, signal.Signals]] = []
+
+    class FakeProcess:
+        pid = 4321
+
+        def poll(self) -> None:
+            return None
+
+        def wait(self, timeout: float | None = None) -> int:
+            assert timeout == 5.0
+            return 143
+
+    monkeypatch.setattr(
+        live_runtime.os,
+        "killpg",
+        lambda process_group_id, sig: signals.append((process_group_id, sig)),
+    )
+
+    live_runtime._terminate_live_surface_process(FakeProcess())  # type: ignore[arg-type]
+
+    assert signals == [
+        (4321, signal.SIGTERM),
+        (4321, signal.SIGKILL),
+    ]
+
+
+def test_live_eval_wall_clock_budget_timeout_reaches_failed_result(
     tmp_path: Path,
 ) -> None:
     def live_product_runner(**kwargs: Any) -> dict[str, Any]:
@@ -153,10 +189,12 @@ def test_live_eval_timeout_snapshot_reaches_blocked_result(
     )
 
     payload = json.loads(run.results_path.read_text())
-    assert payload["aggregate"]["blocked"] == 3
+    assert payload["aggregate"]["failed"] == 3
+    assert payload["aggregate"]["blocked"] == 0
     result = payload["results"][0]
     runner = result["grader_outputs"]["runner"]
-    assert runner["status"] == "blocked"
+    assert runner["status"] == "failed"
+    assert result["failure_class"] == "budget_exhausted"
     assert runner["error_type"] == "LiveEvalTimeoutError"
     assert runner["live_status_phase"] == "running-sdk"
     assert runner["timeout_kind"] == "wall_clock_budget_exhausted"
@@ -180,6 +218,8 @@ def test_live_surface_product_records_wall_clock_budget_timeout(
         clock["now"] += seconds
 
     class FakePopen:
+        pid = 4322
+
         def __init__(
             self,
             command: list[str],
@@ -224,6 +264,7 @@ def test_live_surface_product_records_wall_clock_budget_timeout(
             return 143
 
     monkeypatch.setattr(live_runtime.subprocess, "Popen", FakePopen)
+    monkeypatch.setattr(live_runtime.os, "killpg", lambda _pid, _signal: None)
     monkeypatch.setattr(live_runtime.time, "monotonic", fake_monotonic)
     monkeypatch.setattr(live_runtime.time, "sleep", fake_sleep)
 

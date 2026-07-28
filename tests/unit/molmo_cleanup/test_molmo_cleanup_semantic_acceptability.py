@@ -2,7 +2,32 @@ from __future__ import annotations
 
 from roboclaws.household.semantic_acceptability import (
     annotate_score_with_semantic_acceptability,
+    assess_public_semantic_acceptability,
+    public_source_requires_cleanup,
+    semantic_disturbance_metrics,
 )
+
+
+def test_public_category_semantics_distinguish_cleanup_from_reasonable_sources() -> None:
+    cases = (
+        ("plate", "DiningTable", "acceptable", False),
+        ("cup", "DiningTable", "acceptable", False),
+        ("book", "Desk", "acceptable", False),
+        ("electronics", "TVStand", "preferred", False),
+        ("plate", "Bed", "wrong", True),
+        ("book", "Bed", "questionable", True),
+        ("pillow", "Desk", "questionable", True),
+        ("food", "CounterTop", "acceptable", False),
+        ("plant", "Desk", "unknown", False),
+    )
+
+    for object_category, source_category, expected_level, expected_cleanup in cases:
+        assessment = assess_public_semantic_acceptability(
+            object_category,
+            source_category,
+        )
+        assert assessment["level"] == expected_level
+        assert public_source_requires_cleanup(object_category, source_category) is expected_cleanup
 
 
 def test_semantic_acceptability_marks_reasonable_non_private_targets() -> None:
@@ -93,4 +118,44 @@ def test_semantic_acceptability_marks_reasonable_non_private_targets() -> None:
         "questionable": 0,
         "wrong": 0,
         "unknown": 0,
+    }
+
+
+def test_semantic_disturbance_counts_only_known_placement_degradation() -> None:
+    scenario = {
+        "objects": [
+            {"object_id": "food", "category": "Bread"},
+            {"object_id": "book", "category": "Book"},
+            {"object_id": "clock", "category": "AlarmClock"},
+            {"object_id": "target", "category": "Pillow"},
+        ],
+        "receptacles": [
+            {"receptacle_id": "counter", "category": "CounterTop"},
+            {"receptacle_id": "fridge", "category": "Refrigerator"},
+            {"receptacle_id": "desk", "category": "Desk"},
+            {"receptacle_id": "bed", "category": "Bed"},
+            {"receptacle_id": "stand", "category": "TVStand"},
+        ],
+    }
+
+    metrics = semantic_disturbance_metrics(
+        scenario,
+        {
+            "food": "counter",
+            "book": "desk",
+            "clock": "bed",
+            "target": "bed",
+        },
+        {
+            "food": "fridge",
+            "book": "bed",
+            "clock": "stand",
+            "target": "desk",
+        },
+        excluded_object_ids={"target"},
+    )
+
+    assert metrics == {
+        "disturbance_count": 1,
+        "non_target_location_change_count": 3,
     }

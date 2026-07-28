@@ -13,9 +13,9 @@ one maintainer proof surface. The skill answers:
 2. why each row was selected, skipped, run, failed, or blocked;
 3. where the resulting reports and regression-promotion evidence live.
 
-It is an orchestration skill, not a robot behavior skill. Keep task strategy in
-task skills such as `molmo-realworld-cleanup`; keep reusable robot capability
-semantics in MCP tools and capability profiles.
+It is an orchestration skill, not a robot behavior skill. Keep household-world
+task strategy in `household-world`; keep reusable robot capability semantics
+in MCP tools and capability profiles.
 
 ## Commands
 
@@ -32,9 +32,11 @@ just agent::eval execute plan=docs/plans/example.md budget=focused
 just agent::eval execute since=origin/main budget=focused
 ```
 
-Refresh the current full baseline after a large code change:
+Refresh the current baseline at the appropriate cost tier:
 
 ```bash
+just agent::eval execute profile=baseline-core budget=focused
+just agent::eval execute profile=baseline-live-default budget=focused
 just agent::eval execute profile=baseline-refresh budget=focused
 ```
 
@@ -58,11 +60,18 @@ just agent::eval promote-regression \
 - `recommend`: never executes rows; it lists commands and preflight needs.
 - `profile=adaptive`: default mode; select rows from plan text, diff paths, and
   explicit axes.
+- `profile=baseline-core`: select deterministic gates, current eval suites,
+  direct local-simulator product rows, and DINO product rows. It excludes all
+  live-provider rows and is the normal broad local refresh.
+- `profile=baseline-live-default`: select `baseline-core` plus the current
+  default GPT Router live-agent capability rows. It excludes the MiMo, Kimi,
+  and MiniMax map-build provider sweep.
 - `profile=baseline-refresh`: select the catalog baseline set directly:
-  deterministic gates, all current eval suites, direct product rows, DINO rows,
-  Codex CLI live rows, and OpenAI Agents SDK live rows. Selected rows run or
-  record explicit blocked evidence; they are not converted to
-  `skipped_by_budget`.
+  deterministic gates, all current eval suites including long-horizon tasks,
+  direct product rows, DINO rows, all default live rows, and the explicit
+  alternate-provider matrix. This is the release/nightly full refresh.
+- All named baseline profiles run selected rows or record explicit blocked
+  evidence; their rows are not converted to `skipped_by_budget`.
 - `execute budget=smoke`: deterministic confidence only; selected expensive or
   live rows are recorded as skipped by user budget in `profile=adaptive`.
 - `execute budget=focused`: default maintainer mode; selected required live

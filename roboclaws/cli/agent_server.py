@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import sys
 
-HOUSEHOLD_CLEANUP_TARGET = "household-world.cleanup"
-HOUSEHOLD_MAP_BUILD_TARGET = "household-world.map-build"
-SUPPORTED_SERVER_TARGETS = (HOUSEHOLD_CLEANUP_TARGET, HOUSEHOLD_MAP_BUILD_TARGET)
+HOUSEHOLD_WORLD_TARGET = "household-world"
+SUPPORTED_SERVER_TARGETS = (HOUSEHOLD_WORLD_TARGET,)
 
 
 def _expected_server_text() -> str:
@@ -26,14 +25,10 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 2
-    if raw_server == HOUSEHOLD_CLEANUP_TARGET:
+    if raw_server == HOUSEHOLD_WORLD_TARGET:
         from roboclaws.cli.household_agent_server import main as household_main
 
         return household_main(args)
-    if raw_server == HOUSEHOLD_MAP_BUILD_TARGET:
-        from roboclaws.cli.agibot_map_build_agent_server import main as map_build_main
-
-        return map_build_main(args)
 
     print(
         f"error: unsupported server {raw_server!r} (expected {_expected_server_text()})",

@@ -32,6 +32,36 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 SERVICE_SCRIPT = REPO_ROOT / "scripts" / "visual_grounding" / "serve_visual_grounding_service.py"
 
 
+def test_model_loader_prefers_complete_local_cache() -> None:
+    class _Factory:
+        calls: list[dict[str, bool]] = []
+
+        @classmethod
+        def from_pretrained(cls, _model_id: str, **kwargs: bool) -> object:
+            cls.calls.append(kwargs)
+            return object()
+
+    adapters._from_pretrained_local_first(_Factory, "cached-model")
+
+    assert _Factory.calls == [{"local_files_only": True}]
+
+
+def test_model_loader_uses_network_only_when_local_cache_is_missing() -> None:
+    class _Factory:
+        calls: list[dict[str, bool]] = []
+
+        @classmethod
+        def from_pretrained(cls, _model_id: str, **kwargs: bool) -> object:
+            cls.calls.append(kwargs)
+            if kwargs.get("local_files_only"):
+                raise OSError("not cached")
+            return object()
+
+    adapters._from_pretrained_local_first(_Factory, "uncached-model")
+
+    assert _Factory.calls == [{"local_files_only": True}, {}]
+
+
 def test_configurable_service_reports_real_adapter_unavailable_by_default() -> None:
     server = _start_service(pipeline_id="grounding-dino", adapter_mode="auto")
     try:

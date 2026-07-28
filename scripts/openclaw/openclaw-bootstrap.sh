@@ -38,7 +38,7 @@
 #                generic `image` tool path             set this explicitly when
 #                                                       you want deterministic
 #                                                       image routing)
-#   SKILLS_DIR   Host path of the skill to mount     (default: $PWD/skills/molmo-realworld-cleanup)
+#   SKILLS_DIR   Host path of the skill to mount     (default: $PWD/skills/household-world)
 #   READY_TIMEOUT  Seconds to wait for /readyz       (default: 180)
 #   TIMEOUT_SECONDS  Per-turn wall-clock cap         (default: 7200 = 2h;
 #                                                     written to agents.defaults.
@@ -159,8 +159,8 @@ case "$ROBOCLAWS_TOOL_PROFILE" in
         ;;
 esac
 
-SKILLS_DIR="${SKILLS_DIR:-${PWD}/skills/molmo-realworld-cleanup}"
-SOULS_DIR="${SOULS_DIR:-${PWD}/skills/molmo-realworld-cleanup/souls}"
+SKILLS_DIR="${SKILLS_DIR:-${PWD}/skills/household-world}"
+SOULS_DIR="${SOULS_DIR:-${PWD}/skills/household-world/souls}"
 AGENT_SOULS="${AGENT_SOULS:-}"
 PERSONALITY_PROBE="${PERSONALITY_PROBE:-1}"
 READY_TIMEOUT="${READY_TIMEOUT:-180}"

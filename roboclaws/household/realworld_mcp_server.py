@@ -395,7 +395,13 @@ class RealWorldMolmoCleanupMCPServer:
     def done_readiness_evidence(self) -> dict[str, Any]:
         trace_events = self._read_trace_events()
         substeps = semantic_substeps(trace_events, self.contract.public_receptacles_by_id())
-        complete_handles = _complete_semantic_substep_handles(substeps)
+        complete_handles = [
+            handle
+            for handle in _complete_semantic_substep_handles(substeps)
+            if bool(
+                (self.contract._detections_by_handle.get(handle) or {}).get("cleanup_recommended")
+            )
+        ]
         return {
             "schema": "public_semantic_cleanup_evidence_v1",
             "complete_semantic_substep_objects": len(complete_handles),
@@ -624,7 +630,7 @@ class RealWorldMolmoCleanupMCPServer:
         thread = threading.Thread(
             target=self._mcp.run,
             kwargs={"transport": "streamable-http"},
-            name=f"molmo-realworld-cleanup-mcp-{self.port}",
+            name=f"household-world-mcp-{self.port}",
             daemon=True,
         )
         thread.start()

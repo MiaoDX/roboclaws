@@ -37,6 +37,8 @@ class LiveEvalTimeoutError(TimeoutError):
         self.live_status = live_status
         self.timeout_debug_snapshot = timeout_debug_snapshot
         self.command_record = command_record
+        self.live_trial_attempts: list[dict[str, Any]] = []
+        self.live_trial_attempts_path = ""
 
 
 def live_timeout_snapshot(
@@ -86,6 +88,12 @@ def live_exception_debug_fields(exc: Exception) -> dict[str, Any]:
         value = getattr(exc, name, None)
         if value is not None:
             fields[name] = value
+    live_trial_attempts = getattr(exc, "live_trial_attempts", None)
+    if isinstance(live_trial_attempts, list) and live_trial_attempts:
+        fields["live_trial_attempts"] = live_trial_attempts
+    live_trial_attempts_path = getattr(exc, "live_trial_attempts_path", "")
+    if live_trial_attempts_path:
+        fields["live_trial_attempts_path"] = str(live_trial_attempts_path)
     return fields
 
 

@@ -8,7 +8,10 @@ from pathlib import Path
 import pytest
 
 from roboclaws.household.backend_contract import CleanupBackendSession
-from roboclaws.household.realworld_cleanup import _load_runtime_map_prior, run_realworld_cleanup
+from roboclaws.household.household_world_episode import (
+    _load_runtime_map_prior,
+    run_household_world_episode,
+)
 from roboclaws.household.realworld_contract import (
     RAW_FPV_ONLY_MODE,
     RealWorldCleanupContract,
@@ -146,7 +149,7 @@ def test_online_and_offline_snapshots_share_consumer_contract_shape() -> None:
     assert offline_snapshot["producer"]["type"] == "offline_navigation_memory_conversion"
 
 
-def test_materialized_online_snapshot_targets_are_valid_cleanup_targets() -> None:
+def test_materialized_online_snapshot_targets_do_not_override_destination_policy() -> None:
     contract = RealWorldCleanupContract(
         CleanupBackendSession(build_cleanup_scenario(seed=7)),
         perception_mode=RAW_FPV_ONLY_MODE,
@@ -174,7 +177,11 @@ def test_materialized_online_snapshot_targets_are_valid_cleanup_targets() -> Non
     )
 
     assert contract.pick(candidate["object_id"])["ok"] is True
-    assert contract.navigate_to_receptacle(str(target_fixture["fixture_id"]))["ok"] is True
+    rejected = contract.navigate_to_receptacle(str(target_fixture["fixture_id"]))
+    assert rejected["ok"] is False
+    assert rejected["error_reason"] == "destination_policy_mismatch"
+    assert rejected["fixture_category"] == "desk"
+    assert contract.navigate_to_receptacle(candidate["candidate_fixture_id"])["ok"] is True
 
 
 def test_converted_snapshot_targets_are_exposed_through_cleanup_receptacle_path() -> None:
@@ -602,7 +609,7 @@ def test_synthetic_cleanup_consumes_converted_snapshot_through_runtime_prior(
     prior_path = tmp_path / "runtime_map_prior_snapshot.json"
     prior_path.write_text(json.dumps(snapshot), encoding="utf-8")
 
-    result = run_realworld_cleanup(
+    result = run_household_world_episode(
         output_dir=tmp_path / "cleanup",
         seed=7,
         runtime_map_prior_path=prior_path,

@@ -18,10 +18,8 @@ from roboclaws.household.visual_backend_slots import (
     acquire_visual_backend_slot,
 )
 
-HOUSEHOLD_CLEANUP_SERVER_MODULE = "roboclaws.cli.agent_server"
-HOUSEHOLD_CLEANUP_SERVER_TASK = "household-world.cleanup"
-MAP_BUILD_SERVER_MODULE = "roboclaws.cli.agent_server"
-MAP_BUILD_SERVER_TASK = "household-world.map-build"
+HOUSEHOLD_SERVER_MODULE = "roboclaws.cli.agent_server"
+HOUSEHOLD_SERVER_TASK = "household-world"
 
 
 @dataclass
@@ -112,24 +110,24 @@ def acquire_household_live_run_lease(
 
 
 def household_cleanup_server_argv(python_bin: str) -> list[str]:
-    """Return the package entrypoint for the household cleanup MCP server."""
+    """Return the package entrypoint for the household MCP server."""
 
     return [
         python_bin,
         "-m",
-        HOUSEHOLD_CLEANUP_SERVER_MODULE,
-        HOUSEHOLD_CLEANUP_SERVER_TASK,
+        HOUSEHOLD_SERVER_MODULE,
+        HOUSEHOLD_SERVER_TASK,
     ]
 
 
 def map_build_server_argv(python_bin: str) -> list[str]:
-    """Return the package entrypoint for the Agibot map-build MCP server."""
+    """Return the package entrypoint for the household MCP server."""
 
     return [
         python_bin,
         "-m",
-        MAP_BUILD_SERVER_MODULE,
-        MAP_BUILD_SERVER_TASK,
+        HOUSEHOLD_SERVER_MODULE,
+        HOUSEHOLD_SERVER_TASK,
     ]
 
 
@@ -160,7 +158,7 @@ def add_household_cleanup_live_runner_args(
     parser.add_argument("--backend", required=True)
     parser.add_argument("--task-surface", default="household-world")
     parser.add_argument("--intent", default="cleanup")
-    parser.add_argument("--skill-name", default="molmo-realworld-cleanup")
+    parser.add_argument("--skill-name", default="household-world")
     if policy_default is None:
         parser.add_argument("--policy", required=True)
     else:

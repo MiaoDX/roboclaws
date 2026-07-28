@@ -239,14 +239,14 @@ def test_operator_console_prompt_preview_endpoint_renders_agent_kickoff_prompt(
             payload = json.loads(response.read().decode("utf-8"))
 
     assert payload["operator_prompt"] == "只收拾桌面上的杯子"
-    assert payload["source"] == "household-open-task"
+    assert payload["source"] == "household-world"
     assert payload["intent"] == "open-ended"
     assert "prompt_mode" not in payload
     assert (
         "This run is surface=household-world intent=open-ended" in payload["agent_kickoff_prompt"]
     )
     assert "只收拾桌面上的杯子" in payload["agent_kickoff_prompt"]
-    assert "household-open-task skill instructions" in payload["agent_kickoff_prompt"]
+    assert "household-world skill instructions" in payload["agent_kickoff_prompt"]
     assert payload["wrapper_notes"] == []
 
 
@@ -378,7 +378,10 @@ def test_prompt_preview_uses_valid_openai_agents_numeric_env_overrides() -> None
     )
 
     assert "run budget of 3 raw-FPV candidate attempts" in payload["agent_kickoff_prompt"]
-    assert "use at most 2 observe response(s)" in payload["agent_kickoff_prompt"]
+    assert (
+        "every waypoint must complete 2 materially distinct robot-body headings"
+        in payload["agent_kickoff_prompt"]
+    )
     assert "retry done at most 0 time(s)" in payload["agent_kickoff_prompt"]
 
 
@@ -399,7 +402,10 @@ def test_prompt_preview_keeps_existing_prompt_minimums_for_zero_budget_env() -> 
     )
 
     assert "run budget of 1 raw-FPV candidate attempts" in payload["agent_kickoff_prompt"]
-    assert "use at most 1 observe response(s)" in payload["agent_kickoff_prompt"]
+    assert (
+        "every waypoint must complete 1 materially distinct robot-body headings"
+        in payload["agent_kickoff_prompt"]
+    )
 
 
 def test_console_readiness_omits_isaac_marker_diagnostic_but_keeps_locks_blocking(

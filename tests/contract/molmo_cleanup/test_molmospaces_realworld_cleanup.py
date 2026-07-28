@@ -90,7 +90,7 @@ def _load_agibot_semantic_actions_module():
 def test_realworld_cleanup_demo_writes_public_private_artifacts(tmp_path: Path) -> None:
     demo = _load_demo_module()
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
         map_bundle_dir=PREBUILT_BUNDLE,
@@ -185,7 +185,7 @@ def test_realworld_cleanup_demo_writes_open_ended_goal_status(
         raw_prompt=prompt,
     )
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
         task_prompt=prompt,
@@ -217,7 +217,7 @@ def test_realworld_cleanup_product_gate_rejects_legacy_agibot_robot_map_9_bundle
     )
 
     with pytest.raises(ValueError, match="invalid Base Metric Map v1 bundle"):
-        demo.run_realworld_cleanup(
+        demo.run_household_world_episode(
             output_dir=tmp_path / "run",
             seed=7,
             map_bundle_dir=bundle_dir,
@@ -243,7 +243,7 @@ def test_realworld_cleanup_live_bundle_gate_requires_selected_bundle(tmp_path: P
     demo = _load_demo_module()
 
     try:
-        demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+        demo.run_household_world_episode(output_dir=tmp_path, seed=7)
     except ValueError as exc:
         assert "map_bundle_dir is required" in str(exc)
     else:  # pragma: no cover - assertion branch
@@ -256,7 +256,7 @@ def test_realworld_cleanup_live_bundle_gate_rejects_invalid_bundle(tmp_path: Pat
     invalid_bundle.mkdir()
 
     try:
-        demo.run_realworld_cleanup(
+        demo.run_household_world_episode(
             output_dir=tmp_path / "run",
             seed=7,
             map_bundle_dir=invalid_bundle,
@@ -272,7 +272,7 @@ def test_realworld_cleanup_report_separates_agent_view_and_private_eval(
 ) -> None:
     demo = _load_demo_module()
 
-    demo.run_realworld_cleanup(
+    demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
         map_bundle_dir=PREBUILT_BUNDLE,
@@ -303,7 +303,7 @@ def test_realworld_cleanup_demo_persists_facade_rerun_command(
     )
     monkeypatch.setenv("ROBOCLAWS_REPORT_RERUN_COMMAND", command)
 
-    demo.run_realworld_cleanup(
+    demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
         generated_mess_count=5,
@@ -331,7 +331,7 @@ def test_realworld_cleanup_demo_persists_facade_rerun_command(
 def test_realworld_cleanup_demo_can_run_raw_fpv_evidence_mode(tmp_path: Path) -> None:
     demo = _load_demo_module()
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
         perception_mode=RAW_FPV_ONLY_MODE,
@@ -359,7 +359,7 @@ def test_realworld_cleanup_demo_can_run_raw_fpv_evidence_mode(tmp_path: Path) ->
 def test_realworld_cleanup_demo_can_run_camera_model_policy_mode(tmp_path: Path) -> None:
     demo = _load_demo_module()
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
         perception_mode=CAMERA_MODEL_POLICY_MODE,
@@ -390,7 +390,7 @@ def test_realworld_cleanup_demo_can_run_isaaclab_fake_backend(
     monkeypatch.setenv("ROBOCLAWS_ISAACLAB_PYTHON", sys.executable)
     monkeypatch.setenv("ROBOCLAWS_ISAACLAB_RUNTIME_MODE", "fake")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
         backend="isaaclab_subprocess",

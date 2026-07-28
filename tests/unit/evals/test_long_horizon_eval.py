@@ -49,6 +49,7 @@ def test_long_horizon_suite_records_manipulation_tool_surface_and_passes(
     run = run_eval_suite(
         "long_horizon_tasks",
         output_root=tmp_path,
+        budget="focused",
         stamp="long-horizon-pass",
         product_runner=product_runner,
     )
@@ -56,7 +57,7 @@ def test_long_horizon_suite_records_manipulation_tool_surface_and_passes(
     result = json.loads(run.results_path.read_text())["results"][0]
     assert result["status"] == "passed"
     assert result["failure_class"] == "not_applicable"
-    assert result["identity"]["skill_name"] == "household-long-horizon"
+    assert result["identity"]["skill_name"] == "household-world"
     assert "pick" in result["identity"]["tool_surface"]
     assert captured_kwargs["evidence_lane"] == "world-public-labels"
     assert captured_kwargs["generated_mess_object_ids"] == (
@@ -66,6 +67,36 @@ def test_long_horizon_suite_records_manipulation_tool_surface_and_passes(
     )
     assert result["grader_outputs"]["long_horizon"]["subgoals"]["placed"] is True
     assert result["metrics"]["long_horizon_subgoals"]["hands_empty"] is True
+
+
+def test_long_horizon_smoke_keeps_private_molmospaces_runtime(
+    tmp_path: Path,
+) -> None:
+    captured_kwargs: list[dict[str, Any]] = []
+
+    def product_runner(**kwargs: Any) -> dict[str, Any]:
+        captured_kwargs.append(dict(kwargs))
+        run_dir = Path(kwargs["output_dir"])
+        object_ids = tuple(kwargs["generated_mess_object_ids"])
+        _write_long_horizon_artifacts(run_dir, object_ids=object_ids)
+        return _long_horizon_run_result(run_dir, object_ids=object_ids)
+
+    run = run_eval_suite(
+        "long_horizon_tasks",
+        output_root=tmp_path,
+        budget="smoke",
+        stamp="long-horizon-smoke-runtime",
+        product_runner=product_runner,
+    )
+
+    payload = json.loads(run.results_path.read_text())
+    assert payload["aggregate"]["passed"] == 2
+    assert captured_kwargs
+    assert {kwargs["backend"] for kwargs in captured_kwargs} == {"molmospaces_subprocess"}
+    assert {kwargs["evidence_lane"] for kwargs in captured_kwargs} == {"world-public-labels"}
+    assert all(
+        str(kwargs["map_bundle_dir"]).endswith("procthor-10k-val/0") for kwargs in captured_kwargs
+    )
 
 
 def test_long_horizon_live_command_uses_private_task_targets(tmp_path: Path) -> None:
@@ -302,7 +333,18 @@ def _write_long_horizon_artifacts(
     (run_dir / "agent_view.json").write_text('{"schema": "agent_view"}\n')
     (run_dir / "private_evaluation.json").write_text("{}\n")
     (run_dir / "advisory_evaluation.json").write_text('{"authoritative": false}\n')
-    (run_dir / "goal_contract.json").write_text('{"intent": "open-ended"}\n')
+    (run_dir / "goal_contract.json").write_text(
+        json.dumps(
+            {
+                "schema": "roboclaws_goal_contract_v1",
+                "surface": "household-world",
+                "intent": "open-ended",
+                "normalized_goal": "restock misplaced food",
+                "goal_scope": "agent-declared",
+            }
+        )
+        + "\n"
+    )
     (run_dir / "runtime_metric_map.json").write_text(
         json.dumps(_runtime_metric_map(object_ids=object_ids)) + "\n"
     )

@@ -58,13 +58,13 @@ def _load_module(path: Path, name: str):
     assert spec.loader is not None
     spec.loader.exec_module(module)
     if path == DEMO_PATH:
-        run_realworld_cleanup = module.run_realworld_cleanup
+        run_household_world_episode = module.run_household_world_episode
 
         def run_synthetic_realworld_cleanup(**kwargs):
             kwargs.setdefault("map_bundle_dir", PREBUILT_BUNDLE)
-            return run_realworld_cleanup(**kwargs)
+            return run_household_world_episode(**kwargs)
 
-        module.run_realworld_cleanup = run_synthetic_realworld_cleanup
+        module.run_household_world_episode = run_synthetic_realworld_cleanup
     elif path == SMOKE_PATH:
         run_smoke = module.run_smoke
 
@@ -130,7 +130,7 @@ def test_checker_accepts_single_realworld_run(tmp_path: Path) -> None:
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+    demo.run_household_world_episode(output_dir=tmp_path, seed=7)
 
     data, path = checker._load_run_results(tmp_path / "run_result.json")[0]
     checker._assert_result(
@@ -146,7 +146,7 @@ def test_checker_can_require_runtime_metric_map(tmp_path: Path) -> None:
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+    result = demo.run_household_world_episode(output_dir=tmp_path, seed=7)
 
     checker._assert_result(
         result,
@@ -173,7 +173,7 @@ def test_checker_rejects_duplicate_current_run_fixture_anchor_viewpoints(tmp_pat
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+    result = demo.run_household_world_episode(output_dir=tmp_path, seed=7)
     runtime_map = result["runtime_metric_map"]
     anchor = next(
         item
@@ -199,7 +199,7 @@ def test_checker_rejects_rgb_only_runtime_map_object_pose(tmp_path: Path) -> Non
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
         perception_mode=CAMERA_MODEL_POLICY_MODE,
@@ -224,10 +224,10 @@ def test_checker_can_require_map_build_mode(tmp_path: Path) -> None:
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
-        map_build=True,
+        intent="map-build",
         perception_mode=CAMERA_MODEL_POLICY_MODE,
     )
 
@@ -253,10 +253,10 @@ def test_checker_adaptive_adjust_camera_threshold_is_opt_in(tmp_path: Path) -> N
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
-        map_build=True,
+        intent="map-build",
         perception_mode=CAMERA_MODEL_POLICY_MODE,
     )
     result["tool_event_counts"]["adjust_camera:request"] = 0
@@ -289,10 +289,10 @@ def test_checker_can_require_generated_target_inspection_candidates(tmp_path: Pa
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
-        map_build=True,
+        intent="map-build",
         perception_mode=CAMERA_MODEL_POLICY_MODE,
     )
     result["runtime_metric_map"]["generated_target_inspection_candidates"] = []
@@ -328,10 +328,10 @@ def test_checker_allows_camera_model_policy_map_build_with_no_object_detections(
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
-        map_build=True,
+        intent="map-build",
         perception_mode=CAMERA_MODEL_POLICY_MODE,
     )
     result["observed_objects"] = []
@@ -578,10 +578,10 @@ def test_checker_can_require_base_metric_map_map_build(tmp_path: Path) -> None:
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
-        map_build=True,
+        intent="map-build",
     )
 
     checker._assert_result(
@@ -612,10 +612,10 @@ def test_checker_allows_map_build_robot_timeline_without_cleanup_actions(
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
-        map_build=True,
+        intent="map-build",
     )
     _add_molmospaces_robot_view_artifacts(result, tmp_path, prefix="scene")
     result["robot_view_steps"] = [
@@ -644,7 +644,7 @@ def test_checker_rejects_runtime_metric_map_private_leak(tmp_path: Path) -> None
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+    result = demo.run_household_world_episode(output_dir=tmp_path, seed=7)
     result["runtime_metric_map"]["observed_objects"][0]["target_receptacle_id"] = "sink_01"
     result["agent_view"]["runtime_metric_map"] = result["runtime_metric_map"]
 
@@ -663,7 +663,7 @@ def test_checker_rejects_target_candidate_private_leak(tmp_path: Path) -> None:
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+    result = demo.run_household_world_episode(output_dir=tmp_path, seed=7)
     result["runtime_metric_map"]["target_candidates"][0]["target_receptacle_id"] = "sink_01"
     result["agent_view"]["runtime_metric_map"] = result["runtime_metric_map"]
 
@@ -685,7 +685,7 @@ def test_checker_rejects_non_actionable_target_candidate_without_reason(
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+    result = demo.run_household_world_episode(output_dir=tmp_path, seed=7)
     candidate = next(
         item
         for item in result["runtime_metric_map"]["target_candidates"]
@@ -710,10 +710,10 @@ def test_checker_rejects_promoted_runtime_semantic_anchor(tmp_path: Path) -> Non
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
-        map_build=True,
+        intent="map-build",
     )
     result["runtime_metric_map"]["public_semantic_anchors"][0]["promotion_status"] = "promoted"
     result["agent_view"]["runtime_metric_map"] = result["runtime_metric_map"]
@@ -735,13 +735,13 @@ def test_checker_rejects_actionable_runtime_map_prior(tmp_path: Path) -> None:
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    sweep = demo.run_realworld_cleanup(
+    sweep = demo.run_household_world_episode(
         output_dir=tmp_path / "sweep",
         seed=7,
-        map_build=True,
+        intent="map-build",
         perception_mode=CAMERA_MODEL_POLICY_MODE,
     )
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path / "cleanup",
         seed=7,
         runtime_map_prior_path=sweep["artifacts"]["runtime_metric_map"],
@@ -769,7 +769,7 @@ def test_checker_allows_actionable_current_run_confirmation_of_prior(tmp_path: P
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+    result = demo.run_household_world_episode(output_dir=tmp_path, seed=7)
     current = result["runtime_metric_map"]["observed_objects"][0]
     current["freshness"] = "current_run"
     current["prior_object_id"] = "observed_prior_001"
@@ -791,7 +791,7 @@ def test_checker_accepts_smoke_profile_metadata_and_report_note(tmp_path: Path) 
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
         evidence_lane="smoke",
@@ -813,7 +813,7 @@ def test_checker_can_require_waypoint_honesty_and_real_robot_alignment(
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+    result = demo.run_household_world_episode(output_dir=tmp_path, seed=7)
 
     checker._assert_result(
         result,
@@ -832,10 +832,10 @@ def test_checker_allows_base_metric_map_waypoint_honesty_for_scan_only_sweep(
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
-        map_build=True,
+        intent="map-build",
     )
 
     checker._assert_result(
@@ -857,7 +857,7 @@ def test_checker_allows_base_metric_map_waypoint_honesty_for_open_ended_scan_onl
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
     )
@@ -900,7 +900,7 @@ def test_checker_allows_open_ended_agent_view_with_no_visible_objects(
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
     )
@@ -953,7 +953,7 @@ def test_checker_rejects_base_metric_map_waypoint_honesty_for_cleanup_scan_only(
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
     )
@@ -981,7 +981,7 @@ def test_checker_allows_base_metric_map_waypoint_honesty_for_survey_first_cleanu
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
     )
@@ -1010,7 +1010,7 @@ def test_checker_allows_base_metric_map_waypoint_honesty_for_online_interleaved_
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
     )
@@ -1036,7 +1036,7 @@ def test_checker_allows_base_metric_map_without_map_build_metadata(
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
     )
@@ -1061,7 +1061,7 @@ def test_checker_rejects_minimal_interleaved_cleanup_without_full_sweep(
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
     )
@@ -1714,7 +1714,7 @@ def test_checker_requires_robot_head_camera_fpv(
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    data = demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+    data = demo.run_household_world_episode(output_dir=tmp_path, seed=7)
     _add_isaac_robot_view_step(
         data,  # type: ignore[arg-type]
         tmp_path,
@@ -1741,7 +1741,7 @@ def test_checker_rejects_backend_local_robot_view_when_head_camera_required(
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    data = demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+    data = demo.run_household_world_episode(output_dir=tmp_path, seed=7)
     _add_isaac_robot_view_step(
         data,  # type: ignore[arg-type]
         tmp_path,
@@ -1769,7 +1769,7 @@ def test_checker_rejects_canonical_free_camera_when_head_camera_required(
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    data = demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+    data = demo.run_household_world_episode(output_dir=tmp_path, seed=7)
     _add_isaac_robot_view_step(
         data,  # type: ignore[arg-type]
         tmp_path,
@@ -1797,7 +1797,7 @@ def test_checker_rejects_head_camera_contract_without_head_camera_source(
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    data = demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+    data = demo.run_household_world_episode(output_dir=tmp_path, seed=7)
     _add_isaac_robot_view_step(
         data,  # type: ignore[arg-type]
         tmp_path,
@@ -1999,7 +1999,7 @@ def test_checker_accepts_waypoint_honesty_when_loop_is_survey_first(
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+    result = demo.run_household_world_episode(output_dir=tmp_path, seed=7)
     result["cleanup_policy_trace"]["loop_style"] = "survey_first_cleanup_loop"
     result["cleanup_policy_trace"]["first_cleanup_before_full_survey"] = False
 
@@ -2019,7 +2019,7 @@ def test_checker_rejects_real_robot_alignment_when_chase_is_policy_input(
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+    result = demo.run_household_world_episode(output_dir=tmp_path, seed=7)
     result["agent_view"]["policy_view"]["chase_camera_policy_input"] = True
     result["real_robot_readiness"]["policy_view_chase_excluded"] = False
 
@@ -2090,7 +2090,7 @@ def test_checker_rejects_too_small_generated_mess_set(tmp_path: Path) -> None:
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+    result = demo.run_household_world_episode(output_dir=tmp_path, seed=7)
 
     with pytest.raises(AssertionError):
         checker._assert_result(
@@ -2401,7 +2401,7 @@ def test_checker_can_require_raw_fpv_observation_artifacts(tmp_path: Path) -> No
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
         perception_mode="raw_fpv_only",
@@ -2451,13 +2451,13 @@ def test_checker_accepts_live_raw_fpv_map_build_shape(tmp_path: Path) -> None:
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
         perception_mode="raw_fpv_only",
-        map_build=True,
+        intent="map-build",
     )
-    result["task_name"] = "household-world.map-build"
+    result["task_name"] = "household-world"
     result["task_intent"] = "map-build"
     result["policy"] = "codex_agent"
     result["agent_driven"] = True
@@ -2508,7 +2508,7 @@ def test_checker_accepts_live_raw_fpv_map_build_shape(tmp_path: Path) -> None:
         tmp_path,
         expect_task=None,
         expect_backend="api_semantic_synthetic",
-        expect_task_name="household-world.map-build",
+        expect_task_name="household-world",
         expect_policy="codex_agent",
         expect_mcp_server="molmo_cleanup_realworld",
         min_generated_mess_count=0,
@@ -2688,7 +2688,7 @@ def test_checker_can_require_attached_planner_proof(tmp_path: Path) -> None:
     proof_path = _write_strict_planner_proof(tmp_path / "proof")
     cleanup_dir = tmp_path / "cleanup"
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=cleanup_dir,
         seed=7,
         planner_proof_run_result=proof_path,
@@ -2713,7 +2713,7 @@ def test_checker_rejects_attached_proof_below_min_steps(tmp_path: Path) -> None:
     proof_path = _write_strict_planner_proof(tmp_path / "proof", steps_executed=1)
     cleanup_dir = tmp_path / "cleanup"
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=cleanup_dir,
         seed=7,
         planner_proof_run_result=proof_path,
@@ -2743,7 +2743,7 @@ def test_checker_accepts_blocked_planner_cleanup_bridge(tmp_path: Path) -> None:
     )
     cleanup_dir = tmp_path / "cleanup"
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=cleanup_dir,
         seed=7,
         planner_proof_run_result=proof_path,
@@ -2769,7 +2769,7 @@ def test_realworld_cleanup_can_use_matching_probe_backed_executor(
     tmp_path: Path,
 ) -> None:
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
-    anchor_probe = demo.run_realworld_cleanup(
+    anchor_probe = demo.run_household_world_episode(
         output_dir=tmp_path / "anchor-probe",
         seed=7,
     )
@@ -2796,7 +2796,7 @@ def test_realworld_cleanup_can_use_matching_probe_backed_executor(
     )
     cleanup_dir = tmp_path / "cleanup"
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=cleanup_dir,
         seed=7,
         planner_proof_run_result=proof_path,
@@ -2863,7 +2863,7 @@ def test_realworld_cleanup_mismatched_probe_binding_keeps_semantic_path(
         },
     )
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path / "cleanup",
         seed=7,
         planner_proof_run_result=proof_path,
@@ -2883,7 +2883,7 @@ def test_realworld_cleanup_can_use_proof_bundle_for_full_gate_readiness(
 ) -> None:
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
-    anchor_probe = demo.run_realworld_cleanup(
+    anchor_probe = demo.run_household_world_episode(
         output_dir=tmp_path / "anchor-probe",
         seed=7,
     )
@@ -2899,7 +2899,7 @@ def test_realworld_cleanup_can_use_proof_bundle_for_full_gate_readiness(
     ]
     cleanup_dir = tmp_path / "cleanup"
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=cleanup_dir,
         seed=7,
         planner_proof_run_results=proof_paths,
@@ -2944,7 +2944,7 @@ def test_checker_rejects_current_cleanup_when_bridge_ready_required(tmp_path: Pa
     )
     cleanup_dir = tmp_path / "cleanup"
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=cleanup_dir,
         seed=7,
         planner_proof_run_result=proof_path,
@@ -2965,7 +2965,7 @@ def test_checker_accepts_blocked_cleanup_primitive_gate(tmp_path: Path) -> None:
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+    result = demo.run_household_world_episode(output_dir=tmp_path, seed=7)
 
     checker._assert_result(
         result,
@@ -2984,7 +2984,7 @@ def test_checker_rejects_current_cleanup_when_planner_primitives_required(
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+    result = demo.run_household_world_episode(output_dir=tmp_path, seed=7)
 
     with pytest.raises(AssertionError):
         checker._assert_result(
@@ -3001,7 +3001,7 @@ def test_checker_rejects_missing_required_planner_proof(tmp_path: Path) -> None:
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+    result = demo.run_household_world_episode(output_dir=tmp_path, seed=7)
 
     with pytest.raises(AssertionError):
         checker._assert_result(
@@ -3018,7 +3018,7 @@ def test_checker_rejects_raw_fpv_when_structured_detections_leak(tmp_path: Path)
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
         perception_mode="raw_fpv_only",
@@ -3047,7 +3047,7 @@ def test_checker_can_require_camera_model_policy(tmp_path: Path) -> None:
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
         perception_mode=CAMERA_MODEL_POLICY_MODE,
@@ -3235,7 +3235,7 @@ def test_checker_rejects_unlabelled_camera_model_candidates(tmp_path: Path) -> N
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(
+    result = demo.run_household_world_episode(
         output_dir=tmp_path,
         seed=7,
         perception_mode=CAMERA_MODEL_POLICY_MODE,
@@ -3260,7 +3260,7 @@ def test_checker_can_require_robot_view_report_artifacts(tmp_path: Path) -> None
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+    result = demo.run_household_world_episode(output_dir=tmp_path, seed=7)
     _add_molmospaces_robot_view_artifacts(result, tmp_path)
     result["robot_view_steps"] = [
         _robot_step("navigate_to_object observed_001"),
@@ -3287,7 +3287,7 @@ def test_checker_counts_visual_candidate_robot_view_as_object_navigation(
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+    result = demo.run_household_world_episode(output_dir=tmp_path, seed=7)
     _add_molmospaces_robot_view_artifacts(result, tmp_path)
     result["robot_view_steps"] = [
         {
@@ -3617,7 +3617,7 @@ def test_checker_rejects_agent_view_private_leak(tmp_path: Path) -> None:
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = demo.run_realworld_cleanup(output_dir=tmp_path, seed=7)
+    result = demo.run_household_world_episode(output_dir=tmp_path, seed=7)
     result["agent_view"]["generated_mess_set"] = ["leak"]
 
     with pytest.raises(AssertionError):

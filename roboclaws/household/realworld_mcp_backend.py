@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from roboclaws.household.raw_fpv_recovery import raw_fpv_recovery_gate
 from roboclaws.household.realworld_mcp_atomic_tools import (
     ATOMIC_CLEANUP_TOOL_NAMES,
     atomic_cleanup_handlers,
@@ -50,6 +51,17 @@ def dispatch_realworld_mcp_tool(
     validate_realworld_mcp_tool_call(server, name)
     if server.done_event.is_set() and name != "done":
         return {"ok": False, "tool": name, "status": "error", "error_reason": "run_done"}
+
+    trace_events = server._read_trace_events()
+    recovery_response = raw_fpv_recovery_gate(
+        trace_events[:-1],
+        evidence_lane=str(server.evidence_lane or ""),
+        task_intent=str(server.task_intent or ""),
+        tool=name,
+        request=kwargs,
+    )
+    if recovery_response is not None:
+        return recovery_response
 
     handlers = tool_handlers_for_call(server, kwargs)
     return handlers[name]()

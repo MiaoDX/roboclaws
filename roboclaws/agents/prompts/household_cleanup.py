@@ -31,12 +31,10 @@ OPEN_TASK_TOOL_PROTOCOL_PREFIX = (
     "use namespace cleanup, never mcp__cleanup__ or roboclaws__. "
 )
 
-COMMON_PREFIX = (
-    "Use the bundled molmo-realworld-cleanup skill instructions. " + TOOL_PROTOCOL_PREFIX
-)
+COMMON_PREFIX = "Use the bundled household-world skill instructions. " + TOOL_PROTOCOL_PREFIX
 
 CUSTOM_PREFIX = (
-    "Use the bundled household-open-task skill instructions. "
+    "Use the bundled household-world skill instructions. "
     "Use the MCP tools as a bounded household robot capability surface. "
     + OPEN_TASK_TOOL_PROTOCOL_PREFIX
 )
@@ -169,10 +167,12 @@ MAP_BUILD_RULES = (
     "complete only after that waypoint_id has a {waypoint_observe_response} response; "
     "{waypoint_observe_budget_rule}"
     "do not treat one empty observation as enough to complete an ambiguous waypoint "
-    "or target search. If a target query, "
-    "visual candidate, anchor, or waypoint observation has incomplete public evidence, "
-    "call adjust_camera within the public budget, observe again, and use the fresh "
-    "observation before moving on. Use resolve_target_query for any target-search, "
+    "or target search. If a target query, visual candidate, anchor, or waypoint "
+    "observation has incomplete public evidence, call adjust_camera or "
+    "navigate_to_relative_pose and observe again only when a public tool asks for it or "
+    "when that successful bounded camera or pose change can produce materially new "
+    "evidence; otherwise record the ambiguity and move on. Use "
+    "resolve_target_query for any target-search, "
     "stale label, or open-ended map question and leave not-found claims tied to the "
     "returned public search budget. If a public tool returns required_next_tool or "
     "required_tool, call that tool before continuing. If a target candidate is "
@@ -251,7 +251,7 @@ def _camera_raw_compact_prompt(
     *,
     target_cleanup_count: int = 7,
     raw_fpv_candidate_budget: int = 24,
-    max_observe_per_waypoint: int = 1,
+    max_observe_per_waypoint: int = 4,
     done_retry_budget: int = 1,
 ) -> str:
     cleanup_count = max(1, int(target_cleanup_count))
@@ -262,9 +262,22 @@ def _camera_raw_compact_prompt(
         "Compact action cadence for camera-raw-fpv. Call metric_map, build "
         "the exact inspection_waypoints checklist, and sweep public waypoints with "
         "navigate_to_waypoint then observe. Inspect raw FPV image blocks directly; do not expect "
-        "structured labels. At each waypoint, use at most "
-        f"{observe_budget} observe response(s) before moving on unless a public tool error asks "
-        "for a bounded camera adjustment. Choose at most one fresh high-confidence cleanup "
+        f"structured labels. Before done, every waypoint must complete {observe_budget} "
+        "materially distinct robot-body headings, even when the cleanup gate is already met. "
+        "The canonical navigate_to_waypoint then observe supplies the first heading. Repeat "
+        "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90) then observe at "
+        "that same waypoint until the required distinct-heading count is reached. A repeated "
+        "heading does not count; rotate again instead of moving to the next waypoint. If a fresh "
+        "candidate requires an immediate cleanup chain, return afterward and finish that "
+        "waypoint's missing body headings. "
+        "When a waypoint has not produced a public cleanup_recommended=true candidate by its "
+        "final distinct heading, take one extra overlap probe after those body headings: call "
+        "adjust_camera(yaw_delta_deg=45, pitch_delta_deg=20) exactly once, then observe. This "
+        "camera-only probe does not count as a distinct robot-body heading and is the only "
+        "permitted extra observation during the initial sweep. A compact continuation may "
+        "authorize one later bounded recovery view at explicitly listed public revisit "
+        "waypoints when done still reports a grounded-chain deficit. "
+        "Choose at most one fresh high-confidence cleanup "
         "candidate per raw FPV observation and stay within the run budget of "
         f"{candidate_budget} raw-FPV candidate attempts. Never retry the same "
         "source_observation_id/category/region or visual-candidate id after a public failure. "
@@ -294,7 +307,7 @@ def render_kickoff_prompt(
     intent: str = "",
     goal_contract: GoalContract | None = None,
     raw_fpv_candidate_budget: int = 24,
-    max_observe_per_waypoint: int = 1,
+    max_observe_per_waypoint: int = 4,
     done_retry_budget: int = 1,
     camera_grounded_composite_tools: bool = False,
     operator_session_context: dict[str, Any] | None = None,
@@ -474,9 +487,11 @@ def _map_build_target_candidate_recovery_rule(
 ) -> str:
     if max_observe_per_waypoint is not None and max(1, int(max_observe_per_waypoint)) == 1:
         return (
-            " If that waypoint_id has already used its observation budget, record the "
-            "target-candidate ambiguity as public map evidence and move on instead of "
-            f"calling {observe_tool} again."
+            " If that waypoint_id has already used its preferred observation budget, "
+            "record the target-candidate ambiguity as public map evidence and move on "
+            "unless a public tool requests a re-observation or a successful bounded "
+            f"camera, pose, or world-state change makes one more {observe_tool} call "
+            "materially useful."
         )
     return f" Then call {observe_tool} again."
 
@@ -491,10 +506,11 @@ def _map_build_observe_budget_rule(
     observe_budget = max(1, int(max_observe_per_waypoint))
     if observe_budget == 1:
         return (
-            f"Use at most one {observe_tool} response per waypoint_id; if evidence is "
-            "ambiguous after that response, mark the ambiguity in the Runtime Metric Map "
-            "evidence and move to the next public waypoint instead of adjusting pose or "
-            "observing that same waypoint again. "
+            f"Prefer one {observe_tool} response per waypoint_id. If evidence remains "
+            "ambiguous, record the ambiguity and move on. One bounded re-observation is "
+            "allowed only when a public tool requests it or after a successful camera, "
+            "pose, or world-state change can produce materially new Runtime Metric Map "
+            "evidence. "
         )
     return (
         f"Use at most {observe_budget} {observe_tool} responses per waypoint_id, including "
@@ -617,11 +633,11 @@ def _map_build_scan_profile_prompt(
     )
     if max_observe_per_waypoint is not None and max(1, int(max_observe_per_waypoint)) == 1:
         return (
-            f"MapBuild scan_profile={profile_id}: this managed profile budgets one "
-            f"{observe_tool} response per waypoint_id, so do not use "
-            "navigate_to_relative_pose or camera-adjustment scanning to produce extra "
-            "observations for the same waypoint. Record any missing heading coverage as "
-            f"public ambiguity in the Runtime Metric Map evidence instead.{emphasis}"
+            f"MapBuild scan_profile={profile_id}: this managed profile prefers one "
+            f"{observe_tool} response per waypoint_id, so skip routine multi-heading "
+            "scanning. Use one bounded re-observation only after a successful camera or "
+            "pose change when public evidence is ambiguous or a tool requests it; otherwise "
+            f"record missing heading coverage as public ambiguity.{emphasis}"
         )
     return (
         f"MapBuild scan_profile={profile_id}: at each inspection waypoint, after the "

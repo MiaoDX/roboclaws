@@ -44,7 +44,7 @@ def test_launch_backend_catalog_normalizes_command_layer_backend_values() -> Non
     assert (
         normalize_map_build_codex_implementation_backend(
             "agibot_gdk",
-            context="household-world.map-build openai-agents-sdk",
+            context="household-world task_intent=map-build openai-agents-sdk",
         )
         == "agibot_gdk"
     )
@@ -54,12 +54,12 @@ def test_launch_backend_catalog_normalizes_command_layer_backend_values() -> Non
 
     with pytest.raises(
         ValueError,
-        match="household-world.map-build openai-agents-sdk unsupported backend "
+        match="household-world task_intent=map-build openai-agents-sdk unsupported backend "
         "'api_semantic_synthetic'",
     ):
         normalize_map_build_codex_implementation_backend(
             "api_semantic_synthetic",
-            context="household-world.map-build openai-agents-sdk",
+            context="household-world task_intent=map-build openai-agents-sdk",
         )
 
 

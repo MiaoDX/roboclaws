@@ -109,6 +109,7 @@ def run_case(
             agent_case=agent_case,
         )
 
+    request_headers = headers_for_case(case, api_key=api_key)
     trials = tuple(
         run_trial(
             case,
@@ -119,6 +120,7 @@ def run_case(
             timeout_s=timeout_s,
             api_key=api_key,
             agent_case=agent_case,
+            request_headers=request_headers,
         )
         for index in range(iterations)
     )
@@ -143,6 +145,7 @@ def run_trial(
     timeout_s: float,
     api_key: str,
     agent_case: AgentBenchmarkCase | None = None,
+    request_headers: dict[str, str] | None = None,
 ) -> TrialResult:
     url = endpoint_url(case.base_url, case.wire_api)
     payload = payload_for_case(case, prompt=prompt, max_tokens=max_tokens)
@@ -154,7 +157,14 @@ def run_trial(
         payload["stream"] = True
         if layer == "stream-throughput":
             payload["stream_options"] = {"include_usage": True}
-    headers = headers_for_case(case, api_key=api_key)
+    headers = (
+        dict(request_headers)
+        if request_headers is not None
+        else headers_for_case(
+            case,
+            api_key=api_key,
+        )
+    )
     started = time.monotonic()
     request = urllib.request.Request(
         url,

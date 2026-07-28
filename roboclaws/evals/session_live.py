@@ -23,6 +23,7 @@ from roboclaws.evals.reports import RESULTS_BUNDLE_SCHEMA
 from roboclaws.operator_console.interactions import MESSAGE_LOG
 from roboclaws.operator_console.paths import OUTPUT_ROOT_ENV, console_output_root
 from roboclaws.operator_console.routes import ConsoleLaunchSelection, list_console_combinations
+from roboclaws.operator_console.runtime_compat import pid_is_active
 from roboclaws.operator_console.server import ConsoleRequestHandler
 
 SESSION_LIVE_SUITE_SCHEMA = "roboclaws_session_live_eval_suite_v1"
@@ -181,7 +182,8 @@ def _run_live_flow(
         return _failed_result(
             provider_profile=provider_profile,
             reason=str(exc),
-            failure_class="harness_bug_unclassified",
+            failure_class=_runtime_failure_class(exc),
+            details=_runtime_failure_details(exc),
         )
     finally:
         server.shutdown()
@@ -266,7 +268,11 @@ def _exercise_session_flow(
         timeout_s=SESSION_LIVE_API_TIMEOUT_S,
     )
     if next_goal.get("status") != "started":
-        raise RuntimeError(f"Next Goal did not start child run: {next_goal.get('start_error')}")
+        raise SessionLiveFlowError(
+            _next_goal_failure_reason(next_goal),
+            failure_class=_next_goal_failure_class(next_goal),
+            details={"next_goal": next_goal},
+        )
     child = next_goal.get("started_run") if isinstance(next_goal.get("started_run"), dict) else {}
     child_run_id = str(child.get("run_id") or "")
     if not child_run_id:
@@ -297,21 +303,30 @@ def _exercise_session_flow(
 def _wait_for_terminal(base_url: str, run_id: str, *, deadline: float) -> dict[str, Any]:
     while time.monotonic() < deadline:
         state = _api_json(base_url, "GET", f"/api/runs/{run_id}", {})
-        state_markers = {
-            str(state.get("status") or "").lower(),
-            str(state.get("phase") or "").lower(),
-            str(state.get("terminal_reason") or "").lower(),
-        }
-        if state_markers & {
+        phase = str(state.get("phase") or "").lower()
+        status = str(state.get("status") or "").lower()
+        terminal_reason = str(state.get("terminal_reason") or "").lower()
+        lifecycle_terminal = {
             "done",
             "finished",
-            "passed",
             "failed",
             "stopped_by_operator",
             "human_takeover_stop",
             "emergency_stopped",
-        }:
-            return state
+        }
+        operator_terminal = {
+            "stopped_by_operator",
+            "human_takeover_stop",
+            "emergency_stopped",
+        }
+        if (
+            phase in lifecycle_terminal
+            or terminal_reason in operator_terminal
+            or status in operator_terminal
+        ):
+            pid = state.get("pid")
+            if not isinstance(pid, int) or not pid_is_active(pid):
+                return state
         time.sleep(1.0)
     raise RuntimeError(f"run {run_id} did not reach terminal state before timeout")
 
@@ -390,6 +405,49 @@ def _validate_child_context(
         raise RuntimeError(f"child prompt leaked private context: {', '.join(leaked)}")
 
 
+class SessionLiveFlowError(RuntimeError):
+    """Raised when the eval flow receives a product-level terminal response."""
+
+    def __init__(
+        self,
+        reason: str,
+        *,
+        failure_class: str,
+        details: dict[str, Any],
+    ) -> None:
+        self.failure_class = failure_class
+        self.details = details
+        super().__init__(reason)
+
+
+def _next_goal_failure_reason(next_goal: dict[str, Any]) -> str:
+    status = str(next_goal.get("status") or "unknown")
+    queue_reason = str(next_goal.get("queue_reason") or "")
+    start_error = str(next_goal.get("start_error") or "")
+    reason = start_error or queue_reason or "no product reason supplied"
+    return f"Next Goal did not start child run: status={status} reason={reason}"
+
+
+def _next_goal_failure_class(next_goal: dict[str, Any]) -> str:
+    text = " ".join(
+        str(next_goal.get(key) or "").lower() for key in ("status", "queue_reason", "start_error")
+    )
+    if "budget" in text or "observe_budget_exhausted" in text:
+        return "budget_exhausted"
+    if "artifact" in text or "parent_result" in text or "run_result" in text:
+        return "artifact_missing"
+    return "partial_progress_only"
+
+
+def _runtime_failure_class(exc: RuntimeError) -> str:
+    return str(getattr(exc, "failure_class", "") or "harness_bug_unclassified")
+
+
+def _runtime_failure_details(exc: RuntimeError) -> dict[str, Any]:
+    details = getattr(exc, "details", None)
+    return dict(details) if isinstance(details, dict) else {}
+
+
 def _api_json(
     base_url: str,
     method: str,
@@ -451,13 +509,20 @@ def _failed_result(
     provider_profile: str,
     reason: str,
     failure_class: str,
+    details: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return _result(
         status="failed",
         provider_profile=provider_profile,
         failure_class=failure_class,
         reason=reason,
-        grader_outputs={"session_live": {"status": "failed", "reason": reason}},
+        grader_outputs={
+            "session_live": {
+                "status": "failed",
+                "reason": reason,
+                "details": dict(details or {}),
+            }
+        },
     )
 
 
@@ -517,7 +582,7 @@ def _result(
             "runner_class": "live",
             "provider_profile": provider_profile,
             "model": "provider_default",
-            "skill_name": "household-open-task",
+            "skill_name": "household-world",
             "prompt_source": "operator_session_live",
             "mcp_profile": "household_world",
             "tool_surface": ["metric_map", "observe", "check_operator_messages", "done"],

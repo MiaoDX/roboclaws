@@ -1,7 +1,7 @@
 # Household and planner proof harness dispatchers.
 #
 # Preferred entrypoints:
-# - just harness::molmo-realworld-cleanup  ADR-0003 public/private cleanup harness
+# - just harness::household-world  public/private household-world cleanup harness
 # - just harness::molmo-realworld-agent-mcp  ADR-0003 MCP smoke agent harness
 # - just harness::molmo-realworld-agent-dogfood-kit  ADR-0003 direct-agent kit smoke
 # - just harness::molmo-realworld-openclaw-dogfood-kit  ADR-0003 OpenClaw minimum-gate kit smoke
@@ -29,7 +29,7 @@ default:
 # Phase 15 requests 10 hidden generated objects by default.
 # It also records RBY1M robot views so report.html has the current visual
 # review surface.
-molmo-realworld-cleanup seeds="1 2 3" output_dir="output/molmo-realworld-cleanup-harness" task="帮我收拾这个房间" generated_mess_count="10":
+household-world seeds="1 2 3" output_dir="output/household-world-harness" task="帮我收拾这个房间" generated_mess_count="10":
     #!/usr/bin/env bash
     set -euo pipefail
     stamp="$({{timestamp_cmd}})"
@@ -38,7 +38,7 @@ molmo-realworld-cleanup seeds="1 2 3" output_dir="output/molmo-realworld-cleanup
     echo "==> run root: ${run_root}"
     for seed in {{seeds}}; do
       run_dir="${run_root}/seed-${seed}"
-      .venv/bin/python -m roboclaws.household.realworld_cleanup \
+      .venv/bin/python -m roboclaws.household.household_world_episode \
         --seed "${seed}" \
         --backend molmospaces_subprocess \
         --task "{{task}}" \
@@ -190,7 +190,7 @@ molmo-realworld-raw-fpv seed="7" output_dir="output/molmo-realworld-raw-fpv-harn
     run_dir="{{output_dir}}/${stamp}"
     mkdir -p "$run_dir"
     echo "==> run dir: ${run_dir}"
-    .venv/bin/python -m roboclaws.household.realworld_cleanup \
+    .venv/bin/python -m roboclaws.household.household_world_episode \
       --seed "{{seed}}" \
       --backend molmospaces_subprocess \
       --task "{{task}}" \
@@ -213,7 +213,7 @@ molmo-realworld-raw-fpv seed="7" output_dir="output/molmo-realworld-raw-fpv-harn
 # ADR-0042 proof-bundle runner dry-run handoff. This proves fresh ADR-0003
 # cleanup artifacts produce checked planner proof commands without executing
 # local GPU planner probes.
-molmo-planner-proof-bundle-runner output_dir="output/molmo-planner-proof-bundle-runner-harness" seed="7" task="帮我收拾这个房间" generated_mess_count="10":
+molmo-planner-proof-bundle-runner output_dir="output/molmo-planner-proof-bundle-runner-harness" seed="7" task="帮我收拾这个房间" generated_mess_count="10" map_bundle="assets/maps/molmospaces/procthor-10k-val/0":
     #!/usr/bin/env bash
     set -euo pipefail
     stamp="$({{timestamp_cmd}})"
@@ -222,11 +222,12 @@ molmo-planner-proof-bundle-runner output_dir="output/molmo-planner-proof-bundle-
     bundle_dir="${run_root}/proof_bundle"
     mkdir -p "$run_root"
     echo "==> run root: ${run_root}"
-    .venv/bin/python -m roboclaws.household.realworld_cleanup \
+    .venv/bin/python -m roboclaws.household.household_world_episode \
       --seed "{{seed}}" \
       --backend api_semantic_synthetic \
       --task "{{task}}" \
       --static-fixture-projection-mode room_only \
+      --map-bundle-dir "{{map_bundle}}" \
       --generated-mess-count "{{generated_mess_count}}" \
       --output-dir "${cleanup_dir}"
     .venv/bin/python scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py \
@@ -260,7 +261,7 @@ molmo-planner-proof-bundle-execute-rerun output_dir="output/molmo-planner-proof-
     torch_extensions_dir="${run_root}/torch_extensions"
     mkdir -p "$run_root"
     echo "==> run root: ${run_root}"
-    .venv/bin/python -m roboclaws.household.realworld_cleanup \
+    .venv/bin/python -m roboclaws.household.household_world_episode \
       --seed "{{seed}}" \
       --backend molmospaces_subprocess \
       --task "{{task}}" \

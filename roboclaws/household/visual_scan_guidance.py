@@ -75,6 +75,22 @@ def visual_evidence_recovery_hint() -> str:
     )
 
 
+def non_recommended_candidate_recovery_hint(perception_mode: str) -> str:
+    if perception_mode == "raw_fpv_only":
+        return (
+            "The current public evidence does not recommend moving this object. Do not "
+            "navigate to, pick, or retry it. Keep the current robot pose and call "
+            "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90), then "
+            "observe until this waypoint has 4 materially distinct robot-body headings; "
+            "do not call navigate_to_waypoint again for the same waypoint. Move to the next "
+            "public waypoint only after completing that heading sweep."
+        )
+    return (
+        "The current public source/destination evidence does not recommend moving this "
+        "object. Do not navigate to or pick it; continue the waypoint sweep."
+    )
+
+
 def noop_camera_adjustment_hint() -> str:
     return (
         "adjust_camera(0, 0) does not change the camera and does not create a fresh "

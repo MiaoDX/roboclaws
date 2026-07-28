@@ -1263,7 +1263,7 @@ def test_worker_room_outlines_use_mesh_world_bounds_not_geom_size() -> None:
     ]
 
 
-def test_worker_allows_open_shelf_place_inside_without_open(
+def test_worker_places_non_scoring_object_on_open_shelf_without_open(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     pytest.importorskip("mujoco")
@@ -1274,7 +1274,7 @@ def test_worker_allows_open_shelf_place_inside_without_open(
 
     state = {
         "held_object_id": "book_01",
-        "selected_object_ids": ["book_01"],
+        "selected_object_ids": [],
         "qpos": [0.0],
         "open_receptacle_ids": [],
         "current_receptacle_id": None,

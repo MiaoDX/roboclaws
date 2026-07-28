@@ -24,7 +24,7 @@ from roboclaws.core.json_sources import read_json_object
 from roboclaws.household.agibot_map_build_mcp_server import MCP_SERVER_NAME
 from scripts.molmo_cleanup.openai_agents_perf_profile import resolve_agent_sdk_perf_profile
 
-AGIBOT_MAP_BUILD_SKILL = "household-open-task"
+AGIBOT_MAP_BUILD_SKILL = "household-world"
 MAX_AGENT_SDK_SKILL_CONTEXT_BYTES = 24_000
 
 
@@ -133,7 +133,7 @@ class LiveOpenAIAgentsAgibotMapBuildRunner:
 
     def _sdk_request(self) -> LiveAgentRequest:
         return LiveAgentRequest(
-            run_id="household-world.map-build",
+            run_id="household-world",
             skill_name=AGIBOT_MAP_BUILD_SKILL,
             kickoff_prompt=_agibot_map_build_prompt(self.args.kickoff_prompt),
             mcp_server=LiveAgentMCPServer(name="cleanup", url=self.args.client_url),
@@ -163,7 +163,8 @@ class LiveOpenAIAgentsAgibotMapBuildRunner:
                 "skill_context": self.skill_context,
                 "surface": "household-world",
                 "intent": "map-build",
-                "task_name": "household-world.map-build",
+                "task_name": "household-world",
+                "task_intent": "map-build",
                 "evidence_lane": _server_arg_value(self.args.server_arg, "--evidence-lane"),
                 "backend": self.args.backend,
             },

@@ -153,11 +153,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
       exit 0
     fi
     if [[ -z "$skill_name" ]]; then
-      if [[ "$task_intent" == "map-build" || "$task_intent" == "open-ended" ]]; then
-        skill_name="household-open-task"
-      else
-        skill_name="molmo-realworld-cleanup"
-      fi
+      skill_name="household-world"
     fi
     managed_visual_grounding_pid=""
     managed_visual_grounding_stdout=""
@@ -385,7 +381,6 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
     if [[ "$min_generated_mess_count_override" != "auto" && -n "$min_generated_mess_count_override" ]]; then
       min_generated_mess_count="$min_generated_mess_count_override"
     fi
-    map_build_args=()
     checker_map_build_args=()
     if [[ "$map_build_enabled" == "true" && "$driver" == "openai-agents-live" ]]; then
       checker_map_build_args=(--require-runtime-metric-map)
@@ -410,7 +405,6 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
       done
       checker_visual_args=("${filtered_checker_visual_args[@]}")
     elif [[ "$map_build_enabled" == "true" ]]; then
-      map_build_args=(--map-build)
       checker_map_build_args=(--require-map-build)
       profile_requires_clean_success="false"
       filtered_checker_visual_args=()
@@ -747,7 +741,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
         fi
         openai_agents_model=""
         openai_agents_profile="codex-router-responses"
-        openai_agents_profile_summary="codex-router-responses model=gpt-5.5"
+        openai_agents_profile_summary="codex-router-responses model=gpt-5.6-sol"
         if [[ "$driver" == "openai-agents-live" ]]; then
           openai_agents_profile="$(roboclaws_code_agent_provider ROBOCLAWS_PROVIDER_PROFILE codex-router-responses)"
           openai_agents_model="$(roboclaws_code_agent_model ROBOCLAWS_OPENAI_AGENTS_MODEL ROBOCLAWS_PROVIDER_PROFILE codex-router-responses)"
@@ -759,6 +753,9 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
         fi
         prompt_raw_fpv_candidate_budget="${ROBOCLAWS_OPENAI_AGENTS_RAW_FPV_CANDIDATE_BUDGET:-24}"
         prompt_max_observe_per_waypoint="${ROBOCLAWS_OPENAI_AGENTS_MAX_OBSERVE_PER_WAYPOINT:-1}"
+        if [[ "$profile" == "camera-raw-fpv" && -z "${ROBOCLAWS_OPENAI_AGENTS_MAX_OBSERVE_PER_WAYPOINT:-}" ]]; then
+          prompt_max_observe_per_waypoint="4"
+        fi
         prompt_done_retry_budget="${ROBOCLAWS_OPENAI_AGENTS_DONE_RETRY_BUDGET:-1}"
         prompt_args=(
           --profile "$profile"
@@ -954,7 +951,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
           printf '%s\n' "$visual_slot_json" > "${run_dir}/visual_backend_slot.json"
           visual_slot_path="$(printf '%s' "$visual_slot_json" | .venv/bin/python -c 'import json, sys; print(json.load(sys.stdin)["path"])')"
         fi
-        .venv/bin/python -m roboclaws.cli.agent_server household-world.cleanup "${server_args[@]}" &
+        .venv/bin/python -m roboclaws.cli.agent_server household-world "${server_args[@]}" &
         server_pid="$!"
         cleanup_server() {
           set +e
@@ -991,9 +988,9 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
           exit 1
         fi
 
-        echo "==> launching OpenClaw Gateway chat with cleanup skill"
+        echo "==> launching OpenClaw Gateway chat with household-world skill"
         echo "==> MCP URL from Gateway container: ${client_url}"
-        SKILLS_DIR="$PWD/skills/molmo-realworld-cleanup" \
+        SKILLS_DIR="$PWD/skills/household-world" \
           ROBOCLAWS_MCP_URL="$client_url" \
           just chat::run
 
@@ -1043,7 +1040,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
       check_visual_grounding_readiness_for_run "$run_dir"
       case "$driver" in
         direct)
-          .venv/bin/python -m roboclaws.household.realworld_cleanup \
+          .venv/bin/python -m roboclaws.household.household_world_episode \
             --seed "$seed" \
             --backend "$backend" \
             --task "$task" \
@@ -1059,7 +1056,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
             "${visual_args[@]}" \
             "${visual_grounding_args[@]}" \
             "${runtime_map_prior_args[@]}" \
-            "${map_build_args[@]}" \
+            --intent "$task_intent" \
             "${isaac_scene_args[@]}" \
             "${goal_contract_args[@]}" \
             --output-dir "$run_dir"

@@ -126,7 +126,7 @@ def test_default_enabled_routes_include_requested_api_sources() -> None:
         "kimi-openai-chat",
     } <= public_profiles
     assert {
-        "gpt-5.5",
+        "gpt-5.6-sol",
         "xiaomi/mimo-v2.5",
         "mimo-v2.5",
         "mimo-1000",
@@ -147,6 +147,15 @@ def test_mimo_inside_is_default_enabled_openai_chat_route() -> None:
     assert route.api_key_env == "MIMO_API_KEY"
     assert route.required_env_keys == ("MIMO_BASE_URL", "MIMO_API_KEY")
     assert route.status_for_engine("openai-agents-sdk") == ROUTE_PROVISIONAL
+
+
+def test_codex_router_defaults_to_gpt_56_sol_and_keeps_gpt_55_compatible() -> None:
+    route = provider_route_spec("codex-router-responses")
+
+    assert route.default_model_id == "gpt-5.6-sol"
+    assert route.compatible_model_ids == ("gpt-5.6-sol", "gpt-5.5")
+    assert resolve_route_model(route.route_id, None).model_id == "gpt-5.6-sol"
+    assert resolve_route_model(route.route_id, "gpt-5.5").model_id == "gpt-5.5"
 
 
 def test_mimo_inside_readiness_requires_base_url_and_api_key() -> None:

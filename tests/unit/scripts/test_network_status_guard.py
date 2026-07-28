@@ -36,8 +36,7 @@ def test_network_status_reports_work_when_probe_returns_http(tmp_path: Path) -> 
     assert "network: work" in result.stdout
     assert "api-router.evad.mioffice.cn" in result.stdout
     assert "OpenClaw and system-provider Codex/Claude manual-debug recipes" in result.stdout
-    assert "SDK live routes use repo-local CODEX_BASE_URL/CODEX_API_KEY" in result.stdout
-    assert ("SDK mimo-mify-responses/minimax-responses require explicit") in result.stdout
+    assert "repo-local OpenAI Agents SDK provider routes are allowed" in result.stdout
     assert "system-provider Codex just recipes are blocked" not in result.stdout
 
 
@@ -143,7 +142,7 @@ def test_claude_provider_guard_allows_mify_anthropic_on_work_network(tmp_path: P
     assert "repo-local Claude provider (mimo-mify-anthropic)" in result.stderr
 
 
-def test_codex_provider_guard_defaults_to_codex_router_responses_on_work_network(
+def test_codex_provider_guard_allows_default_route_on_work_network(
     tmp_path: Path,
 ) -> None:
     env = _fake_curl(tmp_path, "204")
@@ -165,12 +164,12 @@ def test_codex_provider_guard_defaults_to_codex_router_responses_on_work_network
         ],
         cwd=REPO_ROOT,
         env={**env, "ROBOCLAWS_HELPER": str(CODING_AGENT_ENV)},
-        check=True,
         capture_output=True,
         text=True,
     )
 
-    assert "repo-local Codex provider (codex-router-responses)" in result.stderr
+    assert result.returncode == 0
+    assert "work network with repo-local Codex provider (codex-router-responses)" in result.stderr
 
 
 def test_codex_provider_guard_allows_mify_profile_on_work_network(tmp_path: Path) -> None:
@@ -250,6 +249,37 @@ def test_openai_agents_provider_guard_allows_minimax_profile_on_work_network(
     assert "repo-local OpenAI Agents SDK provider (minimax-responses)" in result.stderr
 
 
+def test_openai_agents_provider_guard_allows_default_route_on_work_network(
+    tmp_path: Path,
+) -> None:
+    env = _fake_curl(tmp_path, "204")
+    env.pop("ROBOCLAWS_PROVIDER_PROFILE", None)
+    env.pop("CODEX_BASE_URL", None)
+    env.pop("CODEX_API_KEY", None)
+
+    result = subprocess.run(
+        [
+            "bash",
+            "-c",
+            """
+            set -euo pipefail
+            source "$ROBOCLAWS_HELPER"
+            roboclaws_assert_openai_agents_network_allowed "OpenAI Agents SDK"
+            """,
+        ],
+        cwd=REPO_ROOT,
+        env={**env, "ROBOCLAWS_HELPER": str(CODING_AGENT_ENV)},
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert (
+        "work network with repo-local OpenAI Agents SDK provider (codex-router-responses)"
+        in result.stderr
+    )
+
+
 def test_openai_agents_provider_guard_allows_chat_profile_on_work_network(tmp_path: Path) -> None:
     env = _fake_curl(tmp_path, "204")
     env["ROBOCLAWS_PROVIDER_PROFILE"] = "mimo-tp-openai-chat"
@@ -275,7 +305,9 @@ def test_openai_agents_provider_guard_allows_chat_profile_on_work_network(tmp_pa
     assert "repo-local OpenAI Agents SDK provider (mimo-tp-openai-chat)" in result.stderr
 
 
-def test_codex_provider_guard_allows_repo_local_endpoint_on_work_network(tmp_path: Path) -> None:
+def test_codex_provider_guard_allows_repo_local_endpoint_on_work_network(
+    tmp_path: Path,
+) -> None:
     env = _fake_curl(tmp_path, "204")
     env.pop("XM_LLM_BASE_URL", None)
     env.pop("XM_LLM_API_KEY", None)
@@ -294,12 +326,12 @@ def test_codex_provider_guard_allows_repo_local_endpoint_on_work_network(tmp_pat
         ],
         cwd=REPO_ROOT,
         env={**env, "ROBOCLAWS_HELPER": str(CODING_AGENT_ENV)},
-        check=True,
         capture_output=True,
         text=True,
     )
 
-    assert "repo-local Codex provider (codex-router-responses)" in result.stderr
+    assert result.returncode == 0
+    assert "work network with repo-local Codex provider (codex-router-responses)" in result.stderr
 
 
 def test_current_and_manual_debug_just_recipes_use_network_guard() -> None:
@@ -334,7 +366,7 @@ def test_current_and_manual_debug_just_recipes_use_network_guard() -> None:
             [
                 just_binary,
                 "agent::run",
-                "household-world.cleanup",
+                "household-world",
                 engine,
                 "world-public-labels",
             ],

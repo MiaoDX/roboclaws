@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import uuid
 from argparse import Namespace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -9,7 +10,12 @@ from types import SimpleNamespace
 
 import pytest
 
-from roboclaws.agents.drivers.openai_agents_budget import OpenAIAgentsBudgetExceededError
+from roboclaws.agents.drivers.openai_agents_budget import (
+    OpenAIAgentsBudgetExceededError,
+    openai_agents_budget_failure,
+    openai_agents_observe_budget_advisory,
+    raw_fpv_budget_metrics,
+)
 from roboclaws.agents.drivers.openai_agents_live import (
     OpenAIAgentsLiveRuntime,
     _default_sdk_model_settings_payload,
@@ -44,6 +50,8 @@ from scripts.molmo_cleanup.run_live_openai_agents_cleanup import (
     LiveOpenAIAgentsCleanupRunner,
     _budget_failure_from_run_state,
     _cache_metrics,
+    _compact_continuation_prompt,
+    _compact_continuation_state,
     _context_growth_metrics,
     _context_metrics,
     _kickoff_prompt_source,
@@ -78,8 +86,8 @@ class FakeRunConfig:
 
 def test_live_agent_request_keeps_one_turn_policy_explicit(tmp_path: Path) -> None:
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -126,8 +134,8 @@ def test_openai_agents_default_model_settings_apply_provider_thinking_policy() -
 def test_live_agent_request_rejects_invalid_sdk_turn_budget(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="max_turns must be >= 1"):
         LiveAgentRequest(
-            run_id="household-world.cleanup",
-            skill_name="molmo-realworld-cleanup",
+            run_id="household-world",
+            skill_name="household-world",
             kickoff_prompt="clean the room",
             mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
             run_dir=tmp_path / "run",
@@ -250,8 +258,8 @@ def test_openai_agents_runtime_missing_sdk_writes_normalized_failure(
         missing_sdk,
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -266,6 +274,80 @@ def test_openai_agents_runtime_missing_sdk_writes_normalized_failure(
     payload = json.loads((tmp_path / "run" / "live_status.json").read_text(encoding="utf-8"))
     assert payload["reason"] == "provider_config_failure"
     assert "not installed" in payload["detail"]
+
+
+def test_openai_agents_runtime_accepts_post_done_sdk_cancellation(
+    tmp_path: Path, monkeypatch
+) -> None:
+    def cancel_after_done(request, **_kwargs):  # noqa: ANN001
+        request.run_dir.mkdir(parents=True, exist_ok=True)
+        (request.run_dir / "run_result.json").write_text("{}\n", encoding="utf-8")
+        raise asyncio.CancelledError("cancelled while draining completed tool calls")
+
+    monkeypatch.setattr(
+        "roboclaws.agents.drivers.openai_agents_live._run_openai_agents",
+        cancel_after_done,
+    )
+    request = LiveAgentRequest(
+        run_id="household-world",
+        skill_name="household-world",
+        kickoff_prompt="clean the room",
+        mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
+        run_dir=tmp_path / "run",
+    )
+
+    result = OpenAIAgentsLiveRuntime().run(request)
+
+    assert result.phase == "finished"
+    assert result.exit_status == 0
+    assert result.run_result_present is True
+
+
+def test_openai_agents_runtime_fails_cancellation_before_done(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(
+        "roboclaws.agents.drivers.openai_agents_live._run_openai_agents",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(asyncio.CancelledError("early")),
+    )
+    request = LiveAgentRequest(
+        run_id="household-world",
+        skill_name="household-world",
+        kickoff_prompt="clean the room",
+        mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
+        run_dir=tmp_path / "run",
+    )
+
+    result = OpenAIAgentsLiveRuntime().run(request)
+
+    assert result.phase == "failed"
+    assert result.exit_status == 1
+    assert result.reason == "agent_runtime_cancelled"
+
+
+def test_context_budget_guard_reads_chat_completion_generation_spans(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    spans_path = run_dir / "openai-agents-spans.jsonl"
+    spans_path.write_text(
+        json.dumps(
+            {
+                "event": "span_end",
+                "span_type": "generation",
+                "usage": {"input_tokens": 120_000},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    failure = openai_agents_budget_failure(
+        run_dir,
+        {},
+        {"context_hard_limit_tokens": 96_000},
+        context_spans_path=spans_path,
+    )
+
+    assert failure is not None
+    assert failure.reason == "provider_context_budget_exceeded"
 
 
 def test_openai_agents_runtime_classifies_context_window_before_502() -> None:
@@ -826,8 +908,8 @@ def test_openai_agents_runtime_turn_completion_does_not_infer_cleanup_success(
         lambda *_args, **_kwargs: FakeSDKResult(),
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -861,9 +943,16 @@ def test_openai_agents_runtime_defaults_to_codex_env_responses_profile(
             captured["client"] = openai_client
 
     class FakeAsyncOpenAI:
-        def __init__(self, *, api_key: str, base_url: str) -> None:
+        def __init__(
+            self,
+            *,
+            api_key: str,
+            base_url: str,
+            default_headers: dict[str, str] | None = None,
+        ) -> None:
             captured["api_key"] = api_key
             captured["base_url"] = base_url
+            captured["default_headers"] = default_headers
 
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
     monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
@@ -901,8 +990,8 @@ def test_openai_agents_runtime_defaults_to_codex_env_responses_profile(
         SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -910,19 +999,26 @@ def test_openai_agents_runtime_defaults_to_codex_env_responses_profile(
 
     OpenAIAgentsLiveRuntime().run(request)
 
-    assert captured["model"] == "gpt-5.5"
+    assert captured["model"] == "gpt-5.6-sol"
     assert captured["base_url"] == "https://codex.example.test/v1"
     assert captured["api_key"] == "fake-codex-key"
+    window_id = captured["default_headers"]["X-Codex-Window-Id"]
+    thread_id, generation = window_id.rsplit(":", 1)
+    assert uuid.UUID(thread_id)
+    assert generation == "0"
     wrapped_model = captured["agent_kwargs"]["model"]
     assert isinstance(wrapped_model, _RetryingModel)
     assert wrapped_model.base_model is captured["responses_model"]
     assert captured["agent_kwargs"]["model_settings"].tool_choice == "auto"
     assert captured["agent_kwargs"]["model_settings"].parallel_tool_calls is False
     assert not hasattr(captured["agent_kwargs"]["model_settings"], "truncation")
+    assert not hasattr(captured["agent_kwargs"]["model_settings"], "extra_headers")
     assert captured["runner_kwargs"]["run_config"].trace_include_sensitive_data is False
     assert captured["runner_kwargs"]["run_config"].workflow_name == "roboclaws-openai-agents-live"
     assert captured["mcp_server_kwargs"]["cache_tools_list"] is True
     assert "client_session_timeout_seconds" not in captured["mcp_server_kwargs"]
+    events_text = (tmp_path / "run" / "openai-agents-events.jsonl").read_text(encoding="utf-8")
+    assert "x-codex" not in events_text.lower()
     assert captured["agent_kwargs"]["mcp_config"]["failure_error_function"]
     assert captured["runner_kwargs"]["max_turns"] == 128
     events = [
@@ -952,7 +1048,13 @@ def test_openai_agents_runtime_includes_skill_context_without_persisting_body(
             captured["model"] = model
 
     class FakeAsyncOpenAI:
-        def __init__(self, *, api_key: str, base_url: str) -> None:
+        def __init__(
+            self,
+            *,
+            api_key: str,
+            base_url: str,
+            default_headers: dict[str, str] | None = None,
+        ) -> None:
             pass
 
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
@@ -991,17 +1093,17 @@ def test_openai_agents_runtime_includes_skill_context_without_persisting_body(
         SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
         metadata={
             "skill_context": {
-                "skill_name": "molmo-realworld-cleanup",
+                "skill_name": "household-world",
                 "included": True,
                 "reason": "included",
-                "relative_path": "skills/molmo-realworld-cleanup/SKILL.md",
+                "relative_path": "skills/household-world/SKILL.md",
                 "sha256": "abc123",
                 "bytes": len(skill_text),
                 "estimated_tokens": 12,
@@ -1029,10 +1131,10 @@ def test_openai_agents_runtime_includes_skill_context_without_persisting_body(
     )
     assert artifact == {
         "schema": "openai_agents_skill_context_v1",
-        "skill_name": "molmo-realworld-cleanup",
+        "skill_name": "household-world",
         "included": True,
         "reason": "included",
-        "relative_path": "skills/molmo-realworld-cleanup/SKILL.md",
+        "relative_path": "skills/household-world/SKILL.md",
         "sha256": "abc123",
         "bytes": len(skill_text),
         "estimated_tokens": 12,
@@ -1056,7 +1158,13 @@ def test_openai_agents_runtime_can_use_mimo_openai_chat_profile(
             captured["client"] = openai_client
 
     class FakeAsyncOpenAI:
-        def __init__(self, *, api_key: str, base_url: str) -> None:
+        def __init__(
+            self,
+            *,
+            api_key: str,
+            base_url: str,
+            default_headers: dict[str, str] | None = None,
+        ) -> None:
             captured["api_key"] = api_key
             captured["base_url"] = base_url
 
@@ -1091,8 +1199,8 @@ def test_openai_agents_runtime_can_use_mimo_openai_chat_profile(
         SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1132,7 +1240,13 @@ def test_openai_agents_runtime_applies_kimi_coding_user_agent(tmp_path: Path, mo
             captured["client"] = openai_client
 
     class FakeAsyncOpenAI:
-        def __init__(self, *, api_key: str, base_url: str) -> None:
+        def __init__(
+            self,
+            *,
+            api_key: str,
+            base_url: str,
+            default_headers: dict[str, str] | None = None,
+        ) -> None:
             captured["api_key"] = api_key
             captured["base_url"] = base_url
 
@@ -1167,8 +1281,8 @@ def test_openai_agents_runtime_applies_kimi_coding_user_agent(tmp_path: Path, mo
         SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1215,7 +1329,13 @@ def test_openai_agents_runtime_configures_model_input_compaction_filter(
             captured["model"] = model
 
     class FakeAsyncOpenAI:
-        def __init__(self, *, api_key: str, base_url: str) -> None:
+        def __init__(
+            self,
+            *,
+            api_key: str,
+            base_url: str,
+            default_headers: dict[str, str] | None = None,
+        ) -> None:
             pass
 
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
@@ -1254,8 +1374,8 @@ def test_openai_agents_runtime_configures_model_input_compaction_filter(
         SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1308,7 +1428,7 @@ def test_openai_agents_runtime_configures_model_input_compaction_filter(
     assert "call_model_input_filter" not in events[0]["sdk_run_config"]
 
 
-def test_openai_agents_model_input_filter_fails_before_model_call_on_observe_budget(
+def test_openai_agents_model_input_filter_warns_before_model_call_on_observe_budget(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1319,7 +1439,13 @@ def test_openai_agents_model_input_filter_fails_before_model_call_on_observe_bud
             captured["model"] = model
 
     class FakeAsyncOpenAI:
-        def __init__(self, *, api_key: str, base_url: str) -> None:
+        def __init__(
+            self,
+            *,
+            api_key: str,
+            base_url: str,
+            default_headers: dict[str, str] | None = None,
+        ) -> None:
             pass
 
     def fake_run_with_async_mcp_server(_server, _agent, request, _events_path, *, run_config):
@@ -1348,7 +1474,8 @@ def test_openai_agents_model_input_filter_fails_before_model_call_on_observe_bud
             + "\n",
             encoding="utf-8",
         )
-        raise asyncio.run(run_config.call_model_input_filter(data))
+        captured["filtered_model_data"] = asyncio.run(run_config.call_model_input_filter(data))
+        return SimpleNamespace(final_output="continued after observation advisory")
 
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
     monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
@@ -1385,7 +1512,7 @@ def test_openai_agents_model_input_filter_fails_before_model_call_on_observe_bud
         SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
     )
     request = LiveAgentRequest(
-        run_id="household-world.map-build",
+        run_id="household-world",
         skill_name="household-map-build",
         kickoff_prompt="build a map",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
@@ -1409,22 +1536,24 @@ def test_openai_agents_model_input_filter_fails_before_model_call_on_observe_bud
 
     result = OpenAIAgentsLiveRuntime().run(request)
 
-    assert result.exit_status == 1
-    assert result.reason == "observe_budget_exhausted"
-    assert result.retryable is False
-    detail = json.loads(result.detail)
-    assert detail["schema"] == "agent_sdk_raw_fpv_budget_terminal_v1"
-    assert detail["evidence_lane"] == "camera-grounded-labels"
-    assert detail["observe_over_budget_by_waypoint"] == {"generated_exploration_001": 2}
+    assert result.exit_status == 0
+    assert result.phase == "agent-turn-complete"
+    filtered_model_data = captured["filtered_model_data"]
+    assert "Observation cadence advisory" in filtered_model_data.instructions
+    assert "generated_exploration_001" in filtered_model_data.instructions
+    assert "preferred limit of 1" in filtered_model_data.instructions
     events = [
         json.loads(line)
         for line in (tmp_path / "run" / "openai-agents-events.jsonl").read_text().splitlines()
     ]
     assert events[0]["model_input_compaction"]["enabled"] is False
-    budget_event = next(item for item in events if item.get("event") == "model_input_budget_guard")
-    assert budget_event["reason"] == "observe_budget_exhausted"
-    assert budget_event["detail_schema"] == "agent_sdk_raw_fpv_budget_terminal_v1"
-    assert budget_event["detail_summary"]["observe_over_budget_by_waypoint"] == {
+    assert not any(item.get("event") == "model_input_budget_guard" for item in events)
+    advisory_event = next(
+        item for item in events if item.get("event") == "model_input_budget_advisory"
+    )
+    assert advisory_event["reason"] == "observe_budget_exceeded"
+    assert advisory_event["detail_schema"] == "agent_sdk_observe_budget_advisory_v1"
+    assert advisory_event["detail_summary"]["observe_over_budget_by_waypoint"] == {
         "generated_exploration_001": 2
     }
 
@@ -1461,29 +1590,41 @@ def test_model_input_compaction_reduces_oversized_public_tool_outputs() -> None:
         {"role": "user", "content": "clean the room"},
         {
             "type": "function_call_output",
-            "call_id": "call_inspect_visible_object",
+            "call_id": "call_old_inspect_visible_object",
             "output": large_output,
+        },
+        {
+            "type": "function_call_output",
+            "call_id": "call_latest_inspect_visible_object",
+            "output": large_output.replace("object_1", "object_2"),
+        },
+        {
+            "type": "function_call_output",
+            "call_id": "call_operator_checkpoint",
+            "output": '{"ok":true,"pending_operator_message_count":0}',
         },
     ]
 
     filtered, metrics = _compact_model_input_items(items, min_chars=80)
 
-    assert metrics["input_item_count"] == 2
+    assert metrics["input_item_count"] == 4
     assert metrics["compacted_item_count"] == 1
     assert metrics["input_bytes_after"] < metrics["input_bytes_before"]
     assert filtered[0] == items[0]
-    assert filtered[1]["call_id"] == "call_inspect_visible_object"
+    assert filtered[1]["call_id"] == "call_old_inspect_visible_object"
     replacement = json.loads(filtered[1]["output"])
     assert replacement["schema"] == "roboclaws_public_tool_output_summary_v1"
     assert replacement["original_chars"] == len(large_output)
-    assert "large public observation payload 19" not in json.dumps(filtered)
+    assert filtered[2] == items[2]
+    assert "large public observation payload 19" in filtered[2]["output"]
+    assert filtered[3] == items[3]
 
 
 def test_model_input_compaction_rejects_invalid_min_chars_env(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_INPUT_COMPACTION_MIN_CHARS", "many")
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1536,8 +1677,8 @@ def test_model_input_compaction_rejects_invalid_boolean_settings(
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
     monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1560,8 +1701,8 @@ def test_model_input_compaction_rejects_invalid_direct_policy_limits(
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
     monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1608,8 +1749,8 @@ def test_openai_agents_runtime_rejects_invalid_model_racing_boolean_settings(
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
     monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1661,8 +1802,8 @@ def test_openai_agents_runtime_rejects_invalid_model_racing_numeric_settings(
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
     monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1686,8 +1827,8 @@ def _assert_openai_agents_config_failure(
     detail: str,
 ) -> None:
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1844,8 +1985,8 @@ def test_openai_agents_runtime_preserves_zero_mcp_client_timeout_disable(
     tmp_path: Path,
 ) -> None:
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1916,8 +2057,8 @@ def test_openai_agents_runtime_rejects_conflicting_provider_model_env_settings(
     for key, value in base_env.items():
         monkeypatch.setenv(key, value)
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1938,8 +2079,8 @@ def test_openai_agents_runtime_rejects_unknown_model_env(tmp_path: Path, monkeyp
     monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
     monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_MODEL", "not-in-provider-catalog")
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1962,8 +2103,8 @@ def test_openai_agents_runtime_rejects_route_incompatible_model_env(
     monkeypatch.setenv("ROBOCLAWS_PROVIDER_PROFILE", "minimax-responses")
     monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_MODEL", "gpt-5.5")
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -1993,7 +2134,13 @@ def test_openai_agents_runtime_allows_matching_provider_model_env_aliases(
             captured["model"] = model
 
     class FakeAsyncOpenAI:
-        def __init__(self, *, api_key: str, base_url: str) -> None:
+        def __init__(
+            self,
+            *,
+            api_key: str,
+            base_url: str,
+            default_headers: dict[str, str] | None = None,
+        ) -> None:
             captured["api_key"] = api_key
             captured["base_url"] = base_url
 
@@ -2031,8 +2178,8 @@ def test_openai_agents_runtime_allows_matching_provider_model_env_aliases(
         SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -2200,6 +2347,66 @@ def test_model_input_compaction_keeps_first_metric_map_output_with_opaque_call_i
     assert metrics["metric_map_bytes_before"] > metrics["metric_map_bytes_after"]
 
 
+def test_model_input_compaction_projects_oversized_first_metric_map() -> None:
+    metric_map = {
+        "ok": True,
+        "tool": "metric_map",
+        "map_id": "home",
+        "inspection_waypoints": [{"waypoint_id": "room_2_inspection", "room_id": "room_2"}],
+        "runtime_metric_map": {
+            "public_semantic_anchors": [
+                {
+                    "anchor_id": "anchor_fixture_001",
+                    "category": "sink",
+                    "waypoint_id": "room_2_inspection",
+                }
+            ],
+            "target_candidates": [
+                {
+                    "candidate_id": "candidate_001",
+                    "category": "plate",
+                    "target_actionability_status": "navigation_authorized",
+                    "required_tool": "navigate_to_object",
+                    "destination_options": [
+                        {
+                            "candidate_fixture_id": "anchor_fixture_001",
+                            "recommended_tool": "place",
+                        }
+                    ],
+                }
+            ],
+            "cleanup_worklist_summary": {"pending_count": 1},
+            "target_query_recovery": {"repeated_prose": "x" * 160_000},
+        },
+    }
+    items = [
+        {
+            "type": "function_call_output",
+            "call_id": "call_metric_map_first",
+            "output": json.dumps(metric_map),
+        }
+    ]
+
+    filtered, metrics = _compact_model_input_items(items, min_chars=1200)
+
+    projection = json.loads(filtered[0]["output"])
+    assert projection["schema"] == "roboclaws_oversized_metric_map_snapshot_v1"
+    assert projection["inspection_waypoints"][0]["waypoint_id"] == "room_2_inspection"
+    assert projection["public_semantic_anchors"][0]["anchor_id"] == "anchor_fixture_001"
+    assert projection["target_candidates"][0]["candidate_id"] == "candidate_001"
+    assert (
+        projection["target_candidates"][0]["target_actionability_status"] == "navigation_authorized"
+    )
+    assert projection["target_candidates"][0]["destination_options"][0] == {
+        "candidate_fixture_id": "anchor_fixture_001",
+        "recommended_tool": "place",
+    }
+    assert "repeated_prose" not in filtered[0]["output"]
+    assert projection["cleanup_worklist_summary"] == {"pending_count": 1}
+    assert metrics["oversized_metric_map_compacted_count"] == 1
+    assert metrics["metric_map_bytes_after"] < metrics["metric_map_bytes_before"] / 4
+
+
 def test_model_input_compaction_evicted_raw_fpv_images_keep_latest_frame() -> None:
     items = [
         {
@@ -2262,6 +2469,89 @@ def test_model_input_compaction_evicted_raw_fpv_images_keep_latest_frame() -> No
     assert metrics["raw_fpv_image_evicted_count"] == 1
     assert metrics["raw_fpv_image_bytes_after"] < metrics["raw_fpv_image_bytes_before"]
     assert metrics["raw_fpv_image_bytes_reduced"] > 0
+
+
+def test_model_input_compaction_handles_sdk_nested_raw_fpv_images() -> None:
+    def observe_output(observation_id: str, image_byte: str) -> dict[str, object]:
+        return {
+            "type": "function_call_output",
+            "call_id": f"observe_{observation_id}",
+            "output": [
+                {
+                    "type": "input_text",
+                    "text": json.dumps(
+                        {
+                            "schema": "raw_fpv_mcp_observe_state_v1",
+                            "raw_fpv_observation": {"observation_id": observation_id},
+                        }
+                    ),
+                },
+                {
+                    "type": "input_image",
+                    "image_url": f"data:image/png;base64,{image_byte * 3_000}",
+                },
+            ],
+        }
+
+    items = [observe_output("raw_fpv_001", "a"), observe_output("raw_fpv_002", "b")]
+
+    filtered, metrics = _compact_model_input_items(
+        items,
+        min_chars=1200,
+        raw_fpv_image_memory={
+            "enabled": True,
+            "mode": "retain_latest_full_frame",
+            "retained_full_frame_limit": 1,
+        },
+    )
+
+    assert filtered[0]["output"][0] == items[0]["output"][0]
+    evicted = filtered[0]["output"][1]
+    assert evicted["type"] == "input_text"
+    evicted_summary = json.loads(evicted["text"])
+    assert evicted_summary["schema"] == "raw_fpv_evicted_image_frame_summary_v1"
+    assert evicted_summary["observation_id"] == "raw_fpv_001"
+    assert "a" * 20 not in json.dumps(filtered[0])
+    assert filtered[1] == items[1]
+    assert filtered[1]["output"][1]["type"] == "input_image"
+    assert metrics["raw_fpv_image_item_count"] == 2
+    assert metrics["raw_fpv_image_retained_count"] == 1
+    assert metrics["raw_fpv_image_evicted_count"] == 1
+
+
+def test_model_input_compaction_does_not_summarize_latest_sdk_raw_fpv_image() -> None:
+    item = {
+        "type": "function_call_output",
+        "call_id": "observe_raw_fpv_001",
+        "output": [
+            {
+                "type": "input_text",
+                "text": json.dumps(
+                    {
+                        "schema": "raw_fpv_mcp_observe_state_v1",
+                        "raw_fpv_observation": {"observation_id": "raw_fpv_001"},
+                    }
+                ),
+            },
+            {"type": "input_image", "image_url": "data:image/png;base64," + "a" * 3_000},
+        ],
+    }
+
+    filtered, metrics = _compact_model_input_items(
+        [item],
+        min_chars=1200,
+        public_tool_output_summary=True,
+        raw_fpv_image_memory={
+            "enabled": True,
+            "mode": "retain_latest_full_frame",
+            "retained_full_frame_limit": 1,
+        },
+    )
+
+    assert filtered == [item]
+    assert metrics["compacted_item_count"] == 0
+    assert metrics["raw_fpv_image_item_count"] == 1
+    assert metrics["raw_fpv_image_retained_count"] == 1
 
 
 def test_model_input_compaction_summarizes_old_camera_grounded_history() -> None:
@@ -2594,7 +2884,13 @@ def test_openai_agents_runtime_can_use_kimi_openai_chat_profile(
             captured["model"] = model
 
     class FakeAsyncOpenAI:
-        def __init__(self, *, api_key: str, base_url: str) -> None:
+        def __init__(
+            self,
+            *,
+            api_key: str,
+            base_url: str,
+            default_headers: dict[str, str] | None = None,
+        ) -> None:
             captured["api_key"] = api_key
             captured["base_url"] = base_url
 
@@ -2629,8 +2925,8 @@ def test_openai_agents_runtime_can_use_kimi_openai_chat_profile(
         SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -2658,7 +2954,13 @@ def test_openai_agents_runtime_allows_disabling_mcp_tool_list_cache(
             captured["model"] = model
 
     class FakeAsyncOpenAI:
-        def __init__(self, *, api_key: str, base_url: str) -> None:
+        def __init__(
+            self,
+            *,
+            api_key: str,
+            base_url: str,
+            default_headers: dict[str, str] | None = None,
+        ) -> None:
             pass
 
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
@@ -2693,8 +2995,8 @@ def test_openai_agents_runtime_allows_disabling_mcp_tool_list_cache(
         SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -2712,8 +3014,8 @@ def test_openai_agents_runtime_rejects_invalid_cache_tools_metadata(
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
     monkeypatch.setenv("CODEX_API_KEY", "fake-codex-key")
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -2748,7 +3050,13 @@ def test_openai_agents_runtime_configures_mcp_client_session_timeout(
             captured["model"] = model
 
     class FakeAsyncOpenAI:
-        def __init__(self, *, api_key: str, base_url: str) -> None:
+        def __init__(
+            self,
+            *,
+            api_key: str,
+            base_url: str,
+            default_headers: dict[str, str] | None = None,
+        ) -> None:
             pass
 
     monkeypatch.setenv("CODEX_BASE_URL", "https://codex.example.test/v1")
@@ -2784,8 +3092,8 @@ def test_openai_agents_runtime_configures_mcp_client_session_timeout(
         SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
     )
     request = LiveAgentRequest(
-        run_id="household-world.cleanup",
-        skill_name="molmo-realworld-cleanup",
+        run_id="household-world",
+        skill_name="household-world",
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
@@ -2905,7 +3213,7 @@ def test_openai_agents_cleanup_runner_invokes_sdk_then_checker(tmp_path: Path, m
         server_startup_timeout_s=1.0,
         kickoff_prompt="clean the room",
         backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         policy="openai_agents_agent",
         task="clean",
         min_generated_mess_count="5",
@@ -2929,7 +3237,7 @@ def _assert_context_managed_openai_agents_timing(timing: dict[str, object]) -> N
     assert timing["runtime"] == "openai-agents-live"
     assert timing["surface"] == "household-world"
     assert timing["intent"] == "cleanup"
-    assert timing["task_name"] == "household-world.cleanup"
+    assert timing["task_name"] == "household-world"
     assert timing["evidence_lane"] == "smoke"
     assert timing["mcp_client_session_timeout_s"] == 30.0
     assert timing["agent_sdk_perf_profile"]["schema"] == "agent_sdk_perf_profile_v1"
@@ -3166,7 +3474,7 @@ def test_openai_agents_camera_grounded_composite_profile_adds_private_server_fla
         server_startup_timeout_s=1.0,
         kickoff_prompt="clean the room",
         backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         policy="openai_agents_agent",
         task="clean",
         min_generated_mess_count="5",
@@ -3282,7 +3590,7 @@ def test_openai_agents_robot_view_capture_policy_adds_private_server_flag(
         server_startup_timeout_s=1.0,
         kickoff_prompt="clean the room",
         backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         policy="openai_agents_agent",
         task="clean",
         min_generated_mess_count="5",
@@ -3309,7 +3617,7 @@ def test_openai_agents_camera_grounded_composite_rerenders_stale_two_step_prompt
     args = Namespace(
         kickoff_prompt=stale_prompt,
         profile="camera-grounded-labels",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         task="clean",
         min_generated_mess_count="5",
     )
@@ -3339,7 +3647,7 @@ def test_openai_agents_camera_grounded_composite_rerenders_map_build_prompt() ->
     args = Namespace(
         kickoff_prompt=stale_prompt,
         profile="camera-grounded-labels",
-        run_id="household-world.map-build",
+        run_id="household-world",
         intent="map-build",
         task="build a Runtime Metric Map",
         min_generated_mess_count="0",
@@ -3359,7 +3667,8 @@ def test_openai_agents_camera_grounded_composite_rerenders_map_build_prompt() ->
     assert "declare_visual_candidates for each raw FPV observation" in stale_prompt
     assert "observe_camera_grounded_candidates" in prompt
     assert "after navigating to each public inspection waypoint" in prompt
-    assert "Use at most one observe_camera_grounded_candidates response per waypoint_id" in prompt
+    assert "Prefer one observe_camera_grounded_candidates response per waypoint_id" in prompt
+    assert "One bounded re-observation is allowed" in prompt
     assert "Do not resume the older observe plus declare_visual_candidates cadence" in prompt
     assert "declare_visual_candidates for each raw FPV observation" not in prompt
     assert "Do not pick, place, place_inside" in prompt
@@ -3458,7 +3767,7 @@ def test_openai_agents_camera_grounded_composite_runner_rerenders_stale_two_step
         server_startup_timeout_s=1.0,
         kickoff_prompt=stale_prompt,
         backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         policy="openai_agents_agent",
         task="clean",
         min_generated_mess_count="5",
@@ -3483,7 +3792,7 @@ def test_openai_agents_cleanup_runner_loads_canonical_skill_context(
 ) -> None:
     run_dir = tmp_path / "run"
     repo_root = tmp_path / "repo"
-    skill_path = repo_root / "skills/molmo-realworld-cleanup/SKILL.md"
+    skill_path = repo_root / "skills/household-world/SKILL.md"
     skill_path.parent.mkdir(parents=True)
     skill_text = "# Molmo Real-World Cleanup\n\nCall metric_map first."
     skill_path.write_text(skill_text, encoding="utf-8")
@@ -3527,7 +3836,7 @@ def test_openai_agents_cleanup_runner_loads_canonical_skill_context(
                 json.dumps(
                     {
                         "schema": "openai_agents_skill_context_v1",
-                        "skill_name": "molmo-realworld-cleanup",
+                        "skill_name": "household-world",
                         "included": True,
                         "sha256": request.metadata["skill_context"]["sha256"],
                     }
@@ -3593,7 +3902,7 @@ def test_openai_agents_cleanup_runner_loads_canonical_skill_context(
         server_startup_timeout_s=1.0,
         kickoff_prompt="clean the room",
         backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         policy="openai_agents_agent",
         task="clean",
         min_generated_mess_count="5",
@@ -3609,12 +3918,10 @@ def test_openai_agents_cleanup_runner_loads_canonical_skill_context(
     skill_context = captured_contexts[0]
     assert skill_context["included"] is True
     assert skill_context["content"] == skill_text
-    assert skill_context["relative_path"] == "skills/molmo-realworld-cleanup/SKILL.md"
+    assert skill_context["relative_path"] == "skills/household-world/SKILL.md"
     timing = json.loads((run_dir / "live_timing.json").read_text(encoding="utf-8"))
     assert timing["agent_sdk_skill_context"]["included"] is True
-    assert timing["agent_sdk_skill_context"]["relative_path"] == (
-        "skills/molmo-realworld-cleanup/SKILL.md"
-    )
+    assert timing["agent_sdk_skill_context"]["relative_path"] == ("skills/household-world/SKILL.md")
     assert timing["agent_sdk_skill_context"]["bytes"] == len(skill_text.encode("utf-8"))
     assert "content" not in timing["agent_sdk_skill_context"]
     assert skill_text not in json.dumps(timing)
@@ -3623,12 +3930,12 @@ def test_openai_agents_cleanup_runner_loads_canonical_skill_context(
 def test_agent_sdk_skill_context_loader_reports_missing_source(tmp_path: Path) -> None:
     context = _load_agent_sdk_skill_context(
         tmp_path / "repo",
-        skill_name="molmo-realworld-cleanup",
+        skill_name="household-world",
     )
 
     assert context["included"] is False
     assert context["reason"] == "source_unavailable"
-    assert context["relative_path"] == "skills/molmo-realworld-cleanup/SKILL.md"
+    assert context["relative_path"] == "skills/household-world/SKILL.md"
     assert "content" not in context
 
 
@@ -3741,7 +4048,7 @@ def test_openai_agents_cleanup_runner_continues_incomplete_sdk_turn(
         server_startup_timeout_s=1.0,
         kickoff_prompt="clean the room",
         backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         policy="openai_agents_agent",
         task="clean",
         min_generated_mess_count="5",
@@ -3898,7 +4205,7 @@ def test_openai_agents_cleanup_runner_compact_continuation_excludes_full_prompt(
         server_startup_timeout_s=1.0,
         kickoff_prompt=full_prompt,
         backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         policy="openai_agents_agent",
         task="clean",
         min_generated_mess_count="5",
@@ -3918,6 +4225,382 @@ def test_openai_agents_cleanup_runner_compact_continuation_excludes_full_prompt(
     timing = json.loads((run_dir / "live_timing.json").read_text(encoding="utf-8"))
     assert timing["openai_agents_attempts"][0]["recovery_action"] == "continue"
     assert timing["openai_agents_attempts"][0]["continuation_prompt_chars"] == len(prompts[1])
+
+
+def test_raw_fpv_compact_continuation_preserves_scan_progress_and_done_blockers(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    events = [
+        {
+            "event": "molmo_realworld_cleanup_mcp_initialized",
+            "evidence_lane": "camera-raw-fpv",
+            "goal_contract": {
+                "surface": "household-world",
+                "intent": "cleanup",
+                "normalized_goal": "clean the room",
+            },
+        },
+        {
+            "event": "response",
+            "tool": "observe",
+            "response": {"ok": True, "waypoint_id": "room_2_inspection"},
+        },
+        {
+            "event": "response",
+            "tool": "observe",
+            "response": {"ok": True, "waypoint_id": "room_2_inspection"},
+        },
+        {
+            "event": "response",
+            "tool": "observe",
+            "response": {"ok": True, "waypoint_id": "room_3_inspection"},
+        },
+        {
+            "event": "response",
+            "tool": "done",
+            "response": {
+                "ok": False,
+                "status": "blocked",
+                "completion": {
+                    "blockers": [
+                        {
+                            "type": "insufficient_grounded_cleanup_chains",
+                            "current": 2,
+                            "required": 4,
+                            "required_tool": "navigate_to_visual_candidate",
+                            "recovery_hint": "continue the cleanup loop",
+                        }
+                    ]
+                },
+            },
+        },
+    ]
+    (run_dir / "trace.jsonl").write_text(
+        "\n".join(json.dumps(event) for event in events) + "\n",
+        encoding="utf-8",
+    )
+
+    prompt = _compact_continuation_prompt(
+        run_dir,
+        profile={"profile_id": "context_managed_v1", "raw_fpv_candidate_budget": 24},
+        context_metrics={},
+    )
+
+    assert "RAW-FPV continuation" in prompt
+    assert "do not call done again" in prompt
+    assert '"room_2_inspection": 2' in prompt
+    assert '"room_3_inspection": 1' in prompt
+    assert '"current": 2' in prompt
+    assert '"required": 4' in prompt
+    assert (
+        prompt.count("navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90)") == 1
+    )
+    assert (
+        "visit each listed waypoint at most once, call "
+        "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=45) once" in prompt
+    )
+    assert "left, right, bottom, or top FPV edge" in prompt
+    assert "for a left-edge candidate use yaw_delta_deg=45" in prompt
+    assert "for a right-edge candidate use yaw_delta_deg=-45" in prompt
+    assert "for a bottom-edge candidate use pitch_delta_deg=20" in prompt
+    assert "for a top-edge candidate use pitch_delta_deg=-20" in prompt
+    assert "overlap without a clear edge direction" in prompt
+    assert "never reuse the original sliver bbox" in prompt
+    assert "insufficient_raw_fpv_overlap_probe_coverage" in prompt
+    assert "adjust_camera(yaw_delta_deg=45, pitch_delta_deg=20) once" in prompt
+    assert "normal waypoint observe count is exhausted" in prompt
+
+
+def test_compact_continuation_preserves_latest_public_actionable_done_state(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    destination = {
+        "candidate_fixture_id": "anchor_fixture_fridge",
+        "candidate_fixture_category": "fridge",
+        "recommended_tool": "place_inside",
+        "candidate_source": "runtime_public_semantic_anchor",
+        "waypoint_id": "room_3_inspection",
+        "private_fixture_id": "fixture_private_1",
+    }
+    events = [
+        {
+            "event": "response",
+            "tool": "done",
+            "response": {
+                "ok": False,
+                "completion": {
+                    "blockers": [
+                        {
+                            "type": "pending_cleanup_candidates",
+                            "pending_cleanup_candidates": [
+                                {"object_id": "stale_object", "state": "pending"}
+                            ],
+                        }
+                    ]
+                },
+            },
+        },
+        {
+            "event": "response",
+            "tool": "done",
+            "response": {
+                "ok": False,
+                "completion": {
+                    "blockers": [
+                        {
+                            "type": "pending_cleanup_candidates",
+                            "required_tool": "navigate_to_receptacle",
+                            "pending_cleanup_candidates": [
+                                {
+                                    "object_id": "observed_pending",
+                                    "category": "cup",
+                                    "state": "pending",
+                                    "candidate_state": "navigation_authorized",
+                                    "required_tool": "navigate_to_object",
+                                    "private_target_id": "target_private_1",
+                                },
+                                {
+                                    "object_id": "observed_held",
+                                    "category": "food",
+                                    "state": "held",
+                                    "candidate_state": "navigation_authorized",
+                                    "required_tool": "navigate_to_receptacle",
+                                    "destination_options": [destination],
+                                },
+                            ],
+                        },
+                        {
+                            "type": "insufficient_sweep_coverage",
+                            "required_tool": "navigate_to_waypoint",
+                            "next_waypoint_id": "room_4_inspection",
+                            "unvisited_waypoint_ids": [
+                                "room_4_inspection",
+                                "room_5_inspection",
+                            ],
+                        },
+                    ]
+                },
+            },
+        },
+    ]
+    (run_dir / "trace.jsonl").write_text(
+        "\n".join(json.dumps(event) for event in events) + "\n",
+        encoding="utf-8",
+    )
+
+    state = _compact_continuation_state(run_dir, profile={}, context_metrics={})
+    prompt = _compact_continuation_prompt(run_dir, profile={}, context_metrics={})
+
+    assert [item["object_id"] for item in state["actionable_pending_candidates"]] == [
+        "observed_held",
+        "observed_pending",
+    ]
+    assert state["actionable_pending_candidates"][0]["destination_options"] == [
+        {key: value for key, value in destination.items() if key != "private_fixture_id"}
+    ]
+    assert "private_target_id" not in json.dumps(state)
+    assert "stale_object" not in json.dumps(state)
+    assert state["next_unvisited_waypoint"] == "room_4_inspection"
+    assert state["unvisited_waypoint_ids"] == [
+        "room_4_inspection",
+        "room_5_inspection",
+    ]
+    assert state["next_requested_action"] == (
+        "finish held candidates using public destination_options before other work"
+    )
+    assert "first finish held entries" in prompt
+    assert "then advance pending entries" in prompt
+    assert "then continue the public sweep" in prompt
+
+
+def test_raw_fpv_compact_continuation_reconciles_scan_and_candidate_progress(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    events: list[dict[str, object]] = []
+    for waypoint_id in ("room_2_inspection", "room_3_inspection"):
+        for _ in range(4):
+            events.append(
+                {
+                    "event": "response",
+                    "tool": "observe",
+                    "response": {"ok": True, "waypoint_id": waypoint_id},
+                }
+            )
+    events.extend(
+        [
+            {
+                "event": "response",
+                "tool": "observe",
+                "response": {"ok": False, "waypoint_id": "room_4_inspection"},
+            },
+            {
+                "event": "request",
+                "tool": "navigate_to_visual_candidate",
+                "request": {
+                    "source_observation_id": "raw_fpv_001",
+                    "category": "cup",
+                    "image_region": {"type": "bbox", "value": [10, 20, 30, 40]},
+                },
+            },
+            {
+                "event": "response",
+                "tool": "navigate_to_visual_candidate",
+                "response": {
+                    "ok": False,
+                    "status": "error",
+                    "error_reason": "visual_candidate_not_resolved",
+                    "object_id": "observed_001",
+                },
+            },
+            {
+                "event": "response",
+                "tool": "done",
+                "response": {
+                    "ok": False,
+                    "status": "blocked",
+                    "completion": {
+                        "blockers": [
+                            {
+                                "type": "insufficient_grounded_cleanup_chains",
+                                "current": 1,
+                                "required": 4,
+                            },
+                            {
+                                "type": "insufficient_waypoint_coverage",
+                                "current": 1,
+                                "required": 3,
+                            },
+                        ]
+                    },
+                },
+            },
+            {
+                "event": "response",
+                "tool": "place",
+                "response": {"ok": True, "status": "ok", "object_id": "observed_002"},
+            },
+            {
+                "event": "response",
+                "tool": "place",
+                "response": {"ok": False, "status": "error", "object_id": "observed_bad"},
+            },
+        ]
+    )
+    (run_dir / "trace.jsonl").write_text(
+        "\n".join(json.dumps(event) for event in events) + "\n",
+        encoding="utf-8",
+    )
+    profile = {
+        "profile_id": "context_managed_v1",
+        "raw_fpv_candidate_budget": 24,
+        "max_observe_per_waypoint": 4,
+    }
+
+    state = _compact_continuation_state(run_dir, profile=profile, context_metrics={})
+    prompt = _compact_continuation_prompt(run_dir, profile=profile, context_metrics={})
+
+    assert state["completed_waypoints"] == ["room_2_inspection", "room_3_inspection"]
+    assert state["scan_exhausted_waypoints"] == ["room_2_inspection", "room_3_inspection"]
+    assert state["remaining_observes_by_waypoint"] == {
+        "room_2_inspection": 0,
+        "room_3_inspection": 0,
+    }
+    assert state["raw_fpv_candidate_budget"] == {
+        "attempted": 1,
+        "limit": 24,
+        "remaining": 23,
+    }
+    assert state["handled_object_handles"] == ["observed_002"]
+    assert state["latest_done_blockers"][0]["current"] == 2
+    assert state["latest_done_blockers"][0]["progress_source"] == ("trace_reconciled_after_done")
+    assert state["latest_done_blockers"][1] == {
+        "type": "insufficient_waypoint_coverage",
+        "current": 1,
+        "required": 3,
+    }
+    assert state["recent_failed_candidate_attempts"][0]["error_reason"] == (
+        "visual_candidate_not_resolved"
+    )
+    assert "do not broad re-sweep exhausted waypoints" in prompt.lower()
+
+
+def test_raw_fpv_compact_continuation_prioritizes_candidate_free_waypoints(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    events = [
+        {
+            "event": "response",
+            "tool": "metric_map",
+            "response": {
+                "ok": True,
+                "inspection_waypoints": [
+                    {"waypoint_id": "room_2_inspection"},
+                    {"waypoint_id": "room_3_inspection"},
+                    {"waypoint_id": "room_8_inspection"},
+                ],
+            },
+        },
+        {
+            "event": "response",
+            "tool": "observe",
+            "response": {
+                "ok": True,
+                "waypoint_id": "room_2_inspection",
+                "raw_fpv_observation": {"observation_id": "raw_fpv_001"},
+            },
+        },
+        {
+            "event": "request",
+            "tool": "navigate_to_visual_candidate",
+            "request": {"source_observation_id": "raw_fpv_001", "category": "plate"},
+        },
+        {
+            "event": "response",
+            "tool": "observe",
+            "response": {
+                "ok": True,
+                "waypoint_id": "room_3_inspection",
+                "raw_fpv_observation": {"observation_id": "raw_fpv_003"},
+            },
+        },
+        {
+            "event": "response",
+            "tool": "observe",
+            "response": {
+                "ok": True,
+                "waypoint_id": "room_8_inspection",
+                "compact_observation": {"raw_fpv_observation": {"observation_id": "raw_fpv_002"}},
+            },
+        },
+    ]
+    (run_dir / "trace.jsonl").write_text(
+        "\n".join(json.dumps(event) for event in events) + "\n",
+        encoding="utf-8",
+    )
+    profile = {
+        "profile_id": "context_managed_v1",
+        "raw_fpv_candidate_budget": 24,
+        "max_observe_per_waypoint": 4,
+    }
+
+    state = _compact_continuation_state(run_dir, profile=profile, context_metrics={})
+    prompt = _compact_continuation_prompt(run_dir, profile=profile, context_metrics={})
+
+    assert state["candidate_attempt_counts_by_waypoint"] == {"room_2_inspection": 1}
+    assert state["candidate_free_scan_waypoints"] == [
+        "room_8_inspection",
+        "room_3_inspection",
+    ]
+    assert "Prefer candidate_free_scan_waypoints" in prompt
+    assert "empty default fpv view is not evidence" in prompt.lower()
 
 
 def test_openai_agents_cleanup_runner_compact_continuation_preserves_composite_cadence(
@@ -4047,7 +4730,7 @@ def test_openai_agents_cleanup_runner_compact_continuation_preserves_composite_c
         server_startup_timeout_s=1.0,
         kickoff_prompt=full_prompt,
         backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         policy="openai_agents_agent",
         task="clean",
         min_generated_mess_count="5",
@@ -4158,7 +4841,7 @@ def test_openai_agents_cleanup_runner_uses_profiled_compact_kickoff_prompt(
         server_startup_timeout_s=1.0,
         kickoff_prompt="FULL PROMPT THAT SHOULD BE REPLACED",
         backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         policy="openai_agents_agent",
         task="clean",
         min_generated_mess_count="5",
@@ -4216,6 +4899,80 @@ def test_incomplete_turn_recovery_compacts_after_context_soft_limit(tmp_path: Pa
     assert "ORIGINAL FULL PROMPT" not in prompt
 
 
+def test_context_budget_result_recovers_with_compact_continuation(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "trace.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "molmo_realworld_cleanup_mcp_initialized",
+                "evidence_lane": "camera-raw-fpv",
+                "goal_contract": {
+                    "surface": "household-world",
+                    "intent": "cleanup",
+                    "normalized_goal": "clean the room",
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    result = LiveAgentResult(
+        phase="failed",
+        exit_status=1,
+        reason="provider_context_budget_exceeded",
+    )
+
+    prompt = IncompleteTurnRecoveryPolicy(max_attempts=2).continuation_prompt(
+        original_prompt="ORIGINAL FULL PROMPT",
+        result=result,
+        run_dir=run_dir,
+        attempt_index=0,
+        profile={
+            "profile_id": "context_managed_v1",
+            "continuation_mode": "state_summary_only",
+            "raw_fpv_candidate_budget": 24,
+        },
+        context_metrics={"available": True, "max_input_tokens": 128_000},
+    )
+
+    assert prompt is not None
+    assert "compact_continuation_state" in prompt
+    assert "RAW-FPV continuation" in prompt
+    assert "ORIGINAL FULL PROMPT" not in prompt
+
+
+def test_compact_continuation_preserves_map_build_intent(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "trace.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "molmo_realworld_cleanup_mcp_initialized",
+                "evidence_lane": "world-public-labels",
+                "goal_contract": {
+                    "surface": "household-world",
+                    "intent": "map-build",
+                    "normalized_goal": "build runtime map evidence",
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    prompt = _compact_continuation_prompt(
+        run_dir,
+        profile={"profile_id": "context_managed_v1"},
+        context_metrics={},
+    )
+
+    assert "same live household map-build run" in prompt
+    assert "Continue only missing public map sweep" in prompt
+    assert "Do not pick, place, or perform cleanup manipulation" in prompt
+    assert "continue only missing cleanup work" not in prompt
+
+
 def test_openai_agents_budget_guard_classifies_context_hard_limit(tmp_path: Path) -> None:
     run_dir = tmp_path / "run"
     run_dir.mkdir()
@@ -4249,6 +5006,55 @@ def test_openai_agents_budget_guard_classifies_context_hard_limit(tmp_path: Path
     assert detail["current_input_tokens"] == 150
     assert detail["total_input_tokens"] == 150
     assert detail["context_hard_limit_tokens"] == 100
+
+
+def test_context_budget_guard_is_scoped_to_current_attempt_spans(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    base_spans = run_dir / "openai-agents-spans.jsonl"
+    continuation_spans = run_dir / "openai-agents-spans.continuation-1.jsonl"
+    base_spans.write_text(
+        json.dumps(
+            {
+                "event": "span_end",
+                "span_type": "response",
+                "usage": {"input_tokens": 150},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    continuation_spans.write_text(
+        json.dumps(
+            {
+                "event": "span_end",
+                "span_type": "response",
+                "usage": {"input_tokens": 80},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    profile = {"context_hard_limit_tokens": 100}
+
+    assert (
+        openai_agents_budget_failure(
+            run_dir,
+            {},
+            profile,
+            context_spans_path=continuation_spans,
+        )
+        is None
+    )
+    assert (
+        openai_agents_budget_failure(
+            run_dir,
+            {},
+            profile,
+            context_spans_path=base_spans,
+        ).reason
+        == "provider_context_budget_exceeded"
+    )
 
 
 def test_openai_agents_budget_guard_uses_current_context_not_cumulative_tokens(
@@ -4368,15 +5174,9 @@ def test_openai_agents_budget_guard_classifies_repeated_raw_fpv_failures(
                 {
                     "event": "response",
                     "tool": "navigate_to_visual_candidate",
-                    "request": {
-                        "source_observation_id": "raw_fpv_001",
-                        "category": "cup",
-                        "image_region": {"type": "bbox", "value": [1, 2, 3, 4]},
-                    },
                     "response": {
                         "ok": False,
-                        "source_observation_id": "raw_fpv_001",
-                        "category": "cup",
+                        "object_id": f"observed_{len(events):03d}",
                         "error_reason": "source_observation_locality_unresolved",
                     },
                 },
@@ -4414,12 +5214,139 @@ def test_openai_agents_budget_guard_classifies_repeated_raw_fpv_failures(
     assert "image_region" not in json.dumps(detail)
 
 
-def test_openai_agents_budget_guard_classifies_label_lane_observe_budget(
+def test_openai_agents_budget_guard_ignores_success_status_as_failure() -> None:
+    metrics = raw_fpv_budget_metrics(
+        [
+            {
+                "event": "request",
+                "tool": "navigate_to_visual_candidate",
+                "request": {
+                    "source_observation_id": "raw_fpv_001",
+                    "category": "book",
+                    "image_region": {"type": "bbox", "value": [1, 2, 3, 4]},
+                },
+            },
+            {
+                "event": "response",
+                "tool": "navigate_to_visual_candidate",
+                "response": {"ok": True, "status": "ok", "object_id": "observed_001"},
+            },
+        ]
+    )
+
+    assert metrics["candidate_attempt_count"] == 1
+    assert metrics["repeated_failure_fingerprints"] == []
+
+
+def test_raw_fpv_budget_pairs_mixed_embedded_and_fifo_responses() -> None:
+    def request(source_id: str, category: str) -> dict[str, object]:
+        return {
+            "event": "request",
+            "tool": "navigate_to_visual_candidate",
+            "request": {
+                "source_observation_id": source_id,
+                "category": category,
+                "image_region": {"type": "bbox", "value": [10, 20, 30, 40]},
+            },
+        }
+
+    first = request("raw_fpv_001", "cup")
+    second = request("raw_fpv_002", "book")
+    metrics = raw_fpv_budget_metrics(
+        [
+            first,
+            {
+                "event": "response",
+                "tool": "navigate_to_visual_candidate",
+                "request": first["request"],
+                "response": {"ok": False, "error_reason": "not_resolved"},
+            },
+            second,
+            {
+                "event": "response",
+                "tool": "navigate_to_visual_candidate",
+                "response": {"ok": False, "error_reason": "not_resolved"},
+            },
+        ]
+    )
+
+    assert [item["category"] for item in metrics["failed_candidate_attempts_sample"]] == [
+        "cup",
+        "book",
+    ]
+
+
+def test_raw_fpv_repeated_failures_are_scoped_to_materially_same_view() -> None:
+    def observe(source_id: str, yaw_delta_deg: float) -> dict[str, object]:
+        return {
+            "event": "response",
+            "tool": "observe",
+            "response": {
+                "ok": True,
+                "waypoint_id": "room_2_inspection",
+                "raw_fpv_observation": {
+                    "observation_id": source_id,
+                    "camera_offset": {
+                        "yaw_delta_deg": yaw_delta_deg,
+                        "pitch_delta_deg": 0,
+                    },
+                },
+            },
+        }
+
+    def failed_attempt(source_id: str) -> list[dict[str, object]]:
+        return [
+            {
+                "event": "request",
+                "tool": "navigate_to_visual_candidate",
+                "request": {
+                    "source_observation_id": source_id,
+                    "category": "cup",
+                    "image_region": {"type": "bbox", "value": [10, 20, 30, 40]},
+                },
+            },
+            {
+                "event": "response",
+                "tool": "navigate_to_visual_candidate",
+                "response": {"ok": False, "error_reason": "not_resolved"},
+            },
+        ]
+
+    metrics = raw_fpv_budget_metrics(
+        [
+            observe("raw_fpv_001", 0),
+            *failed_attempt("raw_fpv_001"),
+            observe("raw_fpv_002", 45),
+            *failed_attempt("raw_fpv_002"),
+            observe("raw_fpv_003", 45),
+            *failed_attempt("raw_fpv_003"),
+        ]
+    )
+
+    assert len(metrics["repeated_failure_fingerprints"]) == 1
+    assert metrics["repeated_failure_fingerprints"][0]["count"] == 2
+
+
+def test_openai_agents_budget_guard_reports_label_lane_observe_budget_as_advisory(
     tmp_path: Path,
 ) -> None:
     run_dir = tmp_path / "run"
     run_dir.mkdir()
     events = [
+        {
+            "event": "response",
+            "tool": "observe",
+            "response": {
+                "ok": False,
+                "waypoint_id": "generated_exploration_001",
+                "error_reason": "capture_failed",
+            },
+        },
+        {
+            "event": "response",
+            "tool": "observe",
+            "response": {"ok": True},
+        },
         {
             "event": "response",
             "tool": "observe",
@@ -4436,26 +5363,30 @@ def test_openai_agents_budget_guard_classifies_label_lane_observe_budget(
         encoding="utf-8",
     )
 
+    timing = {"evidence_lane": "camera-grounded-labels", "cache_tools_list": True}
+    profile = {
+        "profile_id": "context_managed_v1",
+        "context_hard_limit_tokens": None,
+        "raw_fpv_candidate_budget": None,
+        "raw_fpv_repeated_failure_limit": None,
+        "max_observe_per_waypoint": 1,
+    }
+
     failure = _budget_failure_from_run_state(
         run_dir,
-        {"evidence_lane": "camera-grounded-labels", "cache_tools_list": True},
-        {
-            "profile_id": "context_managed_v1",
-            "context_hard_limit_tokens": None,
-            "raw_fpv_candidate_budget": None,
-            "raw_fpv_repeated_failure_limit": None,
-            "max_observe_per_waypoint": 1,
-        },
+        timing,
+        profile,
     )
+    advisory = openai_agents_observe_budget_advisory(run_dir, timing, profile)
 
-    assert failure is not None
-    assert failure.reason == "observe_budget_exhausted"
-    detail = json.loads(failure.detail)
-    assert detail["schema"] == "agent_sdk_raw_fpv_budget_terminal_v1"
-    assert detail["evidence_lane"] == "camera-grounded-labels"
-    assert detail["reasons"] == ["observe_budget_exhausted"]
-    assert detail["observe_over_budget_by_waypoint"] == {"generated_exploration_001": 2}
-    assert detail["raw_fpv_candidate_budget"] is None
+    assert failure is None
+    assert advisory is not None
+    assert advisory["schema"] == "agent_sdk_observe_budget_advisory_v1"
+    assert advisory["reason"] == "observe_budget_exceeded"
+    assert advisory["evidence_lane"] == "camera-grounded-labels"
+    assert advisory["max_observe_per_waypoint"] == 1
+    assert advisory["observe_count_by_waypoint"] == {"generated_exploration_001": 2}
+    assert advisory["observe_over_budget_by_waypoint"] == {"generated_exploration_001": 2}
 
 
 def test_openai_agents_cleanup_runner_fails_after_bounded_continuation(
@@ -4542,7 +5473,7 @@ def test_openai_agents_cleanup_runner_fails_after_bounded_continuation(
         server_startup_timeout_s=1.0,
         kickoff_prompt="clean the room",
         backend="molmospaces_subprocess",
-        run_id="household-world.cleanup",
+        run_id="household-world",
         policy="openai_agents_agent",
         task="clean",
         min_generated_mess_count="5",
@@ -5120,13 +6051,15 @@ def test_openai_agents_perf_profile_resolves_raw_fpv_budget_defaults(monkeypatch
     )
 
     assert raw["max_turns"] == 128
-    assert raw["max_continuations"] == 1
+    assert raw["max_continuations"] == 2
     assert raw["raw_fpv_candidate_budget"] == 24
     assert raw["raw_fpv_repeated_failure_limit"] == 3
+    assert raw["max_observe_per_waypoint"] == 4
     assert raw["model_input_compaction"]["enabled"] is True
     assert raw["model_input_compaction"]["raw_fpv_image_memory"] == (
         _expected_raw_fpv_image_memory_policy(1)
     )
+    assert raw["model_input_compaction"]["completed_tool_history_limit"] == 24
     assert raw["done_retry_budget"] == 1
 
 
@@ -5158,10 +6091,10 @@ def test_openai_agents_perf_profile_resolves_direct_overrides(monkeypatch) -> No
     assert profile["context_hard_limit_tokens"] == 34
     assert profile["max_observe_per_waypoint"] == 2
     assert profile["raw_fpv_repeated_failure_limit"] == 2
-    assert profile["model_input_compaction"]["candidate_ids"] == ["I", "N", "AA", "AC"]
+    assert profile["model_input_compaction"]["candidate_ids"] == ["I", "N", "AA", "AC", "AH"]
     assert profile["model_input_compaction"]["mode"] == (
         "public_tool_result_summary_v1+repeated_metric_map_delta_v1+raw_fpv_image_memory_v1+"
-        "camera_grounded_history_v1"
+        "camera_grounded_history_v1+completed_tool_history_window_v1"
     )
     assert profile["model_input_compaction"]["enabled"] is True
     assert (
@@ -5193,10 +6126,11 @@ def test_openai_agents_perf_profile_resolves_custom_compaction(monkeypatch) -> N
     assert model_input["enabled"] is True
     assert model_input["mode"] == (
         "public_tool_result_summary_v1+repeated_metric_map_delta_v1+raw_fpv_image_memory_v1+"
-        "camera_grounded_history_v1"
+        "camera_grounded_history_v1+completed_tool_history_window_v1"
     )
     assert model_input["min_chars"] == 80
-    assert model_input["candidate_ids"] == ["I", "N", "AA", "AC"]
+    assert model_input["candidate_ids"] == ["I", "N", "AA", "AC", "AH"]
+    assert model_input["completed_tool_history_limit"] == 24
     assert model_input["hook"] == "RunConfig.call_model_input_filter"
     assert model_input["repeated_metric_map_delta"] is True
     assert model_input["raw_fpv_image_memory"] == _expected_raw_fpv_image_memory_policy(2)
@@ -5791,7 +6725,7 @@ def test_openai_agents_live_timing_timeline_partitions_runner_and_attribution() 
     timing = {
         "surface": "household-world",
         "intent": "open-ended",
-        "task_name": "household-world.open-ended",
+        "task_name": "household-world",
         "runtime": "openai-agents-live",
         "provider_profile": "codex-router-responses",
         "wire_api": "responses",
@@ -5961,7 +6895,7 @@ def test_openai_agents_live_timing_timeline_partitions_runner_and_attribution() 
     assert timeline["schema"] == "live_agent_timeline_v1"
     assert timeline["surface"] == "household-world"
     assert timeline["intent"] == "open-ended"
-    assert timeline["task_name"] == "household-world.open-ended"
+    assert timeline["task_name"] == "household-world"
     assert timeline["runtime"] == "openai-agents-live"
     assert timeline["provider_profile"] == "codex-router-responses"
     assert timeline["wire_api"] == "responses"

@@ -438,9 +438,9 @@ the current source of truth before claiming a run supports a setting.
 
 | Entrypoint | Visible Detections | Raw FPV Only | Camera Labels | Notes |
 |------------|--------------------|--------------|---------------------|-------|
-| `python -m roboclaws.household.realworld_cleanup` | yes | yes | yes | Deterministic cleanup demo and checker path. The example path is only a thin wrapper. |
+| `python -m roboclaws.household.household_world_episode` | yes | yes | yes | Deterministic household-world demo and checker path. The example path is only a thin wrapper. |
 | `scripts/molmo_cleanup/run_molmo_realworld_agent_mcp_smoke.py` | yes | yes | yes | Dogfood/smoke wrapper used by several just recipes; uses model-declared simulated producers where camera-label declarations are exercised. |
-| `python -m roboclaws.cli.agent_server household-world.cleanup` | yes | yes | yes | Direct live-agent server CLI exposes raw-FPV declaration tools and supports the `camera_model_policy` declaration path. |
+| `python -m roboclaws.cli.agent_server household-world` | yes | yes | yes | Direct live-agent server CLI exposes raw-FPV declaration tools and supports the `camera_model_policy` declaration path. |
 | `RealWorldCleanupContract` / `realworld_mcp_server` internals | yes | yes | yes | Internals use `declare_visual_candidates` and `navigate_to_visual_candidate` for camera evidence to handle registration. |
 
 ## Command Taxonomy
@@ -457,7 +457,7 @@ Use `agent::run` and lower `molmo::*` recipes only for maintainer debugging or
 historical report reproduction:
 
 ```bash
-just agent::run household-world.cleanup <agent-engine-or-private-driver> <evidence-lane>
+just agent::run household-world <agent-engine-or-private-driver> <evidence-lane> task_intent=cleanup
 ```
 
 | Axis | Values | Meaning |
@@ -512,7 +512,7 @@ KIMI_API_KEY=...
 ```
 
 SDK repo workflows default to `codex-router-responses` and require
-`CODEX_BASE_URL` plus `CODEX_API_KEY` (`gpt-5.5`, Responses API). They do not
+`CODEX_BASE_URL` plus `CODEX_API_KEY` (`gpt-5.6-sol`, Responses API). They do not
 fall back to `mimo-mify-responses` when `XM_LLM_API_KEY` is present. To use
 `mimo-mify-responses`, set `ROBOCLAWS_PROVIDER_PROFILE=mimo-mify-responses`
 explicitly; that profile uses `XM_LLM_API_KEY`, `xiaomi/mimo-v2.5`, Responses

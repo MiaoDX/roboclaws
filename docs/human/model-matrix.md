@@ -16,7 +16,7 @@ route summary.
 
 | Agent engine | Default provider profile | Default model | Current status |
 | --- | --- | --- | --- |
-| `openai-agents-sdk` | `codex-router-responses` | `gpt-5.5` | Preferred product route for map-build and OpenAI Agents SDK live evals when provider capacity is healthy. |
+| `openai-agents-sdk` | `codex-router-responses` | `gpt-5.6-sol` | Preferred product route when provider capacity is healthy; Router transport compatibility is handled internally. |
 | `direct-runner` | none | none | Deterministic contract/eval baseline; no model route and not a live robot agent. |
 
 Useful explicit profiles:
@@ -44,6 +44,8 @@ Useful explicit profiles:
   it.
 - Do not infer route health from model capability alone; use
   `model-route-verdicts.yaml`.
+- On the work network, repo-local OpenAI Agents SDK routes may run after normal
+  provider readiness checks. OpenClaw and system-provider guards still apply.
 
 ## Update Checklist
 

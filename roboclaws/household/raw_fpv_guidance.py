@@ -6,9 +6,43 @@ from typing import Any
 
 RAW_FPV_DECLARATION_STRATEGY = "inline_on_navigate"
 RAW_FPV_CATEGORY_HINT = "food, dish, book, linen, toy, electronics, or pillow"
+RAW_FPV_PUBLIC_CLEANUP_PRIORITY_EXAMPLES = (
+    ("dish", "bed"),
+    ("dish", "desk"),
+    ("food", "bed"),
+    ("food", "desk"),
+    ("book", "bed"),
+    ("book", "sofa"),
+    ("electronics", "bed"),
+    ("electronics", "dining table"),
+    ("pillow", "dining table"),
+    ("linen", "desk"),
+    ("toy", "bed"),
+)
+RAW_FPV_PUBLIC_SETTLED_EXAMPLES = (
+    ("dish", "sink"),
+    ("dish", "countertop"),
+    ("dish", "dining table"),
+    ("food", "fridge"),
+    ("food", "countertop"),
+    ("food", "dining table"),
+    ("electronics", "TV stand"),
+    ("electronics", "desk"),
+    ("electronics", "sofa"),
+    ("book", "shelf"),
+    ("book", "desk"),
+    ("pillow", "bed"),
+)
 RAW_FPV_HIGH_CONFIDENCE_TARGETS = (
-    "movable dishware or food on a table/counter",
-    "books, electronics, linen, toys, or pillows visibly out of storage",
+    "objects whose visible current support is semantically questionable or wrong for that class",
+    "obvious cases such as "
+    + ", ".join(
+        f"{category} on {support}" for category, support in RAW_FPV_PUBLIC_CLEANUP_PRIORITY_EXAMPLES
+    ),
+    "skip already settled distractors such as "
+    + ", ".join(
+        f"{category} on {support}" for category, support in RAW_FPV_PUBLIC_SETTLED_EXAMPLES
+    ),
     "objects with most of the item inside the current FPV frame",
 )
 RAW_FPV_ACCEPTED_IMAGE_REGION_FORMS: tuple[dict[str, Any], ...] = (
@@ -23,6 +57,23 @@ RAW_FPV_INVALID_FIELDS_TO_AVOID: tuple[str, ...] = (
     'target_fixture_id="None"',
     "target_fixture_id=null",
 )
+
+
+def raw_fpv_edge_reframe_instruction() -> str:
+    return (
+        "Do not declare or act from a tiny sliver. When a likely movable cleanup "
+        "object is clipped at the left, right, bottom, or top FPV edge, or is partly "
+        "occluded or overlapping so its bbox is not reviewable, reframe it at most "
+        "once before continuing the sweep. Call adjust_camera then observe: for a "
+        "left-edge candidate use yaw_delta_deg=45, for a right-edge candidate use "
+        "yaw_delta_deg=-45, for a bottom-edge candidate use pitch_delta_deg=20, and "
+        "for a top-edge candidate use pitch_delta_deg=-20. For overlap without a clear "
+        "edge direction, make one bounded pitch probe with pitch_delta_deg=20; use "
+        "-20 instead only when the candidate is above the frame center. Act only "
+        "from the fresh observation and its new reviewable bbox. If the candidate "
+        "becomes less visible or remains unreviewable, abandon it and continue the "
+        "public waypoint sweep; never reuse the original sliver bbox."
+    )
 
 
 def raw_fpv_inline_candidate_instruction(observation_id: str | None = None) -> str:
@@ -42,6 +93,8 @@ def raw_fpv_inline_candidate_instruction(observation_id: str | None = None) -> s
         "makes it clear (for example plate, cup, potato, remotecontrol, book, or "
         "pillow). Use broader cleanup categories such as "
         f"{RAW_FPV_CATEGORY_HINT} only when the exact object class is uncertain. "
+        + raw_fpv_edge_reframe_instruction()
+        + " "
         "Call navigate_to_visual_candidate with source_observation_id, category, "
         "evidence_note, and image_region before pick. With Base Metric Map "
         "context, omit target_fixture_id and normally omit source_fixture_id; "
@@ -55,9 +108,11 @@ def raw_fpv_inline_candidate_instruction(observation_id: str | None = None) -> s
         "agent-facing FPV object. Verbal regions may clarify a bbox, but they do "
         "not count as an actionable cleanup chain without a reviewable bbox. If "
         "navigate_to_visual_candidate returns visual_candidate_not_resolved, do not "
-        "keep retrying the same source_observation_id/category/region; move to a "
-        "new waypoint or adjust_camera once, observe again, and retry only with a "
-        "fresh source_observation_id and tighter bbox. Never send bbox_normalized, "
+        "keep retrying the same source_observation_id/category/region and do not call "
+        "observe again at an unchanged pose. First move to a new waypoint, rotate the "
+        "robot body, or adjust_camera once; then observe and retry only from the materially "
+        "changed view with a fresh source_observation_id and tighter bbox. Never send "
+        "bbox_normalized, "
         "bare x/y/width/height fields, "
         'target_fixture_id="", target_fixture_id="None", or target_fixture_id=null. '
         "After a successful pick/place for an observed handle, do not act on "

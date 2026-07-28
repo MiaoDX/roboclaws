@@ -91,6 +91,20 @@ _LAUNCH_ONLY_OVERRIDE_KEYS = (
     "scenario_setup",
     "relocation_count",
 )
+_DISPATCH_STRIPPED_OVERRIDE_KEYS = (
+    "agent_engine",
+    "provider_profile",
+    "goal_contract_json",
+    "goal_contract_path",
+    "operator_session_context_json",
+    "evidence_lane",
+    "profile",
+    "report",
+    "run_preset",
+    "preset",
+    "scenario_setup",
+    "relocation_count",
+)
 
 
 class LaunchError(ValueError):
@@ -239,7 +253,7 @@ def _resolve_launch(
         goal_contract_json=goal_contract.to_json(),
     )
     dispatch_overrides = (
-        *_without_launch_only_overrides(plan_overrides),
+        *_without_dispatch_stripped_overrides(plan_overrides),
         *(
             (f"world={world.id}",)
             if backend.implementation_backend == "isaaclab_subprocess"
@@ -750,6 +764,10 @@ def _overrides_with_surface_context(
 
 def _without_launch_only_overrides(overrides: tuple[str, ...]) -> tuple[str, ...]:
     return _without_overrides(overrides, _LAUNCH_ONLY_OVERRIDE_KEYS)
+
+
+def _without_dispatch_stripped_overrides(overrides: tuple[str, ...]) -> tuple[str, ...]:
+    return _without_overrides(overrides, _DISPATCH_STRIPPED_OVERRIDE_KEYS)
 
 
 def _without_overrides(overrides: tuple[str, ...], keys: tuple[str, ...]) -> tuple[str, ...]:

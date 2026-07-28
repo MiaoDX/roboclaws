@@ -14,7 +14,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
@@ -29,6 +29,7 @@ else:
     REPO_ROOT = Path(__file__).resolve().parents[2]
 
 from roboclaws.agents.provider_registry import provider_readiness, resolve_model  # noqa: E402
+from roboclaws.agents.provider_transport import provider_default_headers  # noqa: E402
 from roboclaws.core.json_sources import (  # noqa: E402
     parse_json_object_text,
     read_json_object,
@@ -59,7 +60,7 @@ DEFAULT_RUNTIME_MAP_PRIOR = Path(
     "output/household/direct-map-build/direct-camera-grounded-labels/seed-7/runtime_metric_map.json"
 )
 DEFAULT_OUTPUT_ROOT = Path("output/molmo/raw-fpv-perception-probe")
-DEFAULT_MODEL = "gpt-5.5"
+DEFAULT_MODEL = "gpt-5.6-sol"
 
 SCREEN_GRID_REGIONS = (
     "upper_left",
@@ -933,6 +934,7 @@ def execute_provider_variant(
     if api_config.get("error"):
         return "provider_config_error", [api_config["error"]], predictions
     resolved_model = str(api_config["model"])
+    transport_headers = provider_default_headers(provider, session_seed=output_dir)
     for request in requests:
         request_id = str(request.get("request_id") or "")
         image_paths = [Path(str(path)) for path in request.get("image_paths") or []]
@@ -946,6 +948,7 @@ def execute_provider_variant(
                 prompt=prompt,
                 image_paths=image_paths,
                 timeout_s=timeout_s,
+                extra_headers=transport_headers,
             )
             output_text = _responses_output_text(response_payload)
             parsed = _json_object_from_text(output_text)
@@ -1659,6 +1662,7 @@ def _call_responses_api(
     timeout_s: float,
     image_path: Path | None = None,
     image_paths: Iterable[Path] | None = None,
+    extra_headers: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     paths = list(image_paths or ([] if image_path is None else [image_path]))
     content = [{"type": "input_text", "text": prompt}]
@@ -1677,15 +1681,17 @@ def _call_responses_api(
         ],
     }
     body = json.dumps(payload).encode("utf-8")
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "User-Agent": "roboclaws-raw-fpv-perception-probe/1.0",
+    }
+    headers.update(dict(extra_headers or {}))
     request = urllib.request.Request(
         base_url.rstrip("/") + "/responses",
         data=body,
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "User-Agent": "roboclaws-raw-fpv-perception-probe/1.0",
-        },
+        headers=headers,
         method="POST",
     )
     try:

@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Thin wrapper for the household cleanup direct CLI."""
+"""Thin wrapper for the household-world direct CLI."""
 
 from __future__ import annotations
 
-from roboclaws.household.realworld_cleanup import (
+from roboclaws.household.household_world_episode import (
     SYNTHETIC_BACKEND,
     main,
-    run_realworld_cleanup,
+    run_household_world_episode,
 )
 
-__all__ = ["SYNTHETIC_BACKEND", "main", "run_realworld_cleanup"]
+__all__ = ["SYNTHETIC_BACKEND", "main", "run_household_world_episode"]
 
 
 if __name__ == "__main__":
