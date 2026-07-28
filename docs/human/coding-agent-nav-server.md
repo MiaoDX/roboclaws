@@ -37,7 +37,7 @@ Copy `.env.example` to `.env`, then fill the keys you have. OpenAI Agents SDK
 defaults to `codex-router-responses` and requires `CODEX_BASE_URL` plus
 `CODEX_API_KEY`. To use `mimo-mify-responses`, set
 `ROBOCLAWS_PROVIDER_PROFILE=mimo-mify-responses` explicitly with
-`XM_LLM_API_KEY`. To use MiniMax's Responses-compatible route, set
+`XM_LLM_API_KEY`; this route uses `xiaomi/mimo-v2.5-pro`. To use MiniMax's Responses-compatible route, set
 `ROBOCLAWS_PROVIDER_PROFILE=minimax-responses` with `MM_API_KEY`; it defaults to
 `MiniMax-M3`. M3 is the only current MiniMax model in the active route catalog.
 
@@ -48,9 +48,10 @@ models, required env keys, wire API, route health, and route capabilities.
 Evidence-lane gating stays separate from provider metadata: `camera-raw-fpv`
 requires model image input plus verified runtime image transport, while
 structured lanes such as `world-public-labels` and `camera-grounded-labels`
-can use text-only routes. MiMo inside `mimo-1000` is default-enabled for
-on-demand benchmark and explicit OpenAI-Agents-SDK text experiments, not a
-product cleanup default. Kimi OpenAI Chat defaults to `kimi-k2.7-code`; keep
+can use text-only routes. MiMo defaults use only Mify Pro. The token-plan and
+Inside profiles remain addressable for explicit diagnostics but are excluded
+from default selection; the Inside `mimo-1000` channel is unavailable. Kimi
+OpenAI Chat defaults to `kimi-k2.7-code`; keep
 that canonical model id because the provider accepts and echoes arbitrary K2.7
 suffixes. OpenAI Agents SDK routes use
 `ROBOCLAWS_OPENAI_AGENTS_THINKING_MODE=default|enabled|disabled`. Responses

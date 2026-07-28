@@ -5,10 +5,10 @@ from unittest.mock import patch
 import pytest
 
 from roboclaws.agents.provider_registry import (
+    ROUTE_BLOCKED,
     ROUTE_CAP_UNKNOWN,
     ROUTE_EXPERIMENTAL,
     ROUTE_HEALTHY,
-    ROUTE_PROVISIONAL,
     _main,
     default_enabled_models,
     default_enabled_provider_routes,
@@ -46,8 +46,8 @@ def test_provider_registry_exposes_aliases_without_duplicate_source() -> None:
     assert aliases["mimo"] == "mimo-v2.5"
     assert aliases["mimo-v2.5"] == "mimo-v2.5"
     assert aliases["mimo-ultraspeed"] == "mimo-1000"
+    assert aliases["mimo-mify-v2.5-pro"] == "xiaomi/mimo-v2.5-pro"
     assert aliases["kimi-code"] == "kimi-k2.7-code"
-    assert "mimo-v2.5-" + "pro" not in aliases
     assert "mimo-" + "omni" not in aliases
     assert "mimo-v2-" + "omni" not in aliases
 
@@ -87,7 +87,9 @@ def test_registry_marks_mify_responses_sdk_only() -> None:
 
     assert route.supported_engines == ("openai-agents-sdk",)
     assert route.wire_api == "responses"
-    assert route.default_model_id == "xiaomi/mimo-v2.5"
+    assert route.default_model_id == "xiaomi/mimo-v2.5-pro"
+    assert route.compatible_model_ids == ("xiaomi/mimo-v2.5-pro",)
+    assert route.status_for_engine("openai-agents-sdk") == ROUTE_HEALTHY
 
 
 def test_kimi_openai_chat_defaults_to_current_code_model() -> None:
@@ -103,7 +105,7 @@ def test_kimi_openai_chat_defaults_to_current_code_model() -> None:
     assert "arbitrary K2.7 suffixes" in model.default_use_note
 
 
-def test_default_enabled_routes_include_requested_api_sources() -> None:
+def test_default_enabled_routes_use_only_mify_for_mimo() -> None:
     routes = default_enabled_provider_routes()
     route_ids = {route.route_id for route in routes}
     public_profiles = {route.public_profile for route in routes}
@@ -112,41 +114,47 @@ def test_default_enabled_routes_include_requested_api_sources() -> None:
     assert {
         "codex-router-responses",
         "mimo-mify-responses",
-        "mimo-tp-openai-chat",
-        "mimo-inside-openai-chat",
         "minimax-responses",
         "kimi-openai-chat",
     } <= route_ids
     assert {
         "codex-router-responses",
         "mimo-mify-responses",
-        "mimo-tp-openai-chat",
-        "mimo-inside-openai-chat",
         "minimax-responses",
         "kimi-openai-chat",
     } <= public_profiles
     assert {
         "gpt-5.6-sol",
-        "xiaomi/mimo-v2.5",
-        "mimo-v2.5",
-        "mimo-1000",
+        "xiaomi/mimo-v2.5-pro",
         "MiniMax-M3",
         "kimi-k2.7-code",
     } <= model_ids
+    assert "mimo-v2.5" not in model_ids
+    assert "mimo-1000" not in model_ids
     assert "MiniMax-M2.7-highspeed" not in model_ids
     assert "kimi-k2.7-code-highspeed" not in model_ids
 
 
-def test_mimo_inside_is_default_enabled_openai_chat_route() -> None:
+def test_mimo_inside_is_paused_but_remains_available_for_diagnostics() -> None:
     route = provider_route_spec("mimo-inside-openai-chat")
 
     assert route.default_model_id == "mimo-1000"
-    assert route.default_use is True
+    assert route.default_use is False
     assert route.supported_engines == ("openai-agents-sdk",)
     assert route.base_url_env == "MIMO_BASE_URL"
     assert route.api_key_env == "MIMO_API_KEY"
     assert route.required_env_keys == ("MIMO_BASE_URL", "MIMO_API_KEY")
-    assert route.status_for_engine("openai-agents-sdk") == ROUTE_PROVISIONAL
+    assert route.status_for_engine("openai-agents-sdk") == ROUTE_BLOCKED
+
+
+def test_mimo_token_plan_is_paused_but_remains_available_for_diagnostics() -> None:
+    route = provider_route_spec("mimo-tp-openai-chat")
+
+    assert route.default_model_id == "mimo-v2.5"
+    assert route.default_use is False
+    assert route.supported_engines == ("openai-agents-sdk",)
+    assert route.status_for_engine("openai-agents-sdk") == ROUTE_HEALTHY
+    assert resolve_route_model(route.route_id, None).model_id == "mimo-v2.5"
 
 
 def test_codex_router_defaults_to_gpt_56_sol_and_keeps_gpt_55_compatible() -> None:
@@ -267,7 +275,7 @@ def test_provider_readiness_reports_status_and_missing_env() -> None:
     )
 
     assert readiness["provider"] == "mimo-mify-responses"
-    assert readiness["route_status"] == ROUTE_PROVISIONAL
+    assert readiness["route_status"] == ROUTE_HEALTHY
     assert readiness["missing_env"] == ["XM_LLM_API_KEY"]
 
 
@@ -315,7 +323,7 @@ def test_provider_route_model_rejects_same_family_wrong_route_model() -> None:
         ValueError,
         match=(
             "model 'mimo-1000' is incompatible with provider_profile "
-            "'mimo-mify-responses'; expected one of xiaomi/mimo-v2.5"
+            "'mimo-mify-responses'; expected one of xiaomi/mimo-v2.5-pro"
         ),
     ):
         resolve_route_model("mimo-mify-responses", "mimo-1000")

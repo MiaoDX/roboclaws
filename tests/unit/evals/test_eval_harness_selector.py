@@ -24,7 +24,7 @@ EXPECTED_ROW_IDS = {
     "smoke-regression-eval-suite",
     "map-build-consumer-eval-suite",
     "map-build-consumer-openai-agents-sdk-codex-router-responses",
-    "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
+    "map-build-consumer-openai-agents-sdk-mimo-mify-responses",
     "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
     "map-build-consumer-openai-agents-sdk-minimax-responses",
     "open-ended-goals-eval-suite",
@@ -109,6 +109,7 @@ def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
         if row_id.startswith("map-build-consumer-openai-agents-sdk-")
     ]
     assert len(provider_rows) == 4
+    assert all("live_timeout_s=1500" in row["command"] for row in provider_rows)
     assert all("live_stall_timeout_s=180" in row["command"] for row in provider_rows)
     assert rows["direct-camera-grounded-grounding-dino"]["status"] == "not_run"
     assert rows["direct-map-build-grounding-dino"]["status"] == "not_run"
@@ -191,7 +192,7 @@ def test_changed_file_signals_select_expected_eval_harness_rows(tmp_path: Path) 
                 "direct-cleanup-runtime-prior-consumer",
                 "map-build-consumer-eval-suite",
                 "map-build-consumer-openai-agents-sdk-codex-router-responses",
-                "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
+                "map-build-consumer-openai-agents-sdk-mimo-mify-responses",
                 "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
                 "map-build-consumer-openai-agents-sdk-minimax-responses",
             ),
@@ -431,19 +432,20 @@ def test_map_build_consumer_plan_selects_four_profile_model_matrix(
     }
     assert set(matrix_rows) == {
         "map-build-consumer-openai-agents-sdk-codex-router-responses",
-        "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
+        "map-build-consumer-openai-agents-sdk-mimo-mify-responses",
         "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
         "map-build-consumer-openai-agents-sdk-minimax-responses",
     }
     assert {row["axes"]["provider_profile"] for row in matrix_rows.values()} == {
         "codex-router-responses",
-        "mimo-tp-openai-chat",
+        "mimo-mify-responses",
         "kimi-openai-chat",
         "minimax-responses",
     }
     for row in matrix_rows.values():
         assert "suite=map_build_consumer" in row["command"]
         assert "agent_engine=openai-agents-sdk" in row["command"]
+        assert "live_timeout_s=1500" in row["command"]
         assert "live_execution=run" in row["command"]
         assert row["axes"]["provider_cell_count"] == "4"
         assert row["axes"]["default_local_concurrency_width"] == "1"
@@ -464,7 +466,7 @@ def test_explicit_provider_axis_selects_matching_map_build_consumer_matrix_rows(
     rows = _selected_rows(manifest)
     assert "map-build-consumer-openai-agents-sdk-kimi-openai-chat" in rows
     assert "map-build-consumer-openai-agents-sdk-minimax-responses" in rows
-    assert "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat" not in rows
+    assert "map-build-consumer-openai-agents-sdk-mimo-mify-responses" not in rows
 
 
 def test_explicit_codex_env_selects_agent_sdk_availability_evidence(
@@ -632,6 +634,45 @@ def test_sdk_live_product_row_records_foreground_command_outputs(
     assert "detached_live_run_dir" not in row
     assert any(path.endswith("stdout.log") for path in row["output_artifacts"])
     assert any(path.endswith("stderr.log") for path in row["output_artifacts"])
+
+
+def test_successful_row_rerun_clears_previous_blocker_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    manifest = selector.build_eval_harness(
+        budget="focused",
+        changed_files=["roboclaws/household/raw_fpv_guidance.py"],
+        output_dir=tmp_path,
+    )
+    row = _selected_rows(manifest)["openai-agents-sdk-cleanup-camera-raw-fpv-live-product"]
+    row.update(
+        {
+            "status": "blocked",
+            "outcome": "blocked",
+            "blocker_category": "model_or_provider_unavailable",
+            "blockers": [{"category": "model_or_provider_unavailable", "detail": "stale"}],
+            "failure_class": "provider_transient_failure",
+            "failure_detail": "stale",
+        }
+    )
+
+    class FakeProcess:
+        returncode = 0
+
+        def __init__(self, *_args: Any, **_kwargs: Any) -> None:
+            pass
+
+        def communicate(self, timeout: float | None = None) -> tuple[str, str]:
+            return "sdk foreground stdout", ""
+
+    monkeypatch.setattr(runner.local_execution.subprocess, "Popen", FakeProcess)
+
+    runner._run_row(row, manifest)
+
+    assert row["outcome"] == "passed"
+    for key in ("blocker_category", "blockers", "failure_class", "failure_detail"):
+        assert key not in row
 
 
 def test_failed_live_row_with_busy_mcp_port_is_classified_as_blocked() -> None:

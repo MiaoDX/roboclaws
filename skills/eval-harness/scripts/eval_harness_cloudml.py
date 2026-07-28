@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import copy
 import datetime as dt
-import hashlib
 import json
 import os
 import re
-import shlex
 import shutil
 import subprocess
-import urllib.parse
+import tarfile
+import tempfile
 from pathlib import Path
 from typing import Any, Sequence
+
+from roboclaws.evals import cloudml_content_store, cloudml_provider_env, cloudml_task
 
 PLAN_SCHEMA = "roboclaws_eval_harness_cloudml_plan_v1"
 POOL_CAPABILITIES = {
@@ -54,17 +55,9 @@ POOL_IMAGE_ENV = {
     "cloudml-cpu": "ROBOCLAWS_CLOUDML_CPU_IMAGE_URL",
     "cloudml-r49": "ROBOCLAWS_CLOUDML_GPU_IMAGE_URL",
 }
-PROVIDER_SECRET_ENV = {
-    "codex-router-responses": ("CODEX_API_KEY",),
-    "mimo-mify-responses": ("XM_LLM_API_KEY",),
-    "mimo-tp-openai-chat": ("MIMO_TP_KEY",),
-    "mimo-inside-openai-chat": ("MIMO_INSIDE_API_KEY",),
-}
-INPUT_MOUNT = "/mnt/cloudml/input"
-OUTPUT_MOUNT = "/mnt/cloudml/output"
+INPUT_MOUNT = cloudml_task.INPUT_MOUNT
+OUTPUT_MOUNT = cloudml_task.OUTPUT_MOUNT
 REPO_ROOT = Path(__file__).resolve().parents[3]
-CLOUDML_VOLUME = "robot-intelligent-planning-data"
-CLOUDML_CLUSTER = "wlcb-cloudml"
 
 
 def bool_value(value: str) -> bool:
@@ -82,6 +75,8 @@ def build_cloudml_plan(
     execution_target: str,
     row_ids: Sequence[str] = (),
     run_id: str = "",
+    provider_environment: dict[str, str] | None = None,
+    preemptible: bool = False,
 ) -> dict[str, Any]:
     if execution_target not in {"cloudml", "auto"}:
         raise ValueError(f"unsupported CloudML execution target: {execution_target}")
@@ -90,26 +85,32 @@ def build_cloudml_plan(
     placed: dict[str, list[dict[str, Any]]] = {name: [] for name in POOL_CAPABILITIES}
     local_rows: list[dict[str, Any]] = []
     blocked_rows: list[dict[str, Any]] = []
+    provider_env = cloudml_provider_env.load_environment(REPO_ROOT, provider_environment)
+    provider_env_keys_by_row: dict[str, tuple[str, ...]] = {}
 
     for row in selected:
         pool, missing = _matching_pool(row)
         provider_profile = str((row.get("axes") or {}).get("provider_profile") or "")
-        if provider_profile in PROVIDER_SECRET_ENV:
+        required_env_keys = cloudml_provider_env.required_env_keys(provider_profile)
+        missing_env_keys = [key for key in required_env_keys if not provider_env.get(key)]
+        if pool and required_env_keys and missing_env_keys:
             if execution_target == "auto":
                 local_rows.append(row)
             else:
                 blocked_rows.append(
                     _blocked_placement(
                         row,
-                        category="secure_secret_injection_unavailable",
+                        category="missing_provider_environment",
                         detail=(
-                            f"{provider_profile} is network-reachable from CloudML, but the "
-                            "executor submit API has no secret-reference or workload-identity input"
+                            f"{provider_profile} is eligible for CloudML but requires local "
+                            "provider environment variable(s): " + ", ".join(missing_env_keys)
                         ),
                     )
                 )
         elif pool:
             placed[pool].append(row)
+            if required_env_keys:
+                provider_env_keys_by_row[str(row["row_id"])] = required_env_keys
         elif execution_target == "auto" and "network:external-egress" in set(
             row.get("execution_requirements") or []
         ):
@@ -123,7 +124,12 @@ def build_cloudml_plan(
                 )
             )
 
-    shards = _build_shards(placed, run_id=resolved_run_id)
+    shards = _build_shards(
+        placed,
+        run_id=resolved_run_id,
+        provider_env_keys_by_row=provider_env_keys_by_row,
+        preemptible=preemptible,
+    )
     return {
         "schema": PLAN_SCHEMA,
         "generated_at": _utc_now(),
@@ -148,6 +154,7 @@ def build_cloudml_plan(
             "local_row_count": len(local_rows),
             "blocked_row_count": len(blocked_rows),
             "shard_count": len(shards),
+            "preemptible_shard_count": sum(1 for shard in shards if bool(shard.get("preemptible"))),
         },
     }
 
@@ -160,7 +167,8 @@ def write_cloudml_plan(plan: dict[str, Any], manifest: dict[str, Any], *, output
     yaml_dir.mkdir(parents=True, exist_ok=True)
     for shard in plan["shards"]:
         shard_id = str(shard["shard_id"])
-        worker_output = f"{OUTPUT_MOUNT}/shards/{shard_id}"
+        worker_output = f"{cloudml_task.CLOUDML_OUTPUT_SCRATCH_ROOT}/shards/{shard_id}"
+        remote_output = f"{OUTPUT_MOUNT}/shards/{shard_id}"
         frozen = _relocated_manifest(
             manifest,
             output_dir=worker_output,
@@ -170,7 +178,8 @@ def write_cloudml_plan(plan: dict[str, Any], manifest: dict[str, Any], *, output
         local_path.write_text(json.dumps(frozen, indent=2, sort_keys=True) + "\n")
         shard["manifest_local_path"] = str(local_path)
         shard["manifest_cloud_path"] = f"{INPUT_MOUNT}/manifests/{shard_id}.json"
-        shard["output_mount_path"] = worker_output
+        shard["output_scratch_path"] = worker_output
+        shard["output_mount_path"] = remote_output
         shard["yaml_path"] = str(yaml_dir / f"{shard_id}.yaml")
     path = cloudml_dir / "cloudml_plan.json"
     path.write_text(json.dumps(plan, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -183,14 +192,16 @@ def executor_submit(
     image_urls: dict[str, str],
     asset_manifest_path: Path,
     executor_path: Path,
-    input_subpath: str,
+    run_input_subpath: str,
+    asset_subpath: str,
+    code_subpath: str,
     output_subpath: str,
     dry_run: bool,
     plan_path: Path | None = None,
     retry_shard_ids: Sequence[str] = (),
 ) -> None:
-    identity = _load_asset_identity(asset_manifest_path)
-    _validate_image_urls(plan, image_urls)
+    identity = cloudml_content_store.load_identity(asset_manifest_path)
+    cloudml_task.validate_image_urls(plan, image_urls)
     if identity["code_commit"] != plan["code_commit"]:
         raise ValueError(
             "asset manifest code commit does not match the eval harness plan: "
@@ -206,21 +217,14 @@ def executor_submit(
             image_url=image_urls[str(shard["worker_pool"])],
             identity=identity,
             executor_path=executor_path,
-            input_subpath=input_subpath,
+            run_input_subpath=run_input_subpath,
+            asset_subpath=asset_subpath,
+            code_subpath=code_subpath,
             output_subpath=output_subpath,
             dry_run=dry_run,
         )
         if plan_path is not None:
             _write_json(plan_path, plan)
-
-
-def _validate_image_urls(plan: dict[str, Any], image_urls: dict[str, str]) -> None:
-    required_pools = {str(shard["worker_pool"]) for shard in plan["shards"]}
-    for pool in required_pools:
-        image_url = image_urls.get(pool, "")
-        if not image_url:
-            raise ValueError(f"CloudML worker pool {pool} has no configured image URL")
-        _split_image_reference(image_url)
 
 
 def _validate_retry_shard_ids(plan: dict[str, Any], retry_shard_ids: Sequence[str]) -> set[str]:
@@ -239,34 +243,43 @@ def _submit_shard(
     image_url: str,
     identity: dict[str, str],
     executor_path: Path,
-    input_subpath: str,
+    run_input_subpath: str,
+    asset_subpath: str,
+    code_subpath: str,
     output_subpath: str,
     dry_run: bool,
 ) -> None:
-    platform_image_url, image_digest = _split_image_reference(image_url)
+    platform_image_url, image_digest = cloudml_task.split_image_reference(image_url)
     previous_attempt = {
         key: shard[key]
         for key in ("task_id", "job_id", "console_url", "submitted_at", "remote_status")
         if shard.get(key)
     }
-    argv = _executor_submit_argv(
+    yaml_path = cloudml_task.write_cml_task_yaml(
         shard,
         plan=plan,
         image_url=platform_image_url,
         identity=identity,
-        executor_path=executor_path,
-        input_subpath=input_subpath,
+        run_input_subpath=run_input_subpath,
+        asset_subpath=asset_subpath,
+        code_subpath=code_subpath,
         output_subpath=output_subpath,
-        dry_run=dry_run,
     )
-    result = subprocess.run(argv, check=False, capture_output=True, text=True)
+    argv = cloudml_task.cml_submit_argv(executor_path=executor_path, yaml_path=yaml_path)
+    if dry_run:
+        result = subprocess.CompletedProcess(argv, 0, "", "")
+        payload = {"dry_run": True, "yaml_path": str(yaml_path)}
+    else:
+        result = subprocess.run(argv, check=False, capture_output=True, text=True)
+        payload = None
     shard["executor_exit_code"] = result.returncode
     if result.returncode != 0:
         raise RuntimeError(
             f"CloudML {'dry-run' if dry_run else 'submit'} failed for {shard['shard_id']}: "
             f"{(result.stderr or result.stdout).strip()}"
         )
-    payload = _parse_json_output(result.stdout, label="CloudML submit")
+    if payload is None:
+        payload = _parse_cml_submit_output(result.stdout, stderr=result.stderr)
     shard["executor_argv"] = argv
     shard["image_url"] = image_url
     shard["platform_image_url"] = platform_image_url
@@ -293,13 +306,31 @@ def _submit_shard(
     )
 
 
+def _parse_cml_submit_output(output: str, *, stderr: str = "") -> dict[str, Any]:
+    match = re.search(r"CustomTrainJob \[([^\]]+)\]", output)
+    if not match:
+        detail = (stderr or output).strip()
+        suffix = f": {detail}" if detail else ""
+        raise RuntimeError(f"CloudML submit did not create a task{suffix}")
+    task_id = match.group(1)
+    url_match = re.search(r"https://cloudml\.xiaomi\.com/[^\s\x07\x1b]+", output)
+    return {
+        "task_id": task_id,
+        "job_id": task_id,
+        "console_url": url_match.group(0) if url_match else "",
+        "dry_run": False,
+    }
+
+
 def executor_dry_run(
     plan: dict[str, Any],
     *,
     image_urls: dict[str, str],
     asset_manifest_path: Path,
     executor_path: Path,
-    input_subpath: str,
+    run_input_subpath: str,
+    asset_subpath: str,
+    code_subpath: str,
     output_subpath: str,
 ) -> None:
     executor_submit(
@@ -307,7 +338,9 @@ def executor_dry_run(
         image_urls=image_urls,
         asset_manifest_path=asset_manifest_path,
         executor_path=executor_path,
-        input_subpath=input_subpath,
+        run_input_subpath=run_input_subpath,
+        asset_subpath=asset_subpath,
+        code_subpath=code_subpath,
         output_subpath=output_subpath,
         dry_run=True,
     )
@@ -333,42 +366,70 @@ def executor_from_environment(
         )
     asset_manifest_path = Path(asset_manifest)
     payload = json.loads(asset_manifest_path.read_text(encoding="utf-8"))
-    input_rel = str((payload.get("juicefs") or {}).get("input_rel") or "")
-    if not input_rel:
-        raise ValueError("CloudML asset manifest must define juicefs.input_rel")
-    input_subpath = os.environ.get(
-        "ROBOCLAWS_CLOUDML_INPUT_SUBPATH", f"/dongxu/gpu_perf/gpu_perf/{input_rel}"
+    content_rel = str((payload.get("juicefs") or {}).get("content_rel") or "")
+    if not content_rel:
+        raise ValueError("CloudML content manifest must define juicefs.content_rel")
+    content_root_subpath = os.environ.get(
+        "ROBOCLAWS_CLOUDML_CONTENT_ROOT_SUBPATH",
+        f"/dongxu/gpu_perf/gpu_perf/{content_rel}",
     )
+    run_input_subpath = os.environ.get("ROBOCLAWS_CLOUDML_RUN_INPUT_SUBPATH", "")
     output_subpath = os.environ.get(
         "ROBOCLAWS_CLOUDML_OUTPUT_SUBPATH",
         f"/dongxu/gpu_perf/executor_cloudml_runs/roboclaws-eval-harness/{plan['run_id']}",
     )
+    provider_env_subpath = os.environ.get(
+        "ROBOCLAWS_CLOUDML_PROVIDER_ENV_SUBPATH",
+        (f"/dongxu/gpu_perf/executor_cloudml_provider_env/roboclaws-eval-harness/{plan['run_id']}"),
+    )
     _stage_shard_manifests(plan, stage_dir=asset_manifest_path.parent)
     prior_staging = plan.get("staging") or {}
-    prior_upload = prior_staging.get("upload")
     prior_output_init = prior_staging.get("output_init")
-    plan["staging"] = {
-        "local_dir": str(asset_manifest_path.parent),
-        "input_subpath": input_subpath,
-        "output_subpath": output_subpath,
-        "input_url": _juicefs_url(input_subpath),
-        "output_url": _juicefs_url(output_subpath),
-        "upload_required": not prior_upload,
-    }
-    if prior_upload:
-        plan["staging"]["upload"] = prior_upload
+    prior_provider_environment = prior_staging.get("provider_environment")
+    cloudml_content_store.configure_staging(
+        plan,
+        manifest_path=asset_manifest_path,
+        juicefs_url=cloudml_task.juicefs_url,
+        output_subpath=output_subpath,
+        prior_staging=prior_staging,
+        content_root_subpath=content_root_subpath,
+        run_input_subpath=run_input_subpath,
+    )
     if prior_output_init:
         plan["staging"]["output_init"] = prior_output_init
+    cloudml_provider_env.configure_staging(
+        plan,
+        root_subpath=provider_env_subpath,
+        juicefs_url=cloudml_task.juicefs_url,
+        prior_provider_environment=prior_provider_environment,
+    )
     executor_path = Path(os.environ.get("ROBOCLAWS_EXECUTOR_PATH", "/home/mi/executor/exe"))
+    provider_env = cloudml_provider_env.load_environment(REPO_ROOT)
+    cloudml_provider_env.validate(plan, provider_env)
     if not dry_run and plan["shards"]:
-        _upload_staging(plan, executor_path=executor_path, plan_path=plan_path)
+        with tempfile.TemporaryDirectory(prefix="roboclaws-cloudml-provider-env-") as temp_dir:
+            cloudml_provider_env.upload(
+                plan,
+                provider_env=provider_env,
+                local_root=Path(temp_dir),
+                executor_path=executor_path,
+                plan_path=plan_path,
+            )
+        cloudml_content_store.upload(
+            plan,
+            executor_path=executor_path,
+            persist=lambda: _write_json(plan_path, plan) if plan_path is not None else None,
+        )
         _initialize_output_mount(plan, executor_path=executor_path, plan_path=plan_path)
+    staging = plan["staging"]
     executor_submit(
         plan,
         image_urls=image_urls,
         asset_manifest_path=asset_manifest_path,
         executor_path=executor_path,
-        input_subpath=input_subpath,
+        run_input_subpath=str(staging["run_input"]["subpath"]),
+        asset_subpath=str(staging["asset"]["subpath"]),
+        code_subpath=str(staging["code"]["subpath"]),
         output_subpath=output_subpath,
         dry_run=dry_run,
         plan_path=plan_path,
@@ -387,6 +448,7 @@ def prepare_cloudml_execution(
     row_ids: Sequence[str],
     run_id: str,
     dry_run: bool,
+    preemptible: bool = False,
     retry_shard_ids: Sequence[str] = (),
 ) -> dict[str, Any]:
     if execution_target == "auto" and not dry_run:
@@ -400,6 +462,7 @@ def prepare_cloudml_execution(
         execution_target=execution_target,
         row_ids=row_ids,
         run_id=run_id,
+        preemptible=preemptible,
     )
     plan_path = write_cloudml_plan(plan, manifest, output_dir=output_dir)
     executor_from_environment(
@@ -419,6 +482,7 @@ def prepare_cloudml_dry_run(
     execution_target: str,
     row_ids: Sequence[str],
     run_id: str,
+    preemptible: bool = False,
 ) -> None:
     prepare_cloudml_execution(
         manifest,
@@ -426,6 +490,7 @@ def prepare_cloudml_dry_run(
         row_ids=row_ids,
         run_id=run_id,
         dry_run=True,
+        preemptible=preemptible,
     )
 
 
@@ -449,6 +514,12 @@ def collect_cloudml_results(
     for shard in plan.get("shards") or []:
         shard_id = str(shard["shard_id"])
         shard_root = collected_root / "shards" / shard_id
+        _materialize_shard_archive(
+            shard_root,
+            archive_name=str(
+                shard.get("output_archive_name", cloudml_task.CLOUDML_SHARD_OUTPUT_ARCHIVE)
+            ),
+        )
         marker_path = shard_root / "markers" / f"{shard_id}.json"
         marker = _read_json_object(marker_path, label="CloudML terminal marker")
         if marker.get("shard_id") != shard_id:
@@ -469,6 +540,7 @@ def collect_cloudml_results(
                 raise ValueError(f"CloudML row result shard mismatch for {row_id}")
             if str(row_id) not in rows:
                 raise ValueError(f"CloudML row result is not in source manifest: {row_id}")
+            _rewrite_collected_paths(result, shard=shard, shard_root=shard_root)
             rows[str(row_id)].update(result)
             collected += 1
         shard["terminal_marker"] = str(marker_path)
@@ -480,6 +552,25 @@ def collect_cloudml_results(
     }
     plan["collection"] = summary
     return summary
+
+
+def _materialize_shard_archive(shard_root: Path, *, archive_name: str) -> None:
+    archive_path = shard_root / archive_name
+    if not archive_path.is_file():
+        return
+    try:
+        with tarfile.open(archive_path, "r:") as archive:
+            archive.extractall(shard_root, filter="data")
+    except (tarfile.TarError, ValueError, OSError) as exc:
+        raise ValueError(f"invalid CloudML shard output archive: {archive_path}") from exc
+
+
+def _rewrite_collected_paths(
+    result: dict[str, Any], *, shard: dict[str, Any], shard_root: Path
+) -> None:
+    scratch_path = str(shard.get("output_scratch_path") or "")
+    if scratch_path:
+        _replace_prefix(result, scratch_path, str(shard_root))
 
 
 def _selected_rows(manifest: dict[str, Any], *, row_ids: Sequence[str]) -> list[dict[str, Any]]:
@@ -510,11 +601,27 @@ def _blocked_placement(row: dict[str, Any], *, category: str, detail: str) -> di
     return {"row_id": str(row["row_id"]), "category": category, "detail": detail}
 
 
-def _build_shards(placed: dict[str, list[dict[str, Any]]], *, run_id: str) -> list[dict[str, Any]]:
+def _build_shards(
+    placed: dict[str, list[dict[str, Any]]],
+    *,
+    run_id: str,
+    provider_env_keys_by_row: dict[str, tuple[str, ...]],
+    preemptible: bool,
+) -> list[dict[str, Any]]:
     shards: list[dict[str, Any]] = []
     cpu_rows = placed["cloudml-cpu"]
     if cpu_rows:
-        shards.append(_shard("cpu-001", "cloudml-cpu", cpu_rows, run_id=run_id, width=4))
+        shards.append(
+            _shard(
+                "cpu-001",
+                "cloudml-cpu",
+                cpu_rows,
+                run_id=run_id,
+                width=4,
+                provider_env_keys_by_row=provider_env_keys_by_row,
+                preemptible=False,
+            )
+        )
     gpu_rows = placed["cloudml-r49"]
     consumed: set[str] = set()
     by_id = {str(row["row_id"]): row for row in gpu_rows}
@@ -522,21 +629,65 @@ def _build_shards(placed: dict[str, list[dict[str, Any]]], *, run_id: str) -> li
         row_id = str(row["row_id"])
         if row_id in consumed:
             continue
-        dependencies = [str(value) for value in row.get("depends_on") or []]
-        chain = [by_id[value] for value in dependencies if value in by_id]
-        chain.append(row)
-        chain_ids = {str(value["row_id"]) for value in chain}
-        consumers = [
-            candidate
-            for candidate in gpu_rows
-            if row_id in {str(value) for value in candidate.get("depends_on") or []}
-        ]
-        chain.extend(candidate for candidate in consumers if candidate not in chain)
-        chain_ids.update(str(candidate["row_id"]) for candidate in consumers)
+        packing_group = str(row.get("packing_group") or "")
+        chain_ids = _connected_row_ids(row_id, by_id=by_id, packing_group=packing_group)
+        chain = _dependency_ordered_rows(
+            [candidate for candidate in gpu_rows if str(candidate["row_id"]) in chain_ids]
+        )
         consumed.update(chain_ids)
         suffix = len(shards) + 1
-        shards.append(_shard(f"r49-{suffix:03d}", "cloudml-r49", chain, run_id=run_id, width=1))
+        shards.append(
+            _shard(
+                f"r49-{suffix:03d}",
+                "cloudml-r49",
+                chain,
+                run_id=run_id,
+                width=1,
+                provider_env_keys_by_row=provider_env_keys_by_row,
+                preemptible=preemptible,
+            )
+        )
     return shards
+
+
+def _connected_row_ids(
+    row_id: str, *, by_id: dict[str, dict[str, Any]], packing_group: str
+) -> set[str]:
+    connected = {row_id}
+    while True:
+        expanded = set(connected)
+        for candidate_id, candidate in by_id.items():
+            dependencies = {str(value) for value in candidate.get("depends_on") or []}
+            same_case = bool(
+                packing_group and str(candidate.get("packing_group") or "") == packing_group
+            )
+            if same_case or candidate_id in connected or dependencies.intersection(connected):
+                expanded.add(candidate_id)
+                expanded.update(dependencies.intersection(by_id))
+        if expanded == connected:
+            return connected
+        connected = expanded
+
+
+def _dependency_ordered_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    remaining = list(rows)
+    ordered: list[dict[str, Any]] = []
+    row_ids = {str(row["row_id"]) for row in rows}
+    while remaining:
+        ordered_ids = {str(row["row_id"]) for row in ordered}
+        ready = next(
+            (
+                row
+                for row in remaining
+                if not (
+                    ({str(value) for value in row.get("depends_on") or []} & row_ids) - ordered_ids
+                )
+            ),
+            remaining[0],
+        )
+        ordered.append(ready)
+        remaining.remove(ready)
+    return ordered
 
 
 def _shard(
@@ -546,16 +697,39 @@ def _shard(
     *,
     run_id: str,
     width: int,
+    provider_env_keys_by_row: dict[str, tuple[str, ...]],
+    preemptible: bool,
 ) -> dict[str, Any]:
     shard_id = f"{run_id}-{suffix}"
-    return {
+    provider_env_keys = sorted(
+        {key for row in rows for key in provider_env_keys_by_row.get(str(row["row_id"]), ())}
+    )
+    scene = _shard_scene(rows)
+    shard = {
         "shard_id": shard_id,
         "worker_pool": pool,
         "row_ids": [str(row["row_id"]) for row in rows],
         "max_parallel": width,
         "timeout_s": sum(int(row.get("timeout_s") or 0) for row in rows) + 600,
+        "provider_env_keys": provider_env_keys,
+        "preemptible": preemptible,
+        "output_archive_name": cloudml_task.CLOUDML_SHARD_OUTPUT_ARCHIVE,
         **POOL_RESOURCES[pool],
     }
+    if scene:
+        shard["scene"] = scene
+    return shard
+
+
+def _shard_scene(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    scenes = {
+        str(scene.get("scene_id")): dict(scene)
+        for row in rows
+        if (scene := ((row.get("case") or {}).get("scene") or {}))
+    }
+    if len(scenes) > 1:
+        raise ValueError("one CloudML shard cannot contain benchmark cases from multiple scenes")
+    return next(iter(scenes.values()), {})
 
 
 def _relocated_manifest(
@@ -580,25 +754,6 @@ def _replace_prefix(value: Any, source: str, destination: str) -> Any:
     elif isinstance(value, str):
         return value.replace(source, destination)
     return value
-
-
-def _load_asset_identity(path: Path) -> dict[str, str]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    code = payload.get("git") or {}
-    archive = (payload.get("staged_assets") or {}).get("archive") or {}
-    code_archive = code.get("code_archive") or {}
-    identity = {
-        "code_commit": str(code.get("code_commit") or ""),
-        "code_archive_name": str(code_archive.get("name") or ""),
-        "code_archive_sha256": str(code_archive.get("sha256") or ""),
-        "asset_archive_name": str(archive.get("name") or ""),
-        "asset_archive_sha256": str(archive.get("sha256") or ""),
-        "asset_manifest_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-    }
-    missing = [key for key, value in identity.items() if not value]
-    if missing:
-        raise ValueError(f"asset manifest is missing identity field(s): {', '.join(missing)}")
-    return identity
 
 
 def _read_json_object(path: Path, *, label: str) -> dict[str, Any]:
@@ -626,42 +781,6 @@ def _parse_json_output(value: str, *, label: str) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise RuntimeError(f"{label} must return a JSON object")
     return payload
-
-
-def _upload_staging(plan: dict[str, Any], *, executor_path: Path, plan_path: Path | None) -> None:
-    staging = plan["staging"]
-    if (staging.get("upload") or {}).get("status") == "completed":
-        return
-    result = subprocess.run(
-        [
-            str(executor_path),
-            "storage",
-            "juicefs",
-            "upload",
-            "--local_dir",
-            str(staging["local_dir"]),
-            "--url",
-            str(staging["input_url"]),
-            "--json",
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        detail = (result.stderr or result.stdout).strip()
-        raise RuntimeError(f"CloudML staging upload failed: {detail}")
-    payload = _parse_json_output(result.stdout, label="JuiceFS upload")
-    if payload.get("status") != "ok" or int(payload.get("exit_code") or 0) != 0:
-        raise RuntimeError(f"CloudML staging upload was not successful: {payload}")
-    staging["upload"] = {
-        "status": "completed",
-        "completed_at": _utc_now(),
-        "files": int(payload.get("files") or 0),
-    }
-    staging["upload_required"] = False
-    if plan_path is not None:
-        _write_json(plan_path, plan)
 
 
 def _initialize_output_mount(
@@ -714,13 +833,6 @@ def _initialize_output_mount(
         _write_json(plan_path, plan)
 
 
-def _juicefs_url(subpath: str) -> str:
-    query = urllib.parse.urlencode(
-        {"cluster": CLOUDML_CLUSTER, "name": CLOUDML_VOLUME, "path": subpath}
-    )
-    return f"https://cloud.mioffice.cn/juicefs/vol-detail?{query}"
-
-
 def _stage_shard_manifests(plan: dict[str, Any], *, stage_dir: Path) -> None:
     manifest_dir = stage_dir / "manifests"
     manifest_dir.mkdir(parents=True, exist_ok=True)
@@ -729,111 +841,6 @@ def _stage_shard_manifests(plan: dict[str, Any], *, stage_dir: Path) -> None:
         target = manifest_dir / source.name
         shutil.copy2(source, target)
         shard["manifest_staged_path"] = str(target)
-
-
-def _split_image_reference(image_url: str) -> tuple[str, str]:
-    match = re.fullmatch(
-        r"(micr\.cloud\.mioffice\.cn/.+:[^/@:]+)@(sha256:[0-9a-f]{64})",
-        image_url,
-    )
-    if not match or match.group(1).endswith(":latest"):
-        raise ValueError(
-            "CloudML image must use an immutable micr.cloud.mioffice.cn tag plus sha256 digest"
-        )
-    return match.group(1), match.group(2)
-
-
-def _executor_submit_argv(
-    shard: dict[str, Any],
-    *,
-    plan: dict[str, Any],
-    image_url: str,
-    identity: dict[str, str],
-    executor_path: Path,
-    input_subpath: str,
-    output_subpath: str,
-    dry_run: bool,
-) -> list[str]:
-    mounts = [
-        {
-            "volume": CLOUDML_VOLUME,
-            "juiceFsCluster": CLOUDML_CLUSTER,
-            "subPath": input_subpath,
-            "mountPath": INPUT_MOUNT,
-            "readOnly": True,
-        },
-        {
-            "volume": CLOUDML_VOLUME,
-            "juiceFsCluster": CLOUDML_CLUSTER,
-            "subPath": output_subpath,
-            "mountPath": OUTPUT_MOUNT,
-            "readOnly": False,
-        },
-    ]
-    image_command = _image_command(shard, identity=identity)
-    return [
-        str(executor_path),
-        "compute",
-        "cloudml",
-        "custom_train",
-        "submit",
-        "--job_name",
-        _cloudml_name(str(shard["shard_id"])),
-        "--description",
-        f"Roboclaws eval harness {plan['run_id']} {shard['shard_id']}",
-        "--image_url",
-        image_url,
-        "--image_command",
-        image_command,
-        "--juicefs_mount_configs",
-        json.dumps(mounts, separators=(",", ":")),
-        "--queue_id",
-        str(shard["queue_id"]),
-        "--resource_priority",
-        str(shard["resource_priority"]),
-        "--resource_name",
-        str(shard["resource_name"]),
-        "--resource_number",
-        str(shard["resource_number"]),
-        "--output_yaml_path",
-        str(shard["yaml_path"]),
-        "--dry_run",
-        "true" if dry_run else "false",
-        "--json",
-    ]
-
-
-def _image_command(shard: dict[str, Any], *, identity: dict[str, str]) -> str:
-    values = {
-        "ROBOCLAWS_CLOUDML_CODE_COMMIT": identity["code_commit"],
-        "ROBOCLAWS_CLOUDML_CODE_ARCHIVE": (
-            f"{INPUT_MOUNT}/archives/{identity['code_archive_name']}"
-        ),
-        "ROBOCLAWS_CLOUDML_CODE_ARCHIVE_SHA256": identity["code_archive_sha256"],
-        "ROBOCLAWS_CLOUDML_ASSET_MANIFEST_SHA256": identity["asset_manifest_sha256"],
-        "ROBOCLAWS_CLOUDML_ASSET_MANIFEST": (
-            f"{INPUT_MOUNT}/roboclaws_cloudml_cleanup_assets.json"
-        ),
-        "ROBOCLAWS_CLOUDML_MANIFEST": str(shard["manifest_cloud_path"]),
-        "ROBOCLAWS_CLOUDML_ROW_IDS": ",".join(shard["row_ids"]),
-        "ROBOCLAWS_CLOUDML_SHARD_ID": str(shard["shard_id"]),
-        "ROBOCLAWS_CLOUDML_WORKER_POOL": str(shard["worker_pool"]),
-        "ROBOCLAWS_CLOUDML_MAX_PARALLEL": str(shard["max_parallel"]),
-        "ROBOCLAWS_CLOUDML_OUTPUT_DIR": str(shard["output_mount_path"]),
-    }
-    if shard["worker_pool"] == "cloudml-r49":
-        values["ROBOCLAWS_CLOUDML_ASSET_ARCHIVE"] = (
-            f"{INPUT_MOUNT}/archives/{identity['asset_archive_name']}"
-        )
-        values["ROBOCLAWS_CLOUDML_ASSET_ARCHIVE_SHA256"] = identity["asset_archive_sha256"]
-        values["VISUAL_GROUNDING_DEVICE"] = "cuda"
-        values["VISUAL_GROUNDING_TORCH_DTYPE"] = "auto"
-    exports = " ".join(f"{key}={shlex.quote(value)}" for key, value in values.items())
-    return f"bash -lc {shlex.quote(exports + ' /opt/roboclaws/bin/run-cloudml-eval-worker')}"
-
-
-def _cloudml_name(value: str) -> str:
-    return re.sub(r"[^a-z0-9-]+", "-", value.lower()).strip("-")[:63]
 
 
 def _default_run_id() -> str:
@@ -852,11 +859,22 @@ def _git_commit() -> str:
     result = subprocess.run(
         ["git", "rev-parse", "HEAD"],
         cwd=REPO_ROOT,
-        check=True,
+        check=False,
         capture_output=True,
         text=True,
     )
-    return result.stdout.strip()
+    if result.returncode == 0:
+        commit = result.stdout.strip()
+    else:
+        marker = REPO_ROOT / ".roboclaws_code_commit"
+        commit = marker.read_text(encoding="utf-8").strip() if marker.is_file() else ""
+    if not re.fullmatch(r"[0-9a-f]{40}", commit):
+        detail = (result.stderr or result.stdout).strip()
+        raise RuntimeError(
+            "cannot resolve the CloudML code commit from git or .roboclaws_code_commit"
+            + (f": {detail}" if detail else "")
+        )
+    return commit
 
 
 def _utc_now() -> str:

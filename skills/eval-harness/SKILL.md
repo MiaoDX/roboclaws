@@ -34,6 +34,15 @@ just agent::eval execute profile=baseline-core budget=focused \
   execution_target=local max_parallel=4
 ```
 
+Local and CloudML execution share the same frozen benchmark cases. Pass
+`scene=<source>/<index>,...` to expand only rows whose catalog
+`scene_scope=selected`; the current scene-portable rows are the two MapBuild
+product rows. Case identity, dependencies, commands, and result schema are
+resolved before placement. Local scheduling respects shared backend locks,
+while CloudML may package independent scenes into separate parallel shards.
+Do not treat a shard as benchmark identity: short same-scene cases may share a
+shard to amortize worker startup.
+
 Generate pinned CloudML CPU/RTX 4090 shard YAML without submitting jobs:
 
 ```bash
@@ -41,7 +50,7 @@ ROBOCLAWS_CLOUDML_CPU_IMAGE_URL='<cpu-image>@sha256:<digest>' \
 ROBOCLAWS_CLOUDML_GPU_IMAGE_URL='<cuda-image>@sha256:<digest>' \
 ROBOCLAWS_CLOUDML_ASSET_MANIFEST=/path/to/roboclaws_cloudml_cleanup_assets.json \
   just agent::eval execute profile=baseline-core budget=focused \
-  execution_target=cloudml cloudml_dry_run=true
+  execution_target=cloudml cloudml_dry_run=true cloudml_preemptible=true
 ```
 
 CloudML uses separate CPU and CUDA image digests. Build them through
@@ -51,12 +60,24 @@ CloudML uses separate CPU and CUDA image digests. Build them through
 `ROBOCLAWS_EVAL_DINO_CACHE_DIR` to contain the pinned Grounding DINO snapshot,
 so it remains reproducible when the public Hugging Face Hub is unreachable.
 Normal baseline runs reuse published digests and do not rebuild images.
+`cloudml_preemptible=true` applies only to r49 GPU shards and borrows idle
+capacity from their `GUARANTEED` resource. CPU shards stay non-preemptible.
 
-`execution_target=auto` keeps direct Kimi/MiniMax and any provider row that
-cannot receive a secure CloudML secret on the local worker. It never substitutes
-another provider identity. Real hybrid submission remains disabled until the
-local/cloud dependency handoff is implemented; `auto` is currently a placement
-dry-run only.
+`execution_target=auto` keeps direct Kimi/MiniMax and provider rows with missing
+local environment on the local worker. It never substitutes another provider
+identity. Real hybrid submission remains disabled until the local/cloud
+dependency handoff is implemented; `auto` is currently a placement dry-run only.
+
+CloudML input staging is content-addressed. The MolmoSpaces asset archive and
+the code archive live under `assets/by-sha256/<sha>` and `code/by-sha256/<sha>`;
+each run uploads only its small manifest under `runs/<run-id>`. The adapter
+probes both digest directories before uploading, so repeated baseline refreshes
+reuse the same large archive and code bundle. Workers mount the run manifest,
+asset bundle, and code bundle read-only at `/mnt/cloudml/input`,
+`/mnt/cloudml/assets`, and `/mnt/cloudml/code` respectively.
+The asset archive can contain multiple selected scenes and the versioned
+Objaverse cache. Each fresh worker copies and extracts it once to local scratch;
+workers share the immutable JuiceFS source, not their local extracted cache.
 
 Submit a detached CloudML run only after reviewing the dry-run and accepting
 the infrastructure cost, then monitor and collect it through the same facade:
@@ -77,9 +98,16 @@ execute run=output/eval-harness/<run>` to submit only missing shards. Pass
 `retry_shard_id=<shard-id>` only for an intentional new attempt; the prior task
 identity remains in `previous_attempts`.
 
-CloudML live provider rows remain explicitly blocked until executor supports a
-secret reference or workload identity. Never put provider keys in commands,
-task YAML, JuiceFS staging, or harness artifacts.
+CloudML API Router and MiMo rows load their registry-required values from the
+repo-local `.env` by default. The adapter writes only those keys to a `0600`
+temporary dotenv, uploads one file per shard to a separate run-owned JuiceFS
+prefix, and mounts it read-only. The temporary local copy is deleted after
+submission; key values never enter commands, task YAML, plans, logs, reports, or
+the collected output mount. The remote file is still plaintext credential
+storage and is not automatically deleted, so use a controlled JuiceFS prefix and
+rotate credentials according to provider policy. Set
+`ROBOCLAWS_PROVIDER_ENV_FILE` to use a different local dotenv source. Missing
+required values produce `missing_provider_environment` instead of submitting.
 
 Refresh the current baseline at the appropriate cost tier:
 

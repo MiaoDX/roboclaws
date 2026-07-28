@@ -44,7 +44,7 @@ The current named baseline profiles are:
 | --- | --- | --- | --- | --- |
 | `direct-runner` | In baseline catalog | none | none | High: deterministic product and suite proof. |
 | `codex-cli` | Launch-supported, not in baseline catalog | `codex-router-responses` | `codex-router-responses`, `mimo-mify-responses`, `minimax-responses` | Add only when proving coding-agent MCP behavior is a current baseline claim. |
-| `openai-agents-sdk` | In baseline catalog | `codex-router-responses` | `codex-router-responses`, `mimo-mify-responses`, `minimax-responses`, `mimo-tp-openai-chat`, `mimo-inside-openai-chat`, `kimi-openai-chat` | Medium: useful route, but experimental and provider-matrix prone. |
+| `openai-agents-sdk` | In baseline catalog | `codex-router-responses` | Default-enabled: `codex-router-responses`, `mimo-mify-responses`, `minimax-responses`, `kimi-openai-chat`; diagnostic-only: `mimo-tp-openai-chat`, `mimo-inside-openai-chat` | Medium: useful route, but provider-matrix prone. |
 | `claude-code` | Launch-supported, not in baseline catalog | `mimo-tp-anthropic` | `kimi-anthropic`, `mimo-tp-anthropic`, `mimo-mify-anthropic` | Discuss: add only if it protects a current coding-agent claim. |
 | `openclaw-gateway` | Launch metadata only; validation-required | `kimi` | `kimi` | Low for normal baseline; explicit validation path only. |
 
@@ -53,10 +53,10 @@ The current named baseline profiles are:
 | Provider profile | Engines | Default model | Wire API | Current route status |
 | --- | --- | --- | --- | --- |
 | `codex-router-responses` | `codex-cli`, `openai-agents-sdk` | `gpt-5.6-sol` | Responses | healthy for Codex; experimental for Agent SDK |
-| `mimo-mify-responses` | `codex-cli`, `openai-agents-sdk` | `xiaomi/mimo-v2.5` | Responses gateway | degraded for Codex; provisional for Agent SDK |
+| `mimo-mify-responses` | `codex-cli`, `openai-agents-sdk` | `xiaomi/mimo-v2.5-pro` | Responses gateway | degraded for Codex; healthy for Agent SDK and selected in the alternate-provider baseline |
 | `minimax-responses` | `codex-cli`, `openai-agents-sdk` | `MiniMax-M3` | Responses | blocked for Codex; healthy for Agent SDK |
-| `mimo-tp-openai-chat` | `openai-agents-sdk` | `mimo-v2.5` | Chat Completions | healthy |
-| `mimo-inside-openai-chat` | `openai-agents-sdk` | `mimo-1000` | Chat Completions | provisional |
+| `mimo-tp-openai-chat` | `openai-agents-sdk` | `mimo-v2.5` | Chat Completions | healthy but paused; explicit diagnostics only |
+| `mimo-inside-openai-chat` | `openai-agents-sdk` | `mimo-1000` | Chat Completions | paused; upstream channel removed |
 | `kimi-openai-chat` | `openai-agents-sdk` | `kimi-k2.7-code` | Chat Completions | experimental |
 | `kimi-anthropic` | `claude-code` | `kimi-k2.6` | Anthropic-compatible | healthy |
 | `mimo-tp-anthropic` | `claude-code` | `mimo-v2.5` | Anthropic-compatible shim | healthy |

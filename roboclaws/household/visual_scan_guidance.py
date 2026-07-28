@@ -87,7 +87,11 @@ def non_recommended_candidate_recovery_hint(perception_mode: str) -> str:
         )
     return (
         "The current public source/destination evidence does not recommend moving this "
-        "object. Do not navigate to or pick it; continue the waypoint sweep."
+        "object. Do not navigate to, pick, or retry it. If the latest done response returned "
+        "pending_cleanup_candidates, continue with the next handle from that exact list; "
+        "otherwise continue only at the next unvisited Base Metric Map inspection waypoint. "
+        "Do not expand into generated inspection waypoints unless the current pending candidate "
+        "explicitly supplies its generated_inspection_waypoint_id."
     )
 
 

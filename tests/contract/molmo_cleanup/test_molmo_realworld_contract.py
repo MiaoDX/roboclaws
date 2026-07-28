@@ -1850,6 +1850,9 @@ def test_realworld_contract_rejects_done_with_pending_public_candidates() -> Non
     assert done["completion"]["status"] == "blocked"
     assert done["completion"]["blockers"][0]["type"] == "pending_cleanup_candidates"
     assert done["completion"]["blockers"][0]["required_tool"] == "adjust_camera"
+    recovery_hint = done["completion"]["blockers"][0]["recovery_hint"]
+    assert "authoritative pending_cleanup_candidates list" in recovery_hint
+    assert "Do not inspect unrelated handles or expand the waypoint sweep" in recovery_hint
     assert "target_receptacle_id" not in str(done)
     _assert_no_forbidden_keys(done)
 

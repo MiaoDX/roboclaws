@@ -3,7 +3,7 @@ plan_scope: cloudml-juicefs-eval
 status: active
 implementation_allowed: true
 created: 2026-06-18
-last_reviewed: 2026-07-21
+last_reviewed: 2026-07-23
 source:
   - user request to make CloudML a standard eval execution target
   - user approval of the hybrid local and CloudML design on 2026-07-21
@@ -23,15 +23,16 @@ related_context:
 - Session scope: cloudml-eval-execution
 - Parent plan: none
 - Child plans: none
-- Last updated: 2026-07-21
-- Current slice: CPU and RTX 4090 CloudML smokes are proven; reconcile the
-  secure provider-injection boundary before live Router rows.
-- Next action: add or select a reviewed CloudML native secret reference or
-  workload identity contract, then run bounded API Router and MiMo rows.
-- Blocked on: executor `custom_train submit` currently exposes no native secret
-  reference, environment-secret reference, or workload identity input. The
-  accepted security gate forbids plaintext provider credentials in argv, YAML,
-  image commands, or JuiceFS.
+- Last updated: 2026-07-23
+- Current slice: provider-env staging, preemptible r49 execution, the complete
+  CloudML baseline refresh, the MapBuild timeout follow-up, and content-addressed
+  multi-scene staging and shared local/CloudML case expansion are complete;
+  hybrid `auto` execution remains.
+- Next action: implement dependency-safe local/CloudML handoff, then run a
+  representative hybrid baseline.
+- Blocked on: no CloudML or credential-transport blocker. Direct Kimi/MiniMax
+  rows have no eligible internal-only worker pool, and the remaining RAW-FPV
+  failure is product capability rather than infrastructure.
 - Do not touch from this session: product task strategy, MCP semantics, eval
   grader policy, unrelated provider routes, or physical-robot backends.
 
@@ -70,9 +71,9 @@ Scope:
 - Stage inputs and collect run-owned outputs through JuiceFS, then render the
   normal `eval_harness.json`, Markdown, and HTML reports.
 - Support submit, poll, collect, retry/resume, and detached status workflows.
-- Keep provider credentials out of commands, YAML, manifests, logs, and normal
-  JuiceFS artifacts. Only a native CloudML secret reference or equivalent
-  workload identity is acceptable for formal live rows.
+- Keep provider credentials out of commands, YAML, manifests, logs, reports, and
+  normal output artifacts. Stage only registry-required values from a local
+  dotenv into a separate per-shard, read-only JuiceFS mount.
 - Update the current CloudML runbook and retire the stale single-suite command
   path once the replacement is proven.
 
@@ -83,10 +84,11 @@ Non-goals:
 - No silent fallback from direct Kimi/MiniMax profiles to internal Router
   models. A different route is a different explicit provider profile.
 - No full Cartesian product of providers, tasks, evidence lanes, and worlds.
-- No plaintext secret bundle in source control, task YAML, shell arguments,
-  report artifacts, or shared storage.
-- No preemptible CloudML evidence jobs until application-level resume is
-  independently proven.
+- No complete `.env` upload and no provider values in source control, task YAML,
+  shell arguments, reports, logs, or the normal input/output mounts. The approved
+  provider mount is a separate, minimal plaintext JuiceFS prefix.
+- No scheduler-side transparent retry of preempted evidence. Each retry remains
+  a new explicit shard attempt with persisted task and artifact identity.
 - No FDS publication by default; publication remains an explicit sharing step.
 
 Entity budget:
@@ -100,7 +102,7 @@ Entity budget:
 - new: one execution-plan/shard schema and one CloudML adapter boundary are
   necessary because current rows have no placement or remote lifecycle model.
 - expansion triggers: a new public command family, executor-repo API change,
-  provider alias, plaintext secret fallback, more than three delivery phases,
+  provider alias, broader credential staging, more than three delivery phases,
   or a new durable storage/service dependency requires review before expansion.
 
 Context:
@@ -125,16 +127,18 @@ SUCCESS requires all of the following:
    multi-row run and never runs a consumer before its producer artifact exists.
 4. A worker can execute an exact row/shard from a frozen manifest without
    reselecting or mutating unrelated rows.
-5. CloudML dry-run output uses the current `compute cloudml custom_train`
-   target, pinned code/image/input identities, read-only input and run-owned
-   output mounts, and contains no provider secret values.
+5. CloudML dry-run output uses the current
+   `compute cloudml cml -- custom_train submit` adapter route, pinned
+   code/image/input identities, read-only input and run-owned output mounts,
+   and contains no provider secret values.
 6. A real deterministic CloudML smoke writes valid row and harness artifacts
    to JuiceFS and the local collector reproduces the normal aggregate report.
 7. A real RTX 4090-class MuJoCo/DINO smoke proves the GPU image, EGL/rendering,
    detector assets, sidecar readiness, and output collection.
-8. Internal API Router and MiMo Router live rows pass from CloudML using secure
-   secret injection; direct Kimi/MiniMax rows are placed on an eligible pool or
-   explicitly blocked with network capability evidence.
+8. Internal API Router and MiMo live rows execute from CloudML through the
+   scoped provider mount; unavailable models remain explicit provider failures.
+   Direct Kimi/MiniMax rows are placed on an eligible pool or explicitly blocked
+   with network capability evidence.
 9. `execution_target=auto` completes a hybrid representative baseline with
    stable row identity and a single aggregate report.
 10. Documentation gives one standard workflow for development, formal
@@ -145,8 +149,9 @@ BLOCKED_NEEDS_DECISION:
 - A real CloudML submission is a cost-bearing external state change and needs
   confirmation immediately before the first submit. The user supplied that
   confirmation for the current CPU/GPU smoke sequence on 2026-07-21.
-- If CloudML exposes no native secret reference or workload identity, stop for
-  a security decision; do not invent a plaintext fallback.
+- Any expansion from the approved per-shard registry keys to a broader dotenv,
+  another storage surface, or task environment values requires a new security
+  decision.
 - If an internal Router model is proposed as a replacement for an existing
   direct provider row, require an explicit provider-profile decision.
 
@@ -208,9 +213,9 @@ Optional:
 
 ## Implementation Evidence
 
-As of 2026-07-21:
+As of 2026-07-22:
 
-- Focused Eval Harness regression passes 82 tests; Ruff, formatting checks,
+- Focused Eval Harness regression passes 211 tests; Ruff, formatting checks,
   and CloudML shell syntax checks pass.
 - Separate local CPU and CUDA images pass offline eval smokes. The CPU image is
   1.88 GB and the CUDA image is 10.84 GB.
@@ -244,14 +249,93 @@ As of 2026-07-21:
   `droid_objaverse` cache metadata required by the resource manager. Staging
   now calls executor through its supported `exe` entrypoint and inherits the
   executor project's active config unless an explicit override is supplied.
-- The current executor `custom_train submit` CLI and implementation expose no
-  native secret reference or workload identity field. API Router and MiMo live
-  rows therefore remain blocked by the approved no-plaintext-secret gate.
+- Provider requirements now come directly from the provider registry. The
+  adapter loads the repo-local `.env`, writes only each shard's required values
+  to a `0600` temporary dotenv, uploads it to a separate run-owned JuiceFS
+  prefix, and mounts it read-only. Temporary local files are deleted after
+  submission; plans, argv, generated YAML, logs, reports, and collected output
+  contain no API-key values.
+- Live run `provider-fabb06bf-live` collected all three rows. API Router passed
+  3/3 open-ended samples in 397.722 seconds; MiMo Mify passed 3/3 in 692.858
+  seconds. MiMo Inside reached its configured `mimo-1000` route but failed both
+  attempts as `provider_transient_failure/upstream_unavailable`, matching the
+  earlier local route result rather than a credential-transport failure.
+- On 2026-07-22, Mify `xiaomi/mimo-v2.5-pro` passed local OpenAI Chat and
+  Responses probes 3/3 each plus a cleanup worklist tool-call case. It is now
+  the only default-enabled MiMo route and the alternate-provider baseline row;
+  token-plan and Inside routes remain available only for explicit diagnostics.
+- Submission initially hit the account's eight-unit r49 quota because six
+  unrelated single-unit jobs and two eval shards were already active. Persisted
+  task IDs and upload markers allowed the third shard to be submitted with
+  `agent::eval execute run=...` after one unit was released.
+- Commit `9cfeee42` adds `cloudml_preemptible=true` as a task-level flag for r49
+  GPU shards while leaving CPU shards non-preemptible. It works with the queue's
+  `GUARANTEED` r49 resource priority and does not require a `BEST_EFFORT`
+  resource class.
+- Complete run `cloudml-baseline-refresh-preemptible-9cfeee42-20260722`
+  selected 27 rows and submitted 15 tasks concurrently: one CPU shard and 14
+  preemptible r49 shards. The 25 eligible rows were all collected with no
+  missing results; no shard was preempted. Cloud execution took about 54 minutes
+  12 seconds versus about 4 hours 11 minutes of summed row work, an effective
+  4.6x speedup. Outcomes were 23 passed, two failed, and two explicitly blocked
+  for missing external-network worker capability.
+- The Codex MapBuild matrix initially passed 3/5 because both cleanup cells hit
+  the generic 1200-second live budget while still making progress. Commit
+  `dd4d4ade` assigns all MapBuild provider matrix rows a 1500-second budget. The
+  targeted preemptible CloudML proof then passed 5/5 in 2948.113 seconds; its
+  cleanup cells completed in 1144.758 and 1250.085 seconds with no provider
+  failures or budget exhaustion.
+- RAW-FPV cleanup remains the only executed baseline failure after the MapBuild
+  follow-up. It reached 3/4 required grounded cleanup chains before
+  `raw_fpv_recovery_exhausted`, so it remains a product capability issue.
+- The scoped remote dotenv remains plaintext on JuiceFS and currently has no
+  automatic deletion lifecycle. A native CloudML secret reference or
+  Router-issued short-lived workload token remains the preferred hardening path,
+  but is no longer a blocker for the approved controlled baseline workflow.
+- Content-addressed staging was verified locally: a first archive build took
+  89.29 seconds for 1,800,828,916 bytes; an unchanged second run reused the
+  asset/code cache in 4.90 seconds. The run directory stayed about 16 KB and
+  the archive SHA remained stable. Complete archived-tree metadata is included
+  in the source fingerprint so resource changes invalidate cache references.
+- Commit `001266a8` corrected the JuiceFS probe interpretation so one matching
+  candidate directory with all required markers is a cache hit. Final run
+  `cloudml-baseline-content-store-4f3d4fec-20260722` reused the existing asset
+  and code digest entries instead of re-uploading the 1.8 GB asset archive.
+- That final run selected 27 rows, submitted one CPU shard and 14 preemptible
+  r49 shards, and collected all 25 eligible rows with zero missing results.
+  No shard was preempted or retried. Outcomes were 24 passed, one failed, and
+  two explicitly blocked because direct Kimi/MiniMax still lack an
+  external-egress worker pool.
+- Cloud task execution completed in 42 minutes 26 seconds; measured from
+  harness generation through the last task it took 44 minutes 41 seconds.
+  Executed row durations sum to 3 hours 20 minutes 23 seconds, giving a 4.72x
+  task-execution speedup. The previous parallel baseline took about 54 minutes
+  12 seconds, so the final run was 11 minutes 46 seconds faster; the change
+  combines parallel execution with lower observed live-row durations.
+- Both provider MapBuild matrices passed 5/5, and world-public cleanup live
+  passed 3/3. RAW-FPV cleanup was the sole executed failure. It completed 168
+  successful model calls with no provider failures, then ended as
+  `raw_fpv_recovery_exhausted` after producing only 2/4 required grounded
+  cleanup chains. The failure is independent of CloudML scheduling and
+  preemption.
+- Commits `b0ef5d72` through `fe20788a` make scene selection an
+  execution-neutral harness concern. Local and CloudML now consume the same
+  case IDs, scene axes, commands, dependency identities, and result schema;
+  CloudML shards are placement packages rather than benchmark definitions.
+- Local run `local-multiscene-mapbuild-91d126a0` passed
+  `procthor-10k-val/0` and `procthor-objaverse-val/0` while the shared
+  MolmoSpaces concurrency group correctly serialized the two visual cases.
+  CloudML run `cloudml-multiscene-mapbuild-c316c6d9-live` passed the same two
+  case IDs on separate r49 workers. Their task intervals overlapped; 107.149
+  seconds of summed row execution completed in about 59 seconds, for roughly
+  1.82x execution-stage speedup. Collection returned two rows with no failed
+  shard or missing result.
 
 ## Architecture Contract
 
 ```text
 selector
+  -> execution-neutral benchmark cases (row/suite, provider, scene)
   -> frozen eval harness manifest and dependency DAG
   -> capability scheduler
        -> local worker pool
@@ -264,15 +348,16 @@ selector
 
 CloudML is an Eval Harness execution environment, not a product `backend`.
 Workers execute catalog commands; they do not own selection policy or robot
-strategy.
+strategy. Local and CloudML schedulers consume the same resolved cases;
+`shard_id` records placement and batching, not benchmark identity.
 
 ### Public Maintainer Command
 
 The intended facade remains `agent::eval`:
 
 ```bash
-just agent::eval execute profile=baseline-refresh budget=focused execution_target=auto
-just agent::eval execute profile=baseline-refresh budget=focused execution_target=cloudml detach=true
+just agent::eval execute profile=baseline-refresh budget=focused execution_target=auto cloudml_dry_run=true
+just agent::eval execute profile=baseline-refresh budget=focused execution_target=cloudml output_dir=output/eval-harness/<run>
 just agent::eval status run=<run-id>
 just agent::eval collect run=<run-id>
 ```
@@ -299,8 +384,8 @@ Resolved plan/attempt metadata should add:
 
 ### Capability Pools
 
-Pool capability configuration is environment-owned and contains names or
-secret references only, never secret values.
+Pool capability configuration is environment-owned and contains names and
+placement policy only. Provider values stay in the separate scoped mount.
 
 | Pool | Capabilities | Initial use |
 | --- | --- | --- |
@@ -315,6 +400,9 @@ namespaces are isolated.
 ### Sharding Rules
 
 - Group short deterministic rows into one CPU shard to amortize startup.
+- Never mix cases from different scenes in one CloudML shard. Multiple
+  same-scene cases may share a shard when their dependencies and capabilities
+  allow it.
 - Keep producer/consumer artifact chains in one ordered shard unless the
   artifact has been durably committed and verified before dispatch.
 - Give 15-30 minute live provider rows independent shards when provider
@@ -328,11 +416,15 @@ namespaces are isolated.
 ### Security Rules
 
 - Secret values must never enter argv, generated YAML, Git, report JSON/HTML,
-  logs, task labels, FDS bundles, or ordinary JuiceFS artifacts.
-- Worker manifests contain provider profile and secret reference names only.
+  logs, task labels, FDS bundles, or normal input/output JuiceFS artifacts.
+- Worker manifests contain provider profile and required environment names only.
 - Logs and exception summaries retain the existing redaction boundary.
-- Formal live CloudML execution requires a native secret reference or
-  workload identity proven by a redaction test and a real bounded probe.
+- The provider mount contains only registry-required values for one shard, is
+  read-only in the worker, and is never placed under the collected output root.
+- The current JuiceFS transport is plaintext at rest from the harness
+  perspective and has no automatic remote deletion; access control and key
+  rotation are operational requirements until a native secret manager replaces
+  it.
 
 ## Delivery Sequence
 

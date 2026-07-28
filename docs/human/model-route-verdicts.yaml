@@ -1,5 +1,5 @@
 schema: roboclaws_model_route_verdicts_v1
-last_reviewed: 2026-07-09
+last_reviewed: 2026-07-22
 source_of_truth:
   registry: roboclaws/agents/provider_registry.py
   narrative: docs/human/model-matrix.md
@@ -16,6 +16,17 @@ verdicts:
     evidence: 2026-07-14 work-network Responses and OpenAI SDK probes passed; model-matrix health passed 2/2 with GPT-5.6-sol
     notes: Default active live-agent route when provider capacity is healthy. Requires CODEX_BASE_URL and CODEX_API_KEY; GPT-5.5 remains available as an explicit compatibility model.
   - agent_engine: openai-agents-sdk
+    provider_route: mimo-mify-responses
+    provider_profile: mimo-mify-responses
+    model_id: xiaomi/mimo-v2.5-pro
+    route_status: healthy
+    lane_verdicts:
+      structured_labels: healthy
+      camera_grounded_labels: healthy
+      camera_raw_fpv: blocked
+    evidence: 2026-07-22 local Chat and Responses probes passed 3/3 each; cleanup worklist tool-call case passed; prior CloudML live row passed 3/3
+    notes: Only default-enabled MiMo route. Uses the Responses gateway directly without the retired text bridge; raw FPV remains blocked because image transport is unverified.
+  - agent_engine: openai-agents-sdk
     provider_route: mimo-tp-openai-chat
     provider_profile: mimo-tp-openai-chat
     model_id: mimo-v2.5
@@ -25,18 +36,18 @@ verdicts:
       camera_grounded_labels: healthy
       camera_raw_fpv: blocked
     evidence: local non-raw-FPV Agent SDK cleanup evidence
-    notes: Chat transport is suitable for structured lanes; raw FPV is blocked by route image transport.
+    notes: Healthy transport retained for explicit diagnostics, but paused from default and baseline selection while MiMo defaults use Mify Pro. Raw FPV is blocked by route image transport.
   - agent_engine: openai-agents-sdk
     provider_route: mimo-inside-openai-chat
     provider_profile: mimo-inside-openai-chat
     model_id: mimo-1000
-    route_status: provisional
+    route_status: blocked
     lane_verdicts:
       structured_labels: experimental
       camera_grounded_labels: experimental
       camera_raw_fpv: blocked
-    evidence: dev model-matrix throughput probes; product cleanup verdict pending
-    notes: Default-enabled on-demand UltraSpeed route for benchmarks and explicit text-agent experiments, not a product cleanup default until a separate route decision promotes it.
+    evidence: 2026-07-22 local probe returned 503 model_not_found / No available channel 3/3; provider owner confirmed mimo-1000 was removed
+    notes: Paused from default and baseline selection. Retained only for explicit diagnostics and historical artifact readability; there is no silent fallback to Mify.
   - agent_engine: openai-agents-sdk
     provider_route: kimi-openai-chat
     provider_profile: kimi-openai-chat

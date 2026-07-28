@@ -44,18 +44,15 @@ def test_active_mimo_references_do_not_use_deprecated_omni_ids() -> None:
     assert offenders == []
 
 
-# --- text-bridge / mimo-v2.5-pro removal guard (2026-06-04) ----------------
+# --- retired text-bridge removal guard (2026-06-04) -------------------------
 #
-# The repo standardized on vision-capable `mimo-v2.5` as the single MiMo route
-# and removed the text-only `mimo-v2.5-pro` route together with its text-bridge
-# foundation (roboclaws/mcp/text_bridge.py and its test). This guard fails if
-# any of those retired symbols/ids reappear on an EXECUTABLE surface (code, CI,
-# recipes, scripts, tests) where they would be dead code or a broken CI entry.
+# The repo removed the text-bridge foundation (roboclaws/mcp/text_bridge.py and
+# its test). MiMo v2.5 Pro is now supported directly through the mify Responses
+# route and does not require that bridge. This guard only prevents the retired
+# bridge symbols from returning on executable surfaces.
 #
-# Docs are intentionally NOT scanned: docs/human/model-matrix.md legitimately
-# names `mimo-v2.5-pro` to record the upstream `/v1/models` snapshot and to warn
-# against re-adding it. Historical archives (.planning/milestones, retrospectives,
-# docs/plans) are likewise out of scope — they record what was true at the time.
+# Docs and historical archives are out of scope because they record route
+# history rather than executable compatibility behavior.
 EXECUTABLE_SEARCH_ROOTS = (
     ".github",
     "examples",
@@ -66,13 +63,7 @@ EXECUTABLE_SEARCH_ROOTS = (
     "tests",
 )
 _GUARD_RELPATH = "tests/contract/regression/test_mimo_v25_migration_guard.py"
-PRO_TEXTBRIDGE_ALLOWED_RELPATHS = {
-    "roboclaws/agents/model_matrix_benchmark.py",
-    "scripts/dev/benchmark_model_matrix.py",
-    "tests/unit/providers/test_model_matrix_benchmark.py",
-}
 FORBIDDEN_PRO_TEXTBRIDGE_PATTERNS = (
-    "mimo-v2.5-" + "pro",
     "text_" + "bridge",
     "Vision" + "Bridge",
     "resolve_observe_" + "delivery",
@@ -80,7 +71,7 @@ FORBIDDEN_PRO_TEXTBRIDGE_PATTERNS = (
 )
 
 
-def test_executable_surfaces_do_not_resurrect_pro_or_text_bridge() -> None:
+def test_executable_surfaces_do_not_resurrect_text_bridge() -> None:
     offenders = _find_forbidden_pro_textbridge_references()
     assert offenders == []
 
@@ -96,7 +87,7 @@ def _find_forbidden_pro_textbridge_references() -> list[str]:
             if not candidate.is_file() or _is_excluded(candidate):
                 continue
             relpath = candidate.relative_to(REPO_ROOT).as_posix()
-            if relpath == _GUARD_RELPATH or relpath in PRO_TEXTBRIDGE_ALLOWED_RELPATHS:
+            if relpath == _GUARD_RELPATH:
                 continue
             try:
                 lines = candidate.read_text(encoding="utf-8").splitlines()

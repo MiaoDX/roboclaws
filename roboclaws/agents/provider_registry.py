@@ -216,8 +216,7 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         aliases=("mimo", "mimo-v2.5"),
         family="mimo",
         model_capabilities=_caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
-        default_use=True,
-        default_use_note="Default MiMo token-plan model.",
+        default_use_note="Paused with token-plan routes; retained for diagnostics.",
         direct_provider_adapter="mimo",
         direct_required_env_keys=("MIMO_TP_KEY",),
         cost_per_m={"input": 0.0, "output": 0.0},
@@ -228,20 +227,22 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         aliases=("xiaomi/mimo-v2.5", "mimo-mify-v2.5"),
         family="mimo",
         model_capabilities=_caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
+        default_use_note="Previous MiMo mify model; retained for route-support probes.",
+    ),
+    ModelSpec(
+        model_id="xiaomi/mimo-v2.5-pro",
+        aliases=("xiaomi/mimo-v2.5-pro", "mimo-mify-v2.5-pro"),
+        family="mimo",
+        model_capabilities=_caps(MODEL_CAP_TEXT),
         default_use=True,
-        default_use_note="Default MiMo model through the mify gateway.",
+        default_use_note="Current MiMo Pro model through the mify gateway.",
     ),
     ModelSpec(
         model_id="mimo-1000",
         aliases=("mimo-1000", "mimo-inside-1000", "mimo-ultraspeed"),
         family="mimo",
         model_capabilities=_caps(MODEL_CAP_TEXT),
-        default_use=True,
-        default_use_note=(
-            "Default-enabled MiMo inside UltraSpeed route for explicit on-demand "
-            "benchmark and text-agent use; product cleanup promotion still requires "
-            "a route decision."
-        ),
+        default_use_note="Inside channel removed; retained for diagnostics.",
     ),
     ModelSpec(
         model_id="MiniMax-M3",
@@ -280,9 +281,9 @@ _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
     ProviderRouteSpec(
         route_id=PROVIDER_PROFILE_MIMO_MIFY_RESPONSES,
         public_profile=PROVIDER_PROFILE_MIMO_MIFY_RESPONSES,
-        label="Mimo MIFY v2.5",
+        label="Mimo MIFY v2.5 Pro",
         supported_engines=("openai-agents-sdk",),
-        default_model_id="xiaomi/mimo-v2.5",
+        default_model_id="xiaomi/mimo-v2.5-pro",
         required_env_keys=("XM_LLM_API_KEY",),
         api_key_env="XM_LLM_API_KEY",
         base_url_env="XM_LLM_BASE_URL",
@@ -290,18 +291,14 @@ _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
         wire_api=WIRE_RESPONSES,
         wire_source=WIRE_SOURCE_GATEWAY,
         default_use=True,
-        default_use_note=(
-            "Default-enabled MiMo mify route; uses xiaomi/mimo-v2.5 unless explicitly overridden."
-        ),
-        compatible_model_ids=("xiaomi/mimo-v2.5",),
-        per_engine_status={
-            "openai-agents-sdk": ROUTE_PROVISIONAL,
-        },
+        default_use_note=("Default-enabled MiMo mify route; uses xiaomi/mimo-v2.5-pro."),
+        compatible_model_ids=("xiaomi/mimo-v2.5-pro",),
+        per_engine_status={"openai-agents-sdk": ROUTE_HEALTHY},
         route_capabilities={
             "image_transport": ROUTE_CAP_UNKNOWN,
             "tool_call_transport": ROUTE_CAP_SUPPORTED,
         },
-        status_note=("MiMo via mify is SDK-provisional until broader live route proof is healthy."),
+        status_note="Local wire, tool-call, and CloudML proof; image transport unverified.",
     ),
     ProviderRouteSpec(
         route_id=PROVIDER_PROFILE_MINIMAX_RESPONSES,
@@ -339,8 +336,8 @@ _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
         base_url_default="https://token-plan-cn.xiaomimimo.com/v1",
         wire_api=WIRE_CHAT_COMPLETIONS,
         wire_source=WIRE_SOURCE_NATIVE,
-        default_use=True,
-        default_use_note="Default-enabled MiMo token-plan chat route; uses mimo-v2.5.",
+        default_use=False,
+        default_use_note="Paused; retain for diagnostics while Mify Pro is the default.",
         compatible_model_ids=("mimo-v2.5",),
         per_engine_status={"openai-agents-sdk": ROUTE_HEALTHY},
         route_capabilities={
@@ -360,14 +357,10 @@ _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
         base_url_default="",
         wire_api=WIRE_CHAT_COMPLETIONS,
         wire_source=WIRE_SOURCE_NATIVE,
-        default_use=True,
-        default_use_note=(
-            "Default-enabled on-demand MiMo inside route for speed benchmarks and "
-            "explicit text-agent experiments. Not a product cleanup default until "
-            "a separate route decision promotes it."
-        ),
+        default_use=False,
+        default_use_note="Paused: channel removed; retain for diagnostics and history.",
         compatible_model_ids=("mimo-1000",),
-        per_engine_status={"openai-agents-sdk": ROUTE_PROVISIONAL},
+        per_engine_status={"openai-agents-sdk": ROUTE_BLOCKED},
         route_capabilities={
             "image_transport": ROUTE_CAP_UNKNOWN,
             "tool_call_transport": ROUTE_CAP_SUPPORTED,

@@ -83,6 +83,21 @@ and `max_parallel=1` preserves the historical serial behavior. Raising
 `max_parallel` runs independent rows concurrently while dependency chains and
 shared local visual-backend groups remain ordered.
 
+Scene expansion happens before execution placement. The harness resolves one
+execution-neutral benchmark case from the catalog row, suite, provider profile,
+seed, and optional `(scene_source, scene_index)` identity, then writes that case
+to the frozen manifest. Local and CloudML schedulers consume the same case IDs,
+commands, dependencies, and result schema; CloudML shards are only remote
+execution packages and do not define a second benchmark model.
+
+Passing `scene=<source>/<index>,...` expands only catalog rows declared
+scene-portable. The current portable rows are the world-public and Grounding
+DINO MapBuild product rows. Cleanup, open-ended, long-horizon, and provider
+matrix rows keep their suite-owned scene contracts until each suite explicitly
+defines portable setup and grading. Locally, multiple visual cases may still
+serialize through the single MolmoSpaces backend lock. On CloudML, cases from
+different scenes are placed in separate workers and may run concurrently.
+
 Build eval images only when `Dockerfile.eval`, the root lockfile, the visual
 grounding lockfile, or the pinned DINO snapshot changes. A baseline refresh
 normally reuses already-published image digests and does not rebuild images:
@@ -115,7 +130,7 @@ ROBOCLAWS_CLOUDML_CPU_IMAGE_URL='<cpu-image>@sha256:<digest>' \
 ROBOCLAWS_CLOUDML_GPU_IMAGE_URL='<cuda-image>@sha256:<digest>' \
 ROBOCLAWS_CLOUDML_ASSET_MANIFEST=/path/to/roboclaws_cloudml_cleanup_assets.json \
   just agent::eval execute profile=baseline-core budget=focused \
-  execution_target=cloudml cloudml_dry_run=true
+  execution_target=cloudml cloudml_dry_run=true cloudml_preemptible=true
 ```
 
 With `cloudml_dry_run=true`, this generates executor `custom_train` YAML for
@@ -125,6 +140,28 @@ code/image/asset identities are pinned. Only image variables for pools selected
 by the plan are required, so a CPU-only run does not need a CUDA image. The CUDA
 image contains the pinned Grounding DINO model snapshot and CUDA sidecar venv;
 the CPU image stays smaller and does not install those dependencies.
+`cloudml_preemptible=true` marks only r49 GPU shards as preemptible so they can
+borrow idle capacity from the queue's `GUARANTEED` resource; CPU shards remain
+non-preemptible. A preempted shard must be resumed as a new explicit attempt.
+The task-level preemptible flag is independent of CloudML resource priority; it
+does not require a separate `BEST_EFFORT` r49 resource class.
+
+The 2026-07-22 complete baseline proof selected 27 rows and placed 25 eligible
+rows into 15 CloudML shards: one CPU shard and 14 preemptible r49 GPU shards.
+All 15 tasks were created within 19 seconds and completed in 54 minutes 12
+seconds without preemption. Their row durations summed to about 4 hours 11
+minutes, an effective 4.6x reduction against serialized work. Two direct
+Kimi/MiniMax rows were explicitly blocked because the internal worker pool
+lacks external egress; they were not silently dropped.
+
+A 2026-07-23 two-scene MapBuild proof used the same case IDs for local and
+CloudML execution on `procthor-10k-val/0` and
+`procthor-objaverse-val/0`. Both local cases passed while respecting the shared
+visual-backend lock. CloudML placed them in two one-r49 shards on different
+workers; both passed, their execution intervals overlapped, and 107.149 seconds
+of summed row work completed in about 59 seconds of row-stage wall time (about
+1.82x). This proves placement-level parallelism without changing benchmark
+identity or grading.
 
 After reviewing the dry-run and accepting the CloudML cost, omit
 `cloudml_dry_run=true` to upload the staging directory and submit detached
@@ -150,12 +187,23 @@ just agent::eval status run=output/eval-harness/<run> wait=true timeout_s=3600
 just agent::eval collect run=output/eval-harness/<run>
 ```
 
-Direct Kimi/MiniMax require external egress. API Router/MiMo are reachable from
-CloudML, but live provider rows remain explicitly blocked there until executor
-supports a secret reference or workload identity; plaintext key injection is
-not supported. `execution_target=auto` currently supports placement dry-runs
-only because a real hybrid run still needs dependency-safe handoff between
-CloudML producer rows and local provider consumers.
+Direct Kimi/MiniMax require external egress. API Router and MiMo rows can run on
+CloudML from the repo-local `.env`; `ROBOCLAWS_PROVIDER_ENV_FILE` selects a
+different local dotenv source. The adapter reads each profile's requirements
+from the provider registry, writes only the required values to a `0600`
+temporary file, uploads one file per shard to a separate run-owned JuiceFS
+prefix, and mounts it read-only at `/mnt/cloudml/provider-env`. The temporary
+local file is removed after submission, and the secret mount is separate from
+the collected output mount. Commands, generated YAML, plans, logs, reports, and
+normal result artifacts contain paths and environment names, not key values.
+
+This is controlled plaintext storage on JuiceFS, not a platform secret manager:
+the remote provider file is not automatically deleted. Do not upload the full
+`.env`; keep the provider prefix access-controlled and rotate credentials under
+the normal provider policy. Missing required values produce
+`missing_provider_environment`. `execution_target=auto` currently supports
+placement dry-runs only because a real hybrid run still needs dependency-safe
+handoff between CloudML producer rows and local provider consumers.
 
 Direct suites run direct-runner household samples without provider keys, write
 `output/evals/<suite>/<stamp>/eval_results.json`, and render
@@ -196,7 +244,12 @@ just agent::eval suite=cleanup_capability budget=smoke \
 
 Live evals default to a 1200 second wall-clock budget and a 120 second
 no-progress stall timeout. Pass `live_timeout_s=<seconds>` only when you intend
-to override the whole-run wall-clock budget for a specific run.
+to override the whole-run wall-clock budget for a specific run. Catalog rows
+may own a larger explicit budget when the suite has a repeatable long-running
+contract. The MapBuild provider matrices use 1500 seconds because their cleanup
+consumers can exceed 1200 seconds while continuing to make model and tool
+progress. A targeted CloudML proof completed those cleanup cells in 1144.758
+and 1250.085 seconds and passed the full matrix 5/5.
 
 The eval result records blocked provider/runtime conditions separately from
 agent behavior when the selected live route cannot finish.

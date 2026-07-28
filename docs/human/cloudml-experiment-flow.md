@@ -1,11 +1,12 @@
 # CloudML Experiment Flow
 
 For new Eval Harness work, use the target-aware `just agent::eval` flow in
-`docs/human/evaluation.md`. The shell workflow below is the older single-suite
+`docs/human/evaluation.md`; it owns current submit, poll, collect, resume, and
+provider-env staging. The shell workflow below is the older single-suite
 experiment prototype and remains only for its already-validated product
-cleanup/staging path while submit, poll, and collect migrate into Eval Harness.
-Its `cloudml_eval_dry_run.sh` submit implementation still names a retired
-executor route and must not be used as the canonical eval submission command.
+cleanup/staging path. Its `cloudml_eval_dry_run.sh` submit implementation still
+names a retired executor route and must not be used as the canonical eval
+submission command.
 
 This runbook fixes the full executor-backed experiment loop for Roboclaws
 cleanup product runs and evaluation trials:
@@ -64,29 +65,45 @@ ROBOCLAWS_EXPERIMENT_PHASE=stage-assets \
   scripts/dev/cloudml_experiment_flow.sh
 ```
 
-The stage script builds a small upload set:
+The stage script keeps stable content in a local content-addressed cache and
+keeps each run directory lightweight. The cache layout is:
 
-- `archives/cleanup-focused-molmospaces-val0.tar.gz`
-- `archives/cleanup-focused-molmospaces-val0.tar.gz.sha256`
-- `archives/roboclaws-code-<commit>.tar.gz`
-- `archives/roboclaws-code-<commit>.tar.gz.sha256`
-- `roboclaws_cloudml_cleanup_assets.json`
+```text
+<content-cache>/
+  assets/by-sha256/<asset-sha>/
+  code/by-sha256/<code-sha>/
+  runs/<run-id>/
+```
 
-The asset archive contains the MolmoSpaces scene, required offline manifests,
-object/robot assets, and the Roboclaws map bundle. CloudML extracts this archive
-to local scratch by default:
+The run directory contains only `roboclaws_cloudml_cleanup_assets.json` and
+shard manifests. The immutable asset archive may contain multiple selected
+MolmoSpaces scenes, their map bundles, required offline manifests, robot/object
+assets, and the versioned Objaverse cache layout expected by the resource
+manager. Code archives are keyed by commit. Both content types are uploaded to
+their digest path only when the remote marker probe reports a cache miss. A
+second experiment with the same source content reuses both local and remote
+entries; it does not rebuild or re-upload the roughly 1.85 GB multi-scene asset
+archive. CloudML mounts the three inputs separately: the run manifest at
+`/mnt/cloudml/input`, the asset digest at `/mnt/cloudml/assets`, and the code
+digest at `/mnt/cloudml/code`.
+
+CloudML extracts the asset archive to local scratch by default:
 
 ```bash
 ROBOCLAWS_CLOUDML_ASSET_CACHE_MODE=local-scratch
 ```
 
 Do not extract 100k+ small asset files back into JuiceFS for each run. Keep the
-archive on JuiceFS, then extract once per worker-local cache sha.
+shared archive on JuiceFS, then copy and extract it once into each newly
+allocated worker's local scratch. Workers do not share local caches, but they
+reuse the same immutable JuiceFS archive and therefore avoid rebuilding or
+re-uploading it for each experiment.
 
-With `ROBOCLAWS_EXPERIMENT_DRY_RUN=true`, the script only prints and dry-runs the
-JuiceFS upload. With `ROBOCLAWS_EXPERIMENT_DRY_RUN=false`, the wrapper sets
-`ROBOCLAWS_STAGE_RUN_UPLOAD=true` and uploads the staged archive set to JuiceFS.
-Use the dry-run output first when changing the target path.
+With `ROBOCLAWS_EXPERIMENT_DRY_RUN=true`, the script only prints and dry-runs
+the JuiceFS upload. With `ROBOCLAWS_EXPERIMENT_DRY_RUN=false`, the wrapper
+uploads missing digest entries plus the lightweight run manifest. Use the
+dry-run output first when changing the target path. The canonical `just
+agent::eval` facade performs the same cache probe and resume bookkeeping.
 
 ## 2. Submit The CloudML Experiment
 
