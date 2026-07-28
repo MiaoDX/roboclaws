@@ -48,7 +48,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 7.45,
       "y": 9.15,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -65,7 +65,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 1.65,
       "y": 9.15,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -82,7 +82,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 3.3,
       "y": 3.3,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -99,7 +99,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 9.15,
       "y": 3.3,
-      "yaw": 0.0
+      "yaw": 0
     }
   ],
   "map_id": "molmospaces-procthor-10k-val-10_base_metric_map",
@@ -114,7 +114,7 @@
     "scene_index": 10,
     "scene_source": "procthor-10k-val",
     "source": "molmospaces_scene_source_map_preparation",
-    "source_artifact": "/home/mi/.cache/molmospaces/assets/L2hvbWUvbWkvd3MvZ29nby9yb2JvY2xhd3MvLnZlbnYvbGliL3B5dGhvbjMuMTIvc2l0ZS1wYWNrYWdlcw/scenes/procthor-10k-val/val_10.xml",
+    "source_artifact": "molmospaces://procthor-10k-val/10",
     "uses_navigation_memory_as_waypoint_source": false
   },
   "rooms": [
@@ -166,7 +166,7 @@
       "navigation_area_id": "room_5",
       "polygon": [
         {
-          "x": 0.0,
+          "x": 0,
           "y": 6.645
         },
         {
@@ -178,7 +178,7 @@
           "y": 11.628
         },
         {
-          "x": 0.0,
+          "x": 0,
           "y": 11.628
         }
       ],
@@ -205,19 +205,19 @@
       "navigation_area_id": "room_6",
       "polygon": [
         {
-          "x": 0.0,
-          "y": 0.0
+          "x": 0,
+          "y": 0
         },
         {
           "x": 6.645,
-          "y": 0.0
+          "y": 0
         },
         {
           "x": 6.645,
           "y": 6.645
         },
         {
-          "x": 0.0,
+          "x": 0,
           "y": 6.645
         }
       ],
@@ -245,11 +245,11 @@
       "polygon": [
         {
           "x": 6.645,
-          "y": 0.0
+          "y": 0
         },
         {
           "x": 11.628,
-          "y": 0.0
+          "y": 0
         },
         {
           "x": 11.628,

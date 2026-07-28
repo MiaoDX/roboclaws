@@ -56,6 +56,29 @@ def test_molmospaces_worker_read_state_loads_valid_state(tmp_path: Path) -> None
     assert read_state(state_path) == state
 
 
+def test_molmospaces_worker_state_persists_home_paths_portably(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from scripts.molmo_cleanup.molmospaces_worker_protocol import read_state, write_state
+
+    home = tmp_path / "operator-home"
+    monkeypatch.setenv("HOME", str(home))
+    state_path = tmp_path / "state.json"
+    state = {
+        "scene_xml": str(home / ".cache" / "molmospaces" / "scene.xml"),
+        "external_scene": "/opt/molmospaces/scene.xml",
+    }
+
+    write_state(state_path, state, refresh_runtime_render_state=lambda _state: None)
+
+    persisted = json.loads(state_path.read_text(encoding="utf-8"))
+    assert persisted["scene_xml"] == "~/.cache/molmospaces/scene.xml"
+    assert persisted["external_scene"] == "/opt/molmospaces/scene.xml"
+    assert str(home) not in state_path.read_text(encoding="utf-8")
+    assert read_state(state_path) == state
+
+
 def test_init_state_builds_init_envelope_with_injected_hooks(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

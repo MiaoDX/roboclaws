@@ -33,9 +33,6 @@ from roboclaws.household.household_mcp_server import (
 DEFAULT_INCOMPLETE_TURN_CONTINUATION_ATTEMPTS = 2
 AGENT_SDK_PERF_PROFILE_BASELINE = "baseline"
 AGENT_SDK_PERF_PROFILE_CONTEXT_MANAGED_V1 = "context_managed_v1"
-REMOVED_AGENT_SDK_PERF_PROFILES = frozenset(
-    {"gpt_compact_v1", "mimo_compact_v1", "raw_fpv_budgeted_v1", "custom"}
-)
 AGENT_SDK_PERF_PROFILE_ENV = "ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE"
 CONTINUATION_MODE_ENV = "ROBOCLAWS_OPENAI_AGENTS_CONTINUATION_MODE"
 CONTEXT_SOFT_LIMIT_ENV = "ROBOCLAWS_OPENAI_AGENTS_CONTEXT_SOFT_LIMIT_TOKENS"
@@ -236,16 +233,6 @@ def _profile_id_with_source(
 
 def _validate_profile_id(value: str) -> str:
     profile_id = value.strip()
-    if profile_id in REMOVED_AGENT_SDK_PERF_PROFILES:
-        supported = ", ".join(
-            (AGENT_SDK_PERF_PROFILE_CONTEXT_MANAGED_V1, AGENT_SDK_PERF_PROFILE_BASELINE)
-        )
-        raise ValueError(
-            "removed OpenAI Agents SDK performance profile "
-            f"{profile_id!r}; use {AGENT_SDK_PERF_PROFILE_CONTEXT_MANAGED_V1!r} for managed "
-            f"runs or {AGENT_SDK_PERF_PROFILE_BASELINE!r} for explicit comparison. "
-            f"Supported values: {supported}."
-        )
     if profile_id not in {
         AGENT_SDK_PERF_PROFILE_BASELINE,
         AGENT_SDK_PERF_PROFILE_CONTEXT_MANAGED_V1,

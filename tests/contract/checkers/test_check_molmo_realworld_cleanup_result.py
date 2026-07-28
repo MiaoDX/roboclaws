@@ -36,15 +36,11 @@ DEMO_PATH = REPO_ROOT / "examples" / "molmo_cleanup" / "molmospaces_realworld_cl
 CHECKER_PATH = REPO_ROOT / "scripts" / "molmo_cleanup" / "check_molmo_realworld_cleanup_result.py"
 SMOKE_PATH = REPO_ROOT / "scripts" / "molmo_cleanup" / "run_molmo_realworld_agent_mcp_smoke.py"
 AGIBOT_CONTEXT_FIXTURE = REPO_ROOT / "tests" / "fixtures" / "agibot_map_context.completed.json"
-AGIBOT_SDK_RUNNER_PATH = (
-    REPO_ROOT / "vendors" / "agibot_sdk" / "tools" / "run_agibot_cleanup_backend.py"
-)
-B1_MAP12_BUNDLE = (
-    REPO_ROOT / "vendors" / "agibot_sdk" / "artifacts" / "maps" / "robot_map_12" / "agibot"
-)
+AGIBOT_SDK_RUNNER_PATH = REPO_ROOT / "vendors/agibot_sdk/tools/run_agibot_cleanup_backend.py"
+B1_MAP12_BUNDLE = REPO_ROOT / "vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot"
 B1_ROOM_SEMANTICS = REPO_ROOT / "assets" / "maps" / "b1-map12-room-semantics.json"
 B1_BASE_LABELS = REPO_ROOT / "assets" / "maps" / "b1-map12-base-metric-labels.json"
-PREBUILT_BUNDLE = REPO_ROOT / "assets" / "maps" / "molmospaces" / "procthor-10k-val" / "0"
+PREBUILT_BUNDLE = REPO_ROOT / "assets/maps/molmospaces/procthor-10k-val/0"
 MOLMOSPACES_ROBOT_VIEW_VARIANT = "molmospaces-rby1m-fpv-topdown-chase-verify"
 ROBOT_VIEW_KEYS = ("fpv", "chase", "topdown", "verify")
 
@@ -81,7 +77,6 @@ def _load_module(path: Path, name: str):
 
 def test_checker_parses_robot_head_camera_fpv_flag(monkeypatch: pytest.MonkeyPatch) -> None:
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
-
     monkeypatch.setattr(
         sys,
         "argv",
@@ -3710,6 +3705,9 @@ def _make_common_agibot_map_build_server(*, run_dir: Path, context_json: Path):
     contract = AgibotHouseholdBackend(
         run_dir=run_dir,
         context_json=context_json,
+        runner_script=AGIBOT_SDK_RUNNER_PATH,
+        runner_python=sys.executable,
+        agibot_map_artifact_dir=B1_MAP12_BUNDLE,
         visual_grounding_pipeline_id="grounding-dino",
     )
     return make_household_world_mcp(
@@ -5073,6 +5071,8 @@ def _b1_robot_consumption_run_result(tmp_path: Path, *, verified: bool) -> dict[
 
 
 def _compile_b1_runtime_bundle_for_checker(tmp_path: Path, *, verified: bool) -> Path:
+    if not B1_BASE_LABELS.is_file():
+        pytest.skip("B1 map source bundle is unavailable in this checkout")
     kwargs: dict[str, Path] = {}
     if verified:
         alignment_path = tmp_path / "b1_alignment_residuals.json"

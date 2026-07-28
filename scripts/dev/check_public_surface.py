@@ -28,6 +28,7 @@ CREDENTIAL_RE = re.compile(
 )
 PLACEHOLDER_USERS = {"example", "node", "runner", "user", "username"}
 PLACEHOLDER_PREFIXES = (
+    "...",
     "$",
     "<",
     "fake",
@@ -43,13 +44,27 @@ PLACEHOLDER_PREFIXES = (
 
 
 def _tracked_files(root: Path) -> list[Path]:
+    worktree = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if worktree.returncode != 0:
+        raise ValueError("root is not a Git worktree")
+    if Path(worktree.stdout.strip()).resolve() != root:
+        raise ValueError("root must be the Git worktree root")
     result = subprocess.run(
         ["git", "ls-files", "-z"],
         cwd=root,
         check=True,
         capture_output=True,
     )
-    return [root / Path(raw.decode()) for raw in result.stdout.split(b"\0") if raw]
+    paths = [root / Path(raw.decode()) for raw in result.stdout.split(b"\0") if raw]
+    if not paths:
+        raise ValueError("Git worktree has no tracked files")
+    return paths
 
 
 def _text(path: Path) -> str | None:
@@ -75,16 +90,18 @@ def _is_private_ip(value: str) -> bool:
     except ValueError:
         return False
     private_networks = (
-        ipaddress.ip_network("10.0.0.0/8"),
-        ipaddress.ip_network("172.16.0.0/12"),
-        ipaddress.ip_network("192.168.0.0/16"),
+        ipaddress.ip_network((0x0A000000, 8)),
+        ipaddress.ip_network((0xAC100000, 12)),
+        ipaddress.ip_network((0xC0A80000, 16)),
     )
     return address.version == 4 and any(address in network for network in private_networks)
 
 
 def _is_credential_name(value: str) -> bool:
-    return value.endswith("_API_KEY") or any(
-        component in {"PASSWORD", "SECRET", "TOKEN"} for component in value.split("_")
+    return (
+        value.endswith("_API_KEY")
+        or value in {"PASSWORD", "SECRET", "TOKEN"}
+        or any(value.endswith(suffix) for suffix in ("_PASSWORD", "_SECRET", "_TOKEN"))
     )
 
 
@@ -97,7 +114,13 @@ def _private_ip_findings(path: Path, text: str) -> list[Finding]:
     findings: list[Finding] = []
     for match in IPV4_RE.finditer(text):
         value = match.group(0)
-        if _is_private_ip(value):
+        line_start = text.rfind("\n", 0, match.start()) + 1
+        line_end = text.find("\n", match.end())
+        line = text[line_start : line_end if line_end >= 0 else len(text)]
+        prefix = line[: match.start() - line_start]
+        looks_like_version = re.match(r"^\s*version\s*=", line) is not None
+        looks_like_url_path = "://" in prefix and "/" in prefix.split("://", 1)[1]
+        if _is_private_ip(value) and not (looks_like_version or looks_like_url_path):
             findings.append(Finding(path, _line_number(text, match.start()), "private-ip", value))
     return findings
 
@@ -161,7 +184,13 @@ def main() -> int:
     args = parser.parse_args()
     root = args.root.resolve()
 
-    findings = [finding for path in _tracked_files(root) for finding in scan_file(root, path)]
+    try:
+        tracked_files = _tracked_files(root)
+    except ValueError as exc:
+        print(f"public-surface check failed: {exc}")
+        return 2
+
+    findings = [finding for path in tracked_files for finding in scan_file(root, path)]
     for finding in findings:
         print(f"{finding.path}:{finding.line}: {finding.rule}: <redacted>")
     if findings:

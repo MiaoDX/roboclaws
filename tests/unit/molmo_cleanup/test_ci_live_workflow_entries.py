@@ -11,8 +11,10 @@ def test_public_ci_contains_only_deterministic_repo_gates() -> None:
 
     assert "lint-and-mock:" in workflow
     assert "just agent::verify ci-required" in workflow
+    assert "detect-secrets scan" in workflow
+    assert ".secrets.baseline" in workflow
     assert "molmo-live-cleanup" not in workflow
     assert "model-provider-health" not in workflow
-    assert "secrets." not in workflow
+    assert "${{ secrets." not in workflow
     assert "pages: write" not in workflow
     assert "id-token: write" not in workflow

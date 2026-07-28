@@ -108,8 +108,8 @@ Live verification policy:
   preflight, or availability proof by default. Do not skip required live proof
   merely because it may use external providers, cost money, or take longer than
   deterministic tests.
-- A human request to complete a repo-scoped live, eval, simulator, or CloudML
-  verification authorizes the in-scope image publication, task submission,
+- A human request to complete a repo-scoped live, eval, simulator, or external
+  remote verification authorizes the in-scope image publication, task submission,
   monitoring, collection, task stop, and repair/retry attempts needed to finish
   it. Do not pause for per-stage or per-attempt approval while the workspace,
   provider, queue/resource class, maximum concurrency, and documented cost

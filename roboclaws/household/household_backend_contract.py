@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from roboclaws.household.artifact_paths import home_relative_paths
 from roboclaws.household.backend import ApiSemanticCleanupBackend
 from roboclaws.household.isaac_lab_backend import (
     ISAACLAB_SUBPROCESS_BACKEND,
@@ -349,15 +350,19 @@ def _attach_common_diagnostics(run_result: dict[str, Any], backend: Any) -> None
 
 
 def _attach_molmospaces_runtime(*, run_result: dict[str, Any], backend: Any) -> None:
-    run_result["molmospaces_runtime"] = {
-        "python_executable": str(getattr(backend, "python_executable", "")),
-        "runtime": getattr(backend, "runtime", {}),
-        "model_stats": getattr(backend, "model_stats", {}),
-        "scene_xml": getattr(backend, "scene_xml", ""),
-        "metadata_object_count": getattr(backend, "metadata_object_count", None),
-        "requested_generated_mess_count": getattr(backend, "requested_generated_mess_count", None),
-        "generated_mess_count": getattr(backend, "generated_mess_count", None),
-    }
+    run_result["molmospaces_runtime"] = home_relative_paths(
+        {
+            "python_executable": str(getattr(backend, "python_executable", "")),
+            "runtime": getattr(backend, "runtime", {}),
+            "model_stats": getattr(backend, "model_stats", {}),
+            "scene_xml": getattr(backend, "scene_xml", ""),
+            "metadata_object_count": getattr(backend, "metadata_object_count", None),
+            "requested_generated_mess_count": getattr(
+                backend, "requested_generated_mess_count", None
+            ),
+            "generated_mess_count": getattr(backend, "generated_mess_count", None),
+        }
+    )
     _attach_robot_metadata(run_result, backend)
 
 
@@ -376,30 +381,34 @@ def _attach_isaac_runtime(
             encoding="utf-8",
         )
         run_result.setdefault("artifacts", {})["isaac_scene_index"] = str(isaac_scene_index_path)
-    run_result["isaac_runtime"] = {
-        "python_executable": str(getattr(backend, "python_executable", "")),
-        "runtime": getattr(backend, "runtime", {}),
-        "scenario_source": getattr(backend, "scenario_source", ""),
-        "scene_usd": getattr(backend, "scene_usd", ""),
-        "scene_index": getattr(backend, "scene_index", None),
-        "scene_index_artifact": str(isaac_scene_index_path) if scene_index_payload else "",
-        "object_index_count": len(getattr(backend, "object_index", {})),
-        "receptacle_index_count": len(getattr(backend, "receptacle_index", {})),
-        "object_index": getattr(backend, "object_index", {}),
-        "receptacle_index": getattr(backend, "receptacle_index", {}),
-        "scene_index_diagnostics": getattr(backend, "scene_index_diagnostics", {}),
-        "scene_binding_diagnostics": getattr(backend, "scene_binding_diagnostics", {}),
-        "segmentation": getattr(backend, "segmentation", {}),
-        "scene_load": getattr(backend, "scene_load", {}),
-        "mapping_gaps": getattr(backend, "current_mapping_gaps", []),
-        "snapshot_artifacts": getattr(backend, "snapshot_artifacts", []),
-        "semantic_pose_state": getattr(backend, "semantic_pose_state", {}),
-        "semantic_pose_view_capture": getattr(backend, "semantic_pose_view_capture", {}),
-        "robot": getattr(backend, "robot", None),
-        "robot_import": getattr(backend, "robot_import", {}),
-        "requested_generated_mess_count": getattr(backend, "requested_generated_mess_count", None),
-        "generated_mess_count": getattr(backend, "generated_mess_count", None),
-    }
+    run_result["isaac_runtime"] = home_relative_paths(
+        {
+            "python_executable": str(getattr(backend, "python_executable", "")),
+            "runtime": getattr(backend, "runtime", {}),
+            "scenario_source": getattr(backend, "scenario_source", ""),
+            "scene_usd": getattr(backend, "scene_usd", ""),
+            "scene_index": getattr(backend, "scene_index", None),
+            "scene_index_artifact": str(isaac_scene_index_path) if scene_index_payload else "",
+            "object_index_count": len(getattr(backend, "object_index", {})),
+            "receptacle_index_count": len(getattr(backend, "receptacle_index", {})),
+            "object_index": getattr(backend, "object_index", {}),
+            "receptacle_index": getattr(backend, "receptacle_index", {}),
+            "scene_index_diagnostics": getattr(backend, "scene_index_diagnostics", {}),
+            "scene_binding_diagnostics": getattr(backend, "scene_binding_diagnostics", {}),
+            "segmentation": getattr(backend, "segmentation", {}),
+            "scene_load": getattr(backend, "scene_load", {}),
+            "mapping_gaps": getattr(backend, "current_mapping_gaps", []),
+            "snapshot_artifacts": getattr(backend, "snapshot_artifacts", []),
+            "semantic_pose_state": getattr(backend, "semantic_pose_state", {}),
+            "semantic_pose_view_capture": getattr(backend, "semantic_pose_view_capture", {}),
+            "robot": getattr(backend, "robot", None),
+            "robot_import": getattr(backend, "robot_import", {}),
+            "requested_generated_mess_count": getattr(
+                backend, "requested_generated_mess_count", None
+            ),
+            "generated_mess_count": getattr(backend, "generated_mess_count", None),
+        }
+    )
     _attach_robot_metadata(run_result, backend)
 
 

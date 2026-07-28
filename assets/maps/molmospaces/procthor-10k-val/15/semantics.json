@@ -72,7 +72,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 13.85,
       "y": 3.7,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -89,7 +89,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 13.85,
       "y": 8.3,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -106,7 +106,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 12.95,
       "y": 11.1,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -123,7 +123,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 12.95,
       "y": 14.75,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -140,7 +140,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 6.45,
       "y": 13.85,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -157,7 +157,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 1.85,
       "y": 13.85,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -174,7 +174,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 3.7,
       "y": 6.45,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -191,7 +191,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 4.6,
       "y": 1.85,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -208,7 +208,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 8.3,
       "y": 2.75,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -225,7 +225,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 9.25,
       "y": 7.4,
-      "yaw": 0.0
+      "yaw": 0
     }
   ],
   "map_id": "molmospaces-procthor-10k-val-15_base_metric_map",
@@ -240,7 +240,7 @@
     "scene_index": 15,
     "scene_source": "procthor-10k-val",
     "source": "molmospaces_scene_source_map_preparation",
-    "source_artifact": "/home/mi/.cache/molmospaces/assets/L2hvbWUvbWkvd3MvZ29nby9yb2JvY2xhd3MvLnZlbnYvbGliL3B5dGhvbjMuMTIvc2l0ZS1wYWNrYWdlcw/scenes/procthor-10k-val/val_15.xml",
+    "source_artifact": "molmospaces://procthor-10k-val/15",
     "uses_navigation_memory_as_waypoint_source": false
   },
   "rooms": [
@@ -254,11 +254,11 @@
       "polygon": [
         {
           "x": 11.079999,
-          "y": 0.0
+          "y": 0
         },
         {
           "x": 16.620001,
-          "y": 0.0
+          "y": 0
         },
         {
           "x": 16.620001,
@@ -448,7 +448,7 @@
       "navigation_area_id": "room_5",
       "polygon": [
         {
-          "x": 0.0,
+          "x": 0,
           "y": 9.233
         },
         {
@@ -460,7 +460,7 @@
           "y": 18.466
         },
         {
-          "x": 0.0,
+          "x": 0,
           "y": 18.466
         }
       ],
@@ -487,7 +487,7 @@
       "navigation_area_id": "room_6",
       "polygon": [
         {
-          "x": 0.0,
+          "x": 0,
           "y": 3.693
         },
         {
@@ -499,7 +499,7 @@
           "y": 9.233
         },
         {
-          "x": 0.0,
+          "x": 0,
           "y": 9.233
         }
       ],
@@ -527,11 +527,11 @@
       "polygon": [
         {
           "x": 3.693,
-          "y": 0.0
+          "y": 0
         },
         {
           "x": 5.54,
-          "y": 0.0
+          "y": 0
         },
         {
           "x": 5.54,
@@ -566,11 +566,11 @@
       "polygon": [
         {
           "x": 5.54,
-          "y": 0.0
+          "y": 0
         },
         {
           "x": 11.08,
-          "y": 0.0
+          "y": 0
         },
         {
           "x": 11.08,

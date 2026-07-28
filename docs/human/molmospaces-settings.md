@@ -507,7 +507,7 @@ controls behavior.
 
 ```bash
 KIMI_OPENAI_BASE_URL=https://api.moonshot.ai/v1
-KIMI_API_KEY=...
+KIMI_API_KEY=<your-key>
 ```
 
 Every SDK launch selects one profile explicitly. `kimi-openai-chat` uses the

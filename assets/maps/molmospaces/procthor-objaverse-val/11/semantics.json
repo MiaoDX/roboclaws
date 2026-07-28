@@ -64,7 +64,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 7.05,
       "y": 23.85,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -81,7 +81,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 2.65,
       "y": 22.1,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -97,8 +97,8 @@
       "waypoint_id": "room_4_inspection",
       "waypoint_source": "generated_exploration_candidate",
       "x": 7.95,
-      "y": 15.0,
-      "yaw": 0.0
+      "y": 15,
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -115,7 +115,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 8.85,
       "y": 11.5,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -132,7 +132,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 3.55,
       "y": 7.95,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -149,7 +149,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 2.65,
       "y": 12.35,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -166,7 +166,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 3.55,
       "y": 3.55,
-      "yaw": 0.0
+      "yaw": 0
     },
     {
       "clearance_radius_m": 0.35,
@@ -183,7 +183,7 @@
       "waypoint_source": "generated_exploration_candidate",
       "x": 8.85,
       "y": 5.3,
-      "yaw": 0.0
+      "yaw": 0
     }
   ],
   "map_id": "molmospaces-procthor-objaverse-val-11_base_metric_map",
@@ -198,7 +198,7 @@
     "scene_index": 11,
     "scene_source": "procthor-objaverse-val",
     "source": "molmospaces_scene_source_map_preparation",
-    "source_artifact": "/home/mi/.cache/molmospaces/assets/L2hvbWUvbWkvd3MvZ29nby9yb2JvY2xhd3MvLnZlbnYvbGliL3B5dGhvbjMuMTIvc2l0ZS1wYWNrYWdlcw/scenes/procthor-objaverse-val/val_11.xml",
+    "source_artifact": "molmospaces://procthor-objaverse-val/11",
     "uses_navigation_memory_as_waypoint_source": false
   },
   "rooms": [
@@ -250,7 +250,7 @@
       "navigation_area_id": "room_3",
       "polygon": [
         {
-          "x": 0.0,
+          "x": 0,
           "y": 15.897999
         },
         {
@@ -262,7 +262,7 @@
           "y": 28.261999
         },
         {
-          "x": 0.0,
+          "x": 0,
           "y": 28.261999
         }
       ],
@@ -367,7 +367,7 @@
       "navigation_area_id": "room_6",
       "polygon": [
         {
-          "x": 0.0,
+          "x": 0,
           "y": 5.299
         },
         {
@@ -379,7 +379,7 @@
           "y": 10.598
         },
         {
-          "x": 0.0,
+          "x": 0,
           "y": 10.598
         }
       ],
@@ -406,7 +406,7 @@
       "navigation_area_id": "room_7",
       "polygon": [
         {
-          "x": 0.0,
+          "x": 0,
           "y": 8.832
         },
         {
@@ -418,7 +418,7 @@
           "y": 15.898
         },
         {
-          "x": 0.0,
+          "x": 0,
           "y": 15.898
         }
       ],
@@ -445,7 +445,7 @@
       "navigation_area_id": "room_8",
       "polygon": [
         {
-          "x": 0.0,
+          "x": 0,
           "y": 1.766
         },
         {
@@ -457,7 +457,7 @@
           "y": 5.299
         },
         {
-          "x": 0.0,
+          "x": 0,
           "y": 5.299
         }
       ],

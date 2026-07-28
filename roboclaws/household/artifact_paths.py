@@ -23,3 +23,49 @@ def output_relpath(path: Path, output_dir: Path) -> str:
         return str(path.resolve().relative_to(output_dir.resolve()))
     except ValueError:
         return str(path)
+
+
+def home_relative_path(value: str) -> str:
+    """Make paths below the current home portable without changing other values."""
+    if not value:
+        return value
+    path = Path(value)
+    if not path.is_absolute():
+        return value
+    try:
+        relative = path.relative_to(Path.home())
+    except ValueError:
+        return value
+    return (Path("~") / relative).as_posix()
+
+
+def home_relative_paths(value: Any) -> Any:
+    if isinstance(value, str):
+        return home_relative_path(value)
+    if isinstance(value, dict):
+        return {key: home_relative_paths(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [home_relative_paths(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(home_relative_paths(item) for item in value)
+    return value
+
+
+def resolve_home_relative_path(value: str) -> str:
+    if value == "~":
+        return str(Path.home())
+    if value.startswith("~/"):
+        return str(Path.home() / value.removeprefix("~/"))
+    return value
+
+
+def resolve_home_relative_paths(value: Any) -> Any:
+    if isinstance(value, str):
+        return resolve_home_relative_path(value)
+    if isinstance(value, dict):
+        return {key: resolve_home_relative_paths(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [resolve_home_relative_paths(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(resolve_home_relative_paths(item) for item in value)
+    return value
