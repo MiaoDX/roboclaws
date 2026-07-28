@@ -60,6 +60,21 @@ def test_agent_eval_public_facade_routes_map_build_report_cli() -> None:
     assert "output_dir=output/evals/map-build-matrix-report" in trace
 
 
+def test_agent_eval_public_facade_routes_runtime_prior_select_cli() -> None:
+    trace = _trace_agent_eval(
+        "runtime-prior-select",
+        "manifest=output/evals/runtime-prior-selection/manifest.json",
+        "eval_results=output/evals/a/eval_results.json",
+        "output_dir=output/evals/runtime-prior-selection",
+    )
+
+    assert trace[:5] == ["cmd", ".venv/bin/python", "-m", "roboclaws.cli.main", "eval"]
+    assert "runtime-prior-select" in trace
+    assert "manifest=output/evals/runtime-prior-selection/manifest.json" in trace
+    assert "eval_results=output/evals/a/eval_results.json" in trace
+    assert "output_dir=output/evals/runtime-prior-selection" in trace
+
+
 def test_agent_eval_public_facade_routes_session_live_cli() -> None:
     trace = _trace_agent_eval(
         "session-live",

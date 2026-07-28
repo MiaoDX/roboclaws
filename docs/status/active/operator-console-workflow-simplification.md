@@ -26,5 +26,6 @@ and aligned docs, with a completion audit against the plan.
 No-touch scope: provider keys, live model launches, hardware/simulator live
 runs, generated output artifacts outside explicitly owned test fixtures.
 
-Parked work: populate the recommended-prior catalog when accepted tracked
-Runtime Map Prior Snapshot artifacts exist for scenes.
+Parked work: populate the recommended-prior catalog through
+`docs/plans/2026-07-01-recommended-runtime-map-prior-selection.md` once accepted
+tracked Runtime Map Prior Snapshot artifacts exist for scenes.

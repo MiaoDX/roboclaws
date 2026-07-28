@@ -42,6 +42,8 @@ Notes:
   tracked Runtime Map Prior Snapshot exists. With-map workflows therefore show
   a visible empty state; the rendered with-map workflow buttons are disabled
   until a recommended prior or explicit operator override exists.
+- Follow-up prior selection is tracked in
+  `docs/plans/2026-07-01-recommended-runtime-map-prior-selection.md`.
 - Raw route axes remain available in Advanced; the main UI is workflow-first.
 
 ## Goal

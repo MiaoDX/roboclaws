@@ -6,6 +6,11 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+from roboclaws.evals.runtime_prior_selection import (
+    ACCEPTED_STALENESS,
+    RUNTIME_PRIOR_CATALOG_SCHEMA,
+    load_runtime_prior_catalog,
+)
 from roboclaws.household.profiles import CAMERA_GROUNDED_LABELS_LANE
 from roboclaws.launch.environment_setup import (
     ENVIRONMENT_SETUP_BASELINE,
@@ -66,11 +71,21 @@ class RuntimeMapPriorCatalogEntry:
     path: str
     status: str
     source: str
+    staleness: str = "compatible"
+    selected_candidate_id: str = ""
+    run_id: str = ""
+    catalog_key: dict[str, Any] | None = None
+    product_route: dict[str, Any] | None = None
+    producer: dict[str, Any] | None = None
     evidence: tuple[str, ...] = ()
 
     @property
     def id(self) -> str:
         return f"{self.world_id}::{self.backend_id}"
+
+    @property
+    def auto_enabled(self) -> bool:
+        return self.status == "accepted" and self.staleness in ACCEPTED_STALENESS
 
     def to_payload(self) -> dict[str, Any]:
         return {
@@ -79,7 +94,13 @@ class RuntimeMapPriorCatalogEntry:
             "backend_id": self.backend_id,
             "path": self.path,
             "status": self.status,
+            "staleness": self.staleness,
             "source": self.source,
+            "selected_candidate_id": self.selected_candidate_id,
+            "run_id": self.run_id,
+            "catalog_key": dict(self.catalog_key or {}),
+            "product_route": dict(self.product_route or {}),
+            "producer": dict(self.producer or {}),
             "evidence": list(self.evidence),
         }
 
@@ -153,8 +174,7 @@ WORKFLOWS: tuple[OperatorWorkflow, ...] = (
 )
 
 _WORKFLOW_BY_ID = {workflow.id: workflow for workflow in WORKFLOWS}
-
-RECOMMENDED_PRIORS: tuple[RuntimeMapPriorCatalogEntry, ...] = ()
+RECOMMENDED_PRIOR_CATALOG_PATH = Path(__file__).with_name("recommended_runtime_map_priors.json")
 
 
 def list_operator_workflows() -> tuple[OperatorWorkflow, ...]:
@@ -169,15 +189,16 @@ def get_operator_workflow(workflow_id: str) -> OperatorWorkflow:
 
 
 def list_recommended_priors() -> tuple[RuntimeMapPriorCatalogEntry, ...]:
-    return RECOMMENDED_PRIORS
+    return _load_recommended_priors(RECOMMENDED_PRIOR_CATALOG_PATH)
 
 
 def recommended_prior_for(world_id: str, backend_id: str) -> RuntimeMapPriorCatalogEntry | None:
-    for entry in RECOMMENDED_PRIORS:
+    for entry in list_recommended_priors():
         if (
             entry.world_id == world_id
             and entry.backend_id == backend_id
             and entry.status == "accepted"
+            and entry.auto_enabled
         ):
             return entry
     return None
@@ -252,3 +273,44 @@ def runtime_prior_override_exists(path: str, *, root: Path) -> bool:
     if not candidate.is_absolute():
         candidate = root / candidate
     return candidate.is_file()
+
+
+def _load_recommended_priors(path: Path) -> tuple[RuntimeMapPriorCatalogEntry, ...]:
+    if not path.is_file():
+        return ()
+    return tuple(_entry_from_catalog_payload(entry) for entry in load_runtime_prior_catalog(path))
+
+
+def _entry_from_catalog_payload(payload: dict[str, Any]) -> RuntimeMapPriorCatalogEntry:
+    path = str(payload["path"])
+    staleness = str(payload["staleness"])
+    if staleness != "blocking_stale" and path and not Path(path).is_file():
+        staleness = "blocking_stale"
+    return RuntimeMapPriorCatalogEntry(
+        world_id=str(payload["world_id"]),
+        backend_id=str(payload["backend_id"]),
+        path=path,
+        status=str(payload["status"]),
+        staleness=staleness,
+        source=str(payload["source"]),
+        selected_candidate_id=str(payload.get("selected_candidate_id") or ""),
+        run_id=str(payload.get("run_id") or ""),
+        catalog_key=dict(payload.get("catalog_key") or {}),
+        product_route=dict(payload.get("product_route") or {}),
+        producer=dict(payload.get("producer") or {}),
+        evidence=tuple(str(item) for item in payload.get("evidence") or ()),
+    )
+
+
+__all__ = [
+    "RUNTIME_PRIOR_CATALOG_SCHEMA",
+    "RECOMMENDED_PRIOR_CATALOG_PATH",
+    "WORKFLOW_BUILD_MAP",
+    "WORKFLOW_CLEANUP",
+    "WORKFLOW_CLEANUP_WITH_MAP",
+    "WORKFLOW_OPEN_TASK",
+    "WORKFLOW_OPEN_TASK_WITH_MAP",
+    "RuntimeMapPriorCatalogEntry",
+    "list_recommended_priors",
+    "recommended_prior_for",
+]
