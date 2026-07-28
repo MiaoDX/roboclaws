@@ -27,37 +27,39 @@ def run_helper(script: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def test_codex_provider_args_reject_route_incompatible_model_override() -> None:
+def test_sdk_model_helper_rejects_route_incompatible_model_override() -> None:
     result = run_helper(
         """
         set -euo pipefail
         source "$ROBOCLAWS_HELPER"
         ROBOCLAWS_PROVIDER_PROFILE=minimax-responses
-        ROBOCLAWS_CODEX_MODEL=gpt-5.5
+        ROBOCLAWS_OPENAI_AGENTS_MODEL=kimi-k2.7-code
+        MM_BASE_URL=https://minimax.example.test/v1
         MM_API_KEY=fake-mm-key
-        args=()
-        roboclaws_codex_provider_args args
+        roboclaws_code_agent_model \
+          ROBOCLAWS_OPENAI_AGENTS_MODEL ROBOCLAWS_PROVIDER_PROFILE
         """
     )
 
     assert result.returncode == 2
-    assert "coding-agent model 'gpt-5.5' is incompatible with provider 'minimax-responses'" in (
-        result.stderr
+    expected = (
+        "coding-agent model 'kimi-k2.7-code' is incompatible with provider 'minimax-responses'"
     )
+    assert expected in result.stderr
     assert "incompatible with provider_profile 'minimax-responses'" in result.stderr
 
 
-def test_codex_provider_args_reject_removed_minimax_highspeed_override() -> None:
+def test_sdk_model_helper_rejects_removed_minimax_highspeed_override() -> None:
     result = run_helper(
         """
         set -euo pipefail
         source "$ROBOCLAWS_HELPER"
         ROBOCLAWS_PROVIDER_PROFILE=minimax-responses
-        ROBOCLAWS_CODEX_MODEL=MiniMax-M2.7-highspeed
+        ROBOCLAWS_OPENAI_AGENTS_MODEL=MiniMax-M2.7-highspeed
+        MM_BASE_URL=https://minimax.example.test/v1
         MM_API_KEY=fake-mm-key
-        args=()
-        roboclaws_codex_provider_args args
-        printf '%s\n' "${args[@]}"
+        roboclaws_code_agent_model \
+          ROBOCLAWS_OPENAI_AGENTS_MODEL ROBOCLAWS_PROVIDER_PROFILE
         """
     )
 
@@ -88,7 +90,7 @@ def test_profile_summary_rejects_unknown_profile_without_traceback() -> None:
         source "$ROBOCLAWS_HELPER"
         ROBOCLAWS_PROVIDER_PROFILE=not-a-provider-route
         roboclaws_code_agent_profile_summary \
-          ROBOCLAWS_PROVIDER_PROFILE ROBOCLAWS_CODEX_MODEL codex-router-responses
+          ROBOCLAWS_PROVIDER_PROFILE ROBOCLAWS_OPENAI_AGENTS_MODEL
         """
     )
 
@@ -98,29 +100,38 @@ def test_profile_summary_rejects_unknown_profile_without_traceback() -> None:
     assert "Traceback" not in result.stderr
 
 
-def test_claude_mify_anthropic_profile_rejects_conflicting_base_urls() -> None:
+def test_provider_helper_requires_explicit_profile_selection() -> None:
     result = run_helper(
         """
         set -euo pipefail
         source "$ROBOCLAWS_HELPER"
-        ROBOCLAWS_PROVIDER_PROFILE=mimo-mify-anthropic
-        XM_LLM_API_KEY=fake-xm-key
-        XM_LLM_BASE_URL=https://api.llm.example/v1
-        XM_LLM_ANTHROPIC_BASE_URL=https://anthropic.example
-        model_args=()
-        env_args=()
-        roboclaws_claude_provider_args model_args env_args
-        printf '%s\n' "${env_args[@]}"
+        unset ROBOCLAWS_PROVIDER_PROFILE
+        roboclaws_code_agent_provider ROBOCLAWS_PROVIDER_PROFILE
         """
     )
 
     assert result.returncode == 2
     assert result.stdout == ""
-    assert "conflicting provider route base_url for mimo-mify-anthropic" in result.stderr
-    assert "XM_LLM_ANTHROPIC_BASE_URL='https://anthropic.example'" in result.stderr
-    assert "XM_LLM_BASE_URL derives 'https://api.llm.example/anthropic'" in result.stderr
+    assert "requires explicit ROBOCLAWS_PROVIDER_PROFILE selection" in result.stderr
     assert "Traceback" not in result.stderr
-    assert "ANTHROPIC_BASE_URL=https://anthropic.example" not in result.stdout
+
+
+def test_profile_summary_uses_final_kimi_contract() -> None:
+    result = run_helper(
+        """
+        set -euo pipefail
+        source "$ROBOCLAWS_HELPER"
+        ROBOCLAWS_PROVIDER_PROFILE=kimi-openai-chat
+        KIMI_OPENAI_BASE_URL=https://kimi.example.test/v1
+        KIMI_API_KEY=fake-kimi-key
+        roboclaws_code_agent_profile_summary \
+          ROBOCLAWS_PROVIDER_PROFILE ROBOCLAWS_OPENAI_AGENTS_MODEL
+        """
+    )
+
+    assert result.returncode == 0
+    assert "kimi-openai-chat model=kimi-k2.7-code" in result.stdout
+    assert "protocol=chat-completions" in result.stdout
 
 
 def test_python_helper_requires_repo_venv_without_system_fallback() -> None:

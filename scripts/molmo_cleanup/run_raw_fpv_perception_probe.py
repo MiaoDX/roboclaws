@@ -2,19 +2,12 @@
 from __future__ import annotations
 
 import argparse
-import base64
 import datetime as dt
 import hashlib
 import html
 import json
-import math
-import os
 import re
 import sys
-import time
-import urllib.error
-import urllib.request
-from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
@@ -28,13 +21,7 @@ if __package__ in {None, ""}:
 else:
     REPO_ROOT = Path(__file__).resolve().parents[2]
 
-from roboclaws.agents.provider_registry import provider_readiness, resolve_model  # noqa: E402
-from roboclaws.agents.provider_transport import provider_default_headers  # noqa: E402
-from roboclaws.core.json_sources import (  # noqa: E402
-    parse_json_object_text,
-    read_json_object,
-    read_jsonl_object_rows,
-)
+from roboclaws.core.json_sources import read_json_object, read_jsonl_object_rows  # noqa: E402
 from roboclaws.household import agent_view as agent_view_module  # noqa: E402
 from roboclaws.household.raw_fpv_guidance import (  # noqa: E402
     RAW_FPV_CATEGORY_HINT,
@@ -49,18 +36,12 @@ PREDICTION_SCHEMA = "raw_fpv_probe_predictions_v1"
 RESPONSE_SCHEMA = "raw_fpv_probe_response_v1"
 VISUAL_LABELER_RESPONSE_SCHEMA = "raw_fpv_visual_labeler_response_v1"
 
-DEFAULT_RAW_RUN_DIRS = (
-    Path("output/household/household-cleanup/codex-camera-raw/0606_1537/seed-7"),
-    Path("output/household/household-cleanup/codex-camera-raw/0606_1156/seed-7"),
-)
-DEFAULT_CONTRAST_RUN_DIRS = (
-    Path("output/household/household-cleanup/codex-camera-labels/0606_1227/seed-7"),
-)
+DEFAULT_RAW_RUN_DIRS: tuple[Path, ...] = ()
+DEFAULT_CONTRAST_RUN_DIRS: tuple[Path, ...] = ()
 DEFAULT_RUNTIME_MAP_PRIOR = Path(
     "output/household/direct-map-build/direct-camera-grounded-labels/seed-7/runtime_metric_map.json"
 )
 DEFAULT_OUTPUT_ROOT = Path("output/molmo/raw-fpv-perception-probe")
-DEFAULT_MODEL = "gpt-5.6-sol"
 
 SCREEN_GRID_REGIONS = (
     "upper_left",
@@ -175,17 +156,8 @@ class ProbeLabel:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    load_dotenv(args.env_file)
     report = run_probe(args)
     print(json.dumps(_console_summary(report), indent=2, sort_keys=True))
-    status = str(report.get("status") or "")
-    if status == "blocked_needs_decision":
-        return 2
-    if any(
-        str(item.get("execution_status") or "").endswith("_error")
-        for item in report.get("matrix", [])
-    ):
-        return 1
     return 0
 
 
@@ -216,16 +188,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_ROOT)
     parser.add_argument("--run-id", default="")
     parser.add_argument(
-        "--provider",
-        choices=("offline", "codex-router-responses"),
-        default="offline",
-        help=(
-            "offline scores supplied predictions only; codex-router-responses calls "
-            "a Responses endpoint."
-        ),
-    )
-    parser.add_argument("--model", default=DEFAULT_MODEL)
-    parser.add_argument(
         "--prompt-variant",
         choices=(
             "all",
@@ -239,8 +201,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--max-frames-per-source", type=_positive_int_arg, default=18)
     parser.add_argument("--threshold", type=_positive_int_arg, default=5)
     parser.add_argument("--max-candidates", type=_candidate_limit_arg, default=3)
-    parser.add_argument("--timeout-s", type=_positive_float_arg, default=120.0)
-    parser.add_argument("--env-file", type=Path, default=Path(".env"))
     args = parser.parse_args(raw_argv)
     args.runtime_map_prior_explicit = _runtime_map_prior_arg_is_explicit(raw_argv)
     return args
@@ -287,21 +247,9 @@ def run_probe(args: argparse.Namespace) -> dict[str, Any]:
 
     variants = _selected_variants(args.prompt_variant)
     matrix = []
-    response_dir = output_run_dir / "responses"
-    response_dir.mkdir(exist_ok=True)
     for variant_id in variants:
         variant_predictions = dict(predictions.get(variant_id) or {})
         execution_status = "predictions_loaded" if variant_predictions else "not_run_offline"
-        provider_errors: list[dict[str, Any]] = []
-        if args.provider != "offline":
-            execution_status, provider_errors, variant_predictions = execute_provider_variant(
-                variant_id=variant_id,
-                public_inputs=public_inputs,
-                output_dir=response_dir / variant_id,
-                provider=args.provider,
-                model=args.model,
-                timeout_s=float(args.timeout_s),
-            )
         metrics = score_variant(
             variant_id=variant_id,
             frames=frames,
@@ -312,10 +260,10 @@ def run_probe(args: argparse.Namespace) -> dict[str, Any]:
         matrix.append(
             {
                 "variant_id": variant_id,
-                "provider": args.provider,
-                "model": args.model if args.provider != "offline" else "",
+                "provider": "offline",
+                "model": "",
                 "execution_status": execution_status,
-                "provider_errors": provider_errors,
+                "provider_errors": [],
                 "metrics": metrics,
             }
         )
@@ -348,7 +296,7 @@ def run_probe(args: argparse.Namespace) -> dict[str, Any]:
     )
 
     recommendation = route_recommendation(matrix)
-    status = _probe_status(matrix, labels=labels, provider=args.provider)
+    status = _probe_status(matrix, labels=labels, provider="offline")
     report = {
         "schema": REPORT_SCHEMA,
         "status": status,
@@ -913,139 +861,6 @@ def _frame_group_payload(
             "perception_only": True,
             "non_executable_planning_context_only": True,
         },
-    }
-
-
-def execute_provider_variant(
-    *,
-    variant_id: str,
-    public_inputs: dict[str, Any],
-    output_dir: Path,
-    provider: str,
-    model: str,
-    timeout_s: float,
-) -> tuple[str, list[dict[str, Any]], dict[str, dict[str, Any]]]:
-    output_dir.mkdir(parents=True, exist_ok=True)
-    errors = []
-    predictions = {}
-    variant_payload = (public_inputs.get("variants") or {}).get(variant_id) or {}
-    requests = _provider_requests_for_variant(variant_id, variant_payload)
-    api_config = _provider_config(provider, model=model)
-    if api_config.get("error"):
-        return "provider_config_error", [api_config["error"]], predictions
-    resolved_model = str(api_config["model"])
-    transport_headers = provider_default_headers(provider, session_seed=output_dir)
-    for request in requests:
-        request_id = str(request.get("request_id") or "")
-        image_paths = [Path(str(path)) for path in request.get("image_paths") or []]
-        started = time.monotonic()
-        try:
-            prompt = render_prompt(request["payload"], variant_id=variant_id)
-            response_payload = _call_responses_api(
-                base_url=str(api_config["base_url"]),
-                api_key=str(api_config["api_key"]),
-                model=resolved_model,
-                prompt=prompt,
-                image_paths=image_paths,
-                timeout_s=timeout_s,
-                extra_headers=transport_headers,
-            )
-            output_text = _responses_output_text(response_payload)
-            parsed = _json_object_from_text(output_text)
-            elapsed_ms = round((time.monotonic() - started) * 1000)
-            predictions.update(
-                _provider_predictions_from_response(
-                    variant_id=variant_id,
-                    request=request,
-                    response=parsed,
-                )
-            )
-            _write_provider_artifacts(
-                output_dir,
-                frame_id=request_id,
-                prompt=prompt,
-                response_payload=response_payload,
-                output_text=output_text,
-                elapsed_ms=elapsed_ms,
-            )
-        except Exception as exc:  # noqa: BLE001 - provider probes should report and continue
-            elapsed_ms = round((time.monotonic() - started) * 1000)
-            error = {
-                "request_id": request_id,
-                "type": type(exc).__name__,
-                "message": str(exc),
-                "elapsed_ms": elapsed_ms,
-            }
-            errors.append(error)
-            (output_dir / f"{_safe_filename(request_id)}.error.json").write_text(
-                json.dumps(error, indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
-            )
-    if errors and predictions:
-        return "provider_partial_error", errors, predictions
-    if errors:
-        return "provider_error", errors, predictions
-    return "provider_ok", [], predictions
-
-
-def _provider_requests_for_variant(
-    variant_id: str,
-    variant_payload: dict[str, Any],
-) -> list[dict[str, Any]]:
-    if variant_id == "raw_fpv_visual_labeler":
-        requests = []
-        for group in variant_payload.get("frame_groups") or []:
-            frames = [frame for frame in group.get("frames") or [] if isinstance(frame, dict)]
-            requests.append(
-                {
-                    "request_id": str(group.get("group_id") or f"group_{len(requests) + 1:03d}"),
-                    "payload": group,
-                    "frame_ids": [str(frame.get("frame_id") or "") for frame in frames],
-                    "image_paths": [str(frame.get("image_path") or "") for frame in frames],
-                }
-            )
-        return requests
-
-    requests = []
-    for frame in variant_payload.get("frames") or []:
-        if not isinstance(frame, dict):
-            continue
-        frame_id = str(frame.get("frame_id") or "")
-        requests.append(
-            {
-                "request_id": frame_id,
-                "payload": frame,
-                "frame_ids": [frame_id],
-                "image_paths": [str(frame.get("image_path") or "")],
-            }
-        )
-    return requests
-
-
-def _provider_predictions_from_response(
-    *,
-    variant_id: str,
-    request: dict[str, Any],
-    response: dict[str, Any],
-) -> dict[str, dict[str, Any]]:
-    if variant_id != "raw_fpv_visual_labeler":
-        frame_ids = [frame_id for frame_id in request.get("frame_ids") or [] if frame_id]
-        return {frame_ids[0]: response} if frame_ids else {}
-
-    frame_ids = {str(frame_id) for frame_id in request.get("frame_ids") or [] if frame_id}
-    labels_by_frame: dict[str, list[dict[str, Any]]] = {frame_id: [] for frame_id in frame_ids}
-    for item in response.get("labels") or []:
-        if not isinstance(item, dict):
-            continue
-        evidence_frame_id = str(item.get("evidence_frame_id") or item.get("frame_id") or "")
-        if not evidence_frame_id and len(frame_ids) == 1:
-            evidence_frame_id = next(iter(frame_ids))
-        if evidence_frame_id in labels_by_frame:
-            labels_by_frame[evidence_frame_id].append(item)
-    schema = response.get("schema") or VISUAL_LABELER_RESPONSE_SCHEMA
-    return {
-        frame_id: {"schema": schema, "labels": labels}
-        for frame_id, labels in labels_by_frame.items()
     }
 
 
@@ -1653,149 +1468,6 @@ def _coarse_regions_from_bbox(
     return [SCREEN_GRID_REGIONS[row * 3 + col]]
 
 
-def _call_responses_api(
-    *,
-    base_url: str,
-    api_key: str,
-    model: str,
-    prompt: str,
-    timeout_s: float,
-    image_path: Path | None = None,
-    image_paths: Iterable[Path] | None = None,
-    extra_headers: Mapping[str, str] | None = None,
-) -> dict[str, Any]:
-    paths = list(image_paths or ([] if image_path is None else [image_path]))
-    content = [{"type": "input_text", "text": prompt}]
-    for path in paths:
-        image_bytes = path.read_bytes()
-        mime_type = "image/png" if path.suffix.lower() == ".png" else "image/jpeg"
-        image_url = f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
-        content.append({"type": "input_image", "image_url": image_url})
-    payload = {
-        "model": model,
-        "input": [
-            {
-                "role": "user",
-                "content": content,
-            }
-        ],
-    }
-    body = json.dumps(payload).encode("utf-8")
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "User-Agent": "roboclaws-raw-fpv-perception-probe/1.0",
-    }
-    headers.update(dict(extra_headers or {}))
-    request = urllib.request.Request(
-        base_url.rstrip("/") + "/responses",
-        data=body,
-        headers=headers,
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=timeout_s) as response:
-            return _parse_responses_api_json_object(
-                response.read(),
-                label="RAW-FPV Responses API response",
-                source=base_url.rstrip("/") + "/responses",
-            )
-    except urllib.error.HTTPError as exc:
-        try:
-            payload = _parse_responses_api_json_object(
-                exc.read(),
-                label="RAW-FPV Responses API error response",
-                source=base_url.rstrip("/") + "/responses",
-            )
-            message = str((payload.get("error") or {}).get("message") or exc.reason)
-        except ValueError as parse_exc:
-            message = f"{exc.reason}; {parse_exc}"
-        raise RuntimeError(f"responses API returned HTTP {exc.code}: {message}") from exc
-
-
-def _parse_responses_api_json_object(body: bytes, *, label: str, source: str) -> dict[str, Any]:
-    try:
-        text = body.decode("utf-8")
-    except UnicodeDecodeError as exc:
-        raise ValueError(f"{label} source must contain UTF-8 JSON object: {source}") from exc
-    return parse_json_object_text(text, label=label, source=source)
-
-
-def _provider_config(provider: str, *, model: str) -> dict[str, Any]:
-    if provider != "codex-router-responses":
-        return {"error": {"type": "unsupported_provider", "provider": provider}}
-    readiness = provider_readiness(
-        agent_engine="openai-agents-sdk",
-        provider_profile=provider,
-        model=model,
-        env=dict(os.environ),
-    )
-    if not readiness.get("ok"):
-        if str(readiness.get("model_family") or "") == "unknown":
-            return {
-                "error": {
-                    "type": "unknown_model",
-                    "provider": str(readiness.get("provider_profile") or provider),
-                    "model": str(readiness.get("model") or model),
-                    "message": str(readiness.get("message") or ""),
-                }
-            }
-        missing_env = list(readiness.get("missing_env") or [])
-        if missing_env:
-            return {"error": {"type": "missing_env", "env": str(missing_env[0])}}
-        return {
-            "error": {
-                "type": "provider_readiness_error",
-                "provider": provider,
-                "message": str(readiness.get("message") or ""),
-            }
-        }
-    resolved_model = resolve_model(str(readiness.get("model") or model)).model_id
-    base_url = os.environ.get("CODEX_BASE_URL", "")
-    api_key = os.environ.get("CODEX_API_KEY", "")
-    if not base_url:
-        return {"error": {"type": "missing_env", "env": "CODEX_BASE_URL"}}
-    if not api_key:
-        return {"error": {"type": "missing_env", "env": "CODEX_API_KEY"}}
-    return {"base_url": base_url, "api_key": api_key, "model": resolved_model}
-
-
-def _write_provider_artifacts(
-    output_dir: Path,
-    *,
-    frame_id: str,
-    prompt: str,
-    response_payload: dict[str, Any],
-    output_text: str,
-    elapsed_ms: int,
-) -> None:
-    stem = _safe_filename(frame_id)
-    (output_dir / f"{stem}.prompt.txt").write_text(prompt + "\n", encoding="utf-8")
-    (output_dir / f"{stem}.response.json").write_text(
-        json.dumps(response_payload, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-    (output_dir / f"{stem}.output.txt").write_text(output_text + "\n", encoding="utf-8")
-    (output_dir / f"{stem}.meta.json").write_text(
-        json.dumps({"elapsed_ms": elapsed_ms}, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-
-
-def _responses_output_text(payload: dict[str, Any]) -> str:
-    if isinstance(payload.get("output_text"), str):
-        return str(payload["output_text"])
-    parts = []
-    for item in payload.get("output") or []:
-        for content in (item or {}).get("content") or []:
-            if isinstance(content, dict):
-                value = content.get("text") or content.get("content") or ""
-                if isinstance(value, str):
-                    parts.append(value)
-    return "\n".join(parts)
-
-
 def _json_object_from_text(text: str) -> dict[str, Any]:
     stripped = str(text or "").strip()
     if not stripped:
@@ -1829,8 +1501,6 @@ def _probe_status(
 ) -> str:
     if not labels:
         return "partial"
-    if any(str(item.get("execution_status") or "") == "provider_config_error" for item in matrix):
-        return "blocked_needs_decision"
     if not any(not label.hidden_target for label in labels):
         return "partial"
     if provider == "offline" and not any(
@@ -1968,17 +1638,6 @@ def _utc_timestamp() -> str:
     return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
 
 
-def load_dotenv(path: Path) -> None:
-    if not path.is_file():
-        return
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        os.environ.setdefault(key.strip(), value.strip().strip("'\""))
-
-
 def _positive_int_arg(value: str) -> int:
     try:
         parsed = int(value)
@@ -1993,16 +1652,6 @@ def _candidate_limit_arg(value: str) -> int:
     parsed = _positive_int_arg(value)
     if parsed > 3:
         raise argparse.ArgumentTypeError(f"expected a candidate limit from 1 to 3; got {value!r}")
-    return parsed
-
-
-def _positive_float_arg(value: str) -> float:
-    try:
-        parsed = float(value)
-    except ValueError:
-        raise argparse.ArgumentTypeError(f"expected a positive float; got {value!r}") from None
-    if not math.isfinite(parsed) or parsed <= 0.0:
-        raise argparse.ArgumentTypeError(f"expected a positive float; got {value!r}")
     return parsed
 
 

@@ -153,7 +153,7 @@ def test_long_horizon_live_command_uses_private_task_targets(tmp_path: Path) -> 
         budget="smoke",
         dependency_artifacts=None,
         agent_engine="openai-agents-sdk",
-        provider_profile="codex-router-responses",
+        provider_profile="kimi-openai-chat",
         model=None,
         live_timeout_s=None,
         live_stall_timeout_s=None,
@@ -298,7 +298,7 @@ def test_long_horizon_live_aggregate_records_finished_open_task_status(
         output_root=tmp_path,
         stamp="long-horizon-live-checker-sidecar",
         agent_engine="openai-agents-sdk",
-        provider_profile="codex-router-responses",
+        provider_profile="kimi-openai-chat",
         live_execution="run",
         live_product_runner=live_product_runner,
     )

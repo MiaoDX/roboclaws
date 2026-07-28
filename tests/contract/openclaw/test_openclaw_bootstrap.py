@@ -1,12 +1,7 @@
 """Static checks on ``scripts/openclaw/openclaw-bootstrap.sh`` — the contract this file
 locks in is:
 
-1. Every NVIDIA / OpenRouter model the bootstrap advertises as "free"
-   actually carries ``cost.input == 0`` and ``cost.output == 0`` in the
-   pinned Gateway image's built-in provider catalog (so a user running
-   with the defaults can't accidentally rack up a bill on first try).
-
-2. Each supported ``PROVIDER=…`` branch has a corresponding auth-profile
+1. Each supported ``PROVIDER=…`` branch has a corresponding auth-profile
    entry with a non-empty ``EXTRA_MODELS_JSON`` array (except Kimi where
    the bootstrap either uses a custom provider override or the built-in
    plugin path) and a
@@ -148,7 +143,7 @@ def _run_preseed(tmp_path: Path, env_overrides: dict[str, str]) -> Path:
         # In production the bash wrapper reads this from
         # scripts/openclaw/openclaw_plugin_allowlist.py; for the test we synthesize
         # the same JSON so the pre-seed exercises the plugins.allow code path.
-        "PLUGIN_ALLOW_JSON": json.dumps(["acpx", "memory-core", "nvidia", "kimi", "xiaomi"]),
+        "PLUGIN_ALLOW_JSON": json.dumps(["acpx", "memory-core", "kimi"]),
     }
     env.update(env_overrides)
     for k in ("PATH", "HOME", "LANG", "LC_ALL"):
@@ -270,7 +265,7 @@ def _read_gateway_catalog(path_glob: str, content_marker: str) -> str:
     ``provider-catalog-C9xZ5Sl52.js``); the hash changes on every image
     rebuild, so pinning a specific filename forces a test edit on every
     image bump. ``content_marker`` is a fixed string we know lives only in
-    the catalog we want (e.g. ``NVIDIA_DEFAULT_COST``) — much more stable
+    the catalog we want — much more stable
     than the hash.
     """
     err_msg = f"no file in {path_glob} contains {content_marker}"
@@ -299,33 +294,6 @@ def _read_gateway_catalog(path_glob: str, content_marker: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def test_nvidia_curated_to_single_multi_image_model() -> None:
-    """The bootstrap's NVIDIA branch is deliberately curated to the one
-    model we've verified end-to-end:
-
-      - free (cost=$0 in the NIM catalog — checked by a separate test)
-      - multi-image (demo sends FPV + overhead = 2 images per turn)
-      - survives the Gateway's tool-bearing agent framework
-
-    We assert the curated list stays minimal; if you want to broaden it,
-    rerun the live probe and extend both the bootstrap and this test.
-    """
-    models = _extract_extra_models_for("nvidia")
-    assert len(models) == 1, (
-        "nvidia branch is curated to one verified model. To add another, "
-        "probe it live against /v1/chat/completions with a 2-image payload "
-        "+ tools, and update this test's expected count once verified."
-    )
-    model = models[0]
-    assert model["id"] == "nvidia/nemotron-nano-12b-v2-vl", (
-        f"unexpected nvidia model {model['id']!r}; curated entry is "
-        "'nvidia/nemotron-nano-12b-v2-vl'. See docs/human/openclaw/local.md."
-    )
-    assert "image" in model.get("input", []), (
-        "nvidia/nemotron-nano-12b-v2-vl must flag image input."
-    )
-
-
 def test_kimi_branch_has_empty_extra_models() -> None:
     """Kimi's EXTRA_MODELS_JSON stays empty because the kimi branch now uses
     the PROVIDER_ENTRY_JSON / mode=replace path (custom ``anthropic_kimi``
@@ -343,7 +311,7 @@ def test_kimi_branch_has_empty_extra_models() -> None:
 def _extract_provider_entry_for(provider: str) -> dict | None:
     """Parse the ``PROVIDER_ENTRY_JSON`` heredoc-quoted JSON literal for a
     given PROVIDER case.  Returns ``None`` when the branch is using the
-    legacy EXTRA_MODELS_JSON / mode=merge path (e.g. nvidia).
+    legacy EXTRA_MODELS_JSON / mode=merge path.
     """
     text = _read_bootstrap()
     pattern = (
@@ -461,7 +429,7 @@ def test_bootstrap_pins_image_model_to_current_model_by_default() -> None:
 
 def test_only_curated_providers_supported() -> None:
     """The bootstrap's ``case "$PROVIDER"`` statement should list exactly
-    the curated provider set: kimi, nvidia, mimo. If this test fails
+    the curated provider set: Kimi. If this test fails
     because a new provider was added, make sure you've also:
 
       1. Added a catalog entry (EXTRA_MODELS_JSON or PROVIDER_ENTRY_JSON)
@@ -482,83 +450,15 @@ def test_only_curated_providers_supported() -> None:
     assert m, "could not find the PROVIDER case block"
     block = m.group(1)
     provider_labels = re.findall(r"^    ([a-z][a-z0-9]*)\)\s*$", block, flags=re.MULTILINE)
-    assert set(provider_labels) == {"kimi", "nvidia", "mimo"}, (
+    assert set(provider_labels) == {"kimi"}, (
         f"bootstrap.sh PROVIDER case declares {sorted(set(provider_labels))!r}; "
-        "expected exactly {'kimi', 'nvidia', 'mimo'} per curated contract."
+        "expected exactly {'kimi'} per curated contract."
     )
     # Quieten the unused variable from earlier refactor.
     del case_labels
 
 
 @pytest.mark.integration
-def test_provider_base_urls_match_image_catalog() -> None:
-    """The ``PROVIDER_BASE_URL`` values hard-coded in the bootstrap must
-    match the base URL the Gateway's built-in provider plugin catalog
-    publishes — otherwise our ``models.providers.<id>`` override spawns a
-    second Gateway-side catalog entry with a mismatched base URL and
-    routes requests to the wrong host.
-    """
-    if not _gateway_image_available():
-        pytest.skip(f"{IMAGE_DEFAULT} not pulled locally; skip catalog cross-check")
-
-    declared = _extract_provider_base_urls()
-    # Only nvidia injects an override — kimi intentionally has no override so
-    # the built-in catalog is authoritative.
-    assert declared.get("nvidia"), "bootstrap.sh missing PROVIDER_BASE_URL for nvidia branch"
-
-    catalog_text = _read_gateway_catalog("/app/dist/provider-catalog-*.js", "NVIDIA_DEFAULT_COST")
-    match = re.search(r'BASE_URL\s*=\s*"([^"]+)"', catalog_text)
-    assert match, "could not find BASE_URL in the NVIDIA provider catalog"
-    implicit = match.group(1)
-    assert declared["nvidia"] == implicit, (
-        f"nvidia: bootstrap declares {declared['nvidia']!r} but the pinned "
-        f"image's built-in catalog uses {implicit!r}. Update one to match."
-    )
-
-
-@pytest.mark.integration
-def test_nvidia_extra_models_cost_free_in_image_catalog() -> None:
-    """Any NVIDIA model id that also exists in the pinned image's built-in
-    catalog must carry ``cost.input = 0`` / ``cost.output = 0`` (the NIM
-    free tier). If NVIDIA's catalog ever lists one of our entries as paid,
-    this test flags it before users get billed.
-
-    Models present only in NVIDIA's live API (not in the pinned image's
-    built-in catalog) are exempted: all NIM models are free-tier for
-    individual developer accounts regardless of whether the pinned
-    Gateway image happens to know about them.
-    """
-    if not _gateway_image_available():
-        pytest.skip(f"{IMAGE_DEFAULT} not pulled locally; skip catalog cross-check")
-
-    catalog_text = _read_gateway_catalog("/app/dist/provider-catalog-*.js", "NVIDIA_DEFAULT_COST")
-    # Find every cost block in the catalog — they all point at
-    # NVIDIA_DEFAULT_COST which we require to be {input:0, output:0,...}.
-    default_cost_match = re.search(r"NVIDIA_DEFAULT_COST\s*=\s*\{([^}]+)\}", catalog_text)
-    assert default_cost_match, (
-        "built-in NVIDIA catalog no longer exposes NVIDIA_DEFAULT_COST; "
-        "the pinned image has changed shape — verify free-tier claim manually."
-    )
-    cost_block = default_cost_match.group(1)
-    assert re.search(r"input\s*:\s*0\b", cost_block), (
-        f"NVIDIA_DEFAULT_COST.input is no longer 0 in the pinned image — cost block: {cost_block!r}"
-    )
-    assert re.search(r"output\s*:\s*0\b", cost_block), (
-        "NVIDIA_DEFAULT_COST.output is no longer 0 in the pinned image — "
-        f"cost block: {cost_block!r}"
-    )
-
-    # Every entry in the built-in catalog references NVIDIA_DEFAULT_COST —
-    # no paid entry has snuck in for NVIDIA on this image.
-    cost_refs = re.findall(r"cost:\s*([A-Z_][A-Z0-9_]*)", catalog_text)
-    assert cost_refs, "catalog has no cost references — unexpected shape"
-    non_default = [c for c in cost_refs if c != "NVIDIA_DEFAULT_COST"]
-    assert not non_default, (
-        f"NVIDIA catalog has non-free cost refs {non_default!r} — "
-        "not all advertised models are free on this image."
-    )
-
-
 def test_advertised_context_windows_clear_flush_headroom() -> None:
     """Every model the bootstrap advertises must declare enough context
     headroom for the Gateway's pre-compaction memory-flush gate.
@@ -569,12 +469,12 @@ def test_advertised_context_windows_clear_flush_headroom() -> None:
     ``contextWindow - 24000``. A declared ``contextWindow`` below ~30k
     leaves almost no headroom and causes the flush to fire on the first
     observe turn (FPV + overhead + bootstrap context already consume
-    7-10k tokens). MiMo-class models respond to the flush by calling
+    7-10k tokens). Some models respond to the flush by calling
     ``roboclaws__done`` — collapsing the chat session. See the
     2026-04-23 retro and ``docs/human/model-matrix.md`` for the full
     incident.
 
-    131 072 is the current floor (NVIDIA Nemotron Nano 12B V2 VL); any
+    131 072 is the current floor; any
     new model entry must meet or exceed that.
     """
     text = _read_bootstrap()
@@ -619,7 +519,6 @@ def test_advertised_context_windows_clear_flush_headroom() -> None:
     "provider_id, expected_auth_env",
     [
         ("kimi", "KIMI_API_KEY"),
-        ("nvidia", "NVIDIA_API_KEY"),
     ],
 )
 def test_provider_env_var_matches_plugin_manifest(provider_id: str, expected_auth_env: str) -> None:

@@ -5,7 +5,7 @@ set working-directory := '..'
 default:
     @just --list chat
 
-run provider="mimo" model="" plugin="false" clean="false" reuse="false" keep_gateway="true" agents="1":
+run provider="kimi" model="" plugin="false" clean="false" reuse="false" keep_gateway="true" agents="1":
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -31,7 +31,7 @@ run provider="mimo" model="" plugin="false" clean="false" reuse="false" keep_gat
         bootstrap_env+=(MODEL="{{model}}")
       fi
       if [[ "{{plugin}}" == "true" ]]; then
-        bootstrap_env+=(KIMI_PROVIDER_MODE=plugin MIMO_PROVIDER_MODE=anthropic)
+        bootstrap_env+=(KIMI_PROVIDER_MODE=plugin)
       fi
       token=$(env "${bootstrap_env[@]}" ./scripts/openclaw/openclaw-bootstrap.sh)
     fi

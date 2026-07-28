@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import os
+import shutil
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 from roboclaws.launch.map_bundles import molmospaces_nav2_map_bundle_arg
 from roboclaws.launch.scene_sampler import (
@@ -27,6 +31,7 @@ class WorldSpec:
     default_backend: str
     resource_kind: str
     availability: str = "enabled"
+    optional_validation: bool = False
     default_overrides: tuple[str, ...] = ()
     preview_assets: tuple[tuple[str, str], ...] = ()
     sampler_metadata: dict[str, object] | None = None
@@ -97,10 +102,8 @@ WORLD_SPECS: dict[str, WorldSpec] = {
         tags=("household", "physical-robot", "map-build"),
         default_backend="agibot-gdk",
         resource_kind="physical_robot",
-        preview_assets=(
-            ("map", "/previews/b1-map12-map.png"),
-            ("topdown", "/previews/b1-map12-topdown.png"),
-        ),
+        availability="validation-required",
+        optional_validation=True,
     ),
     "b1-map12": WorldSpec(
         id="b1-map12",
@@ -111,19 +114,9 @@ WORLD_SPECS: dict[str, WorldSpec] = {
         tags=("household", "digital-twin", "experimental"),
         default_backend="isaaclab",
         resource_kind="gpu",
-        availability="experimental",
-        default_overrides=(
-            "map_bundle=vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot",
-            "isaac_scene_usd_path=data/robot-data-lab/scene-engine/data/"
-            "B1_floor2_slow/usda/F2_all/default.usda",
-            "robot_views=on",
-        ),
-        preview_assets=(
-            ("fpv", "/previews/b1-map12-fpv.png"),
-            ("map", "/previews/b1-map12-map.png"),
-            ("chase", "/previews/b1-map12-chase.png"),
-            ("topdown", "/previews/b1-map12-topdown.png"),
-        ),
+        availability="validation-required",
+        optional_validation=True,
+        default_overrides=("robot_views=on",),
     ),
     "planner-proof/default": WorldSpec(
         id="planner-proof/default",
@@ -143,6 +136,97 @@ DEFAULT_WORLD_BY_SURFACE: dict[str, str] = {
     "household-world": "molmospaces/val_0",
     "planner-proof": "planner-proof/default",
 }
+
+OPTIONAL_WORLD_DEPENDENCY_SPECS: dict[str, tuple[tuple[str, str, str], ...]] = {
+    "agibot-g2/map-12": (
+        ("runner_script", "ROBOCLAWS_AGIBOT_RUNNER_SCRIPT", "file"),
+        ("runner_python", "ROBOCLAWS_AGIBOT_RUNNER_PYTHON", "executable"),
+        ("agibot_map_artifact_dir", "ROBOCLAWS_AGIBOT_MAP_ARTIFACT_DIR", "directory"),
+    ),
+    "b1-map12": (
+        ("map_bundle", "ROBOCLAWS_B1_MAP_BUNDLE", "directory"),
+        ("isaac_scene_usd_path", "ROBOCLAWS_B1_SCENE_USD_PATH", "file"),
+    ),
+}
+
+
+def resolve_optional_world_dependencies(
+    world_id: str,
+    *,
+    overrides: dict[str, str] | None = None,
+    env: dict[str, str] | None = None,
+    root: Path | None = None,
+) -> dict[str, str]:
+    """Resolve and validate private paths only after explicit optional-world selection."""
+
+    status = optional_world_dependency_status(
+        world_id,
+        overrides=overrides,
+        env=env,
+        root=root,
+    )
+    if not status["ok"]:
+        raise ValueError(str(status["message"]))
+    return dict(status["values"])
+
+
+def optional_world_dependency_status(
+    world_id: str,
+    *,
+    overrides: dict[str, str] | None = None,
+    env: dict[str, str] | None = None,
+    root: Path | None = None,
+) -> dict[str, Any]:
+    specs = OPTIONAL_WORLD_DEPENDENCY_SPECS.get(world_id, ())
+    override_map = overrides or {}
+    env_map = os.environ if env is None else env
+    repo_root = Path.cwd() if root is None else Path(root)
+    values: dict[str, str] = {}
+    missing: list[str] = []
+    invalid: list[str] = []
+    required = []
+    for key, env_key, kind in specs:
+        required.append({"input": key, "env": env_key})
+        value = str(override_map.get(key) or env_map.get(env_key) or "").strip()
+        if not value:
+            missing.append(key)
+            continue
+        if not _optional_dependency_exists(value, kind=kind, root=repo_root):
+            invalid.append(key)
+            continue
+        values[key] = value
+    problems = [
+        *(f"missing {key}" for key in missing),
+        *(f"invalid {key}" for key in invalid),
+    ]
+    env_hint = ", ".join(item["env"] for item in required)
+    message = ""
+    if problems:
+        message = (
+            f"optional validation world {world_id!r} dependency check failed: "
+            f"{', '.join(problems)}; pass the named route inputs or set {env_hint}"
+        )
+    return {
+        "ok": not problems,
+        "required": required,
+        "missing": missing,
+        "invalid": invalid,
+        "values": values,
+        "message": message,
+    }
+
+
+def _optional_dependency_exists(value: str, *, kind: str, root: Path) -> bool:
+    if kind == "executable" and shutil.which(value):
+        return True
+    candidate = Path(value).expanduser()
+    if not candidate.is_absolute():
+        candidate = root / candidate
+    if kind == "directory":
+        return candidate.is_dir()
+    if kind == "executable":
+        return candidate.is_file() and os.access(candidate, os.X_OK)
+    return candidate.is_file()
 
 
 def world_spec(world_id: str) -> WorldSpec:

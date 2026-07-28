@@ -16,14 +16,9 @@ from roboclaws.launch.retired_agent_engines import (
 MODEL_CAP_TEXT = "text"
 MODEL_CAP_IMAGE_INPUT = "image_input"
 
-PROVIDER_PROFILE_CODEX_RESPONSES = "codex-router-responses"
-PROVIDER_PROFILE_MIMO_MIFY_RESPONSES = "mimo-mify-responses"
+PROVIDER_PROFILE_CUSTOM_RESPONSES = "custom-responses"
 PROVIDER_PROFILE_MINIMAX_RESPONSES = "minimax-responses"
-PROVIDER_PROFILE_MIMO_OPENAI_CHAT = "mimo-tp-openai-chat"
-PROVIDER_PROFILE_MIMO_INSIDE_OPENAI_CHAT = "mimo-inside-openai-chat"
 PROVIDER_PROFILE_KIMI_OPENAI_CHAT = "kimi-openai-chat"
-PROVIDER_PROFILE_MIMO_ANTHROPIC = "mimo-tp-anthropic"
-PROVIDER_PROFILE_MIMO_MIFY_ANTHROPIC = "mimo-mify-anthropic"
 
 ROUTE_CAP_SUPPORTED = "supported"
 ROUTE_CAP_UNSUPPORTED = "unsupported"
@@ -31,18 +26,11 @@ ROUTE_CAP_UNKNOWN = "unknown"
 
 WIRE_RESPONSES = "responses"
 WIRE_CHAT_COMPLETIONS = "chat-completions"
-WIRE_ANTHROPIC = "anthropic"
-
 WIRE_SOURCE_NATIVE = "native"
-WIRE_SOURCE_GATEWAY = "gateway"
-WIRE_SOURCE_SHIM = "shim"
 WIRE_SOURCE_UNKNOWN = "unknown"
 
 ROUTE_HEALTHY = "healthy"
 ROUTE_EXPERIMENTAL = "experimental"
-ROUTE_PROVISIONAL = "provisional"
-ROUTE_DEGRADED = "degraded"
-ROUTE_BLOCKED = "blocked"
 
 
 @dataclass(frozen=True)
@@ -107,21 +95,6 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         family="mock",
         model_capabilities=_caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
         direct_provider_adapter="mock",
-    ),
-    ModelSpec(
-        model_id="gpt-5.5",
-        aliases=("gpt-5.5",),
-        family="gpt",
-        model_capabilities=_caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
-        default_use_note="Previous Codex router model; retained for explicit compatibility checks.",
-    ),
-    ModelSpec(
-        model_id="gpt-5.6-sol",
-        aliases=("gpt-5.6-sol",),
-        family="gpt",
-        model_capabilities=_caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
-        default_use=True,
-        default_use_note="Best current Codex router model and default Codex route model.",
     ),
     ModelSpec(
         model_id="gpt-4o",
@@ -194,57 +167,6 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         cost_per_m={"input": 0.25, "output": 1.25},
     ),
     ModelSpec(
-        model_id="meta/llama-4-maverick-17b-128e-instruct",
-        aliases=("nvidia", "meta/llama-4-maverick-17b-128e-instruct"),
-        family="nvidia",
-        model_capabilities=_caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
-        direct_provider_adapter="nvidia",
-        direct_required_env_keys=("NVIDIA_API_KEY", "NV_API_KEY"),
-        cost_per_m={"input": 0.0, "output": 0.0},
-    ),
-    ModelSpec(
-        model_id="nvidia/llama-3.1-nemotron-nano-vl-8b-v1",
-        aliases=("nvidia-nano-vl", "nvidia/llama-3.1-nemotron-nano-vl-8b-v1"),
-        family="nvidia",
-        model_capabilities=_caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
-        direct_provider_adapter="nvidia",
-        direct_required_env_keys=("NVIDIA_API_KEY", "NV_API_KEY"),
-        cost_per_m={"input": 0.0, "output": 0.0},
-    ),
-    ModelSpec(
-        model_id="mimo-v2.5",
-        aliases=("mimo", "mimo-v2.5"),
-        family="mimo",
-        model_capabilities=_caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
-        default_use_note="Paused with token-plan routes; retained for diagnostics.",
-        direct_provider_adapter="mimo",
-        direct_required_env_keys=("MIMO_TP_KEY",),
-        cost_per_m={"input": 0.0, "output": 0.0},
-        openclaw_model_id="mimo_openai/mimo-v2.5",
-    ),
-    ModelSpec(
-        model_id="xiaomi/mimo-v2.5",
-        aliases=("xiaomi/mimo-v2.5", "mimo-mify-v2.5"),
-        family="mimo",
-        model_capabilities=_caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
-        default_use_note="Previous MiMo mify model; retained for route-support probes.",
-    ),
-    ModelSpec(
-        model_id="xiaomi/mimo-v2.5-pro",
-        aliases=("xiaomi/mimo-v2.5-pro", "mimo-mify-v2.5-pro"),
-        family="mimo",
-        model_capabilities=_caps(MODEL_CAP_TEXT),
-        default_use=True,
-        default_use_note="Current MiMo Pro model through the mify gateway.",
-    ),
-    ModelSpec(
-        model_id="mimo-1000",
-        aliases=("mimo-1000", "mimo-inside-1000", "mimo-ultraspeed"),
-        family="mimo",
-        model_capabilities=_caps(MODEL_CAP_TEXT),
-        default_use_note="Inside channel removed; retained for diagnostics.",
-    ),
-    ModelSpec(
         model_id="MiniMax-M3",
         aliases=("minimax", "minimax-m3", "MiniMax-M3"),
         family="minimax",
@@ -256,49 +178,31 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
 
 _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
     ProviderRouteSpec(
-        route_id=PROVIDER_PROFILE_CODEX_RESPONSES,
-        public_profile=PROVIDER_PROFILE_CODEX_RESPONSES,
-        label="Codex GPT-5.6 Sol",
+        route_id=PROVIDER_PROFILE_CUSTOM_RESPONSES,
+        public_profile=PROVIDER_PROFILE_CUSTOM_RESPONSES,
+        label="Custom Responses",
         supported_engines=("openai-agents-sdk",),
-        default_model_id="gpt-5.6-sol",
-        required_env_keys=("CODEX_BASE_URL", "CODEX_API_KEY"),
-        api_key_env="CODEX_API_KEY",
-        base_url_env="CODEX_BASE_URL",
+        default_model_id="custom",
+        required_env_keys=(
+            "CUSTOM_RESPONSES_BASE_URL",
+            "CUSTOM_RESPONSES_API_KEY",
+            "CUSTOM_RESPONSES_MODEL",
+        ),
+        api_key_env="CUSTOM_RESPONSES_API_KEY",
+        base_url_env="CUSTOM_RESPONSES_BASE_URL",
         base_url_default="",
         wire_api=WIRE_RESPONSES,
         wire_source=WIRE_SOURCE_NATIVE,
         default_use=True,
-        default_use_note="Default Codex router route; uses gpt-5.6-sol.",
-        compatible_model_ids=("gpt-5.6-sol", "gpt-5.5"),
+        default_use_note="Explicit environment-configured standard Responses endpoint.",
         per_engine_status={
             "openai-agents-sdk": ROUTE_EXPERIMENTAL,
         },
         route_capabilities={
-            "image_transport": ROUTE_CAP_SUPPORTED,
-            "tool_call_transport": ROUTE_CAP_SUPPORTED,
-        },
-    ),
-    ProviderRouteSpec(
-        route_id=PROVIDER_PROFILE_MIMO_MIFY_RESPONSES,
-        public_profile=PROVIDER_PROFILE_MIMO_MIFY_RESPONSES,
-        label="Mimo MIFY v2.5 Pro",
-        supported_engines=("openai-agents-sdk",),
-        default_model_id="xiaomi/mimo-v2.5-pro",
-        required_env_keys=("XM_LLM_API_KEY",),
-        api_key_env="XM_LLM_API_KEY",
-        base_url_env="XM_LLM_BASE_URL",
-        base_url_default="https://api.llm.mioffice.cn/v1",
-        wire_api=WIRE_RESPONSES,
-        wire_source=WIRE_SOURCE_GATEWAY,
-        default_use=True,
-        default_use_note=("Default-enabled MiMo mify route; uses xiaomi/mimo-v2.5-pro."),
-        compatible_model_ids=("xiaomi/mimo-v2.5-pro",),
-        per_engine_status={"openai-agents-sdk": ROUTE_HEALTHY},
-        route_capabilities={
             "image_transport": ROUTE_CAP_UNKNOWN,
             "tool_call_transport": ROUTE_CAP_SUPPORTED,
         },
-        status_note="Local wire, tool-call, and CloudML proof; image transport unverified.",
+        status_note="Tool calling requires route-specific live proof.",
     ),
     ProviderRouteSpec(
         route_id=PROVIDER_PROFILE_MINIMAX_RESPONSES,
@@ -306,10 +210,10 @@ _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
         label="MiniMax M3",
         supported_engines=("openai-agents-sdk",),
         default_model_id="MiniMax-M3",
-        required_env_keys=("MM_API_KEY",),
+        required_env_keys=("MM_BASE_URL", "MM_API_KEY"),
         api_key_env="MM_API_KEY",
         base_url_env="MM_BASE_URL",
-        base_url_default="https://api.minimaxi.com/v1",
+        base_url_default="",
         wire_api=WIRE_RESPONSES,
         wire_source=WIRE_SOURCE_NATIVE,
         default_use=True,
@@ -325,57 +229,15 @@ _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
         status_note=("OpenAI Agents SDK structured cleanup works."),
     ),
     ProviderRouteSpec(
-        route_id=PROVIDER_PROFILE_MIMO_OPENAI_CHAT,
-        public_profile=PROVIDER_PROFILE_MIMO_OPENAI_CHAT,
-        label="Mimo TP v2.5",
-        supported_engines=("openai-agents-sdk",),
-        default_model_id="mimo-v2.5",
-        required_env_keys=("MIMO_TP_KEY",),
-        api_key_env="MIMO_TP_KEY",
-        base_url_env="MIMO_OPENAI_BASE_URL",
-        base_url_default="https://token-plan-cn.xiaomimimo.com/v1",
-        wire_api=WIRE_CHAT_COMPLETIONS,
-        wire_source=WIRE_SOURCE_NATIVE,
-        default_use=False,
-        default_use_note="Paused; retain for diagnostics while Mify Pro is the default.",
-        compatible_model_ids=("mimo-v2.5",),
-        per_engine_status={"openai-agents-sdk": ROUTE_HEALTHY},
-        route_capabilities={
-            "image_transport": ROUTE_CAP_UNSUPPORTED,
-            "tool_call_transport": ROUTE_CAP_SUPPORTED,
-        },
-    ),
-    ProviderRouteSpec(
-        route_id=PROVIDER_PROFILE_MIMO_INSIDE_OPENAI_CHAT,
-        public_profile=PROVIDER_PROFILE_MIMO_INSIDE_OPENAI_CHAT,
-        label="Mimo Inside 1000",
-        supported_engines=("openai-agents-sdk",),
-        default_model_id="mimo-1000",
-        required_env_keys=("MIMO_BASE_URL", "MIMO_API_KEY"),
-        api_key_env="MIMO_API_KEY",
-        base_url_env="MIMO_BASE_URL",
-        base_url_default="",
-        wire_api=WIRE_CHAT_COMPLETIONS,
-        wire_source=WIRE_SOURCE_NATIVE,
-        default_use=False,
-        default_use_note="Paused: channel removed; retain for diagnostics and history.",
-        compatible_model_ids=("mimo-1000",),
-        per_engine_status={"openai-agents-sdk": ROUTE_BLOCKED},
-        route_capabilities={
-            "image_transport": ROUTE_CAP_UNKNOWN,
-            "tool_call_transport": ROUTE_CAP_SUPPORTED,
-        },
-    ),
-    ProviderRouteSpec(
         route_id="kimi-openai-chat",
         public_profile=PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
         label="Kimi K2.7",
         supported_engines=("openai-agents-sdk",),
         default_model_id="kimi-k2.7-code",
-        required_env_keys=("KIMI_API_KEY",),
+        required_env_keys=("KIMI_OPENAI_BASE_URL", "KIMI_API_KEY"),
         api_key_env="KIMI_API_KEY",
         base_url_env="KIMI_OPENAI_BASE_URL",
-        base_url_default="https://api.kimi.com/coding/v1",
+        base_url_default="",
         wire_api=WIRE_CHAT_COMPLETIONS,
         wire_source=WIRE_SOURCE_NATIVE,
         default_use=True,
@@ -391,50 +253,12 @@ _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
             "tool_call_transport": ROUTE_CAP_SUPPORTED,
         },
     ),
-    ProviderRouteSpec(
-        route_id=PROVIDER_PROFILE_MIMO_ANTHROPIC,
-        public_profile=PROVIDER_PROFILE_MIMO_ANTHROPIC,
-        label="MiMo token plan Anthropic",
-        supported_engines=(),
-        default_model_id="mimo-v2.5",
-        required_env_keys=("MIMO_TP_KEY",),
-        api_key_env="MIMO_TP_KEY",
-        base_url_env="MIMO_ANTHROPIC_BASE_URL",
-        base_url_default="https://token-plan-cn.xiaomimimo.com/anthropic",
-        wire_api=WIRE_ANTHROPIC,
-        wire_source=WIRE_SOURCE_SHIM,
-        compatible_model_ids=("mimo-v2.5",),
-        route_capabilities={
-            "image_transport": ROUTE_CAP_SUPPORTED,
-            "tool_call_transport": ROUTE_CAP_SUPPORTED,
-        },
-        status_note="Retained for historical Claude Code route metadata; not an active engine.",
-    ),
-    ProviderRouteSpec(
-        route_id=PROVIDER_PROFILE_MIMO_MIFY_ANTHROPIC,
-        public_profile=PROVIDER_PROFILE_MIMO_MIFY_ANTHROPIC,
-        label="MiMo mify Anthropic Gateway",
-        supported_engines=(),
-        default_model_id="xiaomi/mimo-v2.5",
-        required_env_keys=("XM_LLM_API_KEY",),
-        api_key_env="XM_LLM_API_KEY",
-        base_url_env="XM_LLM_ANTHROPIC_BASE_URL",
-        base_url_default="https://api.llm.mioffice.cn/anthropic",
-        wire_api=WIRE_ANTHROPIC,
-        wire_source=WIRE_SOURCE_GATEWAY,
-        compatible_model_ids=("xiaomi/mimo-v2.5",),
-        route_capabilities={
-            "image_transport": ROUTE_CAP_SUPPORTED,
-            "tool_call_transport": ROUTE_CAP_SUPPORTED,
-        },
-        status_note="Retained for historical Claude Code route metadata; not an active engine.",
-    ),
 )
 
 
 def _normalize_model_name(model_name: str) -> str:
     normalized = str(model_name or "").strip()
-    if normalized.startswith(("mimo_openai/", "mimo_anthropic/", "anthropic_kimi/")):
+    if normalized.startswith("anthropic_kimi/"):
         normalized = normalized.split("/", 1)[1]
     return normalized
 
@@ -521,11 +345,7 @@ def supported_provider_profiles(agent_engine: str) -> tuple[str, ...]:
 
 
 def default_provider_profile(agent_engine: str) -> str | None:
-    defaults = {
-        "openai-agents-sdk": PROVIDER_PROFILE_CODEX_RESPONSES,
-        "openclaw-gateway": "kimi",
-    }
-    return defaults.get(agent_engine)
+    return "kimi" if agent_engine == "openclaw-gateway" else None
 
 
 def provider_env_key(agent_engine: str) -> str | None:
@@ -564,6 +384,11 @@ def model_family_for_route_model(provider_profile: str, model_id: str | None = N
 
 def resolve_route_model(route_id: str, model_id: str | None) -> ModelSpec:
     route = provider_route_spec(route_id)
+    if route.public_profile == PROVIDER_PROFILE_CUSTOM_RESPONSES:
+        selected = str(model_id or "").strip()
+        if not selected:
+            raise ValueError("custom-responses requires CUSTOM_RESPONSES_MODEL")
+        return _custom_model_spec()
     selected = resolve_model(model_id or route.default_model_id)
     compatible_ids = route.compatible_model_ids or (route.default_model_id,)
     compatible_models = tuple(resolve_model(item) for item in compatible_ids)
@@ -584,8 +409,6 @@ def route_capabilities_for_engine(route: ProviderRouteSpec, agent_engine: str) -
 
 def route_base_url(route: ProviderRouteSpec, env: dict[str, str] | None = None) -> str:
     env_map = os.environ if env is None else env
-    if route.route_id == PROVIDER_PROFILE_MIMO_MIFY_ANTHROPIC:
-        return _mify_anthropic_base_url(env_map)
     if route.base_url_env and env_map.get(route.base_url_env):
         return str(env_map[route.base_url_env])
     return route.base_url_default
@@ -643,7 +466,9 @@ def provider_readiness(
             "ok": False,
             "message": str(exc),
         }
-    selected_model = model or route.default_model_id
+    is_custom = route.public_profile == PROVIDER_PROFILE_CUSTOM_RESPONSES
+    selected_model = "custom" if is_custom else model or route.default_model_id
+    request_model = str(env_map.get("CUSTOM_RESPONSES_MODEL", "")).strip() if is_custom else ""
     required_env = list(route.required_env_keys)
     missing_env = [key for key in required_env if not env_map.get(key)]
     if missing_env:
@@ -654,7 +479,10 @@ def provider_readiness(
     else:
         message = ""
     try:
-        model_spec = resolve_route_model(route.public_profile, selected_model)
+        model_spec = resolve_route_model(
+            route.public_profile,
+            request_model if is_custom else selected_model,
+        )
     except KeyError:
         model_spec = None
         message = (
@@ -720,30 +548,53 @@ def openai_agents_runtime_settings(
             ),
             ("ROBOCLAWS_PROVIDER_PROFILE", env_map.get("ROBOCLAWS_PROVIDER_PROFILE")),
         ],
-        default=PROVIDER_PROFILE_CODEX_RESPONSES,
+        default="",
         normalizer=_normal_provider_profile,
     )
+    if not provider:
+        supported = ", ".join(supported_provider_profiles("openai-agents-sdk"))
+        raise ValueError(
+            f"OpenAI Agents SDK setting provider_profile is required; expected one of {supported}"
+        )
     try:
         route = resolve_provider_route_for_engine("openai-agents-sdk", provider)
     except (KeyError, ValueError) as exc:
         raise ValueError(
             f"OpenAI Agents SDK setting provider_profile is unsupported, got {provider!r}"
         ) from exc
-    selected_model = _conflict_checked_value(
-        "model",
-        [
-            ("model", model),
-            ("LiveAgentRequest.model", request_model),
-            ("ROBOCLAWS_OPENAI_AGENTS_MODEL", env_map.get("ROBOCLAWS_OPENAI_AGENTS_MODEL")),
-            ("ROBOCLAWS_CODEX_MODEL", env_map.get("ROBOCLAWS_CODEX_MODEL")),
-        ],
-        default=route.default_model_id,
-        normalizer=_normal_model_id,
-    )
-    try:
-        selected_model = resolve_route_model(route.public_profile, selected_model).model_id
-    except ValueError as exc:
-        raise ValueError(f"OpenAI Agents SDK setting model is incompatible: {exc}") from exc
+    if route.public_profile == PROVIDER_PROFILE_CUSTOM_RESPONSES:
+        explicit_model = _conflict_checked_value(
+            "model",
+            [("model", model), ("LiveAgentRequest.model", request_model)],
+            default="",
+            normalizer=lambda value: value,
+        )
+        if explicit_model and explicit_model != "custom":
+            raise ValueError(
+                "OpenAI Agents SDK custom-responses model is configured only through "
+                "CUSTOM_RESPONSES_MODEL"
+            )
+        provider_request_model = _explicit_string(env_map.get("CUSTOM_RESPONSES_MODEL"))
+        selected_model = "custom"
+    else:
+        selected_model = _conflict_checked_value(
+            "model",
+            [
+                ("model", model),
+                ("LiveAgentRequest.model", request_model),
+                (
+                    "ROBOCLAWS_OPENAI_AGENTS_MODEL",
+                    env_map.get("ROBOCLAWS_OPENAI_AGENTS_MODEL"),
+                ),
+            ],
+            default=route.default_model_id,
+            normalizer=lambda value: _normal_model_id_for_route(route, value),
+        )
+        try:
+            selected_model = resolve_route_model(route.public_profile, selected_model).model_id
+        except ValueError as exc:
+            raise ValueError(f"OpenAI Agents SDK setting model is incompatible: {exc}") from exc
+        provider_request_model = selected_model
     return {
         "provider_profile": route.public_profile,
         "wire_api": route.wire_api,
@@ -770,11 +621,16 @@ def openai_agents_runtime_settings(
             redact=True,
         ),
         "model": selected_model,
+        "request_model": provider_request_model,
     }
 
 
 def route_payload(route: ProviderRouteSpec, *, agent_engine: str) -> dict[str, Any]:
-    model = resolve_model(route.default_model_id)
+    model = (
+        _custom_model_spec()
+        if route.public_profile == PROVIDER_PROFILE_CUSTOM_RESPONSES
+        else resolve_model(route.default_model_id)
+    )
     return {
         "provider_profile": route.public_profile,
         "route_id": route.route_id,
@@ -849,7 +705,7 @@ def _conflict_checked_pair(
 
 def _normal_provider_profile(value: str) -> str:
     try:
-        return normalize_provider_route(value, default=PROVIDER_PROFILE_CODEX_RESPONSES)
+        return normalize_provider_route(value)
     except KeyError as exc:
         raise ValueError(
             f"OpenAI Agents SDK setting provider_profile is unsupported, got {value!r}"
@@ -863,40 +719,27 @@ def _normal_model_id(value: str) -> str:
     return model.model_id
 
 
+def _normal_model_id_for_route(route: ProviderRouteSpec, value: str) -> str:
+    if route.public_profile == PROVIDER_PROFILE_CUSTOM_RESPONSES:
+        return value.strip()
+    return _normal_model_id(value)
+
+
+def _custom_model_spec() -> ModelSpec:
+    return ModelSpec(
+        model_id="custom",
+        aliases=(),
+        family="custom",
+        model_capabilities=_caps(MODEL_CAP_TEXT),
+        default_use=True,
+        default_use_note="Opaque model configured by CUSTOM_RESPONSES_MODEL.",
+    )
+
+
 def _explicit_string(value: Any) -> str:
     if value is None:
         return ""
     return str(value).strip()
-
-
-def _mify_anthropic_base_url(env_map: dict[str, str]) -> str:
-    anthropic_base = _explicit_string(env_map.get("XM_LLM_ANTHROPIC_BASE_URL"))
-    generic_base = _explicit_string(env_map.get("XM_LLM_BASE_URL"))
-    derived_generic_base = _mify_anthropic_base_url_from_generic(generic_base)
-    if anthropic_base and derived_generic_base:
-        if anthropic_base.rstrip("/") != derived_generic_base.rstrip("/"):
-            raise ValueError(
-                "conflicting provider route base_url for mimo-mify-anthropic: "
-                f"XM_LLM_ANTHROPIC_BASE_URL={anthropic_base!r} and "
-                f"XM_LLM_BASE_URL derives {derived_generic_base!r}"
-            )
-        return anthropic_base
-    if anthropic_base:
-        return anthropic_base
-    if derived_generic_base:
-        return derived_generic_base
-    return "https://api.llm.mioffice.cn/anthropic"
-
-
-def _mify_anthropic_base_url_from_generic(base: str) -> str:
-    if not base:
-        return ""
-    base = base.rstrip("/")
-    if base.endswith("/anthropic"):
-        return base
-    if base.endswith("/v1"):
-        return f"{base[:-3]}/anthropic"
-    return f"{base}/anthropic"
 
 
 def _driver_for_agent_engine(agent_engine: str) -> str:

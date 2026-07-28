@@ -34,9 +34,9 @@ from tests.unit.operator_console.conftest import (  # noqa: F401  re-exported fo
 )
 from tests.unit.operator_console.test_routes import _write_prior_catalog
 
-CODEX_ENV = {
-    "CODEX_BASE_URL": "https://codex.example.test/v1",
-    "CODEX_API_KEY": "key",
+KIMI_ENV = {
+    "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
+    "KIMI_API_KEY": "key",
 }
 
 
@@ -59,11 +59,19 @@ def _free_port() -> str:
 
 
 def test_launcher_readiness_layers_isaac_and_agibot_gates(tmp_path: Path) -> None:
+    map_bundle = tmp_path / "b1-map-bundle"
+    map_bundle.mkdir()
+    isaac_scene = tmp_path / "b1-scene.usd"
+    isaac_scene.write_text("#usda 1.0\n", encoding="utf-8")
     b1_map12 = route_readiness(
         tmp_path,
         get_selection(B1_OPENAI_AGENTS_OPEN_TASK),
-        overrides={"port": _free_port()},
-        env=CODEX_ENV,
+        overrides={
+            "port": _free_port(),
+            "map_bundle": str(map_bundle),
+            "isaac_scene_usd_path": str(isaac_scene),
+        },
+        env=KIMI_ENV,
     )
     assert b1_map12["can_start"] is True
     assert b1_map12["blocker_kind"] == ""
@@ -74,12 +82,22 @@ def test_launcher_readiness_layers_isaac_and_agibot_gates(tmp_path: Path) -> Non
 
     context_path = tmp_path / "context.json"
     context_path.write_text("{}", encoding="utf-8")
+    runner_script = tmp_path / "runner.py"
+    runner_script.write_text("# synthetic runner\n", encoding="utf-8")
+    map_artifact_dir = tmp_path / "agibot-map"
+    map_artifact_dir.mkdir()
+    agibot_overrides = {
+        "context_json": str(context_path),
+        "runner_script": str(runner_script),
+        "runner_python": os.sys.executable,
+        "agibot_map_artifact_dir": str(map_artifact_dir),
+    }
     agibot = route_readiness(
         tmp_path,
         get_selection(AGIBOT_SDK_MAP_BUILD),
-        overrides={"context_json": str(context_path), "port": _free_port()},
+        overrides={**agibot_overrides, "port": _free_port()},
         gates={"localization_ready": True, "run_enabled": False, "estop_ready": True},
-        env=CODEX_ENV,
+        env=KIMI_ENV,
     )
     assert agibot["can_start"] is True
     run_gate = next(gate for gate in agibot["gates"] if gate["id"] == "run_enabled")
@@ -91,16 +109,39 @@ def test_launcher_readiness_layers_isaac_and_agibot_gates(tmp_path: Path) -> Non
         tmp_path,
         get_selection(AGIBOT_SDK_MAP_BUILD),
         overrides={
-            "context_json": str(context_path),
+            **agibot_overrides,
             "port": _free_port(),
             "real_movement_enabled": "true",
         },
         gates={"localization_ready": True, "run_enabled": False, "estop_ready": True},
-        env=CODEX_ENV,
+        env=KIMI_ENV,
     )
     assert movement["can_start"] is False
     assert movement["blocker_kind"] == "needs_real_movement_gate"
     assert "Real movement is enabled" in movement["blocker"]
+
+
+def test_optional_world_readiness_never_returns_private_dependency_roots(tmp_path: Path) -> None:
+    private_root = tmp_path / "private-optional-world-canary"
+    readiness = route_readiness(
+        tmp_path,
+        get_selection(B1_OPENAI_AGENTS_OPEN_TASK),
+        overrides={
+            "port": _free_port(),
+            "map_bundle": str(private_root / "missing-map"),
+            "isaac_scene_usd_path": str(private_root / "missing-scene.usd"),
+        },
+        env=KIMI_ENV,
+    )
+
+    serialized = json.dumps(readiness, sort_keys=True)
+    assert readiness["can_start"] is False
+    assert readiness["blocker_kind"] == "optional_world_dependency"
+    assert readiness["optional_world_dependencies"]["invalid"] == [
+        "map_bundle",
+        "isaac_scene_usd_path",
+    ]
+    assert str(private_root) not in serialized
 
 
 def test_launcher_builds_route_specific_overrides(tmp_path: Path) -> None:
@@ -122,14 +163,22 @@ def test_launcher_builds_route_specific_overrides(tmp_path: Path) -> None:
 def test_b1_camera_grounded_launch_includes_default_camera_labeler(tmp_path: Path) -> None:
     route = get_selection(B1_OPENAI_AGENTS_CAMERA_GROUNDED)
 
-    argv = build_launch_argv(route, root=tmp_path, run_id="run-1")
+    argv = build_launch_argv(
+        route,
+        root=tmp_path,
+        run_id="run-1",
+        overrides={
+            "b1_alignment_artifact": "alignment.json",
+            "b1_navigation_artifact": "navigation.json",
+        },
+    )
 
     assert "world=b1-map12" in argv
     assert "backend=isaaclab" in argv
     assert "evidence_lane=camera-grounded-labels" in argv
     assert "camera_labeler=grounding-dino" in argv
-    assert not any(item.startswith("b1_alignment_artifact=") for item in argv)
-    assert not any(item.startswith("b1_navigation_artifact=") for item in argv)
+    assert "b1_alignment_artifact=alignment.json" in argv
+    assert "b1_navigation_artifact=navigation.json" in argv
 
 
 def test_cleanup_workflow_launch_argv_uses_camera_grounded_and_standard_mess_defaults(
@@ -152,7 +201,7 @@ def test_cleanup_workflow_launch_argv_uses_camera_grounded_and_standard_mess_def
     assert "camera_labeler=grounding-dino" in argv
     assert "scenario_setup=relocate-cleanup-related-objects" in argv
     assert "relocation_count=5" in argv
-    assert "provider_profile=codex-router-responses" in argv
+    assert "provider_profile=kimi-openai-chat" in argv
     assert not any(item.startswith("agent_sdk_perf_profile=") for item in argv)
     assert "--agent-sdk-perf-profile" not in argv
     assert "ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE=baseline" not in argv
@@ -392,19 +441,19 @@ def test_launcher_holds_lock_before_spawning_process(tmp_path: Path) -> None:
                 intent_id="open-ended",
                 prompt="收拾桌面上的杯子",
                 next_goal_packet={"schema": "operator_console_next_goal_packet_v1"},
-                provider_profile="mimo-mify-responses",
+                provider_profile="minimax-responses",
                 env_overrides={
-                    "ROBOCLAWS_PROVIDER_PROFILE": "mimo-mify-responses",
+                    "ROBOCLAWS_PROVIDER_PROFILE": "minimax-responses",
                 },
                 overrides={"port": _free_port()},
             ),
-            env={"XM_LLM_API_KEY": "key"},
+            env={"MM_BASE_URL": "https://minimax.example/v1", "MM_API_KEY": "key"},
         )
 
     assert seen_lock_owner == state["run_id"]
-    assert seen_env["ROBOCLAWS_PROVIDER_PROFILE"] == "mimo-mify-responses"
+    assert seen_env["ROBOCLAWS_PROVIDER_PROFILE"] == "minimax-responses"
     assert state["env_overrides"] == {
-        "ROBOCLAWS_PROVIDER_PROFILE": "mimo-mify-responses",
+        "ROBOCLAWS_PROVIDER_PROFILE": "minimax-responses",
     }
     assert state["selected_intent"] == "open-ended"
     assert state["next_goal_packet"] == {"schema": "operator_console_next_goal_packet_v1"}
@@ -456,7 +505,7 @@ def test_launcher_uses_new_run_id_when_existing_run_dir_would_be_reused(
                 intent_id="open-ended",
                 overrides={"port": _free_port()},
             ),
-            env=CODEX_ENV,
+            env=KIMI_ENV,
         )
 
     assert state["run_id"] == f"{base_run_id}-2"
@@ -489,7 +538,7 @@ def test_launcher_fails_when_run_id_reservation_is_exhausted(tmp_path: Path) -> 
                 intent_id="open-ended",
                 overrides={"port": _free_port()},
             ),
-            env=CODEX_ENV,
+            env=KIMI_ENV,
         )
 
     popen.assert_not_called()
@@ -520,7 +569,7 @@ def test_launcher_removes_empty_reserved_run_dir_when_lock_acquire_fails(
                 intent_id="open-ended",
                 overrides={"port": _free_port()},
             ),
-            env=CODEX_ENV,
+            env=KIMI_ENV,
         )
 
     popen.assert_not_called()
@@ -550,7 +599,7 @@ def test_launcher_removes_empty_reserved_run_dir_when_argv_build_fails(
                 intent_id="open-ended",
                 overrides={"port": _free_port()},
             ),
-            env=CODEX_ENV,
+            env=KIMI_ENV,
         )
 
     popen.assert_not_called()
@@ -562,7 +611,7 @@ def test_launcher_rejects_missing_canonical_selection_identity(tmp_path: Path) -
         start_console_run(
             tmp_path,
             LaunchRequest(overrides={"port": _free_port()}),
-            env=CODEX_ENV,
+            env=KIMI_ENV,
         )
 
 
@@ -587,7 +636,7 @@ def test_readiness_exposes_attachable_run_for_held_backend_lock(tmp_path: Path) 
     )
     ResourceLock(tmp_path, route.lock_name).acquire(run_id=run_id, pid=pid)
 
-    readiness = route_readiness(tmp_path, route, overrides={"port": _free_port()}, env=CODEX_ENV)
+    readiness = route_readiness(tmp_path, route, overrides={"port": _free_port()}, env=KIMI_ENV)
 
     assert readiness["can_start"] is False
     assert readiness["blocker_kind"] == "locked"
@@ -634,7 +683,7 @@ def test_readiness_keeps_stale_wrapper_lock_attachable_when_child_live_run_is_ac
     lock = ResourceLock(tmp_path, route.lock_name)
     lock.acquire(run_id=run_id, pid=99999999)
 
-    readiness = route_readiness(tmp_path, route, overrides={"port": _free_port()}, env=CODEX_ENV)
+    readiness = route_readiness(tmp_path, route, overrides={"port": _free_port()}, env=KIMI_ENV)
 
     assert readiness["can_start"] is False
     assert readiness["blocker_kind"] == "locked"
@@ -677,7 +726,7 @@ def test_readiness_releases_terminal_failed_lock_instead_of_attaching_dead_run(
     )
     ResourceLock(tmp_path, route.lock_name).acquire(run_id=run_id, pid=123450)
 
-    readiness = route_readiness(tmp_path, route, overrides={"port": _free_port()}, env=CODEX_ENV)
+    readiness = route_readiness(tmp_path, route, overrides={"port": _free_port()}, env=KIMI_ENV)
 
     assert readiness["can_start"] is True
     assert readiness["blocker_kind"] == ""
@@ -693,7 +742,7 @@ def test_readiness_blocks_on_malformed_lock_owner_state_source(tmp_path: Path) -
     (run_dir / "operator_state.json").write_text("{bad-state", encoding="utf-8")
     ResourceLock(tmp_path, route.lock_name).acquire(run_id=run_id, pid=99999999)
 
-    readiness = route_readiness(tmp_path, route, overrides={"port": _free_port()}, env=CODEX_ENV)
+    readiness = route_readiness(tmp_path, route, overrides={"port": _free_port()}, env=KIMI_ENV)
 
     assert readiness["can_start"] is False
     assert readiness["blocker_kind"] == "source_error"
@@ -725,7 +774,7 @@ def test_readiness_blocks_on_malformed_lock_owner_live_status_source(tmp_path: P
     (attempt_dir / "live_status.json").write_text("[1]", encoding="utf-8")
     ResourceLock(tmp_path, route.lock_name).acquire(run_id=run_id, pid=99999999)
 
-    readiness = route_readiness(tmp_path, route, overrides={"port": _free_port()}, env=CODEX_ENV)
+    readiness = route_readiness(tmp_path, route, overrides={"port": _free_port()}, env=KIMI_ENV)
 
     assert readiness["can_start"] is False
     assert readiness["blocker_kind"] == "source_error"
@@ -1066,7 +1115,7 @@ def test_terminate_process_group_falls_back_to_single_pid_when_group_lookup_fail
 
 
 def test_provider_gate_requires_agent_key_route(tmp_path: Path, monkeypatch) -> None:
-    for key in ("XM_LLM_API_KEY", "CODEX_API_KEY", "KIMI_API_KEY", "MIMO_TP_KEY", "OPENAI_API_KEY"):
+    for key in ("MM_API_KEY", "KIMI_API_KEY", "KIMI_API_KEY", "KIMI_API_KEY", "OPENAI_API_KEY"):
         monkeypatch.delenv(key, raising=False)
     readiness = route_readiness(
         tmp_path,
@@ -1074,16 +1123,16 @@ def test_provider_gate_requires_agent_key_route(tmp_path: Path, monkeypatch) -> 
         overrides={"port": _free_port()},
     )
     assert not readiness["can_start"]
-    assert "CODEX_BASE_URL" in readiness["blocker"]
-    assert "CODEX_API_KEY" in readiness["blocker"]
+    assert "KIMI_OPENAI_BASE_URL" in readiness["blocker"]
+    assert "KIMI_API_KEY" in readiness["blocker"]
     assert readiness["blocker_kind"] == "needs_provider"
 
 
-def test_provider_gate_auto_loads_codex_env_from_repo_dotenv(tmp_path: Path, monkeypatch) -> None:
-    for key in ("XM_LLM_API_KEY", "CODEX_API_KEY", "KIMI_API_KEY", "MIMO_TP_KEY", "OPENAI_API_KEY"):
+def test_provider_gate_auto_loads_kimi_env_from_repo_dotenv(tmp_path: Path, monkeypatch) -> None:
+    for key in ("MM_API_KEY", "KIMI_API_KEY", "KIMI_API_KEY", "KIMI_API_KEY", "OPENAI_API_KEY"):
         monkeypatch.delenv(key, raising=False)
     (tmp_path / ".env").write_text(
-        "CODEX_BASE_URL=https://codex.example.test/v1\nCODEX_API_KEY=from-dotenv\n",
+        "KIMI_OPENAI_BASE_URL=https://kimi.example.test/v1\nKIMI_API_KEY=from-dotenv\n",
         encoding="utf-8",
     )
 
@@ -1094,28 +1143,15 @@ def test_provider_gate_auto_loads_codex_env_from_repo_dotenv(tmp_path: Path, mon
     )
 
     assert readiness["can_start"] is True
-    assert load_repo_dotenv(tmp_path, {})["CODEX_API_KEY"] == "from-dotenv"
-    assert readiness["provider"]["provider"] == "codex-router-responses"
-
-
-def test_provider_gate_allows_explicit_mify_override_with_xm_key(tmp_path: Path) -> None:
-    readiness = route_readiness(
-        tmp_path,
-        get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK),
-        env={"XM_LLM_API_KEY": "key"},
-        overrides={"port": _free_port(), "provider_profile": "mimo-mify-responses"},
-        env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "mimo-mify-responses"},
-    )
-
-    assert readiness["can_start"] is True
-    assert readiness["provider"]["provider"] == "mimo-mify-responses"
+    assert load_repo_dotenv(tmp_path, {})["KIMI_API_KEY"] == "from-dotenv"
+    assert readiness["provider"]["provider"] == "kimi-openai-chat"
 
 
 def test_provider_gate_allows_explicit_minimax_override_with_mm_key(tmp_path: Path) -> None:
     readiness = route_readiness(
         tmp_path,
         get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK),
-        env={"MM_API_KEY": "key"},
+        env={"MM_BASE_URL": "https://minimax.example.test/v1", "MM_API_KEY": "key"},
         overrides={"port": _free_port(), "provider_profile": "minimax-responses"},
         env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "minimax-responses"},
     )
@@ -1133,22 +1169,20 @@ def test_provider_gate_blocks_raw_fpv_when_route_image_transport_unknown(tmp_pat
     readiness = route_readiness(
         tmp_path,
         route,
-        env={"MM_API_KEY": "key"},
+        env={"MM_BASE_URL": "https://minimax.example.test/v1", "MM_API_KEY": "key"},
         overrides={"port": _free_port(), "provider_profile": "minimax-responses"},
         env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "minimax-responses"},
     )
 
     assert readiness["can_start"] is False
-    assert readiness["blocker_kind"] == "unsupported_evidence_lane"
-    assert "image_transport=unknown" in readiness["blocker"]
+    assert readiness["blocker_kind"] == "unavailable"
+    assert "verified image transport" in readiness["blocker"]
 
 
 def test_provider_gate_blocks_when_evidence_lane_provider_lookup_fails(
     tmp_path: Path,
 ) -> None:
-    route = get_selection(
-        "molmospaces/procthor-objaverse-val/0::mujoco::open-task::openai-agents-sdk::camera-raw-fpv"
-    )
+    route = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
 
     with patch(
         "roboclaws.operator_console.launcher.evidence_lane_compatibility",
@@ -1157,7 +1191,7 @@ def test_provider_gate_blocks_when_evidence_lane_provider_lookup_fails(
         readiness = route_readiness(
             tmp_path,
             route,
-            env={"CODEX_BASE_URL": "https://codex.example.test/v1", "CODEX_API_KEY": "key"},
+            env={"KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1", "KIMI_API_KEY": "key"},
             overrides={"port": _free_port()},
         )
 
@@ -1168,13 +1202,13 @@ def test_provider_gate_blocks_when_evidence_lane_provider_lookup_fails(
     assert "missing-provider" in readiness["blocker"]
 
 
-def test_provider_gate_allows_openai_agents_chat_profiles(tmp_path: Path) -> None:
+def test_provider_gate_allows_final_openai_agents_profiles(tmp_path: Path) -> None:
     route = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
 
     minimax = route_readiness(
         tmp_path,
         route,
-        env={"MM_API_KEY": "key"},
+        env={"MM_BASE_URL": "https://minimax.example.test/v1", "MM_API_KEY": "key"},
         overrides={"port": _free_port(), "provider_profile": "minimax-responses"},
         env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "minimax-responses"},
     )
@@ -1183,27 +1217,16 @@ def test_provider_gate_allows_openai_agents_chat_profiles(tmp_path: Path) -> Non
     assert minimax["provider"]["driver"] == "openai-agents-sdk"
     assert minimax["provider"]["model"] == "MiniMax-M3"
 
-    mimo = route_readiness(
-        tmp_path,
-        route,
-        env={"MIMO_TP_KEY": "key"},
-        overrides={"port": _free_port(), "provider_profile": "mimo-tp-openai-chat"},
-        env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "mimo-tp-openai-chat"},
-    )
-    assert mimo["can_start"] is True
-    assert mimo["provider"]["provider"] == "mimo-tp-openai-chat"
-    assert mimo["provider"]["driver"] == "openai-agents-sdk"
-    assert mimo["provider"]["model"] == "mimo-v2.5"
-
     kimi = route_readiness(
         tmp_path,
         route,
-        env={"KIMI_API_KEY": "key"},
+        env={"KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1", "KIMI_API_KEY": "key"},
         overrides={"port": _free_port(), "provider_profile": "kimi-openai-chat"},
         env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "kimi-openai-chat"},
     )
     assert kimi["can_start"] is True
     assert kimi["provider"]["provider"] == "kimi-openai-chat"
+    assert kimi["provider"]["driver"] == "openai-agents-sdk"
     assert kimi["provider"]["model"] == "kimi-k2.7-code"
 
 
@@ -1214,8 +1237,8 @@ def test_provider_gate_blocks_unknown_openai_agents_model_env(tmp_path: Path) ->
         tmp_path,
         route,
         env={
-            "CODEX_BASE_URL": "https://codex.example.test/v1",
-            "CODEX_API_KEY": "key",
+            "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
+            "KIMI_API_KEY": "key",
             "ROBOCLAWS_OPENAI_AGENTS_MODEL": "not-in-provider-catalog",
         },
         overrides={"port": _free_port()},
@@ -1228,29 +1251,6 @@ def test_provider_gate_blocks_unknown_openai_agents_model_env(tmp_path: Path) ->
     assert "not-in-provider-catalog" in readiness["blocker"]
 
 
-def test_provider_gate_blocks_conflicting_openai_agents_model_sources(tmp_path: Path) -> None:
-    route = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
-
-    readiness = route_readiness(
-        tmp_path,
-        route,
-        env={
-            "CODEX_BASE_URL": "https://codex.example.test/v1",
-            "CODEX_API_KEY": "key",
-            "ROBOCLAWS_OPENAI_AGENTS_MODEL": "kimi-k2.7-code",
-            "ROBOCLAWS_CODEX_MODEL": "gpt-5.5",
-        },
-        overrides={"port": _free_port()},
-    )
-
-    assert readiness["can_start"] is False
-    assert readiness["blocker_kind"] == "needs_provider"
-    assert readiness["provider"]["ok"] is False
-    assert "conflicting OpenAI Agents SDK setting model" in readiness["blocker"]
-    assert "ROBOCLAWS_OPENAI_AGENTS_MODEL='kimi-k2.7-code'" in readiness["blocker"]
-    assert "ROBOCLAWS_CODEX_MODEL='gpt-5.5'" in readiness["blocker"]
-
-
 def test_provider_gate_ignores_code_agent_model_alias_for_openai_agents(
     tmp_path: Path,
 ) -> None:
@@ -1260,16 +1260,16 @@ def test_provider_gate_ignores_code_agent_model_alias_for_openai_agents(
         tmp_path,
         route,
         env={
-            "CODEX_BASE_URL": "https://codex.example.test/v1",
-            "CODEX_API_KEY": "key",
+            "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
+            "KIMI_API_KEY": "key",
             "ROBOCLAWS_CODE_AGENT_MODEL": "kimi-k2.7-code",
         },
         overrides={"port": _free_port()},
     )
 
     assert readiness["can_start"] is True
-    assert readiness["provider"]["provider"] == "codex-router-responses"
-    assert readiness["provider"]["model"] == "gpt-5.6-sol"
+    assert readiness["provider"]["provider"] == "kimi-openai-chat"
+    assert readiness["provider"]["model"] == "kimi-k2.7-code"
 
 
 def test_provider_gate_blocks_incompatible_openai_agents_model_env(tmp_path: Path) -> None:
@@ -1279,8 +1279,9 @@ def test_provider_gate_blocks_incompatible_openai_agents_model_env(tmp_path: Pat
         tmp_path,
         route,
         env={
+            "MM_BASE_URL": "https://minimax.example.test/v1",
             "MM_API_KEY": "key",
-            "ROBOCLAWS_OPENAI_AGENTS_MODEL": "gpt-5.5",
+            "ROBOCLAWS_OPENAI_AGENTS_MODEL": "kimi-k2.7-code",
         },
         overrides={"port": _free_port(), "provider_profile": "minimax-responses"},
         env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "minimax-responses"},
@@ -1293,31 +1294,31 @@ def test_provider_gate_blocks_incompatible_openai_agents_model_env(tmp_path: Pat
     assert "provider_profile 'minimax-responses'" in readiness["blocker"]
 
 
-def test_provider_gate_requires_mimo_inside_base_url(tmp_path: Path) -> None:
+def test_provider_gate_requires_kimi_base_url_and_key(tmp_path: Path) -> None:
     route = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
 
     missing_base_url = route_readiness(
         tmp_path,
         route,
-        env={"MIMO_API_KEY": "key"},
-        overrides={"port": _free_port(), "provider_profile": "mimo-inside-openai-chat"},
-        env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "mimo-inside-openai-chat"},
+        env={"KIMI_API_KEY": "key"},
+        overrides={"port": _free_port(), "provider_profile": "kimi-openai-chat"},
+        env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "kimi-openai-chat"},
     )
 
     assert missing_base_url["can_start"] is False
     assert missing_base_url["blocker_kind"] == "needs_provider"
-    assert "MIMO_BASE_URL and MIMO_API_KEY" in missing_base_url["blocker"]
+    assert "KIMI_OPENAI_BASE_URL" in missing_base_url["blocker"]
 
     ready = route_readiness(
         tmp_path,
         route,
-        env={"MIMO_BASE_URL": "https://inside.example/v1", "MIMO_API_KEY": "key"},
-        overrides={"port": _free_port(), "provider_profile": "mimo-inside-openai-chat"},
-        env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "mimo-inside-openai-chat"},
+        env={"KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1", "KIMI_API_KEY": "key"},
+        overrides={"port": _free_port(), "provider_profile": "kimi-openai-chat"},
+        env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "kimi-openai-chat"},
     )
 
     assert ready["can_start"] is True
-    assert ready["provider"]["provider"] == "mimo-inside-openai-chat"
+    assert ready["provider"]["provider"] == "kimi-openai-chat"
 
 
 def test_provider_gate_uses_selected_openai_agents_provider(tmp_path: Path) -> None:
@@ -1325,19 +1326,19 @@ def test_provider_gate_uses_selected_openai_agents_provider(tmp_path: Path) -> N
 
     missing_default = route_readiness(tmp_path, route, env={})
     assert missing_default["can_start"] is False
-    assert missing_default["provider"]["provider"] == "codex-router-responses"
-    assert "CODEX_BASE_URL" in missing_default["blocker"]
-    assert "CODEX_API_KEY" in missing_default["blocker"]
+    assert missing_default["provider"]["provider"] == "kimi-openai-chat"
+    assert "KIMI_OPENAI_BASE_URL" in missing_default["blocker"]
+    assert "KIMI_API_KEY" in missing_default["blocker"]
 
-    mify = route_readiness(
+    minimax = route_readiness(
         tmp_path,
         route,
-        env={"XM_LLM_API_KEY": "key"},
-        overrides={"port": _free_port(), "provider_profile": "mimo-mify-responses"},
-        env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "mimo-mify-responses"},
+        env={"MM_BASE_URL": "https://minimax.example.test/v1", "MM_API_KEY": "key"},
+        overrides={"port": _free_port(), "provider_profile": "minimax-responses"},
+        env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "minimax-responses"},
     )
-    assert mify["can_start"] is True
-    assert mify["provider"]["provider"] == "mimo-mify-responses"
+    assert minimax["can_start"] is True
+    assert minimax["provider"]["provider"] == "minimax-responses"
 
 
 def test_provider_gate_rejects_invalid_env_override(tmp_path: Path) -> None:
@@ -1379,7 +1380,7 @@ def test_mcp_port_gate_rejects_port_that_is_already_accepting_connections(
             tmp_path,
             route,
             overrides={"host": "127.0.0.1", "port": str(port)},
-            env=CODEX_ENV,
+            env=KIMI_ENV,
         )
 
     assert readiness["can_start"] is False
@@ -1405,5 +1406,5 @@ def test_openai_agents_open_task_route_uses_sdk_driver(tmp_path: Path) -> None:
     ]
     assert not any(item.startswith("preset=") for item in argv)
     assert "evidence_lane=world-public-labels" in argv
-    assert "provider_profile=codex-router-responses" in argv
+    assert "provider_profile=kimi-openai-chat" in argv
     assert "scenario_setup=baseline" in argv

@@ -36,20 +36,16 @@ HOUSEHOLD_AGENT_SERVER_MODULE = "roboclaws.cli.agent_server"
 CODE_AGENT_ENV_VARS = (
     "ROBOCLAWS_PROVIDER_PROFILE",
     "ROBOCLAWS_CODE_AGENT_MODEL",
-    "ROBOCLAWS_CODEX_MODEL",
-    "ROBOCLAWS_CLAUDE_MODEL",
-    "ROBOCLAWS_CODEX_DISABLE_RESPONSES_WEBSOCKETS",
     "ROBOCLAWS_PROVIDER_TIMING_PROXY",
     "ROBOCLAWS_TIMING_PROXY_UPSTREAM_BASE_URL",
     "ROBOCLAWS_TIMING_PROXY_BIND_HOST",
     "ROBOCLAWS_TIMING_PROXY_BIND_PORT",
     "KIMI_API_KEY",
-    "MIMO_TP_KEY",
     "OPENAI_API_KEY",
-    "CODEX_BASE_URL",
-    "CODEX_API_KEY",
-    "XM_LLM_BASE_URL",
-    "XM_LLM_API_KEY",
+    "CUSTOM_RESPONSES_BASE_URL",
+    "CUSTOM_RESPONSES_API_KEY",
+    "CUSTOM_RESPONSES_MODEL",
+    "KIMI_OPENAI_BASE_URL",
     "MM_BASE_URL",
     "MM_API_KEY",
 )
@@ -108,6 +104,18 @@ def trace_household_cleanup_run_with_plan(
     )
 
 
+def agibot_dependency_overrides(tmp_path: Path) -> tuple[str, ...]:
+    runner_script = tmp_path / "agibot_runner.py"
+    runner_script.write_text("# synthetic optional-world runner\n", encoding="utf-8")
+    map_dir = tmp_path / "agibot_map"
+    map_dir.mkdir()
+    return (
+        f"runner_script={runner_script}",
+        f"runner_python={sys.executable}",
+        f"agibot_map_artifact_dir={map_dir}",
+    )
+
+
 def _run_just(recipe: str, *args: str) -> subprocess.CompletedProcess[str]:
     binary = just_bin()
     env = os.environ.copy()
@@ -134,6 +142,20 @@ def trace_surface_run(*args: str) -> list[str]:
 def trace_surface_run_with_plan(*args: str) -> tuple[list[str], list[str]]:
     result = _run_just("run::surface", *args)
     return result.stdout.strip().split("\t"), result.stderr.strip().split("\t")
+
+
+def _b1_dependency_args(tmp_path: Path) -> tuple[str, ...]:
+    map_bundle = tmp_path / "private-b1-map-canary"
+    map_bundle.mkdir()
+    values = {"isaac_scene_usd_path": tmp_path / "private-b1-scene-canary.usd"}
+    values["b1_alignment_artifact"] = tmp_path / "private-b1-alignment-canary.json"
+    values["b1_navigation_artifact"] = tmp_path / "private-b1-navigation-canary.json"
+    for path in values.values():
+        path.write_text("{}\n", encoding="utf-8")
+    return (
+        f"map_bundle={map_bundle}",
+        *(f"{key}={path}" for key, path in values.items()),
+    )
 
 
 def trace_agent_harness(*args: str) -> list[str]:
@@ -491,6 +513,7 @@ def test_surface_prompt_mapping_household_cleanup_sdk_world_labels_default() -> 
     route = trace_surface_run(
         "surface=household-world",
         "agent_engine=openai-agents-sdk",
+        "provider_profile=kimi-openai-chat",
         "preset=cleanup",
     )
 
@@ -508,6 +531,7 @@ def test_surface_prompt_omitted_intent_with_prompt_infers_open_ended() -> None:
     route, plan_trace = trace_surface_run_with_plan(
         "surface=household-world",
         "agent_engine=openai-agents-sdk",
+        "provider_profile=kimi-openai-chat",
         "prompt=我渴了，帮我找些解渴的东西",
     )
 
@@ -587,6 +611,7 @@ def test_surface_launch_rejects_public_profile_alias() -> None:
             (
                 "surface=household-world",
                 "agent_engine=openai-agents-sdk",
+                "provider_profile=kimi-openai-chat",
                 "preset=cleanup",
                 "profile=world-public-labels",
             )
@@ -639,6 +664,7 @@ def test_surface_cleanup_prompt_stays_cleanup_intent_when_explicit() -> None:
         (
             "surface=household-world",
             "agent_engine=openai-agents-sdk",
+            "provider_profile=kimi-openai-chat",
             "preset=cleanup",
             "prompt=只收拾桌面上的杯子",
         )
@@ -660,6 +686,7 @@ def test_surface_launch_plan_exposes_goal_contract_and_evaluation_policy() -> No
         (
             "surface=household-world",
             "agent_engine=openai-agents-sdk",
+            "provider_profile=kimi-openai-chat",
             "preset=map-build",
         )
     )
@@ -669,7 +696,7 @@ def test_surface_launch_plan_exposes_goal_contract_and_evaluation_policy() -> No
     assert plan.backend == "mujoco"
     assert plan.implementation_backend == "molmospaces_subprocess"
     assert plan.agent_engine == "openai-agents-sdk"
-    assert plan.provider_profile == "codex-router-responses"
+    assert plan.provider_profile == "kimi-openai-chat"
     assert plan.intent == "map-build"
     assert plan.preset == "map-build"
     assert plan.evidence_mode == "camera-grounded-labels"
@@ -693,13 +720,14 @@ def test_surface_map_build_defaults_to_openai_agents_sdk_camera_grounded_dino() 
         (
             "surface=household-world",
             "agent_engine=openai-agents-sdk",
+            "provider_profile=kimi-openai-chat",
             "preset=map-build",
         )
     )
 
     assert plan.agent_engine == "openai-agents-sdk"
     assert plan.dispatch_runner == "openai-agents-live"
-    assert plan.provider_profile == "codex-router-responses"
+    assert plan.provider_profile == "kimi-openai-chat"
     assert plan.evidence_mode == "camera-grounded-labels"
     assert plan.profile == "camera-grounded-labels"
     assert "camera_labeler=grounding-dino" in plan.overrides
@@ -744,6 +772,7 @@ def test_surface_launch_exports_operator_session_context_to_lower_recipe_environ
         (
             "surface=household-world",
             "agent_engine=openai-agents-sdk",
+            "provider_profile=kimi-openai-chat",
             "prompt=next task",
             "evidence_lane=world-public-labels",
             f"operator_session_context_json={context}",
@@ -798,7 +827,9 @@ def test_household_checker_flags_are_generated_from_intent_policy() -> None:
 
 
 def test_prompt_mapping_household_cleanup_sdk_world_labels_default() -> None:
-    route = trace_household_cleanup_run("openai-agents-sdk")
+    route = trace_household_cleanup_run(
+        "openai-agents-sdk", "", "provider_profile=kimi-openai-chat"
+    )
 
     assert route[:6] == [
         "just",
@@ -811,7 +842,9 @@ def test_prompt_mapping_household_cleanup_sdk_world_labels_default() -> None:
 
 
 def test_prompt_mapping_household_cleanup_sdk_smoke_override() -> None:
-    route = trace_household_cleanup_run("openai-agents-sdk", "smoke")
+    route = trace_household_cleanup_run(
+        "openai-agents-sdk", "smoke", "provider_profile=kimi-openai-chat"
+    )
 
     assert route[:6] == [
         "just",
@@ -836,12 +869,15 @@ def test_openai_agents_sdk_cleanup_route_is_active_live_route() -> None:
     assert "--context-soft-limit-tokens" in molmo_text
     assert "ROBOCLAWS_OPENAI_AGENTS_MODEL ROBOCLAWS_PROVIDER_PROFILE" in molmo_text
     assert "ROBOCLAWS_PROVIDER_PROFILE ROBOCLAWS_OPENAI_AGENTS_MODEL" in molmo_text
-    assert "openai-agents-live" in trace_household_cleanup_run("openai-agents-sdk")
+    assert "openai-agents-live" in trace_household_cleanup_run(
+        "openai-agents-sdk", "", "provider_profile=kimi-openai-chat"
+    )
 
     plan = resolve_surface_launch(
         (
             "surface=household-world",
             "agent_engine=openai-agents-sdk",
+            "provider_profile=kimi-openai-chat",
             "preset=cleanup",
             "run_preset=smoke",
             "evidence_lane=world-public-labels",
@@ -899,6 +935,7 @@ def test_surface_router_rejects_removed_compatibility_aliases(surface: str) -> N
             (
                 "surface=household-world",
                 "agent_engine=openai-agents-sdk",
+                "provider_profile=kimi-openai-chat",
                 "preset=cleanup",
                 "evidence_lane=world-public-labels-perf",
             ),
@@ -908,6 +945,7 @@ def test_surface_router_rejects_removed_compatibility_aliases(surface: str) -> N
             (
                 "surface=household-world",
                 "agent_engine=openai-agents-sdk",
+                "provider_profile=kimi-openai-chat",
                 "preset=cleanup",
                 "evidence_lane=minimal",
             ),
@@ -917,6 +955,7 @@ def test_surface_router_rejects_removed_compatibility_aliases(surface: str) -> N
             (
                 "surface=household-world",
                 "agent_engine=openai-agents-sdk",
+                "provider_profile=kimi-openai-chat",
                 "preset=cleanup",
                 "evidence_lane=visual",
             ),
@@ -926,8 +965,9 @@ def test_surface_router_rejects_removed_compatibility_aliases(surface: str) -> N
             (
                 "surface=household-world",
                 "agent_engine=openai-agents-sdk",
+                "provider_profile=kimi-openai-chat",
                 "preset=cleanup",
-                "evidence_lane=camera-raw-fpv",
+                "evidence_lane=world-public-labels",
                 "cleanup_routine=mcp",
             ),
             "unsupported cleanup_routine",
@@ -936,6 +976,7 @@ def test_surface_router_rejects_removed_compatibility_aliases(surface: str) -> N
             (
                 "surface=household-world",
                 "agent_engine=openai-agents-sdk",
+                "provider_profile=kimi-openai-chat",
                 "preset=cleanup",
                 "evidence_lane=world-public-labels",
                 "generated_mess_count=5",
@@ -957,6 +998,7 @@ def test_surface_router_is_importable_source_of_truth() -> None:
         (
             "surface=household-world",
             "agent_engine=openai-agents-sdk",
+            "provider_profile=kimi-openai-chat",
             "preset=cleanup",
             "run_preset=smoke",
             "evidence_lane=world-public-labels",
@@ -990,7 +1032,7 @@ def test_surface_router_is_importable_source_of_truth() -> None:
     assert resolved.world == "molmospaces/val_0"
     assert resolved.backend == "mujoco"
     assert resolved.agent_engine == "openai-agents-sdk"
-    assert resolved.provider_profile == "codex-router-responses"
+    assert resolved.provider_profile == "kimi-openai-chat"
     assert resolved.evidence_mode == "smoke"
 
     with pytest.raises(LaunchError, match="unsupported surface 'molmospace-cleanup'"):
@@ -1004,6 +1046,7 @@ def test_surface_launch_plan_exposes_domain_metadata_before_dispatch() -> None:
             "world=agibot-g2/map-12",
             "backend=agibot-gdk",
             "agent_engine=openai-agents-sdk",
+            "provider_profile=kimi-openai-chat",
             "preset=cleanup",
             "run_preset=smoke",
             "evidence_lane=world-public-labels",
@@ -1142,6 +1185,7 @@ def test_trace_mode_exposes_resolved_python_launch_plan() -> None:
     route, plan_trace = trace_household_cleanup_run_with_plan(
         "openai-agents-sdk",
         "camera-grounded-labels",
+        "provider_profile=kimi-openai-chat",
         "camera_labeler=grounding-dino",
     )
 
@@ -1161,7 +1205,7 @@ def test_trace_mode_exposes_resolved_python_launch_plan() -> None:
         "preset=cleanup",
         "agent_engine=openai-agents-sdk",
     ]
-    assert "provider_profile=codex-router-responses" in plan_trace
+    assert "provider_profile=kimi-openai-chat" in plan_trace
     assert "skill=household-world" in plan_trace
     assert "dispatch_runner=openai-agents-live" in plan_trace
     assert "dispatch_target=household-world" in plan_trace
@@ -1186,6 +1230,7 @@ def test_python_launch_plan_accepts_world_labels_sanitized_lane() -> None:
         (
             "surface=household-world",
             "agent_engine=openai-agents-sdk",
+            "provider_profile=kimi-openai-chat",
             "preset=cleanup",
             "evidence_lane=world-public-labels",
         )
@@ -1278,7 +1323,12 @@ def test_agent_harness_rejects_retired_targets(target: str) -> None:
 
 
 def test_key_value_third_argument_keeps_molmo_profile_default() -> None:
-    route = trace_household_cleanup_run("openai-agents-sdk", "", "output_dir=output/custom")
+    route = trace_household_cleanup_run(
+        "openai-agents-sdk",
+        "",
+        "provider_profile=kimi-openai-chat",
+        "output_dir=output/custom",
+    )
 
     assert route[:6] == [
         "just",
@@ -1305,6 +1355,7 @@ def test_molmo_cleanup_route_passes_selected_map_bundle_override() -> None:
     route = trace_household_cleanup_run(
         "openai-agents-sdk",
         "world-public-labels",
+        "provider_profile=kimi-openai-chat",
         "map_bundle=assets/maps/molmospaces/procthor-10k-val/0",
     )
 
@@ -1382,12 +1433,13 @@ def test_agent_run_rejects_legacy_household_dispatch_targets(dispatch_target: st
     assert "unsupported report 'world-public-labels'" in stderr
 
 
-def test_map_build_routes_agibot_backend_to_physical_pilot_cli() -> None:
+def test_map_build_routes_agibot_backend_to_physical_pilot_cli(tmp_path: Path) -> None:
     route = trace_household_map_build_run(
         "direct",
         "camera-grounded-labels",
         "camera_labeler=grounding-dino",
         "backend=agibot_gdk",
+        *agibot_dependency_overrides(tmp_path),
         "context_json=tests/fixtures/agibot_map_context.completed.json",
         "waypoint_id=wp_sofa_front",
         "output_dir=output/agibot/map-build",
@@ -1407,11 +1459,13 @@ def test_map_build_routes_agibot_backend_to_physical_pilot_cli() -> None:
     assert "agibot-g2-cleanup" not in " ".join(route)
 
 
-def test_map_build_sdk_routes_agibot_backend_to_live_runner() -> None:
+def test_map_build_sdk_routes_agibot_backend_to_live_runner(tmp_path: Path) -> None:
     route = trace_household_map_build_run(
         "openai-agents-sdk",
         "camera-grounded-labels",
+        "provider_profile=kimi-openai-chat",
         "backend=agibot_gdk",
+        *agibot_dependency_overrides(tmp_path),
         "context_json=tests/fixtures/agibot_map_context.completed.json",
         "run_dir=output/agibot/map-build-sdk/test-run",
         "policy=openai_agents_agibot_map_build",
@@ -1448,6 +1502,7 @@ def test_map_build_sdk_routes_molmospaces_backend_to_live_runner() -> None:
     route = trace_household_map_build_run(
         "openai-agents-sdk",
         "world-public-labels",
+        "provider_profile=kimi-openai-chat",
         "backend=molmospaces_subprocess",
     )
 
@@ -1477,14 +1532,16 @@ def test_map_build_sdk_rejects_molmospaces_isaac_backend_override() -> None:
     assert "backend=isaaclab_subprocess is scoped to world=b1-map12" in stderr
 
 
-def test_b1_public_launch_routes_isaac_backend_to_current_implementation() -> None:
+def test_b1_public_launch_routes_isaac_backend_to_current_implementation(tmp_path: Path) -> None:
     route, plan_trace = trace_surface_run_with_plan(
         "surface=household-world",
         "world=b1-map12",
         "backend=isaaclab",
         "agent_engine=openai-agents-sdk",
+        "provider_profile=kimi-openai-chat",
         "prompt=inspect the digital twin",
         "evidence_lane=world-public-labels",
+        *_b1_dependency_args(tmp_path),
     )
 
     assert route[:6] == [
@@ -1495,77 +1552,73 @@ def test_b1_public_launch_routes_isaac_backend_to_current_implementation() -> No
         "7",
         "output/household/household-world/open-ended/openai-agents-live-world-public-labels",
     ]
-    assert route[10] == "vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot"
+    assert route[10] == "<configured>"
     assert route[12] == "on"
     assert route[17] == "isaaclab_subprocess"
-    assert route[20] == (
-        "data/robot-data-lab/scene-engine/data/B1_floor2_slow/usda/F2_all/default.usda"
-    )
+    assert route[20] == "<configured>"
     assert route[23:25] == ["household-world", "open-ended"]
-    assert len(route) == 25
+    assert route[26:28] == ["<configured>", "<configured>"]
     assert "world=b1-map12" in plan_trace
     assert "backend=isaaclab" in plan_trace
     target_trace = next(item for item in plan_trace if item.startswith("target=just agent::run "))
     assert "household-world openai-agents-sdk world-public-labels" in target_trace
-    assert "map_bundle=vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot" in target_trace
+    assert "map_bundle=<configured>" in target_trace
     assert "b1_alignment_review=" not in target_trace
-    assert (
-        "isaac_scene_usd_path=data/robot-data-lab/scene-engine/data/"
-        "B1_floor2_slow/usda/F2_all/default.usda"
-    ) in target_trace
+    assert "isaac_scene_usd_path=<configured>" in target_trace
     assert "world=b1-map12" in target_trace
     assert "backend=isaaclab_subprocess" in target_trace
     assert "generated_mess_count=0" in target_trace
-    assert "b1_alignment_artifact=output/b1-map12" not in target_trace
-    assert "b1_navigation_artifact=output/b1-map12" not in target_trace
+    assert "b1_alignment_artifact=<configured>" in target_trace
+    assert "b1_navigation_artifact=<configured>" in target_trace
+    assert str(tmp_path) not in "\n".join([*route, *plan_trace])
     assert "b1_semantic_projection_artifact=" not in target_trace
 
 
-def test_b1_public_launch_supports_camera_grounded_labels() -> None:
+def test_b1_public_launch_supports_camera_grounded_labels(tmp_path: Path) -> None:
     route, plan_trace = trace_surface_run_with_plan(
         "surface=household-world",
         "world=b1-map12",
         "backend=isaaclab",
         "agent_engine=openai-agents-sdk",
+        "provider_profile=kimi-openai-chat",
         "prompt=inspect the digital twin with camera grounded labels",
         "evidence_lane=camera-grounded-labels",
+        *_b1_dependency_args(tmp_path),
     )
 
     assert route[3] == "camera-grounded-labels"
     assert route[13] == "grounding-dino"
     assert route[17] == "isaaclab_subprocess"
-    assert len(route) == 25
+    assert route[26:28] == ["<configured>", "<configured>"]
     target_trace = next(item for item in plan_trace if item.startswith("target=just agent::run "))
     assert "household-world openai-agents-sdk camera-grounded-labels" in target_trace
     assert "backend=isaaclab_subprocess" in target_trace
     assert "camera_labeler=grounding-dino" in target_trace
-    assert "b1_alignment_artifact=output/b1-map12" not in target_trace
-    assert "b1_navigation_artifact=output/b1-map12" not in target_trace
+    assert "b1_alignment_artifact=<configured>" in target_trace
+    assert "b1_navigation_artifact=<configured>" in target_trace
+    assert str(tmp_path) not in "\n".join([*route, *plan_trace])
 
 
-def test_b1_public_launch_passes_explicit_robot_consumption_proof_artifacts() -> None:
+def test_b1_public_launch_passes_explicit_robot_consumption_proof_artifacts(
+    tmp_path: Path,
+) -> None:
     route, plan_trace = trace_surface_run_with_plan(
         "surface=household-world",
         "world=b1-map12",
         "backend=isaaclab",
         "agent_engine=openai-agents-sdk",
+        "provider_profile=kimi-openai-chat",
         "prompt=inspect the digital twin",
         "evidence_lane=world-public-labels",
-        "b1_alignment_artifact=output/b1-map12/alignment/alignment_residuals.json",
-        "b1_navigation_artifact=output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json",
+        *_b1_dependency_args(tmp_path),
     )
 
-    assert route[26] == "output/b1-map12/alignment/alignment_residuals.json"
-    assert route[27] == ("output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json")
+    assert route[26:28] == ["<configured>", "<configured>"]
     assert len(route) == 28
     target_trace = next(item for item in plan_trace if item.startswith("target=just agent::run "))
-    assert "b1_alignment_artifact=output/b1-map12/alignment/alignment_residuals.json" in (
-        target_trace
-    )
-    assert (
-        "b1_navigation_artifact=output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json"
-        in target_trace
-    )
+    assert "b1_alignment_artifact=<configured>" in target_trace
+    assert "b1_navigation_artifact=<configured>" in target_trace
+    assert str(tmp_path) not in "\n".join([*route, *plan_trace])
     assert "b1_semantic_projection_artifact=" not in target_trace
 
 
@@ -1576,6 +1629,7 @@ def test_b1_public_launch_rejects_stale_semantic_projection_artifact_axis() -> N
             "world=b1-map12",
             "backend=isaaclab",
             "agent_engine=openai-agents-sdk",
+            "provider_profile=kimi-openai-chat",
             "prompt=inspect the digital twin",
             "evidence_lane=world-public-labels",
             "b1_semantic_projection_artifact=output/b1-map12/semantic-projection/semantic_projection.json",
@@ -1666,52 +1720,58 @@ def test_b1_isaac_camera_grounded_uses_isaac_backend_and_real_grounding_gate() -
     assert "--require-robot-views" in isaac_branch
 
 
-def test_b1_isaac_route_generates_robot_consumption_artifacts() -> None:
+def test_b1_isaac_route_consumes_injected_robot_consumption_artifacts() -> None:
     molmo_text = MOLMO_JUST.read_text(encoding="utf-8")
     b1_compile_branch = molmo_text.split(
         'if [[ "$backend" == "isaaclab_subprocess" && "$launch_world_id" == "b1-map12" ]]',
         1,
     )[1].split("    fi\n    map_bundle_args=()", 1)[0]
 
-    assert "b1-map12-robot-consumption-proof" in b1_compile_branch
-    assert "fit_b1_map12_scene_alignment.py" in b1_compile_branch
-    assert "check_b1_map12_readiness.py" in b1_compile_branch
-    assert "run_b1_map12_navigation_smoke.py" in b1_compile_branch
-    assert "b1_navigation_artifact requires b1_alignment_artifact" in b1_compile_branch
+    assert "fit_b1_map12_scene_alignment.py" not in b1_compile_branch
+    assert "check_b1_map12_readiness.py" not in b1_compile_branch
+    assert "run_b1_map12_navigation_smoke.py" not in b1_compile_branch
+    assert "requires explicit ${required_input}" in b1_compile_branch
+    assert "received invalid ${required_file}" in b1_compile_branch
     assert "output/b1-map12/alignment/alignment_residuals.json" not in b1_compile_branch
     assert "output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json" not in (
         b1_compile_branch
     )
 
 
-def test_household_cleanup_routes_agibot_backend_to_physical_pilot_cli() -> None:
+def test_household_cleanup_routes_agibot_backend_to_physical_pilot_cli(tmp_path: Path) -> None:
     route = trace_household_cleanup_run(
         "direct",
         "world-public-labels",
         "backend=agibot_gdk",
+        *agibot_dependency_overrides(tmp_path),
     )
 
-    assert route == [
+    assert route[:5] == [
         "cmd",
         ".venv/bin/python",
         "scripts/molmo_cleanup/run_physical_agibot_cleanup_pilot.py",
         "--output-dir",
         "output/household/household-world/cleanup/direct-world-public-labels",
     ]
+    assert "--runner-python" in route
+    assert "--runner-script" in route
+    assert "--agibot-map-artifact-dir" in route
 
 
-def test_household_cleanup_routes_agibot_backend_override_to_cleanup_pilot_cli() -> None:
+def test_household_cleanup_routes_agibot_backend_override_to_cleanup_pilot_cli(
+    tmp_path: Path,
+) -> None:
     route = trace_household_cleanup_run(
         "direct",
         "world-public-labels",
         "backend=agibot_gdk",
+        *agibot_dependency_overrides(tmp_path),
         "context_json=tests/fixtures/agibot_map_context.completed.json",
-        "agibot_map_artifact_dir=vendors/agibot_sdk/artifacts/maps/robot_map_9",
         "waypoint_id=wp_sofa_front",
         "output_dir=output/agibot/cleanup",
     )
 
-    assert route == [
+    assert route[:9] == [
         "cmd",
         ".venv/bin/python",
         "scripts/molmo_cleanup/run_physical_agibot_cleanup_pilot.py",
@@ -1721,9 +1781,11 @@ def test_household_cleanup_routes_agibot_backend_override_to_cleanup_pilot_cli()
         "tests/fixtures/agibot_map_context.completed.json",
         "--waypoint-id",
         "wp_sofa_front",
-        "--agibot-map-artifact-dir",
-        "vendors/agibot_sdk/artifacts/maps/robot_map_9",
     ]
+    assert "--runner-python" in route
+    assert "--runner-script" in route
+    assert "--agibot-map-artifact-dir" in route
+    assert str(tmp_path / "agibot_map") in route
 
 
 def test_household_cleanup_routes_agibot_molmospaces_sim_backend_to_rehearsal() -> None:
@@ -1846,12 +1908,14 @@ def test_live_cleanup_server_entrypoint_accepts_agibot_shared_mcp_backend() -> N
     assert "--real-movement-enabled" in result.stdout
 
 
-def test_agibot_sdk_map_build_route_requires_context_json() -> None:
+def test_agibot_sdk_map_build_route_requires_context_json(tmp_path: Path) -> None:
     stderr = assert_household_map_build_run_fails(
         "openai-agents-sdk",
         "camera-grounded-labels",
+        "provider_profile=kimi-openai-chat",
         "backend=agibot_gdk",
         "camera_labeler=grounding-dino",
+        *agibot_dependency_overrides(tmp_path),
     )
 
     assert (
@@ -1940,6 +2004,7 @@ def test_molmo_world_labels_allows_explicit_robot_view_capture_toggle() -> None:
     route = trace_household_cleanup_run(
         "openai-agents-sdk",
         "world-public-labels",
+        "provider_profile=kimi-openai-chat",
         "robot_views=off",
     )
 
@@ -2005,7 +2070,9 @@ def test_prompt_mapping_map_build_direct_enables_sweep() -> None:
 
 
 def test_prompt_mapping_map_build_openai_agents_sdk_routes_to_live_driver() -> None:
-    route = trace_household_map_build_run("openai-agents-sdk")
+    route = trace_household_map_build_run(
+        "openai-agents-sdk", "", "provider_profile=kimi-openai-chat"
+    )
 
     assert route[:6] == [
         "just",
@@ -2035,6 +2102,7 @@ def test_household_cleanup_route_passes_operator_messages_path_override() -> Non
     route = trace_household_cleanup_run(
         "openai-agents-sdk",
         "world-public-labels",
+        "provider_profile=kimi-openai-chat",
         "operator_messages_path=output/operator-console/runs/run-a/operator_messages.jsonl",
     )
 
@@ -2045,6 +2113,7 @@ def test_household_open_ended_prompt_uses_first_class_intent_not_custom_mode() -
     route = trace_household_cleanup_run(
         "openai-agents-sdk",
         "world-public-labels",
+        "provider_profile=kimi-openai-chat",
         "prompt=我渴了，帮我找些解渴的东西",
         "task_intent=open-ended",
     )
@@ -2178,8 +2247,8 @@ def test_openai_agents_cleanup_checker_policy_uses_checker_profile(
         checker_profile="world-public-labels",
         server_arg=[],
         checker_visual_arg=[],
-        provider_profile="codex-router-responses",
-        model="gpt-5.5",
+        provider_profile="kimi-openai-chat",
+        model="kimi-k2.7-code",
         max_turns=128,
         incomplete_turn_continuation_attempts=0,
         cache_tools_list=True,
@@ -2528,6 +2597,7 @@ def test_molmo_cleanup_recipe_passes_goal_contract_to_all_household_runners() ->
         (
             "surface=household-world",
             "agent_engine=openai-agents-sdk",
+            "provider_profile=kimi-openai-chat",
             "preset=cleanup",
             "evidence_lane=world-public-labels",
         )
@@ -2596,234 +2666,6 @@ def test_ci_no_longer_defines_retired_openclaw_game_smokes() -> None:
         assert retired_name not in workflow
 
 
-def test_coding_agent_model_helper_prefers_driver_override_then_shared_fallback() -> None:
-    env = clean_code_agent_env()
-    env["ROBOCLAWS_HELPER"] = str(CODING_AGENT_ENV)
-    result = subprocess.run(
-        [
-            "bash",
-            "-c",
-            """
-            set -euo pipefail
-            source "$ROBOCLAWS_HELPER"
-            ROBOCLAWS_CODE_AGENT_MODEL=shared-model
-            roboclaws_code_agent_model ROBOCLAWS_CODEX_MODEL
-            ROBOCLAWS_CODEX_MODEL=codex-model
-            roboclaws_code_agent_model ROBOCLAWS_CODEX_MODEL
-            args=()
-            roboclaws_code_agent_model_args args ROBOCLAWS_CODEX_MODEL
-            printf '%s\n' "${args[@]}"
-            """,
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.stdout.splitlines() == [
-        "shared-model",
-        "codex-model",
-        "--model",
-        "codex-model",
-    ]
-
-
-def test_coding_agent_provider_helper_defaults_codex_to_codex_env_without_args() -> None:
-    env = clean_code_agent_env()
-    env["ROBOCLAWS_HELPER"] = str(CODING_AGENT_ENV)
-    result = subprocess.run(
-        [
-            "bash",
-            "-c",
-            """
-            set -euo pipefail
-            source "$ROBOCLAWS_HELPER"
-            claude_model_args=()
-            claude_env_args=()
-            roboclaws_claude_provider_args claude_model_args claude_env_args
-            roboclaws_code_agent_provider ROBOCLAWS_PROVIDER_PROFILE
-            printf 'claude_model_args=%s\n' "${#claude_model_args[@]}"
-            printf 'claude_env_args=%s\n' "${#claude_env_args[@]}"
-            """,
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.stdout.splitlines() == [
-        "codex-router-responses",
-        "claude_model_args=0",
-        "claude_env_args=0",
-    ]
-
-
-def test_coding_agent_codex_default_ignores_xm_key_and_requires_codex_env() -> None:
-    env = clean_code_agent_env()
-    env["ROBOCLAWS_HELPER"] = str(CODING_AGENT_ENV)
-    result = subprocess.run(
-        [
-            "bash",
-            "-c",
-            """
-            set -euo pipefail
-            source "$ROBOCLAWS_HELPER"
-            XM_LLM_API_KEY=fake-xm-key
-            roboclaws_code_agent_provider ROBOCLAWS_PROVIDER_PROFILE
-            args=()
-            roboclaws_codex_provider_args args
-            """,
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.returncode == 2
-    assert result.stdout.splitlines() == ["codex-router-responses"]
-    assert "codex-router-responses requires CODEX_BASE_URL" in result.stderr
-
-
-def test_coding_agent_codex_default_prefers_codex_env_even_when_xm_key_is_available() -> None:
-    env = clean_code_agent_env()
-    env["ROBOCLAWS_HELPER"] = str(CODING_AGENT_ENV)
-    result = subprocess.run(
-        [
-            "bash",
-            "-c",
-            """
-            set -euo pipefail
-            source "$ROBOCLAWS_HELPER"
-            XM_LLM_API_KEY=fake-xm-key
-            XM_LLM_BASE_URL=https://api.llm.mioffice.cn/v1
-            CODEX_BASE_URL=https://api-router.evad.mioffice.cn/v1
-            CODEX_API_KEY=fake-codex-key
-            roboclaws_code_agent_provider ROBOCLAWS_PROVIDER_PROFILE
-            args=()
-            roboclaws_codex_provider_args args
-            printf '%s\n' "${args[@]}"
-            """,
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.stdout.splitlines() == [
-        "codex-router-responses",
-        "-c",
-        'model="gpt-5.6-sol"',
-        "-c",
-        'model_provider="codex-router-responses"',
-        "-c",
-        'model_providers.codex-router-responses.name="codex-router-responses"',
-        "-c",
-        'model_providers.codex-router-responses.base_url="https://api-router.evad.mioffice.cn/v1"',
-        "-c",
-        'model_providers.codex-router-responses.env_key="CODEX_API_KEY"',
-        "-c",
-        'model_providers.codex-router-responses.wire_api="responses"',
-    ]
-
-
-def test_coding_agent_codex_explicit_mify_profile_uses_xm_key() -> None:
-    env = clean_code_agent_env()
-    env["ROBOCLAWS_HELPER"] = str(CODING_AGENT_ENV)
-    result = subprocess.run(
-        [
-            "bash",
-            "-c",
-            """
-            set -euo pipefail
-            source "$ROBOCLAWS_HELPER"
-            ROBOCLAWS_PROVIDER_PROFILE=mimo-mify-responses
-            XM_LLM_API_KEY=fake-xm-key
-            XM_LLM_BASE_URL=https://api.llm.mioffice.cn/v1
-            roboclaws_code_agent_provider ROBOCLAWS_PROVIDER_PROFILE
-            args=()
-            roboclaws_codex_provider_args args
-            printf '%s\n' "${args[@]}"
-            """,
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.stdout.splitlines() == [
-        "mimo-mify-responses",
-        "-c",
-        'model="xiaomi/mimo-v2.5-pro"',
-        "-c",
-        'model_provider="mimo-mify-responses"',
-        "-c",
-        'model_providers.mimo-mify-responses.name="mimo-mify-responses"',
-        "-c",
-        'model_providers.mimo-mify-responses.base_url="https://api.llm.mioffice.cn/v1"',
-        "-c",
-        'model_providers.mimo-mify-responses.env_key="XM_LLM_API_KEY"',
-        "-c",
-        'model_providers.mimo-mify-responses.wire_api="responses"',
-        "-c",
-        "model_providers.mimo-mify-responses.supports_parallel_tool_calls=false",
-        "-c",
-        'web_search="disabled"',
-    ]
-
-
-def test_coding_agent_codex_explicit_minimax_profile_uses_mm_key() -> None:
-    env = clean_code_agent_env()
-    env["ROBOCLAWS_HELPER"] = str(CODING_AGENT_ENV)
-    result = subprocess.run(
-        [
-            "bash",
-            "-c",
-            """
-            set -euo pipefail
-            source "$ROBOCLAWS_HELPER"
-            ROBOCLAWS_PROVIDER_PROFILE=minimax-responses
-            MM_API_KEY=fake-mm-key
-            MM_BASE_URL=https://api.minimaxi.com/v1
-            roboclaws_code_agent_provider ROBOCLAWS_PROVIDER_PROFILE
-            args=()
-            roboclaws_codex_provider_args args
-            printf '%s\n' "${args[@]}"
-            """,
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.stdout.splitlines() == [
-        "minimax-responses",
-        "-c",
-        'model="MiniMax-M3"',
-        "-c",
-        'model_provider="minimax-responses"',
-        "-c",
-        'model_providers.minimax-responses.name="minimax-responses"',
-        "-c",
-        'model_providers.minimax-responses.base_url="https://api.minimaxi.com/v1"',
-        "-c",
-        'model_providers.minimax-responses.env_key="MM_API_KEY"',
-        "-c",
-        'model_providers.minimax-responses.wire_api="responses"',
-    ]
-
-
 def test_coding_agent_env_shell_profile_facts_match_python_registry() -> None:
     env = clean_code_agent_env()
     env["ROBOCLAWS_HELPER"] = str(CODING_AGENT_ENV)
@@ -2835,8 +2677,8 @@ def test_coding_agent_env_shell_profile_facts_match_python_registry() -> None:
             set -euo pipefail
             source "$ROBOCLAWS_HELPER"
             roboclaws_code_agent_profile_default_model minimax-responses
-            roboclaws_code_agent_profile_wire_api mimo-tp-openai-chat
-            roboclaws_code_agent_profile_key_env codex-router-responses
+            roboclaws_code_agent_profile_wire_api kimi-openai-chat
+            roboclaws_code_agent_profile_key_env custom-responses
             """,
         ],
         cwd=REPO_ROOT,
@@ -2862,470 +2704,8 @@ def test_coding_agent_env_shell_profile_facts_match_python_registry() -> None:
     assert result.stdout.splitlines() == [
         python_result.stdout.strip(),
         "chat-completions",
-        "CODEX_API_KEY",
+        "CUSTOM_RESPONSES_API_KEY",
     ]
-
-
-def test_coding_agent_minimax_model_rejects_removed_highspeed_variant() -> None:
-    env = clean_code_agent_env()
-    env["ROBOCLAWS_HELPER"] = str(CODING_AGENT_ENV)
-    result = subprocess.run(
-        [
-            "bash",
-            "-c",
-            """
-            set -euo pipefail
-            source "$ROBOCLAWS_HELPER"
-            ROBOCLAWS_PROVIDER_PROFILE=minimax-responses
-            ROBOCLAWS_CODEX_MODEL=MiniMax-M2.7-highspeed
-            MM_API_KEY=fake-mm-key
-            args=()
-            roboclaws_codex_provider_args args
-            printf '%s\n' "${args[@]}"
-            """,
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.returncode == 2
-    assert "unknown coding-agent model 'MiniMax-M2.7-highspeed'" in result.stderr
-
-
-def test_coding_agent_codex_provider_args_reject_unknown_model_override() -> None:
-    env = clean_code_agent_env()
-    env["ROBOCLAWS_HELPER"] = str(CODING_AGENT_ENV)
-    result = subprocess.run(
-        [
-            "bash",
-            "-c",
-            """
-            set -euo pipefail
-            source "$ROBOCLAWS_HELPER"
-            CODEX_BASE_URL=https://codex.example.test/v1
-            CODEX_API_KEY=fake-codex-key
-            ROBOCLAWS_CODEX_MODEL=not-in-provider-catalog
-            args=()
-            roboclaws_codex_provider_args args
-            """,
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.returncode == 2
-    assert "unknown coding-agent model 'not-in-provider-catalog'" in result.stderr
-
-
-def test_coding_agent_shared_model_override_must_be_catalog_model() -> None:
-    env = clean_code_agent_env()
-    env["ROBOCLAWS_HELPER"] = str(CODING_AGENT_ENV)
-    result = subprocess.run(
-        [
-            "bash",
-            "-c",
-            """
-            set -euo pipefail
-            source "$ROBOCLAWS_HELPER"
-            CODEX_BASE_URL=https://codex.example.test/v1
-            CODEX_API_KEY=fake-codex-key
-            ROBOCLAWS_CODE_AGENT_MODEL=not-in-provider-catalog
-            args=()
-            roboclaws_codex_provider_args args
-            """,
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.returncode == 2
-    assert "unknown coding-agent model 'not-in-provider-catalog'" in result.stderr
-
-
-def test_coding_agent_profile_summary_supports_openai_agents_chat_profiles() -> None:
-    env = clean_code_agent_env()
-    env["ROBOCLAWS_HELPER"] = str(CODING_AGENT_ENV)
-    result = subprocess.run(
-        [
-            "bash",
-            "-c",
-            """
-            set -euo pipefail
-            source "$ROBOCLAWS_HELPER"
-            ROBOCLAWS_PROVIDER_PROFILE=mimo-tp-openai-chat
-            MIMO_TP_KEY=fake-mimo-key
-            roboclaws_code_agent_profile_summary \
-              ROBOCLAWS_PROVIDER_PROFILE ROBOCLAWS_CODEX_MODEL codex-router-responses
-            ROBOCLAWS_PROVIDER_PROFILE=kimi-openai-chat
-            KIMI_API_KEY=fake-kimi-key
-            roboclaws_code_agent_profile_summary \
-              ROBOCLAWS_PROVIDER_PROFILE ROBOCLAWS_CODEX_MODEL codex-router-responses
-            """,
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.stdout.splitlines() == [
-        (
-            "mimo-tp-openai-chat model=mimo-v2.5 "
-            "base_url=https://token-plan-cn.xiaomimimo.com/v1 "
-            "key_env=MIMO_TP_KEY protocol=chat-completions"
-        ),
-        (
-            "kimi-openai-chat model=kimi-k2.7-code "
-            "base_url=https://api.kimi.com/coding/v1 "
-            "key_env=KIMI_API_KEY protocol=chat-completions"
-        ),
-    ]
-
-
-def test_coding_agent_codex_provider_args_reject_openai_agents_chat_profile() -> None:
-    env = clean_code_agent_env()
-    env["ROBOCLAWS_HELPER"] = str(CODING_AGENT_ENV)
-    result = subprocess.run(
-        [
-            "bash",
-            "-c",
-            """
-            set -euo pipefail
-            source "$ROBOCLAWS_HELPER"
-            ROBOCLAWS_PROVIDER_PROFILE=mimo-tp-openai-chat
-            MIMO_TP_KEY=fake-mimo-key
-            args=()
-            roboclaws_codex_provider_args args
-            """,
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.returncode == 2
-    assert "unsupported Codex provider 'mimo-tp-openai-chat'" in result.stderr
-
-
-def test_coding_agent_codex_can_disable_responses_websockets() -> None:
-    env = clean_code_agent_env()
-    env["ROBOCLAWS_HELPER"] = str(CODING_AGENT_ENV)
-    result = subprocess.run(
-        [
-            "bash",
-            "-c",
-            """
-            set -euo pipefail
-            source "$ROBOCLAWS_HELPER"
-            CODEX_BASE_URL=https://codex.example.test/v1
-            CODEX_API_KEY=fake-codex-key
-            ROBOCLAWS_CODEX_DISABLE_RESPONSES_WEBSOCKETS=1
-            args=()
-            roboclaws_codex_provider_args args
-            printf '%s\n' "${args[@]}"
-            """,
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.stdout.splitlines() == [
-        "-c",
-        'model="gpt-5.6-sol"',
-        "-c",
-        'model_provider="codex-router-responses"',
-        "-c",
-        'model_providers.codex-router-responses.name="codex-router-responses"',
-        "-c",
-        'model_providers.codex-router-responses.base_url="https://codex.example.test/v1"',
-        "-c",
-        'model_providers.codex-router-responses.env_key="CODEX_API_KEY"',
-        "-c",
-        'model_providers.codex-router-responses.wire_api="responses"',
-        "--disable",
-        "responses_websockets",
-        "--disable",
-        "responses_websockets_v2",
-    ]
-
-
-def test_coding_agent_codex_provider_timing_proxy_disables_responses_websockets() -> None:
-    env = clean_code_agent_env()
-    env["ROBOCLAWS_HELPER"] = str(CODING_AGENT_ENV)
-    result = subprocess.run(
-        [
-            "bash",
-            "-c",
-            """
-            set -euo pipefail
-            source "$ROBOCLAWS_HELPER"
-            CODEX_BASE_URL=https://codex.example.test/v1
-            CODEX_API_KEY=fake-codex-key
-            ROBOCLAWS_PROVIDER_TIMING_PROXY=1
-            args=()
-            roboclaws_codex_provider_args args
-            printf '%s\n' "${args[@]}"
-            """,
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-    assert "--disable" in result.stdout.splitlines()
-    assert "responses_websockets" in result.stdout.splitlines()
-    assert (
-        'model_providers.codex-router-responses.wire_api="responses"' in result.stdout.splitlines()
-    )
-
-
-def test_coding_agent_codex_key_contract_builds_scoped_config_args() -> None:
-    env = clean_code_agent_env()
-    env["ROBOCLAWS_HELPER"] = str(CODING_AGENT_ENV)
-    result = subprocess.run(
-        [
-            "bash",
-            "-c",
-            """
-            set -euo pipefail
-            source "$ROBOCLAWS_HELPER"
-            CODEX_BASE_URL=https://codex.example.test/v1
-            CODEX_API_KEY=fake-codex-key
-            args=()
-            roboclaws_codex_provider_args args
-            printf '%s\n' "${args[@]}"
-            """,
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.stdout.splitlines() == [
-        "-c",
-        'model="gpt-5.6-sol"',
-        "-c",
-        'model_provider="codex-router-responses"',
-        "-c",
-        'model_providers.codex-router-responses.name="codex-router-responses"',
-        "-c",
-        'model_providers.codex-router-responses.base_url="https://codex.example.test/v1"',
-        "-c",
-        'model_providers.codex-router-responses.env_key="CODEX_API_KEY"',
-        "-c",
-        'model_providers.codex-router-responses.wire_api="responses"',
-    ]
-
-
-def test_coding_agent_codex_official_openai_uses_same_key_contract() -> None:
-    env = clean_code_agent_env()
-    env["ROBOCLAWS_HELPER"] = str(CODING_AGENT_ENV)
-    result = subprocess.run(
-        [
-            "bash",
-            "-c",
-            """
-            set -euo pipefail
-            source "$ROBOCLAWS_HELPER"
-            CODEX_BASE_URL=https://api.openai.com/v1
-            CODEX_API_KEY=fake-openai-key
-            args=()
-            roboclaws_codex_provider_args args
-            printf '%s\n' "${args[@]}"
-            """,
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.stdout.splitlines() == [
-        "-c",
-        'model="gpt-5.6-sol"',
-        "-c",
-        'model_provider="codex-router-responses"',
-        "-c",
-        'model_providers.codex-router-responses.name="codex-router-responses"',
-        "-c",
-        'model_providers.codex-router-responses.base_url="https://api.openai.com/v1"',
-        "-c",
-        'model_providers.codex-router-responses.env_key="CODEX_API_KEY"',
-        "-c",
-        'model_providers.codex-router-responses.wire_api="responses"',
-    ]
-
-
-def test_coding_agent_codex_env_profile_requires_base_url() -> None:
-    env = clean_code_agent_env()
-    env["ROBOCLAWS_HELPER"] = str(CODING_AGENT_ENV)
-    env["CODEX_API_KEY"] = "fake-codex-key"
-    result = subprocess.run(
-        [
-            "bash",
-            "-c",
-            """
-            set -euo pipefail
-            source "$ROBOCLAWS_HELPER"
-            args=()
-            roboclaws_codex_provider_args args
-            """,
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.returncode == 2
-    assert "codex-router-responses requires CODEX_BASE_URL" in result.stderr
-    assert "sk-" not in result.stderr
-
-
-def test_coding_agent_codex_env_profile_requires_api_key_without_printing_secret() -> None:
-    env = clean_code_agent_env()
-    env["ROBOCLAWS_HELPER"] = str(CODING_AGENT_ENV)
-    env["CODEX_BASE_URL"] = "https://codex.example.test/v1"
-    result = subprocess.run(
-        [
-            "bash",
-            "-c",
-            """
-            set -euo pipefail
-            source "$ROBOCLAWS_HELPER"
-            args=()
-            roboclaws_codex_provider_args args
-            """,
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.returncode == 2
-    assert "codex-router-responses requires CODEX_API_KEY" in result.stderr
-    assert "fake" not in result.stderr
-
-
-def test_coding_agent_claude_profile_builds_scoped_env() -> None:
-    env = clean_code_agent_env()
-    env["ROBOCLAWS_HELPER"] = str(CODING_AGENT_ENV)
-    result = subprocess.run(
-        [
-            "bash",
-            "-c",
-            """
-            set -euo pipefail
-            source "$ROBOCLAWS_HELPER"
-            MIMO_TP_KEY=fake-mimo-key
-            model_args=()
-            env_args=()
-            roboclaws_claude_provider_args model_args env_args
-            printf 'model:%s\n' "${model_args[@]}"
-            printf 'env:%s\n' "${env_args[@]}"
-            """,
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.stdout.splitlines() == [
-        "model:--model",
-        "model:mimo-v2.5",
-        "env:ANTHROPIC_API_KEY=fake-mimo-key",
-        "env:ANTHROPIC_BASE_URL=https://token-plan-cn.xiaomimimo.com/anthropic",
-        "env:CLAUDE_CODE_SIMPLE=1",
-    ]
-
-
-def test_coding_agent_claude_mify_anthropic_profile_builds_scoped_env() -> None:
-    env = clean_code_agent_env()
-    env["ROBOCLAWS_HELPER"] = str(CODING_AGENT_ENV)
-    result = subprocess.run(
-        [
-            "bash",
-            "-c",
-            """
-            set -euo pipefail
-            source "$ROBOCLAWS_HELPER"
-            ROBOCLAWS_PROVIDER_PROFILE=mimo-mify-anthropic
-            XM_LLM_API_KEY=fake-xm-key
-            XM_LLM_BASE_URL=https://api.llm.mioffice.cn/v1
-            model_args=()
-            env_args=()
-            roboclaws_claude_provider_args model_args env_args
-            printf 'model:%s\n' "${model_args[@]}"
-            printf 'env:%s\n' "${env_args[@]}"
-            """,
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.stdout.splitlines() == [
-        "model:--model",
-        "model:xiaomi/mimo-v2.5",
-        "env:ANTHROPIC_API_KEY=fake-xm-key",
-        "env:ANTHROPIC_BASE_URL=https://api.llm.mioffice.cn/anthropic",
-        "env:CLAUDE_CODE_SIMPLE=1",
-    ]
-
-
-def test_coding_agent_claude_simple_mode_can_be_overridden() -> None:
-    env = clean_code_agent_env()
-    env["ROBOCLAWS_HELPER"] = str(CODING_AGENT_ENV)
-    env["CLAUDE_CODE_SIMPLE"] = "0"
-    result = subprocess.run(
-        [
-            "bash",
-            "-c",
-            """
-            set -euo pipefail
-            source "$ROBOCLAWS_HELPER"
-            MIMO_TP_KEY=fake-mimo-key
-            model_args=()
-            env_args=()
-            roboclaws_claude_provider_args model_args env_args
-            printf 'env:%s\n' "${env_args[@]}"
-            """,
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-    assert "env:CLAUDE_CODE_SIMPLE=0" in result.stdout.splitlines()
 
 
 def test_openai_agents_launcher_applies_provider_overrides_per_invocation() -> None:
@@ -3335,27 +2715,27 @@ def test_openai_agents_launcher_applies_provider_overrides_per_invocation() -> N
         (
             "surface=household-world",
             "agent_engine=openai-agents-sdk",
-            "provider_profile=mimo-mify-responses",
+            "provider_profile=kimi-openai-chat",
             "preset=cleanup",
             "evidence_lane=world-public-labels",
         )
     )
     exported_env = export_env_from_overrides(plan.overrides)
 
-    assert plan.provider_profile == "mimo-mify-responses"
-    assert exported_env["ROBOCLAWS_PROVIDER_PROFILE"] == "mimo-mify-responses"
+    assert plan.provider_profile == "kimi-openai-chat"
+    assert exported_env["ROBOCLAWS_PROVIDER_PROFILE"] == "kimi-openai-chat"
     assert plan.argv[:4] == (
         "just",
         "agent::run",
         "household-world",
         "openai-agents-sdk",
     )
-    assert "provider_profile=mimo-mify-responses" not in plan.argv
+    assert "provider_profile=kimi-openai-chat" not in plan.argv
 
     assert "MM_API_KEY" in helper_text
     assert "MM_BASE_URL" in helper_text
-    assert "ANTHROPIC_BASE_URL" in helper_text
-    assert "ANTHROPIC_API_KEY" in helper_text
+    assert "KIMI_API_KEY" in helper_text
+    assert "CUSTOM_RESPONSES_API_KEY" in helper_text
 
 
 def test_molmo_live_dispatch_is_sdk_only_and_probeable() -> None:

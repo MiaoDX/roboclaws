@@ -14,6 +14,7 @@ from roboclaws.cli.agent_common import (
     _strip_prefixes,
 )
 from roboclaws.cli.agent_constants import AGENT_RUN_KEYS
+from roboclaws.launch.worlds import resolve_optional_world_dependencies
 
 HOUSEHOLD_DISPATCH_TARGET = "household-world"
 HOUSEHOLD_PROFILES = {
@@ -82,6 +83,17 @@ def _household_run(
     backend = _get(kv, "backend", "auto")
     world_id = _get(kv, "world", "")
     _validate_household_backend(dispatch_intent, agent_engine, driver, backend, world_id)
+    try:
+        kv = {
+            **kv,
+            **resolve_optional_world_dependencies(
+                world_id,
+                overrides=kv,
+                env=dict(os.environ),
+            ),
+        }
+    except ValueError as exc:
+        _die(str(exc))
 
     seeds = _get(kv, "seeds", _get(kv, "seed", "7"))
     output_dir = _get(
@@ -345,7 +357,12 @@ def _molmo_household_run(
         raw_overrides=raw_overrides,
         kv=kv,
     )
-    return _exec_or_trace(["just", "molmo::household-world-impl", *molmo_args], env=env)
+    command_args = molmo_args
+    if os.environ.get("ROBOCLAWS_JUST_TRACE") == "1" and world_id == "b1-map12":
+        command_args = list(molmo_args)
+        for index in (8, 18, 24, 25):
+            command_args[index] = "<configured>"
+    return _exec_or_trace(["just", "molmo::household-world-impl", *command_args], env=env)
 
 
 def _agibot_sim_run(
@@ -516,7 +533,7 @@ def _agibot_gdk_live_map_build(
         _get(
             kv,
             "provider_profile",
-            os.environ.get("ROBOCLAWS_PROVIDER_PROFILE", "codex-router-responses"),
+            os.environ.get("ROBOCLAWS_PROVIDER_PROFILE", "kimi-openai-chat"),
         ),
         "--model",
         _get(
@@ -524,7 +541,7 @@ def _agibot_gdk_live_map_build(
             "model",
             os.environ.get(
                 "ROBOCLAWS_OPENAI_AGENTS_MODEL",
-                os.environ.get("ROBOCLAWS_CODEX_MODEL", ""),
+                "",
             ),
         ),
         "--server-startup-timeout-s",

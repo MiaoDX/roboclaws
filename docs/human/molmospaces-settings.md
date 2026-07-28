@@ -450,7 +450,7 @@ Use the public launch catalog for operator-facing runs:
 ```bash
 just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=<engine> evidence_lane=<lane>
 just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=map-build agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=grounding-dino
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=codex-router-responses prompt="find something useful to drink"
+just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat prompt="find something useful to drink"
 ```
 
 Use `agent::run` and lower `molmo::*` recipes only for maintainer debugging or
@@ -506,22 +506,18 @@ direct navigation demos. Normal users configure keys only; command shape
 controls behavior.
 
 ```bash
-XM_LLM_BASE_URL=https://api.llm.mioffice.cn/v1
-XM_LLM_API_KEY=...
+KIMI_OPENAI_BASE_URL=https://api.moonshot.ai/v1
 KIMI_API_KEY=...
 ```
 
-SDK repo workflows default to `codex-router-responses` and require
-`CODEX_BASE_URL` plus `CODEX_API_KEY` (`gpt-5.6-sol`, Responses API). They do not
-fall back to `mimo-mify-responses` when `XM_LLM_API_KEY` is present. To use
-`mimo-mify-responses`, set `ROBOCLAWS_PROVIDER_PROFILE=mimo-mify-responses`
-explicitly; that profile uses `XM_LLM_API_KEY`, `xiaomi/mimo-v2.5-pro`, Responses
-API, and web search disabled. Retired `codex-cli` and `claude-code` engines are
-not current public live-agent recipes. Guarded maintainer routes stay outside
-normal hosted/current run guidance until their validation proof is green.
+Every SDK launch selects one profile explicitly. `kimi-openai-chat` uses the
+Kimi variables above. `minimax-responses` uses `MM_BASE_URL` and `MM_API_KEY`.
+`custom-responses` uses `CUSTOM_RESPONSES_BASE_URL`,
+`CUSTOM_RESPONSES_API_KEY`, and `CUSTOM_RESPONSES_MODEL`. The runtime does not
+fall back between profiles or between Chat Completions and Responses.
 
 ```bash
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=openai-agents-sdk provider_profile=codex-router-responses evidence_lane=world-public-labels seed=7 scenario_setup=relocate-cleanup-related-objects relocation_count=5
+just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=world-public-labels seed=7 scenario_setup=relocate-cleanup-related-objects relocation_count=5
 ```
 
 Probe a live SDK run without attaching:
@@ -628,22 +624,6 @@ Raw camera evidence:
 ```bash
 just molmo::camera-raw-report
 ```
-
-Live external-agent reports:
-
-```bash
-just molmo::codex-report
-just molmo::claude-report
-```
-
-Guarded report recipes are maintainer-only validation routes; they are not part
-of the normal current entrypoint set.
-`claude-report` is blocked on the work network unless the repo-local `.env`
-contains a supported MiMo or MiMo mify Anthropic key route. `codex-report`
-may run on the work network with the repo-local `codex-router-responses` route configured in
-`.env`, or with explicit `ROBOCLAWS_PROVIDER_PROFILE=mimo-mify-responses` plus
-`XM_LLM_API_KEY`. Run `just dev::network-status` first if you are unsure which
-network you are on.
 
 Planner proof-bundle dry run:
 

@@ -80,7 +80,7 @@ def test_extract_report_performance_metrics_uses_explicit_calibration(
     assert estimate["sample_count"] == 20
     assert estimate["coefficient_scope"] == {
         "agent_engine": "openai-agents-sdk",
-        "provider_profile": "codex-router-responses",
+        "provider_profile": "kimi-openai-chat",
         "model": "gpt-5.5",
         "wire_api": "responses",
     }
@@ -134,7 +134,7 @@ def test_model_call_metrics_reports_unavailable_without_zeroing_missing_telemetr
     run_dir = tmp_path / "claude"
     run_dir.mkdir()
     (run_dir / "live_timing.json").write_text(
-        json.dumps({"runtime": "claude-code", "provider_profile": "mimo-tp-anthropic"}),
+        json.dumps({"runtime": "claude-code", "provider_profile": "retired-anthropic-profile"}),
         encoding="utf-8",
     )
     (run_dir / "claude-events.jsonl").write_text('{"type":"result"}\n', encoding="utf-8")
@@ -145,7 +145,7 @@ def test_model_call_metrics_reports_unavailable_without_zeroing_missing_telemetr
         {
             "schema": MODEL_CALL_METRIC_SCHEMA,
             "agent_engine": "claude-code",
-            "provider_profile": "mimo-tp-anthropic",
+            "provider_profile": "retired-anthropic-profile",
             "wire_api": "",
             "model": "",
             "attempt_index": 0,
@@ -200,8 +200,8 @@ def test_compare_treats_different_wire_api_as_different_identity(tmp_path: Path)
         restored=5,
         elapsed_s=100,
         gap_s=50,
-        provider_profile="mimo-tp-openai-chat",
-        model="mimo-v2.5",
+        provider_profile="kimi-openai-chat",
+        model="kimi-k2.7-code",
         wire_api="chat-completions",
     )
 
@@ -220,7 +220,7 @@ def test_privacy_gate_scans_model_call_metrics(tmp_path: Path) -> None:
             {
                 "schema": MODEL_CALL_METRIC_SCHEMA,
                 "agent_engine": "codex-cli",
-                "provider_profile": "codex-router-responses",
+                "provider_profile": "kimi-openai-chat",
                 "model": "gpt-5.5",
                 "raw_prompt": "do not persist",
             }
@@ -248,7 +248,7 @@ def test_provider_request_metrics_add_transport_timing_without_model_api_overrid
                 "schema": "roboclaws_provider_request_metric_v1",
                 "proxy_request_id": "req-1",
                 "agent_engine": "codex-cli",
-                "provider_profile": "codex-router-responses",
+                "provider_profile": "kimi-openai-chat",
                 "method": "POST",
                 "path": "/v1/responses",
                 "started_at_epoch": 1.0,
@@ -402,7 +402,7 @@ def _write_run(
     output_tokens: int = 10,
     reasoning_tokens: int = 0,
     duration_s: float = 5.0,
-    provider_profile: str = "codex-router-responses",
+    provider_profile: str = "kimi-openai-chat",
     model: str = "gpt-5.5",
     wire_api: str = "responses",
 ) -> Path:
@@ -490,7 +490,7 @@ def _calibration_packet() -> dict[str, object]:
         "coefficient_sets": [
             {
                 "agent_engine": "openai-agents-sdk",
-                "provider_profile": "codex-router-responses",
+                "provider_profile": "kimi-openai-chat",
                 "model": "gpt-5.5",
                 "wire_api": "responses",
                 "coefficients": {

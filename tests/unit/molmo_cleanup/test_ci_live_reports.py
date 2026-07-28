@@ -74,7 +74,6 @@ def _ci_live_dry_run_args(tmp_path: Path, entry: str, *extra: str) -> list[str]:
 
 def test_ci_live_model_entries_match_provider_profiles() -> None:
     assert [entry.name for entry in MODEL_ENTRIES] == [
-        "agents-sdk-mimo-v2.5",
         "agents-sdk-kimi-k2.7-code",
     ]
     assert {
@@ -87,13 +86,6 @@ def test_ci_live_model_entries_match_provider_profiles() -> None:
         )
         for entry in MODEL_ENTRIES
     } == {
-        "agents-sdk-mimo-v2.5": (
-            "openai-agents-sdk",
-            "mimo-tp-openai-chat",
-            "mimo-v2.5",
-            "MIMO_TP_KEY",
-            "world-public-labels",
-        ),
         "agents-sdk-kimi-k2.7-code": (
             "openai-agents-sdk",
             "kimi-openai-chat",
@@ -220,14 +212,14 @@ def test_dry_run_generated_mess_count_override(tmp_path: Path) -> None:
     status = run_matrix.main(
         _ci_live_dry_run_args(
             tmp_path,
-            "agents-sdk-mimo-v2.5",
+            "agents-sdk-kimi-k2.7-code",
             "--generated-mess-count",
             "12",
         )
     )
 
     assert status == 0
-    status_path = tmp_path / "site" / "molmo" / "live" / "agents-sdk-mimo-v2.5" / "status.json"
+    status_path = tmp_path / "site" / "molmo" / "live" / "agents-sdk-kimi-k2.7-code" / "status.json"
     payload = json.loads(status_path.read_text(encoding="utf-8"))
     assert payload["generated_mess_count"] == 12
     assert "relocation_count=12" in payload["command"]
@@ -329,8 +321,8 @@ def test_live_openai_agents_explicit_operator_handoff_pauses_without_continuatio
         port=18788,
         lock_path=tmp_path / "live.lock",
         server_startup_timeout_s=3.0,
-        provider_profile="codex-router-responses",
-        model="gpt-5.5",
+        provider_profile="kimi-openai-chat",
+        model="kimi-k2.7-code",
         max_turns=None,
         incomplete_turn_continuation_attempts=None,
         cache_tools_list=True,
@@ -439,8 +431,8 @@ def test_live_openai_agents_paused_handoff_consumes_resume_request_and_runs_seco
         port=18788,
         lock_path=tmp_path / "live.lock",
         server_startup_timeout_s=3.0,
-        provider_profile="codex-router-responses",
-        model="gpt-5.5",
+        provider_profile="kimi-openai-chat",
+        model="kimi-k2.7-code",
         max_turns=None,
         incomplete_turn_continuation_attempts=None,
         cache_tools_list=True,
@@ -543,7 +535,7 @@ def test_publish_seed_run_and_pages_index_render_molmo_live_tiles(tmp_path: Path
     agents_published = publish_seed_run(
         source_seed_dir=source_seed,
         publish_root=live_root,
-        entry_name="agents-sdk-mimo-v2.5",
+        entry_name="agents-sdk-kimi-k2.7-code",
         seed=7,
     )
     assert (agents_published / "report.html").is_file()
@@ -562,7 +554,7 @@ def test_publish_seed_run_and_pages_index_render_molmo_live_tiles(tmp_path: Path
         }
     )
     agents_success = base_status(
-        entry_by_name("agents-sdk-mimo-v2.5"),
+        entry_by_name("agents-sdk-kimi-k2.7-code"),
         seed=7,
         generated_mess_count=5,
         profile="world-public-labels",
@@ -571,18 +563,18 @@ def test_publish_seed_run_and_pages_index_render_molmo_live_tiles(tmp_path: Path
     agents_success.update(
         {
             "status": "success",
-            "report_path": report_path_for_entry("agents-sdk-mimo-v2.5", seed=7),
+            "report_path": report_path_for_entry("agents-sdk-kimi-k2.7-code", seed=7),
         }
     )
     write_status(status_path_for_entry(live_root, "agents-sdk-kimi-k2.7-code"), success)
-    write_status(status_path_for_entry(live_root, "agents-sdk-mimo-v2.5"), agents_success)
+    write_status(status_path_for_entry(live_root, "agents-sdk-kimi-k2.7-code"), agents_success)
     write_manifest(live_root)
     live_index = write_live_index(live_root)
     live_html = live_index.read_text(encoding="utf-8")
     assert "MolmoSpaces Live Cleanup Reports" in live_html
     assert "agents-sdk-kimi-k2.7-code/seed-7/report.html" in live_html
-    assert "agents-sdk-mimo-v2.5/seed-7/report.html" in live_html
-    assert "OpenAI Agents SDK + MiMo v2.5" in live_html
+    assert "agents-sdk-kimi-k2.7-code/seed-7/report.html" in live_html
+    assert "OpenAI Agents SDK + Kimi K2.7 Code" in live_html
     assert "openai-agents-sdk" in live_html
     assert "Rerun locally" in live_html
 
@@ -591,10 +583,10 @@ def test_publish_seed_run_and_pages_index_render_molmo_live_tiles(tmp_path: Path
     assert "MolmoSpaces Live Cleanup (main-only / opt-in CI)" in html
     assert "molmo/live/" in html
     assert "molmo/live/agents-sdk-kimi-k2.7-code/seed-7/report.html" in html
-    assert "molmo/live/agents-sdk-mimo-v2.5/seed-7/report.html" in html
-    assert "OpenAI Agents SDK + MiMo v2.5" in html
+    assert "molmo/live/agents-sdk-kimi-k2.7-code/seed-7/report.html" in html
+    assert "OpenAI Agents SDK + Kimi K2.7 Code" in html
     assert "openai-agents-sdk" in html
-    assert "MiMo v2.5" in html
+    assert "Kimi K2.7 Code" in html
 
 
 def test_publish_diagnostic_seed_run_and_pages_index_link_failed_tile(tmp_path: Path) -> None:

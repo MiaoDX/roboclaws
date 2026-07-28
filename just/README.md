@@ -53,9 +53,8 @@ Agent engines:
 - `openai-agents-sdk`
 - `direct-runner`
 
-Provider profiles are selected only for the SDK live engine. Examples include
-`codex-router-responses`, `mimo-mify-responses`, `minimax-responses`, and
-`kimi-openai-chat`.
+Provider profiles are selected only for the SDK live engine:
+`custom-responses`, `minimax-responses`, or `kimi-openai-chat`.
 `direct-runner` is a deterministic contract/eval baseline and does not accept
 `provider_profile`; it is not a live robot agent runtime.
 
@@ -131,14 +130,12 @@ config. Normal users configure keys only; command shape controls behavior.
 
 ```bash
 cp .env.example .env
-# Fill CODEX_BASE_URL and CODEX_API_KEY for the default codex-router-responses / gpt-5.6-sol SDK route.
-# Optional: set ROBOCLAWS_PROVIDER_PROFILE=mimo-mify-responses with XM_LLM_API_KEY.
-# Optional: set ROBOCLAWS_PROVIDER_PROFILE=minimax-responses with MM_API_KEY.
+# Fill the URL/key variables for the profile you select on the command line.
+# custom-responses also requires CUSTOM_RESPONSES_MODEL.
 ```
 
-Repo-local OpenAI Agents SDK provider routes may run on the work network.
-`codex-router-responses` handles its Router transport compatibility
-internally; callers select it like any other provider profile.
+Provider selection is explicit and no profile falls back to a different
+endpoint, model, or wire API.
 
 Provider/model facts are centralized in
 `roboclaws/agents/provider_registry.py`, with current live verdicts in
@@ -172,9 +169,9 @@ Python owns route metadata and reusable launch pieces:
 ## Examples
 
 ```bash
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=map-build agent_engine=openai-agents-sdk provider_profile=codex-router-responses evidence_lane=camera-grounded-labels camera_labeler=grounding-dino scenario_setup=baseline
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=openai-agents-sdk provider_profile=codex-router-responses evidence_lane=world-public-labels
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=codex-router-responses prompt="我渴了，帮我找些解渴的东西"
+just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=map-build agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=camera-grounded-labels camera_labeler=grounding-dino scenario_setup=baseline
+just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=world-public-labels
+just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat prompt="我渴了，帮我找些解渴的东西"
 just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=direct-runner evidence_lane=world-public-labels runtime_map_prior=output/map/runtime_metric_map.json
 just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=direct-runner evidence_lane=camera-raw-fpv
 just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=grounding-dino

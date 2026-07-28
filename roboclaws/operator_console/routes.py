@@ -52,7 +52,10 @@ SIMULATION_CAMERA_LABELER = "grounding-dino"
 
 REAL_EVIDENCE_LANES = cleanup_evidence_lane_names()
 ISAAC_SUPPORTED_EVIDENCE_LANES = REAL_EVIDENCE_LANES
-B1_ROBOT_PROOF_REQUIRED_OVERRIDES: tuple[str, ...] = ()
+B1_ROBOT_PROOF_REQUIRED_OVERRIDES = (
+    "b1_alignment_artifact",
+    "b1_navigation_artifact",
+)
 
 
 @dataclass(frozen=True)
@@ -271,11 +274,15 @@ AGIBOT_ESTOP_GATE = RouteGate(
 )
 
 
-def list_worlds(*, include_hidden: bool = False) -> tuple[dict[str, Any], ...]:
+def list_worlds(
+    *, include_hidden: bool = False, include_optional_worlds: bool = False
+) -> tuple[dict[str, Any], ...]:
     """Return searchable world/scene metadata for the console rail."""
 
     rows = []
     for world in WORLD_SPECS.values():
+        if world.optional_validation and not include_optional_worlds:
+            continue
         if world.availability == "hidden" and not include_hidden:
             continue
         rows.append(
@@ -348,7 +355,7 @@ def list_console_combinations(
     disabled = _disabled_combinations()
     if include_disabled:
         return (*rows, *disabled)
-    return rows
+    return tuple(selection for selection in rows if selection.enabled)
 
 
 def get_selection(selection_id: str) -> ConsoleLaunchSelection:
@@ -449,7 +456,7 @@ def _enabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
             "agibot-gdk",
             "map-build",
             "openai-agents-sdk",
-            "codex-router-responses",
+            DEFAULT_PROVIDER_PROFILE,
             evidence_lanes=(CAMERA_GROUNDED_LABELS_LANE,),
             camera_labeler=AGIBOT_CAMERA_LABELER,
             scenario_setup=ENVIRONMENT_SETUP_BASELINE,
@@ -472,7 +479,7 @@ def _enabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
             "isaaclab",
             "map-build",
             "openai-agents-sdk",
-            "codex-router-responses",
+            DEFAULT_PROVIDER_PROFILE,
             evidence_lanes=ISAAC_SUPPORTED_EVIDENCE_LANES,
             camera_labeler=SIMULATION_CAMERA_LABELER,
             scenario_setup=ENVIRONMENT_SETUP_BASELINE,
@@ -485,7 +492,7 @@ def _enabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
             "isaaclab",
             "open-ended",
             "openai-agents-sdk",
-            "codex-router-responses",
+            DEFAULT_PROVIDER_PROFILE,
             evidence_lanes=ISAAC_SUPPORTED_EVIDENCE_LANES,
             camera_labeler=SIMULATION_CAMERA_LABELER,
             scenario_setup=ENVIRONMENT_SETUP_BASELINE,
@@ -509,7 +516,7 @@ def _molmospaces_enabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
                 "mujoco",
                 "cleanup",
                 "openai-agents-sdk",
-                "codex-router-responses",
+                DEFAULT_PROVIDER_PROFILE,
                 gates=common_gates,
                 default_overrides=("seed=7",),
                 supports_operator_steer=True,
@@ -523,7 +530,7 @@ def _molmospaces_enabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
                 "mujoco",
                 "map-build",
                 "openai-agents-sdk",
-                "codex-router-responses",
+                DEFAULT_PROVIDER_PROFILE,
                 scenario_setup=ENVIRONMENT_SETUP_BASELINE,
                 gates=common_gates,
                 default_overrides=("seed=7",),
@@ -535,7 +542,7 @@ def _molmospaces_enabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
                 "mujoco",
                 "open-ended",
                 "openai-agents-sdk",
-                "codex-router-responses",
+                DEFAULT_PROVIDER_PROFILE,
                 scenario_setup=ENVIRONMENT_SETUP_BASELINE,
                 gates=common_gates,
                 default_overrides=("seed=7",),
@@ -566,7 +573,7 @@ def _disabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
             "isaaclab",
             "cleanup",
             "openai-agents-sdk",
-            "codex-router-responses",
+            DEFAULT_PROVIDER_PROFILE,
             evidence_lane=CAMERA_GROUNDED_LABELS_LANE,
             enabled=False,
             unsupported_reason=(
@@ -580,7 +587,7 @@ def _disabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
             "agibot-gdk",
             "open-ended",
             "openai-agents-sdk",
-            "codex-router-responses",
+            DEFAULT_PROVIDER_PROFILE,
             evidence_lane=CAMERA_GROUNDED_LABELS_LANE,
             enabled=False,
             unsupported_reason=(
@@ -595,7 +602,7 @@ def _disabled_combinations() -> tuple[ConsoleLaunchSelection, ...]:
             "agibot-gdk",
             "cleanup",
             "openai-agents-sdk",
-            "codex-router-responses",
+            DEFAULT_PROVIDER_PROFILE,
             evidence_lane="camera-grounded-labels",
             enabled=False,
             unsupported_reason=(
@@ -678,6 +685,14 @@ def _lane_selections(
 ) -> tuple[ConsoleLaunchSelection, ...]:
     rows: list[ConsoleLaunchSelection] = []
     for evidence_lane in evidence_lanes:
+        lane_enabled = enabled
+        lane_unsupported_reason = unsupported_reason
+        if agent_engine_id == "openai-agents-sdk" and evidence_lane == CAMERA_RAW_FPV_LANE:
+            lane_enabled = False
+            lane_unsupported_reason = (
+                "Raw camera FPV requires a provider profile with verified image transport; "
+                "none of the retained profiles currently provides it."
+            )
         lane_default_overrides = default_overrides
         if evidence_lane == CAMERA_GROUNDED_LABELS_LANE:
             lane_default_overrides = (
@@ -693,8 +708,8 @@ def _lane_selections(
                 provider_profile,
                 evidence_lane=evidence_lane,
                 scenario_setup=scenario_setup,
-                enabled=enabled,
-                unsupported_reason=unsupported_reason,
+                enabled=lane_enabled,
+                unsupported_reason=lane_unsupported_reason,
                 required_overrides=required_overrides,
                 default_overrides=lane_default_overrides,
                 gates=gates,

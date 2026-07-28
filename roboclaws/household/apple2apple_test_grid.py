@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.agents.provider_registry import (
-    PROVIDER_PROFILE_CODEX_RESPONSES,
+    PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
     provider_route_spec,
 )
 from roboclaws.core.rerun import shell_join
@@ -42,13 +42,13 @@ class EvidenceLane:
 
 AGENT_ROUTES: tuple[AgentRoute, ...] = (
     AgentRoute(
-        route_id="agents-sdk-codex-router",
-        label="OpenAI Agents SDK Codex router",
+        route_id="agents-sdk-kimi",
+        label="OpenAI Agents SDK Kimi",
         driver="openai-agents-sdk",
         agent_engine="openai-agents-sdk",
-        provider_profile=PROVIDER_PROFILE_CODEX_RESPONSES,
-        env={"ROBOCLAWS_PROVIDER_PROFILE": PROVIDER_PROFILE_CODEX_RESPONSES},
-        required_env=provider_route_spec(PROVIDER_PROFILE_CODEX_RESPONSES).required_env_keys,
+        provider_profile=PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
+        env={"ROBOCLAWS_PROVIDER_PROFILE": PROVIDER_PROFILE_KIMI_OPENAI_CHAT},
+        required_env=provider_route_spec(PROVIDER_PROFILE_KIMI_OPENAI_CHAT).required_env_keys,
     ),
 )
 
@@ -59,13 +59,6 @@ EVIDENCE_LANES: tuple[EvidenceLane, ...] = (
         profile="camera-grounded-labels",
         camera_labeler="grounding-dino",
         input_mode="camera_labels",
-    ),
-    EvidenceLane(
-        lane_id="camera-raw-fpv",
-        label="RAW_FPV direct input",
-        profile="camera-raw-fpv",
-        camera_labeler="",
-        input_mode="raw_fpv_direct",
     ),
 )
 

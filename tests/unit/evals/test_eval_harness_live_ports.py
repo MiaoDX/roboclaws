@@ -98,7 +98,7 @@ def _trace_run_surface_with_env(port: str) -> list[str]:
             "backend=mujoco",
             "preset=cleanup",
             "agent_engine=openai-agents-sdk",
-            "provider_profile=codex-router-responses",
+            "provider_profile=kimi-openai-chat",
             "evidence_lane=world-public-labels",
         ],
         cwd=REPO_ROOT,

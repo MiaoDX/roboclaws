@@ -6,7 +6,7 @@ from roboclaws.core.rerun import format_rerun_command_for_display, render_rerun_
 def test_format_rerun_command_splits_surface_args_for_review() -> None:
     command = (
         "just run::surface surface=household-world agent_engine=openai-agents-sdk "
-        "provider_profile=codex-router-responses evidence_lane=world-public-labels seed=7 "
+        "provider_profile=kimi-openai-chat evidence_lane=world-public-labels seed=7 "
         'prompt="find something useful to drink"'
     )
 
@@ -15,7 +15,7 @@ def test_format_rerun_command_splits_surface_args_for_review() -> None:
     assert display.startswith("just run::surface \\\n")
     assert "  surface=household-world \\\n" in display
     assert "  agent_engine=openai-agents-sdk \\\n" in display
-    assert "  provider_profile=codex-router-responses \\\n" in display
+    assert "  provider_profile=kimi-openai-chat \\\n" in display
     assert "  'prompt=find something useful to drink'" in display
 
 

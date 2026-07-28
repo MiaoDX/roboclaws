@@ -19,10 +19,9 @@
   ],
   "provider_profiles": [
     "not_applicable",
-    "codex-router-responses",
-    "mimo-inside-openai-chat",
-    "kimi-openai-chat",
-    "minimax-responses"
+    "custom-responses",
+    "minimax-responses",
+    "kimi-openai-chat"
   ],
   "trial_count": 1,
   "required_graders": [
@@ -130,9 +129,9 @@
     "require_runtime_metric_map_schema": "runtime_metric_map_v1",
     "require_private_truth_absent": true,
     "require_source_map_not_mutated": true,
-    "min_sim_truth_fixture_category_recall": 1.0,
-    "min_sim_truth_fixture_category_precision": 1.0,
-    "min_sim_truth_best_view_waypoint_accuracy": 1.0
+    "min_sim_truth_fixture_category_recall": 1,
+    "min_sim_truth_fixture_category_precision": 1,
+    "min_sim_truth_best_view_waypoint_accuracy": 1
   },
   "launch_overrides": {
     "agent_engine": "direct-runner",

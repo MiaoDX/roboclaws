@@ -25,8 +25,6 @@ from roboclaws.core.json_sources import read_json_object  # noqa: E402
 
 SELECTOR_PATH = SCRIPT_DIR / "select_eval_harness.py"
 LOCAL_EXECUTION_PATH = SCRIPT_DIR / "eval_harness_local_execution.py"
-CLOUDML_EXECUTION_PATH = SCRIPT_DIR / "eval_harness_cloudml.py"
-CLOUDML_LIFECYCLE_PATH = SCRIPT_DIR / "eval_harness_cloudml_lifecycle.py"
 DEFAULT_VISUAL_GROUNDING_BASE_URL = "http://127.0.0.1:18880"
 PROVIDER_TIMING_PROXY_ENV = "ROBOCLAWS_PROVIDER_TIMING_PROXY"
 DINO_SIDECAR_AUTOSTART_ENV = "ROBOCLAWS_EVAL_HARNESS_AUTOSTART_DINO_SIDECAR"
@@ -34,7 +32,7 @@ EVAL_HARNESS_MCP_PORT_ENV = "ROBOCLAWS_EVAL_HARNESS_MCP_PORT"
 SESSION_LIVE_MCP_PORT_ENV = "ROBOCLAWS_SESSION_LIVE_MCP_PORT"
 DINO_SIDECAR_STARTUP_TIMEOUT_S = 15.0
 ROW_BLOCKER_REQUIREMENT_PRIORITY = {
-    "codex_provider": 0,
+    "provider_profile": 0,
     "openai_agents_package": 1,
     "just": 2,
     "python_env": 3,
@@ -56,8 +54,6 @@ def _load_script(name: str, path: Path) -> Any:
 
 selector = _load_script("eval_harness_selector", SELECTOR_PATH)
 local_execution = _load_script("eval_harness_local_execution", LOCAL_EXECUTION_PATH)
-cloudml_execution = _load_script("eval_harness_cloudml", CLOUDML_EXECUTION_PATH)
-cloudml_lifecycle = _load_script("eval_harness_cloudml_lifecycle", CLOUDML_LIFECYCLE_PATH)
 
 
 _MANAGED_DINO_SIDECARS: list[dict[str, Any]] = []
@@ -83,10 +79,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--scene", action="append", default=[])
     parser.add_argument("--runtime-map-prior", default="")
     parser.add_argument("--output-dir", type=Path)
-    parser.add_argument("--execution-target", choices=("local", "cloudml", "auto"), default="local")
     parser.add_argument("--max-parallel", type=local_execution.positive_int, default=1)
-    parser.add_argument("--cloudml-dry-run", type=cloudml_execution.bool_value, default=False)
-    parser.add_argument("--cloudml-preemptible", type=cloudml_execution.bool_value, default=False)
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--row-id", action="append", default=[])
     parser.add_argument("--shard-id", default="local-main")
@@ -100,23 +93,12 @@ def main(argv: list[str] | None = None) -> int:
     output_dir = Path(manifest["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
     if args.mode == "execute":
-        if args.execution_target == "local":
-            _execute_harness(
-                manifest,
-                row_ids=row_ids,
-                max_parallel=args.max_parallel,
-                shard_id=args.shard_id,
-            )
-        else:
-            _write_outputs(manifest, output_dir)
-            cloudml_execution.prepare_cloudml_execution(
-                manifest,
-                execution_target=args.execution_target,
-                row_ids=row_ids,
-                run_id=args.shard_id if args.shard_id != "local-main" else "",
-                dry_run=args.cloudml_dry_run,
-                preemptible=args.cloudml_preemptible,
-            )
+        _execute_harness(
+            manifest,
+            row_ids=row_ids,
+            max_parallel=args.max_parallel,
+            shard_id=args.shard_id,
+        )
     _write_outputs(manifest, output_dir)
     print(f"eval harness manifest: {output_dir / 'eval_harness.json'}")
     print(f"eval harness report: {output_dir / 'eval_harness.html'}")
@@ -214,7 +196,7 @@ def _requirement_blocker(
         return _environment_blocker(".venv/bin/python is missing")
     if requirement == "docker" and shutil.which("docker") is None:
         return _environment_blocker("docker is not on PATH")
-    if requirement == "codex_provider":
+    if requirement == "provider_profile":
         return _provider_requirement_blocker(axes)
     if requirement == "openai_agents_package" and not _has_module("agents"):
         return _environment_blocker("openai-agents package is not installed")

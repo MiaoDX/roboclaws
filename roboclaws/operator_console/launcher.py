@@ -21,6 +21,7 @@ from roboclaws.core.dotenv import load_dotenv_file
 from roboclaws.core.json_sources import read_json_object
 from roboclaws.household.evidence_lane_policy import evidence_lane_compatibility
 from roboclaws.launch.catalog import LaunchError, resolve_surface_launch
+from roboclaws.launch.worlds import optional_world_dependency_status
 from roboclaws.operator_console import context_packets
 from roboclaws.operator_console.interactions import (
     MESSAGE_LOG,
@@ -389,6 +390,12 @@ def route_readiness(
         runtime_tasks = runtime_inventory_payload(root, ports=[port])["tasks"]
     lock_state, attachable_run, blocker, blocker_kind = _route_lock_readiness(root, route)
     provider_status = _provider_status(route, env_map)
+    dependency_status = optional_world_dependency_status(
+        route.world_id,
+        overrides=override_map,
+        env=env_map,
+        root=root,
+    )
     gate_rows, gate_blocker, gate_blocker_kind = route_gate_rows(
         root,
         route,
@@ -414,6 +421,9 @@ def route_readiness(
     elif not blocker and gate_blocker:
         blocker = gate_blocker
         blocker_kind = gate_blocker_kind
+    if not blocker and not dependency_status["ok"]:
+        blocker = str(dependency_status["message"])
+        blocker_kind = "optional_world_dependency"
     if not blocker and named_launch_blockers:
         blocker = background_blocker_message(named_launch_blockers)
         blocker_kind = "background_task"
@@ -425,6 +435,9 @@ def route_readiness(
         "attachable_run": attachable_run,
         "background_blockers": background_blockers,
         "provider": provider_status,
+        "optional_world_dependencies": {
+            key: value for key, value in dependency_status.items() if key != "values"
+        },
         "gates": gate_rows,
     }
 

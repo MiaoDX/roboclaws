@@ -31,12 +31,11 @@ from roboclaws.agents.drivers.openai_agents_spans import (
 from roboclaws.agents.live_runtime import LiveAgentRequest, LiveAgentResult, LiveAgentRuntime
 from roboclaws.agents.live_status import LiveAgentFailure
 from roboclaws.agents.provider_registry import (
-    PROVIDER_PROFILE_CODEX_RESPONSES,
+    PROVIDER_PROFILE_CUSTOM_RESPONSES,
     PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
     WIRE_CHAT_COMPLETIONS,
     openai_agents_runtime_settings,
 )
-from roboclaws.agents.provider_transport import provider_default_headers
 from roboclaws.agents.thinking_policy import apply_model_thinking_policy
 
 try:
@@ -570,10 +569,7 @@ def _default_sdk_model_settings_payload(
             payload["extra_headers"] = {"User-Agent": KIMI_CODING_USER_AGENT}
     else:
         payload["store"] = False
-        if provider_profile != PROVIDER_PROFILE_CODEX_RESPONSES:
-            payload["truncation"] = "auto"
-        if provider_profile == PROVIDER_PROFILE_CODEX_RESPONSES and profile_id != "baseline":
-            payload["prompt_cache_retention"] = "in_memory"
+        payload["truncation"] = "auto"
     return apply_model_thinking_policy(
         payload,
         provider_profile=provider_profile,
@@ -921,23 +917,17 @@ def _model_for_request(request: LiveAgentRequest) -> Any:
         "api_key": settings["api_key"],
         "base_url": settings["base_url"],
     }
-    default_headers = provider_default_headers(
-        settings["provider_profile"],
-        session_seed=request.run_dir,
-    )
-    if default_headers:
-        client_kwargs["default_headers"] = default_headers
     client = AsyncOpenAI(
         **client_kwargs,
     )
     if settings["wire_api"] == "responses":
         from agents import OpenAIResponsesModel  # type: ignore[import-not-found]
 
-        base_model = OpenAIResponsesModel(settings["model"], openai_client=client)
+        base_model = OpenAIResponsesModel(settings["request_model"], openai_client=client)
     elif settings["wire_api"] == "chat-completions":
         from agents import OpenAIChatCompletionsModel  # type: ignore[import-not-found]
 
-        base_model = OpenAIChatCompletionsModel(settings["model"], openai_client=client)
+        base_model = OpenAIChatCompletionsModel(settings["request_model"], openai_client=client)
     else:  # pragma: no cover - guarded by _model_settings.
         raise RuntimeError(f"unsupported OpenAI Agents wire API: {settings['wire_api']}")
     retry_config = _model_service_retry_config(request)
@@ -1786,12 +1776,18 @@ def _model_settings(request: LiveAgentRequest) -> dict[str, str]:
         base_url=metadata.get("base_url"),
         api_key=metadata.get("api_key"),
     )
-    if settings["base_url_env"] == "CODEX_BASE_URL":
+    if settings["base_url_env"]:
         _require_setting(
             settings["provider_profile"], settings["base_url_env"], settings["base_url"]
         )
     if settings["api_key_env"]:
         _require_setting(settings["provider_profile"], settings["api_key_env"], settings["api_key"])
+    if settings["provider_profile"] == PROVIDER_PROFILE_CUSTOM_RESPONSES:
+        _require_setting(
+            settings["provider_profile"],
+            "CUSTOM_RESPONSES_MODEL",
+            settings["request_model"],
+        )
     return settings
 
 

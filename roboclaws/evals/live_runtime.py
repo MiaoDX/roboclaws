@@ -893,7 +893,7 @@ def live_surface_env(kwargs: dict[str, Any], *, base_env: Any) -> dict[str, str]
     model = str(kwargs.get("model") or "")
     if model:
         if kwargs["agent_engine"] == "openai-agents-sdk":
-            env["ROBOCLAWS_CODEX_MODEL"] = model
+            env["ROBOCLAWS_OPENAI_AGENTS_MODEL"] = model
     return env
 
 

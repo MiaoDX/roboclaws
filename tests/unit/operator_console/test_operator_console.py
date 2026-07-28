@@ -44,7 +44,7 @@ from roboclaws.operator_console.state import (
     derive_operator_state,
     redacted_artifact_text,
 )
-from tests.support.b1_robot_proof import write_b1_robot_proof_artifacts
+from tests.support.b1_robot_proof import write_b1_readiness_fixtures
 from tests.unit.operator_console.conftest import (  # noqa: F401  re-exported for tests
     AGIBOT_SDK_CLEANUP,
     AGIBOT_SDK_MAP_BUILD,
@@ -58,9 +58,9 @@ from tests.unit.operator_console.conftest import (  # noqa: F401  re-exported fo
     MUJOCO_SDK_MAP_BUILD,
 )
 
-CODEX_ENV = {
-    "CODEX_BASE_URL": "https://codex.example.test/v1",
-    "CODEX_API_KEY": "key",
+KIMI_ENV = {
+    "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
+    "KIMI_API_KEY": "key",
 }
 
 
@@ -175,7 +175,7 @@ def test_console_prompt_gating_and_argv_construction_are_fixed_argv(tmp_path: Pa
     ]
     assert "preset=cleanup" in argv
     assert "evidence_lane=world-public-labels" in argv
-    assert "provider_profile=codex-router-responses" in argv
+    assert "provider_profile=kimi-openai-chat" in argv
     assert "prompt=pick up the mug; rm -rf /" in argv
     assert "scenario_setup=relocate-cleanup-related-objects" in argv
     assert "relocation_count=2" in argv
@@ -226,7 +226,7 @@ def test_operator_console_prompt_preview_endpoint_renders_agent_kickoff_prompt(
                     "backend_id": "mujoco",
                     "intent_id": "open-ended",
                     "agent_engine_id": "openai-agents-sdk",
-                    "provider_profile": "codex-router-responses",
+                    "provider_profile": "kimi-openai-chat",
                     "evidence_lane": "world-public-labels",
                     "scenario_setup": "baseline",
                     "prompt": "只收拾桌面上的杯子",
@@ -286,7 +286,7 @@ def test_operator_console_prompt_preview_endpoint_rejects_invalid_numeric_inputs
                     "world_id": "molmospaces/procthor-objaverse-val/0",
                     "backend_id": "mujoco",
                     "intent_id": "cleanup",
-                    "provider_profile": "codex-router-responses",
+                    "provider_profile": "kimi-openai-chat",
                     "scenario_setup": "relocate-cleanup-related-objects",
                     "prompt": "收拾杯子",
                     **request_fields,
@@ -412,8 +412,13 @@ def test_console_readiness_omits_isaac_marker_diagnostic_but_keeps_locks_blockin
     tmp_path: Path,
 ) -> None:
     route = get_selection(B1_OPENAI_AGENTS_OPEN_TASK)
-    write_b1_robot_proof_artifacts(tmp_path)
-    readiness = route_readiness(tmp_path, route, overrides={"port": _free_port()}, env=CODEX_ENV)
+    b1_overrides = write_b1_readiness_fixtures(tmp_path)
+    readiness = route_readiness(
+        tmp_path,
+        route,
+        overrides={"port": _free_port(), **b1_overrides},
+        env=KIMI_ENV,
+    )
     assert readiness["can_start"] is True
     assert readiness["blocker_kind"] == ""
     assert {gate["id"] for gate in readiness["gates"]} == {
@@ -423,7 +428,12 @@ def test_console_readiness_omits_isaac_marker_diagnostic_but_keeps_locks_blockin
 
     lock = ResourceLock(tmp_path, route.lock_name)
     lock.acquire(run_id="active", pid=os.getpid())
-    readiness = route_readiness(tmp_path, route, overrides={"port": _free_port()}, env=CODEX_ENV)
+    readiness = route_readiness(
+        tmp_path,
+        route,
+        overrides={"port": _free_port(), **b1_overrides},
+        env=KIMI_ENV,
+    )
     assert readiness["can_start"] is False
     assert "Backend lock is held" in readiness["blocker"]
 
@@ -433,27 +443,13 @@ def test_console_readiness_uses_provider_profile_override(tmp_path: Path) -> Non
     readiness = route_readiness(
         tmp_path,
         route,
-        overrides={"port": _free_port(), "provider_profile": "mimo-mify-responses"},
-        env={"XM_LLM_API_KEY": "key"},
+        overrides={"port": _free_port(), "provider_profile": "minimax-responses"},
+        env={"MM_BASE_URL": "https://minimax.example.test/v1", "MM_API_KEY": "key"},
     )
 
     assert readiness["can_start"] is True
-    assert readiness["provider"]["provider"] == "mimo-mify-responses"
-    assert readiness["provider"]["model"] == "xiaomi/mimo-v2.5"
-
-
-def test_console_readiness_uses_sdk_mify_provider_profile_override(tmp_path: Path) -> None:
-    route = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
-    readiness = route_readiness(
-        tmp_path,
-        route,
-        overrides={"port": _free_port(), "provider_profile": "mimo-mify-responses"},
-        env={"XM_LLM_API_KEY": "key"},
-    )
-
-    assert readiness["can_start"] is True
-    assert readiness["provider"]["provider"] == "mimo-mify-responses"
-    assert readiness["provider"]["model"] == "xiaomi/mimo-v2.5"
+    assert readiness["provider"]["provider"] == "minimax-responses"
+    assert readiness["provider"]["model"] == "MiniMax-M3"
 
 
 def test_resource_lock_prevents_conflicting_starts(tmp_path: Path) -> None:
@@ -524,13 +520,13 @@ def test_operator_state_derives_public_fields_and_artifact_links(tmp_path: Path)
 def test_redaction_removes_secret_values_and_headers(tmp_path: Path) -> None:
     text = (
         "Authorization: Bearer live-token\n"
-        "CODEX_API_KEY=secret-key\n"
+        "KIMI_API_KEY=secret-key\n"
         "api_key: secret-key\n"
         "base https://secret.example/v1"
     )
     redacted = redact_text(
         text,
-        env={"CODEX_API_KEY": "secret-key", "CODEX_BASE_URL": "https://secret.example/v1"},
+        env={"KIMI_API_KEY": "secret-key", "KIMI_OPENAI_BASE_URL": "https://secret.example/v1"},
     )
     assert "secret-key" not in redacted
     assert "live-token" not in redacted
@@ -619,6 +615,14 @@ def test_operator_console_cli_defaults_to_all_interfaces() -> None:
 
     assert run_server.call_args.args[1] == "0.0.0.0"
     assert run_server.call_args.args[2] == 8765
+    assert run_server.call_args.kwargs["include_optional_worlds"] is False
+
+
+def test_operator_console_cli_can_include_optional_worlds() -> None:
+    with patch("roboclaws.operator_console.server.run_server") as run_server:
+        assert operator_console_main(["--include-optional-worlds"]) == 0
+
+    assert run_server.call_args.kwargs["include_optional_worlds"] is True
 
 
 def test_operator_console_static_assets_are_not_cached(tmp_path: Path) -> None:
@@ -655,12 +659,10 @@ def test_operator_console_routes_endpoint_exposes_evidence_lane_matrix(tmp_path:
     assert worlds[world_id]["preview_assets"]["chase"]["href"] == (
         "/previews/molmospaces-procthor-objaverse-val-10-chase.png"
     )
-    assert worlds["b1-map12"]["preview_assets"]["fpv"]["href"] == "/previews/b1-map12-fpv.png"
-    assert worlds["b1-map12"]["preview_assets"]["map"]["href"] == "/previews/b1-map12-map.png"
-    assert worlds["b1-map12"]["preview_assets"]["chase"]["href"] == ("/previews/b1-map12-chase.png")
-    assert worlds["b1-map12"]["preview_assets"]["topdown"]["href"] == (
-        "/previews/b1-map12-topdown.png"
-    )
+    assert "agibot-g2/map-12" not in worlds
+    assert "b1-map12" not in worlds
+    assert not any(route_id.startswith("agibot-g2/map-12::") for route_id in routes)
+    assert not any(route_id.startswith("b1-map12::") for route_id in routes)
     assert (
         worlds[world_id]["preview_assets"]["topdown"]["href"]
         != (worlds[world_id]["preview_assets"]["map"]["href"])
@@ -679,13 +681,21 @@ def test_operator_console_routes_endpoint_exposes_evidence_lane_matrix(tmp_path:
     assert routes[
         "molmospaces/procthor-objaverse-val/0::mujoco::map-build::openai-agents-sdk::camera-grounded-labels"
     ]["enabled"]
-    assert routes[B1_OPENAI_AGENTS_CAMERA_GROUNDED]["enabled"]
-    assert (
-        "camera_labeler=grounding-dino" in routes[B1_OPENAI_AGENTS_CAMERA_GROUNDED]["argv_preview"]
-    )
     assert not any(
         "::isaaclab::" in route_id for route_id in routes if route_id.startswith("molmospaces/")
     )
+
+
+def test_operator_console_optional_world_opt_in_exposes_validation_routes(tmp_path: Path) -> None:
+    with _console_server(tmp_path, include_optional_worlds=True) as (host, port):
+        with urllib.request.urlopen(f"http://{host}:{port}/api/routes") as response:
+            payload = json.loads(response.read().decode("utf-8"))
+
+    world_ids = {world["id"] for world in payload["worlds"]}
+    route_ids = {route["id"] for route in payload["combinations"]}
+    assert {"agibot-g2/map-12", "b1-map12"} <= world_ids
+    assert AGIBOT_SDK_MAP_BUILD in route_ids
+    assert B1_OPENAI_AGENTS_MAP_BUILD in route_ids
 
 
 def test_operator_console_serves_scene_preview_assets(tmp_path: Path) -> None:
@@ -704,11 +714,11 @@ def _assert_registered_scene_preview_assets(registered_previews: set[str]) -> No
     assert "molmospaces-procthor-objaverse-val-10-preview.json" in registered_previews
     assert "molmospaces-procthor-10k-val-11-map.png" in registered_previews
     assert "molmospaces-procthor-10k-val-11-preview.json" in registered_previews
-    assert "b1-map12-map.png" in registered_previews
-    assert "b1-map12-topdown.png" in registered_previews
-    assert "b1-map12-fpv.png" in registered_previews
-    assert "b1-map12-chase.png" in registered_previews
-    assert "b1-map12-preview.json" in registered_previews
+    assert "b1-map12-map.png" not in registered_previews
+    assert "b1-map12-topdown.png" not in registered_previews
+    assert "b1-map12-fpv.png" not in registered_previews
+    assert "b1-map12-chase.png" not in registered_previews
+    assert "b1-map12-preview.json" not in registered_previews
     assert "molmospaces-val_6-map.png" not in registered_previews
     assert "molmospaces-val_8-map.png" not in registered_previews
 
@@ -721,10 +731,6 @@ def _assert_scene_preview_png_assets(base_url: str) -> None:
         "molmospaces-procthor-10k-val-11-map.png",
         "molmospaces-procthor-10k-val-11-topdown.png",
         "molmospaces-procthor-10k-val-11-chase.png",
-        "b1-map12-fpv.png",
-        "b1-map12-map.png",
-        "b1-map12-chase.png",
-        "b1-map12-topdown.png",
     ):
         with urllib.request.urlopen(f"{base_url}/previews/{asset_name}") as response:
             assert response.headers["Content-Type"] == "image/png"
@@ -737,19 +743,14 @@ def _assert_scene_preview_json_assets(base_url: str) -> None:
     ) as response:
         preview = json.loads(response.read().decode("utf-8"))
         assert preview["views"]["chase"]["view"] == "chase_camera"
-    with urllib.request.urlopen(f"{base_url}/previews/b1-map12-preview.json") as response:
-        preview = json.loads(response.read().decode("utf-8"))
-        assert preview["renderer"] == "b1_map12_static_gaussian_topdown_with_isaac_runtime_camera"
-        assert preview["views"]["fpv"]["view"] == "raw_fpv"
-        assert preview["views"]["map"]["view"] == "base_metric_map_preview"
-        assert preview["views"]["chase"]["view"] == "chase_camera"
-        assert preview["views"]["topdown"]["view"] == "topdown_scene_render"
 
 
 def _assert_scene_preview_rejects_invalid_paths(base_url: str) -> None:
     for path in (
         "/previews/../app.js",
         "/previews/molmospaces-val_6-map.png",
+        "/previews/b1-map12-map.png",
+        "/previews/b1-map12-preview.json",
         "/asset-previews/maps/../README.md",
     ):
         with pytest.raises(urllib.error.HTTPError) as exc_info:
@@ -985,8 +986,12 @@ def _blocked_raw_operator_control_payload(
 
 
 @contextmanager
-def _console_server(root: Path):
-    handler = partial(ConsoleRequestHandler, root=root)
+def _console_server(root: Path, *, include_optional_worlds: bool = False):
+    handler = partial(
+        ConsoleRequestHandler,
+        root=root,
+        include_optional_worlds=include_optional_worlds,
+    )
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()

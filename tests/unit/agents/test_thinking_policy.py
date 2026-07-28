@@ -12,14 +12,8 @@ from roboclaws.agents.thinking_policy import (
 def test_default_thinking_policy_maps_by_wire_api() -> None:
     responses = apply_model_thinking_policy(
         {"store": False},
-        provider_profile="codex-router-responses",
+        provider_profile="custom-responses",
         wire_api="responses",
-        mode="default",
-    )
-    chat = apply_model_thinking_policy(
-        {"include_usage": True},
-        provider_profile="mimo-tp-openai-chat",
-        wire_api="chat-completions",
         mode="default",
     )
     kimi_chat = apply_model_thinking_policy(
@@ -30,7 +24,6 @@ def test_default_thinking_policy_maps_by_wire_api() -> None:
     )
 
     assert responses["reasoning"] == {"effort": "medium"}
-    assert chat["extra_body"]["thinking"] == {"type": "enabled", "keep": "all"}
     assert "extra_body" not in kimi_chat
     assert (
         thinking_request_body_for_wire(
@@ -40,16 +33,6 @@ def test_default_thinking_policy_maps_by_wire_api() -> None:
         )
         == {}
     )
-    assert thinking_request_body_for_wire(
-        provider_profile="mimo-inside-openai-chat",
-        wire_api="chat-completions",
-        mode="default",
-    ) == {"thinking": {"type": "disabled"}}
-    assert thinking_request_body_for_wire(
-        provider_profile="mimo-inside-openai-chat",
-        wire_api="chat-completions",
-        mode="enabled",
-    ) == {"thinking": {"type": "enabled", "keep": "all"}}
 
 
 def test_disabled_thinking_policy_maps_by_wire_api() -> None:
@@ -69,7 +52,7 @@ def test_disabled_thinking_policy_maps_by_wire_api() -> None:
 def test_thinking_policy_rejects_unknown_wire_api() -> None:
     with pytest.raises(ValueError, match="unsupported"):
         thinking_request_body_for_wire(
-            provider_profile="mimo-tp-anthropic",
+            provider_profile="unknown",
             wire_api="anthropic",
             mode="enabled",
         )

@@ -20,6 +20,7 @@ from roboclaws.operator_console.routes import (
     selection_task_selector,
     validate_supported_routes_against_catalog,
 )
+from tests.support.b1_robot_proof import write_b1_readiness_fixtures
 from tests.unit.operator_console.conftest import (  # noqa: F401  re-exported for tests
     AGIBOT_SDK_CLEANUP,
     AGIBOT_SDK_MAP_BUILD,
@@ -35,7 +36,7 @@ from tests.unit.operator_console.conftest import (  # noqa: F401  re-exported fo
 
 
 def test_world_catalog_exposes_scene_first_console_choices() -> None:
-    worlds = {world["id"]: world for world in list_worlds()}
+    worlds = {world["id"]: world for world in list_worlds(include_optional_worlds=True)}
 
     assert tuple(world_id for world_id in worlds if world_id.startswith("molmospaces/")) == (
         *MOLMOSPACES_CONSOLE_WORLD_IDS,
@@ -83,34 +84,8 @@ def test_world_catalog_exposes_scene_first_console_choices() -> None:
             "href": "/previews/molmospaces-procthor-objaverse-val-10-topdown.png",
         },
     }
-    assert worlds["agibot-g2/map-12"]["preview_assets"] == {
-        "map": {
-            "path": "/previews/b1-map12-map.png",
-            "href": "/previews/b1-map12-map.png",
-        },
-        "topdown": {
-            "path": "/previews/b1-map12-topdown.png",
-            "href": "/previews/b1-map12-topdown.png",
-        },
-    }
-    assert worlds["b1-map12"]["preview_assets"] == {
-        "fpv": {
-            "path": "/previews/b1-map12-fpv.png",
-            "href": "/previews/b1-map12-fpv.png",
-        },
-        "map": {
-            "path": "/previews/b1-map12-map.png",
-            "href": "/previews/b1-map12-map.png",
-        },
-        "chase": {
-            "path": "/previews/b1-map12-chase.png",
-            "href": "/previews/b1-map12-chase.png",
-        },
-        "topdown": {
-            "path": "/previews/b1-map12-topdown.png",
-            "href": "/previews/b1-map12-topdown.png",
-        },
-    }
+    assert worlds["agibot-g2/map-12"]["preview_assets"] == {}
+    assert worlds["b1-map12"]["preview_assets"] == {}
     assert "ai2thor/FloorPlan201" not in worlds
     assert "ai2thor-games/FloorPlan201" not in worlds
     assert worlds["planner-proof/default"]["preview_assets"] == {
@@ -122,6 +97,18 @@ def test_world_catalog_exposes_scene_first_console_choices() -> None:
     assert worlds["agibot-g2/map-12"]["available_backends"] == ["agibot-gdk"]
     assert worlds["b1-map12"]["available_backends"] == ["isaaclab"]
     assert worlds["b1-map12"]["default_backend"] == "isaaclab"
+
+
+def test_default_world_catalog_omits_validation_required_worlds() -> None:
+    default_world_ids = {world["id"] for world in list_worlds()}
+    optional_worlds = {world["id"]: world for world in list_worlds(include_optional_worlds=True)}
+
+    assert "agibot-g2/map-12" not in default_world_ids
+    assert "b1-map12" not in default_world_ids
+    assert optional_worlds["agibot-g2/map-12"]["availability"] == "validation-required"
+    assert optional_worlds["b1-map12"]["availability"] == "validation-required"
+    assert get_selection(AGIBOT_SDK_MAP_BUILD).world_id == "agibot-g2/map-12"
+    assert get_selection(B1_OPENAI_AGENTS_MAP_BUILD).world_id == "b1-map12"
 
 
 def test_scene_preview_rendered_views_never_alias_other_preview_types() -> None:
@@ -259,7 +246,7 @@ def test_console_combinations_are_catalog_backed_axes() -> None:
             "mujoco",
             "open-ended",
             "openai-agents-sdk",
-            "codex-router-responses",
+            "kimi-openai-chat",
             "world-public-labels",
         ),
         (
@@ -267,7 +254,7 @@ def test_console_combinations_are_catalog_backed_axes() -> None:
             "isaaclab",
             "open-ended",
             "openai-agents-sdk",
-            "codex-router-responses",
+            "kimi-openai-chat",
             "world-public-labels",
         ),
     }
@@ -284,18 +271,16 @@ def test_openai_agents_route_payload_lists_provider_profiles() -> None:
     route = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
     payload = route.to_payload()
 
-    assert payload["provider_profile"] == "codex-router-responses"
+    assert payload["provider_profile"] == "kimi-openai-chat"
     assert payload["supported_provider_profiles"] == [
-        "codex-router-responses",
-        "mimo-mify-responses",
+        "custom-responses",
         "minimax-responses",
-        "mimo-tp-openai-chat",
-        "mimo-inside-openai-chat",
         "kimi-openai-chat",
     ]
     route_by_profile = {route["provider_profile"]: route for route in payload["provider_routes"]}
-    assert route_by_profile["mimo-mify-responses"]["route_status"] == "healthy"
-    assert route_by_profile["mimo-tp-openai-chat"]["wire_api"] == "chat-completions"
+    assert route_by_profile["custom-responses"]["default_model_id"] == "custom"
+    assert route_by_profile["minimax-responses"]["route_status"] == "healthy"
+    assert route_by_profile["kimi-openai-chat"]["wire_api"] == "chat-completions"
     assert route_by_profile["minimax-responses"]["route_capabilities"]["image_transport"] == (
         "unknown"
     )
@@ -328,10 +313,14 @@ def test_console_exposes_all_supported_household_evidence_lanes() -> None:
             f"molmospaces/procthor-objaverse-val/0::mujoco::map-build::direct-runner::{lane}"
             in enabled_ids
         )
-        assert (
-            f"molmospaces/procthor-objaverse-val/0::mujoco::open-task::openai-agents-sdk::"
-            f"{lane}" in enabled_ids
+        sdk_route_id = (
+            f"molmospaces/procthor-objaverse-val/0::mujoco::open-task::openai-agents-sdk::{lane}"
         )
+        if lane == "camera-raw-fpv":
+            assert sdk_route_id not in enabled_ids
+            assert get_selection(sdk_route_id).enabled is False
+        else:
+            assert sdk_route_id in enabled_ids
 
     grounded = get_selection(
         "molmospaces/procthor-objaverse-val/0::mujoco::map-build::direct-runner::camera-grounded-labels"
@@ -536,7 +525,9 @@ def test_console_enables_b1_camera_grounded_isaac_workflows() -> None:
     assert route.enabled is True
     assert route.disabled_reason == ""
     assert "camera_labeler=grounding-dino" in route.base_args()
-    assert "b1-map12::isaaclab::open-task::openai-agents-sdk::camera-raw-fpv" in enabled_ids
+    raw_fpv = get_selection("b1-map12::isaaclab::open-task::openai-agents-sdk::camera-raw-fpv")
+    assert raw_fpv.id not in enabled_ids
+    assert raw_fpv.enabled is False
     assert map_build.id in enabled_ids
     assert "preset=map-build" in map_build.base_args()
     assert "camera_labeler=grounding-dino" in map_build.base_args()
@@ -561,7 +552,7 @@ def test_payload_exposes_orthogonal_ui_metadata() -> None:
     assert mujoco["world_id"] == "molmospaces/procthor-objaverse-val/0"
     assert mujoco["backend_id"] == "mujoco"
     assert mujoco["agent_engine_id"] == "openai-agents-sdk"
-    assert mujoco["provider_profile"] == "codex-router-responses"
+    assert mujoco["provider_profile"] == "kimi-openai-chat"
     assert mujoco["scenario_setup"] == "baseline"
     assert "agent_engine=openai-agents-sdk" in mujoco["argv_preview"]
     assert "scenario_setup=baseline" in mujoco["argv_preview"]
@@ -583,8 +574,11 @@ def test_payload_exposes_orthogonal_ui_metadata() -> None:
     assert b1_openai_agents["world_id"] == "b1-map12"
     assert b1_openai_agents["backend_id"] == "isaaclab"
     assert b1_openai_agents["agent_engine_id"] == "openai-agents-sdk"
-    assert b1_openai_agents["provider_profile"] == "codex-router-responses"
-    assert b1_openai_agents["required_overrides"] == []
+    assert b1_openai_agents["provider_profile"] == "kimi-openai-chat"
+    assert b1_openai_agents["required_overrides"] == [
+        "b1_alignment_artifact",
+        "b1_navigation_artifact",
+    ]
     assert [gate["id"] for gate in b1_openai_agents["gates"]] == [
         "provider_key",
         "mcp_port_free",
@@ -621,7 +615,7 @@ def test_prompt_gating_uses_argv_element_not_shell_joining(tmp_path) -> None:
         "agent_engine=openai-agents-sdk",
     ]
     assert "evidence_lane=world-public-labels" in argv
-    assert "provider_profile=codex-router-responses" in argv
+    assert "provider_profile=kimi-openai-chat" in argv
     assert "scenario_setup=baseline" in argv
     assert "prompt=collect mugs; rm -rf / should stay text" in argv
 
@@ -647,17 +641,13 @@ def test_camera_grounded_lane_launch_includes_default_camera_labeler(tmp_path) -
 
 
 def test_b1_map12_open_ended_launch_uses_scene_and_map_bundle(tmp_path) -> None:
-    alignment_artifact = tmp_path / "alignment_residuals.json"
-    navigation_artifact = tmp_path / "navigation_smoke.json"
+    injected = write_b1_readiness_fixtures(tmp_path)
     selection = get_selection(B1_OPENAI_AGENTS_OPEN_TASK)
     argv = build_launch_argv(
         selection,
         root=tmp_path,
         run_id="run-1",
-        overrides={
-            "b1_alignment_artifact": str(alignment_artifact),
-            "b1_navigation_artifact": str(navigation_artifact),
-        },
+        overrides=injected,
     )
 
     assert not any(item.startswith("intent=") for item in argv)
@@ -665,24 +655,19 @@ def test_b1_map12_open_ended_launch_uses_scene_and_map_bundle(tmp_path) -> None:
     assert "agent_engine=openai-agents-sdk" in argv
     assert "backend=isaaclab" in argv
     assert "scenario_setup=baseline" in argv
-    assert "map_bundle=vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot" in argv
+    assert f"map_bundle={injected['map_bundle']}" in argv
     assert "robot_views=on" in argv
-    assert (
-        "isaac_scene_usd_path=data/robot-data-lab/scene-engine/data/"
-        "B1_floor2_slow/usda/F2_all/default.usda"
-    ) in argv
-    assert f"b1_alignment_artifact={alignment_artifact}" in argv
-    assert f"b1_navigation_artifact={navigation_artifact}" in argv
+    assert f"isaac_scene_usd_path={injected['isaac_scene_usd_path']}" in argv
+    assert f"b1_alignment_artifact={injected['b1_alignment_artifact']}" in argv
+    assert f"b1_navigation_artifact={injected['b1_navigation_artifact']}" in argv
     assert not any(item.startswith("relocation_count=") for item in argv)
 
 
-def test_b1_map12_launch_generates_robot_proof_artifacts_at_launch(tmp_path) -> None:
+def test_b1_map12_launch_requires_injected_robot_proof_artifacts(tmp_path) -> None:
     selection = get_selection(B1_OPENAI_AGENTS_OPEN_TASK)
 
-    argv = build_launch_argv(selection, root=tmp_path, run_id="run-1")
-
-    assert not any(item.startswith("b1_alignment_artifact=") for item in argv)
-    assert not any(item.startswith("b1_navigation_artifact=") for item in argv)
+    with pytest.raises(ConsoleLaunchError, match="b1_alignment_artifact"):
+        build_launch_argv(selection, root=tmp_path, run_id="run-1")
 
 
 def test_prompt_rejected_for_unsupported_selection(tmp_path) -> None:
@@ -719,7 +704,7 @@ def _write_prior_catalog(
                         "selected_candidate_id": "candidate-1",
                         "run_id": "run-1",
                         "product_route": {"agent_engine": "openai-agents-sdk"},
-                        "producer": {"provider_profile": "codex-router-responses"},
+                        "producer": {"provider_profile": "kimi-openai-chat"},
                         "evidence": ["hard_gates_passed"],
                     }
                 ],

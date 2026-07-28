@@ -7,24 +7,15 @@ import re
 from collections.abc import Iterable, Mapping
 
 SECRET_ENV_KEYS = (
+    "CUSTOM_RESPONSES_API_KEY",
+    "CUSTOM_RESPONSES_BASE_URL",
+    "CUSTOM_RESPONSES_MODEL",
     "OPENAI_API_KEY",
     "ANTHROPIC_API_KEY",
-    "CODEX_API_KEY",
     "KIMI_API_KEY",
-    "MIMO_API_KEY",
-    "MIMO_ANTHROPIC_BASE_URL",
-    "MIMO_BASE_URL",
-    "MIMO_TP_KEY",
-    "MIMO_OPENAI_BASE_URL",
     "KIMI_OPENAI_BASE_URL",
-    "NV_API_KEY",
-    "NVIDIA_BASE_URL",
-    "XM_LLM_API_KEY",
-    "XM_LLM_BASE_URL",
-    "XM_LLM_ANTHROPIC_BASE_URL",
     "MM_API_KEY",
     "MM_BASE_URL",
-    "CODEX_BASE_URL",
 )
 
 SECRET_PATTERNS: tuple[re.Pattern[str], ...] = (

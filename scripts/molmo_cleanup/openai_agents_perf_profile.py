@@ -15,7 +15,6 @@ from roboclaws.agents.drivers.openai_agents_live import (
     MODEL_SERVICE_RETRY_SLEEP_ENV,
 )
 from roboclaws.agents.provider_registry import (
-    PROVIDER_PROFILE_CODEX_RESPONSES,
     PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
     ROUTE_CAP_SUPPORTED,
     WIRE_CHAT_COMPLETIONS,
@@ -720,7 +719,6 @@ def _robot_view_capture_policy_profile(
 def _sdk_model_settings_for_profile(profile: dict[str, Any]) -> dict[str, Any]:
     wire_api = str(profile.get("wire_api") or "")
     provider_profile = str(profile.get("provider_profile") or "")
-    profile_id = str(profile.get("profile_id") or "baseline")
     settings: dict[str, Any] = {
         "tool_choice": "auto",
         "parallel_tool_calls": False,
@@ -728,10 +726,7 @@ def _sdk_model_settings_for_profile(profile: dict[str, Any]) -> dict[str, Any]:
     }
     if wire_api == WIRE_RESPONSES:
         settings["store"] = False
-        if provider_profile != PROVIDER_PROFILE_CODEX_RESPONSES:
-            settings["truncation"] = "auto"
-        if provider_profile == PROVIDER_PROFILE_CODEX_RESPONSES and profile_id != "baseline":
-            settings["prompt_cache_retention"] = "in_memory"
+        settings["truncation"] = "auto"
     elif wire_api == WIRE_CHAT_COMPLETIONS:
         settings["include_usage"] = True
         if provider_profile == PROVIDER_PROFILE_KIMI_OPENAI_CHAT:
@@ -747,7 +742,7 @@ def _sdk_run_config_for_profile(_profile: dict[str, Any]) -> dict[str, Any]:
 
 
 def _normal_provider_profile(provider_profile: str) -> str:
-    return normalize_provider_route(provider_profile, default="codex-router-responses")
+    return normalize_provider_route(provider_profile)
 
 
 def _string_setting(
