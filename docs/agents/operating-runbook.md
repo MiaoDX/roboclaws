@@ -143,7 +143,6 @@ Examples:
 Use `agent::*` for deeper maintainer control:
 
 ```bash
-just agent::run <task> <driver> [report] [key=value ...]
 just agent::verify <target> [args ...]
 just agent::harness <target> [args ...]
 just agent::mcp up|down

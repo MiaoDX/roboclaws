@@ -433,7 +433,7 @@ def test_launcher_holds_lock_before_spawning_process(tmp_path: Path) -> None:
         seen_env.update(kwargs["env"])
         return FakeProcess()
 
-    with patch("roboclaws.operator_console.launcher.subprocess.Popen", side_effect=fake_popen):
+    with patch("roboclaws.operator_console.launcher.spawn_launch_plan", side_effect=fake_popen):
         state = start_console_run(
             tmp_path,
             LaunchRequest(
@@ -493,7 +493,7 @@ def test_launcher_uses_new_run_id_when_existing_run_dir_would_be_reused(
 
     with (
         patch("roboclaws.operator_console.launcher.time.strftime") as strftime_mock,
-        patch("roboclaws.operator_console.launcher.subprocess.Popen", return_value=FakeProcess()),
+        patch("roboclaws.operator_console.launcher.spawn_launch_plan", return_value=FakeProcess()),
     ):
         strftime_mock.side_effect = lambda fmt, *args: (
             "20260620-101112" if fmt == "%Y%m%d-%H%M%S" else "2026-06-20T10:11:12Z"
@@ -526,7 +526,7 @@ def test_launcher_fails_when_run_id_reservation_is_exhausted(tmp_path: Path) -> 
 
     with (
         patch("roboclaws.operator_console.launcher.time.strftime", return_value="20260620-101112"),
-        patch("roboclaws.operator_console.launcher.subprocess.Popen") as popen,
+        patch("roboclaws.operator_console.launcher.spawn_launch_plan") as popen,
         pytest.raises(
             ConsoleLaunchError, match="could not allocate unique operator-console run id"
         ),
@@ -559,7 +559,7 @@ def test_launcher_removes_empty_reserved_run_dir_when_lock_acquire_fails(
     with (
         patch("roboclaws.operator_console.launcher.time.strftime", return_value="20260620-101112"),
         patch("roboclaws.operator_console.launcher.ResourceLock.acquire", fail_acquire),
-        patch("roboclaws.operator_console.launcher.subprocess.Popen") as popen,
+        patch("roboclaws.operator_console.launcher.spawn_launch_plan") as popen,
         pytest.raises(RuntimeError, match="lock unavailable"),
     ):
         start_console_run(
@@ -589,7 +589,7 @@ def test_launcher_removes_empty_reserved_run_dir_when_argv_build_fails(
             "roboclaws.operator_console.launcher.build_launch_argv",
             side_effect=ConsoleLaunchError("bad argv"),
         ),
-        patch("roboclaws.operator_console.launcher.subprocess.Popen") as popen,
+        patch("roboclaws.operator_console.launcher.spawn_launch_plan") as popen,
         pytest.raises(ConsoleLaunchError, match="bad argv"),
     ):
         start_console_run(

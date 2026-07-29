@@ -10,16 +10,15 @@ Latest intent: execute the approved forward-only cleanup plan. Publication,
 physical movement, Omniverse EULA acceptance, compatibility layers, and scope
 expansion remain unauthorized.
 
-Current slice: Wave 4 source-aware MolmoSpaces world-ID migration is complete
-and awaiting its semantic checkpoint commit.
+Current slice: Wave 5 typed launch executor migration is complete and awaiting
+its semantic checkpoint commit.
 
-Last proof: focused scene-sampler, environment setup, operator-console,
-task-recipe, eval-model, and current-source contract tests pass; modified JSON,
-Ruff, format, the Python quality ratchet, exact legacy-ID search, and
-`git diff --check` pass. Direct map-build and cleanup product runs passed for
-`molmospaces/procthor-10k-val/0`; receipts are under
-`/tmp/roboclaws-wave4-map-build/0729_1041` and
-`/tmp/roboclaws-wave4-cleanup/0729_1041`, with cleanup restoring 5/5 objects.
+Last proof: broad launch, Just contract, console, and eval focused suites pass;
+Ruff, format, the Python quality ratchet, exact retired-protocol search, and
+`git diff --check` pass. Typed-executor direct map-build and cleanup product
+runs passed for `molmospaces/procthor-10k-val/0`; receipts are under
+`/tmp/roboclaws-wave5-map-build/0729_1129` and
+`/tmp/roboclaws-wave5-cleanup/0729_1130`, with cleanup restoring 5/5 objects.
 
 Completed batch: approved execution contract and durable route loaded; current
 source absence scope, deletion/move targets, active status surfaces, and prior
@@ -37,6 +36,12 @@ distribution formats. Wave 4 migrated all current callers, fixtures, examples,
 preview metadata, and eval rows to source-aware MolmoSpaces IDs; removed legacy
 alias metadata and exports; made legacy IDs fail with an exact replacement; and
 kept hidden source-aware sampler candidates dynamically resolvable.
+Wave 5 made `LaunchPlan` the single resolved execution contract; added the
+closed `roboclaws.launch.executor` dispatch/process owner; migrated public CLI,
+operator console, and eval execution to the typed plan; replaced the 26-item
+positional lowering with a named environment envelope; and deleted
+`agent::run`, `roboclaws.cli.agent_run`, duplicate validation, and positional
+tests/wrappers.
 
 Frozen candidate recipe: run `scripts/dev/build_public_candidate.py` into a new
 candidate root; run `scripts/dev/check_public_surface.py` and the CI-pinned exact
@@ -50,13 +55,13 @@ manifests and run artifacts, both distributions, and isolated-install logs. The
 previous immutable receipt roots remain under `output/public-candidate/` and are
 superseded for publication.
 
-Next slice: commit Wave 4, then add the typed launch executor and migrate console
-and eval runners before deleting `just agent::run`, `roboclaws.cli.agent_run`,
-and positional lowering in Wave 5.
+Next slice: commit Wave 5, then move the active OpenAI Agents household runtime
+and reusable lifecycle/status helpers out of `scripts` into package owners in
+Wave 6.
 
-Next proof: focused typed-executor contract tests, exact retired-route and
-positional-lowering searches, migrated console/eval caller tests, and direct
-product launch proof through the canonical surface grammar.
+Next proof: exact active `scripts.*` import/runtime-identity inventory, focused
+package-runtime and eval-readiness tests, source-tree script-path absence search,
+and direct plus SDK product launch proof through the package owner.
 
 Stop condition: stop for an unexplained active non-test consumer of a deletion
 target, a required public/schema boundary beyond the approved modules, a

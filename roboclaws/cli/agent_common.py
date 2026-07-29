@@ -20,7 +20,12 @@ PRIVATE_DEPENDENCY_TRACE_REDACTION_KEYS = frozenset(
 OPTIONAL_WORLD_TRACE_REDACTION_KEYS = PRIVATE_DEPENDENCY_TRACE_REDACTION_KEYS | {"map_bundle"}
 
 
-def _exec_or_trace(cmd: Sequence[str], *, env: dict[str, str] | None = None) -> int:
+def _exec_or_trace(
+    cmd: Sequence[str],
+    *,
+    env: dict[str, str] | None = None,
+    trace_args: Sequence[str] | None = None,
+) -> int:
     if os.environ.get("ROBOCLAWS_JUST_TRACE") == "1":
         prefix = "cmd" if cmd and cmd[0] != "just" else "just"
         keys = (
@@ -28,7 +33,11 @@ def _exec_or_trace(cmd: Sequence[str], *, env: dict[str, str] | None = None) -> 
             if os.environ.get("ROBOCLAWS_LAUNCH_WORLD_ID") in {"agibot-g2/map-12", "b1-map12"}
             else PRIVATE_DEPENDENCY_TRACE_REDACTION_KEYS
         )
-        payload = _redact_trace_args(cmd if prefix == "cmd" else cmd[1:], keys=keys)
+        trace_cmd = trace_args if trace_args is not None else cmd
+        payload = _redact_trace_args(
+            trace_cmd if prefix == "cmd" else trace_cmd[1:],
+            keys=keys,
+        )
         print("\t".join([prefix, *payload]))
         return 0
     if env:

@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-import roboclaws.cli.agent_run as agent_run_module
+import roboclaws.launch.executor as executor_module
 from roboclaws.launch.backends import (
     cleanup_implementation_backend_ids,
     map_build_codex_implementation_backend_ids,
@@ -103,10 +103,10 @@ def test_molmospaces_worlds_expose_only_mujoco_while_b1_exposes_isaac() -> None:
     assert "b1_alignment_artifact=injected/alignment.json" in b1.overrides
     assert "b1_navigation_artifact=injected/navigation.json" in b1.overrides
     assert not any(item.startswith("b1_semantic_projection_artifact=") for item in b1.overrides)
-    assert "world=b1-map12" in b1.argv
-    assert "backend=isaaclab_subprocess" in b1.argv
-    assert "b1_alignment_artifact=injected/alignment.json" in b1.argv
-    assert "b1_navigation_artifact=injected/navigation.json" in b1.argv
+    assert "world=b1-map12" in b1.overrides
+    assert b1.implementation_backend == "isaaclab_subprocess"
+    assert "b1_alignment_artifact=injected/alignment.json" in b1.overrides
+    assert "b1_navigation_artifact=injected/navigation.json" in b1.overrides
 
 
 def test_b1_launch_accepts_explicit_robot_consumption_proof_artifacts() -> None:
@@ -133,10 +133,12 @@ def test_b1_launch_accepts_explicit_robot_consumption_proof_artifacts() -> None:
         "b1_navigation_artifact=output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json"
         in b1.overrides
     )
-    assert "b1_alignment_artifact=output/b1-map12/alignment/alignment_residuals.json" in b1.argv
+    assert (
+        "b1_alignment_artifact=output/b1-map12/alignment/alignment_residuals.json" in b1.overrides
+    )
     assert (
         "b1_navigation_artifact=output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json"
-        in b1.argv
+        in b1.overrides
     )
 
 
@@ -193,10 +195,7 @@ def test_cleanup_surface_exposes_setup_overrides_but_dispatches_private_count() 
 
     assert "scenario_setup=relocate-cleanup-related-objects" in plan.overrides
     assert "relocation_count=3" in plan.overrides
-    assert not any(item.startswith("generated_mess_count=") for item in plan.overrides)
-    assert "generated_mess_count=3" in plan.argv
-    assert "scenario_setup=relocate-cleanup-related-objects" not in plan.argv
-    assert "relocation_count=3" not in plan.argv
+    assert "generated_mess_count=3" in plan.overrides
     exported = export_env_from_overrides(plan.overrides)
     assert exported[ENVIRONMENT_SETUP_METADATA_ENV] == (
         '{"feeds_cleanup_scoring":true,"mode":"relocate-cleanup-related-objects",'
@@ -233,8 +232,7 @@ def test_household_non_cleanup_intents_default_to_baseline_setup() -> None:
     for plan in (map_build, open_ended):
         assert "scenario_setup=baseline" in plan.overrides
         assert not any(item.startswith("relocation_count=") for item in plan.overrides)
-        assert not any(item.startswith("generated_mess_count=") for item in plan.overrides)
-        assert "generated_mess_count=0" in plan.argv
+        assert "generated_mess_count=0" in plan.overrides
         assert (
             '"mode":"baseline"'
             in export_env_from_overrides(plan.overrides)[ENVIRONMENT_SETUP_METADATA_ENV]
@@ -248,7 +246,7 @@ def test_household_non_cleanup_intents_default_to_baseline_setup() -> None:
     )
     assert map_build.goal_contract.required_capabilities == map_build.required_capabilities
     assert open_ended.goal_contract.required_capabilities == open_ended.required_capabilities
-    assert "required_capability_profiles=household_world,household_episode" in map_build.argv
+    assert "required_capability_profiles=household_world,household_episode" in map_build.overrides
 
 
 def test_household_runner_exports_resolved_capability_profiles(
@@ -256,23 +254,29 @@ def test_household_runner_exports_resolved_capability_profiles(
 ) -> None:
     captured: dict[str, Any] = {}
 
-    def fake_exec(argv: list[str], *, env: dict[str, str] | None = None) -> int:
+    def fake_exec(
+        argv: list[str],
+        *,
+        env: dict[str, str] | None = None,
+        trace_args: list[str] | None = None,
+    ) -> int:
         captured["argv"] = argv
         captured["env"] = env
+        captured["trace_args"] = trace_args
         return 0
 
-    monkeypatch.setattr(agent_run_module, "_exec_or_trace", fake_exec)
-
-    result = agent_run_module.agent_run(
+    monkeypatch.setattr(executor_module, "_exec_or_trace", fake_exec)
+    plan = resolve_surface_launch(
         [
-            "household-world",
-            "openai-agents-sdk",
-            "world-public-labels",
-            "backend=molmospaces_subprocess",
-            "task_intent=open-ended",
-            "required_capability_profiles=household_world,household_manipulation,household_episode",
+            "surface=household-world",
+            "agent_engine=openai-agents-sdk",
+            "provider_profile=kimi-openai-chat",
+            "intent=open-ended",
+            "prompt=find something useful",
+            "evidence_lane=world-public-labels",
         ]
     )
+    result = executor_module.execute_launch_plan(plan)
 
     assert result == 0
     assert captured["env"]["ROBOCLAWS_REQUIRED_CAPABILITY_PROFILES"] == (

@@ -451,11 +451,11 @@ just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 b
 just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat prompt="find something useful to drink"
 ```
 
-Use `agent::run` and lower `molmo::*` recipes only for maintainer debugging or
-historical report reproduction:
+Use the canonical surface route for maintainer debugging and historical report
+reproduction:
 
 ```bash
-just agent::run household-world <agent-engine-or-private-driver> <evidence-lane> task_intent=cleanup
+just run::surface surface=household-world agent_engine=<engine> preset=cleanup evidence_lane=<lane>
 ```
 
 | Axis | Values | Meaning |

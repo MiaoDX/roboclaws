@@ -153,3 +153,30 @@ def test_legacy_molmospaces_ids_exist_only_in_rejection_code_and_test() -> None:
         "roboclaws/launch/scene_sampler.py",
         "tests/unit/launch/test_scene_sampler.py",
     }
+
+
+def test_retired_launch_dispatch_protocol_is_absent_from_current_source() -> None:
+    needles = ("agent::" + "run", "roboclaws.cli." + "agent_run", "plan." + "argv")
+    roots = (
+        REPO_ROOT / "README.md",
+        REPO_ROOT / "ARCHITECTURE.md",
+        REPO_ROOT / "docs" / "human",
+        REPO_ROOT / "docs" / "agents",
+        REPO_ROOT / "skills",
+        REPO_ROOT / "just",
+        REPO_ROOT / "roboclaws",
+        REPO_ROOT / "tests",
+        REPO_ROOT / "evals",
+        REPO_ROOT / "scripts",
+    )
+    hits: list[str] = []
+    for root in roots:
+        candidates = (root,) if root.is_file() else root.rglob("*")
+        for path in candidates:
+            if not path.is_file() or path.suffix not in {".json", ".md", ".py", ".toml"}:
+                continue
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            if any(needle in text for needle in needles):
+                hits.append(path.relative_to(REPO_ROOT).as_posix())
+
+    assert hits == []

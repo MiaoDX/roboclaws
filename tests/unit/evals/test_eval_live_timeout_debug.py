@@ -33,14 +33,14 @@ def test_live_surface_product_records_timeout_debug_snapshot(
 
         def __init__(
             self,
-            command: list[str],
+            plan: Any,
             *,
             stdout: Any = None,
             stderr: Any = None,
             **_kwargs: Any,
         ) -> None:
             popen_kwargs.update(_kwargs)
-            output_arg = next(item for item in command if item.startswith("output_dir="))
+            output_arg = next(item for item in plan.overrides if item.startswith("output_dir="))
             output_dir = Path(output_arg.removeprefix("output_dir="))
             run_dir = output_dir / "0615_0311" / "seed-7"
             run_dir.mkdir(parents=True, exist_ok=True)
@@ -82,7 +82,7 @@ def test_live_surface_product_records_timeout_debug_snapshot(
         def wait(self, timeout: float | None = None) -> int:
             return 143
 
-    monkeypatch.setattr(live_runtime.subprocess, "Popen", FakePopen)
+    monkeypatch.setattr(live_runtime, "spawn_launch_plan", FakePopen)
     monkeypatch.setattr(live_runtime.os, "killpg", lambda _pid, _signal: None)
     monkeypatch.setattr(live_runtime.time, "monotonic", fake_monotonic)
     monkeypatch.setattr(live_runtime.time, "sleep", fake_sleep)
@@ -104,7 +104,7 @@ def test_live_surface_product_records_timeout_debug_snapshot(
     assert exc_info.value.live_status["phase"] == "running-sdk"
     assert sleeps == [1.0, 1.0, 1.0, 1.0, 1.0]
     assert timeout_run_dir is not None
-    assert popen_kwargs["start_new_session"] is True
+    assert popen_kwargs["cwd"] == live_runtime.REPO_ROOT
     record = json.loads((tmp_path / "trial-0000" / "live_eval_command.json").read_text())
     assert record["returncode"] == "stall_timeout"
     assert record["timeout_kind"] == "stall_timeout"
@@ -222,12 +222,12 @@ def test_live_surface_product_records_wall_clock_budget_timeout(
 
         def __init__(
             self,
-            command: list[str],
+            plan: Any,
             *,
             stdout: Any = None,
             **_kwargs: Any,
         ) -> None:
-            output_arg = next(item for item in command if item.startswith("output_dir="))
+            output_arg = next(item for item in plan.overrides if item.startswith("output_dir="))
             output_dir = Path(output_arg.removeprefix("output_dir="))
             self.run_dir = output_dir / "0615_0312" / "seed-7"
             self.run_dir.mkdir(parents=True, exist_ok=True)
@@ -263,7 +263,7 @@ def test_live_surface_product_records_wall_clock_budget_timeout(
         def wait(self, timeout: float | None = None) -> int:
             return 143
 
-    monkeypatch.setattr(live_runtime.subprocess, "Popen", FakePopen)
+    monkeypatch.setattr(live_runtime, "spawn_launch_plan", FakePopen)
     monkeypatch.setattr(live_runtime.os, "killpg", lambda _pid, _signal: None)
     monkeypatch.setattr(live_runtime.time, "monotonic", fake_monotonic)
     monkeypatch.setattr(live_runtime.time, "sleep", fake_sleep)

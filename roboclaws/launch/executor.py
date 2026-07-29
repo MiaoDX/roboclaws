@@ -1,19 +1,21 @@
-"""agent::run dispatch for the maintainer Just facade."""
+"""Typed execution adapters for resolved public launch plans."""
 
 from __future__ import annotations
 
 import os
 import shlex
-from collections.abc import Sequence
+import signal
+from collections.abc import Callable, Sequence
+from pathlib import Path
+from typing import IO, Any
 
 from roboclaws.cli.agent_common import (
     _append_optional,
     _die,
     _exec_or_trace,
     _get,
-    _strip_prefixes,
 )
-from roboclaws.cli.agent_constants import AGENT_RUN_KEYS
+from roboclaws.launch.plans import LaunchPlan
 from roboclaws.launch.worlds import resolve_optional_world_dependencies
 
 HOUSEHOLD_DISPATCH_TARGET = "household-world"
@@ -23,48 +25,142 @@ HOUSEHOLD_PROFILES = {
     "camera-raw-fpv",
     "camera-grounded-labels",
 }
+SUPPORTED_OVERRIDE_KEYS = frozenset(
+    (
+        "agibot_map_artifact_dir agent_engine b1_alignment_artifact b1_navigation_artifact "
+        "b1_semantic_projection_artifact backend camera_labeler cleanup_object_count "
+        "cleanup_routine context_json driver evidence_lane environment_setup generated_mess_count "
+        "generated_mess_manifest_path generated_mess_object_ids goal_contract_json "
+        "goal_contract_path "
+        "host intent isaac_scene_usd_path map_build map_bundle map_mode max_wall_seconds "
+        "min_generated_mess_count mode model molmospaces_python operator_messages_path "
+        "operator_resume_requests_path operator_session_context_json output_dir policy port preset "
+        "profile prompt provider_profile real_movement_enabled record_robot_views rehearsal_mode "
+        "relocation_count report required_capability_profiles robot_name robot_views run_dir "
+        "run_preset runner_python runner_script runtime runtime_map_prior scenario_setup "
+        "scene_index scene_source "
+        "seed seeds skill_name steps surface task task_intent task_preset task_surface timeout_s "
+        "visual_grounding visual_grounding_timeout visual_grounding_timeout_s wall_budget "
+        "waypoint_id world"
+    ).split()
+)
 
 
-def agent_run(args: Sequence[str]) -> int:
-    if len(args) < 2:
-        _die("agent run requires dispatch_target and agent_engine")
+def validate_named_overrides(overrides: tuple[str, ...]) -> None:
+    """Reject malformed or unknown launch inputs before adapter selection."""
 
-    dispatch_target = _strip_prefixes(args[0], "dispatch_target=", "task=")
-    agent_engine = _strip_prefixes(args[1], "agent_engine=", "driver=")
-    mode = args[2] if len(args) > 2 else ""
-    raw_overrides = list(args[3:])
+    for override in overrides:
+        key, separator, _value = override.partition("=")
+        if not separator or not key:
+            raise ValueError(f"launch argument {override!r} is not key=value")
+        if key not in SUPPORTED_OVERRIDE_KEYS:
+            raise ValueError(f"unsupported launch override {key!r}")
 
-    dispatch_surface, dispatch_intent = _dispatch_parts(dispatch_target, raw_overrides)
-    driver = _driver_for(agent_engine, mode, dispatch_intent)
-    mode, raw_overrides = _normalize_mode(mode, raw_overrides)
+
+PlanAdapter = Callable[[LaunchPlan, list[str], dict[str, str]], int]
+
+
+class LaunchProcess:
+    """Minimal process handle for a forked typed-plan execution."""
+
+    def __init__(self, pid: int) -> None:
+        self.pid = pid
+        self.returncode: int | None = None
+
+    def poll(self) -> int | None:
+        if self.returncode is not None:
+            return self.returncode
+        waited_pid, status = os.waitpid(self.pid, os.WNOHANG)
+        if waited_pid:
+            self.returncode = os.waitstatus_to_exitcode(status)
+        return self.returncode
+
+    def wait(self, timeout: float | None = None) -> int:
+        import time
+
+        deadline = None if timeout is None else time.monotonic() + timeout
+        while self.poll() is None:
+            if deadline is not None and time.monotonic() >= deadline:
+                import subprocess
+
+                raise subprocess.TimeoutExpired("typed launch plan", timeout)
+            time.sleep(0.05)
+        return int(self.returncode)
+
+    def terminate(self) -> None:
+        if self.poll() is None:
+            os.killpg(self.pid, signal.SIGTERM)
+
+
+def spawn_launch_plan(
+    plan: LaunchPlan,
+    *,
+    cwd: Path,
+    env: dict[str, str],
+    stdout: IO[Any],
+    stderr: IO[Any],
+) -> LaunchProcess:
+    """Fork a child that executes an already resolved launch plan."""
+
+    pid = os.fork()
+    if pid:
+        return LaunchProcess(pid)
+    try:
+        os.setsid()
+        os.chdir(cwd)
+        os.environ.clear()
+        os.environ.update(env)
+        os.dup2(stdout.fileno(), 1)
+        os.dup2(stderr.fileno(), 2)
+        raise SystemExit(execute_launch_plan(plan))
+    except BaseException as exc:  # noqa: BLE001 - child must terminate without unwinding parent.
+        code = int(exc.code) if isinstance(exc, SystemExit) and isinstance(exc.code, int) else 1
+        os._exit(code)
+
+
+def execute_launch_plan(plan: LaunchPlan) -> int:
+    """Execute one already validated launch plan through its typed adapter."""
+
+    raw_overrides = list(plan.overrides)
     kv = _parse_overrides(raw_overrides)
+    kv["backend"] = plan.implementation_backend
+    adapters: dict[str, PlanAdapter] = {
+        "household-world": _execute_household_plan,
+        "planner-proof": _execute_planner_plan,
+    }
+    try:
+        adapter = adapters[plan.surface]
+    except KeyError:
+        _die(f"unsupported launch surface {plan.surface!r}")
+    return adapter(plan, raw_overrides, kv)
 
-    if dispatch_surface == "household-world":
-        profile = mode or _get(kv, "profile", _get(kv, "evidence_lane", "world-public-labels"))
-        if profile not in HOUSEHOLD_PROFILES:
-            _die(
-                f"unsupported household-world evidence_lane '{profile}' "
-                "(expected smoke|world-public-labels|camera-grounded-labels|camera-raw-fpv)"
-            )
-    else:
-        report = mode or "visual"
-        if report not in {"visual", "minimal"}:
-            _die(f"unsupported report '{report}' (expected visual|minimal)")
 
-    if dispatch_surface == "household-world":
-        return _household_run(
-            dispatch_surface=dispatch_surface,
-            dispatch_intent=dispatch_intent,
-            agent_engine=agent_engine,
-            driver=driver,
-            profile=profile,
-            raw_overrides=raw_overrides,
-            kv=kv,
-        )
+def _execute_household_plan(
+    plan: LaunchPlan,
+    raw_overrides: list[str],
+    kv: dict[str, str],
+) -> int:
+    profile = plan.profile or plan.evidence_mode
+    return _household_run(
+        dispatch_surface=plan.surface,
+        dispatch_intent=plan.intent,
+        agent_engine=plan.agent_engine,
+        driver=plan.dispatch_runner,
+        profile=profile,
+        raw_overrides=raw_overrides,
+        kv=kv,
+    )
+
+
+def _execute_planner_plan(
+    plan: LaunchPlan,
+    _raw_overrides: list[str],
+    kv: dict[str, str],
+) -> int:
     return _planner_proof_run(
-        dispatch_surface=dispatch_surface,
-        dispatch_intent=dispatch_intent,
-        driver=driver,
+        dispatch_surface=plan.surface,
+        dispatch_intent=plan.intent,
+        driver=plan.dispatch_runner,
         kv=kv,
     )
 
@@ -79,10 +175,8 @@ def _household_run(
     raw_overrides: list[str],
     kv: dict[str, str],
 ) -> int:
-    _validate_household_route(dispatch_surface, dispatch_intent, driver)
     backend = _get(kv, "backend", "auto")
     world_id = _get(kv, "world", "")
-    _validate_household_backend(dispatch_intent, agent_engine, driver, backend, world_id)
     try:
         kv = {
             **kv,
@@ -155,58 +249,6 @@ def _household_run(
     )
 
 
-def _validate_household_route(dispatch_surface: str, dispatch_intent: str, driver: str) -> None:
-    allowed = {
-        ("map-build", "direct"),
-        ("map-build", "openai-agents-live"),
-        ("cleanup", "direct"),
-        ("cleanup", "mcp-smoke"),
-        ("cleanup", "openclaw-smoke"),
-        ("cleanup", "openai-agents-live"),
-        ("cleanup", "openclaw"),
-        ("open-ended", "direct"),
-        ("open-ended", "mcp-smoke"),
-        ("open-ended", "openclaw-smoke"),
-        ("open-ended", "openai-agents-live"),
-        ("open-ended", "openclaw"),
-    }
-    if (dispatch_intent, driver) not in allowed:
-        _die(
-            "unsupported surface/intent/driver route "
-            f"'{dispatch_surface}.{dispatch_intent}:{driver}'"
-        )
-    if dispatch_intent == "map-build" and driver not in {"direct", "openai-agents-live"}:
-        _die(
-            "surface=household-world task_intent=map-build currently supports "
-            "direct-runner or openai-agents-sdk only"
-        )
-
-
-def _validate_household_backend(
-    dispatch_intent: str,
-    agent_engine: str,
-    driver: str,
-    backend: str,
-    world_id: str,
-) -> None:
-    if dispatch_intent == "map-build":
-        allowed_backends = {"auto", "molmospaces_subprocess", "isaaclab_subprocess", "agibot_gdk"}
-        if backend == "agibot_molmospaces_sim":
-            if driver != "direct":
-                _die("backend=agibot_molmospaces_sim currently supports direct driver only")
-        elif backend not in allowed_backends:
-            _die(
-                f"surface=household-world task_intent=map-build {agent_engine} "
-                f"unsupported backend '{backend}' "
-                "(expected auto|molmospaces_subprocess|isaaclab_subprocess|agibot_gdk)"
-            )
-    if backend == "isaaclab_subprocess" and world_id != "b1-map12":
-        _die(
-            "backend=isaaclab_subprocess is scoped to world=b1-map12; "
-            "MolmoSpaces household routes use backend=molmospaces_subprocess"
-        )
-
-
 def _resolved_task_intent(dispatch_intent: str, kv: dict[str, str]) -> str:
     task_intent = _get(kv, "task_intent", os.environ.get("ROBOCLAWS_TASK_INTENT", ""))
     return task_intent or dispatch_intent
@@ -259,7 +301,7 @@ def _molmo_household_run(
     visual_grounding_timeout_s: str,
     resolved_task_intent: str,
 ) -> int:
-    impl_driver = {"openclaw": "openclaw-live"}.get(driver, driver)
+    impl_driver = driver
     generated_mess_count = _get(kv, "generated_mess_count", "10")
     host = _get(kv, "host", "127.0.0.1")
     port = _get(kv, "port", os.environ.get("ROBOCLAWS_EVAL_HARNESS_MCP_PORT", "18788"))
@@ -281,40 +323,37 @@ def _molmo_household_run(
     scene_index = _get(kv, "scene_index", "0")
     isaac_scene_usd_path = _get(kv, "isaac_scene_usd_path", "")
 
-    molmo_args = [
-        impl_driver,
-        profile,
-        seeds,
-        output_dir,
-        prompt,
-        generated_mess_count,
-        host,
-        port,
-        map_bundle,
-        cleanup_routine,
-        robot_views,
-        camera_labeler,
-        visual_grounding_timeout_s,
-        map_build,
-        runtime_map_prior,
-        backend,
-        scene_source,
-        scene_index,
-        isaac_scene_usd_path,
-        min_generated_mess_count,
-        generated_mess_object_ids,
-        dispatch_surface,
-        resolved_task_intent,
-        operator_messages_path,
-        b1_alignment_artifact,
-        b1_navigation_artifact,
-    ]
     run_dir_override = _get(kv, "run_dir", "")
-    if run_dir_override:
-        molmo_args.extend(["", "", "", run_dir_override])
-
     skill_name = _skill_name(dispatch_intent, resolved_task_intent, kv)
     env = {
+        "ROBOCLAWS_EXEC_DRIVER": impl_driver,
+        "ROBOCLAWS_EXEC_PROFILE": profile,
+        "ROBOCLAWS_EXEC_SEEDS": seeds,
+        "ROBOCLAWS_EXEC_OUTPUT_DIR": output_dir,
+        "ROBOCLAWS_EXEC_TASK": prompt,
+        "ROBOCLAWS_EXEC_GENERATED_MESS_COUNT": generated_mess_count,
+        "ROBOCLAWS_EXEC_HOST": host,
+        "ROBOCLAWS_EXEC_PORT": port,
+        "ROBOCLAWS_EXEC_MAP_BUNDLE": map_bundle,
+        "ROBOCLAWS_EXEC_CLEANUP_ROUTINE": cleanup_routine,
+        "ROBOCLAWS_EXEC_ROBOT_VIEWS": robot_views,
+        "ROBOCLAWS_EXEC_CAMERA_LABELER": camera_labeler,
+        "ROBOCLAWS_EXEC_VISUAL_GROUNDING_TIMEOUT_S": visual_grounding_timeout_s,
+        "ROBOCLAWS_EXEC_MAP_BUILD": map_build,
+        "ROBOCLAWS_EXEC_RUNTIME_MAP_PRIOR": runtime_map_prior,
+        "ROBOCLAWS_EXEC_BACKEND": backend,
+        "ROBOCLAWS_EXEC_SCENE_SOURCE": scene_source,
+        "ROBOCLAWS_EXEC_SCENE_INDEX": scene_index,
+        "ROBOCLAWS_EXEC_ISAAC_SCENE_USD_PATH": isaac_scene_usd_path,
+        "ROBOCLAWS_EXEC_MIN_GENERATED_MESS_COUNT": min_generated_mess_count,
+        "ROBOCLAWS_EXEC_GENERATED_MESS_OBJECT_IDS": generated_mess_object_ids,
+        "ROBOCLAWS_EXEC_TASK_SURFACE": dispatch_surface,
+        "ROBOCLAWS_EXEC_TASK_INTENT": resolved_task_intent,
+        "ROBOCLAWS_EXEC_OPERATOR_MESSAGES_PATH": operator_messages_path,
+        "ROBOCLAWS_EXEC_B1_ALIGNMENT_ARTIFACT": b1_alignment_artifact,
+        "ROBOCLAWS_EXEC_B1_NAVIGATION_ARTIFACT": b1_navigation_artifact,
+        "ROBOCLAWS_EXEC_SKILL_NAME": skill_name,
+        "ROBOCLAWS_EXEC_RUN_DIR": run_dir_override,
         "ROBOCLAWS_GOAL_CONTRACT_JSON": _get(
             kv,
             "goal_contract_json",
@@ -357,12 +396,20 @@ def _molmo_household_run(
         raw_overrides=raw_overrides,
         kv=kv,
     )
-    command_args = molmo_args
-    if os.environ.get("ROBOCLAWS_JUST_TRACE") == "1" and world_id == "b1-map12":
-        command_args = list(molmo_args)
-        for index in (8, 18, 24, 25):
-            command_args[index] = "<configured>"
-    return _exec_or_trace(["just", "molmo::household-world-impl", *command_args], env=env)
+    trace_args = [
+        "just",
+        "molmo::household-world-impl",
+        *(
+            f"{key.removeprefix('ROBOCLAWS_EXEC_').lower()}={value}"
+            for key, value in env.items()
+            if key.startswith("ROBOCLAWS_EXEC_")
+        ),
+    ]
+    return _exec_or_trace(
+        ["just", "molmo::household-world-impl"],
+        env=env,
+        trace_args=trace_args,
+    )
 
 
 def _agibot_sim_run(
@@ -679,50 +726,6 @@ def _planner_proof_run(
     _die(f"unsupported molmo-planner-proof mode '{mode}' (expected dry-run|execute-rerun)")
 
 
-def _dispatch_parts(dispatch_target: str, raw_overrides: list[str]) -> tuple[str, str]:
-    if dispatch_target == HOUSEHOLD_DISPATCH_TARGET:
-        task_intent = ""
-        for override in raw_overrides:
-            if override.startswith(("task_intent=", "--task-intent=", "--task_intent=")):
-                task_intent = override.split("=", 1)[1]
-                break
-        task_intent = task_intent or os.environ.get("ROBOCLAWS_TASK_INTENT", "") or "cleanup"
-        return HOUSEHOLD_DISPATCH_TARGET, task_intent
-    if dispatch_target == "planner-proof.planner-proof":
-        return "planner-proof", "planner-proof"
-    if dispatch_target.startswith("household-world."):
-        _die(
-            f"unsupported household dispatch target '{dispatch_target}'; "
-            "use dispatch_target=household-world with task_intent=cleanup|map-build|open-ended"
-        )
-    if "." in dispatch_target:
-        return tuple(dispatch_target.split(".", 1))  # type: ignore[return-value]
-    return dispatch_target, dispatch_target
-
-
-def _driver_for(agent_engine: str, mode: str, dispatch_intent: str) -> str:
-    if agent_engine in {"codex-cli", "claude-code"}:
-        _die(f"unsupported agent_engine '{agent_engine}'; expected direct-runner|openai-agents-sdk")
-    if agent_engine == "openai-agents-sdk":
-        return "openai-agents-live"
-    if agent_engine == "direct-runner":
-        if mode == "smoke" and dispatch_intent in {"cleanup", "open-ended"}:
-            return "mcp-smoke"
-        return "direct"
-    if agent_engine == "openclaw-gateway":
-        return "openclaw"
-    return agent_engine
-
-
-def _normalize_mode(mode: str, raw_overrides: list[str]) -> tuple[str, list[str]]:
-    for prefix in ("report=", "profile=", "evidence_lane="):
-        if mode.startswith(prefix):
-            return mode.removeprefix(prefix), raw_overrides
-    if "=" in mode:
-        return "", [mode, *raw_overrides]
-    return mode, raw_overrides
-
-
 def _parse_overrides(raw_overrides: Sequence[str]) -> dict[str, str]:
     kv: dict[str, str] = {}
     for override in raw_overrides:
@@ -732,8 +735,6 @@ def _parse_overrides(raw_overrides: Sequence[str]) -> dict[str, str]:
             _die(f"override '{override}' is not key=value")
         key, value = override.split("=", 1)
         key = key.removeprefix("--").replace("-", "_")
-        if key not in AGENT_RUN_KEYS:
-            _die(f"unsupported override key '{key}'")
         kv[key] = value
     return kv
 
@@ -775,7 +776,6 @@ def _export_rerun_command(
             "openai-agents-live": "agent_engine=openai-agents-sdk",
             "direct": "agent_engine=direct-runner",
             "mcp-smoke": "agent_engine=direct-runner",
-            "openclaw": "agent_engine=openclaw-gateway",
         }.get(driver, f"agent_engine={driver}")
     )
     if dispatch_surface == "household-world":

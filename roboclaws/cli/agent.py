@@ -6,7 +6,6 @@ import sys
 from collections.abc import Sequence
 
 from roboclaws.cli.agent_common import _die, _exec_or_trace, _strip_prefixes
-from roboclaws.cli.agent_run import agent_run
 
 VERIFY_TARGETS = {
     "static",
@@ -45,10 +44,8 @@ HARNESS_TARGETS = {
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     if not args:
-        _die("expected agent subcommand: run | verify | harness | mcp | gateway")
+        _die("expected agent subcommand: verify | harness | mcp | gateway")
     command, rest = args[0], args[1:]
-    if command == "run":
-        return agent_run(rest)
     if command == "verify":
         return _dispatch_named_target(
             rest,

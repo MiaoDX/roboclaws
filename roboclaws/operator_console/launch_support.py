@@ -8,11 +8,13 @@ from pathlib import Path
 from typing import Any, Callable
 
 from roboclaws.agents.provider_registry import normalize_provider_route, provider_route_spec
+from roboclaws.launch.catalog import LaunchError, resolve_surface_launch
 from roboclaws.launch.environment_setup import (
     ENVIRONMENT_SETUP_BASELINE,
     ENVIRONMENT_SETUP_OPTIONS,
     RELOCATION_SETUP_OPTIONS,
 )
+from roboclaws.launch.plans import LaunchPlan
 from roboclaws.operator_console.routes import DEFAULT_PROMPTS, ConsoleLaunchSelection
 
 ALLOWED_ENV_OVERRIDES = {"ROBOCLAWS_PROVIDER_PROFILE"}
@@ -43,6 +45,21 @@ ALLOWED_ROUTE_OVERRIDES = {
     "operator_session_context_json",
     "runtime_map_prior",
 }
+
+
+def resolve_console_launch_plan(
+    argv: list[str],
+    *,
+    error_type: type[ValueError],
+) -> LaunchPlan:
+    """Resolve a console preview command once before process creation."""
+
+    try:
+        return resolve_surface_launch(argv[2:])
+    except LaunchError as exc:
+        raise error_type(str(exc)) from exc
+
+
 RunCommand = Callable[..., Any]
 
 

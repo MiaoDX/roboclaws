@@ -53,7 +53,6 @@ user-scoped cleanup request.
 `agent::*` is the compact maintainer facade:
 
 ```bash
-just agent::run <dispatch-target> <agent-engine> [evidence-lane|mode] [key=value ...]
 just agent::verify <target> [args ...]
 just agent::harness <target> [args ...]
 just agent::eval recommend|execute|suite=<suite>|promote-regression ...

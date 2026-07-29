@@ -44,7 +44,6 @@ HOUSEHOLD_TASK_SPECS: dict[str, TaskSurfaceSpec] = {
             "direct",
             "mcp-smoke",
             "openai-agents-live",
-            "openclaw",
         ),
         supported_intents=("cleanup", "map-build", "open-ended"),
         default_intent="open-ended",

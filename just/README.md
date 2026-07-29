@@ -144,7 +144,7 @@ Provider/model facts are centralized in
 `docs/human/model-matrix.md`.
 
 `codex-cli` and `claude-code` are retired active engines. Current
-`run::surface`, `agent::run`, eval-harness, and operator-console routes reject
+`run::surface`, eval-harness, and operator-console routes reject
 them instead of launching Docker wrappers or hidden fallbacks. The old
 Docker-backed Codex/Claude helper route has been removed; use
 `agent_engine=openai-agents-sdk` for live provider runs.
@@ -222,18 +222,16 @@ Detailed sidecar dependency and corpus commands live in
 
 ## Maintainer Dispatch
 
-Use `agent::*` only when you are intentionally bypassing the human task grammar:
+Use `agent::*` for maintainer verification and lifecycle controls:
 
 ```bash
-just agent::run <dispatch-target> <agent-engine> [report|evidence-lane] [key=value ...]
 just agent::verify <target> [args ...]
 just agent::harness <target> [args ...]
 just agent::mcp up
 ```
 
-`agent::run` is a private maintainer dispatcher. Public callers should use
-`run::surface`; the dispatcher accepts the surface-level `household-world`
-target plus explicit `task_intent` and `task_preset` launch context.
+`run::surface` resolves the public axes once and sends the typed plan directly
+to the package-owned launch executor.
 
 The required PR gate is reproducible locally with
 `just agent::verify ci-required`. Use `just agent::verify mock` for a faster
