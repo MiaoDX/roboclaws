@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-07-28
+Last updated: 2026-07-29
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -10,35 +10,25 @@ leave a link.
 
 ## Current Focus
 
-Post-review forward-only architecture cleanup is active under
-`docs/plans/2026-07-28-forward-only-post-review-cleanup.md`. Five independent
-reviews agreed that the product model is clear but found current-source drift,
-retired provider code, product/eval dependency inversion, compatibility aliases,
-and duplicated launch/strategy/runtime ownership. The accepted planning premise
-is that backward compatibility is not required: migrate current callers and
-delete the obsolete path in the same cleanup wave.
+The post-review forward-only architecture cleanup is implemented and verified
+under `docs/plans/2026-07-28-forward-only-post-review-cleanup.md`. Current
+callers now use one source-aware world-ID contract, one typed launch executor,
+package-owned live household runtime, one household Skill strategy owner, and
+direct projection owners. Retired direct-provider code, compatibility aliases,
+positional launch lowering, product-to-eval imports, and installable eval CLI
+aliases are gone.
 
-Independent Codex and MiMo Responses provider cells are restored. The completed
-implementation contract is
-`docs/plans/2026-07-27-restore-codex-mimo-responses-cells.md`.
-
-The public runtime now has exactly four explicit OpenAI Agents SDK provider
+The public runtime has exactly four explicit OpenAI Agents SDK provider
 profiles: `codex-responses`, `mimo-responses`, `minimax-responses`, and
-`kimi-openai-chat`. Codex and MiMo share the standard Responses implementation
-but own separate local endpoint, key, and request-model triples. Tracked source
-and emitted artifacts expose only public profile/model labels.
+`kimi-openai-chat`. All four provider health probes and fixed-prior consumer
+rows pass. The Kimi open-task and cleanup smoke rows also pass. The accepted
+six-row live matrix recorded zero provider failures, privacy leaks, and
+trajectory violations; Kimi's two repaired rows stayed within the approved
+single-rerun envelope.
 
-Codex and MiMo provider health and their two-sample fixed-prior consumer suites
-pass. The Codex product run completed 97 model requests across open-ended and
-cleanup samples with zero provider failures, privacy leaks, or trajectory
-violations.
-
-The previous sanitized candidate carries this four-profile contract as one root
-commit. Its public-surface, secret, internal-identifier, clean-room install,
-full deterministic test, direct-runner product, artifact, package, and isolated
-wheel-install gates pass, but it is now superseded for publication. Refresh the
-candidate from the final verified cleanup source rather than publishing the
-existing candidate.
+The previous sanitized candidate is superseded for publication. The refreshed
+candidate built from the final cleanup source is the current publication-review
+artifact; publication remains a separate human decision.
 
 The active product shape is:
 
@@ -73,10 +63,8 @@ providers.
 
 ## Next Action
 
-Execute the bounded cleanup waves in
-`docs/plans/2026-07-28-forward-only-post-review-cleanup.md`, rerun deterministic
-and required live proof, and generate a new immutable candidate. Publication
-remains unauthorized.
+Review the refreshed immutable candidate receipt and decide separately whether
+to publish it. Publication remains unauthorized by the cleanup plan.
 
 ## Current Blockers
 

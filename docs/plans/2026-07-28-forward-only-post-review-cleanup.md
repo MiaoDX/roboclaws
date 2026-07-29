@@ -1,8 +1,8 @@
 # Forward-Only Post-Review Architecture Cleanup
 
-**Status:** Approved; implementation active
+**Status:** Active; candidate replay pending
 **Created:** 2026-07-28
-**Last reviewed:** 2026-07-28
+**Last reviewed:** 2026-07-29
 **Current implementation contract:** Remove obsolete and duplicate active-code
 surfaces without compatibility shims, restore one owner per current contract,
 and preserve the supported household-world and planner-proof behavior through
@@ -16,7 +16,8 @@ cleanup campaign saturated at Slice 42.
 
 ## Plan Ledger
 
-- Plan status: ACTIVE; implementation authorized by the 2026-07-29 goal invocation.
+- Plan status: ACTIVE; implementation and required live proof are complete,
+  with only the frozen public-candidate replay and closeout remaining.
 - Source: five independent 2026-07-28 architecture/entropy reviews and a
   follow-up evidence review of their findings.
 - Review sessions: `019fa800-db8f-7fa3-8b75-a5d1f070eec3`,
@@ -38,6 +39,20 @@ cleanup campaign saturated at Slice 42.
   implementation commit.
 - The existing candidate is superseded for publication. Its immutable evidence
   remains unchanged; Wave 9 must build a new candidate from final source.
+- Final recommendation:
+  `output/eval-harness/20260729T080334Z/eval_harness.json` selects the same 23
+  source-derived rows after the last repairs. The approved live execution
+  remains the six-row scoped manifest at
+  `output/eval-harness/20260729T041434Z/final/scoped_execution_manifest.json`;
+  session-live is explicitly excluded by the locked live envelope.
+- Required live proof: all four fixed-prior provider rows plus the Kimi
+  open-task and cleanup rows passed. Kimi fixed-prior and cleanup each used the
+  single permitted repaired rerun; all other rows passed on attempt one. The
+  accepted results contain zero provider failures, privacy leaks, and
+  trajectory violations.
+- Source reduction: relative to the approved plan commit, tracked cleanup
+  source is net more than 3,700 lines smaller and the Python quality baseline
+  did not grow.
 
 ## Preflight Contract
 
@@ -600,24 +615,24 @@ completion.
 
 ## Completion Checklist
 
-- [ ] Current docs contain no broken SDK example or nonexistent owner path.
-- [ ] Explicitly terminal capsules are absent from `docs/status/active/` without
+- [x] Current docs contain no broken SDK example or nonexistent owner path.
+- [x] Explicitly terminal capsules are absent from `docs/status/active/` without
       deleting active/blocked/ambiguous work; `CONTEXT.md` and the empty pytest
       regression surface are gone.
-- [ ] Retired direct-provider code, metadata, extras, tests, and dependencies
+- [x] Retired direct-provider code, metadata, extras, tests, and dependencies
       are gone.
-- [ ] Product code does not import eval; Git checkout, sdist, and wheel scopes
+- [x] Product code does not import eval; Git checkout, sdist, and wheel scopes
       are explicit and tested.
-- [ ] Legacy `molmospaces/val_*` world IDs are rejected and absent from current
+- [x] Legacy `molmospaces/val_*` world IDs are rejected and absent from current
       callers.
-- [ ] Public launch resolution lowers once through a typed executor; private
+- [x] Public launch resolution lowers once through a typed executor; private
       string/positional dispatch is gone.
-- [ ] Product/eval runtime code is imported from `roboclaws`, not `scripts`.
-- [ ] Generic household strategy has one Skill owner; prompt and MCP response
+- [x] Product/eval runtime code is imported from `roboclaws`, not `scripts`.
+- [x] Generic household strategy has one Skill owner; prompt and MCP response
       responsibilities are narrow and tested.
-- [ ] Household projection helpers have one direct owner without private facade
+- [x] Household projection helpers have one direct owner without private facade
       chains.
-- [ ] Source size/owner count is net lower, no compatibility layer was added,
+- [x] Source size/owner count is net lower, no compatibility layer was added,
       and the Python quality baseline did not grow.
 - [ ] Full deterministic, product, package, eval, live, privacy, and candidate
       gates pass.

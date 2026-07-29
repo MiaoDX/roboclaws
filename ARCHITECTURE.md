@@ -390,7 +390,7 @@ Every serious run should produce reviewable evidence:
 - `report.html` for human review.
 - Optional planner-proof bundles when cleanup substeps are checked against
   local RBY1M/CuRobo proof.
-- Future eval-suite outputs under `output/evals/<suite>/<stamp>/`, including
+- Eval-suite outputs under `output/evals/<suite>/<stamp>/`, including
   `eval_results.json` and an eval report that links back to underlying product
   run artifacts.
 

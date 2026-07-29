@@ -20,10 +20,13 @@ provider User-Agent compatibility rules remain explicit. Codex and MiMo are
 conservative, independent cells with text-only catalog capability, unknown
 image transport, and no alias, pricing, or endpoint default. Codex uses a thin
 transport adapter for ephemeral request metadata and omits the unsupported
-default `truncation` setting; those details never enter artifacts. MiMo passes
-provider health and the two-sample fixed-prior consumer suite. Codex health and
-its two-sample fixed-prior consumer suite also pass, with zero provider
-failures, privacy leaks, or trajectory violations.
+default `truncation` setting; those details never enter artifacts.
+
+All four profiles pass provider health and the same two-sample fixed-prior
+consumer suite. The representative Kimi open-task and cleanup smoke rows also
+pass. The accepted matrix recorded no provider failures, privacy leaks, or
+trajectory violations; provider-reported dollar cost was unavailable, while
+usage data remains available where each provider exposes it.
 
 Provider secrets and endpoint/request-model values remain in the gitignored
 `.env`; readiness, benchmark, console, and run artifacts expose only public
