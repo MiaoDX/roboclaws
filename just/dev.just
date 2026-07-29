@@ -5,7 +5,6 @@
 #                        pre-commit with FORCE_TESTS=1.
 #   - test-unit        : fast isolated public-API behavior tests.
 #   - test-contract    : public schema/tool/report/recipe compatibility tests.
-#   - test-regression  : known-bug and artifact-regression coverage.
 #   - test-integration : what the post-merge hook runs in background
 #                        (Docker-gated tests + anything touching a real
 #                        model provider).
@@ -106,10 +105,6 @@ test kind="all":
         ROBOCLAWS_PYTEST_CLEAR_PROVIDER_ENV=1 {{standalone_pytest}} -m contract -q --durations=5
         ;;
 
-      regression)
-        ROBOCLAWS_PYTEST_CLEAR_PROVIDER_ENV=1 {{standalone_pytest}} -m regression -q --durations=5
-        ;;
-
       integration)
         bash scripts/dev/network_status.sh --assert-off-work "OpenClaw integration tests"
         {{standalone_pytest}} -m integration -q --durations=10
@@ -137,7 +132,7 @@ test kind="all":
         ;;
 
       *)
-        echo "error: unknown test kind '{{kind}}' (expected fast|unit|contract|regression|integration|all)" >&2
+        echo "error: unknown test kind '{{kind}}' (expected fast|unit|contract|integration|all)" >&2
         exit 1
         ;;
     esac

@@ -1,6 +1,6 @@
 # Forward-Only Post-Review Architecture Cleanup
 
-**Status:** Proposed
+**Status:** Approved; implementation active
 **Created:** 2026-07-28
 **Last reviewed:** 2026-07-28
 **Current implementation contract:** Remove obsolete and duplicate active-code
@@ -16,7 +16,7 @@ cleanup campaign saturated at Slice 42.
 
 ## Plan Ledger
 
-- Plan status: PROPOSED; implementation is not yet authorized.
+- Plan status: ACTIVE; implementation authorized by the 2026-07-29 goal invocation.
 - Source: five independent 2026-07-28 architecture/entropy reviews and a
   follow-up evidence review of their findings.
 - Review sessions: `019fa800-db8f-7fa3-8b75-a5d1f070eec3`,
@@ -32,7 +32,12 @@ cleanup campaign saturated at Slice 42.
 - Publication decision: the existing candidate remains evidence for the
   completed provider work but must not be published after this plan starts.
   Refresh and re-review a new candidate after all required waves and gates pass.
-- No implementation commits belong to this plan until the preflight is approved.
+- Wave 0 baseline: `output/eval-harness/20260729T014637Z/eval_harness.json`
+  selected 23 required rows. The candidate recipe and receipt map are frozen in
+  `docs/status/active/forward-only-post-review-cleanup.md` before the first
+  implementation commit.
+- The existing candidate is superseded for publication. Its immutable evidence
+  remains unchanged; Wave 9 must build a new candidate from final source.
 
 ## Preflight Contract
 

@@ -337,7 +337,7 @@ output/agibot/map-build-hardware/<stamp>/seed-7/
 ## HTML control console
 
 可以和 HTML control console 结合。console 仍然走同一个 public selection：
-`surface=household-world world=agibot-g2/map-12 backend=agibot-gdk preset=map-build agent_engine=openai-agents-sdk evidence_lane=camera-grounded-labels`。
+`surface=household-world world=agibot-g2/map-12 backend=agibot-gdk preset=map-build agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=camera-grounded-labels`。
 
 启动 console：
 

@@ -91,7 +91,6 @@ markers = [
     "unit: fast isolated behavior tests through public module APIs.",
     "contract: public schema, CLI, MCP tool, replay, report, and artifact compatibility tests.",
     "integration: requires Docker (pinned Gateway image) or real model-provider API calls. The pre-commit hook excludes these; run them post-merge via `just dev::test-integration` or plain `pytest` to run everything.",
-    "regression: known-bug or high-level artifact regression coverage.",
     "local: requires local GPU, paid API key, real simulator, or real Gateway.",
     "slow: CI-safe but expensive enough to exclude from tight feedback loops.",
 ]

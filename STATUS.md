@@ -10,7 +10,7 @@ leave a link.
 
 ## Current Focus
 
-Post-review forward-only architecture cleanup is proposed in
+Post-review forward-only architecture cleanup is active under
 `docs/plans/2026-07-28-forward-only-post-review-cleanup.md`. Five independent
 reviews agreed that the product model is clear but found current-source drift,
 retired provider code, product/eval dependency inversion, compatibility aliases,
@@ -33,12 +33,12 @@ pass. The Codex product run completed 97 model requests across open-ended and
 cleanup samples with zero provider failures, privacy leaks, or trajectory
 violations.
 
-The current sanitized candidate carries this four-profile contract as one root
+The previous sanitized candidate carries this four-profile contract as one root
 commit. Its public-surface, secret, internal-identifier, clean-room install,
 full deterministic test, direct-runner product, artifact, package, and isolated
-wheel-install gates pass, but publication is paused while the cleanup plan is
-reviewed. If implementation starts, refresh the candidate from the final
-verified cleanup source rather than publishing the existing candidate.
+wheel-install gates pass, but it is now superseded for publication. Refresh the
+candidate from the final verified cleanup source rather than publishing the
+existing candidate.
 
 The active product shape is:
 
@@ -73,10 +73,10 @@ providers.
 
 ## Next Action
 
-Review and approve or revise
-`docs/plans/2026-07-28-forward-only-post-review-cleanup.md`. After approval,
-execute its bounded cleanup waves, rerun deterministic and required live proof,
-and generate a new immutable candidate. Publication remains unauthorized.
+Execute the bounded cleanup waves in
+`docs/plans/2026-07-28-forward-only-post-review-cleanup.md`, rerun deterministic
+and required live proof, and generate a new immutable candidate. Publication
+remains unauthorized.
 
 ## Current Blockers
 
@@ -138,9 +138,9 @@ and `docs/adr/0138-use-detector-only-visual-grounding-sidecar.md`.
   `THOUGHTS.md`
 - GitHub issues track externally visible work for `MiaoDX/roboclaws`.
 
-The completed MapBuild quality capsule still lives under `docs/status/active/`;
-the proposed forward-only cleanup plan owns its archival together with the
-other completed active capsules.
+The cleanup plan is mechanically archiving only explicitly terminal active
+capsules; active, blocked, ambiguous, and JSON evidence surfaces remain in
+place.
 
 ## Workflow Contract
 
