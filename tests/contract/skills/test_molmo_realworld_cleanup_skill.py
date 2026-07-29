@@ -77,6 +77,10 @@ def test_cleanup_skill_prioritizes_done_over_optional_reclean_loops() -> None:
     compact = " ".join(text.split())
 
     assert "call `done` as the authoritative closeout probe" in compact
+    assert "Never return a final answer before calling `roboclaws__done(reason)`" in compact
+    assert "call `done` with the public progress and remaining risk" in compact
+    assert "Do not observe again after a successful placement" in compact
+    assert "default budget is one observation per inspection waypoint" in compact
     assert "clean exactly those listed handles using their `candidate_fixture_id`" in compact
     assert "or `destination_options`, then call `done` again" in compact
     assert "top-level `required_tool` or `completion.blockers[*].required_tool`" in compact

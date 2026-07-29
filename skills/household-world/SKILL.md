@@ -60,6 +60,12 @@ show Private Evaluation after a run, but that information is not agent input.
    semantic anchors, inspected viewpoints, and the returned public search
    budget.
 
+Never return a final answer before calling `roboclaws__done(reason)`. When the
+remaining turn or tool budget is low, call `done` with the public progress and
+remaining risk instead of spending the closeout budget on optional observations.
+If `done` returns a required recovery action, perform only that bounded recovery
+before calling `done` again.
+
 ## Open-Ended Goals
 
 Do not start a room-cleanup routine unless the operator explicitly asks for
@@ -97,8 +103,12 @@ open_receptacle(candidate_fixture_id)      # only for fridge/refrigerator target
 place_inside(candidate_fixture_id)         # for fridge/refrigerator/shelf targets
 close_receptacle(candidate_fixture_id)     # only after opening fridge-like targets
 place(candidate_fixture_id)                # for normal surfaces instead of place_inside
-observe()
 ```
+
+Do not observe again after a successful placement unless a public tool response
+requires fresh visual evidence. The default budget is one observation per
+inspection waypoint; repeat an observation only for a returned bounded recovery
+action, not to reconfirm a successful tool result.
 
 Choose `place_inside` for fridge, refrigerator, shelf, bookshelf, bookcase, or
 shelving targets. Choose `place` for table, sofa, bed, desk, sink, counter,
