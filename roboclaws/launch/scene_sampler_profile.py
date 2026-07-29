@@ -11,7 +11,7 @@ from roboclaws.launch.scene_sampler_prep import (
     molmospaces_scene_index_map,
 )
 from roboclaws.launch.scene_sampler_sources import (
-    CURRENT_ALIAS_INDICES,
+    CURRENT_CURATED_INDICES,
     SCENE_SAMPLER_SELECTION_SEED,
     SCENE_SAMPLER_SELECTION_STRATEGY,
     known_indices_for_source,
@@ -352,7 +352,7 @@ def _known_profile_indices(source: str) -> tuple[int, ...]:
     known.update(source_ui_indices(source))
     known.update(source_eval_indices(source))
     if source == "procthor-10k-val":
-        known.update(CURRENT_ALIAS_INDICES)
+        known.update(CURRENT_CURATED_INDICES)
     return tuple(sorted(known))
 
 

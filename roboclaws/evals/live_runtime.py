@@ -541,7 +541,7 @@ def live_surface_command(kwargs: dict[str, Any], *, output_dir: Path) -> list[st
         "run",
         "surface",
         "surface=household-world",
-        f"world={sample.world if sample else 'molmospaces/val_0'}",
+        f"world={sample.world if sample else 'molmospaces/procthor-10k-val/0'}",
         f"backend={_public_backend_from_implementation(str(kwargs.get('backend') or ''))}",
         f"agent_engine={kwargs['agent_engine']}",
         f"provider_profile={kwargs['provider_profile']}",

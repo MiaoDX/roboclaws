@@ -554,7 +554,7 @@ def test_surface_prompt_omitted_intent_with_prompt_infers_open_ended() -> None:
     assert plan_trace[:6] == [
         "launch-plan",
         "surface=household-world",
-        "world=molmospaces/val_0",
+        "world=molmospaces/procthor-10k-val/0",
         "backend=mujoco",
         "intent=open-ended",
         "preset=",
@@ -695,7 +695,7 @@ def test_surface_launch_plan_exposes_goal_contract_and_evaluation_policy() -> No
     )
 
     assert plan.surface == "household-world"
-    assert plan.world == "molmospaces/val_0"
+    assert plan.world == "molmospaces/procthor-10k-val/0"
     assert plan.backend == "mujoco"
     assert plan.implementation_backend == "molmospaces_subprocess"
     assert plan.agent_engine == "openai-agents-sdk"
@@ -1022,7 +1022,7 @@ def test_surface_router_is_importable_source_of_truth() -> None:
         "task_surface=household-world",
         "task_intent=cleanup",
         "task_preset=cleanup",
-        "world=molmospaces/val_0",
+        "world=molmospaces/procthor-10k-val/0",
         "backend=mujoco",
         "skill_name=household-world",
         "required_capability_profiles=household_world,household_manipulation,household_episode",
@@ -1032,7 +1032,7 @@ def test_surface_router_is_importable_source_of_truth() -> None:
     assert "scenario_setup=relocate-cleanup-related-objects" in resolved.overrides
     assert "relocation_count=5" in resolved.overrides
     assert not any(item.startswith("generated_mess_count=") for item in resolved.overrides)
-    assert resolved.world == "molmospaces/val_0"
+    assert resolved.world == "molmospaces/procthor-10k-val/0"
     assert resolved.backend == "mujoco"
     assert resolved.agent_engine == "openai-agents-sdk"
     assert resolved.provider_profile == "kimi-openai-chat"
@@ -1175,7 +1175,7 @@ def test_trace_mode_exposes_resolved_python_launch_plan() -> None:
     assert plan_trace[:7] == [
         "launch-plan",
         "surface=household-world",
-        "world=molmospaces/val_0",
+        "world=molmospaces/procthor-10k-val/0",
         "backend=mujoco",
         "intent=cleanup",
         "preset=cleanup",
@@ -1195,7 +1195,7 @@ def test_trace_mode_exposes_resolved_python_launch_plan() -> None:
         "camera_labeler=grounding-dino scene_source=procthor-10k-val scene_index=0 "
         "map_bundle=assets/maps/molmospaces/procthor-10k-val/0 "
         "task_surface=household-world task_intent=cleanup task_preset=cleanup "
-        "world=molmospaces/val_0 backend=mujoco skill_name=household-world "
+        "world=molmospaces/procthor-10k-val/0 backend=mujoco skill_name=household-world "
         "required_capability_profiles=household_world,household_manipulation,household_episode "
         "backend=molmospaces_subprocess generated_mess_count=5"
     ) in plan_trace
@@ -1231,7 +1231,7 @@ def test_python_launch_plan_accepts_world_labels_sanitized_lane() -> None:
         "task_surface=household-world",
         "task_intent=cleanup",
         "task_preset=cleanup",
-        "world=molmospaces/val_0",
+        "world=molmospaces/procthor-10k-val/0",
         "backend=mujoco",
         "skill_name=household-world",
         "required_capability_profiles=household_world,household_manipulation,household_episode",

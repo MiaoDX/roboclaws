@@ -120,3 +120,36 @@ def test_built_distributions_exclude_repo_eval_surfaces(tmp_path: Path) -> None:
         assert not any("roboclaws/evals/" in path for path in paths)
         assert not any("evals/household_world/" in path for path in paths)
         assert not any("skills/eval-harness/" in path for path in paths)
+
+
+def test_legacy_molmospaces_ids_exist_only_in_rejection_code_and_test() -> None:
+    needle = "molmospaces/" + "val_"
+    roots = (
+        REPO_ROOT / "README.md",
+        REPO_ROOT / "ARCHITECTURE.md",
+        REPO_ROOT / "docs" / "human",
+        REPO_ROOT / "docs" / "agents",
+        REPO_ROOT / "skills",
+        REPO_ROOT / "just",
+        REPO_ROOT / "roboclaws",
+        REPO_ROOT / "tests",
+        REPO_ROOT / "evals",
+    )
+    paths = []
+    for root in roots:
+        candidates = (root,) if root.is_file() else root.rglob("*")
+        paths.extend(
+            path
+            for path in candidates
+            if path.is_file() and path.suffix in {".json", ".md", ".py", ".toml"}
+        )
+    hits = {
+        path.relative_to(REPO_ROOT).as_posix()
+        for path in paths
+        if needle in path.read_text(encoding="utf-8", errors="ignore")
+    }
+
+    assert hits == {
+        "roboclaws/launch/scene_sampler.py",
+        "tests/unit/launch/test_scene_sampler.py",
+    }

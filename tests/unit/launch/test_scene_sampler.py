@@ -22,7 +22,6 @@ from roboclaws.launch.scene_sampler import (
     eval_sample_ref,
     eval_sampler_rows,
     eval_suite_payload,
-    legacy_molmospaces_world_ids,
     load_room_label_manifest,
     parse_molmospaces_world_id,
     readiness_report,
@@ -37,12 +36,7 @@ from roboclaws.launch.scene_sampler import (
     ui_molmospaces_world_ids,
     validate_sampler_manifest,
 )
-from roboclaws.launch.worlds import (
-    MOLMOSPACES_CONSOLE_WORLD_IDS,
-    MOLMOSPACES_LAUNCH_ALIAS_WORLD_IDS,
-    WORLD_SPECS,
-    world_spec,
-)
+from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS, WORLD_SPECS, world_spec
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 ITHOR_MISSING_PUBLIC_WAYPOINT_REJECTED_INDICES = {
@@ -267,7 +261,7 @@ TOTAL_REJECTED_ROW_COUNT = (
     + len(HOLODECK_REJECTED_INDICES)
 )
 UI_WORLD_IDS = (
-    "molmospaces/val_0",
+    "molmospaces/procthor-10k-val/0",
     "molmospaces/procthor-10k-val/11",
     "molmospaces/procthor-10k-val/15",
     "molmospaces/procthor-objaverse-val/0",
@@ -290,22 +284,11 @@ def _isolate_scene_sampler_scanner_artifacts(monkeypatch, tmp_path) -> None:
     )
 
 
-def test_scene_sampler_manifest_separates_ui_eval_and_alias_worlds() -> None:
+def test_scene_sampler_manifest_separates_ui_and_eval_worlds() -> None:
     validate_sampler_manifest()
 
     assert ui_molmospaces_world_ids() == UI_WORLD_IDS
     assert MOLMOSPACES_CONSOLE_WORLD_IDS == ui_molmospaces_world_ids()
-    assert MOLMOSPACES_LAUNCH_ALIAS_WORLD_IDS == legacy_molmospaces_world_ids()
-    assert legacy_molmospaces_world_ids() == (
-        "molmospaces/val_0",
-        "molmospaces/val_1",
-        "molmospaces/val_2",
-        "molmospaces/val_3",
-        "molmospaces/val_4",
-        "molmospaces/val_5",
-        "molmospaces/val_7",
-        "molmospaces/val_9",
-    )
 
     ui_rows = [row for row in sampler_rows() if row.ui_ready]
     eval_rows = eval_sampler_rows()
@@ -338,12 +321,8 @@ def test_scene_sampler_manifest_separates_ui_eval_and_alias_worlds() -> None:
     assert all(UI_LANE in row.lanes for row in ui_rows)
     assert all(EVAL_STRESS_LANE in row.lanes for row in eval_rows)
 
-    hidden_alias = WORLD_SPECS["molmospaces/val_9"]
-    assert hidden_alias.availability == "hidden"
-    assert hidden_alias.sampler_metadata
-    assert hidden_alias.sampler_metadata["lanes"] == []
-    assert WORLD_SPECS["molmospaces/val_4"].availability == "hidden"
-    assert WORLD_SPECS["molmospaces/val_4"].sampler_metadata["lanes"] == []
+    assert "molmospaces/procthor-10k-val/9" not in WORLD_SPECS
+    assert world_spec("molmospaces/procthor-10k-val/9").availability == "hidden"
 
 
 def test_scene_sampler_ui_selection_is_seeded_and_room_diverse() -> None:
@@ -365,8 +344,11 @@ def test_scene_sampler_ui_selection_is_seeded_and_room_diverse() -> None:
     ]
 
 
-def test_legacy_molmospaces_alias_worlds_remain_launchable() -> None:
-    for world_id in legacy_molmospaces_world_ids():
+def test_source_aware_molmospaces_sampler_worlds_are_launchable() -> None:
+    for row in sampler_rows():
+        if row.scene_index is None:
+            continue
+        world_id = row.world_id
         plan = resolve_surface_launch(
             [
                 "surface=household-world",
@@ -377,9 +359,22 @@ def test_legacy_molmospaces_alias_worlds_remain_launchable() -> None:
                 "evidence_lane=world-public-labels",
             ]
         )
-
         assert plan.world == world_id
-        assert "scene_source=procthor-10k-val" in plan.overrides
+        assert f"scene_source={row.scene_source}" in plan.overrides
+
+
+def test_legacy_molmospaces_world_id_is_rejected_with_replacement() -> None:
+    with pytest.raises(LaunchError, match="molmospaces/procthor-10k-val/0"):
+        resolve_surface_launch(
+            [
+                "surface=household-world",
+                "world=molmospaces/val_0",
+                "backend=mujoco",
+                "preset=map-build",
+                "agent_engine=direct-runner",
+                "evidence_lane=world-public-labels",
+            ]
+        )
 
 
 def test_source_aware_candidate_worlds_are_launchable_but_not_default_visible() -> None:
@@ -422,8 +417,8 @@ def test_household_molmospaces_launch_rejects_disabled_map_bundle() -> None:
         )
 
 
-def test_scene_sampler_parses_legacy_and_source_aware_world_ids() -> None:
-    assert parse_molmospaces_world_id("molmospaces/val_9") == MolmoSpacesSceneRef(
+def test_scene_sampler_parses_source_aware_world_ids() -> None:
+    assert parse_molmospaces_world_id("molmospaces/procthor-10k-val/9") == MolmoSpacesSceneRef(
         scene_source="procthor-10k-val",
         scene_index=9,
     )
@@ -696,8 +691,7 @@ def test_scene_sampler_limits_eval_stress_rows_per_source() -> None:
     manifest["rows"] = [
         {
             **template,
-            "world_id": f"molmospaces/val_0/eval-{index}",
-            "legacy_world_id": f"molmospaces/val_0/eval-{index}",
+            "world_id": f"molmospaces/procthor-10k-val/0/eval-{index}",
             "lanes": [EVAL_STRESS_LANE],
         }
         for index in range(11)

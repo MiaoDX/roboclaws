@@ -36,7 +36,6 @@ class SceneSamplerRow:
     readiness_status: str
     lanes: tuple[str, ...]
     world_id: str
-    legacy_world_id: str
     room_count: int
     waypoint_count: int
     category_provenance: str
@@ -85,7 +84,6 @@ class SceneSamplerRow:
             "readiness_status": self.readiness_status,
             "lanes": list(self.lanes),
             "world_id": self.world_id,
-            "legacy_world_id": self.legacy_world_id,
             "room_count": self.room_count,
             "waypoint_count": self.waypoint_count,
             "category_provenance": self.category_provenance,

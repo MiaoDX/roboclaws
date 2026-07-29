@@ -10,14 +10,16 @@ Latest intent: execute the approved forward-only cleanup plan. Publication,
 physical movement, Omniverse EULA acceptance, compatibility layers, and scope
 expansion remain unauthorized.
 
-Current slice: Wave 3 product/eval dependency and package boundary is
-implemented and awaiting its semantic checkpoint commit.
+Current slice: Wave 4 source-aware MolmoSpaces world-ID migration is complete
+and awaiting its semantic checkpoint commit.
 
-Last proof: 553 focused eval, operator-console, CLI, catalog, package-membership,
-and current-source tests pass; Ruff, format, the Python quality ratchet, the
-product-to-eval import search, and `git diff --check` pass. Disposable wheel and
-sdist installs at `/tmp/roboclaws-wave3-package-scgUhZ` import product/catalog
-owners, omit `roboclaws.evals`, and reject both product eval aliases.
+Last proof: focused scene-sampler, environment setup, operator-console,
+task-recipe, eval-model, and current-source contract tests pass; modified JSON,
+Ruff, format, the Python quality ratchet, exact legacy-ID search, and
+`git diff --check` pass. Direct map-build and cleanup product runs passed for
+`molmospaces/procthor-10k-val/0`; receipts are under
+`/tmp/roboclaws-wave4-map-build/0729_1041` and
+`/tmp/roboclaws-wave4-cleanup/0729_1041`, with cleanup restoring 5/5 objects.
 
 Completed batch: approved execution contract and durable route loaded; current
 source absence scope, deletion/move targets, active status surfaces, and prior
@@ -31,7 +33,10 @@ Wave 3 moved Runtime Prior catalog keys, entries, loading, normalization,
 compatibility, and auto-enable policy to `roboclaws.maps.runtime_prior_catalog`;
 removed product-to-eval imports; made `just agent::eval` call the checkout CLI
 directly; removed product CLI aliases; and excluded eval code/assets from both
-distribution formats.
+distribution formats. Wave 4 migrated all current callers, fixtures, examples,
+preview metadata, and eval rows to source-aware MolmoSpaces IDs; removed legacy
+alias metadata and exports; made legacy IDs fail with an exact replacement; and
+kept hidden source-aware sampler candidates dynamically resolvable.
 
 Frozen candidate recipe: run `scripts/dev/build_public_candidate.py` into a new
 candidate root; run `scripts/dev/check_public_surface.py` and the CI-pinned exact
@@ -45,11 +50,13 @@ manifests and run artifacts, both distributions, and isolated-install logs. The
 previous immutable receipt roots remain under `output/public-candidate/` and are
 superseded for publication.
 
-Next slice: commit Wave 3, then migrate every current caller and fixture to
-source-aware MolmoSpaces world IDs in Wave 4.
+Next slice: commit Wave 4, then add the typed launch executor and migrate console
+and eval runners before deleting `just agent::run`, `roboclaws.cli.agent_run`,
+and positional lowering in Wave 5.
 
-Next proof: positive scene-sampler coverage for all current source-aware rows,
-negative legacy-ID resolution tests, and exact current-source alias search.
+Next proof: focused typed-executor contract tests, exact retired-route and
+positional-lowering searches, migrated console/eval caller tests, and direct
+product launch proof through the canonical surface grammar.
 
 Stop condition: stop for an unexplained active non-test consumer of a deletion
 target, a required public/schema boundary beyond the approved modules, a

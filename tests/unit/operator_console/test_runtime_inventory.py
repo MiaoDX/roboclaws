@@ -79,7 +79,7 @@ def test_runtime_inventory_lists_eval_harness_sdk_live_row(tmp_path: Path) -> No
                 "status": "ran",
                 "outcome": "passed",
                 "axes": {
-                    "world": "molmospaces/val_0",
+                    "world": "molmospaces/procthor-10k-val/0",
                     "backend": "mujoco",
                     "intent": "cleanup",
                     "preset": "cleanup",
@@ -94,7 +94,7 @@ def test_runtime_inventory_lists_eval_harness_sdk_live_row(tmp_path: Path) -> No
                 "status": "ran",
                 "outcome": "passed",
                 "axes": {
-                    "world": "molmospaces/val_0",
+                    "world": "molmospaces/procthor-10k-val/0",
                     "backend": "mujoco",
                     "intent": "open-ended",
                     "agent_engine": "openai-agents-sdk",
@@ -119,7 +119,7 @@ def test_runtime_inventory_lists_eval_harness_sdk_live_row(tmp_path: Path) -> No
     assert task["status"] == "running"
     assert task["row_id"] == "openai-agents-sdk-cleanup-camera-raw-fpv-live-product"
     assert task["route_id"] == (
-        "molmospaces/val_0::mujoco::cleanup::openai-agents-sdk::camera-raw-fpv"
+        "molmospaces/procthor-10k-val/0::mujoco::cleanup::openai-agents-sdk::camera-raw-fpv"
     )
     open_task = next(
         item
@@ -127,7 +127,7 @@ def test_runtime_inventory_lists_eval_harness_sdk_live_row(tmp_path: Path) -> No
         if item["id"] == "eval-row:openai-agents-sdk-open-task-live-eval"
     )
     assert open_task["route_id"] == (
-        "molmospaces/val_0::mujoco::open-task::openai-agents-sdk::world-public-labels"
+        "molmospaces/procthor-10k-val/0::mujoco::open-task::openai-agents-sdk::world-public-labels"
     )
     assert any(resource["kind"] == "tmux_session" for resource in task["resources"])
     assert any(resource["kind"] == "visual_slot" for resource in task["resources"])
@@ -313,7 +313,7 @@ def test_runtime_blockers_payload_omits_terminal_history(tmp_path: Path) -> None
                         "row_dir": str(active_row_dir),
                         "status": "ran",
                         "axes": {
-                            "world": "molmospaces/val_0",
+                            "world": "molmospaces/procthor-10k-val/0",
                             "backend": "mujoco",
                             "intent": "cleanup",
                             "preset": "cleanup",
@@ -328,7 +328,7 @@ def test_runtime_blockers_payload_omits_terminal_history(tmp_path: Path) -> None
                         "status": "ran",
                         "outcome": "passed",
                         "axes": {
-                            "world": "molmospaces/val_0",
+                            "world": "molmospaces/procthor-10k-val/0",
                             "backend": "mujoco",
                             "intent": "cleanup",
                             "preset": "cleanup",
@@ -372,7 +372,7 @@ def test_runtime_inventory_surfaces_invalid_nested_runtime_json_resources(
                         "row_dir": str(row_dir),
                         "status": "ran",
                         "axes": {
-                            "world": "molmospaces/val_0",
+                            "world": "molmospaces/procthor-10k-val/0",
                             "backend": "mujoco",
                             "intent": "cleanup",
                             "preset": "cleanup",
@@ -441,7 +441,7 @@ def test_runtime_inventory_marks_dead_eval_harness_live_row_stale(
                         "row_dir": str(row_dir),
                         "status": "ran",
                         "axes": {
-                            "world": "molmospaces/val_0",
+                            "world": "molmospaces/procthor-10k-val/0",
                             "backend": "mujoco",
                             "intent": "cleanup",
                             "preset": "cleanup",
@@ -519,7 +519,7 @@ def test_readiness_names_background_eval_owner_before_start(tmp_path: Path) -> N
                         "row_dir": str(row_dir),
                         "status": "ran",
                         "axes": {
-                            "world": "molmospaces/val_0",
+                            "world": "molmospaces/procthor-10k-val/0",
                             "backend": "mujoco",
                             "intent": "cleanup",
                             "preset": "cleanup",

@@ -148,7 +148,7 @@ def test_cleanup_report_prefers_recorded_rerun_command(
     )
     prior = "output/household/household-world/map-build/anchor/seed-7/runtime_metric_map.json"
     command = (
-        "just run::surface surface=household-world world=molmospaces/val_0 "
+        "just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 "
         "backend=mujoco intent=cleanup agent_engine=openai-agents-sdk "
         "provider_profile=kimi-openai-chat evidence_lane=world-public-labels seed=7 "
         "scenario_setup=relocate-cleanup-related-objects relocation_count=5 "

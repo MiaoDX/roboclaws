@@ -147,7 +147,7 @@ def test_dry_run_matrix_writes_status_and_manifest(tmp_path: Path) -> None:
         "just",
         "run::surface",
         "surface=household-world",
-        "world=molmospaces/val_0",
+        "world=molmospaces/procthor-10k-val/0",
         "backend=mujoco",
         "intent=cleanup",
         "agent_engine=openai-agents-sdk",
@@ -158,7 +158,7 @@ def test_dry_run_matrix_writes_status_and_manifest(tmp_path: Path) -> None:
         "ROBOCLAWS_PROVIDER_PROFILE=kimi-openai-chat "
         "ROBOCLAWS_OPENAI_AGENTS_MODEL=kimi-k2.7-code "
         "ROBOCLAWS_PROVIDER_TIMING_PROXY=1 "
-        "just run::surface surface=household-world world=molmospaces/val_0 "
+        "just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 "
         "backend=mujoco intent=cleanup agent_engine=openai-agents-sdk "
         "provider_profile=kimi-openai-chat evidence_lane=world-public-labels"
     )
@@ -194,7 +194,7 @@ def test_dry_run_agents_sdk_entry_uses_entry_engine_and_model_env(tmp_path: Path
         "just",
         "run::surface",
         "surface=household-world",
-        "world=molmospaces/val_0",
+        "world=molmospaces/procthor-10k-val/0",
         "backend=mujoco",
         "intent=cleanup",
         "agent_engine=openai-agents-sdk",

@@ -8,7 +8,7 @@ to choose the right run shape before making project-status claims.
 For the current project-status artifact, prefer:
 
 ```bash
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=direct-runner evidence_lane=world-public-labels seed=7 scenario_setup=relocate-cleanup-related-objects relocation_count=5
+just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=cleanup agent_engine=direct-runner evidence_lane=world-public-labels seed=7 scenario_setup=relocate-cleanup-related-objects relocation_count=5
 ```
 
 That public command resolves to the current MolmoSpaces/RBY1M cleanup shape:
@@ -65,15 +65,13 @@ The operator console uses the source-aware MolmoSpaces sampler for its default
 household scene rail. The visible first-slice UI set is intentionally small and
 is selected by a deterministic seeded-random policy that prefers distinct public
 room counts within each source. The current UI set is
-`molmospaces/val_0`, `molmospaces/procthor-10k-val/11`,
+`molmospaces/procthor-10k-val/0`, `molmospaces/procthor-10k-val/11`,
 `molmospaces/procthor-10k-val/15`,
 `molmospaces/procthor-objaverse-val/0`,
 `molmospaces/procthor-objaverse-val/1`, and
-`molmospaces/procthor-objaverse-val/10`. `molmospaces/val_0` is the legacy
-alias for `scene_source=procthor-10k-val`, scene index `0`. Existing launch
-aliases such as `molmospaces/val_1`, `val_3`, `val_4`, `val_7`, and `val_9`
-remain explicitly launchable as `procthor-10k-val` aliases, but they are hidden
-from the default console scene rail unless admitted by the sampler.
+`molmospaces/procthor-objaverse-val/10`. Every ID names its scene source and
+index directly. Other valid source-aware candidates remain launchable but are
+hidden from the default console scene rail unless admitted by the sampler.
 
 The eval stress projection is broader than the UI projection. It currently
 admits six prepared `procthor-10k-val` samples
@@ -177,10 +175,10 @@ detector-only; old hosted-model results are historical/parked evidence only.
 Recommended command shape for current pipeline comparison:
 
 ```bash
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=grounding-dino
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=yoloe
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=yolo-world
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=omdet-turbo
+just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=cleanup agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=grounding-dino
+just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=cleanup agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=yoloe
+just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=cleanup agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=yolo-world
+just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=cleanup agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=omdet-turbo
 ```
 
 `yolo-custom` is not an active pipeline. Without a planned cleanup-ontology
@@ -448,9 +446,9 @@ the current source of truth before claiming a run supports a setting.
 Use the public launch catalog for operator-facing runs:
 
 ```bash
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=<engine> evidence_lane=<lane>
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=map-build agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=grounding-dino
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat prompt="find something useful to drink"
+just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=cleanup agent_engine=<engine> evidence_lane=<lane>
+just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=map-build agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=grounding-dino
+just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat prompt="find something useful to drink"
 ```
 
 Use `agent::run` and lower `molmo::*` recipes only for maintainer debugging or
@@ -518,7 +516,7 @@ the gitignored local environment. The runtime does not fall back between
 profiles or between Chat Completions and Responses.
 
 ```bash
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=world-public-labels seed=7 scenario_setup=relocate-cleanup-related-objects relocation_count=5
+just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=cleanup agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=world-public-labels seed=7 scenario_setup=relocate-cleanup-related-objects relocation_count=5
 ```
 
 Probe a live SDK run without attaching:

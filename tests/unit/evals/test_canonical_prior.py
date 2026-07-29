@@ -33,7 +33,7 @@ def _write_inputs(tmp_path: Path) -> tuple[Path, Path]:
                 "schema": CANONICAL_PRIOR_PROMOTION_MANIFEST_SCHEMA,
                 "maintainer_approved": True,
                 "identity": {
-                    "world": "molmospaces/val_0",
+                    "world": "molmospaces/procthor-10k-val/0",
                     "scene_identity": "val_0",
                     "source_map_identity": "map-sha256:abc",
                     "backend": "mujoco",

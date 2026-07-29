@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-CURRENT_ALIAS_INDICES: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 7, 9)
+CURRENT_CURATED_INDICES: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 7, 9)
 SCENE_SAMPLER_SELECTION_SEED = "2026-06-16.source-diverse-selection-v1"
 SCENE_SAMPLER_SELECTION_STRATEGY = (
     "deterministic_seeded_random_order_with_room_count_diversity_first"
@@ -552,7 +552,7 @@ def known_indices_for_source(source: str) -> tuple[int, ...]:
                 *SOURCE_UI_CANDIDATE_INDICES.get(source, ()),
                 *SOURCE_EVAL_CANDIDATE_INDICES.get(source, ()),
                 *SCANNER_REJECTED_METADATA.get(source, ()),
-                *(CURRENT_ALIAS_INDICES if source == "procthor-10k-val" else ()),
+                *(CURRENT_CURATED_INDICES if source == "procthor-10k-val" else ()),
             }
         )
     )
@@ -624,15 +624,7 @@ def source_selection_metadata(
 
 
 def sampler_world_id(*, source: str, scene_index: int) -> str:
-    if source == "procthor-10k-val" and scene_index in CURRENT_ALIAS_INDICES:
-        return f"molmospaces/val_{scene_index}"
     return f"molmospaces/{source}/{scene_index}"
-
-
-def legacy_world_id(*, source: str, scene_index: int) -> str:
-    if source == "procthor-10k-val" and scene_index in CURRENT_ALIAS_INDICES:
-        return f"molmospaces/val_{scene_index}"
-    return ""
 
 
 def category_provenance(source: str) -> str:

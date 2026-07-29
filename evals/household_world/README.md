@@ -36,7 +36,7 @@ Run the long-horizon household open-task samples with:
 just agent::eval suite=long_horizon_tasks budget=smoke
 ```
 
-The long-horizon suite uses `molmospaces/val_0` and grades Chinese open-ended
+The long-horizon suite uses `molmospaces/procthor-10k-val/0` and grades Chinese open-ended
 household prompts with private final-state and trajectory checks. It is a
 focused subset of open-ended household tasks, not a separate public task axis.
 The current samples deliberately stay inside existing sim capabilities:

@@ -4,11 +4,8 @@ import json
 import re
 from pathlib import Path
 
-from roboclaws.launch.worlds import (
-    MOLMOSPACES_CONSOLE_WORLD_IDS,
-    MOLMOSPACES_LAUNCH_ALIAS_SCENE_INDICES,
-    WORLD_SPECS,
-)
+from roboclaws.launch.scene_sampler_sources import CURRENT_CURATED_INDICES
+from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS, WORLD_SPECS
 
 STATIC_ROOT = Path(__file__).resolve().parents[3] / "roboclaws" / "operator_console" / "static"
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -177,7 +174,7 @@ def _assert_molmospaces_preview_files(preview_dir: Path) -> list[str]:
         {
             *(
                 f"molmospaces-val_{scene_index}-{view_name}.png"
-                for scene_index in MOLMOSPACES_LAUNCH_ALIAS_SCENE_INDICES
+                for scene_index in CURRENT_CURATED_INDICES
                 for view_name in ("chase", "fpv", "map", "topdown")
             ),
             *(
@@ -202,7 +199,7 @@ def _assert_molmospaces_preview_metadata(preview_dir: Path) -> None:
         {
             *(
                 f"molmospaces-val_{scene_index}-preview.json"
-                for scene_index in MOLMOSPACES_LAUNCH_ALIAS_SCENE_INDICES
+                for scene_index in CURRENT_CURATED_INDICES
             ),
             *(
                 f"{Path(WORLD_SPECS[world_id].preview_assets[0][1]).name.rsplit('-', 1)[0]}"

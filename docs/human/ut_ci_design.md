@@ -112,8 +112,8 @@ gate when it requires any of the following:
 | --- | --- | --- |
 | `lint-and-mock` | required PR gate | `just agent::verify ci-required` |
 | `household-route-contracts` | required PR gate, usually inside `lint-and-mock` | `./scripts/dev/run_pytest_standalone.sh -q tests/contract/dev_tools/test_task_agent_just_recipes.py tests/unit/operator_console` |
-| `household-map-build` | required or advisory main gate depending on runtime cost | `just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=map-build agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=grounding-dino ...` |
-| `molmo-live-cleanup` | opt-in expensive gate | `just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=world-public-labels ...` or the live matrix script |
+| `household-map-build` | required or advisory main gate depending on runtime cost | `just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=map-build agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=grounding-dino ...` |
+| `molmo-live-cleanup` | opt-in expensive gate | `just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=cleanup agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=world-public-labels ...` or the live matrix script |
 | `planner-proof` | local-only or manual expensive gate | `just run::surface surface=planner-proof world=planner-proof/default backend=mujoco intent=planner-proof agent_engine=direct-runner mode=dry-run` |
 | `publish-pages` | required main gate | no single facade today; keep focused tests for Pages assembly constraints |
 

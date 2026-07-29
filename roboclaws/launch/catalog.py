@@ -361,8 +361,8 @@ def _normalize_world(value: str | None, *, surface_id: str) -> WorldSpec:
     world_id = _strip_named(value, "world") if value else DEFAULT_WORLD_BY_SURFACE[surface_id]
     try:
         spec = world_spec(world_id)
-    except (KeyError, ValueError):
-        raise LaunchError(f"unsupported world '{world_id}'")
+    except ValueError as exc:
+        raise LaunchError(str(exc)) from exc
     if spec.surface_id != surface_id:
         raise LaunchError(
             f"world '{world_id}' cannot run surface '{surface_id}'",

@@ -94,7 +94,7 @@ def _trace_run_surface_with_env(port: str) -> list[str]:
             binary,
             "run::surface",
             "surface=household-world",
-            "world=molmospaces/val_0",
+            "world=molmospaces/procthor-10k-val/0",
             "backend=mujoco",
             "preset=cleanup",
             "agent_engine=openai-agents-sdk",
