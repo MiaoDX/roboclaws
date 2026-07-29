@@ -45,3 +45,24 @@ def test_empty_pytest_regression_layer_is_absent() -> None:
     assert '"regression:' not in pytest_config
     assert "-m regression" not in test_docs
     assert "-m regression" not in dev_recipes
+
+
+def test_retired_direct_provider_stack_is_absent() -> None:
+    retired_paths = (
+        "provider_factory.py",
+        "provider_runtime.py",
+        "provider_safety.py",
+        "provider_retry.py",
+    )
+    core = REPO_ROOT / "roboclaws" / "core"
+    registry = (REPO_ROOT / "roboclaws" / "agents" / "provider_registry.py").read_text(
+        encoding="utf-8"
+    )
+    project = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+
+    assert all(not (core / path).exists() for path in retired_paths)
+    assert list((core / "providers").glob("*.py")) == []
+    assert "direct_provider_adapter" not in registry
+    assert "direct_required_env_keys" not in registry
+    assert "anthropic = [" not in project
+    assert "instructor" not in project

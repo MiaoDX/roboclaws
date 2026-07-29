@@ -12,8 +12,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-anthropic = ["anthropic>=0.40", "instructor>=1.5"]
-openai = ["openai>=1.50", "instructor>=1.5"]
 openclaw = ["mcp[cli]>=1.27", "tyro>=0.9.0"]
 molmospaces = [
     "molmo-spaces[mujoco] @ git+https://github.com/allenai/molmospaces.git@3c50ae6093f7e4a4ef32529f8a773715da410a2f",
@@ -30,10 +28,8 @@ visual-grounding-yoloe = [
 ]
 dev = [
     "aiohttp>=3.13",
-    "anthropic>=0.40",
     "openai>=1.50",
     "openai-agents==0.17.4",
-    "instructor>=1.5",
     "pydantic>=2.0",
     "Pillow>=10.0",
     "numpy>=1.24",
