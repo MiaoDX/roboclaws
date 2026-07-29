@@ -10,6 +10,14 @@ leave a link.
 
 ## Current Focus
 
+Post-review forward-only architecture cleanup is proposed in
+`docs/plans/2026-07-28-forward-only-post-review-cleanup.md`. Five independent
+reviews agreed that the product model is clear but found current-source drift,
+retired provider code, product/eval dependency inversion, compatibility aliases,
+and duplicated launch/strategy/runtime ownership. The accepted planning premise
+is that backward compatibility is not required: migrate current callers and
+delete the obsolete path in the same cleanup wave.
+
 Independent Codex and MiMo Responses provider cells are restored. The completed
 implementation contract is
 `docs/plans/2026-07-27-restore-codex-mimo-responses-cells.md`.
@@ -28,7 +36,9 @@ violations.
 The current sanitized candidate carries this four-profile contract as one root
 commit. Its public-surface, secret, internal-identifier, clean-room install,
 full deterministic test, direct-runner product, artifact, package, and isolated
-wheel-install gates pass.
+wheel-install gates pass, but publication is paused while the cleanup plan is
+reviewed. If implementation starts, refresh the candidate from the final
+verified cleanup source rather than publishing the existing candidate.
 
 The active product shape is:
 
@@ -63,8 +73,10 @@ providers.
 
 ## Next Action
 
-Review the current immutable candidate and explicitly authorize publication.
-Publication remains unauthorized until that approval.
+Review and approve or revise
+`docs/plans/2026-07-28-forward-only-post-review-cleanup.md`. After approval,
+execute its bounded cleanup waves, rerun deterministic and required live proof,
+and generate a new immutable candidate. Publication remains unauthorized.
 
 ## Current Blockers
 
@@ -90,6 +102,7 @@ Publication remains unauthorized until that approval.
 ## Current Source Links
 
 Plans:
+`docs/plans/2026-07-28-forward-only-post-review-cleanup.md`,
 `docs/plans/2026-07-27-restore-codex-mimo-responses-cells.md`,
 `docs/plans/2026-07-01-recommended-runtime-map-prior-selection.md`,
 `docs/plans/2026-06-26-map-build-quality-eval-harness.md`,
@@ -125,8 +138,9 @@ and `docs/adr/0138-use-detector-only-visual-grounding-sidecar.md`.
   `THOUGHTS.md`
 - GitHub issues track externally visible work for `MiaoDX/roboclaws`.
 
-Current MapBuild optimization work is not parked. Its active state lives in
-`docs/status/active/map-build-quality-eval-harness.md`.
+The completed MapBuild quality capsule still lives under `docs/status/active/`;
+the proposed forward-only cleanup plan owns its archival together with the
+other completed active capsules.
 
 ## Workflow Contract
 
