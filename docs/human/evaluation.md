@@ -38,6 +38,12 @@ Versioned definitions live under `evals/<capability>/`; the first package is
 `evals/household_world/`. The Python schema and runner code lives under
 `roboclaws.evals`.
 
+Evaluation is a Git-checkout-owned maintainer layer. The sdist and wheel omit
+`roboclaws.evals`, `evals/**`, and the eval-harness skill; installed product
+runtimes therefore do not expose `roboclaws eval`, top-level `eval`, or
+`roboclaws agent eval`. Run evals from a repository checkout through
+`just agent::eval`, which invokes the repo eval CLI directly.
+
 ## Running Evals
 
 Common commands:

@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_PYTHON = str(REPO_ROOT / ".venv" / "bin" / "python")
 
 
 def test_agent_eval_public_facade_routes_to_eval_cli() -> None:
@@ -23,7 +24,7 @@ def test_agent_eval_public_facade_routes_to_eval_cli() -> None:
         "regrade_source=output/evals/household_world_cleanup_capability/source-run",
     )
 
-    assert trace[:5] == ["cmd", ".venv/bin/python", "-m", "roboclaws.cli.main", "eval"]
+    assert trace[:4] == ["cmd", REPO_PYTHON, "-m", "roboclaws.evals.cli"]
     assert "suite=smoke_regression" in trace
     assert "budget=smoke" in trace
     assert "agent_engine=openai-agents-sdk" in trace
@@ -41,7 +42,7 @@ def test_agent_eval_public_facade_routes_promotion_cli() -> None:
         "regression_sample_id=regression.cleanup_demo",
     )
 
-    assert trace[:5] == ["cmd", ".venv/bin/python", "-m", "roboclaws.cli.main", "eval"]
+    assert trace[:4] == ["cmd", REPO_PYTHON, "-m", "roboclaws.evals.cli"]
     assert "promote-regression" in trace
     assert "eval_results=output/evals/demo/eval_results.json" in trace
     assert "source_sample_id=cleanup.smoke_seed7" in trace
@@ -55,7 +56,7 @@ def test_agent_eval_public_facade_routes_map_build_report_cli() -> None:
         "output_dir=output/evals/map-build-matrix-report",
     )
 
-    assert trace[:5] == ["cmd", ".venv/bin/python", "-m", "roboclaws.cli.main", "eval"]
+    assert trace[:4] == ["cmd", REPO_PYTHON, "-m", "roboclaws.evals.cli"]
     assert "map-build-report" in trace
     assert "eval_results=output/evals/a/eval_results.json,output/evals/b/eval_results.json" in trace
     assert "output_dir=output/evals/map-build-matrix-report" in trace
@@ -69,7 +70,7 @@ def test_agent_eval_public_facade_routes_runtime_prior_select_cli() -> None:
         "output_dir=output/evals/runtime-prior-selection",
     )
 
-    assert trace[:5] == ["cmd", ".venv/bin/python", "-m", "roboclaws.cli.main", "eval"]
+    assert trace[:4] == ["cmd", REPO_PYTHON, "-m", "roboclaws.evals.cli"]
     assert "runtime-prior-select" in trace
     assert "manifest=output/evals/runtime-prior-selection/manifest.json" in trace
     assert "eval_results=output/evals/a/eval_results.json" in trace
@@ -86,7 +87,7 @@ def test_agent_eval_public_facade_routes_session_live_cli() -> None:
         "live_execution=run",
     )
 
-    assert trace[:5] == ["cmd", ".venv/bin/python", "-m", "roboclaws.cli.main", "eval"]
+    assert trace[:4] == ["cmd", REPO_PYTHON, "-m", "roboclaws.evals.cli"]
     assert "session-live" in trace
     assert "stamp=openai-agents-sdk-session-live-eval" in trace
     assert "agent_engine=openai-agents-sdk" in trace
@@ -103,7 +104,7 @@ def test_agent_eval_public_facade_routes_eval_harness_recommend() -> None:
         "output_dir=output/eval-harness/trace",
     )
 
-    assert trace[:5] == ["cmd", ".venv/bin/python", "-m", "roboclaws.cli.main", "eval"]
+    assert trace[:4] == ["cmd", REPO_PYTHON, "-m", "roboclaws.evals.cli"]
     assert "recommend" in trace
     assert "plan=docs/plans/2026-06-15-eval-harness-skill-entrypoint.md" in trace
     assert "budget=focused" in trace
@@ -114,7 +115,7 @@ def test_agent_eval_public_facade_routes_eval_harness_recommend() -> None:
 def test_agent_eval_public_facade_routes_eval_harness_execute() -> None:
     trace = _trace_agent_eval("execute", "since=origin/main", "budget=focused")
 
-    assert trace[:5] == ["cmd", ".venv/bin/python", "-m", "roboclaws.cli.main", "eval"]
+    assert trace[:4] == ["cmd", REPO_PYTHON, "-m", "roboclaws.evals.cli"]
     assert "execute" in trace
     assert "since=origin/main" in trace
     assert "budget=focused" in trace
@@ -134,14 +135,14 @@ def test_agent_eval_public_facade_honors_container_python() -> None:
     )
 
     assert (result.stdout + result.stderr).startswith(
-        "exec /opt/roboclaws/.venv/bin/python -m roboclaws.cli.main agent eval"
+        "exec /opt/roboclaws/.venv/bin/python -m roboclaws.evals.cli"
     )
 
 
 def test_agent_eval_dispatch_honors_configured_python() -> None:
     trace = _trace_agent_eval("execute", "since=origin/main", python_bin=sys.executable)
 
-    assert trace[:5] == ["cmd", sys.executable, "-m", "roboclaws.cli.main", "eval"]
+    assert trace[:4] == ["cmd", sys.executable, "-m", "roboclaws.evals.cli"]
 
 
 def test_current_eval_docs_use_default_live_eval_budget() -> None:
@@ -166,8 +167,7 @@ def test_eval_harness_recommend_rejects_suite_override() -> None:
         [
             str(python_bin),
             "-m",
-            "roboclaws.cli.main",
-            "eval",
+            "roboclaws.evals.cli",
             "recommend",
             "suite=cleanup_capability",
         ],

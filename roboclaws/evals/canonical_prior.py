@@ -8,10 +8,8 @@ import shutil
 from pathlib import Path
 
 from roboclaws.core.json_sources import read_json_object
-from roboclaws.evals.runtime_prior_selection import (
-    RUNTIME_PRIOR_CATALOG_SCHEMA,
-    RUNTIME_PRIOR_SELECTION_REPORT_SCHEMA,
-)
+from roboclaws.evals.runtime_prior_selection import RUNTIME_PRIOR_SELECTION_REPORT_SCHEMA
+from roboclaws.maps.runtime_prior_catalog import RUNTIME_PRIOR_CATALOG_SCHEMA
 
 CANONICAL_PRIOR_PROMOTION_MANIFEST_SCHEMA = "canonical_runtime_map_prior_promotion_v1"
 CANONICAL_PRIOR_PROVENANCE_SCHEMA = "canonical_runtime_map_prior_provenance_v1"

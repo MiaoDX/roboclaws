@@ -31,4 +31,4 @@ gateway action="up" token_file=".openclaw-token" provider="kimi" agents="2":
 
 # Run a repo-native eval suite.
 eval *overrides:
-    @exec {{python_bin}} -m roboclaws.cli.main agent eval "$@"
+    @exec {{python_bin}} -m roboclaws.evals.cli "$@"

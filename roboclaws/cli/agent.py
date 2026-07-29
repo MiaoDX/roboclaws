@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import sys
 from collections.abc import Sequence
 
@@ -70,9 +69,6 @@ def main(argv: list[str] | None = None) -> int:
         return _mcp(rest)
     if command == "gateway":
         return _gateway(rest)
-    if command == "eval":
-        python_bin = os.environ.get("ROBOCLAWS_DEVTOOLS_PYTHON") or ".venv/bin/python"
-        return _exec_or_trace([python_bin, "-m", "roboclaws.cli.main", "eval", *rest])
     _die(f"unsupported agent subcommand {command!r}")
 
 

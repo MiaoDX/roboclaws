@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import os
+import sys
 from pathlib import Path
 
 from roboclaws.evals.canonical_prior import promote_canonical_runtime_prior
@@ -36,9 +38,13 @@ _TOOL_MODE_ALIASES = {
 
 
 def main(argv: list[str] | None = None) -> int:
+    raw_args = list(sys.argv[1:] if argv is None else argv)
+    if os.environ.get("ROBOCLAWS_JUST_TRACE") == "1":
+        print("\t".join(("cmd", sys.executable, "-m", "roboclaws.evals.cli", *raw_args)))
+        return 0
     parser = argparse.ArgumentParser(description="Run Roboclaws eval tools.")
     parser.add_argument("overrides", nargs="*", help="key=value overrides.")
-    args = parser.parse_args(argv)
+    args = parser.parse_args(raw_args)
     tool_result = _run_tool_mode_from_args(args.overrides, parser=parser)
     if tool_result is not None:
         return tool_result
@@ -283,3 +289,7 @@ def _optional_path(value: str | None) -> Path | None:
     if value in {None, ""}:
         return None
     return Path(str(value))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

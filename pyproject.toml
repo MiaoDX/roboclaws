@@ -58,6 +58,9 @@ exclude = [
     "/dist",
     "/output",
     "/vendors",
+    "/evals",
+    "/roboclaws/evals",
+    "/skills/eval-harness",
 ]
 
 [tool.hatch.metadata]
