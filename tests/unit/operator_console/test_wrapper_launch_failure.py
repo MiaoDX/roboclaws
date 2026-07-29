@@ -12,6 +12,7 @@ from roboclaws.operator_console.state import derive_operator_state
 from tests.support.b1_robot_proof import write_b1_readiness_fixtures
 from tests.unit.operator_console.conftest import (
     B1_OPENAI_AGENTS_OPEN_TASK,  # noqa: F401  re-exported for tests
+    MUJOCO_SDK_MAP_BUILD,
 )
 
 KIMI_ENV = {
@@ -50,6 +51,34 @@ def test_state_marks_dead_wrapper_launch_without_live_artifacts_failed(
         "Launch failed: another non-Molmo live cleanup run appears to be active"
     )
     assert any(item["label"] == "Console Launch Log" for item in state["artifact_paths"])
+
+
+def test_state_prefers_terminal_direct_result_over_wrapper_starting_phase(tmp_path: Path) -> None:
+    route = get_selection(MUJOCO_SDK_MAP_BUILD)
+    run_dir = tmp_path / "output" / "operator-console" / "runs" / "direct-run"
+    run_dir.mkdir(parents=True)
+    (run_dir / "operator_state.json").write_text(
+        json.dumps({"run_id": "direct-run", "route": route.to_payload(), "phase": "starting"}),
+        encoding="utf-8",
+    )
+    (run_dir / "run_result.json").write_text(
+        json.dumps(
+            {
+                "task_intent": "map-build",
+                "completion_status": "failed",
+                "score": {"status": "success"},
+                "terminate_reason": "map build complete",
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "report.html").write_text("<html></html>", encoding="utf-8")
+
+    state = derive_operator_state(tmp_path, run_dir, route)
+
+    assert state["phase"] == "finished"
+    assert state["status"] == "passed"
+    assert state["terminal_reason"] == "map build complete"
 
 
 def test_readiness_does_not_block_on_zombie_wrapper_lock(tmp_path: Path, monkeypatch) -> None:

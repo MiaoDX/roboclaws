@@ -40,6 +40,7 @@ def serve_worker(
             kwargs = request.get("kwargs") or {}
             if not isinstance(kwargs, dict):
                 raise ValueError("MolmoSpaces worker request kwargs must be a JSON object")
+            kwargs = resolve_home_relative_paths(kwargs)
             if command == "shutdown":
                 response = {
                     "id": request_id,
