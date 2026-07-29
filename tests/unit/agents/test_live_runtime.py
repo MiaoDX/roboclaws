@@ -1106,10 +1106,8 @@ def test_openai_agents_runtime_includes_skill_context_without_persisting_body(
     )
     instructions = str(captured["agent_kwargs"]["instructions"])
     assert "Canonical skill context" in instructions
-    assert (
-        "Run-specific kickoff instructions override any conflicting generic skill-context "
-        "guidance for this run"
-    ) in instructions
+    assert "otherwise the canonical Skill owns task strategy" in instructions
+    assert "override any conflicting generic skill-context" not in instructions
     assert skill_text in instructions
     assert instructions.endswith("clean the room")
     artifact = json.loads(
@@ -3661,12 +3659,11 @@ def test_openai_agents_camera_grounded_composite_rerenders_map_build_prompt() ->
 
     prompt = _profiled_kickoff_prompt(args, profile=profile)
 
-    assert "declare_visual_candidates for each raw FPV observation" in stale_prompt
+    assert "Waypoint observation tool=observe" in stale_prompt
     assert "observe_camera_grounded_candidates" in prompt
-    assert "after navigating to each public inspection waypoint" in prompt
+    assert "Waypoint observation tool=observe_camera_grounded_candidates" in prompt
     assert "Prefer one observe_camera_grounded_candidates response per waypoint_id" in prompt
     assert "One bounded re-observation is allowed" in prompt
-    assert "Do not resume the older observe plus declare_visual_candidates cadence" in prompt
     assert "declare_visual_candidates for each raw FPV observation" not in prompt
     assert "Manipulation tools are not entitled for this run" in prompt
 
@@ -4852,8 +4849,8 @@ def test_openai_agents_cleanup_runner_uses_profiled_compact_kickoff_prompt(
     assert status == 0
     assert len(prompts) == 1
     assert "FULL PROMPT THAT SHOULD BE REPLACED" not in prompts[0]
-    assert "Compact action cadence for world-public-labels" in prompts[0]
-    assert "pending_cleanup_candidates" in prompts[0]
+    assert "Evidence lane=world-public-labels" in prompts[0]
+    assert "pending_cleanup_candidates" not in prompts[0]
     timing = json.loads((run_dir / "live_timing.json").read_text(encoding="utf-8"))
     assert timing["kickoff_prompt_source"] == "profile-rendered-lane-default"
 

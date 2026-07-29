@@ -486,10 +486,8 @@ class HouseholdWorldMCPServer:
         if tool == "declare_visual_candidates" and augmented.get("ok"):
             augmented = _compact_declare_visual_candidates_response(augmented)
             augmented["instruction"] = (
-                "Use camera_model_candidates with cleanup_recommended=true as the actionable "
-                "worklist only when candidate_state is navigation_authorized. For each "
-                "authorized candidate, call navigate_to_object, pick, navigate_to_receptacle, "
-                "then the recommended placement tool."
+                "For the first returned candidate with candidate_state=navigation_authorized, "
+                "call navigate_to_object with its public object_id."
             )
         if tool in {"place", "place_inside", "close_receptacle"} and augmented.get("ok"):
             augmented["instruction"] = (

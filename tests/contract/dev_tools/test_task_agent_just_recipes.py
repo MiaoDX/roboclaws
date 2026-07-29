@@ -1382,46 +1382,30 @@ def test_household_cleanup_prompt_override_does_not_make_openclaw_active() -> No
     assert "openclaw-gateway is validation-required future abstraction work" in stderr
 
 
-def test_molmo_camera_raw_prompt_requires_exact_waypoint_checklist() -> None:
+def test_molmo_camera_raw_prompt_contains_run_constraints_not_generic_strategy() -> None:
     prompt = render_kickoff_prompt("camera-raw-fpv")
 
-    assert "exact inspection_waypoints checklist" in prompt
-    assert "sweep public waypoints with navigate_to_waypoint then observe" in prompt
     assert "cleanup MCP tool entries exactly as exposed by Codex" in prompt
     assert "namespace cleanup" in prompt
     assert "server named cleanup" not in prompt
-    assert "Call done only after every public waypoint has an observe response" in prompt
     assert "never mcp__cleanup__" in prompt
-    assert "must complete 4 materially distinct robot-body headings" in prompt
+    assert "Per-waypoint distinct-heading budget=4" in prompt
     assert "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90)" in prompt
     assert "even when the cleanup gate is already met" in prompt
     assert "extra overlap probe after those body headings" in prompt
-    assert "Compact action cadence for camera-raw-fpv" in prompt
+    assert "Evidence lane=camera-raw-fpv" in prompt
     assert "at most one fresh high-confidence cleanup candidate" in prompt
     assert "source_observation_id/category/region" in prompt
-    assert "for a left-edge candidate use yaw_delta_deg=45" in prompt
-    assert "for a right-edge candidate use yaw_delta_deg=-45" in prompt
-    assert "for a bottom-edge candidate use pitch_delta_deg=20" in prompt
-    assert "Use the exact visual class when the image makes it clear" in prompt
-    assert "Use broader cleanup categories" in prompt
-    assert "only when the exact object class is uncertain" in prompt
-    assert "use image_region={type:bbox,value:[x,y,width,height]}" in prompt
     assert "Never retry the same source_observation_id/category/region" in prompt
-    assert "Omit source_fixture_id with Base Metric Map context" in prompt
-    assert "Never send bbox_normalized" in prompt
-    assert 'target_fixture_id=""' in prompt
-    assert 'target_fixture_id="None"' in prompt
-    assert "target_fixture_id=null" in prompt
-    assert "bare x/y/width/height fields" in prompt
-    assert "Clean up to 7 grounded visual candidates when possible" in prompt
-    assert "place/place_inside" in prompt
-    assert "Use place_inside for shelf/bookshelf/bookcase/shelving/fridge targets" in prompt
+    assert "Cleanup target cap=7" in prompt
+    assert "Required closeout artifacts" in prompt
+    assert "place/place_inside" not in prompt
 
 
 def test_molmo_camera_raw_prompt_scales_to_requested_cleanup_count() -> None:
     prompt = render_kickoff_prompt("camera-raw-fpv", target_cleanup_count=5)
 
-    assert "Clean up to 5 grounded visual candidates when possible" in prompt
+    assert "Cleanup target cap=5" in prompt
     assert "at least seven grounded cleanup chains have succeeded" not in prompt
 
 
@@ -1511,19 +1495,16 @@ def test_molmo_world_labels_prompt_requires_nav2_bundle_checklist() -> None:
 
     assert "This run is surface=household-world intent=cleanup" in prompt
     assert "User task: clean up this room" in prompt
-    assert "Call metric_map" in prompt
-    assert "exact inspection_waypoints checklist" in prompt
-    assert "for each unchecked waypoint call navigate_to_waypoint then observe" in prompt
-    assert "runtime_metric_map.public_semantic_anchors" in prompt
-    assert "place/place_inside" in prompt
-    assert "Use place_inside for shelf/bookshelf/bookcase/shelving/fridge targets" in prompt
+    assert "Evidence lane=world-public-labels" in prompt
+    assert "visible_object_detections" in prompt
+    assert "private destination truth" in prompt
     assert "cleanup MCP tool entries exactly as exposed by Codex" in prompt
     assert "namespace cleanup" in prompt
     assert "server named cleanup" not in prompt
-    assert "Call done when every public waypoint has an observe response" in prompt
     assert "never mcp__cleanup__" in prompt
     assert "roboclaws__" in prompt
-    assert "Do not call scene_objects" in prompt
+    assert "Required closeout artifacts" in prompt
+    assert "navigate_to_waypoint" not in prompt
 
 
 def test_molmo_cleanup_live_prompt_includes_open_ended_user_task() -> None:
@@ -1537,8 +1518,7 @@ def test_molmo_cleanup_live_prompt_includes_open_ended_user_task() -> None:
     assert "custom operator task" not in prompt
     assert "The following operator task is authoritative" in prompt
     assert "我渴了，帮我找些解渴的东西" in prompt
-    assert "Inspect only as much as the operator task needs" in prompt
-    assert "Unless the operator explicitly asks you to wait or not call done" in prompt
+    assert "Evidence lane=world-public-labels" in prompt
     assert "Use the MCP tools as a bounded household robot capability surface" in prompt
     assert "Use the household MCP tool entries exactly as exposed by Codex" in prompt
     assert "Use the bundled household-world skill instructions" in prompt
@@ -1571,7 +1551,7 @@ def test_molmo_open_ended_camera_grounded_prompt_requires_label_declaration() ->
     assert "camera_model_candidates" in prompt
     assert "model_declared_observations" in prompt
     assert "service URLs" in prompt
-    assert "Unless the operator explicitly asks you to wait or not call done" in prompt
+    assert "Required closeout artifacts" in prompt
 
 
 def test_molmo_open_ended_camera_grounded_prompt_can_use_composite_tool() -> None:
@@ -1603,12 +1583,10 @@ def test_molmo_cleanup_live_prompt_uses_cleanup_intent_without_open_ended_intent
 def test_molmo_world_labels_prompt_uses_single_lane_default() -> None:
     prompt = render_kickoff_prompt("world-public-labels")
 
-    assert "Compact action cadence for world-public-labels" in prompt
-    assert "exact inspection_waypoints checklist" in prompt
-    assert "navigate_to_waypoint then observe" in prompt
-    assert "pending_cleanup_candidates" in prompt
-    assert "required_tool" in prompt
-    assert "destination_options" in prompt
+    assert "Evidence lane=world-public-labels" in prompt
+    assert "visible_object_detections" in prompt
+    assert "navigate_to_waypoint then observe" not in prompt
+    assert "pending_cleanup_candidates" not in prompt
     assert "cleanup_recommended" not in prompt
     assert "first complete an anchor discovery sweep" not in prompt
 
@@ -1617,15 +1595,14 @@ def test_molmo_label_prompts_keep_public_done_boundary() -> None:
     world_prompt = render_kickoff_prompt("world-public-labels")
     camera_prompt = render_kickoff_prompt("camera-grounded-labels")
 
-    assert "Compact action cadence for world-public-labels" in world_prompt
-    assert "observe -> candidate decision" in world_prompt
-    assert "pending_cleanup_candidates" in world_prompt
-    assert "only MCP done producing run_result.json counts" in world_prompt
-    assert "private scoring artifacts" in world_prompt
-    assert "Compact action cadence for camera-grounded-labels" in camera_prompt
+    assert "Evidence lane=world-public-labels" in world_prompt
+    assert "observe -> candidate decision" not in world_prompt
+    assert "pending_cleanup_candidates" not in world_prompt
+    assert "only the MCP done response creates the authoritative run result" in world_prompt
+    assert "Evidence lane=camera-grounded-labels" in camera_prompt
     assert "declare_visual_candidates with observation_id only" in camera_prompt
     assert "service URLs" in camera_prompt
-    assert "only MCP done producing run_result.json counts" in camera_prompt
+    assert "only the MCP done response creates the authoritative run result" in camera_prompt
 
 
 def test_molmo_compact_camera_prompt_can_prefer_composite_observe_tool() -> None:
@@ -1635,9 +1612,9 @@ def test_molmo_compact_camera_prompt_can_prefer_composite_observe_tool() -> None
     )
 
     assert "observe_camera_grounded_candidates instead of a separate observe" in prompt
-    assert "response declaration as the camera-labeler candidate output" in prompt
+    assert "declaration as server-side labeler output" in prompt
     assert "do not call declare_visual_candidates again for the same" in prompt
-    assert "only MCP done producing run_result.json counts" in prompt
+    assert "only the MCP done response creates the authoritative run result" in prompt
 
 
 def test_molmo_just_openai_agents_composite_env_forwards_prompt_flag() -> None:
@@ -1700,20 +1677,15 @@ def test_molmo_raw_fpv_compact_prompt_includes_budget_contract() -> None:
         done_retry_budget=1,
     )
 
-    assert "Compact action cadence for camera-raw-fpv" in prompt
-    assert "run budget of 3 raw-FPV candidate attempts" in prompt
-    assert "must complete 2 materially distinct robot-body headings" in prompt
+    assert "Evidence lane=camera-raw-fpv" in prompt
+    assert "Raw-FPV candidate-attempt budget=3" in prompt
+    assert "Per-waypoint distinct-heading budget=2" in prompt
     assert "extra overlap probe after those body headings" in prompt
     assert "adjust_camera(yaw_delta_deg=45, pitch_delta_deg=20) exactly once" in prompt
     assert "does not count as a distinct robot-body heading" in prompt
-    assert "retry done at most 1 time(s)" in prompt
+    assert "Done retry budget=1" in prompt
     assert "Never retry the same source_observation_id/category/region" in prompt
-    assert "left, right, bottom, or top FPV edge" in prompt
-    assert "for a bottom-edge candidate use pitch_delta_deg=20" in prompt
-    assert "for a top-edge candidate use pitch_delta_deg=-20" in prompt
-    assert "overlap without a clear edge direction" in prompt
-    assert prompt.count("Do not declare or act from a tiny sliver") == 1
-    assert "only MCP done producing run_result.json counts" in prompt
+    assert "only the MCP done response creates the authoritative run result" in prompt
 
 
 def test_molmo_live_openai_agents_uses_single_lane_default_prompt() -> None:
@@ -1736,22 +1708,15 @@ def test_map_build_live_prompt_disables_cleanup_actions() -> None:
     )
 
     assert "This run is surface=household-world intent=map-build" in prompt
-    assert "This is not a cleanup run" in prompt
     assert "User task: 帮我建立这个房间的 Runtime Metric Map" in prompt
     assert "Use the bundled household-world skill instructions" in prompt
     assert "Manipulation tools are not entitled for this run" in prompt
-    assert "sweep every inspection waypoint" in prompt
-    assert "declare_visual_candidates" in prompt
-    assert "adjust_camera" in prompt
-    assert "observe again" in prompt
+    assert "Evidence lane=camera-grounded-labels" in prompt
+    assert "Waypoint observation tool=observe" in prompt
     assert "scan_profile=fixture-focused" in prompt
     assert "navigate_to_relative_pose" in prompt
     assert "stable semantic anchors" in prompt
     assert "future runs must recheck before action" in prompt
-    assert "required_next_tool" in prompt
-    assert "required_tool" in prompt
-    assert "generated target-inspection candidate" in prompt
-    assert "public inspection waypoint" in prompt
     assert "runtime_metric_map.json" in prompt
 
 

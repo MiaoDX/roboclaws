@@ -13,6 +13,13 @@ TaskIntentSpec, optional TaskPresetSpec, evidence lane, and required capability
 profile decide the behavior. Task type does not create a separate runner or
 skill.
 
+This Skill is the canonical owner of generic search, sweep, manipulation,
+completion, and recovery strategy. Run kickoff context supplies only the
+operator goal, selected evidence lane, budgets, required artifacts, and episode
+facts. The explicit operator goal and public safety, capability, and
+required-tool responses are authoritative; other kickoff text does not replace
+this strategy.
+
 Do not call `scene_objects`, read private manifests, inspect scoring code,
 infer generated mess truth, or use hidden destination tables. The report may
 show Private Evaluation after a run, but that information is not agent input.
@@ -113,6 +120,15 @@ visual candidate. Do not pre-register raw-FPV candidates with
 public revisit queue after `done` reports a grounded-chain deficit, finish any
 heading blocker first, then inspect each listed waypoint at most once from the
 specified fresh recovery view.
+
+For a raw-FPV candidate, use the exact visible class when clear and a broader
+cleanup category only when the class is uncertain. Ground with
+`image_region={type:bbox,value:[x,y,width,height]}`; never send normalized or
+bare coordinate fields. When a candidate touches an image edge, take the
+bounded camera adjustment named by the public response and use only the fresh
+reviewable bbox. Never retry the same source-observation/category/region tuple.
+Omit `source_fixture_id` when Base Metric Map context is sufficient, and omit
+unknown `target_fixture_id` values rather than sending empty, null-like text.
 
 In `camera-grounded-labels`, use `roboclaws__declare_visual_candidates()` to
 register producer-labelled candidates before cleanup selection.
