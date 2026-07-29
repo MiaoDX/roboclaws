@@ -1,6 +1,6 @@
 # Forward-Only Post-Review Architecture Cleanup
 
-**Status:** Active; candidate replay pending
+**Status:** Implemented
 **Created:** 2026-07-28
 **Last reviewed:** 2026-07-29
 **Current implementation contract:** Remove obsolete and duplicate active-code
@@ -16,8 +16,8 @@ cleanup campaign saturated at Slice 42.
 
 ## Plan Ledger
 
-- Plan status: ACTIVE; implementation and required live proof are complete,
-  with only the frozen public-candidate replay and closeout remaining.
+- Plan status: DONE; implementation, required live proof, clean-room package
+  proof, and the refreshed immutable candidate replay are complete.
 - Source: five independent 2026-07-28 architecture/entropy reviews and a
   follow-up evidence review of their findings.
 - Review sessions: `019fa800-db8f-7fa3-8b75-a5d1f070eec3`,
@@ -53,6 +53,15 @@ cleanup campaign saturated at Slice 42.
 - Source reduction: relative to the approved plan commit, tracked cleanup
   source is net more than 3,700 lines smaller and the Python quality baseline
   did not grow.
+- Refreshed candidate:
+  `output/public-candidate/20260729T082627Z/` was built from source commit
+  `5092fdd257d0b386415a4643cf350f750413216c`. Candidate commit
+  `172eaf904088fa2dcf704729b8452497fa02ceeb` contains 1,042 reviewed source
+  files with membership digest
+  `09feb969817b89ea732bd64c13f6d42ea84518a167ec00e80f69b4bbee844b16`.
+  Public-surface, pinned secret, non-recursive clean-room, mock, direct product,
+  sdist/wheel membership, and isolated-install gates pass. Publication remains
+  unauthorized pending a separate human decision.
 
 ## Preflight Contract
 
@@ -634,7 +643,7 @@ completion.
       chains.
 - [x] Source size/owner count is net lower, no compatibility layer was added,
       and the Python quality baseline did not grow.
-- [ ] Full deterministic, product, package, eval, live, privacy, and candidate
+- [x] Full deterministic, product, package, eval, live, privacy, and candidate
       gates pass.
-- [ ] Refreshed candidate is presented for human review; publication remains
+- [x] Refreshed candidate is presented for human review; publication remains
       unauthorized.
