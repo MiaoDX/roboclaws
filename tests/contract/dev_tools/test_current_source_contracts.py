@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import re
 import subprocess
 import sys
@@ -208,3 +209,26 @@ def test_product_runtime_does_not_depend_on_script_modules() -> None:
         and stale_identity in path.read_text(encoding="utf-8", errors="ignore")
     ]
     assert stale_hits == []
+
+
+def test_household_projection_helpers_are_not_forwarded_through_private_assignments() -> None:
+    projection_modules = {
+        "realworld_contract_fixture_projection",
+        "realworld_contract_projection",
+    }
+    hits: list[str] = []
+    for path in (REPO_ROOT / "roboclaws" / "household").glob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Attribute):
+                continue
+            owner = node.value.value
+            if not isinstance(owner, ast.Name) or owner.id not in projection_modules:
+                continue
+            if any(
+                isinstance(target, ast.Name) and target.id.startswith("_")
+                for target in node.targets
+            ):
+                hits.append(f"{path.relative_to(REPO_ROOT)}:{node.lineno}")
+
+    assert hits == []

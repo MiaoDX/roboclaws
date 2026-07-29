@@ -10,13 +10,13 @@ Latest intent: execute the approved forward-only cleanup plan. Publication,
 physical movement, Omniverse EULA acceptance, compatibility layers, and scope
 expansion remain unauthorized.
 
-Current slice: Wave 7 single household strategy owner is complete and awaiting
-its semantic checkpoint commit.
+Current slice: Wave 8 household projection facade cleanup is complete and
+awaiting its semantic checkpoint commit.
 
-Last proof: Ruff, format, the Python quality ratchet, responsibility ownership
-searches, and the broad Wave 7 Skill, prompt, runtime, raw-FPV recovery, MCP,
-privacy, trajectory, completion, Just, and open-ended artifact suite pass. The
-latest product receipt remains the post-Wave-6 direct map-build run at
+Last proof: Ruff, format, the unchanged Python quality ratchet, exact facade
+search, AST current-source guard, and focused household Metric Map, Agent View,
+MCP artifact, privacy, and visual-candidate recovery suites pass. The latest
+product receipt remains the post-Wave-6 direct map-build run at
 `output/household/household-world/map-build/direct-camera-grounded-labels/0729_1146`.
 
 Completed batch: approved execution contract and durable route loaded; current
@@ -50,6 +50,10 @@ sweep, manipulation, completion, and recovery owner; reduced kickoff prompts
 to goal/lane/budget/artifact/episode context; removed kickoff-overrides-Skill
 authority; and narrowed successful candidate MCP guidance to the immediate
 state-derived next action.
+Wave 8 removed the fixture-helper forwarding block from
+`realworld_contract_projection`, removed the second forwarding block from
+`HouseholdRuntimeContract`, migrated active consumers directly to the existing
+fixture-projection or projection owner, and added an AST absence guard.
 
 Frozen candidate recipe: run `scripts/dev/build_public_candidate.py` into a new
 candidate root; run `scripts/dev/check_public_surface.py` and the CI-pinned exact
@@ -63,12 +67,14 @@ manifests and run artifacts, both distributions, and isolated-install logs. The
 previous immutable receipt roots remain under `output/public-candidate/` and are
 superseded for publication.
 
-Next slice: commit Wave 7, then remove household projection private-symbol
-forwarding chains and migrate patch sites to direct canonical owners in Wave 8.
+Next slice: commit Wave 8, regenerate and freeze the final eval recommendation,
+then run the complete Wave 9 deterministic, package, product, live, console,
+artifact, privacy, and refreshed-candidate proof matrix.
 
-Next proof: exact private forwarding inventory plus focused household map,
-Agent View, MCP, privacy, and quality-ratchet gates. The bounded live matrix
-remains deferred to Wave 9 as required by the source plan.
+Next proof: `uv sync --extra dev`, final `agent::eval recommend`, complete
+deterministic and repo-native eval gates, direct and SDK product routes, four
+provider health probes, the bounded six-row live matrix, package/candidate
+replay, and final documentation closeout.
 
 Stop condition: stop for an unexplained active non-test consumer of a deletion
 target, a required public/schema boundary beyond the approved modules, a

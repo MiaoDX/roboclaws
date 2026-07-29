@@ -4,7 +4,14 @@ import copy
 from collections import defaultdict
 from typing import Any
 
-from roboclaws.household import realworld_contract_fixture_projection
+from roboclaws.household.realworld_contract_fixture_projection import (
+    _driveable_ways,
+    _fixture_affordances,
+    _fixture_footprint,
+    _polygon_center_world,
+    _room_id,
+    _vec3,
+)
 from roboclaws.household.types import CleanupScenario
 from roboclaws.maps.bundle import metric_map_bundle_metadata
 from roboclaws.maps.spatial_contract import (
@@ -35,61 +42,6 @@ _PROJECTION_FORBIDDEN_AGENT_VIEW_KEYS = frozenset(
         "target_receptacle_id",
     }
 )
-
-_OBJECT_CATEGORY_TARGETS = realworld_contract_fixture_projection._OBJECT_CATEGORY_TARGETS
-_INSIDE_DESTINATION_CATEGORY_TERMS = (
-    realworld_contract_fixture_projection._INSIDE_DESTINATION_CATEGORY_TERMS
-)
-_anchor_affordances_for_fixture = (
-    realworld_contract_fixture_projection._anchor_affordances_for_fixture
-)
-_driveable_ways = realworld_contract_fixture_projection._driveable_ways
-_first_fixture_for_waypoint = realworld_contract_fixture_projection._first_fixture_for_waypoint
-_first_matching_fixture = realworld_contract_fixture_projection._first_matching_fixture
-_fixture_affordances = realworld_contract_fixture_projection._fixture_affordances
-_fixture_footprint = realworld_contract_fixture_projection._fixture_footprint
-_fixture_is_open_container = realworld_contract_fixture_projection._fixture_is_open_container
-_fixture_navigation_obstacles = realworld_contract_fixture_projection._fixture_navigation_obstacles
-_fixture_prefers_inside = realworld_contract_fixture_projection._fixture_prefers_inside
-_fixture_requires_open = realworld_contract_fixture_projection._fixture_requires_open
-_fixture_text = realworld_contract_fixture_projection._fixture_text
-_inspection_waypoints = realworld_contract_fixture_projection._inspection_waypoints
-_is_place_anchor = realworld_contract_fixture_projection._is_place_anchor
-_normalize_fixture_category_label = (
-    realworld_contract_fixture_projection._normalize_fixture_category_label
-)
-_point_overlaps_fixture_obstacle = (
-    realworld_contract_fixture_projection._point_overlaps_fixture_obstacle
-)
-_polygon_center_world = realworld_contract_fixture_projection._polygon_center_world
-_polygon_from_room_outline = realworld_contract_fixture_projection._polygon_from_room_outline
-_public_destination_policy_for_category = (
-    realworld_contract_fixture_projection._public_destination_policy_for_category
-)
-_public_destination_policy_tool_for_fixture_category = (
-    realworld_contract_fixture_projection._public_destination_policy_tool_for_fixture_category
-)
-_recommended_place_tool = realworld_contract_fixture_projection._recommended_place_tool
-_room_id = realworld_contract_fixture_projection._room_id
-_room_outline_by_id_from_fixtures = (
-    realworld_contract_fixture_projection._room_outline_by_id_from_fixtures
-)
-_room_outline_center = realworld_contract_fixture_projection._room_outline_center
-_room_outline_metadata = realworld_contract_fixture_projection._room_outline_metadata
-_room_polygon_bounds = realworld_contract_fixture_projection._room_polygon_bounds
-_rooms_from_fixtures = realworld_contract_fixture_projection._rooms_from_fixtures
-_scene_outline_waypoint_candidates = (
-    realworld_contract_fixture_projection._scene_outline_waypoint_candidates
-)
-_scene_outline_waypoint_slots_for_room = (
-    realworld_contract_fixture_projection._scene_outline_waypoint_slots_for_room
-)
-_semantic_anchor_type_for_fixture = (
-    realworld_contract_fixture_projection._semantic_anchor_type_for_fixture
-)
-_split_fixture_groups = realworld_contract_fixture_projection._split_fixture_groups
-_vec3 = realworld_contract_fixture_projection._vec3
-_waypoint_slots_for_room = realworld_contract_fixture_projection._waypoint_slots_for_room
 
 
 def _map_bundle_fields_present(metric_map: dict[str, Any]) -> bool:

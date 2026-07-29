@@ -27,6 +27,24 @@ from roboclaws.household.raw_fpv_guidance import (
     RAW_FPV_DECLARATION_STRATEGY,
     raw_fpv_inline_candidate_instruction,
 )
+from roboclaws.household.realworld_contract_fixture_projection import (
+    _OBJECT_CATEGORY_TARGETS,
+    _first_matching_fixture,
+    _fixture_prefers_inside,
+    _fixture_requires_open,
+    _normalize_fixture_category_label,
+    _public_destination_policy_for_category,
+    _recommended_place_tool,
+    _room_polygon_bounds,
+)
+from roboclaws.household.realworld_contract_projection import (
+    _map_bundle_fields_present,
+    _merge_public_rooms,
+    _pose_stamped_waypoints_present,
+    _room_category_hints_from_public_rooms,
+    _room_outline_by_id,
+    _scene_index_fixture_pose,
+)
 from roboclaws.household.realworld_policy_trace import (
     cleanup_policy_trace_from_events as _cleanup_policy_trace_from_events,
 )
@@ -107,57 +125,6 @@ REALWORLD_PERCEPTION_MODES = frozenset(
     }
 )
 _NON_ACTIONABLE_HANDLE_STATES = frozenset({"placed", "placed_closed", "skipped", "stale"})
-_OBJECT_CATEGORY_TARGETS = realworld_contract_projection._OBJECT_CATEGORY_TARGETS
-_INSIDE_DESTINATION_CATEGORY_TERMS = (
-    realworld_contract_projection._INSIDE_DESTINATION_CATEGORY_TERMS
-)
-_anchor_affordances_for_fixture = realworld_contract_projection._anchor_affordances_for_fixture
-_first_fixture_for_waypoint = realworld_contract_projection._first_fixture_for_waypoint
-_first_matching_fixture = realworld_contract_projection._first_matching_fixture
-_fixture_prefers_inside = realworld_contract_projection._fixture_prefers_inside
-_fixture_requires_open = realworld_contract_projection._fixture_requires_open
-_fixture_is_open_container = realworld_contract_projection._fixture_is_open_container
-_fixture_text = realworld_contract_projection._fixture_text
-_fixture_navigation_obstacles = realworld_contract_projection._fixture_navigation_obstacles
-_inspection_waypoints = realworld_contract_projection._inspection_waypoints
-_is_place_anchor = realworld_contract_projection._is_place_anchor
-_map_bundle_fields_present = realworld_contract_projection._map_bundle_fields_present
-_merge_public_rooms = realworld_contract_projection._merge_public_rooms
-_polygon_center_world = realworld_contract_projection._polygon_center_world
-_polygon_from_room_outline = realworld_contract_projection._polygon_from_room_outline
-_point_overlaps_fixture_obstacle = realworld_contract_projection._point_overlaps_fixture_obstacle
-_pose_stamped_waypoints_present = realworld_contract_projection._pose_stamped_waypoints_present
-_public_destination_policy_for_category = (
-    realworld_contract_projection._public_destination_policy_for_category
-)
-_normalize_fixture_category_label = realworld_contract_projection._normalize_fixture_category_label
-_public_room_hint_payload = realworld_contract_projection._public_room_hint_payload
-_recommended_place_tool = realworld_contract_projection._recommended_place_tool
-_room_category_from_label = realworld_contract_projection._room_category_from_label
-_room_category_hints_from_public_rooms = (
-    realworld_contract_projection._room_category_hints_from_public_rooms
-)
-_room_id = realworld_contract_projection._room_id
-_room_label_by_id = realworld_contract_projection._room_label_by_id
-_room_outline_by_id = realworld_contract_projection._room_outline_by_id
-_room_outline_by_id_from_fixtures = realworld_contract_projection._room_outline_by_id_from_fixtures
-_room_outline_center = realworld_contract_projection._room_outline_center
-_room_outline_metadata = realworld_contract_projection._room_outline_metadata
-_room_polygon_bounds = realworld_contract_projection._room_polygon_bounds
-_rooms_from_fixtures = realworld_contract_projection._rooms_from_fixtures
-_scene_index_fixture_pose = realworld_contract_projection._scene_index_fixture_pose
-_scene_outline_waypoint_candidates = (
-    realworld_contract_projection._scene_outline_waypoint_candidates
-)
-_scene_outline_waypoint_slots_for_room = (
-    realworld_contract_projection._scene_outline_waypoint_slots_for_room
-)
-_semantic_anchor_type_for_fixture = realworld_contract_projection._semantic_anchor_type_for_fixture
-_split_fixture_groups = realworld_contract_projection._split_fixture_groups
-_vec3 = realworld_contract_projection._vec3
-_waypoint_slots_for_room = realworld_contract_projection._waypoint_slots_for_room
-
-
 _FORBIDDEN_AGENT_VIEW_KEYS = frozenset(
     {
         "generated_mess_set",

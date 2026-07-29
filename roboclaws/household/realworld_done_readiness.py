@@ -5,7 +5,6 @@ from collections.abc import Callable, Collection, Mapping, Sequence
 from typing import Any, Protocol
 
 from roboclaws.household import (
-    realworld_contract_projection,
     realworld_runtime_map_targets,
     realworld_visual_candidates,
 )
@@ -14,6 +13,12 @@ from roboclaws.household.realworld_agent_view_contract import (
     nonnegative_int,
     positive_int,
     public_success_threshold,
+)
+from roboclaws.household.realworld_contract_fixture_projection import (
+    _is_place_anchor,
+    _normalize_fixture_category_label,
+    _public_destination_policy_tool_for_fixture_category,
+    _recommended_place_tool,
 )
 from roboclaws.household.semantic_acceptability import public_source_requires_cleanup
 from roboclaws.household.task_intent import (
@@ -49,12 +54,6 @@ class DoneReadinessContract(Protocol):
     def internal_fixture_id_for_public_reference(self, fixture_id: str | None) -> str | None: ...
 
 
-_is_place_anchor = realworld_contract_projection._is_place_anchor
-_normalize_fixture_category_label = realworld_contract_projection._normalize_fixture_category_label
-_public_destination_policy_tool_for_fixture_category = (
-    realworld_contract_projection._public_destination_policy_tool_for_fixture_category
-)
-_recommended_place_tool = realworld_contract_projection._recommended_place_tool
 _required_tool_for_candidate_state = realworld_visual_candidates._required_tool_for_candidate_state
 
 
