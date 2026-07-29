@@ -3,12 +3,12 @@ from __future__ import annotations
 import uuid
 from pathlib import Path
 
+from roboclaws.agents.drivers.openai_agents_perf_profile import _sdk_model_settings_for_profile
 from roboclaws.agents.provider_transport import (
     CODEX_WINDOW_ID_HEADER,
     compatible_model_settings,
     provider_default_headers,
 )
-from scripts.molmo_cleanup.openai_agents_perf_profile import _sdk_model_settings_for_profile
 
 
 def test_codex_window_id_is_stable_per_run_dir(tmp_path: Path) -> None:

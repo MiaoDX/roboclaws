@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from importlib.util import find_spec
 from pathlib import Path
 from typing import Any
 
@@ -19,8 +20,6 @@ from roboclaws.launch.retired_agent_engines import (
     is_retired_agent_engine,
     retired_agent_engine_message,
 )
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def agent_engine_spec(agent_engine: str) -> AgentEngineSpec:
@@ -137,11 +136,11 @@ def _runtime_readiness(agent_engine: str) -> dict[str, Any]:
         "product_route_available": "eval runner can call the public run::surface route",
     }
     if agent_engine == "openai-agents-sdk":
-        script = REPO_ROOT / "scripts" / "molmo_cleanup" / "run_live_openai_agents_household.py"
+        runtime_available = find_spec("roboclaws.agents.household_live_runner") is not None
         runtime.update(
             {
                 "required_runtime": "OpenAI Agents SDK household runner",
-                "live_runner_script": "available" if script.exists() else "missing",
+                "live_runner_module": "available" if runtime_available else "missing",
             }
         )
     else:

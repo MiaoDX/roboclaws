@@ -561,7 +561,8 @@ def _agibot_gdk_live_map_build(
     )
     cmd = [
         ".venv/bin/python",
-        "scripts/molmo_cleanup/run_live_openai_agents_household.py",
+        "-m",
+        "roboclaws.agents.household_live_runner",
         "--repo-root",
         os.getcwd(),
         "--run-dir",

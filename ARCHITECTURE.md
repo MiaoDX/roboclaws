@@ -62,6 +62,9 @@ Harness recipes
   `backend=isaaclab`, or `backend=agibot-gdk`. Product support is
   world-scoped: MolmoSpaces household scenes use MuJoCo, B1 / Map 12 uses
   Isaac Lab, and Agibot map runs use Agibot GDK.
+  `roboclaws.launch.executor` consumes the resolved typed launch plan once and
+  owns adapter dispatch and child lifecycle; product callers do not reconstruct
+  private commands.
 - **Agent Skills** own strategy: prompts, scripts, examples, recovery loops,
   and trace-preserving routines such as `navigate -> pick -> place`.
 - **Agent Engines And Provider Profiles** distinguish the product runtime
@@ -82,6 +85,9 @@ Harness recipes
   focus is the OpenAI Agents SDK live route plus deterministic direct-runner
   proof; higher-level agent frameworks are later clients after those lower
   routes are stable.
+  `roboclaws.agents.household_live_runner` owns the active OpenAI Agents SDK
+  household lifecycle and imports its reusable budget, continuation, metrics,
+  performance-profile, and status helpers from package modules.
 - **Capability Profiles** define reusable capability environments. Skills
   require profiles; profiles should not be copied into task-specific supersets.
 - **MCP Capability Contract And Tools** are the stable public robot interface:

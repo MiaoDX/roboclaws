@@ -200,7 +200,7 @@
       {
         "lines": 890,
         "max_module_lines": 800,
-        "path": "scripts/molmo_cleanup/openai_agents_perf_profile.py"
+        "path": "roboclaws/agents/drivers/openai_agents_perf_profile.py"
       },
       {
         "lines": 1412,
@@ -220,7 +220,7 @@
       {
         "lines": 2192,
         "max_module_lines": 800,
-        "path": "scripts/molmo_cleanup/run_live_openai_agents_household.py"
+        "path": "roboclaws/agents/household_live_runner.py"
       },
       {
         "lines": 1103,

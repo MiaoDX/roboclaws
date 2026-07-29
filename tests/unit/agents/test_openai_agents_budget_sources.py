@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.molmo_cleanup.run_live_openai_agents_household import _budget_failure_from_run_state
+from roboclaws.agents.household_live_runner import _budget_failure_from_run_state
 
 
 def test_openai_agents_budget_guard_fails_aloud_on_malformed_trace_source(

@@ -10,14 +10,14 @@ Latest intent: execute the approved forward-only cleanup plan. Publication,
 physical movement, Omniverse EULA acceptance, compatibility layers, and scope
 expansion remain unauthorized.
 
-Current slice: Wave 5 typed launch executor migration is complete and awaiting
-its semantic checkpoint commit.
+Current slice: Wave 6 package-owned household runtime migration is complete and
+awaiting its semantic checkpoint commit.
 
-Last proof: broad launch, Just contract, console, and eval focused suites pass;
-Ruff, format, the Python quality ratchet, exact retired-protocol search, and
-`git diff --check` pass. Typed-executor direct map-build and cleanup product
-runs passed for `molmospaces/procthor-10k-val/0`; receipts are under
-`/tmp/roboclaws-wave5-map-build/0729_1129` and
+Last proof: Ruff, format, the Python quality ratchet, exact stale runtime/import
+searches, package module `--help`, and the focused agent/eval/current-source
+suite pass. A post-move direct map-build product run passed at
+`output/household/household-world/map-build/direct-camera-grounded-labels/0729_1146`;
+the prior typed-executor cleanup receipt remains
 `/tmp/roboclaws-wave5-cleanup/0729_1130`, with cleanup restoring 5/5 objects.
 
 Completed batch: approved execution contract and durable route loaded; current
@@ -41,7 +41,11 @@ closed `roboclaws.launch.executor` dispatch/process owner; migrated public CLI,
 operator console, and eval execution to the typed plan; replaced the 26-item
 positional lowering with a named environment envelope; and deleted
 `agent::run`, `roboclaws.cli.agent_run`, duplicate validation, and positional
-tests/wrappers.
+tests/wrappers. Wave 6 moved the active OpenAI Agents SDK household runner and
+its reusable status, budget, continuation, metrics, and performance helpers
+from `scripts/molmo_cleanup` into `roboclaws.agents`; executor and Just launches
+now use the package module identity, eval readiness checks import capability,
+and current-source guards reject stale script identities and product imports.
 
 Frozen candidate recipe: run `scripts/dev/build_public_candidate.py` into a new
 candidate root; run `scripts/dev/check_public_surface.py` and the CI-pinned exact
@@ -55,13 +59,13 @@ manifests and run artifacts, both distributions, and isolated-install logs. The
 previous immutable receipt roots remain under `output/public-candidate/` and are
 superseded for publication.
 
-Next slice: commit Wave 5, then move the active OpenAI Agents household runtime
-and reusable lifecycle/status helpers out of `scripts` into package owners in
-Wave 6.
+Next slice: commit Wave 6, then consolidate generic household task strategy in
+the household-world Skill while narrowing kickoff prompts and MCP response
+guidance in Wave 7.
 
-Next proof: exact active `scripts.*` import/runtime-identity inventory, focused
-package-runtime and eval-readiness tests, source-tree script-path absence search,
-and direct plus SDK product launch proof through the package owner.
+Next proof: responsibility-level Skill/prompt/MCP ownership searches and focused
+prompt, household MCP, privacy, trajectory, and completion tests. The bounded
+live matrix remains deferred to Wave 9 as required by the source plan.
 
 Stop condition: stop for an unexplained active non-test consumer of a deletion
 target, a required public/schema boundary beyond the approved modules, a

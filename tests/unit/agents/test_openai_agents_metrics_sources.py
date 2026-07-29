@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.molmo_cleanup.openai_agents_metrics import read_openai_agents_jsonl_source
+from roboclaws.agents.drivers.openai_agents_metrics import read_openai_agents_jsonl_source
 
 
 def test_openai_agents_metrics_jsonl_source_preserves_valid_rows(tmp_path: Path) -> None:

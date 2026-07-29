@@ -3,12 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from roboclaws.agents.live_runtime import LiveAgentResult
-from scripts.molmo_cleanup.run_live_openai_agents_household import (
+from roboclaws.agents.household_live_runner import (
     IncompleteTurnRecoveryPolicy,
     _compact_continuation_prompt,
     _compact_continuation_state,
 )
+from roboclaws.agents.live_runtime import LiveAgentResult
 
 
 def test_turn_budget_result_recovers_with_compact_continuation(tmp_path: Path) -> None:

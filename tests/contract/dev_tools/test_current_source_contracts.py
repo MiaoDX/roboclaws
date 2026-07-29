@@ -180,3 +180,31 @@ def test_retired_launch_dispatch_protocol_is_absent_from_current_source() -> Non
                 hits.append(path.relative_to(REPO_ROOT).as_posix())
 
     assert hits == []
+
+
+def test_product_runtime_does_not_depend_on_script_modules() -> None:
+    product_hits: list[str] = []
+    for path in (REPO_ROOT / "roboclaws").rglob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        if "from scripts." in text or "import scripts." in text:
+            product_hits.append(path.relative_to(REPO_ROOT).as_posix())
+    assert product_hits == []
+
+    stale_identity = "run_live_" + "openai_agents_household"
+    current_roots = (
+        REPO_ROOT / "roboclaws",
+        REPO_ROOT / "tests" / "unit" / "agents",
+        REPO_ROOT / "tests" / "unit" / "evals",
+        REPO_ROOT / "tests" / "contract" / "dev_tools",
+        REPO_ROOT / "skills",
+        REPO_ROOT / "just",
+    )
+    stale_hits = [
+        path.relative_to(REPO_ROOT).as_posix()
+        for root in current_roots
+        for path in root.rglob("*")
+        if path.is_file()
+        and path.suffix in {".json", ".md", ".py", ".toml"}
+        and stale_identity in path.read_text(encoding="utf-8", errors="ignore")
+    ]
+    assert stale_hits == []
