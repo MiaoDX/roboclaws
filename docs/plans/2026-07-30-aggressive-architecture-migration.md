@@ -943,5 +943,12 @@ hardware proof cannot run for a demonstrated environment reason.
   FPV mode and image dialog, latest-result attach, active-run rendering,
   background tasks, manual control, and mobile/tablet/desktop layouts without
   console errors.
-- Next action: continue Wave 6 with the `operator_console/runtime_inventory.py`
-  behavior split.
+- Wave 6 completed slice: the 1,133-line operator-console runtime inventory is
+  split into inventory sources, canonical task/resource model, route blocker
+  policy, and host probes, with a 61-line payload composition owner. Launcher,
+  readiness, server, and tests import their true owners directly; no old-owner
+  re-export facade remains. The full operator-console suite, focused inventory
+  and readiness contracts, Ruff/format checks, and static ratchets pass.
+  Oversized Python modules decrease from 63 to 62; the graph is 342 modules /
+  1,011 edges with zero SCCs, bidirectional pairs, or forbidden edges.
+- Next action: continue Wave 6 with the OpenAI live runtime behavior split.

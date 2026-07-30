@@ -207,6 +207,12 @@ and HTTP/DOM behavior owned by their named modules. The server serves only
 root-level, non-hidden JavaScript assets from that static directory and marks
 them no-store.
 
+Runtime inventory is composed by `operator_console/runtime_inventory.py` from
+four explicit owners: filesystem and runtime sources, canonical task/resource
+payloads, route blocker policy, and host probes. Launcher, readiness, and
+server callers import policy directly; the composition module owns only the
+inventory and blocker payload assembly and is not a compatibility facade.
+
 The clean-slate direction is:
 
 - `surface=household-world preset=map-build` produces Runtime Metric Map

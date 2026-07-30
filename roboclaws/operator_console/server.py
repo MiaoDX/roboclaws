@@ -56,9 +56,11 @@ from roboclaws.operator_console.routes import (
     list_worlds,
     selection_task_selector,
 )
-from roboclaws.operator_console.runtime_inventory import (
+from roboclaws.operator_console.runtime_blocker_policy import (
     requested_mcp_endpoint,
     runtime_blockers_from_inventory,
+)
+from roboclaws.operator_console.runtime_inventory import (
     runtime_blockers_payload,
     runtime_inventory_payload,
 )

@@ -20,7 +20,9 @@ and reproducibility, and the physical Agibot pilot now have package-owned
 module CLIs. The graph has no package-to-script violations; Wave 6 behavior
 splits are active. The operator-console browser monolith is now ten native ES
 modules with one state owner and a 180-line composition entrypoint; focused,
-static, and real-browser workflow proofs pass.
+static, and real-browser workflow proofs pass. Runtime inventory now has
+separate source, task-model, blocker-policy, and host-probe owners with a
+61-line composition module; its full console and static gates pass.
 The migration preserves public launch, artifact, privacy, provider, simulator,
 and operator behavior while removing dependency cycles, retiring completed
 investigation surfaces, moving product subsystems out of scripts, and splitting
@@ -105,8 +107,7 @@ providers.
 
 ## Next Action
 
-Continue Wave 6 with runtime inventory, followed by OpenAI live runtime,
-household runtime, world sampling,
+Continue Wave 6 with OpenAI live runtime, followed by household runtime, world sampling,
 reports, eval pipeline, planner/runtime-prior clusters, and retained tests. The
 refreshed immutable candidate remains unmodified; publication remains
 unauthorized and separate from this campaign.
