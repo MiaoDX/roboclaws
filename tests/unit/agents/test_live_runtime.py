@@ -3483,8 +3483,9 @@ def test_openai_agents_camera_grounded_composite_profile_adds_private_server_fla
     assert status == 0
     assert server_commands
     assert prompts
-    assert "observe_camera_grounded_candidates instead of a separate observe" in prompts[0]
-    assert "do not call declare_visual_candidates again for the same" in prompts[0]
+    assert "Camera-grounded observation mode=composite" in prompts[0]
+    assert "observe_camera_grounded_candidates" in prompts[0]
+    assert "do not call declare_visual_candidates again" in prompts[0]
     assert "--agent-sdk-camera-grounded-composite-tools" in server_commands[0]
     timing = json.loads((run_dir / "live_timing.json").read_text(encoding="utf-8"))
     composite = timing["agent_sdk_perf_profile"]["camera_grounded_composite_tools"]
@@ -3629,8 +3630,10 @@ def test_openai_agents_camera_grounded_composite_rerenders_stale_two_step_prompt
     prompt = _profiled_kickoff_prompt(args, profile=profile)
 
     assert "declare_visual_candidates with observation_id only" in stale_prompt
-    assert "observe_camera_grounded_candidates instead of a separate observe" in prompt
+    assert "Camera-grounded observation mode=composite" in prompt
     assert "declare_visual_candidates with observation_id only" not in prompt
+    assert "response already includes the server-side declaration" in prompt
+    assert "do not call declare_visual_candidates again" in prompt
     assert _kickoff_prompt_source(args, profile) == "profile-rendered-lane-default"
 
 
@@ -3662,9 +3665,13 @@ def test_openai_agents_camera_grounded_composite_rerenders_map_build_prompt() ->
     assert "Waypoint observation tool=observe" in stale_prompt
     assert "observe_camera_grounded_candidates" in prompt
     assert "Waypoint observation tool=observe_camera_grounded_candidates" in prompt
-    assert "Prefer one observe_camera_grounded_candidates response per waypoint_id" in prompt
-    assert "One bounded re-observation is allowed" in prompt
-    assert "declare_visual_candidates for each raw FPV observation" not in prompt
+    assert "Per-waypoint observation budget=1" in prompt
+    assert "bounded re-observation" not in prompt
+    assert "profile observe cadence=5 per waypoint" in prompt
+    assert "effective observe cadence=1 per waypoint" in prompt
+    assert "max_observe_per_waypoint override=true" in prompt
+    assert "profile body-turn cadence overridden=true" in prompt
+    assert "do not call declare_visual_candidates again" in prompt
     assert "Manipulation tools are not entitled for this run" in prompt
 
 
@@ -3775,8 +3782,9 @@ def test_openai_agents_camera_grounded_composite_runner_rerenders_stale_two_step
     assert status == 0
     assert "declare_visual_candidates with observation_id only" in stale_prompt
     assert prompts
-    assert "observe_camera_grounded_candidates instead of a separate observe" in prompts[0]
+    assert "Camera-grounded observation mode=composite" in prompts[0]
     assert "declare_visual_candidates with observation_id only" not in prompts[0]
+    assert "do not call declare_visual_candidates again" in prompts[0]
     timing = json.loads((run_dir / "live_timing.json").read_text(encoding="utf-8"))
     assert timing["kickoff_prompt_source"] == "profile-rendered-lane-default"
 

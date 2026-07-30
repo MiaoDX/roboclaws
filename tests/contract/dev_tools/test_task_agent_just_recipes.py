@@ -1389,15 +1389,13 @@ def test_molmo_camera_raw_prompt_contains_run_constraints_not_generic_strategy()
     assert "namespace cleanup" in prompt
     assert "server named cleanup" not in prompt
     assert "never mcp__cleanup__" in prompt
-    assert "Per-waypoint distinct-heading budget=4" in prompt
-    assert "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90)" in prompt
-    assert "even when the cleanup gate is already met" in prompt
-    assert "extra overlap probe after those body headings" in prompt
+    assert "Per-waypoint observation budget=4" in prompt
     assert "Evidence lane=camera-raw-fpv" in prompt
-    assert "at most one fresh high-confidence cleanup candidate" in prompt
-    assert "source_observation_id/category/region" in prompt
-    assert "Never retry the same source_observation_id/category/region" in prompt
+    assert "Raw-FPV candidate-attempt budget=24" in prompt
     assert "Cleanup target cap=7" in prompt
+    assert "Done retry budget=1" in prompt
+    assert "navigate_to_relative_pose" not in prompt
+    assert "overlap probe" not in prompt
     assert "Required closeout artifacts" in prompt
     assert "place/place_inside" not in prompt
 
@@ -1545,12 +1543,9 @@ def test_molmo_open_ended_camera_grounded_prompt_requires_label_declaration() ->
     )
 
     assert "This run is surface=household-world with no task preset" in prompt
-    assert "This open-ended run uses camera-grounded-labels" in prompt
-    assert "call declare_visual_candidates with observation_id only" in prompt
-    assert "configured camera labeler labels the frame" in prompt
-    assert "camera_model_candidates" in prompt
-    assert "model_declared_observations" in prompt
-    assert "service URLs" in prompt
+    assert "Camera-grounded observation mode=observe plus" in prompt
+    assert "declare_visual_candidates with observation_id only" in prompt
+    assert "configured camera labeler labels the frame" not in prompt
     assert "Required closeout artifacts" in prompt
 
 
@@ -1562,10 +1557,9 @@ def test_molmo_open_ended_camera_grounded_prompt_can_use_composite_tool() -> Non
         camera_grounded_composite_tools=True,
     )
 
-    assert "This open-ended run uses camera-grounded-labels" in prompt
-    assert "call observe_camera_grounded_candidates" in prompt
-    assert "configured camera labeler labels the current FPV frame" in prompt
-    assert "do not ask for service URLs" in prompt
+    assert "Camera-grounded observation mode=composite" in prompt
+    assert "observe_camera_grounded_candidates" in prompt
+    assert "configured camera labeler labels the current FPV frame" not in prompt
 
 
 def test_molmo_cleanup_live_prompt_uses_cleanup_intent_without_open_ended_intent() -> None:
@@ -1601,7 +1595,6 @@ def test_molmo_label_prompts_keep_public_done_boundary() -> None:
     assert "only the MCP done response creates the authoritative run result" in world_prompt
     assert "Evidence lane=camera-grounded-labels" in camera_prompt
     assert "declare_visual_candidates with observation_id only" in camera_prompt
-    assert "service URLs" in camera_prompt
     assert "only the MCP done response creates the authoritative run result" in camera_prompt
 
 
@@ -1611,9 +1604,12 @@ def test_molmo_compact_camera_prompt_can_prefer_composite_observe_tool() -> None
         camera_grounded_composite_tools=True,
     )
 
-    assert "observe_camera_grounded_candidates instead of a separate observe" in prompt
-    assert "declaration as server-side labeler output" in prompt
-    assert "do not call declare_visual_candidates again for the same" in prompt
+    assert "Camera-grounded observation mode=composite" in prompt
+    assert "observe_camera_grounded_candidates" in prompt
+    assert "response already includes the server-side declaration" in prompt
+    assert (
+        "do not call declare_visual_candidates again for the same source_observation_id" in prompt
+    )
     assert "only the MCP done response creates the authoritative run result" in prompt
 
 
@@ -1679,12 +1675,10 @@ def test_molmo_raw_fpv_compact_prompt_includes_budget_contract() -> None:
 
     assert "Evidence lane=camera-raw-fpv" in prompt
     assert "Raw-FPV candidate-attempt budget=3" in prompt
-    assert "Per-waypoint distinct-heading budget=2" in prompt
-    assert "extra overlap probe after those body headings" in prompt
-    assert "adjust_camera(yaw_delta_deg=45, pitch_delta_deg=20) exactly once" in prompt
-    assert "does not count as a distinct robot-body heading" in prompt
+    assert "Per-waypoint observation budget=2" in prompt
     assert "Done retry budget=1" in prompt
-    assert "Never retry the same source_observation_id/category/region" in prompt
+    assert "adjust_camera" not in prompt
+    assert "distinct robot-body heading" not in prompt
     assert "only the MCP done response creates the authoritative run result" in prompt
 
 
@@ -1714,9 +1708,16 @@ def test_map_build_live_prompt_disables_cleanup_actions() -> None:
     assert "Evidence lane=camera-grounded-labels" in prompt
     assert "Waypoint observation tool=observe" in prompt
     assert "scan_profile=fixture-focused" in prompt
-    assert "navigate_to_relative_pose" in prompt
-    assert "stable semantic anchors" in prompt
-    assert "future runs must recheck before action" in prompt
+    assert "body-turn count per waypoint=4" in prompt
+    assert "body-turn yaw delta deg=90" in prompt
+    assert "profile observe cadence=5 per waypoint" in prompt
+    assert "effective observe cadence=5 per waypoint" in prompt
+    assert "max_observe_per_waypoint override=false" in prompt
+    assert "profile body-turn cadence overridden=false" in prompt
+    assert "stable-anchor priority=true" in prompt
+    assert "fixtures, surfaces, receptacles" in prompt
+    assert "movable-prior policy=" in prompt
+    assert "navigate_to_relative_pose" not in prompt
     assert "runtime_metric_map.json" in prompt
 
 

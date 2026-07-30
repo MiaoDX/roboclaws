@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import shlex
 import signal
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from pathlib import Path
 from typing import IO, Any
 
@@ -15,16 +15,11 @@ from roboclaws.cli.agent_common import (
     _exec_or_trace,
     _get,
 )
+from roboclaws.household.profiles import validate_evidence_lane_camera_labeler
 from roboclaws.launch.plans import LaunchPlan
 from roboclaws.launch.worlds import resolve_optional_world_dependencies
 
 HOUSEHOLD_DISPATCH_TARGET = "household-world"
-HOUSEHOLD_PROFILES = {
-    "smoke",
-    "world-public-labels",
-    "camera-raw-fpv",
-    "camera-grounded-labels",
-}
 SUPPORTED_OVERRIDE_KEYS = frozenset(
     (
         "agibot_map_artifact_dir agent_engine b1_alignment_artifact b1_navigation_artifact "
@@ -55,9 +50,6 @@ def validate_named_overrides(overrides: tuple[str, ...]) -> None:
             raise ValueError(f"launch argument {override!r} is not key=value")
         if key not in SUPPORTED_OVERRIDE_KEYS:
             raise ValueError(f"unsupported launch override {key!r}")
-
-
-PlanAdapter = Callable[[LaunchPlan, list[str], dict[str, str]], int]
 
 
 class LaunchProcess:
@@ -124,45 +116,24 @@ def execute_launch_plan(plan: LaunchPlan) -> int:
     raw_overrides = list(plan.overrides)
     kv = _parse_overrides(raw_overrides)
     kv["backend"] = plan.implementation_backend
-    adapters: dict[str, PlanAdapter] = {
-        "household-world": _execute_household_plan,
-        "planner-proof": _execute_planner_plan,
-    }
-    try:
-        adapter = adapters[plan.surface]
-    except KeyError:
-        _die(f"unsupported launch surface {plan.surface!r}")
-    return adapter(plan, raw_overrides, kv)
-
-
-def _execute_household_plan(
-    plan: LaunchPlan,
-    raw_overrides: list[str],
-    kv: dict[str, str],
-) -> int:
-    profile = plan.profile or plan.evidence_mode
-    return _household_run(
-        dispatch_surface=plan.surface,
-        dispatch_intent=plan.intent,
-        agent_engine=plan.agent_engine,
-        driver=plan.dispatch_runner,
-        profile=profile,
-        raw_overrides=raw_overrides,
-        kv=kv,
-    )
-
-
-def _execute_planner_plan(
-    plan: LaunchPlan,
-    _raw_overrides: list[str],
-    kv: dict[str, str],
-) -> int:
-    return _planner_proof_run(
-        dispatch_surface=plan.surface,
-        dispatch_intent=plan.intent,
-        driver=plan.dispatch_runner,
-        kv=kv,
-    )
+    if plan.surface == "household-world":
+        return _household_run(
+            dispatch_surface=plan.surface,
+            dispatch_intent=plan.intent,
+            agent_engine=plan.agent_engine,
+            driver=plan.dispatch_runner,
+            profile=plan.profile or plan.evidence_mode,
+            raw_overrides=raw_overrides,
+            kv=kv,
+        )
+    if plan.surface == "planner-proof":
+        return _planner_proof_run(
+            dispatch_surface=plan.surface,
+            dispatch_intent=plan.intent,
+            driver=plan.dispatch_runner,
+            kv=kv,
+        )
+    _die(f"unsupported launch surface {plan.surface!r}")
 
 
 def _household_run(
@@ -273,14 +244,13 @@ def _profile_options(profile: str, kv: dict[str, str]) -> tuple[str, str]:
         "visual_grounding_timeout_s",
         _get(kv, "visual_grounding_timeout", "auto"),
     )
-    if profile != "camera-grounded-labels":
-        if camera_labeler:
-            _die("camera_labeler is only valid for evidence_lane=camera-grounded-labels")
-        return "", visual_grounding_timeout_s
-    if not camera_labeler:
-        _die("evidence_lane=camera-grounded-labels requires camera_labeler")
-    if camera_labeler not in {"grounding-dino", "yoloe", "omdet-turbo", "yolo-world"}:
-        _die(f"unsupported camera_labeler '{camera_labeler}'")
+    try:
+        camera_labeler = validate_evidence_lane_camera_labeler(
+            evidence_lane="world-public-labels" if profile == "smoke" else profile,
+            camera_labeler=camera_labeler,
+        )
+    except ValueError as exc:
+        _die(str(exc))
     return camera_labeler, visual_grounding_timeout_s
 
 

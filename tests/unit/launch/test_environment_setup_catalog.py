@@ -104,9 +104,6 @@ def test_molmospaces_worlds_expose_only_mujoco_while_b1_exposes_isaac() -> None:
     assert "b1_navigation_artifact=injected/navigation.json" in b1.overrides
     assert not any(item.startswith("b1_semantic_projection_artifact=") for item in b1.overrides)
     assert "world=b1-map12" in b1.overrides
-    assert b1.implementation_backend == "isaaclab_subprocess"
-    assert "b1_alignment_artifact=injected/alignment.json" in b1.overrides
-    assert "b1_navigation_artifact=injected/navigation.json" in b1.overrides
 
 
 def test_b1_launch_accepts_explicit_robot_consumption_proof_artifacts() -> None:
@@ -128,13 +125,6 @@ def test_b1_launch_accepts_explicit_robot_consumption_proof_artifacts() -> None:
 
     assert "b1_alignment_artifact=output/b1-map12/alignment/alignment_residuals.json" in (
         b1.overrides
-    )
-    assert (
-        "b1_navigation_artifact=output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json"
-        in b1.overrides
-    )
-    assert (
-        "b1_alignment_artifact=output/b1-map12/alignment/alignment_residuals.json" in b1.overrides
     )
     assert (
         "b1_navigation_artifact=output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json"

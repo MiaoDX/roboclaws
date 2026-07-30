@@ -37,7 +37,6 @@ from roboclaws.operator_console.launch_support import (
     launch_prompt_for_intent,
     provider_env_overrides_for_route,
     public_env_overrides,
-    resolve_console_launch_plan,
 )
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root
@@ -296,7 +295,7 @@ def start_console_run(
             launch_prompt=launch_prompt,
             overrides=overrides,
         )
-        plan = resolve_console_launch_plan(argv, error_type=ConsoleLaunchError)
+        plan = resolve_surface_launch(argv[2:])
         mcp_host, mcp_port = requested_mcp_endpoint(overrides)
         mcp_url = f"http://{mcp_host}:{mcp_port}/mcp"
         log_path = run_dir / "console-launch.log"
