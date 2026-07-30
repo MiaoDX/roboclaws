@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.isaac_lab_cleanup import isaac_scenario_state
+from roboclaws.backends.isaaclab import isaac_scenario_state
 
 
 class _Hooks:

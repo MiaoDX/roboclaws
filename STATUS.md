@@ -15,9 +15,9 @@ The aggressive architecture migration is active under
 complete: exact baselines and field-level parity are proven, all six module
 cycles and five bidirectional package pairs are removed, the Wave 1-2 guards
 are locked green, and unconditional investigation/rehearsal stacks are retired.
-Waves 0-4 are complete. Wave 5 has moved the MolmoSpaces worker into a
-package-owned module CLI and is continuing with the Isaac Lab backend and
-generic runtime-smoke implementation.
+Waves 0-4 are complete. Wave 5 has moved both MolmoSpaces and Isaac Lab workers
+into package-owned module CLIs and is continuing with cleanup validation and
+grading ownership.
 The migration preserves public launch, artifact, privacy, provider, simulator,
 and operator behavior while removing dependency cycles, retiring completed
 investigation surfaces, moving product subsystems out of scripts, and splitting
@@ -102,9 +102,9 @@ providers.
 
 ## Next Action
 
-Continue Wave 5 by moving the Isaac Lab worker and generic runtime-smoke
-implementation into `roboclaws/backends/isaaclab`, preserving standalone
-launch and the separate `.venv-isaaclab` runtime. The
+Continue Wave 5 by splitting the cleanup checker between household structural
+validation and eval benchmark grading, leaving only a thin CLI and removing
+the live runner's package-to-script execution. The
 refreshed immutable candidate remains unmodified; publication remains
 unauthorized and separate from this campaign.
 

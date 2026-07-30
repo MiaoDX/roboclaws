@@ -11,6 +11,15 @@ from types import SimpleNamespace
 import pytest
 from PIL import Image, ImageDraw
 
+from roboclaws.backends.isaaclab import isaac_runtime_diagnostics
+from roboclaws.backends.isaaclab import runtime as runtime_cli
+from roboclaws.backends.isaaclab import runtime_camera as runtime_camera
+from roboclaws.backends.isaaclab import runtime_capture as runtime_capture
+from roboclaws.backends.isaaclab import runtime_commands as runtime_commands
+from roboclaws.backends.isaaclab import runtime_dependencies as runtime_dependencies
+from roboclaws.backends.isaaclab import runtime_evidence as runtime_evidence
+from roboclaws.backends.isaaclab import runtime_initialization as runtime_initialization
+from roboclaws.backends.isaaclab import runtime_state as runtime_state
 from roboclaws.household.b1_nurec_scene import prepare_b1_nurec_scene_usd
 from roboclaws.household.isaac_lab_backend import (
     ISAAC_SCENE_INDEX_ARTIFACT_SCHEMA,
@@ -21,12 +30,10 @@ from roboclaws.household.isaac_lab_backend import (
     IsaacLabSubprocessBackend,
 )
 from roboclaws.household.manipulation_contract import ISAAC_SEMANTIC_POSE_PROVENANCE
-from scripts.isaac_lab_cleanup import isaac_lab_backend_worker, isaac_runtime_diagnostics
 
 
 def test_prepare_b1_nurec_scene_unpacks_usdz_reference(tmp_path: Path) -> None:
     scene_gs = _write_b1_scene_gs_fixture(tmp_path / "storey_1")
-
     prepared = prepare_b1_nurec_scene_usd(scene_gs, cache_root=tmp_path / "cache")
 
     assert prepared == tmp_path / "cache" / "storey_1" / "scene_gs.unpacked_nurec.usda"
@@ -96,7 +103,7 @@ def test_isaac_worker_read_state_rejects_missing_state_source(tmp_path: Path) ->
         FileNotFoundError,
         match=r"Isaac worker state source is missing: .*missing_state\.json",
     ):
-        isaac_lab_backend_worker.read_state(missing)
+        runtime_commands.read_state(missing)
 
 
 def test_isaac_worker_read_state_rejects_malformed_state_source(tmp_path: Path) -> None:
@@ -107,7 +114,7 @@ def test_isaac_worker_read_state_rejects_malformed_state_source(tmp_path: Path) 
         ValueError,
         match=r"Isaac worker state source must contain valid JSON object: .*state\.json",
     ):
-        isaac_lab_backend_worker.read_state(state_path)
+        runtime_commands.read_state(state_path)
 
 
 def test_isaac_worker_read_state_rejects_non_object_state_source(tmp_path: Path) -> None:
@@ -118,7 +125,7 @@ def test_isaac_worker_read_state_rejects_non_object_state_source(tmp_path: Path)
         ValueError,
         match=r"Isaac worker state source must contain a JSON object: .*state\.json",
     ):
-        isaac_lab_backend_worker.read_state(state_path)
+        runtime_commands.read_state(state_path)
 
 
 def test_isaac_worker_read_state_preserves_state_path(tmp_path: Path) -> None:
@@ -126,7 +133,7 @@ def test_isaac_worker_read_state_preserves_state_path(tmp_path: Path) -> None:
     state = {"schema": "isaac_lab_backend_state_v1", "scenario": {"objects": []}}
     state_path.write_text(json.dumps(state), encoding="utf-8")
 
-    loaded = isaac_lab_backend_worker.read_state(state_path)
+    loaded = runtime_commands.read_state(state_path)
 
     assert loaded["schema"] == "isaac_lab_backend_state_v1"
     assert loaded["_state_path"] == str(state_path)
@@ -139,7 +146,7 @@ def test_isaac_camera_view_specs_reject_missing_source(tmp_path: Path) -> None:
         FileNotFoundError,
         match=r"camera view spec source is missing: .*missing_views\.json",
     ):
-        isaac_lab_backend_worker._load_camera_view_specs(missing)
+        runtime_dependencies._load_camera_view_specs(missing)
 
 
 def test_isaac_camera_view_specs_reject_malformed_source(tmp_path: Path) -> None:
@@ -150,7 +157,7 @@ def test_isaac_camera_view_specs_reject_malformed_source(tmp_path: Path) -> None
         ValueError,
         match=r"camera view spec source must contain valid JSON: .*camera_views\.json",
     ):
-        isaac_lab_backend_worker._load_camera_view_specs(specs_path)
+        runtime_dependencies._load_camera_view_specs(specs_path)
 
 
 def test_isaac_camera_view_specs_reject_wrong_shape_source(tmp_path: Path) -> None:
@@ -161,7 +168,7 @@ def test_isaac_camera_view_specs_reject_wrong_shape_source(tmp_path: Path) -> No
         ValueError,
         match="camera view spec must be a list or an object with a views list",
     ):
-        isaac_lab_backend_worker._load_camera_view_specs(specs_path)
+        runtime_dependencies._load_camera_view_specs(specs_path)
 
 
 def test_isaac_camera_view_specs_accept_list_or_wrapped_views(tmp_path: Path) -> None:
@@ -182,11 +189,11 @@ def test_isaac_camera_view_specs_accept_list_or_wrapped_views(tmp_path: Path) ->
         encoding="utf-8",
     )
 
-    assert isaac_lab_backend_worker._load_camera_view_specs(list_path) == [
+    assert runtime_dependencies._load_camera_view_specs(list_path) == [
         {"view_id": "fpv", "target": [0.0, 0.0, 0.0]},
         {"view_id": "map", "target": [1.0, 0.0, 0.0]},
     ]
-    assert isaac_lab_backend_worker._load_camera_view_specs(wrapped_path) == [
+    assert runtime_dependencies._load_camera_view_specs(wrapped_path) == [
         {"view_id": "verify", "target": [2.0, 0.0, 0.0]}
     ]
 
@@ -456,24 +463,24 @@ def test_isaac_lab_worker_detects_imported_rby1m_robot_usd(
         encoding="utf-8",
     )
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_state,
         "ISAAC_RBY1M_ROBOT_USD_PATH",
         robot_usd,
     )
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_dependencies,
         "ISAAC_RBY1M_ROBOT_IMPORT_SUMMARY_PATH",
         summary_path,
     )
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_state,
         "_find_rby1m_isaac_urdf",
         lambda: tmp_path / "model_holobase_isaac.urdf",
     )
-    monkeypatch.setattr(isaac_lab_backend_worker, "_repo_path", lambda path: path)
+    monkeypatch.setattr(runtime_state, "_repo_path", lambda path: path)
 
-    plan = isaac_lab_backend_worker._rby1m_robot_import_plan("rby1m")
-    robot = isaac_lab_backend_worker._robot_payload("rby1m")
+    plan = runtime_state._rby1m_robot_import_plan("rby1m")
+    robot = runtime_commands._robot_payload("rby1m")
 
     assert plan["status"] == "imported"
     assert plan["usd_path"] == str(robot_usd)
@@ -838,7 +845,7 @@ def test_isaac_lab_backend_can_request_robot_view_colorcorr_gain_probe(
 
 
 def test_isaac_worker_can_request_semantic_filter_override(tmp_path: Path) -> None:
-    args = isaac_lab_backend_worker.parse_args(
+    args = runtime_cli.parse_args(
         [
             "--state-path",
             str(tmp_path / "state.json"),
@@ -857,7 +864,7 @@ def test_isaac_worker_can_request_semantic_filter_override(tmp_path: Path) -> No
 
 
 def test_isaac_worker_robot_views_accept_camera_offsets(tmp_path: Path) -> None:
-    args = isaac_lab_backend_worker.parse_args(
+    args = runtime_cli.parse_args(
         [
             "--state-path",
             str(tmp_path / "state.json"),
@@ -921,14 +928,14 @@ def test_isaac_worker_robot_views_apply_pitch_offset_to_head_camera_pose(
         }
 
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_capture,
         "capture_semantic_pose_robot_views",
         fake_capture_semantic_pose_robot_views,
     )
     _init_real_worker_with_scene_usd(context)
 
-    result = isaac_lab_backend_worker.write_robot_views(
-        isaac_lab_backend_worker.parse_args(
+    result = runtime_commands.write_robot_views(
+        runtime_cli.parse_args(
             [
                 "--state-path",
                 str(context.state_path),
@@ -941,7 +948,7 @@ def test_isaac_worker_robot_views_apply_pitch_offset_to_head_camera_pose(
                 "-10.0",
             ]
         ),
-        isaac_lab_backend_worker.read_state(context.state_path),
+        runtime_commands.read_state(context.state_path),
     )
 
     assert result["ok"] is True
@@ -965,17 +972,17 @@ def test_isaac_worker_hard_exits_after_deferred_app_success(
         def close(self, **_: object) -> None:  # pragma: no cover - should not be called.
             raise AssertionError("deferred SimulationApp close should not run on success")
 
-    monkeypatch.setattr(isaac_lab_backend_worker.os, "_exit", fake_exit)
-    isaac_lab_backend_worker._DEFERRED_SIMULATION_APP = BlockingClose()
+    monkeypatch.setattr(runtime_dependencies.os, "_exit", fake_exit)
+    runtime_cli._DEFERRED_SIMULATION_APP[0] = BlockingClose()
 
     with pytest.raises(SystemExit) as exc:
-        isaac_lab_backend_worker._finish_command({"ok": True, "tool": "robot_views"})
+        runtime_cli._finish_command({"ok": True, "tool": "robot_views"})
 
     assert exc.value.code == 0
     assert exit_codes == [0]
     assert '"tool": "robot_views"' in capsys.readouterr().out
-    assert isaac_lab_backend_worker._DEFERRED_SIMULATION_APP is not None
-    isaac_lab_backend_worker._DEFERRED_SIMULATION_APP = None
+    assert runtime_cli._DEFERRED_SIMULATION_APP[0] is not None
+    runtime_cli._DEFERRED_SIMULATION_APP[0] = None
 
 
 def test_isaac_lab_backend_exposes_camera_control_request_api(
@@ -1019,7 +1026,7 @@ def test_isaac_lab_backend_exposes_camera_control_request_api(
 
 
 def test_isaac_scene_camera_spec_uses_camera_control_orbit() -> None:
-    spec = isaac_lab_backend_worker._isaac_scene_camera_view_spec(
+    spec = runtime_camera._isaac_scene_camera_view_spec(
         {
             "view_id": "view 01/table",
             "target": [2.7, 5.9, 1.0],
@@ -1048,7 +1055,7 @@ def test_isaac_scene_camera_spec_uses_camera_control_orbit() -> None:
 
 
 def test_isaac_scene_camera_spec_honors_canonical_explicit_pose() -> None:
-    spec = isaac_lab_backend_worker._isaac_scene_camera_view_spec(
+    spec = runtime_camera._isaac_scene_camera_view_spec(
         {
             "view_id": "view 01/table",
             "camera_model": "canonical_eye_target_camera_v1",
@@ -1109,11 +1116,11 @@ def test_isaac_scene_camera_spec_rejects_invalid_explicit_vectors(
     message: str,
 ) -> None:
     with pytest.raises(ValueError, match=message):
-        isaac_lab_backend_worker._isaac_scene_camera_view_spec(raw_spec, index=1)
+        runtime_camera._isaac_scene_camera_view_spec(raw_spec, index=1)
 
 
 def test_isaac_camera_lens_derives_horizontal_aperture_from_vertical_fov() -> None:
-    aperture = isaac_lab_backend_worker._horizontal_aperture_from_lens(
+    aperture = runtime_camera._horizontal_aperture_from_lens(
         {"vertical_fov_deg": 45.0, "horizontal_aperture_mm": 20.955},
         width=960,
         height=640,
@@ -1124,14 +1131,14 @@ def test_isaac_camera_lens_derives_horizontal_aperture_from_vertical_fov() -> No
 
 
 def test_isaac_rby1m_head_camera_lens_matches_mujoco_vertical_fov() -> None:
-    aperture = isaac_lab_backend_worker._horizontal_aperture_from_lens(
-        {"vertical_fov_deg": isaac_lab_backend_worker.RBY1M_HEAD_CAMERA_VERTICAL_FOV_DEG},
+    aperture = runtime_camera._horizontal_aperture_from_lens(
+        {"vertical_fov_deg": runtime_dependencies.RBY1M_HEAD_CAMERA_VERTICAL_FOV_DEG},
         width=540,
         height=360,
-        focal_length=isaac_lab_backend_worker.RBY1M_HEAD_CAMERA_FOCAL_LENGTH_MM,
+        focal_length=runtime_dependencies.RBY1M_HEAD_CAMERA_FOCAL_LENGTH_MM,
     )
-    metadata = isaac_lab_backend_worker._usd_camera_fov_metadata(
-        focal_length=isaac_lab_backend_worker.RBY1M_HEAD_CAMERA_FOCAL_LENGTH_MM,
+    metadata = runtime_dependencies._usd_camera_fov_metadata(
+        focal_length=runtime_dependencies.RBY1M_HEAD_CAMERA_FOCAL_LENGTH_MM,
         horizontal_aperture=aperture,
         width=540,
         height=360,
@@ -1142,15 +1149,15 @@ def test_isaac_rby1m_head_camera_lens_matches_mujoco_vertical_fov() -> None:
 
 
 def test_isaac_rby1m_chase_camera_matches_mujoco_follower_pitch() -> None:
-    eye, target = isaac_lab_backend_worker._robot_relative_chase_eye_target(
+    eye, target = runtime_dependencies._robot_relative_chase_eye_target(
         {"x": 0.0, "y": 0.0, "z": 0.0, "yaw_deg": 0.0}
     )
     forward = tuple(target[index] - eye[index] for index in range(3))
     horizontal_distance = math.hypot(forward[0], forward[1])
     vertical_drop = -forward[2]
 
-    assert eye == pytest.approx(isaac_lab_backend_worker.RBY1M_CHASE_CAMERA_OFFSET_M)
-    assert target == pytest.approx(isaac_lab_backend_worker.RBY1M_CHASE_CAMERA_TARGET_OFFSET_M)
+    assert eye == pytest.approx(runtime_dependencies.RBY1M_CHASE_CAMERA_OFFSET_M)
+    assert target == pytest.approx(runtime_dependencies.RBY1M_CHASE_CAMERA_TARGET_OFFSET_M)
     assert horizontal_distance == pytest.approx(vertical_drop)
     assert math.degrees(math.atan2(vertical_drop, horizontal_distance)) == pytest.approx(45.0)
     assert horizontal_distance == pytest.approx(1.0)
@@ -1182,11 +1189,6 @@ class _FakeSceneCameraSimUtils:
             self.kwargs = kwargs
 
 
-class _FakeSceneCameraCfg:
-    def __init__(self, **kwargs: object) -> None:
-        self.kwargs = kwargs
-
-
 class _FakeSceneCameraTensor:
     def __init__(self, array: object) -> None:
         self._array = array
@@ -1194,8 +1196,7 @@ class _FakeSceneCameraTensor:
     def detach(self) -> "_FakeSceneCameraTensor":
         return self
 
-    def cpu(self) -> "_FakeSceneCameraTensor":
-        return self
+    cpu = detach
 
     def numpy(self) -> object:
         return self._array
@@ -1203,7 +1204,7 @@ class _FakeSceneCameraTensor:
 
 def _fake_scene_camera_type(np: object) -> type:
     class _FakeCamera:
-        def __init__(self, cfg: _FakeSceneCameraCfg) -> None:
+        def __init__(self, cfg: SimpleNamespace) -> None:
             self.cfg = cfg
             self.data = SimpleNamespace(output={})
 
@@ -1247,12 +1248,12 @@ def test_isaac_scene_camera_capture_applies_color_profile(
     import numpy as np
 
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_camera,
         "_ensure_capture_lighting",
         lambda *_args, **_kwargs: {"status": "unit_lighting_skipped"},
     )
 
-    result = isaac_lab_backend_worker._capture_scene_camera_request_with_existing_sim(
+    result = runtime_camera._capture_scene_camera_request_with_existing_sim(
         camera_request=_unit_scene_camera_request(),
         output_dir=tmp_path,
         width=6,
@@ -1261,7 +1262,7 @@ def test_isaac_scene_camera_capture_applies_color_profile(
         sim_utils=_FakeSceneCameraSimUtils,
         stage_utils=SimpleNamespace(),
         camera_type=_fake_scene_camera_type(np),
-        camera_cfg_type=_FakeSceneCameraCfg,
+        camera_cfg_type=SimpleNamespace,
         torch=_FakeSceneCameraTorch,
         np=np,
         scene_bounds={},
@@ -1287,7 +1288,7 @@ def test_isaac_scene_camera_capture_applies_color_profile(
 
 
 def test_isaac_robot_view_color_profile_merges_comparison_override() -> None:
-    profile = isaac_lab_backend_worker._robot_view_color_profile(
+    profile = runtime_dependencies._robot_view_color_profile(
         {
             "backend_rgb_gain": {"isaaclab_subprocess": [0.9, 0.8, 0.7]},
             "backend_rgb_gain_source": "unit-comparison-profile",
@@ -1336,9 +1337,9 @@ def test_isaac_worker_waypoint_navigation_prefers_b1_pose(tmp_path: Path) -> Non
             "transform_events": [],
         },
     }
-    isaac_lab_backend_worker.write_state(state_path, state)
+    runtime_commands.write_state(state_path, state)
 
-    args = isaac_lab_backend_worker.parse_args(
+    args = runtime_cli.parse_args(
         [
             "--state-path",
             str(state_path),
@@ -1366,11 +1367,11 @@ def test_isaac_worker_waypoint_navigation_prefers_b1_pose(tmp_path: Path) -> Non
         ]
     )
 
-    result = isaac_lab_backend_worker.navigate_to_waypoint(
+    result = runtime_commands.navigate_to_waypoint(
         args,
-        isaac_lab_backend_worker.read_state(state_path),
+        runtime_commands.read_state(state_path),
     )
-    updated = isaac_lab_backend_worker.read_state(state_path)
+    updated = runtime_commands.read_state(state_path)
 
     assert result["ok"] is True
     assert result["state_mutation"] == "isaac_waypoint_pose"
@@ -1422,9 +1423,9 @@ def test_isaac_worker_relative_pose_navigation_updates_semantic_robot_pose(
             "transform_events": [],
         },
     }
-    isaac_lab_backend_worker.write_state(state_path, state)
+    runtime_commands.write_state(state_path, state)
 
-    args = isaac_lab_backend_worker.parse_args(
+    args = runtime_cli.parse_args(
         [
             "--state-path",
             str(state_path),
@@ -1438,11 +1439,11 @@ def test_isaac_worker_relative_pose_navigation_updates_semantic_robot_pose(
         ]
     )
 
-    result = isaac_lab_backend_worker.navigate_to_relative_pose(
+    result = runtime_commands.navigate_to_relative_pose(
         args,
-        isaac_lab_backend_worker.read_state(state_path),
+        runtime_commands.read_state(state_path),
     )
-    updated = isaac_lab_backend_worker.read_state(state_path)
+    updated = runtime_commands.read_state(state_path)
 
     assert result["ok"] is True
     assert result["tool"] == "navigate_to_relative_pose"
@@ -1541,13 +1542,13 @@ def test_isaac_write_camera_views_returns_color_contract(
         }
 
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_camera,
         "capture_scene_camera_views",
         fake_capture_scene_camera_views,
     )
 
-    result = isaac_lab_backend_worker.write_camera_views(
-        isaac_lab_backend_worker.parse_args(
+    result = runtime_commands.write_camera_views(
+        runtime_cli.parse_args(
             [
                 "--state-path",
                 str(state_path),
@@ -1558,7 +1559,7 @@ def test_isaac_write_camera_views_returns_color_contract(
                 str(request_path),
             ]
         ),
-        isaac_lab_backend_worker.read_state(state_path),
+        runtime_commands.read_state(state_path),
     )
 
     assert result["ok"] is True
@@ -1586,12 +1587,12 @@ def test_isaac_native_render_diagnostics_reads_available_settings(
             return self.values.get(path)
 
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_evidence,
         "_isaac_settings_interface",
         lambda: _FakeSettings(),
     )
 
-    diagnostics = isaac_lab_backend_worker._isaac_native_render_diagnostics(
+    diagnostics = runtime_evidence._isaac_native_render_diagnostics(
         renderer_mode="isaac_lab_headless_rtx",
         capture_method="isaac_lab_camera_rgb",
         view_kind="robot_views",
@@ -1632,17 +1633,17 @@ def test_isaac_capture_quality_aa_probe_records_set_and_restore() -> None:
 
     settings = _FakeSettings()
 
-    mutation = isaac_lab_backend_worker._apply_isaac_capture_quality_overrides(
+    mutation = runtime_evidence._apply_isaac_capture_quality_overrides(
         settings=settings,
         isaac_aa_op=2,
         isaac_tonemap_op=None,
     )
-    capture_quality = isaac_lab_backend_worker._capture_quality_settings(
+    capture_quality = runtime_dependencies._capture_quality_settings(
         render_settle_frames=0,
         settings=settings,
         settings_mutation=mutation,
     )
-    restored = isaac_lab_backend_worker._restore_isaac_capture_quality_overrides(
+    restored = runtime_dependencies._restore_isaac_capture_quality_overrides(
         settings=settings,
         mutation=mutation,
     )
@@ -1672,17 +1673,17 @@ def test_isaac_native_tonemap_probe_records_set_and_restore() -> None:
 
     settings = _FakeSettings()
 
-    mutation = isaac_lab_backend_worker._apply_isaac_capture_quality_overrides(
+    mutation = runtime_evidence._apply_isaac_capture_quality_overrides(
         settings=settings,
         isaac_aa_op=None,
         isaac_tonemap_op=5,
     )
-    capture_quality = isaac_lab_backend_worker._capture_quality_settings(
+    capture_quality = runtime_dependencies._capture_quality_settings(
         render_settle_frames=0,
         settings=settings,
         settings_mutation=mutation,
     )
-    restored = isaac_lab_backend_worker._restore_isaac_capture_quality_overrides(
+    restored = runtime_dependencies._restore_isaac_capture_quality_overrides(
         settings=settings,
         mutation=mutation,
     )
@@ -1712,18 +1713,18 @@ def test_isaac_native_exposure_probe_records_set_and_restore() -> None:
 
     settings = _FakeSettings()
 
-    mutation = isaac_lab_backend_worker._apply_isaac_capture_quality_overrides(
+    mutation = runtime_evidence._apply_isaac_capture_quality_overrides(
         settings=settings,
         isaac_aa_op=None,
         isaac_tonemap_op=None,
         isaac_exposure_bias=-1.0,
     )
-    capture_quality = isaac_lab_backend_worker._capture_quality_settings(
+    capture_quality = runtime_dependencies._capture_quality_settings(
         render_settle_frames=0,
         settings=settings,
         settings_mutation=mutation,
     )
-    restored = isaac_lab_backend_worker._restore_isaac_capture_quality_overrides(
+    restored = runtime_dependencies._restore_isaac_capture_quality_overrides(
         settings=settings,
         mutation=mutation,
     )
@@ -1759,19 +1760,19 @@ def test_isaac_native_colorcorr_gain_probe_records_set_and_restore() -> None:
 
     settings = _FakeSettings()
 
-    mutation = isaac_lab_backend_worker._apply_isaac_capture_quality_overrides(
+    mutation = runtime_evidence._apply_isaac_capture_quality_overrides(
         settings=settings,
         isaac_aa_op=None,
         isaac_tonemap_op=None,
         isaac_exposure_bias=None,
         isaac_colorcorr_gain=(0.9, 0.8, 0.7),
     )
-    capture_quality = isaac_lab_backend_worker._capture_quality_settings(
+    capture_quality = runtime_dependencies._capture_quality_settings(
         render_settle_frames=0,
         settings=settings,
         settings_mutation=mutation,
     )
-    restored = isaac_lab_backend_worker._restore_isaac_capture_quality_overrides(
+    restored = runtime_dependencies._restore_isaac_capture_quality_overrides(
         settings=settings,
         mutation=mutation,
     )
@@ -1801,7 +1802,7 @@ def test_isaac_camera_render_product_paths_are_extracted() -> None:
         data=SimpleNamespace(render_product_paths=["/Render/Product/Chase"]),
     )
 
-    paths = isaac_lab_backend_worker._camera_render_product_paths(camera)
+    paths = runtime_dependencies._camera_render_product_paths(camera)
 
     assert paths == ["/Render/Product/Fpv", "/Render/Product/Chase"]
 
@@ -1847,7 +1848,7 @@ def test_isaac_scene_camera_spec_records_usd_bounds(monkeypatch: pytest.MonkeyPa
     )
     monkeypatch.setitem(sys.modules, "pxr", fake_pxr)
 
-    spec = isaac_lab_backend_worker._isaac_scene_camera_view_spec(
+    spec = runtime_camera._isaac_scene_camera_view_spec(
         {
             "view_id": "view 01/table",
             "camera_model": "canonical_eye_target_camera_v1",
@@ -1866,7 +1867,7 @@ def test_isaac_scene_camera_spec_records_usd_bounds(monkeypatch: pytest.MonkeyPa
 
 
 def test_isaac_support_pose_uses_usd_world_bounds_center() -> None:
-    support = isaac_lab_backend_worker._support_pose_from_usd_bounds(
+    support = runtime_dependencies._support_pose_from_usd_bounds(
         {
             "center": [2.5, 5.5, 0.75],
             "max": [3.0, 6.0, 1.2],
@@ -1916,7 +1917,7 @@ def test_isaac_robot_pose_prefers_bound_receptacle_support_pose() -> None:
         },
     }
 
-    pose = isaac_lab_backend_worker._robot_pose_for_receptacle(state, "sink_01")
+    pose = runtime_state._robot_pose_for_receptacle(state, "sink_01")
 
     assert pose["frame"] == "molmospaces_scene_frame_v1"
     assert pose["schema"] == "cleanup_robot_pose_result_v1"
@@ -1973,7 +1974,7 @@ def test_isaac_support_placement_resolver_uses_usd_bounds() -> None:
         },
     }
 
-    resolution = isaac_lab_backend_worker._resolve_isaac_placement(
+    resolution = runtime_state._resolve_isaac_placement(
         state,
         object_id="mug_01",
         receptacle_id="sink_01",
@@ -1987,7 +1988,7 @@ def test_isaac_support_placement_resolver_uses_usd_bounds() -> None:
     assert resolution["position"] == pytest.approx([2.5, 5.5, 1.615])
     assert resolution["object_bottom_offset_m"] == pytest.approx(0.4)
     assert resolution["support_clearance_m"] == pytest.approx(0.015)
-    diagnostic = isaac_lab_backend_worker._isaac_placement_diagnostic(
+    diagnostic = runtime_state._isaac_placement_diagnostic(
         state=state,
         object_id="mug_01",
         receptacle_id="sink_01",
@@ -2063,24 +2064,24 @@ def test_isaac_receptacle_support_surfaces_prefer_broad_lower_descendant() -> No
             "size": [0.12, 2.4, 1.4],
         },
     }
-    original_usd_world_bounds = isaac_lab_backend_worker._usd_world_bounds
-    original_iter_usd_prim_range = isaac_lab_backend_worker._iter_usd_prim_range
-    isaac_lab_backend_worker._usd_world_bounds = (  # type: ignore[method-assign]
+    original_usd_world_bounds = runtime_capture._usd_world_bounds
+    original_iter_usd_prim_range = runtime_capture._iter_usd_prim_range
+    runtime_capture._usd_world_bounds = (  # type: ignore[method-assign]
         lambda prim, *, usd_geom: bounds_by_path[str(prim.GetPath())]
     )
-    isaac_lab_backend_worker._iter_usd_prim_range = lambda prim: [  # type: ignore[method-assign]
+    runtime_capture._iter_usd_prim_range = lambda prim: [  # type: ignore[method-assign]
         prim,
         *getattr(prim, "children", []),
     ]
 
     try:
-        surfaces = isaac_lab_backend_worker._usd_receptacle_support_surfaces(
+        surfaces = runtime_capture._usd_receptacle_support_surfaces(
             prim=bed,
             usd_geom=SimpleNamespace(Gprim=object),
         )
     finally:
-        isaac_lab_backend_worker._usd_world_bounds = original_usd_world_bounds  # type: ignore[method-assign]
-        isaac_lab_backend_worker._iter_usd_prim_range = original_iter_usd_prim_range  # type: ignore[method-assign]
+        runtime_capture._usd_world_bounds = original_usd_world_bounds  # type: ignore[method-assign]
+        runtime_capture._iter_usd_prim_range = original_iter_usd_prim_range  # type: ignore[method-assign]
 
     assert surfaces[0]["source"] == "isaac_usd_descendant_support_surface_union"
     assert surfaces[0]["top_z"] == pytest.approx(0.7)
@@ -2155,7 +2156,7 @@ def test_isaac_support_placement_resolver_uses_descendant_support_surface() -> N
         "scene_binding_diagnostics": {},
     }
 
-    resolution = isaac_lab_backend_worker._resolve_isaac_placement(
+    resolution = runtime_state._resolve_isaac_placement(
         state,
         object_id="bowl_01",
         receptacle_id="bed_01",
@@ -2244,7 +2245,7 @@ def test_isaac_mess_seed_updates_locations_and_pose_overrides() -> None:
         "scene_binding_diagnostics": {},
     }
 
-    isaac_lab_backend_worker._seed_generated_mess_placements(state)
+    runtime_state._seed_generated_mess_placements(state)
 
     assert state["locations"]["mug_01"] == "sofa_01"
     assert state["scenario"]["objects"][0]["location_id"] == "sofa_01"
@@ -2290,7 +2291,7 @@ def test_isaac_usd_scene_index_extracts_room_outlines(monkeypatch: pytest.Monkey
         types.SimpleNamespace(Usd=types.SimpleNamespace(Stage=_FakeUsdStage), UsdGeom=_FakeUsdGeom),
     )
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_capture,
         "_usd_world_bounds",
         lambda _prim, *, usd_geom: {
             "center": [2.99, 4.983, 1.2],
@@ -2298,12 +2299,12 @@ def test_isaac_usd_scene_index_extracts_room_outlines(monkeypatch: pytest.Monkey
         },
     )
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_capture,
         "_annotate_usd_index_geometry",
         lambda **_kwargs: None,
     )
 
-    diagnostics = isaac_lab_backend_worker._inspect_usd_scene_index(Path("scene.usda"))
+    diagnostics = runtime_capture._inspect_usd_scene_index(Path("scene.usda"))
 
     assert diagnostics["room_outline_count"] == 1
     assert diagnostics["room_outlines"][0]["room_id"] == "room_2"
@@ -2327,7 +2328,7 @@ def test_isaac_robot_view_focus_prefers_object_pose() -> None:
         "receptacle_index": _unit_isaac_receptacle_index(),
     }
     state["semantic_pose_state"] = {
-        "object_poses": isaac_lab_backend_worker._semantic_object_poses_from_state(
+        "object_poses": runtime_state._semantic_object_poses_from_state(
             {
                 **state,
                 "scenario": {
@@ -2340,7 +2341,7 @@ def test_isaac_robot_view_focus_prefers_object_pose() -> None:
         )
     }
 
-    focus = isaac_lab_backend_worker._robot_view_focus(
+    focus = runtime_commands._robot_view_focus(
         state,
         {"target_position": [2.5, 5.5, 1.2]},
         focus_object_id="mug_01",
@@ -2467,7 +2468,7 @@ def test_isaac_head_camera_robot_pose_application_uses_shared_pose(
     camera_transforms: list[tuple[str, object]] = []
     _install_robot_pose_pxr(monkeypatch, translations, rotations, camera_transforms)
 
-    result = isaac_lab_backend_worker._position_robot_for_head_camera_view(
+    result = runtime_camera._position_robot_for_head_camera_view(
         stage_utils=SimpleNamespace(get_current_stage=lambda: _FakeRobotPoseStage()),
         scene_bounds=None,
         semantic_pose_state=_shared_robot_pose_state(),
@@ -2526,7 +2527,7 @@ def test_isaac_semantic_pose_stage_application_uses_exact_pose(
     monkeypatch.setitem(sys.modules, "pxr.Gf", _FakeGf)
     monkeypatch.setitem(sys.modules, "pxr.UsdGeom", fake_pxr.UsdGeom)
 
-    result = isaac_lab_backend_worker._apply_semantic_pose_state_to_stage(
+    result = runtime_camera._apply_semantic_pose_state_to_stage(
         stage_utils=SimpleNamespace(get_current_stage=lambda: _FakeStage()),
         semantic_pose_state={
             "object_poses": {
@@ -2710,7 +2711,7 @@ def test_isaac_semantic_pose_stage_application_converts_world_pose_to_parent_loc
         xformable=_offset_parent_xformable_type((10.0, 20.0, 0.5)),
     )
 
-    result = isaac_lab_backend_worker._apply_semantic_pose_state_to_stage(
+    result = runtime_camera._apply_semantic_pose_state_to_stage(
         stage_utils=SimpleNamespace(
             get_current_stage=lambda: _FakeSinglePrimStage("/World/Room/Objects/mug_01")
         ),
@@ -2742,7 +2743,7 @@ def test_isaac_semantic_pose_stage_application_updates_existing_translate_op(
         xformable=_existing_translate_xformable_type(translations, (3.0, 4.0, 5.0)),
     )
 
-    result = isaac_lab_backend_worker._apply_semantic_pose_state_to_stage(
+    result = runtime_camera._apply_semantic_pose_state_to_stage(
         stage_utils=SimpleNamespace(
             get_current_stage=lambda: _FakeSinglePrimStage("/World/Geometry/teddy")
         ),
@@ -2814,7 +2815,7 @@ def test_isaac_semantic_pose_stage_application_blocks_parent_transform_failure(
     monkeypatch.setitem(sys.modules, "pxr.Gf", _FakeGf)
     monkeypatch.setitem(sys.modules, "pxr.UsdGeom", fake_pxr.UsdGeom)
 
-    result = isaac_lab_backend_worker._apply_semantic_pose_state_to_stage(
+    result = runtime_camera._apply_semantic_pose_state_to_stage(
         stage_utils=SimpleNamespace(get_current_stage=lambda: _FakeStage()),
         semantic_pose_state={
             "object_poses": {
@@ -2870,7 +2871,7 @@ def test_isaac_semantic_pose_stage_application_does_not_mark_partial_as_rendered
     monkeypatch.setitem(sys.modules, "pxr.Gf", _FakeGf)
     monkeypatch.setitem(sys.modules, "pxr.UsdGeom", fake_pxr.UsdGeom)
 
-    result = isaac_lab_backend_worker._apply_semantic_pose_state_to_stage(
+    result = runtime_camera._apply_semantic_pose_state_to_stage(
         stage_utils=SimpleNamespace(get_current_stage=lambda: _FakeStage()),
         semantic_pose_state={
             "object_poses": {
@@ -2923,7 +2924,7 @@ def test_isaac_stage_light_paths_detects_existing_lights_without_pxr() -> None:
                 _FakePrim("/val_1/Geometry/table", False),
             ]
 
-    paths = isaac_lab_backend_worker._stage_light_paths(
+    paths = runtime_dependencies._stage_light_paths(
         _FakeStage(),
         light_api=object(),
     )
@@ -2958,10 +2959,10 @@ def test_isaac_lab_fake_worker_can_align_to_nav2_map_bundle(tmp_path: Path) -> N
 
 
 def test_isaac_usd_index_path_heuristics_skip_container_prims() -> None:
-    assert isaac_lab_backend_worker._is_object_prim_path("/World/Objects") is False
-    assert isaac_lab_backend_worker._is_object_prim_path("/World/Objects/mug_01") is True
-    assert isaac_lab_backend_worker._is_receptacle_prim_path("/World/Receptacles") is False
-    assert isaac_lab_backend_worker._is_receptacle_prim_path("/World/Receptacles/sink_01") is True
+    assert runtime_dependencies._is_object_prim_path("/World/Objects") is False
+    assert runtime_dependencies._is_object_prim_path("/World/Objects/mug_01") is True
+    assert runtime_dependencies._is_receptacle_prim_path("/World/Receptacles") is False
+    assert runtime_dependencies._is_receptacle_prim_path("/World/Receptacles/sink_01") is True
 
 
 def test_isaac_molmospaces_scene_metadata_indexes_real_geometry_prims(
@@ -3000,7 +3001,7 @@ def test_isaac_molmospaces_scene_metadata_indexes_real_geometry_prims(
     object_index: dict[str, dict[str, object]] = {}
     receptacle_index: dict[str, dict[str, object]] = {}
 
-    isaac_lab_backend_worker._merge_molmospaces_metadata_index(
+    runtime_dependencies._merge_molmospaces_metadata_index(
         usd_path=scene_usd,
         prim_paths_by_name={
             "mug_8caf1bb3f88e9a00e02dfe9e6518aeb0_1_0_7": [
@@ -3036,7 +3037,7 @@ def test_isaac_molmospaces_scene_metadata_ignores_bad_optional_source(
     scene_usd.write_text("#usda 1.0\n", encoding="utf-8")
     (scene_dir / "scene_metadata.json").write_text(source_text, encoding="utf-8")
 
-    assert isaac_lab_backend_worker._load_molmospaces_scene_metadata(scene_usd) == {}
+    assert runtime_dependencies._load_molmospaces_scene_metadata(scene_usd) == {}
 
 
 def test_isaac_molmospaces_scene_metadata_allows_missing_optional_source(
@@ -3045,12 +3046,12 @@ def test_isaac_molmospaces_scene_metadata_allows_missing_optional_source(
     scene_usd = tmp_path / "scene.usda"
     scene_usd.write_text("#usda 1.0\n", encoding="utf-8")
 
-    assert isaac_lab_backend_worker._load_molmospaces_scene_metadata(scene_usd) == {}
+    assert runtime_dependencies._load_molmospaces_scene_metadata(scene_usd) == {}
 
 
 def test_isaac_molmospaces_metadata_prefers_top_level_geometry_prim() -> None:
     assert (
-        isaac_lab_backend_worker._molmospaces_metadata_prim_path(
+        runtime_dependencies._molmospaces_metadata_prim_path(
             "mug_01",
             {
                 "mug_01": [
@@ -3082,7 +3083,7 @@ def test_isaac_scene_binding_can_match_synthetic_handle_to_real_usd_metadata() -
         },
     }
 
-    binding = isaac_lab_backend_worker._bind_public_scene_item(
+    binding = runtime_dependencies._bind_public_scene_item(
         public_id="mug_01",
         public_label="ceramic mug",
         category="dish",
@@ -3102,7 +3103,7 @@ def test_isaac_scene_binding_can_match_synthetic_handle_to_real_usd_metadata() -
         "scene_binding_diagnostics": {"selected_object_bindings": {"mug_01": binding}},
         "object_index": object_index,
     }
-    assert isaac_lab_backend_worker._object_usd_prim_path(state, "mug_01") == (
+    assert runtime_state._object_usd_prim_path(state, "mug_01") == (
         "/val_0/Geometry/mug_3ebc45568ed53a18c8797978b3744a99_1_0_6"
     )
 
@@ -3118,7 +3119,7 @@ def test_isaac_scene_binding_does_not_bind_generic_dish_to_unrelated_category() 
         }
     }
 
-    binding = isaac_lab_backend_worker._bind_public_scene_item(
+    binding = runtime_dependencies._bind_public_scene_item(
         public_id="mug_01",
         public_label="ceramic mug",
         category="dish",
@@ -3142,7 +3143,7 @@ def test_isaac_scene_binding_still_allows_specific_unique_category() -> None:
         }
     }
 
-    binding = isaac_lab_backend_worker._bind_public_scene_item(
+    binding = runtime_dependencies._bind_public_scene_item(
         public_id="cleanup_object_01",
         public_label="unlabeled cleanup object",
         category="Mug",
@@ -3224,7 +3225,7 @@ def test_isaac_scene_index_can_generate_scene_specific_cleanup_scenario() -> Non
         },
     }
 
-    scenario = isaac_lab_backend_worker._scenario_from_scene_index(
+    scenario = runtime_commands._scenario_from_scene_index(
         scene_source="procthor-10k-val",
         scene_index=1,
         seed=7,
@@ -3244,7 +3245,7 @@ def test_isaac_scene_index_can_generate_scene_specific_cleanup_scenario() -> Non
     target = scenario.private_manifest.targets[0]
     assert target.object_id == "bowl_847a24bfa9d8b1a1f26661ebbb850f56_1_0_2"
     assert target.valid_receptacle_ids == ("sink_07e796f32d0d3efce9acf4be00f3bc53_1_0_3",)
-    bindings = isaac_lab_backend_worker._scene_binding_diagnostics(
+    bindings = runtime_dependencies._scene_binding_diagnostics(
         runtime_mode="real",
         scenario=scenario,
         object_index=object_index,
@@ -3337,7 +3338,7 @@ def test_isaac_scene_index_uses_shared_generated_mess_selection() -> None:
         },
     }
 
-    scenario = isaac_lab_backend_worker._scenario_from_scene_index(
+    scenario = runtime_commands._scenario_from_scene_index(
         scene_source="procthor-10k-val",
         scene_index=0,
         seed=7,
@@ -3394,7 +3395,7 @@ def test_isaac_scene_index_can_pin_generated_mess_object_ids() -> None:
         },
     }
 
-    scenario = isaac_lab_backend_worker._scenario_from_scene_index(
+    scenario = runtime_commands._scenario_from_scene_index(
         scene_source="procthor-10k-val",
         scene_index=0,
         seed=6,
@@ -3468,7 +3469,7 @@ def test_isaac_scene_index_consumes_canonical_generated_mess_manifest() -> None:
         ],
     }
 
-    scenario = isaac_lab_backend_worker._scenario_from_scene_index(
+    scenario = runtime_commands._scenario_from_scene_index(
         scene_source="procthor-10k-val",
         scene_index=0,
         seed=6,
@@ -3509,7 +3510,7 @@ def test_isaac_scene_index_preserves_teddybear_category_for_placement() -> None:
         "desk_01": {"category": "Desk", "kind": "receptacle", "public_label": "Desk Desk|1|1"},
     }
 
-    scenario = isaac_lab_backend_worker._scenario_from_scene_index(
+    scenario = runtime_commands._scenario_from_scene_index(
         scene_source="procthor-10k-val",
         scene_index=0,
         seed=1,
@@ -3548,14 +3549,12 @@ def test_isaac_object_bottom_offset_uses_usd_root_position_before_bbox_center() 
         },
     }
 
-    assert isaac_lab_backend_worker._isaac_object_bottom_offset(state, "teddy_01") == (
-        pytest.approx(0.06)
-    )
+    assert runtime_state._isaac_object_bottom_offset(state, "teddy_01") == (pytest.approx(0.06))
 
 
 def test_isaac_scene_index_rejects_missing_explicit_generated_mess_id() -> None:
     with pytest.raises(ValueError, match="explicit generated mess object id is unavailable"):
-        isaac_lab_backend_worker._scenario_from_scene_index(
+        runtime_commands._scenario_from_scene_index(
             scene_source="procthor-10k-val",
             scene_index=0,
             seed=6,
@@ -3573,7 +3572,7 @@ def test_isaac_scene_index_rejects_missing_explicit_generated_mess_id() -> None:
 
 
 def test_isaac_worker_infers_scene_index_from_local_val_path() -> None:
-    args = isaac_lab_backend_worker.parse_args(
+    args = runtime_cli.parse_args(
         [
             "--state-path",
             "state.json",
@@ -3587,11 +3586,11 @@ def test_isaac_worker_infers_scene_index_from_local_val_path() -> None:
         ]
     )
 
-    assert isaac_lab_backend_worker._effective_scene_index(args) == 12
+    assert runtime_commands._effective_scene_index(args) == 12
 
 
 def test_isaac_worker_infers_scene_index_from_prepared_val_path() -> None:
-    args = isaac_lab_backend_worker.parse_args(
+    args = runtime_cli.parse_args(
         [
             "--state-path",
             "state.json",
@@ -3608,7 +3607,7 @@ def test_isaac_worker_infers_scene_index_from_prepared_val_path() -> None:
         ]
     )
 
-    assert isaac_lab_backend_worker._effective_scene_index(args) == 1
+    assert runtime_commands._effective_scene_index(args) == 1
 
 
 def test_isaac_lab_real_init_uses_phase_a_smoke_evidence(
@@ -3687,12 +3686,12 @@ def test_isaac_lab_real_init_uses_phase_a_smoke_evidence(
         }
 
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_capture,
         "real_runtime_smoke",
         fake_real_runtime_smoke,
     )
 
-    args = isaac_lab_backend_worker.parse_args(
+    args = runtime_cli.parse_args(
         [
             "--state-path",
             str(state_path),
@@ -3707,7 +3706,7 @@ def test_isaac_lab_real_init_uses_phase_a_smoke_evidence(
             str(scene_usd),
         ]
     )
-    result = isaac_lab_backend_worker.init_state(args)
+    result = runtime_initialization.init_state(args)
 
     assert result["ok"] is True
     assert result["runtime"]["runtime_mode"] == "real"
@@ -3777,18 +3776,18 @@ def test_isaac_lab_segmentation_capture_extracts_selected_bbox() -> None:
     class Camera:
         data = CameraData()
 
-    view = isaac_lab_backend_worker._camera_segmentation_view_diagnostics(
+    view = runtime_camera._camera_segmentation_view_diagnostics(
         Camera(),
         data_types=("instance_id_segmentation_fast",),
         view_name="fpv",
         np=np,
     )
-    capture = isaac_lab_backend_worker._camera_segmentation_capture_diagnostics(
+    capture = runtime_camera._camera_segmentation_capture_diagnostics(
         [view],
         requested_data_types=("instance_id_segmentation_fast",),
         semantic_filter=["class"],
     )
-    diagnostics = isaac_lab_backend_worker.segmentation_diagnostics(
+    diagnostics = runtime_evidence.segmentation_diagnostics(
         "real",
         real_smoke={"segmentation": capture},
         scene_binding_diagnostics={
@@ -3816,7 +3815,7 @@ def test_isaac_lab_segmentation_capture_extracts_selected_bbox() -> None:
 
 
 def test_isaac_segmentation_diagnostics_reports_unrenderable_selected_prims() -> None:
-    diagnostics = isaac_lab_backend_worker.segmentation_diagnostics(
+    diagnostics = runtime_evidence.segmentation_diagnostics(
         "real",
         real_smoke={
             "segmentation": {
@@ -3860,7 +3859,7 @@ def test_isaac_segmentation_diagnostics_reports_unrenderable_selected_prims() ->
 
 
 def test_isaac_segmentation_matches_usd_paths_case_insensitively() -> None:
-    diagnostics = isaac_lab_backend_worker.segmentation_diagnostics(
+    diagnostics = runtime_evidence.segmentation_diagnostics(
         "real",
         real_smoke={
             "segmentation": {
@@ -3921,13 +3920,13 @@ def test_isaac_lab_segmentation_capture_accepts_list_info_shape() -> None:
     class Camera:
         data = CameraData()
 
-    view = isaac_lab_backend_worker._camera_segmentation_view_diagnostics(
+    view = runtime_camera._camera_segmentation_view_diagnostics(
         Camera(),
         data_types=("semantic_segmentation",),
         view_name="fpv",
         np=np,
     )
-    capture = isaac_lab_backend_worker._camera_segmentation_capture_diagnostics(
+    capture = runtime_camera._camera_segmentation_capture_diagnostics(
         [view],
         requested_data_types=("semantic_segmentation",),
     )
@@ -3984,12 +3983,12 @@ def test_isaac_scene_index_semantic_labels_are_applied_to_stage_prims(
             records.append((prim.path, instance_name, tuple(labels)))
 
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_camera,
         "_semantic_label_target_prims",
         lambda prim: [bowl, bowl_mesh] if prim is bowl else [prim],
     )
 
-    result = isaac_lab_backend_worker._apply_scene_index_semantic_labels(
+    result = runtime_camera._apply_scene_index_semantic_labels(
         stage_utils=StageUtils(),
         sim_utils=SimUtils(),
         scene_index_diagnostics={
@@ -4041,7 +4040,7 @@ def test_isaac_scene_index_semantic_labels_are_applied_to_stage_prims(
 def test_isaac_runtime_smoke_accepts_official_blocks_generated_scene(
     tmp_path: Path,
 ) -> None:
-    args = isaac_lab_backend_worker.parse_args(
+    args = runtime_cli.parse_args(
         [
             "--state-path",
             str(tmp_path / "state.json"),
@@ -4057,7 +4056,7 @@ def test_isaac_runtime_smoke_accepts_official_blocks_generated_scene(
 
     assert args.generated_scene_kind == "isaac_official_blocks"
     assert (
-        isaac_lab_backend_worker._generated_scene_filename(args.generated_scene_kind)
+        runtime_dependencies._generated_scene_filename(args.generated_scene_kind)
         == "roboclaws_isaac_official_blocks_scene.usda"
     )
 
@@ -4065,7 +4064,7 @@ def test_isaac_runtime_smoke_accepts_official_blocks_generated_scene(
 def test_isaac_lab_generated_count_selects_private_targets_not_first_object(
     tmp_path: Path,
 ) -> None:
-    args = isaac_lab_backend_worker.parse_args(
+    args = runtime_cli.parse_args(
         [
             "--state-path",
             str(tmp_path / "state.json"),
@@ -4078,7 +4077,7 @@ def test_isaac_lab_generated_count_selects_private_targets_not_first_object(
             "1",
         ]
     )
-    result = isaac_lab_backend_worker.init_state(args)
+    result = runtime_initialization.init_state(args)
 
     object_ids = [item["object_id"] for item in result["scenario"]["objects"]]
     target_ids = [item["object_id"] for item in result["private_manifest"]["targets"]]
@@ -4135,11 +4134,11 @@ def test_isaac_lab_real_worker_views_reuse_real_smoke_images(
         }
 
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_capture,
         "real_runtime_smoke",
         fake_real_runtime_smoke,
     )
-    init_args = isaac_lab_backend_worker.parse_args(
+    init_args = runtime_cli.parse_args(
         [
             "--state-path",
             str(state_path),
@@ -4151,8 +4150,8 @@ def test_isaac_lab_real_worker_views_reuse_real_smoke_images(
             "--include-robot",
         ]
     )
-    isaac_lab_backend_worker.init_state(init_args)
-    view_args = isaac_lab_backend_worker.parse_args(
+    runtime_initialization.init_state(init_args)
+    view_args = runtime_cli.parse_args(
         [
             "--state-path",
             str(state_path),
@@ -4167,9 +4166,9 @@ def test_isaac_lab_real_worker_views_reuse_real_smoke_images(
             "48",
         ]
     )
-    result = isaac_lab_backend_worker.write_robot_views(
+    result = runtime_commands.write_robot_views(
         view_args,
-        isaac_lab_backend_worker.read_state(state_path),
+        runtime_commands.read_state(state_path),
     )
 
     assert result["ok"] is True
@@ -4192,7 +4191,7 @@ def test_isaac_lab_real_worker_views_recapture_semantic_pose_state(
     result = _write_semantic_pose_robot_views(context)
 
     _assert_semantic_pose_recapture_result(result)
-    state = isaac_lab_backend_worker.read_state(context.state_path)
+    state = runtime_commands.read_state(context.state_path)
     _assert_semantic_pose_recapture_state(state)
 
 
@@ -4209,12 +4208,12 @@ def _setup_semantic_pose_recapture_runtime(
     scene_usd.write_text("#usda 1.0\n", encoding="utf-8")
     _write_nonblank_image(image_path)
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_state,
         "ISAAC_RBY1M_ROBOT_USD_PATH",
         tmp_path / "missing_rby1m_holobase_isaac.usda",
     )
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_dependencies,
         "ISAAC_RBY1M_ROBOT_IMPORT_SUMMARY_PATH",
         tmp_path / "missing_rby1m_holobase_isaac.import_summary.json",
     )
@@ -4261,7 +4260,7 @@ def _setup_semantic_pose_recapture_runtime(
         }
 
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_capture,
         "real_runtime_smoke",
         fake_real_runtime_smoke,
     )
@@ -4361,19 +4360,19 @@ def _patch_semantic_pose_recapture_captures(
         }
 
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_capture,
         "capture_semantic_pose_robot_views",
         fake_capture_semantic_pose_robot_views,
     )
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_camera,
         "_capture_isaac_lab_scene_camera_views",
         fake_capture_scene_camera_views,
     )
 
 
 def _init_real_worker_with_scene_usd(context: SimpleNamespace) -> None:
-    init_args = isaac_lab_backend_worker.parse_args(
+    init_args = runtime_cli.parse_args(
         [
             "--state-path",
             str(context.state_path),
@@ -4387,11 +4386,11 @@ def _init_real_worker_with_scene_usd(context: SimpleNamespace) -> None:
             str(context.scene_usd),
         ]
     )
-    isaac_lab_backend_worker.init_state(init_args)
+    runtime_initialization.init_state(init_args)
 
 
 def _navigate_real_worker_to_receptacle(context: SimpleNamespace) -> None:
-    nav_args = isaac_lab_backend_worker.parse_args(
+    nav_args = runtime_cli.parse_args(
         [
             "--state-path",
             str(context.state_path),
@@ -4400,17 +4399,17 @@ def _navigate_real_worker_to_receptacle(context: SimpleNamespace) -> None:
             "sink_01",
         ]
     )
-    nav_result = isaac_lab_backend_worker.navigate_to_receptacle(
+    nav_result = runtime_commands.navigate_to_receptacle(
         nav_args,
-        isaac_lab_backend_worker.read_state(context.state_path),
+        runtime_commands.read_state(context.state_path),
     )
     assert nav_result["ok"] is True
     assert nav_result["robot_pose"]["pose_source"] == "roboclaws_shared_scene_frame_support_pose"
 
 
 def _write_semantic_pose_robot_views(context: SimpleNamespace) -> dict[str, object]:
-    result = isaac_lab_backend_worker.write_robot_views(
-        isaac_lab_backend_worker.parse_args(
+    result = runtime_commands.write_robot_views(
+        runtime_cli.parse_args(
             [
                 "--state-path",
                 str(context.state_path),
@@ -4427,7 +4426,7 @@ def _write_semantic_pose_robot_views(context: SimpleNamespace) -> dict[str, obje
                 "16",
             ]
         ),
-        isaac_lab_backend_worker.read_state(context.state_path),
+        runtime_commands.read_state(context.state_path),
     )
     assert isinstance(result, dict)
     return result
@@ -4497,12 +4496,12 @@ def test_isaac_lab_real_worker_views_accept_robot_pose_only_rerender(
     scene_usd.write_text("#usda 1.0\n", encoding="utf-8")
     _write_nonblank_image(image_path)
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_state,
         "ISAAC_RBY1M_ROBOT_USD_PATH",
         tmp_path / "missing_rby1m_holobase_isaac.usda",
     )
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_dependencies,
         "ISAAC_RBY1M_ROBOT_IMPORT_SUMMARY_PATH",
         tmp_path / "missing_rby1m_holobase_isaac.import_summary.json",
     )
@@ -4581,16 +4580,16 @@ def test_isaac_lab_real_worker_views_accept_robot_pose_only_rerender(
         }
 
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_capture,
         "real_runtime_smoke",
         fake_real_runtime_smoke,
     )
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_capture,
         "capture_semantic_pose_robot_views",
         fake_capture_semantic_pose_robot_views,
     )
-    init_args = isaac_lab_backend_worker.parse_args(
+    init_args = runtime_cli.parse_args(
         [
             "--state-path",
             str(state_path),
@@ -4604,9 +4603,9 @@ def test_isaac_lab_real_worker_views_accept_robot_pose_only_rerender(
             str(scene_usd),
         ]
     )
-    isaac_lab_backend_worker.init_state(init_args)
-    result = isaac_lab_backend_worker.write_robot_views(
-        isaac_lab_backend_worker.parse_args(
+    runtime_initialization.init_state(init_args)
+    result = runtime_commands.write_robot_views(
+        runtime_cli.parse_args(
             [
                 "--state-path",
                 str(state_path),
@@ -4621,13 +4620,13 @@ def test_isaac_lab_real_worker_views_accept_robot_pose_only_rerender(
                 "48",
             ]
         ),
-        isaac_lab_backend_worker.read_state(state_path),
+        runtime_commands.read_state(state_path),
     )
 
     assert result["ok"] is True
     assert result["view_provenance"]["semantic_pose_state_refreshed"] is True
     assert result["camera_control_contract"]["robot_pose"]["pose_source"]
-    state = isaac_lab_backend_worker.read_state(state_path)
+    state = runtime_commands.read_state(state_path)
     assert state["semantic_pose_view_capture"]["rendered_to_usd"] is True
     assert state["semantic_pose_view_capture"]["robot_pose_stage_application"]["status"] == (
         "applied"
@@ -4658,13 +4657,13 @@ def test_isaac_lab_real_worker_robot_views_use_imported_head_camera(
     )
     _write_nonblank_image(image_path)
 
-    monkeypatch.setattr(isaac_lab_backend_worker, "ISAAC_RBY1M_ROBOT_USD_PATH", robot_usd)
+    monkeypatch.setattr(runtime_state, "ISAAC_RBY1M_ROBOT_USD_PATH", robot_usd)
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_dependencies,
         "ISAAC_RBY1M_ROBOT_IMPORT_SUMMARY_PATH",
         summary_path,
     )
-    monkeypatch.setattr(isaac_lab_backend_worker, "_repo_path", lambda path: path)
+    monkeypatch.setattr(runtime_state, "_repo_path", lambda path: path)
 
     def fake_real_runtime_smoke(args: object, scenario: object) -> dict[str, object]:
         del args, scenario
@@ -4747,13 +4746,13 @@ def test_isaac_lab_real_worker_robot_views_use_imported_head_camera(
             },
         }
 
-    monkeypatch.setattr(isaac_lab_backend_worker, "real_runtime_smoke", fake_real_runtime_smoke)
+    monkeypatch.setattr(runtime_capture, "real_runtime_smoke", fake_real_runtime_smoke)
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_capture,
         "capture_semantic_pose_robot_views",
         fake_capture_semantic_pose_robot_views,
     )
-    init_args = isaac_lab_backend_worker.parse_args(
+    init_args = runtime_cli.parse_args(
         [
             "--state-path",
             str(state_path),
@@ -4767,10 +4766,10 @@ def test_isaac_lab_real_worker_robot_views_use_imported_head_camera(
             str(scene_usd),
         ]
     )
-    init = isaac_lab_backend_worker.init_state(init_args)
+    init = runtime_initialization.init_state(init_args)
     assert init["robot"]["embodiment"] == "rby1m"
     assert init["robot_import"]["status"] == "imported"
-    state = isaac_lab_backend_worker.read_state(state_path)
+    state = runtime_commands.read_state(state_path)
     state["semantic_pose_state"]["robot_pose"] = {
         "frame": "molmospaces_scene_frame_v1",
         "x": 6.37057,
@@ -4781,10 +4780,10 @@ def test_isaac_lab_real_worker_robot_views_use_imported_head_camera(
         "head_pitch": 0.653613,
         "pose_source": "apple2apple_shared_robot_pose",
     }
-    isaac_lab_backend_worker.write_state(state_path, state)
+    runtime_commands.write_state(state_path, state)
 
-    result = isaac_lab_backend_worker.write_robot_views(
-        isaac_lab_backend_worker.parse_args(
+    result = runtime_commands.write_robot_views(
+        runtime_cli.parse_args(
             [
                 "--state-path",
                 str(state_path),
@@ -4799,7 +4798,7 @@ def test_isaac_lab_real_worker_robot_views_use_imported_head_camera(
                 "48",
             ]
         ),
-        isaac_lab_backend_worker.read_state(state_path),
+        runtime_commands.read_state(state_path),
     )
 
     assert result["ok"] is True
@@ -4827,7 +4826,7 @@ def test_isaac_lab_real_worker_robot_views_use_imported_head_camera(
         "robot_relative_camera_follower"
     )
     assert result["camera_diagnostics"]["views"]["chase"]["vertical_fov_deg"] == pytest.approx(45.0)
-    state = isaac_lab_backend_worker.read_state(state_path)
+    state = runtime_commands.read_state(state_path)
     assert state["semantic_pose_view_capture"]["robot_mounted_head_camera"] is True
     assert state["semantic_pose_view_capture"]["head_camera_equivalent"] is False
 
@@ -4927,14 +4926,14 @@ def test_isaac_lab_real_worker_robot_views_record_capture_quality_settle(
             },
         }
 
-    monkeypatch.setattr(isaac_lab_backend_worker, "real_runtime_smoke", fake_real_runtime_smoke)
+    monkeypatch.setattr(runtime_capture, "real_runtime_smoke", fake_real_runtime_smoke)
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_capture,
         "capture_semantic_pose_robot_views",
         fake_capture_semantic_pose_robot_views,
     )
-    isaac_lab_backend_worker.init_state(
-        isaac_lab_backend_worker.parse_args(
+    runtime_initialization.init_state(
+        runtime_cli.parse_args(
             [
                 "--state-path",
                 str(state_path),
@@ -4949,8 +4948,8 @@ def test_isaac_lab_real_worker_robot_views_record_capture_quality_settle(
             ]
         )
     )
-    result = isaac_lab_backend_worker.write_robot_views(
-        isaac_lab_backend_worker.parse_args(
+    result = runtime_commands.write_robot_views(
+        runtime_cli.parse_args(
             [
                 "--state-path",
                 str(state_path),
@@ -4967,7 +4966,7 @@ def test_isaac_lab_real_worker_robot_views_record_capture_quality_settle(
                 "16",
             ]
         ),
-        isaac_lab_backend_worker.read_state(state_path),
+        runtime_commands.read_state(state_path),
     )
 
     assert result["ok"] is True
@@ -4977,7 +4976,7 @@ def test_isaac_lab_real_worker_robot_views_record_capture_quality_settle(
         result["native_render_diagnostics"]["capture_quality_settings"]["render_settle_frames"]
         == 16
     )
-    state = isaac_lab_backend_worker.read_state(state_path)
+    state = runtime_commands.read_state(state_path)
     assert state["semantic_pose_view_capture"]["render_settle_frames"] == 16
     assert (
         state["native_render_diagnostics"]["capture_quality_settings"]["render_settle_frames"] == 16
@@ -4992,7 +4991,7 @@ def test_isaac_chase_pose_uses_robot_relative_camera_follower() -> None:
         "theta": math.radians(105.0),
     }
 
-    eye, target = isaac_lab_backend_worker._robot_relative_chase_eye_target(pose)
+    eye, target = runtime_dependencies._robot_relative_chase_eye_target(pose)
 
     assert eye == pytest.approx((3.267781, 3.862789, 2.556), abs=1e-6)
     assert target == pytest.approx((3.008962, 4.828715, 1.556), abs=1e-6)
@@ -5006,7 +5005,7 @@ def test_isaac_camera_view_poses_prefers_robot_relative_chase() -> None:
         def tensor(values, *, dtype, device):
             return values
 
-    poses = isaac_lab_backend_worker._isaac_camera_view_poses(
+    poses = runtime_dependencies._isaac_camera_view_poses(
         torch=_TinyTorch,
         device="cpu",
         scene_bounds={
@@ -5081,16 +5080,16 @@ def test_isaac_lab_real_worker_views_fallback_when_semantic_pose_rerender_fails(
         raise RuntimeError("unit rerender failure")
 
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_capture,
         "real_runtime_smoke",
         fake_real_runtime_smoke,
     )
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_capture,
         "capture_semantic_pose_robot_views",
         fail_capture_semantic_pose_robot_views,
     )
-    init_args = isaac_lab_backend_worker.parse_args(
+    init_args = runtime_cli.parse_args(
         [
             "--state-path",
             str(state_path),
@@ -5104,9 +5103,9 @@ def test_isaac_lab_real_worker_views_fallback_when_semantic_pose_rerender_fails(
             str(scene_usd),
         ]
     )
-    isaac_lab_backend_worker.init_state(init_args)
-    result = isaac_lab_backend_worker.write_robot_views(
-        isaac_lab_backend_worker.parse_args(
+    runtime_initialization.init_state(init_args)
+    result = runtime_commands.write_robot_views(
+        runtime_cli.parse_args(
             [
                 "--state-path",
                 str(state_path),
@@ -5121,13 +5120,13 @@ def test_isaac_lab_real_worker_views_fallback_when_semantic_pose_rerender_fails(
                 "48",
             ]
         ),
-        isaac_lab_backend_worker.read_state(state_path),
+        runtime_commands.read_state(state_path),
     )
 
     assert result["ok"] is True
     assert result["view_provenance"]["semantic_pose_state_refreshed"] is False
     assert "isaac_lab_camera_rgb_static_robot_views" in json.dumps(result["view_provenance"])
-    state = isaac_lab_backend_worker.read_state(state_path)
+    state = runtime_commands.read_state(state_path)
     assert state["semantic_pose_state"]["rendered_to_usd"] is False
     assert any(
         item["area"] == "semantic_pose_robot_view_rerender"
@@ -5208,14 +5207,14 @@ def test_isaac_lab_real_worker_views_do_not_claim_refresh_without_usd_pose_appli
             },
         }
 
-    monkeypatch.setattr(isaac_lab_backend_worker, "real_runtime_smoke", fake_real_runtime_smoke)
+    monkeypatch.setattr(runtime_capture, "real_runtime_smoke", fake_real_runtime_smoke)
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_capture,
         "capture_semantic_pose_robot_views",
         fake_capture_semantic_pose_robot_views,
     )
-    isaac_lab_backend_worker.init_state(
-        isaac_lab_backend_worker.parse_args(
+    runtime_initialization.init_state(
+        runtime_cli.parse_args(
             [
                 "--state-path",
                 str(state_path),
@@ -5231,8 +5230,8 @@ def test_isaac_lab_real_worker_views_do_not_claim_refresh_without_usd_pose_appli
         )
     )
 
-    result = isaac_lab_backend_worker.write_robot_views(
-        isaac_lab_backend_worker.parse_args(
+    result = runtime_commands.write_robot_views(
+        runtime_cli.parse_args(
             [
                 "--state-path",
                 str(state_path),
@@ -5247,13 +5246,13 @@ def test_isaac_lab_real_worker_views_do_not_claim_refresh_without_usd_pose_appli
                 "48",
             ]
         ),
-        isaac_lab_backend_worker.read_state(state_path),
+        runtime_commands.read_state(state_path),
     )
 
     assert result["ok"] is True
     assert result["view_provenance"]["semantic_pose_state_refreshed"] is False
     assert "isaac_lab_camera_rgb_static_robot_views" in json.dumps(result["view_provenance"])
-    state = isaac_lab_backend_worker.read_state(state_path)
+    state = runtime_commands.read_state(state_path)
     assert state["semantic_pose_state"]["rendered_to_usd"] is False
     assert any(
         item["area"] == "semantic_pose_robot_view_rerender"
@@ -5305,11 +5304,11 @@ def test_isaac_lab_real_worker_snapshot_reuses_real_smoke_image(
         }
 
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_capture,
         "real_runtime_smoke",
         fake_real_runtime_smoke,
     )
-    init_args = isaac_lab_backend_worker.parse_args(
+    init_args = runtime_cli.parse_args(
         [
             "--state-path",
             str(state_path),
@@ -5320,9 +5319,9 @@ def test_isaac_lab_real_worker_snapshot_reuses_real_smoke_image(
             "real",
         ]
     )
-    isaac_lab_backend_worker.init_state(init_args)
+    runtime_initialization.init_state(init_args)
     snapshot_path = run_dir / "before.png"
-    snapshot_args = isaac_lab_backend_worker.parse_args(
+    snapshot_args = runtime_cli.parse_args(
         [
             "--state-path",
             str(state_path),
@@ -5337,9 +5336,9 @@ def test_isaac_lab_real_worker_snapshot_reuses_real_smoke_image(
             "48",
         ]
     )
-    result = isaac_lab_backend_worker.write_snapshot(
+    result = runtime_commands.write_snapshot(
         snapshot_args,
-        isaac_lab_backend_worker.read_state(state_path),
+        runtime_commands.read_state(state_path),
     )
 
     assert result["ok"] is True
@@ -5366,11 +5365,11 @@ def test_isaac_lab_real_init_fails_without_renderer_proof(
         raise RuntimeError("camera capture failed")
 
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_capture,
         "real_runtime_smoke",
         fail_real_runtime_smoke,
     )
-    args = isaac_lab_backend_worker.parse_args(
+    args = runtime_cli.parse_args(
         [
             "--state-path",
             str(state_path),
@@ -5383,7 +5382,7 @@ def test_isaac_lab_real_init_fails_without_renderer_proof(
     )
 
     with pytest.raises(RuntimeError, match="Real Isaac runtime smoke failed"):
-        isaac_lab_backend_worker.init_state(args)
+        runtime_initialization.init_state(args)
     assert state_path.exists() is False
 
 
@@ -5413,11 +5412,11 @@ def test_isaac_lab_real_init_does_not_persist_missing_smoke_image(
         }
 
     monkeypatch.setattr(
-        isaac_lab_backend_worker,
+        runtime_capture,
         "real_runtime_smoke",
         missing_image_real_runtime_smoke,
     )
-    args = isaac_lab_backend_worker.parse_args(
+    args = runtime_cli.parse_args(
         [
             "--state-path",
             str(state_path),
@@ -5430,7 +5429,7 @@ def test_isaac_lab_real_init_does_not_persist_missing_smoke_image(
     )
 
     with pytest.raises(RuntimeError, match="real Isaac smoke image is missing"):
-        isaac_lab_backend_worker.init_state(args)
+        runtime_initialization.init_state(args)
     assert state_path.exists() is False
 
 

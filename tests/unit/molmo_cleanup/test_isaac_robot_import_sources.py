@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.isaac_lab_cleanup.isaac_robot_import import load_json_if_file
+from roboclaws.backends.isaaclab.isaac_robot_import import load_json_if_file
 
 
 def test_load_json_if_file_returns_object_payload(tmp_path: Path) -> None:

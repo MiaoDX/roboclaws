@@ -16,6 +16,7 @@ if __package__ in {None, ""}:
 
 from PIL import Image
 
+from roboclaws.backends.isaaclab.isaac_worker_cli import _positive_int_arg
 from roboclaws.core.json_sources import read_json_object  # noqa: E402
 from scripts.isaac_lab_cleanup.check_b1_map12_readiness import (
     DEFAULT_B1_VISUAL_ROUTE_SCENE_USD,
@@ -29,7 +30,6 @@ from scripts.isaac_lab_cleanup.check_b1_map12_readiness import (
     validate_navigation_smoke_artifact,
     validate_waypoint_pose_requests_artifact,
 )
-from scripts.isaac_lab_cleanup.isaac_worker_cli import _positive_int_arg
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -108,9 +108,9 @@ def run_navigation_smoke(args: argparse.Namespace) -> int:
         write_artifact(artifact_path, artifact)
         return 2
 
-    from scripts.isaac_lab_cleanup import isaac_lab_backend_worker as worker
+    from roboclaws.backends.isaaclab import runtime_state
 
-    robot_import = worker._rby1m_robot_import_plan(str(args.robot_name))
+    robot_import = runtime_state._rby1m_robot_import_plan(str(args.robot_name))
     if robot_import.get("status") != "imported":
         artifact = blocked_artifact(
             readiness=readiness,
@@ -256,7 +256,7 @@ def run_navigation_smoke(args: argparse.Namespace) -> int:
 
 def capture_one(args: argparse.Namespace) -> int:
     request = read_json_object(args.request, label="navigation smoke capture request")
-    from scripts.isaac_lab_cleanup import isaac_lab_backend_worker as worker
+    from roboclaws.backends.isaaclab import runtime_capture
 
     waypoint = request["waypoint"]
     b1_pose = dict(waypoint["b1_pose"])
@@ -281,7 +281,7 @@ def capture_one(args: argparse.Namespace) -> int:
         key: output_dir / f"{waypoint['waypoint_id']}.{key}.png"
         for key in ("fpv", "chase", "topdown", "verify")
     }
-    capture = worker.capture_semantic_pose_robot_views(
+    capture = runtime_capture.capture_semantic_pose_robot_views(
         state=state,
         scene_usd=Path(str(request["scene_usd"])),
         view_paths=view_paths,

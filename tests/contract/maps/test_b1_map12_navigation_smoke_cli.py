@@ -165,7 +165,7 @@ def test_navigation_smoke_records_malformed_child_result_as_source_failure(
 
     monkeypatch.setattr(subprocess, "run", fake_run)
     monkeypatch.setattr(
-        "scripts.isaac_lab_cleanup.isaac_lab_backend_worker._rby1m_robot_import_plan",
+        "roboclaws.backends.isaaclab.runtime_state._rby1m_robot_import_plan",
         lambda robot_name: {"status": "imported", "robot_name": robot_name},
     )
 

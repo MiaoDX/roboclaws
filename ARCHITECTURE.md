@@ -171,6 +171,11 @@ Key pieces:
   capture/perception. Its sole executable boundary is
   `python -m roboclaws.backends.molmospaces.worker`; household code invokes the
   module and does not resolve script paths.
+- `roboclaws/backends/isaaclab/` owns the Isaac Lab JSON worker and generic
+  runtime-smoke validation: protocol/state, initialization, navigation/actions,
+  scene/robot capture, rendering diagnostics, and checker policy. The worker
+  and checker run as package modules while Isaac dependencies remain isolated
+  in `.venv-isaaclab/`; harnesses do not accept the Omniverse EULA by default.
 - `roboclaws/household/agibot_sdk_runner.py` owns the Roboclaws-side Agibot
   SDK subprocess adapter, including conversion of SDK-local exports into the
   public household Agent View v2 artifact. The vendor runner at

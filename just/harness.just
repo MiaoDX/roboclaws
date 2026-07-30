@@ -351,7 +351,7 @@ isaac-runtime-preflight *overrides:
     min_free_gb="80"
     skip_gpu_probe="false"
     install="false"
-    accept_nvidia_eula="true"
+    accept_nvidia_eula="false"
     strict="false"
     for arg in "${args[@]}"; do
       if [[ "$arg" != *=* ]]; then
@@ -431,7 +431,7 @@ isaac-runtime-smoke *overrides:
     require_segmentation_evidence="false"
     segmentation_data_types=""
     segmentation_semantic_filter=""
-    accept_nvidia_eula="true"
+    accept_nvidia_eula="false"
     for arg in "${args[@]}"; do
       if [[ "$arg" != *=* ]]; then
         echo "error: override '$arg' is not key=value" >&2
@@ -469,7 +469,7 @@ isaac-runtime-smoke *overrides:
     if [[ "$accept_nvidia_eula" == "true" ]]; then
       export OMNI_KIT_ACCEPT_EULA="YES"
     fi
-    worker_cmd=("$runtime_python" scripts/isaac_lab_cleanup/isaac_lab_backend_worker.py \
+    worker_cmd=("$runtime_python" -m roboclaws.backends.isaaclab.worker \
       --state-path "$state_path" \
       init \
       --run-dir "$run_dir" \
@@ -512,13 +512,13 @@ isaac-runtime-smoke *overrides:
       echo "error: Isaac runtime smoke init did not write state: ${state_path}" >&2
       exit 1
     fi
-    robot_views_cmd=("$runtime_python" scripts/isaac_lab_cleanup/isaac_lab_backend_worker.py \
+    robot_views_cmd=("$runtime_python" -m roboclaws.backends.isaaclab.worker \
       --state-path "$state_path" \
       robot_views \
       --output-dir "${run_dir}/robot_views" \
       --label "runtime_smoke")
     "${robot_views_cmd[@]}" 2>&1 | tee "$robot_views_result"
-    check_cmd=(.venv/bin/python scripts/isaac_lab_cleanup/check_isaac_lab_runtime_smoke_result.py \
+    check_cmd=(.venv/bin/python -m roboclaws.backends.isaaclab.smoke_checker \
       --init-result "$init_result" \
       --state-path "$state_path" \
       --robot-views-result "$robot_views_result")
@@ -566,7 +566,7 @@ b1-map12-navigation-smoke *overrides:
     robot_name="rby1m"
     prepare_robot_usd="true"
     require_navigation_success="true"
-    accept_nvidia_eula="true"
+    accept_nvidia_eula="false"
     for arg in "${args[@]}"; do
       if [[ "$arg" != *=* ]]; then
         echo "error: override '$arg' is not key=value" >&2

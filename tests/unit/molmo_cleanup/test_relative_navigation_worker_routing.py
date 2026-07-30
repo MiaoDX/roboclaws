@@ -290,9 +290,10 @@ def test_cli_accepts_positive_render_dimensions() -> None:
 
 
 def test_isaac_worker_cli_exposes_relative_pose_command() -> None:
-    from scripts.isaac_lab_cleanup import isaac_lab_backend_worker
+    from roboclaws.backends.isaaclab import runtime as runtime_cli
+    from roboclaws.backends.isaaclab import runtime_commands as runtime_commands
 
-    args = isaac_lab_backend_worker.parse_args(
+    args = runtime_cli.parse_args(
         [
             "--state-path",
             "state.json",
@@ -310,7 +311,7 @@ def test_isaac_worker_cli_exposes_relative_pose_command() -> None:
     assert args.forward_m == pytest.approx(0.25)
     assert args.lateral_m == pytest.approx(-0.125)
     assert args.yaw_delta_deg == pytest.approx(15.0)
-    assert "navigate_to_relative_pose" in isaac_lab_backend_worker._STATE_COMMANDS
+    assert "navigate_to_relative_pose" in runtime_commands._STATE_COMMANDS
 
 
 @pytest.mark.parametrize(
@@ -325,10 +326,10 @@ def test_isaac_worker_cli_rejects_bad_inline_waypoint_json(
     expected_message: str,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    from scripts.isaac_lab_cleanup import isaac_lab_backend_worker
+    from roboclaws.backends.isaaclab import runtime as runtime_cli
 
     with pytest.raises(SystemExit) as exc_info:
-        isaac_lab_backend_worker.parse_args(
+        runtime_cli.parse_args(
             [
                 "--state-path",
                 "state.json",
@@ -343,7 +344,7 @@ def test_isaac_worker_cli_rejects_bad_inline_waypoint_json(
 
 
 def test_isaac_worker_cli_rejects_non_positive_render_dimensions() -> None:
-    from scripts.isaac_lab_cleanup import isaac_lab_backend_worker
+    from roboclaws.backends.isaaclab import runtime as runtime_cli
 
     for command, required_args, flag in (
         (
@@ -355,7 +356,7 @@ def test_isaac_worker_cli_rejects_non_positive_render_dimensions() -> None:
         ("camera_views", ["--output-dir", "/tmp/cameras"], "--render-width"),
     ):
         with pytest.raises(SystemExit) as exc_info:
-            isaac_lab_backend_worker.parse_args(
+            runtime_cli.parse_args(
                 [
                     "--state-path",
                     "state.json",
@@ -369,10 +370,10 @@ def test_isaac_worker_cli_rejects_non_positive_render_dimensions() -> None:
 
 
 def test_isaac_worker_cli_rejects_negative_render_settle_frames() -> None:
-    from scripts.isaac_lab_cleanup import isaac_lab_backend_worker
+    from roboclaws.backends.isaaclab import runtime as runtime_cli
 
     with pytest.raises(SystemExit) as exc_info:
-        isaac_lab_backend_worker.parse_args(
+        runtime_cli.parse_args(
             [
                 "--state-path",
                 "state.json",
@@ -390,9 +391,9 @@ def test_isaac_worker_cli_rejects_negative_render_settle_frames() -> None:
 
 
 def test_isaac_worker_cli_accepts_positive_render_config() -> None:
-    from scripts.isaac_lab_cleanup import isaac_lab_backend_worker
+    from roboclaws.backends.isaaclab import runtime as runtime_cli
 
-    args = isaac_lab_backend_worker.parse_args(
+    args = runtime_cli.parse_args(
         [
             "--state-path",
             "state.json",

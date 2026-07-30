@@ -901,6 +901,18 @@ hardware proof cannot run for a demonstrated environment reason.
   structural movement rather than deletion. 154 focused tests, module CLI,
   architecture graph, and package-to-scripts policy pass; oversized modules
   decrease from 67 to 66.
-- Next action: move the active Isaac Lab worker and generic runtime-smoke
-  implementation into `roboclaws/backends/isaaclab`, preserving standalone
-  launch and the separate `.venv-isaaclab` runtime.
+- Wave 5 completed slice: 38 Isaac worker and generic runtime-smoke script
+  owners totaling 13,893 lines moved forward-only into
+  `roboclaws/backends/isaaclab/`. The package now has acyclic initialization,
+  state, command, camera/capture, evidence, protocol, and checker owners; the
+  composition owner is 82 lines, the module CLI is six lines, and every
+  production module is at or below 694 lines. The split adds 720 source lines
+  for explicit boundaries and is recorded as structural movement. 183 focused
+  tests and static ratchets pass at 311 modules / 884 edges with zero
+  SCCs/pairs; oversized modules decrease from 66 to 65. Worker execution is
+  module-only, `.venv-isaaclab` isolation remains, and Isaac preflight, generic
+  smoke, and B1 smoke default EULA acceptance to false.
+- Next action: split the current cleanup checker so structural product
+  invariants move into household validation and benchmark-only scoring moves
+  into eval graders, leaving only a thin CLI and eliminating the live runner's
+  package-to-script execution.

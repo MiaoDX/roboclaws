@@ -51,7 +51,7 @@ def test_agent_harness_allows_isaac_runtime_preflight_target() -> None:
         re.MULTILINE | re.DOTALL,
     )
     assert recipe_match is not None
-    assert 'accept_nvidia_eula="true"' in recipe_match.group("body")
+    assert 'accept_nvidia_eula="false"' in recipe_match.group("body")
 
     route = trace_agent_harness(
         "isaac-runtime-preflight",
@@ -70,8 +70,8 @@ def test_agent_harness_allows_isaac_runtime_smoke_target() -> None:
     harness_text = HARNESS_JUST.read_text(encoding="utf-8")
 
     assert re.search(r"^isaac-runtime-smoke \*overrides:", harness_text, re.MULTILINE)
-    assert "isaac_lab_backend_worker.py" in harness_text
-    assert "check_isaac_lab_runtime_smoke_result.py" in harness_text
+    assert "-m roboclaws.backends.isaaclab.worker" in harness_text
+    assert "-m roboclaws.backends.isaaclab.smoke_checker" in harness_text
     assert "scene_usd_path" in harness_text
     assert "generated_scene_kind" in harness_text
     assert "--generated-scene-kind" in harness_text
@@ -90,7 +90,7 @@ def test_agent_harness_allows_isaac_runtime_smoke_target() -> None:
     assert '2>&1 | tee "$robot_views_result"' in harness_text
     assert "robot_views_result.json" in harness_text
     assert "robot_views \\" in harness_text
-    assert 'accept_nvidia_eula="true"' in harness_text
+    assert 'accept_nvidia_eula="false"' in harness_text
     assert 'OMNI_KIT_ACCEPT_EULA="YES"' in harness_text
 
     route = trace_agent_harness(
@@ -143,6 +143,7 @@ def test_agent_harness_allows_b1_map12_navigation_smoke_target() -> None:
     assert "run_b1_map12_navigation_smoke.py" in harness_text
     assert "import_rby1m_robot_usd.py --static-only" in harness_text
     assert 'require_navigation_success="true"' in harness_text
+    assert 'accept_nvidia_eula="false"' in harness_text
     assert "--require-navigation-success" in harness_text
     assert 'OMNI_KIT_ACCEPT_EULA="YES"' in harness_text
 

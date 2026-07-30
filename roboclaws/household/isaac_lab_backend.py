@@ -25,12 +25,7 @@ ISAAC_WORKER_TIMEOUTS_S = {
     "robot_views": 120.0,
     "camera_views": 180.0,
 }
-ISAAC_WORKER_SCRIPT = (
-    Path(__file__).resolve().parents[2]
-    / "scripts"
-    / "isaac_lab_cleanup"
-    / "isaac_lab_backend_worker.py"
-)
+ISAAC_WORKER_MODULE = "roboclaws.backends.isaaclab.worker"
 _ISAACLAB_TRUE_ENV_VALUES = {"1", "true", "TRUE", "yes", "YES"}
 
 
@@ -414,7 +409,7 @@ class IsaacLabSubprocessBackend:
                 "Create .venv-isaaclab/ or set ROBOCLAWS_ISAACLAB_PYTHON. "
                 "CI tests may set ROBOCLAWS_ISAACLAB_RUNTIME_MODE=fake explicitly."
             ),
-            worker_script=ISAAC_WORKER_SCRIPT,
+            worker_module=ISAAC_WORKER_MODULE,
             state_path=self.state_path,
             command=command,
             args=args,
