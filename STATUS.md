@@ -10,6 +10,12 @@ leave a link.
 
 ## Current Focus
 
+The next proposed cleanup is the formal retirement of OpenClaw and repo-owned
+local Docker runtime surfaces under
+`docs/plans/2026-07-30-retire-openclaw-and-local-docker-surfaces.md`. The plan
+preserves the two active agent engines, remote-platform image configuration,
+and historical evidence; implementation awaits human approval.
+
 The follow-up architecture simplification pass is complete. Five approved cuts
 removed the obsolete Agibot/MolmoSpaces simulation rehearsal, the retired
 Codex-only comparison summary, an isolated cleanup policy, unused direct
@@ -81,9 +87,10 @@ providers.
 
 ## Next Action
 
-No implementation action remains for either bounded cleanup pass. The refreshed
-immutable candidate remains unmodified and is superseded for publication
-review; publication remains unauthorized and is a separate human decision.
+Review and approve or revise the proposed OpenClaw/local-Docker retirement plan.
+No implementation has started. The refreshed immutable candidate remains
+unmodified and is superseded for publication review; publication remains
+unauthorized and is a separate human decision.
 
 ## Current Blockers
 
@@ -109,6 +116,7 @@ review; publication remains unauthorized and is a separate human decision.
 ## Current Source Links
 
 Plans:
+`docs/plans/2026-07-30-retire-openclaw-and-local-docker-surfaces.md`,
 `docs/plans/2026-07-30-post-cleanup-saturation-refactors.md`,
 `docs/plans/2026-07-28-forward-only-post-review-cleanup.md`,
 `docs/plans/2026-07-27-restore-codex-mimo-responses-cells.md`,
