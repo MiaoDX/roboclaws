@@ -1,4 +1,4 @@
-"""Slot leases for bounded local MolmoSpaces visual backend concurrency."""
+"""Slot leases for bounded local MolmoSpaces live-agent backend concurrency."""
 
 from __future__ import annotations
 

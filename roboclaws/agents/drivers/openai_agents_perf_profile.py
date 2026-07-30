@@ -26,7 +26,7 @@ from roboclaws.core.provider_catalog import (
     provider_route_spec,
     route_capabilities_for_engine,
 )
-from roboclaws.household.household_mcp_server import (
+from roboclaws.core.robot_view_capture import (
     ROBOT_VIEW_CAPTURE_POLICIES,
     ROBOT_VIEW_CAPTURE_POLICY_FULL,
 )

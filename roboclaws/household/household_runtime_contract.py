@@ -5,6 +5,11 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.core.json_sources import read_json_value
+from roboclaws.core.raw_fpv_guidance import (
+    RAW_FPV_DECLARATION_STRATEGY,
+    raw_fpv_inline_candidate_instruction,
+)
+from roboclaws.core.task_intents import normalize_household_intent
 from roboclaws.household import (
     realworld_agent_view_contract,
     realworld_contract_init,
@@ -22,10 +27,6 @@ from roboclaws.household.household_backend_contract import HouseholdBackendSessi
 from roboclaws.household.manipulation_contract import API_SEMANTIC_PROVENANCE
 from roboclaws.household.planner_observed_binding import (
     observed_handle_planner_binding,
-)
-from roboclaws.household.raw_fpv_guidance import (
-    RAW_FPV_DECLARATION_STRATEGY,
-    raw_fpv_inline_candidate_instruction,
 )
 from roboclaws.household.realworld_contract_fixture_projection import (
     _OBJECT_CATEGORY_TARGETS,
@@ -56,7 +57,6 @@ from roboclaws.household.semantic_acceptability import (
 )
 from roboclaws.household.semantic_timeline import SEMANTIC_LOOP_VARIANT
 from roboclaws.household.target_query import resolve_target_query
-from roboclaws.household.task_intent import normalize_household_intent
 from roboclaws.household.types import CleanupScenario
 from roboclaws.household.visual_grounding import (
     EXTERNAL_VISUAL_GROUNDING_PROVENANCE,

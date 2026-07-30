@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.core.json_sources import read_json_object
-from roboclaws.reports.live_performance import (
+from roboclaws.core.live_performance import (
     ReportPerformanceSourceError,
     compare_report_performance_metrics,
     extract_report_performance_metrics,

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.reports.live_performance import MODEL_CALL_METRIC_SCHEMA
+from roboclaws.core.live_performance import MODEL_CALL_METRIC_SCHEMA
 
 CALIBRATE_SCRIPT = (
     Path(__file__).resolve().parents[3] / "scripts/reports/calibrate_model_latency.py"

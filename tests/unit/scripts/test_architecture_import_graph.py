@@ -66,4 +66,8 @@ def test_current_graph_freezes_authoritative_cycles_and_package_pairs() -> None:
     policies = {item["id"]: item for item in state["policies"]}
     assert policies["package-to-scripts"]["owning_wave"] == "Wave 5"
     assert policies["core-product-inversions"]["owning_wave"] == "Waves 1-2"
-    assert policies["planned-reverse-package-edges"]["status"] == "ratcheted-known-red"
+    assert policies["core-product-inversions"]["status"] == "green"
+    assert policies["core-product-inversions"]["known_violations"] == []
+    assert policies["planned-reverse-package-edges"]["status"] == "green"
+    assert policies["planned-reverse-package-edges"]["known_violations"] == []
+    assert policies["package-to-scripts"]["status"] == "ratcheted-known-red"

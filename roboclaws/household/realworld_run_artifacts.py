@@ -11,6 +11,7 @@ from roboclaws.core.goals import (
     completion_claim_from_done_reason,
     write_goal_contract,
 )
+from roboclaws.core.map_build_scan_profile import MapBuildScanProfile
 from roboclaws.core.rerun import report_rerun_command_from_env
 from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household.advisory_scoring import build_advisory_evaluation
@@ -38,7 +39,6 @@ from roboclaws.household.manipulation_provenance import (
     isaac_semantic_pose_manipulation_evidence,
     planner_backed_cleanup_manipulation_evidence,
 )
-from roboclaws.household.map_build_scan_profile import MapBuildScanProfile
 from roboclaws.household.nav2_map_bundle import attach_nav2_map_bundle_snapshot
 from roboclaws.household.planner_cleanup_bridge import planner_cleanup_bridge_evidence
 from roboclaws.household.planner_proof_requests import write_planner_proof_requests

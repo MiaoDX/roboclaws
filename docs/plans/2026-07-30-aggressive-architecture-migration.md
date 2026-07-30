@@ -1,6 +1,6 @@
 # Aggressive Architecture Migration
 
-**Status:** Authorized; Waves 0-1 complete, Wave 2 active
+**Status:** Authorized; Waves 0-2 complete, Wave 3 active
 **Created:** 2026-07-30
 **Execution unit:** This entire plan, delivered in bounded waves and slices
 **Supersedes:** the broad-module-splitting non-goal in
@@ -739,7 +739,7 @@ hardware proof cannot run for a demonstrated environment reason.
 ## Plan Ledger
 
 - Current status: ACTIVE.
-- Current wave: Wave 2, canonical parity and dependency-direction proof.
+- Current wave: Wave 3, unconditional investigation/rehearsal deletion stacks.
 - Completed waves: Wave 0 froze exact size/disposition and import-graph
   baselines, expanded the deletion consumer ledger and public fixture index,
   corrected the planned topology from five/four to six/five, and wired both
@@ -805,6 +805,15 @@ hardware proof cannot run for a demonstrated environment reason.
   `agents -> launch` and `household -> launch` are absent, leaving zero module
   SCCs and zero bidirectional package pairs. Root launch, agent, operator,
   CLI/Just, MCP, artifact/privacy/schema, and static gates pass.
+- Wave 2 completed: frozen direct/MCP artifact, privacy, provenance, report,
+  eval, SDK, and operator lifecycle fixtures pass field-for-field. A proof pass
+  exposed nine residual `agents -> household` edges and one
+  `agents -> reports` inversion hidden by the zero-pair metric; pure RAW-FPV,
+  scan-profile, task-intent, robot-view, timing/performance, and visual-slot
+  contracts moved to core/agents owners, all callers migrated directly, and
+  six old modules were deleted without facades. Both Wave 1-2 policy guards are
+  now enforced green with zero violations; root parity/loopback and static
+  suites pass, and oversized modules decrease from 76 to 75.
 - Planning-loop result: CONVERGED after two rounds. Round 1 entropy, docs-grill,
   and skeptic scouts found speculative layers, unsafe wave order, incomplete
   caller paths, proxy-metric gates, and preservation ambiguity. Round 2 verified
@@ -824,5 +833,5 @@ hardware proof cannot run for a demonstrated environment reason.
 - Parked: B1 authoring deletion beyond proven package-owned rebuild parity,
   publication, real-robot movement, EULA acceptance, public contract redesign,
   provider bakeoff, and unrelated feature work.
-- Next action: execute Wave 2 field-for-field parity, stale-path, canonical
-  consumer, SDK operator-lifecycle, and fully green dependency-guard proof.
+- Next action: execute Wave 3 unconditional deletion stacks leaf-to-root,
+  starting with robot-camera parity under its frozen caller and proof ledger.

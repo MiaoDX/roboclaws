@@ -36,10 +36,10 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 872,
+        "lines": 1463,
         "max_module_lines": 800,
         "owner": "Wave 6 retained owner split",
-        "path": "roboclaws/agents/provider_registry.py",
+        "path": "roboclaws/core/live_performance.py",
         "trigger": "split along the behavior owner named by the Wave 6 migration slice"
       },
       {
@@ -52,7 +52,7 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1807,
+        "lines": 1796,
         "max_module_lines": 800,
         "owner": "Wave 6 retained owner split",
         "path": "roboclaws/evals/runner.py",
@@ -76,7 +76,7 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 2051,
+        "lines": 2050,
         "max_module_lines": 800,
         "owner": "Wave 6 retained owner split",
         "path": "roboclaws/household/household_runtime_contract.py",
@@ -196,15 +196,7 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 846,
-        "max_module_lines": 800,
-        "owner": "Wave 6 retained owner split",
-        "path": "roboclaws/operator_console/interactions.py",
-        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 918,
+        "lines": 915,
         "max_module_lines": 800,
         "owner": "Wave 6 retained owner split",
         "path": "roboclaws/operator_console/launcher.py",
@@ -220,19 +212,11 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 968,
+        "lines": 967,
         "max_module_lines": 800,
         "owner": "Wave 6 retained owner split",
         "path": "roboclaws/operator_console/state.py",
         "trigger": "split along the behavior owner named by the Wave 6 migration slice"
-      },
-      {
-        "disposition": "MERGE",
-        "lines": 1463,
-        "max_module_lines": 800,
-        "owner": "Wave 6 report ownership",
-        "path": "roboclaws/reports/live_performance.py",
-        "trigger": "merge duplicate projections before splitting retained renderers by behavior"
       },
       {
         "disposition": "SPLIT",
@@ -635,11 +619,11 @@
     "source": {
       "files_at_least": {
         "1000": 33,
-        "500": 132,
-        "800": 49
+        "500": 129,
+        "800": 47
       },
-      "loc": 180297,
-      "python_files": 414,
+      "loc": 180320,
+      "python_files": 421,
       "roots": [
         "roboclaws",
         "scripts"
@@ -651,7 +635,7 @@
         "500": 51,
         "800": 29
       },
-      "loc": 108901,
+      "loc": 108942,
       "python_files": 237,
       "roots": [
         "tests"

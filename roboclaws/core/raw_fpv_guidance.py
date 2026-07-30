@@ -1,4 +1,4 @@
-"""Canonical RAW_FPV visual-candidate guidance shared by prompts and contract."""
+"""Canonical RAW_FPV visual-candidate guidance policy."""
 
 from __future__ import annotations
 

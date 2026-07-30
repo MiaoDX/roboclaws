@@ -23,6 +23,16 @@ from roboclaws.core.operator_messages import (
     check_operator_messages_for_mcp,
     pending_operator_message_hint,
 )
+from roboclaws.core.robot_view_capture import (
+    ROBOT_VIEW_CAPTURE_POLICIES,
+    ROBOT_VIEW_CAPTURE_POLICY_ACTION_TIMELINE,
+    ROBOT_VIEW_CAPTURE_POLICY_FULL,
+)
+from roboclaws.core.task_intents import (
+    household_runtime_intent,
+    household_task_identity_from_contract,
+    household_task_name,
+)
 from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household import realworld_done_readiness
 from roboclaws.household.household_backend_contract import HouseholdBackendSession
@@ -57,11 +67,6 @@ from roboclaws.household.semantic_timeline import (
     semantic_substeps,
     successful_semantic_phases,
 )
-from roboclaws.household.task_intent import (
-    household_runtime_intent,
-    household_task_identity_from_contract,
-    household_task_name,
-)
 from roboclaws.household.types import CleanupScenario
 from roboclaws.household.visual_grounding import (
     SIM_VISUAL_GROUNDING_PIPELINE_ID,
@@ -76,11 +81,6 @@ DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 18788
 STARTUP_TIMEOUT_S = 2.0
 MCP_SERVER_NAME = "household_world"
-ROBOT_VIEW_CAPTURE_POLICY_FULL = "full"
-ROBOT_VIEW_CAPTURE_POLICY_ACTION_TIMELINE = "action_timeline"
-ROBOT_VIEW_CAPTURE_POLICIES = frozenset(
-    {ROBOT_VIEW_CAPTURE_POLICY_FULL, ROBOT_VIEW_CAPTURE_POLICY_ACTION_TIMELINE}
-)
 AGENT_POLICIES = {
     "household_contract_smoke_agent",
     "codex_agent",

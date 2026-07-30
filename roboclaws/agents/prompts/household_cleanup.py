@@ -7,8 +7,8 @@ import json
 from typing import Any
 
 from roboclaws.core.goals import GoalContract, goal_contract_from_json
-from roboclaws.household.map_build_scan_profile import map_build_scan_profile
-from roboclaws.household.task_intent import (
+from roboclaws.core.map_build_scan_profile import map_build_scan_profile
+from roboclaws.core.task_intents import (
     HOUSEHOLD_INTENT_MAP_BUILD,
     household_intent_from_goal_contract,
     household_intent_is_open_ended,

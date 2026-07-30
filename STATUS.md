@@ -11,10 +11,11 @@ leave a link.
 ## Current Focus
 
 The aggressive architecture migration is active under
-`docs/plans/2026-07-30-aggressive-architecture-migration.md`. Waves 0-1 are
-complete: the exact baselines and guards are frozen, all six module cycles and
-five bidirectional package pairs are removed, and Wave 2 is proving canonical
-artifact/privacy/provenance/report and operator-lifecycle parity before deletion.
+`docs/plans/2026-07-30-aggressive-architecture-migration.md`. Waves 0-2 are
+complete: exact baselines and field-level parity are proven, all six module
+cycles and five bidirectional package pairs are removed, and the Wave 1-2
+reverse/inversion guards are locked green. Wave 3 is retiring unconditional
+investigation and rehearsal stacks leaf-to-root.
 The migration preserves public launch, artifact, privacy, provider, simulator,
 and operator behavior while removing dependency cycles, retiring completed
 investigation surfaces, moving product subsystems out of scripts, and splitting
@@ -99,8 +100,8 @@ providers.
 
 ## Next Action
 
-Complete Wave 2 canonical parity and dependency-direction proof, then execute
-the Wave 3 unconditional deletion ledger in bounded green slices. The
+Execute the Wave 3 unconditional deletion ledger in bounded green slices,
+starting with robot-camera parity and its frozen caller/proof manifest. The
 refreshed immutable candidate remains unmodified; publication remains
 unauthorized and separate from this campaign.
 

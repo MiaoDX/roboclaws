@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from roboclaws.household.raw_fpv_guidance import (
+from roboclaws.core.raw_fpv_guidance import (
     RAW_FPV_PUBLIC_CLEANUP_PRIORITY_EXAMPLES,
     RAW_FPV_PUBLIC_SETTLED_EXAMPLES,
     raw_fpv_inline_candidate_instruction,

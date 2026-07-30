@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.reports.live_performance import (
+from roboclaws.core.live_performance import (
     MODEL_CALL_METRIC_SCHEMA,
     REPORT_PERFORMANCE_SCHEMA,
     ReportPerformanceSourceError,

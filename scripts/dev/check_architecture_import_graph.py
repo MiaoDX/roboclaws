@@ -202,6 +202,7 @@ def policy_violations(
 def build_graph_state(root: Path = PACKAGE_ROOT) -> dict:
     modules = python_modules(root)
     edges = collect_import_edges(root)
+    violations = policy_violations(edges, root)
     packages = sorted({top_package(module) for module in modules})
     directed = {tuple(edge) for edge in package_edges(edges)}
     return {
@@ -217,8 +218,8 @@ def build_graph_state(root: Path = PACKAGE_ROOT) -> dict:
         "policies": [
             {
                 **policy,
-                "status": "ratcheted-known-red",
-                "known_violations": policy_violations(edges, root)[policy["id"]],
+                "status": "green" if not violations[policy["id"]] else "ratcheted-known-red",
+                "known_violations": violations[policy["id"]],
             }
             for policy in PLANNED_POLICIES
         ],
@@ -244,6 +245,10 @@ def compare_to_baseline(current: dict, baseline: dict) -> list[str]:
     current_policies = {item["id"]: item for item in current["policies"]}
     for expected in baseline["policies"]:
         actual = current_policies[expected["id"]]
+        if expected.get("status") == "green" and actual.get("status") != "green":
+            failures.append(
+                f"{expected['id']} status changed: green -> {actual.get('status', 'missing')}"
+            )
         known = {tuple(edge) for edge in expected["known_violations"]}
         new = sorted({tuple(edge) for edge in actual["known_violations"]} - known)
         if new:

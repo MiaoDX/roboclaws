@@ -22,11 +22,11 @@ else:
     REPO_ROOT = Path(__file__).resolve().parents[2]
 
 from roboclaws.core.json_sources import read_json_object, read_jsonl_object_rows  # noqa: E402
-from roboclaws.household import agent_view as agent_view_module  # noqa: E402
-from roboclaws.household.raw_fpv_guidance import (  # noqa: E402
+from roboclaws.core.raw_fpv_guidance import (  # noqa: E402
     RAW_FPV_CATEGORY_HINT,
     RAW_FPV_HIGH_CONFIDENCE_TARGETS,
 )
+from roboclaws.household import agent_view as agent_view_module  # noqa: E402
 from scripts.molmo_cleanup.raw_fpv_perception_scoring import score_variant_metrics  # noqa: E402
 
 REPORT_SCHEMA = "raw_fpv_perception_probe_report_v1"

@@ -6,6 +6,8 @@ from typing import Any
 
 from roboclaws.core.environment_setup_metadata import environment_setup_run_metadata_from_env
 from roboclaws.core.goals import GoalContract, write_goal_contract
+from roboclaws.core.runtime_timing import runtime_timing_from_trace
+from roboclaws.core.task_intents import normalize_household_intent
 from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household.advisory_scoring import build_advisory_evaluation
 from roboclaws.household.cleanup_primitive_evidence import (
@@ -38,7 +40,6 @@ from roboclaws.household.realworld_run_artifacts import (
     terminal_status_payload,
 )
 from roboclaws.household.report import render_cleanup_report
-from roboclaws.household.report_sections_timing import runtime_timing_from_trace
 from roboclaws.household.semantic_timeline import (
     SEMANTIC_LOOP_VARIANT,
     cleanup_plan_from_semantic_substeps,
@@ -47,7 +48,6 @@ from roboclaws.household.semantic_timeline import (
     semantic_substeps,
 )
 from roboclaws.household.skill_scratchpad import read_or_create_skill_scratchpad
-from roboclaws.household.task_intent import normalize_household_intent
 from roboclaws.household.types import CleanupScenario
 
 
