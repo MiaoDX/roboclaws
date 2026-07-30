@@ -299,10 +299,7 @@ def provisional_disposition(path: Path) -> dict[str, str]:
             "owner": "Wave 6 test topology",
             "trigger": "split with the retained behavior owner; preserve contract/privacy guards",
         }
-    deletion_prefixes = (
-        "scripts/molmo_cleanup/run_raw_fpv_perception_probe.py",
-        "scripts/molmo_cleanup/run_agent_sdk_perf_matrix.py",
-    )
+    deletion_prefixes = ("scripts/molmo_cleanup/run_agent_sdk_perf_matrix.py",)
     if relative in deletion_prefixes:
         return {
             "disposition": "DELETE",

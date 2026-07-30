@@ -121,7 +121,7 @@ molmo-realworld-agent-dogfood-kit seed="7" output_dir="output/molmo-realworld-ag
 
 # ADR-0013 raw FPV-only evidence harness. This intentionally proves perception
 # boundary and report artifacts, not camera-only cleanup success.
-molmo-realworld-raw-fpv seed="7" output_dir="output/molmo-realworld-raw-fpv-harness" task="帮我收拾这个房间" generated_mess_count="10":
+molmo-realworld-raw-fpv seed="7" output_dir="output/molmo-realworld-raw-fpv-harness" task="帮我收拾这个房间" generated_mess_count="10" map_bundle="assets/maps/molmospaces/procthor-10k-val/0":
     #!/usr/bin/env bash
     set -euo pipefail
     stamp="$({{timestamp_cmd}})"
@@ -133,6 +133,7 @@ molmo-realworld-raw-fpv seed="7" output_dir="output/molmo-realworld-raw-fpv-harn
       --backend molmospaces_subprocess \
       --task "{{task}}" \
       --static-fixture-projection-mode room_only \
+      --map-bundle-dir "{{map_bundle}}" \
       --perception-mode raw_fpv_only \
       --generated-mess-count "{{generated_mess_count}}" \
       --include-robot \

@@ -1,6 +1,6 @@
 # Aggressive Architecture Migration
 
-**Status:** Authorized; Waves 0-2 complete, Wave 3 active
+**Status:** Authorized; Waves 0-2 complete, Wave 3 active after three deletion slices
 **Created:** 2026-07-30
 **Execution unit:** This entire plan, delivered in bounded waves and slices
 **Supersedes:** the broad-module-splitting non-goal in
@@ -147,7 +147,7 @@ shim.
 | Robot-camera parity leaves | `scripts/molmo_cleanup/robot_camera_apple2apple_camera_contract.py`; `robot_camera_apple2apple_capture_quality.py`; `robot_camera_apple2apple_image_metrics.py`; `robot_camera_apple2apple_materials.py`; `robot_camera_apple2apple_native_render.py`; `robot_camera_apple2apple_object_gate.py`; `robot_camera_apple2apple_object_parity.py`; `robot_camera_apple2apple_report.py`; `robot_camera_apple2apple_rgb_evidence.py`; `robot_camera_apple2apple_visual_state.py`; `robot_camera_visual_parity_gates.py`; `robot_camera_visual_parity_payloads.py`; `robot_camera_visual_parity_report.py`; `make_robot_camera_rgb_gain_profile.py` | Delete leaf-to-root. Paths are relative to `scripts/molmo_cleanup/`. |
 | Parity-only USD probes | `scripts/isaac_lab_cleanup/make_molmospaces_material_response_probe_usd.py`; `scripts/isaac_lab_cleanup/make_molmospaces_light_shadow_probe_usd.py` | Delete with their dedicated tests; do not delete generic Isaac runtime smoke. |
 | Robot-camera parity tests | `tests/unit/molmo_cleanup/test_robot_camera_apple2apple_comparison.py`; `test_robot_camera_visual_parity_summary.py`; `test_robot_camera_visual_parity_summary_sources.py`; `test_robot_camera_rgb_gain_profile.py`; `test_robot_camera_prior_probe_sources.py`; `test_molmospaces_material_response_probe_usd.py`; `test_molmospaces_light_shadow_probe_usd.py` | Delete with owners. Paths after the first are relative to `tests/unit/molmo_cleanup/`. |
-| Offline RAW-FPV probe | `scripts/molmo_cleanup/run_raw_fpv_perception_probe.py`; `generate_raw_fpv_private_labels.py`; `generate_raw_fpv_sweep_corpus.py` | Remove retired probe/corpus instructions from current human docs. Archive terminal `raw-fpv-live-strategy-stabilization` capsule; retain runtime lane, canonical corpora/evidence, checker, MCP, and privacy contracts. |
+| Offline RAW-FPV probe | `scripts/molmo_cleanup/run_raw_fpv_perception_probe.py`; `raw_fpv_perception_scoring.py`; `generate_raw_fpv_private_labels.py`; `generate_raw_fpv_sweep_corpus.py` | Remove retired probe/corpus instructions from current human docs. `raw_fpv_perception_scoring.py` is a mechanically discovered leaf with only the retiring probe as caller. Archive terminal `raw-fpv-live-strategy-stabilization` capsule; retain runtime lane, canonical corpora/evidence, checker, MCP, and privacy contracts. |
 | Offline RAW-FPV tests | `tests/unit/molmo_cleanup/test_raw_fpv_perception_probe.py`; `test_raw_fpv_perception_probe_sources.py` | Delete only probe-specific tests; retain current lane tests. |
 | Private SDK matrix | `scripts/molmo_cleanup/run_agent_sdk_perf_matrix.py`; `tests/unit/molmo_cleanup/test_agent_sdk_perf_matrix.py` | Remove current maintainer instructions; preserve historical spike evidence and current SDK metrics/profile tests. |
 | CI rehearsal/Pages | `roboclaws/household/ci_live_reports.py`; `scripts/molmo_cleanup/run_ci_live_cleanup_matrix.py`; `assemble_ci_live_pages.py`; `prewarm_molmospaces_ci_assets.py` | Delete `ci-rehearsal` and `ci-rehearsal-all` recipes together. `prewarm_molmospaces_ci_assets.py` is part of this surface, not an overlooked surviving caller. |
@@ -827,6 +827,16 @@ hardware proof cannot run for a demonstrated environment reason.
   empty, normal lint/mock CI and generic Pages reporting remain, focused
   workflow/report/Just contracts and the full mock gate pass, and no provider
   route was invoked.
+- Wave 3 completed slice: the offline RAW-FPV probe, its mechanically
+  discovered scoring leaf, private-label/corpus generators, two dedicated
+  tests, and terminal active capsule were deleted together. The seven-path
+  slice removes 5,989 lines; exact current-code searches are empty, 306
+  retained RAW-FPV guidance/recovery/lane/privacy/checker/MCP tests pass, and
+  direct-runner `camera-raw-fpv` grammar remains valid. The deterministic
+  `molmo-realworld-raw-fpv` product gate passes after its stale harness recipe
+  was repaired to provide the required Base Metric Map bundle. Static and
+  architecture ratchets remain green and oversized modules decrease from 72
+  to 70; no provider, publication, or physical-robot action occurred.
 - Planning-loop result: CONVERGED after two rounds. Round 1 entropy, docs-grill,
   and skeptic scouts found speculative layers, unsafe wave order, incomplete
   caller paths, proxy-metric gates, and preservation ambiguity. Round 2 verified
@@ -846,5 +856,6 @@ hardware proof cannot run for a demonstrated environment reason.
 - Parked: B1 authoring deletion beyond proven package-owned rebuild parity,
   publication, real-robot movement, EULA acceptance, public contract redesign,
   provider bakeoff, and unrelated feature work.
-- Next action: continue Wave 3 with the offline RAW-FPV probe/corpus stack under
-  its frozen caller, privacy, runtime-lane, and proof ledger.
+- Next action: continue Wave 3 with the private Agent SDK performance matrix
+  while preserving current SDK metrics, performance profile, status, and
+  live-report behavior.

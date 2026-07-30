@@ -297,6 +297,7 @@ def test_raw_fpv_harness_uses_raw_mode_and_checker() -> None:
     body = recipe.group(0)
     for expected in (
         "--backend molmospaces_subprocess",
+        "--map-bundle-dir",
         "--perception-mode raw_fpv_only",
         "--include-robot",
         "--record-robot-views",

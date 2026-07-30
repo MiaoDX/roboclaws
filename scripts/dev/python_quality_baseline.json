@@ -323,14 +323,6 @@
         "trigger": "move retained product behavior to its package owner and reduce the CLI adapter"
       },
       {
-        "disposition": "DELETE",
-        "lines": 1659,
-        "max_module_lines": 800,
-        "owner": "Wave 3 unconditional deletion",
-        "path": "scripts/molmo_cleanup/run_raw_fpv_perception_probe.py",
-        "trigger": "delete after the Wave 0 caller ledger and neighboring preservation proofs pass"
-      },
-      {
         "disposition": "SPLIT",
         "lines": 1717,
         "max_module_lines": 800,
@@ -532,14 +524,6 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1818,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/unit/molmo_cleanup/test_raw_fpv_perception_probe.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
         "lines": 1399,
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
@@ -586,12 +570,12 @@
     "line_count": "physical UTF-8 lines in Python files under the named roots",
     "source": {
       "files_at_least": {
-        "1000": 31,
-        "500": 121,
-        "800": 45
+        "1000": 30,
+        "500": 118,
+        "800": 44
       },
-      "loc": 168632,
-      "python_files": 399,
+      "loc": 165314,
+      "python_files": 395,
       "roots": [
         "roboclaws",
         "scripts"
@@ -599,12 +583,12 @@
     },
     "tests": {
       "files_at_least": {
-        "1000": 23,
-        "500": 48,
-        "800": 27
+        "1000": 22,
+        "500": 47,
+        "800": 26
       },
-      "loc": 101752,
-      "python_files": 228,
+      "loc": 99825,
+      "python_files": 226,
       "roots": [
         "tests"
       ]
