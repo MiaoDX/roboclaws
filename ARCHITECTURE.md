@@ -163,7 +163,13 @@ Key pieces:
 - `roboclaws/cli/household_agent_server.py` is the thin server adapter that
   assembles live household MCP server processes behind
   `python -m roboclaws.cli.agent_server ...`.
-- `roboclaws/household/report.py` renders the shared report.
+- Household reports are split by behavior. `report.py` composes cleanup
+  reports; `report_tables.py` owns semantic and tabular projections;
+  `report_document.py` assembles HTML and JavaScript;
+  `report_styles.py` owns base and planner CSS; `report_planner.py` composes
+  planner, proof-bundle, and grasp-cache reports; `report_snapshots.py` writes
+  state images and trace JSONL; and `artifact_report.py` loads artifacts and
+  rerenders cleanup reports. Current callers import these owners directly.
 - `roboclaws/household/camera_control.py` owns the external render-camera
   request schema used by MuJoCo product runs and B1/generic Isaac probes.
 - `roboclaws/backends/molmospaces/` owns the MolmoSpaces JSON worker runtime:

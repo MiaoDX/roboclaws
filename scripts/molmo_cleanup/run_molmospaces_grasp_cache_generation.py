@@ -15,7 +15,7 @@ from roboclaws.household.grasp_cache_generation import (  # noqa: E402
     load_generation_preflight_from_manifest,
     run_grasp_cache_generation,
 )
-from roboclaws.household.report import render_grasp_cache_generation_report  # noqa: E402
+from roboclaws.household.report_planner import render_grasp_cache_generation_report  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:

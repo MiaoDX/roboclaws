@@ -984,5 +984,16 @@ hardware proof cannot run for a demonstrated environment reason.
   public launch behavior unchanged. The graph is 362 modules / 1,089 edges
   with zero SCCs, bidirectional pairs, or forbidden edges; oversized Python
   modules remain at 58.
-- Next action: continue Wave 6 with household report diagnostic removal and
-  duplicate reconstruction cleanup, then split only required behavior owners.
+- Wave 6 completed slice: the 1,996-line mixed household report owner is split
+  into cleanup composition, semantic/tables, HTML/JavaScript document, styles,
+  planner/proof/grasp-cache composition, and snapshot/trace owners; artifact
+  loading and rerendering remain with `artifact_report.py`. All callers import
+  direct owners without a facade. The duplicate grasp-collision diagnostic
+  renderer is removed while retained task-sampler evidence remains. All 87
+  focused report/rerender/planner/proof/grasp-cache contracts and static
+  ratchets pass with report HTML, schema, privacy, and visual-core behavior
+  unchanged. The graph is 367 modules / 1,102 edges with zero SCCs,
+  bidirectional pairs, or forbidden edges; oversized Python modules decrease
+  from 58 to 57.
+- Next action: continue Wave 6 with eval suite loading, trial/live execution,
+  grading, and aggregation; CLI imports only the runner.

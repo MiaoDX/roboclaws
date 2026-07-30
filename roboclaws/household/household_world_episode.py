@@ -73,7 +73,7 @@ from roboclaws.household.realworld_run_artifacts import (
     RealWorldRunArtifactInputs,
     finalize_realworld_cleanup_run,
 )
-from roboclaws.household.report import (
+from roboclaws.household.report_snapshots import (
     write_state_snapshot,
 )
 from roboclaws.household.semantic_cleanup_loop import (

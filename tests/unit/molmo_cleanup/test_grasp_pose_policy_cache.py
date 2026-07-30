@@ -13,7 +13,7 @@ from roboclaws.household.grasp_pose_policy_cache import (
     resolve_pose_policy,
     run_grasp_pose_policy_cache_generation,
 )
-from roboclaws.household.report import render_grasp_pose_policy_cache_report
+from roboclaws.household.report_planner import render_grasp_pose_policy_cache_report
 
 
 def test_resolve_pose_policy_uses_initial_contact_best_variant(tmp_path: Path) -> None:

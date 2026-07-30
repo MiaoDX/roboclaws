@@ -14,7 +14,7 @@ from roboclaws.household.planner_proof_requests import (
     proof_request_selection_from_summary,
     proof_result_summary_from_commands,
 )
-from roboclaws.household.report import render_planner_proof_bundle_runner_report
+from roboclaws.household.report_planner import render_planner_proof_bundle_runner_report
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CHECKER_PATH = (

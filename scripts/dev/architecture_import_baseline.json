@@ -54,7 +54,7 @@
       "core"
     ]
   },
-  "edge_count": 1089,
+  "edge_count": 1102,
   "edges": [
     {
       "kind": "import",
@@ -3024,11 +3024,17 @@
       "kind": "import",
       "line": 65,
       "source": "roboclaws.household.agibot_sdk_runner",
-      "target": "roboclaws.household.scenario"
+      "target": "roboclaws.household.report_snapshots"
     },
     {
       "kind": "import",
       "line": 66,
+      "source": "roboclaws.household.agibot_sdk_runner",
+      "target": "roboclaws.household.scenario"
+    },
+    {
+      "kind": "import",
+      "line": 67,
       "source": "roboclaws.household.agibot_sdk_runner",
       "target": "roboclaws.household.types"
     },
@@ -3876,7 +3882,7 @@
       "kind": "import",
       "line": 69,
       "source": "roboclaws.household.household_mcp_server",
-      "target": "roboclaws.household.report"
+      "target": "roboclaws.household.report_snapshots"
     },
     {
       "kind": "import",
@@ -4272,7 +4278,7 @@
       "kind": "import",
       "line": 76,
       "source": "roboclaws.household.household_world_episode",
-      "target": "roboclaws.household.report"
+      "target": "roboclaws.household.report_snapshots"
     },
     {
       "kind": "import",
@@ -4968,17 +4974,23 @@
       "kind": "import",
       "line": 50,
       "source": "roboclaws.household.realworld_run_artifacts",
+      "target": "roboclaws.household.report_snapshots"
+    },
+    {
+      "kind": "import",
+      "line": 51,
+      "source": "roboclaws.household.realworld_run_artifacts",
       "target": "roboclaws.household.semantic_timeline"
     },
     {
       "kind": "import",
-      "line": 57,
+      "line": 58,
       "source": "roboclaws.household.realworld_run_artifacts",
       "target": "roboclaws.household.types"
     },
     {
       "kind": "import",
-      "line": 58,
+      "line": 59,
       "source": "roboclaws.household.realworld_run_artifacts",
       "target": "roboclaws.maps.preview"
     },
@@ -5206,117 +5218,165 @@
     },
     {
       "kind": "import",
-      "line": 11,
+      "line": 7,
       "source": "roboclaws.household.report",
       "target": "roboclaws.core.rerun"
     },
     {
       "kind": "import",
-      "line": 16,
+      "line": 10,
       "source": "roboclaws.household.report",
-      "target": "roboclaws.household.planner_proof_quality"
+      "target": "roboclaws.household.report_document"
     },
     {
       "kind": "import",
-      "line": 19,
+      "line": 11,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.report_sections_agent"
     },
     {
       "kind": "import",
-      "line": 30,
+      "line": 22,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.report_sections_agibot"
     },
     {
       "kind": "import",
-      "line": 31,
-      "source": "roboclaws.household.report",
-      "target": "roboclaws.household.report_sections_grasp_cache"
-    },
-    {
-      "kind": "import",
-      "line": 35,
-      "source": "roboclaws.household.report",
-      "target": "roboclaws.household.report_sections_grasp_generation"
-    },
-    {
-      "kind": "import",
-      "line": 39,
+      "line": 23,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.report_sections_isaac"
     },
     {
       "kind": "import",
-      "line": 40,
+      "line": 24,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.report_sections_map"
     },
     {
       "kind": "import",
-      "line": 44,
+      "line": 28,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.report_sections_nav2_map"
     },
     {
       "kind": "import",
-      "line": 45,
-      "source": "roboclaws.household.report",
-      "target": "roboclaws.household.report_sections_probe"
-    },
-    {
-      "kind": "import",
-      "line": 52,
-      "source": "roboclaws.household.report",
-      "target": "roboclaws.household.report_sections_probe_failures"
-    },
-    {
-      "kind": "import",
-      "line": 61,
-      "source": "roboclaws.household.report",
-      "target": "roboclaws.household.report_sections_probe_runtime"
-    },
-    {
-      "kind": "import",
-      "line": 69,
+      "line": 29,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.report_sections_proof"
     },
     {
       "kind": "import",
-      "line": 76,
-      "source": "roboclaws.household.report",
-      "target": "roboclaws.household.report_sections_proof_bundle"
-    },
-    {
-      "kind": "import",
-      "line": 86,
-      "source": "roboclaws.household.report",
-      "target": "roboclaws.household.report_sections_proof_selection"
-    },
-    {
-      "kind": "import",
-      "line": 87,
+      "line": 36,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.report_sections_robot"
     },
     {
       "kind": "import",
-      "line": 91,
+      "line": 40,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.report_sections_timing"
     },
     {
       "kind": "import",
-      "line": 92,
+      "line": 41,
+      "source": "roboclaws.household.report",
+      "target": "roboclaws.household.report_tables"
+    },
+    {
+      "kind": "import",
+      "line": 56,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.semantic_timeline"
     },
     {
       "kind": "import",
-      "line": 98,
+      "line": 59,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.types"
+    },
+    {
+      "kind": "import",
+      "line": 5,
+      "source": "roboclaws.household.report_document",
+      "target": "roboclaws.core.rerun"
+    },
+    {
+      "kind": "import",
+      "line": 6,
+      "source": "roboclaws.household.report_document",
+      "target": "roboclaws.household.report_styles"
+    },
+    {
+      "kind": "import",
+      "line": 7,
+      "source": "roboclaws.household.report_planner",
+      "target": "roboclaws.household.planner_proof_quality"
+    },
+    {
+      "kind": "import",
+      "line": 10,
+      "source": "roboclaws.household.report_planner",
+      "target": "roboclaws.household.report_document"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.household.report_planner",
+      "target": "roboclaws.household.report_sections_grasp_cache"
+    },
+    {
+      "kind": "import",
+      "line": 15,
+      "source": "roboclaws.household.report_planner",
+      "target": "roboclaws.household.report_sections_grasp_generation"
+    },
+    {
+      "kind": "import",
+      "line": 19,
+      "source": "roboclaws.household.report_planner",
+      "target": "roboclaws.household.report_sections_probe"
+    },
+    {
+      "kind": "import",
+      "line": 26,
+      "source": "roboclaws.household.report_planner",
+      "target": "roboclaws.household.report_sections_probe_failures"
+    },
+    {
+      "kind": "import",
+      "line": 34,
+      "source": "roboclaws.household.report_planner",
+      "target": "roboclaws.household.report_sections_probe_runtime"
+    },
+    {
+      "kind": "import",
+      "line": 42,
+      "source": "roboclaws.household.report_planner",
+      "target": "roboclaws.household.report_sections_proof"
+    },
+    {
+      "kind": "import",
+      "line": 45,
+      "source": "roboclaws.household.report_planner",
+      "target": "roboclaws.household.report_sections_proof_bundle"
+    },
+    {
+      "kind": "import",
+      "line": 55,
+      "source": "roboclaws.household.report_planner",
+      "target": "roboclaws.household.report_sections_proof_selection"
+    },
+    {
+      "kind": "import",
+      "line": 56,
+      "source": "roboclaws.household.report_planner",
+      "target": "roboclaws.household.report_styles"
+    },
+    {
+      "kind": "import",
+      "line": 57,
+      "source": "roboclaws.household.report_planner",
+      "target": "roboclaws.household.report_tables"
     },
     {
       "kind": "import",
@@ -5430,6 +5490,24 @@
       "kind": "import",
       "line": 12,
       "source": "roboclaws.household.report_sections_timing",
+      "target": "roboclaws.household.semantic_timeline"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.household.report_snapshots",
+      "target": "roboclaws.household.types"
+    },
+    {
+      "kind": "import",
+      "line": 3,
+      "source": "roboclaws.household.report_styles",
+      "target": "roboclaws.core.rerun"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.household.report_tables",
       "target": "roboclaws.household.semantic_timeline"
     },
     {
@@ -7047,7 +7125,7 @@
       "target": "roboclaws.core.json_sources"
     }
   ],
-  "module_count": 362,
+  "module_count": 367,
   "module_sccs": [],
   "package_bidirectional_edges": [],
   "policies": [

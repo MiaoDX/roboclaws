@@ -66,7 +66,7 @@ from roboclaws.household.realworld_mcp_run_artifacts import (
 from roboclaws.household.realworld_run_artifacts import (
     write_runtime_metric_map_preview_artifact,
 )
-from roboclaws.household.report import write_state_snapshot
+from roboclaws.household.report_snapshots import write_state_snapshot
 from roboclaws.household.semantic_timeline import (
     camera_offsets_from_raw_fpv_observation,
     robot_view_capture_for_tool,

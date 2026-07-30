@@ -36,7 +36,12 @@ edges. MolmoSpaces catalog, sampling/profile/prefilter policy, preparation,
 scanner validation, and map-bundle naming now live under
 `worlds/molmospaces`; launch consumes recursively immutable `WorldSpec` values.
 Focused world/catalog/console/eval/map-bundle suites and static ratchets pass at
-362 modules / 1,089 edges with zero SCCs or forbidden edges.
+362 modules / 1,089 edges with zero SCCs or forbidden edges. Household report
+composition, semantic/tables, document, styles, planner/proof/grasp-cache,
+snapshot/trace, and artifact-rerender behavior now have direct owners; the
+duplicate grasp-collision diagnostic renderer is gone. Report contracts and
+static ratchets pass at 367 modules / 1,102 edges, and oversized Python modules
+decrease to 57.
 The migration preserves public launch, artifact, privacy, provider, simulator,
 and operator behavior while removing dependency cycles, retiring completed
 investigation surfaces, moving product subsystems out of scripts, and splitting
@@ -121,8 +126,8 @@ providers.
 
 ## Next Action
 
-Continue Wave 6 with reports, followed by eval pipeline, planner/runtime-prior
-clusters, and retained tests. The
+Continue Wave 6 with the eval pipeline, followed by planner/runtime-prior
+clusters and retained tests. The
 refreshed immutable candidate remains unmodified; publication remains
 unauthorized and separate from this campaign.
 

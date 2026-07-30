@@ -61,7 +61,8 @@ from roboclaws.household.household_runtime_contract import (
     REALWORLD_CONTRACT,
 )
 from roboclaws.household.manipulation_contract import BLOCKED_CAPABILITY_PROVENANCE
-from roboclaws.household.report import render_cleanup_report, write_state_snapshot
+from roboclaws.household.report import render_cleanup_report
+from roboclaws.household.report_snapshots import write_state_snapshot
 from roboclaws.household.scenario import build_cleanup_scenario
 from roboclaws.household.types import CleanupScenario
 

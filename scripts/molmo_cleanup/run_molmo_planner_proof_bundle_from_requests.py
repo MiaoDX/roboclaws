@@ -15,6 +15,7 @@ if __package__ in {None, ""}:
         sys.path.insert(0, str(repo_root))
 
 from roboclaws.core.json_sources import read_json_object as read_source_json_object  # noqa: E402
+from roboclaws.household import report_planner  # noqa: E402
 from roboclaws.household.planner_proof_requests import (  # noqa: E402
     PLANNER_PROOF_REQUESTS_SCHEMA,
     build_cleanup_rerun_command,
@@ -28,7 +29,6 @@ from roboclaws.household.planner_proof_requests import (  # noqa: E402
 from roboclaws.household.planner_task_feasibility import (  # noqa: E402
     grasp_feasibility_signature_counts,
 )
-from roboclaws.household.report import render_planner_proof_bundle_runner_report  # noqa: E402
 from roboclaws.household.subprocess_backend import DEFAULT_MOLMOSPACES_PYTHON  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -300,7 +300,7 @@ def run_from_cleanup_result(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    report_path = render_planner_proof_bundle_runner_report(
+    report_path = report_planner.render_planner_proof_bundle_runner_report(
         output_dir=output_dir,
         manifest=manifest,
     )
