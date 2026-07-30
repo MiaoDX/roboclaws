@@ -277,7 +277,7 @@ def _live_command(
         "scenario_setup=relocate-cleanup-related-objects",
         f"relocation_count={generated_mess_count}",
         f"output_dir={entry_output_dir}",
-        f"task={args.task}",
+        f"prompt={args.task}",
         f"host={args.host}",
         f"port={args.port}",
     ]
@@ -299,7 +299,7 @@ def _live_report_rerun_command(entry: MolmoLiveModelEntry, args: argparse.Namesp
         f"seed={args.seed}",
         "scenario_setup=relocate-cleanup-related-objects",
         f"relocation_count={generated_mess_count}",
-        f"task={args.task}",
+        f"prompt={args.task}",
     ]
     return (
         f"ROBOCLAWS_PROVIDER_PROFILE={entry.provider_profile} "

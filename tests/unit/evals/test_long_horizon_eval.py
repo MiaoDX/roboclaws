@@ -177,7 +177,7 @@ def test_long_horizon_live_command_uses_private_task_targets(tmp_path: Path) -> 
         [SHELF, FRIDGE],
     ]
     plan = resolve_surface_launch(command[5:])
-    assert f"generated_mess_count={len(target_ids)}" in plan.overrides
+    assert plan.relocation_count == len(target_ids)
     assert pinned_targets_arg in plan.overrides
     assert f"generated_mess_manifest_path={manifest_path}" in plan.overrides
 

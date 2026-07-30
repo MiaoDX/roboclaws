@@ -9,7 +9,7 @@ from typing import NoReturn
 from roboclaws.launch.catalog import LaunchError, resolve_surface_launch
 from roboclaws.launch.executor import execute_launch_plan
 from roboclaws.launch.plans import LaunchPlan
-from roboclaws.launch.runners import export_env_from_overrides
+from roboclaws.launch.runners import export_env_from_plan
 
 
 def print_launch_trace(plan: LaunchPlan) -> None:
@@ -61,5 +61,5 @@ def _execute_plan(resolver, args: list[str]) -> int:  # noqa: ANN001
 
     if os.environ.get("ROBOCLAWS_JUST_TRACE") == "1":
         print_launch_trace(plan)
-    os.environ.update(export_env_from_overrides(plan.overrides))
+    os.environ.update(export_env_from_plan(plan))
     return execute_launch_plan(plan)

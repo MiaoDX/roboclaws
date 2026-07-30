@@ -12,15 +12,11 @@ from roboclaws.launch.environment_setup_metadata import (
     ENVIRONMENT_SETUP_METADATA_ENV,
     environment_setup_metadata_json,
 )
+from roboclaws.launch.plans import LaunchPlan
 
-_TASK_ENV_OVERRIDES = (
-    ("goal_contract_json", "ROBOCLAWS_GOAL_CONTRACT_JSON"),
+_ADAPTER_ENV_OVERRIDES = (
     ("goal_contract_path", "ROBOCLAWS_GOAL_CONTRACT_PATH"),
     ("operator_session_context_json", "ROBOCLAWS_OPERATOR_SESSION_CONTEXT_JSON"),
-    ("task_surface", "ROBOCLAWS_TASK_SURFACE"),
-    ("task_intent", "ROBOCLAWS_TASK_INTENT"),
-    ("task_preset", "ROBOCLAWS_TASK_PRESET"),
-    ("skill_name", "ROBOCLAWS_TASK_SKILL"),
 )
 PRIVATE_DEPENDENCY_TRACE_REDACTION_KEYS = frozenset(
     {
@@ -100,45 +96,51 @@ def _die(message: str) -> NoReturn:
     raise SystemExit(1)
 
 
-def export_env_from_overrides(overrides: tuple[str, ...]) -> dict[str, str]:
-    """Return environment variables implied by launch-only overrides."""
+def export_env_from_plan(plan: LaunchPlan) -> dict[str, str]:
+    """Return environment variables implied by a resolved launch plan."""
 
-    env = _task_env_from_overrides(overrides)
-    _export_provider_profile_env(env, overrides)
-    _export_environment_setup_metadata_env(env, overrides)
+    env = {
+        "ROBOCLAWS_GOAL_CONTRACT_JSON": plan.goal_contract.to_json(),
+        "ROBOCLAWS_TASK_SURFACE": plan.surface,
+        "ROBOCLAWS_TASK_INTENT": plan.intent,
+        "ROBOCLAWS_TASK_SKILL": plan.skill_name,
+        "ROBOCLAWS_REQUIRED_CAPABILITY_PROFILES": ",".join(plan.required_capabilities),
+    }
+    if plan.preset:
+        env["ROBOCLAWS_TASK_PRESET"] = plan.preset
+    _export_adapter_env(env, plan.overrides)
+    _export_provider_profile_env(env, plan)
+    _export_environment_setup_metadata_env(env, plan)
     return env
 
 
-def _task_env_from_overrides(overrides: tuple[str, ...]) -> dict[str, str]:
-    env: dict[str, str] = {}
-    for override_key, env_key in _TASK_ENV_OVERRIDES:
+def _export_adapter_env(env: dict[str, str], overrides: tuple[str, ...]) -> None:
+    for override_key, env_key in _ADAPTER_ENV_OVERRIDES:
         value = _override_value(overrides, override_key)
         if value is not None:
             env[env_key] = value
-    return env
 
 
-def _export_provider_profile_env(env: dict[str, str], overrides: tuple[str, ...]) -> None:
-    provider_profile = _override_value(overrides, "provider_profile")
-    if not provider_profile:
+def _export_provider_profile_env(env: dict[str, str], plan: LaunchPlan) -> None:
+    if not plan.provider_profile:
         return
-    agent_engine = _override_value(overrides, "agent_engine")
-    spec = AGENT_ENGINE_SPECS.get(agent_engine or "")
+    spec = AGENT_ENGINE_SPECS.get(plan.agent_engine)
     if spec and spec.provider_env_key:
-        env[spec.provider_env_key] = provider_profile
+        env[spec.provider_env_key] = plan.provider_profile
 
 
 def _export_environment_setup_metadata_env(
     env: dict[str, str],
-    overrides: tuple[str, ...],
+    plan: LaunchPlan,
 ) -> None:
-    setup = _override_value(overrides, "scenario_setup")
-    if not setup:
+    if not plan.scenario_setup:
         return
     env[ENVIRONMENT_SETUP_METADATA_ENV] = environment_setup_metadata_json(
-        setup=setup,
-        seed=_override_value(overrides, "seed"),
-        relocation_count=_override_value(overrides, "relocation_count"),
+        setup=plan.scenario_setup,
+        seed=_override_value(plan.overrides, "seed"),
+        relocation_count=(
+            str(plan.relocation_count) if plan.relocation_count is not None else None
+        ),
     )
 
 

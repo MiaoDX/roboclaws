@@ -20,7 +20,7 @@ from roboclaws.agents.prompts.household_cleanup import (
 from roboclaws.launch import resolve_surface_launch
 from roboclaws.launch.catalog import LaunchError
 from roboclaws.launch.evaluation import checker_flags_for_household_intent
-from roboclaws.launch.runners import export_env_from_overrides
+from roboclaws.launch.runners import export_env_from_plan
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 JUSTFILE = REPO_ROOT / "justfile"
@@ -471,7 +471,7 @@ def test_surface_open_ended_supports_mcp_smoke_for_local_gate() -> None:
             "prompt=我渴了，帮我找些解渴的东西",
         )
     )
-    env = export_env_from_overrides(plan.overrides)
+    env = export_env_from_plan(plan)
 
     assert plan.surface == "household-world"
     assert plan.intent == "open-ended"
@@ -580,7 +580,7 @@ def test_surface_cleanup_prompt_stays_cleanup_intent_when_explicit() -> None:
     assert "user-scoped request" in plan.goal_contract.normalized_goal
 
 
-def test_surface_launch_plan_exposes_goal_contract_and_evaluation_policy() -> None:
+def test_surface_launch_plan_exposes_typed_goal_contract() -> None:
     plan = resolve_surface_launch(
         (
             "surface=household-world",
@@ -606,12 +606,10 @@ def test_surface_launch_plan_exposes_goal_contract_and_evaluation_policy() -> No
     assert plan.goal_contract.surface == "household-world"
     assert plan.goal_contract.intent == "map-build"
     assert plan.goal_contract.goal_scope == "whole-room"
-    assert "goal_contract.json" in plan.required_artifacts
-    assert plan.evaluation_id == "map_build_v1"
-    assert "goal_contract" in plan.evaluation_hard_gates
-    assert "runtime_metric_map" in plan.evaluation_hard_gates
-    assert plan.completion_claim_required is True
-    assert any(item.startswith("goal_contract_json=") for item in plan.overrides)
+    assert json.loads(export_env_from_plan(plan)["ROBOCLAWS_GOAL_CONTRACT_JSON"])["intent"] == (
+        "map-build"
+    )
+    assert not any(item.startswith("goal_contract_json=") for item in plan.overrides)
 
 
 def test_surface_map_build_defaults_to_openai_agents_sdk_camera_grounded_dino() -> None:
@@ -643,7 +641,7 @@ def test_surface_launch_exports_goal_contract_to_lower_recipe_environment() -> N
             "evidence_lane=world-public-labels",
         )
     )
-    env = export_env_from_overrides(plan.overrides)
+    env = export_env_from_plan(plan)
 
     assert env["ROBOCLAWS_TASK_SURFACE"] == "household-world"
     assert env["ROBOCLAWS_TASK_INTENT"] == "cleanup"
@@ -671,7 +669,7 @@ def test_surface_launch_exports_operator_session_context_to_lower_recipe_environ
             f"operator_session_context_json={context}",
         )
     )
-    env = export_env_from_overrides(plan.overrides)
+    env = export_env_from_plan(plan)
 
     assert env["ROBOCLAWS_OPERATOR_SESSION_CONTEXT_JSON"] == context
     assert f"operator_session_context_json={context}" in plan.overrides
@@ -825,9 +823,8 @@ def test_surface_router_is_importable_source_of_truth() -> None:
     )
 
     assert "output_dir=output/custom" in resolved.overrides
-    assert "scenario_setup=relocate-cleanup-related-objects" in resolved.overrides
-    assert "relocation_count=5" in resolved.overrides
-    assert "generated_mess_count=5" in resolved.overrides
+    assert resolved.scenario_setup == "relocate-cleanup-related-objects"
+    assert resolved.relocation_count == 5
     assert resolved.world == "molmospaces/procthor-10k-val/0"
     assert resolved.backend == "mujoco"
     assert resolved.agent_engine == "openai-agents-sdk"
@@ -852,9 +849,8 @@ def test_surface_launch_plan_exposes_domain_metadata_before_dispatch() -> None:
         )
     )
 
-    assert "scenario_setup=relocate-cleanup-related-objects" in plan.overrides
-    assert "relocation_count=5" in plan.overrides
-    assert "generated_mess_count=5" in plan.overrides
+    assert plan.scenario_setup == "relocate-cleanup-related-objects"
+    assert plan.relocation_count == 5
     assert plan.implementation_backend == "agibot_gdk"
     assert plan.dispatch_target == "household-world"
     assert plan.preset == "cleanup"
@@ -951,14 +947,8 @@ def test_python_launch_plan_accepts_world_labels_sanitized_lane() -> None:
 
     assert plan.evidence_mode == "world-public-labels"
     assert plan.profile == "world-public-labels"
-    assert plan.supported_profiles == (
-        "world-public-labels",
-        "camera-grounded-labels",
-        "camera-raw-fpv",
-    )
-    assert "scenario_setup=relocate-cleanup-related-objects" in plan.overrides
-    assert "relocation_count=5" in plan.overrides
-    assert "generated_mess_count=5" in plan.overrides
+    assert plan.scenario_setup == "relocate-cleanup-related-objects"
+    assert plan.relocation_count == 5
     assert plan.implementation_backend == "molmospaces_subprocess"
 
 
@@ -1872,11 +1862,11 @@ def test_openai_agents_launcher_applies_provider_overrides_per_invocation() -> N
             "evidence_lane=world-public-labels",
         )
     )
-    exported_env = export_env_from_overrides(plan.overrides)
+    exported_env = export_env_from_plan(plan)
 
     assert plan.provider_profile == "kimi-openai-chat"
     assert exported_env["ROBOCLAWS_PROVIDER_PROFILE"] == "kimi-openai-chat"
-    assert "provider_profile=kimi-openai-chat" in plan.overrides
+    assert not any(item.startswith("provider_profile=") for item in plan.overrides)
 
     assert "MM_API_KEY" in helper_text
     assert "MM_BASE_URL" in helper_text

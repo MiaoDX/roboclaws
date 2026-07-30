@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import shlex
 from typing import Any
 
 import pytest
@@ -8,61 +9,36 @@ import pytest
 import roboclaws.launch.executor as executor_module
 from roboclaws.launch.backends import (
     cleanup_implementation_backend_ids,
-    map_build_codex_implementation_backend_ids,
     normalize_cleanup_implementation_backend,
-    normalize_map_build_codex_implementation_backend,
 )
 from roboclaws.launch.catalog import SURFACE_SPECS, LaunchError, resolve_surface_launch
 from roboclaws.launch.environment_setup_metadata import ENVIRONMENT_SETUP_METADATA_ENV
 from roboclaws.launch.goals import normalize_goal_contract
 from roboclaws.launch.intents import TASK_INTENT_SPECS
-from roboclaws.launch.runners import export_env_from_overrides
+from roboclaws.launch.runners import export_env_from_plan
 
 
 def test_launch_package_does_not_keep_unused_context_holder() -> None:
     assert importlib.util.find_spec("roboclaws.launch.context") is None
 
 
-def test_launch_backend_catalog_exposes_private_implementation_choices() -> None:
+def test_launch_backend_catalog_exposes_private_cleanup_implementation_choices() -> None:
     assert cleanup_implementation_backend_ids() == (
         "api_semantic_synthetic",
         "molmospaces_subprocess",
         "isaaclab_subprocess",
     )
-    assert map_build_codex_implementation_backend_ids() == (
-        "auto",
-        "molmospaces_subprocess",
-        "isaaclab_subprocess",
-        "agibot_gdk",
-    )
 
 
-def test_launch_backend_catalog_normalizes_command_layer_backend_values() -> None:
+def test_launch_backend_catalog_normalizes_cleanup_command_backend_values() -> None:
     assert normalize_cleanup_implementation_backend("auto") is None
     assert normalize_cleanup_implementation_backend("") is None
     assert normalize_cleanup_implementation_backend("isaaclab_subprocess") == (
         "isaaclab_subprocess"
     )
-    assert (
-        normalize_map_build_codex_implementation_backend(
-            "agibot_gdk",
-            context="household-world task_intent=map-build openai-agents-sdk",
-        )
-        == "agibot_gdk"
-    )
 
     with pytest.raises(ValueError, match="unsupported backend 'agibot_gdk'"):
         normalize_cleanup_implementation_backend("agibot_gdk")
-
-    with pytest.raises(
-        ValueError,
-        match="household-world task_intent=map-build openai-agents-sdk unsupported backend "
-        "'api_semantic_synthetic'",
-    ):
-        normalize_map_build_codex_implementation_backend(
-            "api_semantic_synthetic",
-            context="household-world task_intent=map-build openai-agents-sdk",
-        )
 
 
 def test_molmospaces_worlds_expose_only_mujoco_while_b1_exposes_isaac() -> None:
@@ -103,7 +79,7 @@ def test_molmospaces_worlds_expose_only_mujoco_while_b1_exposes_isaac() -> None:
     assert "b1_alignment_artifact=injected/alignment.json" in b1.overrides
     assert "b1_navigation_artifact=injected/navigation.json" in b1.overrides
     assert not any(item.startswith("b1_semantic_projection_artifact=") for item in b1.overrides)
-    assert "world=b1-map12" in b1.overrides
+    assert not any(item.startswith("world=") for item in b1.overrides)
 
 
 def test_b1_launch_accepts_explicit_robot_consumption_proof_artifacts() -> None:
@@ -183,10 +159,10 @@ def test_cleanup_surface_exposes_setup_overrides_but_dispatches_private_count() 
         ]
     )
 
-    assert "scenario_setup=relocate-cleanup-related-objects" in plan.overrides
-    assert "relocation_count=3" in plan.overrides
-    assert "generated_mess_count=3" in plan.overrides
-    exported = export_env_from_overrides(plan.overrides)
+    assert plan.scenario_setup == "relocate-cleanup-related-objects"
+    assert plan.relocation_count == 3
+    assert not any(item.startswith("generated_mess_count=") for item in plan.overrides)
+    exported = export_env_from_plan(plan)
     assert exported[ENVIRONMENT_SETUP_METADATA_ENV] == (
         '{"feeds_cleanup_scoring":true,"mode":"relocate-cleanup-related-objects",'
         '"relocated_objects":[],"relocation_count":3,'
@@ -220,13 +196,9 @@ def test_household_non_cleanup_intents_default_to_baseline_setup() -> None:
     )
 
     for plan in (map_build, open_ended):
-        assert "scenario_setup=baseline" in plan.overrides
-        assert not any(item.startswith("relocation_count=") for item in plan.overrides)
-        assert "generated_mess_count=0" in plan.overrides
-        assert (
-            '"mode":"baseline"'
-            in export_env_from_overrides(plan.overrides)[ENVIRONMENT_SETUP_METADATA_ENV]
-        )
+        assert plan.scenario_setup == "baseline"
+        assert plan.relocation_count is None
+        assert '"mode":"baseline"' in export_env_from_plan(plan)[ENVIRONMENT_SETUP_METADATA_ENV]
 
     assert map_build.required_capabilities == ("household_world", "household_episode")
     assert open_ended.required_capabilities == (
@@ -236,7 +208,9 @@ def test_household_non_cleanup_intents_default_to_baseline_setup() -> None:
     )
     assert map_build.goal_contract.required_capabilities == map_build.required_capabilities
     assert open_ended.goal_contract.required_capabilities == open_ended.required_capabilities
-    assert "required_capability_profiles=household_world,household_episode" in map_build.overrides
+    assert export_env_from_plan(map_build)["ROBOCLAWS_REQUIRED_CAPABILITY_PROFILES"] == (
+        "household_world,household_episode"
+    )
 
 
 def test_household_runner_exports_resolved_capability_profiles(
@@ -272,6 +246,80 @@ def test_household_runner_exports_resolved_capability_profiles(
     assert captured["env"]["ROBOCLAWS_REQUIRED_CAPABILITY_PROFILES"] == (
         "household_world,household_manipulation,household_episode"
     )
+
+
+def test_agibot_live_map_build_uses_typed_provider_profile(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_exec(
+        argv: list[str],
+        *,
+        env: dict[str, str] | None = None,
+        trace_args: list[str] | None = None,
+    ) -> int:
+        captured["argv"] = argv
+        return 0
+
+    monkeypatch.delenv("ROBOCLAWS_PROVIDER_PROFILE", raising=False)
+    monkeypatch.setattr(executor_module, "resolve_optional_world_dependencies", lambda *a, **k: {})
+    monkeypatch.setattr(executor_module, "_exec_or_trace", fake_exec)
+    plan = resolve_surface_launch(
+        [
+            "surface=household-world",
+            "world=agibot-g2/map-12",
+            "backend=agibot-gdk",
+            "preset=map-build",
+            "agent_engine=openai-agents-sdk",
+            "provider_profile=minimax-responses",
+            "evidence_lane=world-public-labels",
+            "context_json={}",
+        ]
+    )
+
+    assert executor_module.execute_launch_plan(plan) == 0
+    provider_flag = captured["argv"].index("--provider-profile")
+    assert captured["argv"][provider_flag + 1] == "minimax-responses"
+
+
+def test_rerun_command_rebuilds_public_axes_from_typed_plan(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("ROBOCLAWS_REPORT_RERUN_COMMAND", raising=False)
+    plan = resolve_surface_launch(
+        [
+            "surface=household-world",
+            "world=molmospaces/procthor-10k-val/0",
+            "backend=mujoco",
+            "preset=cleanup",
+            "agent_engine=direct-runner",
+            "evidence_lane=world-public-labels",
+            "prompt=put away the cups",
+            "scenario_setup=relocate-cleanup-related-objects",
+            "relocation_count=3",
+            "output_dir=output/custom",
+        ]
+    )
+
+    executor_module._export_rerun_command(plan=plan, raw_overrides=plan.overrides)
+    command = shlex.split(executor_module.os.environ["ROBOCLAWS_REPORT_RERUN_COMMAND"])
+
+    assert command[:2] == ["just", "run::surface"]
+    for argument in (
+        "surface=household-world",
+        "world=molmospaces/procthor-10k-val/0",
+        "backend=mujoco",
+        "preset=cleanup",
+        "agent_engine=direct-runner",
+        "evidence_lane=world-public-labels",
+        "prompt=put away the cups",
+        "scenario_setup=relocate-cleanup-related-objects",
+        "relocation_count=3",
+        "output_dir=output/custom",
+    ):
+        assert argument in command
+    assert sum(argument.startswith("surface=") for argument in command) == 1
 
 
 def test_household_goal_contract_tool_plans_do_not_advertise_static_fixture_projection() -> None:
@@ -319,7 +367,7 @@ def test_openai_agents_sdk_accepts_chat_provider_profiles() -> None:
     )
 
     assert plan.provider_profile == "kimi-openai-chat"
-    assert "provider_profile=kimi-openai-chat" in plan.overrides
+    assert not any(item.startswith("provider_profile=") for item in plan.overrides)
 
 
 @pytest.mark.parametrize(
@@ -375,7 +423,7 @@ def test_provider_profile_env_export_uses_agent_engine_catalog(
         ]
     )
 
-    exported = export_env_from_overrides(plan.overrides)
+    exported = export_env_from_plan(plan)
 
     assert exported[env_key] == provider_profile
 
@@ -394,7 +442,7 @@ def test_openai_agents_sdk_accepts_minimax_provider_profile() -> None:
     )
 
     assert plan.provider_profile == "minimax-responses"
-    assert "provider_profile=minimax-responses" in plan.overrides
+    assert not any(item.startswith("provider_profile=") for item in plan.overrides)
 
 
 def test_raw_fpv_rejects_routes_without_verified_image_transport() -> None:

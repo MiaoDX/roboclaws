@@ -1266,8 +1266,8 @@ def test_live_cleanup_eval_grades_artifacts_after_checker_nonzero_exit(
         output_arg = next(item for item in command if item.startswith("output_dir="))
         output_dir = Path(output_arg.removeprefix("output_dir="))
         run_dir = output_dir / "seed-7"
-        command_text = " ".join(command)
-        if "preset=map-build" in command_text:
+        launch_plan = _kwargs["launch_plan"]
+        if launch_plan.preset == "map-build":
             _write_product_artifacts(run_dir, completion_status="map_build_complete")
             (run_dir / "live_status.json").write_text('{"phase": "finished", "exit_status": 0}\n')
             (run_dir / "run_result.json").write_text(
@@ -1281,7 +1281,7 @@ def test_live_cleanup_eval_grades_artifacts_after_checker_nonzero_exit(
                 + "\n"
             )
             return _completed_process(returncode=0)
-        if "preset=cleanup" not in command_text:
+        if launch_plan.preset != "cleanup":
             _write_product_artifacts(
                 run_dir,
                 completion_status="success",
@@ -3123,7 +3123,7 @@ def _patch_live_surface_popen(
         ) -> None:
             kwargs.pop("cwd", None)
             kwargs.pop("env", None)
-            self.completed = fake_run(list(plan.overrides), **kwargs)
+            self.completed = fake_run(list(plan.overrides), launch_plan=plan, **kwargs)
             self.returncode = self.completed.returncode
             if stdout is not None:
                 stdout.write(str(getattr(self.completed, "stdout", "") or ""))
