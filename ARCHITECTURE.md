@@ -222,6 +222,16 @@ model-input compaction have direct behavior owners. The retired mixed
 the true owners while serialized event, cost, privacy, and result schemas stay
 unchanged.
 
+The retained household runtime is split by behavior rather than transport.
+MCP response projection and artifact serialization, runtime-map target
+selection, visual perception/navigation, direct cleanup target selection, and
+Agibot SDK contract/projection/stage execution have direct household owners.
+`household_mcp_server.py`, `household_world_episode.py`,
+`realworld_runtime_map_targets.py`, `realworld_visual_candidate_lifecycle.py`,
+and `agibot_sdk_runner.py` remain composition or adapter owners; they do not
+re-export the extracted behavior. Public Agent View, MCP, runtime-map, privacy,
+and physical-pilot safety contracts remain unchanged.
+
 The clean-slate direction is:
 
 - `surface=household-world preset=map-build` produces Runtime Metric Map

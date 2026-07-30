@@ -1393,7 +1393,7 @@ def test_openai_agents_cleanup_checker_policy_uses_checker_profile(
         stdout_path.write_text("checker ok\n", encoding="utf-8")
         return 0
 
-    monkeypatch.setattr(module, "_run_and_tee", fake_run_and_tee)
+    monkeypatch.setattr(module.household_live_driver, "run_and_tee", fake_run_and_tee)
     args = SimpleNamespace(
         run_dir=run_dir,
         repo_root=REPO_ROOT,

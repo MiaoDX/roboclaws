@@ -120,7 +120,7 @@ def test_agibot_sdk_runner_rejects_missing_dependencies_before_subprocess(tmp_pa
     map_dir = tmp_path / "map"
     map_dir.mkdir()
 
-    with patch("roboclaws.household.agibot_sdk_runner.subprocess.run") as run:
+    with patch("roboclaws.household.agibot_sdk_stage_execution.subprocess.run") as run:
         with pytest.raises(Exception, match="invalid runner_script"):
             AgibotSDKRunnerAdapter(
                 context_json=context_path,

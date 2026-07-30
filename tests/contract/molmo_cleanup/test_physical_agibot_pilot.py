@@ -14,8 +14,8 @@ from roboclaws.household.agibot_household_backend import AgibotHouseholdBackend
 from roboclaws.household.agibot_map_defaults import (
     DEFAULT_AGIBOT_CONFIDENCE_LAYER,
 )
+from roboclaws.household.agibot_sdk_contract import BLOCKED_MANIPULATION_TOOLS
 from roboclaws.household.agibot_sdk_runner import (
-    BLOCKED_MANIPULATION_TOOLS,
     AgibotSDKRunnerAdapter,
     run_physical_agibot_cleanup_pilot,
 )

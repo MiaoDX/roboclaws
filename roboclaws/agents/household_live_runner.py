@@ -7,7 +7,6 @@ import argparse
 import hashlib
 import json
 import os
-import socket
 import subprocess
 import sys
 import threading
@@ -16,6 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, BinaryIO
 
+from roboclaws.agents.drivers import household_live as household_live_driver
 from roboclaws.agents.drivers.household_live import (
     HouseholdLiveRunLease,
     acquire_household_live_run_lease,
@@ -564,8 +564,8 @@ class LiveOpenAIAgentsHouseholdRunner:
         print(f"    MCP URL : {self.args.client_url}")
         self._mark_timing("server_start")
 
-        probe_host = _probe_host(self.args.host)
-        if _port_accepting(probe_host, self.args.port):
+        probe_host = household_live_driver.probe_host(self.args.host)
+        if household_live_driver.port_accepting(probe_host, self.args.port):
             raise RuntimeError(
                 f"TCP port {self.args.host}:{self.args.port} is already in use before server start"
             )
@@ -597,12 +597,12 @@ class LiveOpenAIAgentsHouseholdRunner:
 
     def _wait_for_mcp_ready(self) -> None:
         assert self.server_proc is not None
-        probe_host = _probe_host(self.args.host)
+        probe_host = household_live_driver.probe_host(self.args.host)
         deadline = time.monotonic() + self.args.server_startup_timeout_s
         while time.monotonic() < deadline:
             if self.server_proc.poll() is not None:
                 raise RuntimeError("cleanup MCP server exited before becoming ready")
-            if _port_accepting(probe_host, self.args.port):
+            if household_live_driver.port_accepting(probe_host, self.args.port):
                 self._mark_timing("server_ready")
                 return
             time.sleep(0.5)
@@ -1035,7 +1035,7 @@ class LiveOpenAIAgentsHouseholdRunner:
         checker_args.append(str(run_result))
 
         try:
-            status = _run_and_tee(
+            status = household_live_driver.run_and_tee(
                 checker_args,
                 cwd=self.args.repo_root,
                 stdout_path=self.run_dir / "checker.log",
@@ -1140,7 +1140,7 @@ class LiveOpenAIAgentsHouseholdRunner:
         self.server_log_path.parent.mkdir(parents=True, exist_ok=True)
         self.server_log_file = self.server_log_path.open("ab")
         self.server_log_thread = threading.Thread(
-            target=_tee_stream,
+            target=household_live_driver.tee_stream,
             args=(stream, [self.server_log_file, sys.stdout.buffer]),
             daemon=True,
         )
@@ -2048,62 +2048,6 @@ def _sdk_attempt_summary(result: Any, *, attempt_index: int) -> dict[str, Any]:
     return payload
 
 
-def _run_and_tee(
-    command: list[str],
-    *,
-    cwd: Path,
-    stdout_path: Path,
-    stderr_path: Path,
-    env: dict[str, str],
-) -> int:
-    proc = subprocess.Popen(
-        command,
-        cwd=cwd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        env=env,
-    )
-    assert proc.stdout is not None
-    assert proc.stderr is not None
-
-    with stdout_path.open("ab") as stdout_file:
-        if stdout_path == stderr_path:
-            stderr_thread = threading.Thread(
-                target=_tee_stream,
-                args=(proc.stderr, [stdout_file, sys.stderr.buffer]),
-                daemon=True,
-            )
-            stdout_thread = threading.Thread(
-                target=_tee_stream,
-                args=(proc.stdout, [stdout_file, sys.stdout.buffer]),
-                daemon=True,
-            )
-            stdout_thread.start()
-            stderr_thread.start()
-            status = proc.wait()
-            stdout_thread.join()
-            stderr_thread.join()
-            return status
-
-        with stderr_path.open("ab") as stderr_file:
-            stdout_thread = threading.Thread(
-                target=_tee_stream,
-                args=(proc.stdout, [stdout_file, sys.stdout.buffer]),
-                daemon=True,
-            )
-            stderr_thread = threading.Thread(
-                target=_tee_stream,
-                args=(proc.stderr, [stderr_file, sys.stderr.buffer]),
-                daemon=True,
-            )
-            stdout_thread.start()
-            stderr_thread.start()
-            status = proc.wait()
-            stdout_thread.join()
-            stderr_thread.join()
-            return status
-
-
 def _task_aware_continuation_suffix(args: Any) -> str:
     task_intent = _household_intent(args)
     intent = household_intent_id_for_checker(
@@ -2164,28 +2108,6 @@ def _int_or_none(value: Any) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return None
-
-
-def _tee_stream(stream: BinaryIO, outputs: list[BinaryIO]) -> None:
-    for chunk in iter(lambda: stream.readline(), b""):
-        for output in outputs:
-            try:
-                output.write(chunk)
-                output.flush()
-            except BlockingIOError:
-                continue
-
-
-def _port_accepting(host: str, port: int, *, timeout_s: float = 0.2) -> bool:
-    try:
-        with socket.create_connection((host, port), timeout=timeout_s):
-            return True
-    except OSError:
-        return False
-
-
-def _probe_host(host: str) -> str:
-    return "127.0.0.1" if host in {"0.0.0.0", "::"} else host
 
 
 if __name__ == "__main__":

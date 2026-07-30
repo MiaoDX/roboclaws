@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from roboclaws.household import household_world_direct_policy, household_world_episode
+from roboclaws.household import household_direct_cleanup_selection, household_world_direct_policy
 
 
 def test_direct_policy_uses_same_waypoint_public_destination_for_unknown_category(
@@ -23,7 +23,7 @@ def test_direct_policy_uses_same_waypoint_public_destination_for_unknown_categor
         },
     ]
     monkeypatch.setattr(
-        household_world_episode,
+        household_direct_cleanup_selection,
         "destination_options_for_policy",
         lambda contract, policy: options,
     )
@@ -48,7 +48,7 @@ def test_direct_policy_uses_same_waypoint_public_destination_for_unknown_categor
         "destination_policy": {"preferred_fixture_categories": ["countertop", "desk"]},
     }
 
-    target = household_world_episode._direct_policy_target_fixture(
+    target = household_direct_cleanup_selection.direct_policy_target_fixture(
         contract=contract,
         detection=detection,
         static_fixture_projection={},
@@ -61,7 +61,7 @@ def test_direct_policy_uses_same_waypoint_public_destination_for_unknown_categor
 
 def test_direct_policy_keeps_non_source_category_inference(monkeypatch) -> None:
     monkeypatch.setattr(
-        household_world_episode,
+        household_direct_cleanup_selection,
         "destination_options_for_policy",
         lambda contract, policy: [
             {
@@ -84,7 +84,7 @@ def test_direct_policy_keeps_non_source_category_inference(monkeypatch) -> None:
         target_fixture_for_detection=target_fixture_for_detection,
     )
 
-    target = household_world_episode._direct_policy_target_fixture(
+    target = household_direct_cleanup_selection.direct_policy_target_fixture(
         contract=contract,
         detection={
             "category": "Plate",
@@ -118,7 +118,7 @@ def test_already_satisfied_direct_candidate_stays_handled_after_reobservation() 
         static_fixture_projection=lambda: {},
         public_receptacles_by_id=lambda: {},
     )
-    candidate = household_world_episode._VisibleObjectCandidate(
+    candidate = household_direct_cleanup_selection.VisibleObjectCandidate(
         detection={"object_id": "observed_box"},
         target_fixture={"fixture_id": "anchor_fixture_desk"},
         support={"fixture_id": "anchor_fixture_desk"},
@@ -127,7 +127,7 @@ def test_already_satisfied_direct_candidate_stays_handled_after_reobservation() 
     )
     scratchpad = {"notes": []}
 
-    result = household_world_episode._redirect_if_already_on_inferred_fixture(
+    result = household_direct_cleanup_selection.redirect_if_already_on_inferred_fixture(
         contract=contract,
         handle="observed_box",
         candidate=candidate,

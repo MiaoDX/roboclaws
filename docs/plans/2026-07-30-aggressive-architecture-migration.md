@@ -962,4 +962,16 @@ hardware proof cannot run for a demonstrated environment reason.
   and privacy contracts remain unchanged. Oversized Python modules decrease
   from 62 to 60; the graph is 352 modules / 1,052 edges with zero SCCs,
   bidirectional pairs, or forbidden edges.
-- Next action: continue Wave 6 with the household runtime behavior split.
+- Wave 6 completed slice: household MCP projection, runtime-map target
+  selection, visual perception/navigation, direct cleanup selection, and
+  Agibot SDK contract/projection/stage execution now have direct behavior
+  owners. The retained MCP server, runtime-map target, visual lifecycle,
+  Agibot runner, and episode modules delegate without compatibility exports.
+  The 12 focused household direct/MCP/runtime/Agibot suites pass with 11
+  environment-dependent Agibot cases skipped; Ruff/format, diff, quality, and
+  architecture ratchets pass. Public artifact, privacy, target-selection, and
+  physical-movement gates remain unchanged. Oversized Python modules decrease
+  from 60 to 58; the graph is 359 modules / 1,087 edges with zero SCCs,
+  bidirectional pairs, or forbidden edges.
+- Next action: continue Wave 6 with world catalog and sampling ownership under
+  `worlds/molmospaces`, with launch consuming immutable `WorldSpec` values.

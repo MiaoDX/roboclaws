@@ -6,10 +6,13 @@ import argparse
 import fcntl
 import json
 import os
+import socket
+import subprocess
 import sys
+import threading
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, TextIO
+from typing import Any, BinaryIO, TextIO
 
 from roboclaws.agents.visual_backend_slots import (
     MOLMOSPACES_SUBPROCESS_BACKEND,
@@ -20,6 +23,80 @@ from roboclaws.agents.visual_backend_slots import (
 
 HOUSEHOLD_SERVER_MODULE = "roboclaws.cli.agent_server"
 HOUSEHOLD_SERVER_TASK = "household-world"
+
+
+def run_and_tee(
+    command: list[str],
+    *,
+    cwd: Path,
+    stdout_path: Path,
+    stderr_path: Path,
+    env: dict[str, str],
+) -> int:
+    """Run a household child process while preserving console and file output."""
+    proc = subprocess.Popen(
+        command,
+        cwd=cwd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=env,
+    )
+    assert proc.stdout is not None
+    assert proc.stderr is not None
+
+    with stdout_path.open("ab") as stdout_file:
+        if stdout_path == stderr_path:
+            return _tee_process(proc, stdout_file, stdout_file)
+        with stderr_path.open("ab") as stderr_file:
+            return _tee_process(proc, stdout_file, stderr_file)
+
+
+def _tee_process(
+    proc: subprocess.Popen[bytes],
+    stdout_file: BinaryIO,
+    stderr_file: BinaryIO,
+) -> int:
+    stdout_thread = threading.Thread(
+        target=tee_stream,
+        args=(proc.stdout, [stdout_file, sys.stdout.buffer]),
+        daemon=True,
+    )
+    stderr_thread = threading.Thread(
+        target=tee_stream,
+        args=(proc.stderr, [stderr_file, sys.stderr.buffer]),
+        daemon=True,
+    )
+    stdout_thread.start()
+    stderr_thread.start()
+    status = proc.wait()
+    stdout_thread.join()
+    stderr_thread.join()
+    return status
+
+
+def tee_stream(stream: BinaryIO | None, outputs: list[BinaryIO]) -> None:
+    assert stream is not None
+    for chunk in iter(lambda: stream.readline(), b""):
+        for output in outputs:
+            try:
+                output.write(chunk)
+                output.flush()
+            except BlockingIOError:
+                continue
+
+
+def port_accepting(host: str, port: int, *, timeout_s: float = 0.2) -> bool:
+    """Return whether the household server is accepting TCP connections."""
+    try:
+        with socket.create_connection((host, port), timeout=timeout_s):
+            return True
+    except OSError:
+        return False
+
+
+def probe_host(host: str) -> str:
+    """Translate wildcard bind addresses to a local readiness-probe address."""
+    return "127.0.0.1" if host in {"0.0.0.0", "::"} else host
 
 
 @dataclass

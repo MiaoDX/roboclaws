@@ -43,7 +43,7 @@ def test_openai_agents_open_ended_uses_artifact_gate_not_cleanup_checker(
         stdout_path.write_text("checker ok\n", encoding="utf-8")
         return 0
 
-    monkeypatch.setattr(module, "_run_and_tee", fake_run_and_tee)
+    monkeypatch.setattr(module.household_live_driver, "run_and_tee", fake_run_and_tee)
     runner = module.LiveOpenAIAgentsHouseholdRunner(_open_ended_runner_args(tmp_path, run_dir))
     runner._check_result()
 

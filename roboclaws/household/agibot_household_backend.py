@@ -5,9 +5,11 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.household import agent_view as agent_view_module
-from roboclaws.household.agibot_sdk_runner import (
+from roboclaws.household.agibot_sdk_contract import (
     AGIBOT_GDK_NORMAL_NAVI_PROVENANCE,
     BLOCKED_MANIPULATION_TOOLS,
+)
+from roboclaws.household.agibot_sdk_runner import (
     AgibotSDKRunnerAdapter,
 )
 from roboclaws.household.digital_twin_review_assets import attach_map12_review_assets

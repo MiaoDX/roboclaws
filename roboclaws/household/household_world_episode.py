@@ -5,7 +5,6 @@ import argparse
 import json
 import re
 import time
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
@@ -24,6 +23,12 @@ from roboclaws.household.household_backend_contract import (
     HouseholdBackendSession,
     build_household_backend_session,
     validate_cleanup_run_options,
+)
+from roboclaws.household.household_direct_cleanup_selection import (
+    VisibleObjectCandidate,
+    direct_policy_target_fixture,
+    redirect_if_already_on_inferred_fixture,
+    visible_object_candidate,
 )
 from roboclaws.household.household_runtime_contract import (
     CAMERA_MODEL_POLICY_MODE,
@@ -63,9 +68,6 @@ from roboclaws.household.planner_proof_bundle import (
 )
 from roboclaws.household.profiles import (
     evidence_lane_names,
-)
-from roboclaws.household.realworld_done_readiness import (
-    destination_options_for_policy,
 )
 from roboclaws.household.realworld_run_artifacts import (
     RealWorldRunArtifactInputs,
@@ -803,30 +805,6 @@ def _clean_visible_object(
     return view_index
 
 
-@dataclass(frozen=True)
-class _VisibleObjectCandidate:
-    detection: dict[str, Any]
-    target_fixture: dict[str, Any]
-    support: dict[str, Any]
-    target_fixture_id: str
-    view_index: int
-
-
-def _visible_object_candidate(
-    *,
-    detection: dict[str, Any],
-    target_fixture: dict[str, Any],
-    view_index: int,
-) -> _VisibleObjectCandidate:
-    return _VisibleObjectCandidate(
-        detection=detection,
-        target_fixture=target_fixture,
-        support=detection.get("support_estimate") or {},
-        target_fixture_id=str(target_fixture["fixture_id"]),
-        view_index=view_index,
-    )
-
-
 def _maybe_clean_visible_object(
     *,
     trace_events: list[dict[str, Any]],
@@ -852,7 +830,7 @@ def _maybe_clean_visible_object(
     live_detection = contract.inspect_visible_object(handle)
     if live_detection.get("ok") and isinstance(live_detection.get("detection"), dict):
         detection = dict(live_detection["detection"])
-    target_fixture = _direct_policy_target_fixture(
+    target_fixture = direct_policy_target_fixture(
         contract=contract,
         detection=detection,
         static_fixture_projection=static_fixture_projection,
@@ -866,7 +844,7 @@ def _maybe_clean_visible_object(
             {"object_id": handle, "reason": "no_public_fixture_match"}
         )
         return view_index
-    candidate = _visible_object_candidate(
+    candidate = visible_object_candidate(
         detection=detection,
         target_fixture=target_fixture,
         view_index=view_index,
@@ -889,7 +867,7 @@ def _maybe_clean_visible_object(
         if candidate is None:
             return view_index
     else:
-        candidate = _redirect_if_already_on_inferred_fixture(
+        candidate = redirect_if_already_on_inferred_fixture(
             contract=contract,
             handle=handle,
             candidate=candidate,
@@ -926,39 +904,6 @@ def _maybe_clean_visible_object(
     return next_view_index
 
 
-def _redirect_if_already_on_inferred_fixture(
-    *,
-    contract: HouseholdRuntimeContract,
-    handle: str,
-    candidate: _VisibleObjectCandidate,
-    agent_scratchpad: dict[str, Any],
-) -> _VisibleObjectCandidate | None:
-    if candidate.support.get("fixture_id") != candidate.target_fixture_id:
-        return candidate
-    refreshed_target = _current_worklist_target_fixture(
-        contract=contract,
-        object_id=handle,
-        source_fixture_id=str(candidate.support.get("fixture_id") or ""),
-    )
-    if refreshed_target is None:
-        contract._handled_handles.add(handle)  # noqa: SLF001
-        contract._set_handle_state(  # noqa: SLF001
-            handle,
-            "placed",
-            tool="direct_policy_reconciliation",
-            resolution="already_on_inferred_fixture",
-        )
-        agent_scratchpad["notes"].append(
-            {"object_id": handle, "reason": "already_on_inferred_fixture"}
-        )
-        return None
-    return _visible_object_candidate(
-        detection=candidate.detection,
-        target_fixture=refreshed_target,
-        view_index=candidate.view_index,
-    )
-
-
 def _confirm_visual_scan_candidate(
     *,
     trace_events: list[dict[str, Any]],
@@ -966,14 +911,14 @@ def _confirm_visual_scan_candidate(
     contract: HouseholdRuntimeContract,
     base_contract: HouseholdBackendSession,
     handle: str,
-    candidate: _VisibleObjectCandidate,
+    candidate: VisibleObjectCandidate,
     static_fixture_projection: dict[str, Any],
     robot_view_steps: list[dict[str, Any]],
     output_dir: Path,
     view_index: int,
     record_robot_views: bool,
     agent_scratchpad: dict[str, Any],
-) -> tuple[_VisibleObjectCandidate | None, int]:
+) -> tuple[VisibleObjectCandidate | None, int]:
     source_waypoint_id = str(
         candidate.detection.get("waypoint_id")
         or candidate.detection.get("last_waypoint_id")
@@ -1030,7 +975,7 @@ def _confirm_visual_scan_candidate(
         )
         return None, view_index
     detection = dict(confirmed)
-    target_fixture = _direct_policy_target_fixture(
+    target_fixture = direct_policy_target_fixture(
         contract=contract,
         detection=detection,
         static_fixture_projection=static_fixture_projection,
@@ -1044,13 +989,13 @@ def _confirm_visual_scan_candidate(
             {"object_id": handle, "reason": "no_public_fixture_match_after_visual_scan"}
         )
         return None, view_index
-    candidate = _visible_object_candidate(
+    candidate = visible_object_candidate(
         detection=detection,
         target_fixture=target_fixture,
         view_index=view_index,
     )
     return (
-        _redirect_if_already_on_inferred_fixture(
+        redirect_if_already_on_inferred_fixture(
             contract=contract,
             handle=handle,
             candidate=candidate,
@@ -1058,85 +1003,6 @@ def _confirm_visual_scan_candidate(
         ),
         view_index,
     )
-
-
-def _direct_policy_target_fixture(
-    *,
-    contract: HouseholdRuntimeContract,
-    detection: dict[str, Any],
-    static_fixture_projection: dict[str, Any],
-) -> dict[str, Any] | None:
-    inferred = contract.target_fixture_for_detection(
-        detection,
-        static_fixture_projection,
-        include_runtime_backend_fixtures=True,
-    )
-    if not contract.sanitize_world_labels:
-        return inferred
-    options = destination_options_for_policy(
-        contract,
-        detection.get("destination_policy") or {},
-    )
-    source_fixture_id = str((detection.get("support_estimate") or {}).get("fixture_id") or "")
-    inferred_fixture_id = str((inferred or {}).get("fixture_id") or "")
-    option_fixture_ids = {str(item.get("candidate_fixture_id") or "") for item in options}
-    if inferred_fixture_id and (
-        inferred_fixture_id != source_fixture_id or source_fixture_id in option_fixture_ids
-    ):
-        return inferred
-    selected = _preferred_public_destination_option(detection, options)
-    if selected is None:
-        return inferred
-    candidate = {**detection, **selected}
-    return contract.target_fixture_for_detection(
-        candidate,
-        static_fixture_projection,
-        include_runtime_backend_fixtures=True,
-    )
-
-
-def _preferred_public_destination_option(
-    detection: dict[str, Any],
-    options: list[dict[str, Any]],
-) -> dict[str, Any] | None:
-    if not options:
-        return None
-    source_fixture_id = str((detection.get("support_estimate") or {}).get("fixture_id") or "")
-    source_waypoint_id = str(
-        detection.get("waypoint_id")
-        or detection.get("last_waypoint_id")
-        or (detection.get("support_estimate") or {}).get("waypoint_id")
-        or ""
-    )
-    return dict(
-        min(
-            options,
-            key=lambda item: (
-                str(item.get("candidate_fixture_id") or "") != source_fixture_id,
-                str(item.get("waypoint_id") or "") != source_waypoint_id,
-            ),
-        )
-    )
-
-
-def _current_worklist_target_fixture(
-    *,
-    contract: HouseholdRuntimeContract,
-    object_id: str,
-    source_fixture_id: str,
-) -> dict[str, Any] | None:
-    worklist = contract.cleanup_worklist_payload(
-        static_fixture_projection=contract.static_fixture_projection()
-    )
-    for item in worklist.get("objects", []):
-        if str(item.get("object_id") or "") != object_id:
-            continue
-        candidate_fixture_id = str(item.get("candidate_fixture_id") or "")
-        if not candidate_fixture_id or candidate_fixture_id == source_fixture_id:
-            return None
-        target = contract.public_receptacles_by_id().get(candidate_fixture_id)
-        return dict(target) if target else None
-    return None
 
 
 def _write_snapshot(

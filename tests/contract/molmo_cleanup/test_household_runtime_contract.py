@@ -2542,7 +2542,7 @@ def test_realworld_raw_fpv_grounding_uses_source_observation_bbox_binding(
     assert match["locality_status"] == "exact_source_fixture_in_source_observation"
     assert match["binding_source"] == "private_observation_segmentation"
     monkeypatch.setattr(
-        realworld_visual_candidate_lifecycle,
+        realworld_visual_candidate_declarations.realworld_visual_perception_navigation,
         "objects_visible_from_waypoint",
         lambda _contract, _waypoint: [(target, target_location)],
     )
@@ -2577,7 +2577,7 @@ def test_simulated_raw_fpv_inputs_only_fall_back_for_synthetic_backend(monkeypat
     target_location = session.object_locations()[target.object_id]
     waypoint = contract.metric_map()["inspection_waypoints"][0]
     monkeypatch.setattr(
-        realworld_visual_candidate_lifecycle,
+        realworld_visual_candidate_declarations.realworld_visual_perception_navigation,
         "objects_visible_from_waypoint",
         lambda _contract, _waypoint: [(target, target_location)],
     )

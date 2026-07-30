@@ -10,13 +10,11 @@ from typing import Any
 import pytest
 
 from roboclaws.core.goals import normalize_goal_contract
+from roboclaws.core.robot_view_capture import ROBOT_VIEW_CAPTURE_POLICY_ACTION_TIMELINE
 from roboclaws.core.task_intents import TASK_INTENT_SPECS
 from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household.backend import ApiSemanticCleanupBackend
 from roboclaws.household.household_backend_contract import HouseholdBackendSession
-from roboclaws.household.household_mcp_server import (
-    ROBOT_VIEW_CAPTURE_POLICY_ACTION_TIMELINE,
-)
 from roboclaws.household.household_mcp_server import (
     make_household_world_mcp as _make_household_world_mcp,
 )
