@@ -61,7 +61,6 @@ import pathlib
 import roboclaws
 import numpy
 import PIL
-import jinja2
 
 repo = pathlib.Path("/workspace/roboclaws").resolve()
 module = pathlib.Path(roboclaws.__file__).resolve()
