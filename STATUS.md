@@ -69,9 +69,9 @@ providers.
 
 ## Next Action
 
-Execute and verify the five bounded saturation-refactor slices. The refreshed
-immutable candidate remains unmodified, but any implementation commit
-supersedes it for publication review; publication remains unauthorized.
+Execute and verify the remaining bounded saturation-refactor slices. The
+refreshed immutable candidate remains unmodified and is now superseded for
+publication review; publication remains unauthorized.
 
 ## Current Blockers
 

@@ -8,17 +8,17 @@ Task control plane: current Codex root session.
 
 Latest user intent: execute and commit all five approved refactor candidates.
 
-Current slice: baseline and canonical plan setup.
+Current slice: delete the inert provider timing proxy surface.
 
-Last proven evidence: clean `HEAD fee463f5`; `uv lock --check` passes; focused
-eval recommendation recorded at
-`output/eval-harness/20260730T034753Z/eval_harness.json`.
+Last proven evidence: exact legacy artifact caller search is clean; focused
+current report contracts and `just verify::contract` pass; touched Ruff and
+diff checks pass.
 
-Next slice: delete legacy `roboclaws.core.run_artifacts` and its self-only test
-gate.
+Completed slices: legacy `roboclaws.core.run_artifacts` and its only test/gate
+consumer removed.
 
-Next proof: exact caller search, focused artifact/report contract tests, Ruff,
-and diff check.
+Next proof: exact timing-proxy producer/switch/artifact searches, focused
+performance-report/eval tests, dependency sync, Ruff, and diff check.
 
 Stop condition: all five plan rows committed and final deterministic/product
 proof passes.

@@ -90,7 +90,6 @@ CONTRACT_NAME_PARTS = (
     "realworld",
     "replay",
     "report",
-    "run_artifacts",
     "transcript",
     "verify_",
 )

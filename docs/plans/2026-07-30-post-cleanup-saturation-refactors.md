@@ -12,8 +12,9 @@ finishing canonical typed/state boundaries.
 ## Plan Ledger
 
 - Status: ACTIVE.
-- Current slice: establish the baseline and execute the approved queue in order.
-- Next action: delete the test-only `roboclaws.core.run_artifacts` surface.
+- Current slice: delete the inert provider timing proxy surface.
+- Next action: remove its producer, report ingestion, switch plumbing, tests,
+  documentation, and direct dependency.
 - Blocker: none.
 - Active capsule: `docs/status/active/post-cleanup-saturation-refactors.md`.
 
@@ -87,7 +88,7 @@ Verification:
 
 | Slice | Severity | Architecture value | Status |
 | --- | --- | --- | --- |
-| Legacy run artifacts | P1 | Remove one test-only artifact owner and false contract gate | Pending |
+| Legacy run artifacts | P1 | Remove one test-only artifact owner and false contract gate | Done |
 | Provider timing proxy | P1 | Remove one inert producer/reader contract and stale switch | Pending |
 | Maintainer dispatch loop | P1 | Remove one dispatcher and duplicate target registries | Pending |
 | Operator phase taxonomy | P1 | Merge phase owners and fix terminal classification | Pending |
@@ -99,6 +100,12 @@ Verification:
   Protocols, default-prompt consolidation, and unrelated direct dependency
   declarations remain outside this accepted packet.
 - Historical outputs and immutable candidate receipts are not rewritten.
+
+## Completed Summary
+
+- Legacy `roboclaws.core.run_artifacts`, its only consumer test, and the
+  self-preserving `verify::contract` entry were removed. Current household
+  artifact/report contracts and `just verify::contract` pass unchanged.
 
 ## Stop Condition
 
