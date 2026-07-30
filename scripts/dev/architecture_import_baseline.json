@@ -52,7 +52,7 @@
     ],
     "roboclaws": []
   },
-  "edge_count": 727,
+  "edge_count": 729,
   "edges": [
     {
       "kind": "import",
@@ -4282,65 +4282,71 @@
       "kind": "import",
       "line": 32,
       "source": "roboclaws.operator_console.launcher",
-      "target": "roboclaws.operator_console.launch_support"
+      "target": "roboclaws.operator_console.launch_contract"
     },
     {
       "kind": "import",
-      "line": 39,
+      "line": 33,
       "source": "roboclaws.operator_console.launcher",
-      "target": "roboclaws.operator_console.locks"
+      "target": "roboclaws.operator_console.launch_support"
     },
     {
       "kind": "import",
       "line": 40,
       "source": "roboclaws.operator_console.launcher",
-      "target": "roboclaws.operator_console.paths"
+      "target": "roboclaws.operator_console.locks"
     },
     {
       "kind": "import",
       "line": 41,
       "source": "roboclaws.operator_console.launcher",
-      "target": "roboclaws.operator_console.prompt_preview"
+      "target": "roboclaws.operator_console.paths"
     },
     {
       "kind": "import",
-      "line": 46,
+      "line": 42,
       "source": "roboclaws.operator_console.launcher",
-      "target": "roboclaws.operator_console.readiness"
+      "target": "roboclaws.operator_console.prompt_preview"
     },
     {
       "kind": "import",
       "line": 47,
       "source": "roboclaws.operator_console.launcher",
-      "target": "roboclaws.operator_console.routes"
+      "target": "roboclaws.operator_console.readiness"
     },
     {
       "kind": "import",
-      "line": 52,
+      "line": 48,
       "source": "roboclaws.operator_console.launcher",
-      "target": "roboclaws.operator_console.runtime_compat"
+      "target": "roboclaws.operator_console.routes"
     },
     {
       "kind": "import",
       "line": 53,
       "source": "roboclaws.operator_console.launcher",
-      "target": "roboclaws.operator_console.runtime_inventory"
+      "target": "roboclaws.operator_console.runtime_compat"
     },
     {
       "kind": "import",
-      "line": 59,
+      "line": 54,
       "source": "roboclaws.operator_console.launcher",
-      "target": "roboclaws.operator_console.state"
+      "target": "roboclaws.operator_console.runtime_inventory"
     },
     {
       "kind": "import",
       "line": 60,
       "source": "roboclaws.operator_console.launcher",
+      "target": "roboclaws.operator_console.state"
+    },
+    {
+      "kind": "import",
+      "line": 61,
+      "source": "roboclaws.operator_console.launcher",
       "target": "roboclaws.operator_console.state_summary"
     },
     {
       "kind": "import",
-      "line": 65,
+      "line": 66,
       "source": "roboclaws.operator_console.launcher",
       "target": "roboclaws.operator_console.workflows"
     },
@@ -4394,19 +4400,19 @@
     },
     {
       "kind": "import",
-      "line": 285,
+      "line": 11,
       "source": "roboclaws.operator_console.readiness",
-      "target": "roboclaws.operator_console.launcher"
+      "target": "roboclaws.operator_console.launch_contract"
     },
     {
       "kind": "import",
-      "line": 11,
+      "line": 12,
       "source": "roboclaws.operator_console.readiness",
       "target": "roboclaws.operator_console.routes"
     },
     {
       "kind": "import",
-      "line": 12,
+      "line": 13,
       "source": "roboclaws.operator_console.readiness",
       "target": "roboclaws.operator_console.runtime_inventory"
     },
@@ -4545,6 +4551,12 @@
     {
       "kind": "import",
       "line": 32,
+      "source": "roboclaws.operator_console.server",
+      "target": "roboclaws.operator_console.launch_contract"
+    },
+    {
+      "kind": "import",
+      "line": 33,
       "source": "roboclaws.operator_console.server",
       "target": "roboclaws.operator_console.launcher"
     },
@@ -4687,7 +4699,7 @@
       "target": "roboclaws.household.report_sections_timing"
     }
   ],
-  "module_count": 244,
+  "module_count": 245,
   "module_sccs": [
     [
       "roboclaws.household.household_runtime_contract",
@@ -4696,10 +4708,6 @@
     [
       "roboclaws.operator_console.interactions",
       "roboclaws.operator_console.state"
-    ],
-    [
-      "roboclaws.operator_console.launcher",
-      "roboclaws.operator_console.readiness"
     ]
   ],
   "package_bidirectional_edges": [

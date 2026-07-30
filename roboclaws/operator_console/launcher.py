@@ -29,6 +29,7 @@ from roboclaws.operator_console.interactions import (
     RESUME_REQUEST_LOG,
     attach_run_to_session,
 )
+from roboclaws.operator_console.launch_contract import ConsoleLaunchError
 from roboclaws.operator_console.launch_support import (
     apply_env_overrides,
     build_surface_launch_args,
@@ -69,10 +70,6 @@ from roboclaws.operator_console.workflows import (
 )
 
 RUN_ID_SAFE_RE = re.compile(r"[^A-Za-z0-9_.-]+")
-
-
-class ConsoleLaunchError(ValueError):
-    """User-facing launch validation error."""
 
 
 class _JsonSourceError(ValueError):

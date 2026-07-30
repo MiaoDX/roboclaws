@@ -759,6 +759,11 @@ hardware proof cannot run for a demonstrated environment reason.
   duplicate module entrypoint; `evals.cli -> evals.runner` is the only product
   direction. The SCC is absent, CLI grammar/exit behavior is unchanged, and
   245 focused tests plus root CLI/source contracts pass.
+- Wave 1 completed slices: `ConsoleLaunchError` moved to
+  `operator_console/launch_contract.py`; readiness no longer imports launcher
+  and the SCC is absent. The full operator-console suite passes, and a root
+  host-runtime smoke served `/`, `/api/routes`, and `/api/runtime/tasks` with
+  valid responses before clean operator shutdown.
 - Planning-loop result: CONVERGED after two rounds. Round 1 entropy, docs-grill,
   and skeptic scouts found speculative layers, unsafe wave order, incomplete
   caller paths, proxy-metric gates, and preservation ambiguity. Round 2 verified
