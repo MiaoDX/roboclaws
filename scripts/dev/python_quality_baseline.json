@@ -299,14 +299,6 @@
         "trigger": "move retained product behavior to its package owner and reduce the CLI adapter"
       },
       {
-        "disposition": "DELETE",
-        "lines": 995,
-        "max_module_lines": 800,
-        "owner": "Wave 3 unconditional deletion",
-        "path": "scripts/molmo_cleanup/run_agent_sdk_perf_matrix.py",
-        "trigger": "delete after the Wave 0 caller ledger and neighboring preservation proofs pass"
-      },
-      {
         "disposition": "SPLIT",
         "lines": 1103,
         "max_module_lines": 800,
@@ -484,14 +476,6 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1131,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/unit/molmo_cleanup/test_agent_sdk_perf_matrix.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
         "lines": 5499,
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
@@ -571,11 +555,11 @@
     "source": {
       "files_at_least": {
         "1000": 30,
-        "500": 118,
-        "800": 44
+        "500": 117,
+        "800": 43
       },
-      "loc": 165314,
-      "python_files": 395,
+      "loc": 164308,
+      "python_files": 394,
       "roots": [
         "roboclaws",
         "scripts"
@@ -583,12 +567,12 @@
     },
     "tests": {
       "files_at_least": {
-        "1000": 22,
-        "500": 47,
-        "800": 26
+        "1000": 21,
+        "500": 46,
+        "800": 25
       },
-      "loc": 99825,
-      "python_files": 226,
+      "loc": 98694,
+      "python_files": 225,
       "roots": [
         "tests"
       ]

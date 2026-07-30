@@ -100,11 +100,12 @@ providers.
 
 ## Next Action
 
-Continue the Wave 3 unconditional deletion ledger in bounded green slices with
-the private Agent SDK performance matrix and its frozen caller/proof manifest.
-The current SDK metrics, performance profile, status, and live-report behavior
-remain preservation gates. The refreshed immutable candidate remains
-unmodified; publication remains unauthorized and separate from this campaign.
+Complete the Wave 3 unconditional deletion ledger by extracting the grasp-pose
+cache's probe runtime dependency, then retiring standalone grasp diagnostics
+and their report/test leaves. Cache generation, planner feasibility, and
+current cleanup reports remain preservation gates. The refreshed immutable
+candidate remains unmodified; publication remains unauthorized and separate
+from this campaign.
 
 ## Current Blockers
 

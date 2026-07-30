@@ -1,6 +1,6 @@
 # Aggressive Architecture Migration
 
-**Status:** Authorized; Waves 0-2 complete, Wave 3 active after three deletion slices
+**Status:** Authorized; Waves 0-2 complete, Wave 3 active after four deletion slices
 **Created:** 2026-07-30
 **Execution unit:** This entire plan, delivered in bounded waves and slices
 **Supersedes:** the broad-module-splitting non-goal in
@@ -837,6 +837,14 @@ hardware proof cannot run for a demonstrated environment reason.
   was repaired to provide the required Base Metric Map bundle. Static and
   architecture ratchets remain green and oversized modules decrease from 72
   to 70; no provider, publication, or physical-robot action occurred.
+- Wave 3 completed slice: the private Agent SDK performance matrix and its
+  dedicated test were deleted, and the active SDK-spike capsule now treats the
+  retained manifest/fixtures as historical evidence rather than advertising a
+  retired maintainer command. The two-path slice removes 2,126 lines; exact
+  current caller and instruction searches are empty, and 197 retained SDK
+  runtime, metrics-source, performance-profile, status, and live-performance
+  tests pass without provider calls. Architecture/static ratchets remain green
+  and oversized modules decrease from 70 to 68.
 - Planning-loop result: CONVERGED after two rounds. Round 1 entropy, docs-grill,
   and skeptic scouts found speculative layers, unsafe wave order, incomplete
   caller paths, proxy-metric gates, and preservation ambiguity. Round 2 verified
@@ -856,6 +864,7 @@ hardware proof cannot run for a demonstrated environment reason.
 - Parked: B1 authoring deletion beyond proven package-owned rebuild parity,
   publication, real-robot movement, EULA acceptance, public contract redesign,
   provider bakeoff, and unrelated feature work.
-- Next action: continue Wave 3 with the private Agent SDK performance matrix
-  while preserving current SDK metrics, performance profile, status, and
-  live-report behavior.
+- Next action: complete Wave 3 by extracting the grasp-pose cache's probe
+  runtime dependencies, then retire the standalone grasp diagnostic owners,
+  scripts, report sections, and dedicated tests while preserving cache and
+  planner-feasibility behavior.
