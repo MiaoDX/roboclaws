@@ -590,8 +590,8 @@
         "500": 121,
         "800": 45
       },
-      "loc": 169480,
-      "python_files": 403,
+      "loc": 168632,
+      "python_files": 399,
       "roots": [
         "roboclaws",
         "scripts"
@@ -600,11 +600,11 @@
     "tests": {
       "files_at_least": {
         "1000": 23,
-        "500": 49,
+        "500": 48,
         "800": 27
       },
-      "loc": 102423,
-      "python_files": 230,
+      "loc": 101752,
+      "python_files": 228,
       "roots": [
         "tests"
       ]

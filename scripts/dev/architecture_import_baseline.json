@@ -43,7 +43,7 @@
     "reports": [],
     "roboclaws": []
   },
-  "edge_count": 740,
+  "edge_count": 739,
   "edges": [
     {
       "kind": "import",
@@ -1489,12 +1489,6 @@
       "kind": "import",
       "line": 8,
       "source": "roboclaws.household.camera_control",
-      "target": "roboclaws.core.json_sources"
-    },
-    {
-      "kind": "import",
-      "line": 11,
-      "source": "roboclaws.household.ci_live_reports",
       "target": "roboclaws.core.json_sources"
     },
     {
@@ -4750,7 +4744,7 @@
       "target": "roboclaws.maps.runtime_prior_catalog"
     }
   ],
-  "module_count": 249,
+  "module_count": 248,
   "module_sccs": [],
   "package_bidirectional_edges": [],
   "policies": [

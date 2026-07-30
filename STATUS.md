@@ -101,7 +101,7 @@ providers.
 ## Next Action
 
 Continue the Wave 3 unconditional deletion ledger in bounded green slices with
-the CI rehearsal/Pages stack and its frozen caller/proof manifest. The
+the offline RAW-FPV probe/corpus stack and its frozen caller/proof manifest. The
 refreshed immutable candidate remains unmodified; publication remains
 unauthorized and separate from this campaign.
 

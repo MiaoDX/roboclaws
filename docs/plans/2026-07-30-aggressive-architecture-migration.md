@@ -821,6 +821,12 @@ hardware proof cannot run for a demonstrated environment reason.
   contracts pass, `apple2apple-grid` dry-run remains provider-free, and the
   guarded Isaac preflight stops before EULA acceptance. Architecture/static
   gates stay green and oversized modules decrease from 75 to 72.
+- Wave 3 completed slice: the CI rehearsal/Pages package owner, three scripts,
+  two dedicated tests, and both `ci-rehearsal*` recipes were deleted atomically.
+  The seven-path slice removes 1,567 lines; exact current caller searches are
+  empty, normal lint/mock CI and generic Pages reporting remain, focused
+  workflow/report/Just contracts and the full mock gate pass, and no provider
+  route was invoked.
 - Planning-loop result: CONVERGED after two rounds. Round 1 entropy, docs-grill,
   and skeptic scouts found speculative layers, unsafe wave order, incomplete
   caller paths, proxy-metric gates, and preservation ambiguity. Round 2 verified
@@ -840,5 +846,5 @@ hardware proof cannot run for a demonstrated environment reason.
 - Parked: B1 authoring deletion beyond proven package-owned rebuild parity,
   publication, real-robot movement, EULA acceptance, public contract redesign,
   provider bakeoff, and unrelated feature work.
-- Next action: continue Wave 3 with the CI rehearsal/Pages stack under its
-  frozen recipe, caller, workflow, and proof ledger.
+- Next action: continue Wave 3 with the offline RAW-FPV probe/corpus stack under
+  its frozen caller, privacy, runtime-lane, and proof ledger.
