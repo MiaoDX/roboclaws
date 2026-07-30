@@ -755,6 +755,10 @@ hardware proof cannot run for a demonstrated environment reason.
   `long_horizon.py`, the grader depends on the contract, and the runner depends
   directly on grader/contract. The SCC is absent from the refreshed baseline;
   177 focused eval tests and static gates pass.
+- Wave 1 completed slices: the eval runner no longer imports CLI or exposes a
+  duplicate module entrypoint; `evals.cli -> evals.runner` is the only product
+  direction. The SCC is absent, CLI grammar/exit behavior is unchanged, and
+  245 focused tests plus root CLI/source contracts pass.
 - Planning-loop result: CONVERGED after two rounds. Round 1 entropy, docs-grill,
   and skeptic scouts found speculative layers, unsafe wave order, incomplete
   caller paths, proxy-metric gates, and preservation ambiguity. Round 2 verified

@@ -1794,13 +1794,3 @@ def _int_value(value: Any) -> int:
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-
-
-def main(argv: list[str] | None = None) -> int:
-    from roboclaws.evals.cli import main as cli_main
-
-    return cli_main(argv)
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
