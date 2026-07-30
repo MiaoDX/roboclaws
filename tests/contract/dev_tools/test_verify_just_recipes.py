@@ -21,8 +21,6 @@ ROOT_MOLMO_SCRIPT_COMPAT_SHIMS = (
     "run_molmo_planner_proof_bundle_from_requests.py",
     "run_molmo_realworld_agent_mcp_smoke.py",
     "run_molmospaces_grasp_cache_generation.py",
-    "run_molmospaces_grasp_filter_diagnostics.py",
-    "run_molmospaces_grasp_initial_contact_diagnostics.py",
     "run_molmospaces_grasp_pose_policy_cache_generation.py",
     "setup_molmospaces_grasp_generation.py",
 )

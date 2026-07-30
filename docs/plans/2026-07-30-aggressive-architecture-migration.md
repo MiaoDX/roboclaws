@@ -1,6 +1,6 @@
 # Aggressive Architecture Migration
 
-**Status:** Authorized; Waves 0-2 complete, Wave 3 active after four deletion slices
+**Status:** Authorized; Waves 0-3 complete, Wave 4 active
 **Created:** 2026-07-30
 **Execution unit:** This entire plan, delivered in bounded waves and slices
 **Supersedes:** the broad-module-splitting non-goal in
@@ -845,6 +845,16 @@ hardware proof cannot run for a demonstrated environment reason.
   runtime, metrics-source, performance-profile, status, and live-performance
   tests pass without provider calls. Architecture/static ratchets remain green
   and oversized modules decrease from 70 to 68.
+- Wave 3 completed slice: the grasp-pose cache's byte-identical 12,350-byte
+  MolmoSpaces probe and subprocess wrapper moved to the focused
+  `grasp_probe_runtime.py` owner, and cache reporting moved to
+  `report_sections_grasp_generation.py`. The two standalone diagnostic owners,
+  two CLIs, two dedicated tests, old mixed report-section path, and diagnostic
+  report entrypoints were then removed without facades. Seven retired paths
+  remove 2,226 lines while the two retained owners contain 587 lines; 87 cache,
+  pose-policy, planner-feasibility, checker, report, and Just contracts pass.
+  The architecture baseline improves to 247 modules and 734 edges with zero
+  SCCs/pairs; oversized modules remain at 68. Wave 3 is complete.
 - Planning-loop result: CONVERGED after two rounds. Round 1 entropy, docs-grill,
   and skeptic scouts found speculative layers, unsafe wave order, incomplete
   caller paths, proxy-metric gates, and preservation ambiguity. Round 2 verified
@@ -864,7 +874,6 @@ hardware proof cannot run for a demonstrated environment reason.
 - Parked: B1 authoring deletion beyond proven package-owned rebuild parity,
   publication, real-robot movement, EULA acceptance, public contract redesign,
   provider bakeoff, and unrelated feature work.
-- Next action: complete Wave 3 by extracting the grasp-pose cache's probe
-  runtime dependencies, then retire the standalone grasp diagnostic owners,
-  scripts, report sections, and dedicated tests while preserving cache and
-  planner-feasibility behavior.
+- Next action: begin Wave 4 by freezing scene-camera comparison field parity,
+  then consolidate its retained geometry/pose/image behavior without executing
+  the guarded Isaac default path or accepting the Omniverse EULA.

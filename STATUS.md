@@ -11,11 +11,11 @@ leave a link.
 ## Current Focus
 
 The aggressive architecture migration is active under
-`docs/plans/2026-07-30-aggressive-architecture-migration.md`. Waves 0-2 are
+`docs/plans/2026-07-30-aggressive-architecture-migration.md`. Waves 0-3 are
 complete: exact baselines and field-level parity are proven, all six module
-cycles and five bidirectional package pairs are removed, and the Wave 1-2
-reverse/inversion guards are locked green. Wave 3 is retiring unconditional
-investigation and rehearsal stacks leaf-to-root.
+cycles and five bidirectional package pairs are removed, the Wave 1-2 guards
+are locked green, and unconditional investigation/rehearsal stacks are retired.
+Wave 4 is consolidating conditional workbenches after fixed-fixture parity.
 The migration preserves public launch, artifact, privacy, provider, simulator,
 and operator behavior while removing dependency cycles, retiring completed
 investigation surfaces, moving product subsystems out of scripts, and splitting
@@ -100,12 +100,11 @@ providers.
 
 ## Next Action
 
-Complete the Wave 3 unconditional deletion ledger by extracting the grasp-pose
-cache's probe runtime dependency, then retiring standalone grasp diagnostics
-and their report/test leaves. Cache generation, planner feasibility, and
-current cleanup reports remain preservation gates. The refreshed immutable
-candidate remains unmodified; publication remains unauthorized and separate
-from this campaign.
+Begin Wave 4 by freezing the full scene-camera comparison manifest and camera
+control-request contract, then consolidate redundant workbench layers without
+running the guarded Isaac default path or accepting the Omniverse EULA. The
+refreshed immutable candidate remains unmodified; publication remains
+unauthorized and separate from this campaign.
 
 ## Current Blockers
 

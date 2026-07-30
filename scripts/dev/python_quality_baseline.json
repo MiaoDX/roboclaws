@@ -124,7 +124,7 @@
       },
       {
         "disposition": "MERGE",
-        "lines": 2024,
+        "lines": 1996,
         "max_module_lines": 800,
         "owner": "Wave 6 report ownership",
         "path": "roboclaws/household/report.py",
@@ -555,11 +555,11 @@
     "source": {
       "files_at_least": {
         "1000": 30,
-        "500": 117,
+        "500": 114,
         "800": 43
       },
-      "loc": 164308,
-      "python_files": 394,
+      "loc": 163041,
+      "python_files": 391,
       "roots": [
         "roboclaws",
         "scripts"
@@ -571,8 +571,8 @@
         "500": 46,
         "800": 25
       },
-      "loc": 98694,
-      "python_files": 225,
+      "loc": 98292,
+      "python_files": 223,
       "roots": [
         "tests"
       ]
