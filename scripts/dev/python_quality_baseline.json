@@ -208,11 +208,6 @@
         "path": "scripts/molmo_cleanup/run_agent_sdk_perf_matrix.py"
       },
       {
-        "lines": 950,
-        "max_module_lines": 800,
-        "path": "scripts/molmo_cleanup/run_codex_cleanup_apple2apple_summary.py"
-      },
-      {
         "lines": 2192,
         "max_module_lines": 800,
         "path": "roboclaws/agents/household_live_runner.py"
