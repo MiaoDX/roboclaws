@@ -25,7 +25,7 @@ from roboclaws.operator_console.redaction import redact_text
 from roboclaws.operator_console.routes import ConsoleLaunchSelection, selection_task_selector
 from roboclaws.operator_console.runtime_compat import float_or_none, pid_is_active  # noqa: F401
 from roboclaws.operator_console.state import resolve_display_run_dir
-from roboclaws.operator_console.state_summary import TERMINAL_RUN_PHASES, task_phase_from_paths
+from roboclaws.operator_console.state_summary import is_terminal_run_phase, task_phase_from_paths
 
 DEFAULT_MCP_HOST, DEFAULT_MCP_PORT = "127.0.0.1", 18788
 ACTIVE_STATUSES = {"running", "launched", "blocked"}
@@ -741,7 +741,7 @@ def _status_from_phase(
     has_live_resource: bool | None = None,
 ) -> str:
     normalized = str(phase or "").strip().lower()
-    if normalized in TERMINAL_RUN_PHASES:
+    if is_terminal_run_phase(normalized):
         return "terminal"
     if tmux_session and _tmux_session_exists(tmux_session):
         return "running"

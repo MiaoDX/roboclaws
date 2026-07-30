@@ -62,6 +62,7 @@ from roboclaws.operator_console.state import resolve_display_run_dir
 from roboclaws.operator_console.state_summary import (
     existing_terminal_phase,
     existing_terminal_reason,
+    is_terminal_run_phase,
 )
 from roboclaws.operator_console.workflows import (
     get_operator_workflow,
@@ -648,9 +649,7 @@ def _display_run_attachable(
     active_pid: int | None,
 ) -> bool:
     phase = str(live_status.get("phase") or "").lower()
-    if phase in {"finished", "failed", "stopped_by_operator", "human_takeover_stop"} and (
-        "exit_status" in live_status
-    ):
+    if is_terminal_run_phase(phase) and "exit_status" in live_status:
         return False
     if phase:
         return True

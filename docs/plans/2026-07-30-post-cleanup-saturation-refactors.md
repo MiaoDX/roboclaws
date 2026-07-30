@@ -12,9 +12,9 @@ finishing canonical typed/state boundaries.
 ## Plan Ledger
 
 - Status: ACTIVE.
-- Current slice: canonicalize operator-console run phase predicates.
-- Next action: move terminal/active phase truth to `state_summary` and migrate
-  state, checker, interaction, launcher, and inventory callers.
+- Current slice: finish the typed `LaunchPlan` boundary.
+- Next action: stop round-tripping canonical launch fields through overrides,
+  delete dead launch metadata/helpers, and remove retired backend inspectors.
 - Blocker: none.
 - Active capsule: `docs/status/active/post-cleanup-saturation-refactors.md`.
 
@@ -91,7 +91,7 @@ Verification:
 | Legacy run artifacts | P1 | Remove one test-only artifact owner and false contract gate | Done |
 | Provider timing proxy | P1 | Remove one inert producer/reader contract and stale switch | Done |
 | Maintainer dispatch loop | P1 | Remove one dispatcher and duplicate target registries | Done |
-| Operator phase taxonomy | P1 | Merge phase owners and fix terminal classification | Pending |
+| Operator phase taxonomy | P1 | Merge phase owners and fix terminal classification | Done |
 | Typed launch boundary | P1 | Remove string copies/reparse and retired backend inspectors | Pending |
 
 ## Parked
@@ -112,7 +112,11 @@ Verification:
 - Public `agent::*` recipes now validate against and forward directly to the
   canonical private Just registry. The Python dispatcher and duplicate target
   sets were removed; launch execution/redaction helpers now live in the launch
-  executor instead of a CLI module.
+  runners owner instead of a CLI module.
+- Operator-console active and terminal run phases now have one normalized owner
+  in `state_summary`. State, checker, interactions, launcher, and inventory use
+  the shared predicates; `done` and `emergency_stopped` release terminal locks
+  and no longer appear attachable or running.
 
 ## Stop Condition
 

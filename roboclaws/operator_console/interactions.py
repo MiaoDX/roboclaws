@@ -21,6 +21,7 @@ from roboclaws.operator_console.state import (
     derive_operator_state,
     resolve_display_run_dir,
 )
+from roboclaws.operator_console.state_summary import is_terminal_run_phase
 
 SESSION_SCHEMA = "operator_console_session_v1"
 MESSAGE_SCHEMA = "operator_console_message_v1"
@@ -29,16 +30,6 @@ RESUME_REQUEST_LOG = "operator_resume_requests.jsonl"
 SESSION_LOG = "sessions.jsonl"
 SESSION_DIR = "sessions"
 NEXT_GOAL_QUEUE = "next_goal_queue.jsonl"
-
-TERMINAL_STATUSES = {
-    "done",
-    "finished",
-    "passed",
-    "stopped_by_operator",
-    "human_takeover_stop",
-    "emergency_stopped",
-    "failed",
-}
 
 
 class InteractionError(ValueError):
@@ -569,7 +560,7 @@ def _is_terminal_state(state: dict[str, Any]) -> bool:
         str(state.get("phase") or "").lower(),
         str(state.get("terminal_reason") or "").lower(),
     }
-    if values & TERMINAL_STATUSES:
+    if any(is_terminal_run_phase(value) for value in values):
         return True
     checker = state.get("checker_status")
     return isinstance(checker, dict) and str(checker.get("status") or "").lower() == "passed"
