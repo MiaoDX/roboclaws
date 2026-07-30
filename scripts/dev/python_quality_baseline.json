@@ -148,7 +148,7 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1979,
+        "lines": 1994,
         "max_module_lines": 800,
         "owner": "Wave 6 retained owner split",
         "path": "roboclaws/household/scene_camera_comparison.py",
@@ -428,7 +428,7 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 2142,
+        "lines": 2062,
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
         "path": "tests/contract/molmo_cleanup/test_scene_camera_comparison.py",
@@ -555,11 +555,11 @@
     "source": {
       "files_at_least": {
         "1000": 30,
-        "500": 114,
+        "500": 112,
         "800": 43
       },
-      "loc": 163041,
-      "python_files": 391,
+      "loc": 160964,
+      "python_files": 383,
       "roots": [
         "roboclaws",
         "scripts"
@@ -571,7 +571,7 @@
         "500": 46,
         "800": 25
       },
-      "loc": 98292,
+      "loc": 98212,
       "python_files": 223,
       "roots": [
         "tests"

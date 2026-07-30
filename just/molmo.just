@@ -1029,10 +1029,15 @@ scene-camera-comparison seed="7" generated_mess_count="1" output_dir="output/mol
       echo "       prepare or pass scene_usd_path=..." >&2
       exit 1
     fi
+    if [[ "${OMNI_KIT_ACCEPT_EULA:-}" != "YES" ]]; then
+      echo "error: scene-camera comparison requires explicit prior Omniverse EULA acceptance" >&2
+      echo "       rerun with OMNI_KIT_ACCEPT_EULA=YES only after accepting the EULA" >&2
+      exit 1
+    fi
 
     stamp="$({{timestamp_cmd}})"
     run_dir="${output_dir}/${stamp}"
-    OMNI_KIT_ACCEPT_EULA="${OMNI_KIT_ACCEPT_EULA:-YES}" \
+    OMNI_KIT_ACCEPT_EULA="$OMNI_KIT_ACCEPT_EULA" \
       .venv/bin/python scripts/molmo_cleanup/run_molmospaces_scene_camera_comparison.py \
       --output-dir "$run_dir" \
       --scene-usd-path "$scene_usd_path" \

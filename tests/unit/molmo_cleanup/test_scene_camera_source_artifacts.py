@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from roboclaws.household.scene_camera_source_artifacts import load_local_isaac_scene_index
+from roboclaws.household.scene_camera_usda_contract import load_local_isaac_scene_index
 
 
 def test_load_local_isaac_scene_index_matches_nearby_scene_usd(tmp_path: Path) -> None:

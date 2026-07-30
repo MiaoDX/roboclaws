@@ -1,6 +1,6 @@
 # Aggressive Architecture Migration
 
-**Status:** Authorized; Waves 0-3 complete, Wave 4 active
+**Status:** Authorized; Waves 0-3 complete, Wave 4 planner slice active
 **Created:** 2026-07-30
 **Execution unit:** This entire plan, delivered in bounded waves and slices
 **Supersedes:** the broad-module-splitting non-goal in
@@ -874,6 +874,17 @@ hardware proof cannot run for a demonstrated environment reason.
 - Parked: B1 authoring deletion beyond proven package-owned rebuild parity,
   publication, real-robot movement, EULA acceptance, public contract redesign,
   provider bakeoff, and unrelated feature work.
-- Next action: begin Wave 4 by freezing scene-camera comparison field parity,
-  then consolidate its retained geometry/pose/image behavior without executing
-  the guarded Isaac default path or accepting the Omniverse EULA.
+- Wave 4 completed slice: eight redundant scene-camera source/presentation
+  owners were removed after fixed-fixture parity. Geometry, pose, image,
+  lighting, replay, USDA, manifest, and camera-control-request behavior now has
+  retained package owners, while `report.html` is a compact artifact index.
+  The slice removes 2,667 lines and adds 385 (2,282 net); 103 focused contracts
+  and the static gate pass. The graph improves to 239 modules / 711 edges with
+  zero SCCs/pairs, and oversized modules remain at 68. The public recipe keeps
+  all nine parameters and now requires explicit prior
+  `OMNI_KIT_ACCEPT_EULA=YES`; guarded host preflight passes runtime/GPU/Isaac
+  Lab checks and blocks only on unaccepted EULA, which this migration did not
+  accept.
+- Next action: finish Wave 4 by reducing planner manipulation diagnostic
+  workbenches to the retained feasibility, cache, request, and proof owners
+  without weakening product proof.

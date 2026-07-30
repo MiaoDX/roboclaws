@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import json
 import math
 import os
@@ -19,8 +20,6 @@ from roboclaws.household import (
     scene_camera_image_metrics,
     scene_camera_lighting_diagnostics,
     scene_camera_render_domain,
-    scene_camera_report,
-    scene_camera_source_artifacts,
     scene_camera_usda_contract,
 )
 from roboclaws.household.artifact_paths import dimensions_from_shape, output_relpath
@@ -43,10 +42,6 @@ from roboclaws.household.scene_camera_render_diagnostics import (
 )
 from roboclaws.household.scene_camera_render_diagnostics import (
     view_usd_prim_path as _view_usd_prim_path_impl,
-)
-from roboclaws.household.scene_camera_report_hydration import (
-    SceneCameraReportHydration,
-    hydrate_scene_camera_report_manifest,
 )
 from roboclaws.household.subprocess_backend import MolmoSpacesSubprocessBackend
 
@@ -257,11 +252,7 @@ def run_scene_camera_comparison(config: SceneCameraComparisonConfig) -> dict[str
             isaac_lane=manifest["lanes"][ISAAC_LANE_ID],
         )
     )
-    hydrate_scene_camera_report_manifest(
-        manifest,
-        output_dir=output_dir,
-        builders=_report_hydration(),
-    )
+    _hydrate_manifest_diagnostics(manifest, output_dir=output_dir)
     _write_contact_sheet(manifest, output_dir=output_dir)
     manifest_path = output_dir / "comparison_manifest.json"
     manifest_path.write_text(
@@ -274,32 +265,54 @@ def run_scene_camera_comparison(config: SceneCameraComparisonConfig) -> dict[str
 
 def render_scene_camera_comparison_report(manifest: dict[str, Any], *, output_dir: Path) -> Path:
     _write_contact_sheet(manifest, output_dir=output_dir)
-    hydrate_scene_camera_report_manifest(
-        manifest,
-        output_dir=output_dir,
-        builders=_report_hydration(),
-    )
+    _hydrate_manifest_diagnostics(manifest, output_dir=output_dir)
     report_path = output_dir / "report.html"
-    report_path.write_text(
-        scene_camera_report.report_html(manifest, output_dir=output_dir), encoding="utf-8"
-    )
+    report_path.write_text(_report_html(manifest), encoding="utf-8")
     return report_path
 
 
-def _report_hydration() -> SceneCameraReportHydration:
-    return SceneCameraReportHydration(
-        candidate_visual_diagnostics=_candidate_visual_diagnostics,
-        projection_diagnostics=scene_camera_geometry_contract.projection_diagnostics,
-        visual_diagnostics=_visual_diagnostics,
-        room_wall_light_diagnostics=_room_wall_light_diagnostics,
-        native_isaac_render_diagnostics=_native_isaac_render_diagnostics,
-        render_domain_source_diagnostics=_render_domain_source_diagnostics,
-        render_domain_view_triage=_render_domain_view_triage,
-        render_domain_contract_probe=_render_domain_contract_probe,
-        lighting_tone_provenance=_lighting_tone_provenance,
-        shadow_parity_probe=_shadow_parity_probe,
-        backend_swap_geometry_contract=_backend_swap_geometry_contract,
+def _hydrate_manifest_diagnostics(manifest: dict[str, Any], *, output_dir: Path) -> None:
+    builders = (
+        (
+            "candidate_visual_diagnostics",
+            lambda: _candidate_visual_diagnostics(manifest, output_dir=output_dir),
+        ),
+        (
+            "projection_diagnostics",
+            lambda: scene_camera_geometry_contract.projection_diagnostics(manifest),
+        ),
+        ("visual_diagnostics", lambda: _visual_diagnostics(manifest, output_dir=output_dir)),
+        (
+            "room_wall_light_diagnostics",
+            lambda: _room_wall_light_diagnostics(manifest, output_dir=output_dir),
+        ),
+        ("native_isaac_render_diagnostics", lambda: _native_isaac_render_diagnostics(manifest)),
+        ("render_domain_source_diagnostics", lambda: _render_domain_source_diagnostics(manifest)),
+        ("render_domain_view_triage", lambda: _render_domain_view_triage(manifest)),
+        ("render_domain_contract_probe", lambda: _render_domain_contract_probe(manifest)),
+        ("lighting_tone_provenance", lambda: _lighting_tone_provenance(manifest)),
+        ("shadow_parity_probe", lambda: _shadow_parity_probe(manifest)),
+        ("backend_swap_geometry_contract", lambda: _backend_swap_geometry_contract(manifest)),
     )
+    for key, build in builders:
+        if not isinstance(manifest.get(key), dict):
+            manifest[key] = build()
+
+
+def _report_html(manifest: dict[str, Any]) -> str:
+    """Render a compact review index; the JSON manifest remains the evidence owner."""
+    title = "MolmoSpaces / Isaac Scene Camera Comparison"
+    purpose = html.escape(str(manifest.get("purpose") or "Render-only scene identity probe."))
+    artifacts = manifest.get("artifacts") if isinstance(manifest.get("artifacts"), dict) else {}
+    contact_sheet = html.escape(str(artifacts.get("contact_sheet") or "contact_sheet.png"))
+    manifest_json = html.escape(json.dumps(manifest, indent=2, sort_keys=True))
+    return f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>{title}</title>
+<style>body{{font-family:system-ui,sans-serif;max-width:1100px;margin:2rem auto;padding:0 1rem}}
+img{{max-width:100%;height:auto}}pre{{white-space:pre-wrap;overflow-wrap:anywhere}}</style></head>
+<body><h1>{title}</h1><p>{purpose}</p><h2>Contact Sheet</h2>
+<a href="{contact_sheet}"><img src="{contact_sheet}" alt="Scene camera contact sheet"></a>
+<h2>Comparison Manifest</h2><pre>{manifest_json}</pre></body></html>"""
 
 
 def comparison_successful(manifest: dict[str, Any]) -> bool:
@@ -715,19 +728,19 @@ def _isaac_view_specs(
     scene_usd_path: Path,
     scene_index: int,
 ) -> list[dict[str, Any]]:
-    metadata = scene_camera_source_artifacts.load_scene_metadata(scene_usd_path)
-    local_scene_index = scene_camera_source_artifacts.load_local_isaac_scene_index(scene_usd_path)
+    metadata = scene_camera_usda_contract.load_scene_metadata(scene_usd_path)
+    local_scene_index = scene_camera_usda_contract.load_local_isaac_scene_index(scene_usd_path)
     specs = []
     for index, anchor in enumerate(anchors, start=1):
         raw = metadata.get(anchor["anchor_id"]) or {}
-        index_entry = scene_camera_source_artifacts.isaac_scene_index_entry(
+        index_entry = scene_camera_usda_contract.isaac_scene_index_entry(
             anchor["anchor_id"], local_scene_index
         )
         usd_prim_path = (
             str(index_entry.get("usd_prim_path") or "") if isinstance(index_entry, dict) else ""
         )
         support_pose = index_entry.get("support_pose") if isinstance(index_entry, dict) else None
-        isaac_support_position = scene_camera_source_artifacts.support_pose_position(support_pose)
+        isaac_support_position = scene_camera_usda_contract.support_pose_position(support_pose)
         if not usd_prim_path and raw:
             usd_prim_path = f"/val_{scene_index}/Geometry/{anchor['anchor_id']}"
         specs.append(
@@ -1777,8 +1790,10 @@ def _color_profile_replay_summary(view_results: list[dict[str, Any]]) -> dict[st
 
 
 def _render_domain_calibration(view_results: list[dict[str, Any]]) -> dict[str, Any]:
-    return scene_camera_render_domain.render_domain_calibration(
+    return scene_camera_image_metrics.render_domain_calibration(
         view_results,
+        baseline_lane_id=MOLMOSPACES_LANE_ID,
+        candidate_lane_id=ISAAC_LANE_ID,
         optional_float=scene_camera_geometry_contract.optional_float,
     )
 

@@ -15,7 +15,8 @@ The aggressive architecture migration is active under
 complete: exact baselines and field-level parity are proven, all six module
 cycles and five bidirectional package pairs are removed, the Wave 1-2 guards
 are locked green, and unconditional investigation/rehearsal stacks are retired.
-Wave 4 is consolidating conditional workbenches after fixed-fixture parity.
+Wave 4 has collapsed the scene-camera workbench after fixed-fixture parity and
+is now consolidating planner manipulation diagnostic workbenches.
 The migration preserves public launch, artifact, privacy, provider, simulator,
 and operator behavior while removing dependency cycles, retiring completed
 investigation surfaces, moving product subsystems out of scripts, and splitting
@@ -100,9 +101,9 @@ providers.
 
 ## Next Action
 
-Begin Wave 4 by freezing the full scene-camera comparison manifest and camera
-control-request contract, then consolidate redundant workbench layers without
-running the guarded Isaac default path or accepting the Omniverse EULA. The
+Finish Wave 4 by reducing planner manipulation diagnostic samplers and reports
+to retained feasibility, cache, request, and proof owners without weakening
+the product proof bundle. The
 refreshed immutable candidate remains unmodified; publication remains
 unauthorized and separate from this campaign.
 
