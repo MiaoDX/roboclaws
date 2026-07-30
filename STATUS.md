@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-07-29
+Last updated: 2026-07-30
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -9,6 +9,12 @@ orientation, move it to plans, ADRs, retrospectives, or `docs/human/**` and
 leave a link.
 
 ## Current Focus
+
+The approved post-cleanup saturation refactors are active under
+`docs/plans/2026-07-30-post-cleanup-saturation-refactors.md`. The bounded queue
+deletes two stale runtime surfaces, removes the maintainer command-dispatch
+loop, canonicalizes operator-console phase state, and finishes the typed launch
+boundary. Public run and maintainer command grammar remain unchanged.
 
 The post-review forward-only architecture cleanup is implemented and verified
 under `docs/plans/2026-07-28-forward-only-post-review-cleanup.md`. Current
@@ -63,8 +69,9 @@ providers.
 
 ## Next Action
 
-Review the refreshed immutable candidate receipt and decide separately whether
-to publish it. Publication remains unauthorized by the cleanup plan.
+Execute and verify the five bounded saturation-refactor slices. The refreshed
+immutable candidate remains unmodified, but any implementation commit
+supersedes it for publication review; publication remains unauthorized.
 
 ## Current Blockers
 
