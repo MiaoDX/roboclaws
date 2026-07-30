@@ -1,6 +1,6 @@
 # Post-Cleanup Saturation Refactors
 
-**Status:** Active
+**Status:** Done
 **Created:** 2026-07-30
 **Last reviewed:** 2026-07-30
 **Current implementation contract:** Execute the five approved P1 cleanup
@@ -11,12 +11,11 @@ finishing canonical typed/state boundaries.
 
 ## Plan Ledger
 
-- Status: ACTIVE.
-- Current slice: finish the typed `LaunchPlan` boundary.
-- Next action: stop round-tripping canonical launch fields through overrides,
-  delete dead launch metadata/helpers, and remove retired backend inspectors.
+- Status: DONE.
+- Current slice: none; all five approved slices are committed and verified.
+- Next action: none for this bounded cleanup packet.
 - Blocker: none.
-- Active capsule: `docs/status/active/post-cleanup-saturation-refactors.md`.
+- Active capsule: archived by deletion at closeout.
 
 ## Preflight Contract
 
@@ -92,7 +91,7 @@ Verification:
 | Provider timing proxy | P1 | Remove one inert producer/reader contract and stale switch | Done |
 | Maintainer dispatch loop | P1 | Remove one dispatcher and duplicate target registries | Done |
 | Operator phase taxonomy | P1 | Merge phase owners and fix terminal classification | Done |
-| Typed launch boundary | P1 | Remove string copies/reparse and retired backend inspectors | Pending |
+| Typed launch boundary | P1 | Remove string copies/reparse and retired backend inspectors | Done |
 
 ## Parked
 
@@ -117,6 +116,37 @@ Verification:
   in `state_summary`. State, checker, interactions, launcher, and inventory use
   the shared predicates; `done` and `emergency_stopped` release terminal locks
   and no longer appear attachable or running.
+- `LaunchPlan` now carries canonical launch axes, goal context, scenario setup,
+  and relocation count directly. Adapter-only options remain in `overrides`;
+  environment export, execution, eval spawning, and rerun reconstruction consume
+  the typed plan. Dead evaluation/task metadata and retired backend inspectors
+  are gone, and current apple-to-apple/CI command generators use canonical
+  `prompt=` input.
+
+## Verification Result
+
+- Exact stale-reference searches for all deleted launch helpers, evaluation
+  metadata, and backend inspector commands return no matches.
+- Focused launch, eval, dev-tools, MCP, Molmo cleanup, script, and operator
+  console suites pass, including the scoped pre-commit suites.
+- Public trace proofs preserve canonical routes and private dependency
+  redaction. Actual direct-runner cleanup and camera-grounded map-build product
+  runs complete and write their reports; Grounding DINO records 35 successful
+  events with zero failures in the map-build proof.
+- `uv sync --extra dev`, `ruff check .`, `ruff format --check .`, the Python
+  quality ratchet, `git diff --check`, and
+  `./scripts/dev/run_pytest_standalone.sh -q` pass.
+- Ultra review found one typed-boundary regression before commit: Agibot live
+  map-build could ignore a non-Kimi provider profile after canonical overrides
+  were stripped. The adapter now receives `plan.provider_profile` directly and
+  has a no-environment regression test.
+
+## Scope Changes
+
+The only execution-time scope addition was migrating two current in-repo public
+command generators from removed `task=` input to canonical `prompt=` after the
+full scoped gate proved they were live callers. No compatibility alias was
+reintroduced and no public schema or command was added.
 
 ## Stop Condition
 

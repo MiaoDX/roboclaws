@@ -10,11 +10,13 @@ leave a link.
 
 ## Current Focus
 
-The approved post-cleanup saturation refactors are active under
-`docs/plans/2026-07-30-post-cleanup-saturation-refactors.md`. The bounded queue
-deletes two stale runtime surfaces, removes the maintainer command-dispatch
-loop, canonicalizes operator-console phase state, and finishes the typed launch
-boundary. Public run and maintainer command grammar remain unchanged.
+The post-cleanup saturation refactors are complete under
+`docs/plans/2026-07-30-post-cleanup-saturation-refactors.md`. The five-slice
+queue deleted two stale runtime surfaces, removed the maintainer
+command-dispatch loop, canonicalized operator-console phase state, and finished
+the typed launch boundary. Public run and maintainer command grammar remain
+unchanged; focused gates, direct-runner product proofs, and the standalone full
+suite pass.
 
 The post-review forward-only architecture cleanup is implemented and verified
 under `docs/plans/2026-07-28-forward-only-post-review-cleanup.md`. Current
@@ -69,9 +71,10 @@ providers.
 
 ## Next Action
 
-Execute and verify the remaining bounded saturation-refactor slices. The
-refreshed immutable candidate remains unmodified and is now superseded for
-publication review; publication remains unauthorized.
+No implementation action remains for the bounded saturation-refactor plan. The
+refreshed immutable candidate remains unmodified and is superseded for
+publication review; publication remains unauthorized and is a separate human
+decision.
 
 ## Current Blockers
 
@@ -97,6 +100,7 @@ publication review; publication remains unauthorized.
 ## Current Source Links
 
 Plans:
+`docs/plans/2026-07-30-post-cleanup-saturation-refactors.md`,
 `docs/plans/2026-07-28-forward-only-post-review-cleanup.md`,
 `docs/plans/2026-07-27-restore-codex-mimo-responses-cells.md`,
 `docs/plans/2026-07-01-recommended-runtime-map-prior-selection.md`,
