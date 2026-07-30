@@ -15,20 +15,22 @@ from roboclaws.agents.drivers.openai_agents_budget import (
     openai_agents_observe_budget_advisory,
     raw_fpv_budget_metrics,
 )
-from roboclaws.agents.drivers.openai_agents_live import (
-    OpenAIAgentsLiveRuntime,
-    _default_sdk_model_settings_payload,
-    _failure_from_exception,
-    _mcp_client_session_timeout_seconds,
+from roboclaws.agents.drivers.openai_agents_compaction import _compact_model_input_items
+from roboclaws.agents.drivers.openai_agents_event_projection import _model_input_shape_summary
+from roboclaws.agents.drivers.openai_agents_live import OpenAIAgentsLiveRuntime
+from roboclaws.agents.drivers.openai_agents_perf_profile import (
+    resolve_agent_sdk_perf_profile as _resolve_agent_sdk_perf_profile,
+)
+from roboclaws.agents.drivers.openai_agents_provider_runtime import (
+    failure_from_exception as _failure_from_exception,
+)
+from roboclaws.agents.drivers.openai_agents_retry_model import (
     _RetryingModel,
     _should_retry_model_service_failure,
 )
-from roboclaws.agents.drivers.openai_agents_model_input import (
-    _compact_model_input_items,
-    _model_input_shape_summary,
-)
-from roboclaws.agents.drivers.openai_agents_perf_profile import (
-    resolve_agent_sdk_perf_profile as _resolve_agent_sdk_perf_profile,
+from roboclaws.agents.drivers.openai_agents_run_config import (
+    _default_sdk_model_settings_payload,
+    _mcp_client_session_timeout_seconds,
 )
 from roboclaws.agents.drivers.openai_agents_spans import RoboclawsSpanRecorder
 from roboclaws.agents.household_live_runner import (
@@ -92,7 +94,6 @@ def test_live_agent_request_keeps_one_turn_policy_explicit(tmp_path: Path) -> No
         run_dir=tmp_path / "run",
         artifact_paths={"live_status": tmp_path / "status.json"},
     )
-
     assert request.one_turn is True
     assert request.max_turns is None
     assert request.artifact_path("live_status", "live_status.json") == tmp_path / "status.json"
@@ -185,7 +186,6 @@ def test_live_agent_result_reads_existing_cli_artifacts(tmp_path: Path) -> None:
     (run_dir / "openai-agents-spans.jsonl").write_text('{"event":"span_end"}\n', encoding="utf-8")
 
     result = live_agent_result_from_artifacts(run_dir)
-
     assert result.phase == "failed"
     assert result.reason == "tool_binding_failure"
     assert result.retryable is False
@@ -1418,7 +1418,7 @@ def test_openai_agents_runtime_configures_model_input_compaction_filter(
     assert "call_model_input_filter" not in events[0]["sdk_run_config"]
 
 
-def test_openai_agents_model_input_filter_warns_before_model_call_on_observe_budget(
+def test_openai_agents_compaction_filter_warns_before_model_call_on_observe_budget(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -6608,7 +6608,7 @@ def test_openai_agents_context_metrics_missing_usage_is_unavailable(tmp_path: Pa
     assert cache["stable_prefix_hash"] == "stable-hash"
 
 
-def test_openai_agents_model_input_filter_metrics_are_aggregate_only(tmp_path: Path) -> None:
+def test_openai_agents_compaction_filter_metrics_are_aggregate_only(tmp_path: Path) -> None:
     run_dir = tmp_path / "run"
     run_dir.mkdir()
     (run_dir / "openai-agents-events.jsonl").write_text(

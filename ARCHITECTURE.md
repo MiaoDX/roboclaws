@@ -213,6 +213,15 @@ payloads, route blocker policy, and host probes. Launcher, readiness, and
 server callers import policy directly; the composition module owns only the
 inventory and blocker payload assembly and is not a compatibility facade.
 
+The OpenAI Agents SDK driver is composed by
+`agents/drivers/openai_agents_live.py`. Run configuration, validated setting
+values, retry behavior, provider racing, event logging and projection,
+completed-tool history, RAW-FPV image memory, camera-grounded history, and
+model-input compaction have direct behavior owners. The retired mixed
+`openai_agents_model_input` owner is absent; tests and runtime callers import
+the true owners while serialized event, cost, privacy, and result schemas stay
+unchanged.
+
 The clean-slate direction is:
 
 - `surface=household-world preset=map-build` produces Runtime Metric Map

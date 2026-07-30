@@ -951,4 +951,15 @@ hardware proof cannot run for a demonstrated environment reason.
   and readiness contracts, Ruff/format checks, and static ratchets pass.
   Oversized Python modules decrease from 63 to 62; the graph is 342 modules /
   1,011 edges with zero SCCs, bidirectional pairs, or forbidden edges.
-- Next action: continue Wave 6 with the OpenAI live runtime behavior split.
+- Wave 6 completed slice: the 1,883-line OpenAI live driver and 1,700-line
+  mixed model-input owner are split forward-only into composition, run
+  configuration, validated setting values, retry, provider racing, event log,
+  event projection, completed history, RAW-FPV image memory, camera-grounded
+  history, and compaction owners. The old model-input module is deleted; tests
+  and performance-profile callers use true owners with no compatibility
+  exports. All 201 focused SDK runtime/input/budget/metrics contracts and
+  Ruff/format/static ratchets pass. Serialized provider, cost, event, result,
+  and privacy contracts remain unchanged. Oversized Python modules decrease
+  from 62 to 60; the graph is 352 modules / 1,052 edges with zero SCCs,
+  bidirectional pairs, or forbidden edges.
+- Next action: continue Wave 6 with the household runtime behavior split.

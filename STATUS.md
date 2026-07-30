@@ -22,7 +22,11 @@ splits are active. The operator-console browser monolith is now ten native ES
 modules with one state owner and a 180-line composition entrypoint; focused,
 static, and real-browser workflow proofs pass. Runtime inventory now has
 separate source, task-model, blocker-policy, and host-probe owners with a
-61-line composition module; its full console and static gates pass.
+61-line composition module; its full console and static gates pass. The OpenAI
+Agents SDK runtime now has direct owners for composition, configuration,
+retry/racing, events, history, image/grounded memory, and compaction; 201
+focused contracts and static ratchets pass with serialized provider, cost,
+privacy, and result behavior unchanged.
 The migration preserves public launch, artifact, privacy, provider, simulator,
 and operator behavior while removing dependency cycles, retiring completed
 investigation surfaces, moving product subsystems out of scripts, and splitting
@@ -107,8 +111,8 @@ providers.
 
 ## Next Action
 
-Continue Wave 6 with OpenAI live runtime, followed by household runtime, world sampling,
-reports, eval pipeline, planner/runtime-prior clusters, and retained tests. The
+Continue Wave 6 with household runtime, followed by world sampling, reports,
+eval pipeline, planner/runtime-prior clusters, and retained tests. The
 refreshed immutable candidate remains unmodified; publication remains
 unauthorized and separate from this campaign.
 
