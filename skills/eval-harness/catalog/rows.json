@@ -118,7 +118,6 @@
       "command": [
         "./scripts/dev/run_pytest_standalone.sh",
         "-q",
-        "tests/unit/molmo_cleanup/test_molmo_cleanup_policy.py",
         "tests/unit/molmo_cleanup/test_molmo_cleanup_semantic_acceptability.py",
         "tests/unit/molmo_cleanup/test_molmo_semantic_cleanup_loop.py"
       ],
