@@ -774,6 +774,13 @@ hardware proof cannot run for a demonstrated environment reason.
   `household_runtime_contract.py` instead of importing that owner back. The
   final module SCC is absent; 123 runtime/MCP contract tests and all static
   ratchets pass without increasing frozen quality debt.
+- Wave 1 completed slices: shared direct/MCP artifact paths, goal/completion
+  status, public observation projections, evidence metadata, runtime-prior
+  summaries, robot-view metadata, metadata merging, and JSON writing now have
+  one interpretation in `realworld_run_artifacts.py`. The MCP adapter retains
+  its distinct timing/diagnostic/server behavior; downstream producer,
+  checker, report, privacy/schema, and static gates pass with 29 net lines
+  removed and no dictionary-schema change.
 - Planning-loop result: CONVERGED after two rounds. Round 1 entropy, docs-grill,
   and skeptic scouts found speculative layers, unsafe wave order, incomplete
   caller paths, proxy-metric gates, and preservation ambiguity. Round 2 verified
@@ -793,6 +800,5 @@ hardware proof cannot run for a demonstrated environment reason.
 - Parked: B1 authoring deletion beyond proven package-owned rebuild parity,
   publication, real-robot movement, EULA acceptance, public contract redesign,
   provider bakeoff, and unrelated feature work.
-- Next action: converge direct/MCP run-artifact assembly and validation in
-  `realworld_run_artifacts`, then remove the five bidirectional package edges
-  under the approved Wave 1 stop gates.
+- Next action: remove the five bidirectional package edges one owner cluster at
+  a time under the Wave 0 matrix and approved Wave 1 stop gates.
