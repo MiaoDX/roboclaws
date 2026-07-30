@@ -156,21 +156,6 @@ def _household_run(
     generated_mess_count = str(plan.relocation_count or 0)
     camera_labeler, visual_grounding_timeout_s = _profile_options(profile, kv)
 
-    if backend == "agibot_molmospaces_sim":
-        return _agibot_sim_run(
-            dispatch_intent=dispatch_intent,
-            driver=driver,
-            profile=profile,
-            seeds=seeds,
-            output_dir=output_dir,
-            prompt=prompt,
-            generated_mess_count=generated_mess_count,
-            robot_views=_get(kv, "robot_views", "auto"),
-            camera_labeler=camera_labeler,
-            visual_grounding_timeout_s=visual_grounding_timeout_s,
-            resolved_task_intent=plan.intent,
-            kv=kv,
-        )
     if backend == "agibot_gdk":
         return _agibot_gdk_run(
             dispatch_intent=dispatch_intent,
@@ -333,78 +318,6 @@ def _molmo_household_run(
         env=env,
         trace_args=trace_args,
     )
-
-
-def _agibot_sim_run(
-    *,
-    dispatch_intent: str,
-    driver: str,
-    profile: str,
-    seeds: str,
-    output_dir: str,
-    prompt: str,
-    generated_mess_count: str,
-    robot_views: str,
-    camera_labeler: str,
-    visual_grounding_timeout_s: str,
-    resolved_task_intent: str,
-    kv: dict[str, str],
-) -> int:
-    if driver != "direct":
-        _die("backend=agibot_molmospaces_sim currently supports direct driver only")
-    if len(seeds.split()) != 1:
-        _die("backend=agibot_molmospaces_sim accepts exactly one seed per run")
-    rehearsal_mode = _get(
-        kv,
-        "rehearsal_mode",
-        "cleanup-actions" if dispatch_intent in {"cleanup", "open-ended"} else "contract",
-    )
-    if rehearsal_mode not in {"contract", "cleanup-actions"}:
-        _die(f"unsupported rehearsal_mode '{rehearsal_mode}' (expected contract|cleanup-actions)")
-    runtime = _get(kv, "runtime", "fixture")
-    if runtime not in {"fixture", "molmospaces-subprocess"}:
-        _die(f"unsupported runtime '{runtime}' (expected fixture|molmospaces-subprocess)")
-    cmd = [
-        ".venv/bin/python",
-        "scripts/molmo_cleanup/run_molmospaces_agibot_contract_rehearsal.py",
-        "--output-dir",
-        output_dir,
-        "--seed",
-        seeds,
-        "--generated-mess-count",
-        generated_mess_count,
-        "--runtime",
-        runtime,
-        "--flow",
-        "prehardware",
-        "--intent",
-        resolved_task_intent,
-        "--profile",
-        profile,
-        "--task-prompt",
-        prompt,
-        "--rehearsal-mode",
-        rehearsal_mode,
-        "--cleanup-object-count",
-        _get(kv, "cleanup_object_count", "2"),
-    ]
-    if profile == "camera-grounded-labels":
-        cmd.extend(["--camera-labeler", camera_labeler])
-        if visual_grounding_timeout_s not in {"", "auto"}:
-            cmd.extend(["--visual-grounding-timeout-s", visual_grounding_timeout_s])
-    _append_optional(cmd, kv, "molmospaces_python", "--molmospaces-python")
-    _append_optional(cmd, kv, "robot_name", "--robot-name")
-    _append_optional(cmd, kv, "waypoint_id", "--waypoint-id")
-    _append_optional(cmd, kv, "run_dir", "--run-dir")
-    _append_optional(cmd, kv, "context_json", "--context-json")
-    _append_optional(cmd, kv, "agibot_map_artifact_dir", "--agibot-map-artifact-dir")
-    if robot_views in {"on", "true", "1", "yes"} or (
-        robot_views in {"auto", ""} and runtime == "molmospaces-subprocess"
-    ):
-        cmd.extend(["--include-robot", "--record-robot-views"])
-    elif robot_views not in {"off", "false", "0", "no", "auto", ""}:
-        _die(f"unsupported robot_views '{robot_views}' (expected auto|on|off)")
-    return _exec_or_trace(cmd)
 
 
 def _agibot_gdk_run(

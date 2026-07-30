@@ -27,10 +27,7 @@ from roboclaws.household.report_sections_agent import (
     raw_fpv_observations_section,
     real_robot_readiness_section,
 )
-from roboclaws.household.report_sections_agibot import (
-    agibot_sdk_runner_section,
-    molmospaces_agibot_rehearsal_section,
-)
+from roboclaws.household.report_sections_agibot import agibot_sdk_runner_section
 from roboclaws.household.report_sections_grasp_cache import (
     grasp_cache_availability_preflight_section,
     grasp_cache_generation_preflight_section,
@@ -246,13 +243,6 @@ def _cleanup_report_sections(
             _report_tab_panel(
                 "robot",
                 [
-                    molmospaces_agibot_rehearsal_section(
-                        run_dir,
-                        run_result,
-                        metric=_metric,
-                        path_table=_path_table,
-                        review_image=_review_image,
-                    ),
                     agibot_sdk_runner_section(
                         run_dir,
                         run_result,

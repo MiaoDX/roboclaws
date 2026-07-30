@@ -28,11 +28,6 @@
         "path": "roboclaws/evals/runner.py"
       },
       {
-        "lines": 1887,
-        "max_module_lines": 800,
-        "path": "roboclaws/household/agibot_contract_rehearsal.py"
-      },
-      {
         "lines": 1239,
         "max_module_lines": 800,
         "path": "roboclaws/household/agibot_sdk_runner.py"

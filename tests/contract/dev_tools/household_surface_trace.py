@@ -68,10 +68,6 @@ def _surface_overrides(overrides: tuple[str, ...]) -> list[str]:
         elif override == "backend=agibot_gdk":
             normalized_overrides.append("world=agibot-g2/map-12")
             normalized_overrides.append("backend=agibot-gdk")
-        elif override == "backend=agibot_molmospaces_sim":
-            normalized_overrides.append("world=agibot-g2/map-12")
-            normalized_overrides.append("backend=agibot-gdk")
-            normalized_overrides.append("backend_implementation=agibot_molmospaces_sim")
         elif override.startswith("environment_setup="):
             normalized_overrides.append(
                 override.replace("environment_setup=", "scenario_setup=", 1)
