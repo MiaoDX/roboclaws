@@ -331,22 +331,6 @@
         "trigger": "delete after the Wave 0 caller ledger and neighboring preservation proofs pass"
       },
       {
-        "disposition": "DELETE",
-        "lines": 1826,
-        "max_module_lines": 800,
-        "owner": "Wave 3 unconditional deletion",
-        "path": "scripts/molmo_cleanup/run_robot_camera_apple2apple_comparison.py",
-        "trigger": "delete after the Wave 0 caller ledger and neighboring preservation proofs pass"
-      },
-      {
-        "disposition": "DELETE",
-        "lines": 1979,
-        "max_module_lines": 800,
-        "owner": "Wave 3 unconditional deletion",
-        "path": "scripts/molmo_cleanup/summarize_robot_camera_visual_parity.py",
-        "trigger": "delete after the Wave 0 caller ledger and neighboring preservation proofs pass"
-      },
-      {
         "disposition": "SPLIT",
         "lines": 1717,
         "max_module_lines": 800,
@@ -556,22 +540,6 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 3214,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/unit/molmo_cleanup/test_robot_camera_apple2apple_comparison.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 2262,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/unit/molmo_cleanup/test_robot_camera_visual_parity_summary.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
         "lines": 1399,
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
@@ -618,12 +586,12 @@
     "line_count": "physical UTF-8 lines in Python files under the named roots",
     "source": {
       "files_at_least": {
-        "1000": 33,
-        "500": 129,
-        "800": 47
+        "1000": 31,
+        "500": 121,
+        "800": 45
       },
-      "loc": 180320,
-      "python_files": 421,
+      "loc": 169480,
+      "python_files": 403,
       "roots": [
         "roboclaws",
         "scripts"
@@ -631,12 +599,12 @@
     },
     "tests": {
       "files_at_least": {
-        "1000": 25,
-        "500": 51,
-        "800": 29
+        "1000": 23,
+        "500": 49,
+        "800": 27
       },
-      "loc": 108942,
-      "python_files": 237,
+      "loc": 102423,
+      "python_files": 230,
       "roots": [
         "tests"
       ]

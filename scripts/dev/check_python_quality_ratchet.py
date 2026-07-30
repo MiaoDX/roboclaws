@@ -302,8 +302,6 @@ def provisional_disposition(path: Path) -> dict[str, str]:
     deletion_prefixes = (
         "scripts/molmo_cleanup/run_raw_fpv_perception_probe.py",
         "scripts/molmo_cleanup/run_agent_sdk_perf_matrix.py",
-        "scripts/molmo_cleanup/run_robot_camera_apple2apple_comparison.py",
-        "scripts/molmo_cleanup/summarize_robot_camera_visual_parity.py",
     )
     if relative in deletion_prefixes:
         return {

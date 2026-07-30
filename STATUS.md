@@ -100,8 +100,8 @@ providers.
 
 ## Next Action
 
-Execute the Wave 3 unconditional deletion ledger in bounded green slices,
-starting with robot-camera parity and its frozen caller/proof manifest. The
+Continue the Wave 3 unconditional deletion ledger in bounded green slices with
+the CI rehearsal/Pages stack and its frozen caller/proof manifest. The
 refreshed immutable candidate remains unmodified; publication remains
 unauthorized and separate from this campaign.
 

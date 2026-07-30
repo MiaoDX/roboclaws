@@ -814,6 +814,13 @@ hardware proof cannot run for a demonstrated environment reason.
   six old modules were deleted without facades. Both Wave 1-2 policy guards are
   now enforced green with zero violations; root parity/loopback and static
   suites pass, and oversized modules decrease from 76 to 75.
+- Wave 3 completed slice: the robot-camera apple-to-apple/visual-parity stack,
+  two parity-only USD probes, seven dedicated tests, and its terminal active
+  capsule were deleted leaf-to-root. The 26-file slice removes 18,132 lines;
+  exact current caller searches are empty, 105 retained scene-camera/grid/Isaac
+  contracts pass, `apple2apple-grid` dry-run remains provider-free, and the
+  guarded Isaac preflight stops before EULA acceptance. Architecture/static
+  gates stay green and oversized modules decrease from 75 to 72.
 - Planning-loop result: CONVERGED after two rounds. Round 1 entropy, docs-grill,
   and skeptic scouts found speculative layers, unsafe wave order, incomplete
   caller paths, proxy-metric gates, and preservation ambiguity. Round 2 verified
@@ -833,5 +840,5 @@ hardware proof cannot run for a demonstrated environment reason.
 - Parked: B1 authoring deletion beyond proven package-owned rebuild parity,
   publication, real-robot movement, EULA acceptance, public contract redesign,
   provider bakeoff, and unrelated feature work.
-- Next action: execute Wave 3 unconditional deletion stacks leaf-to-root,
-  starting with robot-camera parity under its frozen caller and proof ledger.
+- Next action: continue Wave 3 with the CI rehearsal/Pages stack under its
+  frozen recipe, caller, workflow, and proof ledger.
