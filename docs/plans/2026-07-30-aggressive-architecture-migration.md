@@ -764,6 +764,11 @@ hardware proof cannot run for a demonstrated environment reason.
   and the SCC is absent. The full operator-console suite passes, and a root
   host-runtime smoke served `/`, `/api/routes`, and `/api/runtime/tasks` with
   valid responses before clean operator shutdown.
+- Wave 1 completed slices: operator-message JSONL reading and its normalized
+  summary moved to `operator_console/operator_message_artifacts.py`;
+  `operator_console/state.py` consumes that artifact owner and no longer
+  imports interactions, so the SCC is absent. The full operator-console suite,
+  root host HTTP inventory smoke, and static/architecture gates pass.
 - Planning-loop result: CONVERGED after two rounds. Round 1 entropy, docs-grill,
   and skeptic scouts found speculative layers, unsafe wave order, incomplete
   caller paths, proxy-metric gates, and preservation ambiguity. Round 2 verified
@@ -783,6 +788,7 @@ hardware proof cannot run for a demonstrated environment reason.
 - Parked: B1 authoring deletion beyond proven package-owned rebuild parity,
   publication, real-robot movement, EULA acceptance, public contract redesign,
   provider bakeoff, and unrelated feature work.
-- Recommended next action after approval: execute the whole plan through the
-  refactor workflow, beginning with Wave 0 and retaining all later waves and
-  stop gates as the approved execution unit.
+- Next action: remove the final module SCC between
+  `household_runtime_contract` and `realworld_contract_init`, then continue the
+  remaining Wave 1 ownership and package-direction slices under the approved
+  stop gates.

@@ -13,8 +13,11 @@ from roboclaws.operator_console.context_packets import (
     sanitize_operator_context_packet,
     strip_private_payload,
 )
-from roboclaws.operator_console.jsonl_sources import JsonlSourceIssue, collect_jsonl_objects
 from roboclaws.operator_console.launch_support import launch_overrides_from_run_state
+from roboclaws.operator_console.operator_message_artifacts import (
+    read_operator_message_rows,
+    read_operator_resume_rows,
+)
 from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.routes import ConsoleLaunchSelection, get_selection
 from roboclaws.operator_console.state import (
@@ -223,8 +226,8 @@ def append_next_goal_request(
 def list_operator_messages(root: Path, run_id: str) -> dict[str, Any]:
     run_dir, route, _run_state = _run_context(root, run_id)
     state = derive_operator_state(root, run_dir, route)
-    messages, source_errors = _read_message_rows_with_source_errors(run_dir)
-    resume_requests, resume_source_errors = _read_resume_rows_with_source_errors(run_dir)
+    messages, source_errors = read_operator_message_rows(run_dir)
+    resume_requests, resume_source_errors = read_operator_resume_rows(run_dir)
     return {
         "run_id": run_id,
         "operator_session_id": _session_id_from_run_state(run_dir),
@@ -257,39 +260,11 @@ def list_operator_messages(root: Path, run_id: str) -> dict[str, Any]:
     }
 
 
-def operator_message_state(root: Path, run_dir: Path) -> dict[str, Any]:
-    """Return summarized interaction state for ``derive_operator_state``."""
-
-    del root
-    rows, source_errors = _read_message_rows_with_source_errors(run_dir)
-    resume_rows, resume_source_errors = _read_resume_rows_with_source_errors(run_dir)
-    pending_steer = [
-        item
-        for item in rows
-        if item.get("command_type") == "steer" and item.get("status") == "queued"
-    ]
-    pending_resume = [
-        item
-        for item in resume_rows
-        if item.get("command_type") == "resume_with_prompt" and item.get("status") == "queued"
-    ]
-    return {
-        "operator_session_id": _session_id_from_run_state(run_dir),
-        "message_count": len(rows),
-        "pending_steer_count": len(pending_steer),
-        "operator_message_pending": bool(pending_steer),
-        "pending_resume_count": len(pending_resume),
-        "operator_resume_pending": bool(pending_resume),
-        "source_errors": [*source_errors, *resume_source_errors],
-        "source_error": bool(source_errors or resume_source_errors),
-    }
-
-
 def check_operator_messages_for_mcp(run_dir: Path, *, max_messages: int = 10) -> dict[str, Any]:
     """Return queued steer messages and mark them seen for MCP delivery."""
 
     wrapper_dir = _wrapper_dir_for_display(run_dir)
-    rows, source_errors = _read_message_rows_with_source_errors(wrapper_dir)
+    rows, source_errors = read_operator_message_rows(wrapper_dir)
     if source_errors:
         return {
             "ok": False,
@@ -345,7 +320,7 @@ def consume_resume_request_for_runner(run_dir: Path, *, max_requests: int = 1) -
     """Return queued resume requests and mark them claimed by the live runner."""
 
     wrapper_dir = _wrapper_dir_for_display(run_dir)
-    rows, source_errors = _read_resume_rows_with_source_errors(wrapper_dir)
+    rows, source_errors = read_operator_resume_rows(wrapper_dir)
     if source_errors:
         return {
             "ok": False,
@@ -388,7 +363,7 @@ def consume_resume_request_for_runner(run_dir: Path, *, max_requests: int = 1) -
 
 def pending_operator_message_hint(run_dir: Path) -> dict[str, Any]:
     wrapper_dir = _wrapper_dir_for_display(run_dir)
-    rows, source_errors = _read_message_rows_with_source_errors(wrapper_dir)
+    rows, source_errors = read_operator_message_rows(wrapper_dir)
     if source_errors:
         return {
             "operator_message_source_error": True,
@@ -677,60 +652,6 @@ def _write_session(root: Path, session: dict[str, Any]) -> None:
 
 def _append_message(run_dir: Path, message: dict[str, Any]) -> None:
     _append_jsonl(run_dir / MESSAGE_LOG, strip_private_payload(message))
-
-
-def _read_message_rows_with_source_errors(
-    run_dir: Path,
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    path = _message_log_path(run_dir)
-    rows, issues = collect_jsonl_objects(path, label="operator message source")
-    return rows, [_message_issue_source_error(issue) for issue in issues]
-
-
-def _read_resume_rows_with_source_errors(
-    run_dir: Path,
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    path = run_dir / RESUME_REQUEST_LOG
-    rows, issues = collect_jsonl_objects(path, label="operator resume source")
-    return rows, [_resume_issue_source_error(issue) for issue in issues]
-
-
-def _message_issue_source_error(issue: JsonlSourceIssue) -> dict[str, Any]:
-    return _issue_source_error(
-        issue,
-        source="operator_messages",
-        read_error_prefix="cannot read operator message source",
-    )
-
-
-def _resume_issue_source_error(issue: JsonlSourceIssue) -> dict[str, Any]:
-    return _issue_source_error(
-        issue,
-        source="operator_resume_requests",
-        read_error_prefix="cannot read operator resume source",
-    )
-
-
-def _issue_source_error(
-    issue: JsonlSourceIssue,
-    *,
-    source: str,
-    read_error_prefix: str,
-) -> dict[str, Any]:
-    if issue.kind == "read_error":
-        message = f"{read_error_prefix}: {issue.message}"
-    elif issue.kind == "invalid_json":
-        message = f"invalid JSON: {issue.message}"
-    else:
-        message = issue.message
-    payload: dict[str, Any] = {
-        "source": source,
-        "path": str(issue.path),
-        "message": message,
-    }
-    if issue.line_number is not None:
-        payload["line"] = issue.line_number
-    return payload
 
 
 def _rewrite_messages(run_dir: Path, rows: list[dict[str, Any]]) -> None:

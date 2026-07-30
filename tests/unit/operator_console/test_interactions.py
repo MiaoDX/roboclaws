@@ -15,9 +15,9 @@ from roboclaws.operator_console.interactions import (
     consume_resume_request_for_runner,
     get_operator_session,
     list_operator_messages,
-    operator_message_state,
     pending_operator_message_hint,
 )
+from roboclaws.operator_console.operator_message_artifacts import operator_message_state
 from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.routes import get_selection
 from tests.unit.operator_console.conftest import (
@@ -134,7 +134,7 @@ def test_list_messages_preserves_passive_bad_operator_state_summary(
     state_path.write_text(source, encoding="utf-8")
 
     messages = list_operator_messages(tmp_path, "run-a")
-    state = operator_message_state(tmp_path, run_dir)
+    state = operator_message_state(run_dir)
 
     assert messages["operator_session_id"] == ""
     assert messages["messages"] == []
@@ -299,7 +299,7 @@ def test_operator_message_state_surfaces_malformed_source_errors(tmp_path: Path)
     (run_dir / "operator_messages.jsonl").write_text("\n{not-json}\n", encoding="utf-8")
 
     messages = list_operator_messages(tmp_path, "run-a")
-    state = operator_message_state(tmp_path, run_dir)
+    state = operator_message_state(run_dir)
     seen = check_operator_messages_for_mcp(run_dir)
     hint = pending_operator_message_hint(run_dir)
 
@@ -349,7 +349,7 @@ def test_operator_messages_keep_valid_rows_with_source_errors(tmp_path: Path) ->
     )
 
     messages = list_operator_messages(tmp_path, "run-a")
-    state = operator_message_state(tmp_path, run_dir)
+    state = operator_message_state(run_dir)
     seen = check_operator_messages_for_mcp(run_dir)
 
     assert messages["source_error"] is True

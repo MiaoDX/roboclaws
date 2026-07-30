@@ -52,7 +52,7 @@
     ],
     "roboclaws": []
   },
-  "edge_count": 729,
+  "edge_count": 730,
   "edges": [
     {
       "kind": "import",
@@ -4168,35 +4168,35 @@
       "kind": "import",
       "line": 16,
       "source": "roboclaws.operator_console.interactions",
-      "target": "roboclaws.operator_console.jsonl_sources"
+      "target": "roboclaws.operator_console.launch_support"
     },
     {
       "kind": "import",
       "line": 17,
       "source": "roboclaws.operator_console.interactions",
-      "target": "roboclaws.operator_console.launch_support"
+      "target": "roboclaws.operator_console.operator_message_artifacts"
     },
     {
       "kind": "import",
-      "line": 18,
+      "line": 21,
       "source": "roboclaws.operator_console.interactions",
       "target": "roboclaws.operator_console.paths"
     },
     {
       "kind": "import",
-      "line": 19,
+      "line": 22,
       "source": "roboclaws.operator_console.interactions",
       "target": "roboclaws.operator_console.routes"
     },
     {
       "kind": "import",
-      "line": 20,
+      "line": 23,
       "source": "roboclaws.operator_console.interactions",
       "target": "roboclaws.operator_console.state"
     },
     {
       "kind": "import",
-      "line": 24,
+      "line": 27,
       "source": "roboclaws.operator_console.interactions",
       "target": "roboclaws.operator_console.state_summary"
     },
@@ -4367,6 +4367,12 @@
       "line": 14,
       "source": "roboclaws.operator_console.locks",
       "target": "roboclaws.operator_console.runtime_compat"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.operator_console.operator_message_artifacts",
+      "target": "roboclaws.operator_console.jsonl_sources"
     },
     {
       "kind": "import",
@@ -4610,12 +4616,6 @@
     },
     {
       "kind": "import",
-      "line": 153,
-      "source": "roboclaws.operator_console.state",
-      "target": "roboclaws.operator_console.interactions"
-    },
-    {
-      "kind": "import",
       "line": 21,
       "source": "roboclaws.operator_console.state",
       "target": "roboclaws.operator_console.jsonl_sources"
@@ -4630,29 +4630,35 @@
       "kind": "import",
       "line": 23,
       "source": "roboclaws.operator_console.state",
-      "target": "roboclaws.operator_console.redaction"
+      "target": "roboclaws.operator_console.operator_message_artifacts"
     },
     {
       "kind": "import",
       "line": 24,
       "source": "roboclaws.operator_console.state",
-      "target": "roboclaws.operator_console.routes"
+      "target": "roboclaws.operator_console.redaction"
     },
     {
       "kind": "import",
       "line": 25,
       "source": "roboclaws.operator_console.state",
-      "target": "roboclaws.operator_console.runtime_compat"
+      "target": "roboclaws.operator_console.routes"
     },
     {
       "kind": "import",
       "line": 26,
       "source": "roboclaws.operator_console.state",
-      "target": "roboclaws.operator_console.state_checker"
+      "target": "roboclaws.operator_console.runtime_compat"
     },
     {
       "kind": "import",
       "line": 27,
+      "source": "roboclaws.operator_console.state",
+      "target": "roboclaws.operator_console.state_checker"
+    },
+    {
+      "kind": "import",
+      "line": 28,
       "source": "roboclaws.operator_console.state",
       "target": "roboclaws.operator_console.state_summary"
     },
@@ -4699,15 +4705,11 @@
       "target": "roboclaws.household.report_sections_timing"
     }
   ],
-  "module_count": 245,
+  "module_count": 246,
   "module_sccs": [
     [
       "roboclaws.household.household_runtime_contract",
       "roboclaws.household.realworld_contract_init"
-    ],
-    [
-      "roboclaws.operator_console.interactions",
-      "roboclaws.operator_console.state"
     ]
   ],
   "package_bidirectional_edges": [
