@@ -14,7 +14,8 @@ The next proposed cleanup is the formal retirement of OpenClaw and repo-owned
 local Docker runtime surfaces under
 `docs/plans/2026-07-30-retire-openclaw-and-local-docker-surfaces.md`. The plan
 preserves the two active agent engines, remote-platform image configuration,
-and historical evidence; implementation awaits human approval.
+and historical evidence. A one-round agent planning loop converged with no
+remaining user-owned decisions; implementation still awaits human approval.
 
 The follow-up architecture simplification pass is complete. Five approved cuts
 removed the obsolete Agibot/MolmoSpaces simulation rehearsal, the retired
