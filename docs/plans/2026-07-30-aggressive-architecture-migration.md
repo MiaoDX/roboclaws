@@ -932,5 +932,16 @@ hardware proof cannot run for a demonstrated environment reason.
   pairs, or package-to-script violations. Oversized modules remain at 63: the
   moved readiness and alignment owners are explicitly retained for the Wave
   6-7 behavior splits. Wave 5 is complete.
-- Next action: begin Wave 6 with the operator-console native JavaScript behavior
-  split and browser-level workflow proof.
+- Wave 6 completed slice: the 2,697-line operator-console browser monolith is
+  split into ten native ES modules with `state.js` as the sole mutable state
+  owner and a 180-line `app.js` composition entrypoint. The server exposes only
+  root-level, non-hidden module assets with no-store delivery. Pure private
+  layout/source-wiring tests were removed; packaging, static-asset security,
+  retired-surface, preview artifact/privacy, readiness-policy, and accessibility
+  guards remain. The focused console suite, browser bundle, module syntax, and
+  static ratchets pass. Real Chromium proof covered route/workflow selection,
+  FPV mode and image dialog, latest-result attach, active-run rendering,
+  background tasks, manual control, and mobile/tablet/desktop layouts without
+  console errors.
+- Next action: continue Wave 6 with the `operator_console/runtime_inventory.py`
+  behavior split.

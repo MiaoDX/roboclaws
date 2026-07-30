@@ -199,6 +199,14 @@ Key pieces:
   links to existing run artifacts. It starts catalog-approved runs and surfaces
   state; it does not own robot task strategy.
 
+The operator-console browser client is native ES modules under
+`roboclaws/operator_console/static/`. `app.js` is the composition entrypoint;
+`state.js` is the sole mutable application-state owner, with workflow model and
+view, launch, background-task, run-session, manual-control, visual-workspace,
+and HTTP/DOM behavior owned by their named modules. The server serves only
+root-level, non-hidden JavaScript assets from that static directory and marks
+them no-store.
+
 The clean-slate direction is:
 
 - `surface=household-world preset=map-build` produces Runtime Metric Map
