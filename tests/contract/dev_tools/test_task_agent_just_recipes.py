@@ -28,7 +28,6 @@ JUST_DIR = REPO_ROOT / "just"
 AGENT_JUST = JUST_DIR / "agent.just"
 OPENCLAW_JUST = JUST_DIR / "openclaw.just"
 MOLMO_JUST = JUST_DIR / "molmo.just"
-AGENT_CLI = REPO_ROOT / "roboclaws" / "cli" / "agent.py"
 CODING_AGENT_ENV = REPO_ROOT / "scripts" / "dev" / "coding_agent_env.sh"
 LIVE_OPENAI_AGENTS_RUNNER = REPO_ROOT / "roboclaws/agents/household_live_runner.py"
 HOUSEHOLD_LIVE_DRIVER = REPO_ROOT / "roboclaws" / "agents" / "drivers" / "household_live.py"
@@ -393,10 +392,10 @@ def test_agent_harness_no_longer_advertises_agent_validation() -> None:
 
 
 def test_agent_harness_allows_molmo_visual_grounding_benchmark_target() -> None:
-    agent_text = AGENT_CLI.read_text(encoding="utf-8")
+    agent_text = AGENT_JUST.read_text(encoding="utf-8")
     harness_text = (JUST_DIR / "harness.just").read_text(encoding="utf-8")
 
-    assert "molmo-visual-grounding-benchmark" in agent_text
+    assert "molmo-visual-grounding-benchmark" not in agent_text
     assert re.search(r"^molmo-visual-grounding-benchmark \*overrides:", harness_text, re.MULTILINE)
     assert "run_visual_grounding_benchmark.py" in harness_text
     assert "check_visual_grounding_benchmark_result.py" in harness_text
@@ -453,7 +452,7 @@ def test_agent_mcp_rejects_task_named_household_dispatch_targets() -> None:
     assert_agent_mcp_fails("up", "household-world.cleanup")
     stderr = assert_agent_mcp_fails("up", "household-world.map-build")
 
-    body = AGENT_CLI.read_text(encoding="utf-8")
+    body = (JUST_DIR / "mcp.just").read_text(encoding="utf-8")
     assert "(expected household-world)" in stderr
     assert '"household-world"' in body
     assert '"household-world.cleanup"' not in body

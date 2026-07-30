@@ -8,16 +8,16 @@ Task control plane: current Codex root session.
 
 Latest user intent: execute and commit all five approved refactor candidates.
 
-Current slice: remove the maintainer `Just -> CLI -> Just` dispatch loop.
+Current slice: canonicalize operator-console run phase predicates.
 
-Last proven evidence: timing-proxy stale-reference search is clean; dependency
-sync, Ruff/format, and 153 focused report/eval/CI/command contract tests pass.
+Last proven evidence: public Just summary/trace parity passes; 112 focused
+command/current-source/Isaac routing tests pass; Ruff/format/diff checks pass.
 
-Completed slices: legacy run artifacts removed; provider timing proxy and its
-reader/switch/test/dependency surface removed.
+Completed slices: legacy run artifacts removed; provider timing proxy removed;
+maintainer Python dispatch loop and duplicate target registries removed.
 
-Next proof: public `agent::*` trace parity, exact duplicate-registry search,
-focused CLI/launch tests, Ruff, and diff check.
+Next proof: phase taxonomy unit tests, emergency-stop regression, operator
+console focused suite, Ruff, and diff check.
 
 Stop condition: all five plan rows committed and final deterministic/product
 proof passes.

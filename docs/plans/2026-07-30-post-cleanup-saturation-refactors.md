@@ -12,9 +12,9 @@ finishing canonical typed/state boundaries.
 ## Plan Ledger
 
 - Status: ACTIVE.
-- Current slice: remove the maintainer `Just -> CLI -> Just` dispatch loop.
-- Next action: forward public `agent::*` recipes directly to their canonical
-  private Just namespaces and move shared execution helpers to launch ownership.
+- Current slice: canonicalize operator-console run phase predicates.
+- Next action: move terminal/active phase truth to `state_summary` and migrate
+  state, checker, interaction, launcher, and inventory callers.
 - Blocker: none.
 - Active capsule: `docs/status/active/post-cleanup-saturation-refactors.md`.
 
@@ -90,7 +90,7 @@ Verification:
 | --- | --- | --- | --- |
 | Legacy run artifacts | P1 | Remove one test-only artifact owner and false contract gate | Done |
 | Provider timing proxy | P1 | Remove one inert producer/reader contract and stale switch | Done |
-| Maintainer dispatch loop | P1 | Remove one dispatcher and duplicate target registries | Pending |
+| Maintainer dispatch loop | P1 | Remove one dispatcher and duplicate target registries | Done |
 | Operator phase taxonomy | P1 | Merge phase owners and fix terminal classification | Pending |
 | Typed launch boundary | P1 | Remove string copies/reparse and retired backend inspectors | Pending |
 
@@ -109,6 +109,10 @@ Verification:
 - Provider timing proxy implementation/contract, report ingestion, CI/eval
   switch plumbing, tests, architecture claim, and direct `aiohttp` declaration
   were removed. SDK model-call metrics and performance reports pass unchanged.
+- Public `agent::*` recipes now validate against and forward directly to the
+  canonical private Just registry. The Python dispatcher and duplicate target
+  sets were removed; launch execution/redaction helpers now live in the launch
+  executor instead of a CLI module.
 
 ## Stop Condition
 
