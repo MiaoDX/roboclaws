@@ -870,7 +870,7 @@ household-world-impl:
         ;;
     esac
 
-    .venv/bin/python scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py \
+    .venv/bin/python -m roboclaws.evals.cleanup_result_cli \
       "${checker_args[@]}" \
       "$run_root"
     echo "==> reports:"

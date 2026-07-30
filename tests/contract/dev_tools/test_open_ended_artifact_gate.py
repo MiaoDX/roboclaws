@@ -19,7 +19,7 @@ def test_molmo_direct_open_ended_recipe_uses_artifact_gate_before_cleanup_checke
     root_gate = text.index('if [[ "$open_ended_intent" == "true" ]]; then')
     root_artifact_gate = text.index("roboclaws.core.open_ended_artifacts", root_gate)
     root_cleanup_checker = text.index(
-        "scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py",
+        "roboclaws.evals.cleanup_result_cli",
         root_gate,
     )
 

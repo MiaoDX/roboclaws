@@ -268,14 +268,6 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 2192,
-        "max_module_lines": 800,
-        "owner": "Wave 5 package ownership migration",
-        "path": "scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py",
-        "trigger": "move retained product behavior to its package owner and reduce the CLI adapter"
-      },
-      {
-        "disposition": "SPLIT",
         "lines": 1412,
         "max_module_lines": 800,
         "owner": "Wave 5 package ownership migration",
@@ -344,14 +336,6 @@
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
         "path": "tests/contract/checkers/test_check_molmo_planner_proof_bundle_runner_result.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 5169,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/contract/checkers/test_check_molmo_realworld_cleanup_result.py",
         "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
@@ -530,12 +514,12 @@
     "line_count": "physical UTF-8 lines in Python files under the named roots",
     "source": {
       "files_at_least": {
-        "1000": 28,
-        "500": 114,
-        "800": 41
+        "1000": 27,
+        "500": 116,
+        "800": 40
       },
-      "loc": 161290,
-      "python_files": 401,
+      "loc": 161485,
+      "python_files": 410,
       "roots": [
         "roboclaws",
         "scripts"
@@ -543,12 +527,12 @@
     },
     "tests": {
       "files_at_least": {
-        "1000": 20,
-        "500": 45,
-        "800": 24
+        "1000": 19,
+        "500": 50,
+        "800": 23
       },
-      "loc": 96562,
-      "python_files": 223,
+      "loc": 96535,
+      "python_files": 232,
       "roots": [
         "tests"
       ]

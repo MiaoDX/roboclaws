@@ -176,6 +176,11 @@ Key pieces:
   scene/robot capture, rendering diagnostics, and checker policy. The worker
   and checker run as package modules while Isaac dependencies remain isolated
   in `.venv-isaaclab/`; harnesses do not accept the Omniverse EULA by default.
+- `roboclaws/household/cleanup_validation*.py` owns cleanup artifact, schema,
+  privacy, map, planner, robot-view, and backend structural validation. Product
+  runs use `python -m roboclaws.household.cleanup_validation_cli` and never
+  depend on eval code. `roboclaws/evals/cleanup_result_*` composes that product
+  validation with benchmark-only advisory scoring for eval and harness rows.
 - `roboclaws/household/agibot_sdk_runner.py` owns the Roboclaws-side Agibot
   SDK subprocess adapter, including conversion of SDK-local exports into the
   public household Agent View v2 artifact. The vendor runner at

@@ -1,24 +1,16 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-CHECKER_PATH = REPO_ROOT / "scripts" / "molmo_cleanup" / "check_molmo_realworld_cleanup_result.py"
+from roboclaws.evals.cleanup_result_grader import assert_advisory_scoring
+from roboclaws.household import cleanup_validation as checker_module
 
 
 def _load_checker():
-    spec = importlib.util.spec_from_file_location(
-        "check_molmo_realworld_cleanup_result", CHECKER_PATH
-    )
-    assert spec is not None
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
+    return checker_module
 
 
 @pytest.mark.parametrize(
@@ -44,7 +36,7 @@ def test_checker_rejects_malformed_top_level_run_result_source(
     run_result_path.write_text(source, encoding="utf-8")
 
     with pytest.raises(ValueError, match=message):
-        checker._load_run_results(run_result_path)
+        checker.load_run_results(run_result_path)
 
 
 @pytest.mark.parametrize(
@@ -71,7 +63,7 @@ def test_checker_rejects_malformed_seed_run_result_source(
     run_result_path.write_text(source, encoding="utf-8")
 
     with pytest.raises(ValueError, match=message):
-        checker._load_run_results(tmp_path)
+        checker.load_run_results(tmp_path)
 
 
 def test_checker_accepts_json_object_run_result_source(tmp_path: Path) -> None:
@@ -79,7 +71,7 @@ def test_checker_accepts_json_object_run_result_source(tmp_path: Path) -> None:
     run_result_path = tmp_path / "run_result.json"
     run_result_path.write_text('{"seed": 7}\n', encoding="utf-8")
 
-    assert checker._load_run_results(run_result_path) == [({"seed": 7}, run_result_path)]
+    assert checker.load_run_results(run_result_path) == [({"seed": 7}, run_result_path)]
 
 
 @pytest.mark.parametrize(
@@ -160,7 +152,6 @@ def test_checker_rejects_malformed_advisory_artifact_source(
     source: str,
     message: str,
 ) -> None:
-    checker = _load_checker()
     advisory_path = tmp_path / "advisory.json"
     advisory_path.write_text(source, encoding="utf-8")
     run_result = {
@@ -170,7 +161,7 @@ def test_checker_rejects_malformed_advisory_artifact_source(
     }
 
     with pytest.raises(ValueError, match=message):
-        checker._assert_advisory_scoring(
+        assert_advisory_scoring(
             run_result,
             tmp_path,
             report_text="Advisory Review",
@@ -178,7 +169,6 @@ def test_checker_rejects_malformed_advisory_artifact_source(
 
 
 def test_checker_rejects_missing_advisory_artifact_source(tmp_path: Path) -> None:
-    checker = _load_checker()
     run_result = {
         "generated_mess_count": 1,
         "advisory_evaluation": _advisory_evaluation(),
@@ -189,7 +179,7 @@ def test_checker_rejects_missing_advisory_artifact_source(tmp_path: Path) -> Non
         FileNotFoundError,
         match=r"advisory evaluation source is missing: .*missing_advisory\.json",
     ):
-        checker._assert_advisory_scoring(
+        assert_advisory_scoring(
             run_result,
             tmp_path,
             report_text="Advisory Review",
@@ -197,12 +187,11 @@ def test_checker_rejects_missing_advisory_artifact_source(tmp_path: Path) -> Non
 
 
 def test_checker_accepts_matching_advisory_artifact_source(tmp_path: Path) -> None:
-    checker = _load_checker()
     advisory = _advisory_evaluation()
     advisory_path = tmp_path / "advisory.json"
     advisory_path.write_text(json.dumps(advisory), encoding="utf-8")
 
-    checker._assert_advisory_scoring(
+    assert_advisory_scoring(
         {
             "generated_mess_count": 1,
             "advisory_evaluation": advisory,

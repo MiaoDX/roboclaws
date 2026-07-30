@@ -48,7 +48,7 @@
     "reports": [],
     "roboclaws": []
   },
-  "edge_count": 884,
+  "edge_count": 961,
   "edges": [
     {
       "kind": "import",
@@ -1882,6 +1882,48 @@
     },
     {
       "kind": "import",
+      "line": 5,
+      "source": "roboclaws.evals.cleanup_result_args",
+      "target": "roboclaws.household.cleanup_validation_args"
+    },
+    {
+      "kind": "import",
+      "line": 3,
+      "source": "roboclaws.evals.cleanup_result_cli",
+      "target": "roboclaws.evals.cleanup_result_args"
+    },
+    {
+      "kind": "import",
+      "line": 4,
+      "source": "roboclaws.evals.cleanup_result_cli",
+      "target": "roboclaws.evals.cleanup_result_grader"
+    },
+    {
+      "kind": "import",
+      "line": 5,
+      "source": "roboclaws.evals.cleanup_result_cli",
+      "target": "roboclaws.household.cleanup_validation_cli"
+    },
+    {
+      "kind": "import",
+      "line": 6,
+      "source": "roboclaws.evals.cleanup_result_cli",
+      "target": "roboclaws.household.cleanup_validation_support"
+    },
+    {
+      "kind": "import",
+      "line": 6,
+      "source": "roboclaws.evals.cleanup_result_grader",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 7,
+      "source": "roboclaws.evals.cleanup_result_grader",
+      "target": "roboclaws.household.cleanup_validation_support"
+    },
+    {
+      "kind": "import",
       "line": 12,
       "source": "roboclaws.evals.cli",
       "target": "roboclaws.evals.canonical_prior"
@@ -2593,6 +2635,498 @@
       "line": 6,
       "source": "roboclaws.household.cleanup_routine",
       "target": "roboclaws.household.semantic_timeline"
+    },
+    {
+      "kind": "import",
+      "line": 7,
+      "source": "roboclaws.household.cleanup_validation",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.household.cleanup_validation",
+      "target": "roboclaws.household.cleanup_validation_agent_view"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.household.cleanup_validation",
+      "target": "roboclaws.household.cleanup_validation_agent_view"
+    },
+    {
+      "kind": "import",
+      "line": 14,
+      "source": "roboclaws.household.cleanup_validation",
+      "target": "roboclaws.household.cleanup_validation_base_map"
+    },
+    {
+      "kind": "import",
+      "line": 17,
+      "source": "roboclaws.household.cleanup_validation",
+      "target": "roboclaws.household.cleanup_validation_evidence"
+    },
+    {
+      "kind": "import",
+      "line": 25,
+      "source": "roboclaws.household.cleanup_validation",
+      "target": "roboclaws.household.cleanup_validation_planner"
+    },
+    {
+      "kind": "import",
+      "line": 38,
+      "source": "roboclaws.household.cleanup_validation",
+      "target": "roboclaws.household.cleanup_validation_run"
+    },
+    {
+      "kind": "import",
+      "line": 53,
+      "source": "roboclaws.household.cleanup_validation",
+      "target": "roboclaws.household.cleanup_validation_support"
+    },
+    {
+      "kind": "import",
+      "line": 56,
+      "source": "roboclaws.household.cleanup_validation",
+      "target": "roboclaws.household.cleanup_validation_support"
+    },
+    {
+      "kind": "import",
+      "line": 59,
+      "source": "roboclaws.household.cleanup_validation",
+      "target": "roboclaws.household.household_runtime_contract"
+    },
+    {
+      "kind": "import",
+      "line": 62,
+      "source": "roboclaws.household.cleanup_validation",
+      "target": "roboclaws.household.household_runtime_contract"
+    },
+    {
+      "kind": "import",
+      "line": 65,
+      "source": "roboclaws.household.cleanup_validation",
+      "target": "roboclaws.household.profiles"
+    },
+    {
+      "kind": "import",
+      "line": 66,
+      "source": "roboclaws.household.cleanup_validation",
+      "target": "roboclaws.household.report_visual_core"
+    },
+    {
+      "kind": "import",
+      "line": 67,
+      "source": "roboclaws.household.cleanup_validation",
+      "target": "roboclaws.household.semantic_timeline"
+    },
+    {
+      "kind": "import",
+      "line": 5,
+      "source": "roboclaws.household.cleanup_validation_agent_view",
+      "target": "roboclaws.household"
+    },
+    {
+      "kind": "import",
+      "line": 5,
+      "source": "roboclaws.household.cleanup_validation_agent_view",
+      "target": "roboclaws.household.agent_view"
+    },
+    {
+      "kind": "import",
+      "line": 6,
+      "source": "roboclaws.household.cleanup_validation_agent_view",
+      "target": "roboclaws.household.household_runtime_contract"
+    },
+    {
+      "kind": "import",
+      "line": 17,
+      "source": "roboclaws.household.cleanup_validation_agent_view",
+      "target": "roboclaws.household.profiles"
+    },
+    {
+      "kind": "import",
+      "line": 18,
+      "source": "roboclaws.household.cleanup_validation_agent_view",
+      "target": "roboclaws.household.visual_grounding"
+    },
+    {
+      "kind": "import",
+      "line": 5,
+      "source": "roboclaws.household.cleanup_validation_base_map",
+      "target": "roboclaws.household"
+    },
+    {
+      "kind": "import",
+      "line": 5,
+      "source": "roboclaws.household.cleanup_validation_base_map",
+      "target": "roboclaws.household.agent_view"
+    },
+    {
+      "kind": "import",
+      "line": 6,
+      "source": "roboclaws.household.cleanup_validation_base_map",
+      "target": "roboclaws.household.household_runtime_contract"
+    },
+    {
+      "kind": "import",
+      "line": 7,
+      "source": "roboclaws.household.cleanup_validation_base_map",
+      "target": "roboclaws.maps.base_waypoints"
+    },
+    {
+      "kind": "import",
+      "line": 7,
+      "source": "roboclaws.household.cleanup_validation_cli",
+      "target": "roboclaws.household.cleanup_validation"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.household.cleanup_validation_cli",
+      "target": "roboclaws.household.cleanup_validation_args"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.household.cleanup_validation_cli",
+      "target": "roboclaws.household.household_runtime_contract"
+    },
+    {
+      "kind": "import",
+      "line": 10,
+      "source": "roboclaws.household.cleanup_validation_evidence",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.household.cleanup_validation_evidence",
+      "target": "roboclaws.household"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.household.cleanup_validation_evidence",
+      "target": "roboclaws.household.agent_view"
+    },
+    {
+      "kind": "import",
+      "line": 12,
+      "source": "roboclaws.household.cleanup_validation_evidence",
+      "target": "roboclaws.household.cleanup_validation_base_map"
+    },
+    {
+      "kind": "import",
+      "line": 15,
+      "source": "roboclaws.household.cleanup_validation_evidence",
+      "target": "roboclaws.household.cleanup_validation_isaac"
+    },
+    {
+      "kind": "import",
+      "line": 18,
+      "source": "roboclaws.household.cleanup_validation_evidence",
+      "target": "roboclaws.household.cleanup_validation_planner"
+    },
+    {
+      "kind": "import",
+      "line": 23,
+      "source": "roboclaws.household.cleanup_validation_evidence",
+      "target": "roboclaws.household.cleanup_validation_support"
+    },
+    {
+      "kind": "import",
+      "line": 26,
+      "source": "roboclaws.household.cleanup_validation_evidence",
+      "target": "roboclaws.household.cleanup_validation_support"
+    },
+    {
+      "kind": "import",
+      "line": 29,
+      "source": "roboclaws.household.cleanup_validation_evidence",
+      "target": "roboclaws.household.cleanup_validation_support"
+    },
+    {
+      "kind": "import",
+      "line": 32,
+      "source": "roboclaws.household.cleanup_validation_evidence",
+      "target": "roboclaws.household.cleanup_validation_support"
+    },
+    {
+      "kind": "import",
+      "line": 35,
+      "source": "roboclaws.household.cleanup_validation_evidence",
+      "target": "roboclaws.household.household_runtime_contract"
+    },
+    {
+      "kind": "import",
+      "line": 41,
+      "source": "roboclaws.household.cleanup_validation_evidence",
+      "target": "roboclaws.household.household_runtime_contract"
+    },
+    {
+      "kind": "import",
+      "line": 44,
+      "source": "roboclaws.household.cleanup_validation_evidence",
+      "target": "roboclaws.household.isaac_lab_backend"
+    },
+    {
+      "kind": "import",
+      "line": 48,
+      "source": "roboclaws.household.cleanup_validation_evidence",
+      "target": "roboclaws.household.semantic_timeline"
+    },
+    {
+      "kind": "import",
+      "line": 54,
+      "source": "roboclaws.household.cleanup_validation_evidence",
+      "target": "roboclaws.household.visual_grounding"
+    },
+    {
+      "kind": "import",
+      "line": 10,
+      "source": "roboclaws.household.cleanup_validation_isaac",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.household.cleanup_validation_isaac",
+      "target": "roboclaws.household.cleanup_validation_isaac_pose"
+    },
+    {
+      "kind": "import",
+      "line": 14,
+      "source": "roboclaws.household.cleanup_validation_isaac",
+      "target": "roboclaws.household.isaac_lab_backend"
+    },
+    {
+      "kind": "import",
+      "line": 19,
+      "source": "roboclaws.household.cleanup_validation_isaac",
+      "target": "roboclaws.household.manipulation_contract"
+    },
+    {
+      "kind": "import",
+      "line": 6,
+      "source": "roboclaws.household.cleanup_validation_isaac_pose",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 7,
+      "source": "roboclaws.household.cleanup_validation_isaac_pose",
+      "target": "roboclaws.household.isaac_lab_backend"
+    },
+    {
+      "kind": "import",
+      "line": 12,
+      "source": "roboclaws.household.cleanup_validation_isaac_pose",
+      "target": "roboclaws.household.manipulation_contract"
+    },
+    {
+      "kind": "import",
+      "line": 13,
+      "source": "roboclaws.household.cleanup_validation_isaac_pose",
+      "target": "roboclaws.household.realworld_mcp_atomic_tools"
+    },
+    {
+      "kind": "import",
+      "line": 14,
+      "source": "roboclaws.household.cleanup_validation_isaac_pose",
+      "target": "roboclaws.household.semantic_timeline"
+    },
+    {
+      "kind": "import",
+      "line": 7,
+      "source": "roboclaws.household.cleanup_validation_planner",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.household.cleanup_validation_planner",
+      "target": "roboclaws.household"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.household.cleanup_validation_planner",
+      "target": "roboclaws.household.agent_view"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.household.cleanup_validation_planner",
+      "target": "roboclaws.household.cleanup_primitive_evidence"
+    },
+    {
+      "kind": "import",
+      "line": 12,
+      "source": "roboclaws.household.cleanup_validation_planner",
+      "target": "roboclaws.household.cleanup_validation_run"
+    },
+    {
+      "kind": "import",
+      "line": 13,
+      "source": "roboclaws.household.cleanup_validation_planner",
+      "target": "roboclaws.household.cleanup_validation_support"
+    },
+    {
+      "kind": "import",
+      "line": 16,
+      "source": "roboclaws.household.cleanup_validation_planner",
+      "target": "roboclaws.household.cleanup_validation_support"
+    },
+    {
+      "kind": "import",
+      "line": 19,
+      "source": "roboclaws.household.cleanup_validation_planner",
+      "target": "roboclaws.household.cleanup_validation_waypoints"
+    },
+    {
+      "kind": "import",
+      "line": 23,
+      "source": "roboclaws.household.cleanup_validation_planner",
+      "target": "roboclaws.household.household_runtime_contract"
+    },
+    {
+      "kind": "import",
+      "line": 27,
+      "source": "roboclaws.household.cleanup_validation_planner",
+      "target": "roboclaws.household.household_runtime_contract"
+    },
+    {
+      "kind": "import",
+      "line": 30,
+      "source": "roboclaws.household.cleanup_validation_planner",
+      "target": "roboclaws.household.manipulation_contract"
+    },
+    {
+      "kind": "import",
+      "line": 31,
+      "source": "roboclaws.household.cleanup_validation_planner",
+      "target": "roboclaws.household.planner_cleanup_bridge"
+    },
+    {
+      "kind": "import",
+      "line": 34,
+      "source": "roboclaws.household.cleanup_validation_planner",
+      "target": "roboclaws.household.planner_proof_attachment"
+    },
+    {
+      "kind": "import",
+      "line": 37,
+      "source": "roboclaws.household.cleanup_validation_planner",
+      "target": "roboclaws.household.planner_proof_bundle"
+    },
+    {
+      "kind": "import",
+      "line": 42,
+      "source": "roboclaws.household.cleanup_validation_planner",
+      "target": "roboclaws.household.planner_proof_quality"
+    },
+    {
+      "kind": "import",
+      "line": 46,
+      "source": "roboclaws.household.cleanup_validation_planner",
+      "target": "roboclaws.household.planner_proof_requests"
+    },
+    {
+      "kind": "import",
+      "line": 47,
+      "source": "roboclaws.household.cleanup_validation_planner",
+      "target": "roboclaws.household.semantic_timeline"
+    },
+    {
+      "kind": "import",
+      "line": 56,
+      "source": "roboclaws.household.cleanup_validation_planner",
+      "target": "roboclaws.maps.route"
+    },
+    {
+      "kind": "import",
+      "line": 7,
+      "source": "roboclaws.household.cleanup_validation_run",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.household.cleanup_validation_run",
+      "target": "roboclaws.household.cleanup_validation_support"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.household.cleanup_validation_run",
+      "target": "roboclaws.household.cleanup_validation_support"
+    },
+    {
+      "kind": "import",
+      "line": 14,
+      "source": "roboclaws.household.cleanup_validation_run",
+      "target": "roboclaws.household.cleanup_validation_support"
+    },
+    {
+      "kind": "import",
+      "line": 17,
+      "source": "roboclaws.household.cleanup_validation_run",
+      "target": "roboclaws.household.household_runtime_contract"
+    },
+    {
+      "kind": "import",
+      "line": 20,
+      "source": "roboclaws.household.cleanup_validation_run",
+      "target": "roboclaws.household.household_runtime_contract"
+    },
+    {
+      "kind": "import",
+      "line": 23,
+      "source": "roboclaws.household.cleanup_validation_run",
+      "target": "roboclaws.household.realworld_runtime_map_targets"
+    },
+    {
+      "kind": "import",
+      "line": 28,
+      "source": "roboclaws.household.cleanup_validation_run",
+      "target": "roboclaws.household.semantic_timeline"
+    },
+    {
+      "kind": "import",
+      "line": 6,
+      "source": "roboclaws.household.cleanup_validation_support",
+      "target": "roboclaws.household"
+    },
+    {
+      "kind": "import",
+      "line": 6,
+      "source": "roboclaws.household.cleanup_validation_support",
+      "target": "roboclaws.household.agent_view"
+    },
+    {
+      "kind": "import",
+      "line": 7,
+      "source": "roboclaws.household.cleanup_validation_support",
+      "target": "roboclaws.household.household_runtime_contract"
+    },
+    {
+      "kind": "import",
+      "line": 5,
+      "source": "roboclaws.household.cleanup_validation_waypoints",
+      "target": "roboclaws.household"
+    },
+    {
+      "kind": "import",
+      "line": 5,
+      "source": "roboclaws.household.cleanup_validation_waypoints",
+      "target": "roboclaws.household.agent_view"
+    },
+    {
+      "kind": "import",
+      "line": 6,
+      "source": "roboclaws.household.cleanup_validation_waypoints",
+      "target": "roboclaws.household.household_runtime_contract"
     },
     {
       "kind": "import",
@@ -5661,7 +6195,7 @@
       "target": "roboclaws.maps.runtime_prior_catalog"
     }
   ],
-  "module_count": 311,
+  "module_count": 326,
   "module_sccs": [],
   "package_bidirectional_edges": [],
   "policies": [
@@ -5669,10 +6203,6 @@
       "description": "roboclaws modules must not import or execute scripts",
       "id": "package-to-scripts",
       "known_violations": [
-        [
-          "roboclaws.agents.household_live_runner",
-          "scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py"
-        ],
         [
           "roboclaws.launch.executor",
           "scripts/molmo_cleanup/run_physical_agibot_cleanup_pilot.py"

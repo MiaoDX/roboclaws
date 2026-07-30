@@ -116,7 +116,7 @@ from roboclaws.core.task_intents import (
     household_task_name_from_args as _household_run_id,
 )
 
-CHECKER_SCRIPT = "scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py"
+CHECKER_MODULE = "roboclaws.household.cleanup_validation_cli"
 REPORT_RERUN_COMMAND_ENV = "ROBOCLAWS_REPORT_RERUN_COMMAND"
 MAX_AGENT_SDK_SKILL_CONTEXT_BYTES = 24_000
 OPERATOR_HANDOFF_REASON = "operator_handoff_requested"
@@ -156,7 +156,6 @@ OPERATOR_HANDOFF_WAIT_MARKERS = (
     "等待",
     "我现在停止",
 )
-
 DEFAULT_INCOMPLETE_TURN_CONTINUATION_PROMPT = """
 Continuation recovery for the same live household cleanup run:
 
@@ -1015,7 +1014,8 @@ class LiveOpenAIAgentsHouseholdRunner:
         )
         checker_args = [
             str(self.args.repo_root / ".venv/bin/python"),
-            CHECKER_SCRIPT,
+            "-m",
+            CHECKER_MODULE,
             "--expect-task",
             self.args.task,
             "--expect-task-name",

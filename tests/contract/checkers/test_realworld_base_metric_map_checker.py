@@ -3,14 +3,14 @@ from __future__ import annotations
 import pytest
 
 from roboclaws.household import agent_view as agent_view_module
+from roboclaws.household import cleanup_validation as result_checker
+from roboclaws.household.cleanup_validation_base_map import (
+    assert_base_metric_map,
+)
 from roboclaws.maps.base_waypoints import (
     BASE_WAYPOINT_GENERATION_POLICY,
     BASE_WAYPOINT_PURPOSE,
     BASE_WAYPOINT_SOURCE,
-)
-from scripts.molmo_cleanup import check_molmo_realworld_cleanup_result as result_checker
-from scripts.molmo_cleanup.realworld_base_metric_map_checker import (
-    assert_base_metric_map,
 )
 
 

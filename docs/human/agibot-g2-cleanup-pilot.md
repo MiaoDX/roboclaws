@@ -360,7 +360,7 @@ console 当前支持：
 hardware run 后执行：
 
 ```bash
-.venv/bin/python scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py \
+.venv/bin/python -m roboclaws.household.cleanup_validation_cli \
   output/agibot/map-build-hardware/<stamp>/seed-7/run_result.json \
   --expect-backend agibot_gdk \
   --expect-mcp-server agibot_map_build \
@@ -368,7 +368,7 @@ hardware run 后执行：
   --require-camera-model-policy \
   --expect-visual-grounding-pipeline grounding-dino \
   --require-runtime-metric-map \
-  --require-semantic-sweep \
+  --require-map-build \
   --require-agibot-g2-hardware \
   --min-generated-mess-count 0 \
   --min-sweep-coverage 1.0 \

@@ -3293,7 +3293,7 @@ def _assert_openai_agents_timeline_and_checker(
     assert timing["timeline"]["latency_attribution"]["mcp_client_session_timeout_s"] == 30.0
     assert checker_commands
     checker_command = checker_commands[0]
-    assert "scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py" in checker_command
+    assert checker_command[1:3] == ["-m", "roboclaws.household.cleanup_validation_cli"]
     assert "--expect-policy" in checker_command
     assert "openai_agents_agent" in checker_command
     assert "--require-clean-agent-run" in checker_command

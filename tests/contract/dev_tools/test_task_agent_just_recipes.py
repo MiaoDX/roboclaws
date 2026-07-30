@@ -718,8 +718,8 @@ def test_openai_agents_runner_script_uses_runtime_contract_and_checker() -> None
     assert "OpenAIAgentsLiveRuntime" in runner_text
     assert "LiveAgentRequest" in runner_text
     assert "household_server_argv" in runner_text
-    assert "CHECKER_SCRIPT" in runner_text
-    assert "run_result.json" in runner_text
+    assert 'CHECKER_MODULE = "roboclaws.household.cleanup_validation_cli"' in runner_text
+    assert "CHECKER_SCRIPT" not in runner_text
 
 
 @pytest.mark.parametrize(

@@ -8,15 +8,15 @@ from typing import Any
 from PIL import Image, ImageStat
 
 from roboclaws.core.json_sources import read_json_object
+from roboclaws.household.cleanup_validation_isaac_pose import (
+    assert_isaac_runtime_semantic_pose,
+)
 from roboclaws.household.isaac_lab_backend import (
     ISAAC_SCENE_INDEX_ARTIFACT_SCHEMA,
     ISAACLAB_ROBOT_VIEW_VARIANT,
     ISAACLAB_SUBPROCESS_BACKEND,
 )
 from roboclaws.household.manipulation_contract import ISAAC_SEMANTIC_POSE_PROVENANCE
-from scripts.molmo_cleanup.isaac_semantic_pose_checker import (
-    assert_isaac_runtime_semantic_pose,
-)
 
 ISAAC_PUBLIC_SCENE_BINDING_SCHEMA = "isaac_public_scene_bindings_v1"
 

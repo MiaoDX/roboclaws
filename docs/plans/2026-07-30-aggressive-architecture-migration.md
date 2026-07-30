@@ -912,7 +912,15 @@ hardware proof cannot run for a demonstrated environment reason.
   SCCs/pairs; oversized modules decrease from 66 to 65. Worker execution is
   module-only, `.venv-isaaclab` isolation remains, and Isaac preflight, generic
   smoke, and B1 smoke default EULA acceptance to false.
-- Next action: split the current cleanup checker so structural product
-  invariants move into household validation and benchmark-only scoring moves
-  into eval graders, leaving only a thin CLI and eliminating the live runner's
-  package-to-script execution.
+- Wave 5 completed slice: the 2,192-line cleanup checker and five supporting
+  script checkers moved into package-owned household validation, with
+  benchmark-only advisory scoring isolated under eval. The product live runner
+  now invokes `roboclaws.household.cleanup_validation_cli`; eval and harness
+  rows explicitly use `roboclaws.evals.cleanup_result_cli` when advisory
+  scoring is required. The 5,169-line checker suite is split by behavior. The
+  focused suite and static ratchets pass at 326 modules / 961 edges with zero
+  SCCs/pairs; oversized modules decrease from 65 to 63, leaving only the
+  physical Agibot launcher as a ratcheted package-to-script violation.
+- Next action: migrate the B1 rebuild/reproducibility and physical Agibot launch
+  chain into package-owned CLIs, prove asset provenance/digest parity, and
+  eliminate the final package-to-script violation.
