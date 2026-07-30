@@ -17,13 +17,13 @@ from roboclaws.launch.worlds import resolve_optional_world_dependencies
 SUPPORTED_OVERRIDE_KEYS = frozenset(
     (
         "agibot_map_artifact_dir agent_engine b1_alignment_artifact b1_navigation_artifact "
-        "b1_semantic_projection_artifact backend camera_labeler cleanup_object_count "
+        "b1_semantic_projection_artifact backend camera_labeler "
         "cleanup_routine context_json driver evidence_lane environment_setup generated_mess_count "
         "generated_mess_manifest_path generated_mess_object_ids goal_contract_path "
         "host intent isaac_scene_usd_path map_bundle map_mode "
         "min_generated_mess_count mode model molmospaces_python operator_messages_path "
         "operator_resume_requests_path operator_session_context_json output_dir policy port preset "
-        "profile prompt provider_profile real_movement_enabled rehearsal_mode "
+        "profile prompt provider_profile real_movement_enabled "
         "relocation_count report robot_name robot_views run_dir "
         "run_preset runner_python runner_script runtime runtime_map_prior scenario_setup "
         "scene_index scene_source "

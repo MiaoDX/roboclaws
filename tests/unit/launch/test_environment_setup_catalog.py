@@ -353,6 +353,22 @@ def test_surface_rejects_old_public_generated_mess_count() -> None:
         )
 
 
+@pytest.mark.parametrize("axis", ("cleanup_object_count", "rehearsal_mode"))
+def test_surface_rejects_retired_agibot_rehearsal_overrides(axis: str) -> None:
+    with pytest.raises(LaunchError, match=rf"unsupported launch override '{axis}'"):
+        resolve_surface_launch(
+            [
+                "surface=household-world",
+                "world=molmospaces/procthor-10k-val/0",
+                "backend=mujoco",
+                "intent=cleanup",
+                "agent_engine=direct-runner",
+                "evidence_lane=world-public-labels",
+                f"{axis}=retired",
+            ]
+        )
+
+
 def test_openai_agents_sdk_accepts_chat_provider_profiles() -> None:
     plan = resolve_surface_launch(
         [

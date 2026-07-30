@@ -78,32 +78,7 @@ python scripts/maps/convert_agibot_navigation_memory.py \
 不要把 fixture fallback 当作正常步骤。vendor map 不完整时，应先修 submodule 或明确
 切到测试 fixture；测试 fixture 不是现场 Agibot 准备流程。
 
-### 3. Sim-first prompt/report rehearsal
-
-这个步骤只验证 prompt、report shape 和 minimal-map Runtime Metric Map 刷新边界。它不证明真实 G2、
-PNC、真实相机或 DINO。
-
-```bash
-OPEN_EVIDENCE_REFRESH_PROMPT='基于当前已有 Runtime Metric Map，自主选择 3 个最值得复核的 public semantic anchor 或 inspection waypoint，依次导航过去观察。优先选择 actionability=actionable、needs_review、costmap_disagrees 或缺少当前画面证据的目标；如果目标不可达或证据不清楚，跳过并记录原因。最后调用 done，总结你选择了哪里、为什么选择、每个点看到什么、哪些点被跳过。'
-
-just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=map-build agent_engine=direct-runner evidence_lane=camera-grounded-labels \
-  runtime=fixture \
-  rehearsal_mode=contract \
-  camera_labeler=grounding-dino \
-  policy=map_evidence_refresh \
-  prompt="$OPEN_EVIDENCE_REFRESH_PROMPT" \
-  output_dir=output/agibot/molmospaces-sim/map-evidence-refresh
-```
-
-期望产物：
-
-- `report.html`
-- `runtime/runtime_export.json`
-- `runtime_metric_map.json`
-- `physical_robot=false`
-- `simulated=true`
-
-### 4. Console route sanity
+### 3. Console route sanity
 
 HTML control console 已经注册了 Agibot G2 Map 12 world + Agibot GDK backend +
 map-build intent + OpenAI Agents SDK engine 组合。可以自动验证 gate 和 launcher 仍然可用：
