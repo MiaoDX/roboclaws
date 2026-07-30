@@ -144,7 +144,7 @@ For changes touching CI report assembly or Pages scripts, also run the relevant
 focused reproduction. For example, Pages helpers that must not depend on the
 project environment should be exercised with `python -S`.
 
-For changes whose claim depends on real simulator, model, Gateway, GPU, or
+For changes whose claim depends on real simulator, model, GPU, or
 robot behavior, run the matching local task or harness and record the command
 and artifact path. CI keeps that proof continuously visible; it is not the
 first validation for local-only claims.

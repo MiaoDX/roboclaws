@@ -139,8 +139,6 @@ def test_verify_delegates_scenario_gates_to_harness() -> None:
         "just harness::household-world",
         "just harness::molmo-realworld-agent-mcp",
         "just harness::molmo-realworld-agent-dogfood-kit",
-        "just harness::molmo-realworld-openclaw-dogfood-kit",
-        "just harness::molmo-realworld-openclaw-visual-dogfood-kit",
         "just harness::molmo-realworld-raw-fpv",
         "just harness::molmo-planner-proof-bundle-runner",
         "just harness::molmo-planner-proof-bundle-execute-rerun",
@@ -157,8 +155,6 @@ def test_harness_exposes_named_execution_rigs() -> None:
         r"^household-world seeds=\"1 2 3\"",
         r"^molmo-realworld-agent-mcp seeds=\"1\"",
         r"^molmo-realworld-agent-dogfood-kit seed=\"7\"",
-        r"^molmo-realworld-openclaw-dogfood-kit seed=\"7\"",
-        r"^molmo-realworld-openclaw-visual-dogfood-kit seed=\"7\"",
         r"^molmo-realworld-raw-fpv seed=\"7\"",
         (
             r"^molmo-planner-proof-bundle-runner "
@@ -204,7 +200,7 @@ def test_molmo_operator_reports_use_public_named_axes() -> None:
     assert "agent-report" not in text
     assert "codex-live" not in text
     assert "claude-live" not in text
-    assert "openclaw_agent" in text
+    assert "openclaw" not in text.lower()
     assert "household_contract_smoke_agent" in text
 
 
@@ -217,7 +213,6 @@ def test_molmo_axis_runner_distinguishes_smoke_from_current_live_agents() -> Non
         "unsupported cleanup lane",
         "--evidence-lane",
         "--expect-profile",
-        'SKILLS_DIR="$PWD/skills/household-world"',
         ("roboclaws_assert_openai_agents_provider_allowed"),
     ):
         assert expected in text
@@ -253,8 +248,6 @@ def test_molmo_harness_output_roots_keep_timestamped_runs() -> None:
         "household-world",
         "molmo-realworld-agent-mcp",
         "molmo-realworld-agent-dogfood-kit",
-        "molmo-realworld-openclaw-dogfood-kit",
-        "molmo-realworld-openclaw-visual-dogfood-kit",
         "molmo-realworld-raw-fpv",
         "molmo-planner-proof-bundle-runner",
         "molmo-planner-proof-bundle-execute-rerun",
@@ -272,29 +265,6 @@ def test_molmo_harness_output_roots_keep_timestamped_runs() -> None:
         assert 'rm -rf "{{output_dir}}"' not in body, recipe_name
 
 
-def test_openclaw_visual_kit_uses_real_visual_backend_and_checker() -> None:
-    text = HARNESS_JUST.read_text(encoding="utf-8")
-
-    recipe = re.search(
-        r"^molmo-realworld-openclaw-visual-dogfood-kit[\s\S]*?(?=^# |\Z)",
-        text,
-        re.MULTILINE,
-    )
-    assert recipe is not None
-    body = recipe.group(0)
-    for expected in (
-        "--backend molmospaces_subprocess",
-        "--policy openclaw_agent",
-        "--include-robot",
-        "--record-robot-views",
-        "--require-openclaw-minimum",
-        "--require-clean-agent-run",
-        "--require-robot-views",
-        "--require-advisory-scoring",
-    ):
-        assert expected in body
-
-
 def test_realworld_gates_require_advisory_scoring() -> None:
     text = HARNESS_JUST.read_text(encoding="utf-8")
 
@@ -302,8 +272,6 @@ def test_realworld_gates_require_advisory_scoring() -> None:
         "household-world",
         "molmo-realworld-agent-mcp",
         "molmo-realworld-agent-dogfood-kit",
-        "molmo-realworld-openclaw-dogfood-kit",
-        "molmo-realworld-openclaw-visual-dogfood-kit",
         "molmo-realworld-raw-fpv",
     ):
         recipe = re.search(

@@ -29,11 +29,9 @@ Every OpenAI Agents SDK launch selects `codex-responses`, `mimo-responses`,
 never selects a route, and the runtime does not fall back between Responses and
 Chat Completions.
 
-Run `just dev::network-status` before validation-required maintainer workflows.
-On the work network, guarded OpenClaw routes and system-provider Claude Code
-remain blocked. Repo-local OpenAI Agents SDK provider routes are allowed;
-provider-specific transport compatibility is internal to each adapter.
-Agent-facing work-network
+Run `just dev::network-status` before system-provider Claude Code debugging.
+Repo-local OpenAI Agents SDK provider routes are allowed; provider-specific
+transport compatibility is internal to each adapter. Agent-facing work-network
 restrictions and examples are documented in
 [`docs/agents/operating-runbook.md`](../agents/operating-runbook.md).
 

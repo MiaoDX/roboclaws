@@ -13,10 +13,6 @@ set dotenv-load := true
 set shell := ["bash", "-uc"]
 
 [private]
-mod openclaw  'just/openclaw.just'
-[private]
-mod chat      'just/chat.just'
-[private]
 mod dev       'just/dev.just'
 [private]
 mod mcp       'just/mcp.just'

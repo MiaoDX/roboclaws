@@ -4,12 +4,6 @@ from pathlib import Path
 
 import pytest
 
-INTEGRATION_MODULES = {
-    # Starts a local MCP server and mutates external CLI MCP registrations when
-    # the CLIs are installed. Keep it out of pre-commit fast loops.
-    "test_code_mcp_binding_smoke.py",
-}
-
 LOCAL_ASSET_MODULES = {
     # These validate private B1 / Agibot map exports or robot-data-lab scene
     # assets that are present on local workstations but not in GitHub checkout.
@@ -69,7 +63,7 @@ SLOW_TESTS = {
     },
 }
 
-LAYER_DIRS = ("local", "slow", "integration", "contract", "unit")
+LAYER_DIRS = ("local", "slow", "contract", "unit")
 
 CONTRACT_NAME_PARTS = (
     "appliance",
@@ -81,7 +75,6 @@ CONTRACT_NAME_PARTS = (
     "harness",
     "just_recipes",
     "mcp",
-    "openclaw",
     "realworld",
     "replay",
     "report",
@@ -89,7 +82,7 @@ CONTRACT_NAME_PARTS = (
     "verify_",
 )
 
-EXPLICIT_LAYER_MARKERS = ("local", "slow", "integration", "contract", "unit")
+EXPLICIT_LAYER_MARKERS = ("local", "slow", "contract", "unit")
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -114,8 +107,6 @@ def _layer_for_item(item: pytest.Item) -> str:
         return "local"
     if item.name.split("[", 1)[0] in LOCAL_ASSET_TESTS.get(filename, set()):
         return "local"
-    if filename in INTEGRATION_MODULES:
-        return "integration"
     directory_layer = _directory_layer(item, path)
     if directory_layer:
         return directory_layer

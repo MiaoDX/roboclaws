@@ -8,7 +8,6 @@ related tests close enough to scan.
 tests/
   unit/
   contract/
-  integration/
   fixtures/
   support/
 ```
@@ -18,8 +17,6 @@ tests/
 - `unit`: fast, isolated behavior through public module APIs.
 - `contract`: public schemas, CLI/recipe shapes, MCP tools, reports, replay
   artifacts, and compatibility promises.
-- `integration`: process, Docker, external CLI, provider, simulator, or other
-  environment-bound tests.
 - `local`: requires local GPU, paid API key, real simulator, or backend service.
 - `slow`: CI-safe but expensive enough to keep out of tight loops.
 
@@ -28,7 +25,7 @@ tests/
 ```bash
 ./scripts/dev/run_pytest_standalone.sh -m unit -q
 ./scripts/dev/run_pytest_standalone.sh -m contract -q
-./scripts/dev/run_pytest_standalone.sh -m "not integration and not local and not slow" -q
+./scripts/dev/run_pytest_standalone.sh -m "not local and not slow" -q
 ```
 
 `tests/conftest.py` auto-marks tests from the top-level folder. It still has a

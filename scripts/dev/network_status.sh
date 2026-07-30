@@ -59,14 +59,14 @@ print_status() {
     0)
       echo "network: work"
       echo "probe: reachable $probe_url"
-      echo "guard: OpenClaw and system-provider Codex/Claude manual-debug recipes are blocked here"
+      echo "guard: system-provider Codex/Claude manual-debug recipes are blocked here"
       echo "guard: repo-local OpenAI Agents SDK provider routes are allowed"
       echo "guard: retired Codex/Claude engines do not fall back to missing repo-local provider routes"
       ;;
     1)
       echo "network: non-work"
       echo "probe: unreachable $probe_url"
-      echo "guard: OpenClaw and SDK live-agent routes may run, subject to normal provider keys"
+      echo "guard: SDK live-agent routes may run, subject to normal provider keys"
       ;;
     *)
       echo "network: unknown"
@@ -75,7 +75,7 @@ print_status() {
       else
         echo "probe: ROBOCLAWS_WORK_NETWORK_PROBE_URL is not configured"
       fi
-      echo "guard: OpenClaw and SDK live-agent routes fail closed when they require a network decision"
+      echo "guard: SDK live-agent routes fail closed when they require a network decision"
       ;;
   esac
 }

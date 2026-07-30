@@ -15,10 +15,6 @@ from roboclaws.household.visual_backend_slots import (
     VisualBackendSlotError,
     list_visual_backend_slots,
 )
-from roboclaws.operator_console.launch_support import (
-    DockerMountSourceError,
-    docker_container_mount_sources,
-)
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root, operator_output_request_path
 from roboclaws.operator_console.redaction import redact_text
@@ -60,7 +56,6 @@ def runtime_inventory_payload(
     if _host_probe_enabled(root):
         tasks.extend(_tmux_tasks(root))
         tasks.extend(_port_owner_tasks(root, port_list))
-        tasks.extend(_docker_tasks(root))
     tasks = _dedupe_tasks(tasks)
     tasks.sort(key=lambda item: _sort_key(item), reverse=True)
     return {
@@ -166,7 +161,6 @@ def compact_task(task: dict[str, Any]) -> dict[str, Any]:
         "resources",
         "pid",
         "session_id",
-        "container_id",
         "run_dir",
         "display_run_dir",
         "started_at",
@@ -483,55 +477,6 @@ def _port_owner_tasks(root: Path, ports: list[int]) -> list[dict[str, Any]]:
     return tasks
 
 
-def _docker_tasks(root: Path) -> list[dict[str, Any]]:
-    result = _run_command(
-        ["docker", "ps", "--format", "{{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}"]
-    )
-    if result is None:
-        return []
-    tasks: list[dict[str, Any]] = []
-    for line in result.stdout.splitlines():
-        container_id, name, image, status = _split_docker_ps(line)
-        if not container_id:
-            continue
-        mounts, source_error = _docker_mount_sources(container_id)
-        if source_error:
-            tasks.append(
-                _docker_mount_source_error_task(
-                    container_id=container_id,
-                    name=name,
-                    image=image,
-                    status=status,
-                    source_error=source_error,
-                )
-            )
-            continue
-        if not any(_path_is_repo_relevant(root, mount) for mount in mounts):
-            continue
-        resources = [
-            _resource(
-                "docker_container",
-                name or container_id,
-                container_id=container_id,
-                active=True,
-            )
-        ]
-        tasks.append(
-            _task(
-                task_id=f"docker:{container_id}",
-                status="running",
-                owner="docker",
-                label=f"Docker container {name or container_id}",
-                resource=f"Docker container {name or container_id}",
-                resources=resources,
-                container_id=container_id,
-                artifacts=[],
-                extra={"image": image, "docker_status": status},
-            )
-        )
-    return tasks
-
-
 def _run_dir_resources(display_run_dir: Path | None) -> list[dict[str, Any]]:
     if display_run_dir is None:
         return []
@@ -672,7 +617,6 @@ def _task(
     route_id: str = "",
     pid: int | None = None,
     session_id: str = "",
-    container_id: str = "",
     run_dir: Path | None = None,
     display_run_dir: Path | None = None,
     started_at: str = "",
@@ -693,7 +637,6 @@ def _task(
         "route_id": route_id,
         "pid": pid,
         "session_id": session_id,
-        "container_id": container_id,
         "run_dir": str(run_dir) if run_dir else "",
         "display_run_dir": str(display_run_dir) if display_run_dir else "",
         "started_at": started_at,
@@ -805,7 +748,6 @@ def _has_ui_e2e_blocking_resource(task: dict[str, Any]) -> bool:
         "mcp_port",
         "visual_slot",
         "tmux_session",
-        "docker_container",
     }
     for resource in task.get("resources") or []:
         if resource.get("active") is False:
@@ -1115,66 +1057,6 @@ def _run_command(command: list[str]) -> Any | None:
         return None
 
 
-def _split_docker_ps(line: str) -> tuple[str, str, str, str]:
-    parts = line.split("\t")
-    parts.extend([""] * (4 - len(parts)))
-    return parts[0], parts[1], parts[2], parts[3]
-
-
-def _docker_mount_sources(container_id: str) -> tuple[list[Path], str]:
-    try:
-        return docker_container_mount_sources(container_id, run_command=subprocess.run), ""
-    except DockerMountSourceError as exc:
-        return [], _docker_mount_source_error_reason(exc)
-
-
-def _docker_mount_source_error_reason(error: DockerMountSourceError) -> str:
-    message = str(error)
-    if "contain invalid JSON" in message:
-        return "invalid_json"
-    if "must be a JSON array" in message:
-        return "invalid_json_array"
-    object_marker = "must contain JSON objects; got "
-    if object_marker in message:
-        return f"invalid_json_object:{message.rsplit(object_marker, 1)[1]}"
-    return "invalid_docker_mounts"
-
-
-def _docker_mount_source_error_task(
-    *,
-    container_id: str,
-    name: str,
-    image: str,
-    status: str,
-    source_error: str,
-) -> dict[str, Any]:
-    label = f"Docker container {name or container_id} mount metadata source error"
-    message = f"docker inspect mounts for {container_id} are unreadable: {source_error}"
-    return _task(
-        task_id=f"source-error:docker:{container_id}:mounts",
-        status="source_error",
-        owner="docker",
-        label=label,
-        resource=message,
-        resources=[
-            _resource(
-                "source_error",
-                message,
-                active=False,
-                error_reason="invalid_docker_mounts",
-                container_id=container_id,
-            )
-        ],
-        container_id=container_id,
-        extra={
-            "image": image,
-            "docker_status": status,
-            "error_reason": "invalid_docker_mounts",
-            "message": message,
-        },
-    )
-
-
 def _path_is_repo_relevant(root: Path, path: Path) -> bool:
     try:
         path.relative_to(root)
@@ -1184,7 +1066,7 @@ def _path_is_repo_relevant(root: Path, path: Path) -> bool:
 
 
 def _host_probe_enabled(root: Path) -> bool:
-    """Skip host-probe (tmux / port / docker) when not running from a repo root."""
+    """Skip host probes when not running from a repo root."""
 
     return (root / "pyproject.toml").is_file() and (root / "roboclaws").is_dir()
 

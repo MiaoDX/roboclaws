@@ -12,6 +12,6 @@
   - `ruff format --check .`
 - Completed slice summary: active docs, launch catalog, provider registry, eval identity/runtime, eval harness, operator console, Molmo/agent just recipes, Agibot SDK map-build route, and focused tests now use active engines `direct-runner` and `openai-agents-sdk`; `codex-cli` / `claude-code` are rejected through the retired-engine contract; dead detached live eval polling was removed; operator-console active phases use SDK naming.
 - Remaining reference classification: remaining Codex/Claude strings in the searched active surface are retired-engine error text, negative assertions, historical/manual-debug coding-agent helper tests, or provider/profile compatibility names such as `codex-router-responses`.
-- Stop condition: satisfied for deterministic proof. No active public/operator/eval route requires `codex-cli` or `claude-code`; OpenClaw remains guarded/future; Agibot map-build has an SDK route.
-- No-touch scope honored: OpenClaw not deleted; `codex-router-responses` retained as SDK provider profile; no compatibility alias added for retired engines.
+- Stop condition: satisfied for deterministic proof. No active public/operator/eval route requires a retired engine; Agibot map-build has an SDK route.
+- No-touch scope honored at completion; the later ADR-0148 retirement separately removed OpenClaw. `codex-router-responses` remained an SDK provider profile and no compatibility alias was added for retired engines.
 - Parked work: optional real live SDK eval remains dependent on provider/runtime health and was not run in this deterministic closeout.

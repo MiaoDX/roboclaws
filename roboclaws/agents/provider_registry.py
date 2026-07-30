@@ -43,7 +43,6 @@ class ModelSpec:
     default_use: bool = False
     default_use_note: str = ""
     cost_per_m: dict[str, float] = field(default_factory=dict)
-    openclaw_model_id: str | None = None
 
     @property
     def supports_image_input(self) -> bool:
@@ -141,7 +140,6 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         family="kimi",
         model_capabilities=_caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
         cost_per_m={"input": 1.00, "output": 3.00},
-        openclaw_model_id="anthropic_kimi/k2p5",
     ),
     ModelSpec(
         model_id="kimi-k2.7-code",
@@ -295,11 +293,6 @@ def maybe_resolve_model(model_name: str | None) -> ModelSpec | None:
         return None
 
 
-def openclaw_model_id(model_name: str) -> str:
-    spec = resolve_model(model_name)
-    return spec.openclaw_model_id or spec.model_id
-
-
 def cost_table_by_model() -> dict[str, dict[str, float]]:
     return {spec.model_id: dict(spec.cost_per_m) for spec in _MODEL_SPECS if spec.cost_per_m}
 
@@ -327,7 +320,7 @@ def supported_provider_profiles(agent_engine: str) -> tuple[str, ...]:
 
 
 def default_provider_profile(agent_engine: str) -> str | None:
-    return "kimi" if agent_engine == "openclaw-gateway" else None
+    return None
 
 
 def provider_env_key(agent_engine: str) -> str | None:
@@ -724,14 +717,12 @@ def _explicit_string(value: Any) -> str:
 def _driver_for_agent_engine(agent_engine: str) -> str:
     return {
         "openai-agents-sdk": "openai-agents-sdk",
-        "openclaw-gateway": "openclaw",
     }.get(agent_engine, agent_engine)
 
 
 def _engine_label(agent_engine: str) -> str:
     return {
         "openai-agents-sdk": "OpenAI Agents SDK",
-        "openclaw-gateway": "OpenClaw",
     }.get(agent_engine, agent_engine)
 
 

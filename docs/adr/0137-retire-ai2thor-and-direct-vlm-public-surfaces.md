@@ -2,6 +2,9 @@
 
 Date: 2026-06-11
 
+Partially superseded by [ADR-0148](0148-retire-openclaw-and-local-docker-runtime.md)
+for its OpenClaw-only provider-routing carve-out.
+
 ## Status
 
 Accepted.

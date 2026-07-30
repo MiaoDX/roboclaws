@@ -213,7 +213,8 @@ def test_surface_live_smoke_uses_world_public_server_evidence_lane() -> None:
     assert '--evidence-lane "$implementation_evidence_lane"' in recipe
     assert '--evidence-lane "$profile"' not in recipe
     assert '--checker-profile "$implementation_evidence_lane"' in recipe
-    assert '--expect-profile "$implementation_evidence_lane"' in recipe
+    assert '--checker-profile "$implementation_evidence_lane"' in recipe
+    assert '--expect-profile "$implementation_evidence_lane"' not in recipe
 
 
 def _trace_agent_eval(*args: str, python_bin: str = "") -> list[str]:

@@ -10,12 +10,13 @@ leave a link.
 
 ## Current Focus
 
-The next proposed cleanup is the formal retirement of OpenClaw and repo-owned
-local Docker runtime surfaces under
-`docs/plans/2026-07-30-retire-openclaw-and-local-docker-surfaces.md`. The plan
-preserves the two active agent engines, remote-platform image configuration,
-and historical evidence. A one-round agent planning loop converged with no
-remaining user-owned decisions; implementation still awaits human approval.
+OpenClaw and repo-owned workstation-local Docker runtime surfaces are retired
+under `docs/plans/2026-07-30-retire-openclaw-and-local-docker-surfaces.md` and
+ADR-0148. The maintained product has exactly two agent engines,
+`direct-runner` and `openai-agents-sdk`; CloudML image contracts and historical
+evidence remain intact. Deterministic gates, the standalone full suite,
+operator-console host-runtime smoke, and canonical direct-runner map-build and
+cleanup product proofs pass.
 
 The follow-up architecture simplification pass is complete. Five approved cuts
 removed the obsolete Agibot/MolmoSpaces simulation rehearsal, the retired
@@ -88,10 +89,9 @@ providers.
 
 ## Next Action
 
-Review and approve or revise the proposed OpenClaw/local-Docker retirement plan.
-No implementation has started. The refreshed immutable candidate remains
-unmodified and is superseded for publication review; publication remains
-unauthorized and is a separate human decision.
+Review the completed OpenClaw/local-Docker retirement. The refreshed immutable
+candidate remains unmodified and is superseded for publication review;
+publication remains unauthorized and is a separate human decision.
 
 ## Current Blockers
 

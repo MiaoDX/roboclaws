@@ -1,6 +1,6 @@
 # Retire OpenClaw And Local Docker Surfaces
 
-**Status:** Proposed
+**Status:** Implemented
 **Created:** 2026-07-30
 **Last reviewed:** 2026-07-30
 **Current implementation contract:** Retire the validation-only OpenClaw
@@ -13,13 +13,19 @@ current household, eval, simulator, and real-robot contracts.
 
 ## Plan Ledger
 
-- Status: PROPOSED; implementation is not approved by this document alone.
-- Current slice: none.
-- Next action: human approval, then execute through `$intuitive-refactor` and
-  durable `$intuitive-flow`.
-- Blocker: none at planning time.
+- Status: DONE; implemented and verified through durable `$intuitive-flow`.
+- Current slice: complete.
+- Next action: human review of the completed retirement.
+- Blocker: none.
 - Completion owner: the executing root agent; workers may perform bounded
   read-only review or isolated test work but do not own final acceptance.
+
+Final evidence: `uv sync --extra dev`, `uv lock --check`, repo-wide ruff and
+format checks, focused launch/checker/dev-tools/operator-console tests, the
+standalone full suite, exact current-surface searches, local operator-console
+HTTP/inventory smoke, canonical direct-runner map-build and cleanup product
+proofs, and an OpenAI Agents SDK launch-resolution trace all pass. CloudML and
+remote-image files are unchanged.
 
 ## Decision Context
 

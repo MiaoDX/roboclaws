@@ -35,7 +35,6 @@ TASK_INTENT_SPECS: dict[str, TaskIntentSpec] = {
             "direct",
             "mcp-smoke",
             "openai-agents-live",
-            "openclaw",
         ),
         dispatch_target="household-world",
         prompt_id="household_cleanup",

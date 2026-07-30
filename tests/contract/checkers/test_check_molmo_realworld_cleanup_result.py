@@ -2082,61 +2082,11 @@ def test_checker_accepts_realworld_mcp_smoke_policy(tmp_path: Path) -> None:
     )
 
 
-def test_checker_accepts_openclaw_minimum_gate(tmp_path: Path) -> None:
+def test_checker_rejects_agent_driven_run_without_public_tool_use(tmp_path: Path) -> None:
     smoke = _load_module(SMOKE_PATH, "run_molmo_realworld_agent_mcp_smoke")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = smoke.run_smoke(output_dir=tmp_path, seed=7, policy="openclaw_agent")
-
-    checker._assert_result(
-        result,
-        tmp_path,
-        expect_task=None,
-        expect_backend="api_semantic_synthetic",
-        expect_policy="openclaw_agent",
-        expect_mcp_server="household_world",
-        min_generated_mess_count=5,
-        require_agent_driven=True,
-        require_openclaw_minimum=True,
-    )
-
-
-def test_checker_openclaw_minimum_allows_partial_report_without_semantic_section(
-    tmp_path: Path,
-) -> None:
-    smoke = _load_module(SMOKE_PATH, "run_molmo_realworld_agent_mcp_smoke")
-    checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
-
-    result = smoke.run_smoke(output_dir=tmp_path, seed=7, policy="openclaw_agent")
-    result["semantic_substeps"] = []
-    result["mess_restoration_rate"] = 0.0
-    result["sweep_coverage_rate"] = 0.0
-    result["disturbance_count"] = 99
-    result["cleanup_status"] = "incomplete"
-    report_path = tmp_path / "report.html"
-    report_path.write_text(
-        report_path.read_text(encoding="utf-8").replace("Semantic Substeps", "Partial Trace"),
-        encoding="utf-8",
-    )
-
-    checker._assert_result(
-        result,
-        tmp_path,
-        expect_task=None,
-        expect_backend="api_semantic_synthetic",
-        expect_policy="openclaw_agent",
-        expect_mcp_server="household_world",
-        min_generated_mess_count=5,
-        require_agent_driven=True,
-        require_openclaw_minimum=True,
-    )
-
-
-def test_checker_rejects_openclaw_minimum_without_public_tool_use(tmp_path: Path) -> None:
-    smoke = _load_module(SMOKE_PATH, "run_molmo_realworld_agent_mcp_smoke")
-    checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
-
-    result = smoke.run_smoke(output_dir=tmp_path, seed=7, policy="openclaw_agent")
+    result = smoke.run_smoke(output_dir=tmp_path, seed=7)
     result["tool_event_counts"] = {}
 
     with pytest.raises(AssertionError):
@@ -2145,31 +2095,10 @@ def test_checker_rejects_openclaw_minimum_without_public_tool_use(tmp_path: Path
             tmp_path,
             expect_task=None,
             expect_backend="api_semantic_synthetic",
-            expect_policy="openclaw_agent",
+            expect_policy="household_contract_smoke_agent",
             expect_mcp_server="household_world",
             min_generated_mess_count=5,
             require_agent_driven=True,
-            require_openclaw_minimum=True,
-        )
-
-
-def test_checker_rejects_openclaw_minimum_for_non_openclaw_policy(tmp_path: Path) -> None:
-    smoke = _load_module(SMOKE_PATH, "run_molmo_realworld_agent_mcp_smoke")
-    checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
-
-    result = smoke.run_smoke(output_dir=tmp_path, seed=7)
-
-    with pytest.raises(AssertionError):
-        checker._assert_result(
-            result,
-            tmp_path,
-            expect_task=None,
-            expect_backend="api_semantic_synthetic",
-            expect_policy=None,
-            expect_mcp_server="household_world",
-            min_generated_mess_count=5,
-            require_agent_driven=True,
-            require_openclaw_minimum=True,
         )
 
 
@@ -3275,38 +3204,11 @@ def test_checker_counts_visual_candidate_robot_view_as_object_navigation(
     )
 
 
-def test_checker_openclaw_minimum_robot_views_allows_partial_visual_actions(
-    tmp_path: Path,
-) -> None:
-    smoke = _load_module(SMOKE_PATH, "run_molmo_realworld_agent_mcp_smoke")
-    checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
-
-    result = smoke.run_smoke(output_dir=tmp_path, seed=7, policy="openclaw_agent")
-    _add_molmospaces_robot_view_artifacts(result, tmp_path)
-    result["robot_view_steps"] = [
-        _robot_step("pick observed_001"),
-        _robot_step("place observed_001"),
-    ]
-
-    checker._assert_result(
-        result,
-        tmp_path,
-        expect_task=None,
-        expect_backend="api_semantic_synthetic",
-        expect_policy="openclaw_agent",
-        expect_mcp_server="household_world",
-        min_generated_mess_count=5,
-        require_agent_driven=True,
-        require_openclaw_minimum=True,
-        require_robot_views=True,
-    )
-
-
 def test_checker_rejects_zero_pixel_focused_surface_action(tmp_path: Path) -> None:
     smoke = _load_module(SMOKE_PATH, "run_molmo_realworld_agent_mcp_smoke")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = smoke.run_smoke(output_dir=tmp_path, seed=7, policy="openclaw_agent")
+    result = smoke.run_smoke(output_dir=tmp_path, seed=7)
     _add_molmospaces_robot_view_artifacts(result, tmp_path)
     result["robot_view_steps"] = [
         {
@@ -3336,11 +3238,11 @@ def test_checker_rejects_zero_pixel_focused_surface_action(tmp_path: Path) -> No
             tmp_path,
             expect_task=None,
             expect_backend="api_semantic_synthetic",
-            expect_policy="openclaw_agent",
+            expect_policy="household_contract_smoke_agent",
             expect_mcp_server="household_world",
             min_generated_mess_count=5,
             require_agent_driven=True,
-            require_openclaw_minimum=True,
+            allow_partial_cleanup=True,
             require_robot_views=True,
         )
 
@@ -3351,7 +3253,7 @@ def test_checker_accepts_authorized_source_fpv_evidence_for_weak_nav_view(
     smoke = _load_module(SMOKE_PATH, "run_molmo_realworld_agent_mcp_smoke")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = smoke.run_smoke(output_dir=tmp_path, seed=7, policy="openclaw_agent")
+    result = smoke.run_smoke(output_dir=tmp_path, seed=7)
     _add_molmospaces_robot_view_artifacts(result, tmp_path)
     result["robot_view_steps"] = [
         {
@@ -3393,11 +3295,11 @@ def test_checker_accepts_authorized_source_fpv_evidence_for_weak_nav_view(
         tmp_path,
         expect_task=None,
         expect_backend="api_semantic_synthetic",
-        expect_policy="openclaw_agent",
+        expect_policy="household_contract_smoke_agent",
         expect_mcp_server="household_world",
         min_generated_mess_count=5,
         require_agent_driven=True,
-        require_openclaw_minimum=True,
+        allow_partial_cleanup=True,
         require_robot_views=True,
     )
 
@@ -3408,7 +3310,7 @@ def test_checker_rejects_weak_nav_view_without_authorized_source_fpv_evidence(
     smoke = _load_module(SMOKE_PATH, "run_molmo_realworld_agent_mcp_smoke")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = smoke.run_smoke(output_dir=tmp_path, seed=7, policy="openclaw_agent")
+    result = smoke.run_smoke(output_dir=tmp_path, seed=7)
     _add_molmospaces_robot_view_artifacts(result, tmp_path)
     result["robot_view_steps"] = [
         {
@@ -3451,11 +3353,11 @@ def test_checker_rejects_weak_nav_view_without_authorized_source_fpv_evidence(
             tmp_path,
             expect_task=None,
             expect_backend="api_semantic_synthetic",
-            expect_policy="openclaw_agent",
+            expect_policy="household_contract_smoke_agent",
             expect_mcp_server="household_world",
             min_generated_mess_count=5,
             require_agent_driven=True,
-            require_openclaw_minimum=True,
+            allow_partial_cleanup=True,
             require_robot_views=True,
         )
 
@@ -3464,7 +3366,7 @@ def test_checker_allows_weak_fpv_when_verify_view_is_grounded(tmp_path: Path) ->
     smoke = _load_module(SMOKE_PATH, "run_molmo_realworld_agent_mcp_smoke")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = smoke.run_smoke(output_dir=tmp_path, seed=7, policy="openclaw_agent")
+    result = smoke.run_smoke(output_dir=tmp_path, seed=7)
     _add_molmospaces_robot_view_artifacts(result, tmp_path)
     result["robot_view_steps"] = [
         {
@@ -3493,11 +3395,11 @@ def test_checker_allows_weak_fpv_when_verify_view_is_grounded(tmp_path: Path) ->
         tmp_path,
         expect_task=None,
         expect_backend="api_semantic_synthetic",
-        expect_policy="openclaw_agent",
+        expect_policy="household_contract_smoke_agent",
         expect_mcp_server="household_world",
         min_generated_mess_count=5,
         require_agent_driven=True,
-        require_openclaw_minimum=True,
+        allow_partial_cleanup=True,
         require_robot_views=True,
     )
 
@@ -3533,7 +3435,7 @@ def test_checker_allows_segmentation_unavailable_focused_surface_action(tmp_path
     smoke = _load_module(SMOKE_PATH, "run_molmo_realworld_agent_mcp_smoke")
     checker = _load_module(CHECKER_PATH, "check_molmo_realworld_cleanup_result")
 
-    result = smoke.run_smoke(output_dir=tmp_path, seed=7, policy="openclaw_agent")
+    result = smoke.run_smoke(output_dir=tmp_path, seed=7)
     _add_molmospaces_robot_view_artifacts(result, tmp_path)
     result["robot_view_steps"] = [
         {
@@ -3564,11 +3466,11 @@ def test_checker_allows_segmentation_unavailable_focused_surface_action(tmp_path
         tmp_path,
         expect_task=None,
         expect_backend="api_semantic_synthetic",
-        expect_policy="openclaw_agent",
+        expect_policy="household_contract_smoke_agent",
         expect_mcp_server="household_world",
         min_generated_mess_count=5,
         require_agent_driven=True,
-        require_openclaw_minimum=True,
+        allow_partial_cleanup=True,
         require_robot_views=True,
     )
 

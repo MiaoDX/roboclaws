@@ -35,9 +35,9 @@ Next command/artifact: none for this task; ready for commit/closeout.
 
 Stop condition: met.
 
-No-touch scope: OpenClaw Gateway, system-provider Claude Code, public run
+No-touch scope at completion: system-provider Claude Code, public run
 surface names, private scorer truth, and unrelated scene-sampler candidate
-profile edits.
+profile edits. OpenClaw was retired later by ADR-0148.
 
 Parked work: expand open-ended sample coverage and authoritative semantic
 predicates only after the first suite is proven; add a planner-proof eval suite

@@ -323,18 +323,11 @@ def _normalize_agent_engine(value: str) -> AgentEngineSpec:
     agent_engine = _strip_named(value, "agent_engine")
     if is_retired_agent_engine(agent_engine):
         raise LaunchError(retired_agent_engine_message(agent_engine))
-    if agent_engine == "openclaw-gateway":
-        raise LaunchError(
-            "openclaw-gateway is validation-required future abstraction work, "
-            "not a current active product engine",
-            f"expected {'|'.join(ACTIVE_AGENT_ENGINE_IDS)}",
-        )
     spec = AGENT_ENGINE_SPECS.get(agent_engine)
     if spec is None:
         raise LaunchError(
             f"unsupported agent_engine '{agent_engine}'",
-            f"expected {'|'.join(ACTIVE_AGENT_ENGINE_IDS)}; "
-            "openclaw-gateway is validation-required and documented under maintainer routes",
+            f"expected {'|'.join(ACTIVE_AGENT_ENGINE_IDS)}",
         )
     return spec
 
