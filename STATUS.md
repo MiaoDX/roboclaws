@@ -10,6 +10,16 @@ leave a link.
 
 ## Current Focus
 
+The follow-up architecture simplification pass is complete. Five approved cuts
+removed the obsolete Agibot/MolmoSpaces simulation rehearsal, the retired
+Codex-only comparison summary, an isolated cleanup policy, unused direct
+Jinja2/tyro declarations, and the legacy showcase task identity. Final review
+also removed two rehearsal-only launch overrides that had become silent no-ops.
+The cumulative change removes more than 5,800 lines while preserving current
+`household-world`, `planner-proof`, eval, operator-console, and `agibot-gdk`
+behavior. The standalone full suite and direct-runner map-build/cleanup product
+proofs pass.
+
 The post-cleanup saturation refactors are complete under
 `docs/plans/2026-07-30-post-cleanup-saturation-refactors.md`. The five-slice
 queue deleted two stale runtime surfaces, removed the maintainer
@@ -71,10 +81,9 @@ providers.
 
 ## Next Action
 
-No implementation action remains for the bounded saturation-refactor plan. The
-refreshed immutable candidate remains unmodified and is superseded for
-publication review; publication remains unauthorized and is a separate human
-decision.
+No implementation action remains for either bounded cleanup pass. The refreshed
+immutable candidate remains unmodified and is superseded for publication
+review; publication remains unauthorized and is a separate human decision.
 
 ## Current Blockers
 
