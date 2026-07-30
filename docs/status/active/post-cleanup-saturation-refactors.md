@@ -8,17 +8,16 @@ Task control plane: current Codex root session.
 
 Latest user intent: execute and commit all five approved refactor candidates.
 
-Current slice: delete the inert provider timing proxy surface.
+Current slice: remove the maintainer `Just -> CLI -> Just` dispatch loop.
 
-Last proven evidence: exact legacy artifact caller search is clean; focused
-current report contracts and `just verify::contract` pass; touched Ruff and
-diff checks pass.
+Last proven evidence: timing-proxy stale-reference search is clean; dependency
+sync, Ruff/format, and 153 focused report/eval/CI/command contract tests pass.
 
-Completed slices: legacy `roboclaws.core.run_artifacts` and its only test/gate
-consumer removed.
+Completed slices: legacy run artifacts removed; provider timing proxy and its
+reader/switch/test/dependency surface removed.
 
-Next proof: exact timing-proxy producer/switch/artifact searches, focused
-performance-report/eval tests, dependency sync, Ruff, and diff check.
+Next proof: public `agent::*` trace parity, exact duplicate-registry search,
+focused CLI/launch tests, Ruff, and diff check.
 
 Stop condition: all five plan rows committed and final deterministic/product
 proof passes.

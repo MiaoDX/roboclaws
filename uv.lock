@@ -3508,7 +3508,6 @@ dependencies = [
 
 [package.optional-dependencies]
 dev = [
-    { name = "aiohttp" },
     { name = "imageio" },
     { name = "mcp", extra = ["cli"] },
     { name = "molmo-spaces", extra = ["mujoco"] },
@@ -3547,7 +3546,6 @@ visual-grounding-yoloe = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiohttp", marker = "extra == 'dev'", specifier = ">=3.13" },
     { name = "clip", marker = "extra == 'visual-grounding-yoloe'", git = "https://github.com/ultralytics/CLIP.git" },
     { name = "imageio", marker = "extra == 'dev'", specifier = ">=2.30" },
     { name = "jinja2", specifier = ">=3.1" },

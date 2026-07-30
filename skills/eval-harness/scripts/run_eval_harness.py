@@ -26,7 +26,6 @@ from roboclaws.core.json_sources import read_json_object  # noqa: E402
 SELECTOR_PATH = SCRIPT_DIR / "select_eval_harness.py"
 LOCAL_EXECUTION_PATH = SCRIPT_DIR / "eval_harness_local_execution.py"
 DEFAULT_VISUAL_GROUNDING_BASE_URL = "http://127.0.0.1:18880"
-PROVIDER_TIMING_PROXY_ENV = "ROBOCLAWS_PROVIDER_TIMING_PROXY"
 DINO_SIDECAR_AUTOSTART_ENV = "ROBOCLAWS_EVAL_HARNESS_AUTOSTART_DINO_SIDECAR"
 EVAL_HARNESS_MCP_PORT_ENV = "ROBOCLAWS_EVAL_HARNESS_MCP_PORT"
 SESSION_LIVE_MCP_PORT_ENV = "ROBOCLAWS_SESSION_LIVE_MCP_PORT"
@@ -252,9 +251,6 @@ def _run_row(row: dict[str, Any], manifest: dict[str, Any]) -> None:
 
 def _row_environment(row: dict[str, Any]) -> dict[str, str]:
     env = os.environ.copy()
-    if _should_default_provider_timing_proxy(row) and PROVIDER_TIMING_PROXY_ENV not in env:
-        env[PROVIDER_TIMING_PROXY_ENV] = "1"
-        row["defaulted_provider_timing_proxy"] = True
     port = _live_row_mcp_port(row)
     if port:
         env[EVAL_HARNESS_MCP_PORT_ENV] = port
@@ -262,10 +258,6 @@ def _row_environment(row: dict[str, Any]) -> dict[str, str]:
             env[SESSION_LIVE_MCP_PORT_ENV] = port
         row["mcp_port"] = port
     return env
-
-
-def _should_default_provider_timing_proxy(row: dict[str, Any]) -> bool:
-    return False
 
 
 def _live_row_mcp_port(row: dict[str, Any]) -> str:

@@ -27,7 +27,6 @@ visual-grounding-yoloe = [
     "ultralytics>=8.3",
 ]
 dev = [
-    "aiohttp>=3.13",
     "openai>=1.50",
     "openai-agents==0.17.4",
     "pydantic>=2.0",

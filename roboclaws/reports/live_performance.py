@@ -7,12 +7,6 @@ import math
 from pathlib import Path
 from typing import Any
 
-from roboclaws.agents.provider_timing_contract import (
-    PROVIDER_HTTP_TIMING_AGGREGATE_ONLY_LIMITATION,
-    PROVIDER_HTTP_TIMING_NOT_COMPUTE_LIMITATION,
-    PROVIDER_REQUEST_METRIC_SCHEMA,
-    PROVIDER_REQUEST_METRICS_FILENAME,
-)
 from roboclaws.core.json_sources import (
     json_source_type_name,
     read_json_object,
@@ -59,7 +53,6 @@ SAFE_SCAN_GLOBS = (
     "model_call_metrics.jsonl",
     "openai-agents-events*.jsonl",
     "openai-agents-spans*.jsonl",
-    PROVIDER_REQUEST_METRICS_FILENAME,
 )
 
 
@@ -82,12 +75,7 @@ def extract_report_performance_metrics(
     trace_events = read_jsonl(run_dir / "trace.jsonl")
     runner_timing = _dict(live_timing.get("runner_timing"))
     mcp_timing = _mcp_timing(run_dir, live_timing, run_result, trace_events)
-    provider_requests = extract_provider_request_metrics(run_dir)
-    model_calls = extract_model_call_metrics(
-        run_dir,
-        live_timing=live_timing,
-        provider_requests=provider_requests,
-    )
+    model_calls = extract_model_call_metrics(run_dir, live_timing=live_timing)
     if write_model_call_metrics:
         write_model_call_metrics_jsonl(run_dir / "model_call_metrics.jsonl", model_calls)
     packet = {
@@ -102,7 +90,6 @@ def extract_report_performance_metrics(
             mcp_timing,
             model_calls,
             live_timing,
-            provider_requests,
         ),
         "limitations": [],
     }
@@ -122,7 +109,6 @@ def extract_model_call_metrics(
     run_dir: Path,
     *,
     live_timing: dict[str, Any] | None = None,
-    provider_requests: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """Extract sanitized per-call model metrics from known live-agent artifacts."""
 
@@ -140,95 +126,19 @@ def extract_model_call_metrics(
     else:
         rows = []
 
-    provider_requests = (
-        provider_requests
-        if provider_requests is not None
-        else extract_provider_request_metrics(run_dir)
-    )
     if rows:
-        return _attach_provider_transport_evidence(rows, provider_requests)
-    return _attach_provider_transport_evidence(
-        [
-            _model_call_row(
-                agent_engine=engine,
-                provider_profile=str(live_timing.get("provider_profile") or ""),
-                wire_api=str(live_timing.get("wire_api") or ""),
-                model=str(live_timing.get("model") or ""),
-                source="unavailable",
-                status="unavailable",
-                limitations=[f"{engine}_model_call_telemetry_unavailable"],
-            )
-        ],
-        provider_requests,
-    )
-
-
-def extract_provider_request_metrics(run_dir: Path) -> list[dict[str, Any]]:
-    """Read sanitized provider HTTP timing rows."""
-
-    rows: list[dict[str, Any]] = []
-    for row in read_jsonl(Path(run_dir) / PROVIDER_REQUEST_METRICS_FILENAME):
-        if row.get("schema") != PROVIDER_REQUEST_METRIC_SCHEMA:
-            continue
-        rows.append(_provider_request_row(row))
-    return rows
-
-
-def _provider_request_row(row: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "schema": PROVIDER_REQUEST_METRIC_SCHEMA,
-        "proxy_request_id": str(row.get("proxy_request_id") or ""),
-        "agent_engine": str(row.get("agent_engine") or ""),
-        "provider_profile": str(row.get("provider_profile") or ""),
-        "method": str(row.get("method") or ""),
-        "path": str(row.get("path") or ""),
-        "started_at_epoch": _float_or_none(row.get("started_at_epoch")),
-        "upstream_headers_received_at_epoch": _float_or_none(
-            row.get("upstream_headers_received_at_epoch")
-        ),
-        "first_response_byte_at_epoch": _float_or_none(row.get("first_response_byte_at_epoch")),
-        "finished_at_epoch": _float_or_none(row.get("finished_at_epoch")),
-        "duration_s": _float_or_none(row.get("duration_s")),
-        "time_to_headers_s": _float_or_none(row.get("time_to_headers_s")),
-        "time_to_first_byte_s": _float_or_none(row.get("time_to_first_byte_s")),
-        "stream_duration_s": _float_or_none(row.get("stream_duration_s")),
-        "request_body_bytes": _int_or_none(row.get("request_body_bytes")) or 0,
-        "response_body_bytes": _int_or_none(row.get("response_body_bytes")) or 0,
-        "status_code": _int_or_none(row.get("status_code")),
-        "streaming": row.get("streaming") is True,
-        "provider_request_id": str(row.get("provider_request_id") or ""),
-        "model": str(row.get("model") or ""),
-        "limitations": sorted({str(item) for item in row.get("limitations") or [] if str(item)}),
-    }
-
-
-def _attach_provider_transport_evidence(
-    rows: list[dict[str, Any]],
-    provider_requests: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    aggregate = _provider_http_timing(provider_requests)
-    if not aggregate.get("provider_request_count"):
         return rows
-    evidence = {
-        "source": PROVIDER_REQUEST_METRICS_FILENAME,
-        "mapping": "aggregate",
-        "provider_request_count": aggregate["provider_request_count"],
-        "provider_http_duration_s": aggregate["provider_http_duration_s"],
-        "provider_http_time_to_first_byte_s": aggregate["provider_http_time_to_first_byte_s"],
-        "limitations": [
-            PROVIDER_HTTP_TIMING_AGGREGATE_ONLY_LIMITATION,
-            PROVIDER_HTTP_TIMING_NOT_COMPUTE_LIMITATION,
-        ],
-    }
-    patched: list[dict[str, Any]] = []
-    for row in rows:
-        item = dict(row)
-        limitations = set(item.get("limitations") or [])
-        limitations.add(PROVIDER_HTTP_TIMING_AGGREGATE_ONLY_LIMITATION)
-        item["limitations"] = sorted(limitations)
-        item["provider_http_transport_evidence"] = evidence
-        patched.append(item)
-    return patched
+    return [
+        _model_call_row(
+            agent_engine=engine,
+            provider_profile=str(live_timing.get("provider_profile") or ""),
+            wire_api=str(live_timing.get("wire_api") or ""),
+            model=str(live_timing.get("model") or ""),
+            source="unavailable",
+            status="unavailable",
+            limitations=[f"{engine}_model_call_telemetry_unavailable"],
+        )
+    ]
 
 
 def write_model_call_metrics_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -520,7 +430,6 @@ def _timing_packet(
     mcp: dict[str, Any],
     model_calls: list[dict[str, Any]],
     live_timing: dict[str, Any],
-    provider_requests: list[dict[str, Any]],
 ) -> dict[str, Any]:
     observed_model_api = _model_api_time(model_calls, live_timing)
     observed_wall = _float_or_none(runner.get("total_elapsed_s")) or _float_or_none(
@@ -551,7 +460,6 @@ def _timing_packet(
         "robot_view_capture_s": robot_view,
         "observed_model_api_s": observed_model_api,
         "non_model_s": non_model,
-        **_provider_http_timing(provider_requests),
     }
 
 
@@ -1165,10 +1073,6 @@ def _timing_comparison(baseline: Any, candidate: Any) -> dict[str, Any]:
             candidate.get("observed_model_api_s"),
             baseline.get("observed_model_api_s"),
         ),
-        "provider_http_duration_delta_s": _delta(
-            candidate.get("provider_http_duration_s"),
-            baseline.get("provider_http_duration_s"),
-        ),
         "estimated_model_work_delta_s": _delta(
             _dict(candidate.get("estimated_model_work_s")).get("estimated_s"),
             _dict(baseline.get("estimated_model_work_s")).get("estimated_s"),
@@ -1281,10 +1185,6 @@ def _packet_limitations(packet: dict[str, Any]) -> list[str]:
         limitations.add(str(item))
     if not model_work.get("available"):
         limitations.add("model_work_unavailable")
-    timing = _dict(packet.get("timing"))
-    if _int_or_none(timing.get("provider_request_count")):
-        limitations.add(PROVIDER_HTTP_TIMING_NOT_COMPUTE_LIMITATION)
-        limitations.add(PROVIDER_HTTP_TIMING_AGGREGATE_ONLY_LIMITATION)
     return sorted(limitations)
 
 
@@ -1353,48 +1253,6 @@ def _model_api_time(model_calls: list[dict[str, Any]], live_timing: dict[str, An
         return direct
     codex = _dict(live_timing.get("codex_events"))
     return _float_or_none(codex.get("model_api_time_s"))
-
-
-def _provider_http_timing(provider_requests: list[dict[str, Any]]) -> dict[str, Any]:
-    status_counts: dict[str, int] = {}
-    duration_values: list[float] = []
-    ttfb_values: list[float] = []
-    stream_values: list[float] = []
-    limitations: set[str] = set()
-    for row in provider_requests:
-        status = _int_or_none(row.get("status_code"))
-        if status is not None:
-            status_key = str(status)
-            status_counts[status_key] = status_counts.get(status_key, 0) + 1
-        duration = _float_or_none(row.get("duration_s"))
-        if duration is not None:
-            duration_values.append(duration)
-        ttfb = _float_or_none(row.get("time_to_first_byte_s"))
-        if ttfb is not None:
-            ttfb_values.append(ttfb)
-        stream = _float_or_none(row.get("stream_duration_s"))
-        if stream is not None:
-            stream_values.append(stream)
-        for item in row.get("limitations") or []:
-            if str(item):
-                limitations.add(str(item))
-    if provider_requests:
-        limitations.add(PROVIDER_HTTP_TIMING_NOT_COMPUTE_LIMITATION)
-        limitations.add(PROVIDER_HTTP_TIMING_AGGREGATE_ONLY_LIMITATION)
-    return {
-        "provider_request_count": len(provider_requests),
-        "provider_http_duration_s": _round_sum(duration_values),
-        "provider_http_time_to_first_byte_s": _round_sum(ttfb_values),
-        "provider_http_stream_duration_s": _round_sum(stream_values),
-        "provider_http_status_counts": dict(sorted(status_counts.items())),
-        "provider_http_limitations": sorted(limitations),
-    }
-
-
-def _round_sum(values: list[float]) -> float | None:
-    if not values:
-        return None
-    return round(sum(values), 3)
 
 
 def _sum_int(rows: list[dict[str, Any]], key: str) -> int | None:

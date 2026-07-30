@@ -12,9 +12,9 @@ finishing canonical typed/state boundaries.
 ## Plan Ledger
 
 - Status: ACTIVE.
-- Current slice: delete the inert provider timing proxy surface.
-- Next action: remove its producer, report ingestion, switch plumbing, tests,
-  documentation, and direct dependency.
+- Current slice: remove the maintainer `Just -> CLI -> Just` dispatch loop.
+- Next action: forward public `agent::*` recipes directly to their canonical
+  private Just namespaces and move shared execution helpers to launch ownership.
 - Blocker: none.
 - Active capsule: `docs/status/active/post-cleanup-saturation-refactors.md`.
 
@@ -89,7 +89,7 @@ Verification:
 | Slice | Severity | Architecture value | Status |
 | --- | --- | --- | --- |
 | Legacy run artifacts | P1 | Remove one test-only artifact owner and false contract gate | Done |
-| Provider timing proxy | P1 | Remove one inert producer/reader contract and stale switch | Pending |
+| Provider timing proxy | P1 | Remove one inert producer/reader contract and stale switch | Done |
 | Maintainer dispatch loop | P1 | Remove one dispatcher and duplicate target registries | Pending |
 | Operator phase taxonomy | P1 | Merge phase owners and fix terminal classification | Pending |
 | Typed launch boundary | P1 | Remove string copies/reparse and retired backend inspectors | Pending |
@@ -106,6 +106,9 @@ Verification:
 - Legacy `roboclaws.core.run_artifacts`, its only consumer test, and the
   self-preserving `verify::contract` entry were removed. Current household
   artifact/report contracts and `just verify::contract` pass unchanged.
+- Provider timing proxy implementation/contract, report ingestion, CI/eval
+  switch plumbing, tests, architecture claim, and direct `aiohttp` declaration
+  were removed. SDK model-call metrics and performance reports pass unchanged.
 
 ## Stop Condition
 

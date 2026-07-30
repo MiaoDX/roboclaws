@@ -370,10 +370,6 @@ Every serious run should produce reviewable evidence:
   policy, readiness, and privacy sections.
 - `model_call_metrics.jsonl` for sanitized per-call model-work rows when the
   live OpenAI Agents SDK route exposes compatible usage or timing telemetry.
-- `provider_request_metrics.jsonl` for opt-in, redacted provider HTTP timing
-  rows from maintainer/debug routes when `ROBOCLAWS_PROVIDER_TIMING_PROXY=1` is
-  enabled. These rows are transport timing evidence, not provider-internal model
-  compute time.
 - `roboclaws_report_performance_metrics_v1` packets, usually produced by the
   report-performance extractor, for maintainer comparisons of quality,
   call-count work, model work, normalized-estimate availability, and residual
