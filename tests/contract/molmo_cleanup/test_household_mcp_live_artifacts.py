@@ -6,7 +6,7 @@ from pathlib import Path
 from roboclaws.household.household_mcp_server import make_household_world_mcp
 from roboclaws.household.scenario import build_cleanup_scenario
 from roboclaws.mcp.profiles import HOUSEHOLD_EPISODE_PROFILE, HOUSEHOLD_WORLD_PROFILE
-from tests.contract.molmo_cleanup.test_household_mcp_server import _empty_cleanup_scenario
+from tests.contract.molmo_cleanup.household_mcp_server_support import _empty_cleanup_scenario
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PREBUILT_BUNDLE = REPO_ROOT / "assets" / "maps" / "molmospaces" / "procthor-10k-val" / "0"

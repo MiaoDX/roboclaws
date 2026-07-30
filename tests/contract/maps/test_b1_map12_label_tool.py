@@ -34,7 +34,7 @@ from scripts.maps.render_b1_scene_gaussian_topdown import (
     topdown_render_packet,
 )
 from scripts.maps.render_b1_scene_topdown_diagnostic import build_scene_topdown_diagnostic
-from tests.contract.maps.test_b1_map12_verified_alignment import (
+from tests.contract.maps.b1_map12_verified_alignment_support import (
     alignment_anchor,
     correspondence_manifest,
 )
