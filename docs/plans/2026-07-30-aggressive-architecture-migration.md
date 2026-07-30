@@ -750,6 +750,11 @@ hardware proof cannot run for a demonstrated environment reason.
   refreshed graph baseline. Focused behavior proof passed, with the four
   unrelated loopback-only visual-grounding tests unavailable in the worker
   socket sandbox.
+- Wave 1 completed slices: long-horizon specs and pure values moved to
+  `evals/long_horizon_contract.py`; runtime behavior remains in
+  `long_horizon.py`, the grader depends on the contract, and the runner depends
+  directly on grader/contract. The SCC is absent from the refreshed baseline;
+  177 focused eval tests and static gates pass.
 - Planning-loop result: CONVERGED after two rounds. Round 1 entropy, docs-grill,
   and skeptic scouts found speculative layers, unsafe wave order, incomplete
   caller paths, proxy-metric gates, and preservation ambiguity. Round 2 verified

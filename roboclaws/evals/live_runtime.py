@@ -15,7 +15,6 @@ from pathlib import Path
 from typing import Any, Callable
 
 from roboclaws.evals import live_long_horizon
-from roboclaws.evals import long_horizon as lh
 from roboclaws.evals.dependencies import dependency_failure, resolve_artifact_dependencies
 from roboclaws.evals.live_artifacts import (
     discover_live_surface_run_dir,
@@ -30,6 +29,7 @@ from roboclaws.evals.live_timeout import (
     cleanup_timed_out_live_children,
     live_timeout_snapshot,
 )
+from roboclaws.evals.long_horizon_contract import generated_mess_object_ids
 from roboclaws.evals.models import (
     MISSING_NOT_APPLICABLE,
     MISSING_SENTINELS,
@@ -757,7 +757,7 @@ def product_run_kwargs(
         "evidence_lane": evidence_lane(sample, budget=budget),
         "intent": sample.intent,
         "generated_mess_count": generated_mess_count(sample),
-        "generated_mess_object_ids": lh.generated_mess_object_ids(sample),
+        "generated_mess_object_ids": generated_mess_object_ids(sample),
         "scene_source": scene_source(sample),
         "scene_index": scene_index(sample),
         "run_metadata_overrides": {
@@ -830,7 +830,7 @@ def generated_mess_count(sample: EvalSample) -> int:
             reference.get("generated_mess_count"),
             "private_goal_reference.generated_mess_count",
         )
-    if object_ids := lh.generated_mess_object_ids(sample):
+    if object_ids := generated_mess_object_ids(sample):
         return len(object_ids)
     launch_overrides = sample.launch_overrides or {}
     for key in ("generated_mess_count", "relocation_count"):
