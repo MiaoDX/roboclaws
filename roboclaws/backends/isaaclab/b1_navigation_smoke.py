@@ -16,9 +16,7 @@ if __package__ in {None, ""}:
 
 from PIL import Image
 
-from roboclaws.backends.isaaclab.isaac_worker_cli import _positive_int_arg
-from roboclaws.core.json_sources import read_json_object  # noqa: E402
-from scripts.isaac_lab_cleanup.check_b1_map12_readiness import (
+from roboclaws.backends.isaaclab.b1_readiness import (
     DEFAULT_B1_VISUAL_ROUTE_SCENE_USD,
     NAVIGATION_PROVENANCE,
     NAVIGATION_SMOKE_SCHEMA,
@@ -30,6 +28,8 @@ from scripts.isaac_lab_cleanup.check_b1_map12_readiness import (
     validate_navigation_smoke_artifact,
     validate_waypoint_pose_requests_artifact,
 )
+from roboclaws.backends.isaaclab.isaac_worker_cli import _positive_int_arg
+from roboclaws.core.json_sources import read_json_object  # noqa: E402
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -151,14 +151,15 @@ def run_navigation_smoke(args: argparse.Namespace) -> int:
         completed = subprocess.run(
             [
                 sys.executable,
-                str(Path(__file__).resolve()),
+                "-m",
+                "roboclaws.backends.isaaclab.b1_navigation_smoke",
                 "_capture-one",
                 "--request",
                 str(request_path),
                 "--output",
                 str(result_path),
             ],
-            cwd=Path(__file__).resolve().parents[2],
+            cwd=Path(__file__).resolve().parents[3],
             check=False,
             capture_output=True,
             text=True,

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SCRIPT = REPO_ROOT / "scripts" / "isaac_lab_cleanup" / "build_b1_map12_waypoint_pose_requests.py"
+MODULE = "roboclaws.backends.isaaclab.b1_waypoint_pose_requests"
 
 
 @pytest.mark.parametrize(
@@ -123,7 +123,8 @@ def _run_builder(
     return subprocess.run(
         [
             sys.executable,
-            str(SCRIPT),
+            "-m",
+            MODULE,
             "--alignment-artifact",
             str(alignment_path),
             "--points",

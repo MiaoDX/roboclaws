@@ -921,6 +921,16 @@ hardware proof cannot run for a demonstrated environment reason.
   focused suite and static ratchets pass at 326 modules / 961 edges with zero
   SCCs/pairs; oversized modules decrease from 65 to 63, leaving only the
   physical Agibot launcher as a ratcheted package-to-script violation.
-- Next action: migrate the B1 rebuild/reproducibility and physical Agibot launch
-  chain into package-owned CLIs, prove asset provenance/digest parity, and
-  eliminate the final package-to-script violation.
+- Wave 5 completed slice: twelve B1/Agibot implementation owners moved into
+  `roboclaws/maps`, `roboclaws/backends/isaaclab`, and `roboclaws/household`.
+  Current Just, typed-launch, operator-preview, authoring, and test callers use
+  module owners; retained review inputs remain. A deterministic package-CLI
+  rebuild matches package-API SHA-256 digests for all six accepted base-map
+  assets and preserves source/provenance hashes. 246 focused contracts collect
+  with 235 passed and 11 environment-skipped; all twelve module help probes
+  pass. The graph is 338 modules / 993 edges with zero SCCs, bidirectional
+  pairs, or package-to-script violations. Oversized modules remain at 63: the
+  moved readiness and alignment owners are explicitly retained for the Wave
+  6-7 behavior splits. Wave 5 is complete.
+- Next action: begin Wave 6 with the operator-console native JavaScript behavior
+  split and browser-level workflow proof.

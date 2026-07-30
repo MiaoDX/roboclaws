@@ -45,29 +45,29 @@ Last proven evidence:
   `anchor_role=alignment`; they intentionally remain `review_status=proposed`
   until promotion, and their blank room/area ids are expected for geometry-only
   alignment.
-- `python scripts/maps/promote_b1_map12_manual_draft_for_verification.py --draft docs/status/active/b1-map12-scene-correspondences-draft.json --output output/b1-map12/manual-draft-alignment/b1-map12-scene-correspondences.verification-only.json`
+- `python -m roboclaws.maps.b1_manual_draft_promotion --draft docs/status/active/b1-map12-scene-correspondences-draft.json --output output/b1-map12/manual-draft-alignment/b1-map12-scene-correspondences.verification-only.json`
   explicitly creates a verification-only accepted manifest for the manual
   fallback. It uses `anchor_role=alignment` geometry anchors only; do not commit
   it as the final accepted asset.
-- `scripts/maps/suggest_b1_map12_manual_anchor_semantics.py` now consumes an
+- `roboclaws.maps.b1_semantic_anchor_suggestions` now consumes an
   explicit `--room-projection` artifact, not the retired Map12 candidate label
   boxes. With the current committed geometry-only correspondence manifest,
   semantic projection is still blocked, so this suggestion path is a follow-up
   after accepted semantic anchors exist.
-- `python scripts/maps/fit_b1_map12_scene_alignment.py --correspondences output/b1-map12/manual-draft-alignment/b1-map12-scene-correspondences.verification-only.json --map-bundle vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot --output-dir output/b1-map12/manual-draft-alignment`
+- `python -m roboclaws.maps.b1_alignment --correspondences output/b1-map12/manual-draft-alignment/b1-map12-scene-correspondences.verification-only.json --map-bundle vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot --output-dir output/b1-map12/manual-draft-alignment`
   writes `global_alignment_status=verified`, `selected_transform_type=rigid_2d`,
   and residual evidence with mean `0.352908 m`, p90 `0.491765 m`, and max
   `0.502064 m`.
-- `python scripts/maps/promote_b1_map12_semantic_review_packet.py --review-packet docs/status/active/b1-map12-alignment-accepted-review-packet.json --output assets/maps/b1-map12-scene-correspondences.json --check`
+- `python -m roboclaws.maps.b1_semantic_review_promotion --review-packet docs/status/active/b1-map12-alignment-accepted-review-packet.json --output assets/maps/b1-map12-scene-correspondences.json --check`
   validates seven human-accepted geometry anchors without writing the committed
   asset.
 - `python scripts/maps/check_b1_map12_semantic_review_packet_fit.py --review-packet docs/status/active/b1-map12-alignment-accepted-review-packet.json --map-bundle vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot --output-dir output/b1-map12/alignment-accepted-fit-check`
   writes a non-mutating fit check with `global_alignment_status=verified` and
   no validation errors.
-- `python scripts/maps/promote_b1_map12_semantic_review_packet.py --review-packet docs/status/active/b1-map12-alignment-accepted-review-packet.json --output assets/maps/b1-map12-scene-correspondences.json`
+- `python -m roboclaws.maps.b1_semantic_review_promotion --review-packet docs/status/active/b1-map12-alignment-accepted-review-packet.json --output assets/maps/b1-map12-scene-correspondences.json`
   writes the committed correspondence manifest with seven accepted
   `anchor_role=alignment` anchors and blank semantic ids.
-- `python scripts/maps/fit_b1_map12_scene_alignment.py --correspondences assets/maps/b1-map12-scene-correspondences.json --map-bundle vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot --output-dir output/b1-map12/alignment`
+- `python -m roboclaws.maps.b1_alignment --correspondences assets/maps/b1-map12-scene-correspondences.json --map-bundle vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot --output-dir output/b1-map12/alignment`
   writes the official residual artifact with `status=global_verified`,
   `global_alignment_status=verified`, `selected_transform_type=rigid_2d`, seven
   matched anchors, mean residual `0.352908 m`, p90 `0.491765 m`, and max
@@ -93,41 +93,41 @@ Last proven evidence:
   writes static B1 preview metadata with only `map` and `topdown` views; no
   `views.fpv`, no `views.chase`, and no corresponding camera preview files are
   published before residual-backed Isaac runtime camera evidence exists.
-- `.venv-isaaclab/bin/python scripts/isaac_lab_cleanup/check_b1_map12_readiness.py --b1-root data/robot-data-lab/scene-engine/data/2rd_floor_seperated --map12-root vendors/agibot_sdk/artifacts/maps/robot_map_12 --alignment-artifact output/b1-map12/manual-draft-alignment/alignment_residuals.json --output output/b1-map12/manual-draft-alignment/readiness_with_alignment.json`
+- `.venv-isaaclab/bin/python -m roboclaws.backends.isaaclab.b1_readiness --b1-root data/robot-data-lab/scene-engine/data/2rd_floor_seperated --map12-root vendors/agibot_sdk/artifacts/maps/robot_map_12 --alignment-artifact output/b1-map12/manual-draft-alignment/alignment_residuals.json --output output/b1-map12/manual-draft-alignment/readiness_with_alignment.json`
   passes validation with `map12_overlay_status=verified`,
   `map12_to_b1_usd_transform_status=verified`, and
   `robot_navigation_supported=false`.
-- `scripts/isaac_lab_cleanup/build_b1_map12_waypoint_pose_requests.py` writes
+- `roboclaws.backends.isaaclab.b1_waypoint_pose_requests` writes
   `b1_map12_waypoint_pose_requests_v1` artifacts for on-demand Map12 waypoint
   ids or `map_xy/yaw` points. Globally verified residual alignment and
   explicitly verified local-area transforms produce ready B1 pose rows;
   unverified, malformed, missing-area, or unknown-area requests produce
   blocked rows instead of fallback output.
-- `scripts/isaac_lab_cleanup/run_b1_map12_navigation_smoke.py` requires at
+- `roboclaws.backends.isaaclab.b1_navigation_smoke` requires at
   least two distinct applied B1 scene poses before setting
   `robot_navigation_supported=true`; duplicate-pose camera rows stay blocked.
-- `.venv-isaaclab/bin/python scripts/isaac_lab_cleanup/check_b1_map12_readiness.py --b1-root data/robot-data-lab/scene-engine/data/2rd_floor_seperated --map12-root vendors/agibot_sdk/artifacts/maps/robot_map_12 --alignment-artifact output/b1-map12/alignment/alignment_residuals.json --output output/b1-map12/alignment/readiness_with_alignment.json`
+- `.venv-isaaclab/bin/python -m roboclaws.backends.isaaclab.b1_readiness --b1-root data/robot-data-lab/scene-engine/data/2rd_floor_seperated --map12-root vendors/agibot_sdk/artifacts/maps/robot_map_12 --alignment-artifact output/b1-map12/alignment/alignment_residuals.json --output output/b1-map12/alignment/readiness_with_alignment.json`
   passes validation with `map12_overlay_status=verified`,
   `map12_to_b1_usd_transform_status=verified`, and
   `robot_navigation_supported=false` before runtime smoke evidence is attached.
-- `python scripts/isaac_lab_cleanup/build_b1_map12_waypoint_pose_requests.py --alignment-artifact output/b1-map12/alignment/alignment_residuals.json --points output/b1-map12/navigation-smoke/map12_points.json --output output/b1-map12/navigation-smoke/waypoint_pose_requests.json`
+- `python -m roboclaws.backends.isaaclab.b1_waypoint_pose_requests --alignment-artifact output/b1-map12/alignment/alignment_residuals.json --points output/b1-map12/navigation-smoke/map12_points.json --output output/b1-map12/navigation-smoke/waypoint_pose_requests.json`
   successfully converts two accepted alignment-corner anchors into
   residual-backed B1 scene poses, but the subsequent smoke run under
   `output/b1-map12/navigation-smoke/navigation_smoke.json` remains blocked
   because both FPV images have too little visual detail. This confirms corner
   alignment anchors are valid geometry evidence but poor camera-smoke points.
-- `python scripts/isaac_lab_cleanup/build_b1_map12_waypoint_pose_requests.py --alignment-artifact output/b1-map12/alignment/alignment_residuals.json --points output/b1-map12/navigation-smoke/residual-overlay/map12_points.json --output output/b1-map12/navigation-smoke/residual-overlay/waypoint_pose_requests.json`
+- `python -m roboclaws.backends.isaaclab.b1_waypoint_pose_requests --alignment-artifact output/b1-map12/alignment/alignment_residuals.json --points output/b1-map12/navigation-smoke/residual-overlay/map12_points.json --output output/b1-map12/navigation-smoke/residual-overlay/waypoint_pose_requests.json`
   converts the `plastic_bottle_table_1` and `long_table` Map12 navigation-memory
   candidate points into ready residual-backed B1 scene pose requests with no
   blocked rows.
-- `.venv-isaaclab/bin/python scripts/isaac_lab_cleanup/run_b1_map12_navigation_smoke.py --readiness-artifact output/b1-map12/alignment/readiness_with_alignment.json --waypoint-pose-requests output/b1-map12/navigation-smoke/residual-overlay/waypoint_pose_requests.json --output-dir output/b1-map12/navigation-smoke/residual-overlay --accept-nvidia-eula`
+- `.venv-isaaclab/bin/python -m roboclaws.backends.isaaclab.b1_navigation_smoke --readiness-artifact output/b1-map12/alignment/readiness_with_alignment.json --waypoint-pose-requests output/b1-map12/navigation-smoke/residual-overlay/waypoint_pose_requests.json --output-dir output/b1-map12/navigation-smoke/residual-overlay --accept-nvidia-eula`
   passes. The resulting
   `output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json`
   reports `robot_navigation_supported=true`,
   `robot_navigation_provenance=isaac_b1_map12_navigation_smoke`,
   `navigation_provenance=kinematic_pose_driven`, two applied waypoints, and
   same-pose FPV/Chase/Map/Verify images for each waypoint.
-- `.venv-isaaclab/bin/python scripts/isaac_lab_cleanup/check_b1_map12_readiness.py --b1-root data/robot-data-lab/scene-engine/data/2rd_floor_seperated --map12-root vendors/agibot_sdk/artifacts/maps/robot_map_12 --alignment-artifact output/b1-map12/alignment/alignment_residuals.json --navigation-artifact output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json --require-navigation-success --output output/b1-map12/navigation-smoke/residual-overlay/readiness_with_navigation.json`
+- `.venv-isaaclab/bin/python -m roboclaws.backends.isaaclab.b1_readiness --b1-root data/robot-data-lab/scene-engine/data/2rd_floor_seperated --map12-root vendors/agibot_sdk/artifacts/maps/robot_map_12 --alignment-artifact output/b1-map12/alignment/alignment_residuals.json --navigation-artifact output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json --require-navigation-success --output output/b1-map12/navigation-smoke/residual-overlay/readiness_with_navigation.json`
   passes and promotes the readiness artifact to
   `robot_navigation_supported=true` from the real navigation-smoke artifact.
 - `python scripts/operator_console/render_scene_previews.py --world b1-map12 --b1-camera-artifact output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json --output-dir output/b1-map12/operator-preview-residual-overlay`
@@ -137,7 +137,7 @@ Last proven evidence:
   `output/b1-map12/alignment/alignment_residuals.json`, use
   `alignment_transform_source=reviewed_correspondence_fit`, and record
   `isaac_runtime_*` provenance.
-- `python scripts/isaac_lab_cleanup/render_b1_map12_navigation_report.py --run-dir output/b1-map12/navigation-smoke/residual-overlay --readiness-artifact output/b1-map12/alignment/readiness_with_alignment.json --navigation-artifact output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json --waypoint-pose-requests output/b1-map12/navigation-smoke/residual-overlay/waypoint_pose_requests.json --output output/b1-map12/navigation-smoke/residual-overlay/report.html`
+- `python -m roboclaws.backends.isaaclab.b1_navigation_report --run-dir output/b1-map12/navigation-smoke/residual-overlay --readiness-artifact output/b1-map12/alignment/readiness_with_alignment.json --navigation-artifact output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json --waypoint-pose-requests output/b1-map12/navigation-smoke/residual-overlay/waypoint_pose_requests.json --output output/b1-map12/navigation-smoke/residual-overlay/report.html`
   passes and writes the reviewable navigation report.
 - `just harness::b1-map12-navigation-smoke stamp=residual-overlay-default-harness output_dir=output/b1-map12/navigation-smoke-harness`
   passes as the canonical single-command maintainer replay. It consumes the
@@ -156,7 +156,7 @@ Last proven evidence:
   The earlier interrupted
   `output/b1-map12/navigation-smoke-harness/residual-overlay-harness/` directory
   is a partial run with zero-byte JSON files and is not evidence.
-- `python scripts/maps/build_b1_map12_semantic_projection.py --correspondences assets/maps/b1-map12-scene-correspondences.json --room-semantics assets/maps/b1-map12-room-semantics.json --output output/b1-map12/semantic-projection/semantic_projection.json`
+- `python -m roboclaws.maps.b1_semantic_projection --correspondences assets/maps/b1-map12-scene-correspondences.json --room-semantics assets/maps/b1-map12-room-semantics.json --output output/b1-map12/semantic-projection/semantic_projection.json`
   currently exits non-zero with `accepted semantic anchors are required before
   projecting room labels`. This is the correct gate for the current committed
   manifest: seven accepted `anchor_role=alignment` anchors prove geometry, but
@@ -164,7 +164,7 @@ Last proven evidence:
   anchors are promoted into the correspondence manifest. The projection script
   also keeps object projection blocked; it does not infer object labels from
   room anchors.
-- `scripts/isaac_lab_cleanup/render_b1_map12_navigation_report.py` can include
+- `roboclaws.backends.isaaclab.b1_navigation_report` can include
   `waypoint_pose_requests.json` and renders ready/blocked conversion decisions
   in the HTML report. The current accepted navigation-smoke proof includes
   local Isaac same-pose camera evidence.
@@ -233,7 +233,7 @@ Last proven evidence:
   lists `b1_alignment_artifact` and `b1_navigation_artifact` as required
   overrides, readiness blocks without readable JSON paths, and launch passes the
   supplied explicit paths through unchanged.
-- `scripts/maps/promote_b1_map12_semantic_review_packet.py` now implements the
+- `roboclaws.maps.b1_semantic_review_promotion` now implements the
   strict promotion gate from a human-edited review packet to the committed
   correspondence manifest. Proposed-only rows, missing `anchor_role`, fewer
   than six human-accepted anchors, bbox/seed coordinate sources, and
@@ -269,8 +269,8 @@ Last proven evidence:
 - `./scripts/dev/run_pytest_standalone.sh tests/contract/maps/test_runtime_map_prior_snapshot.py tests/contract/maps/test_b1_map12_runtime_bundle.py -q`
   passes for compiled B1 bundle -> canonical Runtime Map Prior Snapshot
   conversion and B1 runtime-bundle proof gates.
-- `ruff check scripts/maps/promote_b1_map12_semantic_review_packet.py scripts/maps/suggest_b1_map12_manual_anchor_semantics.py tests/contract/maps/test_b1_map12_verified_alignment.py`,
-  `ruff format --check scripts/maps/promote_b1_map12_semantic_review_packet.py scripts/maps/suggest_b1_map12_manual_anchor_semantics.py tests/contract/maps/test_b1_map12_verified_alignment.py`,
+- `ruff check roboclaws/maps/b1_semantic_review_promotion.py roboclaws/maps/b1_semantic_anchor_suggestions.py tests/contract/maps/test_b1_map12_verified_alignment.py`,
+  `ruff format --check roboclaws/maps/b1_semantic_review_promotion.py roboclaws/maps/b1_semantic_anchor_suggestions.py tests/contract/maps/test_b1_map12_verified_alignment.py`,
   and `./scripts/dev/run_pytest_standalone.sh tests/contract/maps/test_b1_map12_verified_alignment.py -q`
   pass for the strict promotion gate, `--check` mode, and read-only semantic
   review report.
@@ -279,8 +279,8 @@ Last proven evidence:
   `./scripts/dev/run_pytest_standalone.sh tests/unit/operator_console/test_render_scene_previews.py -q`, and
   `./scripts/dev/run_pytest_standalone.sh tests/contract/maps/test_b1_map12_verified_alignment.py tests/contract/maps/test_b1_map12_navigation_report.py tests/unit/operator_console/test_render_scene_previews.py -q`
   pass for the hardened B1 camera-preview provenance gate.
-- `ruff check scripts/isaac_lab_cleanup/run_b1_map12_navigation_smoke.py tests/contract/maps/test_b1_map12_verified_alignment.py`,
-  `ruff format --check scripts/isaac_lab_cleanup/run_b1_map12_navigation_smoke.py tests/contract/maps/test_b1_map12_verified_alignment.py`,
+- `ruff check roboclaws/backends/isaaclab/b1_navigation_smoke.py tests/contract/maps/test_b1_map12_verified_alignment.py`,
+  `ruff format --check roboclaws/backends/isaaclab/b1_navigation_smoke.py tests/contract/maps/test_b1_map12_verified_alignment.py`,
   `./scripts/dev/run_pytest_standalone.sh tests/contract/maps/test_b1_map12_verified_alignment.py -q`, and
   `./scripts/dev/run_pytest_standalone.sh tests/contract/maps/test_b1_map12_verified_alignment.py tests/contract/maps/test_b1_map12_digital_twin_readiness.py tests/contract/maps/test_b1_map12_navigation_report.py -q`
   pass for the distinct-applied-pose navigation smoke gate.

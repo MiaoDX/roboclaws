@@ -101,7 +101,7 @@ def test_nav2_bundle_validation_rejects_private_cleanup_truth(tmp_path: Path) ->
 
 
 def test_base_metric_map_v1_validation_accepts_b1_bundle(tmp_path: Path) -> None:
-    from scripts.maps.build_b1_map12_base_metric_map import (
+    from roboclaws.maps.b1_base_metric_map import (
         DEFAULT_LABELS,
         DEFAULT_MAP_BUNDLE,
         DEFAULT_ROOM_SEMANTICS,
@@ -549,7 +549,7 @@ def _first_non_empty_observation(contract: HouseholdRuntimeContract) -> dict:
 
 
 def _b1_base_metric_bundle(tmp_path: Path) -> Path:
-    from scripts.maps.build_b1_map12_base_metric_map import (
+    from roboclaws.maps.b1_base_metric_map import (
         DEFAULT_LABELS,
         DEFAULT_MAP_BUNDLE,
         DEFAULT_ROOM_SEMANTICS,

@@ -599,7 +599,7 @@ b1-map12-navigation-smoke *overrides:
     if [[ "$accept_nvidia_eula" == "true" ]]; then
       export OMNI_KIT_ACCEPT_EULA="YES"
     fi
-    "$runtime_python" scripts/isaac_lab_cleanup/check_b1_map12_readiness.py \
+    "$runtime_python" -m roboclaws.backends.isaaclab.b1_readiness \
       --b1-root "$b1_root" \
       --map12-root "$map12_root" \
       --alignment-artifact "$alignment_artifact" \
@@ -608,7 +608,7 @@ b1-map12-navigation-smoke *overrides:
       "$runtime_python" scripts/isaac_lab_cleanup/import_rby1m_robot_usd.py --static-only
     fi
     smoke_args=(
-      scripts/isaac_lab_cleanup/run_b1_map12_navigation_smoke.py
+      -m roboclaws.backends.isaaclab.b1_navigation_smoke
       --readiness-artifact "$readiness_output" \
       --output-dir "$run_dir" \
       --robot-name "$robot_name" \
@@ -628,9 +628,9 @@ b1-map12-navigation-smoke *overrides:
     if [[ "$require_navigation_success" == "true" ]]; then
       final_args+=(--require-navigation-success)
     fi
-    "$runtime_python" scripts/isaac_lab_cleanup/check_b1_map12_readiness.py "${final_args[@]}"
+    "$runtime_python" -m roboclaws.backends.isaaclab.b1_readiness "${final_args[@]}"
     report_args=(
-      scripts/isaac_lab_cleanup/render_b1_map12_navigation_report.py
+      -m roboclaws.backends.isaaclab.b1_navigation_report
       --run-dir "$run_dir" \
       --navigation-artifact "${run_dir}/navigation_smoke.json" \
       --readiness-artifact "${run_dir}/readiness_with_navigation.json"

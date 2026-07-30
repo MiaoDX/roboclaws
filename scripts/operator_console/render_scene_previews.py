@@ -32,6 +32,16 @@ from roboclaws.household.subprocess_backend import MolmoSpacesSubprocessBackend 
 from roboclaws.launch.map_bundles import molmospaces_nav2_map_bundle_path  # noqa: E402
 from roboclaws.launch.scene_sampler import parse_molmospaces_world_id  # noqa: E402
 from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS  # noqa: E402
+from roboclaws.maps.b1_base_metric_map import (  # noqa: E402
+    DEFAULT_LABELS as B1_BASE_METRIC_LABELS,
+)
+from roboclaws.maps.b1_base_metric_map import (
+    DEFAULT_MAP_BUNDLE as B1_BASE_METRIC_MAP_BUNDLE,
+)
+from roboclaws.maps.b1_base_metric_map import (
+    DEFAULT_ROOM_SEMANTICS as B1_ROOM_SEMANTICS,
+)
+from roboclaws.maps.b1_base_metric_map import build_base_metric_map_bundle  # noqa: E402
 from roboclaws.maps.bundle import (  # noqa: E402
     static_landmarks_from_fixture_projection,
     write_nav2_map_bundle_snapshot,
@@ -43,16 +53,6 @@ from roboclaws.maps.preview import (  # noqa: E402
     TOPDOWN_SCENE_RENDER_ROLE,
     render_base_metric_map_preview,
 )
-from scripts.maps.build_b1_map12_base_metric_map import (  # noqa: E402
-    DEFAULT_LABELS as B1_BASE_METRIC_LABELS,
-)
-from scripts.maps.build_b1_map12_base_metric_map import (
-    DEFAULT_MAP_BUNDLE as B1_BASE_METRIC_MAP_BUNDLE,
-)
-from scripts.maps.build_b1_map12_base_metric_map import (
-    DEFAULT_ROOM_SEMANTICS as B1_ROOM_SEMANTICS,
-)
-from scripts.maps.build_b1_map12_base_metric_map import build_base_metric_map_bundle  # noqa: E402
 
 PREVIEW_METADATA_SCHEMA = "operator_console_scene_preview_v1"
 DEFAULT_OUTPUT_DIR = Path("roboclaws/operator_console/static/previews")

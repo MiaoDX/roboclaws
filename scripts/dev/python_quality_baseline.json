@@ -36,6 +36,14 @@
       },
       {
         "disposition": "SPLIT",
+        "lines": 1328,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/backends/isaaclab/b1_readiness.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "SPLIT",
         "lines": 1463,
         "max_module_lines": 800,
         "owner": "Wave 6 retained owner split",
@@ -188,6 +196,14 @@
       },
       {
         "disposition": "SPLIT",
+        "lines": 972,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/maps/b1_alignment.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "SPLIT",
         "lines": 1277,
         "max_module_lines": 800,
         "owner": "Wave 6 retained owner split",
@@ -220,27 +236,11 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1328,
-        "max_module_lines": 800,
-        "owner": "Wave 5 package ownership migration",
-        "path": "scripts/isaac_lab_cleanup/check_b1_map12_readiness.py",
-        "trigger": "move retained product behavior to its package owner and reduce the CLI adapter"
-      },
-      {
-        "disposition": "SPLIT",
         "lines": 1061,
         "max_module_lines": 800,
         "owner": "Wave 5 package ownership migration",
         "path": "scripts/isaac_lab_cleanup/prepare_molmospaces_flattened_semantic_usd.py",
         "trigger": "move retained product behavior to its package owner and reduce the CLI adapter"
-      },
-      {
-        "disposition": "PARK",
-        "lines": 972,
-        "max_module_lines": 800,
-        "owner": "Wave 5 B1 package CLI migration",
-        "path": "scripts/maps/fit_b1_map12_scene_alignment.py",
-        "trigger": "revisit after package-owned rebuild, digest, provenance, readiness, and product parity"
       },
       {
         "disposition": "PARK",
@@ -340,7 +340,7 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1875,
+        "lines": 1878,
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
         "path": "tests/contract/dev_tools/test_task_agent_just_recipes.py",
@@ -356,7 +356,7 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 2039,
+        "lines": 2040,
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
         "path": "tests/contract/maps/test_b1_map12_verified_alignment.py",
@@ -518,7 +518,7 @@
         "500": 116,
         "800": 40
       },
-      "loc": 161485,
+      "loc": 161487,
       "python_files": 410,
       "roots": [
         "roboclaws",
@@ -531,7 +531,7 @@
         "500": 50,
         "800": 23
       },
-      "loc": 96535,
+      "loc": 96611,
       "python_files": 232,
       "roots": [
         "tests"

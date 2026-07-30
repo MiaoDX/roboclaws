@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SCRIPT = REPO_ROOT / "scripts" / "isaac_lab_cleanup" / "check_b1_map12_readiness.py"
+MODULE = "roboclaws.backends.isaaclab.b1_readiness"
 
 
 @pytest.mark.parametrize(
@@ -151,7 +151,8 @@ def _run_readiness(
 ) -> subprocess.CompletedProcess[str]:
     command = [
         sys.executable,
-        str(SCRIPT),
+        "-m",
+        MODULE,
         "--b1-root",
         str(b1_root),
         "--map12-root",

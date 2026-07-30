@@ -54,25 +54,25 @@ exist at candidate poses; it does not by itself prove Nav2 planner parity.
      --source-map-dir <map-root> \
      --output-dir assets/maps/<bundle-name>
 
-   .venv-isaaclab/bin/python scripts/isaac_lab_cleanup/check_b1_map12_readiness.py \
+   .venv-isaaclab/bin/python -m roboclaws.backends.isaaclab.b1_readiness \
      --b1-root <scene-root> \
      --map12-root <map-root> \
      --output output/<run>/readiness.json
 
-   .venv-isaaclab/bin/python scripts/isaac_lab_cleanup/run_b1_map12_navigation_smoke.py \
+   .venv-isaaclab/bin/python -m roboclaws.backends.isaaclab.b1_navigation_smoke \
      --b1-root <scene-root> \
      --map12-root <map-root> \
      --output-dir output/<run> \
      --accept-nvidia-eula
 
-   .venv-isaaclab/bin/python scripts/isaac_lab_cleanup/check_b1_map12_readiness.py \
+   .venv-isaaclab/bin/python -m roboclaws.backends.isaaclab.b1_readiness \
      --b1-root <scene-root> \
      --map12-root <map-root> \
      --navigation-artifact output/<run>/navigation_smoke.json \
      --require-navigation-success \
      --output output/<run>/readiness_with_navigation.json
 
-   python scripts/isaac_lab_cleanup/render_b1_map12_navigation_report.py \
+   python -m roboclaws.backends.isaaclab.b1_navigation_report \
      --run-dir output/<run>
    ```
 

@@ -15,9 +15,10 @@ The aggressive architecture migration is active under
 complete: exact baselines and field-level parity are proven, all six module
 cycles and five bidirectional package pairs are removed, the Wave 1-2 guards
 are locked green, and unconditional investigation/rehearsal stacks are retired.
-Waves 0-4 are complete. Wave 5 has moved MolmoSpaces and Isaac Lab workers plus
-cleanup structural validation into package-owned module CLIs. Benchmark-only
-advisory scoring is eval-owned, and B1/Agibot package migration is next.
+Waves 0-5 are complete. MolmoSpaces, Isaac Lab, cleanup validation, B1 rebuild
+and reproducibility, and the physical Agibot pilot now have package-owned
+module CLIs. The graph has no package-to-script violations; Wave 6 behavior
+splits are active.
 The migration preserves public launch, artifact, privacy, provider, simulator,
 and operator behavior while removing dependency cycles, retiring completed
 investigation surfaces, moving product subsystems out of scripts, and splitting
@@ -102,9 +103,9 @@ providers.
 
 ## Next Action
 
-Continue Wave 5 by migrating the B1 rebuild/reproducibility chain and physical
-Agibot launch into package-owned CLIs, proving rebuild parity and eliminating
-the final package-to-script violation. The
+Continue Wave 6 with the operator-console JavaScript behavior split, followed
+by runtime inventory, OpenAI live runtime, household runtime, world sampling,
+reports, eval pipeline, planner/runtime-prior clusters, and retained tests. The
 refreshed immutable candidate remains unmodified; publication remains
 unauthorized and separate from this campaign.
 

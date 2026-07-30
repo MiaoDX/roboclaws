@@ -7,24 +7,20 @@ from pathlib import Path
 
 import pytest
 
-from scripts.isaac_lab_cleanup.build_b1_map12_waypoint_pose_requests import (
-    build_pose_request_artifact,
+from roboclaws.backends.isaaclab.b1_navigation_smoke import (
+    navigation_smoke_has_distinct_pose_evidence,
+    navigation_smoke_waypoints,
 )
-from scripts.isaac_lab_cleanup.check_b1_map12_readiness import (
+from roboclaws.backends.isaaclab.b1_readiness import (
     KNOWN_POOR_BBOX_SEED_SOURCE,
     readiness_artifact_with_alignment,
     validate_readiness_artifact,
     validate_waypoint_pose_requests_artifact,
 )
-from scripts.isaac_lab_cleanup.run_b1_map12_navigation_smoke import (
-    navigation_smoke_has_distinct_pose_evidence,
-    navigation_smoke_waypoints,
+from roboclaws.backends.isaaclab.b1_waypoint_pose_requests import (
+    build_pose_request_artifact,
 )
-from scripts.maps.build_b1_map12_semantic_anchor_review_packet import (
-    build_semantic_anchor_review_packet,
-)
-from scripts.maps.build_b1_map12_semantic_projection import build_semantic_projection
-from scripts.maps.fit_b1_map12_scene_alignment import (
+from roboclaws.maps.b1_alignment import (
     ALIGNMENT_ANCHOR_ROLE,
     B1_MAP12_ALIGNMENT_RESIDUALS_SCHEMA,
     B1_MAP12_CORRESPONDENCES_SCHEMA,
@@ -33,12 +29,21 @@ from scripts.maps.fit_b1_map12_scene_alignment import (
     validate_alignment_residual_artifact,
     validate_correspondence_manifest,
 )
-from scripts.maps.promote_b1_map12_manual_draft_for_verification import (
+from roboclaws.maps.b1_manual_draft_promotion import (
     build_verification_manifest,
 )
-from scripts.maps.promote_b1_map12_semantic_review_packet import (
+from roboclaws.maps.b1_semantic_anchor_suggestions import (
+    build_semantic_review_packet,
+    build_semantic_suggestions,
+    render_semantic_review_report,
+)
+from roboclaws.maps.b1_semantic_projection import build_semantic_projection
+from roboclaws.maps.b1_semantic_review_promotion import (
     PromotionError,
     build_reviewed_correspondence_manifest,
+)
+from scripts.maps.build_b1_map12_semantic_anchor_review_packet import (
+    build_semantic_anchor_review_packet,
 )
 from scripts.maps.render_b1_map12_correspondence_review import (
     build_review_packet,
@@ -51,31 +56,20 @@ from scripts.maps.render_b1_scene_gaussian_topdown import (
     TOPDOWN_RENDER_SCHEMA,
     build_topdown_camera_request,
 )
-from scripts.maps.suggest_b1_map12_manual_anchor_semantics import (
-    build_semantic_review_packet,
-    build_semantic_suggestions,
-    render_semantic_review_report,
-)
 from tests.contract.maps.test_b1_map12_digital_twin_readiness import static_readiness_payload
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SCRIPT = REPO_ROOT / "scripts" / "maps" / "fit_b1_map12_scene_alignment.py"
+ALIGNMENT_MODULE = "roboclaws.maps.b1_alignment"
 REVIEW_SCRIPT = REPO_ROOT / "scripts" / "maps" / "render_b1_map12_correspondence_review.py"
-PROMOTE_REVIEW_PACKET_SCRIPT = (
-    REPO_ROOT / "scripts" / "maps" / "promote_b1_map12_semantic_review_packet.py"
-)
-PROMOTE_MANUAL_DRAFT_SCRIPT = (
-    REPO_ROOT / "scripts" / "maps" / "promote_b1_map12_manual_draft_for_verification.py"
-)
+PROMOTE_REVIEW_PACKET_MODULE = "roboclaws.maps.b1_semantic_review_promotion"
+PROMOTE_MANUAL_DRAFT_MODULE = "roboclaws.maps.b1_manual_draft_promotion"
 CHECK_REVIEW_PACKET_FIT_SCRIPT = (
     REPO_ROOT / "scripts" / "maps" / "check_b1_map12_semantic_review_packet_fit.py"
 )
 SEMANTIC_ANCHOR_REVIEW_PACKET_SCRIPT = (
     REPO_ROOT / "scripts" / "maps" / "build_b1_map12_semantic_anchor_review_packet.py"
 )
-SEMANTIC_PROJECTION_SCRIPT = (
-    REPO_ROOT / "scripts" / "maps" / "build_b1_map12_semantic_projection.py"
-)
+SEMANTIC_PROJECTION_MODULE = "roboclaws.maps.b1_semantic_projection"
 RAW_MAP12_BUNDLE = REPO_ROOT / "assets" / "maps" / "agibot-robot-map-12"
 VENDOR_MAP12_BUNDLE = (
     REPO_ROOT / "vendors" / "agibot_sdk" / "artifacts" / "maps" / ("robot_map_12") / "agibot"
@@ -838,7 +832,8 @@ def test_alignment_fitter_cli_writes_residual_artifact(tmp_path: Path) -> None:
     subprocess.run(
         [
             sys.executable,
-            str(SCRIPT),
+            "-m",
+            ALIGNMENT_MODULE,
             "--correspondences",
             str(manifest_path),
             "--map-bundle",
@@ -933,7 +928,8 @@ def test_manual_draft_promotion_cli_rejects_bad_source_json(
     completed = subprocess.run(
         [
             sys.executable,
-            str(PROMOTE_MANUAL_DRAFT_SCRIPT),
+            "-m",
+            PROMOTE_MANUAL_DRAFT_MODULE,
             "--draft",
             str(draft_path),
             "--output",
@@ -1279,7 +1275,8 @@ def test_semantic_projection_cli_rejects_current_alignment_only_manifest(
     completed = subprocess.run(
         [
             sys.executable,
-            str(SEMANTIC_PROJECTION_SCRIPT),
+            "-m",
+            SEMANTIC_PROJECTION_MODULE,
             "--correspondences",
             str(REPO_ROOT / "assets" / "maps" / "b1-map12-scene-correspondences.json"),
             "--room-semantics",
@@ -1332,7 +1329,8 @@ def test_semantic_projection_cli_rejects_bad_source_json(
     bad_path.write_text(source_text, encoding="utf-8")
     args = [
         sys.executable,
-        str(SEMANTIC_PROJECTION_SCRIPT),
+        "-m",
+        SEMANTIC_PROJECTION_MODULE,
         "--correspondences",
         str(REPO_ROOT / "assets" / "maps" / "b1-map12-scene-correspondences.json"),
         "--room-semantics",
@@ -1648,7 +1646,8 @@ def test_strict_semantic_review_promotion_check_mode_does_not_write(tmp_path: Pa
     completed = subprocess.run(
         [
             sys.executable,
-            str(PROMOTE_REVIEW_PACKET_SCRIPT),
+            "-m",
+            PROMOTE_REVIEW_PACKET_MODULE,
             "--review-packet",
             str(packet_path),
             "--output",
@@ -1677,7 +1676,8 @@ def test_strict_semantic_review_promotion_cli_rejects_current_proposed_packet(
     completed = subprocess.run(
         [
             sys.executable,
-            str(PROMOTE_REVIEW_PACKET_SCRIPT),
+            "-m",
+            PROMOTE_REVIEW_PACKET_MODULE,
             "--review-packet",
             str(packet_path),
             "--output",
@@ -1713,7 +1713,8 @@ def test_strict_semantic_review_promotion_cli_rejects_bad_packet_source_json(
     completed = subprocess.run(
         [
             sys.executable,
-            str(PROMOTE_REVIEW_PACKET_SCRIPT),
+            "-m",
+            PROMOTE_REVIEW_PACKET_MODULE,
             "--review-packet",
             str(packet_path),
             "--output",

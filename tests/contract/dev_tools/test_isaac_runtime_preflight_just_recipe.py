@@ -139,8 +139,8 @@ def test_agent_harness_allows_b1_map12_navigation_smoke_target() -> None:
     harness_text = HARNESS_JUST.read_text(encoding="utf-8")
 
     assert re.search(r"^b1-map12-navigation-smoke \*overrides:", harness_text, re.MULTILINE)
-    assert "check_b1_map12_readiness.py" in harness_text
-    assert "run_b1_map12_navigation_smoke.py" in harness_text
+    assert "roboclaws.backends.isaaclab.b1_readiness" in harness_text
+    assert "roboclaws.backends.isaaclab.b1_navigation_smoke" in harness_text
     assert "import_rby1m_robot_usd.py --static-only" in harness_text
     assert 'require_navigation_success="true"' in harness_text
     assert 'accept_nvidia_eula="false"' in harness_text

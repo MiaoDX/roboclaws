@@ -5,12 +5,12 @@ from pathlib import Path
 
 import pytest
 
+from roboclaws.maps.b1_base_metric_map import build_base_metric_map_bundle
 from roboclaws.maps.bundle import validate_nav2_map_bundle
 from roboclaws.maps.room_semantics import (
     ROOM_SEMANTIC_OVERLAY_SCHEMA,
     build_scene_room_semantic_overlay,
 )
-from scripts.maps.build_b1_map12_base_metric_map import build_base_metric_map_bundle
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SCENE_ROOT = (

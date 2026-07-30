@@ -13,8 +13,7 @@ if __package__ in {None, ""}:
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
 
-from roboclaws.core.json_sources import read_json_object
-from scripts.isaac_lab_cleanup.check_b1_map12_readiness import (
+from roboclaws.backends.isaaclab.b1_readiness import (
     NAVIGATION_SMOKE_SCHEMA,
     READINESS_SCHEMA,
     WAYPOINT_POSE_REQUESTS_SCHEMA,
@@ -22,6 +21,7 @@ from scripts.isaac_lab_cleanup.check_b1_map12_readiness import (
     validate_readiness_artifact,
     validate_waypoint_pose_requests_artifact,
 )
+from roboclaws.core.json_sources import read_json_object
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

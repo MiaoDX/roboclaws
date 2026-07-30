@@ -11,23 +11,23 @@ from pathlib import Path
 from typing import Any
 
 if __package__ in {None, ""}:
-    REPO_ROOT = Path(__file__).resolve().parents[2]
+    REPO_ROOT = Path(__file__).resolve().parents[3]
     if str(REPO_ROOT) not in sys.path:
         sys.path.insert(0, str(REPO_ROOT))
 else:
-    REPO_ROOT = Path(__file__).resolve().parents[2]
+    REPO_ROOT = Path(__file__).resolve().parents[3]
 
+from roboclaws.backends.isaaclab.b1_readiness import (  # noqa: E402
+    DEFAULT_B1_VISUAL_ROUTE_SCENE_USD,
+    NAVIGATION_PROVENANCE,
+    validate_alignment_residual_artifact,
+    validate_navigation_smoke_artifact,
+)
 from roboclaws.core.json_sources import read_json_object
 from roboclaws.maps.bundle import (
     validate_base_metric_map_v1_bundle,
     validate_nav2_map_bundle,
     write_source_frame_bundle_preview,
-)
-from scripts.isaac_lab_cleanup.check_b1_map12_readiness import (  # noqa: E402
-    DEFAULT_B1_VISUAL_ROUTE_SCENE_USD,
-    NAVIGATION_PROVENANCE,
-    validate_alignment_residual_artifact,
-    validate_navigation_smoke_artifact,
 )
 
 B1_MAP12_BASE_METRIC_SIDECAR_SCHEMA = "b1_map12_base_metric_sidecar_v1"

@@ -5,11 +5,11 @@
 - Control plane: current Codex root goal session
 - Project-status writer: current Codex root goal session
 - Latest user intent: execute the complete approved plan through `intuitive-flow`
-- Current slice: Wave 5 product subsystem package ownership
-- Last proven evidence: package-owned household structural validation and eval-only advisory grading pass the focused checker suite and static ratchets; the live runner targets the household CLI, and only eval/harness rows can request advisory scoring
-- Completed batch: Waves 0-4 plus the Wave 5 MolmoSpaces, Isaac, and cleanup-validation slices are complete; the graph is 326 modules / 961 edges with zero SCCs or bidirectional pairs, and oversized modules decrease to 63
-- Next slice: migrate the B1 base-map, augmentation, semantic projection, alignment/promotion, readiness, navigation reproducibility, and physical Agibot launch chain into package-owned CLIs
-- Next proof: package-owned B1 rebuild parity and provenance/digest comparison, preserved review inputs, zero package-to-script violations, focused B1/Agibot gates, and `git diff --check`
+- Current slice: Wave 6 retained behavior-owner splits
+- Last proven evidence: package-owned B1/Agibot CLIs pass 246 focused contracts (235 passed, 11 environment-skipped), accepted base-map API/CLI asset digests match, and all 12 module CLIs pass help probes
+- Completed batch: Waves 0-5 are complete; the graph is 338 modules / 993 edges with zero SCCs, bidirectional pairs, or package-to-script violations, and oversized modules remain at 63 pending the Wave 6-7 behavior splits
+- Next slice: split operator-console JavaScript into native behavior modules with browser-level workflow proof and a 180-250 line composition entrypoint
+- Next proof: unchanged operator workflows under browser behavior tests, no duplicate state owners, native module loading, static ratchets, and `git diff --check`
 - Stop condition: all eight waves and final deterministic/product gates pass, or a plan-defined external/public/schema/local-validation blocker is proven
 - No-touch scope: public launch/schema/privacy/provider behavior; immutable historical evidence; publication; EULA acceptance; real-robot motion; unrelated active capsules
 - Parked work: B1 authoring deletion remains parked until package-owned rebuild equivalence is proven

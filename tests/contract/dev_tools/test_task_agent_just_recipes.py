@@ -1008,15 +1008,16 @@ def test_map_build_routes_agibot_backend_to_physical_pilot_cli(tmp_path: Path) -
         "output_dir=output/agibot/map-build",
     )
 
-    assert route[:6] == [
+    assert route[:8] == [
         "cmd",
         ".venv/bin/python",
-        "scripts/molmo_cleanup/run_physical_agibot_cleanup_pilot.py",
+        "-m",
+        "roboclaws.household.agibot_physical_pilot",
         "--output-dir",
         "output/agibot/map-build",
         "--context-json",
+        "tests/fixtures/agibot_map_context.completed.json",
     ]
-    assert route[6] == "tests/fixtures/agibot_map_context.completed.json"
     assert "--waypoint-id" in route
     assert "wp_sofa_front" in route
     assert "agibot-g2-cleanup" not in " ".join(route)
@@ -1083,8 +1084,8 @@ def test_b1_runtime_bundle_branch_exports_canonical_runtime_prior_artifacts() ->
         1,
     )[0]
 
-    assert "build_b1_map12_base_metric_map.py" in b1_branch
-    assert "augment_b1_map12_base_metric_map.py" in b1_branch
+    assert "roboclaws.maps.b1_base_metric_map" in b1_branch
+    assert "roboclaws.backends.isaaclab.b1_base_metric_augmentation" in b1_branch
     assert "compile_b1_map12_runtime_bundle.py" not in b1_branch
     assert "convert_nav2_cleanup_bundle.py" in b1_branch
     assert "b1_robot_consumption_manifest.json" in b1_branch
@@ -1185,10 +1186,11 @@ def test_household_cleanup_routes_agibot_backend_to_physical_pilot_cli(tmp_path:
         *agibot_dependency_overrides(tmp_path),
     )
 
-    assert route[:5] == [
+    assert route[:6] == [
         "cmd",
         ".venv/bin/python",
-        "scripts/molmo_cleanup/run_physical_agibot_cleanup_pilot.py",
+        "-m",
+        "roboclaws.household.agibot_physical_pilot",
         "--output-dir",
         "output/household/household-world/cleanup/direct-world-public-labels",
     ]
@@ -1210,10 +1212,11 @@ def test_household_cleanup_routes_agibot_backend_override_to_cleanup_pilot_cli(
         "output_dir=output/agibot/cleanup",
     )
 
-    assert route[:9] == [
+    assert route[:10] == [
         "cmd",
         ".venv/bin/python",
-        "scripts/molmo_cleanup/run_physical_agibot_cleanup_pilot.py",
+        "-m",
+        "roboclaws.household.agibot_physical_pilot",
         "--output-dir",
         "output/agibot/cleanup",
         "--context-json",

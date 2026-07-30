@@ -8,10 +8,10 @@ from pathlib import Path
 
 import pytest
 
-from scripts.isaac_lab_cleanup.run_b1_map12_navigation_smoke import run_navigation_smoke
+from roboclaws.backends.isaaclab.b1_navigation_smoke import run_navigation_smoke
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SCRIPT = REPO_ROOT / "scripts" / "isaac_lab_cleanup" / "run_b1_map12_navigation_smoke.py"
+MODULE = "roboclaws.backends.isaaclab.b1_navigation_smoke"
 
 
 @pytest.mark.parametrize(
@@ -131,7 +131,8 @@ def test_navigation_smoke_capture_one_rejects_malformed_request_source(
     completed = subprocess.run(
         [
             sys.executable,
-            str(SCRIPT),
+            "-m",
+            MODULE,
             "_capture-one",
             "--request",
             str(request_path),
@@ -203,7 +204,8 @@ def _run_smoke(
     return subprocess.run(
         [
             sys.executable,
-            str(SCRIPT),
+            "-m",
+            MODULE,
             "--readiness-artifact",
             str(readiness_path),
             "--waypoint-pose-requests",

@@ -358,10 +358,10 @@ household-world-impl:
     if [[ "$backend" == "isaaclab_subprocess" && "$launch_world_id" == "b1-map12" ]]; then
       b1_base_map_bundle_dir="${output_dir}/b1-map12-base-metric-map"
       b1_runtime_map_bundle_dir="${output_dir}/b1-map12-base-metric-map-with-proof"
-      "$python_bin" scripts/maps/build_b1_map12_base_metric_map.py \
+      "$python_bin" -m roboclaws.maps.b1_base_metric_map \
         --map-bundle "$map_bundle_dir" \
         --output-dir "$b1_base_map_bundle_dir" >/dev/null
-      "$python_bin" scripts/maps/augment_b1_map12_base_metric_map.py \
+      "$python_bin" -m roboclaws.backends.isaaclab.b1_base_metric_augmentation \
         --base-map-bundle "$b1_base_map_bundle_dir" \
         --alignment-artifact "$b1_alignment_artifact" \
         --navigation-artifact "$b1_navigation_artifact" \

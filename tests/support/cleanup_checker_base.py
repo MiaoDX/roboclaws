@@ -10,6 +10,11 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
+from roboclaws.backends.isaaclab.b1_base_metric_augmentation import augment_base_metric_map_bundle
+from roboclaws.backends.isaaclab.b1_readiness import (
+    DEFAULT_B1_VISUAL_ROUTE_SCENE_USD,
+    NAVIGATION_PROVENANCE,
+)
 from roboclaws.evals import cleanup_result_args as cleanup_validation_args
 from roboclaws.evals.cleanup_result_grader import assert_advisory_scoring
 from roboclaws.household import agent_view as agent_view_module
@@ -31,13 +36,8 @@ from roboclaws.household.manipulation_contract import (
 )
 from roboclaws.household.manipulation_provenance import planner_backed_probe_evidence
 from roboclaws.household.nav2_map_bundle import attach_nav2_map_bundle_snapshot
+from roboclaws.maps.b1_base_metric_map import build_base_metric_map_bundle
 from roboclaws.mcp.profiles import HOUSEHOLD_EPISODE_PROFILE, HOUSEHOLD_WORLD_PROFILE
-from scripts.isaac_lab_cleanup.check_b1_map12_readiness import (
-    DEFAULT_B1_VISUAL_ROUTE_SCENE_USD,
-    NAVIGATION_PROVENANCE,
-)
-from scripts.maps.augment_b1_map12_base_metric_map import augment_base_metric_map_bundle
-from scripts.maps.build_b1_map12_base_metric_map import build_base_metric_map_bundle
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEMO_PATH = REPO_ROOT / "examples" / "molmo_cleanup" / "molmospaces_realworld_cleanup.py"

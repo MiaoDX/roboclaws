@@ -173,9 +173,14 @@ Key pieces:
   module and does not resolve script paths.
 - `roboclaws/backends/isaaclab/` owns the Isaac Lab JSON worker and generic
   runtime-smoke validation: protocol/state, initialization, navigation/actions,
-  scene/robot capture, rendering diagnostics, and checker policy. The worker
-  and checker run as package modules while Isaac dependencies remain isolated
+  scene/robot capture, rendering diagnostics, checker policy, and B1 readiness,
+  base-map proof augmentation, waypoint requests, navigation reproducibility,
+  and navigation reporting. These run as package modules while Isaac
+  dependencies remain isolated
   in `.venv-isaaclab/`; harnesses do not accept the Omniverse EULA by default.
+- `roboclaws/maps/b1_*.py` owns B1 base-map construction, reviewed alignment,
+  semantic projection, and explicit promotion workflows. Current authoring
+  tools consume these owners; accepted input assets remain review-controlled.
 - `roboclaws/household/cleanup_validation*.py` owns cleanup artifact, schema,
   privacy, map, planner, robot-view, and backend structural validation. Product
   runs use `python -m roboclaws.household.cleanup_validation_cli` and never
@@ -185,6 +190,9 @@ Key pieces:
   SDK subprocess adapter, including conversion of SDK-local exports into the
   public household Agent View v2 artifact. The vendor runner at
   `vendors/agibot_sdk/tools/run_agibot_cleanup_backend.py` stays SDK-local.
+- `roboclaws/household/agibot_physical_pilot.py` is the package CLI for the
+  physical pilot. The typed launch executor invokes this module while retaining
+  localization, run-enablement, E-stop, and explicit real-movement gates.
 - `roboclaws/operator_console/` provides the standalone local agent operator
   console. It exposes explicit SDK/direct route metadata, per-backend locks,
   route gates, normalized live operator state, redacted raw-log access, and

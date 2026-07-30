@@ -17,8 +17,7 @@ if __package__ in {None, ""}:
         sys.path.insert(0, str(repo_root))
 
 from roboclaws.core.json_sources import read_json_object
-from roboclaws.maps.bundle_validation import parse_map_yaml
-from scripts.maps.fit_b1_map12_scene_alignment import (
+from roboclaws.maps.b1_alignment import (
     ALIGNMENT_ANCHOR_ROLE,
     anchor_role,
     anchor_uses_known_poor_seed,
@@ -26,6 +25,7 @@ from scripts.maps.fit_b1_map12_scene_alignment import (
     valid_xyz,
     validate_correspondence_manifest,
 )
+from roboclaws.maps.bundle_validation import parse_map_yaml
 from scripts.maps.render_b1_scene_gaussian_topdown import TOPDOWN_RENDER_SCHEMA
 
 REVIEW_PACKET_SCHEMA = "b1_map12_correspondence_review_packet_v1"

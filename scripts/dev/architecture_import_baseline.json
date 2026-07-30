@@ -6,7 +6,8 @@
     "backends": [
       "core",
       "household",
-      "launch"
+      "launch",
+      "maps"
     ],
     "cli": [
       "core",
@@ -48,7 +49,7 @@
     "reports": [],
     "roboclaws": []
   },
-  "edge_count": 961,
+  "edge_count": 993,
   "edges": [
     {
       "kind": "import",
@@ -558,6 +559,114 @@
       "kind": "import",
       "line": 13,
       "source": "roboclaws.agents.visual_backend_slots",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 20,
+      "source": "roboclaws.backends.isaaclab.b1_base_metric_augmentation",
+      "target": "roboclaws.backends.isaaclab.b1_readiness"
+    },
+    {
+      "kind": "import",
+      "line": 26,
+      "source": "roboclaws.backends.isaaclab.b1_base_metric_augmentation",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 27,
+      "source": "roboclaws.backends.isaaclab.b1_base_metric_augmentation",
+      "target": "roboclaws.maps.bundle"
+    },
+    {
+      "kind": "import",
+      "line": 16,
+      "source": "roboclaws.backends.isaaclab.b1_navigation_report",
+      "target": "roboclaws.backends.isaaclab.b1_readiness"
+    },
+    {
+      "kind": "import",
+      "line": 24,
+      "source": "roboclaws.backends.isaaclab.b1_navigation_report",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 111,
+      "source": "roboclaws.backends.isaaclab.b1_navigation_smoke",
+      "target": "roboclaws.backends.isaaclab"
+    },
+    {
+      "kind": "import",
+      "line": 260,
+      "source": "roboclaws.backends.isaaclab.b1_navigation_smoke",
+      "target": "roboclaws.backends.isaaclab"
+    },
+    {
+      "kind": "import",
+      "line": 19,
+      "source": "roboclaws.backends.isaaclab.b1_navigation_smoke",
+      "target": "roboclaws.backends.isaaclab.b1_readiness"
+    },
+    {
+      "kind": "import",
+      "line": 31,
+      "source": "roboclaws.backends.isaaclab.b1_navigation_smoke",
+      "target": "roboclaws.backends.isaaclab.isaac_worker_cli"
+    },
+    {
+      "kind": "import",
+      "line": 260,
+      "source": "roboclaws.backends.isaaclab.b1_navigation_smoke",
+      "target": "roboclaws.backends.isaaclab.runtime_capture"
+    },
+    {
+      "kind": "import",
+      "line": 111,
+      "source": "roboclaws.backends.isaaclab.b1_navigation_smoke",
+      "target": "roboclaws.backends.isaaclab.runtime_state"
+    },
+    {
+      "kind": "import",
+      "line": 32,
+      "source": "roboclaws.backends.isaaclab.b1_navigation_smoke",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 18,
+      "source": "roboclaws.backends.isaaclab.b1_readiness",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 19,
+      "source": "roboclaws.backends.isaaclab.b1_readiness",
+      "target": "roboclaws.maps.bundle"
+    },
+    {
+      "kind": "import",
+      "line": 20,
+      "source": "roboclaws.backends.isaaclab.b1_readiness",
+      "target": "roboclaws.maps.navigation_memory"
+    },
+    {
+      "kind": "import",
+      "line": 21,
+      "source": "roboclaws.backends.isaaclab.b1_readiness",
+      "target": "roboclaws.maps.rasterize"
+    },
+    {
+      "kind": "import",
+      "line": 15,
+      "source": "roboclaws.backends.isaaclab.b1_waypoint_pose_requests",
+      "target": "roboclaws.backends.isaaclab.b1_readiness"
+    },
+    {
+      "kind": "import",
+      "line": 23,
+      "source": "roboclaws.backends.isaaclab.b1_waypoint_pose_requests",
       "target": "roboclaws.core.json_sources"
     },
     {
@@ -2455,6 +2564,12 @@
       "line": 27,
       "source": "roboclaws.household.agibot_map_bundle",
       "target": "roboclaws.maps.spatial_contract"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.household.agibot_physical_pilot",
+      "target": "roboclaws.household.agibot_sdk_runner"
     },
     {
       "kind": "import",
@@ -5410,6 +5525,90 @@
     },
     {
       "kind": "import",
+      "line": 19,
+      "source": "roboclaws.maps.b1_alignment",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 20,
+      "source": "roboclaws.maps.b1_base_metric_map",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 21,
+      "source": "roboclaws.maps.b1_base_metric_map",
+      "target": "roboclaws.maps.base_waypoints"
+    },
+    {
+      "kind": "import",
+      "line": 26,
+      "source": "roboclaws.maps.b1_base_metric_map",
+      "target": "roboclaws.maps.bundle"
+    },
+    {
+      "kind": "import",
+      "line": 33,
+      "source": "roboclaws.maps.b1_base_metric_map",
+      "target": "roboclaws.maps.bundle_validation"
+    },
+    {
+      "kind": "import",
+      "line": 34,
+      "source": "roboclaws.maps.b1_base_metric_map",
+      "target": "roboclaws.maps.rasterize"
+    },
+    {
+      "kind": "import",
+      "line": 35,
+      "source": "roboclaws.maps.b1_base_metric_map",
+      "target": "roboclaws.maps.spatial_contract"
+    },
+    {
+      "kind": "import",
+      "line": 15,
+      "source": "roboclaws.maps.b1_manual_draft_promotion",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 17,
+      "source": "roboclaws.maps.b1_semantic_anchor_suggestions",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 15,
+      "source": "roboclaws.maps.b1_semantic_projection",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 16,
+      "source": "roboclaws.maps.b1_semantic_projection",
+      "target": "roboclaws.maps.b1_alignment"
+    },
+    {
+      "kind": "import",
+      "line": 15,
+      "source": "roboclaws.maps.b1_semantic_review_promotion",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 16,
+      "source": "roboclaws.maps.b1_semantic_review_promotion",
+      "target": "roboclaws.maps.b1_alignment"
+    },
+    {
+      "kind": "import",
+      "line": 27,
+      "source": "roboclaws.maps.b1_semantic_review_promotion",
+      "target": "roboclaws.maps.b1_semantic_anchor_suggestions"
+    },
+    {
+      "kind": "import",
       "line": 9,
       "source": "roboclaws.maps.base_waypoints",
       "target": "roboclaws.maps.rasterize"
@@ -6195,21 +6394,16 @@
       "target": "roboclaws.maps.runtime_prior_catalog"
     }
   ],
-  "module_count": 326,
+  "module_count": 338,
   "module_sccs": [],
   "package_bidirectional_edges": [],
   "policies": [
     {
       "description": "roboclaws modules must not import or execute scripts",
       "id": "package-to-scripts",
-      "known_violations": [
-        [
-          "roboclaws.launch.executor",
-          "scripts/molmo_cleanup/run_physical_agibot_cleanup_pilot.py"
-        ]
-      ],
+      "known_violations": [],
       "owning_wave": "Wave 5",
-      "status": "ratcheted-known-red"
+      "status": "green"
     },
     {
       "description": "core product packages must not import eval, report, or operator-console UI",
