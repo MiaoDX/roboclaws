@@ -6,8 +6,8 @@ from typing import Any, Callable
 import mujoco
 from PIL import Image, ImageDraw
 
+from roboclaws.backends.molmospaces.room_map import item_label
 from roboclaws.household.camera_control import ANCHOR_ORBIT_CAMERA_MODEL, camera_pose_vec3
-from scripts.molmo_cleanup.molmospaces_room_map import item_label
 
 
 def focus_camera(

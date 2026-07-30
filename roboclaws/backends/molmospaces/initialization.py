@@ -6,7 +6,7 @@ from typing import Any, Callable
 
 from roboclaws.core.json_sources import read_json_object
 from roboclaws.household.generated_mess import GENERATED_MESS_MANIFEST_SCHEMA
-from roboclaws.launch.scene_sampler import _molmospaces_get_scenes_args
+from roboclaws.launch.scene_sampler_prep import molmospaces_get_scenes_args
 
 
 def load_generated_mess_manifest(path: Path | None) -> dict[str, Any]:
@@ -75,7 +75,7 @@ def resolve_molmospaces_scene_xml(
     get_scenes: Callable[..., Any],
     scenes_root: Path,
 ) -> tuple[Path, dict[str, Any]]:
-    dataset_name, split = _molmospaces_get_scenes_args(scene_source)
+    dataset_name, split = molmospaces_get_scenes_args(scene_source)
     mapping = get_scenes(dataset_name, split)
     if isinstance(mapping, tuple):
         mapping = mapping[0]

@@ -284,14 +284,6 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1958,
-        "max_module_lines": 800,
-        "owner": "Wave 5 package ownership migration",
-        "path": "scripts/molmo_cleanup/molmospaces_subprocess_worker.py",
-        "trigger": "move retained product behavior to its package owner and reduce the CLI adapter"
-      },
-      {
-        "disposition": "SPLIT",
         "lines": 1412,
         "max_module_lines": 800,
         "owner": "Wave 5 package ownership migration",
@@ -484,7 +476,7 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1971,
+        "lines": 1966,
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
         "path": "tests/unit/molmo_cleanup/test_molmo_cleanup_subprocess_backend.py",
@@ -546,12 +538,12 @@
     "line_count": "physical UTF-8 lines in Python files under the named roots",
     "source": {
       "files_at_least": {
-        "1000": 30,
+        "1000": 29,
         "500": 112,
-        "800": 43
+        "800": 42
       },
-      "loc": 160412,
-      "python_files": 381,
+      "loc": 160574,
+      "python_files": 389,
       "roots": [
         "roboclaws",
         "scripts"
@@ -563,8 +555,8 @@
         "500": 45,
         "800": 24
       },
-      "loc": 96526,
-      "python_files": 222,
+      "loc": 96560,
+      "python_files": 223,
       "roots": [
         "tests"
       ]

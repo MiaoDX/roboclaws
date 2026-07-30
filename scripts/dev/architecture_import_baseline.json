@@ -3,6 +3,11 @@
     "agents": [
       "core"
     ],
+    "backends": [
+      "core",
+      "household",
+      "launch"
+    ],
     "cli": [
       "core",
       "household",
@@ -43,7 +48,7 @@
     "reports": [],
     "roboclaws": []
   },
-  "edge_count": 711,
+  "edge_count": 770,
   "edges": [
     {
       "kind": "import",
@@ -554,6 +559,360 @@
       "line": 13,
       "source": "roboclaws.agents.visual_backend_slots",
       "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.backends.molmospaces.capture",
+      "target": "roboclaws.household.artifact_paths"
+    },
+    {
+      "kind": "import",
+      "line": 12,
+      "source": "roboclaws.backends.molmospaces.capture",
+      "target": "roboclaws.household.camera_control"
+    },
+    {
+      "kind": "import",
+      "line": 18,
+      "source": "roboclaws.backends.molmospaces.capture",
+      "target": "roboclaws.household.color_management"
+    },
+    {
+      "kind": "import",
+      "line": 19,
+      "source": "roboclaws.backends.molmospaces.capture",
+      "target": "roboclaws.household.robot_view_camera_control"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.backends.molmospaces.common",
+      "target": "roboclaws.backends.molmospaces"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.backends.molmospaces.common",
+      "target": "roboclaws.backends.molmospaces.protocol"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.backends.molmospaces.common",
+      "target": "roboclaws.backends.molmospaces.rendering"
+    },
+    {
+      "kind": "import",
+      "line": 17,
+      "source": "roboclaws.backends.molmospaces.dispatch",
+      "target": "roboclaws.backends.molmospaces"
+    },
+    {
+      "kind": "import",
+      "line": 17,
+      "source": "roboclaws.backends.molmospaces.dispatch",
+      "target": "roboclaws.backends.molmospaces.cli"
+    },
+    {
+      "kind": "import",
+      "line": 21,
+      "source": "roboclaws.backends.molmospaces.dispatch",
+      "target": "roboclaws.backends.molmospaces.common"
+    },
+    {
+      "kind": "import",
+      "line": 29,
+      "source": "roboclaws.backends.molmospaces.dispatch",
+      "target": "roboclaws.backends.molmospaces.operations"
+    },
+    {
+      "kind": "import",
+      "line": 48,
+      "source": "roboclaws.backends.molmospaces.dispatch",
+      "target": "roboclaws.backends.molmospaces.perception_runtime"
+    },
+    {
+      "kind": "import",
+      "line": 17,
+      "source": "roboclaws.backends.molmospaces.dispatch",
+      "target": "roboclaws.backends.molmospaces.protocol"
+    },
+    {
+      "kind": "import",
+      "line": 49,
+      "source": "roboclaws.backends.molmospaces.dispatch",
+      "target": "roboclaws.backends.molmospaces.state_runtime"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.molmospaces.focus_camera",
+      "target": "roboclaws.backends.molmospaces.room_map"
+    },
+    {
+      "kind": "import",
+      "line": 10,
+      "source": "roboclaws.backends.molmospaces.focus_camera",
+      "target": "roboclaws.household.camera_control"
+    },
+    {
+      "kind": "import",
+      "line": 7,
+      "source": "roboclaws.backends.molmospaces.initialization",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.backends.molmospaces.initialization",
+      "target": "roboclaws.household.generated_mess"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.molmospaces.initialization",
+      "target": "roboclaws.launch.scene_sampler_prep"
+    },
+    {
+      "kind": "import",
+      "line": 6,
+      "source": "roboclaws.backends.molmospaces.navigation",
+      "target": "roboclaws.household.robot_view_pose"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.backends.molmospaces.navigation_runtime",
+      "target": "roboclaws.backends.molmospaces"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.backends.molmospaces.navigation_runtime",
+      "target": "roboclaws.backends.molmospaces.capture"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.backends.molmospaces.navigation_runtime",
+      "target": "roboclaws.backends.molmospaces.navigation"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.molmospaces.navigation_runtime",
+      "target": "roboclaws.backends.molmospaces.perception_runtime"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.backends.molmospaces.navigation_runtime",
+      "target": "roboclaws.backends.molmospaces.runtime_state"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.molmospaces.operations",
+      "target": "roboclaws.backends.molmospaces"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.molmospaces.operations",
+      "target": "roboclaws.backends.molmospaces.actions"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.molmospaces.operations",
+      "target": "roboclaws.backends.molmospaces.capture"
+    },
+    {
+      "kind": "import",
+      "line": 17,
+      "source": "roboclaws.backends.molmospaces.operations",
+      "target": "roboclaws.backends.molmospaces.common"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.molmospaces.operations",
+      "target": "roboclaws.backends.molmospaces.initialization"
+    },
+    {
+      "kind": "import",
+      "line": 26,
+      "source": "roboclaws.backends.molmospaces.operations",
+      "target": "roboclaws.backends.molmospaces.navigation_runtime"
+    },
+    {
+      "kind": "import",
+      "line": 46,
+      "source": "roboclaws.backends.molmospaces.operations",
+      "target": "roboclaws.backends.molmospaces.perception_runtime"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.molmospaces.operations",
+      "target": "roboclaws.backends.molmospaces.protocol"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.molmospaces.operations",
+      "target": "roboclaws.backends.molmospaces.scenario_state"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.molmospaces.operations",
+      "target": "roboclaws.backends.molmospaces.state"
+    },
+    {
+      "kind": "import",
+      "line": 66,
+      "source": "roboclaws.backends.molmospaces.operations",
+      "target": "roboclaws.backends.molmospaces.state_runtime"
+    },
+    {
+      "kind": "import",
+      "line": 82,
+      "source": "roboclaws.backends.molmospaces.operations",
+      "target": "roboclaws.household.artifact_paths"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.molmospaces.perception_runtime",
+      "target": "roboclaws.backends.molmospaces"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.molmospaces.perception_runtime",
+      "target": "roboclaws.backends.molmospaces.capture"
+    },
+    {
+      "kind": "import",
+      "line": 10,
+      "source": "roboclaws.backends.molmospaces.perception_runtime",
+      "target": "roboclaws.backends.molmospaces.common"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.molmospaces.perception_runtime",
+      "target": "roboclaws.backends.molmospaces.focus_camera"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.molmospaces.perception_runtime",
+      "target": "roboclaws.backends.molmospaces.navigation"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.molmospaces.perception_runtime",
+      "target": "roboclaws.backends.molmospaces.rendering"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.molmospaces.perception_runtime",
+      "target": "roboclaws.backends.molmospaces.room_map"
+    },
+    {
+      "kind": "import",
+      "line": 18,
+      "source": "roboclaws.backends.molmospaces.perception_runtime",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 19,
+      "source": "roboclaws.backends.molmospaces.perception_runtime",
+      "target": "roboclaws.household.camera_control"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.backends.molmospaces.protocol",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 12,
+      "source": "roboclaws.backends.molmospaces.protocol",
+      "target": "roboclaws.household.artifact_paths"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.molmospaces.scenario_state",
+      "target": "roboclaws.household.generated_mess"
+    },
+    {
+      "kind": "import",
+      "line": 10,
+      "source": "roboclaws.backends.molmospaces.state",
+      "target": "roboclaws.core.generated_mess"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.backends.molmospaces.state",
+      "target": "roboclaws.household.generated_mess"
+    },
+    {
+      "kind": "import",
+      "line": 7,
+      "source": "roboclaws.backends.molmospaces.state_runtime",
+      "target": "roboclaws.backends.molmospaces"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.backends.molmospaces.state_runtime",
+      "target": "roboclaws.backends.molmospaces.common"
+    },
+    {
+      "kind": "import",
+      "line": 14,
+      "source": "roboclaws.backends.molmospaces.state_runtime",
+      "target": "roboclaws.backends.molmospaces.navigation_runtime"
+    },
+    {
+      "kind": "import",
+      "line": 18,
+      "source": "roboclaws.backends.molmospaces.state_runtime",
+      "target": "roboclaws.backends.molmospaces.perception_runtime"
+    },
+    {
+      "kind": "import",
+      "line": 7,
+      "source": "roboclaws.backends.molmospaces.state_runtime",
+      "target": "roboclaws.backends.molmospaces.placement"
+    },
+    {
+      "kind": "import",
+      "line": 7,
+      "source": "roboclaws.backends.molmospaces.state_runtime",
+      "target": "roboclaws.backends.molmospaces.runtime_state"
+    },
+    {
+      "kind": "import",
+      "line": 7,
+      "source": "roboclaws.backends.molmospaces.state_runtime",
+      "target": "roboclaws.backends.molmospaces.scenario_state"
+    },
+    {
+      "kind": "import",
+      "line": 3,
+      "source": "roboclaws.backends.molmospaces.worker",
+      "target": "roboclaws.backends.molmospaces.dispatch"
     },
     {
       "kind": "import",
@@ -3395,7 +3754,7 @@
     },
     {
       "kind": "import",
-      "line": 31,
+      "line": 30,
       "source": "roboclaws.household.subprocess_backend",
       "target": "roboclaws.household.worker_runner"
     },
@@ -4576,7 +4935,7 @@
       "target": "roboclaws.maps.runtime_prior_catalog"
     }
   ],
-  "module_count": 239,
+  "module_count": 261,
   "module_sccs": [],
   "package_bidirectional_edges": [],
   "policies": [

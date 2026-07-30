@@ -6,10 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from scripts.molmo_cleanup import (
-    molmospaces_subprocess_worker,
-    molmospaces_worker_cli,
-    molmospaces_worker_protocol,
+from roboclaws.backends.molmospaces import (
+    cli,
+    protocol,
+)
+from roboclaws.backends.molmospaces import (
+    dispatch as runtime,
 )
 
 
@@ -19,7 +21,7 @@ def _served_worker_packets(stdin_text: str) -> list[dict[str, object]]:
     def never_run_state_command(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
         raise AssertionError("malformed worker requests must not reach command dispatch")
 
-    molmospaces_worker_protocol.serve_worker(
+    protocol.serve_worker(
         Path("state.json"),
         run_state_command=never_run_state_command,
         ok=lambda tool: {"ok": True, "tool": tool},
@@ -29,7 +31,7 @@ def _served_worker_packets(stdin_text: str) -> list[dict[str, object]]:
     return [json.loads(line) for line in stdout.getvalue().splitlines()]
 
 
-def test_molmospaces_worker_protocol_rejects_malformed_stdin_request() -> None:
+def test_protocol_rejects_malformed_stdin_request() -> None:
     packets = _served_worker_packets("{not-json}\n")
 
     assert packets[0] == {"event": "ready", "ok": True, "tool": "serve"}
@@ -42,7 +44,7 @@ def test_molmospaces_worker_protocol_rejects_malformed_stdin_request() -> None:
     )
 
 
-def test_molmospaces_worker_protocol_rejects_non_object_stdin_request() -> None:
+def test_protocol_rejects_non_object_stdin_request() -> None:
     packets = _served_worker_packets("[]\n")
 
     assert packets[0] == {"event": "ready", "ok": True, "tool": "serve"}
@@ -54,7 +56,7 @@ def test_molmospaces_worker_protocol_rejects_non_object_stdin_request() -> None:
     )
 
 
-def test_molmospaces_worker_protocol_resolves_home_relative_command_paths() -> None:
+def test_protocol_resolves_home_relative_command_paths() -> None:
     stdout = io.StringIO()
     captured: dict[str, object] = {}
 
@@ -69,7 +71,7 @@ def test_molmospaces_worker_protocol_resolves_home_relative_command_paths() -> N
             "kwargs": {"output_dir": "~/operator-console/robot_views"},
         }
     )
-    molmospaces_worker_protocol.serve_worker(
+    protocol.serve_worker(
         Path("state.json"),
         run_state_command=run_state_command,
         ok=lambda tool: {"ok": True, "tool": tool},
@@ -83,16 +85,16 @@ def test_molmospaces_worker_protocol_resolves_home_relative_command_paths() -> N
     }
 
 
-def test_molmospaces_worker_protocol_rejects_non_object_inline_waypoint_json() -> None:
+def test_protocol_rejects_non_object_inline_waypoint_json() -> None:
     with pytest.raises(
         ValueError,
         match=r"MolmoSpaces worker inline JSON source must contain a JSON object",
     ):
-        molmospaces_worker_protocol.json_object_from_text("[]")
+        protocol.json_object_from_text("[]")
 
 
-def test_molmospaces_worker_cli_routes_relative_pose_kwargs() -> None:
-    parser = molmospaces_worker_cli.build_arg_parser(
+def test_cli_routes_relative_pose_kwargs() -> None:
+    parser = cli.build_arg_parser(
         default_render_width=540,
         default_render_height=360,
     )
@@ -110,15 +112,15 @@ def test_molmospaces_worker_cli_routes_relative_pose_kwargs() -> None:
             "15",
         ]
     )
-    kwargs = molmospaces_worker_protocol.cli_command_kwargs(args)
+    kwargs = protocol.cli_command_kwargs(args)
 
     assert kwargs == {
         "forward_m": 0.25,
         "lateral_m": -0.125,
         "yaw_delta_deg": 15.0,
     }
-    assert "navigate_to_relative_pose" in molmospaces_subprocess_worker._STATE_MUTATING_COMMANDS
-    assert "navigate_to_relative_pose" in molmospaces_subprocess_worker._WORKER_COMMAND_HANDLERS
+    assert "navigate_to_relative_pose" in runtime._STATE_MUTATING_COMMANDS
+    assert "navigate_to_relative_pose" in runtime._WORKER_COMMAND_HANDLERS
 
 
 def test_molmospaces_worker_dispatches_relative_pose_handler(
@@ -140,13 +142,13 @@ def test_molmospaces_worker_dispatches_relative_pose_handler(
         return {"ok": True, "tool": "navigate_to_relative_pose"}
 
     monkeypatch.setattr(
-        molmospaces_subprocess_worker,
+        runtime,
         "navigate_to_relative_pose",
         fake_navigate_to_relative_pose,
     )
 
     state = {"robot_pose": {"x": 0.0, "y": 0.0, "theta": 0.0}}
-    result, should_write = molmospaces_subprocess_worker._run_loaded_state_command(
+    result, should_write = runtime._run_loaded_state_command(
         state,
         "navigate_to_relative_pose",
         {"forward_m": "0.25", "lateral_m": "-0.125", "yaw_delta_deg": "15"},
@@ -164,7 +166,7 @@ def test_molmospaces_worker_dispatches_relative_pose_handler(
 
 def test_molmospaces_worker_rejects_invalid_relative_pose_kwargs() -> None:
     with pytest.raises(ValueError, match="forward_m must be a finite number; got 'oops'"):
-        molmospaces_subprocess_worker._run_loaded_state_command(
+        runtime._run_loaded_state_command(
             {"robot_pose": {"x": 0.0, "y": 0.0, "theta": 0.0}},
             "navigate_to_relative_pose",
             {"forward_m": "oops"},
@@ -173,7 +175,7 @@ def test_molmospaces_worker_rejects_invalid_relative_pose_kwargs() -> None:
 
 def test_molmospaces_worker_rejects_non_finite_relative_pose_kwargs() -> None:
     with pytest.raises(ValueError, match="yaw_delta_deg must be a finite number; got 'nan'"):
-        molmospaces_subprocess_worker._run_loaded_state_command(
+        runtime._run_loaded_state_command(
             {"robot_pose": {"x": 0.0, "y": 0.0, "theta": 0.0}},
             "navigate_to_relative_pose",
             {"yaw_delta_deg": "nan"},
@@ -198,12 +200,12 @@ def test_molmospaces_worker_defaults_omitted_relative_pose_kwargs(
         return {"ok": True, "tool": "navigate_to_relative_pose"}
 
     monkeypatch.setattr(
-        molmospaces_subprocess_worker,
+        runtime,
         "navigate_to_relative_pose",
         fake_navigate_to_relative_pose,
     )
 
-    result, should_write = molmospaces_subprocess_worker._run_loaded_state_command(
+    result, should_write = runtime._run_loaded_state_command(
         {"robot_pose": {"x": 0.0, "y": 0.0, "theta": 0.0}},
         "navigate_to_relative_pose",
         {},
@@ -216,7 +218,7 @@ def test_molmospaces_worker_defaults_omitted_relative_pose_kwargs(
 
 def test_molmospaces_worker_rejects_invalid_render_dimensions() -> None:
     with pytest.raises(ValueError, match="render_width must be a positive integer; got 'wide'"):
-        molmospaces_subprocess_worker._run_loaded_state_command(
+        runtime._run_loaded_state_command(
             {},
             "snapshot",
             {"output_path": "/tmp/snapshot.png", "render_width": "wide"},
@@ -225,15 +227,15 @@ def test_molmospaces_worker_rejects_invalid_render_dimensions() -> None:
 
 def test_molmospaces_worker_rejects_non_positive_render_dimensions() -> None:
     with pytest.raises(ValueError, match="render_height must be a positive integer; got 0"):
-        molmospaces_subprocess_worker._run_loaded_state_command(
+        runtime._run_loaded_state_command(
             {},
             "camera_views",
             {"output_dir": "/tmp/views", "render_height": 0},
         )
 
 
-def test_molmospaces_worker_cli_rejects_non_positive_render_dimensions() -> None:
-    parser = molmospaces_worker_cli.build_arg_parser(
+def test_cli_rejects_non_positive_render_dimensions() -> None:
+    parser = cli.build_arg_parser(
         default_render_width=540,
         default_render_height=360,
     )
@@ -261,8 +263,8 @@ def test_molmospaces_worker_cli_rejects_non_positive_render_dimensions() -> None
         assert exc_info.value.code == 2
 
 
-def test_molmospaces_worker_cli_accepts_positive_render_dimensions() -> None:
-    parser = molmospaces_worker_cli.build_arg_parser(
+def test_cli_accepts_positive_render_dimensions() -> None:
+    parser = cli.build_arg_parser(
         default_render_width=540,
         default_render_height=360,
     )

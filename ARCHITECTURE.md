@@ -166,6 +166,11 @@ Key pieces:
 - `roboclaws/household/report.py` renders the shared report.
 - `roboclaws/household/camera_control.py` owns the external render-camera
   request schema used by MuJoCo product runs and B1/generic Isaac probes.
+- `roboclaws/backends/molmospaces/` owns the MolmoSpaces JSON worker runtime:
+  protocol/dispatch, initialization/state, navigation/actions, and
+  capture/perception. Its sole executable boundary is
+  `python -m roboclaws.backends.molmospaces.worker`; household code invokes the
+  module and does not resolve script paths.
 - `roboclaws/household/agibot_sdk_runner.py` owns the Roboclaws-side Agibot
   SDK subprocess adapter, including conversion of SDK-local exports into the
   public household Agent View v2 artifact. The vendor runner at

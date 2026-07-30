@@ -892,6 +892,15 @@ hardware proof cannot run for a demonstrated environment reason.
   lines net; 167 focused contracts and the end-to-end proof-bundle product gate
   pass. Oversized modules decrease from 68 to 67, package owners add no script
   imports, and generic Isaac smoke remains current. Wave 4 is complete.
-- Next action: begin Wave 5 with the MolmoSpaces backend package migration,
-  preserving worker protocol and subprocess behavior while eliminating the
-  script-owned product subsystem forward-only.
+- Wave 5 completed slice: fourteen MolmoSpaces script owners totaling 7,254
+  lines moved forward-only into `roboclaws/backends/molmospaces/`. The package
+  has explicit protocol/dispatch, initialization/state, navigation/action, and
+  capture/perception owners; every production module is at or below 700 lines
+  and the canonical module CLI is six lines. The migration adds 175 lines
+  across package boundaries and focused test support, so it is recorded as
+  structural movement rather than deletion. 154 focused tests, module CLI,
+  architecture graph, and package-to-scripts policy pass; oversized modules
+  decrease from 67 to 66.
+- Next action: move the active Isaac Lab worker and generic runtime-smoke
+  implementation into `roboclaws/backends/isaaclab`, preserving standalone
+  launch and the separate `.venv-isaaclab` runtime.

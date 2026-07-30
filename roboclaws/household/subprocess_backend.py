@@ -24,7 +24,6 @@ from roboclaws.household.types import (
 from roboclaws.household.worker_runner import (
     parse_last_json_object,
     parse_worker_json_object_line,
-    run_json_worker_once,
     worker_env,
     worker_timeout_s,
 )
@@ -40,12 +39,7 @@ WORKER_TIMEOUTS_S = {
     "robot_views": 120.0,
     "camera_views": 180.0,
 }
-WORKER_SCRIPT = (
-    Path(__file__).resolve().parents[2]
-    / "scripts"
-    / "molmo_cleanup"
-    / "molmospaces_subprocess_worker.py"
-)
+WORKER_MODULE = "roboclaws.backends.molmospaces.worker"
 PERSISTENT_WORKER_DISABLED_VALUES = {"0", "false", "no", "off"}
 
 _parse_last_json_object = parse_last_json_object
@@ -325,17 +319,31 @@ class MolmoSpacesSubprocessBackend:
         return self._run_worker_once(command, *args)
 
     def _run_worker_once(self, command: str, *args: str) -> dict[str, Any]:
-        return run_json_worker_once(
-            worker_name="MolmoSpaces",
-            python_executable=self.python_executable,
-            missing_runtime_hint="Set ROBOCLAWS_MOLMOSPACES_PYTHON.",
-            worker_script=WORKER_SCRIPT,
-            state_path=self.state_path,
-            command=command,
-            args=args,
-            env=_worker_env(),
-            timeout_s=_worker_timeout_s(command),
-        )
+        if not self.python_executable.is_file():
+            raise RuntimeError(
+                "MolmoSpaces Python runtime is missing: "
+                f"{self.python_executable}. Set ROBOCLAWS_MOLMOSPACES_PYTHON."
+            )
+        timeout_s = _worker_timeout_s(command)
+        try:
+            completed = subprocess.run(
+                _worker_command(self.python_executable, self.state_path, command, args),
+                check=False,
+                capture_output=True,
+                text=True,
+                env=_worker_env(),
+                timeout=timeout_s,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError(
+                f"MolmoSpaces subprocess worker timed out ({command}, {timeout_s:g}s)"
+            ) from exc
+        if completed.returncode != 0:
+            raise RuntimeError(
+                "MolmoSpaces subprocess worker failed "
+                f"({command}, exit {completed.returncode}): {completed.stderr.strip()}"
+            )
+        return parse_last_json_object(completed.stdout, worker_name="MolmoSpaces")
 
     def _run_persistent_worker(self, command: str, *args: str) -> dict[str, Any]:
         if not self.python_executable.is_file():
@@ -394,13 +402,12 @@ class MolmoSpacesSubprocessBackend:
         if process is not None and process.poll() is None:
             return process
         worker_env = _worker_env()
-        worker_command = [
-            str(self.python_executable),
-            str(WORKER_SCRIPT),
-            "--state-path",
-            str(self.state_path),
+        worker_command = _worker_command(
+            self.python_executable,
+            self.state_path,
             "serve",
-        ]
+            (),
+        )
         process = subprocess.Popen(
             worker_command,
             stdin=subprocess.PIPE,
@@ -509,6 +516,23 @@ def _worker_env() -> dict[str, str]:
             )
         }
     )
+
+
+def _worker_command(
+    python_executable: Path,
+    state_path: Path,
+    command: str,
+    args: tuple[str, ...],
+) -> list[str]:
+    return [
+        str(python_executable),
+        "-m",
+        WORKER_MODULE,
+        "--state-path",
+        str(state_path),
+        command,
+        *args,
+    ]
 
 
 def _worker_timeout_s(command: str) -> float:

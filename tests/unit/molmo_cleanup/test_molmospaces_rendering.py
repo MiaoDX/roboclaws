@@ -4,8 +4,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from scripts.molmo_cleanup import molmospaces_rendering
-from scripts.molmo_cleanup.molmospaces_rendering import inflate_bbox
+from roboclaws.backends.molmospaces import rendering
+from roboclaws.backends.molmospaces.rendering import inflate_bbox
 
 
 def test_inflate_bbox_keeps_top_edge_box_ordered_below_header() -> None:
@@ -40,9 +40,9 @@ def test_render_segmentation_disables_msaa_and_restores_model_quality(monkeypatc
         def close(self) -> None:
             closed.append(True)
 
-    monkeypatch.setattr(molmospaces_rendering.mujoco, "Renderer", FakeRenderer)
+    monkeypatch.setattr(rendering.mujoco, "Renderer", FakeRenderer)
 
-    result = molmospaces_rendering.render_segmentation(
+    result = rendering.render_segmentation(
         model,
         object(),
         "robot_0/head_camera",
@@ -77,10 +77,10 @@ def test_render_segmentation_restores_msaa_when_renderer_close_fails(monkeypatch
         def close(self) -> None:
             raise RuntimeError("close failed")
 
-    monkeypatch.setattr(molmospaces_rendering.mujoco, "Renderer", FakeRenderer)
+    monkeypatch.setattr(rendering.mujoco, "Renderer", FakeRenderer)
 
     with pytest.raises(RuntimeError, match="close failed"):
-        molmospaces_rendering.render_segmentation(
+        rendering.render_segmentation(
             model,
             object(),
             "robot_0/head_camera",

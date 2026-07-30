@@ -24,7 +24,6 @@ def resolve_placement(
     relation: str,
     hooks: MolmoPlacementHooks,
 ) -> dict[str, Any]:
-    """Return a nonblocking placement pose plus support-quality evidence."""
     obj = state["objects"][object_id]
     receptacle = state["receptacles"][receptacle_id]
     object_category = obj.get("category")
@@ -329,7 +328,6 @@ def placement_position(
     relation: str = "on",
     object_category: str | None = None,
 ) -> list[float]:
-    """Legacy nonblocking fallback pose when direct support cannot be resolved."""
     base = receptacle["position"]
     if receptacle.get("category") == "Fridge" and relation == "inside":
         return [float(base[0]) + 0.08, float(base[1]) - 0.16, float(base[2]) + 0.35]
