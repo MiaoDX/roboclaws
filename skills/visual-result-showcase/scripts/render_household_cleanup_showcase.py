@@ -13,6 +13,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from roboclaws.core.json_sources import read_json_object, read_jsonl_object_rows
+from roboclaws.household.task_intent import HOUSEHOLD_INTENT_CLEANUP, household_task_identity
 
 SCHEMA = "roboclaws_visual_showcase_v1"
 DEFAULT_SIZE = (1280, 720)
@@ -169,7 +170,6 @@ def render_showcase(
     manifest = {
         "schema": SCHEMA,
         "source_run_dir": str(run_dir),
-        "profile": "household-cleanup",
         "frame_count": len(frame_specs),
         "size": {"width": size[0], "height": size[1]},
         "context": context,
@@ -756,14 +756,16 @@ def _eval_text(eval_summary: dict[str, Any]) -> str:
 
 
 def _ratio(value: Any, total: Any) -> str:
-    if value is None or total is None:
-        return "?/?"
-    return f"{value}/{total}"
+    return "?/?" if value is None or total is None else f"{value}/{total}"
 
 
 def _run_context(run_result: dict[str, Any]) -> dict[str, Any]:
+    task_identity = household_task_identity(
+        surface=run_result.get("task_surface"),
+        intent=run_result.get("task_intent") or HOUSEHOLD_INTENT_CLEANUP,
+    )
     return {
-        "task": run_result.get("task_name") or "household-cleanup",
+        **task_identity,
         "driver": _driver_name(run_result),
         "profile": (
             run_result.get("evidence_lane")
@@ -785,10 +787,7 @@ def _driver_name(run_result: dict[str, Any]) -> str:
 
 def _context_subtitle(run_result: dict[str, Any]) -> str:
     context = _run_context(run_result)
-    parts = [
-        "bounded MCP tools",
-        str(context.get("profile") or "cleanup"),
-    ]
+    parts = ["bounded MCP tools", str(context.get("profile") or "cleanup")]
     if context.get("seed") is not None:
         parts.append(f"seed {context['seed']}")
     return " | ".join(parts)

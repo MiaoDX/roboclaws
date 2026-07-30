@@ -120,6 +120,9 @@ def _write_synthetic_run(run_dir: Path) -> None:
     ]
     run_result = {
         "agent_driven": True,
+        "task_name": "household-world",
+        "task_surface": "household-world",
+        "task_intent": "cleanup",
         "evidence_lane": "world-public-labels",
         "cleanup_status": "success",
         "completion_status": "success",
@@ -228,7 +231,10 @@ def test_household_cleanup_showcase_renderer_writes_reviewable_outputs(tmp_path:
     )
 
     assert manifest["schema"] == "roboclaws_visual_showcase_v1"
-    assert manifest["profile"] == "household-cleanup"
+    assert "profile" not in manifest
+    assert manifest["context"]["task_name"] == "household-world"
+    assert manifest["context"]["task_surface"] == "household-world"
+    assert manifest["context"]["task_intent"] == "cleanup"
     assert manifest["eval_summary"]["semantic_accepted"] == 1
     assert manifest["eval_summary"]["exact_restored"] == 1
     assert "Scores are post-run evaluation" in manifest["public_private_boundary"]
