@@ -769,6 +769,11 @@ hardware proof cannot run for a demonstrated environment reason.
   `operator_console/state.py` consumes that artifact owner and no longer
   imports interactions, so the SCC is absent. The full operator-console suite,
   root host HTTP inventory smoke, and static/architecture gates pass.
+- Wave 1 completed slices: `realworld_contract_init.py` now receives its
+  initialization values and helper callables explicitly from
+  `household_runtime_contract.py` instead of importing that owner back. The
+  final module SCC is absent; 123 runtime/MCP contract tests and all static
+  ratchets pass without increasing frozen quality debt.
 - Planning-loop result: CONVERGED after two rounds. Round 1 entropy, docs-grill,
   and skeptic scouts found speculative layers, unsafe wave order, incomplete
   caller paths, proxy-metric gates, and preservation ambiguity. Round 2 verified
@@ -788,7 +793,6 @@ hardware proof cannot run for a demonstrated environment reason.
 - Parked: B1 authoring deletion beyond proven package-owned rebuild parity,
   publication, real-robot movement, EULA acceptance, public contract redesign,
   provider bakeoff, and unrelated feature work.
-- Next action: remove the final module SCC between
-  `household_runtime_contract` and `realworld_contract_init`, then continue the
-  remaining Wave 1 ownership and package-direction slices under the approved
-  stop gates.
+- Next action: converge direct/MCP run-artifact assembly and validation in
+  `realworld_run_artifacts`, then remove the five bidirectional package edges
+  under the approved Wave 1 stop gates.

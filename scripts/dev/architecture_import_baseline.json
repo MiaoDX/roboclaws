@@ -52,7 +52,7 @@
     ],
     "roboclaws": []
   },
-  "edge_count": 730,
+  "edge_count": 729,
   "edges": [
     {
       "kind": "import",
@@ -1856,31 +1856,31 @@
     },
     {
       "kind": "import",
-      "line": 62,
+      "line": 60,
       "source": "roboclaws.household.household_runtime_contract",
       "target": "roboclaws.household.types"
     },
     {
       "kind": "import",
-      "line": 63,
+      "line": 61,
       "source": "roboclaws.household.household_runtime_contract",
       "target": "roboclaws.household.visual_grounding"
     },
     {
       "kind": "import",
-      "line": 68,
+      "line": 66,
       "source": "roboclaws.household.household_runtime_contract",
       "target": "roboclaws.household.visual_scan_guidance"
     },
     {
       "kind": "import",
-      "line": 73,
+      "line": 71,
       "source": "roboclaws.household.household_runtime_contract",
       "target": "roboclaws.maps.bundle"
     },
     {
       "kind": "import",
-      "line": 74,
+      "line": 72,
       "source": "roboclaws.household.household_runtime_contract",
       "target": "roboclaws.maps.route"
     },
@@ -2312,49 +2312,37 @@
     },
     {
       "kind": "import",
-      "line": 6,
+      "line": 7,
       "source": "roboclaws.household.realworld_contract_init",
       "target": "roboclaws.household"
     },
     {
       "kind": "import",
-      "line": 223,
-      "source": "roboclaws.household.realworld_contract_init",
-      "target": "roboclaws.household"
-    },
-    {
-      "kind": "import",
-      "line": 223,
-      "source": "roboclaws.household.realworld_contract_init",
-      "target": "roboclaws.household.household_runtime_contract"
-    },
-    {
-      "kind": "import",
-      "line": 6,
+      "line": 7,
       "source": "roboclaws.household.realworld_contract_init",
       "target": "roboclaws.household.realworld_contract_projection"
     },
     {
       "kind": "import",
-      "line": 6,
+      "line": 7,
       "source": "roboclaws.household.realworld_contract_init",
       "target": "roboclaws.household.realworld_runtime_map_contract"
     },
     {
       "kind": "import",
-      "line": 6,
+      "line": 7,
       "source": "roboclaws.household.realworld_contract_init",
       "target": "roboclaws.household.realworld_runtime_map_targets"
     },
     {
       "kind": "import",
-      "line": 11,
+      "line": 12,
       "source": "roboclaws.household.realworld_contract_init",
       "target": "roboclaws.maps.bundle"
     },
     {
       "kind": "import",
-      "line": 12,
+      "line": 13,
       "source": "roboclaws.household.realworld_contract_init",
       "target": "roboclaws.maps.project"
     },
@@ -4706,12 +4694,7 @@
     }
   ],
   "module_count": 246,
-  "module_sccs": [
-    [
-      "roboclaws.household.household_runtime_contract",
-      "roboclaws.household.realworld_contract_init"
-    ]
-  ],
+  "module_sccs": [],
   "package_bidirectional_edges": [
     [
       "agents",
