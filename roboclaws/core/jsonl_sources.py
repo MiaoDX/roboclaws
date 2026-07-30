@@ -1,4 +1,4 @@
-"""Operator-console JSONL source helpers."""
+"""Generic structured JSONL source helpers."""
 
 from __future__ import annotations
 

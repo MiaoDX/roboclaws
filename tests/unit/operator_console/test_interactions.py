@@ -5,19 +5,21 @@ from pathlib import Path
 
 import pytest
 
+from roboclaws.core.operator_messages import (
+    check_operator_messages_for_mcp,
+    consume_resume_request_for_runner,
+    operator_message_state,
+    pending_operator_message_hint,
+)
 from roboclaws.operator_console.interactions import (
     InteractionError,
     append_next_goal_request,
     append_resume_request,
     append_steer_message,
     attach_run_to_session,
-    check_operator_messages_for_mcp,
-    consume_resume_request_for_runner,
     get_operator_session,
     list_operator_messages,
-    pending_operator_message_hint,
 )
-from roboclaws.operator_console.operator_message_artifacts import operator_message_state
 from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.routes import get_selection
 from tests.unit.operator_console.conftest import (

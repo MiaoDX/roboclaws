@@ -4,7 +4,6 @@
       "core",
       "household",
       "launch",
-      "operator_console",
       "reports"
     ],
     "cli": [
@@ -26,8 +25,7 @@
       "core",
       "launch",
       "maps",
-      "mcp",
-      "operator_console"
+      "mcp"
     ],
     "launch": [
       "agents",
@@ -399,43 +397,43 @@
       "kind": "import",
       "line": 99,
       "source": "roboclaws.agents.household_live_runner",
-      "target": "roboclaws.household.household_mcp_server"
+      "target": "roboclaws.core.operator_messages"
     },
     {
       "kind": "import",
       "line": 100,
       "source": "roboclaws.agents.household_live_runner",
-      "target": "roboclaws.household.raw_fpv_guidance"
+      "target": "roboclaws.household.household_mcp_server"
     },
     {
       "kind": "import",
       "line": 101,
       "source": "roboclaws.agents.household_live_runner",
-      "target": "roboclaws.household.task_intent"
+      "target": "roboclaws.household.raw_fpv_guidance"
     },
     {
       "kind": "import",
-      "line": 104,
+      "line": 102,
       "source": "roboclaws.agents.household_live_runner",
       "target": "roboclaws.household.task_intent"
     },
     {
       "kind": "import",
-      "line": 107,
+      "line": 105,
+      "source": "roboclaws.agents.household_live_runner",
+      "target": "roboclaws.household.task_intent"
+    },
+    {
+      "kind": "import",
+      "line": 108,
       "source": "roboclaws.agents.household_live_runner",
       "target": "roboclaws.launch.evaluation"
     },
     {
       "kind": "import",
-      "line": 112,
-      "source": "roboclaws.agents.household_live_runner",
-      "target": "roboclaws.launch.open_ended_artifacts"
-    },
-    {
-      "kind": "import",
       "line": 113,
       "source": "roboclaws.agents.household_live_runner",
-      "target": "roboclaws.operator_console.interactions"
+      "target": "roboclaws.launch.open_ended_artifacts"
     },
     {
       "kind": "import",
@@ -676,6 +674,12 @@
       "line": 12,
       "source": "roboclaws.cli.task_run",
       "target": "roboclaws.launch.runners"
+    },
+    {
+      "kind": "import",
+      "line": 10,
+      "source": "roboclaws.core.operator_messages",
+      "target": "roboclaws.core.jsonl_sources"
     },
     {
       "kind": "import",
@@ -1587,115 +1591,115 @@
       "kind": "import",
       "line": 17,
       "source": "roboclaws.household.household_mcp_server",
-      "target": "roboclaws.household"
+      "target": "roboclaws.core.operator_messages"
     },
     {
       "kind": "import",
-      "line": 18,
+      "line": 21,
       "source": "roboclaws.household.household_mcp_server",
       "target": "roboclaws.household"
     },
     {
       "kind": "import",
-      "line": 17,
+      "line": 22,
+      "source": "roboclaws.household.household_mcp_server",
+      "target": "roboclaws.household"
+    },
+    {
+      "kind": "import",
+      "line": 21,
       "source": "roboclaws.household.household_mcp_server",
       "target": "roboclaws.household.agent_view"
     },
     {
       "kind": "import",
-      "line": 19,
+      "line": 23,
       "source": "roboclaws.household.household_mcp_server",
       "target": "roboclaws.household.household_backend_contract"
     },
     {
       "kind": "import",
-      "line": 20,
+      "line": 24,
       "source": "roboclaws.household.household_mcp_server",
       "target": "roboclaws.household.household_mcp_tools"
     },
     {
       "kind": "import",
-      "line": 26,
+      "line": 30,
       "source": "roboclaws.household.household_mcp_server",
       "target": "roboclaws.household.household_runtime_contract"
     },
     {
       "kind": "import",
-      "line": 18,
+      "line": 22,
       "source": "roboclaws.household.household_mcp_server",
       "target": "roboclaws.household.realworld_done_readiness"
     },
     {
       "kind": "import",
-      "line": 35,
+      "line": 39,
       "source": "roboclaws.household.household_mcp_server",
       "target": "roboclaws.household.realworld_mcp_run_artifacts"
     },
     {
       "kind": "import",
-      "line": 39,
+      "line": 43,
       "source": "roboclaws.household.household_mcp_server",
       "target": "roboclaws.household.realworld_run_artifacts"
     },
     {
       "kind": "import",
-      "line": 42,
+      "line": 46,
       "source": "roboclaws.household.household_mcp_server",
       "target": "roboclaws.household.report"
     },
     {
       "kind": "import",
-      "line": 43,
+      "line": 47,
       "source": "roboclaws.household.household_mcp_server",
       "target": "roboclaws.household.scenario"
     },
     {
       "kind": "import",
-      "line": 44,
+      "line": 48,
       "source": "roboclaws.household.household_mcp_server",
       "target": "roboclaws.household.semantic_timeline"
     },
     {
       "kind": "import",
-      "line": 51,
+      "line": 55,
       "source": "roboclaws.household.household_mcp_server",
       "target": "roboclaws.household.task_intent"
     },
     {
       "kind": "import",
-      "line": 56,
+      "line": 60,
       "source": "roboclaws.household.household_mcp_server",
       "target": "roboclaws.household.types"
     },
     {
       "kind": "import",
-      "line": 57,
+      "line": 61,
       "source": "roboclaws.household.household_mcp_server",
       "target": "roboclaws.household.visual_grounding"
     },
     {
       "kind": "import",
-      "line": 61,
+      "line": 65,
       "source": "roboclaws.household.household_mcp_server",
       "target": "roboclaws.household.visual_scan_guidance"
     },
     {
       "kind": "import",
-      "line": 62,
+      "line": 66,
       "source": "roboclaws.household.household_mcp_server",
       "target": "roboclaws.launch.goals"
     },
     {
       "kind": "import",
-      "line": 67,
+      "line": 71,
       "source": "roboclaws.household.household_mcp_server",
       "target": "roboclaws.maps.bundle"
-    },
-    {
-      "kind": "import",
-      "line": 68,
-      "source": "roboclaws.household.household_mcp_server",
-      "target": "roboclaws.operator_console.interactions"
     },
     {
       "kind": "import",
@@ -4125,7 +4129,7 @@
       "kind": "import",
       "line": 15,
       "source": "roboclaws.operator_console.control",
-      "target": "roboclaws.operator_console.jsonl_sources"
+      "target": "roboclaws.core.jsonl_sources"
     },
     {
       "kind": "import",
@@ -4179,41 +4183,41 @@
       "kind": "import",
       "line": 12,
       "source": "roboclaws.operator_console.interactions",
+      "target": "roboclaws.core.operator_messages"
+    },
+    {
+      "kind": "import",
+      "line": 18,
+      "source": "roboclaws.operator_console.interactions",
       "target": "roboclaws.operator_console.context_packets"
-    },
-    {
-      "kind": "import",
-      "line": 16,
-      "source": "roboclaws.operator_console.interactions",
-      "target": "roboclaws.operator_console.launch_support"
-    },
-    {
-      "kind": "import",
-      "line": 17,
-      "source": "roboclaws.operator_console.interactions",
-      "target": "roboclaws.operator_console.operator_message_artifacts"
-    },
-    {
-      "kind": "import",
-      "line": 21,
-      "source": "roboclaws.operator_console.interactions",
-      "target": "roboclaws.operator_console.paths"
     },
     {
       "kind": "import",
       "line": 22,
       "source": "roboclaws.operator_console.interactions",
-      "target": "roboclaws.operator_console.routes"
+      "target": "roboclaws.operator_console.launch_support"
     },
     {
       "kind": "import",
       "line": 23,
       "source": "roboclaws.operator_console.interactions",
+      "target": "roboclaws.operator_console.paths"
+    },
+    {
+      "kind": "import",
+      "line": 24,
+      "source": "roboclaws.operator_console.interactions",
+      "target": "roboclaws.operator_console.routes"
+    },
+    {
+      "kind": "import",
+      "line": 25,
+      "source": "roboclaws.operator_console.interactions",
       "target": "roboclaws.operator_console.state"
     },
     {
       "kind": "import",
-      "line": 27,
+      "line": 29,
       "source": "roboclaws.operator_console.interactions",
       "target": "roboclaws.operator_console.state_summary"
     },
@@ -4390,12 +4394,6 @@
       "line": 14,
       "source": "roboclaws.operator_console.locks",
       "target": "roboclaws.operator_console.runtime_compat"
-    },
-    {
-      "kind": "import",
-      "line": 9,
-      "source": "roboclaws.operator_console.operator_message_artifacts",
-      "target": "roboclaws.operator_console.jsonl_sources"
     },
     {
       "kind": "import",
@@ -4629,31 +4627,31 @@
       "kind": "import",
       "line": 12,
       "source": "roboclaws.operator_console.state",
+      "target": "roboclaws.core.jsonl_sources"
+    },
+    {
+      "kind": "import",
+      "line": 13,
+      "source": "roboclaws.operator_console.state",
+      "target": "roboclaws.core.operator_messages"
+    },
+    {
+      "kind": "import",
+      "line": 14,
+      "source": "roboclaws.operator_console.state",
       "target": "roboclaws.maps.preview"
-    },
-    {
-      "kind": "import",
-      "line": 20,
-      "source": "roboclaws.operator_console.state",
-      "target": "roboclaws.operator_console.grounding_assets"
-    },
-    {
-      "kind": "import",
-      "line": 21,
-      "source": "roboclaws.operator_console.state",
-      "target": "roboclaws.operator_console.jsonl_sources"
     },
     {
       "kind": "import",
       "line": 22,
       "source": "roboclaws.operator_console.state",
-      "target": "roboclaws.operator_console.locks"
+      "target": "roboclaws.operator_console.grounding_assets"
     },
     {
       "kind": "import",
       "line": 23,
       "source": "roboclaws.operator_console.state",
-      "target": "roboclaws.operator_console.operator_message_artifacts"
+      "target": "roboclaws.operator_console.locks"
     },
     {
       "kind": "import",
@@ -4736,16 +4734,8 @@
       "launch"
     ],
     [
-      "agents",
-      "operator_console"
-    ],
-    [
       "household",
       "launch"
-    ],
-    [
-      "household",
-      "operator_console"
     ]
   ],
   "policies": [
@@ -4771,15 +4761,7 @@
       "known_violations": [
         [
           "roboclaws.agents.household_live_runner",
-          "roboclaws.operator_console.interactions"
-        ],
-        [
-          "roboclaws.agents.household_live_runner",
           "roboclaws.reports.live_performance"
-        ],
-        [
-          "roboclaws.household.household_mcp_server",
-          "roboclaws.operator_console.interactions"
         ]
       ],
       "owning_wave": "Waves 1-2",
@@ -4820,10 +4802,6 @@
         [
           "roboclaws.agents.household_live_runner",
           "roboclaws.launch.open_ended_artifacts"
-        ],
-        [
-          "roboclaws.agents.household_live_runner",
-          "roboclaws.operator_console.interactions"
         ],
         [
           "roboclaws.agents.live_timing",

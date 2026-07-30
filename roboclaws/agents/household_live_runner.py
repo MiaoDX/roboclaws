@@ -96,6 +96,7 @@ from roboclaws.agents.prompts.household_cleanup import (
 )
 from roboclaws.agents.thinking_policy import THINKING_MODES
 from roboclaws.core.json_sources import read_json_value, read_jsonl_objects
+from roboclaws.core.operator_messages import consume_resume_request_for_runner
 from roboclaws.household.household_mcp_server import ROBOT_VIEW_CAPTURE_POLICY_FULL
 from roboclaws.household.raw_fpv_guidance import raw_fpv_edge_reframe_instruction
 from roboclaws.household.task_intent import (
@@ -110,7 +111,6 @@ from roboclaws.launch.evaluation import (
     merge_checker_flags,
 )
 from roboclaws.launch.open_ended_artifacts import validate_open_ended_artifacts
-from roboclaws.operator_console.interactions import consume_resume_request_for_runner
 from roboclaws.reports.live_performance import (
     extract_model_call_metrics,
     write_model_call_metrics_jsonl,

@@ -14,6 +14,10 @@ from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp import Image as MCPImage
 
 from roboclaws.core.json_sources import read_jsonl_objects
+from roboclaws.core.operator_messages import (
+    check_operator_messages_for_mcp,
+    pending_operator_message_hint,
+)
 from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household import realworld_done_readiness
 from roboclaws.household.household_backend_contract import HouseholdBackendSession
@@ -65,10 +69,6 @@ from roboclaws.launch.goals import (
     goal_contract_from_json,
 )
 from roboclaws.maps.bundle import copy_nav2_map_bundle_snapshot
-from roboclaws.operator_console.interactions import (
-    check_operator_messages_for_mcp,
-    pending_operator_message_hint,
-)
 
 __all__ = ["MCP_SERVER_NAME", "HouseholdWorldMCPServer", "make_household_world_mcp"]
 

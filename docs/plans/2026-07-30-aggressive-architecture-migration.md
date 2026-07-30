@@ -789,6 +789,14 @@ hardware proof cannot run for a demonstrated environment reason.
   absent, `agents <-> household` is removed, and bidirectional pairs decrease
   from five to four. Provider payload/readiness/CLI parity, full root
   operator-console tests, and static ratchets pass.
+- Wave 1 completed slices: generic structured JSONL issue parsing and the
+  file-backed operator-message/resume queue protocol moved to
+  `core/jsonl_sources.py` and `core/operator_messages.py`; the two old console
+  owners were deleted without facades. Agents and household now consume core
+  directly, removing `agents <-> operator_console` and
+  `household <-> operator_console`; bidirectional pairs decrease from four to
+  two. Full root operator-console, household MCP, SDK resume/handoff,
+  session-live, and static ratchets pass.
 - Planning-loop result: CONVERGED after two rounds. Round 1 entropy, docs-grill,
   and skeptic scouts found speculative layers, unsafe wave order, incomplete
   caller paths, proxy-metric gates, and preservation ambiguity. Round 2 verified
@@ -808,5 +816,6 @@ hardware proof cannot run for a demonstrated environment reason.
 - Parked: B1 authoring deletion beyond proven package-owned rebuild parity,
   publication, real-robot movement, EULA acceptance, public contract redesign,
   provider bakeoff, and unrelated feature work.
-- Next action: remove the four remaining bidirectional package edges one owner
-  cluster at a time under the Wave 0 matrix and approved Wave 1 stop gates.
+- Next action: remove the remaining `agents -> launch` and
+  `household -> launch` reverse edges under the Wave 0 matrix and approved Wave
+  1 stop gates while preserving launch dispatch and SDK lifecycle ownership.

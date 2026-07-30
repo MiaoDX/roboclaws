@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.core.json_sources import read_json_object
+from roboclaws.core.jsonl_sources import collect_jsonl_objects
+from roboclaws.core.operator_messages import operator_message_state
 from roboclaws.maps.preview import (
     BASE_MAP_SOURCE_FAMILY,
     BASE_METRIC_MAP_PREVIEW_ROLE,
@@ -18,9 +20,7 @@ from roboclaws.maps.preview import (
     TOPDOWN_SCENE_RENDER_ROLE,
 )
 from roboclaws.operator_console.grounding_assets import grounding_frames_payload
-from roboclaws.operator_console.jsonl_sources import collect_jsonl_objects
 from roboclaws.operator_console.locks import ResourceLock
-from roboclaws.operator_console.operator_message_artifacts import operator_message_state
 from roboclaws.operator_console.redaction import redact_text
 from roboclaws.operator_console.routes import ConsoleLaunchSelection
 from roboclaws.operator_console.runtime_compat import pid_is_active  # noqa: F401

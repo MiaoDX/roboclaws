@@ -9,15 +9,17 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.core.json_sources import read_json_object
+from roboclaws.core.operator_messages import (
+    MESSAGE_LOG,
+    RESUME_REQUEST_LOG,
+    read_operator_message_rows,
+    read_operator_resume_rows,
+)
 from roboclaws.operator_console.context_packets import (
     sanitize_operator_context_packet,
     strip_private_payload,
 )
 from roboclaws.operator_console.launch_support import launch_overrides_from_run_state
-from roboclaws.operator_console.operator_message_artifacts import (
-    read_operator_message_rows,
-    read_operator_resume_rows,
-)
 from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.routes import ConsoleLaunchSelection, get_selection
 from roboclaws.operator_console.state import (
@@ -28,8 +30,6 @@ from roboclaws.operator_console.state_summary import is_terminal_run_phase
 
 SESSION_SCHEMA = "operator_console_session_v1"
 MESSAGE_SCHEMA = "operator_console_message_v1"
-MESSAGE_LOG = "operator_messages.jsonl"
-RESUME_REQUEST_LOG = "operator_resume_requests.jsonl"
 SESSION_LOG = "sessions.jsonl"
 SESSION_DIR = "sessions"
 NEXT_GOAL_QUEUE = "next_goal_queue.jsonl"
@@ -256,134 +256,6 @@ def list_operator_messages(root: Path, run_id: str) -> dict[str, Any]:
             and route.supports_paused_handoff_resume
             and _is_operator_handoff_paused(state)
             and (state.get("controls") or {}).get("resume_available")
-        ),
-    }
-
-
-def check_operator_messages_for_mcp(run_dir: Path, *, max_messages: int = 10) -> dict[str, Any]:
-    """Return queued steer messages and mark them seen for MCP delivery."""
-
-    wrapper_dir = _wrapper_dir_for_display(run_dir)
-    rows, source_errors = read_operator_message_rows(wrapper_dir)
-    if source_errors:
-        return {
-            "ok": False,
-            "tool": "check_operator_messages",
-            "status": "source_error",
-            "error_reason": "operator_message_source_error",
-            "operator_message_pending": False,
-            "messages": [],
-            "message_count": 0,
-            "source_errors": source_errors,
-            "instruction": (
-                "Operator steering inbox exists but could not be parsed. Treat this as a "
-                "source error and ask the operator to inspect operator_messages.jsonl."
-            ),
-        }
-    selected: list[dict[str, Any]] = []
-    next_rows: list[dict[str, Any]] = []
-    now = _utc_now()
-    for row in rows:
-        if (
-            row.get("command_type") == "steer"
-            and row.get("status") == "queued"
-            and len(selected) < max_messages
-        ):
-            updated = dict(row)
-            updated["status"] = "seen"
-            updated["seen_at_epoch"] = now
-            updated["seen_at"] = _format_epoch(now)
-            selected.append(_public_mcp_message(updated))
-            next_rows.append(updated)
-            continue
-        next_rows.append(row)
-    if selected:
-        _rewrite_messages(wrapper_dir, next_rows)
-    return {
-        "ok": True,
-        "tool": "check_operator_messages",
-        "status": "seen" if selected else "empty",
-        "operator_message_pending": any(
-            item.get("command_type") == "steer" and item.get("status") == "queued"
-            for item in next_rows
-        ),
-        "messages": selected,
-        "message_count": len(selected),
-        "instruction": (
-            "Treat seen operator messages as public steering hints. Acknowledge by "
-            "following the safe checkpoint guidance or explain why a message cannot be applied."
-        ),
-    }
-
-
-def consume_resume_request_for_runner(run_dir: Path, *, max_requests: int = 1) -> dict[str, Any]:
-    """Return queued resume requests and mark them claimed by the live runner."""
-
-    wrapper_dir = _wrapper_dir_for_display(run_dir)
-    rows, source_errors = read_operator_resume_rows(wrapper_dir)
-    if source_errors:
-        return {
-            "ok": False,
-            "status": "source_error",
-            "error_reason": "operator_resume_source_error",
-            "requests": [],
-            "request_count": 0,
-            "source_errors": source_errors,
-        }
-    selected: list[dict[str, Any]] = []
-    next_rows: list[dict[str, Any]] = []
-    now = _utc_now()
-    for row in rows:
-        if (
-            row.get("command_type") == "resume_with_prompt"
-            and row.get("status") == "queued"
-            and len(selected) < max_requests
-        ):
-            updated = dict(row)
-            updated["status"] = "claimed"
-            updated["claimed_at_epoch"] = now
-            updated["claimed_at"] = _format_epoch(now)
-            selected.append(updated)
-            next_rows.append(updated)
-            continue
-        next_rows.append(row)
-    if selected:
-        _rewrite_jsonl(wrapper_dir / RESUME_REQUEST_LOG, next_rows)
-    return {
-        "ok": True,
-        "status": "claimed" if selected else "empty",
-        "requests": selected,
-        "request_count": len(selected),
-        "operator_resume_pending": any(
-            item.get("command_type") == "resume_with_prompt" and item.get("status") == "queued"
-            for item in next_rows
-        ),
-    }
-
-
-def pending_operator_message_hint(run_dir: Path) -> dict[str, Any]:
-    wrapper_dir = _wrapper_dir_for_display(run_dir)
-    rows, source_errors = read_operator_message_rows(wrapper_dir)
-    if source_errors:
-        return {
-            "operator_message_source_error": True,
-            "operator_message_source_errors": source_errors,
-            "operator_message_instruction": (
-                "Operator steering inbox exists but could not be parsed. "
-                "Call check_operator_messages to surface the source error."
-            ),
-        }
-    pending = [
-        row for row in rows if row.get("command_type") == "steer" and row.get("status") == "queued"
-    ]
-    if not pending:
-        return {}
-    return {
-        "operator_message_pending": True,
-        "pending_operator_message_count": len(pending),
-        "operator_message_instruction": (
-            "Unread operator steering exists. Call check_operator_messages at the next "
-            "safe checkpoint to read and acknowledge it."
         ),
     }
 
@@ -654,22 +526,6 @@ def _append_message(run_dir: Path, message: dict[str, Any]) -> None:
     _append_jsonl(run_dir / MESSAGE_LOG, strip_private_payload(message))
 
 
-def _rewrite_messages(run_dir: Path, rows: list[dict[str, Any]]) -> None:
-    path = _message_log_path(run_dir)
-    _rewrite_jsonl(path, rows)
-
-
-def _rewrite_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as stream:
-        for row in rows:
-            stream.write(json.dumps(row, sort_keys=True) + "\n")
-
-
-def _message_log_path(run_dir: Path) -> Path:
-    return run_dir / MESSAGE_LOG
-
-
 def _append_jsonl(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as stream:
@@ -746,22 +602,3 @@ def _first_artifact_href(artifacts: list[Any], label: str) -> str:
         if isinstance(item, dict) and item.get("label") == label:
             return str(item.get("href") or "")
     return ""
-
-
-def _public_mcp_message(message: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "message_id": str(message.get("message_id") or ""),
-        "status": str(message.get("status") or ""),
-        "body": str(message.get("body") or ""),
-        "created_at": str(message.get("created_at") or ""),
-    }
-
-
-def _wrapper_dir_for_display(run_dir: Path) -> Path:
-    run_dir = Path(run_dir).resolve()
-    if (run_dir / "operator_state.json").exists():
-        return run_dir
-    for parent in run_dir.parents:
-        if (parent / "operator_state.json").exists():
-            return parent
-    return run_dir
