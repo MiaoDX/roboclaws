@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -56,9 +57,10 @@ def test_current_graph_freezes_authoritative_cycles_and_package_pairs() -> None:
     module = load_module()
 
     state = module.build_graph_state()
+    baseline = json.loads(module.DEFAULT_BASELINE.read_text(encoding="utf-8"))
 
-    assert len(state["module_sccs"]) == 6
-    assert len(state["package_bidirectional_edges"]) == 5
+    assert state["module_sccs"] == baseline["module_sccs"]
+    assert state["package_bidirectional_edges"] == baseline["package_bidirectional_edges"]
     assert ["household", "operator_console"] in state["package_bidirectional_edges"]
     policies = {item["id"]: item for item in state["policies"]}
     assert policies["package-to-scripts"]["owning_wave"] == "Wave 5"

@@ -6,10 +6,10 @@ from typing import Any
 from roboclaws.core.json_sources import read_jsonl_objects
 from roboclaws.household.isaac_lab_backend import (
     ISAAC_SEMANTIC_POSE_EVENT_SCHEMA,
-    ISAAC_SEMANTIC_POSE_PROVENANCE,
     ISAAC_SEMANTIC_POSE_STATE_SCHEMA,
     ISAAC_SEMANTIC_POSE_STATE_SOURCE,
 )
+from roboclaws.household.manipulation_contract import ISAAC_SEMANTIC_POSE_PROVENANCE
 from roboclaws.household.realworld_mcp_atomic_tools import ATOMIC_CLEANUP_TOOL_NAMES
 from roboclaws.household.semantic_timeline import SEMANTIC_RESPONSE_PHASES
 

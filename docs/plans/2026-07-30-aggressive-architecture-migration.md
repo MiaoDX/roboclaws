@@ -744,6 +744,12 @@ hardware proof cannot run for a demonstrated environment reason.
   baselines, expanded the deletion consumer ledger and public fixture index,
   corrected the planned topology from five/four to six/five, and wired both
   removal-friendly ratchets into `verify::static`.
+- Wave 1 completed slices: manipulation values and request/result/backend
+  types moved to `household/manipulation_contract.py`; 39 package, script, and
+  test callers migrated without facades; the six-module SCC is absent from the
+  refreshed graph baseline. Focused behavior proof passed, with the four
+  unrelated loopback-only visual-grounding tests unavailable in the worker
+  socket sandbox.
 - Planning-loop result: CONVERGED after two rounds. Round 1 entropy, docs-grill,
   and skeptic scouts found speculative layers, unsafe wave order, incomplete
   caller paths, proxy-metric gates, and preservation ambiguity. Round 2 verified

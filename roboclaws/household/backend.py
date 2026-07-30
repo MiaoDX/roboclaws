@@ -3,13 +3,15 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
+from roboclaws.household.manipulation_contract import (
+    API_SEMANTIC_PROVENANCE,
+)
 from roboclaws.household.scoring import score_cleanup
 from roboclaws.household.semantic_acceptability import (
     annotate_score_with_semantic_acceptability,
 )
 from roboclaws.household.types import CleanupScenario
 
-API_SEMANTIC_PROVENANCE = "api_semantic"
 HELD_LOCATION_ID = "held_by_agent"
 
 

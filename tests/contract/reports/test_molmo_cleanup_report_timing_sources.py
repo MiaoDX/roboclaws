@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.household.backend import API_SEMANTIC_PROVENANCE
+from roboclaws.household.manipulation_contract import API_SEMANTIC_PROVENANCE
 from roboclaws.household.report import render_cleanup_report, write_state_snapshot
 from roboclaws.household.scenario import build_cleanup_scenario
 from roboclaws.household.scoring import score_cleanup

@@ -18,8 +18,8 @@ from roboclaws.household import (
     realworld_visual_candidate_lifecycle,
     realworld_visual_candidates,
 )
-from roboclaws.household.backend import API_SEMANTIC_PROVENANCE
 from roboclaws.household.household_backend_contract import HouseholdBackendSession
+from roboclaws.household.manipulation_contract import API_SEMANTIC_PROVENANCE
 from roboclaws.household.planner_observed_binding import (
     observed_handle_planner_binding,
 )

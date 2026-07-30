@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from roboclaws.household.backend import API_SEMANTIC_PROVENANCE
-from roboclaws.household.manipulation_provenance import (
+from roboclaws.household.manipulation_contract import (
+    API_SEMANTIC_PROVENANCE,
     BLOCKED_CAPABILITY_PROVENANCE,
     MANIPULATION_PROBE_CONTRACT,
     PLANNER_BACKED_PROVENANCE,

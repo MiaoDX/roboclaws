@@ -52,7 +52,7 @@
     ],
     "roboclaws": []
   },
-  "edge_count": 732,
+  "edge_count": 728,
   "edges": [
     {
       "kind": "import",
@@ -1186,7 +1186,7 @@
       "kind": "import",
       "line": 20,
       "source": "roboclaws.household.agibot_household_backend",
-      "target": "roboclaws.household.manipulation_provenance"
+      "target": "roboclaws.household.manipulation_contract"
     },
     {
       "kind": "import",
@@ -1300,7 +1300,7 @@
       "kind": "import",
       "line": 29,
       "source": "roboclaws.household.agibot_sdk_runner",
-      "target": "roboclaws.household.manipulation_provenance"
+      "target": "roboclaws.household.manipulation_contract"
     },
     {
       "kind": "import",
@@ -1370,25 +1370,31 @@
     },
     {
       "kind": "import",
-      "line": 52,
+      "line": 6,
+      "source": "roboclaws.household.backend",
+      "target": "roboclaws.household.manipulation_contract"
+    },
+    {
+      "kind": "import",
+      "line": 54,
       "source": "roboclaws.household.backend",
       "target": "roboclaws.household.planner_observed_binding"
     },
     {
       "kind": "import",
-      "line": 6,
+      "line": 9,
       "source": "roboclaws.household.backend",
       "target": "roboclaws.household.scoring"
     },
     {
       "kind": "import",
-      "line": 7,
+      "line": 10,
       "source": "roboclaws.household.backend",
       "target": "roboclaws.household.semantic_acceptability"
     },
     {
       "kind": "import",
-      "line": 10,
+      "line": 13,
       "source": "roboclaws.household.backend",
       "target": "roboclaws.household.types"
     },
@@ -1408,17 +1414,11 @@
       "kind": "import",
       "line": 7,
       "source": "roboclaws.household.cleanup_primitive_evidence",
-      "target": "roboclaws.household.manipulation_provenance"
+      "target": "roboclaws.household.manipulation_contract"
     },
     {
       "kind": "import",
-      "line": 11,
-      "source": "roboclaws.household.cleanup_primitive_evidence",
-      "target": "roboclaws.household.planner_primitive_executor"
-    },
-    {
-      "kind": "import",
-      "line": 14,
+      "line": 12,
       "source": "roboclaws.household.cleanup_primitive_evidence",
       "target": "roboclaws.household.semantic_timeline"
     },
@@ -1726,13 +1726,13 @@
       "kind": "import",
       "line": 21,
       "source": "roboclaws.household.household_runtime_contract",
-      "target": "roboclaws.household.backend"
+      "target": "roboclaws.household.household_backend_contract"
     },
     {
       "kind": "import",
       "line": 22,
       "source": "roboclaws.household.household_runtime_contract",
-      "target": "roboclaws.household.household_backend_contract"
+      "target": "roboclaws.household.manipulation_contract"
     },
     {
       "kind": "import",
@@ -2104,11 +2104,11 @@
       "kind": "import",
       "line": 5,
       "source": "roboclaws.household.manipulation_provenance",
-      "target": "roboclaws.household.backend"
+      "target": "roboclaws.household.manipulation_contract"
     },
     {
       "kind": "import",
-      "line": 6,
+      "line": 12,
       "source": "roboclaws.household.manipulation_provenance",
       "target": "roboclaws.household.planner_proof_quality"
     },
@@ -2122,17 +2122,11 @@
       "kind": "import",
       "line": 5,
       "source": "roboclaws.household.planner_cleanup_bridge",
-      "target": "roboclaws.household.manipulation_provenance"
+      "target": "roboclaws.household.manipulation_contract"
     },
     {
       "kind": "import",
-      "line": 9,
-      "source": "roboclaws.household.planner_cleanup_bridge",
-      "target": "roboclaws.household.planner_proof_attachment"
-    },
-    {
-      "kind": "import",
-      "line": 12,
+      "line": 10,
       "source": "roboclaws.household.planner_cleanup_bridge",
       "target": "roboclaws.household.planner_proof_bundle"
     },
@@ -2140,13 +2134,7 @@
       "kind": "import",
       "line": 6,
       "source": "roboclaws.household.planner_observed_binding",
-      "target": "roboclaws.household.manipulation_provenance"
-    },
-    {
-      "kind": "import",
-      "line": 7,
-      "source": "roboclaws.household.planner_observed_binding",
-      "target": "roboclaws.household.planner_probe_primitive_executor"
+      "target": "roboclaws.household.manipulation_contract"
     },
     {
       "kind": "import",
@@ -2156,37 +2144,25 @@
     },
     {
       "kind": "import",
-      "line": 7,
+      "line": 6,
       "source": "roboclaws.household.planner_primitive_executor",
-      "target": "roboclaws.household.backend"
-    },
-    {
-      "kind": "import",
-      "line": 8,
-      "source": "roboclaws.household.planner_primitive_executor",
-      "target": "roboclaws.household.manipulation_provenance"
+      "target": "roboclaws.household.manipulation_contract"
     },
     {
       "kind": "import",
       "line": 6,
       "source": "roboclaws.household.planner_probe_primitive_executor",
-      "target": "roboclaws.household.manipulation_provenance"
-    },
-    {
-      "kind": "import",
-      "line": 7,
-      "source": "roboclaws.household.planner_probe_primitive_executor",
-      "target": "roboclaws.household.planner_primitive_executor"
+      "target": "roboclaws.household.manipulation_contract"
     },
     {
       "kind": "import",
       "line": 13,
       "source": "roboclaws.household.planner_probe_primitive_executor",
-      "target": "roboclaws.household.planner_proof_attachment"
+      "target": "roboclaws.household.planner_primitive_executor"
     },
     {
       "kind": "import",
-      "line": 16,
+      "line": 17,
       "source": "roboclaws.household.planner_probe_primitive_executor",
       "target": "roboclaws.household.semantic_timeline"
     },
@@ -2200,11 +2176,11 @@
       "kind": "import",
       "line": 8,
       "source": "roboclaws.household.planner_proof_attachment",
-      "target": "roboclaws.household.manipulation_provenance"
+      "target": "roboclaws.household.manipulation_contract"
     },
     {
       "kind": "import",
-      "line": 12,
+      "line": 13,
       "source": "roboclaws.household.planner_proof_attachment",
       "target": "roboclaws.household.planner_proof_quality"
     },
@@ -2212,23 +2188,23 @@
       "kind": "import",
       "line": 7,
       "source": "roboclaws.household.planner_proof_bundle",
-      "target": "roboclaws.household.manipulation_provenance"
-    },
-    {
-      "kind": "import",
-      "line": 8,
-      "source": "roboclaws.household.planner_proof_bundle",
-      "target": "roboclaws.household.planner_probe_primitive_executor"
+      "target": "roboclaws.household.manipulation_contract"
     },
     {
       "kind": "import",
       "line": 11,
       "source": "roboclaws.household.planner_proof_bundle",
+      "target": "roboclaws.household.planner_probe_primitive_executor"
+    },
+    {
+      "kind": "import",
+      "line": 14,
+      "source": "roboclaws.household.planner_proof_bundle",
       "target": "roboclaws.household.planner_proof_attachment"
     },
     {
       "kind": "import",
-      "line": 16,
+      "line": 18,
       "source": "roboclaws.household.planner_proof_bundle",
       "target": "roboclaws.household.planner_proof_quality"
     },
@@ -2326,7 +2302,7 @@
       "kind": "import",
       "line": 5,
       "source": "roboclaws.household.rby1m_curobo_gate",
-      "target": "roboclaws.household.manipulation_provenance"
+      "target": "roboclaws.household.manipulation_contract"
     },
     {
       "kind": "import",
@@ -2530,25 +2506,25 @@
       "kind": "import",
       "line": 10,
       "source": "roboclaws.household.realworld_mcp_run_artifacts",
-      "target": "roboclaws.household.backend"
-    },
-    {
-      "kind": "import",
-      "line": 11,
-      "source": "roboclaws.household.realworld_mcp_run_artifacts",
       "target": "roboclaws.household.cleanup_primitive_evidence"
     },
     {
       "kind": "import",
-      "line": 14,
+      "line": 13,
       "source": "roboclaws.household.realworld_mcp_run_artifacts",
       "target": "roboclaws.household.household_runtime_contract"
     },
     {
       "kind": "import",
-      "line": 20,
+      "line": 19,
       "source": "roboclaws.household.realworld_mcp_run_artifacts",
       "target": "roboclaws.household.isaac_lab_backend"
+    },
+    {
+      "kind": "import",
+      "line": 23,
+      "source": "roboclaws.household.realworld_mcp_run_artifacts",
+      "target": "roboclaws.household.manipulation_contract"
     },
     {
       "kind": "import",
@@ -2680,101 +2656,101 @@
       "kind": "import",
       "line": 11,
       "source": "roboclaws.household.realworld_run_artifacts",
-      "target": "roboclaws.household.backend"
-    },
-    {
-      "kind": "import",
-      "line": 12,
-      "source": "roboclaws.household.realworld_run_artifacts",
       "target": "roboclaws.household.cleanup_primitive_evidence"
     },
     {
       "kind": "import",
-      "line": 15,
+      "line": 14,
       "source": "roboclaws.household.realworld_run_artifacts",
       "target": "roboclaws.household.household_backend_contract"
     },
     {
       "kind": "import",
-      "line": 16,
+      "line": 15,
       "source": "roboclaws.household.realworld_run_artifacts",
       "target": "roboclaws.household.household_runtime_contract"
     },
     {
       "kind": "import",
-      "line": 23,
+      "line": 22,
       "source": "roboclaws.household.realworld_run_artifacts",
       "target": "roboclaws.household.isaac_lab_backend"
     },
     {
       "kind": "import",
-      "line": 28,
+      "line": 26,
+      "source": "roboclaws.household.realworld_run_artifacts",
+      "target": "roboclaws.household.manipulation_contract"
+    },
+    {
+      "kind": "import",
+      "line": 30,
       "source": "roboclaws.household.realworld_run_artifacts",
       "target": "roboclaws.household.manipulation_provenance"
     },
     {
       "kind": "import",
-      "line": 33,
+      "line": 35,
       "source": "roboclaws.household.realworld_run_artifacts",
       "target": "roboclaws.household.map_build_scan_profile"
     },
     {
       "kind": "import",
-      "line": 34,
+      "line": 36,
       "source": "roboclaws.household.realworld_run_artifacts",
       "target": "roboclaws.household.nav2_map_bundle"
     },
     {
       "kind": "import",
-      "line": 35,
+      "line": 37,
       "source": "roboclaws.household.realworld_run_artifacts",
       "target": "roboclaws.household.planner_cleanup_bridge"
     },
     {
       "kind": "import",
-      "line": 36,
+      "line": 38,
       "source": "roboclaws.household.realworld_run_artifacts",
       "target": "roboclaws.household.planner_proof_requests"
     },
     {
       "kind": "import",
-      "line": 37,
+      "line": 39,
       "source": "roboclaws.household.realworld_run_artifacts",
       "target": "roboclaws.household.profiles"
     },
     {
       "kind": "import",
-      "line": 41,
+      "line": 43,
       "source": "roboclaws.household.realworld_run_artifacts",
       "target": "roboclaws.household.report"
     },
     {
       "kind": "import",
-      "line": 42,
+      "line": 44,
       "source": "roboclaws.household.realworld_run_artifacts",
       "target": "roboclaws.household.semantic_timeline"
     },
     {
       "kind": "import",
-      "line": 49,
+      "line": 51,
       "source": "roboclaws.household.realworld_run_artifacts",
       "target": "roboclaws.household.types"
     },
     {
       "kind": "import",
-      "line": 50,
+      "line": 52,
       "source": "roboclaws.household.realworld_run_artifacts",
       "target": "roboclaws.launch.environment_setup_metadata"
     },
     {
       "kind": "import",
-      "line": 51,
+      "line": 53,
       "source": "roboclaws.household.realworld_run_artifacts",
       "target": "roboclaws.launch.goals"
     },
     {
       "kind": "import",
-      "line": 56,
+      "line": 58,
       "source": "roboclaws.household.realworld_run_artifacts",
       "target": "roboclaws.maps.preview"
     },
@@ -2824,7 +2800,7 @@
       "kind": "import",
       "line": 6,
       "source": "roboclaws.household.realworld_tool_responses",
-      "target": "roboclaws.household.backend"
+      "target": "roboclaws.household.manipulation_contract"
     },
     {
       "kind": "import",
@@ -4717,7 +4693,7 @@
       "target": "roboclaws.household.report_sections_timing"
     }
   ],
-  "module_count": 242,
+  "module_count": 243,
   "module_sccs": [
     [
       "roboclaws.evals.cli",
@@ -4726,14 +4702,6 @@
     [
       "roboclaws.evals.long_horizon",
       "roboclaws.evals.long_horizon_grader"
-    ],
-    [
-      "roboclaws.household.backend",
-      "roboclaws.household.manipulation_provenance",
-      "roboclaws.household.planner_observed_binding",
-      "roboclaws.household.planner_primitive_executor",
-      "roboclaws.household.planner_probe_primitive_executor",
-      "roboclaws.household.planner_proof_attachment"
     ],
     [
       "roboclaws.household.household_runtime_contract",

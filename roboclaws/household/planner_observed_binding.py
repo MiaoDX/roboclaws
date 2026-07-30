@@ -3,8 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from roboclaws.household.manipulation_provenance import BLOCKED_CAPABILITY_PROVENANCE
-from roboclaws.household.planner_probe_primitive_executor import (
+from roboclaws.household.manipulation_contract import (
+    BLOCKED_CAPABILITY_PROVENANCE,
     PLANNER_PROBE_PRIMITIVE_BINDING_SCHEMA,
 )
 from roboclaws.household.semantic_timeline import canonical_cleanup_tool_sequence

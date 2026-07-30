@@ -8,7 +8,6 @@ from typing import Any
 from roboclaws.core.rerun import report_rerun_command_from_env
 from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household.advisory_scoring import build_advisory_evaluation
-from roboclaws.household.backend import API_SEMANTIC_PROVENANCE
 from roboclaws.household.cleanup_primitive_evidence import (
     cleanup_primitive_evidence_from_substeps,
 )
@@ -21,9 +20,12 @@ from roboclaws.household.household_runtime_contract import (
     real_robot_readiness_from_events,
 )
 from roboclaws.household.isaac_lab_backend import (
-    ISAAC_SEMANTIC_POSE_PROVENANCE,
     ISAACLAB_ROBOT_VIEW_VARIANT,
     ISAACLAB_SUBPROCESS_BACKEND,
+)
+from roboclaws.household.manipulation_contract import (
+    API_SEMANTIC_PROVENANCE,
+    ISAAC_SEMANTIC_POSE_PROVENANCE,
 )
 from roboclaws.household.manipulation_provenance import (
     api_semantic_manipulation_evidence,
