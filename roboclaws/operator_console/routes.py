@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from roboclaws.agents.provider_registry import (
+from roboclaws.core.provider_catalog import (
     provider_route_specs,
     route_payload,
 )

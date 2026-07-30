@@ -13,12 +13,12 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.agents.provider_registry import (
-    default_provider_profile,
     openai_agents_runtime_settings,
     provider_readiness,
 )
 from roboclaws.core.dotenv import load_dotenv_file
 from roboclaws.core.json_sources import read_json_object
+from roboclaws.core.provider_catalog import default_provider_profile
 from roboclaws.household.evidence_lane_policy import evidence_lane_compatibility
 from roboclaws.launch.catalog import LaunchError, resolve_surface_launch
 from roboclaws.launch.executor import LaunchProcess, spawn_launch_plan

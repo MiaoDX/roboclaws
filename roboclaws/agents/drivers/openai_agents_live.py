@@ -31,12 +31,12 @@ from roboclaws.agents.drivers.openai_agents_spans import (
 )
 from roboclaws.agents.live_runtime import LiveAgentRequest, LiveAgentResult, LiveAgentRuntime
 from roboclaws.agents.live_status import LiveAgentFailure
-from roboclaws.agents.provider_registry import (
+from roboclaws.agents.provider_registry import openai_agents_runtime_settings
+from roboclaws.agents.thinking_policy import apply_model_thinking_policy
+from roboclaws.core.provider_catalog import (
     PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
     WIRE_CHAT_COMPLETIONS,
-    openai_agents_runtime_settings,
 )
-from roboclaws.agents.thinking_policy import apply_model_thinking_policy
 
 try:
     from agents.models.interface import Model as _AgentsModel  # type: ignore[import-not-found]

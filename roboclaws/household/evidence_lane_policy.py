@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from roboclaws.agents.provider_registry import (
+from roboclaws.core.provider_catalog import (
     MODEL_CAP_IMAGE_INPUT,
     ROUTE_CAP_SUPPORTED,
     provider_route_spec,

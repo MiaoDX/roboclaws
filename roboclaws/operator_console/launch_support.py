@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from roboclaws.agents.provider_registry import normalize_provider_route, provider_route_spec
+from roboclaws.core.provider_catalog import normalize_provider_route, provider_route_spec
 from roboclaws.launch.environment_setup import (
     ENVIRONMENT_SETUP_BASELINE,
     ENVIRONMENT_SETUP_OPTIONS,

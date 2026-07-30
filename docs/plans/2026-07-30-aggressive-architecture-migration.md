@@ -781,6 +781,14 @@ hardware proof cannot run for a demonstrated environment reason.
   its distinct timing/diagnostic/server behavior; downstream producer,
   checker, report, privacy/schema, and static gates pass with 29 net lines
   removed and no dictionary-schema change.
+- Wave 1 completed slices: immutable provider/model catalog specs, constants,
+  lookup, normalization, capabilities, and route payloads moved to
+  `core/provider_catalog.py`; agent readiness, environment/runtime settings,
+  retired-engine policy, and CLI remain in `agents/provider_registry.py`.
+  Every moved-symbol caller uses the core owner directly, the old surface is
+  absent, `agents <-> household` is removed, and bidirectional pairs decrease
+  from five to four. Provider payload/readiness/CLI parity, full root
+  operator-console tests, and static ratchets pass.
 - Planning-loop result: CONVERGED after two rounds. Round 1 entropy, docs-grill,
   and skeptic scouts found speculative layers, unsafe wave order, incomplete
   caller paths, proxy-metric gates, and preservation ambiguity. Round 2 verified
@@ -800,5 +808,5 @@ hardware proof cannot run for a demonstrated environment reason.
 - Parked: B1 authoring deletion beyond proven package-owned rebuild parity,
   publication, real-robot movement, EULA acceptance, public contract redesign,
   provider bakeoff, and unrelated feature work.
-- Next action: remove the five bidirectional package edges one owner cluster at
-  a time under the Wave 0 matrix and approved Wave 1 stop gates.
+- Next action: remove the four remaining bidirectional package edges one owner
+  cluster at a time under the Wave 0 matrix and approved Wave 1 stop gates.

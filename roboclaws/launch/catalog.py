@@ -10,7 +10,7 @@ The resolved plan crosses directly into the typed launch executor.
 
 from __future__ import annotations
 
-from roboclaws.agents.provider_registry import normalize_provider_route, provider_route_spec
+from roboclaws.core.provider_catalog import normalize_provider_route, provider_route_spec
 from roboclaws.household.evidence_lane_policy import evidence_lane_compatibility
 from roboclaws.household.profiles import (
     cleanup_evidence_lane_names,

@@ -6,7 +6,8 @@ from importlib.util import find_spec
 from pathlib import Path
 from typing import Any
 
-from roboclaws.agents.provider_registry import normalize_provider_route, provider_readiness
+from roboclaws.agents.provider_registry import provider_readiness
+from roboclaws.core.provider_catalog import normalize_provider_route
 from roboclaws.evals.models import (
     MISSING_NOT_APPLICABLE,
     MISSING_SENTINELS,
