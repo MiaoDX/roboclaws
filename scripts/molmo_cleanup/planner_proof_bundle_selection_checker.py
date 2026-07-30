@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from roboclaws.household.planner_proof_requests import (
+from roboclaws.household.planner_proof_contracts import (
     PLANNER_PROOF_REQUEST_SELECTION_SCHEMA,
 )
 

@@ -46,6 +46,14 @@ aggregation/reporting, and CLI composition now have direct owners; CLI imports
 only runner from the eval package. The full eval unit and CLI/distribution
 contracts pass at 375 modules / 1,128 edges, and oversized Python modules
 decrease to 55.
+Planner proof request construction, selection, fallback selection, result
+projection, feasibility contracts, and grasp-cache lifecycle now have direct
+household owners. Runtime-prior contracts, online snapshot wrapping,
+Agibot/Nav2 conversion, artifact reads, target materialization, and
+source/frame/digest validation now have direct map owners. The 186 focused
+planner/proof/runtime-prior contracts and static ratchets pass at 389 modules /
+1,165 edges with zero SCCs or forbidden edges, and oversized Python modules
+decrease to 52.
 The migration preserves public launch, artifact, privacy, provider, simulator,
 and operator behavior while removing dependency cycles, retiring completed
 investigation surfaces, moving product subsystems out of scripts, and splitting
@@ -130,8 +138,8 @@ providers.
 
 ## Next Action
 
-Continue Wave 6 with planner/runtime-prior clusters, followed by retained
-tests. The
+Continue Wave 6 with retained test/support cleanup and wave-level product and
+partition verification. The
 refreshed immutable candidate remains unmodified; publication remains
 unauthorized and separate from this campaign.
 

@@ -4,7 +4,7 @@ import html
 from pathlib import Path
 from typing import Any
 
-from roboclaws.household.planner_proof_requests import (
+from roboclaws.household.planner_proof_contracts import (
     PLANNER_PROOF_BUNDLE_RUN_MANIFEST_SCHEMA,
     PLANNER_PROOF_EXECUTION_HORIZON_SCHEMA,
 )

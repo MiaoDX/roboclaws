@@ -54,7 +54,7 @@
       "core"
     ]
   },
-  "edge_count": 1128,
+  "edge_count": 1165,
   "edges": [
     {
       "kind": "import",
@@ -2106,7 +2106,7 @@
       "kind": "import",
       "line": 56,
       "source": "roboclaws.cli.household_agent_server",
-      "target": "roboclaws.maps.runtime_prior_snapshot"
+      "target": "roboclaws.maps.runtime_prior_artifact"
     },
     {
       "kind": "import",
@@ -2760,7 +2760,7 @@
       "kind": "import",
       "line": 21,
       "source": "roboclaws.evals.runtime_prior_selection",
-      "target": "roboclaws.maps.runtime_prior_snapshot"
+      "target": "roboclaws.maps.runtime_prior_contracts"
     },
     {
       "kind": "import",
@@ -3678,13 +3678,13 @@
       "kind": "import",
       "line": 42,
       "source": "roboclaws.household.cleanup_validation_planner",
-      "target": "roboclaws.household.planner_proof_quality"
+      "target": "roboclaws.household.planner_proof_contracts"
     },
     {
       "kind": "import",
-      "line": 46,
+      "line": 43,
       "source": "roboclaws.household.cleanup_validation_planner",
-      "target": "roboclaws.household.planner_proof_requests"
+      "target": "roboclaws.household.planner_proof_quality"
     },
     {
       "kind": "import",
@@ -3810,7 +3810,7 @@
       "kind": "import",
       "line": 11,
       "source": "roboclaws.household.grasp_cache_generation",
-      "target": "roboclaws.household.planner_task_feasibility"
+      "target": "roboclaws.household.planner_grasp_cache"
     },
     {
       "kind": "import",
@@ -3822,7 +3822,7 @@
       "kind": "import",
       "line": 10,
       "source": "roboclaws.household.grasp_generation_setup",
-      "target": "roboclaws.household.planner_task_feasibility"
+      "target": "roboclaws.household.planner_grasp_cache_generation"
     },
     {
       "kind": "import",
@@ -4464,7 +4464,7 @@
       "kind": "import",
       "line": 93,
       "source": "roboclaws.household.household_world_episode",
-      "target": "roboclaws.maps.runtime_prior_snapshot"
+      "target": "roboclaws.maps.runtime_prior_artifact"
     },
     {
       "kind": "import",
@@ -4525,6 +4525,36 @@
       "line": 10,
       "source": "roboclaws.household.planner_cleanup_bridge",
       "target": "roboclaws.household.planner_proof_bundle"
+    },
+    {
+      "kind": "import",
+      "line": 7,
+      "source": "roboclaws.household.planner_grasp_cache",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.household.planner_grasp_cache",
+      "target": "roboclaws.household.planner_feasibility_contracts"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.household.planner_grasp_cache_generation",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.household.planner_grasp_cache_generation",
+      "target": "roboclaws.household.planner_feasibility_contracts"
+    },
+    {
+      "kind": "import",
+      "line": 12,
+      "source": "roboclaws.household.planner_grasp_cache_generation",
+      "target": "roboclaws.household.planner_grasp_cache"
     },
     {
       "kind": "import",
@@ -4607,80 +4637,212 @@
     {
       "kind": "import",
       "line": 7,
+      "source": "roboclaws.household.planner_proof_fallback_selection",
+      "target": "roboclaws.household.planner_proof_contracts"
+    },
+    {
+      "kind": "import",
+      "line": 10,
+      "source": "roboclaws.household.planner_proof_fallback_selection",
+      "target": "roboclaws.household.planner_proof_fallbacks"
+    },
+    {
+      "kind": "import",
+      "line": 13,
+      "source": "roboclaws.household.planner_proof_fallback_selection",
+      "target": "roboclaws.household.planner_proof_fallbacks"
+    },
+    {
+      "kind": "import",
+      "line": 16,
+      "source": "roboclaws.household.planner_proof_fallback_selection",
+      "target": "roboclaws.household.planner_proof_fallbacks"
+    },
+    {
+      "kind": "import",
+      "line": 19,
+      "source": "roboclaws.household.planner_proof_fallback_selection",
+      "target": "roboclaws.household.planner_proof_fallbacks"
+    },
+    {
+      "kind": "import",
+      "line": 22,
+      "source": "roboclaws.household.planner_proof_fallback_selection",
+      "target": "roboclaws.household.planner_proof_fallbacks"
+    },
+    {
+      "kind": "import",
+      "line": 25,
+      "source": "roboclaws.household.planner_proof_fallback_selection",
+      "target": "roboclaws.household.planner_proof_results"
+    },
+    {
+      "kind": "import",
+      "line": 26,
+      "source": "roboclaws.household.planner_proof_fallback_selection",
+      "target": "roboclaws.household.planner_proof_selection_evidence"
+    },
+    {
+      "kind": "import",
+      "line": 7,
       "source": "roboclaws.household.planner_proof_fallbacks",
       "target": "roboclaws.household.planner_proof_quality"
     },
     {
       "kind": "import",
+      "line": 8,
+      "source": "roboclaws.household.planner_proof_requests",
+      "target": "roboclaws.household.planner_grasp_cache"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.household.planner_proof_requests",
+      "target": "roboclaws.household.planner_grasp_cache_generation"
+    },
+    {
+      "kind": "import",
       "line": 10,
       "source": "roboclaws.household.planner_proof_requests",
-      "target": "roboclaws.core.json_sources"
+      "target": "roboclaws.household.planner_proof_contracts"
     },
     {
       "kind": "import",
-      "line": 11,
+      "line": 15,
       "source": "roboclaws.household.planner_proof_requests",
       "target": "roboclaws.household.planner_proof_fallbacks"
     },
     {
       "kind": "import",
-      "line": 14,
+      "line": 18,
       "source": "roboclaws.household.planner_proof_requests",
       "target": "roboclaws.household.planner_proof_fallbacks"
     },
     {
       "kind": "import",
-      "line": 17,
+      "line": 21,
       "source": "roboclaws.household.planner_proof_requests",
-      "target": "roboclaws.household.planner_proof_fallbacks"
+      "target": "roboclaws.household.planner_proof_results"
     },
     {
       "kind": "import",
-      "line": 20,
+      "line": 24,
       "source": "roboclaws.household.planner_proof_requests",
-      "target": "roboclaws.household.planner_proof_fallbacks"
+      "target": "roboclaws.household.planner_proof_selection"
     },
     {
       "kind": "import",
-      "line": 23,
+      "line": 28,
       "source": "roboclaws.household.planner_proof_requests",
-      "target": "roboclaws.household.planner_proof_fallbacks"
+      "target": "roboclaws.household.planner_proof_selection"
     },
     {
       "kind": "import",
-      "line": 26,
-      "source": "roboclaws.household.planner_proof_requests",
-      "target": "roboclaws.household.planner_proof_fallbacks"
-    },
-    {
-      "kind": "import",
-      "line": 29,
-      "source": "roboclaws.household.planner_proof_requests",
-      "target": "roboclaws.household.planner_proof_fallbacks"
-    },
-    {
-      "kind": "import",
-      "line": 32,
-      "source": "roboclaws.household.planner_proof_requests",
-      "target": "roboclaws.household.planner_proof_quality"
-    },
-    {
-      "kind": "import",
-      "line": 36,
+      "line": 31,
       "source": "roboclaws.household.planner_proof_requests",
       "target": "roboclaws.household.planner_task_feasibility"
     },
     {
       "kind": "import",
-      "line": 45,
+      "line": 32,
       "source": "roboclaws.household.planner_proof_requests",
       "target": "roboclaws.household.semantic_timeline"
     },
     {
       "kind": "import",
-      "line": 9,
-      "source": "roboclaws.household.planner_task_feasibility",
+      "line": 8,
+      "source": "roboclaws.household.planner_proof_results",
       "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.household.planner_proof_results",
+      "target": "roboclaws.household.planner_proof_contracts"
+    },
+    {
+      "kind": "import",
+      "line": 10,
+      "source": "roboclaws.household.planner_proof_results",
+      "target": "roboclaws.household.planner_proof_fallbacks"
+    },
+    {
+      "kind": "import",
+      "line": 13,
+      "source": "roboclaws.household.planner_proof_results",
+      "target": "roboclaws.household.planner_proof_quality"
+    },
+    {
+      "kind": "import",
+      "line": 17,
+      "source": "roboclaws.household.planner_proof_results",
+      "target": "roboclaws.household.planner_task_feasibility"
+    },
+    {
+      "kind": "import",
+      "line": 7,
+      "source": "roboclaws.household.planner_proof_selection",
+      "target": "roboclaws.household.planner_proof_contracts"
+    },
+    {
+      "kind": "import",
+      "line": 10,
+      "source": "roboclaws.household.planner_proof_selection",
+      "target": "roboclaws.household.planner_proof_fallback_selection"
+    },
+    {
+      "kind": "import",
+      "line": 14,
+      "source": "roboclaws.household.planner_proof_selection",
+      "target": "roboclaws.household.planner_proof_fallbacks"
+    },
+    {
+      "kind": "import",
+      "line": 17,
+      "source": "roboclaws.household.planner_proof_selection",
+      "target": "roboclaws.household.planner_proof_fallbacks"
+    },
+    {
+      "kind": "import",
+      "line": 20,
+      "source": "roboclaws.household.planner_proof_selection",
+      "target": "roboclaws.household.planner_proof_fallbacks"
+    },
+    {
+      "kind": "import",
+      "line": 23,
+      "source": "roboclaws.household.planner_proof_selection",
+      "target": "roboclaws.household.planner_proof_fallbacks"
+    },
+    {
+      "kind": "import",
+      "line": 26,
+      "source": "roboclaws.household.planner_proof_selection",
+      "target": "roboclaws.household.planner_proof_fallbacks"
+    },
+    {
+      "kind": "import",
+      "line": 29,
+      "source": "roboclaws.household.planner_proof_selection",
+      "target": "roboclaws.household.planner_proof_quality"
+    },
+    {
+      "kind": "import",
+      "line": 32,
+      "source": "roboclaws.household.planner_proof_selection",
+      "target": "roboclaws.household.planner_proof_results"
+    },
+    {
+      "kind": "import",
+      "line": 33,
+      "source": "roboclaws.household.planner_proof_selection",
+      "target": "roboclaws.household.planner_proof_selection_evidence"
+    },
+    {
+      "kind": "import",
+      "line": 6,
+      "source": "roboclaws.household.planner_task_feasibility",
+      "target": "roboclaws.household.planner_feasibility_contracts"
     },
     {
       "kind": "import",
@@ -6130,12 +6292,6 @@
     },
     {
       "kind": "import",
-      "line": 36,
-      "source": "roboclaws.maps",
-      "target": "roboclaws.maps.runtime_prior_snapshot"
-    },
-    {
-      "kind": "import",
       "line": 19,
       "source": "roboclaws.maps.b1_alignment",
       "target": "roboclaws.core.json_sources"
@@ -6364,39 +6520,135 @@
     },
     {
       "kind": "import",
+      "line": 7,
+      "source": "roboclaws.maps.runtime_prior_artifact",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.maps.runtime_prior_artifact",
+      "target": "roboclaws.maps.runtime_prior_contracts"
+    },
+    {
+      "kind": "import",
       "line": 9,
       "source": "roboclaws.maps.runtime_prior_catalog",
       "target": "roboclaws.core.json_sources"
     },
     {
       "kind": "import",
-      "line": 9,
-      "source": "roboclaws.maps.runtime_prior_snapshot",
+      "line": 7,
+      "source": "roboclaws.maps.runtime_prior_conversion",
       "target": "roboclaws.core.json_sources"
     },
     {
       "kind": "import",
-      "line": 10,
-      "source": "roboclaws.maps.runtime_prior_snapshot",
+      "line": 8,
+      "source": "roboclaws.maps.runtime_prior_conversion",
       "target": "roboclaws.maps.bundle"
     },
     {
       "kind": "import",
-      "line": 11,
-      "source": "roboclaws.maps.runtime_prior_snapshot",
+      "line": 9,
+      "source": "roboclaws.maps.runtime_prior_conversion",
       "target": "roboclaws.maps.navigation_memory"
+    },
+    {
+      "kind": "import",
+      "line": 14,
+      "source": "roboclaws.maps.runtime_prior_conversion",
+      "target": "roboclaws.maps.rasterize"
+    },
+    {
+      "kind": "import",
+      "line": 15,
+      "source": "roboclaws.maps.runtime_prior_conversion",
+      "target": "roboclaws.maps.runtime_prior_contracts"
+    },
+    {
+      "kind": "import",
+      "line": 20,
+      "source": "roboclaws.maps.runtime_prior_conversion",
+      "target": "roboclaws.maps.runtime_prior_conversion_helpers"
+    },
+    {
+      "kind": "import",
+      "line": 34,
+      "source": "roboclaws.maps.runtime_prior_conversion",
+      "target": "roboclaws.maps.runtime_prior_source_validation"
+    },
+    {
+      "kind": "import",
+      "line": 6,
+      "source": "roboclaws.maps.runtime_prior_conversion_helpers",
+      "target": "roboclaws.maps.navigation_memory"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.maps.runtime_prior_conversion_helpers",
+      "target": "roboclaws.maps.rasterize"
+    },
+    {
+      "kind": "import",
+      "line": 10,
+      "source": "roboclaws.maps.runtime_prior_conversion_helpers",
+      "target": "roboclaws.maps.runtime_prior_contracts"
+    },
+    {
+      "kind": "import",
+      "line": 14,
+      "source": "roboclaws.maps.runtime_prior_conversion_helpers",
+      "target": "roboclaws.maps.runtime_prior_source_validation"
+    },
+    {
+      "kind": "import",
+      "line": 20,
+      "source": "roboclaws.maps.runtime_prior_conversion_helpers",
+      "target": "roboclaws.maps.spatial_contract"
+    },
+    {
+      "kind": "import",
+      "line": 6,
+      "source": "roboclaws.maps.runtime_prior_materialization",
+      "target": "roboclaws.maps.runtime_prior_contracts"
+    },
+    {
+      "kind": "import",
+      "line": 7,
+      "source": "roboclaws.maps.runtime_prior_materialization",
+      "target": "roboclaws.maps.runtime_prior_snapshot"
+    },
+    {
+      "kind": "import",
+      "line": 6,
+      "source": "roboclaws.maps.runtime_prior_snapshot",
+      "target": "roboclaws.maps.runtime_prior_contracts"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.maps.runtime_prior_snapshot",
+      "target": "roboclaws.maps.runtime_prior_contracts"
+    },
+    {
+      "kind": "import",
+      "line": 12,
+      "source": "roboclaws.maps.runtime_prior_snapshot",
+      "target": "roboclaws.maps.runtime_prior_conversion_helpers"
     },
     {
       "kind": "import",
       "line": 17,
       "source": "roboclaws.maps.runtime_prior_snapshot",
-      "target": "roboclaws.maps.rasterize"
+      "target": "roboclaws.maps.runtime_prior_source_validation"
     },
     {
       "kind": "import",
-      "line": 18,
-      "source": "roboclaws.maps.runtime_prior_snapshot",
-      "target": "roboclaws.maps.spatial_contract"
+      "line": 8,
+      "source": "roboclaws.maps.runtime_prior_source_validation",
+      "target": "roboclaws.maps.runtime_prior_contracts"
     },
     {
       "kind": "import",
@@ -7281,7 +7533,7 @@
       "target": "roboclaws.core.json_sources"
     }
   ],
-  "module_count": 375,
+  "module_count": 389,
   "module_sccs": [],
   "package_bidirectional_edges": [],
   "policies": [

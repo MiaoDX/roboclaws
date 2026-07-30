@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.core.json_sources import read_json_object
-from roboclaws.household.planner_task_feasibility import grasp_cache_generation_preflight
+from roboclaws.household.planner_grasp_cache_generation import grasp_cache_generation_preflight
 
 GRASP_GENERATION_SETUP_SCHEMA = "molmospaces_grasp_generation_setup_v1"
 DEFAULT_GRASP_GENERATION_PYTHON_PACKAGES = ("scikit-learn", "python-fcl")

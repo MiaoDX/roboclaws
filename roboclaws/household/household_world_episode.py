@@ -90,7 +90,7 @@ from roboclaws.household.visual_grounding import (
     SIM_VISUAL_GROUNDING_PIPELINE_ID,
     visual_grounding_client_from_env,
 )
-from roboclaws.maps.runtime_prior_snapshot import read_runtime_map_prior_artifact
+from roboclaws.maps.runtime_prior_artifact import read_runtime_map_prior_artifact
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

@@ -7,7 +7,8 @@ from pathlib import Path
 import pytest
 
 from roboclaws.household.manipulation_provenance import planner_backed_probe_evidence
-from roboclaws.household.planner_proof_requests import PLANNER_PROOF_REQUESTS_SCHEMA
+from roboclaws.household.planner_proof_contracts import PLANNER_PROOF_REQUESTS_SCHEMA
+from roboclaws.household.planner_proof_results import proof_result_summary_from_commands
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SCRIPT_PATH = (
@@ -1149,7 +1150,6 @@ def test_runner_preserves_prior_blocker_detail_from_excluded_requests() -> None:
 
 
 def test_runner_summarizes_grasp_feasibility_signatures(tmp_path: Path) -> None:
-    runner = _load_module()
     proof_dir = tmp_path / "proofs" / "001"
     proof_dir.mkdir(parents=True)
     (proof_dir / "report.html").write_text("<h1>report</h1>", encoding="utf-8")
@@ -1184,7 +1184,7 @@ def test_runner_summarizes_grasp_feasibility_signatures(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    summary = runner.proof_result_summary_from_commands(
+    summary = proof_result_summary_from_commands(
         [
             {
                 "request_id": "proof_001",

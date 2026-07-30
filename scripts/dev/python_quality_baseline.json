@@ -60,22 +60,6 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1860,
-        "max_module_lines": 800,
-        "owner": "Wave 6 retained owner split",
-        "path": "roboclaws/household/planner_proof_requests.py",
-        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 1221,
-        "max_module_lines": 800,
-        "owner": "Wave 6 retained owner split",
-        "path": "roboclaws/household/planner_task_feasibility.py",
-        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
-      },
-      {
-        "disposition": "SPLIT",
         "lines": 853,
         "max_module_lines": 800,
         "owner": "Wave 6 retained owner split",
@@ -120,14 +104,6 @@
         "max_module_lines": 800,
         "owner": "Wave 6 retained owner split",
         "path": "roboclaws/maps/b1_alignment.py",
-        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 1277,
-        "max_module_lines": 800,
-        "owner": "Wave 6 retained owner split",
-        "path": "roboclaws/maps/runtime_prior_snapshot.py",
         "trigger": "split along the behavior owner named by the Wave 6 migration slice"
       },
       {
@@ -450,12 +426,12 @@
     "line_count": "physical UTF-8 lines in Python files under the named roots",
     "source": {
       "files_at_least": {
-        "1000": 17,
-        "500": 118,
-        "800": 33
+        "1000": 14,
+        "500": 119,
+        "800": 30
       },
-      "loc": 162130,
-      "python_files": 447,
+      "loc": 162337,
+      "python_files": 461,
       "roots": [
         "roboclaws",
         "scripts"
@@ -467,7 +443,7 @@
         "500": 49,
         "800": 23
       },
-      "loc": 96356,
+      "loc": 96352,
       "python_files": 233,
       "roots": [
         "tests"

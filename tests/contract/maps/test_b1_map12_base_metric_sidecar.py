@@ -17,11 +17,9 @@ from roboclaws.backends.isaaclab.b1_readiness import (
 )
 from roboclaws.maps.b1_base_metric_map import build_base_metric_map_bundle
 from roboclaws.maps.bundle import validate_nav2_map_bundle
-from roboclaws.maps.runtime_prior_snapshot import (
-    materialize_runtime_prior_targets,
-    runtime_metric_map_from_prior_artifact,
-    runtime_prior_snapshot_from_nav2_cleanup_bundle,
-)
+from roboclaws.maps.runtime_prior_artifact import runtime_metric_map_from_prior_artifact
+from roboclaws.maps.runtime_prior_conversion import runtime_prior_snapshot_from_nav2_cleanup_bundle
+from roboclaws.maps.runtime_prior_materialization import materialize_runtime_prior_targets
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 MAP12_BUNDLE = (

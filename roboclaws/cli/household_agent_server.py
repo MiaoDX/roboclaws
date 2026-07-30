@@ -53,7 +53,7 @@ from roboclaws.household.subprocess_backend import MOLMOSPACES_SUBPROCESS_BACKEN
 from roboclaws.household.visual_grounding import (
     SIM_VISUAL_GROUNDING_PIPELINE_ID,
 )
-from roboclaws.maps.runtime_prior_snapshot import read_runtime_map_prior_artifact
+from roboclaws.maps.runtime_prior_artifact import read_runtime_map_prior_artifact
 
 log = logging.getLogger("household-world-agent-server")
 AGIBOT_GDK_BACKEND = "agibot_gdk"

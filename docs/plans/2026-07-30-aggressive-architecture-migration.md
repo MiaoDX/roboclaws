@@ -1,6 +1,6 @@
 # Aggressive Architecture Migration
 
-**Status:** Authorized; Waves 0-4 complete, Wave 5 active
+**Status:** Authorized; Waves 0-5 complete, Wave 6 active
 **Created:** 2026-07-30
 **Execution unit:** This entire plan, delivered in bounded waves and slices
 **Supersedes:** the broad-module-splitting non-goal in
@@ -1007,5 +1007,16 @@ hardware proof cannot run for a demonstrated environment reason.
   blocked/preflight behavior, and report output are unchanged. The graph is
   375 modules / 1,128 edges with zero SCCs, bidirectional pairs, or forbidden
   edges; oversized Python modules decrease from 57 to 55.
-- Next action: continue Wave 6 with planner-proof request/feasibility and
-  runtime-prior snapshot/lifecycle ownership clusters.
+- Wave 6 completed slice: planner-proof request construction, selection,
+  fallback selection, result projection, feasibility contracts, and grasp-cache
+  availability/generation now have direct household owners. Runtime-prior
+  contracts, online snapshot wrapping, Agibot/Nav2 conversion, artifact reads,
+  target materialization, and source/frame/digest validation now have direct
+  map owners. The three mixed owners decrease from 1,860/1,221/1,277 lines to
+  518/414/64 lines; every new owner is below 800. All 186 focused planner,
+  proof, checker, script, grasp-cache, runtime-prior, source-frame, catalog,
+  and B1 contracts pass. Static ratchets pass at 389 modules / 1,165 edges
+  with zero SCCs, bidirectional pairs, or forbidden edges; oversized Python
+  modules decrease from 55 to 52.
+- Next action: finish Wave 6 retained test/support cleanup and run the Wave 6
+  product and partition verification matrix.

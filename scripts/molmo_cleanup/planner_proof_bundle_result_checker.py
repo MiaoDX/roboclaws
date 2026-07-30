@@ -5,12 +5,12 @@ import os
 from pathlib import Path
 from typing import Any
 
+from roboclaws.household.planner_proof_contracts import (
+    PLANNER_PROOF_RESULT_SUMMARY_SCHEMA,
+)
 from roboclaws.household.planner_proof_quality import (
     planner_proof_quality_evidence,
     validate_planner_proof_quality_evidence,
-)
-from roboclaws.household.planner_proof_requests import (
-    PLANNER_PROOF_RESULT_SUMMARY_SCHEMA,
 )
 from roboclaws.household.planner_task_feasibility import grasp_feasibility_signature_counts
 

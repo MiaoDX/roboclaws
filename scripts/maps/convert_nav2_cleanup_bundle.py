@@ -11,9 +11,11 @@ if __package__ in {None, ""}:
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
 
-from roboclaws.maps.runtime_prior_snapshot import (  # noqa: E402
-    materialize_runtime_prior_targets,
+from roboclaws.maps.runtime_prior_conversion import (  # noqa: E402
     runtime_prior_snapshot_from_nav2_cleanup_bundle,
+)
+from roboclaws.maps.runtime_prior_materialization import (  # noqa: E402
+    materialize_runtime_prior_targets,
 )
 
 

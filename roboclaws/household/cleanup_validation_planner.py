@@ -39,11 +39,11 @@ from roboclaws.household.planner_proof_bundle import (
     planner_proof_attachments,
     validate_planner_proof_bundle,
 )
+from roboclaws.household.planner_proof_contracts import PLANNER_PROOF_REQUESTS_SCHEMA
 from roboclaws.household.planner_proof_quality import (
     planner_proof_quality_evidence,
     validate_planner_proof_quality_evidence,
 )
-from roboclaws.household.planner_proof_requests import PLANNER_PROOF_REQUESTS_SCHEMA
 from roboclaws.household.semantic_timeline import (
     CANONICAL_SURFACE_CLEANUP_PHASES,
     CLOSE_RECEPTACLE_PHASE,

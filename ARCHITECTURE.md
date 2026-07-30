@@ -156,7 +156,19 @@ Key pieces:
 - `roboclaws/household/semantic_cleanup_loop.py` owns the direct semantic
   cleanup flow.
 - `roboclaws/maps/` owns reusable navigation map artifacts, projections, and
-  Runtime Map Prior Snapshot conversion.
+  Runtime Map Prior Snapshot behavior. `runtime_prior_contracts.py` owns the
+  shared schemas/privacy keys; `runtime_prior_snapshot.py` wraps online runtime
+  maps; `runtime_prior_conversion.py` converts Agibot and Nav2 sources;
+  `runtime_prior_artifact.py` reads persisted priors;
+  `runtime_prior_materialization.py` projects consumer targets; and
+  `runtime_prior_source_validation.py` owns source/frame/digest validation.
+- Planner proof behavior is split by ownership: `planner_proof_requests.py`
+  builds bound requests and run manifests; `planner_proof_selection.py` and
+  `planner_proof_fallback_selection.py` select current and fallback requests;
+  `planner_proof_results.py` projects result summaries; and
+  `planner_grasp_cache.py` plus `planner_grasp_cache_generation.py` own cache
+  availability and generation preflights. Shared proof and feasibility schema
+  names live in their focused contract modules.
 - `roboclaws/household/household_mcp_server.py` exposes the profile-composed
   household MCP capability surface for SDK live agents and future higher-level
   MCP clients.
