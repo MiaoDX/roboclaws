@@ -6,6 +6,7 @@ import argparse
 import json
 from typing import Any
 
+from roboclaws.core.goals import GoalContract, goal_contract_from_json
 from roboclaws.household.map_build_scan_profile import map_build_scan_profile
 from roboclaws.household.task_intent import (
     HOUSEHOLD_INTENT_MAP_BUILD,
@@ -13,7 +14,6 @@ from roboclaws.household.task_intent import (
     household_intent_is_open_ended,
     normalize_household_intent,
 )
-from roboclaws.launch.goals import GoalContract, goal_contract_from_json
 
 TOOL_PROTOCOL_PREFIX = (
     "Use the cleanup MCP tool entries exactly as exposed by Codex; in text, "

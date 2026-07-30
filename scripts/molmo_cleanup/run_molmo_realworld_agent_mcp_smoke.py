@@ -12,6 +12,7 @@ if __package__ in {None, ""}:
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
 
+from roboclaws.core.goals import goal_contract_from_file, goal_contract_from_json  # noqa: E402
 from roboclaws.core.json_sources import read_json_object  # noqa: E402
 from roboclaws.household.household_backend_contract import (  # noqa: E402
     SYNTHETIC_BACKEND,
@@ -43,7 +44,6 @@ from roboclaws.household.tasks import HOUSEHOLD_PRESET_SPECS, HOUSEHOLD_TASK_SPE
 from roboclaws.household.visual_grounding import (  # noqa: E402
     SIM_VISUAL_GROUNDING_PIPELINE_ID,
 )
-from roboclaws.launch.goals import goal_contract_from_file, goal_contract_from_json  # noqa: E402
 from roboclaws.maps.runtime_prior_snapshot import (
     read_runtime_map_prior_artifact,  # noqa: E402
 )

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import roboclaws.core.provider_catalog as provider_catalog
-from roboclaws.launch.retired_agent_engines import (
+from roboclaws.core.agent_engines import (
     is_retired_agent_engine,
     retired_agent_engine_message,
 )

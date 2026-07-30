@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from roboclaws.core.goals import goal_contract_from_file, goal_contract_from_json
 from roboclaws.household.agibot_household_backend import (
     AgibotHouseholdBackend,
 )
@@ -50,7 +51,6 @@ from roboclaws.household.task_intent import (
 from roboclaws.household.visual_grounding import (
     SIM_VISUAL_GROUNDING_PIPELINE_ID,
 )
-from roboclaws.launch.goals import goal_contract_from_file, goal_contract_from_json
 from roboclaws.maps.runtime_prior_snapshot import read_runtime_map_prior_artifact
 
 log = logging.getLogger("household-world-agent-server")

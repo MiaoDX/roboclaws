@@ -1,6 +1,6 @@
 # Aggressive Architecture Migration
 
-**Status:** Authorized; Wave 0 complete, Wave 1 active
+**Status:** Authorized; Waves 0-1 complete, Wave 2 active
 **Created:** 2026-07-30
 **Execution unit:** This entire plan, delivered in bounded waves and slices
 **Supersedes:** the broad-module-splitting non-goal in
@@ -739,7 +739,7 @@ hardware proof cannot run for a demonstrated environment reason.
 ## Plan Ledger
 
 - Current status: ACTIVE.
-- Current wave: Wave 1, minimal contract and result ownership migration.
+- Current wave: Wave 2, canonical parity and dependency-direction proof.
 - Completed waves: Wave 0 froze exact size/disposition and import-graph
   baselines, expanded the deletion consumer ledger and public fixture index,
   corrected the planned topology from five/four to six/five, and wired both
@@ -797,6 +797,14 @@ hardware proof cannot run for a demonstrated environment reason.
   `household <-> operator_console`; bidirectional pairs decrease from four to
   two. Full root operator-console, household MCP, SDK resume/handoff,
   session-live, and static ratchets pass.
+- Wave 1 completed slices: agent-engine retirement policy, backend catalog,
+  environment setup/provenance, goal contracts, task intent/surface specs,
+  checker policy, open-ended artifact validation, and generated-mess threshold
+  moved from launch/product owners to single core owners. All callers migrated
+  directly and nine obsolete launch modules were deleted without facades;
+  `agents -> launch` and `household -> launch` are absent, leaving zero module
+  SCCs and zero bidirectional package pairs. Root launch, agent, operator,
+  CLI/Just, MCP, artifact/privacy/schema, and static gates pass.
 - Planning-loop result: CONVERGED after two rounds. Round 1 entropy, docs-grill,
   and skeptic scouts found speculative layers, unsafe wave order, incomplete
   caller paths, proxy-metric gates, and preservation ambiguity. Round 2 verified
@@ -816,6 +824,5 @@ hardware proof cannot run for a demonstrated environment reason.
 - Parked: B1 authoring deletion beyond proven package-owned rebuild parity,
   publication, real-robot movement, EULA acceptance, public contract redesign,
   provider bakeoff, and unrelated feature work.
-- Next action: remove the remaining `agents -> launch` and
-  `household -> launch` reverse edges under the Wave 0 matrix and approved Wave
-  1 stop gates while preserving launch dispatch and SDK lifecycle ownership.
+- Next action: execute Wave 2 field-for-field parity, stale-path, canonical
+  consumer, SDK operator-lifecycle, and fully green dependency-guard proof.

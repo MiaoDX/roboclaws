@@ -7,6 +7,10 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.agents.provider_registry import provider_readiness
+from roboclaws.core.agent_engines import (
+    is_retired_agent_engine,
+    retired_agent_engine_message,
+)
 from roboclaws.core.provider_catalog import normalize_provider_route
 from roboclaws.evals.models import (
     MISSING_NOT_APPLICABLE,
@@ -17,10 +21,6 @@ from roboclaws.evals.models import (
     EvalTrial,
 )
 from roboclaws.launch.agent_engines import AGENT_ENGINE_SPECS, AgentEngineSpec
-from roboclaws.launch.retired_agent_engines import (
-    is_retired_agent_engine,
-    retired_agent_engine_message,
-)
 
 
 def agent_engine_spec(agent_engine: str) -> AgentEngineSpec:

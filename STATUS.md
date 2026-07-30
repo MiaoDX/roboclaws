@@ -11,9 +11,10 @@ leave a link.
 ## Current Focus
 
 The aggressive architecture migration is active under
-`docs/plans/2026-07-30-aggressive-architecture-migration.md`. Wave 0 is freezing
-the exact size/dependency baseline, caller and deletion ledgers, public
-contract fixtures, and architecture guards before runtime ownership moves.
+`docs/plans/2026-07-30-aggressive-architecture-migration.md`. Waves 0-1 are
+complete: the exact baselines and guards are frozen, all six module cycles and
+five bidirectional package pairs are removed, and Wave 2 is proving canonical
+artifact/privacy/provenance/report and operator-lifecycle parity before deletion.
 The migration preserves public launch, artifact, privacy, provider, simulator,
 and operator behavior while removing dependency cycles, retiring completed
 investigation surfaces, moving product subsystems out of scripts, and splitting
@@ -98,8 +99,8 @@ providers.
 
 ## Next Action
 
-Complete and verify Wave 0 of the aggressive architecture migration, then
-migrate the Wave 1 ownership seams one green atomic slice at a time. The
+Complete Wave 2 canonical parity and dependency-direction proof, then execute
+the Wave 3 unconditional deletion ledger in bounded green slices. The
 refreshed immutable candidate remains unmodified; publication remains
 unauthorized and separate from this campaign.
 

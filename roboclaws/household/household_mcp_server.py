@@ -13,6 +13,11 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp import Image as MCPImage
 
+from roboclaws.core.goals import (
+    GoalContract,
+    goal_contract_from_file,
+    goal_contract_from_json,
+)
 from roboclaws.core.json_sources import read_jsonl_objects
 from roboclaws.core.operator_messages import (
     check_operator_messages_for_mcp,
@@ -63,11 +68,6 @@ from roboclaws.household.visual_grounding import (
     visual_grounding_client_from_env,
 )
 from roboclaws.household.visual_scan_guidance import visual_scan_metric_map_instruction
-from roboclaws.launch.goals import (
-    GoalContract,
-    goal_contract_from_file,
-    goal_contract_from_json,
-)
 from roboclaws.maps.bundle import copy_nav2_map_bundle_snapshot
 
 __all__ = ["MCP_SERVER_NAME", "HouseholdWorldMCPServer", "make_household_world_mcp"]

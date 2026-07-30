@@ -15,9 +15,9 @@ LIVE_OPENAI_AGENTS_RUNNER = REPO_ROOT / "roboclaws/agents/household_live_runner.
 
 def test_molmo_direct_open_ended_recipe_uses_artifact_gate_before_cleanup_checker() -> None:
     text = MOLMO_JUST.read_text(encoding="utf-8")
-    assert "roboclaws.launch.open_ended_artifacts" in text
+    assert "roboclaws.core.open_ended_artifacts" in text
     root_gate = text.index('if [[ "$open_ended_intent" == "true" ]]; then')
-    root_artifact_gate = text.index("roboclaws.launch.open_ended_artifacts", root_gate)
+    root_artifact_gate = text.index("roboclaws.core.open_ended_artifacts", root_gate)
     root_cleanup_checker = text.index(
         "scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py",
         root_gate,

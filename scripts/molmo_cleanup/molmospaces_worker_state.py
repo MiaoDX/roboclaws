@@ -7,8 +7,8 @@ from typing import Any, Callable
 
 import mujoco
 
+from roboclaws.core.generated_mess import generated_mess_success_threshold
 from roboclaws.household.generated_mess import (
-    generated_mess_success_threshold,
     select_generated_mess_targets,
     targets_from_generated_mess_manifest,
 )

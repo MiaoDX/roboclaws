@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
+from roboclaws.core.backend_catalog import BACKEND_SPECS
 from roboclaws.evals import live_long_horizon
 from roboclaws.evals.dependencies import dependency_failure, resolve_artifact_dependencies
 from roboclaws.evals.live_artifacts import (
@@ -39,7 +40,6 @@ from roboclaws.evals.models import (
     EvalTrial,
 )
 from roboclaws.household.household_backend_contract import SYNTHETIC_BACKEND
-from roboclaws.launch.backends import BACKEND_SPECS
 from roboclaws.launch.catalog import resolve_surface_launch
 from roboclaws.launch.executor import LaunchProcess, spawn_launch_plan
 from roboclaws.launch.map_bundles import molmospaces_nav2_map_bundle_path

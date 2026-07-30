@@ -61,7 +61,8 @@ def test_current_graph_freezes_authoritative_cycles_and_package_pairs() -> None:
 
     assert state["module_sccs"] == baseline["module_sccs"]
     assert state["package_bidirectional_edges"] == baseline["package_bidirectional_edges"]
-    assert ["household", "operator_console"] in state["package_bidirectional_edges"]
+    assert state["module_sccs"] == []
+    assert state["package_bidirectional_edges"] == []
     policies = {item["id"]: item for item in state["policies"]}
     assert policies["package-to-scripts"]["owning_wave"] == "Wave 5"
     assert policies["core-product-inversions"]["owning_wave"] == "Waves 1-2"

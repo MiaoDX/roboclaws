@@ -6,11 +6,11 @@ import json
 from pathlib import Path
 from typing import Any
 
+from roboclaws.core.generated_mess import generated_mess_success_threshold
 from roboclaws.evals.long_horizon_contract import LongHorizonTaskSpec
 from roboclaws.evals.models import EvalSample
 from roboclaws.household.generated_mess import (
     GENERATED_MESS_MANIFEST_SCHEMA,
-    generated_mess_success_threshold,
     receptacle_prefers_inside,
 )
 

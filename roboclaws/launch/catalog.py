@@ -10,7 +10,21 @@ The resolved plan crosses directly into the typed launch executor.
 
 from __future__ import annotations
 
+from roboclaws.core.agent_engines import (
+    ACTIVE_AGENT_ENGINE_IDS,
+    is_retired_agent_engine,
+    retired_agent_engine_message,
+)
+from roboclaws.core.backend_catalog import BACKEND_SPECS, BackendSpec
+from roboclaws.core.environment_setup import (
+    ENVIRONMENT_SETUP_BASELINE,
+    ENVIRONMENT_SETUP_OPTIONS,
+    RELOCATION_SETUP_OPTIONS,
+)
+from roboclaws.core.goals import normalize_goal_contract
 from roboclaws.core.provider_catalog import normalize_provider_route, provider_route_spec
+from roboclaws.core.task_intents import TASK_INTENT_SPECS, TaskIntentSpec
+from roboclaws.core.task_specs import TaskPresetSpec, TaskSurfaceSpec
 from roboclaws.household.evidence_lane_policy import evidence_lane_compatibility
 from roboclaws.household.profiles import (
     cleanup_evidence_lane_names,
@@ -18,22 +32,8 @@ from roboclaws.household.profiles import (
 )
 from roboclaws.household.tasks import HOUSEHOLD_PRESET_SPECS, HOUSEHOLD_TASK_SPECS
 from roboclaws.launch.agent_engines import AGENT_ENGINE_SPECS, AgentEngineSpec
-from roboclaws.launch.backends import BACKEND_SPECS, BackendSpec
-from roboclaws.launch.environment_setup import (
-    ENVIRONMENT_SETUP_BASELINE,
-    ENVIRONMENT_SETUP_OPTIONS,
-    RELOCATION_SETUP_OPTIONS,
-)
 from roboclaws.launch.executor import validate_named_overrides
-from roboclaws.launch.goals import normalize_goal_contract
-from roboclaws.launch.intents import TASK_INTENT_SPECS, TaskIntentSpec
 from roboclaws.launch.plans import LaunchPlan
-from roboclaws.launch.retired_agent_engines import (
-    ACTIVE_AGENT_ENGINE_IDS,
-    is_retired_agent_engine,
-    retired_agent_engine_message,
-)
-from roboclaws.launch.task_specs import TaskPresetSpec, TaskSurfaceSpec
 from roboclaws.launch.worlds import DEFAULT_WORLD_BY_SURFACE, WorldSpec, world_spec
 
 CANONICAL_SURFACES: set[str] = {

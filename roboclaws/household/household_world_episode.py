@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
+from roboclaws.core.goals import goal_contract_from_file, goal_contract_from_json
 from roboclaws.household import realworld_visual_candidate_declarations
 from roboclaws.household.household_backend_contract import (
     SYNTHETIC_BACKEND,
@@ -87,7 +88,6 @@ from roboclaws.household.visual_grounding import (
     SIM_VISUAL_GROUNDING_PIPELINE_ID,
     visual_grounding_client_from_env,
 )
-from roboclaws.launch.goals import goal_contract_from_file, goal_contract_from_json
 from roboclaws.maps.runtime_prior_snapshot import read_runtime_map_prior_artifact
 
 

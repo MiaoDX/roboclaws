@@ -1,4 +1,4 @@
-"""Open-ended household task artifact validation."""
+"""Open-ended run artifact validation shared by runtime entrypoints."""
 
 from __future__ import annotations
 

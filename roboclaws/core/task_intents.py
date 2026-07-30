@@ -1,4 +1,4 @@
-"""Intent declarations for public launch surfaces."""
+"""Task intent declarations shared by launch and product runtimes."""
 
 from __future__ import annotations
 
