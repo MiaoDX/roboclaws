@@ -41,7 +41,11 @@ composition, semantic/tables, document, styles, planner/proof/grasp-cache,
 snapshot/trace, and artifact-rerender behavior now have direct owners; the
 duplicate grasp-collision diagnostic renderer is gone. Report contracts and
 static ratchets pass at 367 modules / 1,102 edges, and oversized Python modules
-decrease to 57.
+decrease to 57. Eval suite loading, trial/live execution, grading, persistence,
+aggregation/reporting, and CLI composition now have direct owners; CLI imports
+only runner from the eval package. The full eval unit and CLI/distribution
+contracts pass at 375 modules / 1,128 edges, and oversized Python modules
+decrease to 55.
 The migration preserves public launch, artifact, privacy, provider, simulator,
 and operator behavior while removing dependency cycles, retiring completed
 investigation surfaces, moving product subsystems out of scripts, and splitting
@@ -126,8 +130,8 @@ providers.
 
 ## Next Action
 
-Continue Wave 6 with the eval pipeline, followed by planner/runtime-prior
-clusters and retained tests. The
+Continue Wave 6 with planner/runtime-prior clusters, followed by retained
+tests. The
 refreshed immutable candidate remains unmodified; publication remains
 unauthorized and separate from this campaign.
 

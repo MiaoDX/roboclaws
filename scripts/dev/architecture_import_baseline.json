@@ -54,7 +54,7 @@
       "core"
     ]
   },
-  "edge_count": 1102,
+  "edge_count": 1128,
   "edges": [
     {
       "kind": "import",
@@ -2302,39 +2302,15 @@
     },
     {
       "kind": "import",
-      "line": 12,
+      "line": 10,
       "source": "roboclaws.evals.cli",
-      "target": "roboclaws.evals.canonical_prior"
+      "target": "roboclaws.evals"
     },
     {
       "kind": "import",
-      "line": 13,
-      "source": "roboclaws.evals.cli",
-      "target": "roboclaws.evals.map_build_reports"
-    },
-    {
-      "kind": "import",
-      "line": 17,
-      "source": "roboclaws.evals.cli",
-      "target": "roboclaws.evals.regression"
-    },
-    {
-      "kind": "import",
-      "line": 18,
+      "line": 10,
       "source": "roboclaws.evals.cli",
       "target": "roboclaws.evals.runner"
-    },
-    {
-      "kind": "import",
-      "line": 19,
-      "source": "roboclaws.evals.cli",
-      "target": "roboclaws.evals.runtime_prior_selection"
-    },
-    {
-      "kind": "import",
-      "line": 189,
-      "source": "roboclaws.evals.cli",
-      "target": "roboclaws.evals.session_live"
     },
     {
       "kind": "import",
@@ -2345,8 +2321,128 @@
     {
       "kind": "import",
       "line": 8,
+      "source": "roboclaws.evals.grading",
+      "target": "roboclaws.evals"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.evals.grading",
+      "target": "roboclaws.evals"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.evals.grading",
+      "target": "roboclaws.evals.grading_sources"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.evals.grading",
+      "target": "roboclaws.evals.long_horizon_contract"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.evals.grading",
+      "target": "roboclaws.evals.long_horizon_grader"
+    },
+    {
+      "kind": "import",
+      "line": 10,
+      "source": "roboclaws.evals.grading",
+      "target": "roboclaws.evals.map_build_quality"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.evals.grading",
+      "target": "roboclaws.evals.models"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.evals.grading",
+      "target": "roboclaws.evals.open_ended_grading"
+    },
+    {
+      "kind": "import",
+      "line": 7,
+      "source": "roboclaws.evals.grading_failures",
+      "target": "roboclaws.evals.live_timeout"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.evals.grading_failures",
+      "target": "roboclaws.evals.models"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.evals.grading_sources",
+      "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 8,
       "source": "roboclaws.evals.live_artifacts",
       "target": "roboclaws.core.json_sources"
+    },
+    {
+      "kind": "import",
+      "line": 14,
+      "source": "roboclaws.evals.live_execution",
+      "target": "roboclaws.evals.dependencies"
+    },
+    {
+      "kind": "import",
+      "line": 15,
+      "source": "roboclaws.evals.live_execution",
+      "target": "roboclaws.evals.live_artifacts"
+    },
+    {
+      "kind": "import",
+      "line": 18,
+      "source": "roboclaws.evals.live_execution",
+      "target": "roboclaws.evals.live_retry"
+    },
+    {
+      "kind": "import",
+      "line": 22,
+      "source": "roboclaws.evals.live_execution",
+      "target": "roboclaws.evals.live_runtime"
+    },
+    {
+      "kind": "import",
+      "line": 39,
+      "source": "roboclaws.evals.live_execution",
+      "target": "roboclaws.evals.live_timeout"
+    },
+    {
+      "kind": "import",
+      "line": 44,
+      "source": "roboclaws.evals.live_execution",
+      "target": "roboclaws.evals.models"
+    },
+    {
+      "kind": "import",
+      "line": 50,
+      "source": "roboclaws.evals.live_execution",
+      "target": "roboclaws.launch.catalog"
+    },
+    {
+      "kind": "import",
+      "line": 51,
+      "source": "roboclaws.evals.live_execution",
+      "target": "roboclaws.launch.executor"
+    },
+    {
+      "kind": "import",
+      "line": 52,
+      "source": "roboclaws.evals.live_execution",
+      "target": "roboclaws.launch.plans"
     },
     {
       "kind": "import",
@@ -2374,85 +2470,49 @@
     },
     {
       "kind": "import",
-      "line": 17,
+      "line": 13,
       "source": "roboclaws.evals.live_runtime",
       "target": "roboclaws.core.backend_catalog"
     },
     {
       "kind": "import",
-      "line": 18,
+      "line": 14,
       "source": "roboclaws.evals.live_runtime",
       "target": "roboclaws.evals"
     },
     {
       "kind": "import",
-      "line": 19,
-      "source": "roboclaws.evals.live_runtime",
-      "target": "roboclaws.evals.dependencies"
-    },
-    {
-      "kind": "import",
-      "line": 20,
+      "line": 15,
       "source": "roboclaws.evals.live_runtime",
       "target": "roboclaws.evals.live_artifacts"
     },
     {
       "kind": "import",
-      "line": 18,
+      "line": 14,
       "source": "roboclaws.evals.live_runtime",
       "target": "roboclaws.evals.live_long_horizon"
     },
     {
       "kind": "import",
-      "line": 24,
-      "source": "roboclaws.evals.live_runtime",
-      "target": "roboclaws.evals.live_retry"
-    },
-    {
-      "kind": "import",
-      "line": 28,
-      "source": "roboclaws.evals.live_runtime",
-      "target": "roboclaws.evals.live_timeout"
-    },
-    {
-      "kind": "import",
-      "line": 33,
+      "line": 16,
       "source": "roboclaws.evals.live_runtime",
       "target": "roboclaws.evals.long_horizon_contract"
     },
     {
       "kind": "import",
-      "line": 34,
+      "line": 17,
       "source": "roboclaws.evals.live_runtime",
       "target": "roboclaws.evals.models"
     },
     {
       "kind": "import",
-      "line": 42,
+      "line": 23,
       "source": "roboclaws.evals.live_runtime",
       "target": "roboclaws.household.household_backend_contract"
     },
     {
       "kind": "import",
-      "line": 43,
-      "source": "roboclaws.evals.live_runtime",
-      "target": "roboclaws.launch.catalog"
-    },
-    {
-      "kind": "import",
-      "line": 44,
-      "source": "roboclaws.evals.live_runtime",
-      "target": "roboclaws.launch.executor"
-    },
-    {
-      "kind": "import",
-      "line": 45,
-      "source": "roboclaws.evals.live_runtime",
-      "target": "roboclaws.launch.plans"
-    },
-    {
-      "kind": "import",
-      "line": 46,
+      "line": 24,
       "source": "roboclaws.evals.live_runtime",
       "target": "roboclaws.worlds.molmospaces.map_bundles"
     },
@@ -2548,6 +2608,24 @@
     },
     {
       "kind": "import",
+      "line": 8,
+      "source": "roboclaws.evals.open_ended_grading",
+      "target": "roboclaws.evals"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.evals.open_ended_grading",
+      "target": "roboclaws.evals.grading_sources"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.evals.open_ended_grading",
+      "target": "roboclaws.evals.models"
+    },
+    {
+      "kind": "import",
       "line": 10,
       "source": "roboclaws.evals.regression",
       "target": "roboclaws.core.json_sources"
@@ -2572,85 +2650,85 @@
     },
     {
       "kind": "import",
-      "line": 10,
-      "source": "roboclaws.evals.runner",
-      "target": "roboclaws.core.json_sources"
+      "line": 9,
+      "source": "roboclaws.evals.result_persistence",
+      "target": "roboclaws.evals.models"
     },
     {
       "kind": "import",
-      "line": 11,
-      "source": "roboclaws.evals.runner",
-      "target": "roboclaws.evals"
+      "line": 10,
+      "source": "roboclaws.evals.result_persistence",
+      "target": "roboclaws.evals.reports"
     },
     {
       "kind": "import",
       "line": 12,
-      "source": "roboclaws.evals.runner",
-      "target": "roboclaws.evals"
-    },
-    {
-      "kind": "import",
-      "line": 13,
       "source": "roboclaws.evals.runner",
       "target": "roboclaws.evals.agent_identity"
     },
     {
       "kind": "import",
-      "line": 19,
+      "line": 17,
+      "source": "roboclaws.evals.runner",
+      "target": "roboclaws.evals.canonical_prior"
+    },
+    {
+      "kind": "import",
+      "line": 18,
       "source": "roboclaws.evals.runner",
       "target": "roboclaws.evals.dependencies"
     },
     {
       "kind": "import",
-      "line": 24,
+      "line": 19,
       "source": "roboclaws.evals.runner",
-      "target": "roboclaws.evals.live_runtime"
+      "target": "roboclaws.evals.map_build_reports"
     },
     {
       "kind": "import",
-      "line": 30,
-      "source": "roboclaws.evals.runner",
-      "target": "roboclaws.evals.live_timeout"
-    },
-    {
-      "kind": "import",
-      "line": 11,
-      "source": "roboclaws.evals.runner",
-      "target": "roboclaws.evals.long_horizon_contract"
-    },
-    {
-      "kind": "import",
-      "line": 12,
-      "source": "roboclaws.evals.runner",
-      "target": "roboclaws.evals.long_horizon_grader"
-    },
-    {
-      "kind": "import",
-      "line": 31,
-      "source": "roboclaws.evals.runner",
-      "target": "roboclaws.evals.map_build_quality"
-    },
-    {
-      "kind": "import",
-      "line": 32,
+      "line": 23,
       "source": "roboclaws.evals.runner",
       "target": "roboclaws.evals.models"
     },
     {
       "kind": "import",
-      "line": 42,
+      "line": 24,
       "source": "roboclaws.evals.runner",
-      "target": "roboclaws.evals.reports"
+      "target": "roboclaws.evals.regression"
+    },
+    {
+      "kind": "import",
+      "line": 25,
+      "source": "roboclaws.evals.runner",
+      "target": "roboclaws.evals.result_persistence"
+    },
+    {
+      "kind": "import",
+      "line": 26,
+      "source": "roboclaws.evals.runner",
+      "target": "roboclaws.evals.runtime_prior_selection"
+    },
+    {
+      "kind": "import",
+      "line": 198,
+      "source": "roboclaws.evals.runner",
+      "target": "roboclaws.evals.session_live"
+    },
+    {
+      "kind": "import",
+      "line": 30,
+      "source": "roboclaws.evals.runner",
+      "target": "roboclaws.evals.suite_loading"
+    },
+    {
+      "kind": "import",
+      "line": 37,
+      "source": "roboclaws.evals.runner",
+      "target": "roboclaws.evals.trial_execution"
     },
     {
       "kind": "import",
       "line": 43,
-      "source": "roboclaws.evals.runner",
-      "target": "roboclaws.household.household_backend_contract"
-    },
-    {
-      "kind": "import",
-      "line": 44,
       "source": "roboclaws.evals.runner",
       "target": "roboclaws.household.household_world_episode"
     },
@@ -2731,6 +2809,84 @@
       "line": 27,
       "source": "roboclaws.evals.session_live",
       "target": "roboclaws.operator_console.server"
+    },
+    {
+      "kind": "import",
+      "line": 7,
+      "source": "roboclaws.evals.suite_loading",
+      "target": "roboclaws.evals.models"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.evals.trial_execution",
+      "target": "roboclaws.evals"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.evals.trial_execution",
+      "target": "roboclaws.evals.agent_identity"
+    },
+    {
+      "kind": "import",
+      "line": 10,
+      "source": "roboclaws.evals.trial_execution",
+      "target": "roboclaws.evals.dependencies"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.evals.trial_execution",
+      "target": "roboclaws.evals.grading"
+    },
+    {
+      "kind": "import",
+      "line": 16,
+      "source": "roboclaws.evals.trial_execution",
+      "target": "roboclaws.evals.grading_failures"
+    },
+    {
+      "kind": "import",
+      "line": 17,
+      "source": "roboclaws.evals.trial_execution",
+      "target": "roboclaws.evals.grading_sources"
+    },
+    {
+      "kind": "import",
+      "line": 22,
+      "source": "roboclaws.evals.trial_execution",
+      "target": "roboclaws.evals.live_execution"
+    },
+    {
+      "kind": "import",
+      "line": 27,
+      "source": "roboclaws.evals.trial_execution",
+      "target": "roboclaws.evals.live_runtime"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.evals.trial_execution",
+      "target": "roboclaws.evals.long_horizon_contract"
+    },
+    {
+      "kind": "import",
+      "line": 28,
+      "source": "roboclaws.evals.trial_execution",
+      "target": "roboclaws.evals.models"
+    },
+    {
+      "kind": "import",
+      "line": 36,
+      "source": "roboclaws.evals.trial_execution",
+      "target": "roboclaws.evals.suite_loading"
+    },
+    {
+      "kind": "import",
+      "line": 37,
+      "source": "roboclaws.evals.trial_execution",
+      "target": "roboclaws.household.household_backend_contract"
     },
     {
       "kind": "import",
@@ -7125,7 +7281,7 @@
       "target": "roboclaws.core.json_sources"
     }
   ],
-  "module_count": 367,
+  "module_count": 375,
   "module_sccs": [],
   "package_bidirectional_edges": [],
   "policies": [

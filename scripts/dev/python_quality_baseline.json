@@ -36,22 +36,6 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1029,
-        "max_module_lines": 800,
-        "owner": "Wave 6 retained owner split",
-        "path": "roboclaws/evals/live_runtime.py",
-        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 1796,
-        "max_module_lines": 800,
-        "owner": "Wave 6 retained owner split",
-        "path": "roboclaws/evals/runner.py",
-        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
-      },
-      {
-        "disposition": "SPLIT",
         "lines": 871,
         "max_module_lines": 800,
         "owner": "Wave 6 retained owner split",
@@ -372,7 +356,7 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 3418,
+        "lines": 3402,
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
         "path": "tests/unit/evals/test_eval_runner.py",
@@ -466,12 +450,12 @@
     "line_count": "physical UTF-8 lines in Python files under the named roots",
     "source": {
       "files_at_least": {
-        "1000": 19,
-        "500": 117,
-        "800": 35
+        "1000": 17,
+        "500": 118,
+        "800": 33
       },
-      "loc": 162026,
-      "python_files": 439,
+      "loc": 162130,
+      "python_files": 447,
       "roots": [
         "roboclaws",
         "scripts"
@@ -483,8 +467,8 @@
         "500": 49,
         "800": 23
       },
-      "loc": 96352,
-      "python_files": 232,
+      "loc": 96356,
+      "python_files": 233,
       "roots": [
         "tests"
       ]

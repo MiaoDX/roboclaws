@@ -995,5 +995,17 @@ hardware proof cannot run for a demonstrated environment reason.
   unchanged. The graph is 367 modules / 1,102 edges with zero SCCs,
   bidirectional pairs, or forbidden edges; oversized Python modules decrease
   from 58 to 57.
-- Next action: continue Wave 6 with eval suite loading, trial/live execution,
-  grading, and aggregation; CLI imports only the runner.
+- Wave 6 completed slice: the 1,796-line eval runner and 1,029-line live
+  runtime are split into suite loading, trial execution, live process
+  execution, live product policy, grading, open-ended grading, grader source
+  and failure projection, persistence, and existing aggregation/report owners.
+  Runner is a 329-line composition owner, live runtime is 533 lines, and every
+  grading owner is below 800 lines. `evals/cli.py` imports only runner from the
+  eval package, with no reverse import or compatibility facade. All 277 eval
+  unit tests, 19 CLI/distribution contracts, and static ratchets pass in the
+  main environment; suite/result schemas, CLI behavior, privacy grading, live
+  blocked/preflight behavior, and report output are unchanged. The graph is
+  375 modules / 1,128 edges with zero SCCs, bidirectional pairs, or forbidden
+  edges; oversized Python modules decrease from 57 to 55.
+- Next action: continue Wave 6 with planner-proof request/feasibility and
+  runtime-prior snapshot/lifecycle ownership clusters.

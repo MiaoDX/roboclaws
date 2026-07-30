@@ -377,6 +377,14 @@ budget=smoke`. Do not add a third-party eval framework until deterministic
 household suites have proven the sample, artifact, grader, privacy, and result
 packet contracts that Roboclaws needs.
 
+Eval execution is composed by `evals/runner.py`. Suite loading, trial
+execution, live process execution, live product policy, artifact/privacy/
+outcome grading, open-ended grading, grader source handling, failure/result
+projection, result persistence, and aggregation/reporting have direct owners.
+`evals/cli.py` imports only the runner from the eval package; the runner
+composes suite execution and CLI tool-mode dispatch without a reverse import
+or compatibility facade.
+
 The maintained orchestration facade is `eval-harness`, exposed through
 `just agent::eval recommend|execute|suite|promote-regression`. It supersedes the
 old separate `agent-validation-matrix` entrypoint. Eval-harness manifests use
