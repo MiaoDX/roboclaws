@@ -1,6 +1,6 @@
 # Aggressive Architecture Migration
 
-**Status:** Authorized; Waves 0-3 complete, Wave 4 planner slice active
+**Status:** Authorized; Waves 0-4 complete, Wave 5 active
 **Created:** 2026-07-30
 **Execution unit:** This entire plan, delivered in bounded waves and slices
 **Supersedes:** the broad-module-splitting non-goal in
@@ -885,6 +885,13 @@ hardware proof cannot run for a demonstrated environment reason.
   `OMNI_KIT_ACCEPT_EULA=YES`; guarded host preflight passes runtime/GPU/Isaac
   Lab checks and blocks only on unaccepted EULA, which this migration did not
   accept.
-- Next action: finish Wave 4 by reducing planner manipulation diagnostic
-  workbenches to the retained feasibility, cache, request, and proof owners
-  without weakening product proof.
+- Wave 4 completed slice: the standalone planner manipulation harness, checker,
+  checker owner, and 1,615-line diagnostic contract suite are retired. The
+  low-level runner now requires an explicit output directory and remains only
+  as the retained proof-bundle execution dependency. The slice removes 2,288
+  lines net; 167 focused contracts and the end-to-end proof-bundle product gate
+  pass. Oversized modules decrease from 68 to 67, package owners add no script
+  imports, and generic Isaac smoke remains current. Wave 4 is complete.
+- Next action: begin Wave 5 with the MolmoSpaces backend package migration,
+  preserving worker protocol and subprocess behavior while eliminating the
+  script-owned product subsystem forward-only.

@@ -356,14 +356,6 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1615,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/contract/checkers/test_check_molmo_planner_manipulation_probe.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
         "lines": 1105,
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
@@ -558,8 +550,8 @@
         "500": 112,
         "800": 43
       },
-      "loc": 160964,
-      "python_files": 383,
+      "loc": 160412,
+      "python_files": 381,
       "roots": [
         "roboclaws",
         "scripts"
@@ -567,12 +559,12 @@
     },
     "tests": {
       "files_at_least": {
-        "1000": 21,
-        "500": 46,
-        "800": 25
+        "1000": 20,
+        "500": 45,
+        "800": 24
       },
-      "loc": 98212,
-      "python_files": 223,
+      "loc": 96526,
+      "python_files": 222,
       "roots": [
         "tests"
       ]
