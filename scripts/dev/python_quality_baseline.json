@@ -3,413 +3,660 @@
   "pylint_too_many_lines": {
     "files": [
       {
+        "disposition": "SPLIT",
         "lines": 1883,
         "max_module_lines": 800,
-        "path": "roboclaws/agents/drivers/openai_agents_live.py"
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/agents/drivers/openai_agents_live.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
       },
       {
+        "disposition": "SPLIT",
         "lines": 1700,
         "max_module_lines": 800,
-        "path": "roboclaws/agents/drivers/openai_agents_model_input.py"
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/agents/drivers/openai_agents_model_input.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
       },
       {
-        "lines": 902,
+        "disposition": "SPLIT",
+        "lines": 878,
         "max_module_lines": 800,
-        "path": "roboclaws/agents/provider_registry.py"
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/agents/drivers/openai_agents_perf_profile.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
       },
       {
-        "lines": 1055,
-        "max_module_lines": 800,
-        "path": "roboclaws/evals/live_runtime.py"
-      },
-      {
-        "lines": 1809,
-        "max_module_lines": 800,
-        "path": "roboclaws/evals/runner.py"
-      },
-      {
-        "lines": 1239,
-        "max_module_lines": 800,
-        "path": "roboclaws/household/agibot_sdk_runner.py"
-      },
-      {
-        "lines": 1253,
-        "max_module_lines": 800,
-        "path": "roboclaws/household/household_mcp_server.py"
-      },
-      {
-        "lines": 2087,
-        "max_module_lines": 800,
-        "path": "roboclaws/household/household_runtime_contract.py"
-      },
-      {
-        "lines": 1327,
-        "max_module_lines": 800,
-        "path": "roboclaws/household/household_world_episode.py"
-      },
-      {
-        "lines": 1860,
-        "max_module_lines": 800,
-        "path": "roboclaws/household/planner_proof_requests.py"
-      },
-      {
-        "lines": 1221,
-        "max_module_lines": 800,
-        "path": "roboclaws/household/planner_task_feasibility.py"
-      },
-      {
-        "lines": 927,
-        "max_module_lines": 800,
-        "path": "roboclaws/household/realworld_contract_projection.py"
-      },
-      {
-        "lines": 1201,
-        "max_module_lines": 800,
-        "path": "roboclaws/household/realworld_runtime_map_targets.py"
-      },
-      {
-        "lines": 1372,
-        "max_module_lines": 800,
-        "path": "roboclaws/household/realworld_visual_candidate_lifecycle.py"
-      },
-      {
-        "lines": 2034,
-        "max_module_lines": 800,
-        "path": "roboclaws/household/report.py"
-      },
-      {
-        "lines": 829,
-        "max_module_lines": 800,
-        "path": "roboclaws/household/report_sections_agent.py"
-      },
-      {
-        "lines": 828,
-        "max_module_lines": 800,
-        "path": "roboclaws/household/report_sections_proof_bundle.py"
-      },
-      {
-        "lines": 1979,
-        "max_module_lines": 800,
-        "path": "roboclaws/household/scene_camera_comparison.py"
-      },
-      {
-        "lines": 841,
-        "max_module_lines": 800,
-        "path": "roboclaws/household/semantic_timeline.py"
-      },
-      {
-        "lines": 815,
-        "max_module_lines": 800,
-        "path": "roboclaws/launch/catalog.py"
-      },
-      {
-        "lines": 1989,
-        "max_module_lines": 800,
-        "path": "roboclaws/launch/scene_sampler.py"
-      },
-      {
-        "lines": 894,
-        "max_module_lines": 800,
-        "path": "roboclaws/launch/scene_sampler_prep.py"
-      },
-      {
-        "lines": 970,
-        "max_module_lines": 800,
-        "path": "roboclaws/launch/scene_sampler_scanner.py"
-      },
-      {
-        "lines": 1277,
-        "max_module_lines": 800,
-        "path": "roboclaws/maps/runtime_prior_snapshot.py"
-      },
-      {
-        "lines": 855,
-        "max_module_lines": 800,
-        "path": "roboclaws/operator_console/interactions.py"
-      },
-      {
-        "lines": 944,
-        "max_module_lines": 800,
-        "path": "roboclaws/operator_console/launcher.py"
-      },
-      {
-        "lines": 1251,
-        "max_module_lines": 800,
-        "path": "roboclaws/operator_console/runtime_inventory.py"
-      },
-      {
-        "lines": 994,
-        "max_module_lines": 800,
-        "path": "roboclaws/operator_console/state.py"
-      },
-      {
-        "lines": 1605,
-        "max_module_lines": 800,
-        "path": "roboclaws/reports/live_performance.py"
-      },
-      {
-        "lines": 1328,
-        "max_module_lines": 800,
-        "path": "scripts/isaac_lab_cleanup/check_b1_map12_readiness.py"
-      },
-      {
-        "lines": 1998,
-        "max_module_lines": 800,
-        "path": "scripts/isaac_lab_cleanup/isaac_lab_backend_worker.py"
-      },
-      {
-        "lines": 1061,
-        "max_module_lines": 800,
-        "path": "scripts/isaac_lab_cleanup/prepare_molmospaces_flattened_semantic_usd.py"
-      },
-      {
-        "lines": 972,
-        "max_module_lines": 800,
-        "path": "scripts/maps/fit_b1_map12_scene_alignment.py"
-      },
-      {
-        "lines": 937,
-        "max_module_lines": 800,
-        "path": "scripts/maps/render_b1_map12_correspondence_review.py"
-      },
-      {
-        "lines": 1428,
-        "max_module_lines": 800,
-        "path": "scripts/maps/render_b1_map12_label_tool.py"
-      },
-      {
-        "lines": 876,
-        "max_module_lines": 800,
-        "path": "scripts/maps/render_b1_scene_topdown_diagnostic.py"
-      },
-      {
-        "lines": 2201,
-        "max_module_lines": 800,
-        "path": "scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py"
-      },
-      {
-        "lines": 1958,
-        "max_module_lines": 800,
-        "path": "scripts/molmo_cleanup/molmospaces_subprocess_worker.py"
-      },
-      {
-        "lines": 890,
-        "max_module_lines": 800,
-        "path": "roboclaws/agents/drivers/openai_agents_perf_profile.py"
-      },
-      {
-        "lines": 1412,
-        "max_module_lines": 800,
-        "path": "scripts/molmo_cleanup/planner_probe_task_sampler_diagnostics.py"
-      },
-      {
-        "lines": 995,
-        "max_module_lines": 800,
-        "path": "scripts/molmo_cleanup/run_agent_sdk_perf_matrix.py"
-      },
-      {
+        "disposition": "SPLIT",
         "lines": 2192,
         "max_module_lines": 800,
-        "path": "roboclaws/agents/household_live_runner.py"
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/agents/household_live_runner.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
       },
       {
-        "lines": 1103,
+        "disposition": "SPLIT",
+        "lines": 872,
         "max_module_lines": 800,
-        "path": "scripts/molmo_cleanup/run_molmo_planner_manipulation_probe.py"
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/agents/provider_registry.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
       },
       {
-        "lines": 866,
+        "disposition": "SPLIT",
+        "lines": 1029,
         "max_module_lines": 800,
-        "path": "scripts/molmo_cleanup/run_molmo_planner_proof_bundle_from_requests.py"
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/evals/live_runtime.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
       },
       {
-        "lines": 1659,
+        "disposition": "SPLIT",
+        "lines": 1807,
         "max_module_lines": 800,
-        "path": "scripts/molmo_cleanup/run_raw_fpv_perception_probe.py"
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/evals/runner.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
       },
       {
-        "lines": 1826,
+        "disposition": "SPLIT",
+        "lines": 1239,
         "max_module_lines": 800,
-        "path": "scripts/molmo_cleanup/run_robot_camera_apple2apple_comparison.py"
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/household/agibot_sdk_runner.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
       },
       {
-        "lines": 1979,
-        "max_module_lines": 800,
-        "path": "scripts/molmo_cleanup/summarize_robot_camera_visual_parity.py"
-      },
-      {
-        "lines": 1717,
-        "max_module_lines": 800,
-        "path": "scripts/operator_console/render_scene_previews.py"
-      },
-      {
-        "lines": 1918,
-        "max_module_lines": 800,
-        "path": "scripts/visual_grounding/adapters.py"
-      },
-      {
-        "lines": 1281,
-        "max_module_lines": 800,
-        "path": "scripts/visual_grounding/run_visual_grounding_benchmark.py"
-      },
-      {
-        "lines": 913,
-        "max_module_lines": 800,
-        "path": "skills/visual-result-showcase/scripts/render_household_cleanup_showcase.py"
-      },
-      {
+        "disposition": "SPLIT",
         "lines": 1250,
         "max_module_lines": 800,
-        "path": "tests/contract/agibot/test_agibot_map_context_scripts.py"
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/household/household_mcp_server.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
       },
       {
+        "disposition": "SPLIT",
+        "lines": 2051,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/household/household_runtime_contract.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1327,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/household/household_world_episode.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1860,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/household/planner_proof_requests.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1221,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/household/planner_task_feasibility.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1201,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/household/realworld_runtime_map_targets.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1372,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/household/realworld_visual_candidate_lifecycle.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "MERGE",
+        "lines": 2024,
+        "max_module_lines": 800,
+        "owner": "Wave 6 report ownership",
+        "path": "roboclaws/household/report.py",
+        "trigger": "merge duplicate projections before splitting retained renderers by behavior"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 829,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/household/report_sections_agent.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 828,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/household/report_sections_proof_bundle.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1979,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/household/scene_camera_comparison.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 841,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/household/semantic_timeline.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1972,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/launch/scene_sampler.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 894,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/launch/scene_sampler_prep.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 970,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/launch/scene_sampler_scanner.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1277,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/maps/runtime_prior_snapshot.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 846,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/operator_console/interactions.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 918,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/operator_console/launcher.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1133,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/operator_console/runtime_inventory.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 968,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/operator_console/state.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "MERGE",
+        "lines": 1463,
+        "max_module_lines": 800,
+        "owner": "Wave 6 report ownership",
+        "path": "roboclaws/reports/live_performance.py",
+        "trigger": "merge duplicate projections before splitting retained renderers by behavior"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1328,
+        "max_module_lines": 800,
+        "owner": "Wave 5 package ownership migration",
+        "path": "scripts/isaac_lab_cleanup/check_b1_map12_readiness.py",
+        "trigger": "move retained product behavior to its package owner and reduce the CLI adapter"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1998,
+        "max_module_lines": 800,
+        "owner": "Wave 5 package ownership migration",
+        "path": "scripts/isaac_lab_cleanup/isaac_lab_backend_worker.py",
+        "trigger": "move retained product behavior to its package owner and reduce the CLI adapter"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1061,
+        "max_module_lines": 800,
+        "owner": "Wave 5 package ownership migration",
+        "path": "scripts/isaac_lab_cleanup/prepare_molmospaces_flattened_semantic_usd.py",
+        "trigger": "move retained product behavior to its package owner and reduce the CLI adapter"
+      },
+      {
+        "disposition": "PARK",
+        "lines": 972,
+        "max_module_lines": 800,
+        "owner": "Wave 5 B1 package CLI migration",
+        "path": "scripts/maps/fit_b1_map12_scene_alignment.py",
+        "trigger": "revisit after package-owned rebuild, digest, provenance, readiness, and product parity"
+      },
+      {
+        "disposition": "PARK",
+        "lines": 937,
+        "max_module_lines": 800,
+        "owner": "Wave 5 B1 package CLI migration",
+        "path": "scripts/maps/render_b1_map12_correspondence_review.py",
+        "trigger": "revisit after package-owned rebuild, digest, provenance, readiness, and product parity"
+      },
+      {
+        "disposition": "PARK",
+        "lines": 1428,
+        "max_module_lines": 800,
+        "owner": "Wave 5 B1 package CLI migration",
+        "path": "scripts/maps/render_b1_map12_label_tool.py",
+        "trigger": "revisit after package-owned rebuild, digest, provenance, readiness, and product parity"
+      },
+      {
+        "disposition": "PARK",
+        "lines": 876,
+        "max_module_lines": 800,
+        "owner": "Wave 5 B1 package CLI migration",
+        "path": "scripts/maps/render_b1_scene_topdown_diagnostic.py",
+        "trigger": "revisit after package-owned rebuild, digest, provenance, readiness, and product parity"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 2192,
+        "max_module_lines": 800,
+        "owner": "Wave 5 package ownership migration",
+        "path": "scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py",
+        "trigger": "move retained product behavior to its package owner and reduce the CLI adapter"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1958,
+        "max_module_lines": 800,
+        "owner": "Wave 5 package ownership migration",
+        "path": "scripts/molmo_cleanup/molmospaces_subprocess_worker.py",
+        "trigger": "move retained product behavior to its package owner and reduce the CLI adapter"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1412,
+        "max_module_lines": 800,
+        "owner": "Wave 5 package ownership migration",
+        "path": "scripts/molmo_cleanup/planner_probe_task_sampler_diagnostics.py",
+        "trigger": "move retained product behavior to its package owner and reduce the CLI adapter"
+      },
+      {
+        "disposition": "DELETE",
+        "lines": 995,
+        "max_module_lines": 800,
+        "owner": "Wave 3 unconditional deletion",
+        "path": "scripts/molmo_cleanup/run_agent_sdk_perf_matrix.py",
+        "trigger": "delete after the Wave 0 caller ledger and neighboring preservation proofs pass"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1103,
+        "max_module_lines": 800,
+        "owner": "Wave 5 package ownership migration",
+        "path": "scripts/molmo_cleanup/run_molmo_planner_manipulation_probe.py",
+        "trigger": "move retained product behavior to its package owner and reduce the CLI adapter"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 866,
+        "max_module_lines": 800,
+        "owner": "Wave 5 package ownership migration",
+        "path": "scripts/molmo_cleanup/run_molmo_planner_proof_bundle_from_requests.py",
+        "trigger": "move retained product behavior to its package owner and reduce the CLI adapter"
+      },
+      {
+        "disposition": "DELETE",
+        "lines": 1659,
+        "max_module_lines": 800,
+        "owner": "Wave 3 unconditional deletion",
+        "path": "scripts/molmo_cleanup/run_raw_fpv_perception_probe.py",
+        "trigger": "delete after the Wave 0 caller ledger and neighboring preservation proofs pass"
+      },
+      {
+        "disposition": "DELETE",
+        "lines": 1826,
+        "max_module_lines": 800,
+        "owner": "Wave 3 unconditional deletion",
+        "path": "scripts/molmo_cleanup/run_robot_camera_apple2apple_comparison.py",
+        "trigger": "delete after the Wave 0 caller ledger and neighboring preservation proofs pass"
+      },
+      {
+        "disposition": "DELETE",
+        "lines": 1979,
+        "max_module_lines": 800,
+        "owner": "Wave 3 unconditional deletion",
+        "path": "scripts/molmo_cleanup/summarize_robot_camera_visual_parity.py",
+        "trigger": "delete after the Wave 0 caller ledger and neighboring preservation proofs pass"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1717,
+        "max_module_lines": 800,
+        "owner": "Wave 5 package ownership migration",
+        "path": "scripts/operator_console/render_scene_previews.py",
+        "trigger": "move retained product behavior to its package owner and reduce the CLI adapter"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1918,
+        "max_module_lines": 800,
+        "owner": "Wave 5 package ownership migration",
+        "path": "scripts/visual_grounding/adapters.py",
+        "trigger": "move retained product behavior to its package owner and reduce the CLI adapter"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1281,
+        "max_module_lines": 800,
+        "owner": "Wave 5 package ownership migration",
+        "path": "scripts/visual_grounding/run_visual_grounding_benchmark.py",
+        "trigger": "move retained product behavior to its package owner and reduce the CLI adapter"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 912,
+        "max_module_lines": 800,
+        "owner": "Wave 5 package ownership migration",
+        "path": "skills/visual-result-showcase/scripts/render_household_cleanup_showcase.py",
+        "trigger": "move retained product behavior to its package owner and reduce the CLI adapter"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1250,
+        "max_module_lines": 800,
+        "owner": "Wave 6 test topology",
+        "path": "tests/contract/agibot/test_agibot_map_context_scripts.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
+      },
+      {
+        "disposition": "SPLIT",
         "lines": 1615,
         "max_module_lines": 800,
-        "path": "tests/contract/checkers/test_check_molmo_planner_manipulation_probe.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/contract/checkers/test_check_molmo_planner_manipulation_probe.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
+        "disposition": "SPLIT",
         "lines": 1105,
         "max_module_lines": 800,
-        "path": "tests/contract/checkers/test_check_molmo_planner_proof_bundle_runner_result.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/contract/checkers/test_check_molmo_planner_proof_bundle_runner_result.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
-        "lines": 5267,
+        "disposition": "SPLIT",
+        "lines": 5169,
         "max_module_lines": 800,
-        "path": "tests/contract/checkers/test_check_molmo_realworld_cleanup_result.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/contract/checkers/test_check_molmo_realworld_cleanup_result.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
-        "lines": 2782,
+        "disposition": "SPLIT",
+        "lines": 1875,
         "max_module_lines": 800,
-        "path": "tests/contract/dev_tools/test_task_agent_just_recipes.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/contract/dev_tools/test_task_agent_just_recipes.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
+        "disposition": "SPLIT",
         "lines": 974,
         "max_module_lines": 800,
-        "path": "tests/contract/maps/test_b1_map12_label_tool.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/contract/maps/test_b1_map12_label_tool.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
+        "disposition": "SPLIT",
         "lines": 2039,
         "max_module_lines": 800,
-        "path": "tests/contract/maps/test_b1_map12_verified_alignment.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/contract/maps/test_b1_map12_verified_alignment.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
+        "disposition": "SPLIT",
         "lines": 815,
         "max_module_lines": 800,
-        "path": "tests/contract/maps/test_runtime_map_prior_snapshot.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/contract/maps/test_runtime_map_prior_snapshot.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
+        "disposition": "SPLIT",
         "lines": 1549,
         "max_module_lines": 800,
-        "path": "tests/contract/molmo_cleanup/test_household_mcp_server.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/contract/molmo_cleanup/test_household_mcp_server.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
+        "disposition": "SPLIT",
         "lines": 4206,
         "max_module_lines": 800,
-        "path": "tests/contract/molmo_cleanup/test_household_runtime_contract.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/contract/molmo_cleanup/test_household_runtime_contract.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
+        "disposition": "SPLIT",
         "lines": 2142,
         "max_module_lines": 800,
-        "path": "tests/contract/molmo_cleanup/test_scene_camera_comparison.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/contract/molmo_cleanup/test_scene_camera_comparison.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
+        "disposition": "SPLIT",
         "lines": 3612,
         "max_module_lines": 800,
-        "path": "tests/contract/reports/test_molmo_cleanup_report.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/contract/reports/test_molmo_cleanup_report.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
+        "disposition": "SPLIT",
         "lines": 830,
         "max_module_lines": 800,
-        "path": "tests/contract/visual_grounding/test_visual_grounding_service.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/contract/visual_grounding/test_visual_grounding_service.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
-        "lines": 7138,
+        "disposition": "SPLIT",
+        "lines": 7136,
         "max_module_lines": 800,
-        "path": "tests/unit/agents/test_live_runtime.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/unit/agents/test_live_runtime.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
-        "lines": 849,
+        "disposition": "SPLIT",
+        "lines": 3418,
         "max_module_lines": 800,
-        "path": "tests/unit/evals/test_eval_harness_selector.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/unit/evals/test_eval_runner.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
-        "lines": 3419,
-        "max_module_lines": 800,
-        "path": "tests/unit/evals/test_eval_runner.py"
-      },
-      {
-        "lines": 1977,
-        "max_module_lines": 800,
-        "path": "tests/unit/launch/test_scene_sampler.py"
-      },
-      {
-        "lines": 1131,
-        "max_module_lines": 800,
-        "path": "tests/unit/molmo_cleanup/test_agent_sdk_perf_matrix.py"
-      },
-      {
-        "lines": 5499,
-        "max_module_lines": 800,
-        "path": "tests/unit/molmo_cleanup/test_isaac_lab_backend.py"
-      },
-      {
-        "lines": 897,
-        "max_module_lines": 800,
-        "path": "tests/unit/molmo_cleanup/test_isaac_lab_runtime_smoke_checker.py"
-      },
-      {
+        "disposition": "SPLIT",
         "lines": 1971,
         "max_module_lines": 800,
-        "path": "tests/unit/molmo_cleanup/test_molmo_cleanup_subprocess_backend.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/unit/launch/test_scene_sampler.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
+        "disposition": "SPLIT",
+        "lines": 1131,
+        "max_module_lines": 800,
+        "owner": "Wave 6 test topology",
+        "path": "tests/unit/molmo_cleanup/test_agent_sdk_perf_matrix.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 5499,
+        "max_module_lines": 800,
+        "owner": "Wave 6 test topology",
+        "path": "tests/unit/molmo_cleanup/test_isaac_lab_backend.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 897,
+        "max_module_lines": 800,
+        "owner": "Wave 6 test topology",
+        "path": "tests/unit/molmo_cleanup/test_isaac_lab_runtime_smoke_checker.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1971,
+        "max_module_lines": 800,
+        "owner": "Wave 6 test topology",
+        "path": "tests/unit/molmo_cleanup/test_molmo_cleanup_subprocess_backend.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
+      },
+      {
+        "disposition": "SPLIT",
         "lines": 1876,
         "max_module_lines": 800,
-        "path": "tests/unit/molmo_cleanup/test_molmo_planner_proof_requests.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/unit/molmo_cleanup/test_molmo_planner_proof_requests.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
+        "disposition": "SPLIT",
         "lines": 1818,
         "max_module_lines": 800,
-        "path": "tests/unit/molmo_cleanup/test_raw_fpv_perception_probe.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/unit/molmo_cleanup/test_raw_fpv_perception_probe.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
+        "disposition": "SPLIT",
         "lines": 3214,
         "max_module_lines": 800,
-        "path": "tests/unit/molmo_cleanup/test_robot_camera_apple2apple_comparison.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/unit/molmo_cleanup/test_robot_camera_apple2apple_comparison.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
+        "disposition": "SPLIT",
         "lines": 2262,
         "max_module_lines": 800,
-        "path": "tests/unit/molmo_cleanup/test_robot_camera_visual_parity_summary.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/unit/molmo_cleanup/test_robot_camera_visual_parity_summary.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
-        "lines": 1410,
+        "disposition": "SPLIT",
+        "lines": 1399,
         "max_module_lines": 800,
-        "path": "tests/unit/operator_console/test_launcher.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/unit/operator_console/test_launcher.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
-        "lines": 1513,
+        "disposition": "SPLIT",
+        "lines": 1507,
         "max_module_lines": 800,
-        "path": "tests/unit/operator_console/test_operator_console.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/unit/operator_console/test_operator_console.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
+        "disposition": "SPLIT",
         "lines": 1258,
         "max_module_lines": 800,
-        "path": "tests/unit/operator_console/test_render_scene_previews.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/unit/operator_console/test_render_scene_previews.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
+        "disposition": "SPLIT",
         "lines": 1394,
         "max_module_lines": 800,
-        "path": "tests/unit/operator_console/test_state.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/unit/operator_console/test_state.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
+        "disposition": "SPLIT",
         "lines": 1931,
         "max_module_lines": 800,
-        "path": "tests/unit/scripts/test_run_molmo_planner_proof_bundle_from_requests.py"
+        "owner": "Wave 6 test topology",
+        "path": "tests/unit/scripts/test_run_molmo_planner_proof_bundle_from_requests.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       }
     ],
     "max_module_lines": 800,
     "note": "Pylint-compatible too-many-lines ratchet. Existing files over 800 lines are baselined; new oversize files or line-count growth fail."
+  },
+  "repository_size": {
+    "line_count": "physical UTF-8 lines in Python files under the named roots",
+    "source": {
+      "files_at_least": {
+        "1000": 33,
+        "500": 132,
+        "800": 49
+      },
+      "loc": 180297,
+      "python_files": 414,
+      "roots": [
+        "roboclaws",
+        "scripts"
+      ]
+    },
+    "tests": {
+      "files_at_least": {
+        "1000": 25,
+        "500": 51,
+        "800": 29
+      },
+      "loc": 108901,
+      "python_files": 237,
+      "roots": [
+        "tests"
+      ]
+    }
   },
   "ruff_complexity": {
     "rules": [
@@ -440,5 +687,5 @@
       }
     ]
   },
-  "schema": "roboclaws_python_quality_ratchet_v1"
+  "schema": "roboclaws_python_quality_ratchet_v2"
 }

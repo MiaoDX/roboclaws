@@ -151,7 +151,7 @@ Key pieces:
 - `roboclaws/household/agent_view.py` owns the sectioned Agent View v2 boundary
   for public household-world agent inputs, saved `agent_view.json` artifacts,
   live agent-facing responses, and sidecar public-evidence guards.
-- `roboclaws/household/direct_episode.py` owns the direct deterministic
+- `roboclaws/household/household_world_episode.py` owns the direct deterministic
   household episode used by the launch surface and eval harness.
 - `roboclaws/household/semantic_cleanup_loop.py` owns the direct semantic
   cleanup flow.

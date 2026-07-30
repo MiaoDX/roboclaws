@@ -15,7 +15,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_BASELINE = REPO_ROOT / "scripts" / "dev" / "python_quality_baseline.json"
 RUFF_COMPLEXITY_RULES = ("C901", "PLR0912", "PLR0915")
 MAX_MODULE_LINES = 800
-SCHEMA = "roboclaws_python_quality_ratchet_v1"
+SOURCE_ROOTS = ("roboclaws", "scripts")
+TEST_ROOT = "tests"
+SIZE_THRESHOLDS = (500, 800, 1000)
+SCHEMA = "roboclaws_python_quality_ratchet_v2"
 _MEASURE_RE = re.compile(r"\((?P<value>\d+)\s*>\s*(?P<limit>\d+)\)")
 
 
@@ -65,9 +68,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.write_baseline:
         baseline_path.parent.mkdir(parents=True, exist_ok=True)
         baseline_path.write_text(json.dumps(current, indent=2, sort_keys=True) + "\n")
+        try:
+            display_path = baseline_path.relative_to(REPO_ROOT)
+        except ValueError:
+            display_path = baseline_path
         print(
             "python-quality-ratchet: wrote baseline "
-            f"{baseline_path.relative_to(REPO_ROOT)} "
+            f"{display_path} "
             f"({len(current['ruff_complexity']['violations'])} Ruff violations, "
             f"{len(current['pylint_too_many_lines']['files'])} oversized modules)"
         )
@@ -122,6 +129,7 @@ def collect_quality_state() -> dict[str, Any]:
                 "800 lines are baselined; new oversize files or line-count growth fail."
             ),
         },
+        "repository_size": collect_repository_size(collect_scoped_file_sizes()),
     }
 
 
@@ -225,19 +233,119 @@ def _parse_ruff_diagnostics(text: str) -> list[dict[str, Any]]:
 
 
 def collect_oversized_modules(files: list[Path]) -> list[dict[str, Any]]:
+    file_sizes = collect_file_sizes(files)
     oversized = []
-    for path in files:
-        text = path.read_text(encoding="utf-8")
-        lines = text.count("\n") + (0 if text.endswith("\n") or not text else 1)
+    for path, lines in file_sizes.items():
         if lines > MAX_MODULE_LINES:
+            disposition = provisional_disposition(path)
             oversized.append(
                 {
                     "path": path.relative_to(REPO_ROOT).as_posix(),
                     "lines": lines,
                     "max_module_lines": MAX_MODULE_LINES,
+                    **disposition,
                 }
             )
     return sorted(oversized, key=lambda item: item["path"])
+
+
+def collect_file_sizes(files: list[Path]) -> dict[Path, int]:
+    sizes: dict[Path, int] = {}
+    for path in files:
+        text = path.read_text(encoding="utf-8")
+        sizes[path] = text.count("\n") + (0 if text.endswith("\n") or not text else 1)
+    return sizes
+
+
+def collect_scoped_file_sizes() -> dict[Path, int]:
+    files = [
+        path
+        for root in (*SOURCE_ROOTS, TEST_ROOT)
+        for path in (REPO_ROOT / root).rglob("*.py")
+        if path.is_file()
+    ]
+    return collect_file_sizes(sorted(files))
+
+
+def collect_repository_size(file_sizes: dict[Path, int]) -> dict[str, Any]:
+    def summarize(root_names: tuple[str, ...]) -> dict[str, Any]:
+        selected = {
+            path.relative_to(REPO_ROOT).as_posix(): lines
+            for path, lines in file_sizes.items()
+            if path.relative_to(REPO_ROOT).parts[0] in root_names
+        }
+        return {
+            "roots": list(root_names),
+            "python_files": len(selected),
+            "loc": sum(selected.values()),
+            "files_at_least": {
+                str(threshold): sum(lines >= threshold for lines in selected.values())
+                for threshold in SIZE_THRESHOLDS
+            },
+        }
+
+    return {
+        "line_count": "physical UTF-8 lines in Python files under the named roots",
+        "source": summarize(SOURCE_ROOTS),
+        "tests": summarize((TEST_ROOT,)),
+    }
+
+
+def provisional_disposition(path: Path) -> dict[str, str]:
+    relative = path.relative_to(REPO_ROOT).as_posix()
+    if relative.startswith("tests/"):
+        return {
+            "disposition": "SPLIT",
+            "owner": "Wave 6 test topology",
+            "trigger": "split with the retained behavior owner; preserve contract/privacy guards",
+        }
+    deletion_prefixes = (
+        "scripts/molmo_cleanup/run_raw_fpv_perception_probe.py",
+        "scripts/molmo_cleanup/run_agent_sdk_perf_matrix.py",
+        "scripts/molmo_cleanup/run_robot_camera_apple2apple_comparison.py",
+        "scripts/molmo_cleanup/summarize_robot_camera_visual_parity.py",
+    )
+    if relative in deletion_prefixes:
+        return {
+            "disposition": "DELETE",
+            "owner": "Wave 3 unconditional deletion",
+            "trigger": (
+                "delete after the Wave 0 caller ledger and neighboring preservation proofs pass"
+            ),
+        }
+    if relative.startswith("scripts/maps/"):
+        return {
+            "disposition": "PARK",
+            "owner": "Wave 5 B1 package CLI migration",
+            "trigger": (
+                "revisit after package-owned rebuild, digest, provenance, "
+                "readiness, and product parity"
+            ),
+        }
+    if relative.startswith("scripts/") or relative.startswith("skills/"):
+        return {
+            "disposition": "SPLIT",
+            "owner": "Wave 5 package ownership migration",
+            "trigger": (
+                "move retained product behavior to its package owner and reduce the CLI adapter"
+            ),
+        }
+    if relative in {
+        "roboclaws/household/report.py",
+        "roboclaws/reports/live_performance.py",
+    }:
+        return {
+            "disposition": "MERGE",
+            "owner": "Wave 6 report ownership",
+            "trigger": (
+                "merge duplicate projections before splitting retained renderers by behavior"
+            ),
+        }
+    return {
+        "disposition": "SPLIT",
+        "owner": "Wave 6 retained owner split",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice",
+    }
 
 
 def compare_to_baseline(current: dict[str, Any], baseline: dict[str, Any]) -> list[str]:

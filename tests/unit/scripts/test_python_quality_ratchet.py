@@ -20,7 +20,7 @@ def load_module():
 
 def baseline_state() -> dict:
     return {
-        "schema": "roboclaws_python_quality_ratchet_v1",
+        "schema": "roboclaws_python_quality_ratchet_v2",
         "ruff_complexity": {
             "violations": [
                 {
@@ -95,6 +95,21 @@ def test_main_reports_bad_baseline_source_without_traceback(
     assert captured.out == ""
     assert "python-quality-ratchet: python quality baseline source" in captured.err
     assert "Traceback" not in captured.err
+
+
+def test_main_can_write_baseline_outside_repo(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_module()
+    baseline = tmp_path / "python_quality_baseline.json"
+    monkeypatch.setattr(module, "collect_quality_state", baseline_state)
+
+    assert module.main(["--baseline", str(baseline), "--write-baseline"]) == 0
+
+    assert baseline.exists()
+    assert str(baseline) in capsys.readouterr().out
 
 
 @pytest.mark.parametrize(
@@ -174,6 +189,35 @@ def test_ratchet_rejects_new_or_growing_oversized_modules() -> None:
         "oversized module grew roboclaws/large.py 900 -> 901 lines",
         "new oversized module scripts/new_big_module.py has 801 lines",
     ]
+
+
+def test_repository_size_records_exact_threshold_counts(tmp_path: Path) -> None:
+    module = load_module()
+    source = module.REPO_ROOT / "roboclaws" / "example.py"
+    test = module.REPO_ROOT / "tests" / "test_example.py"
+
+    summary = module.collect_repository_size({source: 1000, test: 800})
+
+    assert summary["source"] == {
+        "roots": ["roboclaws", "scripts"],
+        "python_files": 1,
+        "loc": 1000,
+        "files_at_least": {"500": 1, "800": 1, "1000": 1},
+    }
+    assert summary["tests"]["loc"] == 800
+    assert summary["tests"]["files_at_least"] == {"500": 1, "800": 1, "1000": 0}
+
+
+def test_parked_disposition_names_owner_and_revisit_trigger() -> None:
+    module = load_module()
+
+    disposition = module.provisional_disposition(
+        module.REPO_ROOT / "scripts" / "maps" / "large_authoring_tool.py"
+    )
+
+    assert disposition["disposition"] == "PARK"
+    assert disposition["owner"] == "Wave 5 B1 package CLI migration"
+    assert "rebuild" in disposition["trigger"]
 
 
 def test_quality_debt_summary_ranks_top_debt() -> None:

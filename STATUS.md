@@ -10,6 +10,15 @@ leave a link.
 
 ## Current Focus
 
+The aggressive architecture migration is active under
+`docs/plans/2026-07-30-aggressive-architecture-migration.md`. Wave 0 is freezing
+the exact size/dependency baseline, caller and deletion ledgers, public
+contract fixtures, and architecture guards before runtime ownership moves.
+The migration preserves public launch, artifact, privacy, provider, simulator,
+and operator behavior while removing dependency cycles, retiring completed
+investigation surfaces, moving product subsystems out of scripts, and splitting
+retained oversized owners by behavior.
+
 OpenClaw and repo-owned workstation-local Docker runtime surfaces are retired
 under `docs/plans/2026-07-30-retire-openclaw-and-local-docker-surfaces.md` and
 ADR-0148. The maintained product has exactly two agent engines,
@@ -89,9 +98,10 @@ providers.
 
 ## Next Action
 
-Review the completed OpenClaw/local-Docker retirement. The refreshed immutable
-candidate remains unmodified and is superseded for publication review;
-publication remains unauthorized and is a separate human decision.
+Complete and verify Wave 0 of the aggressive architecture migration, then
+migrate the Wave 1 ownership seams one green atomic slice at a time. The
+refreshed immutable candidate remains unmodified; publication remains
+unauthorized and separate from this campaign.
 
 ## Current Blockers
 
@@ -117,6 +127,7 @@ publication remains unauthorized and is a separate human decision.
 ## Current Source Links
 
 Plans:
+`docs/plans/2026-07-30-aggressive-architecture-migration.md`,
 `docs/plans/2026-07-30-retire-openclaw-and-local-docker-surfaces.md`,
 `docs/plans/2026-07-30-post-cleanup-saturation-refactors.md`,
 `docs/plans/2026-07-28-forward-only-post-review-cleanup.md`,
