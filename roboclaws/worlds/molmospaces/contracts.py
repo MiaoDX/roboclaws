@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from roboclaws.launch.map_bundles import molmospaces_nav2_map_bundle_arg
+from roboclaws.worlds.molmospaces.map_bundles import molmospaces_nav2_map_bundle_arg
 
 SAMPLER_GENERATOR_VERSION = "2026-06-15.preview-readiness-v1"
 

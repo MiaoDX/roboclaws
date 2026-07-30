@@ -6,9 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.launch import scene_sampler_prefilter
 from roboclaws.launch.catalog import LaunchError, resolve_surface_launch
-from roboclaws.launch.scene_sampler import (
+from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS, WORLD_SPECS, world_spec
+from roboclaws.worlds.molmospaces import prefilter as scene_sampler_prefilter
+from roboclaws.worlds.molmospaces.sampling import (
     EVAL_STRESS_LANE,
     READINESS_BLOCKED,
     READINESS_REJECTED,
@@ -36,9 +37,8 @@ from roboclaws.launch.scene_sampler import (
     ui_molmospaces_world_ids,
     validate_sampler_manifest,
 )
-from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS, WORLD_SPECS, world_spec
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = Path(__file__).resolve().parents[4]
 ITHOR_MISSING_PUBLIC_WAYPOINT_REJECTED_INDICES = {
     401,
     402,
@@ -272,7 +272,7 @@ UI_WORLD_IDS = (
 
 @pytest.fixture(autouse=True)
 def _isolate_scene_sampler_scanner_artifacts(monkeypatch, tmp_path) -> None:
-    import roboclaws.launch.scene_sampler as scene_sampler
+    import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     scanner_root = tmp_path / "scene-sampler-scanner"
     monkeypatch.setattr(scene_sampler, "_SCANNER_OUTPUT_ROOT", scanner_root)
@@ -400,6 +400,13 @@ def test_source_aware_candidate_worlds_are_launchable_but_not_default_visible() 
     assert "scene_source=ithor" in plan.overrides
     assert "scene_index=1" in plan.overrides
     assert "map_bundle=assets/maps/molmospaces/ithor/1" in plan.overrides
+
+
+def test_world_spec_sampler_metadata_is_immutable() -> None:
+    spec = world_spec("molmospaces/procthor-10k-val/0")
+
+    with pytest.raises(TypeError):
+        spec.sampler_metadata["selected_reason"] = "changed"  # type: ignore[index]
 
 
 def test_household_molmospaces_launch_rejects_disabled_map_bundle() -> None:
@@ -764,7 +771,7 @@ def test_scene_sampler_readiness_report_is_per_source() -> None:
 def test_scene_sampler_source_availability_reports_missing_molmospaces_module(
     monkeypatch,
 ) -> None:
-    import roboclaws.launch.scene_sampler as scene_sampler
+    import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     monkeypatch.setattr(
         scene_sampler,
@@ -802,7 +809,7 @@ def test_scene_sampler_source_availability_reports_missing_molmospaces_module(
 def test_scene_sampler_candidate_readiness_keeps_ready_rejected_and_blocked_rows(
     monkeypatch,
 ) -> None:
-    import roboclaws.launch.scene_sampler as scene_sampler
+    import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     monkeypatch.setattr(
         scene_sampler,
@@ -873,7 +880,7 @@ def test_scene_sampler_candidate_readiness_keeps_ready_rejected_and_blocked_rows
 def test_scene_sampler_selection_gap_report_prioritizes_missing_samples(
     monkeypatch,
 ) -> None:
-    import roboclaws.launch.scene_sampler as scene_sampler
+    import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     monkeypatch.setattr(
         scene_sampler,
@@ -949,7 +956,7 @@ def test_scene_sampler_selection_gap_report_prioritizes_missing_samples(
 def test_scene_sampler_selection_gap_report_records_expanded_range_capacity(
     monkeypatch,
 ) -> None:
-    import roboclaws.launch.scene_sampler as scene_sampler
+    import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     monkeypatch.setattr(
         scene_sampler,
@@ -1093,7 +1100,7 @@ def test_scene_sampler_prefilter_optional_json_ignores_missing_source(tmp_path: 
 def test_scene_sampler_scene_only_prefilter_stops_when_descriptors_are_missing(
     monkeypatch,
 ) -> None:
-    import roboclaws.launch.scene_sampler as scene_sampler
+    import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     monkeypatch.setattr(
         scene_sampler,
@@ -1131,7 +1138,7 @@ def test_scene_sampler_scene_only_prefilter_selects_high_confidence_descriptor(
     monkeypatch,
     tmp_path,
 ) -> None:
-    import roboclaws.launch.scene_sampler as scene_sampler
+    import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     candidate_path = tmp_path / "val_22.xml"
     candidate_path.write_text("<mujoco><geom name='room_0'/></mujoco>", encoding="utf-8")
@@ -1216,7 +1223,7 @@ def test_scene_sampler_scene_only_prefilter_marks_single_room_low_confidence(
     monkeypatch,
     tmp_path,
 ) -> None:
-    import roboclaws.launch.scene_sampler as scene_sampler
+    import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     candidate_path = tmp_path / "val_23.xml"
     candidate_path.write_text("<mujoco><geom name='room_0'/></mujoco>", encoding="utf-8")
@@ -1288,7 +1295,7 @@ def test_scene_sampler_scene_only_prefilter_marks_single_room_low_confidence(
 
 
 def test_scene_sampler_source_prep_report_lists_manual_prep_steps(monkeypatch) -> None:
-    import roboclaws.launch.scene_sampler as scene_sampler
+    import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     monkeypatch.setattr(
         scene_sampler,
@@ -1368,7 +1375,7 @@ def test_scene_sampler_source_prep_promotes_metadata_worklist_when_assets_exist(
     monkeypatch,
     tmp_path,
 ) -> None:
-    import roboclaws.launch.scene_sampler as scene_sampler
+    import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     candidate_path = tmp_path / "val_22.xml"
     candidate_path.write_text("<mujoco />", encoding="utf-8")
@@ -1513,7 +1520,7 @@ def test_scene_sampler_scanner_execution_plan_runs_metadata_worklist_candidates(
     monkeypatch,
     tmp_path,
 ) -> None:
-    import roboclaws.launch.scene_sampler as scene_sampler
+    import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     candidate_path = tmp_path / "val_22.xml"
     candidate_path.write_text("<mujoco />", encoding="utf-8")
@@ -1627,7 +1634,7 @@ def test_scene_sampler_scanner_execution_plan_does_not_rerun_rejected_metadata_c
     monkeypatch,
     tmp_path,
 ) -> None:
-    import roboclaws.launch.scene_sampler as scene_sampler
+    import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     candidate_path = tmp_path / "val_22.xml"
     candidate_path.write_text("<mujoco />", encoding="utf-8")
@@ -1724,7 +1731,7 @@ def test_scene_sampler_scanner_execution_plan_does_not_rerun_rejected_metadata_c
 
 
 def test_scene_sampler_source_prep_install_command_resolves_dict_scene_refs() -> None:
-    from roboclaws.launch.scene_sampler_prep import install_candidate_command
+    from roboclaws.worlds.molmospaces.preparation import install_candidate_command
 
     command = install_candidate_command(
         dataset_name="procthor-10k",
@@ -1758,7 +1765,7 @@ def test_scene_sampler_preview_metadata_rejects_bad_sources(
     source: str,
     message: str,
 ) -> None:
-    import roboclaws.launch.scene_sampler as scene_sampler
+    import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     monkeypatch.setattr(scene_sampler, "_PREVIEW_ROOT", tmp_path)
     (tmp_path / "molmospaces-val_4-preview.json").write_text(source, encoding="utf-8")
@@ -1771,7 +1778,7 @@ def test_scene_sampler_preview_metadata_rejects_missing_source(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    import roboclaws.launch.scene_sampler as scene_sampler
+    import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     monkeypatch.setattr(scene_sampler, "_PREVIEW_ROOT", tmp_path)
 
@@ -1786,7 +1793,7 @@ def test_scene_sampler_preview_metadata_loads_valid_source(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    import roboclaws.launch.scene_sampler as scene_sampler
+    import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     monkeypatch.setattr(scene_sampler, "_PREVIEW_ROOT", tmp_path)
     payload = {
@@ -1803,7 +1810,7 @@ def test_scene_sampler_preview_metadata_loads_valid_source(
 
 
 def test_scene_sampler_scanner_admission_report_records_missing_gates(monkeypatch) -> None:
-    import roboclaws.launch.scene_sampler as scene_sampler
+    import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     monkeypatch.setattr(
         scene_sampler,
@@ -1868,7 +1875,7 @@ def test_scene_sampler_scanner_admission_report_records_missing_gates(monkeypatc
 def test_scene_sampler_scanner_admission_accepts_reviewable_prepared_label_packets(
     monkeypatch,
 ) -> None:
-    import roboclaws.launch.scene_sampler as scene_sampler
+    import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     monkeypatch.setattr(
         scene_sampler,
@@ -1946,7 +1953,7 @@ def test_scene_sampler_scanner_admission_accepts_reviewable_prepared_label_packe
 def test_scene_sampler_scanner_execution_plan_skips_prefilter_inconclusive_sources(
     monkeypatch,
 ) -> None:
-    import roboclaws.launch.scene_sampler as scene_sampler
+    import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     monkeypatch.setattr(
         scene_sampler,

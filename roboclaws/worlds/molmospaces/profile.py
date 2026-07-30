@@ -5,12 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from roboclaws.launch.scene_sampler_prep import (
-    molmospaces_get_scenes_args,
-    molmospaces_module_status,
-    molmospaces_scene_index_map,
-)
-from roboclaws.launch.scene_sampler_sources import (
+from roboclaws.worlds.molmospaces.catalog import (
     CURRENT_CURATED_INDICES,
     SCENE_SAMPLER_SELECTION_SEED,
     SCENE_SAMPLER_SELECTION_STRATEGY,
@@ -20,10 +15,15 @@ from roboclaws.launch.scene_sampler_sources import (
     source_selection_metadata,
     source_ui_indices,
 )
-from roboclaws.launch.scene_sampler_types import (
+from roboclaws.worlds.molmospaces.contracts import (
     READINESS_READY,
     READINESS_REJECTED,
     SAMPLER_GENERATOR_VERSION,
+)
+from roboclaws.worlds.molmospaces.preparation import (
+    molmospaces_get_scenes_args,
+    molmospaces_module_status,
+    molmospaces_scene_index_map,
 )
 
 CANDIDATE_PROFILE_WORKLIST_TARGET_PER_SCENE_SOURCE = 10

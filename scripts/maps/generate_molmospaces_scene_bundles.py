@@ -19,8 +19,6 @@ from roboclaws.household.household_backend_contract import (
     build_household_backend_session,  # noqa: E402
 )
 from roboclaws.household.subprocess_backend import MOLMOSPACES_SUBPROCESS_BACKEND  # noqa: E402
-from roboclaws.launch.map_bundles import molmospaces_nav2_map_bundle_path  # noqa: E402
-from roboclaws.launch.scene_sampler import eval_sampler_rows, ui_sampler_rows  # noqa: E402
 from roboclaws.maps.bundle import (  # noqa: E402
     metric_map_bundle_metadata,
     validate_base_metric_map_v1_bundle,
@@ -30,6 +28,8 @@ from roboclaws.maps.bundle import (  # noqa: E402
 from roboclaws.maps.molmospaces_preparation import (  # noqa: E402
     prepare_molmospaces_base_metric_map,
 )
+from roboclaws.worlds.molmospaces.map_bundles import molmospaces_nav2_map_bundle_path  # noqa: E402
+from roboclaws.worlds.molmospaces.sampling import eval_sampler_rows, ui_sampler_rows  # noqa: E402
 
 DEFAULT_SCENES: tuple[tuple[str, int], ...] = (("procthor-10k-val", 0),)
 GENERATION_SCHEMA = "molmospaces_scene_nav2_bundle_generation_v1"

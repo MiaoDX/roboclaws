@@ -8,50 +8,77 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.core.json_sources import read_json_object
-from roboclaws.launch.map_bundles import (
+from roboclaws.worlds.molmospaces.catalog import (
+    SCANNER_READY_METADATA,
+    SCENE_SAMPLER_SELECTION_SEED,
+    SCENE_SAMPLER_SELECTION_STRATEGY,
+    SOURCE_EVAL_CANDIDATE_INDICES,
+    SOURCE_UI_CANDIDATE_INDICES,
+    admitted_sources,
+    category_manifest,
+    category_provenance,
+    known_indices_for_source,
+    sampler_world_id,
+    scanner_metadata,
+    source_eval_indices,
+    source_selection_metadata,
+    source_ui_indices,
+    uses_legacy_preview_assets,
+)
+from roboclaws.worlds.molmospaces.contracts import (
+    EVAL_STRESS_LANE,
+    READINESS_BLOCKED,
+    READINESS_READY,
+    READINESS_REJECTED,
+    SAMPLER_GENERATOR_VERSION,
+    UI_LANE,
+    MolmoSpacesSceneRef,
+    SceneSamplerRow,
+)
+from roboclaws.worlds.molmospaces.map_bundles import (
     SIM_MAP_BUNDLE_ASSET_ROOT,
     molmospaces_nav2_map_bundle_path,
 )
-from roboclaws.launch.scene_sampler_prefilter import (
+from roboclaws.worlds.molmospaces.prefilter import (
     scene_only_prefilter_report as _scene_only_prefilter_report,
 )
-from roboclaws.launch.scene_sampler_prefilter import (
+from roboclaws.worlds.molmospaces.prefilter import (
     scene_prefilter_expensive_proof_candidates as _scene_prefilter_expensive_proof_candidates,
 )
-from roboclaws.launch.scene_sampler_prep import (
+from roboclaws.worlds.molmospaces.preparation import (
     molmospaces_get_scenes_args as _molmospaces_get_scenes_args,
 )
-from roboclaws.launch.scene_sampler_prep import (
+from roboclaws.worlds.molmospaces.preparation import (
     molmospaces_module_status as _molmospaces_module_status,
 )
-from roboclaws.launch.scene_sampler_prep import (
+from roboclaws.worlds.molmospaces.preparation import (
     molmospaces_scene_index_map as _molmospaces_scene_index_map,
 )
-from roboclaws.launch.scene_sampler_prep import (
+from roboclaws.worlds.molmospaces.preparation import (
     molmospaces_scene_root_status as _molmospaces_scene_root_status,
 )
-from roboclaws.launch.scene_sampler_prep import (
+from roboclaws.worlds.molmospaces.preparation import (
     source_availability_blocked_reason as _source_availability_blocked_reason,
 )
-from roboclaws.launch.scene_sampler_prep import (
+from roboclaws.worlds.molmospaces.preparation import (
     source_availability_summary as _source_availability_summary,
 )
-from roboclaws.launch.scene_sampler_prep import (
+from roboclaws.worlds.molmospaces.preparation import (
     source_prep_report as _source_prep_report,
 )
-from roboclaws.launch.scene_sampler_profile import (
+from roboclaws.worlds.molmospaces.profile import (
     candidate_profile_expanded_indices as _candidate_profile_expanded_indices,
 )
-from roboclaws.launch.scene_sampler_profile import (
+from roboclaws.worlds.molmospaces.profile import (
     candidate_profile_report as _candidate_profile_report,
 )
-from roboclaws.launch.scene_sampler_profile import (
+from roboclaws.worlds.molmospaces.profile import (
     source_gate_mismatch_profile_rows as _source_gate_mismatch_profile_rows,
 )
-from roboclaws.launch.scene_sampler_scanner import (
+from roboclaws.worlds.molmospaces.scanner import (
     coverage_score as _scanner_coverage_score,
 )
-from roboclaws.launch.scene_sampler_scanner import (
+from roboclaws.worlds.molmospaces.scanner import (
     next_flow_artifact_paths,
     next_flow_blocked_reason_samples,
     next_flow_missing_gate_counts,
@@ -72,33 +99,6 @@ from roboclaws.launch.scene_sampler_scanner import (
     scanner_required_gates,
     world_id_slug,
 )
-from roboclaws.launch.scene_sampler_sources import (
-    SCANNER_READY_METADATA,
-    SCENE_SAMPLER_SELECTION_SEED,
-    SCENE_SAMPLER_SELECTION_STRATEGY,
-    SOURCE_EVAL_CANDIDATE_INDICES,
-    SOURCE_UI_CANDIDATE_INDICES,
-    admitted_sources,
-    category_manifest,
-    category_provenance,
-    known_indices_for_source,
-    sampler_world_id,
-    scanner_metadata,
-    source_eval_indices,
-    source_selection_metadata,
-    source_ui_indices,
-    uses_legacy_preview_assets,
-)
-from roboclaws.launch.scene_sampler_types import (
-    EVAL_STRESS_LANE,
-    READINESS_BLOCKED,
-    READINESS_READY,
-    READINESS_REJECTED,
-    SAMPLER_GENERATOR_VERSION,
-    UI_LANE,
-    MolmoSpacesSceneRef,
-    SceneSamplerRow,
-)
 
 SAMPLER_MANIFEST_SCHEMA = "molmospaces_scene_sampler_manifest_v1"
 SAMPLER_LABEL_MANIFEST_SCHEMA = "molmospaces_scene_room_labels_v1"
@@ -113,13 +113,13 @@ SUPPORTED_SCENE_SOURCES: tuple[str, ...] = (
     "holodeck-objaverse-val",
 )
 
-_PREVIEW_ROOT = Path(__file__).resolve().parents[1] / "operator_console" / "static" / "previews"
+_PREVIEW_ROOT = Path(__file__).resolve().parents[2] / "operator_console" / "static" / "previews"
 _CANONICAL_SCANNER_PREVIEW_ROOT = Path("output") / "scene-sampler-scanner" / "previews"
 _SCANNER_OUTPUT_ROOT = Path("output") / "scene-sampler-scanner"
 _SCANNER_PREVIEW_ROOT = _SCANNER_OUTPUT_ROOT / "previews"
 _SCANNER_PRODUCT_SMOKE_ROOT = _SCANNER_OUTPUT_ROOT / "product-smoke"
 _LABEL_MANIFEST_PATH = (
-    Path(__file__).resolve().parents[2]
+    Path(__file__).resolve().parents[3]
     / "data"
     / "molmospaces"
     / ("scene_sampler_room_labels.json")
@@ -1969,4 +1969,4 @@ def _labels_for_scene(
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+    return Path(__file__).resolve().parents[3]

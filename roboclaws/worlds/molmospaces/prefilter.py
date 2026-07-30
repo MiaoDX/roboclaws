@@ -7,11 +7,11 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.core.json_sources import read_json_object
-from roboclaws.launch.scene_sampler_sources import (
+from roboclaws.worlds.molmospaces.catalog import (
     SCENE_SAMPLER_SELECTION_SEED,
     source_selection_metadata,
 )
-from roboclaws.launch.scene_sampler_types import READINESS_BLOCKED, SAMPLER_GENERATOR_VERSION
+from roboclaws.worlds.molmospaces.contracts import READINESS_BLOCKED, SAMPLER_GENERATOR_VERSION
 
 SCENE_PREFILTER_EXPENSIVE_PROOF_TARGET_PER_SOURCE = 5
 SCENE_PREFILTER_LANE = "scene_only_prefilter"

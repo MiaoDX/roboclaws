@@ -42,8 +42,8 @@ from roboclaws.evals.models import (
 from roboclaws.household.household_backend_contract import SYNTHETIC_BACKEND
 from roboclaws.launch.catalog import resolve_surface_launch
 from roboclaws.launch.executor import LaunchProcess, spawn_launch_plan
-from roboclaws.launch.map_bundles import molmospaces_nav2_map_bundle_path
 from roboclaws.launch.plans import LaunchPlan
+from roboclaws.worlds.molmospaces.map_bundles import molmospaces_nav2_map_bundle_path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ProductRun = Callable[..., dict[str, Any]]

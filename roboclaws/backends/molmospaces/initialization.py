@@ -6,7 +6,7 @@ from typing import Any, Callable
 
 from roboclaws.core.json_sources import read_json_object
 from roboclaws.household.generated_mess import GENERATED_MESS_MANIFEST_SCHEMA
-from roboclaws.launch.scene_sampler_prep import molmospaces_get_scenes_args
+from roboclaws.worlds.molmospaces.preparation import molmospaces_get_scenes_args
 
 
 def load_generated_mess_manifest(path: Path | None) -> dict[str, Any]:

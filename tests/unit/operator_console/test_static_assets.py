@@ -4,9 +4,9 @@ import json
 import re
 from pathlib import Path
 
-from roboclaws.launch.scene_sampler_sources import CURRENT_CURATED_INDICES
 from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS, WORLD_SPECS
 from roboclaws.operator_console.server import ConsoleRequestHandler
+from roboclaws.worlds.molmospaces.catalog import CURRENT_CURATED_INDICES
 
 STATIC_ROOT = Path(__file__).resolve().parents[3] / "roboclaws" / "operator_console" / "static"
 REPO_ROOT = Path(__file__).resolve().parents[3]

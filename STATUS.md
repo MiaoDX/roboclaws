@@ -32,7 +32,11 @@ Agibot SDK contract/projection/stage execution now have direct owners; the
 retained adapters delegate without compatibility exports. The focused
 household suites and static ratchets pass, oversized Python modules decrease to
 58, and the graph is 359 modules / 1,087 edges with zero SCCs or forbidden
-edges.
+edges. MolmoSpaces catalog, sampling/profile/prefilter policy, preparation,
+scanner validation, and map-bundle naming now live under
+`worlds/molmospaces`; launch consumes recursively immutable `WorldSpec` values.
+Focused world/catalog/console/eval/map-bundle suites and static ratchets pass at
+362 modules / 1,089 edges with zero SCCs or forbidden edges.
 The migration preserves public launch, artifact, privacy, provider, simulator,
 and operator behavior while removing dependency cycles, retiring completed
 investigation surfaces, moving product subsystems out of scripts, and splitting
@@ -117,8 +121,8 @@ providers.
 
 ## Next Action
 
-Continue Wave 6 with world sampling, followed by reports, eval pipeline,
-planner/runtime-prior clusters, and retained tests. The
+Continue Wave 6 with reports, followed by eval pipeline, planner/runtime-prior
+clusters, and retained tests. The
 refreshed immutable candidate remains unmodified; publication remains
 unauthorized and separate from this campaign.
 

@@ -973,5 +973,16 @@ hardware proof cannot run for a demonstrated environment reason.
   physical-movement gates remain unchanged. Oversized Python modules decrease
   from 60 to 58; the graph is 359 modules / 1,087 edges with zero SCCs,
   bidirectional pairs, or forbidden edges.
-- Next action: continue Wave 6 with world catalog and sampling ownership under
-  `worlds/molmospaces`, with launch consuming immutable `WorldSpec` values.
+- Wave 6 completed slice: MolmoSpaces scene catalog data, typed sampler rows,
+  sampling/profile/prefilter policy, source preparation, scanner validation,
+  and map-bundle naming moved forward-only from `launch` to
+  `worlds/molmospaces`. The cross-backend launch catalog now consumes the
+  recursively immutable `worlds.contracts.WorldSpec`; all package, script,
+  skill, console, eval, and test callers import direct owners and the old eight
+  launch modules are absent. The focused world/catalog/console/eval/map-bundle
+  suites and static ratchets pass with deterministic sampler projections and
+  public launch behavior unchanged. The graph is 362 modules / 1,089 edges
+  with zero SCCs, bidirectional pairs, or forbidden edges; oversized Python
+  modules remain at 58.
+- Next action: continue Wave 6 with household report diagnostic removal and
+  duplicate reconstruction cleanup, then split only required behavior owners.

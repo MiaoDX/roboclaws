@@ -341,7 +341,7 @@ household-world-impl:
     case "$map_bundle_dir" in
       auto)
         map_bundle_dir="$(
-          "$python_bin" -m roboclaws.launch.map_bundles \
+          "$python_bin" -m roboclaws.worlds.molmospaces.map_bundles \
             --scene-source "$scene_source" \
             --scene-index "$scene_index"
         )"

@@ -4,23 +4,7 @@
     "files": [
       {
         "disposition": "SPLIT",
-        "lines": 1883,
-        "max_module_lines": 800,
-        "owner": "Wave 6 retained owner split",
-        "path": "roboclaws/agents/drivers/openai_agents_live.py",
-        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 1700,
-        "max_module_lines": 800,
-        "owner": "Wave 6 retained owner split",
-        "path": "roboclaws/agents/drivers/openai_agents_model_input.py",
-        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 878,
+        "lines": 875,
         "max_module_lines": 800,
         "owner": "Wave 6 retained owner split",
         "path": "roboclaws/agents/drivers/openai_agents_perf_profile.py",
@@ -28,7 +12,7 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 2192,
+        "lines": 2114,
         "max_module_lines": 800,
         "owner": "Wave 6 retained owner split",
         "path": "roboclaws/agents/household_live_runner.py",
@@ -68,15 +52,7 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1239,
-        "max_module_lines": 800,
-        "owner": "Wave 6 retained owner split",
-        "path": "roboclaws/household/agibot_sdk_runner.py",
-        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 1250,
+        "lines": 871,
         "max_module_lines": 800,
         "owner": "Wave 6 retained owner split",
         "path": "roboclaws/household/household_mcp_server.py",
@@ -84,7 +60,7 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 2050,
+        "lines": 2049,
         "max_module_lines": 800,
         "owner": "Wave 6 retained owner split",
         "path": "roboclaws/household/household_runtime_contract.py",
@@ -92,7 +68,7 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1327,
+        "lines": 1193,
         "max_module_lines": 800,
         "owner": "Wave 6 retained owner split",
         "path": "roboclaws/household/household_world_episode.py",
@@ -116,18 +92,10 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1201,
+        "lines": 853,
         "max_module_lines": 800,
         "owner": "Wave 6 retained owner split",
         "path": "roboclaws/household/realworld_runtime_map_targets.py",
-        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 1372,
-        "max_module_lines": 800,
-        "owner": "Wave 6 retained owner split",
-        "path": "roboclaws/household/realworld_visual_candidate_lifecycle.py",
         "trigger": "split along the behavior owner named by the Wave 6 migration slice"
       },
       {
@@ -172,30 +140,6 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1972,
-        "max_module_lines": 800,
-        "owner": "Wave 6 retained owner split",
-        "path": "roboclaws/launch/scene_sampler.py",
-        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 894,
-        "max_module_lines": 800,
-        "owner": "Wave 6 retained owner split",
-        "path": "roboclaws/launch/scene_sampler_prep.py",
-        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 970,
-        "max_module_lines": 800,
-        "owner": "Wave 6 retained owner split",
-        "path": "roboclaws/launch/scene_sampler_scanner.py",
-        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
-      },
-      {
-        "disposition": "SPLIT",
         "lines": 972,
         "max_module_lines": 800,
         "owner": "Wave 6 retained owner split",
@@ -220,18 +164,34 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1133,
-        "max_module_lines": 800,
-        "owner": "Wave 6 retained owner split",
-        "path": "roboclaws/operator_console/runtime_inventory.py",
-        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
-      },
-      {
-        "disposition": "SPLIT",
         "lines": 967,
         "max_module_lines": 800,
         "owner": "Wave 6 retained owner split",
         "path": "roboclaws/operator_console/state.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 894,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/worlds/molmospaces/preparation.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1972,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/worlds/molmospaces/sampling.py",
+        "trigger": "split along the behavior owner named by the Wave 6 migration slice"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 970,
+        "max_module_lines": 800,
+        "owner": "Wave 6 retained owner split",
+        "path": "roboclaws/worlds/molmospaces/scanner.py",
         "trigger": "split along the behavior owner named by the Wave 6 migration slice"
       },
       {
@@ -372,7 +332,7 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1549,
+        "lines": 1547,
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
         "path": "tests/contract/molmo_cleanup/test_household_mcp_server.py",
@@ -428,14 +388,6 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1971,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/unit/launch/test_scene_sampler.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
         "lines": 5498,
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
@@ -476,7 +428,7 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1507,
+        "lines": 1505,
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
         "path": "tests/unit/operator_console/test_operator_console.py",
@@ -505,6 +457,14 @@
         "owner": "Wave 6 test topology",
         "path": "tests/unit/scripts/test_run_molmo_planner_proof_bundle_from_requests.py",
         "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
+      },
+      {
+        "disposition": "SPLIT",
+        "lines": 1978,
+        "max_module_lines": 800,
+        "owner": "Wave 6 test topology",
+        "path": "tests/unit/worlds/molmospaces/test_sampling.py",
+        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       }
     ],
     "max_module_lines": 800,
@@ -514,12 +474,12 @@
     "line_count": "physical UTF-8 lines in Python files under the named roots",
     "source": {
       "files_at_least": {
-        "1000": 27,
+        "1000": 20,
         "500": 116,
-        "800": 40
+        "800": 36
       },
-      "loc": 161487,
-      "python_files": 410,
+      "loc": 162067,
+      "python_files": 434,
       "roots": [
         "roboclaws",
         "scripts"
@@ -528,10 +488,10 @@
     "tests": {
       "files_at_least": {
         "1000": 19,
-        "500": 50,
+        "500": 49,
         "800": 23
       },
-      "loc": 96611,
+      "loc": 96352,
       "python_files": 232,
       "roots": [
         "tests"

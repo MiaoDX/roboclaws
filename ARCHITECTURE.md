@@ -232,6 +232,15 @@ and `agibot_sdk_runner.py` remain composition or adapter owners; they do not
 re-export the extracted behavior. Public Agent View, MCP, runtime-map, privacy,
 and physical-pilot safety contracts remain unchanged.
 
+World discovery is owned outside launch. `roboclaws/worlds/contracts.py`
+defines the recursively immutable `WorldSpec` consumed by the launch catalog,
+and `roboclaws/worlds/molmospaces/` owns source catalog data, typed sampler
+rows, deterministic sampling/profile/prefilter policy, source preparation,
+scanner validation, and canonical map-bundle naming. `launch/worlds.py`
+resolves cross-backend catalog entries and optional dependency status; it does
+not own MolmoSpaces sampling behavior. Current package, script, skill, console,
+eval, and test callers import the world owners directly.
+
 The clean-slate direction is:
 
 - `surface=household-world preset=map-build` produces Runtime Metric Map
