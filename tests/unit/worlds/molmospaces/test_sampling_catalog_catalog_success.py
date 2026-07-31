@@ -1,19 +1,18 @@
 from __future__ import annotations
 
-from roboclaws.worlds.molmospaces.sampling import (
-    READINESS_BLOCKED,
-    scanner_admission_report,
-    selection_gap_report,
-)
+from roboclaws.worlds.molmospaces import readiness as scene_sampler_readiness
+from roboclaws.worlds.molmospaces import worklists as scene_sampler_worklists
+from roboclaws.worlds.molmospaces.contracts import READINESS_BLOCKED
+from roboclaws.worlds.molmospaces.readiness import selection_gap_report
+from roboclaws.worlds.molmospaces.worklists import scanner_admission_report
 
 
 def test_scene_sampler_selection_gap_report_records_expanded_range_capacity(
     monkeypatch,
 ) -> None:
-    import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     monkeypatch.setattr(
-        scene_sampler,
+        scene_sampler_readiness,
         "_molmospaces_module_status",
         lambda: (False, "module_not_importable:molmo_spaces", ""),
     )
@@ -50,7 +49,7 @@ def test_scene_sampler_scanner_admission_accepts_reviewable_prepared_label_packe
     import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     monkeypatch.setattr(
-        scene_sampler,
+        scene_sampler_worklists,
         "candidate_readiness_report",
         lambda *, candidate_indices: {
             "sources": {
@@ -93,7 +92,7 @@ def test_scene_sampler_scanner_admission_accepts_reviewable_prepared_label_packe
         },
     )
     monkeypatch.setattr(
-        scene_sampler,
+        scene_sampler_worklists,
         "selection_gap_report",
         lambda *, candidate_indices: {
             "sources": {

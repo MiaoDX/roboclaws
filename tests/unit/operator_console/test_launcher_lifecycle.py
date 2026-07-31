@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
-from roboclaws.operator_console.launcher import (
+from roboclaws.operator_console.launch_lifecycle import (
     _terminate_process_group,
     stop_console_run,
 )
@@ -62,11 +62,13 @@ def test_stop_console_run_targets_nested_live_attempt(tmp_path: Path) -> None:
         return Result()
 
     with (
-        patch("roboclaws.operator_console.launcher._process_parent_pid") as parent_pid,
-        patch("roboclaws.operator_console.launcher._descendant_pids") as descendant_pids,
-        patch("roboclaws.operator_console.launcher.os.getpgid", side_effect=lambda pid: pid),
-        patch("roboclaws.operator_console.launcher.os.killpg") as killpg,
-        patch("roboclaws.operator_console.launcher.subprocess.run", side_effect=fake_run),
+        patch("roboclaws.operator_console.launch_lifecycle._process_parent_pid") as parent_pid,
+        patch("roboclaws.operator_console.launch_lifecycle._descendant_pids") as descendant_pids,
+        patch(
+            "roboclaws.operator_console.launch_lifecycle.os.getpgid", side_effect=lambda pid: pid
+        ),
+        patch("roboclaws.operator_console.launch_lifecycle.os.killpg") as killpg,
+        patch("roboclaws.operator_console.launch_lifecycle.subprocess.run", side_effect=fake_run),
     ):
         parent_pid.return_value = wrapper_pid
         descendant_pids.return_value = [server_pid]
@@ -118,8 +120,10 @@ def test_stop_console_run_releases_failed_terminal_lock_without_relabeling_failu
     ResourceLock(tmp_path, route.lock_name).acquire(run_id=run_id, pid=123450)
 
     with (
-        patch("roboclaws.operator_console.launcher._stop_live_child_run") as stop_child,
-        patch("roboclaws.operator_console.launcher._terminate_process_group") as stop_wrapper,
+        patch("roboclaws.operator_console.launch_lifecycle._stop_live_child_run") as stop_child,
+        patch(
+            "roboclaws.operator_console.launch_lifecycle._terminate_process_group"
+        ) as stop_wrapper,
     ):
         state = stop_console_run(tmp_path, run_id)
 
@@ -177,11 +181,19 @@ def test_stop_console_run_never_invokes_docker_for_attempt_workspace(
         return result
 
     with (
-        patch("roboclaws.operator_console.launcher._process_parent_pid", return_value=wrapper_pid),
-        patch("roboclaws.operator_console.launcher._descendant_pids", return_value=[server_pid]),
-        patch("roboclaws.operator_console.launcher.os.getpgid", side_effect=lambda pid: pid),
-        patch("roboclaws.operator_console.launcher.os.killpg"),
-        patch("roboclaws.operator_console.launcher.subprocess.run", side_effect=fake_run),
+        patch(
+            "roboclaws.operator_console.launch_lifecycle._process_parent_pid",
+            return_value=wrapper_pid,
+        ),
+        patch(
+            "roboclaws.operator_console.launch_lifecycle._descendant_pids",
+            return_value=[server_pid],
+        ),
+        patch(
+            "roboclaws.operator_console.launch_lifecycle.os.getpgid", side_effect=lambda pid: pid
+        ),
+        patch("roboclaws.operator_console.launch_lifecycle.os.killpg"),
+        patch("roboclaws.operator_console.launch_lifecycle.subprocess.run", side_effect=fake_run),
     ):
         stop_console_run(tmp_path, run_id)
 
@@ -234,11 +246,19 @@ def test_stop_console_run_ignores_retired_docker_workspace_metadata(
         return result
 
     with (
-        patch("roboclaws.operator_console.launcher._process_parent_pid", return_value=wrapper_pid),
-        patch("roboclaws.operator_console.launcher._descendant_pids", return_value=[server_pid]),
-        patch("roboclaws.operator_console.launcher.os.getpgid", side_effect=lambda pid: pid),
-        patch("roboclaws.operator_console.launcher.os.killpg"),
-        patch("roboclaws.operator_console.launcher.subprocess.run", side_effect=fake_run),
+        patch(
+            "roboclaws.operator_console.launch_lifecycle._process_parent_pid",
+            return_value=wrapper_pid,
+        ),
+        patch(
+            "roboclaws.operator_console.launch_lifecycle._descendant_pids",
+            return_value=[server_pid],
+        ),
+        patch(
+            "roboclaws.operator_console.launch_lifecycle.os.getpgid", side_effect=lambda pid: pid
+        ),
+        patch("roboclaws.operator_console.launch_lifecycle.os.killpg"),
+        patch("roboclaws.operator_console.launch_lifecycle.subprocess.run", side_effect=fake_run),
     ):
         stop_console_run(tmp_path, run_id)
 
@@ -259,14 +279,14 @@ def test_terminate_process_group_falls_back_to_single_pid_when_group_lookup_fail
 
     with (
         patch(
-            "roboclaws.operator_console.launcher.os.getpgid",
+            "roboclaws.operator_console.launch_lifecycle.os.getpgid",
             side_effect=ProcessLookupError,
         ),
         patch(
-            "roboclaws.operator_console.launcher.os.killpg",
+            "roboclaws.operator_console.launch_lifecycle.os.killpg",
             side_effect=ProcessLookupError,
         ),
-        patch("roboclaws.operator_console.launcher.os.kill", side_effect=fake_kill),
+        patch("roboclaws.operator_console.launch_lifecycle.os.kill", side_effect=fake_kill),
     ):
         _terminate_process_group(12345)
 

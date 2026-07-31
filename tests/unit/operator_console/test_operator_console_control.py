@@ -395,8 +395,8 @@ def test_operator_console_stop_endpoint_decodes_browser_encoded_run_id(tmp_path:
             headers={"Content-Type": "application/json"},
         )
         with (
-            patch("roboclaws.operator_console.launcher._stop_live_child_run"),
-            patch("roboclaws.operator_console.launcher._terminate_process_group"),
+            patch("roboclaws.operator_console.launch_lifecycle._stop_live_child_run"),
+            patch("roboclaws.operator_console.launch_lifecycle._terminate_process_group"),
         ):
             with urllib.request.urlopen(request) as response:
                 payload = json.loads(response.read().decode("utf-8"))
@@ -468,8 +468,10 @@ def test_operator_console_stop_endpoint_rejects_malformed_live_status_source(
             headers={"Content-Type": "application/json"},
         )
         with (
-            patch("roboclaws.operator_console.launcher._stop_live_child_run") as stop_child,
-            patch("roboclaws.operator_console.launcher._terminate_process_group") as stop_wrapper,
+            patch("roboclaws.operator_console.launch_lifecycle._stop_live_child_run") as stop_child,
+            patch(
+                "roboclaws.operator_console.launch_lifecycle._terminate_process_group"
+            ) as stop_wrapper,
             pytest.raises(urllib.error.HTTPError) as exc_info,
         ):
             urllib.request.urlopen(request)

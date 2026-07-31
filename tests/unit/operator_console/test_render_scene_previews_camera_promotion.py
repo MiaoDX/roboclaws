@@ -6,10 +6,8 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from scripts.operator_console.render_scene_previews import (
-    _promote_b1_camera_previews,
-    render_b1_map12_preview,
-)
+from roboclaws.operator_console.scene_preview_b1 import render_b1_map12_preview
+from roboclaws.operator_console.scene_preview_b1_camera import _promote_b1_camera_previews
 from tests.unit.operator_console.render_scene_previews_support import (
     _file_sha256,
     _robot_camera_control_contract,

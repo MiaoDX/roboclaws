@@ -5,8 +5,8 @@ import socket
 from pathlib import Path
 from unittest.mock import patch
 
+from roboclaws.operator_console.launch_lifecycle import _new_run_id
 from roboclaws.operator_console.launcher import (
-    _new_run_id,
     build_launch_argv,
     load_repo_dotenv,
     route_readiness,

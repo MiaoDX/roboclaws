@@ -4,11 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.worlds.molmospaces.sampling import (
-    READINESS_REJECTED,
-    eval_sample_id,
-    eval_sampler_rows,
-)
+from roboclaws.worlds.molmospaces.contracts import READINESS_REJECTED
+from roboclaws.worlds.molmospaces.sampling import eval_sample_id, eval_sampler_rows
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 

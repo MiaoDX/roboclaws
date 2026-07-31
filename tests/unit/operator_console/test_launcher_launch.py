@@ -8,9 +8,9 @@ import pytest
 
 from roboclaws.operator_console import workflows as console_workflows
 from roboclaws.operator_console.launch_contract import ConsoleLaunchError
+from roboclaws.operator_console.launch_lifecycle import _safe_run_id_suffix
 from roboclaws.operator_console.launcher import (
     LaunchRequest,
-    _safe_run_id_suffix,
     build_launch_argv,
     build_workflow_launch_argv,
     start_console_run,
@@ -362,7 +362,7 @@ def test_launcher_uses_new_run_id_when_existing_run_dir_would_be_reused(
         pid = 12345
 
     with (
-        patch("roboclaws.operator_console.launcher.time.strftime") as strftime_mock,
+        patch("roboclaws.operator_console.launch_lifecycle.time.strftime") as strftime_mock,
         patch("roboclaws.operator_console.launcher.spawn_launch_plan", return_value=FakeProcess()),
     ):
         strftime_mock.side_effect = lambda fmt, *args: (
@@ -395,7 +395,10 @@ def test_launcher_fails_when_run_id_reservation_is_exhausted(tmp_path: Path) -> 
         (runs_dir / f"{base_run_id}{suffix}").mkdir()
 
     with (
-        patch("roboclaws.operator_console.launcher.time.strftime", return_value="20260620-101112"),
+        patch(
+            "roboclaws.operator_console.launch_lifecycle.time.strftime",
+            return_value="20260620-101112",
+        ),
         patch("roboclaws.operator_console.launcher.spawn_launch_plan") as popen,
         pytest.raises(
             ConsoleLaunchError, match="could not allocate unique operator-console run id"
@@ -427,7 +430,10 @@ def test_launcher_removes_empty_reserved_run_dir_when_lock_acquire_fails(
         raise RuntimeError("lock unavailable")
 
     with (
-        patch("roboclaws.operator_console.launcher.time.strftime", return_value="20260620-101112"),
+        patch(
+            "roboclaws.operator_console.launch_lifecycle.time.strftime",
+            return_value="20260620-101112",
+        ),
         patch("roboclaws.operator_console.launcher.ResourceLock.acquire", fail_acquire),
         patch("roboclaws.operator_console.launcher.spawn_launch_plan") as popen,
         pytest.raises(RuntimeError, match="lock unavailable"),
@@ -454,7 +460,10 @@ def test_launcher_removes_empty_reserved_run_dir_when_argv_build_fails(
     run_dir = console_output_root(tmp_path) / "runs" / run_id
 
     with (
-        patch("roboclaws.operator_console.launcher.time.strftime", return_value="20260620-101112"),
+        patch(
+            "roboclaws.operator_console.launch_lifecycle.time.strftime",
+            return_value="20260620-101112",
+        ),
         patch(
             "roboclaws.operator_console.launcher.build_launch_argv",
             side_effect=ConsoleLaunchError("bad argv"),

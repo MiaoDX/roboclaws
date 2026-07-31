@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.operator_console.render_scene_previews import (
+from roboclaws.operator_console.scene_preview_common import (
     _first_public_waypoint,
     _scene_alignment,
     _scene_center_and_span,

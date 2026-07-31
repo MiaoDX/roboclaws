@@ -6,11 +6,9 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from scripts.operator_console.render_scene_previews import (
-    PREVIEW_METADATA_SCHEMA,
-    _read_molmospaces_backend_state,
-    render_b1_map12_preview,
-)
+from roboclaws.operator_console.scene_preview_b1 import render_b1_map12_preview
+from roboclaws.operator_console.scene_preview_contract import PREVIEW_METADATA_SCHEMA
+from roboclaws.operator_console.scene_preview_molmospaces import _read_molmospaces_backend_state
 
 
 @pytest.mark.parametrize(

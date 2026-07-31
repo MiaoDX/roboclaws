@@ -8,13 +8,13 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.worlds.contracts import WorldSpec
+from roboclaws.worlds.molmospaces.contracts import READINESS_READY
 from roboclaws.worlds.molmospaces.map_bundles import molmospaces_nav2_map_bundle_arg
 from roboclaws.worlds.molmospaces.sampling import (
-    READINESS_READY,
-    parse_molmospaces_world_id,
     sampler_rows,
     ui_molmospaces_world_ids,
 )
+from roboclaws.worlds.molmospaces.world_ids import parse_molmospaces_world_id
 
 MOLMOSPACES_CONSOLE_WORLD_IDS: tuple[str, ...] = ui_molmospaces_world_ids()
 

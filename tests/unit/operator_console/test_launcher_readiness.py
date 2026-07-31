@@ -8,9 +8,9 @@ from unittest.mock import patch
 import pytest
 
 from roboclaws.operator_console.launch_contract import ConsoleLaunchError
+from roboclaws.operator_console.launch_lifecycle import stop_console_run
 from roboclaws.operator_console.launcher import (
     route_readiness,
-    stop_console_run,
 )
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root
@@ -335,8 +335,10 @@ def test_stop_console_run_rejects_bad_live_status_source_before_stop(
     ResourceLock(tmp_path, route.lock_name).acquire(run_id=run_id, pid=123450)
 
     with (
-        patch("roboclaws.operator_console.launcher._stop_live_child_run") as stop_child,
-        patch("roboclaws.operator_console.launcher._terminate_process_group") as stop_wrapper,
+        patch("roboclaws.operator_console.launch_lifecycle._stop_live_child_run") as stop_child,
+        patch(
+            "roboclaws.operator_console.launch_lifecycle._terminate_process_group"
+        ) as stop_wrapper,
         pytest.raises(ConsoleLaunchError, match="operator stop source error") as exc_info,
     ):
         stop_console_run(tmp_path, run_id)

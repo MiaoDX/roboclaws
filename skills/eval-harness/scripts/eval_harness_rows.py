@@ -9,7 +9,7 @@ from typing import Any
 
 from roboclaws.worlds.molmospaces.catalog import sampler_world_id
 from roboclaws.worlds.molmospaces.map_bundles import molmospaces_nav2_map_bundle_path
-from roboclaws.worlds.molmospaces.sampling import parse_molmospaces_world_id
+from roboclaws.worlds.molmospaces.world_ids import parse_molmospaces_world_id
 
 ROW_SCHEMA = "roboclaws_eval_harness_row_v1"
 CATALOG_PATH = Path(__file__).resolve().parents[1] / "catalog" / "rows.json"

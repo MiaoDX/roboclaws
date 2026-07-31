@@ -8,23 +8,32 @@ import pytest
 
 from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS, WORLD_SPECS, world_spec
 from roboclaws.worlds.molmospaces import prefilter as scene_sampler_prefilter
-from roboclaws.worlds.molmospaces.sampling import (
+from roboclaws.worlds.molmospaces import readiness as scene_sampler_readiness
+from roboclaws.worlds.molmospaces.catalog_projection import (
+    eval_sample_payload,
+    eval_sample_ref,
+    eval_suite_payload,
+)
+from roboclaws.worlds.molmospaces.contracts import (
     EVAL_STRESS_LANE,
     UI_LANE,
     MolmoSpacesSceneRef,
+)
+from roboclaws.worlds.molmospaces.readiness import (
     candidate_profile_report,
-    eval_sample_payload,
-    eval_sample_ref,
-    eval_sampler_rows,
-    eval_suite_payload,
-    parse_molmospaces_world_id,
     readiness_report,
+    scene_only_prefilter_report,
+)
+from roboclaws.worlds.molmospaces.sampling import (
+    eval_sampler_rows,
     sampler_manifest,
     sampler_rows,
-    scene_only_prefilter_report,
     ui_molmospaces_world_ids,
+)
+from roboclaws.worlds.molmospaces.sampling_validation import (
     validate_sampler_manifest,
 )
+from roboclaws.worlds.molmospaces.world_ids import parse_molmospaces_world_id
 from tests.unit.worlds.molmospaces.sampling_support import (
     HOLODECK_MISSING_PUBLIC_WAYPOINT_REJECTED_INDICES,
     HOLODECK_PREFILTER_GATE_MISMATCH_INDICES,
@@ -310,7 +319,7 @@ def test_scene_sampler_scene_only_prefilter_selects_high_confidence_descriptor(
     )
 
     monkeypatch.setattr(
-        scene_sampler,
+        scene_sampler_readiness,
         "candidate_profile_report",
         lambda *, candidate_indices: {
             "selection_policy": {},
@@ -391,7 +400,7 @@ def test_scene_sampler_scene_only_prefilter_marks_single_room_low_confidence(
     candidate_path.write_text("<mujoco><geom name='room_0'/></mujoco>", encoding="utf-8")
 
     monkeypatch.setattr(
-        scene_sampler,
+        scene_sampler_readiness,
         "candidate_profile_report",
         lambda *, candidate_indices: {
             "selection_policy": {},

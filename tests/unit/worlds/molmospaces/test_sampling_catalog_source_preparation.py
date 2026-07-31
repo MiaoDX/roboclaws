@@ -3,21 +3,19 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from roboclaws.worlds.molmospaces.sampling import (
-    READINESS_BLOCKED,
-    scanner_execution_plan,
-    source_prep_report,
-)
+from roboclaws.worlds.molmospaces import readiness as scene_sampler_readiness
+from roboclaws.worlds.molmospaces import worklists as scene_sampler_worklists
+from roboclaws.worlds.molmospaces.contracts import READINESS_BLOCKED
+from roboclaws.worlds.molmospaces.worklists import scanner_execution_plan, source_prep_report
 from tests.unit.worlds.molmospaces.sampling_support import (
     _assert_partial_procthor_source_prep,
 )
 
 
 def test_scene_sampler_source_prep_report_lists_manual_prep_steps(monkeypatch) -> None:
-    import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     monkeypatch.setattr(
-        scene_sampler,
+        scene_sampler_readiness,
         "_molmospaces_module_status",
         lambda: (False, "module_not_importable:molmo_spaces", ""),
     )
@@ -87,7 +85,7 @@ def test_scene_sampler_source_prep_promotes_metadata_worklist_when_assets_exist(
         encoding="utf-8",
     )
     monkeypatch.setattr(
-        scene_sampler,
+        scene_sampler_worklists,
         "source_availability_report",
         lambda *, candidate_indices: {
             "sources": {
@@ -129,7 +127,7 @@ def test_scene_sampler_source_prep_promotes_metadata_worklist_when_assets_exist(
         },
     )
     monkeypatch.setattr(
-        scene_sampler,
+        scene_sampler_worklists,
         "selection_gap_report",
         lambda *, candidate_indices: {
             "sources": {
@@ -148,7 +146,7 @@ def test_scene_sampler_source_prep_promotes_metadata_worklist_when_assets_exist(
         },
     )
     monkeypatch.setattr(
-        scene_sampler,
+        scene_sampler_readiness,
         "candidate_profile_report",
         lambda *, candidate_indices: {
             "sources": {
@@ -228,7 +226,7 @@ def test_scene_sampler_scanner_execution_plan_runs_metadata_worklist_candidates(
     candidate_path = tmp_path / "val_22.xml"
     candidate_path.write_text("<mujoco />", encoding="utf-8")
     monkeypatch.setattr(
-        scene_sampler,
+        scene_sampler_worklists,
         "source_prep_report",
         lambda *, candidate_indices: {
             "sources": {
@@ -262,7 +260,7 @@ def test_scene_sampler_scanner_execution_plan_runs_metadata_worklist_candidates(
         },
     )
     monkeypatch.setattr(
-        scene_sampler,
+        scene_sampler_worklists,
         "scanner_admission_report",
         lambda *, candidate_indices: {
             "sources": {
@@ -372,10 +370,9 @@ def test_scene_sampler_preview_metadata_loads_valid_source(
 def test_scene_sampler_scanner_execution_plan_skips_prefilter_inconclusive_sources(
     monkeypatch,
 ) -> None:
-    import roboclaws.worlds.molmospaces.sampling as scene_sampler
 
     monkeypatch.setattr(
-        scene_sampler,
+        scene_sampler_readiness,
         "_molmospaces_module_status",
         lambda: (False, "module_not_importable:molmo_spaces", ""),
     )

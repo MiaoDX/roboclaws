@@ -5,10 +5,8 @@ from pathlib import Path
 
 from PIL import Image
 
-from scripts.operator_console.render_scene_previews import (
-    PREVIEW_METADATA_SCHEMA,
-    render_b1_map12_preview,
-)
+from roboclaws.operator_console.scene_preview_b1 import render_b1_map12_preview
+from roboclaws.operator_console.scene_preview_contract import PREVIEW_METADATA_SCHEMA
 from tests.unit.operator_console.render_scene_previews_support import (
     _write_stale_b1_real_camera_preview_metadata,
 )

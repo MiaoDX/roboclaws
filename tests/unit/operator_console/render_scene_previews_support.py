@@ -6,9 +6,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from scripts.operator_console.render_scene_previews import (
-    PREVIEW_METADATA_SCHEMA,
-)
+from roboclaws.operator_console.scene_preview_contract import PREVIEW_METADATA_SCHEMA
 
 
 def _write_stale_b1_real_camera_preview_metadata(

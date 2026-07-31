@@ -6,16 +6,18 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from roboclaws.worlds.molmospaces.sampling import MolmoSpacesSceneRef
-from scripts.operator_console.render_scene_previews import (
-    B1_MAP12_WORLD_ID,
-    PREVIEW_METADATA_SCHEMA,
-    _molmospaces_scene_ref,
+from roboclaws.operator_console.scene_preview_b1 import render_b1_map12_preview
+from roboclaws.operator_console.scene_preview_cli import parse_args
+from roboclaws.operator_console.scene_preview_common import (
+    PreviewSceneRef,
     _preview_metadata,
     _topdown_camera_request,
-    parse_args,
-    render_b1_map12_preview,
 )
+from roboclaws.operator_console.scene_preview_contract import (
+    B1_MAP12_WORLD_ID,
+    PREVIEW_METADATA_SCHEMA,
+)
+from roboclaws.operator_console.scene_preview_molmospaces import _molmospaces_scene_ref
 
 
 def test_render_scene_previews_rejects_non_positive_dimensions() -> None:
@@ -169,19 +171,19 @@ def test_preview_metadata_marks_topdown_as_rendered_scene_not_map_fallback(
 
 
 def test_molmospaces_preview_scene_ref_accepts_procthor_source_aware_world_id() -> None:
-    assert _molmospaces_scene_ref("molmospaces/procthor-10k-val/9") == MolmoSpacesSceneRef(
+    assert _molmospaces_scene_ref("molmospaces/procthor-10k-val/9") == PreviewSceneRef(
         scene_source="procthor-10k-val",
         scene_index=9,
     )
 
 
 def test_molmospaces_preview_scene_ref_accepts_source_aware_world_id() -> None:
-    assert _molmospaces_scene_ref("molmospaces/ithor/3") == MolmoSpacesSceneRef(
+    assert _molmospaces_scene_ref("molmospaces/ithor/3") == PreviewSceneRef(
         scene_source="ithor",
         scene_index=3,
     )
     assert _molmospaces_scene_ref("molmospaces/procthor-objaverse-val/12") == (
-        MolmoSpacesSceneRef(scene_source="procthor-objaverse-val", scene_index=12)
+        PreviewSceneRef(scene_source="procthor-objaverse-val", scene_index=12)
     )
 
 
