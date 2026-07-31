@@ -10,6 +10,21 @@ leave a link.
 
 ## Current Focus
 
+The post-migration eval baseline refresh is complete. Direct eval product rows
+now propagate the canonical GoalContract into household launch kwargs; the
+previous `open-ended-goals` and `long-horizon-tasks` behavior regressions both
+pass. Provider placement is fail-closed in the frozen harness manifest:
+Codex/MiMo internal routes may run locally or on CloudML, while Kimi/MiniMax
+external routes are local-only.
+
+The fresh hybrid candidate at
+`output/eval-harness/20260731T100528Z/` passes all 25 selected rows: 20
+CloudML rows and five local external-provider rows. It records zero behavior
+failures, provider failures, blocked rows, infrastructure retries, or
+regressions against the previous durable baseline. Exact-value secret scanning
+passes, the candidate is awaiting human confirmation, and publication remains
+unauthorized.
+
 The aggressive architecture migration is implemented under
 `docs/plans/2026-07-30-aggressive-architecture-migration.md`. Waves 0-7 and all
 final gates are complete. Machine-local Omniverse EULA acceptance now flows
@@ -67,18 +82,6 @@ direct projection owners. Retired direct-provider code, compatibility aliases,
 positional launch lowering, product-to-eval imports, and installable eval CLI
 aliases are gone.
 
-The public runtime has exactly four explicit OpenAI Agents SDK provider
-profiles: `codex-responses`, `mimo-responses`, `minimax-responses`, and
-`kimi-openai-chat`. All four provider health probes and fixed-prior consumer
-rows pass. The Kimi open-task and cleanup smoke rows also pass. The accepted
-six-row live matrix recorded zero provider failures, privacy leaks, and
-trajectory violations; Kimi's two repaired rows stayed within the approved
-single-rerun envelope.
-
-The previous sanitized candidate is superseded for publication. The refreshed
-candidate built from the final cleanup source is the current publication-review
-artifact; publication remains a separate human decision.
-
 The active product shape is:
 
 - `surface=household-world` for no-preset open household goals.
@@ -112,8 +115,8 @@ providers.
 
 ## Next Action
 
-No implementation or verification work remains for the aggressive architecture
-migration. The refreshed immutable candidate remains unmodified, and
+No implementation or verification work remains for the architecture migration
+or baseline refresh. The 25-row candidate is awaiting human confirmation;
 publication remains unauthorized and separate from this campaign.
 
 ## Current Blockers
