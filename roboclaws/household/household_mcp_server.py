@@ -23,6 +23,7 @@ from roboclaws.core.operator_messages import (
     check_operator_messages_for_mcp,
     pending_operator_message_hint,
 )
+from roboclaws.core.raw_fpv_guidance import raw_fpv_inline_candidate_instruction
 from roboclaws.core.robot_view_capture import (
     ROBOT_VIEW_CAPTURE_POLICY_ACTION_TIMELINE,
     ROBOT_VIEW_CAPTURE_POLICY_FULL,
@@ -57,7 +58,6 @@ from roboclaws.household.household_runtime_contract import (
     REALWORLD_CONTRACT,
     VISIBLE_OBJECT_DETECTIONS_MODE,
     HouseholdRuntimeContract,
-    raw_fpv_inline_candidate_instruction,
 )
 from roboclaws.household.realworld_mcp_run_artifacts import (
     RealWorldMCPDoneArtifactInputs,
