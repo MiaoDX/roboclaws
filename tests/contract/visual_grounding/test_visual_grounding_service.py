@@ -17,7 +17,13 @@ from roboclaws.household.visual_grounding import (
     VisualGroundingClientConfig,
     visual_grounding_request,
 )
-from scripts.visual_grounding import adapters
+from roboclaws.household.visual_grounding_sidecar import (
+    adapter_errors,
+    adapter_grounding_dino,
+    adapter_runtime,
+    adapter_service,
+    adapter_yolo,
+)
 from scripts.visual_grounding.check_visual_grounding_readiness import (
     _readiness_request,
     check_visual_grounding_readiness,
@@ -37,7 +43,7 @@ def test_model_loader_prefers_complete_local_cache() -> None:
             cls.calls.append(kwargs)
             return object()
 
-    adapters._from_pretrained_local_first(_Factory, "cached-model")
+    adapter_runtime._from_pretrained_local_first(_Factory, "cached-model")
 
     assert _Factory.calls == [{"local_files_only": True}]
 
@@ -53,7 +59,7 @@ def test_model_loader_uses_network_only_when_local_cache_is_missing() -> None:
                 raise OSError("not cached")
             return object()
 
-    adapters._from_pretrained_local_first(_Factory, "uncached-model")
+    adapter_runtime._from_pretrained_local_first(_Factory, "uncached-model")
 
     assert _Factory.calls == [{"local_files_only": True}, {}]
 
@@ -206,12 +212,12 @@ def test_real_mode_dispatches_grounding_dino_adapter(monkeypatch) -> None:
         }
 
     monkeypatch.setattr(
-        adapters,
-        "_grounding_dino_real_response",
+        adapter_grounding_dino,
+        "grounding_dino_real_response",
         fake_grounding_dino_response,
     )
 
-    response = adapters.visual_grounding_service_response(
+    response = adapter_service.visual_grounding_service_response(
         payload=_request("grounding-dino"),
         configured_pipeline_id="grounding-dino",
         adapter_mode="real",
@@ -264,8 +270,8 @@ def test_product_readiness_accepts_real_grounding_dino_sidecar(monkeypatch) -> N
         }
 
     monkeypatch.setattr(
-        adapters,
-        "_grounding_dino_real_response",
+        adapter_grounding_dino,
+        "grounding_dino_real_response",
         fake_grounding_dino_response,
     )
     server = _start_service(pipeline_id="grounding-dino", adapter_mode="real")
@@ -296,16 +302,16 @@ def test_grounding_dino_real_mode_defaults_to_base_recall(monkeypatch) -> None:
         seen["model_id"] = model_id
         seen["requested_device"] = requested_device
         seen["requested_dtype"] = requested_dtype
-        raise adapters.VisualGroundingDeviceError("stop before model inference")
+        raise adapter_errors.VisualGroundingDeviceError("stop before model inference")
 
     monkeypatch.delenv("VISUAL_GROUNDING_DINO_MODEL_ID", raising=False)
     monkeypatch.delenv("VISUAL_GROUNDING_DINO_BOX_THRESHOLD", raising=False)
     monkeypatch.delenv("VISUAL_GROUNDING_DINO_TEXT_THRESHOLD", raising=False)
     monkeypatch.delenv("VISUAL_GROUNDING_DEVICE", raising=False)
     monkeypatch.delenv("VISUAL_GROUNDING_TORCH_DTYPE", raising=False)
-    monkeypatch.setattr(adapters, "_load_grounding_dino", fake_load_grounding_dino)
+    monkeypatch.setattr(adapter_grounding_dino, "_load_grounding_dino", fake_load_grounding_dino)
 
-    response = adapters.visual_grounding_service_response(
+    response = adapter_service.visual_grounding_service_response(
         payload=_request("grounding-dino", image=_jpeg_image_payload()),
         configured_pipeline_id="grounding-dino",
         adapter_mode="real",
@@ -332,9 +338,9 @@ def test_real_mode_reports_grounding_dino_missing_dependency(monkeypatch) -> Non
     ) -> tuple[Any, Any, Any, dict[str, Any]]:
         raise ImportError("missing sidecar deps")
 
-    monkeypatch.setattr(adapters, "_load_grounding_dino", missing_grounding_dino)
+    monkeypatch.setattr(adapter_grounding_dino, "_load_grounding_dino", missing_grounding_dino)
 
-    response = adapters.visual_grounding_service_response(
+    response = adapter_service.visual_grounding_service_response(
         payload=_request("grounding-dino", image=_jpeg_image_payload()),
         configured_pipeline_id="grounding-dino",
         adapter_mode="real",
@@ -358,9 +364,9 @@ def test_real_mode_reports_grounding_dino_device_unavailable(monkeypatch) -> Non
         assert model_id == "IDEA-Research/grounding-dino-base"
         assert requested_device == "cuda"
         assert requested_dtype == "float16"
-        raise adapters.VisualGroundingDeviceError("cuda unavailable")
+        raise adapter_errors.VisualGroundingDeviceError("cuda unavailable")
 
-    monkeypatch.setattr(adapters, "_load_grounding_dino", cuda_unavailable)
+    monkeypatch.setattr(adapter_grounding_dino, "_load_grounding_dino", cuda_unavailable)
     request = _request("grounding-dino", image=_jpeg_image_payload())
     request["pipeline_request"]["proposer"]["runtime_parameters"] = {
         "device": "cuda",
@@ -369,7 +375,7 @@ def test_real_mode_reports_grounding_dino_device_unavailable(monkeypatch) -> Non
         "text_threshold": 0.2,
     }
 
-    response = adapters.visual_grounding_service_response(
+    response = adapter_service.visual_grounding_service_response(
         payload=request,
         configured_pipeline_id="grounding-dino",
         adapter_mode="real",
@@ -393,13 +399,13 @@ def test_real_mode_rejects_malformed_request_runtime_parameter(monkeypatch) -> N
     ) -> tuple[Any, Any, Any, dict[str, Any]]:
         raise AssertionError("invalid runtime parameters should fail before model loading")
 
-    monkeypatch.setattr(adapters, "_load_grounding_dino", should_not_load_model)
+    monkeypatch.setattr(adapter_grounding_dino, "_load_grounding_dino", should_not_load_model)
     request = _request("grounding-dino", image=_jpeg_image_payload())
     request["pipeline_request"]["proposer"]["runtime_parameters"] = {
         "box_threshold": "not-a-number",
     }
 
-    response = adapters.visual_grounding_service_response(
+    response = adapter_service.visual_grounding_service_response(
         payload=request,
         configured_pipeline_id="grounding-dino",
         adapter_mode="real",
@@ -415,7 +421,7 @@ def test_real_mode_rejects_malformed_request_runtime_parameter(monkeypatch) -> N
     )
 
     request["pipeline_request"]["proposer"]["runtime_parameters"] = {"box_threshold": True}
-    response = adapters.visual_grounding_service_response(
+    response = adapter_service.visual_grounding_service_response(
         payload=request,
         configured_pipeline_id="grounding-dino",
         adapter_mode="real",
@@ -435,9 +441,9 @@ def test_real_mode_rejects_malformed_env_runtime_parameter(monkeypatch) -> None:
         raise AssertionError(f"invalid runtime env should fail before loading {producer_id} model")
 
     monkeypatch.setenv("VISUAL_GROUNDING_YOLO_IMAGE_SIZE", "wide")
-    monkeypatch.setattr(adapters, "_load_yolo_model", should_not_load_model)
+    monkeypatch.setattr(adapter_yolo, "_load_yolo_model", should_not_load_model)
 
-    response = adapters.visual_grounding_service_response(
+    response = adapter_service.visual_grounding_service_response(
         payload=_request("yolo-world", image=_jpeg_image_payload()),
         configured_pipeline_id="yolo-world",
         adapter_mode="real",

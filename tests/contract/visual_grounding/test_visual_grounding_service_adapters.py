@@ -19,8 +19,15 @@ from roboclaws.household.visual_grounding import (
     VisualGroundingClientConfig,
     visual_grounding_request,
 )
-from scripts.visual_grounding import adapters
-from scripts.visual_grounding.adapters import visual_grounding_adapter_catalog
+from roboclaws.household.visual_grounding_sidecar import (
+    adapter_candidates,
+    adapter_omdet,
+    adapter_service,
+    adapter_yolo,
+)
+from roboclaws.household.visual_grounding_sidecar.adapter_contracts import (
+    visual_grounding_adapter_catalog,
+)
 from scripts.visual_grounding.serve_visual_grounding_service import make_handler
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -51,9 +58,9 @@ def test_real_mode_dispatches_yolo_world_through_standard_yolo_loader(monkeypatc
         seen["producer_id"] = producer_id
         return FakeModel()
 
-    monkeypatch.setattr(adapters, "_load_yolo_model", fake_yolo_loader)
+    monkeypatch.setattr(adapter_yolo, "_load_yolo_model", fake_yolo_loader)
 
-    response = adapters.visual_grounding_service_response(
+    response = adapter_service.visual_grounding_service_response(
         payload=_request("yolo-world", image=_jpeg_image_payload()),
         configured_pipeline_id="yolo-world",
         adapter_mode="real",
@@ -148,7 +155,7 @@ def test_real_mode_dispatches_omdet_turbo_adapter(monkeypatch) -> None:
             {"device": "cpu", "dtype": "auto", "model_id": model_id},
         )
 
-    monkeypatch.setattr(adapters, "_load_omdet_turbo", fake_load_omdet)
+    monkeypatch.setattr(adapter_omdet, "_load_omdet_turbo", fake_load_omdet)
     request = _request("omdet-turbo", image=_jpeg_image_payload())
     request["pipeline_request"]["proposer"]["runtime_parameters"] = {
         "confidence_threshold": 0.2,
@@ -158,7 +165,7 @@ def test_real_mode_dispatches_omdet_turbo_adapter(monkeypatch) -> None:
         "torch_dtype": "auto",
     }
 
-    response = adapters.visual_grounding_service_response(
+    response = adapter_service.visual_grounding_service_response(
         payload=request,
         configured_pipeline_id="omdet-turbo",
         adapter_mode="real",
@@ -175,7 +182,7 @@ def test_real_mode_dispatches_omdet_turbo_adapter(monkeypatch) -> None:
 
 
 def test_real_mode_qwen_direct_is_retired_without_fake_success() -> None:
-    response = adapters.visual_grounding_service_response(
+    response = adapter_service.visual_grounding_service_response(
         payload=_request("qwen3-vl-direct", image=_jpeg_image_payload()),
         configured_pipeline_id="qwen3-vl-direct",
         adapter_mode="real",
@@ -192,7 +199,7 @@ def test_real_mode_qwen_direct_is_retired_without_fake_success() -> None:
 
 def test_real_adapter_bbox_normalization_and_destination_hint() -> None:
     request = _request("grounding-dino")
-    candidate = adapters._candidate_from_xyxy(  # noqa: SLF001
+    candidate = adapter_candidates._candidate_from_xyxy(  # noqa: SLF001
         payload=request,
         image=_tiny_image(),
         category="dish",
