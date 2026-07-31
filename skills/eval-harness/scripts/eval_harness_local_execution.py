@@ -97,6 +97,7 @@ def execute_local_rows(
 
     execution_target = os.environ.get("ROBOCLAWS_EVAL_EXECUTION_TARGET", "local")
     worker_pool = os.environ.get("ROBOCLAWS_EVAL_WORKER_POOL", "local")
+    _validate_execution_target(selected, execution_target=execution_target)
     manifest["execution"] = {
         "execution_target": execution_target,
         "worker_pool": worker_pool,
@@ -151,6 +152,29 @@ def execute_local_rows(
                     execution_target=execution_target,
                     worker_pool=worker_pool,
                 )
+
+
+def _validate_execution_target(
+    rows: Sequence[dict[str, Any]],
+    *,
+    execution_target: str,
+) -> None:
+    for row in rows:
+        axes = row.get("axes") or {}
+        provider_profile = str(axes.get("provider_profile") or "")
+        if not provider_profile:
+            continue
+        allowed_targets = row.get("allowed_execution_targets")
+        if not isinstance(allowed_targets, list) or not allowed_targets:
+            raise ValueError(
+                f"provider row {row['row_id']!r} must declare allowed_execution_targets"
+            )
+        if execution_target not in allowed_targets:
+            raise ValueError(
+                f"provider row {row['row_id']!r} using {provider_profile!r} cannot run on "
+                f"execution target {execution_target!r}; allowed targets: "
+                + ", ".join(str(target) for target in allowed_targets)
+            )
 
 
 def _execution_rows(manifest: dict[str, Any], *, row_ids: Sequence[str]) -> list[dict[str, Any]]:

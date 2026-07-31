@@ -43,23 +43,45 @@
       "concurrency_group": "visual-backend"
     }
   },
-  "provider_execution_requirements": {
-    "codex-responses": [
-      "provider:codex-responses",
-      "network:configured-endpoint"
-    ],
-    "mimo-responses": [
-      "provider:mimo-responses",
-      "network:configured-endpoint"
-    ],
-    "kimi-openai-chat": [
-      "provider:kimi-openai-chat",
-      "network:external-egress"
-    ],
-    "minimax-responses": [
-      "provider:minimax-responses",
-      "network:external-egress"
-    ]
+  "provider_execution_policies": {
+    "codex-responses": {
+      "provider_network_scope": "internal",
+      "allowed_execution_targets": [
+        "local",
+        "cloudml"
+      ],
+      "execution_requirements": [
+        "network:configured-endpoint"
+      ]
+    },
+    "mimo-responses": {
+      "provider_network_scope": "internal",
+      "allowed_execution_targets": [
+        "local",
+        "cloudml"
+      ],
+      "execution_requirements": [
+        "network:configured-endpoint"
+      ]
+    },
+    "kimi-openai-chat": {
+      "provider_network_scope": "external",
+      "allowed_execution_targets": [
+        "local"
+      ],
+      "execution_requirements": [
+        "network:external-egress"
+      ]
+    },
+    "minimax-responses": {
+      "provider_network_scope": "external",
+      "allowed_execution_targets": [
+        "local"
+      ],
+      "execution_requirements": [
+        "network:external-egress"
+      ]
+    }
   },
   "rows": [
     {

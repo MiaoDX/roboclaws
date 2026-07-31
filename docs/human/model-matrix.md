@@ -3,12 +3,12 @@
 OpenAI Agents SDK launches require an explicit `provider_profile`. Roboclaws
 supports four profiles and never retries one wire API through another.
 
-| Profile | Wire API | Model identity | Required environment |
-| --- | --- | --- | --- |
-| `codex-responses` | Responses | Public label `codex`; opaque request model from environment | `CODEX_RESPONSES_BASE_URL`, `CODEX_RESPONSES_API_KEY`, `CODEX_RESPONSES_MODEL` |
-| `mimo-responses` | Responses | Public label `mimo`; opaque request model from environment | `MIMO_RESPONSES_BASE_URL`, `MIMO_RESPONSES_API_KEY`, `MIMO_RESPONSES_MODEL` |
-| `minimax-responses` | Responses | Public MiniMax catalog model | `MM_BASE_URL`, `MM_API_KEY` |
-| `kimi-openai-chat` | Chat Completions | `kimi-k2.7-code` | `KIMI_OPENAI_BASE_URL`, `KIMI_API_KEY` |
+| Profile | Network scope | Allowed eval targets | Wire API | Model identity | Required environment |
+| --- | --- | --- | --- | --- | --- |
+| `codex-responses` | Internal | Local, CloudML | Responses | Public label `codex`; opaque request model from environment | `CODEX_RESPONSES_BASE_URL`, `CODEX_RESPONSES_API_KEY`, `CODEX_RESPONSES_MODEL` |
+| `mimo-responses` | Internal | Local, CloudML | Responses | Public label `mimo`; opaque request model from environment | `MIMO_RESPONSES_BASE_URL`, `MIMO_RESPONSES_API_KEY`, `MIMO_RESPONSES_MODEL` |
+| `minimax-responses` | External | Local only | Responses | Public MiniMax catalog model | `MM_BASE_URL`, `MM_API_KEY` |
+| `kimi-openai-chat` | External | Local only | Chat Completions | `kimi-k2.7-code` | `KIMI_OPENAI_BASE_URL`, `KIMI_API_KEY` |
 
 Responses and Chat Completions are different transports. Responses can expose
 provider-native reasoning and structured response items; Chat Completions uses

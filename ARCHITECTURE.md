@@ -77,7 +77,11 @@ Harness recipes
   model/key route (`provider_profile=codex-responses`, `mimo-responses`,
   `minimax-responses`, or `kimi-openai-chat`). Codex and MiMo use separate
   environment-owned endpoint, key, and request-model triples while sharing the
-  standard Responses model path. A thin Codex-only HTTP compatibility adapter
+  standard Responses model path. Their internal routes are eligible on both the
+  local workstation and CloudML. Kimi and MiniMax use external routes and eval
+  only from the local workstation; provider rows carry this as
+  `provider_network_scope` plus fail-closed `allowed_execution_targets`
+  manifest fields. A thin Codex-only HTTP compatibility adapter
   supplies required ephemeral request metadata and omits unsupported default
   settings; artifacts retain only public profile/model labels.
   Retired live engines `codex-cli` and `claude-code` are rejected by current

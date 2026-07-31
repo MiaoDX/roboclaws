@@ -79,6 +79,15 @@ Current live product route:
 Every OpenAI Agents SDK launch selects one of these profiles explicitly. The
 runtime never falls back between Responses and Chat Completions transports.
 
+Provider eval placement is fixed by the harness manifest, not inferred from a
+one-off connectivity probe:
+
+- `codex-responses` and `mimo-responses` are internal routes allowed on the
+  local workstation and CloudML, subject to route readiness.
+- `kimi-openai-chat` and `minimax-responses` are external routes allowed only
+  on the local workstation. CloudML has no supported public-internet route for
+  them; never submit those rows to CloudML even if an incidental probe succeeds.
+
 Before system-provider Claude Code workflows:
 
 ```bash

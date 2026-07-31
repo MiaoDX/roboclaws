@@ -21,6 +21,10 @@ DEFAULT_SEED = "7"
 DEFAULT_PROVIDER_PROFILE = "kimi-openai-chat"
 SCENE_CASE_SCHEMA = "roboclaws_eval_harness_case_v1"
 SCENE_SCOPE_SELECTED = "selected"
+EXECUTION_TARGET_LOCAL = "local"
+EXECUTION_TARGET_CLOUDML = "cloudml"
+PROVIDER_NETWORK_SCOPES = {"internal", "external"}
+EXECUTION_TARGETS = {EXECUTION_TARGET_LOCAL, EXECUTION_TARGET_CLOUDML}
 
 
 def candidate_rows(
@@ -43,14 +47,14 @@ def candidate_rows(
         provider_cell_count=provider_cell_count,
     )
     defaults = catalog.get("execution_defaults") or {}
-    provider_requirements = catalog.get("provider_execution_requirements") or {}
+    provider_policies = catalog.get("provider_execution_policies") or {}
     base_rows = [
         _row(
             raw,
             row_dir=row_dir,
             context=context,
             defaults=defaults,
-            provider_requirements=provider_requirements,
+            provider_policies=provider_policies,
         )
         for raw in catalog["rows"]
     ]
@@ -99,7 +103,7 @@ def _row(
     row_dir: Path,
     context: dict[str, str],
     defaults: dict[str, Any],
-    provider_requirements: dict[str, Any],
+    provider_policies: dict[str, Any],
 ) -> dict[str, Any]:
     row_id = str(raw["row_id"])
     command = _render_list(raw["command"], context)
@@ -110,9 +114,17 @@ def _row(
         raw.get("execution_requirements", execution.get("execution_requirements")) or []
     )
     provider_profile = str(axes.get("provider_profile") or "")
+    provider_network_scope = ""
+    allowed_execution_targets: list[str] = []
     if provider_profile:
+        provider_policy = _provider_execution_policy(
+            provider_profile,
+            provider_policies=provider_policies,
+        )
+        provider_network_scope = str(provider_policy["provider_network_scope"])
+        allowed_execution_targets = list(provider_policy["allowed_execution_targets"])
         execution_requirements.append(f"provider:{provider_profile}")
-        execution_requirements.extend(provider_requirements.get(provider_profile) or [])
+        execution_requirements.extend(provider_policy["execution_requirements"])
     return {
         "schema": ROW_SCHEMA,
         "row_id": row_id,
@@ -134,6 +146,8 @@ def _row(
         "expense": expense,
         "requires": list(raw.get("requires") or []),
         "execution_requirements": _dedupe(execution_requirements),
+        "provider_network_scope": provider_network_scope,
+        "allowed_execution_targets": allowed_execution_targets,
         "depends_on": list(raw.get("depends_on") or []),
         "timeout_s": int(raw.get("timeout_s", execution.get("timeout_s")) or 0),
         "concurrency_group": str(
@@ -145,6 +159,37 @@ def _row(
         "skip_reason": "no matching source signal or explicit override",
         "output_artifacts": [],
         "row_dir": str(row_dir / row_id),
+    }
+
+
+def _provider_execution_policy(
+    provider_profile: str,
+    *,
+    provider_policies: dict[str, Any],
+) -> dict[str, Any]:
+    policy = provider_policies.get(provider_profile)
+    if not isinstance(policy, dict):
+        raise ValueError(f"provider profile {provider_profile!r} must declare an execution policy")
+    network_scope = str(policy.get("provider_network_scope") or "")
+    if network_scope not in PROVIDER_NETWORK_SCOPES:
+        raise ValueError(
+            f"provider profile {provider_profile!r} has invalid provider_network_scope "
+            f"{network_scope!r}"
+        )
+    allowed_targets = _dedupe(policy.get("allowed_execution_targets") or [])
+    if not allowed_targets or any(target not in EXECUTION_TARGETS for target in allowed_targets):
+        raise ValueError(
+            f"provider profile {provider_profile!r} must declare allowed execution targets from "
+            f"{sorted(EXECUTION_TARGETS)}"
+        )
+    if network_scope == "external" and allowed_targets != [EXECUTION_TARGET_LOCAL]:
+        raise ValueError(
+            f"external provider profile {provider_profile!r} must be restricted to local execution"
+        )
+    return {
+        "provider_network_scope": network_scope,
+        "allowed_execution_targets": allowed_targets,
+        "execution_requirements": _dedupe(policy.get("execution_requirements") or []),
     }
 
 
