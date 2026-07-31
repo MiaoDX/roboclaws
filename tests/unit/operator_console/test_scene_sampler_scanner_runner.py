@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+
+from roboclaws.launch import scene_sampler_scanner_runner
 
 
 def _repo_root() -> Path:
@@ -16,16 +17,10 @@ def _repo_root() -> Path:
 
 
 REPO_ROOT = _repo_root()
-RUNNER_PATH = REPO_ROOT / "scripts" / "operator_console" / "run_scene_sampler_scanner_plan.py"
 
 
 def _load_runner():
-    spec = importlib.util.spec_from_file_location("scene_sampler_scanner_runner", RUNNER_PATH)
-    assert spec is not None
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
+    return scene_sampler_scanner_runner
 
 
 def _write_plan(path: Path, candidates: list[dict[str, object]]) -> None:
@@ -120,9 +115,17 @@ def _candidate(*, scanner_status: str = "blocked_missing_resources") -> dict[str
         "primary_path": "/tmp/FloorPlan1_physics.xml",
         "path_status": "available",
         "preview_command": (
-            ".venv/bin/python scripts/operator_console/render_scene_previews.py "
+            ".venv/bin/python -m roboclaws.operator_console.scene_preview_cli "
             "--world molmospaces/ithor/1"
         ),
+        "launch_args": [
+            "surface=household-world",
+            "world=molmospaces/ithor/1",
+            "backend=mujoco",
+            "preset=map-build",
+            "agent_engine=direct-runner",
+            "evidence_lane=world-public-labels",
+        ],
         "map_build_product_smoke_command": (
             "just run::surface surface=household-world world=molmospaces/ithor/1 "
             "backend=mujoco preset=map-build agent_engine=direct-runner "
@@ -333,17 +336,27 @@ def test_scanner_runner_rejects_non_object_worklist_source(tmp_path: Path) -> No
         )
 
 
-def test_scanner_runner_executes_ready_preview_then_map_build(tmp_path: Path) -> None:
+def test_scanner_runner_executes_ready_preview_then_typed_map_build(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     runner = _load_runner()
     plan_path = tmp_path / "plan.json"
     output_path = tmp_path / "scanner_run.json"
     _write_plan(plan_path, [_candidate(scanner_status="ready_for_product_smoke")])
-    calls = []
+    preview_calls = []
+    launch_calls = []
 
     def fake_run(argv, **kwargs):
-        calls.append((argv, kwargs))
+        preview_calls.append((argv, kwargs))
         return SimpleNamespace(returncode=0, stdout="ok\n", stderr="")
 
+    def fake_spawn(plan, **kwargs):
+        launch_calls.append((plan, kwargs))
+        kwargs["stdout"].write("map build ok\n")
+        return SimpleNamespace(wait=lambda: 0)
+
+    monkeypatch.setattr(runner, "spawn_launch_plan", fake_spawn)
     result = runner.run_scanner_plan(
         plan_path=plan_path,
         output_path=output_path,
@@ -360,12 +373,52 @@ def test_scanner_runner_executes_ready_preview_then_map_build(tmp_path: Path) ->
         "preview",
         "map_build_product_smoke",
     ]
-    assert len(calls) == 2
-    assert calls[0][0][:2] == [
+    assert len(preview_calls) == 1
+    assert preview_calls[0][0][:3] == [
         ".venv/bin/python",
-        "scripts/operator_console/render_scene_previews.py",
+        "-m",
+        "roboclaws.operator_console.scene_preview_cli",
     ]
-    assert calls[1][0][:2] == ["just", "run::surface"]
+    assert len(launch_calls) == 1
+    plan, launch_kwargs = launch_calls[0]
+    assert plan.surface == "household-world"
+    assert plan.world == "molmospaces/ithor/1"
+    assert plan.preset == "map-build"
+    assert plan.agent_engine == "direct-runner"
+    assert launch_kwargs["cwd"] == REPO_ROOT
+    assert launch_kwargs["env"]["ROBOCLAWS_TASK_SURFACE"] == "household-world"
+    assert result["rows"][0]["commands"][1]["argv"][:2] == ["just", "run::surface"]
+    assert result["rows"][0]["commands"][1]["stdout_tail"] == "map build ok\n"
+
+
+def test_scanner_runner_does_not_execute_map_build_provenance_without_launch_args(
+    tmp_path: Path,
+) -> None:
+    runner = _load_runner()
+    plan_path = tmp_path / "plan.json"
+    output_path = tmp_path / "scanner_run.json"
+    candidate = _candidate(scanner_status="ready_for_product_smoke")
+    candidate.pop("launch_args")
+    _write_plan(plan_path, [candidate])
+    preview_calls = []
+
+    def fake_run(argv, **kwargs):
+        preview_calls.append((argv, kwargs))
+        return SimpleNamespace(returncode=0, stdout="ok\n", stderr="")
+
+    result = runner.run_scanner_plan(
+        plan_path=plan_path,
+        output_path=output_path,
+        run_command=fake_run,
+    )
+
+    assert len(preview_calls) == 1
+    assert result["status"] == "failed"
+    assert result["rows"][0]["failed_command"] == "map_build_product_smoke"
+    assert result["rows"][0]["commands"][1]["argv"] == []
+    assert result["rows"][0]["commands"][1]["stderr_tail"] == (
+        "candidate launch_args must be a non-empty list of strings"
+    )
 
 
 def test_scanner_runner_source_summary_records_failures(tmp_path: Path) -> None:

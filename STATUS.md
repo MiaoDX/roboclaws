@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-07-31
+Last updated: 2026-08-01
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -9,6 +9,17 @@ orientation, move it to plans, ADRs, retrospectives, or `docs/human/**` and
 leave a link.
 
 ## Current Focus
+
+The forward-only Just command-surface refactor is complete under
+`docs/plans/2026-07-31-refactor-just-command-surface.md`. The 2,203-line recipe
+layer is now 64 lines with exactly four canonical commands: `run::surface`,
+`agent::eval`, `console::run`, and directly implemented `agent::verify`.
+Retired commands, aliases, compatibility shims, thin script adapters, dynamic
+script loaders, Python-to-Just execution callbacks, nine remaining live script
+owners, and unused map-package re-exports are gone; active runtime and proof
+behavior is owned by typed package APIs and package CLIs. The full
+standalone suite, canonical verification gate, direct-runner product proofs,
+and completed live and specialist proofs pass. No physical movement occurred.
 
 The post-migration eval baseline refresh is complete. Direct eval product rows
 now propagate the canonical GoalContract into household launch kwargs; the
@@ -30,14 +41,13 @@ The aggressive architecture migration is implemented under
 final gates are complete. Machine-local Omniverse EULA acceptance now flows
 from the gitignored `.env` into Isaac preflight and smoke harnesses; strict
 preflight and the real generic runtime smoke pass. Retired investigation and
-rehearsal stacks are gone, product subsystems have package owners, and active
-scripts are thin adapters. Current
+rehearsal stacks are gone, and product subsystems have direct package owners. Current
 OpenAI Agents SDK lifecycle, telemetry, status, household runtime, planner,
 MolmoSpaces world, operator-console preview/state, B1/Isaac authoring,
 visual-grounding, reporting, and showcase behavior are split by direct owner
 without compatibility facades.
 
-The regenerated graph is 502 modules / 1,504 edges with zero SCCs,
+The regenerated graph is 528 modules / 1,624 edges with zero SCCs,
 bidirectional package pairs, package-to-script edges, or forbidden policy
 violations. Python quality has zero source or test files at or above 800 lines;
 source files at or above 1,000 lines fell from 33 to zero and test files at or
@@ -115,9 +125,10 @@ providers.
 
 ## Next Action
 
-No implementation or verification work remains for the architecture migration
-or baseline refresh. The 25-row candidate is awaiting human confirmation;
-publication remains unauthorized and separate from this campaign.
+No implementation or verification work remains for the architecture migration,
+Just command-surface refactor, or baseline refresh. The 25-row candidate is
+awaiting human confirmation; publication remains unauthorized and separate
+from these campaigns.
 
 ## Current Blockers
 
@@ -140,6 +151,7 @@ publication remains unauthorized and separate from this campaign.
 ## Current Source Links
 
 Plans:
+`docs/plans/2026-07-31-refactor-just-command-surface.md`,
 `docs/plans/2026-07-30-aggressive-architecture-migration.md`,
 `docs/plans/2026-07-30-retire-openclaw-and-local-docker-surfaces.md`,
 `docs/plans/2026-07-30-post-cleanup-saturation-refactors.md`,

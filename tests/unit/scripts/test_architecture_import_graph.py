@@ -53,6 +53,55 @@ def test_comparison_allows_removals_but_rejects_new_edges() -> None:
     assert module.compare_to_baseline(current, baseline) == ["new package edges from a: ['c']"]
 
 
+def test_script_references_detect_embedded_commands_and_argv_paths(
+    tmp_path: Path, monkeypatch
+) -> None:
+    module = load_module()
+    package_root = tmp_path / "roboclaws"
+    package_root.mkdir()
+    (package_root / "sample.py").write_text(
+        "\n".join(
+            (
+                'COMMAND = ".venv/bin/python scripts/operator_console/export.py --dry-run"',
+                'ARGV = [".venv/bin/python", "scripts/operator_console/runner.py"]',
+                'JOINED = "scripts/maps/" + "joined.py"',
+                'PATHED = Path("scripts") / "maps" / "path_runner.py"',
+                'FORMATTED = f"scripts/tools/{command}.py"',
+                'DYNAMIC = importlib.import_module("scripts.dynamic_runner")',
+                'OTHER_DYNAMIC = __import__("scripts.other_runner")',
+            )
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(module, "REPO_ROOT", tmp_path)
+
+    assert module.collect_script_references(package_root) == [
+        ["roboclaws.sample", "scripts.dynamic_runner"],
+        ["roboclaws.sample", "scripts.other_runner"],
+        ["roboclaws.sample", "scripts/maps/joined.py"],
+        ["roboclaws.sample", "scripts/maps/path_runner.py"],
+        ["roboclaws.sample", "scripts/operator_console/export.py"],
+        ["roboclaws.sample", "scripts/operator_console/runner.py"],
+        ["roboclaws.sample", "scripts/tools/*.py"],
+    ]
+
+
+def test_dynamic_package_imports_participate_in_graph_edges(tmp_path: Path, monkeypatch) -> None:
+    module = load_module()
+    package_root = tmp_path / "roboclaws"
+    package_root.mkdir()
+    (package_root / "source.py").write_text(
+        'TARGET = importlib.import_module("roboclaws.target")\n',
+        encoding="utf-8",
+    )
+    (package_root / "target.py").write_text("VALUE = 1\n", encoding="utf-8")
+    monkeypatch.setattr(module, "REPO_ROOT", tmp_path)
+
+    assert module.collect_import_edges(package_root) == [
+        module.ImportEdge("roboclaws.source", "roboclaws.target", 1)
+    ]
+
+
 def test_current_graph_freezes_authoritative_cycles_and_package_pairs() -> None:
     module = load_module()
 

@@ -37,7 +37,7 @@ CI. Removing them saves little and makes `main` depend on local discipline.
 
 | Level | Trigger | Blocks? | What Belongs Here |
 | --- | --- | --- | --- |
-| Local feedback | before commit or push | no | focused tests, `just agent::verify mock`, targeted reproduction |
+| Local feedback | before commit or push | no | focused standalone pytest, targeted reproduction |
 | Required PR gate | every PR and push | yes | lint, format, deterministic pytest, mock reports, command routing contracts |
 | Required main gate | push to `main` | yes, if stable | public report assembly, Pages artifact shape, stable real-model smoke if accepted |
 | Advisory smoke | push to `main` or scheduled | no | provider or external-service runs that can timeout or depend on external services |
@@ -50,11 +50,10 @@ CI. Removing them saves little and makes `main` depend on local discipline.
 Use the existing command surfaces directly when they fit:
 
 - `just run::surface ...` for user-facing surface/preset execution.
-- `just agent::verify ...` for confidence gates.
+- `just agent::verify` for the full confidence gate.
 - `just agent::eval ...` for versioned capability suites.
-- `just dev::test ...` for pytest marker slices.
-- `just harness::*` or lower private modules only for maintainer debugging and
-  specialist gates.
+- `./scripts/dev/run_pytest_standalone.sh ...` for pytest marker slices.
+- Package CLIs for maintainer debugging and specialist gates.
 
 A dedicated `ci::*` namespace is optional. Add one only when the command is
 truly job-shaped rather than task-shaped, such as local Pages assembly from
@@ -110,7 +109,7 @@ gate when it requires any of the following:
 
 | CI Job | Current Level | Local Equivalent |
 | --- | --- | --- |
-| `lint-and-mock` | required PR gate | `just agent::verify ci-required` |
+| `lint-and-mock` | required PR gate | `just agent::verify` |
 | `household-route-contracts` | required PR gate, usually inside `lint-and-mock` | `./scripts/dev/run_pytest_standalone.sh -q tests/contract/dev_tools/test_task_agent_just_recipes.py tests/unit/operator_console` |
 | `household-map-build` | required or advisory main gate depending on runtime cost | `just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=map-build agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=grounding-dino ...` |
 | `molmo-live-cleanup` | opt-in expensive gate | `just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=cleanup agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=world-public-labels ...` or the live matrix script |
@@ -134,11 +133,11 @@ For ordinary code changes, run:
 
 ```bash
 uv sync --extra dev
-just agent::verify ci-required
+just agent::verify
 ```
 
-For a tighter edit/test loop before the final pre-push gate, use
-`just agent::verify mock`; it skips mock HTML report generation.
+For a tighter edit/test loop before the final pre-push gate, run the smallest
+relevant target through `./scripts/dev/run_pytest_standalone.sh`.
 
 For changes touching CI report assembly or Pages scripts, also run the relevant
 focused reproduction. For example, Pages helpers that must not depend on the

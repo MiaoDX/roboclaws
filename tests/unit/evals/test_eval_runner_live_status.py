@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 
+from roboclaws.evals.agent_identity import agent_engine_spec
 from roboclaws.evals.live_runtime import live_surface_env
 from roboclaws.evals.runner import run_eval_suite
 from tests.unit.evals.eval_runner_support import (
@@ -16,6 +17,18 @@ from tests.unit.evals.eval_runner_support import (
     _run_result,
     _write_product_artifacts,
 )
+
+
+@pytest.mark.parametrize("agent_engine", ("codex-cli", "claude-code", "future-engine"))
+def test_eval_identity_uses_canonical_unsupported_engine_error(agent_engine: str) -> None:
+    with pytest.raises(
+        ValueError,
+        match=(
+            rf"unsupported agent_engine '{agent_engine}'; "
+            r"expected direct-runner\|openai-agents-sdk"
+        ),
+    ):
+        agent_engine_spec(agent_engine)
 
 
 def test_eval_runner_records_live_agent_blocked_identity(tmp_path: Path) -> None:

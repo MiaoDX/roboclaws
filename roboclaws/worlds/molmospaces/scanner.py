@@ -8,6 +8,7 @@ from typing import Any
 
 from roboclaws.worlds.molmospaces.scanner_evidence import (
     map_build_product_smoke_command,
+    map_build_product_smoke_launch_args,
     preview_scanner_command,
     scanner_missing_gates,
     scanner_next_action,
@@ -113,6 +114,7 @@ def scanner_execution_candidate(
         "cheap_room_count": int(install_candidate.get("cheap_room_count") or 0),
         "install_command": install_candidate.get("install_command", ""),
         "preview_command": preview_scanner_command(world_id),
+        "launch_args": map_build_product_smoke_launch_args(world_id),
         "map_build_product_smoke_command": map_build_product_smoke_command(world_id),
         "next_action": next_action,
     }
@@ -317,8 +319,7 @@ def next_flow_recommended_commands(
             {
                 "name": "refresh_scene_only_prefilter",
                 "command": (
-                    ".venv/bin/python scripts/operator_console/"
-                    "export_scene_sampler_readiness.py "
+                    ".venv/bin/python -m roboclaws.worlds.molmospaces.readiness_export "
                     f"--output-dir {_quote_artifact_path(artifact_paths, 'readiness_output_dir')} "
                     f"--candidate-range {shlex.quote(candidate_range)} --no-generated-eval"
                 ),
@@ -343,8 +344,7 @@ def next_flow_recommended_commands(
             {
                 "name": "refresh_scene_only_prefilter",
                 "command": (
-                    ".venv/bin/python scripts/operator_console/"
-                    "export_scene_sampler_readiness.py "
+                    ".venv/bin/python -m roboclaws.worlds.molmospaces.readiness_export "
                     f"--output-dir {_quote_artifact_path(artifact_paths, 'readiness_output_dir')} "
                     f"--candidate-range {shlex.quote(candidate_range)} --no-generated-eval"
                 ),
@@ -365,14 +365,14 @@ def next_flow_recommended_commands(
             },
         ]
     prep_base = (
-        ".venv/bin/python scripts/operator_console/run_scene_sampler_source_prep.py "
+        ".venv/bin/python -m roboclaws.worlds.molmospaces.source_prep_runner "
         f"--prep {_quote_artifact_path(artifact_paths, 'source_prep')} "
         f"--worklist {_quote_artifact_path(artifact_paths, 'next_flow_worklist')} "
         f"--output {_quote_artifact_path(artifact_paths, 'source_prep_run')} "
         f"--source {source_arg}"
     )
     scanner_base = (
-        ".venv/bin/python scripts/operator_console/run_scene_sampler_scanner_plan.py "
+        ".venv/bin/python -m roboclaws.launch.scene_sampler_scanner_runner "
         f"--plan {_quote_artifact_path(artifact_paths, 'scanner_execution_plan')} "
         f"--worklist {_quote_artifact_path(artifact_paths, 'next_flow_worklist')} "
         f"--output {_quote_artifact_path(artifact_paths, 'scanner_run')} "
@@ -392,7 +392,7 @@ def next_flow_recommended_commands(
         {
             "name": "refresh_readiness_after_prep",
             "command": (
-                ".venv/bin/python scripts/operator_console/export_scene_sampler_readiness.py "
+                ".venv/bin/python -m roboclaws.worlds.molmospaces.readiness_export "
                 f"--output-dir {_quote_artifact_path(artifact_paths, 'readiness_output_dir')} "
                 f"--candidate-range {shlex.quote(candidate_range)} "
                 f"--require-selection-capacity-source {source_arg} "
@@ -418,8 +418,7 @@ def next_flow_recommended_commands(
             {
                 "name": "expand_candidate_range",
                 "command": (
-                    ".venv/bin/python scripts/operator_console/"
-                    "export_scene_sampler_readiness.py "
+                    ".venv/bin/python -m roboclaws.worlds.molmospaces.readiness_export "
                     f"--output-dir {_quote_artifact_path(artifact_paths, 'readiness_output_dir')} "
                     f"--candidate-range {shlex.quote(candidate_range)} "
                     f"--require-selection-capacity-source {source_arg} --no-generated-eval"

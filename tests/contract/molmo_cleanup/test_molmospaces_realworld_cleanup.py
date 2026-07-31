@@ -34,7 +34,7 @@ from roboclaws.household.semantic_timeline import (
 from roboclaws.household.tasks import HOUSEHOLD_TASK_SPECS
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-DEMO_PATH = REPO_ROOT / "examples" / "molmo_cleanup" / "molmospaces_realworld_cleanup.py"
+DEMO_PATH = REPO_ROOT / "roboclaws" / "household" / "household_world_episode.py"
 AGIBOT_SEMANTIC_ACTIONS_PATH = (
     REPO_ROOT / "scripts" / "molmo_cleanup" / "run_agibot_robot_map_9_semantic_actions.py"
 )

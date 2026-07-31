@@ -3,16 +3,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from roboclaws.household import planner_proof_prior_sources
+from roboclaws.household import planner_proof_bundle_runner, planner_proof_prior_sources
 from roboclaws.household.manipulation_provenance import planner_backed_probe_evidence
 from tests.unit.scripts.run_molmo_planner_proof_bundle_from_requests_support import (
-    _load_module,
     _proof_requests,
 )
 
 
 def test_runner_excludes_prior_task_feasibility_blocked_requests(tmp_path: Path) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     requests = _proof_requests()
@@ -64,12 +62,10 @@ def test_runner_excludes_prior_task_feasibility_blocked_requests(tmp_path: Path)
         encoding="utf-8",
     )
 
-    result = runner.run_from_cleanup_result(
+    result = planner_proof_bundle_runner.run_from_cleanup_result(
         cleanup_run_result=cleanup_run_result,
         output_dir=tmp_path / "bundle",
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
-        cleanup_script=Path("cleanup.py"),
         molmospaces_python=None,
         molmospaces_root=None,
         embodiment="rby1m",
@@ -107,7 +103,6 @@ def test_runner_excludes_prior_task_feasibility_blocked_requests(tmp_path: Path)
 
 
 def test_runner_excludes_prior_covered_requests(tmp_path: Path) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     requests = _proof_requests()
@@ -199,12 +194,10 @@ def test_runner_excludes_prior_covered_requests(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    result = runner.run_from_cleanup_result(
+    result = planner_proof_bundle_runner.run_from_cleanup_result(
         cleanup_run_result=cleanup_run_result,
         output_dir=tmp_path / "bundle",
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
-        cleanup_script=Path("cleanup.py"),
         molmospaces_python=None,
         molmospaces_root=None,
         embodiment="rby1m",
@@ -235,12 +228,10 @@ def test_runner_excludes_prior_covered_requests(tmp_path: Path) -> None:
     assert "prior_planner_proof_covered" in report
     assert "prior_task_feasibility_blocked" in report
 
-    strict_result = runner.run_from_cleanup_result(
+    strict_result = planner_proof_bundle_runner.run_from_cleanup_result(
         cleanup_run_result=cleanup_run_result,
         output_dir=tmp_path / "bundle-strict",
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
-        cleanup_script=Path("cleanup.py"),
         molmospaces_python=None,
         molmospaces_root=None,
         embodiment="rby1m",
@@ -275,7 +266,6 @@ def test_runner_excludes_prior_covered_requests(tmp_path: Path) -> None:
 
 
 def test_runner_marks_fallback_required_when_all_prior_requests_blocked(tmp_path: Path) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     cleanup_run_result.write_text(
@@ -303,12 +293,10 @@ def test_runner_marks_fallback_required_when_all_prior_requests_blocked(tmp_path
         encoding="utf-8",
     )
 
-    result = runner.run_from_cleanup_result(
+    result = planner_proof_bundle_runner.run_from_cleanup_result(
         cleanup_run_result=cleanup_run_result,
         output_dir=tmp_path / "bundle",
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
-        cleanup_script=Path("cleanup.py"),
         molmospaces_python=None,
         molmospaces_root=None,
         embodiment="rby1m",
@@ -333,7 +321,6 @@ def test_runner_marks_fallback_required_when_all_prior_requests_blocked(tmp_path
 def test_runner_generates_fallback_requests_from_prior_blocked_aliases(
     tmp_path: Path,
 ) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     requests = _proof_requests()
@@ -367,12 +354,10 @@ def test_runner_generates_fallback_requests_from_prior_blocked_aliases(
         encoding="utf-8",
     )
 
-    result = runner.run_from_cleanup_result(
+    result = planner_proof_bundle_runner.run_from_cleanup_result(
         cleanup_run_result=cleanup_run_result,
         output_dir=tmp_path / "bundle",
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
-        cleanup_script=Path("cleanup.py"),
         molmospaces_python=None,
         molmospaces_root=None,
         embodiment="rby1m",
@@ -410,7 +395,6 @@ def test_runner_generates_fallback_requests_from_prior_blocked_aliases(
 def test_runner_discovers_runtime_aliases_from_prior_fallback_keyerrors(
     tmp_path: Path,
 ) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     requests = _proof_requests()
@@ -479,12 +463,10 @@ def test_runner_discovers_runtime_aliases_from_prior_fallback_keyerrors(
         encoding="utf-8",
     )
 
-    result = runner.run_from_cleanup_result(
+    result = planner_proof_bundle_runner.run_from_cleanup_result(
         cleanup_run_result=cleanup_run_result,
         output_dir=tmp_path / "bundle",
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
-        cleanup_script=Path("cleanup.py"),
         molmospaces_python=None,
         molmospaces_root=None,
         embodiment="rby1m",
@@ -514,7 +496,6 @@ def test_runner_discovers_runtime_aliases_from_prior_fallback_keyerrors(
 def test_runner_ingests_standalone_prior_probe_run_result_by_cleanup_pair(
     tmp_path: Path,
 ) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     requests = _proof_requests()
@@ -569,12 +550,10 @@ def test_runner_ingests_standalone_prior_probe_run_result_by_cleanup_pair(
     (prior_probe.parent / "stdout.txt").write_text("", encoding="utf-8")
     (prior_probe.parent / "stderr.txt").write_text("", encoding="utf-8")
 
-    result = runner.run_from_cleanup_result(
+    result = planner_proof_bundle_runner.run_from_cleanup_result(
         cleanup_run_result=cleanup_run_result,
         output_dir=tmp_path / "bundle",
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
-        cleanup_script=Path("cleanup.py"),
         molmospaces_python=None,
         molmospaces_root=None,
         embodiment="rby1m",
@@ -654,7 +633,6 @@ def test_runner_preserves_prior_blocker_detail_from_excluded_requests() -> None:
 def test_runner_carries_prior_failed_runtime_fallback_candidates(
     tmp_path: Path,
 ) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     requests = _proof_requests()
@@ -752,12 +730,10 @@ def test_runner_carries_prior_failed_runtime_fallback_candidates(
         encoding="utf-8",
     )
 
-    result = runner.run_from_cleanup_result(
+    result = planner_proof_bundle_runner.run_from_cleanup_result(
         cleanup_run_result=cleanup_run_result,
         output_dir=tmp_path / "bundle",
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
-        cleanup_script=Path("cleanup.py"),
         molmospaces_python=None,
         molmospaces_root=None,
         embodiment="rby1m",

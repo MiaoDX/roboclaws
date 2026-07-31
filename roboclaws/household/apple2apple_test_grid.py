@@ -200,9 +200,7 @@ def _runtime_map_prior_row(
     map_bundle: str,
 ) -> dict[str, Any]:
     row_output_dir = output_dir / "_offline-runtime-map-prior"
-    command = [
-        "just",
-        "run::surface",
+    launch_args = [
         "surface=household-world",
         "world=molmospaces/procthor-10k-val/0",
         "backend=mujoco",
@@ -219,7 +217,7 @@ def _runtime_map_prior_row(
         row_id="setup-offline-runtime-map-prior",
         label="Offline Runtime Metric Map prior",
         grid_role="setup",
-        command=command,
+        launch_args=launch_args,
         output_dir=row_output_dir,
         axes={
             "prior_mode": "offline-prior-build",
@@ -248,9 +246,7 @@ def _cleanup_grid_row(
 ) -> dict[str, Any]:
     row_id = f"{prior_mode}-{agent_route.route_id}-{lane.lane_id}"
     row_output_dir = output_dir / row_id
-    command = [
-        "just",
-        "run::surface",
+    launch_args = [
         "surface=household-world",
         "world=molmospaces/procthor-10k-val/0",
         "backend=mujoco",
@@ -266,16 +262,16 @@ def _cleanup_grid_row(
         f"map_bundle={map_bundle}",
     ]
     if lane.camera_labeler:
-        command.append(f"camera_labeler={lane.camera_labeler}")
+        launch_args.append(f"camera_labeler={lane.camera_labeler}")
     if visual_grounding_timeout_s != "auto":
-        command.append(f"visual_grounding_timeout_s={visual_grounding_timeout_s}")
+        launch_args.append(f"visual_grounding_timeout_s={visual_grounding_timeout_s}")
     if runtime_map_prior:
-        command.append(f"runtime_map_prior={runtime_map_prior}")
+        launch_args.append(f"runtime_map_prior={runtime_map_prior}")
     return _row_payload(
         row_id=row_id,
         label=f"{prior_mode} {agent_route.label} {lane.label}",
         grid_role="cleanup",
-        command=command,
+        launch_args=launch_args,
         output_dir=row_output_dir,
         axes={
             "prior_mode": prior_mode,
@@ -296,7 +292,7 @@ def _row_payload(
     row_id: str,
     label: str,
     grid_role: str,
-    command: list[str],
+    launch_args: list[str],
     output_dir: Path,
     axes: dict[str, str],
     env: dict[str, str],
@@ -310,7 +306,8 @@ def _row_payload(
         "label": label,
         "grid_role": grid_role,
         "axes": axes,
-        "command": [str(item) for item in command],
+        "launch_args": [str(item) for item in launch_args],
+        "command": ["just", "run::surface", *(str(item) for item in launch_args)],
         "env": dict(env),
         "required_env": list(required_env),
         "output_dir": str(output_dir),

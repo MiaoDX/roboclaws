@@ -212,6 +212,7 @@ def _run_smoke(
             str(waypoint_path),
             "--output-dir",
             str(output_dir),
+            "--accept-nvidia-eula",
         ],
         capture_output=True,
         text=True,

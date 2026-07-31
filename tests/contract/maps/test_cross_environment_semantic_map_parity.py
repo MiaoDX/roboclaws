@@ -18,7 +18,6 @@ from roboclaws.maps.spatial_contract import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-NORMALIZER_SCRIPT = REPO_ROOT / "scripts" / "maps" / "normalize_semantic_map_spatial_contract.py"
 STATIC_MAP_BUNDLES = tuple(
     sorted(
         path
@@ -160,7 +159,7 @@ def _semantics(bundle_dir: Path) -> dict:
 
 def _run_normalizer(bundle_dir: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, str(NORMALIZER_SCRIPT), str(bundle_dir)],
+        [sys.executable, "-m", "roboclaws.maps.spatial_contract", str(bundle_dir)],
         cwd=REPO_ROOT,
         text=True,
         capture_output=True,

@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
-import sys
 from pathlib import Path
 
 import pytest
@@ -14,19 +12,13 @@ from roboclaws.household.apple2apple_test_grid import (
     build_apple2apple_test_grid,
     write_grid_manifest,
 )
+from roboclaws.launch import apple2apple_grid_execution as grid_execution
 from roboclaws.launch.catalog import resolve_surface_launch
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-RUN_GRID_PATH = REPO_ROOT / "scripts" / "molmo_cleanup" / "run_molmo_apple2apple_test_grid.py"
 
-
-def _load_module(path: Path, name: str):
-    spec = importlib.util.spec_from_file_location(name, path)
-    assert spec is not None
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
+class _CompletedLaunch:
+    def wait(self) -> int:
+        return 0
 
 
 def _rows_by_id(grid: dict) -> dict[str, dict]:
@@ -92,7 +84,7 @@ def test_apple2apple_grid_cleanup_rows_resolve_through_launch_catalog(tmp_path: 
 
     for row in grid["rows"]:
         assert row["command"][:2] == ["just", "run::surface"]
-        plan = resolve_surface_launch(row["command"][2:])
+        plan = resolve_surface_launch(row["launch_args"])
         axes = row["axes"]
 
         assert plan.surface == "household-world"
@@ -121,7 +113,7 @@ def test_apple2apple_grid_accepts_explicit_offline_runtime_map_prior(tmp_path: P
 
 
 def test_apple2apple_grid_script_dry_run_writes_manifest_and_report(tmp_path: Path) -> None:
-    run_grid = _load_module(RUN_GRID_PATH, "run_molmo_apple2apple_test_grid")
+    run_grid = grid_execution
 
     status = run_grid.main(["--output-dir", str(tmp_path / "grid"), "--task", "clean"])
 
@@ -138,8 +130,11 @@ def test_apple2apple_grid_script_dry_run_writes_manifest_and_report(tmp_path: Pa
     )
 
 
-def test_apple2apple_grid_filtered_execute_preserves_existing_rows(tmp_path: Path) -> None:
-    run_grid = _load_module(RUN_GRID_PATH, "run_molmo_apple2apple_test_grid_preserve")
+def test_apple2apple_grid_filtered_execute_preserves_existing_rows(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    run_grid = grid_execution
     output_dir = tmp_path / "grid"
     existing = build_apple2apple_test_grid(output_dir=output_dir, task="clean")
     existing_rows = _rows_by_id(existing)
@@ -155,7 +150,7 @@ def test_apple2apple_grid_filtered_execute_preserves_existing_rows(tmp_path: Pat
         row["exit_status"] = 0
         return 0
 
-    run_grid._execute_row = fake_execute_row
+    monkeypatch.setattr(run_grid, "_execute_row", fake_execute_row)
 
     status = run_grid.main(
         [
@@ -186,7 +181,7 @@ def test_apple2apple_grid_filtered_execute_preserves_existing_rows(tmp_path: Pat
 def test_apple2apple_grid_filtered_execute_fails_on_malformed_existing_manifest(
     tmp_path: Path,
 ) -> None:
-    run_grid = _load_module(RUN_GRID_PATH, "run_molmo_apple2apple_test_grid_malformed_manifest")
+    run_grid = grid_execution
     output_dir = tmp_path / "grid"
     output_dir.mkdir()
     (output_dir / "apple2apple_test_grid.json").write_text("{not json", encoding="utf-8")
@@ -211,7 +206,7 @@ def test_apple2apple_grid_filtered_execute_fails_on_malformed_existing_manifest(
 def test_apple2apple_grid_filtered_execute_fails_on_non_object_existing_manifest(
     tmp_path: Path,
 ) -> None:
-    run_grid = _load_module(RUN_GRID_PATH, "run_molmo_apple2apple_test_grid_non_object_manifest")
+    run_grid = grid_execution
     output_dir = tmp_path / "grid"
     output_dir.mkdir()
     (output_dir / "apple2apple_test_grid.json").write_text("[]", encoding="utf-8")
@@ -235,8 +230,9 @@ def test_apple2apple_grid_filtered_execute_fails_on_non_object_existing_manifest
 
 def test_apple2apple_grid_accepts_prior_artifact_when_setup_exits_nonzero(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    run_grid = _load_module(RUN_GRID_PATH, "run_molmo_apple2apple_test_grid_prior_nonzero")
+    run_grid = grid_execution
     output_dir = tmp_path / "grid" / "_offline-runtime-map-prior"
     run_dir = output_dir / "0528_1200" / "seed-7"
     run_dir.mkdir(parents=True)
@@ -251,7 +247,7 @@ def test_apple2apple_grid_accepts_prior_artifact_when_setup_exits_nonzero(
         _row["exit_status"] = 1
         return 1
 
-    run_grid._execute_row = fake_execute_row
+    monkeypatch.setattr(run_grid, "_execute_row", fake_execute_row)
 
     prior = run_grid._execute_prior_build(grid, args)
 
@@ -262,7 +258,7 @@ def test_apple2apple_grid_accepts_prior_artifact_when_setup_exits_nonzero(
 
 
 def test_apple2apple_grid_marks_explicit_prior_as_setup_evidence(tmp_path: Path) -> None:
-    run_grid = _load_module(RUN_GRID_PATH, "run_molmo_apple2apple_test_grid_explicit_prior")
+    run_grid = grid_execution
     run_dir = tmp_path / "prior" / "0528_1200" / "seed-7"
     run_dir.mkdir(parents=True)
     prior_path = run_dir / "runtime_metric_map.json"
@@ -286,27 +282,33 @@ def test_apple2apple_grid_marks_explicit_prior_as_setup_evidence(tmp_path: Path)
     assert "explicit runtime_map_prior" in row["reason"]
 
 
-def test_apple2apple_grid_execute_waits_for_detached_live_status(tmp_path: Path) -> None:
-    run_grid = _load_module(RUN_GRID_PATH, "run_molmo_apple2apple_test_grid_live_wait")
+def test_apple2apple_grid_execute_waits_for_detached_live_status(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    run_grid = grid_execution
     output_dir = tmp_path / "grid"
-    run_dir = output_dir / "0528_1200" / "seed-7"
+    row = build_apple2apple_test_grid(output_dir=output_dir, task="clean")["rows"][0]
+    run_dir = Path(row["output_dir"]) / "0528_1200" / "seed-7"
     run_dir.mkdir(parents=True)
     (run_dir / "live_status.json").write_text(
         json.dumps({"phase": "finished", "exit_status": 0}),
         encoding="utf-8",
     )
     (run_dir / "report.html").write_text("<html>ok</html>", encoding="utf-8")
-    row = {
-        "command": [sys.executable, "-c", ""],
-        "env": {},
-        "output_dir": str(output_dir),
-    }
     args = argparse.Namespace(
         seed=7,
-        just_bin="just",
         live_wait_timeout_s=0.1,
         live_wait_poll_s=0.1,
     )
+    launched = {}
+
+    def fake_spawn(plan, **kwargs):
+        launched["plan"] = plan
+        launched["kwargs"] = kwargs
+        return _CompletedLaunch()
+
+    monkeypatch.setattr(run_grid, "spawn_launch_plan", fake_spawn)
 
     status = run_grid._execute_row(row, args)
 
@@ -315,30 +317,29 @@ def test_apple2apple_grid_execute_waits_for_detached_live_status(tmp_path: Path)
     assert row["run_dir"] == str(run_dir)
     assert row["report_path"] == str(run_dir / "report.html")
     assert row["live_status"]["phase"] == "finished"
+    assert launched["plan"].surface == "household-world"
+    assert launched["kwargs"]["cwd"] == run_grid.REPO_ROOT
 
 
 def test_apple2apple_grid_execute_discovers_live_status_only_seed_dir(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    run_grid = _load_module(RUN_GRID_PATH, "run_molmo_apple2apple_test_grid_live_status_only")
+    run_grid = grid_execution
     output_dir = tmp_path / "grid"
-    run_dir = output_dir / "0528_1200" / "seed-7"
+    row = build_apple2apple_test_grid(output_dir=output_dir, task="clean")["rows"][0]
+    run_dir = Path(row["output_dir"]) / "0528_1200" / "seed-7"
     run_dir.mkdir(parents=True)
     (run_dir / "live_status.json").write_text(
         json.dumps({"phase": "finished", "exit_status": 0}),
         encoding="utf-8",
     )
-    row = {
-        "command": [sys.executable, "-c", ""],
-        "env": {},
-        "output_dir": str(output_dir),
-    }
     args = argparse.Namespace(
         seed=7,
-        just_bin="just",
         live_wait_timeout_s=0.1,
         live_wait_poll_s=0.1,
     )
+    monkeypatch.setattr(run_grid, "spawn_launch_plan", lambda *_args, **_kwargs: _CompletedLaunch())
 
     status = run_grid._execute_row(row, args)
 
@@ -350,23 +351,20 @@ def test_apple2apple_grid_execute_discovers_live_status_only_seed_dir(
 
 def test_apple2apple_grid_execute_fails_on_malformed_live_status_source(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    run_grid = _load_module(RUN_GRID_PATH, "run_molmo_apple2apple_test_grid_malformed_live_status")
+    run_grid = grid_execution
     output_dir = tmp_path / "grid"
-    run_dir = output_dir / "0528_1200" / "seed-7"
+    row = build_apple2apple_test_grid(output_dir=output_dir, task="clean")["rows"][0]
+    run_dir = Path(row["output_dir"]) / "0528_1200" / "seed-7"
     run_dir.mkdir(parents=True)
     (run_dir / "live_status.json").write_text("{bad", encoding="utf-8")
-    row = {
-        "command": [sys.executable, "-c", ""],
-        "env": {},
-        "output_dir": str(output_dir),
-    }
     args = argparse.Namespace(
         seed=7,
-        just_bin="just",
         live_wait_timeout_s=0.1,
         live_wait_poll_s=0.1,
     )
+    monkeypatch.setattr(run_grid, "spawn_launch_plan", lambda *_args, **_kwargs: _CompletedLaunch())
 
     with pytest.raises(
         ValueError,
@@ -377,8 +375,9 @@ def test_apple2apple_grid_execute_fails_on_malformed_live_status_source(
 
 def test_apple2apple_grid_live_status_retry_allows_transient_partial_write(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    run_grid = _load_module(RUN_GRID_PATH, "run_molmo_apple2apple_test_grid_live_status_retry")
+    run_grid = grid_execution
     status_path = tmp_path / "live_status.json"
     status_path.write_text("{bad", encoding="utf-8")
     attempts = {"count": 0}
@@ -394,9 +393,9 @@ def test_apple2apple_grid_live_status_retry_allows_transient_partial_write(
         )
         return real_read_json_object(path, label=label)
 
-    run_grid.read_json_object = flaky_read_json_object
-    run_grid._sleep = lambda _seconds: None
-    run_grid._monotonic = iter([0.0, 0.0, 0.01]).__next__
+    monkeypatch.setattr(run_grid, "read_json_object", flaky_read_json_object)
+    monkeypatch.setattr(run_grid, "_sleep", lambda _seconds: None)
+    monkeypatch.setattr(run_grid, "_monotonic", iter([0.0, 0.0, 0.01]).__next__)
 
     status = run_grid._read_status(status_path, retry_deadline=1.0)
 

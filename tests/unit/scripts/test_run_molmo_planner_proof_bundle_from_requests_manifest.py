@@ -5,17 +5,16 @@ from pathlib import Path
 
 import pytest
 
+from roboclaws.household import planner_proof_bundle_runner
 from tests.unit.scripts.run_molmo_planner_proof_bundle_from_requests_support import (
     _assert_inline_dry_run_artifacts,
     _assert_inline_dry_run_command,
     _assert_inline_dry_run_manifest,
-    _load_module,
     _proof_requests,
 )
 
 
 def test_runner_writes_dry_run_manifest_and_report_from_inline_requests(tmp_path: Path) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     cleanup_run_result.write_text(
@@ -32,12 +31,10 @@ def test_runner_writes_dry_run_manifest_and_report_from_inline_requests(tmp_path
         encoding="utf-8",
     )
 
-    result = runner.run_from_cleanup_result(
+    result = planner_proof_bundle_runner.run_from_cleanup_result(
         cleanup_run_result=cleanup_run_result,
         output_dir=tmp_path / "bundle",
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
-        cleanup_script=Path("cleanup.py"),
         molmospaces_python=None,
         molmospaces_root=None,
         embodiment="rby1m",
@@ -58,7 +55,6 @@ def test_runner_writes_dry_run_manifest_and_report_from_inline_requests(tmp_path
 
 
 def test_runner_filters_to_requested_request_ids(tmp_path: Path) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     proof_requests = _proof_requests()
@@ -87,12 +83,10 @@ def test_runner_filters_to_requested_request_ids(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    result = runner.run_from_cleanup_result(
+    result = planner_proof_bundle_runner.run_from_cleanup_result(
         cleanup_run_result=cleanup_run_result,
         output_dir=tmp_path / "bundle",
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
-        cleanup_script=Path("cleanup.py"),
         molmospaces_python=None,
         molmospaces_root=None,
         embodiment="rby1m",
@@ -124,7 +118,6 @@ def test_runner_filters_to_requested_request_ids(tmp_path: Path) -> None:
 def test_runner_merges_multiple_prior_manifests_for_discovery_and_filters(
     tmp_path: Path,
 ) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     requests = _proof_requests()
@@ -217,12 +210,10 @@ def test_runner_merges_multiple_prior_manifests_for_discovery_and_filters(
         encoding="utf-8",
     )
 
-    result = runner.run_from_cleanup_result(
+    result = planner_proof_bundle_runner.run_from_cleanup_result(
         cleanup_run_result=cleanup_run_result,
         output_dir=tmp_path / "bundle",
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
-        cleanup_script=Path("cleanup.py"),
         molmospaces_python=None,
         molmospaces_root=None,
         embodiment="rby1m",
@@ -280,7 +271,6 @@ def test_runner_merges_multiple_prior_manifests_for_discovery_and_filters(
 def test_runner_carries_nested_prior_proof_result_summary_from_prior_manifest(
     tmp_path: Path,
 ) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     cleanup_run_result.write_text(
@@ -350,12 +340,10 @@ def test_runner_carries_nested_prior_proof_result_summary_from_prior_manifest(
         encoding="utf-8",
     )
 
-    result = runner.run_from_cleanup_result(
+    result = planner_proof_bundle_runner.run_from_cleanup_result(
         cleanup_run_result=cleanup_run_result,
         output_dir=tmp_path / "bundle",
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
-        cleanup_script=Path("cleanup.py"),
         molmospaces_python=None,
         molmospaces_root=None,
         embodiment="rby1m",
@@ -390,7 +378,6 @@ def test_runner_executes_warmup_before_proof_commands(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     cleanup_run_result.write_text(
@@ -426,14 +413,12 @@ def test_runner_executes_warmup_before_proof_commands(
             )
         (output_dir / "report.html").write_text("<h1>report</h1>", encoding="utf-8")
 
-    monkeypatch.setattr(runner, "_run_command", fake_run_command)
+    monkeypatch.setattr(planner_proof_bundle_runner, "_run_command", fake_run_command)
 
-    result = runner.run_from_cleanup_result(
+    result = planner_proof_bundle_runner.run_from_cleanup_result(
         cleanup_run_result=cleanup_run_result,
         output_dir=tmp_path / "bundle",
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
-        cleanup_script=Path("cleanup.py"),
         molmospaces_python=None,
         molmospaces_root=None,
         embodiment="rby1m",
@@ -461,10 +446,8 @@ def test_runner_executes_warmup_before_proof_commands(
 
 def test_runner_cli_prints_manifest_report_and_status(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     cleanup_run_result.write_text(
@@ -472,24 +455,15 @@ def test_runner_cli_prints_manifest_report_and_status(
         encoding="utf-8",
     )
     output_dir = tmp_path / "bundle"
-    monkeypatch.setattr(
-        runner.sys,
-        "argv",
+    planner_proof_bundle_runner.main(
         [
-            "run_molmo_planner_proof_bundle_from_requests.py",
             str(cleanup_run_result),
             "--output-dir",
             str(output_dir),
             "--runner-python",
             "python",
-            "--probe-script",
-            "probe.py",
-            "--cleanup-script",
-            "cleanup.py",
-        ],
+        ]
     )
-
-    runner.main()
 
     payload = json.loads(capsys.readouterr().out)
     assert payload["status"] == "dry_run"

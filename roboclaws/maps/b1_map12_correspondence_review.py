@@ -334,3 +334,7 @@ def image_size(path: Path) -> tuple[int, int]:
             return int(image.width), int(image.height)
     except Exception:
         return 0, 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

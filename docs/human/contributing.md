@@ -50,7 +50,7 @@ Current public examples:
 just run::surface surface=household-world agent_engine=direct-runner preset=map-build evidence_lane=camera-grounded-labels camera_labeler=grounding-dino
 just run::surface surface=household-world agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat preset=cleanup evidence_lane=world-public-labels
 just run::surface surface=household-world agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat prompt="find something useful to drink"
-just agent::verify ci-required
+just agent::verify
 ```
 
 ## Development Topology
@@ -73,7 +73,7 @@ the first place a local-only claim is exercised.
 
 | Job | Trigger | Purpose |
 | --- | --- | --- |
-| `lint-and-mock` | every push and PR | `just agent::verify ci-required`: ruff, format check, deterministic pytest, and active household report contracts. |
+| `lint-and-mock` | every push and PR | `just agent::verify`: ruff, format check, deterministic pytest, and active household report contracts. |
 | `molmo-live-cleanup` | push to `main` or manual workflow | Opt-in live household cleanup reports through configured provider profiles. |
 | `publish-pages` | push to `main` | Publishes the Molmo live report site and Pages index. |
 

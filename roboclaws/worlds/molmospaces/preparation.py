@@ -199,8 +199,7 @@ def source_prep_operator_commands(
             "name": "rerun_readiness_after_prep",
             "description": "Refresh scanner prep artifacts after manual asset preparation.",
             "command": (
-                ".venv/bin/python scripts/operator_console/"
-                "export_scene_sampler_readiness.py "
+                ".venv/bin/python -m roboclaws.worlds.molmospaces.readiness_export "
                 f"--candidate-range 0:{recommended_end} "
                 f"--require-selection-capacity-source {source}"
             ),

@@ -1,36 +1,18 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 import sys
 import threading
 import time
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any
 
 import pytest
 from pytest import MonkeyPatch
 
 from roboclaws.evals import runner as eval_runner
-
-REPO_ROOT = Path(__file__).resolve().parents[3]
-RUNNER_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "run_eval_harness.py"
-ROWS_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "eval_harness_rows.py"
-
-
-def _load_module(name: str, path: Path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    assert spec is not None
-    assert spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-runner = _load_module("eval_harness_execution_runner_test", RUNNER_PATH)
-rows_module = _load_module("eval_harness_execution_rows_test", ROWS_PATH)
-local_execution = runner.local_execution
+from roboclaws.evals.harness import local_execution, runner
+from roboclaws.evals.harness import rows as rows_module
 
 
 def _row(
@@ -332,8 +314,7 @@ def test_row_timeout_is_recorded_and_process_is_stopped(tmp_path: Path) -> None:
 
 def test_eval_cli_forwards_execution_overrides(monkeypatch: MonkeyPatch) -> None:
     captured: list[str] = []
-    fake_runner = SimpleNamespace(main=lambda argv: captured.extend(argv) or 0)
-    monkeypatch.setattr(eval_runner, "load_eval_harness_runner", lambda: fake_runner)
+    monkeypatch.setattr(eval_runner.harness_runner, "main", lambda argv: captured.extend(argv) or 0)
 
     exit_code = eval_runner.run_eval_harness(
         "execute",

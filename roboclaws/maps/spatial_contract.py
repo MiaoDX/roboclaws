@@ -1,7 +1,13 @@
 from __future__ import annotations
 
+import argparse
 import copy
+import json
+import sys
+from pathlib import Path
 from typing import Any
+
+from roboclaws.core.json_sources import read_json_object
 
 MAP_SPATIAL_CONTRACT_SCHEMA = "map_spatial_contract_v1"
 
@@ -121,6 +127,50 @@ def normalize_spatial_rooms(
     ]
 
 
+def normalize_semantic_map_spatial_contract(bundle_dir: Path) -> None:
+    semantics_path = Path(bundle_dir) / "semantics.json"
+    semantics = read_json_object(semantics_path, label="semantics")
+    frame_id = str((semantics.get("frame_ids") or {}).get("map") or "map")
+    alignment_status = ALIGNMENT_STATUS_NATIVE
+    semantics["spatial_contract"] = source_frame_spatial_contract(
+        frame_id=frame_id,
+        alignment_status=alignment_status,
+    )
+    semantics["display_frame"] = None
+    semantics["rooms"] = normalize_spatial_rooms(
+        semantics.get("rooms") or [],
+        frame_id=frame_id,
+        polygon_role=POLYGON_ROLE_NAVIGATION_AREA,
+        geometry_source=GEOMETRY_SOURCE_OPERATOR_NAVIGATION_ZONE,
+        alignment_status=alignment_status,
+        semantic_label_status=alignment_status,
+    )
+    semantics_path.write_text(
+        json.dumps(semantics, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Add first-slice source-frame spatial contract metadata to map bundles."
+    )
+    parser.add_argument("bundle_dirs", type=Path, nargs="+")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    try:
+        for bundle_dir in args.bundle_dirs:
+            normalize_semantic_map_spatial_contract(bundle_dir)
+            print(f"normalized spatial contract: {bundle_dir}")
+        return 0
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+
 def require_source_frame_spatial_contract(
     semantics: dict[str, Any],
     errors: list[str],
@@ -197,3 +247,7 @@ def validate_spatial_room_contract(room: dict[str, Any], *, index: int, errors: 
 def _validate_alignment_status(value: Any, label: str, errors: list[str]) -> None:
     if str(value or "") not in ALIGNMENT_STATUSES:
         errors.append(f"{label} must be one of {sorted(ALIGNMENT_STATUSES)}")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

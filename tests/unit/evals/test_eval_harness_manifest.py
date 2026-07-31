@@ -1,23 +1,9 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-RUNNER_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "run_eval_harness.py"
-
-
-def _load_runner():
-    spec = importlib.util.spec_from_file_location("eval_harness_manifest_runner_test", RUNNER_PATH)
-    assert spec is not None
-    assert spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-runner = _load_runner()
+from roboclaws.evals.harness import runner
 
 
 def test_eval_harness_manifest_redacts_private_truth(tmp_path: Path) -> None:
@@ -35,7 +21,9 @@ def test_eval_harness_manifest_redacts_private_truth(tmp_path: Path) -> None:
                 "row_kind": "eval_suite",
                 "selected": True,
                 "status": "not_run",
-                "command_display": "just agent::eval suite=cleanup_capability",
+                "command_display": (
+                    ".venv/bin/python -m roboclaws.evals.cli suite=cleanup_capability"
+                ),
                 "reason_selected": "cleanup changed",
                 "skip_reason": "",
                 "blocker_category": "",
@@ -169,7 +157,9 @@ def test_eval_harness_reports_show_outcome_and_failure_class(tmp_path: Path) -> 
                 "status": "ran",
                 "outcome": "failed",
                 "failure_class": "harness_bug_unclassified",
-                "command_display": "just agent::eval suite=cleanup_capability",
+                "command_display": (
+                    ".venv/bin/python -m roboclaws.evals.cli suite=cleanup_capability"
+                ),
                 "reason_selected": "cleanup changed",
                 "skip_reason": "",
                 "blocker_category": "",

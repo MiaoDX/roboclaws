@@ -157,6 +157,12 @@ def test_isaac_lab_worker_detects_imported_rby1m_robot_usd(
     assert robot["robot_usd_path"] == str(robot_usd)
 
 
+def test_isaac_robot_import_resolves_repo_relative_artifacts() -> None:
+    relative_path = Path("output/isaaclab/robots/rby1m/robot.usda")
+
+    assert runtime_state._repo_path(relative_path) == Path.cwd() / relative_path
+
+
 def test_isaac_fake_worker_waypoint_navigation_updates_robot_view_pose(
     tmp_path: Path,
 ) -> None:

@@ -28,10 +28,14 @@ from roboclaws.household.visual_grounding_sidecar import (
 from roboclaws.household.visual_grounding_sidecar.adapter_contracts import (
     visual_grounding_adapter_catalog,
 )
-from scripts.visual_grounding.serve_visual_grounding_service import make_handler
+from roboclaws.household.visual_grounding_sidecar.service import make_handler
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SERVICE_SCRIPT = REPO_ROOT / "scripts" / "visual_grounding" / "serve_visual_grounding_service.py"
+SERVICE_COMMAND = [
+    sys.executable,
+    "-m",
+    "roboclaws.household.visual_grounding_sidecar.service",
+]
 
 
 def test_real_mode_dispatches_yolo_world_through_standard_yolo_loader(monkeypatch) -> None:
@@ -312,7 +316,7 @@ def test_dependency_metadata_does_not_expose_retired_qwen_vlm_extra() -> None:
 
 def test_configurable_service_lists_adapter_catalog_cli() -> None:
     result = subprocess.run(
-        [sys.executable, str(SERVICE_SCRIPT), "--list-adapters"],
+        [*SERVICE_COMMAND, "--list-adapters"],
         cwd=REPO_ROOT,
         check=True,
         capture_output=True,

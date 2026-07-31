@@ -24,8 +24,7 @@ from roboclaws.household.planner_probe_execution import (
     _prepend_pythonpath,
 )
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-WORKER_SCRIPT = REPO_ROOT / "scripts" / "molmo_cleanup" / "run_molmo_planner_manipulation_probe.py"
+PLANNER_PROBE_MODULE = "roboclaws.household.planner_probe"
 
 
 def run_probe(
@@ -97,7 +96,8 @@ def run_probe(
         env["ROBOCLAWS_MOLMOSPACES_RENDERER_DEVICE_ID"] = str(worker_renderer_device_id)
     command = [
         str(python_executable),
-        str(WORKER_SCRIPT),
+        "-m",
+        PLANNER_PROBE_MODULE,
         "--worker",
         "--output-dir",
         str(output_dir),

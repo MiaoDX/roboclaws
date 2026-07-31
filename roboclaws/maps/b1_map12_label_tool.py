@@ -400,3 +400,7 @@ def materialize_scene_evidence_artifacts(packet: dict[str, Any], *, output_dir: 
             copied[source_text] = dict(link)
             links.append(link)
         room["evidence_artifact_links"] = links
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

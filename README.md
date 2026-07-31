@@ -94,7 +94,7 @@ Pages republishes from successful `main` runs.
 | Open household goal | `just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat prompt="find something useful to drink"` | Local artifact today. |
 | Planner proof | `just run::surface surface=planner-proof world=planner-proof/default backend=mujoco intent=planner-proof agent_engine=direct-runner mode=dry-run` | Local artifact today. |
 | Operator console | `just console::run` | Local-only operator surface. |
-| Maintainer gate | `just agent::verify mock` | CI status: [workflow](https://github.com/MiaoDX/roboclaws/actions/workflows/ci.yml) |
+| Maintainer gate | `just agent::verify` | CI status: [workflow](https://github.com/MiaoDX/roboclaws/actions/workflows/ci.yml) |
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the code map and the full operating
 mode contract.

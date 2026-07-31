@@ -9,42 +9,31 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-if __package__ in {None, ""}:
-    repo_root = Path(__file__).resolve().parents[2]
-    if str(repo_root) not in sys.path:
-        sys.path.insert(0, str(repo_root))
-
-from roboclaws.core.json_sources import read_json_object as read_source_json_object  # noqa: E402
-from roboclaws.household import planner_proof_selection, report_planner  # noqa: E402
-from roboclaws.household.planner_proof_contracts import PLANNER_PROOF_REQUESTS_SCHEMA  # noqa: E402
-from roboclaws.household.planner_proof_prior_sources import (  # noqa: E402
+from roboclaws.core.json_sources import read_json_object as read_source_json_object
+from roboclaws.household import planner_proof_selection, report_planner
+from roboclaws.household.planner_proof_contracts import PLANNER_PROOF_REQUESTS_SCHEMA
+from roboclaws.household.planner_proof_prior_sources import (
     _load_prior_proof_result_summary,
 )
-from roboclaws.household.planner_proof_requests import (  # noqa: E402
+from roboclaws.household.planner_proof_requests import (
     build_cleanup_rerun_command,
     build_probe_commands,
     build_probe_warmup_command,
     proof_bundle_run_manifest,
     proof_execution_horizon,
 )
-from roboclaws.household.subprocess_backend import DEFAULT_MOLMOSPACES_PYTHON  # noqa: E402
+from roboclaws.household.subprocess_backend import DEFAULT_MOLMOSPACES_PYTHON
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_PROBE_SCRIPT = (
-    REPO_ROOT / "scripts" / "molmo_cleanup" / "run_molmo_planner_manipulation_probe.py"
-)
-DEFAULT_CLEANUP_SCRIPT = REPO_ROOT / "examples/molmo_cleanup/molmospaces_realworld_cleanup.py"
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate or run bound planner proof bundle commands from a cleanup artifact."
     )
     parser.add_argument("cleanup_run_result", type=Path)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--runner-python", type=Path, default=Path(sys.executable))
-    parser.add_argument("--probe-script", type=Path, default=DEFAULT_PROBE_SCRIPT)
-    parser.add_argument("--cleanup-script", type=Path, default=DEFAULT_CLEANUP_SCRIPT)
     parser.add_argument("--molmospaces-python", type=Path, default=DEFAULT_MOLMOSPACES_PYTHON)
     parser.add_argument("--molmospaces-root", type=Path)
     parser.add_argument("--embodiment", choices=("franka", "rby1m"), default="rby1m")
@@ -99,17 +88,15 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--generate-fallback-requests", action="store_true")
     parser.add_argument("--fallback-alias-limit", type=int, default=4)
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
-def main() -> None:
-    args = parse_args()
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
     result = run_from_cleanup_result(
         cleanup_run_result=args.cleanup_run_result,
         output_dir=args.output_dir,
         runner_python=args.runner_python,
-        probe_script=args.probe_script,
-        cleanup_script=args.cleanup_script,
         molmospaces_python=args.molmospaces_python,
         molmospaces_root=args.molmospaces_root,
         embodiment=args.embodiment,
@@ -142,6 +129,7 @@ def main() -> None:
             }
         )
     )
+    return 0
 
 
 def run_from_cleanup_result(
@@ -149,8 +137,6 @@ def run_from_cleanup_result(
     cleanup_run_result: Path,
     output_dir: Path,
     runner_python: Path,
-    probe_script: Path,
-    cleanup_script: Path,
     molmospaces_python: Path | None,
     molmospaces_root: Path | None,
     embodiment: str,
@@ -201,7 +187,6 @@ def run_from_cleanup_result(
         build_probe_warmup_command(
             output_dir=output_dir,
             runner_python=runner_python,
-            probe_script=probe_script,
             molmospaces_python=molmospaces_python,
             molmospaces_root=molmospaces_root,
             embodiment=embodiment,
@@ -217,7 +202,6 @@ def run_from_cleanup_result(
         manifest=requests,
         output_dir=output_dir,
         runner_python=runner_python,
-        probe_script=probe_script,
         molmospaces_python=molmospaces_python,
         molmospaces_root=molmospaces_root,
         embodiment=embodiment,
@@ -261,7 +245,6 @@ def run_from_cleanup_result(
             cleanup_output = cleanup_output_dir or output_dir / "cleanup_with_planner_proof_bundle"
             cleanup_command = build_cleanup_rerun_command(
                 runner_python=runner_python,
-                cleanup_script=cleanup_script,
                 cleanup_output_dir=cleanup_output,
                 source_run_result=source_run,
                 proof_run_results=proof_results,
@@ -502,4 +485,4 @@ def _resolve_path(base: Path, value: str) -> Path:
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

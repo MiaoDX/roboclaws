@@ -40,8 +40,7 @@ def test_live_surface_product_records_timeout_debug_snapshot(
             **_kwargs: Any,
         ) -> None:
             popen_kwargs.update(_kwargs)
-            output_arg = next(item for item in plan.overrides if item.startswith("output_dir="))
-            output_dir = Path(output_arg.removeprefix("output_dir="))
+            output_dir = Path(plan.adapter_options["output_dir"])
             run_dir = output_dir / "0615_0311" / "seed-7"
             run_dir.mkdir(parents=True, exist_ok=True)
             (run_dir / "live_status.json").write_text(
@@ -227,8 +226,7 @@ def test_live_surface_product_records_wall_clock_budget_timeout(
             stdout: Any = None,
             **_kwargs: Any,
         ) -> None:
-            output_arg = next(item for item in plan.overrides if item.startswith("output_dir="))
-            output_dir = Path(output_arg.removeprefix("output_dir="))
+            output_dir = Path(plan.adapter_options["output_dir"])
             self.run_dir = output_dir / "0615_0312" / "seed-7"
             self.run_dir.mkdir(parents=True, exist_ok=True)
             if stdout is not None:

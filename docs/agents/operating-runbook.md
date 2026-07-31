@@ -91,7 +91,7 @@ one-off connectivity probe:
 Before system-provider Claude Code workflows:
 
 ```bash
-just dev::network-status
+scripts/dev/network_status.sh
 ```
 
 If it reports `network: work`, do not run those guarded routes. Model-only
@@ -145,18 +145,17 @@ Examples:
 - Planner proof:
   `just run::surface surface=planner-proof world=planner-proof/default backend=mujoco intent=planner-proof agent_engine=direct-runner mode=dry-run`
 
-Use `agent::*` for deeper maintainer control:
+Use the canonical maintainer commands for eval selection and the required CI
+gate:
 
 ```bash
-just agent::verify <target> [args ...]
-just agent::harness <target> [args ...]
-just agent::mcp up|down
+just agent::eval recommend plan=<path> budget=focused
+just agent::eval execute since=<base> budget=focused
+just agent::verify
 ```
 
-Lower modules such as `molmo::*`, `harness::*`, `verify::*`, `mcp::*`, and
-`dev::*` are private implementation
-details. They remain runnable for debugging but should not be the first choice
-for natural-language run requests.
+Specialist proofs and process debugging use their package CLIs directly. There
+is no lower private Just registry and no retired command alias surface.
 
 For agent-facing changes, prefer the eval harness instead of hand-writing a
 fixed gate list:

@@ -45,7 +45,6 @@ def test_build_probe_commands_uses_only_ready_requests(tmp_path: Path) -> None:
         manifest=manifest,
         output_dir=tmp_path,
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
         molmospaces_python=None,
         molmospaces_root=None,
         torch_extensions_dir=Path("torch_ext"),
@@ -54,7 +53,7 @@ def test_build_probe_commands_uses_only_ready_requests(tmp_path: Path) -> None:
 
     assert len(commands) == 1
     command = commands[0]["command"]
-    assert command[:2] == ["python", "probe.py"]
+    assert command[:3] == ["python", "-m", "roboclaws.household.planner_probe"]
     assert "--cleanup-object-id" in command
     assert "observed_001" in command
     assert "--cleanup-planner-object-id" in command
@@ -103,7 +102,6 @@ def test_build_probe_commands_rewrites_cleanup_tools_in_semantic_order(
         manifest=manifest,
         output_dir=tmp_path,
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
     )
 
     command = commands[0]["command"]
@@ -126,7 +124,6 @@ def test_build_probe_warmup_command_uses_config_import_and_shared_cache(
     warmup = build_probe_warmup_command(
         output_dir=tmp_path,
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
         molmospaces_python=Path("molmo-python"),
         molmospaces_root=Path("molmospaces"),
         torch_extensions_dir=Path("torch_ext"),
@@ -136,7 +133,7 @@ def test_build_probe_warmup_command_uses_config_import_and_shared_cache(
     command = warmup["command"]
     assert warmup["kind"] == "rby1m_curobo_config_import"
     assert warmup["run_result"].endswith("rby1m_curobo_warmup/run_result.json")
-    assert command[:2] == ["python", "probe.py"]
+    assert command[:3] == ["python", "-m", "roboclaws.household.planner_probe"]
     assert "--probe-mode" in command
     assert "config_import" in command
     assert "--python-executable" in command

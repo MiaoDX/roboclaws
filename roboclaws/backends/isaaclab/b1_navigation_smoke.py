@@ -6,13 +6,9 @@ import json
 import os
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-
-if __package__ in {None, ""}:
-    repo_root = Path(__file__).resolve().parents[2]
-    if str(repo_root) not in sys.path:
-        sys.path.insert(0, str(repo_root))
 
 from PIL import Image
 
@@ -29,10 +25,33 @@ from roboclaws.backends.isaaclab.b1_readiness_validation import (
     validate_waypoint_pose_requests_artifact,
 )
 from roboclaws.backends.isaaclab.isaac_worker_cli import _positive_int_arg
-from roboclaws.core.json_sources import read_json_object  # noqa: E402
+from roboclaws.core import nvidia_eula as eula
+from roboclaws.core.json_sources import read_json_object
 
 
-def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+@dataclass(frozen=True)
+class B1NavigationSmokeRequest:
+    output_dir: Path | None
+    b1_root: Path | None = None
+    map12_root: Path | None = None
+    readiness_artifact: Path | None = None
+    waypoint_pose_requests: Path | None = None
+    robot_name: str = "rby1m"
+    render_width: int = 540
+    render_height: int = 360
+    render_scene_usd: Path | None = DEFAULT_B1_VISUAL_ROUTE_SCENE_USD
+    accept_nvidia_eula: bool = False
+
+
+@dataclass(frozen=True)
+class CaptureOneRequest:
+    request_path: Path
+    output_path: Path
+
+
+def parse_args(
+    argv: list[str] | None = None,
+) -> B1NavigationSmokeRequest | CaptureOneRequest:
     parser = argparse.ArgumentParser(
         description="Run the local Isaac B1 / Map 12 pose-driven navigation smoke."
     )
@@ -67,28 +86,49 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument("--accept-nvidia-eula", action="store_true")
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    if args.command == "_capture-one":
+        return CaptureOneRequest(request_path=args.request, output_path=args.output)
+    return B1NavigationSmokeRequest(
+        output_dir=args.output_dir,
+        b1_root=args.b1_root,
+        map12_root=args.map12_root,
+        readiness_artifact=args.readiness_artifact,
+        waypoint_pose_requests=args.waypoint_pose_requests,
+        robot_name=args.robot_name,
+        render_width=args.render_width,
+        render_height=args.render_height,
+        render_scene_usd=args.render_scene_usd,
+        accept_nvidia_eula=args.accept_nvidia_eula,
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = parse_args(argv)
-    if args.command == "_capture-one":
-        return capture_one(args)
-    if args.output_dir is None:
+    request = parse_args(argv)
+    if isinstance(request, CaptureOneRequest):
+        return capture_one(
+            request_path=request.request_path,
+            output_path=request.output_path,
+        )
+    if request.output_dir is None:
         raise SystemExit("--output-dir is required")
-    if args.accept_nvidia_eula:
-        os.environ["OMNI_KIT_ACCEPT_EULA"] = "YES"
-    return run_navigation_smoke(args)
+    if not eula.accepted(explicit=request.accept_nvidia_eula):
+        print(f"error: {eula.required_message('B1 navigation smoke')}", file=sys.stderr)
+        return 2
+    eula.record_acceptance()
+    return run_navigation_smoke(request)
 
 
-def run_navigation_smoke(args: argparse.Namespace) -> int:
-    output_dir = Path(args.output_dir)
+def run_navigation_smoke(request: B1NavigationSmokeRequest) -> int:
+    if request.output_dir is None:
+        raise ValueError("navigation smoke output_dir is required")
+    output_dir = request.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
     artifact_path = output_dir / "navigation_smoke.json"
-    readiness = load_or_build_readiness(args)
+    readiness = load_or_build_readiness(request)
     waypoints, request_blocker = navigation_smoke_waypoints(
         readiness=readiness,
-        waypoint_pose_requests=args.waypoint_pose_requests,
+        waypoint_pose_requests=request.waypoint_pose_requests,
     )
     if request_blocker:
         artifact = blocked_artifact(
@@ -110,7 +150,7 @@ def run_navigation_smoke(args: argparse.Namespace) -> int:
 
     from roboclaws.backends.isaaclab import runtime_state
 
-    robot_import = runtime_state._rby1m_robot_import_plan(str(args.robot_name))
+    robot_import = runtime_state._rby1m_robot_import_plan(request.robot_name)
     if robot_import.get("status") != "imported":
         artifact = blocked_artifact(
             readiness=readiness,
@@ -121,7 +161,7 @@ def run_navigation_smoke(args: argparse.Namespace) -> int:
         write_artifact(artifact_path, artifact)
         return 2
 
-    scene_usd = selected_render_scene_usd(args=args, readiness=readiness)
+    scene_usd = selected_render_scene_usd(request=request, readiness=readiness)
     if not scene_usd.is_file():
         artifact = blocked_artifact(
             readiness=readiness,
@@ -131,70 +171,13 @@ def run_navigation_smoke(args: argparse.Namespace) -> int:
         write_artifact(artifact_path, artifact)
         return 2
 
-    waypoint_evidence = []
-    child_failures: list[dict[str, Any]] = []
-    for index, waypoint in enumerate(waypoints, start=1):
-        request_path = output_dir / f"waypoint_{index:02d}_request.json"
-        result_path = output_dir / f"waypoint_{index:02d}_result.json"
-        request = {
-            "scene_usd": str(scene_usd),
-            "robot_import": robot_import,
-            "waypoint": waypoint,
-            "output_dir": str(output_dir / f"waypoint_{index:02d}_views"),
-            "render_width": int(args.render_width),
-            "render_height": int(args.render_height),
-        }
-        request_path.write_text(
-            json.dumps(request, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
-        completed = subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "roboclaws.backends.isaaclab.b1_navigation_smoke",
-                "_capture-one",
-                "--request",
-                str(request_path),
-                "--output",
-                str(result_path),
-            ],
-            cwd=Path(__file__).resolve().parents[3],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        (output_dir / f"waypoint_{index:02d}_stdout.log").write_text(
-            completed.stdout,
-            encoding="utf-8",
-        )
-        (output_dir / f"waypoint_{index:02d}_stderr.log").write_text(
-            completed.stderr,
-            encoding="utf-8",
-        )
-        if completed.returncode != 0 or not result_path.is_file():
-            child_failures.append(
-                {
-                    "waypoint_id": waypoint.get("waypoint_id"),
-                    "returncode": completed.returncode,
-                    "stderr_tail": completed.stderr[-2000:],
-                }
-            )
-            continue
-        try:
-            result = read_json_object(result_path, label="navigation smoke child result")
-        except (FileNotFoundError, ValueError) as exc:
-            child_failures.append(
-                {
-                    "waypoint_id": waypoint.get("waypoint_id"),
-                    "returncode": completed.returncode,
-                    "stderr_tail": completed.stderr[-2000:],
-                    "source_error": str(exc),
-                }
-            )
-            continue
-        waypoint_evidence.append(result)
-
+    waypoint_evidence, child_failures = _collect_waypoint_evidence(
+        request=request,
+        output_dir=output_dir,
+        scene_usd=scene_usd,
+        robot_import=robot_import,
+        waypoints=waypoints,
+    )
     provisional_passed = (
         navigation_smoke_has_distinct_pose_evidence(waypoint_evidence) and not child_failures
     )
@@ -255,8 +238,82 @@ def run_navigation_smoke(args: argparse.Namespace) -> int:
     return 0 if artifact["validation"]["status"] == "passed" else 2
 
 
-def capture_one(args: argparse.Namespace) -> int:
-    request = read_json_object(args.request, label="navigation smoke capture request")
+def _collect_waypoint_evidence(
+    *,
+    request: B1NavigationSmokeRequest,
+    output_dir: Path,
+    scene_usd: Path,
+    robot_import: dict[str, Any],
+    waypoints: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    waypoint_evidence: list[dict[str, Any]] = []
+    child_failures: list[dict[str, Any]] = []
+    for index, waypoint in enumerate(waypoints, start=1):
+        request_path = output_dir / f"waypoint_{index:02d}_request.json"
+        result_path = output_dir / f"waypoint_{index:02d}_result.json"
+        capture_request = {
+            "scene_usd": str(scene_usd),
+            "robot_import": robot_import,
+            "waypoint": waypoint,
+            "output_dir": str(output_dir / f"waypoint_{index:02d}_views"),
+            "render_width": request.render_width,
+            "render_height": request.render_height,
+        }
+        request_path.write_text(
+            json.dumps(capture_request, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "roboclaws.backends.isaaclab.b1_navigation_smoke",
+                "_capture-one",
+                "--request",
+                str(request_path),
+                "--output",
+                str(result_path),
+            ],
+            cwd=Path(__file__).resolve().parents[3],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        (output_dir / f"waypoint_{index:02d}_stdout.log").write_text(
+            completed.stdout,
+            encoding="utf-8",
+        )
+        (output_dir / f"waypoint_{index:02d}_stderr.log").write_text(
+            completed.stderr,
+            encoding="utf-8",
+        )
+        if completed.returncode != 0 or not result_path.is_file():
+            child_failures.append(
+                {
+                    "waypoint_id": waypoint.get("waypoint_id"),
+                    "returncode": completed.returncode,
+                    "stderr_tail": completed.stderr[-2000:],
+                }
+            )
+            continue
+        try:
+            result = read_json_object(result_path, label="navigation smoke child result")
+        except (FileNotFoundError, ValueError) as exc:
+            child_failures.append(
+                {
+                    "waypoint_id": waypoint.get("waypoint_id"),
+                    "returncode": completed.returncode,
+                    "stderr_tail": completed.stderr[-2000:],
+                    "source_error": str(exc),
+                }
+            )
+            continue
+        waypoint_evidence.append(result)
+    return waypoint_evidence, child_failures
+
+
+def capture_one(*, request_path: Path, output_path: Path) -> int:
+    request = read_json_object(request_path, label="navigation smoke capture request")
     from roboclaws.backends.isaaclab import runtime_capture
 
     waypoint = request["waypoint"]
@@ -312,27 +369,31 @@ def capture_one(args: argparse.Namespace) -> int:
         "render_steps": int(capture.get("render_steps") or 0),
         "native_render_diagnostics": dict(capture.get("native_render_diagnostics") or {}),
     }
-    args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    sys.stdout.write(json.dumps({"status": "passed", "output": str(args.output)}, sort_keys=True))
+    output_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    sys.stdout.write(json.dumps({"status": "passed", "output": str(output_path)}, sort_keys=True))
     sys.stdout.flush()
     sys.stderr.flush()
     os._exit(0 if result["robot_pose_applied"] and images.get("fpv") else 2)
 
 
-def load_or_build_readiness(args: argparse.Namespace) -> dict[str, Any]:
-    if args.readiness_artifact is not None:
-        payload = read_json_object(Path(args.readiness_artifact), label="readiness artifact")
+def load_or_build_readiness(request: B1NavigationSmokeRequest) -> dict[str, Any]:
+    if request.readiness_artifact is not None:
+        payload = read_json_object(request.readiness_artifact, label="readiness artifact")
         if payload.get("schema") != READINESS_SCHEMA:
             raise ValueError(f"unexpected readiness artifact schema: {payload.get('schema')!r}")
         return payload
-    if args.b1_root is None or args.map12_root is None:
+    if request.b1_root is None or request.map12_root is None:
         raise ValueError("either --readiness-artifact or both --b1-root/--map12-root are required")
-    return build_readiness_artifact(Path(args.b1_root), Path(args.map12_root))
+    return build_readiness_artifact(request.b1_root, request.map12_root)
 
 
-def selected_render_scene_usd(*, args: argparse.Namespace, readiness: dict[str, Any]) -> Path:
-    if args.render_scene_usd is not None:
-        return Path(args.render_scene_usd)
+def selected_render_scene_usd(
+    *,
+    request: B1NavigationSmokeRequest,
+    readiness: dict[str, Any],
+) -> Path:
+    if request.render_scene_usd is not None:
+        return request.render_scene_usd
     b1_geometry = dict(readiness.get("b1_geometry") or {})
     return Path(
         str(

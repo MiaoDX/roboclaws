@@ -7,10 +7,13 @@ import threading
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 
+import pytest
+
 from roboclaws.evals.visual_grounding_benchmark.scoring import (
     score_predictions as _score_predictions,
 )
 from roboclaws.evals.visual_grounding_benchmark.summary import _family_sweep_summary
+from roboclaws.evals.visual_grounding_benchmark.validation import validate_benchmark_path
 from roboclaws.household.visual_grounding_sidecar.adapter_candidates import (
     _yolo_prompt_labels,
 )
@@ -21,7 +24,7 @@ from roboclaws.household.visual_grounding_sidecar.adapter_contracts import (
     visual_grounding_adapter_catalog,
 )
 from roboclaws.household.visual_grounding_sidecar.adapter_runtime import _set_yolo_classes_if_needed
-from scripts.visual_grounding.serve_visual_grounding_service import (
+from roboclaws.household.visual_grounding_sidecar.service import (
     make_handler as make_configurable_handler,
 )
 
@@ -30,8 +33,7 @@ CORPUS = REPO_ROOT / "harness" / "visual_grounding" / "smoke_corpus.json"
 FIRST_WAVE_MATRIX = (
     REPO_ROOT / "harness" / "visual_grounding" / "first_wave_gpu_sidecar_matrix.json"
 )
-RUNNER = REPO_ROOT / "scripts" / "visual_grounding" / "run_visual_grounding_benchmark.py"
-CHECKER = REPO_ROOT / "scripts" / "visual_grounding" / "check_visual_grounding_benchmark_result.py"
+RUNNER_MODULE = "roboclaws.evals.visual_grounding_benchmark.runner"
 
 
 def test_visual_grounding_yolo_expands_cleanup_family_hints_for_open_vocab() -> None:
@@ -91,7 +93,8 @@ def test_visual_grounding_benchmark_rejects_fake_http_pipeline(tmp_path: Path) -
     result = subprocess.run(
         [
             sys.executable,
-            str(RUNNER),
+            "-m",
+            RUNNER_MODULE,
             "--corpus",
             str(CORPUS),
             "--output-dir",
@@ -112,7 +115,8 @@ def test_visual_grounding_benchmark_rejects_non_positive_timeout(tmp_path: Path)
     result = subprocess.run(
         [
             sys.executable,
-            str(RUNNER),
+            "-m",
+            RUNNER_MODULE,
             "--corpus",
             str(CORPUS),
             "--output-dir",
@@ -149,7 +153,8 @@ def test_visual_grounding_benchmark_rejects_contract_fake_matrix_row(
     result = subprocess.run(
         [
             sys.executable,
-            str(RUNNER),
+            "-m",
+            RUNNER_MODULE,
             "--corpus",
             str(CORPUS),
             "--output-dir",
@@ -204,7 +209,8 @@ def test_visual_grounding_checker_allows_zero_candidate_success_without_candidat
         subprocess.run(
             [
                 sys.executable,
-                str(RUNNER),
+                "-m",
+                RUNNER_MODULE,
                 "--corpus",
                 str(corpus),
                 "--output-dir",
@@ -223,35 +229,19 @@ def test_visual_grounding_checker_allows_zero_candidate_success_without_candidat
         server.shutdown()
         server.server_close()
 
-    candidate_gate = subprocess.run(
-        [
-            sys.executable,
-            str(CHECKER),
-            str(tmp_path / "benchmark"),
-            "--expect-pipeline",
-            "grounding-dino",
-            "--require-success",
-        ],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-    )
-    assert candidate_gate.returncode == 1
-    assert "pipeline failures present" in candidate_gate.stderr
-    candidate_gate = subprocess.run(
-        [
-            sys.executable,
-            str(CHECKER),
-            str(tmp_path / "benchmark"),
-            "--expect-pipeline",
-            "grounding-dino",
-            "--require-success",
-            "--require-candidates",
-        ],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-    )
+    with pytest.raises(AssertionError, match="pipeline failures present"):
+        validate_benchmark_path(
+            tmp_path / "benchmark",
+            expect_pipeline="grounding-dino",
+            require_success=True,
+        )
+    with pytest.raises(AssertionError, match="pipeline failures present"):
+        validate_benchmark_path(
+            tmp_path / "benchmark",
+            expect_pipeline="grounding-dino",
+            require_success=True,
+            require_candidates=True,
+        )
 
     result_path = tmp_path / "benchmark" / "visual_grounding_benchmark_result.json"
     result = json.loads(result_path.read_text())
@@ -266,7 +256,8 @@ def test_visual_grounding_benchmark_compares_named_contract_pipelines(tmp_path: 
         subprocess.run(
             [
                 sys.executable,
-                str(RUNNER),
+                "-m",
+                RUNNER_MODULE,
                 "--corpus",
                 str(CORPUS),
                 "--output-dir",
@@ -341,7 +332,8 @@ def test_visual_grounding_benchmark_records_missing_sidecar_for_detector_routes(
         subprocess.run(
             [
                 sys.executable,
-                str(RUNNER),
+                "-m",
+                RUNNER_MODULE,
                 "--corpus",
                 str(CORPUS),
                 "--output-dir",
@@ -425,7 +417,8 @@ def test_visual_grounding_benchmark_matrix_versions_model_rows(tmp_path: Path) -
         subprocess.run(
             [
                 sys.executable,
-                str(RUNNER),
+                "-m",
+                RUNNER_MODULE,
                 "--corpus",
                 str(CORPUS),
                 "--output-dir",

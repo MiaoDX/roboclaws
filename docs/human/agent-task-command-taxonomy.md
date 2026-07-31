@@ -49,19 +49,17 @@ user-scoped cleanup request.
 
 ## Maintainer Dispatch
 
-`agent::*` is the compact maintainer facade:
+The maintained repository tasks are explicit:
 
 ```bash
-just agent::verify <target> [args ...]
-just agent::harness <target> [args ...]
+just agent::verify
 just agent::eval recommend|execute|suite=<suite>|promote-regression ...
-just agent::mcp up|down
+just console::run
+scripts/dev/network_status.sh
 ```
 
-Lower modules such as `molmo::*`, `harness::*`, `verify::*`, and `mcp::*` are
-private implementation details.
-They remain runnable for debugging, but they are hidden from `just --summary`
-and should not be the first response to natural-language run requests.
+Specialist proof runners and process controls are package CLIs. Retired command
+paths have no private aliases or compatibility adapters.
 
 ## Validation And Eval Layers
 
@@ -71,11 +69,11 @@ These layers are maintainer surfaces, not ordinary product-run axes:
 | --- | --- | --- |
 | Eval harness | `just agent::eval recommend|execute ...` | Selects and records deterministic gates, product rows, eval-suite rows, live-agent eval rows, blockers, and regression-promotion guidance for a plan, diff, or explicit request. |
 | Eval suite | `just agent::eval suite=<suite> ...` | Runs versioned samples, trials, graders, aggregate metrics, and failure replay. |
-| Harness recipe | `harness::*` or lower private modules | Executes specialist proofs used by product or eval flows. |
+| Package proof | `python -m roboclaws.<owner>` | Executes a specialist proof at its implementation owner. |
 
 The eval harness answers "what should this change validate and evaluate?" Eval
-suites answer "is this capability improving across a stable benchmark?" Harness
-recipes answer "how do we execute this low-level proof?"
+suites answer "is this capability improving across a stable benchmark?" Package
+CLIs execute specialist proofs without adding another dispatch taxonomy.
 
 ## Evidence Lanes
 
@@ -96,5 +94,5 @@ The command taxonomy is covered by:
 ```bash
 ./scripts/dev/run_pytest_standalone.sh -q tests/contract/dev_tools
 just --summary
-just agent::verify ci-required
+just agent::verify
 ```

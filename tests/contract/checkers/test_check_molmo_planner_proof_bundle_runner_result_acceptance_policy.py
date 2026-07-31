@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pytest
 
+from roboclaws.household import planner_proof_bundle_validation
 from roboclaws.household.manipulation_provenance import planner_backed_probe_evidence
 from tests.contract.checkers.check_molmo_planner_proof_bundle_runner_result_support import (
-    _load_checker,
     _runner_manifest,
     _write_manifest_and_report,
     _write_runner_artifact,
@@ -15,16 +15,16 @@ from tests.contract.checkers.check_molmo_planner_proof_bundle_runner_result_supp
 
 
 def test_checker_can_require_proof_execution_horizon(tmp_path: Path) -> None:
-    checker = _load_checker()
     manifest = _write_runner_artifact(tmp_path)
 
-    checker._assert_runner_result(manifest, tmp_path, require_proof_execution_horizon=True)
+    planner_proof_bundle_validation.assert_runner_result(
+        manifest, tmp_path, require_proof_execution_horizon=True
+    )
 
 
 def test_checker_can_require_proof_quality_for_planner_backed_result(
     tmp_path: Path,
 ) -> None:
-    checker = _load_checker()
     manifest = _runner_manifest(tmp_path)
     proof_dir = tmp_path / "proofs" / "001_observed_001_to_sink_01"
     views_dir = proof_dir / "planner_views"
@@ -59,7 +59,7 @@ def test_checker_can_require_proof_quality_for_planner_backed_result(
     report = (tmp_path / "report.html").read_text(encoding="utf-8")
     assert "Planner Proof Quality" in report
     assert "multi_step_motion" in report
-    checker._assert_runner_result(
+    planner_proof_bundle_validation.assert_runner_result(
         manifest,
         tmp_path,
         require_proof_outputs=True,
@@ -67,7 +67,7 @@ def test_checker_can_require_proof_quality_for_planner_backed_result(
         planner_backed_proof_min_steps=2,
     )
     with pytest.raises(AssertionError):
-        checker._assert_runner_result(
+        planner_proof_bundle_validation.assert_runner_result(
             manifest,
             tmp_path,
             require_proof_outputs=True,

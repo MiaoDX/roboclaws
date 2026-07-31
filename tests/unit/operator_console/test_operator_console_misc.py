@@ -12,7 +12,7 @@ import pytest
 
 from roboclaws.operator_console.launch_contract import ConsoleLaunchError
 from roboclaws.operator_console.launcher import (
-    build_launch_argv,
+    build_launch_args,
 )
 from roboclaws.operator_console.redaction import redact_text
 from roboclaws.operator_console.routes import (
@@ -116,7 +116,7 @@ def test_console_route_payload_supports_backend_specific_ui_metadata() -> None:
 
 def test_console_prompt_gating_and_argv_construction_are_fixed_argv(tmp_path: Path) -> None:
     route = get_selection(MUJOCO_SDK_CLEANUP)
-    argv = build_launch_argv(
+    argv = build_launch_args(
         route,
         root=tmp_path,
         run_id="run-1",
@@ -128,9 +128,7 @@ def test_console_prompt_gating_and_argv_construction_are_fixed_argv(tmp_path: Pa
         },
     )
 
-    assert argv[:7] == [
-        "just",
-        "run::surface",
+    assert argv[:5] == [
         "surface=household-world",
         "world=molmospaces/procthor-objaverse-val/0",
         "backend=mujoco",
@@ -146,7 +144,7 @@ def test_console_prompt_gating_and_argv_construction_are_fixed_argv(tmp_path: Pa
     assert not any(item.startswith("generated_mess_count=") for item in argv)
     assert not any("OpenClaw" in item or "claude" in item for item in argv)
 
-    open_ended = build_launch_argv(
+    open_ended = build_launch_args(
         route,
         root=tmp_path,
         run_id="run-1-open-ended",
@@ -159,7 +157,7 @@ def test_console_prompt_gating_and_argv_construction_are_fixed_argv(tmp_path: Pa
     assert not any(item.startswith("relocation_count=") for item in open_ended)
     assert not any(item.startswith("generated_mess_count=") for item in open_ended)
 
-    default_open_ended = build_launch_argv(
+    default_open_ended = build_launch_args(
         route,
         root=tmp_path,
         run_id="run-1-open-ended-default",
@@ -171,10 +169,10 @@ def test_console_prompt_gating_and_argv_construction_are_fixed_argv(tmp_path: Pa
 
     disabled = get_selection(AGIBOT_SDK_CLEANUP)
     with pytest.raises(ConsoleLaunchError, match="cannot accept a custom prompt"):
-        build_launch_argv(disabled, root=tmp_path, run_id="run-2", prompt="custom")
+        build_launch_args(disabled, root=tmp_path, run_id="run-2", prompt="custom")
 
     with pytest.raises(ConsoleLaunchError, match="unsupported route parameter"):
-        build_launch_argv(route, root=tmp_path, run_id="run-3", overrides={"shell": "true"})
+        build_launch_args(route, root=tmp_path, run_id="run-3", overrides={"shell": "true"})
 
 
 def test_redaction_removes_secret_values_and_headers(tmp_path: Path) -> None:

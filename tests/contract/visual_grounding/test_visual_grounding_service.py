@@ -24,14 +24,18 @@ from roboclaws.household.visual_grounding_sidecar import (
     adapter_service,
     adapter_yolo,
 )
-from scripts.visual_grounding.check_visual_grounding_readiness import (
+from roboclaws.household.visual_grounding_sidecar.readiness import (
     _readiness_request,
     check_visual_grounding_readiness,
 )
-from scripts.visual_grounding.serve_visual_grounding_service import make_handler
+from roboclaws.household.visual_grounding_sidecar.service import make_handler
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SERVICE_SCRIPT = REPO_ROOT / "scripts" / "visual_grounding" / "serve_visual_grounding_service.py"
+SERVICE_COMMAND = [
+    sys.executable,
+    "-m",
+    "roboclaws.household.visual_grounding_sidecar.service",
+]
 
 
 def test_model_loader_prefers_complete_local_cache() -> None:
@@ -121,8 +125,7 @@ def test_product_readiness_probe_uses_camera_sized_jpeg_frame() -> None:
 def test_configurable_service_rejects_contract_fake_adapter_mode_from_cli() -> None:
     result = subprocess.run(
         [
-            sys.executable,
-            str(SERVICE_SCRIPT),
+            *SERVICE_COMMAND,
             "--adapter-mode",
             "contract-fake",
             "--list-adapters",
@@ -143,8 +146,7 @@ def test_configurable_service_rejects_invalid_adapter_mode_from_env(
 
     result = subprocess.run(
         [
-            sys.executable,
-            str(SERVICE_SCRIPT),
+            *SERVICE_COMMAND,
             "--list-adapters",
         ],
         cwd=REPO_ROOT,

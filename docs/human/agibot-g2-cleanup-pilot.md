@@ -44,7 +44,7 @@ operator 站在机器人旁边。
 ```bash
 uv sync --extra dev
 set -a && source .env && set +a
-just dev::network-status
+scripts/dev/network_status.sh
 ```
 
 每次 SDK 启动都必须显式选择 profile。默认验证使用 `kimi-openai-chat`，并从
@@ -56,7 +56,7 @@ repo-local `.env` 读取 `KIMI_OPENAI_BASE_URL` 和 `KIMI_API_KEY`；也可以�
 当前 vendor submodule 已包含 `robot_map_12`，直接转换它：
 
 ```bash
-python scripts/maps/convert_agibot_navigation_memory.py \
+python -m roboclaws.maps.runtime_prior_conversion agibot-navigation-memory \
   vendors/agibot_sdk/artifacts/maps/robot_map_12 \
   --output output/maps/robot_map_12/runtime_map_prior_snapshot.json \
   --summary-json output/maps/robot_map_12/materialized_targets.json
@@ -245,7 +245,7 @@ http://127.0.0.1:18880/v1/visual-grounding/candidates
 UV_PROJECT_ENVIRONMENT="$PWD/.venv-visual-grounding" \
   uv sync --project sidecars/visual-grounding --extra cuda
 
-.venv-visual-grounding/bin/python scripts/visual_grounding/serve_visual_grounding_service.py \
+.venv-visual-grounding/bin/python -m roboclaws.household.visual_grounding_sidecar.service \
   --pipeline real-router --adapter-mode real
 ```
 
@@ -257,7 +257,7 @@ UV_PROJECT_ENVIRONMENT="$PWD/.venv-visual-grounding" \
 missing-sidecar / adapter-unavailable 证据，而不是伪造候选：
 
 ```bash
-.venv/bin/python scripts/visual_grounding/serve_visual_grounding_service.py --pipeline grounding-dino
+.venv/bin/python -m roboclaws.household.visual_grounding_sidecar.service --pipeline grounding-dino
 ```
 
 ## 命令行运行

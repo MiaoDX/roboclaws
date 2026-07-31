@@ -209,8 +209,8 @@ def test_long_horizon_live_command_uses_private_task_targets(tmp_path: Path) -> 
     ]
     plan = resolve_surface_launch(command[5:])
     assert plan.relocation_count == len(target_ids)
-    assert pinned_targets_arg in plan.overrides
-    assert f"generated_mess_manifest_path={manifest_path}" in plan.overrides
+    assert plan.adapter_options["generated_mess_object_ids"] == pinned_targets_arg.split("=", 1)[1]
+    assert plan.adapter_options["generated_mess_manifest_path"] == str(manifest_path)
 
 
 def test_long_horizon_generated_mess_manifest_comes_from_private_task_spec() -> None:

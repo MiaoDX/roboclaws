@@ -12,7 +12,7 @@ from roboclaws.maps.b1_map12_correspondence_review import SCENE_TOPDOWN_PICK_SOU
 from scripts.maps.render_b1_scene_gaussian_topdown import TOPDOWN_RENDER_SCHEMA
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SCRIPT = REPO_ROOT / "scripts" / "maps" / "render_b1_map12_correspondence_review.py"
+MODULE = "roboclaws.maps.b1_map12_correspondence_review"
 VENDOR_MAP12_BUNDLE = (
     REPO_ROOT / "vendors" / "agibot_sdk" / "artifacts" / "maps" / "robot_map_12" / "agibot"
 )
@@ -147,7 +147,8 @@ def _run_review_cli(
     return subprocess.run(
         [
             sys.executable,
-            str(SCRIPT),
+            "-m",
+            MODULE,
             "--correspondences",
             str(correspondences),
             "--map-bundle",

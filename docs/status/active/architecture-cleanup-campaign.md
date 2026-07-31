@@ -388,16 +388,14 @@ Parked work:
   no-caller/importability proof unless that owner behavior is changed.
 - Obsolete checker flag removal needs public checker CLI migration approval
   because it would change an actionable error into a generic unknown-flag error.
-- `scripts/molmo_cleanup/run_molmospaces_scene_camera_comparison.py` remains
-  parked: it is a pass-through module CLI wrapper, but it is still the path
-  used by `just/molmo.just` and covered by a CLI contract test. Removing it
-  safely would need a separate recipe/test migration around a simulator-heavy
-  surface.
-- No-clear pass 1 parked `scripts/maps/check_bundle.py`,
-  `scripts/maps/export_agibot_map_bundle.py`, and
-  `scripts/molmo_cleanup/prepare_molmospaces_room.py` because they still own
-  real CLI argument/default behavior instead of pure pass-through wrapper
-  behavior.
+- The scene-camera comparison wrapper that was previously parked has now been
+  deleted; current callers use the package CLI directly.
+- The map CLI wrappers parked in no-clear pass 1 were absorbed by the
+  forward-only package-CLI migration; their argument/default behavior now
+  belongs to package owners and the scripts are deleted.
+- `scripts/molmo_cleanup/prepare_molmospaces_room.py` remains parked because it
+  still owns real CLI argument/default behavior instead of pure pass-through
+  wrapper behavior.
 - Remaining current quality-ratchet queue: broader oversized-module baseline
   drift across Agibot, Molmo, visual-grounding, and test files. Treat as
   architecture pressure and try safe owner-local shrink slices before
@@ -424,8 +422,8 @@ Parked work:
   migrations remain parked; `operator_console.state` already centralizes JSON
   source errors; remaining oversized owners need broader domain contracts or
   test-suite restructuring rather than a safe autonomous slice.
-- No-clear pass 2 after Slice 33: `run_molmospaces_scene_camera_comparison.py`
-  remains a live recipe wrapper; the small map/preparation scripts still own
+- No-clear pass 2 after Slice 33 was superseded by the forward-only Just
+  command migration; the small map/preparation scripts still own
   CLI defaults or output formatting; `operator_console.jsonl_sources` and the
   merged interaction source-error helper already cover the JSONL/source-error
   owner; public MolmoSpaces `val_*` aliases remain documented/tested launch

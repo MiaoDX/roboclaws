@@ -101,3 +101,7 @@ def _positive_int_arg(value: str) -> int:
     if parsed <= 0:
         raise argparse.ArgumentTypeError("must be a positive integer")
     return parsed
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

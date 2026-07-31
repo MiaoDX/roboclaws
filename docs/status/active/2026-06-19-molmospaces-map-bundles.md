@@ -9,7 +9,7 @@
 - No-touch scope: unrelated dirty work and parked SDK storage status docs.
 - Last proven evidence:
   - `.venv/bin/python scripts/maps/generate_molmospaces_scene_bundles.py --active-sampler-scenes --force --json`
-  - `for dir in $(find assets/maps/molmospaces -mindepth 2 -maxdepth 2 -type d | sort); do .venv/bin/python scripts/maps/check_bundle.py "$dir"; done`
+  - `for dir in $(find assets/maps/molmospaces -mindepth 2 -maxdepth 2 -type d | sort); do .venv/bin/python -m roboclaws.maps.bundle "$dir"; done`
   - `./scripts/dev/run_pytest_standalone.sh -q tests/contract/maps/test_generate_molmospaces_scene_bundles.py tests/contract/maps/test_nav2_map_bundle_contract.py tests/unit/launch/test_scene_sampler.py`
   - `ruff check scripts/maps/generate_molmospaces_scene_bundles.py tests/contract/maps/test_generate_molmospaces_scene_bundles.py roboclaws/launch/map_bundles.py tests/contract/maps/test_nav2_map_bundle_contract.py tests/unit/launch/test_scene_sampler.py`
   - `ruff format --check scripts/maps/generate_molmospaces_scene_bundles.py tests/contract/maps/test_generate_molmospaces_scene_bundles.py`

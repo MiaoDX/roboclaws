@@ -8,22 +8,25 @@ from types import SimpleNamespace
 
 import pytest
 
+from roboclaws.launch import household
+
 REPO_ROOT = Path(__file__).resolve().parents[3]
-MOLMO_JUST = REPO_ROOT / "just" / "molmo.just"
 LIVE_OPENAI_AGENTS_LIFECYCLE = REPO_ROOT / "roboclaws/agents/household_live_lifecycle.py"
 
 
-def test_molmo_direct_open_ended_recipe_uses_artifact_gate_before_cleanup_checker() -> None:
-    text = MOLMO_JUST.read_text(encoding="utf-8")
-    assert "roboclaws.core.open_ended_artifacts" in text
-    root_gate = text.index('if [[ "$open_ended_intent" == "true" ]]; then')
-    root_artifact_gate = text.index("roboclaws.core.open_ended_artifacts", root_gate)
-    root_cleanup_checker = text.index(
-        "roboclaws.evals.cleanup_result_cli",
-        root_gate,
+def test_direct_open_ended_uses_artifact_gate_not_cleanup_checker(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    checked = [tmp_path / "seed-7"]
+    monkeypatch.setattr(household, "validate_open_ended_artifacts", lambda _path: checked)
+    monkeypatch.setattr(
+        household,
+        "load_run_results",
+        lambda _path: pytest.fail("open-ended runs must not enter cleanup validation"),
     )
 
-    assert root_artifact_gate < root_cleanup_checker
+    assert household._validate_runs(SimpleNamespace(open_ended=True), run_root=tmp_path) == 0
 
 
 def test_openai_agents_open_ended_uses_artifact_gate_not_cleanup_checker(

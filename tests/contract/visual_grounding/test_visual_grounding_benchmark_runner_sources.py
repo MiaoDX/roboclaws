@@ -7,7 +7,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CORPUS = REPO_ROOT / "harness" / "visual_grounding" / "smoke_corpus.json"
-RUNNER = REPO_ROOT / "scripts" / "visual_grounding" / "run_visual_grounding_benchmark.py"
+RUNNER_MODULE = "roboclaws.evals.visual_grounding_benchmark.runner"
 
 
 def test_visual_grounding_runner_rejects_missing_corpus_source(tmp_path: Path) -> None:
@@ -116,7 +116,8 @@ def _run_runner(output_dir: Path, *extra_args: str) -> subprocess.CompletedProce
     return subprocess.run(
         [
             sys.executable,
-            str(RUNNER),
+            "-m",
+            RUNNER_MODULE,
             "--corpus",
             str(CORPUS),
             "--output-dir",

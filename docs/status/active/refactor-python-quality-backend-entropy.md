@@ -1017,8 +1017,7 @@ diagnostics.
 
 ## No-Touch Scope
 
-- Do not touch unrelated dirty `just` files: `just/agent.just` and
-  `just/molmo.just`.
+- Do not touch unrelated concurrent command-surface changes.
 - Do not touch unrelated operator-console dirty files:
   `roboclaws/operator_console/server.py`,
   `roboclaws/operator_console/static/app.js`, and

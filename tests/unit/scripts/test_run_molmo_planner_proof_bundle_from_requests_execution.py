@@ -5,16 +5,15 @@ from pathlib import Path
 
 import pytest
 
+from roboclaws.household import planner_proof_bundle_runner
 from roboclaws.household.planner_proof_results import proof_result_summary_from_commands
 from tests.unit.scripts.run_molmo_planner_proof_bundle_from_requests_support import (
-    _load_module,
     _proof_requests,
     _run_minimal_bundle,
 )
 
 
 def test_runner_reports_misaligned_proof_execution_horizon(tmp_path: Path) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     cleanup_run_result.write_text(
@@ -22,12 +21,10 @@ def test_runner_reports_misaligned_proof_execution_horizon(tmp_path: Path) -> No
         encoding="utf-8",
     )
 
-    result = runner.run_from_cleanup_result(
+    result = planner_proof_bundle_runner.run_from_cleanup_result(
         cleanup_run_result=cleanup_run_result,
         output_dir=tmp_path / "bundle",
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
-        cleanup_script=Path("cleanup.py"),
         molmospaces_python=None,
         molmospaces_root=None,
         embodiment="rby1m",
@@ -107,7 +104,6 @@ def test_runner_summarizes_grasp_feasibility_signatures(tmp_path: Path) -> None:
 
 
 def test_runner_can_add_visible_warmup_with_output_local_cache(tmp_path: Path) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     cleanup_run_result.write_text(
@@ -116,12 +112,10 @@ def test_runner_can_add_visible_warmup_with_output_local_cache(tmp_path: Path) -
     )
     output_dir = tmp_path / "bundle"
 
-    result = runner.run_from_cleanup_result(
+    result = planner_proof_bundle_runner.run_from_cleanup_result(
         cleanup_run_result=cleanup_run_result,
         output_dir=output_dir,
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
-        cleanup_script=Path("cleanup.py"),
         molmospaces_python=None,
         molmospaces_root=None,
         embodiment="rby1m",
@@ -155,7 +149,6 @@ def test_runner_records_local_runtime_preflight_blocker_before_execute(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     cleanup_run_result.write_text(
@@ -172,14 +165,12 @@ def test_runner_records_local_runtime_preflight_blocker_before_execute(
     def fail_run_command(command: list[str]) -> None:
         raise AssertionError(f"proof command should not run after failed preflight: {command}")
 
-    monkeypatch.setattr(runner, "_run_command", fail_run_command)
+    monkeypatch.setattr(planner_proof_bundle_runner, "_run_command", fail_run_command)
 
-    result = runner.run_from_cleanup_result(
+    result = planner_proof_bundle_runner.run_from_cleanup_result(
         cleanup_run_result=cleanup_run_result,
         output_dir=tmp_path / "bundle",
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
-        cleanup_script=Path("cleanup.py"),
         molmospaces_python=fake_python,
         molmospaces_root=None,
         embodiment="rby1m",
@@ -207,7 +198,6 @@ def test_runner_records_local_runtime_preflight_blocker_before_execute(
 
 
 def test_runner_loads_request_artifact_from_run_result(tmp_path: Path) -> None:
-    runner = _load_module()
     cleanup_dir = tmp_path / "cleanup"
     cleanup_dir.mkdir()
     (cleanup_dir / "planner_proof_requests.json").write_text(
@@ -220,12 +210,10 @@ def test_runner_loads_request_artifact_from_run_result(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    result = runner.run_from_cleanup_result(
+    result = planner_proof_bundle_runner.run_from_cleanup_result(
         cleanup_run_result=cleanup_run_result,
         output_dir=tmp_path / "bundle",
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
-        cleanup_script=Path("cleanup.py"),
         molmospaces_python=None,
         molmospaces_root=None,
         embodiment="franka",
@@ -245,7 +233,6 @@ def test_runner_loads_request_artifact_from_run_result(tmp_path: Path) -> None:
 
 
 def test_runner_enriches_legacy_requests_with_source_scene(tmp_path: Path) -> None:
-    runner = _load_module()
     requests = dict(_proof_requests())
     requests.pop("planner_scene", None)
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
@@ -261,12 +248,10 @@ def test_runner_enriches_legacy_requests_with_source_scene(tmp_path: Path) -> No
         encoding="utf-8",
     )
 
-    result = runner.run_from_cleanup_result(
+    result = planner_proof_bundle_runner.run_from_cleanup_result(
         cleanup_run_result=cleanup_run_result,
         output_dir=tmp_path / "bundle",
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
-        cleanup_script=Path("cleanup.py"),
         molmospaces_python=None,
         molmospaces_root=None,
         embodiment="rby1m",
@@ -288,13 +273,13 @@ def test_runner_records_cleanup_rerun_artifacts_when_rerun_requested(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     cleanup_run_result.write_text(
         json.dumps(
             {
                 "seed": 7,
+                "task_prompt": "custom planner proof task",
                 "backend": "api_semantic_synthetic",
                 "static_fixture_projection_mode": "room_only",
                 "perception_mode": "visible_object_detections",
@@ -336,14 +321,12 @@ def test_runner_records_cleanup_rerun_artifacts_when_rerun_requested(
             (output_dir / "run_result.json").write_text("{}", encoding="utf-8")
         (output_dir / "report.html").write_text("<h1>report</h1>", encoding="utf-8")
 
-    monkeypatch.setattr(runner, "_run_command", fake_run_command)
+    monkeypatch.setattr(planner_proof_bundle_runner, "_run_command", fake_run_command)
 
-    result = runner.run_from_cleanup_result(
+    result = planner_proof_bundle_runner.run_from_cleanup_result(
         cleanup_run_result=cleanup_run_result,
         output_dir=tmp_path / "bundle",
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
-        cleanup_script=Path("cleanup.py"),
         molmospaces_python=None,
         molmospaces_root=None,
         embodiment="rby1m",
@@ -361,7 +344,12 @@ def test_runner_records_cleanup_rerun_artifacts_when_rerun_requested(
     manifest = result["manifest"]
     assert result["status"] == "cleanup_rerun"
     assert len(commands_run) == 2
-    assert commands_run[-1][:2] == ["python", "cleanup.py"]
+    assert commands_run[-1][:3] == [
+        "python",
+        "-m",
+        "roboclaws.household.household_world_episode",
+    ]
+    assert commands_run[-1][commands_run[-1].index("--task") + 1] == "custom planner proof task"
     assert "--planner-proof-run-result" in commands_run[-1]
     cleanup_rerun = manifest["cleanup_rerun"]
     assert cleanup_rerun["output_dir"] == str(tmp_path / "rerun")
@@ -379,17 +367,14 @@ def test_runner_records_cleanup_rerun_artifacts_when_rerun_requested(
 
 
 def test_runner_requires_planner_proof_requests(tmp_path: Path) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "run_result.json"
     cleanup_run_result.write_text(json.dumps({"artifacts": {}}), encoding="utf-8")
 
     with pytest.raises(ValueError, match="planner proof requests"):
-        runner.run_from_cleanup_result(
+        planner_proof_bundle_runner.run_from_cleanup_result(
             cleanup_run_result=cleanup_run_result,
             output_dir=tmp_path / "bundle",
             runner_python=Path("python"),
-            probe_script=Path("probe.py"),
-            cleanup_script=Path("cleanup.py"),
             molmospaces_python=None,
             molmospaces_root=None,
             embodiment="rby1m",
@@ -414,20 +399,20 @@ def test_runner_rejects_malformed_cleanup_run_result_source(
     source: str,
     message: str,
 ) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     cleanup_run_result.write_text(source, encoding="utf-8")
 
     message = rf"cleanup run result source must contain {message}: .*run_result\.json"
     with pytest.raises(ValueError, match=message):
-        _run_minimal_bundle(runner, cleanup_run_result, output_dir=tmp_path / "bundle")
+        _run_minimal_bundle(
+            planner_proof_bundle_runner, cleanup_run_result, output_dir=tmp_path / "bundle"
+        )
 
 
 def test_runner_rejects_non_object_inline_planner_proof_requests(
     tmp_path: Path,
 ) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     cleanup_run_result.write_text(
@@ -439,13 +424,14 @@ def test_runner_rejects_non_object_inline_planner_proof_requests(
         ValueError,
         match=r"inline planner proof requests must contain a JSON object: .*run_result\.json",
     ):
-        _run_minimal_bundle(runner, cleanup_run_result, output_dir=tmp_path / "bundle")
+        _run_minimal_bundle(
+            planner_proof_bundle_runner, cleanup_run_result, output_dir=tmp_path / "bundle"
+        )
 
 
 def test_runner_rejects_non_object_artifact_envelope(
     tmp_path: Path,
 ) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     cleanup_run_result.write_text(json.dumps({"artifacts": []}), encoding="utf-8")
@@ -454,13 +440,14 @@ def test_runner_rejects_non_object_artifact_envelope(
         ValueError,
         match=r"cleanup run result artifacts must contain a JSON object: .*run_result\.json",
     ):
-        _run_minimal_bundle(runner, cleanup_run_result, output_dir=tmp_path / "bundle")
+        _run_minimal_bundle(
+            planner_proof_bundle_runner, cleanup_run_result, output_dir=tmp_path / "bundle"
+        )
 
 
 def test_runner_rejects_missing_declared_request_artifact(
     tmp_path: Path,
 ) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     cleanup_run_result.write_text(
@@ -472,7 +459,9 @@ def test_runner_rejects_missing_declared_request_artifact(
         FileNotFoundError,
         match=r"planner proof requests artifact is missing: .*missing_requests\.json",
     ):
-        _run_minimal_bundle(runner, cleanup_run_result, output_dir=tmp_path / "bundle")
+        _run_minimal_bundle(
+            planner_proof_bundle_runner, cleanup_run_result, output_dir=tmp_path / "bundle"
+        )
 
 
 @pytest.mark.parametrize("declared_source", [None, [], ""])
@@ -480,7 +469,6 @@ def test_runner_rejects_wrong_shaped_declared_request_artifact_path(
     tmp_path: Path,
     declared_source: object,
 ) -> None:
-    runner = _load_module()
     cleanup_run_result = tmp_path / "cleanup" / "run_result.json"
     cleanup_run_result.parent.mkdir()
     cleanup_run_result.write_text(
@@ -495,7 +483,9 @@ def test_runner_rejects_wrong_shaped_declared_request_artifact_path(
             r".*run_result\.json"
         ),
     ):
-        _run_minimal_bundle(runner, cleanup_run_result, output_dir=tmp_path / "bundle")
+        _run_minimal_bundle(
+            planner_proof_bundle_runner, cleanup_run_result, output_dir=tmp_path / "bundle"
+        )
 
 
 @pytest.mark.parametrize(
@@ -510,7 +500,6 @@ def test_runner_rejects_malformed_declared_request_artifact_source(
     source: str,
     valid: bool,
 ) -> None:
-    runner = _load_module()
     cleanup_dir = tmp_path / "cleanup"
     cleanup_dir.mkdir()
     (cleanup_dir / "planner_proof_requests.json").write_text(source, encoding="utf-8")
@@ -525,4 +514,6 @@ def test_runner_rejects_malformed_declared_request_artifact_source(
         rf"planner proof requests source must contain {reason}: .*planner_proof_requests\.json"
     )
     with pytest.raises(ValueError, match=message):
-        _run_minimal_bundle(runner, cleanup_run_result, output_dir=tmp_path / "bundle")
+        _run_minimal_bundle(
+            planner_proof_bundle_runner, cleanup_run_result, output_dir=tmp_path / "bundle"
+        )

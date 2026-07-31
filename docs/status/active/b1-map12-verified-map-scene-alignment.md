@@ -73,12 +73,12 @@ Last proven evidence:
   matched anchors, mean residual `0.352908 m`, p90 `0.491765 m`, and max
   residual `0.502064 m`. Preview overlays are under
   `output/b1-map12/alignment/previews/`.
-- `python scripts/maps/render_b1_map12_label_tool.py --map-bundle vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot --output-dir output/b1-map12/label-tool`
+- `python -m roboclaws.maps.b1_map12_label_tool --map-bundle vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot --output-dir output/b1-map12/label-tool`
   writes `output/b1-map12/label-tool/label_tool.html` and
   `label_tool_packet.json`. The HTML editor starts from the current
   `semantics.json` if present, or an empty vendor-map packet otherwise. It no
   longer seeds the retired Map12 candidate room boxes.
-- `python scripts/maps/render_b1_map12_correspondence_review.py --correspondences assets/maps/b1-map12-scene-correspondences.json --map-bundle vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot --scene-topdown-render output/b1-map12/scene-gaussian-topdown/scene_gaussian_topdown.json --output-dir output/b1-map12/correspondence-review`
+- `python -m roboclaws.maps.b1_map12_correspondence_review --correspondences assets/maps/b1-map12-scene-correspondences.json --map-bundle vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot --scene-topdown-render output/b1-map12/scene-gaussian-topdown/scene_gaussian_topdown.json --output-dir output/b1-map12/correspondence-review`
   writes `output/b1-map12/correspondence-review/correspondence_review.html`
   and `correspondence_review_packet.json` with
   `review_status=review_pending`, `accepted_anchor_count=0`, validation
@@ -89,7 +89,7 @@ Last proven evidence:
   `output/b1-map12/correspondence-review/map12_source_map.png` while preserving
   the vendor `occupancy.pgm` as `source_map.source_image` and using
   `nav2.yaml` origin/resolution for `map_xy` conversion.
-- `python scripts/operator_console/render_scene_previews.py --world b1-map12 --output-dir output/b1-map12/static-preview-proof`
+- `python -m roboclaws.operator_console.scene_preview_cli --world b1-map12 --output-dir output/b1-map12/static-preview-proof`
   writes static B1 preview metadata with only `map` and `topdown` views; no
   `views.fpv`, no `views.chase`, and no corresponding camera preview files are
   published before residual-backed Isaac runtime camera evidence exists.
@@ -130,7 +130,7 @@ Last proven evidence:
 - `.venv-isaaclab/bin/python -m roboclaws.backends.isaaclab.b1_readiness --b1-root data/robot-data-lab/scene-engine/data/2rd_floor_seperated --map12-root vendors/agibot_sdk/artifacts/maps/robot_map_12 --alignment-artifact output/b1-map12/alignment/alignment_residuals.json --navigation-artifact output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json --require-navigation-success --output output/b1-map12/navigation-smoke/residual-overlay/readiness_with_navigation.json`
   passes and promotes the readiness artifact to
   `robot_navigation_supported=true` from the real navigation-smoke artifact.
-- `python scripts/operator_console/render_scene_previews.py --world b1-map12 --b1-camera-artifact output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json --output-dir output/b1-map12/operator-preview-residual-overlay`
+- `python -m roboclaws.operator_console.scene_preview_cli --world b1-map12 --b1-camera-artifact output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json --output-dir output/b1-map12/operator-preview-residual-overlay`
   succeeds and writes `b1-map12-preview.json`, `b1-map12-fpv.png`,
   `b1-map12-chase.png`, `b1-map12-map.png`, and `b1-map12-topdown.png`. The FPV
   and Chase metadata share `waypoint_id=b1_aligned_long_table`, reference
@@ -139,8 +139,8 @@ Last proven evidence:
   `isaac_runtime_*` provenance.
 - `python -m roboclaws.backends.isaaclab.b1_navigation_report --run-dir output/b1-map12/navigation-smoke/residual-overlay --readiness-artifact output/b1-map12/alignment/readiness_with_alignment.json --navigation-artifact output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json --waypoint-pose-requests output/b1-map12/navigation-smoke/residual-overlay/waypoint_pose_requests.json --output output/b1-map12/navigation-smoke/residual-overlay/report.html`
   passes and writes the reviewable navigation report.
-- `just harness::b1-map12-navigation-smoke stamp=residual-overlay-default-harness output_dir=output/b1-map12/navigation-smoke-harness`
-  passes as the canonical single-command maintainer replay. It consumes the
+- `python -m roboclaws.backends.isaaclab.b1_navigation_proof --stamp residual-overlay-default-harness --output-dir output/b1-map12/navigation-smoke-harness`
+  is the canonical package-owned maintainer replay. It consumes the
   default residual-backed readiness candidate waypoints without an explicit
   `waypoint_pose_requests` override and writes non-empty `navigation_smoke.json`,
   `readiness_with_navigation.json`, `report.html`, and
@@ -189,12 +189,12 @@ Last proven evidence:
   semantic labeling to verified. With the current proposed-only semantic review
   packet, this remains blocked; the compiler does not auto-discover projection
   output and does not infer object labels from room anchors.
-- `roboclaws.maps.runtime_prior_snapshot.runtime_prior_snapshot_from_nav2_cleanup_bundle`
-  and `scripts/maps/convert_nav2_cleanup_bundle.py` can convert a compiled B1
-  Nav2 cleanup bundle into the canonical `runtime_map_prior_snapshot_v1`
-  contract. This gives downstream robot consumers the same prior shape for
-  compiled B1 bundles that simulator map-build output and Agibot
-  `navigation_memory.json` already use.
+- `roboclaws.maps.runtime_prior_conversion.runtime_prior_snapshot_from_nav2_cleanup_bundle`
+  and `python -m roboclaws.maps.runtime_prior_conversion nav2-cleanup-bundle`
+  can convert a compiled B1 Nav2 cleanup bundle into the canonical
+  `runtime_map_prior_snapshot_v1` contract. This gives downstream robot
+  consumers the same prior shape for compiled B1 bundles that simulator
+  map-build output and Agibot `navigation_memory.json` already use.
 - The B1 product route now exports that canonical prior next to the compiled
   bundle as `runtime_map_prior_snapshot.json`, plus the compact
   `runtime_map_prior_targets.json` materialized-target summary, and copies the
@@ -274,8 +274,8 @@ Last proven evidence:
   and `./scripts/dev/run_pytest_standalone.sh tests/contract/maps/test_b1_map12_verified_alignment.py -q`
   pass for the strict promotion gate, `--check` mode, and read-only semantic
   review report.
-- `ruff check scripts/operator_console/render_scene_previews.py tests/unit/operator_console/test_render_scene_previews.py`,
-  `ruff format --check scripts/operator_console/render_scene_previews.py tests/unit/operator_console/test_render_scene_previews.py`,
+- `ruff check roboclaws/operator_console/scene_preview_cli.py tests/unit/operator_console/test_render_scene_previews.py`,
+  `ruff format --check roboclaws/operator_console/scene_preview_cli.py tests/unit/operator_console/test_render_scene_previews.py`,
   `./scripts/dev/run_pytest_standalone.sh tests/unit/operator_console/test_render_scene_previews.py -q`, and
   `./scripts/dev/run_pytest_standalone.sh tests/contract/maps/test_b1_map12_verified_alignment.py tests/contract/maps/test_b1_map12_navigation_report.py tests/unit/operator_console/test_render_scene_previews.py -q`
   pass for the hardened B1 camera-preview provenance gate.

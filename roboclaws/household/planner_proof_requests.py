@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from roboclaws.household.household_runtime_contract import DEFAULT_REALWORLD_TASK
 from roboclaws.household.planner_grasp_cache import grasp_cache_availability_preflight
 from roboclaws.household.planner_grasp_cache_generation import grasp_cache_generation_preflight
 from roboclaws.household.planner_proof_contracts import (
@@ -39,6 +40,8 @@ _prior_fallback_candidate_filters_by_source_request = (
 )
 _FALLBACK_REQUEST_ID_MARKER = "_fallback_"
 _RUNTIME_ALIAS_RE = re.compile(r"^(?P<prefix>.+)_(?P<group>\d+)_(?P<variant>\d+)_(?P<room>\d+)$")
+HOUSEHOLD_EPISODE_MODULE = "roboclaws.household.household_world_episode"
+PLANNER_PROBE_MODULE = "roboclaws.household.planner_probe"
 
 
 def planner_proof_requests_from_substeps(
@@ -127,7 +130,6 @@ def build_probe_commands(
     manifest: dict[str, Any],
     output_dir: Path,
     runner_python: Path,
-    probe_script: Path,
     molmospaces_python: Path | None = None,
     molmospaces_root: Path | None = None,
     embodiment: str = "rby1m",
@@ -149,7 +151,8 @@ def build_probe_commands(
         proof_dir = output_dir / "proofs" / _proof_dir_name(index, request)
         command = [
             str(runner_python),
-            str(probe_script),
+            "-m",
+            PLANNER_PROBE_MODULE,
             "--output-dir",
             str(proof_dir),
             "--embodiment",
@@ -207,7 +210,6 @@ def build_probe_warmup_command(
     *,
     output_dir: Path,
     runner_python: Path,
-    probe_script: Path,
     molmospaces_python: Path | None = None,
     molmospaces_root: Path | None = None,
     embodiment: str = "rby1m",
@@ -220,7 +222,8 @@ def build_probe_warmup_command(
     warmup_dir = output_dir / "rby1m_curobo_warmup"
     command = [
         str(runner_python),
-        str(probe_script),
+        "-m",
+        PLANNER_PROBE_MODULE,
         "--output-dir",
         str(warmup_dir),
         "--embodiment",
@@ -378,18 +381,20 @@ def _assets_dir_from_planner_scene(planner_scene: dict[str, Any]) -> Path | None
 def build_cleanup_rerun_command(
     *,
     runner_python: Path,
-    cleanup_script: Path,
     cleanup_output_dir: Path,
     source_run_result: dict[str, Any],
     proof_run_results: list[Path],
 ) -> list[str]:
     command = [
         str(runner_python),
-        str(cleanup_script),
+        "-m",
+        HOUSEHOLD_EPISODE_MODULE,
         "--output-dir",
         str(cleanup_output_dir),
         "--seed",
         str(source_run_result.get("seed", 1)),
+        "--task",
+        str(source_run_result.get("task_prompt") or DEFAULT_REALWORLD_TASK),
         "--static-fixture-projection-mode",
         str(source_run_result.get("static_fixture_projection_mode") or "room_only"),
         "--perception-mode",

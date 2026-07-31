@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib.util
 import os
 import time
 from dataclasses import dataclass
@@ -16,6 +15,7 @@ from roboclaws.evals.agent_identity import (
 )
 from roboclaws.evals.canonical_prior import promote_canonical_runtime_prior
 from roboclaws.evals.dependencies import sample_artifact_key
+from roboclaws.evals.harness import runner as harness_runner
 from roboclaws.evals.map_build_reports import (
     discover_eval_results_paths,
     write_map_build_matrix_report,
@@ -43,7 +43,6 @@ from roboclaws.evals.trial_execution import (
 from roboclaws.household.household_world_episode import run_household_world_episode
 
 DEFAULT_OUTPUT_ROOT = REPO_ROOT / "output" / "evals"
-EVAL_HARNESS_RUNNER = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "run_eval_harness.py"
 
 
 @dataclass(frozen=True)
@@ -74,7 +73,7 @@ def run_cli_tool(mode: str, overrides: dict[str, str]) -> dict[str, object]:
 
 
 def run_eval_harness(mode: str, overrides: dict[str, str]) -> int:
-    """Run the dynamically loaded eval-harness entrypoint."""
+    """Run the package-owned eval-harness entrypoint."""
     values = dict(overrides)
     if values.pop("suite", None):
         raise ValueError(f"{mode} does not accept suite=<suite>; use direct suite mode")
@@ -105,19 +104,7 @@ def run_eval_harness(mode: str, overrides: dict[str, str]) -> int:
     if values:
         keys = ", ".join(sorted(values))
         raise ValueError(f"unsupported eval-harness override(s): {keys}")
-    return load_eval_harness_runner().main(argv)
-
-
-def load_eval_harness_runner():
-    """Load the repository eval-harness script without making it a package dependency."""
-    spec = importlib.util.spec_from_file_location(
-        "roboclaws_eval_harness_runner", EVAL_HARNESS_RUNNER
-    )
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"could not load eval harness runner at {EVAL_HARNESS_RUNNER}")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    return harness_runner.main(argv)
 
 
 def run_eval_from_overrides(overrides: dict[str, str]) -> EvalSuiteRun:

@@ -7,7 +7,7 @@ Roboclaws keeps four proof layers separate:
 | Product run | `just run::surface ...` | One operator-facing run and its artifacts. |
 | Eval harness | `just agent::eval recommend\|execute ...` | Plan- or diff-aware selection of deterministic gates, product rows, suites, and opt-in live rows. |
 | Eval suite | `just agent::eval suite=<suite> ...` | Versioned samples, trials, graders, aggregate metrics, and replay. |
-| Harness recipe | `harness::*` | Lower-level mechanics used by product and eval flows. |
+| Package proof | `python -m roboclaws.<owner>` | Specialist mechanics owned by the package used by product or eval flows. |
 
 The maintained user-facing skill is `@eval-harness`. Current row, engine,
 provider, intent, and evidence-lane dimensions are summarized in
@@ -43,6 +43,14 @@ Evaluation is a Git-checkout-owned maintainer layer. The sdist and wheel omit
 runtimes therefore do not expose `roboclaws eval`, top-level `eval`, or
 `roboclaws agent eval`. Run evals from a repository checkout through
 `just agent::eval`, which invokes the repo eval CLI directly.
+
+`agent::eval` is the public maintainer facade, not an internal row executor.
+Selected eval-suite rows call `.venv/bin/python -m roboclaws.evals.cli`
+directly, and product rows call `.venv/bin/python -m roboclaws.cli.main run
+surface` directly. The harness keeps a subprocess per row for timeout and
+isolation, without re-entering Just. The eval CLI accepts an optional documented
+kebab-case tool name followed only by `key=value` arguments; underscore tool
+aliases, GNU-style flags, and hyphenated key aliases are unsupported.
 
 ## Running Evals
 

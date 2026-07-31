@@ -12,7 +12,7 @@ from roboclaws.household.household_mcp_server import MCP_SERVER_NAME
 from roboclaws.household.household_runtime_contract import REALWORLD_CONTRACT
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SMOKE_PATH = REPO_ROOT / "scripts" / "molmo_cleanup" / "run_molmo_realworld_agent_mcp_smoke.py"
+SMOKE_PATH = REPO_ROOT / "roboclaws" / "household" / "household_mcp_smoke.py"
 PREBUILT_BUNDLE = REPO_ROOT / "assets" / "maps" / "molmospaces" / "procthor-10k-val" / "0"
 
 

@@ -51,7 +51,7 @@ NAVIGATION_MEMORY = (
 SCENE_ROOT = (
     REPO_ROOT / "data" / "robot-data-lab" / "scene-engine" / "data" / ("2rd_floor_seperated")
 )
-SCRIPT = REPO_ROOT / "scripts" / "maps" / "render_b1_map12_label_tool.py"
+MODULE = "roboclaws.maps.b1_map12_label_tool"
 REMOVED_AUTHORED_BUNDLE = REPO_ROOT / "assets" / "maps" / "agibot-robot-map-12"
 
 
@@ -359,7 +359,8 @@ def test_label_tool_cli_writes_standalone_html_and_packet(tmp_path: Path) -> Non
     subprocess.run(
         [
             sys.executable,
-            str(SCRIPT),
+            "-m",
+            MODULE,
             "--output-dir",
             str(tmp_path),
         ],
@@ -391,7 +392,7 @@ def test_label_tool_writes_static_artifacts(tmp_path: Path) -> None:
 
 def test_label_tool_cli_does_not_own_a_server() -> None:
     result = subprocess.run(
-        [sys.executable, str(SCRIPT), "--help"],
+        [sys.executable, "-m", MODULE, "--help"],
         check=True,
         capture_output=True,
         text=True,

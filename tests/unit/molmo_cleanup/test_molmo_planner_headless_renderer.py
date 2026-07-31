@@ -12,9 +12,6 @@ from roboclaws.household import planner_probe_runtime_diagnostics as runtime
 from roboclaws.household import planner_probe_sampler_contract as sampler
 from roboclaws.household import planner_probe_worker_diagnostics as worker_diagnostics
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-PROBE_PATH = REPO_ROOT / "scripts" / "molmo_cleanup" / "run_molmo_planner_manipulation_probe.py"
-
 
 def test_renderer_device_id_only_applies_to_execute_mode() -> None:
     assert (

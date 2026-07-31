@@ -408,7 +408,7 @@ Affected paths:
 - `docs/adr/0138-use-detector-only-visual-grounding-sidecar.md`
 - `docs/plans/molmospaces-http-visual-grounding-service.md`
 - `docs/plans/2026-06-11-adaptive-target-inspection.md`
-- `docs/status/active/molmospaces-http-visual-grounding-service.md`
+- `docs/retrospectives/molmospaces-http-visual-grounding-service.md`
 - `docs/human/molmospaces-visual-grounding-results.md`
 
 Suggested cleanup:
@@ -533,7 +533,7 @@ must-read=`README.md`, `ARCHITECTURE.md`, `STATUS.md`, `AGENTS.md`,
 useful=`docs/plans/refactor-mimo-v25-migration.md`,
 `docs/plans/visual-grounding-gpu-sidecar-benchmark.md`,
 `docs/plans/molmospaces-http-visual-grounding-service.md`,
-`docs/status/active/molmospaces-http-visual-grounding-service.md`,
+`docs/retrospectives/molmospaces-http-visual-grounding-service.md`,
 `docs/human/openclaw/local.md`, `docs/human/openclaw/gateway-internals.md`,
 `just/openclaw.just`, and `scripts/openclaw/openclaw-bootstrap.sh`.
 

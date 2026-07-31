@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from roboclaws.core import nvidia_eula as eula
 from roboclaws.household import (
     scene_camera_capture,
     scene_camera_geometry_contract,
@@ -250,6 +250,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--isaac-python", type=Path, default=Path(".venv-isaaclab/bin/python"))
     parser.add_argument("--render-width", type=_positive_int_arg, default=DEFAULT_RENDER_WIDTH)
     parser.add_argument("--render-height", type=_positive_int_arg, default=DEFAULT_RENDER_HEIGHT)
+    parser.add_argument("--accept-nvidia-eula", action="store_true")
     parser.add_argument(
         "--lighting-profile",
         default="default",
@@ -261,8 +262,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    if args.scene_usd_path.is_file():
-        os.environ.setdefault("OMNI_KIT_ACCEPT_EULA", "YES")
+    if not args.scene_usd_path.is_file():
+        parser.error(f"missing prepared scene USD: {args.scene_usd_path}")
+    if not eula.accepted(explicit=args.accept_nvidia_eula):
+        parser.error(eula.required_message("scene camera comparison"))
+    eula.record_acceptance()
     manifest = run_scene_camera_comparison(
         SceneCameraComparisonConfig(
             output_dir=args.output_dir,

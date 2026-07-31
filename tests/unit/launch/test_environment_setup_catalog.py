@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import shlex
 from typing import Any
 
 import pytest
 
 import roboclaws.launch.executor as executor_module
+import roboclaws.launch.household as household_launch_module
+import roboclaws.launch.household_execution as household_execution_module
 from roboclaws.core.backend_catalog import (
     cleanup_implementation_backend_ids,
     normalize_cleanup_implementation_backend,
@@ -74,12 +77,12 @@ def test_molmospaces_worlds_expose_only_mujoco_while_b1_exposes_isaac() -> None:
     assert b1.world == "b1-map12"
     assert b1.backend == "isaaclab"
     assert b1.implementation_backend == "isaaclab_subprocess"
-    assert "map_bundle=injected/map-bundle" in b1.overrides
-    assert "isaac_scene_usd_path=injected/scene.usd" in b1.overrides
-    assert "b1_alignment_artifact=injected/alignment.json" in b1.overrides
-    assert "b1_navigation_artifact=injected/navigation.json" in b1.overrides
-    assert not any(item.startswith("b1_semantic_projection_artifact=") for item in b1.overrides)
-    assert not any(item.startswith("world=") for item in b1.overrides)
+    assert b1.adapter_options["map_bundle"] == "injected/map-bundle"
+    assert b1.adapter_options["isaac_scene_usd_path"] == "injected/scene.usd"
+    assert b1.adapter_options["b1_alignment_artifact"] == "injected/alignment.json"
+    assert b1.adapter_options["b1_navigation_artifact"] == "injected/navigation.json"
+    assert "b1_semantic_projection_artifact" not in b1.adapter_options
+    assert "world" not in b1.adapter_options
 
 
 def test_b1_launch_accepts_explicit_robot_consumption_proof_artifacts() -> None:
@@ -99,17 +102,19 @@ def test_b1_launch_accepts_explicit_robot_consumption_proof_artifacts() -> None:
         ]
     )
 
-    assert "b1_alignment_artifact=output/b1-map12/alignment/alignment_residuals.json" in (
-        b1.overrides
+    assert b1.adapter_options["b1_alignment_artifact"] == (
+        "output/b1-map12/alignment/alignment_residuals.json"
     )
-    assert (
-        "b1_navigation_artifact=output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json"
-        in b1.overrides
+    assert b1.adapter_options["b1_navigation_artifact"] == (
+        "output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json"
     )
 
 
 def test_b1_launch_rejects_stale_semantic_projection_artifact_axis() -> None:
-    with pytest.raises(LaunchError, match="b1_semantic_projection_artifact= is no longer"):
+    with pytest.raises(
+        LaunchError,
+        match="unsupported launch override 'b1_semantic_projection_artifact'",
+    ):
         resolve_surface_launch(
             [
                 "surface=household-world",
@@ -161,7 +166,7 @@ def test_cleanup_surface_exposes_setup_overrides_but_dispatches_private_count() 
 
     assert plan.scenario_setup == "relocate-cleanup-related-objects"
     assert plan.relocation_count == 3
-    assert not any(item.startswith("generated_mess_count=") for item in plan.overrides)
+    assert "generated_mess_count" not in plan.adapter_options
     exported = export_env_from_plan(plan)
     assert exported[ENVIRONMENT_SETUP_METADATA_ENV] == (
         '{"feeds_cleanup_scoring":true,"mode":"relocate-cleanup-related-objects",'
@@ -213,7 +218,7 @@ def test_household_non_cleanup_intents_default_to_baseline_setup() -> None:
     )
 
 
-def test_household_runner_exports_resolved_capability_profiles(
+def test_household_runner_passes_resolved_goal_contract_directly_to_package_owner(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured: dict[str, Any] = {}
@@ -225,11 +230,10 @@ def test_household_runner_exports_resolved_capability_profiles(
         trace_args: list[str] | None = None,
     ) -> int:
         captured["argv"] = argv
-        captured["env"] = env
-        captured["trace_args"] = trace_args
         return 0
 
-    monkeypatch.setattr(executor_module, "_exec_or_trace", fake_exec)
+    monkeypatch.setenv("ROBOCLAWS_JUST_TRACE", "1")
+    monkeypatch.setattr(household_launch_module, "_exec_or_trace", fake_exec)
     plan = resolve_surface_launch(
         [
             "surface=household-world",
@@ -243,9 +247,21 @@ def test_household_runner_exports_resolved_capability_profiles(
     result = executor_module.execute_launch_plan(plan)
 
     assert result == 0
-    assert captured["env"]["ROBOCLAWS_REQUIRED_CAPABILITY_PROFILES"] == (
-        "household_world,household_manipulation,household_episode"
-    )
+    assert captured["argv"][:4] == [
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.agents.household_live_runner",
+        "--repo-root",
+    ]
+    assert captured["argv"].count("--server-arg=--goal-contract-json") == 1
+    goal_arg = next(
+        item for item in captured["argv"] if item.startswith("--server-arg={")
+    ).removeprefix("--server-arg=")
+    assert json.loads(goal_arg)["required_capabilities"] == [
+        "household_world",
+        "household_manipulation",
+        "household_episode",
+    ]
 
 
 def test_agibot_live_map_build_uses_typed_provider_profile(
@@ -302,7 +318,7 @@ def test_rerun_command_rebuilds_public_axes_from_typed_plan(
         ]
     )
 
-    executor_module._export_rerun_command(plan=plan, raw_overrides=plan.overrides)
+    executor_module._export_rerun_command(plan=plan, adapter_options=plan.adapter_options)
     command = shlex.split(executor_module.os.environ["ROBOCLAWS_REPORT_RERUN_COMMAND"])
 
     assert command[:2] == ["just", "run::surface"]
@@ -322,6 +338,26 @@ def test_rerun_command_rebuilds_public_axes_from_typed_plan(
     assert sum(argument.startswith("surface=") for argument in command) == 1
 
 
+def test_household_execution_normalizes_explicit_auto_minimum() -> None:
+    plan = resolve_surface_launch(
+        [
+            "surface=household-world",
+            "preset=cleanup",
+            "agent_engine=direct-runner",
+            "evidence_lane=world-public-labels",
+            "scenario_setup=relocate-cleanup-related-objects",
+            "relocation_count=3",
+        ]
+    )
+
+    execution = household_execution_module.resolve_household_execution(
+        plan,
+        kv={"min_generated_mess_count": "auto"},
+    )
+
+    assert execution.min_generated_mess_count == 3
+
+
 def test_household_goal_contract_tool_plans_do_not_advertise_static_fixture_projection() -> None:
     surface = SURFACE_SPECS["household-world"]
 
@@ -337,8 +373,11 @@ def test_household_goal_contract_tool_plans_do_not_advertise_static_fixture_proj
         assert "metric_map" in tool_plan_text
 
 
-def test_surface_rejects_old_public_generated_mess_count() -> None:
-    with pytest.raises(LaunchError, match="generated_mess_count is no longer"):
+def test_surface_rejects_unknown_override_without_retired_axis_handling() -> None:
+    with pytest.raises(
+        LaunchError,
+        match="unsupported launch override 'generated_mess_count'",
+    ):
         resolve_surface_launch(
             [
                 "surface=household-world",
@@ -383,7 +422,7 @@ def test_openai_agents_sdk_accepts_chat_provider_profiles() -> None:
     )
 
     assert plan.provider_profile == "kimi-openai-chat"
-    assert not any(item.startswith("provider_profile=") for item in plan.overrides)
+    assert "provider_profile" not in plan.adapter_options
 
 
 @pytest.mark.parametrize(
@@ -458,7 +497,7 @@ def test_openai_agents_sdk_accepts_minimax_provider_profile() -> None:
     )
 
     assert plan.provider_profile == "minimax-responses"
-    assert not any(item.startswith("provider_profile=") for item in plan.overrides)
+    assert "provider_profile" not in plan.adapter_options
 
 
 def test_raw_fpv_rejects_routes_without_verified_image_transport() -> None:
@@ -476,44 +515,41 @@ def test_raw_fpv_rejects_routes_without_verified_image_transport() -> None:
         )
 
 
-def test_retired_engines_are_rejected_before_provider_profile_validation() -> None:
-    with pytest.raises(LaunchError, match="unsupported agent_engine 'codex-cli'"):
+@pytest.mark.parametrize("agent_engine", ("codex-cli", "claude-code", "future-engine"))
+def test_unsupported_engines_use_one_canonical_error(agent_engine: str) -> None:
+    with pytest.raises(
+        LaunchError,
+        match=(
+            rf"unsupported agent_engine '{agent_engine}'; "
+            r"expected direct-runner\|openai-agents-sdk"
+        ),
+    ):
         resolve_surface_launch(
             [
                 "surface=household-world",
                 "world=molmospaces/procthor-10k-val/0",
                 "backend=mujoco",
                 "intent=cleanup",
-                "agent_engine=codex-cli",
-                "provider_profile=kimi-openai-chat",
-                "evidence_lane=world-public-labels",
-            ]
-        )
-    with pytest.raises(LaunchError, match="unsupported agent_engine 'claude-code'"):
-        resolve_surface_launch(
-            [
-                "surface=household-world",
-                "world=molmospaces/procthor-10k-val/0",
-                "backend=mujoco",
-                "intent=cleanup",
-                "agent_engine=claude-code",
+                f"agent_engine={agent_engine}",
                 "provider_profile=kimi-openai-chat",
                 "evidence_lane=world-public-labels",
             ]
         )
 
 
-def test_surface_rejects_old_public_driver_and_environment_setup() -> None:
-    with pytest.raises(LaunchError, match="driver= is no longer"):
-        resolve_surface_launch(
-            [
-                "surface=household-world",
-                "driver=codex",
-                "intent=cleanup",
-            ]
-        )
-
-    with pytest.raises(LaunchError, match="environment_setup= is no longer"):
+@pytest.mark.parametrize(
+    "override",
+    (
+        "driver=codex",
+        "environment_setup=baseline",
+        "map_mode=minimal",
+        "profile=world-public-labels",
+        "visual_grounding=grounding-dino",
+    ),
+)
+def test_removed_axes_are_ordinary_unsupported_overrides(override: str) -> None:
+    key = override.partition("=")[0]
+    with pytest.raises(LaunchError, match=rf"unsupported launch override '{key}'"):
         resolve_surface_launch(
             [
                 "surface=household-world",
@@ -522,9 +558,16 @@ def test_surface_rejects_old_public_driver_and_environment_setup() -> None:
                 "intent=cleanup",
                 "agent_engine=openai-agents-sdk",
                 "provider_profile=kimi-openai-chat",
-                "environment_setup=baseline",
+                override,
             ]
         )
+
+
+@pytest.mark.parametrize("override", ("--surface=household-world", "agent-engine=direct-runner"))
+def test_launch_arguments_require_exact_canonical_key_spelling(override: str) -> None:
+    key = override.partition("=")[0]
+    with pytest.raises(LaunchError, match=rf"unsupported launch override '{key}'"):
+        resolve_surface_launch([override])
 
 
 def test_baseline_rejects_active_relocation_count() -> None:

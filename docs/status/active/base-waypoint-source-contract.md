@@ -18,7 +18,7 @@ Last proven evidence:
   with `base_navigation_map.source=map_artifact_inspection_waypoints`,
   14/14 source/runtime waypoints, and 14/14 visited waypoints.
 - All 16 committed `assets/maps/molmospaces/*/*` bundles passed
-  `scripts/maps/check_bundle.py`.
+  `python -m roboclaws.maps.bundle`.
 
 Known adjacent non-blockers:
 

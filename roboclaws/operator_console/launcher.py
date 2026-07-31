@@ -14,9 +14,11 @@ from roboclaws.agents.provider_registry import (
 )
 from roboclaws.core.dotenv import load_dotenv_file
 from roboclaws.core.provider_catalog import default_provider_profile
+from roboclaws.core.rerun import public_surface_rerun_argv
 from roboclaws.household.evidence_lane_policy import evidence_lane_compatibility
 from roboclaws.launch.catalog import LaunchError, resolve_surface_launch
 from roboclaws.launch.executor import LaunchProcess, spawn_launch_plan
+from roboclaws.launch.plans import LaunchPlan
 from roboclaws.launch.worlds import optional_world_dependency_status
 from roboclaws.operator_console import context_packets
 from roboclaws.operator_console.interactions import (
@@ -83,7 +85,7 @@ def provider_key_present(route: ConsoleLaunchSelection, env: dict[str, str] | No
     return False
 
 
-def build_launch_argv(
+def build_launch_args(
     route: ConsoleLaunchSelection,
     *,
     root: Path,
@@ -92,7 +94,7 @@ def build_launch_argv(
     prompt: str = "",
     overrides: dict[str, str] | None = None,
 ) -> list[str]:
-    """Build a fixed argv list for a console route."""
+    """Build canonical public-surface arguments for a console route."""
 
     output_dir = console_output_root(root) / "runs" / run_id
     args = build_surface_launch_args(
@@ -103,14 +105,10 @@ def build_launch_argv(
         output_dir=output_dir,
         error_type=ConsoleLaunchError,
     )
-    try:
-        resolve_surface_launch(args)
-    except LaunchError as exc:
-        raise ConsoleLaunchError(str(exc)) from exc
-    return ["just", "run::surface", *args]
+    return args
 
 
-def build_workflow_launch_argv(
+def build_workflow_launch_args(
     route: ConsoleLaunchSelection,
     *,
     workflow_id: str,
@@ -119,7 +117,7 @@ def build_workflow_launch_argv(
     prompt: str = "",
     overrides: dict[str, str] | None = None,
 ) -> list[str]:
-    """Build argv for an operator workflow action through the route catalog."""
+    """Build launch arguments for an operator workflow action."""
 
     workflow = get_operator_workflow(workflow_id)
     if workflow.intent_id != route.intent_id:
@@ -147,7 +145,7 @@ def build_workflow_launch_argv(
         and not str(request_overrides["runtime_map_prior"]).strip()
     ):
         raise ConsoleLaunchError("runtime_map_prior override cannot be empty")
-    return build_launch_argv(
+    return build_launch_args(
         route,
         root=root,
         run_id=run_id,
@@ -157,7 +155,7 @@ def build_workflow_launch_argv(
     )
 
 
-def _build_request_launch_argv(
+def _build_request_launch_args(
     route: ConsoleLaunchSelection,
     request: LaunchRequest,
     *,
@@ -168,7 +166,7 @@ def _build_request_launch_argv(
     overrides: dict[str, str],
 ) -> list[str]:
     if request.workflow_id:
-        return build_workflow_launch_argv(
+        return build_workflow_launch_args(
             route,
             workflow_id=request.workflow_id,
             root=root,
@@ -176,7 +174,7 @@ def _build_request_launch_argv(
             prompt=launch_prompt,
             overrides=overrides,
         )
-    return build_launch_argv(
+    return build_launch_args(
         route,
         root=root,
         run_id=run_id,
@@ -184,6 +182,13 @@ def _build_request_launch_argv(
         prompt=launch_prompt,
         overrides=overrides,
     )
+
+
+def _resolve_console_launch_plan(launch_args: list[str]) -> LaunchPlan:
+    try:
+        return resolve_surface_launch(launch_args)
+    except LaunchError as exc:
+        raise ConsoleLaunchError(str(exc)) from exc
 
 
 def start_console_run(
@@ -234,7 +239,7 @@ def start_console_run(
                 env_overrides=prompt_preview_env(run_env, env_overrides),
             ),
         )
-        argv = _build_request_launch_argv(
+        launch_args = _build_request_launch_args(
             route,
             request,
             root=root,
@@ -243,7 +248,7 @@ def start_console_run(
             launch_prompt=launch_prompt,
             overrides=overrides,
         )
-        plan = resolve_surface_launch(argv[2:])
+        plan = _resolve_console_launch_plan(launch_args)
         mcp_host, mcp_port = requested_mcp_endpoint(overrides)
         mcp_url = f"http://{mcp_host}:{mcp_port}/mcp"
         log_path = run_dir / "console-launch.log"
@@ -296,7 +301,7 @@ def start_console_run(
         "mcp_host": mcp_host,
         "mcp_port": mcp_port,
         "mcp_url": mcp_url,
-        "argv": argv,
+        "argv": public_surface_rerun_argv(launch_args),
         "env_overrides": public_env_overrides(env_overrides),
         "run_dir": str(run_dir),
     }

@@ -25,7 +25,7 @@ git diff --check
 Latest true live proof:
 
 ```bash
-just dev::network-status
+scripts/dev/network_status.sh
 just agent::eval session-live budget=smoke agent_engine=openai-agents-sdk provider_profile=codex-router-responses live_execution=run live_timeout_s=900
 ```
 
