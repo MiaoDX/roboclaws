@@ -4,7 +4,7 @@ import json
 from argparse import Namespace
 from pathlib import Path
 
-from roboclaws.agents.household_live_runner import (
+from roboclaws.agents.household_live_lifecycle import (
     LiveOpenAIAgentsHouseholdRunner,
 )
 from roboclaws.agents.live_runtime import (
@@ -74,7 +74,7 @@ def test_openai_agents_cleanup_runner_invokes_sdk_then_checker(tmp_path: Path, m
             )
 
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner.subprocess.Popen",
+        "roboclaws.agents.household_live_lifecycle.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
@@ -83,7 +83,7 @@ def test_openai_agents_cleanup_runner_invokes_sdk_then_checker(tmp_path: Path, m
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner.OpenAIAgentsLiveRuntime",
+        "roboclaws.agents.household_live_lifecycle.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
 
@@ -210,7 +210,7 @@ def test_openai_agents_cleanup_runner_loads_canonical_skill_context(
             )
 
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner.subprocess.Popen",
+        "roboclaws.agents.household_live_lifecycle.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
@@ -219,7 +219,7 @@ def test_openai_agents_cleanup_runner_loads_canonical_skill_context(
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner.OpenAIAgentsLiveRuntime",
+        "roboclaws.agents.household_live_lifecycle.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
 
@@ -343,7 +343,7 @@ def test_openai_agents_cleanup_runner_continues_incomplete_sdk_turn(
             )
 
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner.subprocess.Popen",
+        "roboclaws.agents.household_live_lifecycle.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
@@ -352,7 +352,7 @@ def test_openai_agents_cleanup_runner_continues_incomplete_sdk_turn(
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner.OpenAIAgentsLiveRuntime",
+        "roboclaws.agents.household_live_lifecycle.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
 
@@ -500,7 +500,7 @@ def test_openai_agents_cleanup_runner_compact_continuation_excludes_full_prompt(
             return LiveAgentResult(phase="finished", exit_status=0, run_result_present=True)
 
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner.subprocess.Popen",
+        "roboclaws.agents.household_live_lifecycle.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
@@ -509,7 +509,7 @@ def test_openai_agents_cleanup_runner_compact_continuation_excludes_full_prompt(
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner.OpenAIAgentsLiveRuntime",
+        "roboclaws.agents.household_live_lifecycle.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
 
@@ -653,7 +653,7 @@ def test_openai_agents_cleanup_runner_compact_continuation_preserves_composite_c
             return LiveAgentResult(phase="finished", exit_status=0, run_result_present=True)
 
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner.subprocess.Popen",
+        "roboclaws.agents.household_live_lifecycle.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
@@ -662,7 +662,7 @@ def test_openai_agents_cleanup_runner_compact_continuation_preserves_composite_c
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner.OpenAIAgentsLiveRuntime",
+        "roboclaws.agents.household_live_lifecycle.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
     monkeypatch.setattr(

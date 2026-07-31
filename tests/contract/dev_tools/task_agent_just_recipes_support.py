@@ -23,6 +23,7 @@ MOLMO_JUST = JUST_DIR / "molmo.just"
 CODING_AGENT_ENV = REPO_ROOT / "scripts" / "dev" / "coding_agent_env.sh"
 
 LIVE_OPENAI_AGENTS_RUNNER = REPO_ROOT / "roboclaws/agents/household_live_runner.py"
+LIVE_OPENAI_AGENTS_LIFECYCLE = REPO_ROOT / "roboclaws/agents/household_live_lifecycle.py"
 
 HOUSEHOLD_LIVE_DRIVER = REPO_ROOT / "roboclaws" / "agents" / "drivers" / "household_live.py"
 

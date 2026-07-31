@@ -15,6 +15,7 @@ from tests.contract.dev_tools.task_agent_just_recipes_support import (
     AGENT_JUST,
     CODING_AGENT_ENV,
     JUST_DIR,
+    LIVE_OPENAI_AGENTS_LIFECYCLE,
     LIVE_OPENAI_AGENTS_RUNNER,
     MOLMO_JUST,
     REPO_ROOT,
@@ -122,12 +123,13 @@ def test_household_checker_flags_are_generated_from_intent_policy() -> None:
 
 def test_openai_agents_runner_script_uses_runtime_contract_and_checker() -> None:
     runner_text = LIVE_OPENAI_AGENTS_RUNNER.read_text(encoding="utf-8")
+    lifecycle_text = LIVE_OPENAI_AGENTS_LIFECYCLE.read_text(encoding="utf-8")
 
-    assert "OpenAIAgentsLiveRuntime" in runner_text
-    assert "LiveAgentRequest" in runner_text
-    assert "household_server_argv" in runner_text
-    assert 'CHECKER_MODULE = "roboclaws.household.cleanup_validation_cli"' in runner_text
-    assert "CHECKER_SCRIPT" not in runner_text
+    assert "LiveOpenAIAgentsHouseholdRunner" in runner_text
+    assert "OpenAIAgentsLiveRuntime" in lifecycle_text
+    assert "household_server_argv" in lifecycle_text
+    assert 'CHECKER_MODULE = "roboclaws.household.cleanup_validation_cli"' in lifecycle_text
+    assert "CHECKER_SCRIPT" not in lifecycle_text
 
 
 def test_openai_agents_cleanup_checker_policy_uses_checker_profile(
@@ -135,8 +137,8 @@ def test_openai_agents_cleanup_checker_policy_uses_checker_profile(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     module = load_script_module(
-        LIVE_OPENAI_AGENTS_RUNNER,
-        "household_live_runner_checker_profile_test",
+        LIVE_OPENAI_AGENTS_LIFECYCLE,
+        "household_live_lifecycle_checker_profile_test",
     )
     run_dir = tmp_path / "openai-agents"
     run_dir.mkdir()

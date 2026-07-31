@@ -3,7 +3,9 @@ from __future__ import annotations
 import uuid
 from pathlib import Path
 
-from roboclaws.agents.drivers.openai_agents_perf_profile import _sdk_model_settings_for_profile
+from roboclaws.agents.drivers.openai_agents_profile_runtime import (
+    _sdk_model_settings_for_profile,
+)
 from roboclaws.agents.provider_transport import (
     CODEX_WINDOW_ID_HEADER,
     compatible_model_settings,

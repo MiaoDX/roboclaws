@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.agents.household_live_runner import _budget_failure_from_run_state
+from roboclaws.agents.household_live_continuation import _budget_failure_from_run_state
 
 
 def test_openai_agents_budget_guard_fails_aloud_on_malformed_trace_source(

@@ -6,7 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from roboclaws.agents.drivers.openai_agents_live import OpenAIAgentsLiveRuntime
-from roboclaws.agents.household_live_runner import (
+from roboclaws.agents.household_live_lifecycle import (
     LiveOpenAIAgentsHouseholdRunner,
 )
 from roboclaws.agents.live_runtime import (
@@ -167,7 +167,7 @@ def test_openai_agents_cleanup_runner_fails_after_bounded_continuation(
             )
 
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner.subprocess.Popen",
+        "roboclaws.agents.household_live_lifecycle.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
@@ -176,7 +176,7 @@ def test_openai_agents_cleanup_runner_fails_after_bounded_continuation(
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner.OpenAIAgentsLiveRuntime",
+        "roboclaws.agents.household_live_lifecycle.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
 

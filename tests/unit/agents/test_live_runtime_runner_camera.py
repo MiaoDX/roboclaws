@@ -4,7 +4,7 @@ import json
 from argparse import Namespace
 from pathlib import Path
 
-from roboclaws.agents.household_live_runner import (
+from roboclaws.agents.household_live_lifecycle import (
     LiveOpenAIAgentsHouseholdRunner,
 )
 from roboclaws.agents.live_runtime import (
@@ -63,7 +63,7 @@ def test_openai_agents_robot_view_capture_policy_adds_private_server_flag(
             return LiveAgentResult(phase="finished", exit_status=0, run_result_present=True)
 
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner.subprocess.Popen",
+        "roboclaws.agents.household_live_lifecycle.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
@@ -72,7 +72,7 @@ def test_openai_agents_robot_view_capture_policy_adds_private_server_flag(
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner.OpenAIAgentsLiveRuntime",
+        "roboclaws.agents.household_live_lifecycle.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
     monkeypatch.setattr(

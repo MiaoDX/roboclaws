@@ -9,11 +9,11 @@ import pytest
 
 from roboclaws.agents.drivers.openai_agents_compaction import _compact_model_input_items
 from roboclaws.agents.drivers.openai_agents_live import OpenAIAgentsLiveRuntime
+from roboclaws.agents.drivers.openai_agents_metrics import (
+    model_input_filter_metrics as _model_input_filter_metrics,
+)
 from roboclaws.agents.drivers.openai_agents_perf_profile import (
     resolve_agent_sdk_perf_profile as _resolve_agent_sdk_perf_profile,
-)
-from roboclaws.agents.household_live_runner import (
-    _model_input_filter_metrics,
 )
 from roboclaws.agents.live_runtime import (
     LiveAgentMCPServer,

@@ -5,11 +5,11 @@ from argparse import Namespace
 from pathlib import Path
 
 from roboclaws.agents.drivers.openai_agents_compaction import _compact_model_input_items
-from roboclaws.agents.household_live_runner import (
-    LiveOpenAIAgentsHouseholdRunner,
+from roboclaws.agents.household_live_continuation import (
     _kickoff_prompt_source,
     _profiled_kickoff_prompt,
 )
+from roboclaws.agents.household_live_lifecycle import LiveOpenAIAgentsHouseholdRunner
 from roboclaws.agents.live_runtime import (
     LiveAgentRequest,
     LiveAgentResult,
@@ -395,7 +395,7 @@ def test_openai_agents_camera_grounded_composite_profile_adds_private_server_fla
             return LiveAgentResult(phase="finished", exit_status=0, run_result_present=True)
 
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner.subprocess.Popen",
+        "roboclaws.agents.household_live_lifecycle.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
@@ -404,7 +404,7 @@ def test_openai_agents_camera_grounded_composite_profile_adds_private_server_fla
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner.OpenAIAgentsLiveRuntime",
+        "roboclaws.agents.household_live_lifecycle.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
 
@@ -579,7 +579,7 @@ def test_openai_agents_camera_grounded_composite_runner_rerenders_stale_two_step
             return LiveAgentResult(phase="finished", exit_status=0, run_result_present=True)
 
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner.subprocess.Popen",
+        "roboclaws.agents.household_live_lifecycle.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
@@ -588,7 +588,7 @@ def test_openai_agents_camera_grounded_composite_runner_rerenders_stale_two_step
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner.OpenAIAgentsLiveRuntime",
+        "roboclaws.agents.household_live_lifecycle.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
 

@@ -7,13 +7,15 @@ from types import SimpleNamespace
 
 import pytest
 
+from roboclaws.agents.drivers.openai_agents_metrics import (
+    model_racing_observability_metrics as _model_racing_observability_metrics,
+)
+from roboclaws.agents.drivers.openai_agents_metrics import (
+    model_service_fallback_metrics as _model_service_fallback_metrics,
+)
 from roboclaws.agents.drivers.openai_agents_retry_model import (
     _RetryingModel,
     _should_retry_model_service_failure,
-)
-from roboclaws.agents.household_live_runner import (
-    _model_racing_observability_metrics,
-    _model_service_fallback_metrics,
 )
 from tests.unit.agents.live_runtime_support import (
     _assert_openai_agents_config_failure,

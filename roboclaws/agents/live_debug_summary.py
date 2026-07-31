@@ -1,4 +1,4 @@
-"""Human-readable live timeout debug summary lines."""
+"""Human-readable SDK live-run debug summary lines."""
 
 from __future__ import annotations
 

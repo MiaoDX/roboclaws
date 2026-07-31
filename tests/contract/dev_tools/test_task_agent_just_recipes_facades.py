@@ -16,6 +16,7 @@ from tests.contract.dev_tools.task_agent_just_recipes_support import (
     HOUSEHOLD_LIVE_DRIVER,
     JUST_DIR,
     JUSTFILE,
+    LIVE_OPENAI_AGENTS_LIFECYCLE,
     LIVE_OPENAI_AGENTS_RUNNER,
     MOLMO_JUST,
     REPO_ROOT,
@@ -289,13 +290,14 @@ def test_household_cleanup_rejects_public_legacy_rich_map_mode() -> None:
 def test_live_agent_server_routes_use_cli_modules_not_examples() -> None:
     molmo_text = MOLMO_JUST.read_text(encoding="utf-8")
     sdk_runner_text = LIVE_OPENAI_AGENTS_RUNNER.read_text(encoding="utf-8")
+    sdk_lifecycle_text = LIVE_OPENAI_AGENTS_LIFECYCLE.read_text(encoding="utf-8")
     household_live_text = HOUSEHOLD_LIVE_DRIVER.read_text(encoding="utf-8")
 
     assert "roboclaws.agents.household_live_runner" in molmo_text
     assert "roboclaws.cli.agent_server household-cleanup" not in molmo_text
     assert "examples/molmo_cleanup/molmo_realworld_cleanup_agent_server.py" not in molmo_text
     assert "examples/molmo_cleanup/molmo_realworld_cleanup_agent_server.py" not in sdk_runner_text
-    assert "household_server_argv" in sdk_runner_text
+    assert "household_server_argv" in sdk_lifecycle_text
     assert "household_server_argv" in household_live_text
 
 

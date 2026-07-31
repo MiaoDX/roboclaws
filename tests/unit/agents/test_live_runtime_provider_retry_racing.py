@@ -7,14 +7,14 @@ from types import SimpleNamespace
 import pytest
 
 from roboclaws.agents.drivers.openai_agents_live import OpenAIAgentsLiveRuntime
+from roboclaws.agents.drivers.openai_agents_metrics import (
+    model_racing_observability_metrics as _model_racing_observability_metrics,
+)
 from roboclaws.agents.drivers.openai_agents_perf_profile import (
     resolve_agent_sdk_perf_profile as _resolve_agent_sdk_perf_profile,
 )
 from roboclaws.agents.drivers.openai_agents_retry_model import (
     _RetryingModel,
-)
-from roboclaws.agents.household_live_runner import (
-    _model_racing_observability_metrics,
 )
 from roboclaws.agents.live_runtime import (
     LiveAgentMCPServer,

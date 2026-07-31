@@ -9,11 +9,14 @@ from roboclaws.core.live_performance import (
     MODEL_CALL_METRIC_SCHEMA,
     REPORT_PERFORMANCE_SCHEMA,
     ReportPerformanceSourceError,
-    compare_run_dirs,
     extract_model_call_metrics,
     extract_report_performance_metrics,
     privacy_findings_for_run_dir,
     write_model_call_metrics_jsonl,
+)
+from roboclaws.core.live_performance_comparison import (
+    compare_report_performance_metrics,
+    compare_run_dirs,
 )
 
 
@@ -127,7 +130,7 @@ def test_compare_run_dirs_with_calibration_reports_normalized_deltas(tmp_path: P
     assert timing["candidate"]["estimated_model_work_s"]["estimated_s"] == 4.7
 
 
-def test_model_call_metrics_reports_unavailable_without_zeroing_missing_telemetry(
+def test_retired_raw_events_are_not_extracted_as_current_model_calls(
     tmp_path: Path,
 ) -> None:
     run_dir = tmp_path / "claude"
@@ -140,30 +143,33 @@ def test_model_call_metrics_reports_unavailable_without_zeroing_missing_telemetr
 
     rows = extract_model_call_metrics(run_dir)
 
-    assert rows == [
-        {
-            "schema": MODEL_CALL_METRIC_SCHEMA,
-            "agent_engine": "claude-code",
-            "provider_profile": "retired-anthropic-profile",
-            "wire_api": "",
-            "model": "",
-            "attempt_index": 0,
-            "call_index": 0,
-            "started_at_epoch": None,
-            "duration_s": None,
-            "input_tokens": None,
-            "cached_input_tokens": None,
-            "uncached_input_tokens": None,
-            "output_tokens": None,
-            "reasoning_tokens": None,
-            "image_input_count": 0,
-            "image_input_pixels": 0,
-            "status": "unavailable",
-            "failure_class": "",
-            "source": "unavailable",
-            "limitations": ["claude-code_model_call_telemetry_unavailable"],
-        }
-    ]
+    assert rows[0]["agent_engine"] == "unknown"
+    assert rows[0]["source"] == "unavailable"
+    assert rows[0]["limitations"] == ["unknown_model_call_telemetry_unavailable"]
+
+
+def test_comparison_reads_historical_serialized_retired_engine_identity() -> None:
+    historical = {
+        "run_dir": "fixtures/retired-codex-run",
+        "run_identity": {"agent_engine": "codex-cli", "provider_profile": "retired-profile"},
+        "quality": {"checker_state": "result-present", "restored_count": 1},
+        "call_counts": {},
+        "model_work": {},
+        "timing": {"observed_wall_s": 10.0},
+    }
+    current = {
+        **historical,
+        "run_dir": "fixtures/current-sdk-run",
+        "run_identity": {
+            "agent_engine": "openai-agents-sdk",
+            "provider_profile": "kimi-openai-chat",
+        },
+    }
+
+    comparison = compare_report_performance_metrics(historical, current, diagnostic=True)
+
+    assert comparison["baseline"]["run_identity"]["agent_engine"] == "codex-cli"
+    assert comparison["identity_comparison"]["apples_to_oranges"] is True
 
 
 def test_compare_rejects_faster_but_worse_candidate(tmp_path: Path) -> None:

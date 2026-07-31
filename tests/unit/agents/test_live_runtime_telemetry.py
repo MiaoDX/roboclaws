@@ -6,12 +6,14 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.agents.drivers.openai_agents_spans import RoboclawsSpanRecorder
-from roboclaws.agents.household_live_runner import (
-    LiveOpenAIAgentsHouseholdRunner,
-    _openai_agents_event_metrics,
-    _openai_agents_span_metrics,
+from roboclaws.agents.drivers.openai_agents_artifact_metrics import (
+    openai_agents_event_metrics as _openai_agents_event_metrics,
 )
+from roboclaws.agents.drivers.openai_agents_artifact_metrics import (
+    openai_agents_span_metrics as _openai_agents_span_metrics,
+)
+from roboclaws.agents.drivers.openai_agents_spans import RoboclawsSpanRecorder
+from roboclaws.agents.household_live_lifecycle import LiveOpenAIAgentsHouseholdRunner
 from roboclaws.agents.household_live_runner import (
     parse_args as _parse_live_openai_agents_args,
 )

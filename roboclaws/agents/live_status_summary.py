@@ -1,26 +1,20 @@
-#!/usr/bin/env python3
-"""Summarize a detached Molmo cleanup live-agent run."""
+"""Build and render the current OpenAI Agents SDK live-run summary."""
 
 from __future__ import annotations
 
-import argparse
 import datetime as dt
 import shutil
 import subprocess
-import sys
 import time
 from pathlib import Path
 from typing import Any
 
+from roboclaws.agents.live_debug_summary import debug_snapshot_lines
 from roboclaws.core.json_sources import read_json_object, read_jsonl_objects
-from roboclaws.core.live_performance import (
-    compare_report_performance_metrics,
-    extract_report_performance_metrics,
-)
+from roboclaws.core.live_performance import extract_report_performance_metrics
 from roboclaws.core.runtime_timing import runtime_timing_from_trace
-from scripts.molmo_cleanup.live_debug_summary import debug_snapshot_lines
 
-DEFAULT_SEARCH_ROOT = Path("output/molmo/codex-report")
+DEFAULT_SEARCH_ROOT = Path("output/household/household-world")
 LIVE_RUN_DISCOVERY_FILES = (
     "run_result.json",
     "trace.jsonl",
@@ -29,58 +23,12 @@ LIVE_RUN_DISCOVERY_FILES = (
 )
 
 
-def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Probe a detached Molmo cleanup live-agent run.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    parser.add_argument(
-        "path",
-        nargs="?",
-        default="",
-        help="run directory, run root, or run_result.json. Defaults to latest Codex report run.",
-    )
-    parser.add_argument(
-        "--comparison-manifest",
-        type=Path,
-        help=(
-            "JSON manifest of explicit Agent SDK baseline/candidate run pairs. "
-            "Smoke references cannot satisfy full-lane baseline requirements."
-        ),
-    )
-    return parser.parse_args(argv)
-
-
-def main(argv: list[str] | None = None) -> int:
-    args = parse_args(argv)
-    if args.comparison_manifest:
-        return _print_comparison_manifest(args.comparison_manifest)
-    run_dir = _resolve_run_dir(Path(args.path) if args.path else None)
-    if run_dir is None:
-        print(f"error: no run found under {DEFAULT_SEARCH_ROOT}", file=sys.stderr)
-        return 1
-    if not run_dir.exists():
-        print(f"error: run path does not exist: {run_dir}", file=sys.stderr)
-        return 1
-    if not _is_live_run_dir(run_dir):
-        print(f"error: run path has no live-run evidence: {run_dir}", file=sys.stderr)
-        return 1
-
-    try:
-        summary = _summarize(run_dir)
-    except ValueError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 1
-    _print_summary(summary)
-    return 0
-
-
 def _resolve_run_dir(path: Path | None) -> Path | None:
     if path is None:
         candidates = sorted(
             (
                 candidate
-                for candidate in DEFAULT_SEARCH_ROOT.glob("*/seed-*")
+                for candidate in DEFAULT_SEARCH_ROOT.rglob("seed-*")
                 if _is_live_run_dir(candidate)
             ),
             key=lambda item: item.stat().st_mtime,
@@ -129,7 +77,6 @@ def _summarize(run_dir: Path) -> dict[str, Any]:
             trace_events=trace_events,
         ),
         "result": _result_summary(run_result, run_dir),
-        "last_codex_message": _tail_text(run_dir / "codex-last-message.md", max_chars=800),
         "driver_tail": _tail_text(run_dir / "driver.log", max_chars=1200),
     }
 
@@ -155,13 +102,10 @@ def _runner_summary(status: dict[str, Any]) -> dict[str, Any]:
 
 def _artifact_summary(run_dir: Path) -> dict[str, str]:
     names = (
-        "run_live_codex.sh",
         "driver.log",
-        "codex-events.jsonl",
         "openai-agents-events.jsonl",
+        "openai-agents-spans.jsonl",
         "openai-agents-trace.json",
-        "codex-last-message.md",
-        "codex.stderr.log",
         "live_timing.json",
         "model_call_metrics.jsonl",
         "trace.jsonl",
@@ -298,10 +242,7 @@ def _print_summary(summary: dict[str, Any]) -> None:
     for name, state in summary["artifacts"].items():
         print(f"  {name}: {state}")
 
-    if summary["last_codex_message"]:
-        print("codex last message:")
-        print(_indent(summary["last_codex_message"]))
-    elif summary["driver_tail"]:
+    if summary["driver_tail"]:
         print("driver log tail:")
         print(_indent(summary["driver_tail"]))
 
@@ -324,7 +265,6 @@ def _timing_summary(
     skipped_work = []
     if profile_metadata.get("record_robot_views") is False:
         skipped_work.append("per-tool robot-view timeline capture")
-    codex_events = live_timing.get("codex_events") or {}
     openai_agents = live_timing.get("openai_agents") or {}
     performance = extract_report_performance_metrics(run_dir)
     return {
@@ -333,151 +273,9 @@ def _timing_summary(
         "mcp": runtime_timing,
         "profile": profile_metadata,
         "skipped_work": skipped_work,
-        "codex_events": codex_events,
         "openai_agents": openai_agents,
         "performance": performance,
     }
-
-
-def _print_comparison_manifest(path: Path) -> int:
-    try:
-        manifest = read_json_object(path, label="live-run summary comparison manifest")
-    except (FileNotFoundError, ValueError) as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 1
-    entries = manifest.get("comparisons")
-    if not isinstance(entries, list) or not entries:
-        print(
-            "error: comparison manifest must contain a non-empty comparisons list",
-            file=sys.stderr,
-        )
-        return 1
-
-    rows: list[dict[str, Any]] = []
-    for entry in entries:
-        if not isinstance(entry, dict):
-            print("error: comparison manifest entries must be objects", file=sys.stderr)
-            return 1
-        baseline_role = str(entry.get("baseline_role") or "")
-        lane = str(entry.get("lane") or "")
-        if baseline_role == "smoke_reference" and lane not in {"smoke", "diagnostic"}:
-            print(
-                "error: smoke reference cannot satisfy full-lane baseline "
-                f"for comparison {entry.get('key') or '<unknown>'}",
-                file=sys.stderr,
-            )
-            return 1
-        baseline_dir = Path(str(entry.get("baseline_run_dir") or ""))
-        candidate_dir = Path(str(entry.get("candidate_run_dir") or ""))
-        if not baseline_dir or not candidate_dir:
-            print(
-                f"error: comparison {entry.get('key') or '<unknown>'} needs explicit run dirs",
-                file=sys.stderr,
-            )
-            return 1
-        if not baseline_dir.exists() or not candidate_dir.exists():
-            print(
-                f"error: comparison {entry.get('key') or '<unknown>'} references missing run dir",
-                file=sys.stderr,
-            )
-            return 1
-        rows.append(_comparison_row(entry, baseline_dir=baseline_dir, candidate_dir=candidate_dir))
-
-    print("Report performance comparison manifest")
-    header = (
-        "key | provider | lane | baseline | candidate | elapsed_delta_s | "
-        "gap_delta_s | uncached_delta | model_work | context | terminal | checker | status"
-    )
-    print(header)
-    print("-" * len(header))
-    for row in rows:
-        print(
-            f"{row['key']} | {row['provider_profile']} | {row['lane']} | "
-            f"{_format_duration(row['baseline_elapsed_s'])} | "
-            f"{_format_duration(row['candidate_elapsed_s'])} | "
-            f"{_signed_duration(row['elapsed_delta_s'])} | "
-            f"{_signed_duration(row['between_tool_gap_delta_s'])} | "
-            f"{row['uncached_delta']} | {row['candidate_cache_hit_ratio']} | "
-            f"{row['candidate_context_state']} | {row['candidate_terminal']} | "
-            f"{row['candidate_checker']} | {row['status']}"
-        )
-    return 0
-
-
-def _comparison_row(
-    entry: dict[str, Any],
-    *,
-    baseline_dir: Path,
-    candidate_dir: Path,
-) -> dict[str, Any]:
-    baseline_metrics = extract_report_performance_metrics(baseline_dir)
-    candidate_metrics = extract_report_performance_metrics(candidate_dir)
-    comparison = compare_report_performance_metrics(
-        baseline_metrics,
-        candidate_metrics,
-        key=str(entry.get("key") or ""),
-        quality_waiver=str(entry.get("quality_waiver") or ""),
-        diagnostic=str(entry.get("baseline_role") or "") == "diagnostic",
-    )
-    baseline = _comparison_run_summary_from_metrics(baseline_metrics)
-    candidate = _comparison_run_summary_from_metrics(candidate_metrics)
-    return {
-        "key": str(entry.get("key") or ""),
-        "provider_profile": str(entry.get("provider_profile") or candidate["provider_profile"]),
-        "lane": str(entry.get("lane") or candidate["lane"]),
-        "baseline_elapsed_s": baseline["elapsed_s"],
-        "candidate_elapsed_s": candidate["elapsed_s"],
-        "elapsed_delta_s": _delta(candidate["elapsed_s"], baseline["elapsed_s"]),
-        "between_tool_gap_delta_s": _delta(
-            candidate["between_tool_gap_s"],
-            baseline["between_tool_gap_s"],
-        ),
-        "uncached_delta": _token_delta(
-            candidate["total_uncached_input_tokens"],
-            baseline["total_uncached_input_tokens"],
-        ),
-        "candidate_cache_hit_ratio": candidate["cache_hit_ratio"],
-        "candidate_context_state": candidate["context_state"],
-        "candidate_terminal": candidate["terminal"],
-        "candidate_checker": candidate["checker"],
-        "status": comparison["status"],
-    }
-
-
-def _comparison_run_summary_from_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
-    identity = metrics.get("run_identity") if isinstance(metrics.get("run_identity"), dict) else {}
-    quality = metrics.get("quality") if isinstance(metrics.get("quality"), dict) else {}
-    timing = metrics.get("timing") if isinstance(metrics.get("timing"), dict) else {}
-    model_work = metrics.get("model_work") if isinstance(metrics.get("model_work"), dict) else {}
-    return {
-        "elapsed_s": _float_or_none(timing.get("observed_wall_s")),
-        "between_tool_gap_s": _float_or_none(timing.get("mcp_between_tool_gap_s")),
-        "total_uncached_input_tokens": model_work.get("total_uncached_input_tokens"),
-        "cache_hit_ratio": _cache_hit_ratio(model_work),
-        "provider_profile": identity.get("provider_profile") or "unknown",
-        "lane": identity.get("evidence_lane") or "unknown",
-        "context_state": _context_state(model_work),
-        "terminal": quality.get("terminal") or "unknown",
-        "checker": quality.get("checker_state") or "unknown",
-    }
-
-
-def _context_state(context: dict[str, Any]) -> str:
-    if context.get("available"):
-        max_input = context.get("max_input_tokens")
-        return f"available(max={max_input})" if max_input is not None else "available"
-    limitations = context.get("limitations")
-    if isinstance(limitations, list) and limitations:
-        return "unavailable:" + ",".join(str(item) for item in limitations[:3])
-    return "unavailable"
-
-
-def _cache_hit_ratio(model_work: dict[str, Any]) -> float | None:
-    total_input = _float_or_none(model_work.get("total_input_tokens"))
-    total_cached = _float_or_none(model_work.get("total_cached_input_tokens"))
-    if total_input is None or total_cached is None or total_input <= 0:
-        return None
-    return round(total_cached / total_input, 4)
 
 
 def _terminal_state(live_timing: dict[str, Any], status: dict[str, Any]) -> str:
@@ -498,21 +296,6 @@ def _checker_state(status: dict[str, Any], run_result: dict[str, Any]) -> str:
     return str(reason)
 
 
-def _delta(candidate: float | None, baseline: float | None) -> float | None:
-    if candidate is None or baseline is None:
-        return None
-    return round(candidate - baseline, 3)
-
-
-def _token_delta(candidate: Any, baseline: Any) -> str:
-    candidate_int = int(candidate) if isinstance(candidate, int) else None
-    baseline_int = int(baseline) if isinstance(baseline, int) else None
-    if candidate_int is None or baseline_int is None:
-        return "unavailable"
-    delta = candidate_int - baseline_int
-    return f"{delta:+d}"
-
-
 def _print_timing(timing: dict[str, Any]) -> None:
     runner = timing.get("runner") or {}
     mcp = timing.get("mcp") or {}
@@ -523,7 +306,7 @@ def _print_timing(timing: dict[str, Any]) -> None:
     print("timing:")
     _print_runner_timing(runner)
     _print_mcp_timing(mcp)
-    _print_model_api_timing(timing.get("codex_events") or {})
+    _print_model_api_timing(timing.get("openai_agents") or {})
     _print_profile_timing(timing.get("profile") or {})
     _print_report_performance_timing(timing.get("performance") or {})
     _print_skipped_work(timing.get("skipped_work") or [])
@@ -539,9 +322,9 @@ def _print_runner_timing(runner: dict[str, Any]) -> None:
         print(
             "  runner wall: "
             f"total={_format_duration(runner.get('total_elapsed_s'))} "
-            f"pre_codex={_format_duration(runner.get('pre_codex_setup_s'))} "
-            f"codex_exec={_format_duration(runner.get('codex_exec_elapsed_s'))} "
-            f"server_wait={_format_duration(runner.get('post_codex_server_wait_s'))} "
+            f"pre_sdk={_format_duration(runner.get('pre_openai_agents_setup_s'))} "
+            f"sdk_exec={_format_duration(runner.get('openai_agents_elapsed_s'))} "
+            f"server_wait={_format_duration(runner.get('post_openai_agents_server_wait_s'))} "
             f"checker={_format_duration(runner.get('checker_elapsed_s'))} "
             f"unaccounted={_format_duration(runner.get('unaccounted_elapsed_s'))}"
         )
@@ -575,11 +358,11 @@ def _print_mcp_timing(mcp: dict[str, Any]) -> None:
             )
 
 
-def _print_model_api_timing(codex_events: dict[str, Any]) -> None:
-    usage = codex_events.get("usage") or {}
-    model_api_time = codex_events.get("model_api_time_s")
+def _print_model_api_timing(openai_agents: dict[str, Any]) -> None:
+    usage = openai_agents.get("usage") or {}
+    model_api_time = openai_agents.get("model_api_time_s")
     print(f"  model API time: {_format_duration(model_api_time)}")
-    note = codex_events.get("model_api_time_note")
+    note = openai_agents.get("model_api_time_note")
     if note:
         print(f"  model API note: {note}")
     if usage:
@@ -733,17 +516,5 @@ def _format_duration(value: Any) -> str:
     return f"{minutes}m{seconds:02d}s"
 
 
-def _signed_duration(value: Any) -> str:
-    parsed = _float_or_none(value)
-    if parsed is None:
-        return "unknown"
-    sign = "+" if parsed >= 0 else "-"
-    return f"{sign}{_format_duration(abs(parsed))}"
-
-
 def _indent(text: str) -> str:
     return "\n".join(f"  {line}" for line in text.splitlines())
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

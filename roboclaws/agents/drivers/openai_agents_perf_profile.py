@@ -1,22 +1,33 @@
 from __future__ import annotations
 
 import argparse
-import math
 import os
 from typing import Any
 
 from roboclaws.agents.drivers import openai_agents_retry_model as retry_model
+from roboclaws.agents.drivers.openai_agents_profile_capture import (
+    _robot_view_capture_policy_profile,
+)
+from roboclaws.agents.drivers.openai_agents_profile_runtime import (
+    _sdk_model_settings_for_profile,
+    _sdk_run_config_for_profile,
+)
+from roboclaws.agents.drivers.openai_agents_profile_settings import (
+    _bool_arg_setting,
+    _float_setting,
+    _int_setting,
+    _positive_int_setting,
+    _raise_enabled_count_error,
+    _string_setting,
+    _validate_context_limits,
+)
 from roboclaws.agents.drivers.openai_agents_run_config import (
     DEFAULT_OPENAI_AGENTS_MAX_TURNS,
-    KIMI_CODING_USER_AGENT,
     MCP_CLIENT_SESSION_TIMEOUT_ENV,
 )
-from roboclaws.agents.provider_transport import compatible_model_settings
 from roboclaws.agents.thinking_policy import normalize_thinking_mode
 from roboclaws.core.provider_catalog import (
-    PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
     ROUTE_CAP_SUPPORTED,
-    WIRE_CHAT_COMPLETIONS,
     WIRE_RESPONSES,
     model_family_for_route_model,
     normalize_provider_route,
@@ -24,7 +35,6 @@ from roboclaws.core.provider_catalog import (
     route_capabilities_for_engine,
 )
 from roboclaws.core.robot_view_capture import (
-    ROBOT_VIEW_CAPTURE_POLICIES,
     ROBOT_VIEW_CAPTURE_POLICY_FULL,
 )
 
@@ -669,207 +679,5 @@ def camera_grounded_composite_tools_enabled_for_run(
     return evidence_lane == "camera-grounded-labels"
 
 
-def _robot_view_capture_policy_profile(
-    args: argparse.Namespace,
-    defaults: dict[str, Any],
-) -> dict[str, Any]:
-    default_config = (
-        defaults.get("robot_view_capture_policy")
-        if isinstance(defaults.get("robot_view_capture_policy"), dict)
-        else {}
-    )
-    policy = _string_setting(
-        args,
-        "robot_view_capture_policy",
-        ROBOT_VIEW_CAPTURE_POLICY_ENV,
-        default=str(default_config.get("policy") or ROBOT_VIEW_CAPTURE_POLICY_FULL),
-        allowed=set(ROBOT_VIEW_CAPTURE_POLICIES),
-    )
-    enabled = policy != ROBOT_VIEW_CAPTURE_POLICY_FULL
-    return {
-        "schema": "agent_sdk_robot_view_capture_policy_v1",
-        "policy": policy,
-        "candidate_ids": ["F"] if enabled else [],
-        "scope": "report-only robot-view capture",
-        "hook": "cleanup MCP server --robot-view-capture-policy",
-        "private_artifact_policy": (
-            "SDK-private report-capture reduction; before/after snapshots, cleanup action "
-            "views, raw-FPV observe artifacts, traces, and reports remain complete"
-            if enabled
-            else "full report robot-view capture; default public route behavior unchanged"
-        ),
-    }
-
-
-def _sdk_model_settings_for_profile(profile: dict[str, Any]) -> dict[str, Any]:
-    wire_api = str(profile.get("wire_api") or "")
-    provider_profile = str(profile.get("provider_profile") or "")
-    settings: dict[str, Any] = {
-        "tool_choice": "auto",
-        "parallel_tool_calls": False,
-        "model_thinking_mode": str(profile.get("model_thinking_mode") or "default"),
-    }
-    if wire_api == WIRE_RESPONSES:
-        settings["store"] = False
-        settings["truncation"] = "auto"
-    elif wire_api == WIRE_CHAT_COMPLETIONS:
-        settings["include_usage"] = True
-        if provider_profile == PROVIDER_PROFILE_KIMI_OPENAI_CHAT:
-            settings["extra_headers"] = {"User-Agent": KIMI_CODING_USER_AGENT}
-    return compatible_model_settings(provider_profile, settings)
-
-
-def _sdk_run_config_for_profile(_profile: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "trace_include_sensitive_data": False,
-        "workflow_name": "roboclaws-openai-agents-live",
-    }
-
-
 def _normal_provider_profile(provider_profile: str) -> str:
     return normalize_provider_route(provider_profile)
-
-
-def _string_setting(
-    args: argparse.Namespace,
-    attr: str,
-    env_name: str,
-    *,
-    default: str,
-    allowed: set[str],
-) -> str:
-    arg_raw = getattr(args, attr, "")
-    env_raw = os.environ.get(env_name, "")
-    value = str(arg_raw or env_raw or default).strip()
-    if arg_raw and env_raw and str(arg_raw).strip() != str(env_raw).strip():
-        _raise_setting_conflict(attr, env_name, str(arg_raw).strip(), str(env_raw).strip())
-    if value not in allowed:
-        raise ValueError(f"unsupported OpenAI Agents SDK {attr.replace('_', '-')} '{value}'")
-    return value
-
-
-def _int_setting(
-    args: argparse.Namespace,
-    attr: str,
-    env_name: str,
-    *,
-    default: int | None,
-    allow_none: bool = False,
-) -> int | None:
-    raw = getattr(args, attr, None)
-    env_raw = os.environ.get(env_name)
-    if raw is not None and env_raw not in {None, ""}:
-        value = _number_setting_value(attr, raw, int, "an integer")
-        env_value = _number_setting_value(attr, env_raw, int, "an integer")
-        if value != env_value:
-            _raise_setting_conflict(attr, env_name, value, env_value)
-        raw = value
-    if raw is None:
-        raw = env_raw if env_raw not in {None, ""} else default
-    if raw is None:
-        if allow_none:
-            return None
-        raise ValueError(f"{attr} is required")
-    value = _number_setting_value(attr, raw, int, "an integer")
-    if value < 0:
-        raise ValueError(f"OpenAI Agents SDK setting {attr} must be non-negative, got {raw!r}")
-    return value
-
-
-def _positive_int_setting(
-    args: argparse.Namespace,
-    attr: str,
-    env_name: str,
-    *,
-    default: int,
-) -> int:
-    raw = getattr(args, attr, None)
-    env_raw = os.environ.get(env_name)
-    if raw is not None and env_raw not in {None, ""}:
-        value = _number_setting_value(attr, raw, int, "an integer")
-        env_value = _number_setting_value(attr, env_raw, int, "an integer")
-        if value != env_value:
-            _raise_setting_conflict(attr, env_name, value, env_value)
-        raw = value
-    if raw is None:
-        raw = env_raw if env_raw not in {None, ""} else default
-    value = _number_setting_value(attr, raw, int, "an integer")
-    if value < 1:
-        raise ValueError(f"OpenAI Agents SDK setting {attr} must be positive, got {raw!r}")
-    return value
-
-
-def _float_setting(
-    args: argparse.Namespace,
-    attr: str,
-    env_name: str,
-    *,
-    default: float,
-) -> float:
-    raw = getattr(args, attr, None)
-    env_raw = os.environ.get(env_name)
-    if raw is not None and env_raw not in {None, ""}:
-        value = _number_setting_value(attr, raw, float, "a non-negative number")
-        env_value = _number_setting_value(attr, env_raw, float, "a non-negative number")
-        if value != env_value:
-            _raise_setting_conflict(attr, env_name, value, env_value)
-        raw = value
-    if raw is None:
-        raw = env_raw if env_raw not in {None, ""} else default
-    value = _number_setting_value(attr, raw, float, "a non-negative number")
-    if not math.isfinite(value) or value < 0:
-        raise ValueError(f"{attr} must be a finite non-negative number")
-    return round(max(0.0, value), 3)
-
-
-def _number_setting_value(attr: str, raw: object, parser: Any, expected: str) -> Any:
-    if isinstance(raw, bool):
-        raise ValueError(f"OpenAI Agents SDK setting {attr} must be {expected}, got {raw!r}")
-    try:
-        return parser(raw)
-    except (TypeError, ValueError) as exc:
-        raise ValueError(
-            f"OpenAI Agents SDK setting {attr} must be {expected}, got {raw!r}"
-        ) from exc
-
-
-def _bool_arg_setting(
-    args: argparse.Namespace,
-    attr: str,
-    env_name: str,
-    *,
-    default: bool,
-) -> bool:
-    raw = getattr(args, attr, None)
-    env_raw = os.environ.get(env_name)
-    if raw is not None and env_raw not in {None, ""}:
-        value = _bool_setting_value(raw)
-        env_value = _bool_setting_value(env_raw)
-        if value != env_value:
-            _raise_setting_conflict(attr, env_name, value, env_value)
-        raw = value
-    raw = env_raw if raw is None and env_raw not in {None, ""} else raw
-    if raw is None:
-        return default
-    return _bool_setting_value(raw)
-
-
-def _raise_setting_conflict(attr: str, env_name: str, arg_value: object, env_value: object) -> None:
-    cli_name = f"--{attr.replace('_', '-')}"
-    raise ValueError(
-        f"conflicting OpenAI Agents SDK setting {attr}: "
-        f"{cli_name}={arg_value!r} and {env_name}={env_value!r}"
-    )
-
-
-def _raise_enabled_count_error(attr: str, enabled_attr: str) -> None:
-    raise ValueError(
-        f"OpenAI Agents SDK setting {attr} must be positive when {enabled_attr} is enabled"
-    )
-
-
-def _validate_context_limits(profile: dict[str, Any]) -> None:
-    soft = profile.get("context_soft_limit_tokens")
-    hard = profile.get("context_hard_limit_tokens")
-    if soft is not None and hard is not None and int(soft) > int(hard):
-        raise ValueError("context_soft_limit_tokens must be <= context_hard_limit_tokens")

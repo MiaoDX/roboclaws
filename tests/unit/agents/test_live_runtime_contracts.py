@@ -7,10 +7,8 @@ from pathlib import Path
 import pytest
 
 from roboclaws.agents.drivers.openai_agents_live import OpenAIAgentsLiveRuntime
-from roboclaws.agents.household_live_runner import (
-    IncompleteTurnRecoveryPolicy,
-    _load_agent_sdk_skill_context,
-)
+from roboclaws.agents.household_live_config import _load_agent_sdk_skill_context
+from roboclaws.agents.household_live_continuation import IncompleteTurnRecoveryPolicy
 from roboclaws.agents.live_runtime import (
     LiveAgentMCPServer,
     LiveAgentRequest,

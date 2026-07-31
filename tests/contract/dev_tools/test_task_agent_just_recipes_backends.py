@@ -9,7 +9,7 @@ from pathlib import Path
 from tests.contract.dev_tools.task_agent_just_recipes_support import (
     HOUSEHOLD_AGENT_SERVER_MODULE,
     HOUSEHOLD_LIVE_DRIVER,
-    LIVE_OPENAI_AGENTS_RUNNER,
+    LIVE_OPENAI_AGENTS_LIFECYCLE,
     MOLMO_JUST,
     REPO_ROOT,
     agibot_dependency_overrides,
@@ -393,7 +393,7 @@ def test_molmo_isaac_live_runs_default_to_longer_mcp_client_timeout() -> None:
 
 def test_molmo_live_dispatch_is_sdk_only_and_probeable() -> None:
     molmo_text = MOLMO_JUST.read_text(encoding="utf-8")
-    runner_text = LIVE_OPENAI_AGENTS_RUNNER.read_text(encoding="utf-8")
+    lifecycle_text = LIVE_OPENAI_AGENTS_LIFECYCLE.read_text(encoding="utf-8")
     household_live_text = HOUSEHOLD_LIVE_DRIVER.read_text(encoding="utf-8")
 
     assert "live_drivers=(openai-agents-live)" in molmo_text
@@ -414,11 +414,11 @@ def test_molmo_live_dispatch_is_sdk_only_and_probeable() -> None:
     assert "live_status.json" in molmo_text
     assert "tmux_session.txt" not in molmo_text
     assert "roboclaws.agents.household_live_runner" in molmo_text
-    assert "acquire_household_live_run_lease" in runner_text
+    assert "acquire_household_live_run_lease" in lifecycle_text
     assert "acquire_visual_backend_slot" in household_live_text
     assert "no MolmoSpaces visual backend slot is available" in household_live_text
-    assert "is already in use before server start" in runner_text
+    assert "is already in use before server start" in lifecycle_text
     assert re.search(r'^status path=""', molmo_text, re.MULTILINE)
-    assert "scripts/molmo_cleanup/summarize_live_run.py" in molmo_text
+    assert "python -m roboclaws.agents.live_status_cli" in molmo_text
     assert 'live_lock_backend="${backend//[^A-Za-z0-9_.-]/-}"' in molmo_text
     assert '--lock-path "$openai_agents_lock_path"' in molmo_text

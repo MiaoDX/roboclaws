@@ -897,9 +897,9 @@ status path="":
     #!/usr/bin/env bash
     set -euo pipefail
     if [[ -n "{{path}}" ]]; then
-      exec .venv/bin/python scripts/molmo_cleanup/summarize_live_run.py "{{path}}"
+      exec .venv/bin/python -m roboclaws.agents.live_status_cli "{{path}}"
     fi
-    exec .venv/bin/python scripts/molmo_cleanup/summarize_live_run.py
+    exec .venv/bin/python -m roboclaws.agents.live_status_cli
 
 # Build or execute the current MolmoSpaces apple-to-apple comparison grid.
 apple2apple-grid mode="dry-run" output_dir="output/molmo/apple2apple-grid" seed="7" generated_mess_count="10" row="" runtime_map_prior="" visual_grounding_timeout_s="auto":
