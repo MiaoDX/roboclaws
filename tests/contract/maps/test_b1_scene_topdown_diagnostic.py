@@ -7,15 +7,15 @@ from pathlib import Path
 
 from PIL import Image
 
-import scripts.maps.render_b1_scene_topdown_diagnostic as diagnostic
-from scripts.maps.render_b1_scene_gaussian_topdown import (
-    build_topdown_camera_request,
-    topdown_render_packet,
-)
-from scripts.maps.render_b1_scene_topdown_diagnostic import (
+import roboclaws.maps.b1_scene_topdown_diagnostic as diagnostic
+from roboclaws.maps.b1_scene_topdown_diagnostic import (
     DIAGNOSTIC_SCHEMA,
     build_scene_topdown_diagnostic,
     validate_scene_topdown_diagnostic,
+)
+from scripts.maps.render_b1_scene_gaussian_topdown import (
+    build_topdown_camera_request,
+    topdown_render_packet,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]

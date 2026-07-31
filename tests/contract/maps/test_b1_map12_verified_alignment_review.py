@@ -15,16 +15,16 @@ from roboclaws.maps.b1_alignment_contract import (
 from roboclaws.maps.b1_manual_draft_promotion import (
     build_verification_manifest,
 )
+from roboclaws.maps.b1_map12_correspondence_report import render_review_report
+from roboclaws.maps.b1_map12_correspondence_review import (
+    build_review_packet,
+)
 from roboclaws.maps.b1_semantic_review_promotion import (
     PromotionError,
     build_reviewed_correspondence_manifest,
 )
 from scripts.maps.build_b1_map12_semantic_anchor_review_packet import (
     build_semantic_anchor_review_packet,
-)
-from scripts.maps.render_b1_map12_correspondence_review import (
-    build_review_packet,
-    render_review_report,
 )
 from tests.contract.maps.b1_map12_verified_alignment_support import (
     PROMOTE_MANUAL_DRAFT_MODULE,

@@ -10,17 +10,19 @@ import pytest
 from PIL import Image
 
 from roboclaws.maps.b1_alignment_artifact import build_alignment_residuals
-from scripts.maps.render_b1_map12_label_tool import (
+from roboclaws.maps.b1_map12_label_draft import (
     LABEL_DRAFT_MANIFEST_SCHEMA,
-    LABEL_TOOL_PACKET_SCHEMA,
-    build_label_tool_packet,
     draft_label_from_shape,
     draft_manifest_from_shapes,
     label_tool_template,
     label_tool_template_path,
-    materialize_scene_evidence_artifacts,
     render_label_tool_html,
     validate_label_draft_manifest,
+)
+from roboclaws.maps.b1_map12_label_tool import (
+    LABEL_TOOL_PACKET_SCHEMA,
+    build_label_tool_packet,
+    materialize_scene_evidence_artifacts,
     write_label_tool_artifacts,
 )
 from scripts.maps.render_b1_scene_gaussian_topdown import (

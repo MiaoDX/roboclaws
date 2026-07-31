@@ -7,24 +7,28 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-import scripts.maps.render_b1_scene_topdown_diagnostic as scene_diagnostic
+import roboclaws.maps.b1_scene_topdown_diagnostic as scene_diagnostic
 from roboclaws.maps.b1_alignment_artifact import build_alignment_residuals
-from scripts.maps.render_b1_map12_label_tool import (
+from roboclaws.maps.b1_map12_label_draft import (
     LABEL_DRAFT_MANIFEST_SCHEMA,
-    LABEL_TOOL_PACKET_SCHEMA,
-    SourceMapTransform,
-    build_label_tool_packet,
-    navigation_memory_layer_from_path,
-    pixel_to_world,
-    scene_bounds_review_seed_packet,
     validate_label_draft_manifest,
+)
+from roboclaws.maps.b1_map12_label_geometry import (
+    SourceMapTransform,
+    pixel_to_world,
     world_to_pixel,
 )
+from roboclaws.maps.b1_map12_label_seed import scene_bounds_review_seed_packet
+from roboclaws.maps.b1_map12_label_tool import (
+    LABEL_TOOL_PACKET_SCHEMA,
+    build_label_tool_packet,
+)
+from roboclaws.maps.b1_map12_source_layers import navigation_memory_layer_from_path
+from roboclaws.maps.b1_scene_topdown_diagnostic import build_scene_topdown_diagnostic
 from scripts.maps.render_b1_scene_gaussian_topdown import (
     build_topdown_camera_request,
     topdown_render_packet,
 )
-from scripts.maps.render_b1_scene_topdown_diagnostic import build_scene_topdown_diagnostic
 from tests.contract.maps.b1_map12_verified_alignment_support import (
     alignment_anchor,
     correspondence_manifest,

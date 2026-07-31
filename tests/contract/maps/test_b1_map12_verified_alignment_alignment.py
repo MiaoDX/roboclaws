@@ -23,12 +23,12 @@ from roboclaws.maps.b1_alignment_contract import (
     validate_alignment_residual_artifact,
     validate_correspondence_manifest,
 )
+from roboclaws.maps.b1_map12_correspondence_review import (
+    build_review_packet,
+)
 from roboclaws.maps.b1_semantic_projection import build_semantic_projection
 from roboclaws.maps.b1_semantic_review_promotion import (
     build_reviewed_correspondence_manifest,
-)
-from scripts.maps.render_b1_map12_correspondence_review import (
-    build_review_packet,
 )
 from scripts.maps.render_b1_map12_manual_alignment_overlay import (
     verified_transform as verified_overlay_transform,
