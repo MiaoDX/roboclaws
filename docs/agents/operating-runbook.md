@@ -20,6 +20,17 @@ The `dev` extra includes the standard MolmoSpaces/MuJoCo CPU runtime used by
 local cleanup demos. Keep Isaac Lab isolated in `.venv-isaaclab/` and install
 other optional extras only when a workflow explicitly needs them.
 
+After reviewing and accepting the NVIDIA Omniverse EULA, persist that
+machine-local decision in the gitignored repo `.env`:
+
+```bash
+OMNI_KIT_ACCEPT_EULA=YES
+```
+
+`just` loads `.env` automatically. Isaac preflight and smoke harnesses derive
+their acceptance default from this variable, while an explicit
+`accept_nvidia_eula=false` remains available for CI and guarded negative tests.
+
 If PyPI downloads are slow or flaky, keep mirror selection machine-local:
 
 ```bash

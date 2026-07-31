@@ -1,6 +1,6 @@
 # Aggressive Architecture Migration
 
-**Status:** BLOCKED_NEEDS_LOCAL_VALIDATION; Waves 0-7 and all agent-owned final gates complete
+**Status:** SUCCESS; Waves 0-7 and all final gates complete
 **Created:** 2026-07-30
 **Execution unit:** This entire plan, delivered in bounded waves and slices
 **Supersedes:** the broad-module-splitting non-goal in
@@ -738,12 +738,11 @@ hardware proof cannot run for a demonstrated environment reason.
 
 ## Plan Ledger
 
-- Current status: BLOCKED_NEEDS_LOCAL_VALIDATION. Waves 0-7 and all
-  agent-owned final gates are complete; the remaining Isaac Sim import proof
-  requires explicit human acceptance of the Omniverse EULA.
-- Current wave: final verification closed at the plan-defined external stop
-  gate. The migration did not accept the EULA, publish artifacts, or move a
-  physical robot.
+- Current status: SUCCESS. Waves 0-7 and all deterministic, product, provider,
+  browser, B1, and Isaac runtime gates are complete.
+- Current wave: final verification complete. The migration propagated the
+  operator's existing machine-local EULA acceptance; it did not accept terms
+  on the operator's behalf, publish artifacts, or move a physical robot.
 - Completed waves: Wave 0 froze exact size/disposition and import-graph
   baselines, expanded the deletion consumer ledger and public fixture index,
   corrected the planned topology from five/four to six/five, and wired both
@@ -1055,11 +1054,14 @@ hardware proof cannot run for a demonstrated environment reason.
   the native image dialog, and mobile/tablet/desktop layouts passed. Screenshots
   are in `output/evals/aggressive-architecture-migration-final-execute/`.
 - B1/Isaac proof: retained B1 readiness passed with a verified Map 12 overlay
-  and `robot_navigation_supported: false`. Strict Isaac preflight passed
-  runtime isolation, Python, disk, GPU, Torch, and Isaac Lab, then blocked on
-  `runtime_import_isaacsim` because Omniverse EULA acceptance is absent. The
-  evidence is
-  `output/isaaclab/preflight/aggressive-architecture-final/0731_112216/preflight.json`.
-- Next action: a human may separately decide whether to accept the Omniverse
-  EULA and rerun the guarded Isaac smoke. Until then this plan remains blocked;
-  no adjacent migration work or automatic retry is authorized.
+  and `robot_navigation_supported: false`. Machine-local
+  `OMNI_KIT_ACCEPT_EULA=YES` now supplies the harness default while an explicit
+  false override remains authoritative. Strict preflight passed every check,
+  including `runtime_import_isaacsim`, and the real generic smoke passed USD
+  stage loading, RTX rendering, selected scene bindings, nonblank capture, and
+  FPV/topdown/chase/verification robot views. Evidence is under
+  `output/isaaclab/preflight/aggressive-architecture-eula-persisted/0731_120411/`
+  and
+  `output/isaaclab/runtime-smoke/aggressive-architecture-final/eula-persisted/`.
+- Next action: none for this migration. Publication and real-robot movement
+  remain separate human decisions under their existing gates.

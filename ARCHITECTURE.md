@@ -195,7 +195,9 @@ Key pieces:
   base-map proof augmentation, waypoint requests, navigation reproducibility,
   and navigation reporting. These run as package modules while Isaac
   dependencies remain isolated
-  in `.venv-isaaclab/`; harnesses do not accept the Omniverse EULA by default.
+  in `.venv-isaaclab/`. Harnesses derive prior Omniverse EULA acceptance from
+  the machine-local `OMNI_KIT_ACCEPT_EULA=YES` environment contract; without
+  it they do not accept by default, and an explicit false override still wins.
 - `roboclaws/maps/b1_*.py` owns B1 base-map construction, reviewed alignment,
   semantic projection, and explicit promotion workflows. Current authoring
   tools consume these owners; accepted input assets remain review-controlled.
