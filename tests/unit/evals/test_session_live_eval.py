@@ -8,6 +8,8 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from roboclaws.core.operator_messages import check_operator_messages_for_mcp
 from roboclaws.evals.session_live import (
     SESSION_LIVE_API_TIMEOUT_S,
@@ -239,6 +241,29 @@ def test_session_live_waits_for_lifecycle_phase_after_product_status_passed() ->
         terminal = _wait_for_terminal("http://console", "run-1", deadline=time.monotonic() + 1)
 
     assert terminal["phase"] == "finished"
+
+
+def test_session_live_stops_console_run_before_reporting_timeout() -> None:
+    with patch("roboclaws.evals.session_live._api_json", return_value={}) as api_json:
+        with pytest.raises(RuntimeError, match="did not reach terminal state before timeout"):
+            _wait_for_terminal("http://console", "run-1", deadline=time.monotonic() - 1)
+
+    api_json.assert_called_once_with(
+        "http://console",
+        "POST",
+        "/api/runs/run-1/stop",
+        {},
+        timeout_s=SESSION_LIVE_API_TIMEOUT_S,
+    )
+
+
+def test_session_live_preserves_timeout_when_console_stop_fails() -> None:
+    with patch(
+        "roboclaws.evals.session_live._api_json",
+        side_effect=RuntimeError("stop failed"),
+    ):
+        with pytest.raises(RuntimeError, match="did not reach terminal state before timeout"):
+            _wait_for_terminal("http://console", "run-1", deadline=time.monotonic() - 1)
 
 
 def _consume_parent_steer_then_finish(
