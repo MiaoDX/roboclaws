@@ -17,10 +17,16 @@ from roboclaws.household.scene_camera_comparison import (
     ISAAC_LANE_ID,
     MOLMOSPACES_LANE_ID,
     SCENE_CAMERA_COMPARISON_SCHEMA,
-    _contact_sheet_entries,
-    _mujoco_render_contract_from_xml,
-    _shadow_parity_probe,
-    render_scene_camera_comparison_report,
+)
+from roboclaws.household.scene_camera_lighting_diagnostics import (
+    shadow_parity_probe as _shadow_parity_probe,
+)
+from roboclaws.household.scene_camera_render_diagnostics import (
+    mujoco_render_contract_from_xml as _mujoco_render_contract_from_xml,
+)
+from roboclaws.household.scene_camera_report import render_scene_camera_comparison_report
+from roboclaws.household.scene_camera_results import (
+    contact_sheet_entries as _contact_sheet_entries,
 )
 from tests.contract.molmo_cleanup.scene_camera_comparison_support import (
     MOLMO_JUST,

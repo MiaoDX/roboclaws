@@ -5,22 +5,24 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.household.scene_camera_comparison import (
+from roboclaws.household.scene_camera_capture import (
     ISAAC_LANE_ID,
     MOLMOSPACES_LANE_ID,
-    _backend_swap_geometry_contract,
     _canonical_camera_control_views,
     _isaac_view_specs,
     _molmospaces_view_specs,
     _room_camera_control_views,
 )
+from roboclaws.household.scene_camera_color_diagnostics import (
+    _backend_swap_geometry_contract,
+)
 from roboclaws.household.scene_camera_geometry_contract import (
     camera_intrinsics_contract_from_capture,
     camera_pose_contract_from_capture,
-    projection_diagnostics,
     room_scale_contract_from_scene_capture,
     scene_frame_transform_from_capture,
 )
+from roboclaws.household.scene_camera_projection import projection_diagnostics
 from tests.contract.molmo_cleanup.scene_camera_comparison_support import (
     _manifest,
 )

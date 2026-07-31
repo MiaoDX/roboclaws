@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import json
 import math
 from typing import Any
 
+from roboclaws.household import scene_camera_diagnostic_values as values
 from roboclaws.household.camera_control import scene_light_rig, scene_light_rig_roles
 from roboclaws.household.scene_camera_render_diagnostics import (
     float_list,
@@ -223,13 +223,15 @@ def shadow_parity_probe(manifest: dict[str, Any]) -> dict[str, Any]:
         render_probe=render_probe,
         isaac_lighting=isaac_lighting,
     )
-    isaac_dome_intensity = optional_float(
+    isaac_dome_intensity = values.optional_float(
         isaac_lighting.get("requested_dome_intensity", ambient.get("isaac_dome_intensity"))
     )
-    isaac_key_intensity = optional_float(
+    isaac_key_intensity = values.optional_float(
         isaac_lighting.get("requested_key_intensity", isaac_override.get("key_intensity"))
     )
-    shadow_disabled_count = optional_int(render_probe.get("isaac_shadow_disabled_prim_count")) or 0
+    shadow_disabled_count = (
+        values.optional_int(render_probe.get("isaac_shadow_disabled_prim_count")) or 0
+    )
     profile_id = str(lighting.get("profile_id") or "")
     is_shadow_probe = profile_id == "scene_probe_shadow_parity_probe_v1"
     is_shadow_capable_profile = is_shadow_probe
@@ -363,9 +365,9 @@ def isaac_lighting_summary(
 ) -> dict[str, str]:
     rig = lighting_rig(lighting_profile)
     roles = scene_light_rig_roles(rig)
-    existing = optional_int(diagnostics.get("existing_light_count"))
-    added = optional_int(diagnostics.get("added_light_count"))
-    existing_scale = optional_float(diagnostics.get("existing_light_intensity_scale"))
+    existing = values.optional_int(diagnostics.get("existing_light_count"))
+    added = values.optional_int(diagnostics.get("added_light_count"))
+    existing_scale = values.optional_float(diagnostics.get("existing_light_intensity_scale"))
     dome_intensity = diagnostics.get("requested_dome_intensity")
     if dome_intensity is None:
         dome_intensity = rig_ambient(lighting_profile).get("isaac_dome_intensity")
@@ -376,11 +378,14 @@ def isaac_lighting_summary(
     added_count = added or 0
     active_existing_count = existing_count if existing_scale is None or existing_scale > 0.0 else 0
     active_capture_roles = []
-    if positive_number(dome_intensity):
+    if values.positive_number(dome_intensity):
         active_capture_roles.append("dome_environment")
-    if positive_number(key_intensity):
+    if values.positive_number(key_intensity):
         active_capture_roles.append("directional_key")
-    has_environment = active_existing_count + added_count > 0 or positive_number(dome_intensity)
+    active_roles_text = values.cell_text(active_capture_roles)
+    has_environment = active_existing_count + added_count > 0 or values.positive_number(
+        dome_intensity
+    )
     status = "environment_light_configured" if has_environment else "missing_environment_light"
     summary = (
         f"{diagnostics.get('status') or 'isaac_lighting_profile'}; "
@@ -389,11 +394,11 @@ def isaac_lighting_summary(
         f"authored={roles.get('authored_scene_lights_policy')}; "
         f"authored_usd_lights={existing_count}; "
         f"active_authored_usd_lights={active_existing_count}; "
-        f"added_capture_lights={added_count}; active_roles={cell_text(active_capture_roles)}; "
-        f"dome_intensity={float_text(dome_intensity)}; "
-        f"key_intensity={float_text(key_intensity)}; "
-        f"existing_scale={float_text(existing_scale)}; "
-        f"added_paths={cell_text(diagnostics.get('added_light_paths'))}"
+        f"added_capture_lights={added_count}; active_roles={active_roles_text}; "
+        f"dome_intensity={values.float_text(dome_intensity)}; "
+        f"key_intensity={values.float_text(key_intensity)}; "
+        f"existing_scale={values.float_text(existing_scale)}; "
+        f"added_paths={values.cell_text(diagnostics.get('added_light_paths'))}"
     )
     return {
         "status": status,
@@ -413,7 +418,7 @@ def mujoco_lighting_summary(
         if isinstance(manifest.get("render_domain_contract_probe"), dict)
         else {}
     )
-    light_count = optional_int(probe.get("mujoco_light_count"))
+    light_count = values.optional_int(probe.get("mujoco_light_count"))
     ambient = rig_ambient(lighting_profile).get("mujoco_headlight_ambient")
     diffuse = rig_ambient(lighting_profile).get("mujoco_headlight_diffuse")
     has_environment = bool(ambient or diffuse or (light_count or 0) > 0)
@@ -423,8 +428,8 @@ def mujoco_lighting_summary(
         f"scene_light_rig; rig={roles.get('schema')}; key={roles.get('key_enabled')}; "
         f"ambient={roles.get('ambient_enabled')}; fill={roles.get('fill_enabled')}; "
         f"authored={roles.get('authored_scene_lights_policy')}; "
-        f"headlight_ambient={cell_text(ambient)}; "
-        f"diffuse={cell_text(diffuse)}; scene_lights={scene_lights}"
+        f"headlight_ambient={values.cell_text(ambient)}; "
+        f"diffuse={values.cell_text(diffuse)}; scene_lights={scene_lights}"
     )
     return {
         "status": status,
@@ -502,7 +507,7 @@ def color_tone_summary(
     has_gain = gain is not None
     if has_post_tone:
         status = "post_render_tone_adjustment_applied"
-    elif non_unity_gain(gain):
+    elif values.non_unity_gain(gain):
         status = "post_render_luminance_gain_applied"
     elif has_gain:
         status = "baseline_color_profile_reference"
@@ -510,8 +515,8 @@ def color_tone_summary(
         status = "no_backend_tone_adjustment"
     summary = (
         f"profile={color_profile.get('profile_id') or ''}; "
-        f"luminance_gain={float_text(gain)}; rgb_gain={cell_text(rgb_gain)}; "
-        f"tone={cell_text(tone)}; view_tone_overrides={view_tone_count}"
+        f"luminance_gain={values.float_text(gain)}; rgb_gain={values.cell_text(rgb_gain)}; "
+        f"tone={values.cell_text(tone)}; view_tone_overrides={view_tone_count}"
     )
     native_summary = native_render_summary(native_diagnostics)
     if native_summary:
@@ -582,7 +587,7 @@ def native_render_summary(diagnostics: dict[str, Any]) -> str:
     parts = [
         f"status={diagnostics.get('status') or ''}",
         f"tonemap_operator={tonemap_operator}",
-        f"exposure_bias={cell_text(exposure_bias)}",
+        f"exposure_bias={values.cell_text(exposure_bias)}",
         f"auto_exposure={auto_exposure}",
     ]
     return "; ".join(part for part in parts if not part.endswith("="))
@@ -599,7 +604,7 @@ def light_intensity_text(lights: Any) -> str:
     for item in lights:
         if isinstance(item, dict) and item.get("intensity") is not None:
             intensities.append(item.get("intensity"))
-    return cell_text(intensities)
+    return values.cell_text(intensities)
 
 
 def angle_deg_between(left: Any, right: Any) -> float | None:
@@ -672,61 +677,3 @@ def comparison_successful(manifest: dict[str, Any]) -> bool:
         else {}
     )
     return str(candidate_visual.get("status") or "") not in {"degraded_visual_fidelity"}
-
-
-def optional_float(value: Any) -> float | None:
-    if value is None:
-        return None
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def optional_int(value: Any) -> int | None:
-    if value is None or value == "":
-        return None
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def positive_number(value: Any) -> bool:
-    try:
-        return float(value) > 0.0
-    except (TypeError, ValueError):
-        return False
-
-
-def non_unity_gain(value: Any) -> bool:
-    try:
-        return abs(float(value) - 1.0) > 1e-6
-    except (TypeError, ValueError):
-        return False
-
-
-def float_text(value: Any) -> str:
-    if value is None or value == "":
-        return ""
-    try:
-        return f"{float(value):.2f}"
-    except (TypeError, ValueError):
-        return str(value)
-
-
-def cell_text(value: Any) -> str:
-    if isinstance(value, list):
-        return short_list_text(value, limit=6)
-    if isinstance(value, dict):
-        return json.dumps(value, sort_keys=True)
-    return "" if value is None else str(value)
-
-
-def short_list_text(value: Any, *, limit: int = 4) -> str:
-    if not isinstance(value, list):
-        return ""
-    items = [str(item) for item in value if item is not None and str(item) != ""]
-    if len(items) <= limit:
-        return ", ".join(items)
-    return f"{', '.join(items[:limit])}, ... (+{len(items) - limit})"

@@ -13,11 +13,13 @@ from roboclaws.household.camera_control import (
     scene_light_rig,
     scene_light_rig_roles,
 )
+from roboclaws.household.scene_camera_color_diagnostics import (
+    _render_domain_source_diagnostics,
+)
 from roboclaws.household.scene_camera_comparison import (
     ISAAC_LANE_ID,
     MOLMOSPACES_LANE_ID,
     SCENE_CAMERA_COMPARISON_SCHEMA,
-    _render_domain_source_diagnostics,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]

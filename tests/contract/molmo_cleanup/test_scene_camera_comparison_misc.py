@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from roboclaws.household.scene_camera_comparison import (
-    _native_isaac_render_diagnostics,
+from roboclaws.household.scene_camera_lighting_diagnostics import (
+    native_isaac_render_diagnostics as _native_isaac_render_diagnostics,
 )
 from tests.contract.molmo_cleanup.scene_camera_comparison_support import (
     _manifest,

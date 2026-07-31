@@ -8,15 +8,19 @@ from roboclaws.household.camera_control import (
     DEFAULT_SCENE_PROBE_COLOR_PROFILE,
     scene_probe_camera_control_request,
 )
-from roboclaws.household.scene_camera_comparison import (
+from roboclaws.household.scene_camera_color_diagnostics import (
     ISAAC_LANE_ID,
     MOLMOSPACES_LANE_ID,
     _candidate_color_calibrations,
-    _image_pair_visual_delta,
-    _image_visual_metrics,
     _normalize_color_profile_for_replay,
     _offline_color_profile_replay,
     _render_domain_calibration,
+)
+from roboclaws.household.scene_camera_image_metrics import (
+    image_pair_visual_delta as _image_pair_visual_delta,
+)
+from roboclaws.household.scene_camera_image_metrics import (
+    image_visual_metrics as _image_visual_metrics,
 )
 from tests.contract.molmo_cleanup.scene_camera_comparison_support import (
     _visual_metric_pair,

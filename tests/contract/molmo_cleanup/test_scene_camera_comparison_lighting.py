@@ -13,15 +13,19 @@ from roboclaws.household.camera_control import (
     scene_light_rig,
     scene_light_rig_roles,
 )
-from roboclaws.household.scene_camera_comparison import (
+from roboclaws.household.scene_camera_color_diagnostics import (
     _backend_swap_geometry_contract,
-    _key_light_direction_diagnostics,
     _render_domain_contract_probe,
     _render_domain_source_diagnostics,
     _render_domain_view_triage,
-    _room_wall_light_diagnostics,
+)
+from roboclaws.household.scene_camera_comparison import (
     _scene_camera_lighting_profile,
 )
+from roboclaws.household.scene_camera_lighting_diagnostics import (
+    key_light_direction_diagnostics as _key_light_direction_diagnostics,
+)
+from roboclaws.household.scene_camera_report import _room_wall_light_diagnostics
 from tests.contract.molmo_cleanup.scene_camera_comparison_support import (
     _manifest,
     _require_official_render_sources,
