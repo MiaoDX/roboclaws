@@ -115,6 +115,7 @@ scope is clearer than Parked.
 
 ## Completion Evidence
 
+- Shipped in commit `dcd0ae2d` (`refactor: simplify command and runtime ownership`).
 - `just agent::verify` and the standalone full pytest suite pass.
 - Ruff, format, architecture, quality-ratchet, report-contract, and stale-path gates pass.
 - The final architecture graph contains 528 modules and 1,624 edges with zero SCCs,
@@ -142,7 +143,7 @@ gate before this plan returns to Done.
 Completion removed all nine scripts, migrated live callers to package CLIs or direct imports,
 removed the unused `roboclaws.maps` eager re-exports, and extended the architecture checker to
 cover embedded, composed, f-string, and dynamic-import script references. Focused scene-sampler,
-map, launch, provider, Just, and architecture tests pass. The exact regenerated graph is 527
+map, launch, provider, Just, and architecture tests pass. The exact regenerated graph is 528
 modules / 1,624 edges with all policies green. The staged-tree quality ratchet also split
 household execution policy and argument lowering into the direct
 `roboclaws.launch.household_execution` owner; lifecycle orchestration remains in
