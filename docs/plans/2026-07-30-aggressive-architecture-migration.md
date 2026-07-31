@@ -1,6 +1,6 @@
 # Aggressive Architecture Migration
 
-**Status:** Waves 0-7 implemented; final verification active
+**Status:** BLOCKED_NEEDS_LOCAL_VALIDATION; Waves 0-7 and all agent-owned final gates complete
 **Created:** 2026-07-30
 **Execution unit:** This entire plan, delivered in bounded waves and slices
 **Supersedes:** the broad-module-splitting non-goal in
@@ -738,8 +738,12 @@ hardware proof cannot run for a demonstrated environment reason.
 
 ## Plan Ledger
 
-- Current status: ACTIVE.
-- Current wave: Wave 3, unconditional investigation/rehearsal deletion stacks.
+- Current status: BLOCKED_NEEDS_LOCAL_VALIDATION. Waves 0-7 and all
+  agent-owned final gates are complete; the remaining Isaac Sim import proof
+  requires explicit human acceptance of the Omniverse EULA.
+- Current wave: final verification closed at the plan-defined external stop
+  gate. The migration did not accept the EULA, publish artifacts, or move a
+  physical robot.
 - Completed waves: Wave 0 froze exact size/disposition and import-graph
   baselines, expanded the deletion consumer ledger and public fixture index,
   corrected the planned topology from five/four to six/five, and wired both
@@ -1039,5 +1043,23 @@ hardware proof cannot run for a demonstrated environment reason.
   1,000 lines. The LOC and 112-file `>=500` outcome improve but do not meet the
   plan's campaign targets, which remain reported rather than overriding
   preserved behavior.
-- Next action: run the final deterministic, eval-selected, product, SDK,
-  browser/runtime, and guarded live/preflight verification matrix.
+- Final verification: Ruff, format, the standalone full suite, deterministic
+  eval suites, direct product rows, Kimi open-task, repaired SDK session-live,
+  and repaired cleanup live repetitions pass. The session-live repair stops a
+  console-launched child before reporting timeout so it cannot retain the sole
+  visual-backend slot. The selected matrix and reports are under
+  `output/evals/aggressive-architecture-migration-final-execute/`; the two
+  affected SDK repair attempts each passed, and no further retries are needed.
+- Browser/runtime proof: the split operator console loaded every ES module and
+  preview asset without console errors or horizontal overflow; camera mode,
+  the native image dialog, and mobile/tablet/desktop layouts passed. Screenshots
+  are in `output/evals/aggressive-architecture-migration-final-execute/`.
+- B1/Isaac proof: retained B1 readiness passed with a verified Map 12 overlay
+  and `robot_navigation_supported: false`. Strict Isaac preflight passed
+  runtime isolation, Python, disk, GPU, Torch, and Isaac Lab, then blocked on
+  `runtime_import_isaacsim` because Omniverse EULA acceptance is absent. The
+  evidence is
+  `output/isaaclab/preflight/aggressive-architecture-final/0731_112216/preflight.json`.
+- Next action: a human may separately decide whether to accept the Omniverse
+  EULA and rerun the guarded Isaac smoke. Until then this plan remains blocked;
+  no adjacent migration work or automatic retry is authorized.

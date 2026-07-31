@@ -11,9 +11,11 @@ leave a link.
 ## Current Focus
 
 The aggressive architecture migration is implemented under
-`docs/plans/2026-07-30-aggressive-architecture-migration.md`; final verification
-is active. Retired investigation and rehearsal stacks are gone, product
-subsystems have package owners, and active scripts are thin adapters. Current
+`docs/plans/2026-07-30-aggressive-architecture-migration.md`. Waves 0-7 and all
+agent-owned final gates are complete; closeout is blocked only on explicit
+human acceptance of the Omniverse EULA required by Isaac Sim import. Retired
+investigation and rehearsal stacks are gone, product subsystems have package
+owners, and active scripts are thin adapters. Current
 OpenAI Agents SDK lifecycle, telemetry, status, household runtime, planner,
 MolmoSpaces world, operator-console preview/state, B1/Isaac authoring,
 visual-grounding, reporting, and showcase behavior are split by direct owner
@@ -109,19 +111,21 @@ providers.
 
 ## Next Action
 
-Run the final deterministic, eval-selected, direct product, SDK,
-browser/runtime, and guarded live/preflight matrix. The refreshed immutable
-candidate remains unmodified; publication remains unauthorized and separate
-from this campaign.
+A human may separately decide whether to accept the Omniverse EULA. If it is
+accepted outside this migration, rerun the guarded Isaac runtime smoke; until
+then the migration remains `BLOCKED_NEEDS_LOCAL_VALIDATION`. The refreshed
+immutable candidate remains unmodified, and publication remains unauthorized
+and separate from this campaign.
 
 ## Current Blockers
 
 - Agibot and B1 injected dependency readiness passes with the existing local SDK, Map 12 bundle,
   B1 scene, and alignment/navigation proofs. Real-robot movement remains unauthorized and requires
   a present operator plus the existing localization, run-enablement, and E-stop gates.
-- Isaac strict preflight now passes disk, GPU, Torch, Isaac Lab, and runtime checks with 602.55 GiB
-  free. Importing Isaac Sim remains blocked on explicit Omniverse EULA acceptance; the refactor did
-  not accept it on the operator's behalf.
+- Isaac strict preflight passes runtime isolation, Python, disk (470.74 GiB free), GPU, Torch, and
+  Isaac Lab. `runtime_import_isaacsim` remains blocked on explicit Omniverse EULA acceptance; the
+  migration did not accept it on the operator's behalf. Evidence:
+  `output/isaaclab/preflight/aggressive-architecture-final/0731_112216/preflight.json`.
 
 ## Human Review Surface
 
