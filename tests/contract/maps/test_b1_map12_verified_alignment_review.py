@@ -7,10 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.maps.b1_alignment import (
+from roboclaws.maps.b1_alignment_artifact import build_alignment_residuals
+from roboclaws.maps.b1_alignment_contract import (
     ALIGNMENT_ANCHOR_ROLE,
     SEMANTIC_ANCHOR_ROLE,
-    build_alignment_residuals,
 )
 from roboclaws.maps.b1_manual_draft_promotion import (
     build_verification_manifest,

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.maps.b1_alignment import (
+from roboclaws.maps.b1_alignment_contract import (
     ALIGNMENT_ANCHOR_ROLE,
     validate_correspondence_manifest,
 )

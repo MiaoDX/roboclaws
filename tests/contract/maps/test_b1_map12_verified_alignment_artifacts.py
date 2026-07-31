@@ -6,17 +6,15 @@ from pathlib import Path
 from roboclaws.backends.isaaclab.b1_navigation_smoke import (
     navigation_smoke_waypoints,
 )
-from roboclaws.backends.isaaclab.b1_readiness import (
+from roboclaws.backends.isaaclab.b1_readiness_artifacts import readiness_artifact_with_alignment
+from roboclaws.backends.isaaclab.b1_readiness_validation import (
     KNOWN_POOR_BBOX_SEED_SOURCE,
-    readiness_artifact_with_alignment,
     validate_readiness_artifact,
 )
 from roboclaws.backends.isaaclab.b1_waypoint_pose_requests import (
     build_pose_request_artifact,
 )
-from roboclaws.maps.b1_alignment import (
-    build_alignment_residuals,
-)
+from roboclaws.maps.b1_alignment_artifact import build_alignment_residuals
 from tests.contract.maps.b1_map12_verified_alignment_support import (
     RAW_MAP12_BUNDLE,
     correspondence_manifest,

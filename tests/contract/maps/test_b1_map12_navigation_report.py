@@ -5,12 +5,12 @@ from pathlib import Path
 
 from roboclaws.backends.isaaclab.b1_navigation_report import main as render_main
 from roboclaws.backends.isaaclab.b1_navigation_smoke import parse_args as smoke_parse_args
-from roboclaws.backends.isaaclab.b1_readiness import (
+from roboclaws.backends.isaaclab.b1_readiness_artifacts import readiness_artifact_with_navigation
+from roboclaws.backends.isaaclab.b1_readiness_validation import (
     READINESS_SCHEMA,
     SEMANTIC_SOURCE,
     SEMANTIC_USD_BLOCKED,
     WAYPOINT_POSE_REQUESTS_SCHEMA,
-    readiness_artifact_with_navigation,
 )
 from tests.contract.maps.test_b1_map12_digital_twin_readiness import (
     _write_reviewable_image,

@@ -13,7 +13,7 @@ if __package__ in {None, ""}:
         sys.path.insert(0, str(repo_root))
 
 from roboclaws.core.json_sources import read_json_object  # noqa: E402
-from roboclaws.maps.b1_alignment import (  # noqa: E402
+from roboclaws.maps.b1_alignment_contract import (
     ALIGNMENT_ANCHOR_ROLE,
     B1_MAP12_CORRESPONDENCES_SCHEMA,
     MIN_GLOBAL_ACCEPTED_ANCHORS,

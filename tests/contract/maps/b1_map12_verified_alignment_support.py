@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from roboclaws.maps.b1_alignment import (
+from roboclaws.maps.b1_alignment_contract import (
     ALIGNMENT_ANCHOR_ROLE,
     B1_MAP12_CORRESPONDENCES_SCHEMA,
     SEMANTIC_ANCHOR_ROLE,

@@ -16,7 +16,8 @@ if __package__ in {None, ""}:
 
 from PIL import Image
 
-from roboclaws.backends.isaaclab.b1_readiness import (
+from roboclaws.backends.isaaclab.b1_readiness_artifacts import build_readiness_artifact
+from roboclaws.backends.isaaclab.b1_readiness_validation import (
     DEFAULT_B1_VISUAL_ROUTE_SCENE_USD,
     NAVIGATION_PROVENANCE,
     NAVIGATION_SMOKE_SCHEMA,
@@ -24,7 +25,6 @@ from roboclaws.backends.isaaclab.b1_readiness import (
     SEMANTIC_SOURCE,
     SEMANTIC_USD_BLOCKED,
     WAYPOINT_POSE_REQUESTS_SCHEMA,
-    build_readiness_artifact,
     validate_navigation_smoke_artifact,
     validate_waypoint_pose_requests_artifact,
 )

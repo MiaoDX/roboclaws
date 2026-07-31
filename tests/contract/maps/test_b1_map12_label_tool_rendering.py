@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from roboclaws.maps.b1_alignment import build_alignment_residuals
+from roboclaws.maps.b1_alignment_artifact import build_alignment_residuals
 from scripts.maps.render_b1_map12_label_tool import (
     LABEL_DRAFT_MANIFEST_SCHEMA,
     LABEL_TOOL_PACKET_SCHEMA,

@@ -17,7 +17,7 @@ if __package__ in {None, ""}:
         sys.path.insert(0, str(repo_root))
 
 from roboclaws.core.json_sources import read_json_object
-from roboclaws.maps.b1_alignment import (
+from roboclaws.maps.b1_alignment_contract import (
     ALIGNMENT_ANCHOR_ROLE,
     anchor_role,
     anchor_uses_known_poor_seed,

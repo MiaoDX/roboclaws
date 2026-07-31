@@ -7,19 +7,19 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.backends.isaaclab.b1_readiness import (
+from roboclaws.backends.isaaclab.b1_readiness_artifacts import readiness_artifact_with_alignment
+from roboclaws.backends.isaaclab.b1_readiness_validation import (
     KNOWN_POOR_BBOX_SEED_SOURCE,
-    readiness_artifact_with_alignment,
     validate_readiness_artifact,
     validate_waypoint_pose_requests_artifact,
 )
 from roboclaws.backends.isaaclab.b1_waypoint_pose_requests import (
     build_pose_request_artifact,
 )
-from roboclaws.maps.b1_alignment import (
+from roboclaws.maps.b1_alignment_artifact import build_alignment_residuals
+from roboclaws.maps.b1_alignment_contract import (
     ALIGNMENT_ANCHOR_ROLE,
     B1_MAP12_ALIGNMENT_RESIDUALS_SCHEMA,
-    build_alignment_residuals,
     validate_alignment_residual_artifact,
     validate_correspondence_manifest,
 )
