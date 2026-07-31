@@ -240,6 +240,14 @@ model-input compaction have direct behavior owners. The retired mixed
 the true owners while serialized event, cost, privacy, and result schemas stay
 unchanged.
 
+The household SDK launch adapter is `agents/household_live_runner.py`; direct
+configuration, lifecycle, handoff, continuation, profile, and metrics owners
+sit beside it. Current run inspection uses
+`python -m roboclaws.agents.live_status_cli`; live-performance extraction reads
+OpenAI Agents SDK telemetry only. Historical reports may retain serialized
+retired-engine identity, but current reporting does not parse retired Codex CLI
+or Claude Code event streams.
+
 The retained household runtime is split by behavior rather than transport.
 MCP response projection and artifact serialization, runtime-map target
 selection, visual perception/navigation, direct cleanup target selection, and
@@ -258,6 +266,15 @@ scanner validation, and canonical map-bundle naming. `launch/worlds.py`
 resolves cross-backend catalog entries and optional dependency status; it does
 not own MolmoSpaces sampling behavior. Current package, script, skill, console,
 eval, and test callers import the world owners directly.
+
+Retained authoring, preview, probe, visual-grounding, and showcase scripts are
+thin adapters over package owners. B1/Isaac authoring behavior lives under
+`roboclaws.maps` and `roboclaws.backends.isaaclab`; planner probe/proof behavior
+lives under `roboclaws.household`; scene previews live under
+`roboclaws.operator_console`; visual-grounding service and benchmark behavior
+live under `roboclaws.household.visual_grounding_sidecar` and
+`roboclaws.evals.visual_grounding_benchmark`; showcase rendering lives under
+`roboclaws.reports`. Package code never imports or executes script modules.
 
 The clean-slate direction is:
 

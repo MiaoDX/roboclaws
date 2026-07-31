@@ -1,6 +1,6 @@
 # Aggressive Architecture Migration
 
-**Status:** Authorized; Waves 0-5 complete, Wave 6 verification active
+**Status:** Waves 0-7 implemented; final verification active
 **Created:** 2026-07-30
 **Execution unit:** This entire plan, delivered in bounded waves and slices
 **Supersedes:** the broad-module-splitting non-goal in
@@ -1028,5 +1028,16 @@ hardware proof cannot run for a demonstrated environment reason.
   with Start disabled and no console errors; the two redundant workflow
   source-string assertions are removed while packaging, security, artifact,
   privacy, DOM-integrity, and retired-surface guards remain.
-- Next action: run the Wave 6 partition/product/SDK/Just verification matrix,
-  then execute Wave 7 telemetry, status, and final cleanup.
+- Wave 7 completed slice: retired Codex CLI and Claude Code event extraction is
+  absent from current performance reporting while historical serialized engine
+  identities remain readable. `just molmo::status [path]` keeps its grammar and
+  now invokes a 54-line package SDK status CLI. All retained source/test owners
+  are below 800 lines, migrated script entrypoints are thin adapters, and no
+  compatibility facade remains. The final graph is 502 modules / 1,504 edges
+  with zero SCCs, package pairs, or forbidden edges. Final size is 164,846
+  source LOC and 98,903 test LOC; zero source/test files are at or above 800 or
+  1,000 lines. The LOC and 112-file `>=500` outcome improve but do not meet the
+  plan's campaign targets, which remain reported rather than overriding
+  preserved behavior.
+- Next action: run the final deterministic, eval-selected, product, SDK,
+  browser/runtime, and guarded live/preflight verification matrix.

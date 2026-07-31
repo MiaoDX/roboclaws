@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-07-30
+Last updated: 2026-07-31
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -10,59 +10,25 @@ leave a link.
 
 ## Current Focus
 
-The aggressive architecture migration is active under
-`docs/plans/2026-07-30-aggressive-architecture-migration.md`. Waves 0-3 are
-complete: exact baselines and field-level parity are proven, all six module
-cycles and five bidirectional package pairs are removed, the Wave 1-2 guards
-are locked green, and unconditional investigation/rehearsal stacks are retired.
-Waves 0-5 are complete. MolmoSpaces, Isaac Lab, cleanup validation, B1 rebuild
-and reproducibility, and the physical Agibot pilot now have package-owned
-module CLIs. The graph has no package-to-script violations; Wave 6 behavior
-splits are active. The operator-console browser monolith is now ten native ES
-modules with one state owner and a 180-line composition entrypoint; focused,
-static, and real-browser workflow proofs pass. Runtime inventory now has
-separate source, task-model, blocker-policy, and host-probe owners with a
-61-line composition module; its full console and static gates pass. The OpenAI
-Agents SDK runtime now has direct owners for composition, configuration,
-retry/racing, events, history, image/grounded memory, and compaction; 201
-focused contracts and static ratchets pass with serialized provider, cost,
-privacy, and result behavior unchanged. Household MCP projection, runtime-map
-target selection, visual perception/navigation, direct cleanup selection, and
-Agibot SDK contract/projection/stage execution now have direct owners; the
-retained adapters delegate without compatibility exports. The focused
-household suites and static ratchets pass, oversized Python modules decrease to
-58, and the graph is 359 modules / 1,087 edges with zero SCCs or forbidden
-edges. MolmoSpaces catalog, sampling/profile/prefilter policy, preparation,
-scanner validation, and map-bundle naming now live under
-`worlds/molmospaces`; launch consumes recursively immutable `WorldSpec` values.
-Focused world/catalog/console/eval/map-bundle suites and static ratchets pass at
-362 modules / 1,089 edges with zero SCCs or forbidden edges. Household report
-composition, semantic/tables, document, styles, planner/proof/grasp-cache,
-snapshot/trace, and artifact-rerender behavior now have direct owners; the
-duplicate grasp-collision diagnostic renderer is gone. Report contracts and
-static ratchets pass at 367 modules / 1,102 edges, and oversized Python modules
-decrease to 57. Eval suite loading, trial/live execution, grading, persistence,
-aggregation/reporting, and CLI composition now have direct owners; CLI imports
-only runner from the eval package. The full eval unit and CLI/distribution
-contracts pass at 375 modules / 1,128 edges, and oversized Python modules
-decrease to 55.
-Planner proof request construction, selection, fallback selection, result
-projection, feasibility contracts, and grasp-cache lifecycle now have direct
-household owners. Runtime-prior contracts, online snapshot wrapping,
-Agibot/Nav2 conversion, artifact reads, target materialization, and
-source/frame/digest validation now have direct map owners. The 186 focused
-planner/proof/runtime-prior contracts and static ratchets pass at 389 modules /
-1,165 edges with zero SCCs or forbidden edges, and oversized Python modules
-decrease to 52.
-Nineteen oversized retained test owners are now split by behavior with exact
-998-test identity; all moved tests pass, no test module remains at or above
-1,000 lines, and oversized Python modules decrease to 38. Current Just, eval,
-and marker node IDs use the new owners. Real Chromium proves scene-preview
-loading and server-owned Agibot context readiness without console errors.
-The migration preserves public launch, artifact, privacy, provider, simulator,
-and operator behavior while removing dependency cycles, retiring completed
-investigation surfaces, moving product subsystems out of scripts, and splitting
-retained oversized owners by behavior.
+The aggressive architecture migration is implemented under
+`docs/plans/2026-07-30-aggressive-architecture-migration.md`; final verification
+is active. Retired investigation and rehearsal stacks are gone, product
+subsystems have package owners, and active scripts are thin adapters. Current
+OpenAI Agents SDK lifecycle, telemetry, status, household runtime, planner,
+MolmoSpaces world, operator-console preview/state, B1/Isaac authoring,
+visual-grounding, reporting, and showcase behavior are split by direct owner
+without compatibility facades.
+
+The regenerated graph is 502 modules / 1,504 edges with zero SCCs,
+bidirectional package pairs, package-to-script edges, or forbidden policy
+violations. Python quality has zero source or test files at or above 800 lines;
+source files at or above 1,000 lines fell from 33 to zero and test files at or
+above 1,000 fell from 25 to zero. Final size is 164,846 source LOC and 98,903
+test LOC, with 112 source files at or above 500 lines. Those LOC and 500-line
+counts improve the baseline but do not reach the plan's non-behavior-overriding
+campaign targets. Public launch grammar, artifacts, privacy, provider routes,
+simulator behavior, operator safety, and physical movement gates remain
+unchanged.
 
 OpenClaw and repo-owned workstation-local Docker runtime surfaces are retired
 under `docs/plans/2026-07-30-retire-openclaw-and-local-docker-surfaces.md` and
@@ -143,10 +109,10 @@ providers.
 
 ## Next Action
 
-Complete Wave 6 product and partition verification, then execute Wave 7
-telemetry, status, and final cleanup. The
-refreshed immutable candidate remains unmodified; publication remains
-unauthorized and separate from this campaign.
+Run the final deterministic, eval-selected, direct product, SDK,
+browser/runtime, and guarded live/preflight matrix. The refreshed immutable
+candidate remains unmodified; publication remains unauthorized and separate
+from this campaign.
 
 ## Current Blockers
 
