@@ -1,28 +1,18 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 import subprocess
 import sys
 from pathlib import Path
-from types import ModuleType
 
 from PIL import Image, ImageDraw
+
+from roboclaws.reports.household_showcase import render_showcase
 
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = (
     ROOT / "skills" / "visual-result-showcase" / "scripts" / "render_household_cleanup_showcase.py"
 )
-
-
-def _load_script() -> ModuleType:
-    spec = importlib.util.spec_from_file_location("render_household_cleanup_showcase", SCRIPT)
-    assert spec is not None
-    assert spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
 
 
 def _run_showcase(*args: str) -> subprocess.CompletedProcess[str]:
@@ -216,13 +206,12 @@ def test_household_cleanup_showcase_rejects_malformed_trace_source(
 
 
 def test_household_cleanup_showcase_renderer_writes_reviewable_outputs(tmp_path: Path) -> None:
-    module = _load_script()
     run_dir = tmp_path / "run"
     out_dir = tmp_path / "out"
     run_dir.mkdir()
     _write_synthetic_run(run_dir)
 
-    manifest = module.render_showcase(
+    manifest = render_showcase(
         run_dir=run_dir,
         out_dir=out_dir,
         size=(640, 360),
