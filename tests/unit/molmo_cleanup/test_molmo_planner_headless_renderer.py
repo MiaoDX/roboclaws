@@ -1,27 +1,19 @@
 from __future__ import annotations
 
-import importlib.util
 from argparse import Namespace
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-from scripts.molmo_cleanup import planner_probe_runtime_diagnostics as runtime
-from scripts.molmo_cleanup import planner_probe_task_sampler_diagnostics as sampler
+from roboclaws.household import planner_manipulation_probe_result as probe_result
+from roboclaws.household import planner_probe_execution as probe_execution
+from roboclaws.household import planner_probe_memory as probe_memory
+from roboclaws.household import planner_probe_runtime_diagnostics as runtime
+from roboclaws.household import planner_probe_sampler_contract as sampler
+from roboclaws.household import planner_probe_worker_diagnostics as worker_diagnostics
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PROBE_PATH = REPO_ROOT / "scripts" / "molmo_cleanup" / "run_molmo_planner_manipulation_probe.py"
-
-
-def _load_probe_module():
-    spec = importlib.util.spec_from_file_location(
-        "run_molmo_planner_manipulation_probe", PROBE_PATH
-    )
-    assert spec is not None
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
 
 
 def test_renderer_device_id_only_applies_to_execute_mode() -> None:
@@ -83,7 +75,7 @@ def test_patch_renderer_constructor_injects_missing_device_id() -> None:
 
 
 def test_runtime_diagnostics_records_renderer_override(monkeypatch) -> None:
-    probe = _load_probe_module()
+    probe = probe_memory
     monkeypatch.setenv("MUJOCO_GL", "egl")
     monkeypatch.setenv("PYOPENGL_PLATFORM", "egl")
 
@@ -188,7 +180,7 @@ def test_cuda_memory_diagnostics_from_torch_records_headroom(monkeypatch) -> Non
 
 
 def test_rby1m_curobo_low_memory_profile_records_overrides() -> None:
-    probe = _load_probe_module()
+    probe = probe_memory
     left = SimpleNamespace(
         num_trajopt_seeds=12,
         num_ik_seeds=128,
@@ -237,18 +229,18 @@ def test_rby1m_curobo_low_memory_profile_records_overrides() -> None:
 
 
 def test_process_output_text_handles_timeout_bytes() -> None:
-    probe = _load_probe_module()
+    probe = probe_result
 
-    assert probe._process_output_text(None) == ""
-    assert probe._process_output_text("already text") == "already text"
-    assert probe._process_output_text(b"byte text") == "byte text"
-    assert "\ufffd" in probe._process_output_text(b"\xff")
+    assert probe.process_output_text(None) == ""
+    assert probe.process_output_text("already text") == "already text"
+    assert probe.process_output_text(b"byte text") == "byte text"
+    assert "\ufffd" in probe.process_output_text(b"\xff")
 
 
 def test_worker_payload_from_stdout_preserves_timeout_diagnostics() -> None:
-    probe = _load_probe_module()
+    probe = probe_result
 
-    payload = probe._worker_payload_from_stdout(
+    payload = probe.worker_payload_from_stdout(
         'log line\n{"event": "runtime_diagnostics", "runtime_diagnostics": {"renderer": true}}\n'
     )
 
@@ -372,7 +364,7 @@ def test_cleanup_primitive_binding_blocks_planner_alias_mismatch() -> None:
 
 
 def test_worker_exception_context_preserves_policy_failure_state() -> None:
-    probe = _load_probe_module()
+    probe = worker_diagnostics
     probe._WORKER_EXCEPTION_CONTEXT.clear()
     profile = {"schema": "rby1m_curobo_memory_profile_v1", "applied": True, "profile": "low"}
     sampled = {
@@ -424,7 +416,7 @@ def test_worker_exception_context_preserves_policy_failure_state() -> None:
 
 
 def test_policy_exception_context_classifies_no_planned_trajectory() -> None:
-    probe = _load_probe_module()
+    probe = probe_execution
 
     class FakePrimitive:
         planned_trajectory: list[object] = []

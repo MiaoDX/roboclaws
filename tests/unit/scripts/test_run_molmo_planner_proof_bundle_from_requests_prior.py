@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from roboclaws.household import planner_proof_prior_sources
 from roboclaws.household.manipulation_provenance import planner_backed_probe_evidence
 from tests.unit.scripts.run_molmo_planner_proof_bundle_from_requests_support import (
     _load_module,
@@ -624,9 +625,7 @@ def test_runner_ingests_standalone_prior_probe_run_result_by_cleanup_pair(
 
 
 def test_runner_preserves_prior_blocker_detail_from_excluded_requests() -> None:
-    runner = _load_module()
-
-    results = runner._merged_prior_results(
+    results = planner_proof_prior_sources._merged_prior_results(
         [],
         [
             {

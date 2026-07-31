@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import importlib.util
 from pathlib import Path
 
+from roboclaws.household import planner_proof_bundle_runner
 from roboclaws.household.planner_proof_contracts import PLANNER_PROOF_REQUESTS_SCHEMA
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -13,15 +13,7 @@ SCRIPT_PATH = (
 
 
 def _load_module():
-    spec = importlib.util.spec_from_file_location(
-        "run_molmo_planner_proof_bundle_from_requests",
-        SCRIPT_PATH,
-    )
-    assert spec is not None
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
+    return planner_proof_bundle_runner
 
 
 def _assert_inline_dry_run_manifest(manifest: dict[str, object]) -> None:
