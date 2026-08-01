@@ -114,13 +114,9 @@ gate when it requires any of the following:
 | `household-map-build` | required or advisory main gate depending on runtime cost | `just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=map-build agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=grounding-dino ...` |
 | `molmo-live-cleanup` | opt-in expensive gate | `just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=cleanup agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=world-public-labels ...` or the live matrix script |
 | `planner-proof` | local-only or manual expensive gate | `just run::surface surface=planner-proof world=planner-proof/default backend=mujoco intent=planner-proof agent_engine=direct-runner mode=dry-run` |
-| `publish-pages` | required main gate | no single facade today; keep focused tests for Pages assembly constraints |
 
 ## Current Gaps
 
-- Pages assembly is job-shaped and does not yet have a single local facade.
-  Focused tests should model its important constraints, such as running helper
-  scripts without project site-packages.
 - `surface=household-world preset=map-build` should have deterministic
   required contract coverage for command routing and `runtime_metric_map.json`
   shape, independent of real Agibot, Isaac, or live-agent proof.

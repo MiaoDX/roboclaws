@@ -74,8 +74,6 @@ the first place a local-only claim is exercised.
 | Job | Trigger | Purpose |
 | --- | --- | --- |
 | `lint-and-mock` | every push and PR | `just agent::verify`: ruff, format check, deterministic pytest, and active household report contracts. |
-| `molmo-live-cleanup` | push to `main` or manual workflow | Opt-in live household cleanup reports through configured provider profiles. |
-| `publish-pages` | push to `main` | Publishes the Molmo live report site and Pages index. |
 
 Required CI must stay deterministic and secret-light. Real provider, GPU,
 Isaac, Agibot, and robot-backed runs belong in advisory, manual, scheduled,
