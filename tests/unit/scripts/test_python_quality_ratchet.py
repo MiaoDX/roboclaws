@@ -43,6 +43,14 @@ def baseline_state() -> dict:
                 }
             ]
         },
+        "repository_size": {
+            "source": {
+                "files_at_least": {"500": 2, "800": 1, "1000": 0},
+            },
+            "tests": {
+                "files_at_least": {"500": 1, "800": 0, "1000": 0},
+            },
+        },
     }
 
 
@@ -188,6 +196,22 @@ def test_ratchet_rejects_new_or_growing_oversized_modules() -> None:
     assert failures == [
         "oversized module grew roboclaws/large.py 900 -> 901 lines",
         "new oversized module scripts/new_big_module.py has 801 lines",
+    ]
+
+
+@pytest.mark.parametrize(("scope", "baseline_count"), [("source", 2), ("tests", 1)])
+def test_ratchet_rejects_growth_in_files_at_least_500_lines(
+    scope: str,
+    baseline_count: int,
+) -> None:
+    module = load_module()
+    current = baseline_state()
+    current["repository_size"][scope]["files_at_least"]["500"] += 1
+
+    failures = module.compare_to_baseline(current, baseline_state())
+
+    assert failures == [
+        f"{scope} files at least 500 lines grew {baseline_count} -> {baseline_count + 1}"
     ]
 
 

@@ -17,6 +17,7 @@ MAX_MODULE_LINES = 800
 SOURCE_ROOTS = ("roboclaws", "scripts")
 TEST_ROOT = "tests"
 SIZE_THRESHOLDS = (500, 800, 1000)
+RATCHET_SIZE_THRESHOLD = 500
 SCHEMA = "roboclaws_python_quality_ratchet_v2"
 _MEASURE_RE = re.compile(r"\((?P<value>\d+)\s*>\s*(?P<limit>\d+)\)")
 
@@ -367,6 +368,15 @@ def compare_to_baseline(current: dict[str, Any], baseline: dict[str, Any]) -> li
             continue
         if lines > base_lines:
             failures.append(f"oversized module grew {path} {base_lines} -> {lines} lines")
+
+    threshold = str(RATCHET_SIZE_THRESHOLD)
+    for scope in ("source", "tests"):
+        base_count = int(baseline["repository_size"][scope]["files_at_least"][threshold])
+        current_count = int(current["repository_size"][scope]["files_at_least"][threshold])
+        if current_count > base_count:
+            failures.append(
+                f"{scope} files at least {threshold} lines grew {base_count} -> {current_count}"
+            )
 
     return failures
 
