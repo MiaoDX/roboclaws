@@ -10,6 +10,18 @@ leave a link.
 
 ## Current Focus
 
+The post-audit simplification refactor is complete. The retired GitHub Pages
+publication owner, index generator, and self-preserving tests are gone; 38
+caller-free runtime forwarders and obsolete projection builders were removed
+without changing public runtime contracts. The Python quality gate now
+ratchets source and test files at or above 500 lines while keeping total LOC
+observational. The cumulative cleanup removed 1,048 stale code, test, and
+documentation lines, and the canonical verification gate passes. The current
+graph is 527 modules / 1,624 edges with zero SCCs, bidirectional package pairs,
+package-to-script edges, or forbidden policy violations. Current Python size
+is 167,136 source LOC and 97,880 test LOC, with 115 source files and 65 test
+files at or above 500 lines; no source or test file is at or above 800 lines.
+
 The forward-only Just command-surface refactor is complete under
 `docs/plans/2026-07-31-refactor-just-command-surface.md`. The 2,203-line recipe
 layer is now 64 lines with exactly four canonical commands: `run::surface`,
@@ -47,16 +59,16 @@ MolmoSpaces world, operator-console preview/state, B1/Isaac authoring,
 visual-grounding, reporting, and showcase behavior are split by direct owner
 without compatibility facades.
 
-The regenerated graph is 528 modules / 1,624 edges with zero SCCs,
-bidirectional package pairs, package-to-script edges, or forbidden policy
-violations. Python quality has zero source or test files at or above 800 lines;
+The architecture-migration closeout graph was 528 modules / 1,624 edges with
+zero SCCs, bidirectional package pairs, package-to-script edges, or forbidden
+policy violations. Python quality has zero source or test files at or above 800 lines;
 source files at or above 1,000 lines fell from 33 to zero and test files at or
-above 1,000 fell from 25 to zero. Final size is 164,846 source LOC and 98,903
-test LOC, with 112 source files at or above 500 lines. Those LOC and 500-line
-counts improve the baseline but do not reach the plan's non-behavior-overriding
-campaign targets. Public launch grammar, artifacts, privacy, provider routes,
-simulator behavior, operator safety, and physical movement gates remain
-unchanged.
+above 1,000 fell from 25 to zero. At that closeout, size was 164,846 source LOC
+and 98,903 test LOC, with 112 source files at or above 500 lines. Those LOC and
+500-line counts improved the migration baseline but did not reach the plan's
+non-behavior-overriding campaign targets. Public launch grammar, artifacts,
+privacy, provider routes, simulator behavior, operator safety, and physical
+movement gates remain unchanged.
 
 OpenClaw and repo-owned workstation-local Docker runtime surfaces are retired
 under `docs/plans/2026-07-30-retire-openclaw-and-local-docker-surfaces.md` and
@@ -125,10 +137,10 @@ providers.
 
 ## Next Action
 
-No implementation or verification work remains for the architecture migration,
-Just command-surface refactor, or baseline refresh. The 25-row candidate is
-awaiting human confirmation; publication remains unauthorized and separate
-from these campaigns.
+No implementation or verification work remains for the post-audit
+simplification, architecture migration, Just command-surface refactor, or
+baseline refresh. The 25-row candidate is awaiting human confirmation;
+publication remains unauthorized and separate from these campaigns.
 
 ## Current Blockers
 
