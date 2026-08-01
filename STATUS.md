@@ -13,14 +13,15 @@ leave a link.
 The post-audit simplification refactor is complete. The retired GitHub Pages
 publication owner, index generator, and self-preserving tests are gone; 38
 caller-free runtime forwarders and obsolete projection builders were removed
-without changing public runtime contracts. The Python quality gate now
-ratchets source and test files at or above 500 lines while keeping total LOC
-observational. The cumulative cleanup removed 1,048 stale code, test, and
-documentation lines, and the canonical verification gate passes. The current
-graph is 527 modules / 1,624 edges with zero SCCs, bidirectional package pairs,
-package-to-script edges, or forbidden policy violations. Current Python size
-is 167,136 source LOC and 97,880 test LOC, with 115 source files and 65 test
-files at or above 500 lines; no source or test file is at or above 800 lines.
+without changing public runtime contracts. The Python quality gate now treats
+source/test LOC and files at or above 500 lines as observational metrics while
+ratcheting Ruff complexity and files above 800 lines. The cumulative cleanup
+removed 1,048 stale code, test, and documentation lines, and the canonical
+verification gate passes. The current graph is 527 modules / 1,624 edges with
+zero SCCs, bidirectional package pairs, package-to-script edges, or forbidden
+policy violations. Current Python size is 167,136 source LOC and 97,880 test
+LOC, with 115 source files and 65 test files at or above 500 lines; no source
+or test file is at or above 800 lines.
 
 The forward-only Just command-surface refactor is complete under
 `docs/plans/2026-07-31-refactor-just-command-surface.md`. The 2,203-line recipe

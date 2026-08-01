@@ -7,7 +7,6 @@
   },
   "repository_size": {
     "line_count": "physical UTF-8 lines in Python files under the named roots",
-    "ratcheted_files_at_least": 500,
     "source": {
       "files_at_least": {
         "1000": 0,

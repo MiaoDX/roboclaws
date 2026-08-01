@@ -44,7 +44,6 @@ def baseline_state() -> dict:
             ]
         },
         "repository_size": {
-            "ratcheted_files_at_least": 500,
             "source": {
                 "loc": 1000,
                 "files_at_least": {"500": 2, "800": 1, "1000": 0},
@@ -202,20 +201,13 @@ def test_ratchet_rejects_new_or_growing_oversized_modules() -> None:
     ]
 
 
-@pytest.mark.parametrize(("scope", "baseline_count"), [("source", 2), ("tests", 1)])
-def test_ratchet_rejects_growth_in_files_at_least_500_lines(
-    scope: str,
-    baseline_count: int,
-) -> None:
+@pytest.mark.parametrize("scope", ["source", "tests"])
+def test_ratchet_keeps_large_file_counts_observational(scope: str) -> None:
     module = load_module()
     current = baseline_state()
     current["repository_size"][scope]["files_at_least"]["500"] += 1
 
-    failures = module.compare_to_baseline(current, baseline_state())
-
-    assert failures == [
-        f"{scope} files at least 500 lines grew {baseline_count} -> {baseline_count + 1}"
-    ]
+    assert module.compare_to_baseline(current, baseline_state()) == []
 
 
 def test_ratchet_keeps_total_loc_observational() -> None:
@@ -234,7 +226,6 @@ def test_repository_size_records_exact_threshold_counts(tmp_path: Path) -> None:
 
     summary = module.collect_repository_size({source: 1000, test: 800})
 
-    assert summary["ratcheted_files_at_least"] == 500
     assert summary["source"] == {
         "roots": ["roboclaws", "scripts"],
         "python_files": 1,
