@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.launch import executor
+import roboclaws.launch.executor as executor
 
 
 def test_spawn_launch_plan_flushes_child_output_before_exit(

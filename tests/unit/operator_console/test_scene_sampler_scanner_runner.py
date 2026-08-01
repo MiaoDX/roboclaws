@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from roboclaws.launch import scene_sampler_scanner_runner
+import roboclaws.launch.scene_sampler_scanner_runner as scene_sampler_scanner_runner
 
 
 def _repo_root() -> Path:

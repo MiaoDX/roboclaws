@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from roboclaws.launch import household
+import roboclaws.launch.household as household
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 LIVE_OPENAI_AGENTS_LIFECYCLE = REPO_ROOT / "roboclaws/agents/household_live_lifecycle.py"

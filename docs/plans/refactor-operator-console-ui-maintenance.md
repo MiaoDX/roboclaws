@@ -7,7 +7,6 @@ campaign_overlay: true
 accepted_severities:
   - P1
   - P2
-active_capsule: docs/status/active/refactor-operator-console-ui-maintenance.md
 ---
 
 # Operator Console UI Architecture Maintenance

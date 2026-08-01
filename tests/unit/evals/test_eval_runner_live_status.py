@@ -133,7 +133,7 @@ def test_live_surface_product_accepts_sdk_run_result_without_terminal_status(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from roboclaws.evals import live_execution as live_exec
+    import roboclaws.evals.live_execution as live_exec
 
     sleeps: list[float] = []
 
@@ -166,7 +166,7 @@ def test_live_surface_product_rejects_failed_live_status(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from roboclaws.evals import live_execution as live_exec
+    import roboclaws.evals.live_execution as live_exec
 
     def fake_run(command: list[str], **_kwargs: Any) -> Any:
         output_arg = next(item for item in command if item.startswith("output_dir="))

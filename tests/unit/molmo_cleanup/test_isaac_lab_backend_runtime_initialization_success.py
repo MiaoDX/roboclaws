@@ -9,9 +9,9 @@ from roboclaws.backends.isaaclab import runtime as runtime_cli
 from roboclaws.backends.isaaclab import runtime_camera as runtime_camera
 from roboclaws.backends.isaaclab import runtime_capture as runtime_capture
 from roboclaws.backends.isaaclab import runtime_commands as runtime_commands
-from roboclaws.backends.isaaclab import runtime_dependencies as runtime_dependencies
 from roboclaws.backends.isaaclab import runtime_evidence as runtime_evidence
 from roboclaws.backends.isaaclab import runtime_initialization as runtime_initialization
+from roboclaws.backends.isaaclab import runtime_lifecycle as runtime_lifecycle
 from roboclaws.backends.isaaclab import runtime_state as runtime_state
 from roboclaws.household.isaac_lab_backend import (
     ISAACLAB_ROBOT_VIEW_VARIANT,
@@ -59,8 +59,8 @@ def test_isaac_worker_hard_exits_after_deferred_app_success(
         def close(self, **_: object) -> None:  # pragma: no cover - should not be called.
             raise AssertionError("deferred SimulationApp close should not run on success")
 
-    monkeypatch.setattr(runtime_dependencies.os, "_exit", fake_exit)
-    runtime_cli._DEFERRED_SIMULATION_APP[0] = BlockingClose()
+    monkeypatch.setattr(runtime_cli.os, "_exit", fake_exit)
+    runtime_lifecycle.DEFERRED_SIMULATION_APP[0] = BlockingClose()
 
     with pytest.raises(SystemExit) as exc:
         runtime_cli._finish_command({"ok": True, "tool": "robot_views"})
@@ -68,8 +68,8 @@ def test_isaac_worker_hard_exits_after_deferred_app_success(
     assert exc.value.code == 0
     assert exit_codes == [0]
     assert '"tool": "robot_views"' in capsys.readouterr().out
-    assert runtime_cli._DEFERRED_SIMULATION_APP[0] is not None
-    runtime_cli._DEFERRED_SIMULATION_APP[0] = None
+    assert runtime_lifecycle.DEFERRED_SIMULATION_APP[0] is not None
+    runtime_lifecycle.DEFERRED_SIMULATION_APP[0] = None
 
 
 def test_isaac_lab_real_init_uses_phase_a_smoke_evidence(
@@ -324,7 +324,7 @@ def test_isaac_lab_real_worker_views_accept_robot_pose_only_rerender(
         tmp_path / "missing_rby1m_holobase_isaac.usda",
     )
     monkeypatch.setattr(
-        runtime_dependencies,
+        runtime_state,
         "ISAAC_RBY1M_ROBOT_IMPORT_SUMMARY_PATH",
         tmp_path / "missing_rby1m_holobase_isaac.import_summary.json",
     )

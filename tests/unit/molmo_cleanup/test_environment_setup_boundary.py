@@ -5,11 +5,11 @@ from pathlib import Path
 
 import pytest
 
+import roboclaws.evals.cleanup_result_grader as checker_module
 from roboclaws.core.environment_setup_metadata import (
     ENVIRONMENT_SETUP_METADATA_ENV,
     environment_setup_run_metadata_from_env,
 )
-from roboclaws.evals import cleanup_result_grader as checker_module
 from roboclaws.household.household_runtime_contract import (
     _assert_no_forbidden_agent_view_keys,
     forbidden_agent_view_keys,

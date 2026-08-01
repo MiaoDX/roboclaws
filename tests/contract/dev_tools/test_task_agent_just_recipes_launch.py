@@ -6,8 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.launch import resolve_surface_launch
-from roboclaws.launch.catalog import LaunchError
+from roboclaws.launch.catalog import LaunchError, resolve_surface_launch
 from roboclaws.launch.runners import export_env_from_plan
 from tests.contract.dev_tools.task_agent_just_recipes_support import (
     CODING_AGENT_ENV,

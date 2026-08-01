@@ -316,6 +316,17 @@ def compare_to_baseline(current: dict, baseline: dict) -> list[str]:
     return failures
 
 
+def success_summary(state: dict) -> str:
+    policy_violation_count = sum(len(policy["known_violations"]) for policy in state["policies"])
+    return (
+        "architecture import graph ok: "
+        f"{state['module_count']} modules, {state['edge_count']} edges, "
+        f"{len(state['module_sccs'])} SCCs, "
+        f"{len(state['package_bidirectional_edges'])} bidirectional package pairs, "
+        f"{policy_violation_count} policy violations"
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Record or check the roboclaws AST import graph.")
     parser.add_argument("--write", type=Path, help="Write the deterministic graph state as JSON.")
@@ -340,7 +351,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"missing architecture baseline: {args.baseline}")
         return 1
     if not args.write:
-        print(json.dumps(state, indent=2, sort_keys=True))
+        print(success_summary(state))
     return 0
 
 

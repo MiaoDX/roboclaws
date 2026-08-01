@@ -10,100 +10,19 @@ leave a link.
 
 ## Current Focus
 
-The post-audit simplification refactor is complete. The retired GitHub Pages
-publication owner, index generator, and self-preserving tests are gone; 38
-caller-free runtime forwarders and obsolete projection builders were removed
-without changing public runtime contracts. The Python quality gate now treats
-source/test LOC and files at or above 500 lines as observational metrics while
-ratcheting Ruff complexity and files above 800 lines. The cumulative cleanup
-removed 1,048 stale code, test, and documentation lines, and the canonical
-verification gate passes. The current graph is 527 modules / 1,624 edges with
-zero SCCs, bidirectional package pairs, package-to-script edges, or forbidden
-policy violations. Current Python size is 167,136 source LOC and 97,880 test
-LOC, with 115 source files and 65 test files at or above 500 lines; no source
-or test file is at or above 800 lines.
+The forward-only architecture cleanup is complete. Runtime modules now import
+from their defining owners, caller-free facades and rehearsal surfaces are gone,
+shared backend geometry has one neutral owner, and explicitly terminal status
+capsules are archived. Public launch grammar, runtime behavior, provider routes,
+artifacts, operator safety gates, and physical-movement authorization are
+unchanged. The canonical verification gate passes; see the current graph metrics
+from `scripts/dev/check_architecture_import_graph.py` rather than copying a stale
+snapshot here.
 
-The forward-only Just command-surface refactor is complete under
-`docs/plans/2026-07-31-refactor-just-command-surface.md`. The 2,203-line recipe
-layer is now 64 lines with exactly four canonical commands: `run::surface`,
-`agent::eval`, `console::run`, and directly implemented `agent::verify`.
-Retired commands, aliases, compatibility shims, thin script adapters, dynamic
-script loaders, Python-to-Just execution callbacks, nine remaining live script
-owners, and unused map-package re-exports are gone; active runtime and proof
-behavior is owned by typed package APIs and package CLIs. The full
-standalone suite, canonical verification gate, direct-runner product proofs,
-and completed live and specialist proofs pass. No physical movement occurred.
-
-The post-migration eval baseline refresh is complete. Direct eval product rows
-now propagate the canonical GoalContract into household launch kwargs; the
-previous `open-ended-goals` and `long-horizon-tasks` behavior regressions both
-pass. Provider placement is fail-closed in the frozen harness manifest:
-Codex/MiMo internal routes may run locally or on CloudML, while Kimi/MiniMax
-external routes are local-only.
-
-The fresh hybrid candidate at
-`output/eval-harness/20260731T100528Z/` passes all 25 selected rows: 20
-CloudML rows and five local external-provider rows. It records zero behavior
-failures, provider failures, blocked rows, infrastructure retries, or
-regressions against the previous durable baseline. Exact-value secret scanning
-passes, the candidate is awaiting human confirmation, and publication remains
-unauthorized.
-
-The aggressive architecture migration is implemented under
-`docs/plans/2026-07-30-aggressive-architecture-migration.md`. Waves 0-7 and all
-final gates are complete. Machine-local Omniverse EULA acceptance now flows
-from the gitignored `.env` into Isaac preflight and smoke harnesses; strict
-preflight and the real generic runtime smoke pass. Retired investigation and
-rehearsal stacks are gone, and product subsystems have direct package owners. Current
-OpenAI Agents SDK lifecycle, telemetry, status, household runtime, planner,
-MolmoSpaces world, operator-console preview/state, B1/Isaac authoring,
-visual-grounding, reporting, and showcase behavior are split by direct owner
-without compatibility facades.
-
-The architecture-migration closeout graph was 528 modules / 1,624 edges with
-zero SCCs, bidirectional package pairs, package-to-script edges, or forbidden
-policy violations. Python quality has zero source or test files at or above 800 lines;
-source files at or above 1,000 lines fell from 33 to zero and test files at or
-above 1,000 fell from 25 to zero. At that closeout, size was 164,846 source LOC
-and 98,903 test LOC, with 112 source files at or above 500 lines. Those LOC and
-500-line counts improved the migration baseline but did not reach the plan's
-non-behavior-overriding campaign targets. Public launch grammar, artifacts,
-privacy, provider routes, simulator behavior, operator safety, and physical
-movement gates remain unchanged.
-
-OpenClaw and repo-owned workstation-local Docker runtime surfaces are retired
-under `docs/plans/2026-07-30-retire-openclaw-and-local-docker-surfaces.md` and
-ADR-0148. The maintained product has exactly two agent engines,
-`direct-runner` and `openai-agents-sdk`; CloudML image contracts and historical
-evidence remain intact. Deterministic gates, the standalone full suite,
-operator-console host-runtime smoke, and canonical direct-runner map-build and
-cleanup product proofs pass.
-
-The follow-up architecture simplification pass is complete. Five approved cuts
-removed the obsolete Agibot/MolmoSpaces simulation rehearsal, the retired
-Codex-only comparison summary, an isolated cleanup policy, unused direct
-Jinja2/tyro declarations, and the legacy showcase task identity. Final review
-also removed two rehearsal-only launch overrides that had become silent no-ops.
-The cumulative change removes more than 5,800 lines while preserving current
-`household-world`, `planner-proof`, eval, operator-console, and `agibot-gdk`
-behavior. The standalone full suite and direct-runner map-build/cleanup product
-proofs pass.
-
-The post-cleanup saturation refactors are complete under
-`docs/plans/2026-07-30-post-cleanup-saturation-refactors.md`. The five-slice
-queue deleted two stale runtime surfaces, removed the maintainer
-command-dispatch loop, canonicalized operator-console phase state, and finished
-the typed launch boundary. Public run and maintainer command grammar remain
-unchanged; focused gates, direct-runner product proofs, and the standalone full
-suite pass.
-
-The post-review forward-only architecture cleanup is implemented and verified
-under `docs/plans/2026-07-28-forward-only-post-review-cleanup.md`. Current
-callers now use one source-aware world-ID contract, one typed launch executor,
-package-owned live household runtime, one household Skill strategy owner, and
-direct projection owners. Retired direct-provider code, compatibility aliases,
-positional launch lowering, product-to-eval imports, and installable eval CLI
-aliases are gone.
+The latest hybrid eval candidate at `output/eval-harness/20260731T100528Z/`
+passes all 25 selected rows with no behavior failures, provider failures,
+blocked rows, infrastructure retries, or regressions. It is awaiting human
+confirmation; durable baseline publication remains unauthorized.
 
 The active product shape is:
 

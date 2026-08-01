@@ -581,12 +581,7 @@ def _confidence_layer_badges(run_result: dict[str, Any]) -> str:
     layer = run_result.get("confidence_layer")
     if not layer:
         return ""
-    return "".join(
-        (
-            badge("Confidence layer", layer),
-            badge("Next layer", run_result.get("next_confidence_layer", "unknown")),
-        )
-    )
+    return "".join((badge("Confidence layer", layer),))
 
 
 def _generated_mess_summary(run_result: dict[str, Any]) -> str:
@@ -604,10 +599,7 @@ def _confidence_layer_note(run_result: dict[str, Any]) -> str:
     if not layer:
         return ""
     summary = str(run_result.get("confidence_layer_summary") or "")
-    next_layer = str(run_result.get("next_confidence_layer") or "")
     note = layer
     if summary:
         note = f"{note}: {summary}"
-    if next_layer:
-        note = f"{note} Next confidence layer: {next_layer}."
     return f'<section class="panel note-panel"><p class="note">{html.escape(note)}</p></section>'

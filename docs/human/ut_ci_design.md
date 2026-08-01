@@ -17,9 +17,8 @@ for real services and real simulator/backend evidence.
 4. Real model, external-service, GPU, simulator, and robot-backed runs are
    evidence gates. They should be `main`-only, advisory, opt-in, nightly, or
    local-only unless they are stable and cheap enough to block ordinary PRs.
-5. GitHub-specific behavior such as artifact download, Pages assembly, and
-   deploy permissions should have a local rehearsal path or a focused test that
-   models the important constraint.
+5. The retired GitHub Pages site is a frozen historical archive. Current CI
+   must not imply that it assembles or publishes that site.
 
 ## Why CI Still Runs Lint And Format
 
@@ -28,7 +27,7 @@ format, and deterministic tests.
 
 Local checks can be skipped, run against a dirty worktree, run with a different
 environment, or run on the wrong branch. CI provides the auditable result for
-the exact commit being reviewed or published.
+the exact commit being reviewed.
 
 Lint and format are cheap, deterministic checks. They should stay in required
 CI. Removing them saves little and makes `main` depend on local discipline.
@@ -39,7 +38,7 @@ CI. Removing them saves little and makes `main` depend on local discipline.
 | --- | --- | --- | --- |
 | Local feedback | before commit or push | no | focused standalone pytest, targeted reproduction |
 | Required PR gate | every PR and push | yes | lint, format, deterministic pytest, mock reports, command routing contracts |
-| Required main gate | push to `main` | yes, if stable | public report assembly, Pages artifact shape, stable real-model smoke if accepted |
+| Required main gate | push to `main` | yes, if stable | stable real-model smoke if accepted |
 | Advisory smoke | push to `main` or scheduled | no | provider or external-service runs that can timeout or depend on external services |
 | Opt-in expensive gate | manual dispatch or commit tag | no by default | live model matrices, open-ended household tasks, broad backend comparisons |
 | Local-only proof | developer workstation | no hosted CI | GPU, real robot, Isaac, Agibot GDK, full MolmoSpaces visual proof |
@@ -56,8 +55,8 @@ Use the existing command surfaces directly when they fit:
 - Package CLIs for maintainer debugging and specialist gates.
 
 A dedicated `ci::*` namespace is optional. Add one only when the command is
-truly job-shaped rather than task-shaped, such as local Pages assembly from
-downloaded artifacts or a full "reproduce this exact GitHub job" wrapper.
+truly job-shaped rather than task-shaped, such as a full "reproduce this exact
+GitHub job" wrapper.
 
 Do not add a `ci::*` wrapper merely to rename an existing `run::surface` or
 `agent::verify` command.
@@ -135,11 +134,7 @@ just agent::verify
 For a tighter edit/test loop before the final pre-push gate, run the smallest
 relevant target through `./scripts/dev/run_pytest_standalone.sh`.
 
-For changes touching CI report assembly or Pages scripts, also run the relevant
-focused reproduction. For example, Pages helpers that must not depend on the
-project environment should be exercised with `python -S`.
-
 For changes whose claim depends on real simulator, model, GPU, or
 robot behavior, run the matching local task or harness and record the command
-and artifact path. CI keeps that proof continuously visible; it is not the
-first validation for local-only claims.
+and artifact path. CI does not publish these results to the frozen Pages
+archive; it is not the first validation for local-only claims.

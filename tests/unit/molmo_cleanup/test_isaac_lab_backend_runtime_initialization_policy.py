@@ -11,7 +11,6 @@ from roboclaws.backends.isaaclab import runtime as runtime_cli
 from roboclaws.backends.isaaclab import runtime_camera as runtime_camera
 from roboclaws.backends.isaaclab import runtime_capture as runtime_capture
 from roboclaws.backends.isaaclab import runtime_commands as runtime_commands
-from roboclaws.backends.isaaclab import runtime_dependencies as runtime_dependencies
 from roboclaws.backends.isaaclab import runtime_evidence as runtime_evidence
 from roboclaws.backends.isaaclab import runtime_initialization as runtime_initialization
 from roboclaws.backends.isaaclab import runtime_state as runtime_state
@@ -133,7 +132,7 @@ def test_isaac_lab_worker_detects_imported_rby1m_robot_usd(
         robot_usd,
     )
     monkeypatch.setattr(
-        runtime_dependencies,
+        runtime_state,
         "ISAAC_RBY1M_ROBOT_IMPORT_SUMMARY_PATH",
         summary_path,
     )

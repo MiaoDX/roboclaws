@@ -56,7 +56,7 @@
       "core"
     ]
   },
-  "edge_count": 1624,
+  "edge_count": 1647,
   "edges": [
     {
       "kind": "import",
@@ -177,12 +177,6 @@
       "line": 8,
       "source": "roboclaws.agents.drivers.openai_agents_history",
       "target": "roboclaws.agents.drivers.openai_agents_grounded_history"
-    },
-    {
-      "kind": "import",
-      "line": 1,
-      "source": "roboclaws.agents.drivers.openai_agents_household_budget",
-      "target": "roboclaws.agents.drivers.openai_agents_budget"
     },
     {
       "kind": "import",
@@ -554,19 +548,19 @@
       "kind": "import",
       "line": 16,
       "source": "roboclaws.agents.household_live_continuation",
+      "target": "roboclaws.agents.drivers.openai_agents_budget"
+    },
+    {
+      "kind": "import",
+      "line": 19,
+      "source": "roboclaws.agents.household_live_continuation",
+      "target": "roboclaws.agents.drivers.openai_agents_budget"
+    },
+    {
+      "kind": "import",
+      "line": 22,
+      "source": "roboclaws.agents.household_live_continuation",
       "target": "roboclaws.agents.drivers.openai_agents_continuation_state"
-    },
-    {
-      "kind": "import",
-      "line": 24,
-      "source": "roboclaws.agents.household_live_continuation",
-      "target": "roboclaws.agents.drivers.openai_agents_household_budget"
-    },
-    {
-      "kind": "import",
-      "line": 27,
-      "source": "roboclaws.agents.household_live_continuation",
-      "target": "roboclaws.agents.drivers.openai_agents_household_budget"
     },
     {
       "kind": "import",
@@ -656,7 +650,7 @@
       "kind": "import",
       "line": 9,
       "source": "roboclaws.agents.household_live_handoff",
-      "target": "roboclaws.agents.drivers.openai_agents_household_budget"
+      "target": "roboclaws.agents.drivers.openai_agents_budget"
     },
     {
       "kind": "import",
@@ -1346,7 +1340,19 @@
       "kind": "import",
       "line": 13,
       "source": "roboclaws.backends.isaaclab.isaac_placement_resolution",
+      "target": "roboclaws.household"
+    },
+    {
+      "kind": "import",
+      "line": 14,
+      "source": "roboclaws.backends.isaaclab.isaac_placement_resolution",
       "target": "roboclaws.household.backend"
+    },
+    {
+      "kind": "import",
+      "line": 13,
+      "source": "roboclaws.backends.isaaclab.isaac_placement_resolution",
+      "target": "roboclaws.household.placement_geometry"
     },
     {
       "kind": "import",
@@ -1620,87 +1626,357 @@
     },
     {
       "kind": "import",
-      "line": 5,
+      "line": 12,
+      "source": "roboclaws.backends.isaaclab.runtime",
+      "target": "roboclaws.backends.isaaclab"
+    },
+    {
+      "kind": "import",
+      "line": 12,
+      "source": "roboclaws.backends.isaaclab.runtime",
+      "target": "roboclaws.backends.isaaclab.isaac_runtime_smoke_usd"
+    },
+    {
+      "kind": "import",
+      "line": 13,
+      "source": "roboclaws.backends.isaaclab.runtime",
+      "target": "roboclaws.backends.isaaclab.isaac_segmentation_diagnostics"
+    },
+    {
+      "kind": "import",
+      "line": 12,
+      "source": "roboclaws.backends.isaaclab.runtime",
+      "target": "roboclaws.backends.isaaclab.isaac_worker_cli"
+    },
+    {
+      "kind": "import",
+      "line": 16,
       "source": "roboclaws.backends.isaaclab.runtime",
       "target": "roboclaws.backends.isaaclab.runtime_commands"
     },
     {
       "kind": "import",
-      "line": 9,
-      "source": "roboclaws.backends.isaaclab.runtime",
-      "target": "roboclaws.backends.isaaclab.runtime_dependencies"
-    },
-    {
-      "kind": "import",
-      "line": 24,
+      "line": 20,
       "source": "roboclaws.backends.isaaclab.runtime",
       "target": "roboclaws.backends.isaaclab.runtime_initialization"
     },
     {
       "kind": "import",
-      "line": 5,
-      "source": "roboclaws.backends.isaaclab.runtime_camera",
-      "target": "roboclaws.backends.isaaclab.runtime_dependencies"
+      "line": 23,
+      "source": "roboclaws.backends.isaaclab.runtime",
+      "target": "roboclaws.backends.isaaclab.runtime_lifecycle"
     },
     {
       "kind": "import",
-      "line": 92,
+      "line": 24,
+      "source": "roboclaws.backends.isaaclab.runtime",
+      "target": "roboclaws.backends.isaaclab.runtime_settings"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_camera",
+      "target": "roboclaws.backends.isaaclab"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_camera",
+      "target": "roboclaws.backends.isaaclab.isaac_camera_capture"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_camera",
+      "target": "roboclaws.backends.isaaclab.isaac_camera_geometry"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_camera",
+      "target": "roboclaws.backends.isaaclab.isaac_capture_quality"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_camera",
+      "target": "roboclaws.backends.isaaclab.isaac_render_diagnostics"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_camera",
+      "target": "roboclaws.backends.isaaclab.isaac_robot_camera_stage"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_camera",
+      "target": "roboclaws.backends.isaaclab.isaac_scene_camera_capture"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_camera",
+      "target": "roboclaws.backends.isaaclab.isaac_scene_camera_geometry"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_camera",
+      "target": "roboclaws.backends.isaaclab.isaac_segmentation_diagnostics"
+    },
+    {
+      "kind": "import",
+      "line": 24,
+      "source": "roboclaws.backends.isaaclab.runtime_camera",
+      "target": "roboclaws.backends.isaaclab.isaac_segmentation_diagnostics"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_camera",
+      "target": "roboclaws.backends.isaaclab.isaac_semantic_labels"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_camera",
+      "target": "roboclaws.backends.isaaclab.isaac_semantic_pose_stage"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_camera",
+      "target": "roboclaws.backends.isaaclab.isaac_stage_lighting"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_camera",
+      "target": "roboclaws.backends.isaaclab.isaac_usd_xform"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_camera",
+      "target": "roboclaws.backends.isaaclab.isaac_worker_context"
+    },
+    {
+      "kind": "import",
+      "line": 109,
       "source": "roboclaws.backends.isaaclab.runtime_camera",
       "target": "roboclaws.backends.isaaclab.runtime_evidence"
     },
     {
       "kind": "import",
-      "line": 175,
+      "line": 192,
       "source": "roboclaws.backends.isaaclab.runtime_camera",
       "target": "roboclaws.backends.isaaclab.runtime_evidence"
     },
     {
       "kind": "import",
-      "line": 242,
+      "line": 259,
       "source": "roboclaws.backends.isaaclab.runtime_camera",
       "target": "roboclaws.backends.isaaclab.runtime_evidence"
     },
     {
       "kind": "import",
-      "line": 280,
+      "line": 28,
+      "source": "roboclaws.backends.isaaclab.runtime_camera",
+      "target": "roboclaws.backends.isaaclab.runtime_lifecycle"
+    },
+    {
+      "kind": "import",
+      "line": 29,
+      "source": "roboclaws.backends.isaaclab.runtime_camera",
+      "target": "roboclaws.backends.isaaclab.runtime_settings"
+    },
+    {
+      "kind": "import",
+      "line": 297,
       "source": "roboclaws.backends.isaaclab.runtime_camera",
       "target": "roboclaws.backends.isaaclab.runtime_state"
     },
     {
       "kind": "import",
-      "line": 69,
+      "line": 36,
+      "source": "roboclaws.backends.isaaclab.runtime_camera",
+      "target": "roboclaws.household.camera_control"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_capture",
+      "target": "roboclaws.backends.isaaclab"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_capture",
+      "target": "roboclaws.backends.isaaclab.isaac_runtime_capture"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_capture",
+      "target": "roboclaws.backends.isaaclab.isaac_runtime_diagnostics"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_capture",
+      "target": "roboclaws.backends.isaaclab.isaac_runtime_smoke_usd"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_capture",
+      "target": "roboclaws.backends.isaaclab.isaac_scene_index_geometry"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_capture",
+      "target": "roboclaws.backends.isaaclab.isaac_scene_index_metadata"
+    },
+    {
+      "kind": "import",
+      "line": 18,
+      "source": "roboclaws.backends.isaaclab.runtime_capture",
+      "target": "roboclaws.backends.isaaclab.isaac_segmentation_diagnostics"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_capture",
+      "target": "roboclaws.backends.isaaclab.isaac_support_surface_geometry"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_capture",
+      "target": "roboclaws.backends.isaaclab.isaac_worker_context"
+    },
+    {
+      "kind": "import",
+      "line": 81,
       "source": "roboclaws.backends.isaaclab.runtime_capture",
       "target": "roboclaws.backends.isaaclab.runtime_camera"
     },
     {
       "kind": "import",
-      "line": 5,
+      "line": 21,
       "source": "roboclaws.backends.isaaclab.runtime_capture",
-      "target": "roboclaws.backends.isaaclab.runtime_dependencies"
+      "target": "roboclaws.backends.isaaclab.runtime_lifecycle"
     },
     {
       "kind": "import",
-      "line": 73,
+      "line": 22,
+      "source": "roboclaws.backends.isaaclab.runtime_capture",
+      "target": "roboclaws.backends.isaaclab.runtime_settings"
+    },
+    {
+      "kind": "import",
+      "line": 85,
       "source": "roboclaws.backends.isaaclab.runtime_capture",
       "target": "roboclaws.backends.isaaclab.runtime_state"
     },
     {
       "kind": "import",
-      "line": 105,
+      "line": 30,
+      "source": "roboclaws.backends.isaaclab.runtime_capture",
+      "target": "roboclaws.household.types"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.backends.isaaclab.runtime_commands",
+      "target": "roboclaws.backends.isaaclab"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.backends.isaaclab.runtime_commands",
+      "target": "roboclaws.backends.isaaclab.isaac_camera_geometry"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.backends.isaaclab.runtime_commands",
+      "target": "roboclaws.backends.isaaclab.isaac_render_diagnostics"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.backends.isaaclab.runtime_commands",
+      "target": "roboclaws.backends.isaaclab.isaac_robot_import"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.backends.isaaclab.runtime_commands",
+      "target": "roboclaws.backends.isaaclab.isaac_robot_pose_focus"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.backends.isaaclab.runtime_commands",
+      "target": "roboclaws.backends.isaaclab.isaac_robot_view_artifacts"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.backends.isaaclab.runtime_commands",
+      "target": "roboclaws.backends.isaaclab.isaac_scenario_builders"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.backends.isaaclab.runtime_commands",
+      "target": "roboclaws.backends.isaaclab.isaac_semantic_pose_robot_view"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.backends.isaaclab.runtime_commands",
+      "target": "roboclaws.backends.isaaclab.isaac_worker_commands"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.backends.isaaclab.runtime_commands",
+      "target": "roboclaws.backends.isaaclab.isaac_worker_context"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.backends.isaaclab.runtime_commands",
+      "target": "roboclaws.backends.isaaclab.isaac_worker_outputs"
+    },
+    {
+      "kind": "import",
+      "line": 11,
+      "source": "roboclaws.backends.isaaclab.runtime_commands",
+      "target": "roboclaws.backends.isaaclab.isaac_worker_protocol"
+    },
+    {
+      "kind": "import",
+      "line": 113,
       "source": "roboclaws.backends.isaaclab.runtime_commands",
       "target": "roboclaws.backends.isaaclab.runtime_camera"
     },
     {
       "kind": "import",
-      "line": 235,
+      "line": 243,
       "source": "roboclaws.backends.isaaclab.runtime_commands",
       "target": "roboclaws.backends.isaaclab.runtime_capture"
     },
     {
       "kind": "import",
-      "line": 5,
+      "line": 24,
       "source": "roboclaws.backends.isaaclab.runtime_commands",
-      "target": "roboclaws.backends.isaaclab.runtime_dependencies"
+      "target": "roboclaws.backends.isaaclab.runtime_settings"
     },
     {
       "kind": "import",
@@ -1710,313 +1986,151 @@
     },
     {
       "kind": "import",
-      "line": 39,
+      "line": 47,
       "source": "roboclaws.backends.isaaclab.runtime_commands",
       "target": "roboclaws.backends.isaaclab.runtime_state"
     },
     {
       "kind": "import",
-      "line": 109,
+      "line": 117,
       "source": "roboclaws.backends.isaaclab.runtime_commands",
       "target": "roboclaws.backends.isaaclab.runtime_state"
     },
     {
       "kind": "import",
-      "line": 484,
+      "line": 492,
       "source": "roboclaws.backends.isaaclab.runtime_commands",
       "target": "roboclaws.backends.isaaclab.runtime_state"
     },
     {
       "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
+      "line": 7,
+      "source": "roboclaws.backends.isaaclab.runtime_evidence",
       "target": "roboclaws.backends.isaaclab"
     },
     {
       "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_camera_capture"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_camera_geometry"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
+      "line": 7,
+      "source": "roboclaws.backends.isaaclab.runtime_evidence",
       "target": "roboclaws.backends.isaaclab.isaac_capture_quality"
     },
     {
       "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
+      "line": 7,
+      "source": "roboclaws.backends.isaaclab.runtime_evidence",
       "target": "roboclaws.backends.isaaclab.isaac_mapping_diagnostics"
     },
     {
       "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_placement_resolution"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
+      "line": 7,
+      "source": "roboclaws.backends.isaaclab.runtime_evidence",
       "target": "roboclaws.backends.isaaclab.isaac_render_diagnostics"
     },
     {
       "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_robot_camera_stage"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_robot_import"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_robot_pose_focus"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_robot_view_artifacts"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_runtime_capture"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
+      "line": 7,
+      "source": "roboclaws.backends.isaaclab.runtime_evidence",
       "target": "roboclaws.backends.isaaclab.isaac_runtime_diagnostics"
     },
     {
       "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_runtime_smoke_usd"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_scenario_builders"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_scenario_state"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_scene_bindings"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_scene_camera_capture"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_scene_camera_geometry"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_scene_index_geometry"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_scene_index_metadata"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
+      "line": 7,
+      "source": "roboclaws.backends.isaaclab.runtime_evidence",
       "target": "roboclaws.backends.isaaclab.isaac_segmentation_diagnostics"
     },
     {
       "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_semantic_labels"
+      "line": 14,
+      "source": "roboclaws.backends.isaaclab.runtime_evidence",
+      "target": "roboclaws.backends.isaaclab.isaac_segmentation_diagnostics"
     },
     {
       "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_semantic_pose_projection"
+      "line": 18,
+      "source": "roboclaws.backends.isaaclab.runtime_evidence",
+      "target": "roboclaws.backends.isaaclab.runtime_settings"
     },
     {
       "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_semantic_pose_robot_view"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_semantic_pose_stage"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_semantic_pose_state"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_stage_lighting"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_support_surface_geometry"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_usd_xform"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_worker_cli"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_worker_commands"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_worker_context"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_worker_outputs"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_worker_protocol"
-    },
-    {
-      "kind": "import",
-      "line": 23,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.backends.isaaclab.isaac_worker_state"
-    },
-    {
-      "kind": "import",
-      "line": 60,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.household.backend"
-    },
-    {
-      "kind": "import",
-      "line": 61,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.household.camera_control"
-    },
-    {
-      "kind": "import",
-      "line": 65,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.household.isaac_lab_backend"
-    },
-    {
-      "kind": "import",
-      "line": 70,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
+      "line": 24,
+      "source": "roboclaws.backends.isaaclab.runtime_evidence",
       "target": "roboclaws.household.manipulation_contract"
     },
     {
       "kind": "import",
-      "line": 71,
-      "source": "roboclaws.backends.isaaclab.runtime_dependencies",
-      "target": "roboclaws.household.types"
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_initialization",
+      "target": "roboclaws.backends.isaaclab"
     },
     {
       "kind": "import",
-      "line": 5,
-      "source": "roboclaws.backends.isaaclab.runtime_evidence",
-      "target": "roboclaws.backends.isaaclab.runtime_dependencies"
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_initialization",
+      "target": "roboclaws.backends.isaaclab.isaac_mapping_diagnostics"
     },
     {
       "kind": "import",
-      "line": 40,
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_initialization",
+      "target": "roboclaws.backends.isaaclab.isaac_scene_bindings"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_initialization",
+      "target": "roboclaws.backends.isaaclab.isaac_scene_index_geometry"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_initialization",
+      "target": "roboclaws.backends.isaaclab.isaac_worker_context"
+    },
+    {
+      "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.isaaclab.runtime_initialization",
+      "target": "roboclaws.backends.isaaclab.isaac_worker_state"
+    },
+    {
+      "kind": "import",
+      "line": 50,
       "source": "roboclaws.backends.isaaclab.runtime_initialization",
       "target": "roboclaws.backends.isaaclab.runtime_capture"
     },
     {
       "kind": "import",
-      "line": 101,
+      "line": 111,
       "source": "roboclaws.backends.isaaclab.runtime_initialization",
       "target": "roboclaws.backends.isaaclab.runtime_capture"
     },
     {
       "kind": "import",
-      "line": 43,
+      "line": 53,
       "source": "roboclaws.backends.isaaclab.runtime_initialization",
       "target": "roboclaws.backends.isaaclab.runtime_commands"
     },
     {
       "kind": "import",
-      "line": 122,
+      "line": 132,
       "source": "roboclaws.backends.isaaclab.runtime_initialization",
       "target": "roboclaws.backends.isaaclab.runtime_commands"
     },
     {
       "kind": "import",
-      "line": 5,
-      "source": "roboclaws.backends.isaaclab.runtime_initialization",
-      "target": "roboclaws.backends.isaaclab.runtime_dependencies"
-    },
-    {
-      "kind": "import",
-      "line": 56,
+      "line": 66,
       "source": "roboclaws.backends.isaaclab.runtime_initialization",
       "target": "roboclaws.backends.isaaclab.runtime_evidence"
     },
     {
       "kind": "import",
-      "line": 61,
+      "line": 16,
+      "source": "roboclaws.backends.isaaclab.runtime_initialization",
+      "target": "roboclaws.backends.isaaclab.runtime_settings"
+    },
+    {
+      "kind": "import",
+      "line": 71,
       "source": "roboclaws.backends.isaaclab.runtime_initialization",
       "target": "roboclaws.backends.isaaclab.runtime_state"
     },
@@ -2058,9 +2172,105 @@
     },
     {
       "kind": "import",
-      "line": 5,
+      "line": 8,
       "source": "roboclaws.backends.isaaclab.runtime_state",
-      "target": "roboclaws.backends.isaaclab.runtime_dependencies"
+      "target": "roboclaws.backends.isaaclab"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.backends.isaaclab.runtime_state",
+      "target": "roboclaws.backends.isaaclab.isaac_camera_geometry"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.backends.isaaclab.runtime_state",
+      "target": "roboclaws.backends.isaaclab.isaac_mapping_diagnostics"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.backends.isaaclab.runtime_state",
+      "target": "roboclaws.backends.isaaclab.isaac_placement_resolution"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.backends.isaaclab.runtime_state",
+      "target": "roboclaws.backends.isaaclab.isaac_robot_import"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.backends.isaaclab.runtime_state",
+      "target": "roboclaws.backends.isaaclab.isaac_robot_pose_focus"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.backends.isaaclab.runtime_state",
+      "target": "roboclaws.backends.isaaclab.isaac_scenario_state"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.backends.isaaclab.runtime_state",
+      "target": "roboclaws.backends.isaaclab.isaac_scene_index_geometry"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.backends.isaaclab.runtime_state",
+      "target": "roboclaws.backends.isaaclab.isaac_semantic_pose_projection"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.backends.isaaclab.runtime_state",
+      "target": "roboclaws.backends.isaaclab.isaac_semantic_pose_stage"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.backends.isaaclab.runtime_state",
+      "target": "roboclaws.backends.isaaclab.isaac_semantic_pose_state"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.backends.isaaclab.runtime_state",
+      "target": "roboclaws.backends.isaaclab.isaac_support_surface_geometry"
+    },
+    {
+      "kind": "import",
+      "line": 8,
+      "source": "roboclaws.backends.isaaclab.runtime_state",
+      "target": "roboclaws.backends.isaaclab.isaac_worker_context"
+    },
+    {
+      "kind": "import",
+      "line": 22,
+      "source": "roboclaws.backends.isaaclab.runtime_state",
+      "target": "roboclaws.household.backend"
+    },
+    {
+      "kind": "import",
+      "line": 23,
+      "source": "roboclaws.backends.isaaclab.runtime_state",
+      "target": "roboclaws.household.isaac_lab_backend"
+    },
+    {
+      "kind": "import",
+      "line": 28,
+      "source": "roboclaws.backends.isaaclab.runtime_state",
+      "target": "roboclaws.household.manipulation_contract"
+    },
+    {
+      "kind": "import",
+      "line": 29,
+      "source": "roboclaws.backends.isaaclab.runtime_state",
+      "target": "roboclaws.household.types"
     },
     {
       "kind": "import",
@@ -2358,6 +2568,12 @@
     },
     {
       "kind": "import",
+      "line": 9,
+      "source": "roboclaws.backends.molmospaces.placement",
+      "target": "roboclaws.household.placement_geometry"
+    },
+    {
+      "kind": "import",
       "line": 11,
       "source": "roboclaws.backends.molmospaces.protocol",
       "target": "roboclaws.core.json_sources"
@@ -2631,12 +2847,6 @@
       "line": 10,
       "source": "roboclaws.core.operator_messages",
       "target": "roboclaws.core.jsonl_sources"
-    },
-    {
-      "kind": "import",
-      "line": 3,
-      "source": "roboclaws.evals",
-      "target": "roboclaws.evals.models"
     },
     {
       "kind": "import",
@@ -3051,18 +3261,6 @@
       "line": 27,
       "source": "roboclaws.evals.live_runtime",
       "target": "roboclaws.worlds.molmospaces.map_bundles"
-    },
-    {
-      "kind": "import",
-      "line": 9,
-      "source": "roboclaws.evals.long_horizon",
-      "target": "roboclaws.household.household_runtime_contract"
-    },
-    {
-      "kind": "import",
-      "line": 10,
-      "source": "roboclaws.evals.long_horizon",
-      "target": "roboclaws.household.semantic_camera_timeline"
     },
     {
       "kind": "import",
@@ -3776,77 +3974,71 @@
       "kind": "import",
       "line": 12,
       "source": "roboclaws.household.agibot_sdk_runner",
-      "target": "roboclaws.household.agibot_map_defaults"
-    },
-    {
-      "kind": "import",
-      "line": 13,
-      "source": "roboclaws.household.agibot_sdk_runner",
       "target": "roboclaws.household.agibot_operator_gates"
     },
     {
       "kind": "import",
-      "line": 18,
+      "line": 17,
       "source": "roboclaws.household.agibot_sdk_runner",
       "target": "roboclaws.household.agibot_sdk_contract"
     },
     {
       "kind": "import",
-      "line": 23,
+      "line": 22,
       "source": "roboclaws.household.agibot_sdk_runner",
       "target": "roboclaws.household.agibot_sdk_projection"
     },
     {
       "kind": "import",
-      "line": 40,
+      "line": 39,
       "source": "roboclaws.household.agibot_sdk_runner",
       "target": "roboclaws.household.agibot_sdk_stage_execution"
     },
     {
       "kind": "import",
-      "line": 44,
+      "line": 43,
       "source": "roboclaws.household.agibot_sdk_runner",
       "target": "roboclaws.household.agibot_sdk_stage_execution"
     },
     {
       "kind": "import",
-      "line": 47,
+      "line": 46,
       "source": "roboclaws.household.agibot_sdk_runner",
       "target": "roboclaws.household.agibot_sdk_stage_execution"
     },
     {
       "kind": "import",
-      "line": 50,
+      "line": 49,
       "source": "roboclaws.household.agibot_sdk_runner",
       "target": "roboclaws.household.agibot_sdk_stage_execution"
     },
     {
       "kind": "import",
-      "line": 53,
+      "line": 52,
       "source": "roboclaws.household.agibot_sdk_runner",
       "target": "roboclaws.household.agibot_sdk_stage_execution"
     },
     {
       "kind": "import",
-      "line": 56,
+      "line": 55,
       "source": "roboclaws.household.agibot_sdk_runner",
       "target": "roboclaws.household.agibot_sdk_stage_execution"
     },
     {
       "kind": "import",
-      "line": 59,
+      "line": 58,
       "source": "roboclaws.household.agibot_sdk_runner",
       "target": "roboclaws.household.digital_twin_review_assets"
     },
     {
       "kind": "import",
-      "line": 60,
+      "line": 59,
       "source": "roboclaws.household.agibot_sdk_runner",
       "target": "roboclaws.household.household_runtime_contract"
     },
     {
       "kind": "import",
-      "line": 63,
+      "line": 62,
       "source": "roboclaws.household.agibot_sdk_runner",
       "target": "roboclaws.household.manipulation_contract"
     },
@@ -3858,25 +4050,25 @@
     },
     {
       "kind": "import",
-      "line": 64,
+      "line": 63,
       "source": "roboclaws.household.agibot_sdk_runner",
       "target": "roboclaws.household.report"
     },
     {
       "kind": "import",
-      "line": 65,
+      "line": 64,
       "source": "roboclaws.household.agibot_sdk_runner",
       "target": "roboclaws.household.report_snapshots"
     },
     {
       "kind": "import",
-      "line": 66,
+      "line": 65,
       "source": "roboclaws.household.agibot_sdk_runner",
       "target": "roboclaws.household.scenario"
     },
     {
       "kind": "import",
-      "line": 67,
+      "line": 66,
       "source": "roboclaws.household.agibot_sdk_runner",
       "target": "roboclaws.household.types"
     },
@@ -5160,12 +5352,6 @@
     },
     {
       "kind": "import",
-      "line": 34,
-      "source": "roboclaws.household.household_runtime_contract",
-      "target": "roboclaws.household.household_runtime_support"
-    },
-    {
-      "kind": "import",
       "line": 7,
       "source": "roboclaws.household.household_runtime_contract",
       "target": "roboclaws.household.realworld_contract_init"
@@ -5184,13 +5370,13 @@
     },
     {
       "kind": "import",
-      "line": 37,
+      "line": 34,
       "source": "roboclaws.household.household_runtime_contract",
       "target": "roboclaws.household.types"
     },
     {
       "kind": "import",
-      "line": 38,
+      "line": 35,
       "source": "roboclaws.household.household_runtime_contract",
       "target": "roboclaws.household.visual_grounding"
     },
@@ -5202,19 +5388,19 @@
     },
     {
       "kind": "import",
-      "line": 9,
+      "line": 8,
       "source": "roboclaws.household.household_runtime_manipulation",
       "target": "roboclaws.household.household_runtime_support"
     },
     {
       "kind": "import",
-      "line": 10,
+      "line": 9,
       "source": "roboclaws.household.household_runtime_manipulation",
       "target": "roboclaws.household.manipulation_contract"
     },
     {
       "kind": "import",
-      "line": 11,
+      "line": 10,
       "source": "roboclaws.household.household_runtime_manipulation",
       "target": "roboclaws.household.realworld_contract_fixture_projection"
     },
@@ -5226,13 +5412,7 @@
     },
     {
       "kind": "import",
-      "line": 5,
-      "source": "roboclaws.household.household_runtime_manipulation",
-      "target": "roboclaws.household.realworld_visual_candidates"
-    },
-    {
-      "kind": "import",
-      "line": 15,
+      "line": 14,
       "source": "roboclaws.household.household_runtime_manipulation",
       "target": "roboclaws.household.semantic_acceptability"
     },
@@ -5250,19 +5430,19 @@
     },
     {
       "kind": "import",
-      "line": 17,
+      "line": 16,
       "source": "roboclaws.household.household_runtime_navigation",
       "target": "roboclaws.household.household_runtime_support"
     },
     {
       "kind": "import",
-      "line": 24,
+      "line": 23,
       "source": "roboclaws.household.household_runtime_navigation",
       "target": "roboclaws.household.manipulation_contract"
     },
     {
       "kind": "import",
-      "line": 25,
+      "line": 24,
       "source": "roboclaws.household.household_runtime_navigation",
       "target": "roboclaws.household.planner_observed_binding"
     },
@@ -5274,15 +5454,9 @@
     },
     {
       "kind": "import",
-      "line": 28,
+      "line": 27,
       "source": "roboclaws.household.household_runtime_navigation",
       "target": "roboclaws.household.realworld_contract_projection"
-    },
-    {
-      "kind": "import",
-      "line": 10,
-      "source": "roboclaws.household.household_runtime_navigation",
-      "target": "roboclaws.household.realworld_done_readiness"
     },
     {
       "kind": "import",
@@ -5310,31 +5484,31 @@
     },
     {
       "kind": "import",
-      "line": 32,
+      "line": 31,
       "source": "roboclaws.household.household_runtime_navigation",
       "target": "roboclaws.household.robot_view_pose"
     },
     {
       "kind": "import",
-      "line": 33,
+      "line": 32,
       "source": "roboclaws.household.household_runtime_navigation",
       "target": "roboclaws.household.target_query"
     },
     {
       "kind": "import",
-      "line": 34,
+      "line": 33,
       "source": "roboclaws.household.household_runtime_navigation",
       "target": "roboclaws.household.visual_scan_guidance"
     },
     {
       "kind": "import",
-      "line": 38,
+      "line": 37,
       "source": "roboclaws.household.household_runtime_navigation",
       "target": "roboclaws.maps.bundle"
     },
     {
       "kind": "import",
-      "line": 39,
+      "line": 38,
       "source": "roboclaws.household.household_runtime_navigation",
       "target": "roboclaws.maps.route"
     },
@@ -5346,13 +5520,13 @@
     },
     {
       "kind": "import",
-      "line": 13,
+      "line": 12,
       "source": "roboclaws.household.household_runtime_perception",
       "target": "roboclaws.household.household_runtime_support"
     },
     {
       "kind": "import",
-      "line": 18,
+      "line": 17,
       "source": "roboclaws.household.household_runtime_perception",
       "target": "roboclaws.household.realworld_contract_fixture_projection"
     },
@@ -5361,12 +5535,6 @@
       "line": 6,
       "source": "roboclaws.household.household_runtime_perception",
       "target": "roboclaws.household.realworld_contract_payloads"
-    },
-    {
-      "kind": "import",
-      "line": 6,
-      "source": "roboclaws.household.household_runtime_perception",
-      "target": "roboclaws.household.realworld_done_readiness"
     },
     {
       "kind": "import",
@@ -5394,19 +5562,19 @@
     },
     {
       "kind": "import",
-      "line": 22,
+      "line": 21,
       "source": "roboclaws.household.household_runtime_perception",
       "target": "roboclaws.household.semantic_acceptability"
     },
     {
       "kind": "import",
-      "line": 26,
+      "line": 25,
       "source": "roboclaws.household.household_runtime_perception",
       "target": "roboclaws.household.semantic_timeline"
     },
     {
       "kind": "import",
-      "line": 27,
+      "line": 26,
       "source": "roboclaws.household.household_runtime_perception",
       "target": "roboclaws.household.visual_scan_guidance"
     },
@@ -5424,7 +5592,7 @@
     },
     {
       "kind": "import",
-      "line": 13,
+      "line": 12,
       "source": "roboclaws.household.household_runtime_support",
       "target": "roboclaws.household.manipulation_contract"
     },
@@ -5436,25 +5604,19 @@
     },
     {
       "kind": "import",
-      "line": 14,
+      "line": 13,
       "source": "roboclaws.household.household_runtime_support",
       "target": "roboclaws.household.realworld_contract_fixture_projection"
     },
     {
       "kind": "import",
-      "line": 19,
+      "line": 16,
       "source": "roboclaws.household.household_runtime_support",
       "target": "roboclaws.household.realworld_contract_projection"
     },
     {
       "kind": "import",
-      "line": 7,
-      "source": "roboclaws.household.household_runtime_support",
-      "target": "roboclaws.household.realworld_done_readiness"
-    },
-    {
-      "kind": "import",
-      "line": 23,
+      "line": 20,
       "source": "roboclaws.household.household_runtime_support",
       "target": "roboclaws.household.realworld_policy_trace"
     },
@@ -5472,7 +5634,7 @@
     },
     {
       "kind": "import",
-      "line": 26,
+      "line": 23,
       "source": "roboclaws.household.household_runtime_support",
       "target": "roboclaws.maps.route"
     },
@@ -6528,19 +6690,19 @@
     },
     {
       "kind": "import",
-      "line": 15,
+      "line": 13,
       "source": "roboclaws.household.realworld_contract_projection",
       "target": "roboclaws.household.types"
     },
     {
       "kind": "import",
-      "line": 16,
+      "line": 14,
       "source": "roboclaws.household.realworld_contract_projection",
       "target": "roboclaws.maps.bundle"
     },
     {
       "kind": "import",
-      "line": 17,
+      "line": 15,
       "source": "roboclaws.household.realworld_contract_projection",
       "target": "roboclaws.maps.spatial_contract"
     },
@@ -8061,18 +8223,6 @@
       "line": 10,
       "source": "roboclaws.household.worker_runner",
       "target": "roboclaws.core.json_sources"
-    },
-    {
-      "kind": "import",
-      "line": 25,
-      "source": "roboclaws.launch",
-      "target": "roboclaws.launch.catalog"
-    },
-    {
-      "kind": "import",
-      "line": 5,
-      "source": "roboclaws.launch",
-      "target": "roboclaws.launch.plans"
     },
     {
       "kind": "import",
@@ -10409,7 +10559,7 @@
       "target": "roboclaws.worlds.molmospaces.contracts"
     }
   ],
-  "module_count": 528,
+  "module_count": 527,
   "module_sccs": [],
   "package_bidirectional_edges": [],
   "policies": [

@@ -11,9 +11,6 @@ from PIL import Image
 from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household import agibot_operator_gates as gates
 from roboclaws.household.agibot_household_backend import AgibotHouseholdBackend
-from roboclaws.household.agibot_map_defaults import (
-    DEFAULT_AGIBOT_CONFIDENCE_LAYER,
-)
 from roboclaws.household.agibot_sdk_contract import BLOCKED_MANIPULATION_TOOLS
 from roboclaws.household.agibot_sdk_runner import (
     AgibotSDKRunnerAdapter,
@@ -287,6 +284,8 @@ def test_physical_agibot_pilot_uses_sdk_runner_reports_without_movement(
     assert "AgiBot Backend Evidence" in report_text
     assert "CLI boundary" in report_text
     assert "One Roboclaws pilot run" in report_text
+    assert "Next confidence layer" not in report_text
+    assert "Semantic Actions Rehearsal" not in report_text
     assert "movement_enabled=false" in report_text
     assert "Agibot pilot progress" in report_text
     assert "Dry-run blocked by movement gate" in report_text
@@ -300,9 +299,7 @@ def test_physical_agibot_pilot_uses_sdk_runner_reports_without_movement(
     assert persisted["cleanup_policy_trace"]["events"][1]["decision"] == "visit_public_waypoint"
     assert persisted["cleanup_policy_trace"]["events"][-1]["decision"] == "block_manipulation"
     assert persisted["agibot_sdk_runner"]["gdk_imported_by_roboclaws"] is False
-    assert persisted["agibot_sdk_runner"]["next_confidence_layer"] == (
-        DEFAULT_AGIBOT_CONFIDENCE_LAYER
-    )
+    assert "next_confidence_layer" not in persisted["agibot_sdk_runner"]
     assert is_cleanup_run_result_artifact(run_dir)
     assert rerender_cleanup_report_from_artifact_path(run_dir) == run_dir / "report.html"
 

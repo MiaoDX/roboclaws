@@ -10,7 +10,6 @@ from roboclaws.backends.isaaclab import runtime as runtime_cli
 from roboclaws.backends.isaaclab import runtime_camera as runtime_camera
 from roboclaws.backends.isaaclab import runtime_capture as runtime_capture
 from roboclaws.backends.isaaclab import runtime_commands as runtime_commands
-from roboclaws.backends.isaaclab import runtime_dependencies as runtime_dependencies
 from roboclaws.backends.isaaclab import runtime_evidence as runtime_evidence
 from roboclaws.backends.isaaclab import runtime_initialization as runtime_initialization
 from roboclaws.backends.isaaclab import runtime_state as runtime_state
@@ -40,7 +39,7 @@ def _setup_semantic_pose_recapture_runtime(
         tmp_path / "missing_rby1m_holobase_isaac.usda",
     )
     monkeypatch.setattr(
-        runtime_dependencies,
+        runtime_state,
         "ISAAC_RBY1M_ROBOT_IMPORT_SUMMARY_PATH",
         tmp_path / "missing_rby1m_holobase_isaac.import_summary.json",
     )

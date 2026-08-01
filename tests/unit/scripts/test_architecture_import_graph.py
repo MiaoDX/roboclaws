@@ -121,3 +121,72 @@ def test_current_graph_freezes_authoritative_cycles_and_package_pairs() -> None:
     assert policies["planned-reverse-package-edges"]["known_violations"] == []
     assert policies["package-to-scripts"]["status"] == "green"
     assert policies["package-to-scripts"]["known_violations"] == []
+
+
+def test_default_success_output_is_concise(tmp_path: Path, monkeypatch, capsys) -> None:
+    module = load_module()
+    state = {
+        "module_count": 12,
+        "edge_count": 34,
+        "module_sccs": [],
+        "package_bidirectional_edges": [],
+        "allowed_package_edge_matrix": {},
+        "policies": [
+            {"id": "package-to-scripts", "known_violations": []},
+            {"id": "core-product-inversions", "known_violations": []},
+        ],
+    }
+    baseline = tmp_path / "baseline.json"
+    baseline.write_text(json.dumps(state), encoding="utf-8")
+    monkeypatch.setattr(module, "build_graph_state", lambda: state)
+
+    assert module.main(["--baseline", str(baseline)]) == 0
+    assert capsys.readouterr().out == (
+        "architecture import graph ok: 12 modules, 34 edges, 0 SCCs, "
+        "0 bidirectional package pairs, 0 policy violations\n"
+    )
+
+
+def test_write_keeps_full_json_output_and_stdout_silent(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    module = load_module()
+    state = {
+        "module_count": 1,
+        "edge_count": 0,
+        "module_sccs": [],
+        "package_bidirectional_edges": [],
+        "allowed_package_edge_matrix": {},
+        "policies": [],
+    }
+    output = tmp_path / "graph.json"
+    missing_baseline = tmp_path / "missing-baseline.json"
+    monkeypatch.setattr(module, "build_graph_state", lambda: state)
+
+    assert module.main(["--baseline", str(missing_baseline), "--write", str(output)]) == 0
+    assert json.loads(output.read_text(encoding="utf-8")) == state
+    assert capsys.readouterr().out == ""
+
+
+def test_failure_output_keeps_detailed_regressions(tmp_path: Path, monkeypatch, capsys) -> None:
+    module = load_module()
+    baseline = {
+        "module_sccs": [],
+        "package_bidirectional_edges": [],
+        "allowed_package_edge_matrix": {"a": []},
+        "policies": [{"id": "package-to-scripts", "known_violations": []}],
+    }
+    current = {
+        "module_count": 2,
+        "edge_count": 1,
+        "module_sccs": [],
+        "package_bidirectional_edges": [],
+        "allowed_package_edge_matrix": {"a": ["b"]},
+        "policies": [{"id": "package-to-scripts", "known_violations": []}],
+    }
+    baseline_path = tmp_path / "baseline.json"
+    baseline_path.write_text(json.dumps(baseline), encoding="utf-8")
+    monkeypatch.setattr(module, "build_graph_state", lambda: current)
+
+    assert module.main(["--baseline", str(baseline_path)]) == 1
+    assert capsys.readouterr().out == "new package edges from a: ['b']\n"

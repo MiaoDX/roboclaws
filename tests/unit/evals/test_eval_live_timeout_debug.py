@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from roboclaws.evals import live_execution
+import roboclaws.evals.live_execution as live_execution
 from roboclaws.evals.live_timeout import LiveEvalTimeoutError
 from roboclaws.evals.runner import run_eval_suite
 

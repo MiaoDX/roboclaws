@@ -2,52 +2,69 @@
 
 from __future__ import annotations
 
-from roboclaws.backends.isaaclab.runtime_dependencies import (
-    _DEFERRED_SIMULATION_APP,
-    DEFAULT_HEIGHT,
-    DEFAULT_SCENE_PROBE_LIGHTING_PROFILE,
-    DEFAULT_WIDTH,
-    ISAAC_SEGMENTATION_DATA_TYPES,
-    MAX_SEGMENTATION_CANDIDATES,
-    REAL_ROBOT_VIEW_CAPTURE_METHOD,
-    REAL_SMOKE_RENDERER_MODE,
-    ROBOT_VIEW_KEYS,
-    Any,
-    Path,
-    _camera_render_product_paths,
-    _capture_quality_settings,
-    _current_stage_bounds,
-    _dict,
-    _ensure_capture_lighting,
-    _has_xy,
-    _image_has_variance,
-    _isaac_camera_view_poses,
-    _matrix4d_rowmajor,
-    _optional_float,
-    _restore_isaac_capture_quality_overrides,
-    _robot_pose_yaw_deg,
-    _robot_relative_chase_eye_target,
-    _robot_view_color_profile,
-    _semantic_label_application_not_requested,
-    _semantic_label_target_prims,
-    _set_usd_xform_translate,
-    _static_head_camera_pose_for_pitch,
-    _tensor_first_vec3,
-    _usd_attr_float,
-    _usd_camera_fov_metadata,
-    _usd_vec,
-    _vec3,
-    argparse,
+import argparse
+from pathlib import Path
+from typing import Any
+
+from roboclaws.backends.isaaclab import (
     isaac_camera_capture,
     isaac_camera_geometry,
+    isaac_capture_quality,
+    isaac_render_diagnostics,
     isaac_robot_camera_stage,
     isaac_scene_camera_capture,
     isaac_scene_camera_geometry,
     isaac_segmentation_diagnostics,
     isaac_semantic_labels,
     isaac_semantic_pose_stage,
+    isaac_stage_lighting,
+    isaac_usd_xform,
+    isaac_worker_context,
+)
+from roboclaws.backends.isaaclab.isaac_segmentation_diagnostics import (
+    ISAAC_SEGMENTATION_DATA_TYPES,
+    MAX_SEGMENTATION_CANDIDATES,
+)
+from roboclaws.backends.isaaclab.runtime_lifecycle import DEFERRED_SIMULATION_APP
+from roboclaws.backends.isaaclab.runtime_settings import (
+    DEFAULT_HEIGHT,
+    DEFAULT_WIDTH,
+    REAL_ROBOT_VIEW_CAPTURE_METHOD,
+    REAL_SMOKE_RENDERER_MODE,
+    ROBOT_VIEW_KEYS,
+)
+from roboclaws.household.camera_control import (
+    DEFAULT_SCENE_PROBE_LIGHTING_PROFILE,
     normalize_camera_control_request,
 )
+
+_camera_render_product_paths = isaac_render_diagnostics.camera_render_product_paths
+_capture_quality_settings = isaac_render_diagnostics.capture_quality_settings
+_current_stage_bounds = isaac_stage_lighting.current_stage_bounds
+_dict = isaac_worker_context.dict_value
+_ensure_capture_lighting = isaac_stage_lighting.ensure_capture_lighting
+_has_xy = isaac_worker_context.has_xy
+_image_has_variance = isaac_scene_camera_geometry.image_has_variance
+_isaac_camera_view_poses = isaac_camera_geometry.isaac_camera_view_poses
+_matrix4d_rowmajor = isaac_camera_geometry.matrix4d_rowmajor
+_optional_float = isaac_camera_geometry.optional_float
+_restore_isaac_capture_quality_overrides = (
+    isaac_capture_quality.restore_isaac_capture_quality_overrides
+)
+_robot_pose_yaw_deg = isaac_camera_geometry.robot_pose_yaw_deg
+_robot_relative_chase_eye_target = isaac_camera_geometry.robot_relative_chase_eye_target
+_robot_view_color_profile = isaac_camera_geometry.robot_view_color_profile
+_semantic_label_application_not_requested = (
+    isaac_semantic_labels.semantic_label_application_not_requested
+)
+_semantic_label_target_prims = isaac_semantic_labels.semantic_label_target_prims
+_set_usd_xform_translate = isaac_usd_xform.set_usd_xform_translate
+_static_head_camera_pose_for_pitch = isaac_camera_geometry.static_head_camera_pose_for_pitch
+_tensor_first_vec3 = isaac_camera_geometry.tensor_first_vec3
+_usd_attr_float = isaac_camera_geometry.usd_attr_float
+_usd_camera_fov_metadata = isaac_camera_geometry.usd_camera_fov_metadata
+_usd_vec = isaac_camera_geometry.usd_vec
+_vec3 = isaac_worker_context.vec3
 
 
 def _isaac_app_launcher_args(app_launcher_type: Any) -> argparse.Namespace:
@@ -216,7 +233,7 @@ def capture_scene_camera_views(
     launcher_args = _isaac_app_launcher_args(AppLauncher)
     app_launcher = AppLauncher(launcher_args)
     simulation_app = app_launcher.app
-    _DEFERRED_SIMULATION_APP[0] = simulation_app
+    DEFERRED_SIMULATION_APP[0] = simulation_app
     return _capture_isaac_lab_scene_camera_views(
         scene_usd=scene_usd,
         camera_request=camera_request,

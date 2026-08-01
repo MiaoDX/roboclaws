@@ -20,7 +20,7 @@ def test_live_surface_product_uses_default_live_budgets(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from roboclaws.evals import live_execution as live_exec
+    import roboclaws.evals.live_execution as live_exec
 
     def fake_run(command: list[str], **kwargs: Any) -> Any:
         assert "timeout" not in kwargs
@@ -43,7 +43,7 @@ def test_live_surface_product_uses_default_live_budgets(
 
 
 def test_live_timeout_completion_grace_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
-    from roboclaws.evals import live_runtime
+    import roboclaws.evals.live_runtime as live_runtime
 
     monkeypatch.delenv("ROBOCLAWS_LIVE_EVAL_TIMEOUT_COMPLETION_GRACE_S", raising=False)
     assert live_runtime.live_timeout_completion_grace_s() == 30.0
@@ -60,7 +60,7 @@ def test_live_timeout_completion_grace_rejects_invalid_env(
     monkeypatch: pytest.MonkeyPatch,
     value: str,
 ) -> None:
-    from roboclaws.evals import live_runtime
+    import roboclaws.evals.live_runtime as live_runtime
 
     monkeypatch.setenv("ROBOCLAWS_LIVE_EVAL_TIMEOUT_COMPLETION_GRACE_S", value)
 
@@ -73,7 +73,7 @@ def test_live_timeout_completion_grace_rejects_invalid_env(
 
 @pytest.mark.parametrize("value", ["0", "-1", "nan", "inf", "soon"])
 def test_live_surface_timeout_rejects_invalid_config(value: str) -> None:
-    from roboclaws.evals import live_runtime
+    import roboclaws.evals.live_runtime as live_runtime
 
     kwargs = _live_surface_kwargs(Path("trial-0000"), live_timeout_s=value)  # type: ignore[arg-type]
 
@@ -86,7 +86,7 @@ def test_live_surface_timeout_rejects_invalid_config(value: str) -> None:
 
 @pytest.mark.parametrize("value", ["0", "-1", "nan", "inf", "soon"])
 def test_live_stall_timeout_rejects_invalid_config(value: str) -> None:
-    from roboclaws.evals import live_runtime
+    import roboclaws.evals.live_runtime as live_runtime
 
     kwargs = _live_surface_kwargs(
         Path("trial-0000"),
@@ -101,7 +101,7 @@ def test_live_stall_timeout_rejects_invalid_config(value: str) -> None:
 
 
 def test_live_surface_timeout_accessors_use_split_defaults_and_overrides() -> None:
-    from roboclaws.evals import live_runtime
+    import roboclaws.evals.live_runtime as live_runtime
 
     defaults = _live_surface_kwargs(Path("trial-0000"))
     assert live_runtime.live_wall_clock_budget_s(defaults) == 1200.0
@@ -122,7 +122,7 @@ def test_live_surface_product_does_not_wait_after_sdk_process_success(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from roboclaws.evals import live_execution as live_exec
+    import roboclaws.evals.live_execution as live_exec
 
     sleep_count = {"value": 0}
 

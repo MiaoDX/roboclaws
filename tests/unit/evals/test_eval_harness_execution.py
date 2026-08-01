@@ -10,7 +10,7 @@ from typing import Any
 import pytest
 from pytest import MonkeyPatch
 
-from roboclaws.evals import runner as eval_runner
+import roboclaws.evals.runner as eval_runner
 from roboclaws.evals.harness import local_execution, runner
 from roboclaws.evals.harness import rows as rows_module
 

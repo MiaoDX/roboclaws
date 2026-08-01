@@ -2,27 +2,28 @@
 
 from __future__ import annotations
 
+import argparse
+import json
+import os
+import sys
+import traceback
+from typing import Any, Callable
+
+from roboclaws.backends.isaaclab import isaac_runtime_smoke_usd, isaac_worker_cli
+from roboclaws.backends.isaaclab.isaac_segmentation_diagnostics import (
+    ISAAC_SEGMENTATION_DATA_TYPES,
+)
 from roboclaws.backends.isaaclab.runtime_commands import (
     _STATE_COMMANDS,
     read_state,
 )
-from roboclaws.backends.isaaclab.runtime_dependencies import (
-    _DEFERRED_SIMULATION_APP,
-    DEFAULT_HEIGHT,
-    DEFAULT_WIDTH,
-    ISAAC_SEGMENTATION_DATA_TYPES,
-    Any,
-    Callable,
-    argparse,
-    isaac_runtime_smoke_usd,
-    isaac_worker_cli,
-    json,
-    os,
-    sys,
-    traceback,
-)
 from roboclaws.backends.isaaclab.runtime_initialization import (
     init_state,
+)
+from roboclaws.backends.isaaclab.runtime_lifecycle import DEFERRED_SIMULATION_APP
+from roboclaws.backends.isaaclab.runtime_settings import (
+    DEFAULT_HEIGHT,
+    DEFAULT_WIDTH,
 )
 
 
@@ -45,7 +46,7 @@ def main(argv: list[str] | None = None) -> int:
             result = init_state(args)
         except Exception:
             traceback.print_exc()
-            if _DEFERRED_SIMULATION_APP[0] is not None:
+            if DEFERRED_SIMULATION_APP[0] is not None:
                 sys.stdout.flush()
                 sys.stderr.flush()
                 os._exit(1)
@@ -60,7 +61,7 @@ def main(argv: list[str] | None = None) -> int:
 
 def _finish_command(result: dict[str, Any]) -> int:
     print(json.dumps(result, sort_keys=True), flush=True)
-    if _DEFERRED_SIMULATION_APP[0] is not None:
+    if DEFERRED_SIMULATION_APP[0] is not None:
         # Isaac/Omniverse shutdown can hang after the render artifacts and JSON
         # result are already written. The worker is one-shot, so prefer a hard
         # successful exit over turning completed captures into parent timeouts.
@@ -71,10 +72,10 @@ def _finish_command(result: dict[str, Any]) -> int:
 
 
 def _close_deferred_simulation_app() -> None:
-    if _DEFERRED_SIMULATION_APP[0] is None:
+    if DEFERRED_SIMULATION_APP[0] is None:
         return
-    simulation_app = _DEFERRED_SIMULATION_APP[0]
-    _DEFERRED_SIMULATION_APP[0] = None
+    simulation_app = DEFERRED_SIMULATION_APP[0]
+    DEFERRED_SIMULATION_APP[0] = None
     simulation_app.close(wait_for_replicator=False, skip_cleanup=True)
 
 

@@ -5,7 +5,7 @@ import sys
 
 import pytest
 
-from roboclaws.evals import cli
+import roboclaws.evals.cli as cli
 
 
 def test_eval_cli_import_does_not_require_session_live_dependencies() -> None:

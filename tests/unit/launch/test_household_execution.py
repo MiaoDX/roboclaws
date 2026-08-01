@@ -6,7 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from roboclaws.launch import household, household_execution
+import roboclaws.launch.household as household
+import roboclaws.launch.household_execution as household_execution
 
 
 def _execution(*, dispatch_runner: str = "direct", backend: str = "api_semantic_synthetic"):

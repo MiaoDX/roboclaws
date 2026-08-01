@@ -6,13 +6,13 @@ from pathlib import Path
 
 import pytest
 
+import roboclaws.launch.apple2apple_grid_execution as grid_execution
 from roboclaws.household.apple2apple_test_grid import (
     GRID_SCHEMA,
     RUNTIME_MAP_PRIOR_PLACEHOLDER,
     build_apple2apple_test_grid,
     write_grid_manifest,
 )
-from roboclaws.launch import apple2apple_grid_execution as grid_execution
 from roboclaws.launch.catalog import resolve_surface_launch
 
 
