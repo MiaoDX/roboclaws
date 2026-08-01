@@ -25,8 +25,8 @@ _MEASURE_RE = re.compile(r"\((?P<value>\d+)\s*>\s*(?P<limit>\d+)\)")
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Ratchet Ruff complexity and Pylint-compatible too-many-lines debt "
-            "against an explicit baseline."
+            "Ratchet Ruff complexity, large-module counts, and Pylint-compatible "
+            "too-many-lines debt against an explicit baseline."
         )
     )
     parser.add_argument(
@@ -286,6 +286,7 @@ def collect_repository_size(file_sizes: dict[Path, int]) -> dict[str, Any]:
 
     return {
         "line_count": "physical UTF-8 lines in Python files under the named roots",
+        "ratcheted_files_at_least": RATCHET_SIZE_THRESHOLD,
         "source": summarize(SOURCE_ROOTS),
         "tests": summarize((TEST_ROOT,)),
     }

@@ -44,10 +44,13 @@ def baseline_state() -> dict:
             ]
         },
         "repository_size": {
+            "ratcheted_files_at_least": 500,
             "source": {
+                "loc": 1000,
                 "files_at_least": {"500": 2, "800": 1, "1000": 0},
             },
             "tests": {
+                "loc": 500,
                 "files_at_least": {"500": 1, "800": 0, "1000": 0},
             },
         },
@@ -215,6 +218,15 @@ def test_ratchet_rejects_growth_in_files_at_least_500_lines(
     ]
 
 
+def test_ratchet_keeps_total_loc_observational() -> None:
+    module = load_module()
+    current = baseline_state()
+    current["repository_size"]["source"]["loc"] += 10_000
+    current["repository_size"]["tests"]["loc"] += 10_000
+
+    assert module.compare_to_baseline(current, baseline_state()) == []
+
+
 def test_repository_size_records_exact_threshold_counts(tmp_path: Path) -> None:
     module = load_module()
     source = module.REPO_ROOT / "roboclaws" / "example.py"
@@ -222,6 +234,7 @@ def test_repository_size_records_exact_threshold_counts(tmp_path: Path) -> None:
 
     summary = module.collect_repository_size({source: 1000, test: 800})
 
+    assert summary["ratcheted_files_at_least"] == 500
     assert summary["source"] == {
         "roots": ["roboclaws", "scripts"],
         "python_files": 1,
