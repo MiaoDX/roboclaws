@@ -129,14 +129,6 @@ def _robot_pose_for_open_receptacle(
     return navigation.robot_pose_for_open_receptacle(state, receptacle)
 
 
-def _first_same_room_point(
-    state: dict[str, Any],
-    candidates: list[tuple[float, float]],
-    target_room_id: str | None,
-) -> tuple[float, float]:
-    return navigation.first_same_room_point(state, candidates, target_room_id)
-
-
 def _robot_pose_near_object(
     state: dict[str, Any],
     obj: dict[str, Any],
@@ -163,39 +155,6 @@ def _waypoint_target_position(
     waypoint: dict[str, Any],
 ) -> list[float]:
     return navigation.waypoint_target_position(state, waypoint)
-
-
-def _room_outline_center_xy(outline: dict[str, Any] | None) -> tuple[float, float] | None:
-    return navigation.room_outline_center_xy(outline)
-
-
-def _robot_pose_near_position(
-    state: dict[str, Any],
-    target: list[float],
-    *,
-    target_room_id: str | None,
-    target_receptacle_id: str | None = None,
-    target_object_id: str | None = None,
-) -> dict[str, Any]:
-    return navigation.robot_pose_near_position(
-        state,
-        target,
-        target_room_id=target_room_id,
-        target_receptacle_id=target_receptacle_id,
-        target_object_id=target_object_id,
-    )
-
-
-def _robot_stand_off_for_target(state: dict[str, Any], target_object_id: str | None) -> float:
-    return navigation.robot_stand_off_for_target(state, target_object_id)
-
-
-def _robot_head_pitch_for_target(target: list[float], robot_xy: list[float]) -> float:
-    return navigation.robot_head_pitch_for_target_value(target, robot_xy)
-
-
-def _scene_center(items: list[dict[str, Any]]) -> tuple[float, float]:
-    return navigation.scene_center(items)
 
 
 def _robot_view_camera_adjustment(

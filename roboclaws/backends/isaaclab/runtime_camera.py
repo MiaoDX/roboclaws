@@ -422,24 +422,6 @@ def _position_robot_for_head_camera_view(
     )
 
 
-def _apply_static_head_camera_pitch(
-    *,
-    stage: Any,
-    head_pitch: float | None,
-) -> dict[str, Any]:
-
-    return isaac_robot_camera_stage.apply_static_head_camera_pitch(
-        stage=stage,
-        head_pitch=head_pitch,
-        hooks=_isaac_robot_camera_stage_hooks(),
-    )
-
-
-def _static_head_pitch_note(head_pitch_application: dict[str, Any]) -> str:
-
-    return isaac_robot_camera_stage.static_head_pitch_note(head_pitch_application)
-
-
 def _usd_camera_diagnostics(
     *,
     stage_utils: Any,
@@ -575,33 +557,4 @@ def _horizontal_aperture_from_lens(
         width=width,
         height=height,
         focal_length=focal_length,
-    )
-
-
-def _bounds_from_usd_prim_path(
-    *,
-    stage_utils: Any | None,
-    usd_prim_path: str,
-    min_target_z: float,
-) -> dict[str, Any] | None:
-
-    return isaac_scene_camera_geometry.bounds_from_usd_prim_path(
-        stage_utils=stage_utils,
-        usd_prim_path=usd_prim_path,
-        min_target_z=min_target_z,
-    )
-
-
-def _eye_from_lookat_spec(
-    *,
-    target: list[float],
-    distance: float,
-    azimuth: float,
-    elevation: float,
-) -> list[float]:
-    return isaac_scene_camera_geometry.eye_from_lookat_spec(
-        target=target,
-        distance=distance,
-        azimuth=azimuth,
-        elevation=elevation,
     )
