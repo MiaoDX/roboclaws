@@ -1,4 +1,4 @@
-**Status:** Active
+**Status:** Done
 **Created:** 2026-08-02
 **Last reviewed:** 2026-08-02
 **Current implementation contract:** Household runtime semantics depend on one typed backend port;
@@ -11,14 +11,13 @@ and observable household behavior remain unchanged. Internal compatibility facad
 
 ## Plan Ledger
 
-- Plan status: CONTINUE
+- Plan status: DONE
 - Session scope: household-backend-port-refactor
 - Parent plan: none
 - Child plans: none
 - Last updated: 2026-08-02
-- Current slice: Run the repo-wide deterministic gate and final documentation alignment.
-- Next action: Run `just agent::verify`, align human docs, and close the plan if all gates remain
-  green.
+- Current slice: Complete.
+- Next action: None; reopen only for a regression against this gate.
 - Blocked on: nothing
 - Do not touch from this session: public launch/tool/schema/artifact contracts, live provider routes,
   simulator behavior, real-robot movement, unrelated eval work, `TODOS.md`, and `THOUGHTS.md`.
@@ -75,7 +74,7 @@ Accepted cleanup checklist:
   they only describe the sole `HouseholdRuntimeContract` implementation.
 - [x] Replace `_parse_last_json_object` and
   `_reject_legacy_robot_view_camera_control_flag` cross-package imports with public owner APIs.
-- [ ] Preserve serialized outputs and public launch/MCP/schema/artifact/provider behavior exactly.
+- [x] Preserve serialized outputs and public launch/MCP/schema/artifact/provider behavior exactly.
 
 Parked cross-seam / future ideas:
 
@@ -163,3 +162,15 @@ Ownership rules:
 Mark `DONE` only when every accepted checklist item is complete, `HouseholdRuntimeContract` cannot
 reach a concrete backend adapter, outputs remain contract-identical, focused and broad proof pass,
 changed-code review finds no accepted P0/P1/P2 issue, and human architecture docs match the result.
+
+## Closeout
+
+- Implementation: `HouseholdRuntimeContract -> HouseholdBackendPort -> synthetic / MolmoSpaces /
+  Isaac Lab adapters`; no raw adapter escape hatch or runtime capability probing remains.
+- Simplification: five single-implementation runtime Protocols and two cross-package private
+  imports were removed.
+- Proof: focused and full household suites passed; changed-code review repairs passed; final
+  `just agent::verify` passed with zero architecture SCCs, bidirectional package pairs, or policy
+  violations.
+- Human docs: `ARCHITECTURE.md` and `docs/human/technical-design.md` aligned; README and remaining
+  `docs/human/**` checked and left unchanged because public behavior did not change.

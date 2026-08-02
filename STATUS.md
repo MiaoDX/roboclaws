@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-01
+Last updated: 2026-08-02
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -9,14 +9,6 @@ orientation, move it to plans, ADRs, retrospectives, or `docs/human/**` and
 leave a link.
 
 ## Current Focus
-
-The household backend port refactor is active. It is closing the remaining seam
-between `HouseholdRuntimeContract` and backend adapters so runtime policy cannot
-reach concrete adapters, guess capabilities with `getattr`, or read private
-backend state. Public launch grammar, runtime behavior, provider routes,
-artifacts, operator safety gates, and physical-movement authorization remain
-unchanged. See
-`docs/plans/2026-08-02-household-backend-port-refactor.md` for the accepted gate.
 
 The latest hybrid eval candidate at `output/eval-harness/20260731T100528Z/`
 passes all 25 selected rows with no behavior failures, provider failures,
@@ -56,10 +48,9 @@ providers.
 
 ## Next Action
 
-Implement and verify the typed household backend port in vertical slices, then
-internalize redundant runtime-only Protocols and remove the two remaining
-cross-package private imports. The 25-row eval candidate remains awaiting human
-confirmation; publication is separate and unauthorized.
+Review the ranked 25-row eval candidate and decide whether to publish its
+durable baseline/catalog artifacts. Publication remains separate and
+unauthorized until that confirmation.
 
 ## Current Blockers
 
@@ -82,6 +73,7 @@ confirmation; publication is separate and unauthorized.
 ## Current Source Links
 
 Plans:
+`docs/plans/2026-08-02-household-backend-port-refactor.md`,
 `docs/plans/2026-07-31-refactor-just-command-surface.md`,
 `docs/plans/2026-07-30-aggressive-architecture-migration.md`,
 `docs/plans/2026-07-30-retire-openclaw-and-local-docker-surfaces.md`,
