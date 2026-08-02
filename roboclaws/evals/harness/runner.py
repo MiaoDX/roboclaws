@@ -35,7 +35,7 @@ _MANAGED_DINO_SIDECAR: ManagedVisualGroundingProcess | None = None
 _DINO_SIDECAR_LOCK = threading.Lock()
 
 
-def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+def _argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Recommend or execute adaptive Roboclaws eval-harness rows.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -59,11 +59,42 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--row-id", action="append", default=[])
     parser.add_argument("--shard-id", default="local-main")
-    return parser.parse_args(argv)
+    return parser
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    return _argument_parser().parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = parse_args(argv)
+    return _run_from_args(parse_args(argv))
+
+
+def run_from_overrides(mode: str, overrides: dict[str, str]) -> int:
+    """Run the harness from structured Just/CLI overrides."""
+    parser = _argument_parser()
+    args = parser.parse_args([mode])
+    actions = {action.dest: action for action in parser._actions if action.dest != "mode"}
+    unknown = sorted(set(overrides) - actions.keys())
+    if unknown:
+        raise ValueError(f"unsupported eval-harness override(s): {', '.join(unknown)}")
+    for key, raw_value in overrides.items():
+        action = actions[key]
+        if raw_value == "":
+            continue
+        try:
+            value = action.type(raw_value) if action.type is not None else raw_value
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"invalid eval-harness override {key}={raw_value!r}") from exc
+        if action.choices is not None and value not in action.choices:
+            choices = ", ".join(str(choice) for choice in action.choices)
+            raise ValueError(f"invalid eval-harness override {key}={raw_value!r}; choose {choices}")
+        current = getattr(args, key)
+        setattr(args, key, [value] if isinstance(current, list) else value)
+    return _run_from_args(args)
+
+
+def _run_from_args(args: argparse.Namespace) -> int:
     row_ids = selector._split_csv_values(args.row_id)
     manifest = _manifest_from_args(args)
     output_dir = Path(manifest["output_dir"])

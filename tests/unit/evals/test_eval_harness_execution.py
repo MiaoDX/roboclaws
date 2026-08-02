@@ -313,8 +313,13 @@ def test_row_timeout_is_recorded_and_process_is_stopped(tmp_path: Path) -> None:
 
 
 def test_eval_cli_forwards_execution_overrides(monkeypatch: MonkeyPatch) -> None:
-    captured: list[str] = []
-    monkeypatch.setattr(eval_runner.harness_runner, "main", lambda argv: captured.extend(argv) or 0)
+    captured: dict[str, object] = {}
+
+    def run_from_overrides(mode: str, overrides: dict[str, str]) -> int:
+        captured.update({"mode": mode, "overrides": overrides})
+        return 0
+
+    monkeypatch.setattr(eval_runner.harness_runner, "run_from_overrides", run_from_overrides)
 
     exit_code = eval_runner.run_eval_harness(
         "execute",
@@ -328,19 +333,48 @@ def test_eval_cli_forwards_execution_overrides(monkeypatch: MonkeyPatch) -> None
     )
 
     assert exit_code == 0
-    assert captured == [
-        "execute",
-        "--scene",
-        "procthor-10k-val/0,procthor-objaverse-val/0",
-        "--max-parallel",
-        "4",
-        "--manifest",
-        "output/eval-harness/frozen.json",
-        "--row-id",
-        "a,b",
-        "--shard-id",
-        "worker-2",
-    ]
+    assert captured == {
+        "mode": "execute",
+        "overrides": {
+            "max_parallel": "4",
+            "manifest": "output/eval-harness/frozen.json",
+            "row_id": "a,b",
+            "shard_id": "worker-2",
+            "scene": "procthor-10k-val/0,procthor-objaverse-val/0",
+        },
+    }
+
+
+def test_eval_harness_structured_overrides_use_parser_types(monkeypatch: MonkeyPatch) -> None:
+    captured: dict[str, object] = {}
+    monkeypatch.setattr(
+        runner,
+        "_run_from_args",
+        lambda args: captured.update(vars(args)) or 0,
+    )
+
+    assert (
+        runner.run_from_overrides(
+            "execute",
+            {
+                "budget": "smoke",
+                "profile": "",
+                "max_parallel": "4",
+                "manifest": "output/eval-harness/frozen.json",
+                "row_id": "a,b",
+            },
+        )
+        == 0
+    )
+    assert captured["mode"] == "execute"
+    assert captured["budget"] == "smoke"
+    assert captured["profile"] == "adaptive"
+    assert captured["max_parallel"] == 4
+    assert captured["manifest"] == Path("output/eval-harness/frozen.json")
+    assert captured["row_id"] == ["a,b"]
+
+    with pytest.raises(ValueError, match="unsupported eval-harness override"):
+        runner.run_from_overrides("recommend", {"unknown": "value"})
 
 
 def test_catalog_resolves_execution_and_provider_requirements(tmp_path: Path) -> None:

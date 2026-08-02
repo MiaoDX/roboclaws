@@ -15,17 +15,15 @@ Execute the five approved architecture cleanup candidates without changing publi
 ## Current State
 
 - Latest user intent: execute all approved candidates via intuitive-flow.
-- Current slice: eval mapping dispatch.
-- Last proof: direct/MCP/Agibot artifact contract tests passed; common run-result invariants,
-  public artifact writes, artifact paths, report rendering, and result persistence now have one
-  canonical owner, with dynamic hooks and private prior reads removed.
+- Current slice: canonical scratchpad filename.
+- Last proof: 68 eval-harness/CLI/Just tests passed; structured overrides now use the canonical
+  parser registry directly, and the unused selector CLI/parser is removed.
 - Completed slices: session-live environment restoration; MolmoSpaces authoring backend ownership;
-  direct/MCP household artifact ownership.
+  direct/MCP household artifact ownership; eval mapping dispatch.
 
 ## Next Action
 
-Remove eval mapping-to-argv conversion and its duplicate option registry while preserving public
-Just and CLI grammar.
+Use `agent_scratchpad.json` as the only live scratchpad filename and delete fallback migration.
 
 ## Stop Condition
 

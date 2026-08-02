@@ -77,34 +77,7 @@ def run_eval_harness(mode: str, overrides: dict[str, str]) -> int:
     values = dict(overrides)
     if values.pop("suite", None):
         raise ValueError(f"{mode} does not accept suite=<suite>; use direct suite mode")
-    argv = [mode]
-    for key in (
-        "budget",
-        "profile",
-        "plan",
-        "since",
-        "changed_file",
-        "agent_engine",
-        "provider_profile",
-        "intent",
-        "preset",
-        "evidence_lane",
-        "camera_labeler",
-        "scene",
-        "runtime_map_prior",
-        "output_dir",
-        "max_parallel",
-        "manifest",
-        "row_id",
-        "shard_id",
-    ):
-        value = values.pop(key, None)
-        if value not in {None, ""}:
-            argv.extend([f"--{key.replace('_', '-')}", value])
-    if values:
-        keys = ", ".join(sorted(values))
-        raise ValueError(f"unsupported eval-harness override(s): {keys}")
-    return harness_runner.main(argv)
+    return harness_runner.run_from_overrides(mode, values)
 
 
 def run_eval_from_overrides(overrides: dict[str, str]) -> EvalSuiteRun:
