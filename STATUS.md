@@ -10,14 +10,13 @@ leave a link.
 
 ## Current Focus
 
-The forward-only architecture cleanup is complete. Runtime modules now import
-from their defining owners, caller-free facades and rehearsal surfaces are gone,
-shared backend geometry has one neutral owner, and explicitly terminal status
-capsules are archived. Public launch grammar, runtime behavior, provider routes,
-artifacts, operator safety gates, and physical-movement authorization are
-unchanged. The canonical verification gate passes; see the current graph metrics
-from `scripts/dev/check_architecture_import_graph.py` rather than copying a stale
-snapshot here.
+The household backend port refactor is active. It is closing the remaining seam
+between `HouseholdRuntimeContract` and backend adapters so runtime policy cannot
+reach concrete adapters, guess capabilities with `getattr`, or read private
+backend state. Public launch grammar, runtime behavior, provider routes,
+artifacts, operator safety gates, and physical-movement authorization remain
+unchanged. See
+`docs/plans/2026-08-02-household-backend-port-refactor.md` for the accepted gate.
 
 The latest hybrid eval candidate at `output/eval-harness/20260731T100528Z/`
 passes all 25 selected rows with no behavior failures, provider failures,
@@ -57,10 +56,10 @@ providers.
 
 ## Next Action
 
-No implementation or verification work remains for the post-audit
-simplification, architecture migration, Just command-surface refactor, or
-baseline refresh. The 25-row candidate is awaiting human confirmation;
-publication remains unauthorized and separate from these campaigns.
+Implement and verify the typed household backend port in vertical slices, then
+internalize redundant runtime-only Protocols and remove the two remaining
+cross-package private imports. The 25-row eval candidate remains awaiting human
+confirmation; publication is separate and unauthorized.
 
 ## Current Blockers
 
