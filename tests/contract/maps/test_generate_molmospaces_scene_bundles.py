@@ -103,8 +103,12 @@ def test_generation_uses_preparation_evidence_not_agent_view_projection(
     generator = _load_generator()
     captured: dict[str, object] = {}
 
-    class FakeSession:
-        backend = object()
+    class FakeBackend:
+        def __init__(self, **kwargs: object) -> None:
+            captured["backend_kwargs"] = kwargs
+
+        def _read_state(self) -> dict[str, object]:
+            return {"scene_xml": "scene.xml", "room_outlines": [{"room_id": "room_1"}]}
 
         def close(self) -> None:
             captured["closed"] = True
@@ -136,13 +140,8 @@ def test_generation_uses_preparation_evidence_not_agent_view_projection(
 
     monkeypatch.setattr(
         generator,
-        "build_household_backend_session",
-        lambda **_kwargs: FakeSession(),
-    )
-    monkeypatch.setattr(
-        generator,
-        "_backend_state_payload",
-        lambda _session: {"scene_xml": "scene.xml", "room_outlines": [{"room_id": "room_1"}]},
+        "MolmoSpacesSubprocessBackend",
+        FakeBackend,
     )
     monkeypatch.setattr(
         generator,
@@ -176,6 +175,14 @@ def test_generation_uses_preparation_evidence_not_agent_view_projection(
     assert result["validation"]["ok"] is True
     assert result["base_metric_validation"]["ok"] is True
     assert captured["closed"] is True
+    assert captured["backend_kwargs"] == {
+        "run_dir": tmp_path / "runs" / "procthor-10k-val" / "0",
+        "seed": 7,
+        "generated_mess_count": 0,
+        "scene_source": "procthor-10k-val",
+        "scene_index": 0,
+        "python_executable": None,
+    }
     assert captured["static_landmarks"] == []
     metric_map = captured["metric_map"]
     assert isinstance(metric_map, dict)

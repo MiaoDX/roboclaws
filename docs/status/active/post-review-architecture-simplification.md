@@ -15,15 +15,15 @@ Execute the five approved architecture cleanup candidates without changing publi
 ## Current State
 
 - Latest user intent: execute all approved candidates via intuitive-flow.
-- Current slice: MolmoSpaces scene-bundle backend ownership.
-- Last proof: session-live and operator-console focused tests passed (26 tests); startup failure now
-  restores all temporary process-environment changes.
-- Completed slices: session-live environment restoration.
+- Current slice: direct/MCP household artifact ownership.
+- Last proof: MolmoSpaces scene-bundle contract tests passed (6 tests); the authoring script now
+  owns its concrete backend directly and has no generic session/private-backend escape.
+- Completed slices: session-live environment restoration; MolmoSpaces authoring backend ownership.
 
 ## Next Action
 
-Replace the scene-bundle generator's generic household session/private backend access with its
-concrete MolmoSpaces authoring owner, then run its contract tests.
+Consolidate direct and MCP artifact/result composition behind the existing direct artifact owner,
+preserve exact serialized output, and run direct/MCP parity tests.
 
 ## Stop Condition
 

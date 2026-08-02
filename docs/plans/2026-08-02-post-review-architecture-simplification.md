@@ -16,8 +16,8 @@ artifact, provider, simulator, or hardware behavior.
 - Parent plan: none
 - Child plans: none
 - Last updated: 2026-08-02
-- Current slice: MolmoSpaces authoring backend ownership
-- Next action: remove the scene-bundle generator's generic-session/private-backend escape
+- Current slice: direct/MCP household artifact ownership
+- Next action: consolidate duplicate artifact and run-result composition behind the direct owner
 - Blocked on: nothing
 - Do not touch from this session: durable eval baseline publication, provider routes, simulator or
   real-robot behavior, public launch/MCP/schema/report/artifact contracts, unrelated plans,
@@ -39,7 +39,7 @@ Accepted severities: three P1 and two P2 candidates.
 Accepted cleanup checklist:
 
 - [x] Restore process environment when session-live HTTP server construction or startup fails.
-- [ ] Remove the MolmoSpaces scene-bundle generator's generic-session/private-backend escape.
+- [x] Remove the MolmoSpaces scene-bundle generator's generic-session/private-backend escape.
 - [ ] Give direct and MCP household runs one canonical artifact/result composition owner.
 - [ ] Remove eval-harness mapping-to-argv option-registry duplication.
 - [ ] Use `agent_scratchpad.json` as the sole live scratchpad filename and delete migration logic.
