@@ -65,8 +65,13 @@ class AgibotHouseholdEvidence:
         attach_map12_review_assets(self.run_dir, self.adapter.context_payload, result)
         return result
 
-    def real_robot_readiness_payload(self, trace_events: list[dict[str, Any]]) -> dict[str, Any]:
-        del trace_events
+    def real_robot_readiness_payload(
+        self,
+        trace_events: list[dict[str, Any]],
+        robot_view_steps: list[dict[str, Any]],
+        agent_view: dict[str, Any],
+    ) -> dict[str, Any]:
+        del trace_events, robot_view_steps, agent_view
         total_waypoints = len(self.metric_map().get("inspection_waypoints") or [])
         observed_rate = (
             len(self._observed_waypoint_ids) / total_waypoints if total_waypoints else 1.0
@@ -90,7 +95,12 @@ class AgibotHouseholdEvidence:
             "human_takeover_stop": False,
         }
 
-    def cleanup_policy_trace_payload(self, trace_events: list[dict[str, Any]]) -> dict[str, Any]:
+    def cleanup_policy_trace_payload(
+        self,
+        trace_events: list[dict[str, Any]],
+        agent_view: dict[str, Any],
+    ) -> dict[str, Any]:
+        del agent_view
         events = []
         decisions = {
             "metric_map": "inspect_public_metric_map",

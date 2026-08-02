@@ -121,11 +121,13 @@ class HouseholdMCPArtifactLifecycle:
         after_snapshot = self._write_snapshot("after.png", title="After real-world cleanup")
         self._record_robot_view("after", label_suffix="after")
         trace_events = self._read_trace_events()
+        agent_view = self._agent_view_payload()
         finalized = finalize_realworld_mcp_done(
             RealWorldMCPDoneArtifactInputs(
                 run_dir=self.run_dir,
                 trace_path=self.trace_path,
                 run_result_path=self.run_result_path,
+                backend=self.backend_name,
                 base_contract=self.base_contract,
                 contract=self.contract,
                 scenario=self.scenario,
@@ -139,6 +141,7 @@ class HouseholdMCPArtifactLifecycle:
                 static_fixture_projection_mode=self.static_fixture_projection_mode,
                 perception_mode=self.perception_mode,
                 map_bundle_dir=self.map_bundle_dir,
+                runtime_map_prior=self.runtime_map_prior,
                 runtime_map_prior_source=self.runtime_map_prior_source,
                 evidence_lane=self.evidence_lane,
                 record_robot_views=self.record_robot_views,
@@ -148,12 +151,25 @@ class HouseholdMCPArtifactLifecycle:
                 before_snapshot=self._before_snapshot,
                 after_snapshot=after_snapshot,
                 trace_events=trace_events,
-                agent_view=self._agent_view_payload(),
+                agent_view=agent_view,
                 done_response=done_response,
                 reason=reason,
                 tool_event_counts=dict(self._tool_event_counts),
                 rerun_command=self.rerun_command,
                 mcp_server_name=MCP_SERVER_NAME,
+                requested_generated_mess_count=(
+                    self.base_contract.requested_generated_mess_count()
+                ),
+                run_metadata_overrides=self.contract.run_result_overrides(),
+                cleanup_policy_trace=self.contract.cleanup_policy_trace_payload(
+                    trace_events,
+                    agent_view,
+                ),
+                real_robot_readiness=self.contract.real_robot_readiness_payload(
+                    trace_events,
+                    self.robot_view_steps,
+                    agent_view,
+                ),
             )
         )
         self._done_result = {

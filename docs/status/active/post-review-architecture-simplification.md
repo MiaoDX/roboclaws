@@ -15,15 +15,17 @@ Execute the five approved architecture cleanup candidates without changing publi
 ## Current State
 
 - Latest user intent: execute all approved candidates via intuitive-flow.
-- Current slice: direct/MCP household artifact ownership.
-- Last proof: MolmoSpaces scene-bundle contract tests passed (6 tests); the authoring script now
-  owns its concrete backend directly and has no generic session/private-backend escape.
-- Completed slices: session-live environment restoration; MolmoSpaces authoring backend ownership.
+- Current slice: eval mapping dispatch.
+- Last proof: direct/MCP/Agibot artifact contract tests passed; common run-result invariants,
+  public artifact writes, artifact paths, report rendering, and result persistence now have one
+  canonical owner, with dynamic hooks and private prior reads removed.
+- Completed slices: session-live environment restoration; MolmoSpaces authoring backend ownership;
+  direct/MCP household artifact ownership.
 
 ## Next Action
 
-Consolidate direct and MCP artifact/result composition behind the existing direct artifact owner,
-preserve exact serialized output, and run direct/MCP parity tests.
+Remove eval mapping-to-argv conversion and its duplicate option registry while preserving public
+Just and CLI grammar.
 
 ## Stop Condition
 
