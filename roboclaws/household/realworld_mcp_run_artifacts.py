@@ -73,8 +73,9 @@ class RealWorldMCPDoneArtifactInputs:
     static_fixture_projection_mode: str
     perception_mode: str
     map_bundle_dir: Path | None
-    runtime_map_prior: dict[str, Any] | None
     runtime_map_prior_source: str
+    anchor_prior_count: int
+    room_prior_count: int
     evidence_lane: str | None
     record_robot_views: bool
     planner_proof_run_result: Path | None
@@ -142,6 +143,7 @@ def finalize_realworld_mcp_done(
         agent_scratchpad=payloads.agent_scratchpad,
         goal_contract=inputs.goal_contract,
         render_runtime_map_preview=False,
+        write_agent_scratchpad=False,
     )
     run_result = _base_run_result(inputs, paths, payloads)
     run_result = _attach_run_result_sections(inputs, run_result)
@@ -391,13 +393,11 @@ def _runtime_map_prior_payload(
     payloads: _MCPDonePayloads,
 ) -> dict[str, Any]:
     object_prior_count = len(payloads.runtime_prior_rows)
-    anchor_prior_count = len((inputs.runtime_map_prior or {}).get("public_semantic_anchors") or [])
-    room_prior_count = len((inputs.runtime_map_prior or {}).get("rooms") or [])
     return runtime_map_prior_summary(
         source=inputs.runtime_map_prior_source,
         object_prior_count=object_prior_count,
-        anchor_prior_count=anchor_prior_count,
-        room_prior_count=room_prior_count,
+        anchor_prior_count=inputs.anchor_prior_count,
+        room_prior_count=inputs.room_prior_count,
     )
 
 

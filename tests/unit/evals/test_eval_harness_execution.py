@@ -374,7 +374,9 @@ def test_eval_harness_structured_overrides_use_parser_types(monkeypatch: MonkeyP
     assert captured["row_id"] == ["a,b"]
 
     with pytest.raises(ValueError, match="unsupported eval-harness override"):
-        runner.run_from_overrides("recommend", {"unknown": "value"})
+        runner.run_from_overrides("recommend", {"help": "value", "unknown": "value"})
+    with pytest.raises(ValueError, match="invalid eval-harness override max_parallel='0'"):
+        runner.run_from_overrides("recommend", {"max_parallel": "0"})
 
 
 def test_catalog_resolves_execution_and_provider_requirements(tmp_path: Path) -> None:

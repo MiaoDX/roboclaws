@@ -74,7 +74,9 @@ def run_from_overrides(mode: str, overrides: dict[str, str]) -> int:
     """Run the harness from structured Just/CLI overrides."""
     parser = _argument_parser()
     args = parser.parse_args([mode])
-    actions = {action.dest: action for action in parser._actions if action.dest != "mode"}
+    actions = {
+        action.dest: action for action in parser._actions if action.dest not in {"help", "mode"}
+    }
     unknown = sorted(set(overrides) - actions.keys())
     if unknown:
         raise ValueError(f"unsupported eval-harness override(s): {', '.join(unknown)}")
@@ -84,7 +86,7 @@ def run_from_overrides(mode: str, overrides: dict[str, str]) -> int:
             continue
         try:
             value = action.type(raw_value) if action.type is not None else raw_value
-        except (TypeError, ValueError) as exc:
+        except (argparse.ArgumentTypeError, TypeError, ValueError) as exc:
             raise ValueError(f"invalid eval-harness override {key}={raw_value!r}") from exc
         if action.choices is not None and value not in action.choices:
             choices = ", ".join(str(choice) for choice in action.choices)

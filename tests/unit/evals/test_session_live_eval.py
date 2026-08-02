@@ -6,7 +6,7 @@ import threading
 import time
 from http.server import ThreadingHTTPServer
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -69,6 +69,38 @@ def test_session_live_restores_environment_when_server_startup_fails(
             start_server=fail_start,
         )
 
+    assert os.environ[sentinel] == "original"
+    assert os.environ.get("ROBOCLAWS_OPERATOR_CONSOLE_OUTPUT_ROOT") is None
+
+
+def test_session_live_closes_server_and_restores_environment_when_thread_start_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sentinel = "ROBOCLAWS_SESSION_LIVE_ENV_SENTINEL"
+    monkeypatch.setenv(sentinel, "original")
+    server = MagicMock(spec=ThreadingHTTPServer)
+
+    with (
+        patch("roboclaws.evals.session_live.importlib.util.find_spec", return_value=object()),
+        patch.object(threading.Thread, "start", side_effect=RuntimeError("thread start failed")),
+        pytest.raises(RuntimeError, match="thread start failed"),
+    ):
+        run_session_live_eval(
+            output_root=tmp_path,
+            stamp="thread-start-failure",
+            provider_profile="kimi-openai-chat",
+            live_execution="run",
+            env={
+                "KIMI_API_KEY": "key",
+                "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
+                sentinel: "temporary",
+            },
+            start_server=lambda _root: server,
+        )
+
+    server.shutdown.assert_not_called()
+    server.server_close.assert_called_once_with()
     assert os.environ[sentinel] == "original"
     assert os.environ.get("ROBOCLAWS_OPERATOR_CONSOLE_OUTPUT_ROOT") is None
 

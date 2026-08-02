@@ -144,6 +144,9 @@ class HouseholdRuntimeContract(
     def run_result_overrides(self) -> dict[str, Any]:
         return {}
 
+    def runtime_map_prior_counts(self) -> tuple[int, int]:
+        return len(self._runtime_map_anchor_priors), len(self._runtime_map_room_priors)
+
     def real_robot_readiness_payload(
         self,
         trace_events: list[dict[str, Any]],

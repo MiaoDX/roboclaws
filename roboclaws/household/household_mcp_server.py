@@ -199,7 +199,6 @@ class HouseholdWorldMCPServer(HouseholdMCPArtifactLifecycle, HouseholdMCPTraceLi
         self.task_intent = household_runtime_intent(self.goal_contract, task_intent)
         self.task_name = household_task_name(surface=self.task_surface, intent=self.task_intent)
         self.map_bundle_dir = Path(map_bundle_dir) if map_bundle_dir is not None else None
-        self.runtime_map_prior = runtime_map_prior
         self.runtime_map_prior_source = runtime_map_prior_source
         contract = _build_realworld_mcp_contract(
             contract=contract,

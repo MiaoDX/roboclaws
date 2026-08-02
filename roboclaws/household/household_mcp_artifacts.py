@@ -122,6 +122,7 @@ class HouseholdMCPArtifactLifecycle:
         self._record_robot_view("after", label_suffix="after")
         trace_events = self._read_trace_events()
         agent_view = self._agent_view_payload()
+        anchor_prior_count, room_prior_count = self.contract.runtime_map_prior_counts()
         finalized = finalize_realworld_mcp_done(
             RealWorldMCPDoneArtifactInputs(
                 run_dir=self.run_dir,
@@ -141,8 +142,9 @@ class HouseholdMCPArtifactLifecycle:
                 static_fixture_projection_mode=self.static_fixture_projection_mode,
                 perception_mode=self.perception_mode,
                 map_bundle_dir=self.map_bundle_dir,
-                runtime_map_prior=self.runtime_map_prior,
                 runtime_map_prior_source=self.runtime_map_prior_source,
+                anchor_prior_count=anchor_prior_count,
+                room_prior_count=room_prior_count,
                 evidence_lane=self.evidence_lane,
                 record_robot_views=self.record_robot_views,
                 planner_proof_run_result=self.planner_proof_run_result,

@@ -263,6 +263,7 @@ def finalize_realworld_cleanup_run(inputs: RealWorldRunArtifactInputs) -> dict[s
         agent_scratchpad=inputs.agent_scratchpad,
         goal_contract=inputs.goal_contract,
         render_runtime_map_preview=True,
+        write_agent_scratchpad=True,
     )
     run_result = _base_run_result(inputs, artifacts, payloads)
     _attach_run_result_sections(inputs, run_result, payloads)
@@ -358,6 +359,7 @@ def write_household_run_public_artifacts(
     agent_scratchpad: dict[str, Any],
     goal_contract: GoalContract | None,
     render_runtime_map_preview: bool,
+    write_agent_scratchpad: bool,
 ) -> None:
     _write_json(artifacts.agent_view, agent_view)
     _write_json(artifacts.runtime_metric_map, runtime_metric_map)
@@ -368,7 +370,8 @@ def write_household_run_public_artifacts(
         )
     _write_json(artifacts.private_evaluation, private_evaluation)
     _write_json(artifacts.advisory_evaluation, advisory_evaluation)
-    _write_json(artifacts.agent_scratchpad, agent_scratchpad)
+    if write_agent_scratchpad:
+        _write_json(artifacts.agent_scratchpad, agent_scratchpad)
     if goal_contract is not None:
         write_goal_contract(artifacts.goal_contract, goal_contract)
 

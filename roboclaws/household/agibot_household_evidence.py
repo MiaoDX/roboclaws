@@ -65,6 +65,9 @@ class AgibotHouseholdEvidence:
         attach_map12_review_assets(self.run_dir, self.adapter.context_payload, result)
         return result
 
+    def runtime_map_prior_counts(self) -> tuple[int, int]:
+        return 0, 0
+
     def real_robot_readiness_payload(
         self,
         trace_events: list[dict[str, Any]],
