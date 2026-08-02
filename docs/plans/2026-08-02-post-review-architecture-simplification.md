@@ -1,6 +1,6 @@
 # Post-Review Architecture Simplification
 
-**Status:** Active
+**Status:** Done
 **Created:** 2026-08-02
 **Last reviewed:** 2026-08-02
 **Current implementation contract:** Execute the five approved cleanup candidates from the
@@ -11,13 +11,13 @@ artifact, provider, simulator, or hardware behavior.
 
 ## Plan Ledger
 
-- Plan status: ACTIVE
+- Plan status: DONE
 - Session scope: post-review-architecture-simplification
 - Parent plan: none
 - Child plans: none
 - Last updated: 2026-08-02
-- Current slice: changed-code review and final verification
-- Next action: run changed-code cleanup, full proof, and human-doc alignment
+- Current slice: complete
+- Next action: none
 - Blocked on: nothing
 - Do not touch from this session: durable eval baseline publication, provider routes, simulator or
   real-robot behavior, public launch/MCP/schema/report/artifact contracts, unrelated plans,
@@ -106,3 +106,21 @@ Surface metrics:
 Mark DONE only when all five checklist items are complete, public serialized behavior is unchanged,
 focused and final gates pass, changed-code review has no accepted finding, docs match HEAD, semantic
 commits exist for each coherent slice, and the active capsule is removed.
+
+## Closeout
+
+Completed 2026-08-02. The five accepted simplifications shipped in semantic commits:
+
+- `567c4198` restores session-live environment state across server startup failures.
+- `085d2764` gives MolmoSpaces bundle authoring its concrete backend.
+- `92362075` consolidates direct and MCP household run artifact ownership.
+- `c44534be` consumes eval-harness overrides without the argv registry round trip.
+- `e8e13d15` retires the legacy cleanup scratchpad filename.
+- `f150052c` closes changed-code review findings for parser errors, scratchpad byte preservation,
+  thread-start cleanup, and normalized Runtime Map prior summary parity.
+
+Final proof passed: exact stale-surface searches, focused unit and contract suites, full-repo Ruff
+and format checks, the architecture import graph (528 modules, 1652 edges, no violations), the
+complete standalone test suite, and `just agent::verify`. Human documentation required no update
+because public commands, schemas, serialized keys, reports, artifact paths, and runtime behavior
+remain unchanged. No live provider, simulator, physical robot, baseline, or catalog route ran.
