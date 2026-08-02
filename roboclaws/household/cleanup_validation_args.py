@@ -144,7 +144,7 @@ def _add_robot_camera_checker_args(parser: argparse.ArgumentParser) -> None:
     )
 
 
-def _reject_legacy_robot_view_camera_control_flag(
+def reject_legacy_robot_view_camera_control_flag(
     parser: argparse.ArgumentParser,
     args: argparse.Namespace,
 ) -> None:
@@ -170,5 +170,5 @@ def build_parser() -> argparse.ArgumentParser:
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = build_parser()
     args = parser.parse_args(argv)
-    _reject_legacy_robot_view_camera_control_flag(parser, args)
+    reject_legacy_robot_view_camera_control_flag(parser, args)
     return args

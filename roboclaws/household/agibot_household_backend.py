@@ -46,6 +46,9 @@ class AgibotHouseholdBackendSession:
     def supports_robot_views(self) -> bool:
         return False
 
+    def requested_generated_mess_count(self) -> int:
+        return 0
+
     def close(self) -> None:
         return None
 
@@ -124,6 +127,14 @@ class AgibotHouseholdBackend(AgibotHouseholdProjection, AgibotHouseholdEvidence)
 
     def internal_fixture_id_for_public_reference(self, fixture_id: str | None) -> str | None:
         return fixture_id
+
+    def planner_scene(self) -> dict[str, Any]:
+        return {
+            "schema": "planner_cleanup_proof_scene_v1",
+            "available": False,
+            "scene_xml": "",
+            "backend": "",
+        }
 
     def metric_map(self) -> dict[str, Any]:
         metric_map = dict(self.adapter.metric_map())

@@ -5,17 +5,18 @@
 - Task control plane: current Codex root goal
 - Project-status writer: current Codex root goal
 - Latest user intent: execute the approved typed backend seam via `intuitive-flow`
-- Current slice: internalize five runtime-only Protocols and replace two cross-package private
-  imports
+- Current slice: changed-code review and final broader verification
 - Blocker fingerprint: none
-- Last proven evidence: slice 1 has 48 focused unit/contract tests passing; Ruff, format, and diff
-  hygiene pass; architecture graph has 528 modules, 1,653 edges, zero SCCs, zero bidirectional
+- Last proven evidence: full household unit/contract, cleanup checker, and architecture graph tests
+  pass with only one existing Pillow deprecation warning; Ruff, format, quality ratchet, diff hygiene,
+  and runtime architecture graph pass at 528 modules, 1,653 edges, zero SCCs, zero bidirectional
   package pairs, and zero policy violations
-- Completed slice batch: canonical `HouseholdBackendPort` and typed runtime evidence added; adapter
-  is private; planner/navigation/runtime/artifact callers no longer reach concrete adapter state
-- Next slice: protocol internalization and cross-package private-import cleanup
-- Next proof: focused owner/caller tests, stale-reference searches, Ruff, format, architecture graph,
-  then broader standalone household proof
+- Completed slice batch: typed backend seam complete; five single-implementation Protocols removed in
+  favor of concrete type-only annotations; two cross-package private imports replaced by public
+  owner APIs; runtime graph now excludes non-executing `TYPE_CHECKING` imports with regression proof
+- Next slice: changed-code review, broader repo proof, and final documentation alignment
+- Next proof: changed-code review over `a9caee2f..HEAD`, then `just agent::verify` or the documented
+  equivalent broad deterministic gate
 - Stop condition: canonical checklist complete with no adapter escape hatch and all required proof
   green; stop earlier for a public-contract change or unavailable external proof
 - No-touch scope: public launch/MCP/schema/artifact/provider contracts, simulator behavior, Agibot

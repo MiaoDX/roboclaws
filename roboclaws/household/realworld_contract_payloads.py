@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import copy
-from collections.abc import Callable, Collection, Iterable, Mapping
-from typing import Any, Protocol
+from collections.abc import Callable, Collection
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from roboclaws.household.household_runtime_contract import HouseholdRuntimeContract
 
 from roboclaws.household import (
     agent_view as agent_view_module,
@@ -22,56 +25,8 @@ from roboclaws.mcp.profiles import (
 )
 
 
-class RealWorldPayloadContract(Protocol):
-    perception_mode: str
-    sanitize_world_labels: bool
-    visible_detection_exposure_policy: str
-    public_acceptance_config: dict[str, Any]
-    _detections_by_handle: Mapping[str, dict[str, Any]]
-    _fixtures: dict[str, dict[str, Any]]
-    _generated_inspection_waypoints: Mapping[str, dict[str, Any]]
-    _held_handle: str
-    _raw_fpv_observations: list[dict[str, Any]]
-    _camera_model_policy_events: Iterable[dict[str, Any]]
-    _model_declared_observations: Iterable[dict[str, Any]]
-    _inspection_observations: list[dict[str, Any]]
-    _current_waypoint_id: str
-    _object_lifecycle: Mapping[str, dict[str, Any]]
-    _observed_waypoint_ids: Collection[str]
-    _public_rooms: Iterable[dict[str, Any]]
-    _public_waypoints: Iterable[dict[str, Any]]
-    _runtime_map_priors: Iterable[dict[str, Any]]
-    _runtime_map_room_priors: Iterable[dict[str, Any]]
-    _runtime_prior_digital_twin_capabilities: dict[str, Any]
-
-    def metric_map(self) -> dict[str, Any]: ...
-    def static_fixture_projection(self) -> dict[str, Any]: ...
-    def cleanup_worklist_payload(
-        self,
-        *,
-        static_fixture_projection: dict[str, Any] | None = None,
-    ) -> dict[str, Any]: ...
-    def _visual_evidence_for_handle(self, handle: str) -> dict[str, Any]: ...
-    def internal_fixture_id_for_public_reference(self, fixture_id: str) -> str | None: ...
-    def _public_navigation_waypoints(self) -> list[dict[str, Any]]: ...
-    def _public_fixture_reference_payload(self, value: Any) -> Any: ...
-    def _agent_visible_detection_payload(self, detection: dict[str, Any]) -> dict[str, Any]: ...
-    def public_tool_names(self) -> list[str]: ...
-    def runtime_metric_map_payload(
-        self,
-        *,
-        metric_map: dict[str, Any] | None = None,
-        static_fixture_projection: dict[str, Any] | None = None,
-        cleanup_worklist: dict[str, Any] | None = None,
-    ) -> dict[str, Any]: ...
-    def camera_model_policy_payload(self) -> dict[str, Any]: ...
-    def model_declared_observations_payload(self) -> dict[str, Any]: ...
-    def policy_view_payload(self) -> dict[str, Any]: ...
-    def _camera_offset(self) -> dict[str, float]: ...
-
-
 def runtime_metric_map_payload(
-    contract: RealWorldPayloadContract,
+    contract: HouseholdRuntimeContract,
     *,
     metric_map: dict[str, Any] | None = None,
     static_fixture_projection: dict[str, Any] | None = None,
@@ -248,7 +203,7 @@ def runtime_metric_map_payload(
 
 
 def agent_view_payload(
-    contract: RealWorldPayloadContract,
+    contract: HouseholdRuntimeContract,
     *,
     realworld_contract: str,
     visible_object_detections_mode: str,
@@ -301,7 +256,7 @@ def agent_view_payload(
 
 
 def agent_visible_detection_payload(
-    contract: RealWorldPayloadContract,
+    contract: HouseholdRuntimeContract,
     detection: dict[str, Any],
     *,
     sanitized_visible_object_detections_provenance: str,
@@ -391,7 +346,7 @@ def policy_view_payload(
 
 
 def camera_model_policy_payload(
-    contract: RealWorldPayloadContract,
+    contract: HouseholdRuntimeContract,
     *,
     camera_model_policy_schema: str,
     camera_model_policy_mode: str,
@@ -445,7 +400,7 @@ def camera_model_policy_payload(
 
 
 def model_declared_observations_payload(
-    contract: RealWorldPayloadContract,
+    contract: HouseholdRuntimeContract,
     *,
     model_declared_observations_schema: str,
 ) -> dict[str, Any]:
@@ -471,7 +426,7 @@ def model_declared_observations_payload(
 
 
 def record_raw_fpv_observation(
-    contract: RealWorldPayloadContract,
+    contract: HouseholdRuntimeContract,
     waypoint: dict[str, Any],
     *,
     perception_mode: str,
@@ -497,7 +452,7 @@ def record_raw_fpv_observation(
 
 
 def record_inspection_observation(
-    contract: RealWorldPayloadContract,
+    contract: HouseholdRuntimeContract,
     response: dict[str, Any],
     *,
     detections: list[dict[str, Any]],
@@ -542,7 +497,7 @@ def record_inspection_observation(
 
 
 def cleanup_worklist_payload(
-    contract: RealWorldPayloadContract,
+    contract: HouseholdRuntimeContract,
     *,
     static_fixture_projection: dict[str, Any] | None = None,
     cleanup_worklist_schema: str,

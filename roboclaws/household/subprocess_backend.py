@@ -43,8 +43,6 @@ WORKER_TIMEOUTS_S = {
 WORKER_MODULE = "roboclaws.backends.molmospaces.worker"
 PERSISTENT_WORKER_DISABLED_VALUES = {"0", "false", "no", "off"}
 
-_parse_last_json_object = parse_last_json_object
-
 
 class MolmoSpacesSubprocessBackend:
     """Backend wrapper for the uv-managed MolmoSpaces runtime."""

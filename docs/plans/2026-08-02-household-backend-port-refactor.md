@@ -16,10 +16,9 @@ and observable household behavior remain unchanged. Internal compatibility facad
 - Parent plan: none
 - Child plans: none
 - Last updated: 2026-08-02
-- Current slice: Internalize redundant runtime-only Protocols and replace the two cross-package
-  private imports.
-- Next action: Implement slice 2, run focused and broad household proof, then complete changed-code
-  review and documentation alignment.
+- Current slice: Run changed-code review over the complete implementation range and repair accepted
+  findings.
+- Next action: Complete changed-code review, broader repo proof, and final documentation alignment.
 - Blocked on: nothing
 - Do not touch from this session: public launch/tool/schema/artifact contracts, live provider routes,
   simulator behavior, real-robot movement, unrelated eval work, `TODOS.md`, and `THOUGHTS.md`.
@@ -71,10 +70,10 @@ Accepted cleanup checklist:
 - [x] Migrate planner scene/binding, location-relation, capability, snapshot, robot-view, runtime
   evidence, and lifecycle callers away from raw adapter access and capability guessing.
 - [x] Delete the raw `.backend` escape hatch and prove no runtime caller reads adapter-private state.
-- [ ] Internalize or remove `RealWorldPayloadContract`, `RuntimeMapTargetContract`,
+- [x] Internalize or remove `RealWorldPayloadContract`, `RuntimeMapTargetContract`,
   `VisualCandidateDeclarationContract`, `DoneReadinessContract`, and `ToolResponseContract` where
   they only describe the sole `HouseholdRuntimeContract` implementation.
-- [ ] Replace `_parse_last_json_object` and
+- [x] Replace `_parse_last_json_object` and
   `_reject_legacy_robot_view_camera_control_flag` cross-package imports with public owner APIs.
 - [ ] Preserve serialized outputs and public launch/MCP/schema/artifact/provider behavior exactly.
 

@@ -1,20 +1,16 @@
 from __future__ import annotations
 
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from roboclaws.household.household_runtime_contract import HouseholdRuntimeContract
 
 from roboclaws.household import realworld_runtime_map_targets
 from roboclaws.household.manipulation_contract import API_SEMANTIC_PROVENANCE
 
 
-class ToolResponseContract(Protocol):
-    _held_handle: str | None
-
-    def _ok(self, tool: str, **payload: Any) -> dict[str, Any]: ...
-    def _error(self, tool: str, error_reason: str, **payload: Any) -> dict[str, Any]: ...
-
-
 def public_fixture_response_id(
-    contract: ToolResponseContract,
+    contract: HouseholdRuntimeContract,
     internal_fixture_id: str,
     requested_fixture_id: str,
 ) -> str:
@@ -27,7 +23,7 @@ def public_fixture_response_id(
 
 
 def public_manipulation_response(
-    contract: ToolResponseContract,
+    contract: HouseholdRuntimeContract,
     tool: str,
     handle: str,
     response: dict[str, Any],
@@ -66,7 +62,7 @@ def public_manipulation_response(
 
 
 def public_fixture_response(
-    contract: ToolResponseContract,
+    contract: HouseholdRuntimeContract,
     tool: str,
     fixture_id: str,
     response: dict[str, Any],
@@ -92,7 +88,7 @@ def public_fixture_response(
 
 
 def public_error_from_private(
-    contract: ToolResponseContract,
+    contract: HouseholdRuntimeContract,
     tool: str,
     handle: str,
     response: dict[str, Any],
@@ -105,7 +101,7 @@ def public_error_from_private(
 
 
 def semantic_order_error(
-    contract: ToolResponseContract,
+    contract: HouseholdRuntimeContract,
     tool: str,
     *,
     required_tool: str,

@@ -121,7 +121,7 @@ class _PortPoseRecordingBackend(_PoseRecordingBackend):
         }
 
 
-class _RelativePoseBackend(_PoseRecordingBackend):
+class _RelativePoseBackend(_PortPoseRecordingBackend):
     def __init__(self, scenario: CleanupScenario) -> None:
         super().__init__(scenario)
         self.relative_pose_calls: list[dict[str, float]] = []
