@@ -42,6 +42,37 @@ def test_session_live_eval_blocks_when_provider_not_ready(tmp_path: Path) -> Non
     assert payload["aggregate"]["blocked"] == 1
 
 
+def test_session_live_restores_environment_when_server_startup_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sentinel = "ROBOCLAWS_SESSION_LIVE_ENV_SENTINEL"
+    monkeypatch.setenv(sentinel, "original")
+
+    def fail_start(_root: Path) -> ThreadingHTTPServer:
+        raise RuntimeError("server startup failed")
+
+    with (
+        patch("roboclaws.evals.session_live.importlib.util.find_spec", return_value=object()),
+        pytest.raises(RuntimeError, match="server startup failed"),
+    ):
+        run_session_live_eval(
+            output_root=tmp_path,
+            stamp="startup-failure",
+            provider_profile="kimi-openai-chat",
+            live_execution="run",
+            env={
+                "KIMI_API_KEY": "key",
+                "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
+                sentinel: "temporary",
+            },
+            start_server=fail_start,
+        )
+
+    assert os.environ[sentinel] == "original"
+    assert os.environ.get("ROBOCLAWS_OPERATOR_CONSOLE_OUTPUT_ROOT") is None
+
+
 def test_session_live_parent_provider_failure_preempts_steer_grading(tmp_path: Path) -> None:
     run_dir = tmp_path / "parent" / "timestamp" / "seed-7"
     run_dir.mkdir(parents=True)

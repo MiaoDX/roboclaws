@@ -15,15 +15,15 @@ Execute the five approved architecture cleanup candidates without changing publi
 ## Current State
 
 - Latest user intent: execute all approved candidates via intuitive-flow.
-- Current slice: session-live environment restoration.
-- Last proof: discovery materiality gate accepted all five candidates; architecture import graph
-  passed at 528 modules, 1,653 edges, zero SCCs, zero bidirectional package pairs, and zero policy
-  violations.
+- Current slice: MolmoSpaces scene-bundle backend ownership.
+- Last proof: session-live and operator-console focused tests passed (26 tests); startup failure now
+  restores all temporary process-environment changes.
+- Completed slices: session-live environment restoration.
 
 ## Next Action
 
-Add a startup-failure regression test, move server startup inside the cleanup boundary, and run the
-focused session-live/operator-console tests.
+Replace the scene-bundle generator's generic household session/private backend access with its
+concrete MolmoSpaces authoring owner, then run its contract tests.
 
 ## Stop Condition
 
