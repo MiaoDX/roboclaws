@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
+from roboclaws.household.backend import ApiSemanticCleanupBackend
 from roboclaws.household.cleanup_primitive_evidence import (
     cleanup_primitive_evidence_from_substeps,
     validate_cleanup_primitive_evidence,
@@ -25,7 +26,8 @@ from roboclaws.household.semantic_timeline import semantic_substeps
 
 def test_planner_primitive_adapter_makes_shared_loop_strict_ready() -> None:
     scenario = build_cleanup_scenario(seed=7)
-    base_contract = HouseholdBackendSession(scenario)
+    backend = ApiSemanticCleanupBackend(scenario)
+    base_contract = HouseholdBackendSession(scenario, backend=backend)
     executor_calls: list[CleanupPrimitiveRequest] = []
     contract = PlannerBackedCleanupContractAdapter(
         base_contract,
@@ -83,7 +85,8 @@ def test_planner_primitive_adapter_makes_shared_loop_strict_ready() -> None:
 
 def test_planner_primitive_adapter_fails_closed_when_executor_blocks() -> None:
     scenario = build_cleanup_scenario(seed=7)
-    base_contract = HouseholdBackendSession(scenario)
+    backend = ApiSemanticCleanupBackend(scenario)
+    base_contract = HouseholdBackendSession(scenario, backend=backend)
     executor_calls: list[CleanupPrimitiveRequest] = []
     contract = PlannerBackedCleanupContractAdapter(
         base_contract,
@@ -103,7 +106,7 @@ def test_planner_primitive_adapter_fails_closed_when_executor_blocks() -> None:
     assert result.completed_objects == 0
     assert result.failed_objects[0]["failed_tool"] == "navigate_to_object"
     assert [item.tool for item in executor_calls] == ["navigate_to_object"]
-    assert base_contract.backend.tool_event_counts == Counter()
+    assert backend.tool_event_counts == Counter()
 
     substeps = semantic_substeps(trace_events, receptacles)
     evidence = cleanup_primitive_evidence_from_substeps(substeps)
@@ -115,7 +118,8 @@ def test_planner_primitive_adapter_fails_closed_when_executor_blocks() -> None:
 
 def test_planner_primitive_adapter_requires_object_context_before_target_steps() -> None:
     scenario = build_cleanup_scenario(seed=7)
-    base_contract = HouseholdBackendSession(scenario)
+    backend = ApiSemanticCleanupBackend(scenario)
+    base_contract = HouseholdBackendSession(scenario, backend=backend)
     executor_calls: list[CleanupPrimitiveRequest] = []
     contract = PlannerBackedCleanupContractAdapter(
         base_contract,
@@ -128,7 +132,7 @@ def test_planner_primitive_adapter_requires_object_context_before_target_steps()
     assert response["ok"] is False
     assert response["error_reason"] == "planner_primitive_missing_object_context"
     assert executor_calls == []
-    assert base_contract.backend.tool_event_counts == Counter()
+    assert backend.tool_event_counts == Counter()
 
 
 def test_default_cleanup_contract_remains_api_semantic_without_executor() -> None:

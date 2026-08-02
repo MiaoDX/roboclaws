@@ -46,22 +46,14 @@ def observed_handle_planner_binding(
             }
         )
     backend_binding: dict[str, Any] = {}
-    backend = getattr(contract, "backend", None)
-    if internal_object_id and backend is not None and hasattr(backend, "planner_task_binding"):
-        backend_binding = dict(backend.planner_task_binding(internal_object_id, target_id))
+    if internal_object_id:
+        backend_binding = dict(contract.backend_planner_task_binding(internal_object_id, target_id))
         if backend_binding.get("ok") is not True:
             blockers.extend(_backend_blockers(backend_binding))
-    elif internal_object_id:
-        blockers.append(
-            {
-                "code": "planner_binding_backend_unavailable",
-                "message": "Backend does not expose planner task binding names.",
-            }
-        )
     source_id = (
         str(source_receptacle_id or "")
         or str(backend_binding.get("source_receptacle_id") or "")
-        or _current_location(getattr(contract, "backend", None), internal_object_id or "")
+        or contract.backend_current_location(internal_object_id or "")
     )
     planner_object_id = str(backend_binding.get("pickup_obj_name") or internal_object_id or "")
     planner_target_id = str(backend_binding.get("place_receptacle_name") or target_id)
@@ -191,12 +183,6 @@ def _internal_object_id(contract: Any, observed_handle: str) -> str | None:
     if callable(resolver):
         return resolver(observed_handle)
     return observed_handle or None
-
-
-def _current_location(backend: Any, object_id: str) -> str:
-    if not backend or not object_id or not hasattr(backend, "object_locations"):
-        return ""
-    return str(backend.object_locations().get(object_id) or "")
 
 
 def _planner_probe_args(requested: Mapping[str, Any]) -> dict[str, str]:

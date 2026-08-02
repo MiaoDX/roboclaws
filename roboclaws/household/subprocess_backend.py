@@ -11,6 +11,7 @@ from typing import Any
 
 from roboclaws.core.json_sources import read_json_object
 from roboclaws.household.camera_control import load_camera_control_request
+from roboclaws.household.household_backend_port import HouseholdRuntimeEvidence
 from roboclaws.household.planner_observed_binding import (
     backend_planner_task_binding_from_state,
 )
@@ -112,6 +113,73 @@ class MolmoSpacesSubprocessBackend:
     def object_locations(self) -> dict[str, str]:
         result = self._run_worker("locations")
         return {str(key): str(value) for key, value in result["final_locations"].items()}
+
+    def backend_name(self) -> str:
+        return MOLMOSPACES_SUBPROCESS_BACKEND
+
+    def supports_visual_snapshots(self) -> bool:
+        return True
+
+    def supports_robot_views(self) -> bool:
+        return True
+
+    def requested_mess_count(self) -> int | None:
+        return self.requested_generated_mess_count
+
+    def location_relation(self, object_id: str) -> str:
+        return "on"
+
+    def scene_index_source(self) -> str:
+        return ""
+
+    def scene_index_fixture_pose(self, fixture_id: str) -> list[float] | None:
+        return None
+
+    def planner_scene(self) -> dict[str, Any]:
+        return {
+            "schema": "planner_cleanup_proof_scene_v1",
+            "available": bool(self.scene_xml),
+            "scene_xml": str(self.scene_xml or ""),
+            "backend": self.backend_name(),
+            **(
+                {
+                    "evidence_note": (
+                        "Real MolmoSpaces cleanup scene used to sample exact planner proof tasks."
+                    )
+                }
+                if self.scene_xml
+                else {}
+            ),
+        }
+
+    def runtime_evidence(self) -> HouseholdRuntimeEvidence:
+        return {
+            "runtime": self.runtime,
+            "model_stats": self.model_stats,
+            "scene_xml": self.scene_xml,
+            "metadata_object_count": self.metadata_object_count,
+            "requested_generated_mess_count": self.requested_generated_mess_count,
+            "generated_mess_count": self.generated_mess_count,
+            "python_executable": str(self.python_executable),
+            "scenario_source": "",
+            "scene_usd": "",
+            "scene_index": None,
+            "object_index": {},
+            "receptacle_index": {},
+            "scene_index_diagnostics": {},
+            "scene_binding_diagnostics": {},
+            "segmentation": {},
+            "scene_load": {},
+            "mapping_gaps": [],
+            "snapshot_artifacts": [],
+            "semantic_pose_state": {},
+            "semantic_pose_view_capture": {},
+            "robot": self.robot,
+            "robot_import": {},
+            "mess_placement_diagnostics": self.mess_placement_diagnostics,
+            "placement_diagnostics": self.placement_diagnostics,
+            "scene_index_artifact": {},
+        }
 
     @property
     def mess_placement_diagnostics(self) -> list[dict[str, Any]]:

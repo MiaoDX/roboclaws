@@ -38,11 +38,8 @@ def record_robot_view_step(
     camera_yaw_offset_deg: float = 0.0,
     camera_pitch_offset_deg: float = 0.0,
 ) -> int:
-    writer = getattr(backend, "write_robot_views", None)
-    if not callable(writer):
-        raise RuntimeError("robot view capture requires backend.write_robot_views")
     label = f"{index:04d}_{label_suffix}"
-    result = writer(
+    result = backend.write_robot_views(
         output_dir / "robot_views",
         label=label,
         focus_object_id=focus_object_id,

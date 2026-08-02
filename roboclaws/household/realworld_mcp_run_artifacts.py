@@ -388,12 +388,9 @@ def _cleanup_policy_trace(inputs: RealWorldMCPDoneArtifactInputs) -> dict[str, A
 
 def _private_evaluation(inputs: RealWorldMCPDoneArtifactInputs) -> dict[str, Any]:
     private_evaluation = inputs.contract.private_evaluation_payload(inputs.done_response["score"])
-    backend = getattr(inputs.base_contract, "backend", None)
-    requested_count = getattr(
-        backend,
-        "requested_generated_mess_count",
-        private_evaluation["generated_mess_count"],
-    )
+    requested_count = inputs.base_contract.requested_generated_mess_count()
+    if requested_count is None:
+        requested_count = private_evaluation["generated_mess_count"]
     private_evaluation["requested_generated_mess_count"] = requested_count
     return private_evaluation
 

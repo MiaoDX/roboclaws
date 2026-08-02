@@ -24,6 +24,7 @@ from roboclaws.household.realworld_visual_candidate_declarations import (
     simulated_declaration_inputs_for_waypoint,
 )
 from roboclaws.household.scenario import build_cleanup_scenario
+from roboclaws.household.subprocess_backend import MOLMOSPACES_SUBPROCESS_BACKEND
 from roboclaws.household.types import (
     CleanupReceptacle,
     CleanupScenario,
@@ -107,6 +108,9 @@ class _FakeVisualBackend(ApiSemanticCleanupBackend):
         super().__init__(*args, **kwargs)
         self.robot_view_camera_offsets: list[dict[str, float]] = []
 
+    def supports_robot_views(self) -> bool:
+        return True
+
     def write_robot_views(
         self,
         output_dir: Path,
@@ -178,13 +182,23 @@ class _FakeVisualBackend(ApiSemanticCleanupBackend):
 
 
 class MolmoSpacesSubprocessBackend(_FakeVisualBackend):
-    backend = "molmospaces_subprocess"
     requested_generated_mess_count = 5
+
+    def backend_name(self) -> str:
+        return MOLMOSPACES_SUBPROCESS_BACKEND
+
+    def requested_mess_count(self) -> int | None:
+        return self.requested_generated_mess_count
 
 
 class IsaacLabSubprocessBackend(_FakeVisualBackend):
-    backend = ISAACLAB_SUBPROCESS_BACKEND
     requested_generated_mess_count = 5
+
+    def backend_name(self) -> str:
+        return ISAACLAB_SUBPROCESS_BACKEND
+
+    def requested_mess_count(self) -> int | None:
+        return self.requested_generated_mess_count
 
     def write_robot_views(
         self,

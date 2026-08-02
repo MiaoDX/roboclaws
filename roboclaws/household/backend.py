@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from collections import Counter
+from pathlib import Path
 from typing import Any
 
+from roboclaws.core.backend_catalog import SYNTHETIC_CLEANUP_IMPLEMENTATION_BACKEND
+from roboclaws.household.household_backend_port import HouseholdRuntimeEvidence
 from roboclaws.household.manipulation_contract import (
     API_SEMANTIC_PROVENANCE,
 )
@@ -13,6 +16,7 @@ from roboclaws.household.semantic_acceptability import (
 from roboclaws.household.types import CleanupScenario
 
 HELD_LOCATION_ID = "held_by_agent"
+SYNTHETIC_BACKEND = SYNTHETIC_CLEANUP_IMPLEMENTATION_BACKEND
 
 
 class ApiSemanticCleanupBackend:
@@ -20,6 +24,8 @@ class ApiSemanticCleanupBackend:
 
     def __init__(self, scenario: CleanupScenario):
         self.scenario = scenario
+        self.scenario_source = ""
+        self.receptacle_index: dict[str, Any] = {}
         self._locations = scenario.object_locations()
         self._known_objects = {obj.object_id: obj for obj in scenario.objects}
         self._known_receptacles = {item.receptacle_id: item for item in scenario.receptacles}
@@ -37,6 +43,98 @@ class ApiSemanticCleanupBackend:
     @property
     def current_receptacle_id(self) -> str:
         return self._current_receptacle_id
+
+    def backend_name(self) -> str:
+        return SYNTHETIC_BACKEND
+
+    def supports_visual_snapshots(self) -> bool:
+        return False
+
+    def supports_robot_views(self) -> bool:
+        return False
+
+    def requested_mess_count(self) -> int | None:
+        return None
+
+    def location_relation(self, object_id: str) -> str:
+        return str(self._containment.get(object_id, {}).get("location_relation") or "on")
+
+    def scene_index_source(self) -> str:
+        return self.scenario_source
+
+    def scene_index_fixture_pose(self, fixture_id: str) -> list[float] | None:
+        entry = self.receptacle_index.get(fixture_id)
+        if not isinstance(entry, dict):
+            return None
+        for candidate in (
+            (entry.get("support_pose") or {}).get("position"),
+            (entry.get("usd_world_bounds") or {}).get("center"),
+        ):
+            if isinstance(candidate, (list, tuple)) and len(candidate) >= 3:
+                try:
+                    return [float(candidate[0]), float(candidate[1]), float(candidate[2])]
+                except (TypeError, ValueError):
+                    pass
+        return None
+
+    def planner_scene(self) -> dict[str, Any]:
+        return {
+            "schema": "planner_cleanup_proof_scene_v1",
+            "available": False,
+            "scene_xml": "",
+            "backend": self.backend_name(),
+        }
+
+    def write_snapshot(self, output_path: Path, *, title: str) -> None:
+        return None
+
+    def write_robot_views(
+        self,
+        output_dir: Path,
+        *,
+        label: str,
+        focus_object_id: str | None = None,
+        focus_receptacle_id: str | None = None,
+        camera_yaw_offset_deg: float = 0.0,
+        camera_pitch_offset_deg: float = 0.0,
+    ) -> dict[str, Any]:
+        return {
+            "ok": False,
+            "status": "blocked_capability",
+            "error_reason": "robot_views_unavailable",
+        }
+
+    def runtime_evidence(self) -> HouseholdRuntimeEvidence:
+        return {
+            "python_executable": "",
+            "runtime": {},
+            "model_stats": {},
+            "scene_xml": "",
+            "metadata_object_count": None,
+            "scenario_source": "",
+            "scene_usd": "",
+            "scene_index": None,
+            "object_index": {},
+            "receptacle_index": {},
+            "scene_index_diagnostics": {},
+            "scene_binding_diagnostics": {},
+            "segmentation": {},
+            "scene_load": {},
+            "mapping_gaps": [],
+            "snapshot_artifacts": [],
+            "semantic_pose_state": {},
+            "semantic_pose_view_capture": {},
+            "robot": None,
+            "robot_import": {},
+            "requested_generated_mess_count": None,
+            "generated_mess_count": None,
+            "mess_placement_diagnostics": [],
+            "placement_diagnostics": [],
+            "scene_index_artifact": {},
+        }
+
+    def close(self) -> None:
+        return None
 
     def object_locations(self) -> dict[str, str]:
         return dict(self._locations)
@@ -115,6 +213,24 @@ class ApiSemanticCleanupBackend:
     def navigate_to_receptacle(self, receptacle_id: str) -> dict[str, Any]:
         self._count("navigate_to_receptacle")
         return self._navigate_to_receptacle("navigate_to_receptacle", receptacle_id)
+
+    def navigate_to_waypoint(self, *, waypoint: dict[str, Any]) -> dict[str, Any]:
+        fixture_ids = waypoint.get("fixture_ids") or []
+        fixture_id = str(fixture_ids[0]) if fixture_ids else ""
+        if not fixture_id:
+            return {
+                "ok": True,
+                "tool": "navigate_to_waypoint",
+                "status": "ok",
+                "state_mutation": "agent_pose_semantic",
+                "backend_pose_mutation_available": False,
+            }
+        navigation = dict(self.navigate_to_receptacle(receptacle_id=fixture_id))
+        navigation["tool"] = "navigate_to_waypoint"
+        navigation["waypoint_id"] = str(waypoint.get("waypoint_id") or "")
+        navigation["fallback_receptacle_id"] = fixture_id
+        navigation["backend_pose_mutation_available"] = True
+        return navigation
 
     def navigate_to_relative_pose(
         self,

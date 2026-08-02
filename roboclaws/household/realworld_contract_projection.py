@@ -8,7 +8,6 @@ from roboclaws.household.realworld_contract_fixture_projection import (
     _driveable_ways,
     _polygon_center_world,
     _room_id,
-    _vec3,
 )
 from roboclaws.household.types import CleanupScenario
 from roboclaws.maps.bundle import metric_map_bundle_metadata
@@ -331,12 +330,12 @@ def _attach_runtime_fixture_ids_to_rooms(
 
 def _scene_index_public_fixture_overlay(
     *,
-    backend: Any,
+    session: Any,
     scenario: CleanupScenario,
     existing_fixtures: dict[str, dict[str, Any]],
     fallback_waypoint_id: str,
 ) -> dict[str, dict[str, Any]]:
-    if str(getattr(backend, "scenario_source", "")) != "isaac_scene_index":
+    if session.scene_index_source() != "isaac_scene_index":
         return {}
 
     overlay: dict[str, dict[str, Any]] = {}
@@ -503,27 +502,6 @@ def _room_category_from_label(room_label: str, room_id: str = "") -> str:
     if any(term in text for term in ("bath", "toilet", "卫生间")):
         return "bathroom"
     return "room_area"
-
-
-def _scene_index_fixture_pose(backend: Any, fixture_id: str) -> list[float] | None:
-    receptacle_index = getattr(backend, "receptacle_index", {})
-    if not isinstance(receptacle_index, dict):
-        return None
-    entry = receptacle_index.get(fixture_id)
-    if not isinstance(entry, dict):
-        return None
-    support_pose = entry.get("support_pose")
-    if isinstance(support_pose, dict):
-        position = support_pose.get("position")
-        pose = _vec3(position)
-        if pose is not None:
-            return pose
-    bounds = entry.get("usd_world_bounds")
-    if isinstance(bounds, dict):
-        pose = _vec3(bounds.get("center"))
-        if pose is not None:
-            return pose
-    return None
 
 
 def _room_outline_by_id(

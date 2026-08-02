@@ -5,16 +5,17 @@
 - Task control plane: current Codex root goal
 - Project-status writer: current Codex root goal
 - Latest user intent: execute the approved typed backend seam via `intuitive-flow`
-- Current slice: define `HouseholdBackendPort`, privatize the adapter, and migrate the direct
-  planner/navigation/runtime leak callers
+- Current slice: internalize five runtime-only Protocols and replace two cross-package private
+  imports
 - Blocker fingerprint: none
-- Last proven evidence: pre-change architecture graph has 527 modules, 1,647 edges, zero SCCs,
-  zero bidirectional package pairs, and zero policy violations; worktree was clean at entry
-- Completed slice batch: architecture discovery and engineering review complete; direction A
-  selected as phased delivery of the full clean target
+- Last proven evidence: slice 1 has 48 focused unit/contract tests passing; Ruff, format, and diff
+  hygiene pass; architecture graph has 528 modules, 1,653 edges, zero SCCs, zero bidirectional
+  package pairs, and zero policy violations
+- Completed slice batch: canonical `HouseholdBackendPort` and typed runtime evidence added; adapter
+  is private; planner/navigation/runtime/artifact callers no longer reach concrete adapter state
 - Next slice: protocol internalization and cross-package private-import cleanup
-- Next proof: focused backend/planner/navigation tests, Ruff, format check, stale-reference search,
-  and architecture graph
+- Next proof: focused owner/caller tests, stale-reference searches, Ruff, format, architecture graph,
+  then broader standalone household proof
 - Stop condition: canonical checklist complete with no adapter escape hatch and all required proof
   green; stop earlier for a public-contract change or unavailable external proof
 - No-touch scope: public launch/MCP/schema/artifact/provider contracts, simulator behavior, Agibot

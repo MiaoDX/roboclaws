@@ -8,6 +8,7 @@ from typing import Any
 from roboclaws.core.json_sources import read_json_object
 from roboclaws.household.b1_nurec_scene import prepare_b1_nurec_scene_usd
 from roboclaws.household.camera_control import load_camera_control_request
+from roboclaws.household.household_backend_port import HouseholdRuntimeEvidence
 from roboclaws.household.subprocess_backend import _scenario_from_worker_payload
 from roboclaws.household.worker_runner import run_json_worker_once, worker_env, worker_timeout_s
 
@@ -135,6 +136,94 @@ class IsaacLabSubprocessBackend:
     def object_locations(self) -> dict[str, str]:
         result = self._run_worker("locations")
         return {str(key): str(value) for key, value in result["final_locations"].items()}
+
+    def backend_name(self) -> str:
+        return ISAACLAB_SUBPROCESS_BACKEND
+
+    def supports_visual_snapshots(self) -> bool:
+        return True
+
+    def supports_robot_views(self) -> bool:
+        return True
+
+    def requested_mess_count(self) -> int | None:
+        return self.requested_generated_mess_count
+
+    def location_relation(self, object_id: str) -> str:
+        return "on"
+
+    def scene_index_source(self) -> str:
+        return self.scenario_source
+
+    def scene_index_fixture_pose(self, fixture_id: str) -> list[float] | None:
+        entry = self.receptacle_index.get(fixture_id)
+        if not isinstance(entry, dict):
+            return None
+        for candidate in (
+            (entry.get("support_pose") or {}).get("position"),
+            (entry.get("usd_world_bounds") or {}).get("center"),
+        ):
+            if isinstance(candidate, (list, tuple)) and len(candidate) >= 3:
+                try:
+                    return [float(candidate[0]), float(candidate[1]), float(candidate[2])]
+                except (TypeError, ValueError):
+                    pass
+        return None
+
+    def planner_scene(self) -> dict[str, Any]:
+        return {
+            "schema": "planner_cleanup_proof_scene_v1",
+            "available": False,
+            "scene_xml": "",
+            "backend": self.backend_name(),
+        }
+
+    def planner_task_binding(self, object_id: str, receptacle_id: str) -> dict[str, Any]:
+        return {
+            "schema": "backend_planner_task_binding_v1",
+            "ok": False,
+            "status": "blocked_capability",
+            "object_id": object_id,
+            "target_receptacle_id": receptacle_id,
+            "blockers": [
+                {
+                    "code": "planner_binding_backend_unavailable",
+                    "message": "Backend does not expose planner task binding names.",
+                }
+            ],
+        }
+
+    def runtime_evidence(self) -> HouseholdRuntimeEvidence:
+        return {
+            "python_executable": str(self.python_executable),
+            "runtime": self.runtime,
+            "model_stats": {},
+            "scene_xml": "",
+            "metadata_object_count": None,
+            "scenario_source": self.scenario_source,
+            "scene_usd": self.scene_usd,
+            "scene_index": self.scene_index,
+            "object_index": self.object_index,
+            "receptacle_index": self.receptacle_index,
+            "scene_index_diagnostics": self.scene_index_diagnostics,
+            "scene_binding_diagnostics": self.scene_binding_diagnostics,
+            "segmentation": self.segmentation,
+            "scene_load": self.scene_load,
+            "mapping_gaps": self.current_mapping_gaps,
+            "snapshot_artifacts": self.snapshot_artifacts,
+            "semantic_pose_state": self.semantic_pose_state,
+            "semantic_pose_view_capture": self.semantic_pose_view_capture,
+            "robot": self.robot,
+            "robot_import": self.robot_import,
+            "requested_generated_mess_count": self.requested_generated_mess_count,
+            "generated_mess_count": self.generated_mess_count,
+            "mess_placement_diagnostics": self.mess_placement_diagnostics,
+            "placement_diagnostics": self.placement_diagnostics,
+            "scene_index_artifact": self.scene_index_artifact_payload(),
+        }
+
+    def close(self) -> None:
+        return None
 
     @property
     def mess_placement_diagnostics(self) -> list[dict[str, Any]]:

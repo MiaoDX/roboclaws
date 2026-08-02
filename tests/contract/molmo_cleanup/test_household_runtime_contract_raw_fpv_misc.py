@@ -7,6 +7,7 @@ from roboclaws.household import (
     realworld_done_readiness,
     realworld_visual_candidate_declarations,
 )
+from roboclaws.household.backend import ApiSemanticCleanupBackend
 from roboclaws.household.household_backend_contract import HouseholdBackendSession
 from roboclaws.household.household_runtime_contract import (
     CAMERA_MODEL_POLICY_MODE,
@@ -73,7 +74,8 @@ def test_realworld_raw_fpv_mode_suppresses_structured_detections() -> None:
 
 def test_simulated_raw_fpv_inputs_only_fall_back_for_synthetic_backend(monkeypatch) -> None:
     scenario = build_cleanup_scenario(seed=7)
-    session = HouseholdBackendSession(scenario)
+    backend = ApiSemanticCleanupBackend(scenario)
+    session = HouseholdBackendSession(scenario, backend=backend)
     contract = _contract(session, perception_mode=RAW_FPV_ONLY_MODE)
     target = scenario.objects[0]
     target_location = session.object_locations()[target.object_id]
@@ -98,12 +100,7 @@ def test_simulated_raw_fpv_inputs_only_fall_back_for_synthetic_backend(monkeypat
     assert synthetic_inputs[0]["image_region"]["type"] == "bbox"
     assert "target_fixture_id" not in synthetic_inputs[0]
 
-    monkeypatch.setattr(
-        session.backend,
-        "backend",
-        MOLMOSPACES_SUBPROCESS_BACKEND,
-        raising=False,
-    )
+    monkeypatch.setattr(backend, "backend_name", lambda: MOLMOSPACES_SUBPROCESS_BACKEND)
     real_backend_inputs = (
         realworld_visual_candidate_declarations.simulated_raw_fpv_inputs_for_observation(
             contract,

@@ -16,9 +16,10 @@ and observable household behavior remain unchanged. Internal compatibility facad
 - Parent plan: none
 - Child plans: none
 - Last updated: 2026-08-02
-- Current slice: Define the canonical typed backend port and migrate planner/navigation callers that
-  currently inspect the concrete adapter.
-- Next action: Implement slice 1, run focused contract tests, and checkpoint a semantic commit.
+- Current slice: Internalize redundant runtime-only Protocols and replace the two cross-package
+  private imports.
+- Next action: Implement slice 2, run focused and broad household proof, then complete changed-code
+  review and documentation alignment.
 - Blocked on: nothing
 - Do not touch from this session: public launch/tool/schema/artifact contracts, live provider routes,
   simulator behavior, real-robot movement, unrelated eval work, `TODOS.md`, and `THOUGHTS.md`.
@@ -63,13 +64,13 @@ Accepted severities:
 
 Accepted cleanup checklist:
 
-- [ ] Define one cohesive typed `HouseholdBackendPort` implemented by synthetic, MolmoSpaces, and
+- [x] Define one cohesive typed `HouseholdBackendPort` implemented by synthetic, MolmoSpaces, and
   Isaac Lab adapters (or explicit adapter wrappers at the existing composition root).
-- [ ] Make `HouseholdBackendSession` keep its adapter private and expose only canonical operations
+- [x] Make `HouseholdBackendSession` keep its adapter private and expose only canonical operations
   and typed values needed by household runtime semantics.
-- [ ] Migrate planner scene/binding, location-relation, capability, snapshot, robot-view, runtime
+- [x] Migrate planner scene/binding, location-relation, capability, snapshot, robot-view, runtime
   evidence, and lifecycle callers away from raw adapter access and capability guessing.
-- [ ] Delete the raw `.backend` escape hatch and prove no runtime caller reads adapter-private state.
+- [x] Delete the raw `.backend` escape hatch and prove no runtime caller reads adapter-private state.
 - [ ] Internalize or remove `RealWorldPayloadContract`, `RuntimeMapTargetContract`,
   `VisualCandidateDeclarationContract`, `DoneReadinessContract`, and `ToolResponseContract` where
   they only describe the sole `HouseholdRuntimeContract` implementation.
