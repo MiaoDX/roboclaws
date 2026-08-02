@@ -151,6 +151,7 @@ class MolmoSpacesSubprocessBackend:
         }
 
     def runtime_evidence(self) -> HouseholdRuntimeEvidence:
+        state = self._read_state()
         return {
             "runtime": self.runtime,
             "model_stats": self.model_stats,
@@ -174,8 +175,16 @@ class MolmoSpacesSubprocessBackend:
             "semantic_pose_view_capture": {},
             "robot": self.robot,
             "robot_import": {},
-            "mess_placement_diagnostics": self.mess_placement_diagnostics,
-            "placement_diagnostics": self.placement_diagnostics,
+            "mess_placement_diagnostics": [
+                dict(item)
+                for item in state.get("mess_placement_diagnostics") or []
+                if isinstance(item, dict)
+            ],
+            "placement_diagnostics": [
+                dict(item)
+                for item in state.get("placement_diagnostics") or []
+                if isinstance(item, dict)
+            ],
             "scene_index_artifact": {},
         }
 

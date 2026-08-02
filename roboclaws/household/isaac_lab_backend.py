@@ -194,6 +194,10 @@ class IsaacLabSubprocessBackend:
         }
 
     def runtime_evidence(self) -> HouseholdRuntimeEvidence:
+        state = self._read_state()
+        mapping_gaps = [
+            dict(item) for item in state.get("mapping_gaps") or [] if isinstance(item, dict)
+        ]
         return {
             "python_executable": str(self.python_executable),
             "runtime": self.runtime,
@@ -209,17 +213,17 @@ class IsaacLabSubprocessBackend:
             "scene_binding_diagnostics": self.scene_binding_diagnostics,
             "segmentation": self.segmentation,
             "scene_load": self.scene_load,
-            "mapping_gaps": self.current_mapping_gaps,
+            "mapping_gaps": mapping_gaps,
             "snapshot_artifacts": self.snapshot_artifacts,
-            "semantic_pose_state": self.semantic_pose_state,
-            "semantic_pose_view_capture": self.semantic_pose_view_capture,
+            "semantic_pose_state": _dict_state_value(state, "semantic_pose_state"),
+            "semantic_pose_view_capture": _dict_state_value(state, "semantic_pose_view_capture"),
             "robot": self.robot,
             "robot_import": self.robot_import,
             "requested_generated_mess_count": self.requested_generated_mess_count,
             "generated_mess_count": self.generated_mess_count,
-            "mess_placement_diagnostics": self.mess_placement_diagnostics,
-            "placement_diagnostics": self.placement_diagnostics,
-            "scene_index_artifact": self.scene_index_artifact_payload(),
+            "mess_placement_diagnostics": _dict_state_rows(state, "mess_placement_diagnostics"),
+            "placement_diagnostics": _dict_state_rows(state, "placement_diagnostics"),
+            "scene_index_artifact": self._scene_index_artifact_payload(mapping_gaps),
         }
 
     def close(self) -> None:
@@ -227,31 +231,30 @@ class IsaacLabSubprocessBackend:
 
     @property
     def mess_placement_diagnostics(self) -> list[dict[str, Any]]:
-        raw = self._read_state().get("mess_placement_diagnostics") or []
-        return [dict(item) for item in raw if isinstance(item, dict)]
+        return _dict_state_rows(self._read_state(), "mess_placement_diagnostics")
 
     @property
     def placement_diagnostics(self) -> list[dict[str, Any]]:
-        raw = self._read_state().get("placement_diagnostics") or []
-        return [dict(item) for item in raw if isinstance(item, dict)]
+        return _dict_state_rows(self._read_state(), "placement_diagnostics")
 
     @property
     def semantic_pose_state(self) -> dict[str, Any]:
-        raw = self._read_state().get("semantic_pose_state") or {}
-        return dict(raw) if isinstance(raw, dict) else {}
+        return _dict_state_value(self._read_state(), "semantic_pose_state")
 
     @property
     def current_mapping_gaps(self) -> list[dict[str, Any]]:
-        raw = self._read_state().get("mapping_gaps") or []
-        return [dict(item) for item in raw if isinstance(item, dict)]
+        return _dict_state_rows(self._read_state(), "mapping_gaps")
 
     @property
     def semantic_pose_view_capture(self) -> dict[str, Any]:
-        raw = self._read_state().get("semantic_pose_view_capture") or {}
-        return dict(raw) if isinstance(raw, dict) else {}
+        return _dict_state_value(self._read_state(), "semantic_pose_view_capture")
 
     def scene_index_artifact_payload(self) -> dict[str, Any]:
         """Return report-only USD scene index evidence without private scoring truth."""
+
+        return self._scene_index_artifact_payload(self.current_mapping_gaps)
+
+    def _scene_index_artifact_payload(self, mapping_gaps: list[dict[str, Any]]) -> dict[str, Any]:
 
         return {
             "schema": ISAAC_SCENE_INDEX_ARTIFACT_SCHEMA,
@@ -268,7 +271,7 @@ class IsaacLabSubprocessBackend:
             "scene_index_diagnostics": self.scene_index_diagnostics,
             "scene_binding_diagnostics": self.scene_binding_diagnostics,
             "segmentation": self.segmentation,
-            "mapping_gaps": self.current_mapping_gaps,
+            "mapping_gaps": mapping_gaps,
             "robot": self.robot,
             "robot_import": self.robot_import,
             "requested_generated_mess_count": self.requested_generated_mess_count,
@@ -505,6 +508,15 @@ class IsaacLabSubprocessBackend:
             env=_isaac_worker_env(self.runtime_mode),
             timeout_s=_isaac_worker_timeout_s(command),
         )
+
+
+def _dict_state_value(state: dict[str, Any], key: str) -> dict[str, Any]:
+    value = state.get(key) or {}
+    return dict(value) if isinstance(value, dict) else {}
+
+
+def _dict_state_rows(state: dict[str, Any], key: str) -> list[dict[str, Any]]:
+    return [dict(item) for item in state.get(key) or [] if isinstance(item, dict)]
 
 
 def _extend_isaac_init_args(

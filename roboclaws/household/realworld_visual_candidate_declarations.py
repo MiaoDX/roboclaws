@@ -425,10 +425,8 @@ def simulated_raw_fpv_inputs_for_observation(
 def _uses_synthetic_raw_fpv_declarations(
     contract: HouseholdRuntimeContract,
 ) -> bool:
-    backend_name = getattr(getattr(contract, "contract", None), "backend_name", None)
     return (
-        callable(backend_name)
-        and backend_name() == SYNTHETIC_BACKEND
+        contract.contract.backend_name() == SYNTHETIC_BACKEND
         and contract.visual_grounding_pipeline_id == SIM_VISUAL_GROUNDING_PIPELINE_ID
     )
 

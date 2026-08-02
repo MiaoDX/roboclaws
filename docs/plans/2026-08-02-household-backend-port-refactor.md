@@ -16,9 +16,9 @@ and observable household behavior remain unchanged. Internal compatibility facad
 - Parent plan: none
 - Child plans: none
 - Last updated: 2026-08-02
-- Current slice: Run changed-code review over the complete implementation range and repair accepted
-  findings.
-- Next action: Complete changed-code review, broader repo proof, and final documentation alignment.
+- Current slice: Run the repo-wide deterministic gate and final documentation alignment.
+- Next action: Run `just agent::verify`, align human docs, and close the plan if all gates remain
+  green.
 - Blocked on: nothing
 - Do not touch from this session: public launch/tool/schema/artifact contracts, live provider routes,
   simulator behavior, real-robot movement, unrelated eval work, `TODOS.md`, and `THOUGHTS.md`.

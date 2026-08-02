@@ -457,10 +457,4 @@ def _artifact_payload(
 
 
 def _backend_name(inputs: RealWorldMCPDoneArtifactInputs) -> str:
-    contract_backend_name = getattr(inputs.contract, "backend_name", None)
-    if callable(contract_backend_name):
-        return str(contract_backend_name())
-    session_backend_name = getattr(inputs.base_contract, "backend_name", None)
-    if callable(session_backend_name):
-        return str(session_backend_name())
-    return ""
+    return str(inputs.contract.backend_name())

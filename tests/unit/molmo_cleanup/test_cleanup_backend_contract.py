@@ -12,7 +12,9 @@ from roboclaws.household.household_backend_contract import (
     attach_cleanup_backend_runtime_metadata,
     build_household_backend_session,
 )
+from roboclaws.household.isaac_lab_backend import IsaacLabSubprocessBackend
 from roboclaws.household.scenario import build_cleanup_scenario
+from roboclaws.household.subprocess_backend import MolmoSpacesSubprocessBackend
 
 
 class _FacadeVisualBackend(ApiSemanticCleanupBackend):
@@ -362,3 +364,73 @@ def test_isaac_runtime_metadata_writes_scene_index_artifact(tmp_path: Path) -> N
     assert evidence["agent_facing"] is False
     assert evidence["private_manifest_exposed_to_agent"] is False
     assert run_result["robot_import"] == {"status": "missing_urdf"}
+
+
+def test_molmospaces_runtime_evidence_reads_dynamic_state_once() -> None:
+    backend = MolmoSpacesSubprocessBackend.__new__(MolmoSpacesSubprocessBackend)
+    backend.runtime = {"runtime_mode": "fake"}
+    backend.model_stats = {"objects": 2}
+    backend.scene_xml = "/tmp/scene.xml"
+    backend.metadata_object_count = 2
+    backend.requested_generated_mess_count = 1
+    backend.generated_mess_count = 1
+    backend.python_executable = Path("python")
+    backend.robot = None
+    reads = 0
+
+    def read_state() -> dict[str, Any]:
+        nonlocal reads
+        reads += 1
+        return {
+            "mess_placement_diagnostics": [{"status": "ok"}],
+            "placement_diagnostics": [{"status": "placed"}],
+        }
+
+    backend._read_state = read_state  # type: ignore[method-assign]
+
+    evidence = backend.runtime_evidence()
+
+    assert reads == 1
+    assert evidence["mess_placement_diagnostics"] == [{"status": "ok"}]
+    assert evidence["placement_diagnostics"] == [{"status": "placed"}]
+
+
+def test_isaac_runtime_evidence_reads_dynamic_state_once() -> None:
+    backend = IsaacLabSubprocessBackend.__new__(IsaacLabSubprocessBackend)
+    backend.python_executable = Path("python")
+    backend.runtime = {"runtime_mode": "fake"}
+    backend.runtime_mode = "fake"
+    backend.scenario_source = "isaac_scene_index"
+    backend.scene_usd = "/tmp/scene.usd"
+    backend.scene_index = 3
+    backend.object_index = {"obj": {}}
+    backend.receptacle_index = {"sink": {}}
+    backend.scene_index_diagnostics = {}
+    backend.scene_binding_diagnostics = {}
+    backend.segmentation = {}
+    backend.scene_load = {}
+    backend.snapshot_artifacts = []
+    backend.robot = None
+    backend.robot_import = {}
+    backend.requested_generated_mess_count = 1
+    backend.generated_mess_count = 1
+    reads = 0
+
+    def read_state() -> dict[str, Any]:
+        nonlocal reads
+        reads += 1
+        return {
+            "mapping_gaps": [{"area": "camera_capture"}],
+            "semantic_pose_state": {"status": "ok"},
+            "semantic_pose_view_capture": {"status": "captured"},
+            "mess_placement_diagnostics": [{"status": "ok"}],
+            "placement_diagnostics": [{"status": "placed"}],
+        }
+
+    backend._read_state = read_state  # type: ignore[method-assign]
+
+    evidence = backend.runtime_evidence()
+
+    assert reads == 1
+    assert evidence["mapping_gaps"] == [{"area": "camera_capture"}]
+    assert evidence["scene_index_artifact"]["mapping_gaps"] == [{"area": "camera_capture"}]
