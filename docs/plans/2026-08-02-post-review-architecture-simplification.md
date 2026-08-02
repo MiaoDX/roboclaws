@@ -16,8 +16,8 @@ artifact, provider, simulator, or hardware behavior.
 - Parent plan: none
 - Child plans: none
 - Last updated: 2026-08-02
-- Current slice: canonical scratchpad filename
-- Next action: delete cleanup_scratch.json fallback/copy migration and migration-only tests
+- Current slice: changed-code review and final verification
+- Next action: run changed-code cleanup, full proof, and human-doc alignment
 - Blocked on: nothing
 - Do not touch from this session: durable eval baseline publication, provider routes, simulator or
   real-robot behavior, public launch/MCP/schema/report/artifact contracts, unrelated plans,
@@ -42,7 +42,7 @@ Accepted cleanup checklist:
 - [x] Remove the MolmoSpaces scene-bundle generator's generic-session/private-backend escape.
 - [x] Give direct and MCP household runs one canonical artifact/result composition owner.
 - [x] Remove eval-harness mapping-to-argv option-registry duplication.
-- [ ] Use `agent_scratchpad.json` as the sole live scratchpad filename and delete migration logic.
+- [x] Use `agent_scratchpad.json` as the sole live scratchpad filename and delete migration logic.
 
 Behavior-change policy:
 

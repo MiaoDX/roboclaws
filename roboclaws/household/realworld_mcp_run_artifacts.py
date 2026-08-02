@@ -183,7 +183,7 @@ def _build_payloads(
     agent_scratchpad, _ = read_or_create_skill_scratchpad(
         run_dir=inputs.run_dir,
         note=(
-            "No live cleanup_scratch.json was present when the MCP server finalized; "
+            "No live agent_scratchpad.json was present when the MCP server finalized; "
             "cleanup_worklist remains authoritative."
         ),
     )

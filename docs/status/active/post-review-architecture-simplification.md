@@ -15,15 +15,16 @@ Execute the five approved architecture cleanup candidates without changing publi
 ## Current State
 
 - Latest user intent: execute all approved candidates via intuitive-flow.
-- Current slice: canonical scratchpad filename.
-- Last proof: 68 eval-harness/CLI/Just tests passed; structured overrides now use the canonical
-  parser registry directly, and the unused selector CLI/parser is removed.
+- Current slice: changed-code review and final verification.
+- Last proof: scratchpad unit/skill/MCP tests passed (11 tests); `cleanup_scratch` has no live code,
+  skill, test, Just, or script references, and migration logic is removed.
 - Completed slices: session-live environment restoration; MolmoSpaces authoring backend ownership;
-  direct/MCP household artifact ownership; eval mapping dispatch.
+  direct/MCP household artifact ownership; eval mapping dispatch; canonical scratchpad filename.
 
 ## Next Action
 
-Use `agent_scratchpad.json` as the only live scratchpad filename and delete fallback migration.
+Run diff-scoped changed-code review, full deterministic proof, and human-doc alignment; then close
+the canonical plan and remove this capsule.
 
 ## Stop Condition
 

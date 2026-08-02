@@ -21,7 +21,7 @@ def _run_scratchpad(*args: str) -> subprocess.CompletedProcess[str]:
 
 
 def test_scratchpad_script_rejects_malformed_present_source(tmp_path: Path) -> None:
-    scratchpad = tmp_path / "cleanup_scratch.json"
+    scratchpad = tmp_path / "agent_scratchpad.json"
     scratchpad.write_text("{bad json\n", encoding="utf-8")
 
     completed = _run_scratchpad("validate", "--path", str(scratchpad))
@@ -33,7 +33,7 @@ def test_scratchpad_script_rejects_malformed_present_source(tmp_path: Path) -> N
 
 
 def test_scratchpad_script_rejects_non_object_result_json(tmp_path: Path) -> None:
-    scratchpad = tmp_path / "cleanup_scratch.json"
+    scratchpad = tmp_path / "agent_scratchpad.json"
     scratchpad.write_text(json.dumps(_scratchpad_payload()) + "\n", encoding="utf-8")
 
     completed = _run_scratchpad(
@@ -51,7 +51,7 @@ def test_scratchpad_script_rejects_non_object_result_json(tmp_path: Path) -> Non
 
 
 def test_scratchpad_script_records_valid_result_json(tmp_path: Path) -> None:
-    scratchpad = tmp_path / "cleanup_scratch.json"
+    scratchpad = tmp_path / "agent_scratchpad.json"
     scratchpad.write_text(json.dumps(_scratchpad_payload()) + "\n", encoding="utf-8")
 
     completed = _run_scratchpad(

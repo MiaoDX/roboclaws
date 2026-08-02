@@ -20,27 +20,6 @@ def test_read_or_create_skill_scratchpad_creates_missing_source(tmp_path: Path) 
     assert json.loads(path.read_text(encoding="utf-8")) == scratchpad
 
 
-def test_read_or_create_skill_scratchpad_copies_legacy_source(tmp_path: Path) -> None:
-    legacy = tmp_path / "cleanup_scratch.json"
-    legacy.write_text(
-        json.dumps(
-            {
-                "schema": SCRATCHPAD_SCHEMA,
-                "authoritative": False,
-                "observed_handles": {"apple": {"object_id": "apple"}},
-            }
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    scratchpad, path = read_or_create_skill_scratchpad(run_dir=tmp_path)
-
-    assert path == tmp_path / "agent_scratchpad.json"
-    assert scratchpad["observed_handles"] == {"apple": {"object_id": "apple"}}
-    assert json.loads(path.read_text(encoding="utf-8")) == scratchpad
-
-
 @pytest.mark.parametrize(
     ("source", "message"),
     [
