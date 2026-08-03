@@ -90,10 +90,10 @@ def _assert_run_evidence_lane(run_result: dict[str, Any], expected: str) -> None
 
 
 def _first_destination_option_from_done(server: Any, object_id: str) -> dict[str, Any]:
-    done = server.call_tool("done", reason="probe public destination options")
+    done = server._agent_view_payload()["readiness"]["completion"]
     pending = [
         dict(item)
-        for blocker in (done.get("completion") or {}).get("blockers") or []
+        for blocker in done.get("blockers") or []
         if blocker.get("type") == "pending_cleanup_candidates"
         for item in blocker.get("pending_cleanup_candidates") or []
     ]

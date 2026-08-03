@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import math
 from collections.abc import Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any
@@ -9,7 +11,6 @@ if TYPE_CHECKING:
 
 from roboclaws.core.map_build_scan_profile import map_build_scan_profile
 from roboclaws.core.task_intents import (
-    HOUSEHOLD_INTENT_CLEANUP,
     HOUSEHOLD_INTENT_MAP_BUILD,
     household_intent_is_open_ended,
     normalize_household_intent,
@@ -34,6 +35,7 @@ from roboclaws.household.visual_scan_guidance import visual_scan_done_recovery_h
 
 DONE_READINESS_POLICY_RAW_FPV = "raw_fpv_grounded_cleanup_chains"
 DONE_READINESS_POLICY_EXPLICIT = "explicit_grounded_cleanup_chains"
+COMPLETION_SNAPSHOT_SCHEMA = "household_completion_snapshot_v1"
 
 
 _required_tool_for_candidate_state = realworld_visual_candidates._required_tool_for_candidate_state
@@ -73,6 +75,10 @@ def pending_cleanup_candidates(contract: HouseholdRuntimeContract) -> list[dict[
                     ),
                     "destination_policy": dict(item.get("destination_policy") or {}),
                     "destination_options": destination_options,
+                    "source_waypoint_id": str(item.get("source_waypoint_id") or ""),
+                    "generated_inspection_waypoint_id": str(
+                        item.get("generated_inspection_waypoint_id") or ""
+                    ),
                     "required_tool": "navigate_to_receptacle"
                     if state == "held"
                     else _required_tool_for_candidate_state(str(item.get("candidate_state") or "")),
@@ -97,6 +103,10 @@ def pending_cleanup_candidates(contract: HouseholdRuntimeContract) -> list[dict[
                 "source_fixture_id": source_fixture_id,
                 "candidate_fixture_id": candidate_fixture_id,
                 "candidate_state": str(item.get("candidate_state") or ""),
+                "source_waypoint_id": str(item.get("source_waypoint_id") or ""),
+                "generated_inspection_waypoint_id": str(
+                    item.get("generated_inspection_waypoint_id") or ""
+                ),
                 "required_tool": "navigate_to_receptacle"
                 if state == "held"
                 else _required_tool_for_candidate_state(str(item.get("candidate_state") or "")),
@@ -263,35 +273,68 @@ def evaluate_done_readiness(
     return readiness
 
 
-def attach_completion_readiness_hint(
+def completion_snapshot(
     server: Any,
-    tool: str,
-    response: dict[str, Any],
+    *,
+    source_tool: str,
+    response_id: int,
 ) -> dict[str, Any]:
-    if (
-        tool != "observe"
-        or not response.get("ok")
-        or server.task_intent != HOUSEHOLD_INTENT_CLEANUP
-        or server.perception_mode != "visible_object_detections"
-        or response.get("operator_message_pending")
-    ):
-        return response
     readiness = server.contract.evaluate_done_readiness(
         semantic_cleanup_evidence=server.done_readiness_evidence(),
     )
-    if readiness.get("status") != "ready":
-        return response
-    augmented = dict(response)
-    augmented["required_next_tool"] = "done"
-    augmented["completion"] = {
-        "schema": readiness.get("schema", "done_readiness_v1"),
-        "status": "ready",
+    blockers = [dict(item) for item in readiness.get("blockers") or []]
+    next_actions = [
+        {
+            key: blocker[key]
+            for key in (
+                "required_tool",
+                "next_waypoint_id",
+                "pending_observed_handles",
+                "pending_cleanup_candidates",
+                "incomplete_waypoint_ids",
+            )
+            if key in blocker
+        }
+        for blocker in blockers
+    ]
+    if not blockers:
+        next_actions = [{"required_tool": "done"}]
+    snapshot = {
+        "schema": COMPLETION_SNAPSHOT_SCHEMA,
+        "source_tool": source_tool,
+        "response_id": response_id,
+        "task_intent": readiness.get("task_intent", "cleanup"),
+        "status": readiness.get("status", "blocked"),
+        "blockers": blockers,
+        "next_actions": next_actions,
         "policy_uses_private_truth": False,
     }
-    augmented["instruction"] = (
-        "MCP-visible cleanup readiness is ready. Call done now before inspecting another "
-        "object or waypoint; only done producing run_result.json completes the run."
-    )
+    snapshot["digest"] = completion_snapshot_digest(snapshot)
+    return snapshot
+
+
+def completion_snapshot_digest(snapshot: Mapping[str, Any]) -> str:
+    unsigned = {key: value for key, value in snapshot.items() if key != "digest"}
+    encoded = json.dumps(
+        unsigned,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return "sha256:" + hashlib.sha256(encoded).hexdigest()
+
+
+def attach_completion_snapshot(
+    response: dict[str, Any], snapshot: Mapping[str, Any]
+) -> dict[str, Any]:
+    augmented = dict(response)
+    augmented["completion"] = dict(snapshot)
+    if snapshot.get("status") == "ready":
+        augmented["required_next_tool"] = "done"
+        augmented["instruction"] = (
+            "MCP-visible cleanup readiness is ready. Call done now; done is terminal and "
+            "only done producing run_result.json completes the run."
+        )
     return augmented
 
 
@@ -313,7 +356,7 @@ def pending_cleanup_recovery_hint(
         "a listed candidate remains actionable. Visit a generated inspection waypoint only when "
         "that same candidate explicitly returns its generated_inspection_waypoint_id. After a "
         "successful placement or a public terminal rejection, continue with the next returned "
-        "handle; call done again only after this bounded list is exhausted."
+        "handle; call done exactly once after the completion snapshot becomes ready."
     )
 
 

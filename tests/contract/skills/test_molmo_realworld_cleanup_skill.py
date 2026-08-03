@@ -59,10 +59,12 @@ def _first_detection_by_category(server: Any, category: str) -> dict[str, Any]:
 
 
 def _first_destination_option(server: Any, object_id: str) -> dict[str, Any]:
-    done = server.call_tool("done", reason="probe public destination options")
+    readiness = server.contract.evaluate_done_readiness(
+        semantic_cleanup_evidence=server.done_readiness_evidence()
+    )
     pending = [
-        dict(item)
-        for blocker in (done.get("completion") or {}).get("blockers") or []
+        item
+        for blocker in readiness.get("blockers") or []
         if blocker.get("type") == "pending_cleanup_candidates"
         for item in blocker.get("pending_cleanup_candidates") or []
     ]
@@ -76,14 +78,14 @@ def test_cleanup_skill_prioritizes_done_over_optional_reclean_loops() -> None:
     text = SKILL_PATH.read_text(encoding="utf-8")
     compact = " ".join(text.split())
 
-    assert "call `done` as the authoritative closeout probe" in compact
+    assert "Call `done` exactly once after its status is `ready`" in compact
     assert "Never return a final answer before calling `roboclaws__done(reason)`" in compact
-    assert "call `done` with the public progress and remaining risk" in compact
+    assert "`done` is terminal and cannot be used to discover or recover work" in compact
     assert "Do not observe again after a successful placement" in compact
     assert "default budget is one observation per inspection waypoint" in compact
-    assert "clean exactly those listed handles using their `candidate_fixture_id`" in compact
-    assert "or `destination_options`, then call `done` again" in compact
-    assert "top-level `required_tool` or `completion.blockers[*].required_tool`" in compact
+    assert "act only on those public candidate entries" in compact
+    assert "follow `completion.next_actions`" in compact
+    assert "`completion.blockers[*].required_tool`" in compact
     assert "continue the waypoint sweep rather than inventing fixture ids" in compact
     assert "first complete an anchor discovery sweep" not in compact
     assert "before the first pick" not in compact

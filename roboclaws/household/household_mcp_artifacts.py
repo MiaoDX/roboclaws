@@ -36,7 +36,7 @@ MCP_SERVER_NAME = "household_world"
 class HouseholdMCPArtifactLifecycle:
     def _agent_view_payload(self) -> dict[str, Any]:
         agent_view = self.contract.agent_view_payload()
-        return agent_view_module.with_public_tool_names(
+        agent_view = agent_view_module.with_public_tool_names(
             agent_view,
             agent_view_public_tool_names(
                 self,
@@ -44,6 +44,10 @@ class HouseholdMCPArtifactLifecycle:
             ),
             capability_profiles=self.required_capability_profiles,
         )
+        completion = getattr(self, "_completion_snapshot", None)
+        if completion is not None:
+            agent_view[agent_view_module.SECTION_READINESS]["completion"] = dict(completion)
+        return agent_view
 
     def _write_live_public_artifacts(self, *, trigger: str) -> None:
         """Refresh public map artifacts while a live MCP run is still in progress."""
@@ -174,10 +178,11 @@ class HouseholdMCPArtifactLifecycle:
                 ),
             )
         )
+        terminal_complete = done_response.get("ok") is True
         self._done_result = {
-            "ok": True,
+            "ok": terminal_complete,
             "tool": "done",
-            "status": "ok",
+            "status": "ok" if terminal_complete else "terminal_incomplete",
             "intent_status": finalized.intent_status,
             "goal_status": finalized.intent_status,
             "cleanup_status": done_response["cleanup_status"],
@@ -187,6 +192,9 @@ class HouseholdMCPArtifactLifecycle:
             "contract": REALWORLD_CONTRACT,
             "agent_driven": self.agent_driven,
         }
+        if not terminal_complete:
+            self._done_result["error_reason"] = "terminal_incomplete"
+            self._done_result["completion"] = done_response.get("completion") or {}
         self.done_event.set()
         self.write_runtime_event(
             "molmo_realworld_cleanup_mcp_done",

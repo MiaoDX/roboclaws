@@ -16,38 +16,11 @@ from roboclaws.agents.drivers.openai_agents_budget import (
 from roboclaws.agents.drivers.openai_agents_budget import (
     raw_fpv_budget_failure as _raw_fpv_budget_failure,
 )
-from roboclaws.agents.drivers.openai_agents_budget import (
-    raw_fpv_budget_metrics as _raw_fpv_budget_metrics,
-)
-from roboclaws.agents.drivers.openai_agents_continuation_state import (
-    candidate_attempt_counts_by_waypoint,
-    candidate_outcomes_by_waypoint,
-    raw_fpv_revisit_waypoints,
-    reconcile_remaining_observes_with_heading_blocker,
-    remaining_observes_by_waypoint,
-    waypoints_by_observation_recency,
-)
 from roboclaws.agents.drivers.openai_agents_metrics import (
     openai_agents_context_metrics as _context_metrics,
 )
 from roboclaws.agents.drivers.openai_agents_perf_profile import (
     camera_grounded_composite_tools_enabled_for_run,
-)
-from roboclaws.agents.household_live_continuation_state import (
-    _blocked_candidates,
-    _compact_failed_candidate_attempts,
-    _completed_waypoints,
-    _goal_contract_summary,
-    _handled_object_handles,
-    _inspection_waypoint_ids,
-    _latest_done_blockers,
-    _latest_done_public_action_state,
-    _next_requested_action,
-    _observe_counts_by_waypoint,
-    _public_pending_object_handles,
-    _recent_tool_failures,
-    _remaining_public_gates,
-    _trace_field,
 )
 from roboclaws.agents.live_status import LiveAgentFailure
 from roboclaws.agents.live_timing import compact_metric_group as _compact_metric_group
@@ -60,6 +33,10 @@ from roboclaws.core.json_sources import read_json_value, read_jsonl_objects
 from roboclaws.core.operator_messages import consume_resume_request_for_runner
 from roboclaws.core.raw_fpv_guidance import raw_fpv_edge_reframe_instruction
 from roboclaws.core.task_intents import household_intent_from_args as _household_intent
+from roboclaws.household.realworld_done_readiness import (
+    COMPLETION_SNAPSHOT_SCHEMA,
+    completion_snapshot_digest,
+)
 
 DEFAULT_INCOMPLETE_TURN_CONTINUATION_PROMPT = """
 Continuation recovery for the same live household cleanup run:
@@ -143,24 +120,11 @@ class IncompleteTurnRecoveryPolicy:
             return None
         profile = profile or {}
         context_metrics = context_metrics or {}
-        continuation_mode = str(profile.get("continuation_mode") or "repeat_full_prompt")
-        total_input_tokens = _int_or_none(context_metrics.get("total_input_tokens"))
-        soft_limit = _int_or_none(profile.get("context_soft_limit_tokens"))
-        if (
-            budget_recovery
-            or continuation_mode == "state_summary_only"
-            or (
-                soft_limit is not None
-                and total_input_tokens is not None
-                and total_input_tokens >= soft_limit
-            )
-        ):
-            return _compact_continuation_prompt(
-                run_dir,
-                profile=profile,
-                context_metrics=context_metrics,
-            )
-        return f"{original_prompt.rstrip()}\n\n{self.continuation_suffix}\n"
+        return _compact_continuation_prompt(
+            run_dir,
+            profile=profile,
+            context_metrics=context_metrics,
+        )
 
 
 def _is_context_budget_result(result: Any) -> bool:
@@ -526,97 +490,46 @@ def _compact_continuation_state(
     profile: dict[str, Any],
     context_metrics: dict[str, Any],
 ) -> dict[str, Any]:
-    trace_events = _read_jsonl_path(run_dir / "trace.jsonl")
-    goal_contract = _goal_contract_summary(trace_events)
-    completed_waypoints = _completed_waypoints(trace_events)
-    handled_objects = _handled_object_handles(trace_events)
-    public_pending = _public_pending_object_handles(trace_events)
-    blocked_candidates = _blocked_candidates(trace_events)
-    recent_failures = _recent_tool_failures(trace_events)
-    observe_counts = _observe_counts_by_waypoint(trace_events)
-    latest_done_blockers = _latest_done_blockers(trace_events)
-    latest_done_action_state = _latest_done_public_action_state(trace_events)
-    budget_metrics = _raw_fpv_budget_metrics(trace_events)
-    max_observes = _int_or_none(profile.get("max_observe_per_waypoint"))
-    known_waypoints = _inspection_waypoint_ids(trace_events) or list(observe_counts)
-    remaining_observes = remaining_observes_by_waypoint(
-        known_waypoints,
-        observe_counts,
-        max_observes=max_observes,
-    )
-    reconcile_remaining_observes_with_heading_blocker(
-        remaining_observes,
-        latest_done_blockers,
-    )
-    candidate_attempt_counts = candidate_attempt_counts_by_waypoint(trace_events)
-    candidate_outcomes = candidate_outcomes_by_waypoint(trace_events, known_waypoints)
-    scan_priority = waypoints_by_observation_recency(trace_events)
-    scan_priority.extend(
-        waypoint_id for waypoint_id in known_waypoints if waypoint_id not in scan_priority
-    )
-    candidate_free_waypoints = [
-        waypoint_id
-        for waypoint_id in scan_priority
-        if remaining_observes.get(waypoint_id) != 0
-        and candidate_attempt_counts.get(waypoint_id, 0) == 0
-    ]
-    exhausted_waypoints = [
-        waypoint_id for waypoint_id, remaining in remaining_observes.items() if remaining == 0
-    ]
-    candidate_limit = _int_or_none(profile.get("raw_fpv_candidate_budget"))
-    candidate_attempted = int(budget_metrics.get("candidate_attempt_count") or 0)
-    revisit_waypoints = raw_fpv_revisit_waypoints(
-        trace_events,
-        known_waypoints=known_waypoints,
-        candidate_outcomes=candidate_outcomes,
-        latest_done_blockers=latest_done_blockers,
-        has_pending_candidates=bool(
-            public_pending or latest_done_action_state["actionable_pending_candidates"]
-        ),
-    )
+    snapshot = _latest_canonical_completion_snapshot(run_dir)
     return {
         "schema": "compact_agent_state_v1",
-        "surface": goal_contract.get("surface") or "household-world",
-        "intent": goal_contract.get("intent") or "cleanup",
-        "evidence_lane": _trace_field(trace_events, "evidence_lane")
-        or _trace_field(trace_events, "cleanup_profile"),
-        "goal_summary": goal_contract.get("normalized_goal") or "",
+        "intent": snapshot.get("task_intent") or "cleanup",
         "agent_sdk_perf_profile_id": profile.get("profile_id") or "baseline",
-        "completed_waypoints": completed_waypoints[-32:],
-        "handled_object_handles": handled_objects[-32:],
-        "public_pending_object_handles": public_pending[-32:],
-        "blocked_candidates": blocked_candidates[-12:],
-        "recent_tool_failures": recent_failures[-8:],
-        "observe_counts_by_waypoint": observe_counts,
-        "candidate_attempt_counts_by_waypoint": candidate_attempt_counts,
-        "raw_fpv_waypoint_candidate_outcomes": candidate_outcomes,
-        "raw_fpv_revisit_waypoints": revisit_waypoints,
-        "candidate_free_scan_waypoints": candidate_free_waypoints,
-        "remaining_observes_by_waypoint": remaining_observes,
-        "scan_exhausted_waypoints": exhausted_waypoints,
-        "raw_fpv_candidate_budget": {
-            "attempted": candidate_attempted,
-            "limit": candidate_limit,
-            "remaining": max(0, candidate_limit - candidate_attempted)
-            if candidate_limit is not None
-            else None,
-        },
-        "recent_failed_candidate_attempts": _compact_failed_candidate_attempts(
-            budget_metrics.get("failed_candidate_attempts_sample") or []
-        ),
-        "latest_done_blockers": latest_done_blockers,
-        "actionable_pending_candidates": latest_done_action_state["actionable_pending_candidates"],
-        "next_unvisited_waypoint": latest_done_action_state["next_unvisited_waypoint"],
-        "unvisited_waypoint_ids": latest_done_action_state["unvisited_waypoint_ids"],
-        "remaining_public_gates": _remaining_public_gates(completed_waypoints, public_pending),
-        "next_requested_action": _next_requested_action(
-            completed_waypoints,
-            public_pending,
-            actionable_pending=latest_done_action_state["actionable_pending_candidates"],
-            next_unvisited_waypoint=latest_done_action_state["next_unvisited_waypoint"],
-        ),
+        "completion": snapshot,
+        "completion_digest": snapshot["digest"],
         "context_metrics": _compact_metric_group(context_metrics),
     }
+
+
+def _latest_canonical_completion_snapshot(run_dir: Path) -> dict[str, Any]:
+    events = _read_jsonl_path(run_dir / "trace.jsonl")
+    responses = [event for event in events if event.get("event") == "response"]
+    if not responses:
+        raise RuntimeError("terminal-incomplete: missing completion continuation state")
+    latest = responses[-1]
+    response = latest.get("response")
+    snapshot = response.get("completion") if isinstance(response, dict) else None
+    if not isinstance(snapshot, dict):
+        raise RuntimeError("terminal-incomplete: missing completion continuation state")
+    if snapshot.get("schema") != COMPLETION_SNAPSHOT_SCHEMA:
+        raise RuntimeError("terminal-incomplete: malformed completion continuation state")
+    if snapshot.get("source_tool") != latest.get("tool"):
+        raise RuntimeError("terminal-incomplete: stale completion continuation state")
+    response_id = snapshot.get("response_id")
+    if not isinstance(response_id, int) or isinstance(response_id, bool) or response_id < 1:
+        raise RuntimeError("terminal-incomplete: malformed completion continuation state")
+    expected = completion_snapshot_digest(snapshot)
+    if snapshot.get("digest") != expected:
+        raise RuntimeError("terminal-incomplete: malformed completion continuation state digest")
+    prior_ids = []
+    for event in responses[:-1]:
+        prior_response = event.get("response")
+        prior = prior_response.get("completion") if isinstance(prior_response, dict) else None
+        if isinstance(prior, dict) and isinstance(prior.get("response_id"), int):
+            prior_ids.append(prior["response_id"])
+    if prior_ids and response_id <= max(prior_ids):
+        raise RuntimeError("terminal-incomplete: stale completion continuation state")
+    return dict(snapshot)
 
 
 def _sdk_attempt_summary(result: Any, *, attempt_index: int) -> dict[str, Any]:

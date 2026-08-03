@@ -1,6 +1,6 @@
 ---
 plan_scope: agent-skill-delivery-eval
-status: READY_FOR_REVIEW
+status: IN_PROGRESS
 source:
   - 2026-08-03 cleanup live failure investigation
   - 2026-08-03 agent skill delivery discussion
@@ -18,6 +18,12 @@ confounded.
 
 ## Current State
 
+- Phase 1 deterministic implementation is complete in the current worktree:
+  checker failures fail closed; `done` is terminal and idempotent; Agent View,
+  responses, and trace share a versioned completion snapshot; SDK continuation
+  validates and carries only that snapshot; waypoint identity is preserved; and
+  stale `done`-recovery guidance is removed. The fresh `static-full` live proof
+  remains the Phase 1 stop gate before the comparison matrix runs.
 - The invalid `20260803T023049Z` baseline remains unpublished. Its checker/eval
   integrity failure has a fail-closed fix in the current uncommitted worktree.
 - The fresh cleanup live failure used `world-public-labels`. Repeated rejected

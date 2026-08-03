@@ -16,6 +16,10 @@ from roboclaws.agents.live_runtime import (
     live_agent_result_from_artifacts,
 )
 from roboclaws.agents.live_status import LiveAgentFailure
+from roboclaws.household.realworld_done_readiness import (
+    COMPLETION_SNAPSHOT_SCHEMA,
+    completion_snapshot_digest,
+)
 
 
 def test_live_agent_request_keeps_one_turn_policy_explicit(tmp_path: Path) -> None:
@@ -275,16 +279,23 @@ def test_agent_sdk_skill_context_loader_reports_missing_source(tmp_path: Path) -
 def test_context_budget_result_recovers_with_compact_continuation(tmp_path: Path) -> None:
     run_dir = tmp_path / "run"
     run_dir.mkdir()
+    snapshot = {
+        "schema": COMPLETION_SNAPSHOT_SCHEMA,
+        "source_tool": "observe",
+        "response_id": 1,
+        "task_intent": "cleanup",
+        "status": "blocked",
+        "blockers": [],
+        "next_actions": [{"required_tool": "navigate_to_waypoint"}],
+        "policy_uses_private_truth": False,
+    }
+    snapshot["digest"] = completion_snapshot_digest(snapshot)
     (run_dir / "trace.jsonl").write_text(
         json.dumps(
             {
-                "event": "molmo_realworld_cleanup_mcp_initialized",
-                "evidence_lane": "camera-raw-fpv",
-                "goal_contract": {
-                    "surface": "household-world",
-                    "intent": "cleanup",
-                    "normalized_goal": "clean the room",
-                },
+                "event": "response",
+                "tool": "observe",
+                "response": {"ok": True, "completion": snapshot},
             }
         )
         + "\n",

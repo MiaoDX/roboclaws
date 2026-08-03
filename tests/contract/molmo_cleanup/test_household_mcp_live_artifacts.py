@@ -34,11 +34,11 @@ def test_observe_prioritizes_done_when_cleanup_readiness_is_ready(tmp_path: Path
     assert metric_map["inspection_waypoints"][4]["room_label"] == "Bedroom"
     assert all("required_next_tool" not in item for item in observations[:-1])
     assert observations[-1]["required_next_tool"] == "done"
-    assert observations[-1]["completion"] == {
-        "schema": "done_readiness_v1",
-        "status": "ready",
-        "policy_uses_private_truth": False,
-    }
+    assert observations[-1]["completion"]["schema"] == "household_completion_snapshot_v1"
+    assert observations[-1]["completion"]["status"] == "ready"
+    assert observations[-1]["completion"]["source_tool"] == "observe"
+    assert observations[-1]["completion"]["next_actions"] == [{"required_tool": "done"}]
+    assert observations[-1]["completion"]["policy_uses_private_truth"] is False
     assert "Call done now" in observations[-1]["instruction"]
     assert done["ok"] is True
 

@@ -11,11 +11,30 @@ from roboclaws.agents.live_runtime import (
     LiveAgentRequest,
     LiveAgentResult,
 )
+from roboclaws.household.realworld_done_readiness import (
+    COMPLETION_SNAPSHOT_SCHEMA,
+    completion_snapshot_digest,
+)
 from tests.unit.agents.live_runtime_support import (
     _assert_context_managed_openai_agents_timing,
     _assert_openai_agents_timeline_and_checker,
     _isolated_repo_root,
 )
+
+
+def _completion(tool: str) -> dict:
+    snapshot = {
+        "schema": COMPLETION_SNAPSHOT_SCHEMA,
+        "source_tool": tool,
+        "response_id": 1,
+        "task_intent": "cleanup",
+        "status": "blocked",
+        "blockers": [],
+        "next_actions": [{"required_tool": "done"}],
+        "policy_uses_private_truth": False,
+    }
+    snapshot["digest"] = completion_snapshot_digest(snapshot)
+    return snapshot
 
 
 def test_openai_agents_cleanup_runner_invokes_sdk_then_checker(tmp_path: Path, monkeypatch) -> None:
@@ -315,6 +334,17 @@ def test_openai_agents_cleanup_runner_continues_incomplete_sdk_turn(
             event_paths.append(request.artifact_path("openai_agents_events", "missing.jsonl"))
             span_paths.append(request.artifact_path("openai_agents_spans", "missing.jsonl"))
             if len(prompts) == 1:
+                (request.run_dir / "trace.jsonl").write_text(
+                    json.dumps(
+                        {
+                            "event": "response",
+                            "tool": "observe",
+                            "response": {"ok": True, "completion": _completion("observe")},
+                        }
+                    )
+                    + "\n",
+                    encoding="utf-8",
+                )
                 return LiveAgentResult(
                     phase="agent-turn-complete",
                     exit_status=0,
@@ -470,6 +500,7 @@ def test_openai_agents_cleanup_runner_compact_continuation_excludes_full_prompt(
                                     "tool": "observe",
                                     "response": {
                                         "ok": True,
+                                        "completion": _completion("observe"),
                                         "waypoint_id": "generated_exploration_001",
                                     },
                                 }
@@ -563,7 +594,8 @@ def test_openai_agents_cleanup_runner_compact_continuation_excludes_full_prompt(
     assert prompts[0] == full_prompt
     assert full_prompt not in prompts[1]
     assert "compact_continuation_state" in prompts[1]
-    assert "generated_exploration_001" in prompts[1]
+    assert COMPLETION_SNAPSHOT_SCHEMA in prompts[1]
+    assert _completion("observe")["digest"] in prompts[1]
     timing = json.loads((run_dir / "live_timing.json").read_text(encoding="utf-8"))
     assert timing["openai_agents_attempts"][0]["recovery_action"] == "continue"
     assert timing["openai_agents_attempts"][0]["continuation_prompt_chars"] == len(prompts[1])
@@ -618,6 +650,9 @@ def test_openai_agents_cleanup_runner_compact_continuation_preserves_composite_c
                                     "tool": "observe_camera_grounded_candidates",
                                     "response": {
                                         "ok": True,
+                                        "completion": _completion(
+                                            "observe_camera_grounded_candidates"
+                                        ),
                                         "observe": {
                                             "waypoint_id": "generated_exploration_001",
                                         },

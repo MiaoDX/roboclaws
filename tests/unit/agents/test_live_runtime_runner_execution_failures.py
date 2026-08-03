@@ -226,15 +226,14 @@ def test_openai_agents_cleanup_runner_fails_after_bounded_continuation(
     status = LiveOpenAIAgentsHouseholdRunner(args).run()
 
     assert status == 1
-    assert len(prompts) == 2
+    assert len(prompts) == 1
     assert checker_called is False
     status_payload = json.loads((run_dir / "live_status.json").read_text(encoding="utf-8"))
     assert status_payload["phase"] == "failed"
     assert status_payload["exit_status"] == 1
-    assert (
-        status_payload["reason"]
-        == "OpenAI Agents SDK turn ended without done after 2 OpenAI Agents SDK invocation(s)"
+    assert status_payload["reason"] == (
+        "terminal-incomplete: missing completion continuation state"
     )
     timing = json.loads((run_dir / "live_timing.json").read_text(encoding="utf-8"))
-    assert len(timing["openai_agents_attempts"]) == 2
-    assert timing["openai_agents"]["phase"] == "agent-turn-complete"
+    assert len(timing["openai_agents_attempts"]) == 1
+    assert "openai_agents" not in timing
