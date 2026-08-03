@@ -9,6 +9,13 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+from roboclaws.agents.skill_delivery import build_skill_delivery
+from roboclaws.mcp.profiles import (
+    HOUSEHOLD_EPISODE_PROFILE,
+    HOUSEHOLD_MANIPULATION_PROFILE,
+    HOUSEHOLD_WORLD_PROFILE,
+    contract_profile,
+)
 from roboclaws.worlds.molmospaces.catalog import sampler_world_id
 from roboclaws.worlds.molmospaces.map_bundles import molmospaces_nav2_map_bundle_path
 from roboclaws.worlds.molmospaces.world_ids import parse_molmospaces_world_id
@@ -128,6 +135,7 @@ def _row(
         allowed_execution_targets = list(provider_policy["allowed_execution_targets"])
         execution_requirements.append(f"provider:{provider_profile}")
         execution_requirements.extend(provider_policy["execution_requirements"])
+    delivery_cell = str(raw.get("skill_delivery_cell") or "")
     return {
         "schema": ROW_SCHEMA,
         "row_id": row_id,
@@ -135,6 +143,8 @@ def _row(
         "command": command,
         "command_display": shlex.join(command),
         "axes": axes,
+        "skill_delivery_cell": delivery_cell,
+        "skill_delivery_identity": _skill_delivery_identity(delivery_cell, axes=axes),
         "base_row_id": row_id,
         "case_id": row_id,
         "case": _case_payload(row_id=row_id, row_kind=str(raw["row_kind"]), axes=axes),
@@ -163,6 +173,28 @@ def _row(
         "output_artifacts": [],
         "row_dir": str(row_dir / row_id),
     }
+
+
+def _skill_delivery_identity(cell: str, *, axes: dict[str, str]) -> dict[str, Any]:
+    if not cell:
+        return {}
+    skill_path = REPO_ROOT / "skills" / "household-world" / "SKILL.md"
+    delivery = build_skill_delivery(
+        cell,
+        full_content=skill_path.read_text(encoding="utf-8"),
+        intent=str(axes.get("intent") or "cleanup"),
+        evidence_lane=str(axes.get("evidence_lane") or "world-public-labels"),
+    )
+    tool_surface = tuple(
+        name
+        for profile_id in (
+            HOUSEHOLD_WORLD_PROFILE,
+            HOUSEHOLD_MANIPULATION_PROFILE,
+            HOUSEHOLD_EPISODE_PROFILE,
+        )
+        for name in contract_profile(profile_id).public_tool_names()
+    )
+    return delivery.artifact(tool_surface=tool_surface)
 
 
 def _provider_execution_policy(

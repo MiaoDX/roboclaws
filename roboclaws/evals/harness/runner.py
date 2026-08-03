@@ -12,6 +12,7 @@ from importlib.util import find_spec
 from pathlib import Path
 from typing import Any
 
+from roboclaws.agents.skill_delivery import sandbox_readiness
 from roboclaws.core.json_sources import read_json_object
 from roboclaws.evals.harness import local_execution, selector
 from roboclaws.evals.suite_loading import REPO_ROOT
@@ -26,6 +27,7 @@ DINO_SIDECAR_STARTUP_TIMEOUT_S = 15.0
 ROW_BLOCKER_REQUIREMENT_PRIORITY = {
     "provider_profile": 0,
     "openai_agents_package": 1,
+    "sandbox_skills": 1,
     "python_env": 2,
     "dino_sidecar": 3,
     "runtime_map_prior": 4,
@@ -205,6 +207,8 @@ def _requirement_blocker(
         return _provider_requirement_blocker(axes)
     if requirement == "openai_agents_package" and not _has_module("agents"):
         return _environment_blocker("openai-agents package is not installed")
+    if requirement == "sandbox_skills" and sandbox_readiness()["status"] != "ready":
+        return _environment_blocker("sdk_missing_sandbox_agent_or_skills")
     if requirement == "dino_sidecar" and not prior_blockers and not _ensure_dino_sidecar(manifest):
         return _environment_blocker("Grounding DINO visual-grounding sidecar is not reachable")
     if requirement == "runtime_map_prior" and not _runtime_prior_available(manifest):

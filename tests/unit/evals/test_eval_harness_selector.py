@@ -33,6 +33,10 @@ EXPECTED_ROW_IDS = {
     "openai-agents-sdk-open-task-live-eval",
     "openai-agents-sdk-session-live-eval",
     "openai-agents-sdk-cleanup-live-eval",
+    "openai-agents-sdk-cleanup-no-skill-eval",
+    "openai-agents-sdk-cleanup-dynamic-full-eval",
+    "openai-agents-sdk-cleanup-dynamic-routed-eval",
+    "openai-agents-sdk-cleanup-sandbox-skills-eval",
     "planner-proof-dry-run-product",
     "direct-camera-grounded-grounding-dino",
     "direct-map-build-grounding-dino",
@@ -95,7 +99,7 @@ def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
     assert manifest["summary"]["selected_row_count"] == len(EXPECTED_ROW_IDS)
     assert manifest["summary"]["budget_skipped_count"] == 0
     assert manifest["summary"]["eval_suite_row_count"] == 6
-    assert manifest["summary"]["live_agent_eval_row_count"] == 7
+    assert manifest["summary"]["live_agent_eval_row_count"] == 11
     assert rows["openai-agents-sdk-open-task-live-eval"]["status"] == "not_run"
     assert rows["openai-agents-sdk-cleanup-live-eval"]["status"] == "not_run"
     assert "live_stall_timeout_s=180" in rows["openai-agents-sdk-cleanup-live-eval"]["command"]

@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from roboclaws.agents.skill_delivery import validate_skill_delivery_cell
 from roboclaws.evals.agent_identity import (
     agent_engine_spec,
     eval_provider_profile,
@@ -91,6 +92,7 @@ def run_eval_from_overrides(overrides: dict[str, str]) -> EvalSuiteRun:
     provider_profile = values.pop("provider_profile", None)
     model = values.pop("model", None)
     live_execution = values.pop("live_execution", "blocked")
+    skill_delivery_cell = validate_skill_delivery_cell(values.pop("skill_delivery_cell", None))
     live_timeout_s = _optional_float(values.pop("live_timeout_s", None))
     live_stall_timeout_s = _optional_float(values.pop("live_stall_timeout_s", None))
     regrade_source = _optional_path(values.pop("regrade_source", None))
@@ -107,6 +109,7 @@ def run_eval_from_overrides(overrides: dict[str, str]) -> EvalSuiteRun:
         provider_profile=provider_profile,
         model=model,
         live_execution=live_execution,
+        skill_delivery_cell=skill_delivery_cell,
         live_timeout_s=live_timeout_s,
         live_stall_timeout_s=live_stall_timeout_s,
         regrade_source=regrade_source,
@@ -201,6 +204,7 @@ def run_eval_suite(
     provider_profile: str | None = None,
     model: str | None = None,
     live_execution: str = "blocked",
+    skill_delivery_cell: str = "static-full",
     live_timeout_s: float | None = None,
     live_stall_timeout_s: float | None = None,
     regrade_source: Path | None = None,
@@ -212,6 +216,7 @@ def run_eval_suite(
 
     if live_execution not in {"blocked", "run"}:
         raise ValueError("live_execution must be blocked or run")
+    skill_delivery_cell = validate_skill_delivery_cell(skill_delivery_cell)
     if regrade_source is not None and agent_engine == "direct-runner":
         raise ValueError("regrade_source is only supported for live-agent eval runs")
 
@@ -241,6 +246,7 @@ def run_eval_suite(
                 runner_class=engine.internal_runner_class,
                 provider_profile=selected_provider_profile,
                 model=model,
+                skill_delivery_cell=skill_delivery_cell,
             )
             sample_run_dir = output_dir / "runs" / path_token(sample.sample_id)
             run_dir = sample_run_dir / f"trial-{repetition_index:04d}"
@@ -257,6 +263,7 @@ def run_eval_suite(
                 provider_profile=selected_provider_profile,
                 model=model,
                 live_execution=live_execution,
+                skill_delivery_cell=skill_delivery_cell,
                 live_timeout_s=live_timeout_s,
                 live_stall_timeout_s=live_stall_timeout_s,
                 regrade_source_dir=regrade_source_dir,

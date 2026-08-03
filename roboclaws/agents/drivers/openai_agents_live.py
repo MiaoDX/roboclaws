@@ -139,6 +139,14 @@ class OpenAIAgentsLiveRuntime:
             )
             _write_json(status_path, normalized.to_live_status_payload())
             return normalized
+        finally:
+            context = request.metadata.get("skill_context")
+            if isinstance(context, dict):
+                _write_skill_context_summary(
+                    skill_context_path,
+                    {},
+                    request=request,
+                )
 
         finished_at = time.time()
         run_result_path = request.run_dir / "run_result.json"
@@ -303,7 +311,7 @@ def _openai_agents_run_parts(
         )
     )
     instructions, skill_context_summary = _instructions_with_skill_context(request)
-    _write_skill_context_summary(skill_context_path, skill_context_summary)
+    _write_skill_context_summary(skill_context_path, skill_context_summary, request=request)
     agent = agent_cls(
         **_agent_kwargs(
             request,

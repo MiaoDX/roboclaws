@@ -24,6 +24,12 @@ confounded.
   validates and carries only that snapshot; waypoint identity is preserved; and
   stale `done`-recovery guidance is removed. The fresh `static-full` live proof
   remains the Phase 1 stop gate before the comparison matrix runs.
+- Phase 2 deterministic delivery support is complete: the eval harness freezes
+  five explicit cells; `static-full` remains the default; `dynamic-full` uses a
+  byte-identical SDK instructions callback; routed and no-Skill content are
+  isolated; per-call and run artifacts record delivery identity; and the
+  installed SDK's missing official `SandboxAgent`/`Skills` APIs produce a
+  fail-closed blocked sandbox row without a substitute.
 - The invalid `20260803T023049Z` baseline remains unpublished. Its checker/eval
   integrity failure has a fail-closed fix in the current uncommitted worktree.
 - The fresh cleanup live failure used `world-public-labels`. Repeated rejected

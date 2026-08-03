@@ -7,6 +7,8 @@ import os
 from pathlib import Path
 from typing import Any
 
+from roboclaws.agents.skill_delivery import build_skill_delivery, validate_skill_delivery_cell
+
 MAX_AGENT_SDK_SKILL_CONTEXT_BYTES = 24_000
 
 
@@ -25,7 +27,15 @@ def _env_bool(name: str, *, default: bool) -> bool:
     raise ValueError(f"{name} must be true or false, got {raw!r}")
 
 
-def _load_agent_sdk_skill_context(repo_root: Path, *, skill_name: str) -> dict[str, Any]:
+def _load_agent_sdk_skill_context(
+    repo_root: Path,
+    *,
+    skill_name: str,
+    delivery_cell: str = "static-full",
+    intent: str = "cleanup",
+    evidence_lane: str = "world-public-labels",
+) -> dict[str, Any]:
+    delivery_cell = validate_skill_delivery_cell(delivery_cell)
     relative_path = Path("skills") / skill_name / "SKILL.md"
     source_path = Path(repo_root) / relative_path
     base_payload: dict[str, Any] = {
@@ -46,6 +56,12 @@ def _load_agent_sdk_skill_context(repo_root: Path, *, skill_name: str) -> dict[s
         }
     truncated = raw[:MAX_AGENT_SDK_SKILL_CONTEXT_BYTES]
     text = truncated.decode("utf-8", errors="replace")
+    delivery = build_skill_delivery(
+        delivery_cell,
+        full_content=text,
+        intent=intent,
+        evidence_lane=evidence_lane,
+    )
     return {
         **base_payload,
         "included": bool(text),
@@ -55,7 +71,9 @@ def _load_agent_sdk_skill_context(repo_root: Path, *, skill_name: str) -> dict[s
         "included_bytes": len(truncated),
         "truncated": len(raw) > len(truncated),
         "estimated_tokens": _estimated_tokens_from_chars(len(text)),
-        "content": text,
+        "content": delivery.content,
+        "delivery": delivery,
+        "delivery_cell": delivery_cell,
     }
 
 
@@ -78,6 +96,7 @@ def _skill_context_timing_summary(skill_context: dict[str, Any]) -> dict[str, An
             "truncated",
             "estimated_tokens",
             "error_type",
+            "delivery_cell",
         }
     }
 

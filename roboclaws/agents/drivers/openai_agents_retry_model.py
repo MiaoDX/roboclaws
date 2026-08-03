@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import math
 import os
 import time
@@ -34,6 +35,25 @@ try:
     from agents.models.interface import Model as _AgentsModel  # type: ignore[import-not-found]
 except ImportError:
     _AgentsModel = object
+
+
+def _instruction_delivery_fields(
+    system_instructions: str | None,
+    tools: list[Any],
+) -> dict[str, Any]:
+    instructions = str(system_instructions or "")
+    tool_names = []
+    for tool in tools:
+        name = getattr(tool, "name", None)
+        if not name and isinstance(tool, dict):
+            name = tool.get("name") or (tool.get("function") or {}).get("name")
+        tool_names.append(str(name or type(tool).__name__))
+    return {
+        "effective_instruction_sha256": hashlib.sha256(instructions.encode("utf-8")).hexdigest(),
+        "effective_instruction_bytes": len(instructions.encode("utf-8")),
+        "model_visible_tool_surface": tool_names,
+    }
+
 
 DEFAULT_MODEL_SERVICE_RETRY_ATTEMPTS = 1
 DEFAULT_MODEL_SERVICE_RETRY_SLEEP_S = 1.0
@@ -122,6 +142,8 @@ class _RetryingModel(_AgentsModel):
                 attempt_index=attempt_index,
                 retry_budget=self.retry_attempts,
                 method="get_response",
+                call_index=call_index,
+                **_instruction_delivery_fields(system_instructions, tools),
             )
             try:
                 if racing_enabled:
@@ -304,6 +326,8 @@ class _RetryingModel(_AgentsModel):
                 attempt_index=attempt_index,
                 retry_budget=self.retry_attempts,
                 method="stream_response",
+                call_index=call_index,
+                **_instruction_delivery_fields(system_instructions, tools),
             )
             try:
                 stream = self.base_model.stream_response(

@@ -81,6 +81,7 @@ from roboclaws.agents.live_timing import round_duration as _round_duration
 from roboclaws.agents.live_timing import (
     runner_timing_breakdown as _runner_timing_breakdown,
 )
+from roboclaws.agents.skill_delivery import SKILL_DELIVERY_ENV, validate_skill_delivery_cell
 from roboclaws.core.evaluation import checker_flags_for_household_intent
 from roboclaws.core.live_performance import (
     extract_model_call_metrics,
@@ -120,9 +121,20 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
         )
         self.operator_handoff_active = False
         self.agent_sdk_perf_profile = _resolve_agent_sdk_perf_profile(args)
+        self.skill_delivery_cell = validate_skill_delivery_cell(os.environ.get(SKILL_DELIVERY_ENV))
+        self.model_visible_tool_surface = json.loads(
+            os.environ.get("ROBOCLAWS_EVAL_MODEL_VISIBLE_TOOL_SURFACE", "[]")
+        )
+        if not isinstance(self.model_visible_tool_surface, list) or not all(
+            isinstance(name, str) for name in self.model_visible_tool_surface
+        ):
+            raise ValueError("eval model-visible tool surface must be a JSON string list")
         self.skill_context = _load_agent_sdk_skill_context(
             args.repo_root,
             skill_name=self.skill_name,
+            delivery_cell=self.skill_delivery_cell,
+            intent=_household_intent(args),
+            evidence_lane=getattr(args, "profile", ""),
         )
         self.initial_kickoff_prompt = _profiled_kickoff_prompt(
             args,
@@ -165,6 +177,8 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
             ),
             "prompt_profile_id": self.agent_sdk_perf_profile["profile_id"],
             "agent_sdk_skill_context": _skill_context_timing_summary(self.skill_context),
+            "skill_delivery_cell": self.skill_delivery_cell,
+            "model_visible_tool_surface": self.model_visible_tool_surface,
         }
 
     def run(self) -> int:
