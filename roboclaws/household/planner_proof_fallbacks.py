@@ -11,44 +11,6 @@ _INVALID_NAME_RE = re.compile(r"Invalid name '([^']+)'. Valid names: (\[.*\])")
 _RUNTIME_ALIAS_RE = re.compile(r"^(?P<prefix>.+)_(?P<group>\d+)_(?P<variant>\d+)_(?P<room>\d+)$")
 
 
-def discovered_alias_values(
-    discovered_aliases: dict[str, list[dict[str, Any]]],
-    axis: str,
-) -> list[str]:
-    return _discovered_alias_values(discovered_aliases, axis)
-
-
-def discovered_runtime_aliases_by_source_request(
-    ready_requests: list[dict[str, Any]],
-    prior_summary: dict[str, Any],
-) -> dict[str, dict[str, list[dict[str, Any]]]]:
-    return _discovered_runtime_aliases_by_source_request(ready_requests, prior_summary)
-
-
-def prior_fallback_candidate_filters_by_source_request(
-    prior_summary: dict[str, Any],
-) -> dict[str, dict[str, Any]]:
-    return _prior_fallback_candidate_filters_by_source_request(prior_summary)
-
-
-def proof_cleanup_task_config(result: dict[str, Any]) -> dict[str, Any]:
-    return _proof_cleanup_task_config(result)
-
-
-def planner_arg(args: Any, key: str) -> str:
-    return _planner_arg(args, key)
-
-
-def unique_nonempty_values(values: list[str]) -> list[str]:
-    return _unique_nonempty_values(values)
-
-
-def prior_pair_filter_lookup(
-    prior_filters: dict[str, Any],
-) -> dict[tuple[str, str], dict[str, Any]]:
-    return _prior_pair_filter_lookup(prior_filters)
-
-
 def _blockers(raw: Any) -> list[dict[str, Any]]:
     return [dict(item) for item in raw if isinstance(item, dict)]
 
@@ -69,7 +31,7 @@ def _prior_result_evidence_fields(result: dict[str, Any]) -> dict[str, Any]:
 
 
 def _prior_result_blocker_fields(result: dict[str, Any]) -> dict[str, Any]:
-    fields = _nonempty_prior_blocker_fields(
+    fields = nonempty_prior_blocker_fields(
         result.get("task_feasibility_blocker_kind"),
         result.get("task_feasibility_blocker_summary"),
     )
@@ -78,7 +40,7 @@ def _prior_result_blocker_fields(result: dict[str, Any]) -> dict[str, Any]:
     return fields
 
 
-def _nonempty_prior_blocker_fields(kind: Any, summary: Any) -> dict[str, str]:
+def nonempty_prior_blocker_fields(kind: Any, summary: Any) -> dict[str, str]:
     fields = {}
     if kind:
         fields["prior_task_feasibility_blocker_kind"] = str(kind)
@@ -91,7 +53,7 @@ def _is_exact_scene_planner_alias(alias: str) -> bool:
     return bool(alias) and "|" not in alias
 
 
-def _discovered_alias_values(
+def discovered_alias_values(
     discovered_aliases: dict[str, list[dict[str, Any]]],
     axis: str,
 ) -> list[str]:
@@ -102,7 +64,7 @@ def _discovered_alias_values(
     ]
 
 
-def _discovered_runtime_aliases_by_source_request(
+def discovered_runtime_aliases_by_source_request(
     ready_requests: list[dict[str, Any]],
     prior_summary: dict[str, Any],
 ) -> dict[str, dict[str, list[dict[str, Any]]]]:
@@ -190,7 +152,7 @@ def _prior_keyerror_alias_payloads(
     result: dict[str, Any],
     source_request_id: str,
 ) -> list[dict[str, Any]]:
-    config = _proof_cleanup_task_config(result)
+    config = proof_cleanup_task_config(result)
     payloads = []
     for invalid in _invalid_name_entries_from_blockers(result.get("blockers") or []):
         axis = _invalid_alias_axis(invalid["invalid_alias"], config)
@@ -220,7 +182,7 @@ def _current_planner_alias(request: dict[str, Any], axis: str) -> str:
         key = "--cleanup-planner-target-receptacle-id"
     else:
         return ""
-    return _planner_arg(request.get("planner_probe_args") or {}, key)
+    return planner_arg(request.get("planner_probe_args") or {}, key)
 
 
 def _add_discovered_alias(
@@ -254,7 +216,7 @@ def _carried_discovered_aliases(prior_summary: dict[str, Any]) -> list[dict[str,
     ]
 
 
-def _prior_fallback_candidate_filters_by_source_request(
+def prior_fallback_candidate_filters_by_source_request(
     prior_summary: dict[str, Any],
 ) -> dict[str, dict[str, Any]]:
     filters: dict[str, dict[str, Any]] = {}
@@ -333,7 +295,7 @@ def _add_prior_result_candidate_filter(
     if _FALLBACK_REQUEST_ID_MARKER not in result_id:
         return
     source_request_id = _source_request_id_from_result(result)
-    config = _proof_cleanup_task_config(result)
+    config = proof_cleanup_task_config(result)
     object_alias = str(config.get("planner_object_id") or "")
     target_alias = str(config.get("planner_target_receptacle_id") or "")
     blockers = _blockers(result.get("blockers") or [])
@@ -541,7 +503,7 @@ def _carried_filtered_pairs(prior_summary: dict[str, Any]) -> list[dict[str, Any
     ]
 
 
-def _prior_pair_filter_lookup(
+def prior_pair_filter_lookup(
     prior_filters: dict[str, Any],
 ) -> dict[tuple[str, str], dict[str, Any]]:
     raw = prior_filters.get("pairs") if isinstance(prior_filters, dict) else []
@@ -574,7 +536,7 @@ def _source_request_id_from_result(result: dict[str, Any]) -> str:
     return request_id.split(_FALLBACK_REQUEST_ID_MARKER, 1)[0]
 
 
-def _proof_cleanup_task_config(result: dict[str, Any]) -> dict[str, Any]:
+def proof_cleanup_task_config(result: dict[str, Any]) -> dict[str, Any]:
     config = result.get("cleanup_task_config")
     if isinstance(config, dict):
         return config
@@ -607,10 +569,10 @@ def _valid_names_from_literal(value: str) -> list[str]:
     except (SyntaxError, ValueError):
         single_quoted = re.findall(r"'([^']+)'", value)
         double_quoted = re.findall(r'"([^"]+)"', value)
-        return _unique_nonempty_values([*single_quoted, *double_quoted])
+        return unique_nonempty_values([*single_quoted, *double_quoted])
     if not isinstance(parsed, list):
         return []
-    return _unique_nonempty_values([str(item) for item in parsed if isinstance(item, str)])
+    return unique_nonempty_values([str(item) for item in parsed if isinstance(item, str)])
 
 
 def _invalid_alias_axis(invalid_alias: str, config: dict[str, Any]) -> str:
@@ -637,12 +599,12 @@ def _runtime_alias_siblings(current_alias: str, valid_names: list[str]) -> list[
             and _is_exact_scene_planner_alias(name)
         ):
             siblings.append(name)
-    return _unique_nonempty_values(siblings)
+    return unique_nonempty_values(siblings)
 
 
-def _planner_arg(args: Any, key: str) -> str:
+def planner_arg(args: Any, key: str) -> str:
     return str(args.get(key) or "") if isinstance(args, dict) else ""
 
 
-def _unique_nonempty_values(values: list[str]) -> list[str]:
+def unique_nonempty_values(values: list[str]) -> list[str]:
     return list(dict.fromkeys(str(value) for value in values if str(value)))

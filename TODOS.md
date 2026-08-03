@@ -60,9 +60,9 @@ Each entry should answer:
   - Why: Multi-agent coding-agent runs could expose lock, context, state
     isolation, shared simulation, and scoring problems that single-agent live
     routes hide.
-  - Next action: Write a small design packet that builds on `LiveAgentRuntime`
-    and future eval-suite repetition semantics instead of adding another launch
-    path.
+  - Next action: Write a small design packet that builds on the existing
+    `LiveAgentRequest` / `LiveAgentResult` contract and future eval-suite
+    repetition semantics instead of adding another launch path.
   - Evidence:
     `docs/plans/live-agent-runtime-sdk-spike.md`;
     `roboclaws/agents/live_runtime.py`;

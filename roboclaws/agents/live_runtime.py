@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Mapping, Protocol
+from typing import Any, Mapping
 
 from roboclaws.agents.live_status import LiveAgentFailure
 from roboclaws.core.json_sources import json_source_type_name, read_json_object
@@ -164,15 +164,6 @@ class LiveAgentResult:
             if value:
                 payload[key] = value
         return payload
-
-
-class LiveAgentRuntime(Protocol):
-    """Runtime interface for one live-agent turn."""
-
-    runtime_name: str
-
-    def run(self, request: LiveAgentRequest) -> LiveAgentResult:
-        """Run one live-agent request and return normalized launcher status."""
 
 
 def live_agent_result_from_artifacts(

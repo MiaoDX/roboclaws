@@ -7,9 +7,6 @@ from typing import Any
 
 from roboclaws.core.json_sources import read_json_value
 from roboclaws.household.planner_proof_contracts import PLANNER_PROOF_RESULT_SUMMARY_SCHEMA
-from roboclaws.household.planner_proof_fallbacks import (
-    prior_fallback_candidate_filters_by_source_request,
-)
 from roboclaws.household.planner_proof_quality import (
     planner_proof_quality_evidence,
     planner_proof_quality_summary,
@@ -21,9 +18,6 @@ from roboclaws.household.planner_task_feasibility import (
     task_feasibility_blocker_summary,
 )
 
-_prior_fallback_candidate_filters_by_source_request = (
-    prior_fallback_candidate_filters_by_source_request
-)
 _FALLBACK_REQUEST_ID_MARKER = "_fallback_"
 _RUNTIME_ALIAS_RE = re.compile(r"^(?P<prefix>.+)_(?P<group>\d+)_(?P<variant>\d+)_(?P<room>\d+)$")
 

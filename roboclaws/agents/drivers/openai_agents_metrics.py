@@ -4,12 +4,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-from roboclaws.agents.drivers.openai_agents_metric_math import (
-    continuation_attempt_count as _continuation_attempt_count,
-)
-from roboclaws.agents.drivers.openai_agents_metric_math import (
-    estimated_tokens_from_chars as _estimated_tokens_from_chars,
-)
 from roboclaws.agents.drivers.openai_agents_metric_sources import (
     read_openai_agents_jsonl_source,
 )
@@ -33,6 +27,23 @@ MODEL_INPUT_SUM_FIELDS = tuple(
     camera_grounded_history_bytes_after camera_grounded_history_bytes_reduced
     """.split()
 )
+
+
+def _estimated_tokens_from_chars(char_count: int) -> int:
+    if char_count <= 0:
+        return 0
+    return max(1, round(char_count / 4))
+
+
+def _continuation_attempt_count(timing: dict[str, Any]) -> int:
+    attempts = timing.get("openai_agents_attempts")
+    if not isinstance(attempts, list):
+        return 0
+    return sum(
+        1
+        for attempt in attempts
+        if isinstance(attempt, dict) and int(attempt.get("attempt_index") or 0) > 0
+    )
 
 
 def openai_agents_context_metrics(run_dir: Path, timing: dict[str, Any]) -> dict[str, Any]:

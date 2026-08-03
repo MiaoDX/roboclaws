@@ -15,7 +15,24 @@ from roboclaws.maps.preview import (
     TOPDOWN_SCENE_RENDER_ROLE,
 )
 from roboclaws.operator_console.grounding_assets import grounding_frames_payload
-from roboclaws.operator_console.state_presentation import _artifact_href
+
+LIVE_RUN_MARKERS = (
+    "live_status.json",
+    "run_result.json",
+    "trace.jsonl",
+    "report.html",
+    "runtime_metric_map.json",
+    "tmux_session.txt",
+    "driver.log",
+    "openai-agents-events.jsonl",
+    "openai-agents-trace.json",
+)
+
+
+def _artifact_href(root: Path, path: Path) -> str:
+    if not path.is_relative_to(root):
+        return ""
+    return f"/artifacts/{path.relative_to(root)}?v={path.stat().st_mtime_ns}"
 
 
 @dataclass(frozen=True)

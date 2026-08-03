@@ -8,26 +8,14 @@ from roboclaws.household.planner_proof_contracts import (
     PLANNER_PROOF_REQUEST_FALLBACK_GENERATION_SCHEMA,
 )
 from roboclaws.household.planner_proof_fallbacks import (
-    discovered_alias_values as _discovered_alias_values,
-)
-from roboclaws.household.planner_proof_fallbacks import (
-    planner_arg as _planner_arg,
-)
-from roboclaws.household.planner_proof_fallbacks import (
-    prior_fallback_candidate_filters_by_source_request,
-)
-from roboclaws.household.planner_proof_fallbacks import (
-    prior_pair_filter_lookup as _prior_pair_filter_lookup,
-)
-from roboclaws.household.planner_proof_fallbacks import (
-    unique_nonempty_values as _unique_nonempty_values,
+    discovered_alias_values,
+    nonempty_prior_blocker_fields,
+    planner_arg,
+    prior_pair_filter_lookup,
+    unique_nonempty_values,
 )
 from roboclaws.household.planner_proof_results import normalized_blockers
-from roboclaws.household.planner_proof_selection_evidence import prior_result_blocker_fields
 
-_prior_fallback_candidate_filters_by_source_request = (
-    prior_fallback_candidate_filters_by_source_request
-)
 _FALLBACK_REQUEST_ID_MARKER = "_fallback_"
 _RUNTIME_ALIAS_RE = re.compile(r"^(?P<prefix>.+)_(?P<group>\d+)_(?P<variant>\d+)_(?P<room>\d+)$")
 
@@ -226,8 +214,8 @@ def build_fallback_requests_for_blocked_request(
             "normalized_aliases": [],
         }
     args = request.get("planner_probe_args") or {}
-    current_object_alias = _planner_arg(args, "--cleanup-planner-object-id")
-    current_target_alias = _planner_arg(args, "--cleanup-planner-target-receptacle-id")
+    current_object_alias = planner_arg(args, "--cleanup-planner-object-id")
+    current_target_alias = planner_arg(args, "--cleanup-planner-target-receptacle-id")
     discovered = discovered_aliases or {}
     prior_filters = prior_candidate_filters or {}
     prior_alias_filters = prior_filters.get("aliases") if isinstance(prior_filters, dict) else {}
@@ -242,7 +230,7 @@ def build_fallback_requests_for_blocked_request(
         axis="object",
         candidate_key="candidate_pickup_names",
         current_alias=current_object_alias,
-        extra_aliases=_discovered_alias_values(discovered, "object"),
+        extra_aliases=discovered_alias_values(discovered, "object"),
         prior_filtered_aliases=prior_alias_filters.get("object", {}),
     )
     (
@@ -254,7 +242,7 @@ def build_fallback_requests_for_blocked_request(
         axis="target",
         candidate_key="candidate_place_receptacle_names",
         current_alias=current_target_alias,
-        extra_aliases=_discovered_alias_values(discovered, "target"),
+        extra_aliases=discovered_alias_values(discovered, "target"),
         prior_filtered_aliases=prior_alias_filters.get("target", {}),
     )
     filtered_aliases = [
@@ -269,7 +257,7 @@ def build_fallback_requests_for_blocked_request(
         *discovered.get("object", []),
         *discovered.get("target", []),
     ]
-    prior_pair_filters = _prior_pair_filter_lookup(prior_filters)
+    prior_pair_filters = prior_pair_filter_lookup(prior_filters)
     filtered_pairs = []
     seen_filtered_pairs: set[tuple[str, str]] = set()
     generated: list[dict[str, Any]] = []
@@ -340,7 +328,12 @@ def _fallback_request_with_planner_aliases(
         "prior_blockers": normalized_blockers(prior_result.get("blockers") or []),
         "agent_view_exposed": False,
     }
-    fallback["fallback_request"].update(prior_result_blocker_fields(prior_result))
+    fallback["fallback_request"].update(
+        nonempty_prior_blocker_fields(
+            prior_result.get("task_feasibility_blocker_kind"),
+            prior_result.get("task_feasibility_blocker_summary"),
+        )
+    )
     if prior_result_match_kind:
         fallback["fallback_request"]["prior_result_match_kind"] = prior_result_match_kind
     args = dict(fallback.get("planner_probe_args") or {})
@@ -376,7 +369,7 @@ def _candidate_aliases(
         values.extend(str(item) for item in binding.get(candidate_key) or [])
     if isinstance(backend_binding, dict):
         values.extend(str(item) for item in backend_binding.get(candidate_key) or [])
-    return _unique_nonempty_values(values)
+    return unique_nonempty_values(values)
 
 
 def _executable_candidate_aliases(
@@ -389,7 +382,7 @@ def _executable_candidate_aliases(
     prior_filtered_aliases: dict[str, dict[str, Any]] | None = None,
 ) -> tuple[list[str], list[dict[str, Any]], list[dict[str, Any]]]:
     source_request_id = str(request.get("request_id") or "")
-    candidates = _unique_nonempty_values(
+    candidates = unique_nonempty_values(
         [
             *_candidate_aliases(
                 request,
