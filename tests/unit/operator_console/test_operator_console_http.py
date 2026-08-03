@@ -210,7 +210,7 @@ def test_prompt_preview_uses_valid_openai_agents_numeric_env_overrides() -> None
 
     assert "Raw-FPV candidate-attempt budget=3" in payload["agent_kickoff_prompt"]
     assert "Per-waypoint observation budget=2" in payload["agent_kickoff_prompt"]
-    assert "Done retry budget=0" in payload["agent_kickoff_prompt"]
+    assert "Done retry budget" not in payload["agent_kickoff_prompt"]
 
 
 def test_prompt_preview_keeps_existing_prompt_minimums_for_zero_budget_env() -> None:

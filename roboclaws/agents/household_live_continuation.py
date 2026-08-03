@@ -29,14 +29,14 @@ from roboclaws.agents.prompts.household_cleanup import (
     render_kickoff_prompt,
     render_map_build_prompt,
 )
+from roboclaws.core.completion_snapshot import (
+    COMPLETION_SNAPSHOT_SCHEMA,
+    completion_snapshot_digest,
+)
 from roboclaws.core.json_sources import read_json_value, read_jsonl_objects
 from roboclaws.core.operator_messages import consume_resume_request_for_runner
 from roboclaws.core.raw_fpv_guidance import raw_fpv_edge_reframe_instruction
 from roboclaws.core.task_intents import household_intent_from_args as _household_intent
-from roboclaws.household.realworld_done_readiness import (
-    COMPLETION_SNAPSHOT_SCHEMA,
-    completion_snapshot_digest,
-)
 
 DEFAULT_INCOMPLETE_TURN_CONTINUATION_PROMPT = """
 Continuation recovery for the same live household cleanup run:

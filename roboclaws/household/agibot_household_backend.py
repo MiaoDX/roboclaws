@@ -4,6 +4,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+from roboclaws.core.task_intents import HOUSEHOLD_INTENT_MAP_BUILD
 from roboclaws.household.agibot_household_evidence import AgibotHouseholdEvidence
 from roboclaws.household.agibot_household_projection import AgibotHouseholdProjection
 from roboclaws.household.agibot_sdk_contract import (
@@ -118,6 +119,23 @@ class AgibotHouseholdBackend(AgibotHouseholdProjection, AgibotHouseholdEvidence)
             "close_receptacle",
             "done",
         ]
+
+    def evaluate_done_readiness(
+        self,
+        *,
+        semantic_cleanup_evidence: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        del semantic_cleanup_evidence
+        return {
+            "schema": "done_readiness_v1",
+            "status": "ready",
+            "blockers": [],
+            "policy_uses_private_truth": False,
+            "task_intent": HOUSEHOLD_INTENT_MAP_BUILD,
+            "public_contract_note": (
+                "Agibot map-build completion uses public runtime map evidence only."
+            ),
+        }
 
     def public_receptacles_by_id(self) -> dict[str, dict[str, Any]]:
         fixtures = {}

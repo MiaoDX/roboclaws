@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import hashlib
-import json
 import math
 from collections.abc import Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any
@@ -9,6 +7,10 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from roboclaws.household.household_runtime_contract import HouseholdRuntimeContract
 
+from roboclaws.core.completion_snapshot import (
+    COMPLETION_SNAPSHOT_SCHEMA,
+    completion_snapshot_digest,
+)
 from roboclaws.core.map_build_scan_profile import map_build_scan_profile
 from roboclaws.core.task_intents import (
     HOUSEHOLD_INTENT_MAP_BUILD,
@@ -35,7 +37,6 @@ from roboclaws.household.visual_scan_guidance import visual_scan_done_recovery_h
 
 DONE_READINESS_POLICY_RAW_FPV = "raw_fpv_grounded_cleanup_chains"
 DONE_READINESS_POLICY_EXPLICIT = "explicit_grounded_cleanup_chains"
-COMPLETION_SNAPSHOT_SCHEMA = "household_completion_snapshot_v1"
 
 
 _required_tool_for_candidate_state = realworld_visual_candidates._required_tool_for_candidate_state
@@ -311,17 +312,6 @@ def completion_snapshot(
     }
     snapshot["digest"] = completion_snapshot_digest(snapshot)
     return snapshot
-
-
-def completion_snapshot_digest(snapshot: Mapping[str, Any]) -> str:
-    unsigned = {key: value for key, value in snapshot.items() if key != "digest"}
-    encoded = json.dumps(
-        unsigned,
-        ensure_ascii=False,
-        separators=(",", ":"),
-        sort_keys=True,
-    ).encode("utf-8")
-    return "sha256:" + hashlib.sha256(encoded).hexdigest()
 
 
 def attach_completion_snapshot(
