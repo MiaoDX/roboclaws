@@ -1,6 +1,6 @@
 ---
 plan_scope: agent-skill-delivery-eval
-status: IN_PROGRESS
+status: DONE_INCONCLUSIVE_SELECTION
 source:
   - 2026-08-03 cleanup live failure investigation
   - 2026-08-03 agent skill delivery discussion
@@ -18,28 +18,43 @@ confounded.
 
 ## Current State
 
-- Phase 1 deterministic implementation is complete in the current worktree:
-  checker failures fail closed; `done` is terminal and idempotent; Agent View,
-  responses, and trace share a versioned completion snapshot; SDK continuation
-  validates and carries only that snapshot; waypoint identity is preserved; and
-  stale `done`-recovery guidance is removed. The fresh `static-full` live proof
-  remains the Phase 1 stop gate before the comparison matrix runs.
-- Phase 2 deterministic delivery support is complete: the eval harness freezes
-  five explicit cells; `static-full` remains the default; `dynamic-full` uses a
-  byte-identical SDK instructions callback; routed and no-Skill content are
-  isolated; per-call and run artifacts record delivery identity; and the
-  installed SDK's missing official `SandboxAgent`/`Skills` APIs produce a
-  fail-closed blocked sandbox row without a substitute.
-- The invalid `20260803T023049Z` baseline remains unpublished. Its checker/eval
-  integrity failure has a fail-closed fix in the current uncommitted worktree.
-- The fresh cleanup live failure used `world-public-labels`. Repeated rejected
-  `done` calls exposed an actionable-candidate recovery loop rather than a
-  wall-clock shortage.
-- The current live runtime reads the complete `skills/household-world/SKILL.md`
-  body and concatenates it into a plain `Agent.instructions` string. The Skill
-  is delivered and behaviorally visible, but helper scripts are not callable.
-- The public robot MCP surface remains atomic. No promoted object-transport
-  composite is accepted by this plan.
+- Implementation and deterministic verification are complete in commits
+  `2e0b1010`, `4a079fae`, `def64bd0`, and `dcd803c3`. Checker failures fail
+  closed; `done` is terminal and idempotent; Agent View, responses, trace, and
+  SDK continuation share one versioned completion snapshot; waypoint identity
+  is preserved; and five frozen delivery cells record their effective identity.
+- The fresh `static-full` Phase 1 gate at
+  `output/eval-harness/20260803T122000Z/` is accepted 3/3 with complete terminal
+  evidence and zero lifecycle, policy, privacy, checker, or provider failures.
+- The remaining primary matrix at
+  `output/eval-harness/20260803T124500Z/` is terminal and accepted. `no-skill`,
+  `dynamic-full`, and `dynamic-routed` each passed 3/3 with five restored and
+  accepted targets, zero pending work, and one terminal `done` in every trial.
+  `dynamic-full` used one classified infrastructure retry after preemption;
+  `dynamic-routed` used none.
+- Selection is intentionally inconclusive. `dynamic-full` did not reduce work
+  versus byte-identical `static-full`. `dynamic-routed` reduced model/tool calls
+  versus `dynamic-full` in only one of three paired trials, despite a better
+  median, so it missed the required two-of-three directional-reduction gate.
+  The no-Skill result remains descriptive, and the installed SDK's missing
+  official `SandboxAgent`/`Skills` APIs keep `sandbox-skills` blocked without a
+  substitute.
+- Per the experiment stop gate, no candidate is selected, camera-grounded
+  confirmation was not launched, the static delivery default is unchanged, and
+  no durable baseline or catalog artifact is published. A new cost/scope review
+  is required before adding trials, scenes, providers, or a full DINO matrix.
+- The invalid `20260803T023049Z` baseline remains retained as evidence and
+  unpublished. The public robot MCP surface remains atomic.
+
+### Primary Matrix Result
+
+| Cell | Pass^3 | Model calls by repetition | Tool calls by repetition | Median model/tool calls | Decision |
+| --- | ---: | --- | --- | --- | --- |
+| `no-skill` | 1 | 71, 71, 70 | 70, 70, 69 | 71 / 70 | Descriptive only |
+| `static-full` | 1 | 73, 70, 73 | 72, 69, 72 | 73 / 72 | Retain current default |
+| `dynamic-full` | 1 | 79, 75, 70 | 78, 74, 69 | 75 / 74 | Ineligible; callback alone did not reduce work |
+| `dynamic-routed` | 1 | 73, 76, 71 | 72, 75, 70 | 73 / 72 | Ineligible; only 1/3 paired reductions versus `dynamic-full` |
+| `sandbox-skills` | blocked | n/a | n/a | n/a | SDK capability unavailable; no substitute permitted |
 
 ## Scope
 

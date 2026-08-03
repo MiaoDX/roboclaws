@@ -10,34 +10,26 @@ leave a link.
 
 ## Current Focus
 
-The latest hybrid eval candidate at `output/eval-harness/20260803T023049Z/`
-mechanically reports all 25 selected rows passed with no provider failures,
-blocked rows, infrastructure retries, or regressions. CloudML executed and
-collected 20 isolated rows while 5 external-provider rows ran locally, reaching
-8-way peak concurrency and 2.282x observed execution speedup.
+The agent Skill delivery evaluation is complete with an intentionally
+inconclusive selection. The repaired `static-full` Phase 1 gate at
+`output/eval-harness/20260803T122000Z/` and the remaining primary matrix at
+`output/eval-harness/20260803T124500Z/` produced accepted 3/3 results for all
+four comparable cells with complete terminal evidence and no behavior,
+provider, checker, policy, or privacy failures.
 
-The candidate has an integrity blocker: all three underlying product runs for
-`openai-agents-sdk-cleanup-live-eval` ended with `live_status.phase="failed"`
-because the product checker received the eval-only
-`--require-advisory-scoring` flag. The artifact grader nevertheless marked the
-row passed. Product-checker replay after fixing the ownership mismatch accepts
-one run and rejects two for real agent-behavior failures, so the reported 3/3
-pass result is invalid. See
-`output/eval-harness/20260803T023049Z/cloudml-ops/integrity-review.md`.
-This run is retained as evidence but is not an accepted durable baseline;
-publication remains unauthorized.
+No alternative met the promotion rule. `dynamic-full` increased median work
+versus byte-identical `static-full`; `dynamic-routed` improved over
+`dynamic-full` in only one of three paired trials, below the required two of
+three. The official sandbox route remains blocked because `openai-agents 0.17.4`
+does not export `SandboxAgent` or `Skills`. The static delivery default remains
+unchanged, camera-grounded confirmation was not launched under the plan's
+inconclusive stop gate, and no durable baseline/catalog artifact was published.
+See `docs/plans/2026-08-03-agent-skill-delivery-eval.md`.
 
-The checker/eval boundary now fails closed: product checker nonzero exits are
-eval failures, advisory scoring remains eval-owned, smoke checker policy uses
-the smoke preset, and no artifact recovery bypasses a failed product command.
-
-The agent Skill delivery implementation is deterministic-complete, including
-terminal completion snapshots and five frozen delivery cells. Its fresh
-CloudML `static-full` stop gate is not accepted: the internal Responses route
-probe passed, one live attempt was preempted, and the allowed retry exited 2
-without an accepted 3/3 row result. Attempt-isolated packaging also omitted the
-row result because the scoped manifest retained the original shard output path.
-See `docs/status/active/agent-skill-delivery-eval.md`.
+The invalid hybrid candidate at `output/eval-harness/20260803T023049Z/` remains
+retained as evidence and unpublished. Its checker/eval ownership regression is
+fixed: product checker failures now fail closed, `done` is terminal, and one
+canonical completion snapshot is shared across runtime evidence surfaces.
 
 The active product shape is:
 
@@ -72,17 +64,17 @@ providers.
 
 ## Next Action
 
-Repair attempt-aware CloudML scoped-manifest output paths, freeze a new run,
-and rerun only the three-trial `static-full` stop gate. Do not run the remaining
-delivery matrix or publish durable baseline/catalog artifacts until that gate
-passes and the candidate receives human confirmation.
+Keep static Skill delivery as the product default. Any renewed delivery-mode
+selection needs a reviewed experiment expansion because the bounded primary
+matrix was inconclusive; do not add trials, providers, scenes, or a DINO matrix
+without that review.
 
 ## Current Blockers
 
-- Eval baseline publication is blocked until a new full candidate replaces the
-  invalid `20260803T023049Z` evidence.
-- Agent Skill delivery comparison is blocked at Phase 1 because the fresh
-  `static-full` CloudML proof did not produce accepted 3/3 terminal evidence.
+- Eval baseline publication remains blocked until a new full candidate replaces
+  the invalid `20260803T023049Z` evidence and receives human confirmation.
+- Agent Skill delivery promotion is inconclusive under the approved bounded
+  matrix; further evidence requires a new cost/scope decision.
 - Agibot and B1 injected dependency readiness passes with the existing local SDK, Map 12 bundle,
   B1 scene, and alignment/navigation proofs. Real-robot movement remains unauthorized and requires
   a present operator plus the existing localization, run-enablement, and E-stop gates.
