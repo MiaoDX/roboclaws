@@ -68,6 +68,24 @@ def test_delivery_cells_are_closed() -> None:
         validate_skill_delivery_cell("broader-shell")
 
 
+def test_non_sandbox_delivery_does_not_probe_sandbox_runtime(monkeypatch) -> None:
+    probes: list[bool] = []
+
+    def readiness(*, probe_runtime: bool = True) -> dict[str, object]:
+        probes.append(probe_runtime)
+        return {"network": "disabled", "status": "not_requested"}
+
+    monkeypatch.setattr("roboclaws.agents.skill_delivery.sandbox_readiness", readiness)
+    build_skill_delivery(
+        "static-full",
+        full_content=SKILL,
+        intent="cleanup",
+        evidence_lane="world-public-labels",
+    )
+
+    assert probes == [False]
+
+
 def test_dynamic_full_is_byte_identical_to_static_full(tmp_path: Path) -> None:
     static = build_skill_delivery(
         "static-full", full_content=SKILL, intent="cleanup", evidence_lane="world-public-labels"
@@ -129,13 +147,52 @@ def test_delivery_artifact_records_identity_events_tools_and_sandbox(tmp_path: P
     assert payload["sandbox_posture"]["network"] == "disabled"
 
 
-def test_installed_sdk_sandbox_is_fail_closed() -> None:
+def test_installed_sdk_sandbox_uses_official_imports_and_fails_closed() -> None:
     posture = sandbox_readiness()
-    assert posture["status"] == "blocked"
-    assert posture["capabilities"] == []
+    assert posture["imports"] == {
+        "agents.sandbox.SandboxAgent": True,
+        "agents.sandbox.capabilities.Skills": True,
+    }
+    assert posture["sdk_version"] == "0.19.2"
+    assert posture["status"] in {"ready", "blocked"}
+    assert posture["reason"] in {
+        "supported_exact_contract",
+        "sdk_missing_docker_extra",
+        "docker_daemon_unavailable",
+        "sandbox_image_unavailable",
+    }
     assert posture["shell"] == "disabled"
+    assert posture["default_capabilities"] == "disabled"
     assert posture["mounts"] == []
+    if posture["status"] == "ready":
+        assert posture["workspace_entries"] == [".agents/household-world"]
     assert {"repository", "run_outputs", "credentials"} <= set(posture["forbidden_access"])
+
+
+def test_sandbox_delivery_keeps_body_out_of_agent_instructions() -> None:
+    delivery = build_skill_delivery(
+        "sandbox-skills",
+        full_content=SKILL,
+        intent="cleanup",
+        evidence_lane="world-public-labels",
+    )
+    assert delivery.content == SKILL
+    assert delivery.instructions("kickoff") == "kickoff"
+    artifact = delivery.artifact(tool_surface=["metric_map", "done"])
+    assert artifact["delivery"] == "sandbox_skills"
+    assert artifact["included_bytes"] == len(SKILL.encode())
+    assert artifact["model_visible_tool_surface"] == [
+        "metric_map",
+        "done",
+        "read_selected_skill",
+    ]
+    assert artifact["events"] == [
+        {
+            "event": "sandbox_skill_bundle_configured",
+            "skill": "household-world",
+            "content_sha256": artifact["content_sha256"],
+        }
+    ]
 
 
 def test_model_call_delivery_fields_capture_effective_instructions_and_tools() -> None:

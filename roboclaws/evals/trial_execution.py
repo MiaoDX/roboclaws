@@ -120,11 +120,13 @@ def _run_trial(
 ) -> EvalResult:
     run_dir.mkdir(parents=True, exist_ok=True)
     if agent_engine != "direct-runner":
-        if skill_delivery_cell == "sandbox-skills" and sandbox_readiness()["status"] != "ready":
-            return blocked_result_from_exception(
-                trial,
-                RuntimeError("sandbox-skills unavailable: sdk_missing_sandbox_agent_or_skills"),
-            )
+        if skill_delivery_cell == "sandbox-skills":
+            posture = sandbox_readiness()
+            if posture["status"] != "ready":
+                return blocked_result_from_exception(
+                    trial,
+                    RuntimeError(f"sandbox-skills unavailable: {posture['reason']}"),
+                )
         if regrade_source_dir is not None:
             return _regrade_live_eval_trial(
                 sample=sample,

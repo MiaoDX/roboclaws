@@ -10,8 +10,8 @@ leave a link.
 
 ## Current Focus
 
-The agent Skill delivery evaluation is complete with an intentionally
-inconclusive selection. The repaired `static-full` Phase 1 gate at
+The agent Skill delivery evaluation is complete and `static-full` is retained
+as the product default. The repaired `static-full` Phase 1 gate at
 `output/eval-harness/20260803T122000Z/` and the remaining primary matrix at
 `output/eval-harness/20260803T124500Z/` produced accepted 3/3 results for all
 four comparable cells with complete terminal evidence and no behavior,
@@ -20,11 +20,14 @@ provider, checker, policy, or privacy failures.
 No alternative met the promotion rule. `dynamic-full` increased median work
 versus byte-identical `static-full`; `dynamic-routed` improved over
 `dynamic-full` in only one of three paired trials, below the required two of
-three. The official sandbox route remains blocked because `openai-agents 0.17.4`
-does not export `SandboxAgent` or `Skills`. The static delivery default remains
-unchanged, camera-grounded confirmation was not launched under the plan's
-inconclusive stop gate, and no durable baseline/catalog artifact was published.
-See `docs/plans/2026-08-03-agent-skill-delivery-eval.md`.
+three. The previous Sandbox SDK blocker was incorrect: the repo now uses
+`openai-agents 0.19.2`, with official `SandboxAgent` and `Skills` imports. A
+restricted local Docker isolation probe passed, but the original CloudML
+placement remains live-blocked because worker preflight task
+`t-20260803234853-lae53` has no Docker socket, CLI, or daemon. Sandbox delivery
+remains exploratory and eval-only; camera-grounded confirmation was not
+launched and no durable baseline/catalog artifact was published. See
+`docs/plans/2026-08-03-agent-skill-delivery-eval.md`.
 
 The invalid hybrid candidate at `output/eval-harness/20260803T023049Z/` remains
 retained as evidence and unpublished. Its checker/eval ownership regression is
@@ -73,8 +76,9 @@ without that review.
 
 - Eval baseline publication remains blocked until a new full candidate replaces
   the invalid `20260803T023049Z` evidence and receives human confirmation.
-- Agent Skill delivery promotion is inconclusive under the approved bounded
-  matrix; further evidence requires a new cost/scope decision.
+- A live Sandbox Skill row is blocked on the current CloudML worker because it
+  lacks a Docker runtime. Enabling a different sandbox backend or worker image
+  is a new runtime/cost decision.
 - Agibot and B1 injected dependency readiness passes with the existing local SDK, Map 12 bundle,
   B1 scene, and alignment/navigation proofs. Real-robot movement remains unauthorized and requires
   a present operator plus the existing localization, run-enablement, and E-stop gates.

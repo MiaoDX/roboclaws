@@ -72,6 +72,7 @@ def _load_agent_sdk_skill_context(
         "truncated": len(raw) > len(truncated),
         "estimated_tokens": _estimated_tokens_from_chars(len(text)),
         "content": delivery.content,
+        "delivery_content_sha256": hashlib.sha256(delivery.content.encode("utf-8")).hexdigest(),
         "delivery": delivery,
         "delivery_cell": delivery_cell,
     }
@@ -97,6 +98,7 @@ def _skill_context_timing_summary(skill_context: dict[str, Any]) -> dict[str, An
             "estimated_tokens",
             "error_type",
             "delivery_cell",
+            "delivery_content_sha256",
         }
     }
 

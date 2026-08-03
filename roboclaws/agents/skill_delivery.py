@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import importlib.metadata
 import json
+import os
 from dataclasses import dataclass
 from typing import Any, Callable
 
@@ -33,30 +34,101 @@ def sdk_version() -> str:
         return "unavailable"
 
 
-def sandbox_readiness() -> dict[str, Any]:
-    version = sdk_version()
+def _docker_sandbox_runtime(image: str) -> tuple[bool, bool, bool]:
     try:
-        import agents  # type: ignore[import-not-found]
+        import docker  # type: ignore[import-not-found]
     except ImportError:
-        agents = None
-    exports = {
-        name: bool(agents is not None and getattr(agents, name, None) is not None)
-        for name in ("SandboxAgent", "Skills")
-    }
-    supported = all(exports.values())
+        return False, False, False
+
+    client = None
+    try:
+        client = docker.from_env()
+        if not client.ping():
+            return True, False, False
+        try:
+            client.images.get(image)
+        except docker.errors.ImageNotFound:
+            return True, True, False
+        return True, True, True
+    except Exception:
+        return True, False, False
+    finally:
+        if client is not None:
+            try:
+                client.close()
+            except Exception:
+                pass
+
+
+def sandbox_readiness(*, probe_runtime: bool = True) -> dict[str, Any]:
+    version = sdk_version()
+    if not probe_runtime:
+        return {
+            "schema": "agent_sdk_sandbox_posture_v1",
+            "status": "not_requested",
+            "reason": "delivery_cell_not_sandbox",
+            "sdk_version": version,
+            "imports": {},
+            "backend": "docker_network_disabled_adapter",
+            "image": "",
+            "docker_dependency": False,
+            "docker_daemon": False,
+            "image_available": False,
+            "network": "disabled",
+            "capabilities": [],
+            "shell": "disabled",
+            "default_capabilities": "disabled",
+            "mounts": [],
+            "workspace_entries": [],
+            "forbidden_access": [
+                "credentials",
+                "host_files",
+                "private_evaluation",
+                "repository",
+                "run_outputs",
+            ],
+        }
+    imports: dict[str, bool] = {}
+    try:
+        from agents.sandbox import SandboxAgent  # type: ignore[import-not-found]
+        from agents.sandbox.capabilities import Skills  # type: ignore[import-not-found]
+    except ImportError:
+        SandboxAgent = None
+        Skills = None
+    imports["agents.sandbox.SandboxAgent"] = SandboxAgent is not None
+    imports["agents.sandbox.capabilities.Skills"] = Skills is not None
+
+    image = os.environ.get("ROBOCLAWS_SANDBOX_SKILL_IMAGE") or "python:3.12-slim"
+    docker_dependency, docker_daemon, image_available = _docker_sandbox_runtime(image)
+
+    supported = all(imports.values()) and docker_dependency and docker_daemon and image_available
+    if not all(imports.values()):
+        reason = "sdk_missing_sandbox_agent_or_skills"
+    elif not docker_dependency:
+        reason = "sdk_missing_docker_extra"
+    elif not docker_daemon:
+        reason = "docker_daemon_unavailable"
+    elif not image_available:
+        reason = "sandbox_image_unavailable"
+    else:
+        reason = "supported_exact_contract"
     return {
         "schema": "agent_sdk_sandbox_posture_v1",
         "status": "ready" if supported else "blocked",
-        "reason": "supported_exact_contract"
-        if supported
-        else "sdk_missing_sandbox_agent_or_skills",
+        "reason": reason,
         "sdk_version": version,
-        "exports": exports,
+        "imports": imports,
+        "backend": "docker_network_disabled_adapter",
+        "image": image,
+        "docker_dependency": docker_dependency,
+        "docker_daemon": docker_daemon,
+        "image_available": image_available,
         "network": "disabled",
-        "capabilities": ["skills.read_selected_bundle"] if supported else [],
+        "capabilities": ["skills", "skills.read_selected_bundle"] if supported else [],
         "shell": "disabled",
         "default_capabilities": "disabled",
-        "mounts": ["selected_skill_bundle"] if supported else [],
+        "mounts": [],
+        "workspace_entries": [".agents/household-world"] if supported else [],
         "forbidden_access": [
             "credentials",
             "host_files",
@@ -116,6 +188,8 @@ class SkillDelivery:
     sandbox_posture: dict[str, Any]
 
     def instructions(self, kickoff_prompt: str) -> str | Callable[..., str]:
+        if self.cell == "sandbox-skills":
+            return kickoff_prompt
         rendered = render_instructions(self.content, kickoff_prompt)
         if not self.dynamic:
             return rendered
@@ -134,16 +208,25 @@ class SkillDelivery:
 
     def artifact(self, *, tool_surface: list[str] | tuple[str, ...] = ()) -> dict[str, Any]:
         rendered_bytes = len(self.content.encode("utf-8"))
+        visible_tools = list(tool_surface)
+        if self.cell == "sandbox-skills":
+            visible_tools.append("read_selected_skill")
         return {
             "schema": "openai_agents_skill_delivery_v1",
             "requested_cell": self.cell,
-            "delivery": "dynamic_callback" if self.dynamic else "static_string",
+            "delivery": (
+                "sandbox_skills"
+                if self.cell == "sandbox-skills"
+                else "dynamic_callback"
+                if self.dynamic
+                else "static_string"
+            ),
             "content_sha256": _sha256(self.content),
             "index_sha256": _sha256(self.index_content),
             "included_bytes": rendered_bytes,
             "estimated_tokens": max(1, round(len(self.content) / 4)) if self.content else 0,
             "events": list(self.events),
-            "model_visible_tool_surface": list(tool_surface),
+            "model_visible_tool_surface": list(dict.fromkeys(visible_tools)),
             "sdk_version": sdk_version(),
             "sandbox_posture": self.sandbox_posture,
         }
@@ -157,9 +240,7 @@ def build_skill_delivery(
     evidence_lane: str,
 ) -> SkillDelivery:
     cell = validate_skill_delivery_cell(cell)
-    posture = sandbox_readiness()
-    if cell == "sandbox-skills":
-        return SkillDelivery(cell, "", "", False, [], posture)
+    posture = sandbox_readiness(probe_runtime=cell == "sandbox-skills")
     if cell == "no-skill":
         return SkillDelivery(cell, "", "", False, [], posture)
     content = (
@@ -172,7 +253,18 @@ def build_skill_delivery(
         sort_keys=True,
         separators=(",", ":"),
     )
-    return SkillDelivery(cell, content, index, cell.startswith("dynamic-"), [], posture)
+    events = (
+        [
+            {
+                "event": "sandbox_skill_bundle_configured",
+                "skill": "household-world",
+                "content_sha256": _sha256(content),
+            }
+        ]
+        if cell == "sandbox-skills"
+        else []
+    )
+    return SkillDelivery(cell, content, index, cell.startswith("dynamic-"), events, posture)
 
 
 def render_instructions(content: str, kickoff_prompt: str) -> str:

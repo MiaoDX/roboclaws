@@ -7,7 +7,10 @@ from pathlib import Path
 import pytest
 
 from roboclaws.agents.drivers.openai_agents_live import OpenAIAgentsLiveRuntime
-from roboclaws.agents.household_live_config import _load_agent_sdk_skill_context
+from roboclaws.agents.household_live_config import (
+    MAX_AGENT_SDK_SKILL_CONTEXT_BYTES,
+    _load_agent_sdk_skill_context,
+)
 from roboclaws.agents.household_live_continuation import IncompleteTurnRecoveryPolicy
 from roboclaws.agents.live_runtime import (
     LiveAgentMCPServer,
@@ -274,6 +277,22 @@ def test_agent_sdk_skill_context_loader_reports_missing_source(tmp_path: Path) -
     assert context["reason"] == "source_unavailable"
     assert context["relative_path"] == "skills/household-world/SKILL.md"
     assert "content" not in context
+
+
+def test_agent_sdk_skill_context_records_digest_of_truncated_delivery(tmp_path: Path) -> None:
+    skill_path = tmp_path / "repo" / "skills" / "household-world" / "SKILL.md"
+    skill_path.parent.mkdir(parents=True)
+    skill_path.write_text("# Household World\n" + "x" * MAX_AGENT_SDK_SKILL_CONTEXT_BYTES)
+
+    context = _load_agent_sdk_skill_context(
+        tmp_path / "repo",
+        skill_name="household-world",
+        delivery_cell="sandbox-skills",
+    )
+
+    assert context["truncated"] is True
+    assert context["delivery_content_sha256"] == context["delivery"].artifact()["content_sha256"]
+    assert context["delivery_content_sha256"] != context["sha256"]
 
 
 def test_context_budget_result_recovers_with_compact_continuation(tmp_path: Path) -> None:

@@ -1,6 +1,6 @@
 ---
 plan_scope: agent-skill-delivery-eval
-status: DONE_INCONCLUSIVE_SELECTION
+status: DONE_STATIC_FULL_RETAINED
 source:
   - 2026-08-03 cleanup live failure investigation
   - 2026-08-03 agent skill delivery discussion
@@ -32,17 +32,26 @@ confounded.
   accepted targets, zero pending work, and one terminal `done` in every trial.
   `dynamic-full` used one classified infrastructure retry after preemption;
   `dynamic-routed` used none.
-- Selection is intentionally inconclusive. `dynamic-full` did not reduce work
-  versus byte-identical `static-full`. `dynamic-routed` reduced model/tool calls
-  versus `dynamic-full` in only one of three paired trials, despite a better
+- The non-sandbox comparison remains intentionally inconclusive. `dynamic-full`
+  did not reduce work versus byte-identical `static-full`. `dynamic-routed`
+  reduced model/tool calls versus `dynamic-full` in only one of three paired
+  trials, despite a better
   median, so it missed the required two-of-three directional-reduction gate.
-  The no-Skill result remains descriptive, and the installed SDK's missing
-  official `SandboxAgent`/`Skills` APIs keep `sandbox-skills` blocked without a
-  substitute.
-- Per the experiment stop gate, no candidate is selected, camera-grounded
-  confirmation was not launched, the static delivery default is unchanged, and
-  no durable baseline or catalog artifact is published. A new cost/scope review
-  is required before adding trials, scenes, providers, or a full DINO matrix.
+  The no-Skill result remains descriptive.
+- The earlier Sandbox SDK blocker was incorrect: `openai-agents 0.19.2` exposes
+  `agents.sandbox.SandboxAgent` and `agents.sandbox.capabilities.Skills`.
+  A local Docker isolation probe passed with network mode `none`, no mounts or
+  path grants, no credential environment, only the selected Skill bundle, and
+  only the fixed-path `read_selected_skill` tool. The original CloudML worker
+  placement remains blocked: task `t-20260803234853-lae53` proved it has no
+  Docker socket, Docker CLI, or daemon, so no live sandbox row was substituted
+  onto a broader runtime or local provider route.
+- `static-full` is retained as the product default. It is the only current
+  default-eligible mode that adds no workspace/runtime dependency, while
+  `dynamic-full` added callback machinery without reducing work and
+  `dynamic-routed` missed the promotion gate. `sandbox-skills` remains
+  exploratory and eval-only. Camera-grounded confirmation was not launched and
+  no durable baseline or catalog artifact was published.
 - The invalid `20260803T023049Z` baseline remains retained as evidence and
   unpublished. The public robot MCP surface remains atomic.
 
@@ -54,7 +63,17 @@ confounded.
 | `static-full` | 1 | 73, 70, 73 | 72, 69, 72 | 73 / 72 | Retain current default |
 | `dynamic-full` | 1 | 79, 75, 70 | 78, 74, 69 | 75 / 74 | Ineligible; callback alone did not reduce work |
 | `dynamic-routed` | 1 | 73, 76, 71 | 72, 75, 70 | 73 / 72 | Ineligible; only 1/3 paired reductions versus `dynamic-full` |
-| `sandbox-skills` | blocked | n/a | n/a | n/a | SDK capability unavailable; no substitute permitted |
+| `sandbox-skills` | isolation pass; live blocked | n/a | n/a | n/a | SDK path works locally; CloudML worker has no Docker runtime; exploratory only |
+
+Sandbox isolation evidence:
+`output/sandbox-skill-probe/isolation.json`. CloudML runtime preflight:
+`output/eval-harness/20260803T154742Z/cloudml-ops/plan.json`.
+
+Official SDK references used for the decision:
+
+- [Agents: dynamic instructions](https://openai.github.io/openai-agents-python/agents/#dynamic-instructions)
+- [Sandbox Agents](https://openai.github.io/openai-agents-python/sandbox_agents/)
+- [Sandbox Agent concepts](https://openai.github.io/openai-agents-python/sandbox/guide/)
 
 ## Scope
 
