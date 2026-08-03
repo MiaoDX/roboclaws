@@ -1,9 +1,22 @@
 from __future__ import annotations
 
-from roboclaws.evals.cleanup_result_args import parse_args
+import argparse
+
 from roboclaws.evals.cleanup_result_grader import assert_advisory_scoring
+from roboclaws.household.cleanup_validation_args import (
+    build_parser,
+    reject_legacy_robot_view_camera_control_flag,
+)
 from roboclaws.household.cleanup_validation_cli import validate_path
 from roboclaws.household.cleanup_validation_support import resolve_path
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = build_parser()
+    parser.add_argument("--require-advisory-scoring", action="store_true")
+    args = parser.parse_args(argv)
+    reject_legacy_robot_view_camera_control_flag(parser, args)
+    return args
 
 
 def main() -> None:

@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-02
+Last updated: 2026-08-03
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -10,10 +10,26 @@ leave a link.
 
 ## Current Focus
 
-The latest hybrid eval candidate at `output/eval-harness/20260731T100528Z/`
-passes all 25 selected rows with no behavior failures, provider failures,
-blocked rows, infrastructure retries, or regressions. It is awaiting human
-confirmation; durable baseline publication remains unauthorized.
+The latest hybrid eval candidate at `output/eval-harness/20260803T023049Z/`
+mechanically reports all 25 selected rows passed with no provider failures,
+blocked rows, infrastructure retries, or regressions. CloudML executed and
+collected 20 isolated rows while 5 external-provider rows ran locally, reaching
+8-way peak concurrency and 2.282x observed execution speedup.
+
+The candidate has an integrity blocker: all three underlying product runs for
+`openai-agents-sdk-cleanup-live-eval` ended with `live_status.phase="failed"`
+because the product checker received the eval-only
+`--require-advisory-scoring` flag. The artifact grader nevertheless marked the
+row passed. Product-checker replay after fixing the ownership mismatch accepts
+one run and rejects two for real agent-behavior failures, so the reported 3/3
+pass result is invalid. See
+`output/eval-harness/20260803T023049Z/cloudml-ops/integrity-review.md`.
+This run is retained as evidence but is not an accepted durable baseline;
+publication remains unauthorized.
+
+The checker/eval boundary now fails closed: product checker nonzero exits are
+eval failures, advisory scoring remains eval-owned, smoke checker policy uses
+the smoke preset, and no artifact recovery bypasses a failed product command.
 
 The active product shape is:
 
@@ -48,12 +64,14 @@ providers.
 
 ## Next Action
 
-Review the ranked 25-row eval candidate and decide whether to publish its
-durable baseline/catalog artifacts. Publication remains separate and
-unauthorized until that confirmation.
+Create and review a new frozen full baseline candidate with the fixed checker
+boundary. Do not publish durable baseline/catalog artifacts before human
+confirmation.
 
 ## Current Blockers
 
+- Eval baseline publication is blocked until a new full candidate replaces the
+  invalid `20260803T023049Z` evidence.
 - Agibot and B1 injected dependency readiness passes with the existing local SDK, Map 12 bundle,
   B1 scene, and alignment/navigation proofs. Real-robot movement remains unauthorized and requires
   a present operator plus the existing localization, run-enablement, and E-stop gates.

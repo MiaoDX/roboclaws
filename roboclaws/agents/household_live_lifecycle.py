@@ -81,11 +81,7 @@ from roboclaws.agents.live_timing import round_duration as _round_duration
 from roboclaws.agents.live_timing import (
     runner_timing_breakdown as _runner_timing_breakdown,
 )
-from roboclaws.core.evaluation import (
-    checker_flags_for_household_intent,
-    household_intent_id_for_checker,
-    merge_checker_flags,
-)
+from roboclaws.core.evaluation import checker_flags_for_household_intent
 from roboclaws.core.live_performance import (
     extract_model_call_metrics,
     write_model_call_metrics_jsonl,
@@ -384,9 +380,8 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
             return
         checker_profile = str(getattr(self.args, "checker_profile", "") or self.args.profile)
         checker_visual_args = list(self.args.checker_visual_arg)
-        intent_id = household_intent_id_for_checker(task_intent=task_intent)
         checker_policy_args = checker_flags_for_household_intent(
-            intent_id=intent_id,
+            intent_id=task_intent or "cleanup",
             profile=checker_profile,
             min_generated_mess_count=self.args.min_generated_mess_count,
         )
@@ -402,13 +397,13 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
             self.args.backend,
             "--expect-policy",
             self.args.policy,
-            "--expect-profile",
-            checker_profile,
+            *([] if checker_profile == "smoke" else ["--expect-profile", checker_profile]),
             "--expect-mcp-server",
             "household_world",
             "--min-generated-mess-count",
             self.args.min_generated_mess_count,
-            *merge_checker_flags(checker_policy_args, checker_visual_args),
+            *checker_policy_args,
+            *checker_visual_args,
         ]
         checker_args.append(str(run_result))
 

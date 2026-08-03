@@ -56,7 +56,6 @@ from roboclaws.agents.prompts.household_cleanup import (
     render_kickoff_prompt,
     render_map_build_prompt,
 )
-from roboclaws.core.evaluation import household_intent_id_for_checker
 from roboclaws.core.json_sources import read_json_value, read_jsonl_objects
 from roboclaws.core.operator_messages import consume_resume_request_for_runner
 from roboclaws.core.raw_fpv_guidance import raw_fpv_edge_reframe_instruction
@@ -644,11 +643,7 @@ def _sdk_attempt_summary(result: Any, *, attempt_index: int) -> dict[str, Any]:
 
 
 def _task_aware_continuation_suffix(args: Any) -> str:
-    task_intent = _household_intent(args)
-    intent = household_intent_id_for_checker(
-        task_intent=task_intent,
-        open_ended_task=task_intent == "open-ended",
-    )
+    intent = _household_intent(args) or "cleanup"
     task = " ".join(str(getattr(args, "task", "") or "").split())
     preset = os.environ.get("ROBOCLAWS_TASK_PRESET", "")
     selected = "surface=household-world"

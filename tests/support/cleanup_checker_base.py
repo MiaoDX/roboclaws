@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-import roboclaws.evals.cleanup_result_args as cleanup_validation_args
+import roboclaws.evals.cleanup_result_cli as cleanup_validation_args
 from roboclaws.backends.isaaclab.b1_base_metric_augmentation import augment_base_metric_map_bundle
 from roboclaws.backends.isaaclab.b1_readiness_validation import (
     DEFAULT_B1_VISUAL_ROUTE_SCENE_USD,

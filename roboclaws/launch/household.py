@@ -324,7 +324,7 @@ def _live_command(
         "--profile",
         execution.profile,
         "--checker-profile",
-        execution.evidence_lane,
+        execution.profile,
     ]
     for flag in execution.checker_flags:
         command.append(f"--checker-visual-arg={flag}")

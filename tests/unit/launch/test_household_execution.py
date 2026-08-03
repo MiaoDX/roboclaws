@@ -15,6 +15,9 @@ def _execution(*, dispatch_runner: str = "direct", backend: str = "api_semantic_
         dispatch_runner=dispatch_runner,
         goal_contract=SimpleNamespace(to_json=lambda: '{"schema":"goal"}'),
         intent="cleanup",
+        provider_profile="kimi-openai-chat",
+        skill_name="household-world",
+        surface="household-world",
         world="molmospaces/procthor-10k-val/0",
         relocation_count=2,
     )
@@ -157,6 +160,26 @@ def test_cleanup_validation_calls_package_api_directly(
     assert calls[0][2]["expect_task"] == "put away the cups"
     assert calls[0][2]["require_waypoint_honesty"] is True
     assert calls[0][2]["min_sweep_coverage"] == 1.0
+
+
+def test_live_smoke_uses_smoke_profile_for_server_and_checker(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    execution = _execution(dispatch_runner="openai-agents-live")
+    execution.profile = "smoke"
+    monkeypatch.setattr(household, "update_env_from_dotenv_file", lambda _path: None)
+    monkeypatch.setattr(household, "render_kickoff_prompt", lambda *_args, **_kwargs: "kickoff")
+
+    command = household._live_command(
+        execution,
+        run_dir=tmp_path / "seed-7",
+        map_bundle=tmp_path / "map",
+    )
+
+    checker_profile_index = command.index("--checker-profile")
+    assert command[checker_profile_index + 1] == "smoke"
+    assert "--server-arg=--evidence-lane" not in command
 
 
 def test_external_python_and_isaac_keep_process_boundaries(

@@ -23,7 +23,6 @@ from roboclaws.evals.live_runtime import (
     _live_eval_effective_run_dir,
     _live_surface_already_complete,
     _load_json,
-    _recover_eval_run_result_after_nonzero_checker_exit,
     _subprocess_text_output,
     _write_live_eval_command_record,
     live_product_run_kwargs,
@@ -282,21 +281,6 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
     )
     if completed.returncode != 0:
         _write_live_eval_command_record(run_dir / "live_eval_command.json", record)
-        run_result = _recover_eval_run_result_after_nonzero_checker_exit(
-            kwargs,
-            sample_run_dir=sample_run_dir,
-        )
-        if run_result:
-            sample_run_dir = wait_for_live_surface_completion(
-                kwargs,
-                output_dir=sample_run_root,
-                effective_run_dir=sample_run_dir,
-                elapsed_s=time.monotonic() - started,
-                allow_cleanup_checker_failure=True,
-                started_wall_time_s=started_wall_time_s,
-            )
-            run_result["eval_effective_run_dir"] = str(sample_run_dir)
-            return run_result
         message = completed.stderr.strip() or completed.stdout.strip()
         raise RuntimeError(f"live surface run failed with exit {completed.returncode}: {message}")
     sample_run_dir = wait_for_live_surface_completion(
