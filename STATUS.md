@@ -31,6 +31,14 @@ The checker/eval boundary now fails closed: product checker nonzero exits are
 eval failures, advisory scoring remains eval-owned, smoke checker policy uses
 the smoke preset, and no artifact recovery bypasses a failed product command.
 
+The agent Skill delivery implementation is deterministic-complete, including
+terminal completion snapshots and five frozen delivery cells. Its fresh
+CloudML `static-full` stop gate is not accepted: the internal Responses route
+probe passed, one live attempt was preempted, and the allowed retry exited 2
+without an accepted 3/3 row result. Attempt-isolated packaging also omitted the
+row result because the scoped manifest retained the original shard output path.
+See `docs/status/active/agent-skill-delivery-eval.md`.
+
 The active product shape is:
 
 - `surface=household-world` for no-preset open household goals.
@@ -64,14 +72,17 @@ providers.
 
 ## Next Action
 
-Create and review a new frozen full baseline candidate with the fixed checker
-boundary. Do not publish durable baseline/catalog artifacts before human
-confirmation.
+Repair attempt-aware CloudML scoped-manifest output paths, freeze a new run,
+and rerun only the three-trial `static-full` stop gate. Do not run the remaining
+delivery matrix or publish durable baseline/catalog artifacts until that gate
+passes and the candidate receives human confirmation.
 
 ## Current Blockers
 
 - Eval baseline publication is blocked until a new full candidate replaces the
   invalid `20260803T023049Z` evidence.
+- Agent Skill delivery comparison is blocked at Phase 1 because the fresh
+  `static-full` CloudML proof did not produce accepted 3/3 terminal evidence.
 - Agibot and B1 injected dependency readiness passes with the existing local SDK, Map 12 bundle,
   B1 scene, and alignment/navigation proofs. Real-robot movement remains unauthorized and requires
   a present operator plus the existing localization, run-enablement, and E-stop gates.
