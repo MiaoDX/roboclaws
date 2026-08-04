@@ -821,7 +821,7 @@
       "reason_selected": "Exploratory official SandboxAgent plus Skills readiness and isolation row.",
       "expense": "live-agent",
       "selection_rule_ids": ["cleanup_skill", "mcp_checker"],
-      "requires": ["python_env", "openai_agents_package", "sandbox_skills"],
+      "requires": ["python_env", "openai_agents_package", "provider_profile", "sandbox_skills"],
       "profiles": ["baseline-refresh"]
     },
     {

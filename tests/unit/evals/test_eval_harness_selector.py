@@ -487,6 +487,9 @@ def test_execute_marks_live_row_blocked_when_provider_is_missing(
         rows["openai-agents-sdk-cleanup-live-eval"]["blocker_category"]
         == "model_or_provider_unavailable"
     )
+    sandbox_row = rows["openai-agents-sdk-cleanup-sandbox-skills-eval"]
+    assert sandbox_row["status"] == "blocked"
+    assert sandbox_row["blocker_category"] == "model_or_provider_unavailable"
 
 
 def test_provider_blocker_rejects_unknown_profile_even_when_provider_env_exists(

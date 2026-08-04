@@ -52,6 +52,8 @@ def test_sandbox_eval_records_blocked_without_product_launch(tmp_path: Path, mon
 
 
 def test_harness_freezes_exactly_five_delivery_cells(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("KIMI_OPENAI_BASE_URL", "https://kimi.example.test/v1")
+    monkeypatch.setenv("KIMI_API_KEY", "fake-key")
     monkeypatch.setattr(
         "roboclaws.evals.harness.runner.sandbox_readiness",
         lambda: {"status": "blocked", "reason": "sandbox_image_unavailable"},
@@ -75,6 +77,7 @@ def test_harness_freezes_exactly_five_delivery_cells(tmp_path: Path, monkeypatch
         assert identity["model_visible_tool_surface"]
         assert identity["sandbox_posture"]["network"] == "disabled"
     sandbox = next(row for row in delivery_rows if row["skill_delivery_cell"] == "sandbox-skills")
+    assert "provider_profile" in sandbox["requires"]
     assert "sandbox_skills" in sandbox["requires"]
     blockers = _row_blockers(sandbox, {"output_dir": str(tmp_path)})
     assert blockers == [{"category": "environment_blocked", "detail": "sandbox_image_unavailable"}]
