@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-03
+Last updated: 2026-08-04
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -10,23 +10,21 @@ leave a link.
 
 ## Current Focus
 
-The agent Skill delivery evaluation is complete and `static-full` is retained
-as the product default. The repaired `static-full` Phase 1 gate at
-`output/eval-harness/20260803T122000Z/` and the remaining primary matrix at
-`output/eval-harness/20260803T124500Z/` produced accepted 3/3 results for all
-four comparable cells with complete terminal evidence and no behavior,
-provider, checker, policy, or privacy failures.
+The post-refactor Skill delivery comparison is terminal at
+`output/eval-harness/20260804T121407Z/`. It tested five cells with the kickoff
+goal only in user input, using `kimi-openai-chat` / `kimi-k2.7-code`, cleanup
+seed 7, and three serial repetitions per cell. `no-skill` passed 3/3;
+`static-full` passed 2/3; `dynamic-full` and restricted `sandbox-skills` each
+passed 1/3; `dynamic-routed` passed 0/3. The failed trials were checker/behavior
+failures, not provider or infrastructure failures.
 
-No alternative met the promotion rule. `dynamic-full` increased median work
-versus byte-identical `static-full`; `dynamic-routed` improved over
-`dynamic-full` in only one of three paired trials, below the required two of
-three. The previous Sandbox SDK blocker was incorrect: the repo now uses
-`openai-agents 0.19.2`, with official `SandboxAgent` and `Skills` imports. A
-restricted local Docker isolation probe passed, but the original CloudML
-placement remains live-blocked because worker preflight task
-`t-20260803234853-lae53` has no Docker socket, CLI, or daemon. Sandbox delivery
-remains exploratory and eval-only; camera-grounded confirmation was not
-launched and no durable baseline/catalog artifact was published. See
+This one-scene matrix challenges `static-full`, but it is insufficient to
+remove the Skill globally. The product default remains unchanged pending a
+reviewed multi-scene `no-skill` versus `static-full` confirmation. Dynamic and
+Sandbox delivery have no promotion case. The Sandbox runtime passed its local
+Docker isolation contract with network disabled, no mounts or sensitive
+environment, and only the selected Skill reader exposed. No durable
+baseline/catalog artifact was published. See
 `docs/plans/2026-08-03-agent-skill-delivery-eval.md`.
 
 The invalid hybrid candidate at `output/eval-harness/20260803T023049Z/` remains
@@ -67,18 +65,18 @@ providers.
 
 ## Next Action
 
-Keep static Skill delivery as the product default. Any renewed delivery-mode
-selection needs a reviewed experiment expansion because the bounded primary
-matrix was inconclusive; do not add trials, providers, scenes, or a DINO matrix
-without that review.
+Keep `static-full` as the product default until a reviewed multi-scene
+confirmation compares it directly with `no-skill`. Do not promote a dynamic or
+Sandbox mode, or publish a baseline, from the one-scene matrix.
 
 ## Current Blockers
 
 - Eval baseline publication remains blocked until a new full candidate replaces
   the invalid `20260803T023049Z` evidence and receives human confirmation.
-- A live Sandbox Skill row is blocked on the current CloudML worker because it
-  lacks a Docker runtime. Enabling a different sandbox backend or worker image
-  is a new runtime/cost decision.
+- CloudML still cannot host the Docker-backed Sandbox row because its current
+  worker has no Docker runtime. Local restricted Sandbox evaluation is proven;
+  enabling a CloudML sandbox backend or worker image remains a runtime/cost
+  decision.
 - Agibot and B1 injected dependency readiness passes with the existing local SDK, Map 12 bundle,
   B1 scene, and alignment/navigation proofs. Real-robot movement remains unauthorized and requires
   a present operator plus the existing localization, run-enablement, and E-stop gates.

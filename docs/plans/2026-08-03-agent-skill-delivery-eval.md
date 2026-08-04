@@ -1,10 +1,10 @@
 ---
 plan_scope: agent-skill-delivery-eval
-status: DONE_STATIC_FULL_RETAINED
+status: DONE_DEFAULT_UNCHANGED_CONFIRMATION_REQUIRED
 source:
   - 2026-08-03 cleanup live failure investigation
   - 2026-08-03 agent skill delivery discussion
-last_reviewed: 2026-08-03
+last_reviewed: 2026-08-04
 ---
 
 # Agent Skill Delivery Evaluation
@@ -18,56 +18,57 @@ confounded.
 
 ## Current State
 
-- Implementation and deterministic verification are complete in commits
-  `2e0b1010`, `4a079fae`, `def64bd0`, and `dcd803c3`. Checker failures fail
-  closed; `done` is terminal and idempotent; Agent View, responses, trace, and
-  SDK continuation share one versioned completion snapshot; waypoint identity
-  is preserved; and five frozen delivery cells record their effective identity.
-- The fresh `static-full` Phase 1 gate at
-  `output/eval-harness/20260803T122000Z/` is accepted 3/3 with complete terminal
-  evidence and zero lifecycle, policy, privacy, checker, or provider failures.
-- The remaining primary matrix at
-  `output/eval-harness/20260803T124500Z/` is terminal and accepted. `no-skill`,
-  `dynamic-full`, and `dynamic-routed` each passed 3/3 with five restored and
-  accepted targets, zero pending work, and one terminal `done` in every trial.
-  `dynamic-full` used one classified infrastructure retry after preemption;
-  `dynamic-routed` used none.
-- The non-sandbox comparison remains intentionally inconclusive. `dynamic-full`
-  did not reduce work versus byte-identical `static-full`. `dynamic-routed`
-  reduced model/tool calls versus `dynamic-full` in only one of three paired
-  trials, despite a better
-  median, so it missed the required two-of-three directional-reduction gate.
-  The no-Skill result remains descriptive.
-- The earlier Sandbox SDK blocker was incorrect: `openai-agents 0.19.2` exposes
-  `agents.sandbox.SandboxAgent` and `agents.sandbox.capabilities.Skills`.
-  A local Docker isolation probe passed with network mode `none`, no mounts or
-  path grants, no credential environment, only the selected Skill bundle, and
-  only the fixed-path `read_selected_skill` tool. The original CloudML worker
-  placement remains blocked: task `t-20260803234853-lae53` proved it has no
-  Docker socket, Docker CLI, or daemon, so no live sandbox row was substituted
-  onto a broader runtime or local provider route.
-- `static-full` is retained as the product default. It is the only current
-  default-eligible mode that adds no workspace/runtime dependency, while
-  `dynamic-full` added callback machinery without reducing work and
-  `dynamic-routed` missed the promotion gate. `sandbox-skills` remains
-  exploratory and eval-only. Camera-grounded confirmation was not launched and
-  no durable baseline or catalog artifact was published.
+- Runtime correctness and five delivery cells are implemented. Commit
+  `b56aa1a7` then removed the duplicated kickoff goal from Agent instructions:
+  the Skill remains system-level instructions and the run goal is now sent
+  only as user input.
+- The post-refactor matrix at `output/eval-harness/20260804T121407Z/` used one
+  frozen provider/model (`kimi-openai-chat` / `kimi-k2.7-code`), cleanup seed 7,
+  and three serial repetitions per cell. All 15 trials reached terminal run
+  evidence; raw checker evidence was used because the harness currently labels
+  several checker rejections as `environment_blocked`.
+- `no-skill` was the only 3/3 cell and restored 5/5 objects in every trial.
+  `static-full` passed 2/3, `dynamic-full` 1/3, `dynamic-routed` 0/3, and the
+  accepted Sandbox attempt 2 passed 1/3. The failed trials were behavior/checker
+  failures, not provider or infrastructure failures.
+- Among passing trials, `no-skill` had a 64/63 median model/tool call count and
+  563,122 median input tokens. The two `static-full` passes had a 63/63
+  passing-only median and 619,895 median input tokens. These efficiency samples
+  are too small to rank independently, but they show no efficiency penalty for
+  `no-skill`.
+- Sandbox attempt 1 exposed an input-history compatibility bug: the
+  camera-grounded history parser tried to JSON-decode `read_selected_skill`
+  output. The parser now ignores known non-camera tool outputs while preserving
+  strict malformed-camera rejection. Attempt 2 used a sanitized, digest-pinned
+  Docker image and passed the isolation contract: network mode `none`, zero
+  mounts/path grants, zero sensitive environment variables, only the selected
+  Skill materialized, and only `read_selected_skill` exposed. The Sandbox live
+  catalog row now also requires provider readiness, so missing credentials fail
+  closed before any subprocess can reload local dotenv values.
+- This one-scene result challenges `static-full` as the product default, but it
+  is not broad enough to remove the Skill globally. The default remains
+  unchanged pending a reviewed multi-scene `no-skill` versus `static-full`
+  confirmation. `dynamic-full`, `dynamic-routed`, and `sandbox-skills` have no
+  promotion case from this matrix. No durable baseline or catalog artifact was
+  published.
 - The invalid `20260803T023049Z` baseline remains retained as evidence and
   unpublished. The public robot MCP surface remains atomic.
 
-### Primary Matrix Result
+### Post-Refactor Matrix Result
 
-| Cell | Pass^3 | Model calls by repetition | Tool calls by repetition | Median model/tool calls | Decision |
+| Cell | Passes | Restoration by trial | Model/tool calls by trial | Passing-only median model/tool | Decision |
 | --- | ---: | --- | --- | --- | --- |
-| `no-skill` | 1 | 71, 71, 70 | 70, 70, 69 | 71 / 70 | Descriptive only |
-| `static-full` | 1 | 73, 70, 73 | 72, 69, 72 | 73 / 72 | Retain current default |
-| `dynamic-full` | 1 | 79, 75, 70 | 78, 74, 69 | 75 / 74 | Ineligible; callback alone did not reduce work |
-| `dynamic-routed` | 1 | 73, 76, 71 | 72, 75, 70 | 73 / 72 | Ineligible; only 1/3 paired reductions versus `dynamic-full` |
-| `sandbox-skills` | isolation pass; live blocked | n/a | n/a | n/a | SDK path works locally; CloudML worker has no Docker runtime; exploratory only |
+| `no-skill` | 3/3 | 1.0, 1.0, 1.0 | 58/57, 68/67, 64/63 | 64 / 63 (`n=3`) | Best observed quality; needs broader confirmation |
+| `static-full` | 2/3 | 1.0, 1.0, 0.4 | 57/56, 69/70, 40/40 | 63 / 63 (`n=2`) | Default unchanged, but challenged |
+| `dynamic-full` | 1/3 | 0.6, 1.0, 0.6 | 48/47, 61/60, 62/61 | 61 / 60 (`n=1`) | No promotion case |
+| `dynamic-routed` | 0/3 | 0.4, 0.0, 0.6 | 47/46, 35/34, 50/50 | n/a | No promotion case |
+| `sandbox-skills` | 1/3 | 0.8, 1.0, 0.6 | 61/59, 55/64, 61/59 | 55 / 64 (`n=1`) | Isolation passed; quality remains exploratory |
 
-Sandbox isolation evidence:
-`output/sandbox-skill-probe/isolation.json`. CloudML runtime preflight:
-`output/eval-harness/20260803T154742Z/cloudml-ops/plan.json`.
+The pre-refactor baseline at `output/eval-harness/20260803T122000Z/` and
+`output/eval-harness/20260803T124500Z/` passed all comparable cells 3/3, but it
+duplicated the kickoff goal in instructions and user input and is not the
+current prompt contract. Sandbox isolation evidence for the current matrix is
+`output/eval-harness/20260804T121407Z/preflight/sandbox-isolation-sanitized.json`.
 
 Official SDK references used for the decision:
 
