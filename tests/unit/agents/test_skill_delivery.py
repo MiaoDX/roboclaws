@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -97,6 +98,7 @@ def test_dynamic_full_is_byte_identical_to_static_full(tmp_path: Path) -> None:
     dynamic_callback, _ = _instructions_with_skill_context(_request(tmp_path, dynamic))
     assert callable(dynamic_callback)
     assert dynamic_callback(None, None) == static_instructions
+    assert "kickoff" not in static_instructions
     assert dynamic.artifact()["events"][0]["effective_instruction_sha256"]
 
 
@@ -109,6 +111,25 @@ def test_no_skill_contains_no_body_or_index() -> None:
     artifact = delivery.artifact()
     assert artifact["included_bytes"] == 0
     assert artifact["estimated_tokens"] == 0
+    assert delivery.instructions() is None
+
+
+def test_unconfigured_skill_context_keeps_kickoff_out_of_instructions(tmp_path: Path) -> None:
+    request = _request(
+        tmp_path,
+        build_skill_delivery(
+            "no-skill",
+            full_content=SKILL,
+            intent="cleanup",
+            evidence_lane="world-public-labels",
+        ),
+    )
+    request = replace(request, metadata={})
+
+    instructions, summary = _instructions_with_skill_context(request)
+
+    assert instructions is None
+    assert summary["reason"] == "not_configured"
 
 
 def test_routed_content_contains_only_frozen_selected_sections() -> None:
@@ -177,7 +198,7 @@ def test_sandbox_delivery_keeps_body_out_of_agent_instructions() -> None:
         evidence_lane="world-public-labels",
     )
     assert delivery.content == SKILL
-    assert delivery.instructions("kickoff") == "kickoff"
+    assert delivery.instructions() is None
     artifact = delivery.artifact(tool_surface=["metric_map", "done"])
     assert artifact["delivery"] == "sandbox_skills"
     assert artifact["included_bytes"] == len(SKILL.encode())

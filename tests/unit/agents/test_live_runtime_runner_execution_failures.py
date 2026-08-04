@@ -109,7 +109,7 @@ def test_openai_agents_runtime_includes_skill_context_without_persisting_body(
     assert "otherwise the canonical Skill owns task strategy" in instructions
     assert "override any conflicting generic skill-context" not in instructions
     assert skill_text in instructions
-    assert instructions.endswith("clean the room")
+    assert "clean the room" not in instructions
     artifact = json.loads(
         (tmp_path / "run" / "openai-agents-skill-context.json").read_text(encoding="utf-8")
     )

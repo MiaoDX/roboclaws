@@ -30,7 +30,7 @@ MODEL_RACING_OBSERVABILITY_SCHEMA = "agent_sdk_model_racing_observability_v1"
 def _instructions_with_skill_context(request: LiveAgentRequest) -> tuple[Any, dict[str, Any]]:
     context = request.metadata.get("skill_context") if isinstance(request.metadata, dict) else None
     if not isinstance(context, dict):
-        return request.kickoff_prompt, _skill_context_summary(
+        return None, _skill_context_summary(
             {
                 "skill_name": request.skill_name,
                 "included": False,
@@ -52,13 +52,9 @@ def _instructions_with_skill_context(request: LiveAgentRequest) -> tuple[Any, di
         }
     )
     if not content:
-        return request.kickoff_prompt, summary
+        return None, summary
     delivery = context.get("delivery")
-    instructions = (
-        delivery.instructions(request.kickoff_prompt)
-        if delivery is not None
-        else render_instructions(content, request.kickoff_prompt)
-    )
+    instructions = delivery.instructions() if delivery is not None else render_instructions(content)
     return instructions, summary
 
 

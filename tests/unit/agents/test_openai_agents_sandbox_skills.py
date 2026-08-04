@@ -171,5 +171,5 @@ def test_live_run_parts_use_sandbox_agent_and_sandbox_run_config(
         "skills",
         "selected_skill_reader",
     ]
-    assert parts.agent.instructions == "clean the room"
+    assert parts.agent.instructions is None
     assert parts.run_config.sandbox is sandbox_config

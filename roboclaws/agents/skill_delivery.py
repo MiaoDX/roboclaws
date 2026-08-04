@@ -187,10 +187,10 @@ class SkillDelivery:
     events: list[dict[str, Any]]
     sandbox_posture: dict[str, Any]
 
-    def instructions(self, kickoff_prompt: str) -> str | Callable[..., str]:
-        if self.cell == "sandbox-skills":
-            return kickoff_prompt
-        rendered = render_instructions(self.content, kickoff_prompt)
+    def instructions(self) -> str | Callable[..., str] | None:
+        if self.cell in {"no-skill", "sandbox-skills"}:
+            return None
+        rendered = render_instructions(self.content)
         if not self.dynamic:
             return rendered
 
@@ -267,14 +267,13 @@ def build_skill_delivery(
     return SkillDelivery(cell, content, index, cell.startswith("dynamic-"), events, posture)
 
 
-def render_instructions(content: str, kickoff_prompt: str) -> str:
+def render_instructions(content: str) -> str | None:
     if not content:
-        return kickoff_prompt
+        return None
     return (
         "Canonical skill context for this private OpenAI Agents SDK run:\n\n"
         f"{content.rstrip()}\n\n"
-        "Run-specific context supplies the operator goal, selected lane, budgets, artifacts, "
+        "Run-specific user input supplies the operator goal, selected lane, budgets, artifacts, "
         "and episode facts. The operator goal and public safety or required-tool responses are "
-        "authoritative; otherwise the canonical Skill owns task strategy:\n\n"
-        f"{kickoff_prompt}"
+        "authoritative; otherwise the canonical Skill owns task strategy."
     )
