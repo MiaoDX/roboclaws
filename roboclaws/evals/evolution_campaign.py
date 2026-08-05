@@ -12,6 +12,7 @@ from typing import Any
 from roboclaws.agents.evolution_optimizer import OptimizerOutcome, run_optimizer_agent
 from roboclaws.evals.evolution_candidates import (
     CandidateValidationError,
+    materialize_mcp_description_candidate,
     materialize_skill_candidate,
 )
 from roboclaws.evals.evolution_contracts import (
@@ -26,6 +27,28 @@ from roboclaws.evals.runner import run_eval_suite
 
 OptimizerRunner = Callable[..., OptimizerOutcome]
 MatrixRunner = Callable[[Campaign, Path | None, str], list[dict[str, Any]]]
+
+
+def run_mcp_description_campaign(
+    campaign: Campaign,
+    *,
+    candidate: dict[str, Any],
+    output_root: Path,
+) -> dict[str, Any]:
+    """Run the no-behavior deterministic gate for an MCP description candidate."""
+    if campaign.target["kind"] != "mcp-description":
+        raise ValueError("description campaign requires target.kind=mcp-description")
+    record = materialize_mcp_description_candidate(
+        campaign, candidate=candidate, output_root=output_root
+    )
+    return {
+        "schema": "eval_evolution_mcp_description_campaign_v1",
+        "campaign_id": campaign.campaign_id,
+        "status": "gated",
+        "live_execution": "blocked",
+        "reason": "description_only_deterministic_gate",
+        "candidate": record,
+    }
 
 
 def run_skill_campaign(
