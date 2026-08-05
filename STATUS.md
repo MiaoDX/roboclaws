@@ -81,8 +81,10 @@ providers.
 
 ## Next Action
 
-Implement Phase 2's MCP description-only evolution slice. Keep MCP behavior
-candidate live execution blocked until Phase 3 malicious isolation passes.
+Phase 2/4 MCP description-only evolution is implemented through deterministic
+profile snapshots, immutable tool-set validation, content-addressed candidate
+materialization, and a campaign gate. Keep MCP behavior candidate live
+execution blocked until Phase 3 malicious isolation passes.
 
 The local Phase 3 isolation contract is proven by
 `output/eval-harness/20260804T121407Z/preflight/sandbox-isolation-sanitized.json`
