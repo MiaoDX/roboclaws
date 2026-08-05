@@ -24,6 +24,17 @@ def run_evolution_command(mode: str, overrides: dict[str, str]) -> dict[str, Any
         if not campaign_ref:
             raise ValueError("evolve requires campaign=<path>")
         campaign = load_campaign(Path(campaign_ref))
+        if campaign.target["kind"] == "mcp-behavior":
+            return {
+                "schema": "eval_evolution_preflight_v1",
+                "mode": mode,
+                "campaign_id": campaign.campaign_id,
+                "live_execution": live_execution,
+                "status": "blocked",
+                "reason": "blocked_by_candidate_isolation",
+            }
+        if campaign.target["kind"] == "mcp-description" and live_execution == "run":
+            raise ValueError("MCP description live campaign wiring is not enabled in Phase 2")
         if live_execution == "run":
             from roboclaws.evals.evolution_campaign import run_skill_campaign
 
