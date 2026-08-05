@@ -41,7 +41,13 @@ def materialize_skill_candidate(
         raise ValueError("candidate patch must not contain binary data")
     _verify_baseline_target(campaign, repo_root=Path(repo_root))
     patch_digest = sha256(patch_bytes).hexdigest()
-    workspace = Path(output_root) / campaign.campaign_id / "candidates" / "by-sha256" / patch_digest
+    workspace = (
+        Path(output_root).resolve()
+        / campaign.campaign_id
+        / "candidates"
+        / "by-sha256"
+        / patch_digest
+    )
     if workspace.exists():
         return _load_existing_candidate(workspace, patch_digest=patch_digest)
     workspace.mkdir(parents=True)
