@@ -1,13 +1,17 @@
 ---
 plan_scope: eval-evolution-agent-sdk
-status: PLANNING_LOOP_REVIEWED
+status: APPROVED_FOR_IMPLEMENTATION
 created: 2026-08-04
 last_reviewed: 2026-08-04
-implementation_allowed: false
+implementation_allowed: true
+current_phase: 1
+completed_phases:
+  - 0
 source:
   - user request for a formal Skill and MCP optimization capability
   - user requirement that all live optimization use OpenAI Agents SDK, never Codex CLI
   - agent-planning-loop entropy, docs-grill, and skeptic review on 2026-08-04
+  - explicit user execution goal on 2026-08-05
 related_context:
   - STATUS.md
   - ARCHITECTURE.md
@@ -366,6 +370,10 @@ It applies only the reviewed patch to the main checkout. It does not commit,
 change a product default, publish a baseline/catalog, or promote regressions.
 
 ## Implementation Phases
+
+Phase 0 completed its contract, threat-model, malicious-boundary, command
+grammar, focused-test, and repo-wide lint gates on 2026-08-05. Phase 1 is the
+current implementation slice; later phase stop gates remain unchanged.
 
 ### Phase 0: Contracts And Threat Model
 

@@ -59,6 +59,10 @@ class EvalSuiteRun:
 
 def run_cli_tool(mode: str, overrides: dict[str, str]) -> dict[str, object]:
     """Dispatch a non-suite eval CLI mode to its direct behavior owner."""
+    if mode in {"evolve", "evolve-promote"}:
+        from roboclaws.evals.evolution_control import run_evolution_command
+
+        return run_evolution_command(mode, overrides)
     if mode == "promote-regression":
         return promote_regression_from_cli_overrides(overrides)
     if mode == "map-build-report":

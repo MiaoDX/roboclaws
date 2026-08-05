@@ -10,6 +10,15 @@ leave a link.
 
 ## Current Focus
 
+Eval Evolution Phase 0 is complete under
+`docs/plans/2026-08-04-eval-evolution-agent-sdk.md`. The accepted contracts bind
+both optimizer and robot roles to OpenAI Agents SDK, keep optimizer-visible
+feedback sanitized, freeze campaign/candidate identity, require sealed holdout
+and human promotion, and expose blocked-by-default `just agent::eval
+evolve|evolve-promote` commands. Phase 1 is the current Skill vertical slice.
+Codex CLI remains outside the implementation, and MCP behavior candidates
+remain barred from live execution until Phase 3 malicious isolation passes.
+
 The post-refactor Skill delivery comparison is terminal at
 `output/eval-harness/20260804T121407Z/`. It tested five cells with the kickoff
 goal only in user input, using `kimi-openai-chat` / `kimi-k2.7-code`, cleanup
@@ -65,9 +74,10 @@ providers.
 
 ## Next Action
 
-Keep `static-full` as the product default until a reviewed multi-scene
-confirmation compares it directly with `no-skill`. Do not promote a dynamic or
-Sandbox mode, or publish a baseline, from the one-scene matrix.
+Implement Phase 1's narrow Agents SDK optimizer tools, content-addressed Skill
+candidate workspace, deterministic gates, paired training selection, sealed
+holdout, and explicit human-only promotion path. Keep `static-full` as the
+baseline and `no-skill` as a non-promotable negative control.
 
 ## Current Blockers
 
