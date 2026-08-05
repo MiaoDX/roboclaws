@@ -16,7 +16,7 @@ from roboclaws.evals.evolution_mcp_description import (
     MCPDescriptionSnapshot,
     validate_description_candidate,
 )
-from roboclaws.mcp.profiles import contract_profile
+from roboclaws.household.realworld_contract_payloads import contract_profile
 
 
 class CandidateValidationError(ValueError):

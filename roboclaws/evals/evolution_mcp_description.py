@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 from typing import Any
 
-from roboclaws.mcp.profiles import ContractProfile, contract_profile
+from roboclaws.household.realworld_contract_payloads import ContractProfile, contract_profile
 
 MCP_DESCRIPTION_TARGET_SCHEMA = "eval_evolution_mcp_description_target_v1"
 _PRIVATE_TERMS = ("private", "secret", "grader", "fixture", "hidden", "holdout")
