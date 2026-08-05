@@ -12,6 +12,9 @@ from roboclaws.core.robot_view_capture import (
     ROBOT_VIEW_CAPTURE_POLICY_ACTION_TIMELINE,
     ROBOT_VIEW_CAPTURE_POLICY_FULL,
 )
+from roboclaws.household.candidate_projection_protocol import (
+    project_candidate_public_response,
+)
 from roboclaws.household.household_mcp_projection import (
     _compact_raw_fpv_mcp_observe_state,
     _json_safe,
@@ -149,9 +152,12 @@ class HouseholdMCPTraceLifecycle:
         trace_response = response
         if tool == "observe" and self.perception_mode == RAW_FPV_ONLY_MODE:
             trace_response = dict(response)
-            trace_response["agent_facing_compact_state"] = _compact_raw_fpv_mcp_observe_state(
+            compact_state = _compact_raw_fpv_mcp_observe_state(
                 response,
                 cleanup_worklist=self.contract.cleanup_worklist_payload(),
+            )
+            trace_response["agent_facing_compact_state"] = project_candidate_public_response(
+                "raw_fpv_observe_state", compact_state
             )
         self._write_trace(tool=tool, event="response", response=trace_response)
 
