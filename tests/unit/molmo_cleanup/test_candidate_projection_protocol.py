@@ -11,6 +11,10 @@ from roboclaws.household.candidate_projection_protocol import (
     validate_candidate_public_payload,
 )
 from roboclaws.household.candidate_projection_worker import dispatch_candidate_projection
+from roboclaws.household.household_mcp_projection import (
+    _compact_cleanup_worklist_summary,
+    _compact_declare_visual_candidates_response,
+)
 
 
 def test_projection_is_identity_when_no_candidate_worker_is_configured(monkeypatch) -> None:
@@ -70,6 +74,35 @@ def test_candidate_worker_dispatches_only_declared_operations() -> None:
                 "payload": {},
             }
         )
+
+
+def test_baseline_projection_sanitizes_nested_visual_grounding_evidence() -> None:
+    evidence = {
+        "schema": "visual_grounding_evidence_v1",
+        "candidate_state": "navigation_authorized",
+        "private_truth_included": False,
+    }
+    projected = _compact_declare_visual_candidates_response(
+        {
+            "model_declared_observations": [{"visual_grounding_evidence": evidence}],
+            "camera_model_candidates": [{"visual_grounding_evidence": evidence}],
+        }
+    )
+    worklist = _compact_cleanup_worklist_summary(
+        {"objects": [{"object_id": "observed_001", "visual_grounding_evidence": evidence}]}
+    )
+
+    validate_candidate_public_payload(projected)
+    validate_candidate_public_payload(worklist)
+    for item in (
+        projected["model_declared_observations"][0],
+        projected["camera_model_candidates"][0],
+        worklist["objects"][0],
+    ):
+        assert item["visual_grounding_evidence"] == {
+            "schema": "visual_grounding_evidence_v1",
+            "candidate_state": "navigation_authorized",
+        }
 
 
 @pytest.mark.parametrize(

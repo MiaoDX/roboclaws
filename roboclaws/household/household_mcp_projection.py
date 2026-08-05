@@ -162,7 +162,6 @@ def _compact_model_declared_observation(item: dict[str, Any]) -> dict[str, Any]:
             "grounding_basis",
             "recovery_hint",
             "actionability_status",
-            "visual_grounding_evidence",
             "visual_grounding_destination_hint",
             "image_dimensions",
             "visual_grounding_overlay",
@@ -174,6 +173,9 @@ def _compact_model_declared_observation(item: dict[str, Any]) -> dict[str, Any]:
             target_plausibility,
             ("status", "basis", "expected_fixture_id"),
         )
+    compact["visual_grounding_evidence"] = _compact_visual_grounding_evidence(
+        item.get("visual_grounding_evidence")
+    )
     return compact
 
 
@@ -203,7 +205,6 @@ def _compact_camera_model_candidate(item: dict[str, Any]) -> dict[str, Any]:
             "grounding_confidence",
             "grounding_basis",
             "actionability_status",
-            "visual_grounding_evidence",
         ),
     )
     support_estimate = item.get("support_estimate")
@@ -212,7 +213,36 @@ def _compact_camera_model_candidate(item: dict[str, Any]) -> dict[str, Any]:
             support_estimate,
             ("fixture_id", "relation", "confidence", "source", "perception_source"),
         )
+    compact["visual_grounding_evidence"] = _compact_visual_grounding_evidence(
+        item.get("visual_grounding_evidence")
+    )
     return compact
+
+
+def _compact_visual_grounding_evidence(evidence: Any) -> dict[str, Any]:
+    if not isinstance(evidence, dict):
+        return {}
+    return _select_keys(
+        evidence,
+        (
+            "schema",
+            "camera_frame",
+            "source_observation_id",
+            "producer_type",
+            "producer_id",
+            "image_region",
+            "image_bbox",
+            "bbox_coordinate_space",
+            "reviewability_status",
+            "reviewability_reason",
+            "grounding_status",
+            "locality_status",
+            "actionability_status",
+            "candidate_state",
+            "visual_grounding_pipeline_id",
+            "visual_grounding_pipeline_status",
+        ),
+    )
 
 
 def _compact_raw_fpv_mcp_observe_state(
@@ -350,7 +380,7 @@ def _compact_worklist_next_actions(objects: list[dict[str, Any]]) -> list[dict[s
 
 
 def _compact_worklist_object(item: dict[str, Any]) -> dict[str, Any]:
-    return _select_keys(
+    compact = _select_keys(
         item,
         (
             "object_id",
@@ -363,9 +393,12 @@ def _compact_worklist_object(item: dict[str, Any]) -> dict[str, Any]:
             "actionability_status",
             "cleanup_recommended",
             "recommended_tool",
-            "visual_grounding_evidence",
         ),
     )
+    compact["visual_grounding_evidence"] = _compact_visual_grounding_evidence(
+        item.get("visual_grounding_evidence")
+    )
+    return compact
 
 
 def _select_keys(source: dict[str, Any], keys: tuple[str, ...]) -> dict[str, Any]:
