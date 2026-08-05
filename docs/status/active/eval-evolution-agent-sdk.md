@@ -6,7 +6,7 @@
 - Project-status writer: this control plane at phase checkpoints only
 - Latest intent: execute the approved full five-phase plan through
   `$intuitive-flow`
-- Current slice: Phase 1 Skill vertical slice
+- Current slice: Phase 2 MCP description-only slice
 - Blocker: none
 - Last proof: Phase 1 deterministic optimizer/candidate/selection/promotion
   tests, eval/agent suites, smoke/open-ended/map-build eval commands, repo-wide
@@ -17,10 +17,10 @@
 - Completed slices: Phase 0 contracts and threat model, strict campaign/
   feedback/candidate/selection/promotion loaders, malicious boundary fixtures,
   and blocked-by-default `evolve|evolve-promote` grammar
-- Next slice: Phase 2 MCP description-only evolution slice. Keep MCP behavior
-  live execution blocked until Phase 3 malicious isolation passes.
-- Next proof: Phase 2 description identity, deterministic candidate gates, and
-  no-behavior-live command/eval contract tests.
+- Next slice: wire the Phase 2 description target into campaign materialization
+  and blocked command contracts. Keep MCP behavior live execution blocked until
+  Phase 3 malicious isolation passes.
+- Next proof: description target identity and no-behavior-live campaign proof.
 - Stop condition: stop at every source-plan hard gate; in particular, never
   execute MCP behavior candidates live before Phase 3 malicious isolation passes
 - No-touch scope: Codex CLI; automatic promotion/commit/default/baseline/catalog

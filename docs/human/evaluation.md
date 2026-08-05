@@ -243,3 +243,15 @@ Keep grader truth private. Generated mess sets, acceptable destinations,
 hidden targets, and private manifests may feed graders and maintainer reports,
 but they must not appear in agent-facing MCP inputs, capability metadata, or
 public map artifacts.
+## Eval Evolution MCP Description Gate
+
+MCP description evolution is limited to existing public `ToolDescriptor`
+summaries. The frozen target records the profile id/version, exact public tool
+set, immutable semantic metadata, and a content digest. Candidate validation
+allows only non-empty summary text changes; tool additions/removals, metadata
+changes, stale parent identity, and newly introduced private terminology are
+rejected before any live execution.
+
+MCP behavior candidates remain blocked until the Phase 3 malicious isolation
+gate proves credential scrubbing, private-data isolation, and unauthorized
+write/network denial.
