@@ -323,7 +323,7 @@ def test_live_open_ended_eval_fails_after_checker_nonzero_exit(
         )
         return _completed_process(
             returncode=1,
-            stderr="cleanup checker exited with status 1",
+            stderr="mcp session closed\ncleanup checker exited with status 1",
         )
 
     _patch_live_surface_popen(monkeypatch, live_exec, fake_run)
