@@ -90,6 +90,18 @@ def test_cloudml_probe_image_is_pinned_and_minimal() -> None:
     assert "candidate-isolation-probe.py" in dockerfile
 
 
+def test_candidate_worker_image_is_pinned_minimal_and_scrubs_environment() -> None:
+    dockerfile = Path("docker/eval-evolution-candidate/Dockerfile").read_text(encoding="utf-8")
+    assert "FROM python@sha256:" in dockerfile
+    assert "COPY *.whl /tmp/" in dockerfile
+    assert "COPY ." not in dockerfile
+    assert 'env", "-i"' in dockerfile
+    assert '"PATH=/usr/local/bin:/usr/bin:/bin"' in dockerfile
+    assert '"LANG=C.UTF-8"' in dockerfile
+    assert '"LC_ALL=C.UTF-8"' in dockerfile
+    assert '"roboclaws.household.candidate_projection_worker"' in dockerfile
+
+
 def test_supervisor_rejects_unknown_placement(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(os, "geteuid", lambda: 0)
     monkeypatch.setenv("ROBOCLAWS_ISOLATION_PLACEMENT", "unknown")
