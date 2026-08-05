@@ -84,6 +84,13 @@ providers.
 Implement Phase 2's MCP description-only evolution slice. Keep MCP behavior
 candidate live execution blocked until Phase 3 malicious isolation passes.
 
+The local Phase 3 isolation contract is proven by
+`output/eval-harness/20260804T121407Z/preflight/sandbox-isolation-sanitized.json`
+and the Sandbox boundary tests. The required remote placement is blocked:
+CloudML has no Docker-capable worker, so MCP behavior live execution remains
+disabled. Phase 4 may run description-only deterministic/live proof when its
+provider preflight is available; it must not substitute behavior execution.
+
 ## Current Blockers
 
 - Eval baseline publication remains blocked until a new full candidate replaces

@@ -6,8 +6,10 @@
 - Project-status writer: this control plane at phase checkpoints only
 - Latest intent: execute the approved full five-phase plan through
   `$intuitive-flow`
-- Current slice: Phase 2 MCP description-only slice
-- Blocker: none
+- Current slice: Phase 4 bounded description proof / behavior isolation hold
+- Blocker: CloudML has no Docker-capable worker for the required remote
+  malicious-isolation placement; local isolation proof is green, but MCP
+  behavior live execution remains blocked.
 - Last proof: Phase 1 deterministic optimizer/candidate/selection/promotion
   tests, eval/agent suites, smoke/open-ended/map-build eval commands, repo-wide
   Ruff/format, and quality ratchet passed on 2026-08-05. Bounded live Skill
@@ -17,10 +19,10 @@
 - Completed slices: Phase 0 contracts and threat model, strict campaign/
   feedback/candidate/selection/promotion loaders, malicious boundary fixtures,
   and blocked-by-default `evolve|evolve-promote` grammar
-- Next slice: wire the Phase 2 description target into campaign materialization
-  and blocked command contracts. Keep MCP behavior live execution blocked until
-  Phase 3 malicious isolation passes.
-- Next proof: description target identity and no-behavior-live campaign proof.
+- Next slice: run deterministic MCP description campaign wiring and final
+  cross-phase verification. Do not run MCP behavior candidates live.
+- Next proof: description-only campaign gates, blocked behavior command proof,
+  and final repo gates.
 - Stop condition: stop at every source-plan hard gate; in particular, never
   execute MCP behavior candidates live before Phase 3 malicious isolation passes
 - No-touch scope: Codex CLI; automatic promotion/commit/default/baseline/catalog
