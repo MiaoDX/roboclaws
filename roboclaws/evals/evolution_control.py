@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from roboclaws.core.json_sources import read_json_object
 from roboclaws.evals.candidate_isolation_probe import load_isolation_attestation
@@ -20,13 +20,22 @@ from roboclaws.evals.evolution_mcp_behavior import (
 )
 
 
-def run_evolution_command(mode: str, overrides: dict[str, str]) -> dict[str, Any]:
+def run_evolution_command(
+    mode: str,
+    overrides: dict[str, str],
+    *,
+    suite_runner: Callable[..., Any] | None = None,
+) -> dict[str, Any]:
     values = dict(overrides)
     live_execution = values.pop("live_execution", "blocked")
     if live_execution not in {"blocked", "run"}:
         raise ValueError("live_execution must be blocked or run")
     if mode == "evolve":
-        return _run_evolve(values, live_execution=live_execution)
+        return _run_evolve(
+            values,
+            live_execution=live_execution,
+            suite_runner=suite_runner,
+        )
     if mode == "evolve-promote":
         report_ref = values.pop("report", "")
         manifest_ref = values.pop("manifest", "")
@@ -55,7 +64,12 @@ def run_evolution_command(mode: str, overrides: dict[str, str]) -> dict[str, Any
     raise ValueError(f"unsupported evolution mode: {mode}")
 
 
-def _run_evolve(values: dict[str, str], *, live_execution: str) -> dict[str, Any]:
+def _run_evolve(
+    values: dict[str, str],
+    *,
+    live_execution: str,
+    suite_runner: Callable[..., Any] | None,
+) -> dict[str, Any]:
     campaign_ref = values.pop("campaign", "")
     output_root = Path(values.pop("output_dir", "output/eval-evolution"))
     attestation_ref = values.pop("isolation_attestation", "")
@@ -100,6 +114,7 @@ def _run_evolve(values: dict[str, str], *, live_execution: str) -> dict[str, Any
             campaign,
             repo_root=Path.cwd(),
             output_root=output_root,
+            suite_runner=suite_runner,
         )
     return {
         "schema": "eval_evolution_preflight_v1",
