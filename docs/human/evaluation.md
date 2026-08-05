@@ -13,6 +13,24 @@ The maintained user-facing skill is `@eval-harness`. Current row, engine,
 provider, intent, and evidence-lane dimensions are summarized in
 [Eval harness dimensions](eval-harness-dimensions.md).
 
+Eval-driven candidate improvement uses the separate maintainer workflow
+[`eval-evolution`](../../skills/eval-evolution/SKILL.md) under the same
+`just agent::eval` facade:
+
+```bash
+just agent::eval evolve campaign=<campaign.json>
+just agent::eval evolve campaign=<campaign.json> live_execution=run
+just agent::eval evolve-promote report=<selection-report.json> \
+  manifest=<maintainer-approved.json> live_execution=run
+```
+
+Both optimizer and robot roles use OpenAI Agents SDK and record distinct
+identities. Candidate generation cannot mutate the checkout. Quality and
+privacy gates precede efficiency ranking; one training winner may receive one
+sealed confirmation, and promotion always requires a digest-bound human
+approval. MCP behavior candidates remain blocked from live execution until the
+dedicated malicious isolation gate passes.
+
 An eval suite answers whether a capability is improving over time, not whether
 one demo happened to complete:
 

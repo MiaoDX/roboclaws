@@ -296,12 +296,29 @@ class SelectionReport:
                 "minimum_improvement",
                 "status",
                 "digests",
+                "optimizer",
+                "robot",
+                "limitations",
             }
         )
         _require_exact_fields(payload, required, "selection report")
         _require_schema(payload, SELECTION_SCHEMA)
-        if payload.get("status") not in {"accepted", "rejected", "blocked", "inconclusive"}:
+        if payload.get("status") not in {
+            "accepted",
+            "rejected",
+            "blocked",
+            "inconclusive",
+            "no_improving_candidate",
+        }:
             raise ValueError("unsupported selection report status")
+        optimizer = _mapping(payload, "optimizer")
+        robot = _mapping(payload, "robot")
+        if _mapping(optimizer, "identity").get("agent_engine") != "openai-agents-sdk":
+            raise ValueError("selection optimizer identity must use openai-agents-sdk")
+        if robot.get("agent_engine") != "openai-agents-sdk":
+            raise ValueError("selection robot identity must use openai-agents-sdk")
+        if not isinstance(payload.get("limitations"), list):
+            raise ValueError("selection limitations must be a list")
         return cls(dict(payload))
 
 

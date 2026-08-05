@@ -229,6 +229,12 @@ def test_selection_and_promotion_require_human_approval() -> None:
             "minimum_improvement": {"passed": True},
             "status": "accepted",
             "digests": {"report": "b" * 64},
+            "optimizer": {
+                "identity": {"agent_engine": "openai-agents-sdk"},
+                "usage": {},
+            },
+            "robot": {"agent_engine": "openai-agents-sdk"},
+            "limitations": [],
         }
     )
     manifest = PromotionManifest.from_mapping(

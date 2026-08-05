@@ -97,6 +97,8 @@ def run_eval_from_overrides(overrides: dict[str, str]) -> EvalSuiteRun:
     model = values.pop("model", None)
     live_execution = values.pop("live_execution", "blocked")
     skill_delivery_cell = validate_skill_delivery_cell(values.pop("skill_delivery_cell", None))
+    skill_source_root = _optional_path(values.pop("skill_source_root", None))
+    live_retry_limit = int(values.pop("live_retry_limit", "1"))
     live_timeout_s = _optional_float(values.pop("live_timeout_s", None))
     live_stall_timeout_s = _optional_float(values.pop("live_stall_timeout_s", None))
     regrade_source = _optional_path(values.pop("regrade_source", None))
@@ -114,6 +116,8 @@ def run_eval_from_overrides(overrides: dict[str, str]) -> EvalSuiteRun:
         model=model,
         live_execution=live_execution,
         skill_delivery_cell=skill_delivery_cell,
+        skill_source_root=skill_source_root,
+        live_retry_limit=live_retry_limit,
         live_timeout_s=live_timeout_s,
         live_stall_timeout_s=live_stall_timeout_s,
         regrade_source=regrade_source,
@@ -209,6 +213,8 @@ def run_eval_suite(
     model: str | None = None,
     live_execution: str = "blocked",
     skill_delivery_cell: str = "static-full",
+    skill_source_root: Path | None = None,
+    live_retry_limit: int = 1,
     live_timeout_s: float | None = None,
     live_stall_timeout_s: float | None = None,
     regrade_source: Path | None = None,
@@ -273,6 +279,8 @@ def run_eval_suite(
                 regrade_source_dir=regrade_source_dir,
                 product_runner=product_runner,
                 live_product_runner=live_product_runner,
+                skill_source_root=skill_source_root,
+                live_retry_limit=live_retry_limit,
             )
             results.append(result)
             sample_artifacts[sample_artifact_key(sample.sample_id, repetition_index)] = (

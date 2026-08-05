@@ -1,0 +1,33 @@
+{
+  "schema": "roboclaws_skill_manifest_v1",
+  "name": "eval-evolution",
+  "summary": "Prepare, run, review, and explicitly promote bounded eval-driven Skill and existing-MCP campaigns.",
+  "abstraction_level": "agent_skill",
+  "role": "eval_orchestration",
+  "status": "active",
+  "mcp": {
+    "profiles": [],
+    "required_tools": [],
+    "optional_tools": [],
+    "privileged_tools": [],
+    "boundary_notes": "This maintainer workflow exposes no robot capability and never gives optimizer agents private eval truth, shell, filesystem, git, network, or launch tools."
+  },
+  "capability_requirements": {
+    "profiles": [],
+    "backend_variants": [],
+    "notes": "Live campaigns require the frozen OpenAI Agents SDK providers, product runtime, eval suites, and execution placement named by the campaign."
+  },
+  "evidence_outputs": [
+    "candidate-summary.json",
+    "selection-report.json",
+    "candidates/by-sha256/<digest>/candidate.json"
+  ],
+  "lifecycle": {
+    "refactor_signals": [
+      "campaign orchestration escapes roboclaws.evals",
+      "optimizer-visible tools expand beyond the three bounded functions",
+      "selection or promotion policy diverges by target class"
+    ],
+    "promote_to_mcp_when": []
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "schema": "roboclaws_eval_suite_v1",
+  "suite_id": "household_world.evolution_skill_smoke_training",
+  "version": "2026-08-05",
+  "capability": "eval_evolution_skill_smoke",
+  "sample_ids": [
+    "evolution.skill_train_scene0_seed7",
+    "evolution.skill_train_scene10_seed7"
+  ],
+  "sample_refs": [
+    "evals/household_world/samples/evolution/skill_train_scene0_seed7.json",
+    "evals/household_world/samples/evolution/skill_train_scene10_seed7.json"
+  ],
+  "required_graders": ["artifacts", "privacy", "trajectory", "outcome"],
+  "thresholds": {
+    "private_truth_leak_count": 0,
+    "trajectory_policy_violation_count": 0,
+    "pass_at_1": 1.0
+  },
+  "metadata": {
+    "promotion_capable": false,
+    "role": "implementation_smoke_training"
+  }
+}

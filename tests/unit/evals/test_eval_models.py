@@ -30,6 +30,12 @@ SCENE_SAMPLER_SUITE = (
     REPO_ROOT / "evals" / "household_world" / "suites" / "scene_sampler_stress.json"
 )
 LONG_HORIZON_SUITE = REPO_ROOT / "evals" / "household_world" / "suites" / "long_horizon_tasks.json"
+EVOLUTION_TRAINING_SUITE = (
+    REPO_ROOT / "evals" / "household_world" / "suites" / "evolution_skill_smoke_training.json"
+)
+EVOLUTION_HOLDOUT_SUITE = (
+    REPO_ROOT / "evals" / "household_world" / "suites" / "evolution_skill_smoke_holdout.json"
+)
 EVAL_FILE_LOADERS = [(load_eval_suite, "suite.json"), (load_eval_sample, "sample.json")]
 
 
@@ -312,6 +318,8 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
         load_eval_suite(OPEN_ENDED_SUITE),
         load_eval_suite(SCENE_SAMPLER_SUITE),
         load_eval_suite(LONG_HORIZON_SUITE),
+        load_eval_suite(EVOLUTION_TRAINING_SUITE),
+        load_eval_suite(EVOLUTION_HOLDOUT_SUITE),
     ]
     loaded = [load_eval_sample(path) for path in sample_paths]
     assert {sample.sample_id for sample in loaded} == {
@@ -333,6 +341,9 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
         "scene_sampler.procthor-10k-val.10.map_build",
         "scene_sampler.procthor-10k-val.11.map_build",
         "scene_sampler.procthor-10k-val.12.map_build",
+        "evolution.skill_train_scene0_seed7",
+        "evolution.skill_train_scene10_seed7",
+        "evolution.skill_holdout_scene11_seed7",
         "scene_sampler.procthor-10k-val.13.map_build",
         "scene_sampler.procthor-10k-val.15.map_build",
         "scene_sampler.procthor-objaverse-val.0.map_build",

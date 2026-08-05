@@ -97,6 +97,31 @@ def test_model_call_stall_retries_only_once_and_attaches_audit(tmp_path: Path) -
     assert json.loads(audit_path.read_text())["final_outcome"] == "failed"
 
 
+def test_campaign_can_disable_automatic_retry(tmp_path: Path) -> None:
+    run_dir = tmp_path / "trial-0000"
+    run_dir.mkdir()
+    seen: list[Path] = []
+
+    def run_attempt(attempt_run_dir: Path) -> tuple[dict[str, object], Path]:
+        seen.append(attempt_run_dir)
+        raise _timeout(
+            attempt_run_dir,
+            timeout_kind="stall_timeout",
+            timeout_signal="model_call_in_flight",
+        )
+
+    with pytest.raises(LiveEvalTimeoutError):
+        run_with_model_call_stall_retry(
+            run_dir=run_dir,
+            run_attempt=run_attempt,
+            max_retries=0,
+        )
+
+    assert seen == [run_dir]
+    audit = json.loads((run_dir / LIVE_TRIAL_ATTEMPTS_FILENAME).read_text())
+    assert audit["retry_policy"]["max_retries"] == 0
+
+
 def test_non_model_stall_is_not_retried_or_audited(tmp_path: Path) -> None:
     run_dir = tmp_path / "trial-0000"
     run_dir.mkdir()

@@ -8,15 +8,19 @@
   `$intuitive-flow`
 - Current slice: Phase 1 Skill vertical slice
 - Blocker: none
-- Last proof: Phase 0 focused tests (30 passed), required eval/agent and command
-  contract suites, and repo-wide Ruff/format all passed on 2026-08-05
+- Last proof: Phase 1 deterministic optimizer/candidate/selection/promotion
+  tests, eval/agent suites, smoke/open-ended/map-build eval commands, repo-wide
+  Ruff/format, and quality ratchet passed on 2026-08-05. Bounded live Skill
+  campaign `output/eval-evolution/20260805-skill-smoke-v4/` completed through
+  Agents SDK optimizer plus paired robot training; authoritative training
+  status failed, so no holdout or promotion ran.
 - Completed slices: Phase 0 contracts and threat model, strict campaign/
   feedback/candidate/selection/promotion loaders, malicious boundary fixtures,
   and blocked-by-default `evolve|evolve-promote` grammar
-- Next slice: implement the narrow OpenAI Agents SDK optimizer adapter and
-  content-addressed Skill candidate materialization
-- Next proof: Phase 1 optimizer tool-boundary and Skill candidate deterministic
-  tests before any bounded live provider proof
+- Next slice: Phase 2 MCP description-only evolution slice. Keep MCP behavior
+  live execution blocked until Phase 3 malicious isolation passes.
+- Next proof: Phase 2 description identity, deterministic candidate gates, and
+  no-behavior-live command/eval contract tests.
 - Stop condition: stop at every source-plan hard gate; in particular, never
   execute MCP behavior candidates live before Phase 3 malicious isolation passes
 - No-touch scope: Codex CLI; automatic promotion/commit/default/baseline/catalog

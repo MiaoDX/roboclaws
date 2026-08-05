@@ -36,6 +36,13 @@ environment, and only the selected Skill reader exposed. No durable
 baseline/catalog artifact was published. See
 `docs/plans/2026-08-03-agent-skill-delivery-eval.md`.
 
+Phase 1 Eval Evolution Skill smoke completed at
+`output/eval-evolution/20260805-skill-smoke-v4/`. The Agents SDK optimizer
+materialized a content-addressed candidate and the paired robot training
+matrix ran with frozen identity and zero retries. Deterministic gates passed,
+but authoritative training status failed, so selection returned
+`no_improving_candidate`; sealed holdout and promotion were correctly skipped.
+
 The invalid hybrid candidate at `output/eval-harness/20260803T023049Z/` remains
 retained as evidence and unpublished. Its checker/eval ownership regression is
 fixed: product checker failures now fail closed, `done` is terminal, and one
@@ -74,10 +81,8 @@ providers.
 
 ## Next Action
 
-Implement Phase 1's narrow Agents SDK optimizer tools, content-addressed Skill
-candidate workspace, deterministic gates, paired training selection, sealed
-holdout, and explicit human-only promotion path. Keep `static-full` as the
-baseline and `no-skill` as a non-promotable negative control.
+Implement Phase 2's MCP description-only evolution slice. Keep MCP behavior
+candidate live execution blocked until Phase 3 malicious isolation passes.
 
 ## Current Blockers
 

@@ -19,17 +19,26 @@ def run_evolution_command(mode: str, overrides: dict[str, str]) -> dict[str, Any
         raise ValueError("live_execution must be blocked or run")
     if mode == "evolve":
         campaign_ref = values.pop("campaign", "")
+        output_root = Path(values.pop("output_dir", "output/eval-evolution"))
         _reject_overrides(values, mode)
         if not campaign_ref:
             raise ValueError("evolve requires campaign=<path>")
         campaign = load_campaign(Path(campaign_ref))
+        if live_execution == "run":
+            from roboclaws.evals.evolution_campaign import run_skill_campaign
+
+            return run_skill_campaign(
+                campaign,
+                repo_root=Path.cwd(),
+                output_root=output_root,
+            )
         return {
             "schema": "eval_evolution_preflight_v1",
             "mode": mode,
             "campaign_id": campaign.campaign_id,
             "live_execution": live_execution,
             "status": "blocked",
-            "reason": "phase_0_contract_only",
+            "reason": "live_execution_requires_explicit_run",
         }
     if mode == "evolve-promote":
         report_ref = values.pop("report", "")
@@ -40,13 +49,21 @@ def run_evolution_command(mode: str, overrides: dict[str, str]) -> dict[str, Any
         report = load_selection_report(Path(report_ref))
         manifest = load_promotion_manifest(Path(manifest_ref))
         manifest.validate_for_report(report)
+        if live_execution == "run":
+            from roboclaws.evals.evolution_promotion import apply_evolution_promotion
+
+            return apply_evolution_promotion(
+                report_path=Path(report_ref),
+                manifest_path=Path(manifest_ref),
+                repo_root=Path.cwd(),
+            )
         return {
             "schema": "eval_evolution_promotion_preflight_v1",
             "mode": mode,
             "campaign_id": report.campaign_id,
             "live_execution": live_execution,
             "status": "blocked",
-            "reason": "promotion_not_implemented_until_phase_1",
+            "reason": "promotion_requires_explicit_live_execution",
         }
     raise ValueError(f"unsupported evolution mode: {mode}")
 
