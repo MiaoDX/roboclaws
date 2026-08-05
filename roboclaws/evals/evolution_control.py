@@ -5,12 +5,18 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from roboclaws.core.json_sources import read_json_object
 from roboclaws.evals.candidate_isolation_probe import load_isolation_attestation
+from roboclaws.evals.evolution_campaign import run_mcp_description_campaign
 from roboclaws.evals.evolution_contracts import (
     Campaign,
     load_campaign,
     load_promotion_manifest,
     load_selection_report,
+)
+from roboclaws.evals.evolution_mcp_behavior import (
+    BehaviorProposal,
+    run_mcp_behavior_deterministic_gate,
 )
 
 
@@ -53,6 +59,7 @@ def _run_evolve(values: dict[str, str], *, live_execution: str) -> dict[str, Any
     campaign_ref = values.pop("campaign", "")
     output_root = Path(values.pop("output_dir", "output/eval-evolution"))
     attestation_ref = values.pop("isolation_attestation", "")
+    candidate_ref = values.pop("candidate", "")
     _reject_overrides(values, "evolve")
     if not campaign_ref:
         raise ValueError("evolve requires campaign=<path>")
@@ -62,18 +69,30 @@ def _run_evolve(values: dict[str, str], *, live_execution: str) -> dict[str, Any
             campaign,
             live_execution=live_execution,
             attestation_ref=attestation_ref,
+            candidate_ref=candidate_ref,
+            output_root=output_root,
         )
     if attestation_ref:
         raise ValueError("isolation_attestation is valid only for mcp-behavior campaigns")
     if campaign.target["kind"] == "mcp-description":
-        return {
-            "schema": "eval_evolution_preflight_v1",
-            "mode": "evolve",
-            "campaign_id": campaign.campaign_id,
-            "live_execution": live_execution,
-            "status": "blocked",
-            "reason": "description_campaign_requires_candidate_artifact",
-        }
+        if not candidate_ref:
+            return {
+                "schema": "eval_evolution_preflight_v1",
+                "mode": "evolve",
+                "campaign_id": campaign.campaign_id,
+                "live_execution": live_execution,
+                "status": "blocked",
+                "reason": "description_campaign_requires_candidate_artifact",
+            }
+        if live_execution != "run":
+            raise ValueError("MCP description candidate gate requires live_execution=run")
+        return run_mcp_description_campaign(
+            campaign,
+            candidate=read_json_object(Path(candidate_ref), label="MCP description candidate"),
+            output_root=output_root,
+        )
+    if candidate_ref:
+        raise ValueError("candidate artifact is valid only for MCP campaigns")
     if live_execution == "run":
         from roboclaws.evals.evolution_campaign import run_skill_campaign
 
@@ -98,7 +117,12 @@ def _reject_overrides(values: dict[str, str], mode: str) -> None:
 
 
 def _run_behavior_preflight(
-    campaign: Campaign, *, live_execution: str, attestation_ref: str
+    campaign: Campaign,
+    *,
+    live_execution: str,
+    attestation_ref: str,
+    candidate_ref: str,
+    output_root: Path,
 ) -> dict[str, Any]:
     result = {
         "schema": "eval_evolution_preflight_v1",
@@ -116,8 +140,22 @@ def _run_behavior_preflight(
     summary = attestation.summary()
     if summary["placement"] != campaign.identity.get("execution_placement"):
         raise ValueError("candidate isolation attestation placement does not match campaign")
+    if not candidate_ref:
+        return {
+            **result,
+            "reason": "behavior_campaign_requires_candidate_artifact",
+            "candidate_isolation": summary,
+        }
+    proposal = BehaviorProposal.from_mapping(
+        read_json_object(Path(candidate_ref), label="MCP behavior candidate")
+    )
+    gated = run_mcp_behavior_deterministic_gate(
+        campaign,
+        proposal=proposal,
+        output_root=output_root,
+        repo_root=Path.cwd(),
+    )
     return {
-        **result,
-        "reason": "behavior_campaign_requires_candidate_artifact",
+        **gated,
         "candidate_isolation": summary,
     }
