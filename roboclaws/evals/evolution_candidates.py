@@ -12,6 +12,11 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from roboclaws.evals.evolution_contracts import Campaign, validate_candidate_authority
+from roboclaws.evals.evolution_mcp_description import (
+    MCPDescriptionSnapshot,
+    validate_description_candidate,
+)
+from roboclaws.mcp.profiles import contract_profile
 
 
 class CandidateValidationError(ValueError):
@@ -76,6 +81,45 @@ def materialize_skill_candidate(
     }
     _write_json(workspace / "candidate.json", record)
     return record
+
+
+def materialize_mcp_description_candidate(
+    campaign: Campaign,
+    *,
+    candidate: dict[str, Any],
+    output_root: Path,
+) -> dict[str, Any]:
+    """Freeze a validated public MCP description candidate without code execution."""
+    if campaign.target["kind"] != "mcp-description":
+        raise ValueError("MCP description materialization requires target.kind=mcp-description")
+    profile_id = str(candidate.get("profile_id") or campaign.target["id"])
+    baseline = MCPDescriptionSnapshot.from_profile(contract_profile(profile_id))
+    if baseline.sha256 != campaign.target["target_sha256"]:
+        raise ValueError("campaign target digest does not match current MCP profile")
+    validation = validate_description_candidate(baseline, candidate)
+    root = Path(output_root) / campaign.campaign_id / "candidates" / "by-sha256"
+    workspace = root / validation["candidate_sha256"]
+    workspace.mkdir(parents=True, exist_ok=True)
+    record = {
+        "schema": "eval_evolution_materialized_candidate_v1",
+        "campaign_id": campaign.campaign_id,
+        "target_kind": "mcp-description",
+        "parent_target_sha256": baseline.sha256,
+        "patch": json.dumps(candidate, sort_keys=True, separators=(",", ":")),
+        "patch_sha256": sha256(
+            json.dumps(candidate, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest(),
+        "materialized_sha256": validation["candidate_sha256"],
+        "mutable_paths": list(campaign.target["mutable_paths"]),
+        "changed_tools": validation["changed_tools"],
+        "identity_frozen": True,
+        "terminal_status": "gated",
+    }
+    record_path = workspace / "candidate.json"
+    if record_path.exists() and json.loads(record_path.read_text(encoding="utf-8")) != record:
+        raise ValueError("existing MCP description candidate identity changed")
+    record_path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return {**record, "workspace": str(workspace), "validation": validation}
 
 
 def _extract_baseline_snapshot(*, repo_root: Path, commit: str, workspace: Path) -> None:
