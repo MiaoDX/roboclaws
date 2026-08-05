@@ -17,6 +17,7 @@ from typing import Any
 PROBE_SCHEMA = "candidate_isolation_probe_manifest_v1"
 RESULT_SCHEMA = "candidate_isolation_probe_result_v1"
 SUPERVISOR_RESULT_SCHEMA = "candidate_isolation_supervisor_result_v1"
+ATTESTATION_SCHEMA = "candidate_isolation_attestation_v1"
 _SENSITIVE_TOKENS = ("KEY", "TOKEN", "SECRET", "PASSWORD", "CREDENTIAL")
 _EXPECTED_PROVIDER_ENV = (
     "ANTHROPIC_API_KEY",
@@ -27,6 +28,19 @@ _EXPECTED_PROVIDER_ENV = (
     "OPENAI_API_KEY",
 )
 _PLACEMENTS = frozenset({"local-docker", "cloudml-native-container"})
+_RESULT_CHECKS = frozenset(
+    {
+        "approved_output_write",
+        "expected_environment_absent",
+        "forbidden_paths_unreadable",
+        "forbidden_writes_denied",
+        "network_denied",
+        "path_traversal_denied",
+        "sensitive_environment_absent",
+        "subprocess_private_read_denied",
+        "symlink_denied",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -66,6 +80,135 @@ class ProbeManifest:
             _network_targets(payload["network_targets"]),
             _string_list(payload, "expected_env_absent"),
         )
+
+
+@dataclass(frozen=True)
+class IsolationAttestation:
+    payload: dict[str, Any]
+    result: dict[str, Any]
+
+    @property
+    def digest(self) -> str:
+        return hashlib.sha256(
+            json.dumps(self.payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+
+    def summary(self) -> dict[str, Any]:
+        return {
+            "schema": ATTESTATION_SCHEMA,
+            "task_id": self.payload["task_id"],
+            "image_digest": self.payload["image_digest"],
+            "probe_source_sha256": self.payload["probe_source_sha256"],
+            "placement": self.payload["placement"],
+            "result_sha256": self.payload["result_sha256"],
+            "verdict": self.payload["verdict"],
+        }
+
+
+def load_isolation_attestation(path: Path, *, expected_sha256: str) -> IsolationAttestation:
+    raw = path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != expected_sha256:
+        raise ValueError("candidate isolation attestation digest mismatch")
+    payload = json.loads(raw)
+    required = {
+        "schema",
+        "task_id",
+        "image_digest",
+        "probe_source_sha256",
+        "code_commit",
+        "placement",
+        "result_path",
+        "result_sha256",
+        "collected_at",
+        "verdict",
+    }
+    if not isinstance(payload, dict) or set(payload) != required:
+        raise ValueError("candidate isolation attestation fields must be exact")
+    if payload.get("schema") != ATTESTATION_SCHEMA:
+        raise ValueError(f"candidate isolation attestation schema must be {ATTESTATION_SCHEMA}")
+    for key in ("image_digest", "probe_source_sha256", "result_sha256"):
+        _require_sha256(str(payload.get(key) or ""), key, allow_prefix=key == "image_digest")
+    _require_sha256(str(payload.get("code_commit") or ""), "code_commit", length=40)
+    if payload.get("placement") not in _PLACEMENTS:
+        raise ValueError("candidate isolation attestation placement is unsupported")
+    if payload.get("verdict") != "passed":
+        raise ValueError("candidate isolation attestation verdict must be passed")
+    result_ref = Path(str(payload.get("result_path") or ""))
+    if result_ref.is_absolute() or ".." in result_ref.parts:
+        raise ValueError("candidate isolation result path must be relative and traversal-free")
+    result_path = path.parent / result_ref
+    if result_path.is_symlink() or not result_path.is_file():
+        raise ValueError("candidate isolation result must be a regular non-symlink file")
+    result_raw = result_path.read_bytes()
+    if hashlib.sha256(result_raw).hexdigest() != payload["result_sha256"]:
+        raise ValueError("candidate isolation result digest mismatch")
+    result = json.loads(result_raw)
+    validate_supervisor_result(
+        result,
+        expected_placement=str(payload["placement"]),
+        expected_source_sha256=str(payload["probe_source_sha256"]),
+    )
+    return IsolationAttestation(dict(payload), result)
+
+
+def validate_supervisor_result(
+    payload: Any,
+    *,
+    expected_placement: str,
+    expected_source_sha256: str,
+) -> None:
+    if not isinstance(payload, dict) or payload.get("schema") != SUPERVISOR_RESULT_SCHEMA:
+        raise ValueError("candidate isolation supervisor result schema mismatch")
+    if payload.get("ok") is not True or payload.get("status") != "passed":
+        raise ValueError("candidate isolation supervisor result did not pass")
+    _validate_supervisor_identity(
+        payload,
+        expected_placement=expected_placement,
+        expected_source_sha256=expected_source_sha256,
+    )
+    _validate_child_result(payload.get("child_result"))
+
+
+def _validate_supervisor_identity(
+    payload: dict[str, Any], *, expected_placement: str, expected_source_sha256: str
+) -> None:
+    if payload.get("placement") != expected_placement:
+        raise ValueError("candidate isolation placement mismatch")
+    if payload.get("candidate_script_sha256") != expected_source_sha256:
+        raise ValueError("candidate isolation source digest mismatch")
+    if payload.get("candidate_uid") != 65534 or payload.get("candidate_gid") != 65534:
+        raise ValueError("candidate isolation UID/GID mismatch")
+    if payload.get("candidate_environment_keys") != ["LANG", "LC_ALL", "PATH"]:
+        raise ValueError("candidate isolation environment surface mismatch")
+    if payload.get("candidate_bundle_entries") != [
+        "candidate-isolation-probe.py",
+        "probe-manifest.json",
+    ]:
+        raise ValueError("candidate isolation bundle surface mismatch")
+
+
+def _validate_child_result(child: Any) -> None:
+    if not isinstance(child, dict) or child.get("schema") != RESULT_SCHEMA:
+        raise ValueError("candidate isolation child result schema mismatch")
+    checks = child.get("checks")
+    if not isinstance(checks, dict) or set(checks) != _RESULT_CHECKS:
+        raise ValueError("candidate isolation check set mismatch")
+    if not all(value is True for value in checks.values()):
+        raise ValueError("candidate isolation denial check failed")
+    if child.get("environment_keys") != ["LANG", "LC_ALL", "PATH"]:
+        raise ValueError("candidate child environment surface mismatch")
+    if child.get("sensitive_environment_keys") != []:
+        raise ValueError("candidate child received sensitive environment")
+    if child.get("forbidden_path_count") != 8:
+        raise ValueError("candidate isolation forbidden target count mismatch")
+
+
+def _require_sha256(value: str, name: str, *, allow_prefix: bool = False, length: int = 64) -> None:
+    candidate = value.removeprefix("sha256:") if allow_prefix else value
+    if len(candidate) != length or any(
+        character not in "0123456789abcdef" for character in candidate
+    ):
+        raise ValueError(f"{name} must be a lowercase hexadecimal digest")
 
 
 def _string_list(payload: dict[str, Any], name: str) -> tuple[str, ...]:

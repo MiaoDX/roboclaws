@@ -3,9 +3,18 @@ from __future__ import annotations
 import json
 import os
 import sys
+from hashlib import sha256
 from pathlib import Path
 
-from roboclaws.evals.candidate_isolation_probe import ProbeManifest, main, run_probe
+import pytest
+
+from roboclaws.evals.candidate_isolation_probe import (
+    IsolationAttestation,
+    ProbeManifest,
+    load_isolation_attestation,
+    main,
+    run_probe,
+)
 
 
 def _scrub_sensitive_environment(monkeypatch) -> None:
@@ -142,3 +151,81 @@ def test_cli_result_is_json_without_private_content(tmp_path: Path, monkeypatch)
     assert str(manifest.forbidden_paths[0]) not in rendered
     assert "private-content" not in rendered
     assert sys.version_info >= (3, 12)
+
+
+def _write_attestation(tmp_path: Path, child_result: dict) -> tuple[Path, str]:
+    source_digest = "a" * 64
+    result = {
+        "schema": "candidate_isolation_supervisor_result_v1",
+        "ok": True,
+        "status": "passed",
+        "placement": "cloudml-native-container",
+        "candidate_uid": 65534,
+        "candidate_gid": 65534,
+        "candidate_environment_keys": ["LANG", "LC_ALL", "PATH"],
+        "candidate_bundle_entries": [
+            "candidate-isolation-probe.py",
+            "probe-manifest.json",
+        ],
+        "candidate_script_sha256": source_digest,
+        "child_returncode": 0,
+        "child_result": child_result,
+    }
+    result_path = tmp_path / "result.json"
+    result_path.write_text(json.dumps(result, sort_keys=True) + "\n", encoding="utf-8")
+    payload = {
+        "schema": "candidate_isolation_attestation_v1",
+        "task_id": "t-test",
+        "image_digest": "sha256:" + "b" * 64,
+        "probe_source_sha256": source_digest,
+        "code_commit": "c" * 40,
+        "placement": "cloudml-native-container",
+        "result_path": "result.json",
+        "result_sha256": sha256(result_path.read_bytes()).hexdigest(),
+        "collected_at": "2026-08-05T00:00:00Z",
+        "verdict": "passed",
+    }
+    attestation_path = tmp_path / "attestation.json"
+    attestation_path.write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
+    return attestation_path, sha256(attestation_path.read_bytes()).hexdigest()
+
+
+def test_attestation_binds_result_identity(tmp_path: Path, monkeypatch) -> None:
+    _scrub_sensitive_environment(monkeypatch)
+    manifest = ProbeManifest(
+        approved_read_roots=(tmp_path / "approved",),
+        output_root=tmp_path / "scratch",
+        forbidden_paths=(tmp_path / "missing" / "truth.json",) * 8,
+        network_targets=(("127.0.0.1", 9),),
+        expected_env_absent=(),
+    )
+    manifest.approved_read_roots[0].mkdir()
+    child_result = run_probe(manifest)
+    child_result["environment_keys"] = ["LANG", "LC_ALL", "PATH"]
+    child_result["sensitive_environment_keys"] = []
+    attestation_path, digest = _write_attestation(tmp_path, child_result)
+
+    attestation = load_isolation_attestation(attestation_path, expected_sha256=digest)
+
+    assert isinstance(attestation, IsolationAttestation)
+    assert attestation.summary()["verdict"] == "passed"
+
+
+def test_attestation_rejects_tampered_result(tmp_path: Path, monkeypatch) -> None:
+    _scrub_sensitive_environment(monkeypatch)
+    manifest = ProbeManifest(
+        approved_read_roots=(tmp_path / "approved",),
+        output_root=tmp_path / "scratch",
+        forbidden_paths=(tmp_path / "missing" / "truth.json",) * 8,
+        network_targets=(("127.0.0.1", 9),),
+        expected_env_absent=(),
+    )
+    manifest.approved_read_roots[0].mkdir()
+    child_result = run_probe(manifest)
+    child_result["environment_keys"] = ["LANG", "LC_ALL", "PATH"]
+    child_result["sensitive_environment_keys"] = []
+    attestation_path, digest = _write_attestation(tmp_path, child_result)
+    (tmp_path / "result.json").write_text("{}\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="result digest mismatch"):
+        load_isolation_attestation(attestation_path, expected_sha256=digest)
