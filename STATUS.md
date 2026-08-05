@@ -97,10 +97,11 @@ Phase 4 description-only proof must not substitute behavior execution.
 
 - Eval baseline publication remains blocked until a new full candidate replaces
   the invalid `20260803T023049Z` evidence and receives human confirmation.
-- CloudML still cannot host the Docker-backed Sandbox row because its current
-  worker has no Docker runtime. Local restricted Sandbox evaluation is proven;
-  enabling a CloudML sandbox backend or worker image remains a runtime/cost
-  decision.
+- CloudML native task placement is available for the Phase 3 remote malicious-
+  isolation probe. The probe must run as a single no-retry custom_train task
+  with no provider credentials, private-evaluator/repo mounts, or network
+  attachment; MCP behavior candidates remain blocked until its collected
+  denial evidence passes.
 - Agibot and B1 injected dependency readiness passes with the existing local SDK, Map 12 bundle,
   B1 scene, and alignment/navigation proofs. Real-robot movement remains unauthorized and requires
   a present operator plus the existing localization, run-enablement, and E-stop gates.

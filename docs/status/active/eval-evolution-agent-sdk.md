@@ -10,7 +10,7 @@
 - Blocker: CloudML native task placement is available, but the required remote
   malicious-isolation probe has not yet been staged, submitted, and collected;
   local isolation proof is green, but MCP behavior live execution remains
-  blocked until the CloudML evidence is complete.
+  blocked until the CloudML denial evidence is complete.
 - Last proof: Phase 1 deterministic optimizer/candidate/selection/promotion
   tests, eval/agent suites, smoke/open-ended/map-build eval commands, repo-wide
   Ruff/format, and quality ratchet passed on 2026-08-05. Bounded live Skill
