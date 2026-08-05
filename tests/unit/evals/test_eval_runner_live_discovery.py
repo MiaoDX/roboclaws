@@ -343,7 +343,7 @@ def test_live_open_ended_eval_fails_after_checker_nonzero_exit(
     assert payload["aggregate"]["failed"] == 3
     result = payload["results"][0]
     assert result["status"] == "failed"
-    assert result["failure_class"] == "harness_bug_unclassified"
+    assert result["failure_class"] == "private_goal_not_satisfied"
     assert result["grader_outputs"]["runner"]["status"] == "failed"
     assert result["identity"]["agent_engine"] == "openai-agents-sdk"
     command_record = json.loads(
@@ -491,7 +491,7 @@ def test_live_cleanup_eval_fails_after_checker_nonzero_exit(
         if item["identity"]["sample_id"] == "cleanup.consumer_no_prior_seed7"
     )
     assert result["status"] == "failed"
-    assert result["failure_class"] == "harness_bug_unclassified"
+    assert result["failure_class"] == "private_goal_not_satisfied"
     assert result["grader_outputs"]["runner"]["status"] == "failed"
     command_record = json.loads(
         (
