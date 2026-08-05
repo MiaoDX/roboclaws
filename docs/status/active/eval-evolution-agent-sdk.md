@@ -7,9 +7,10 @@
 - Latest intent: execute the approved full five-phase plan through
   `$intuitive-flow`
 - Current slice: Phase 5 final review and handoff
-- Blocker: CloudML has no Docker-capable worker for the required remote
-  malicious-isolation placement; local isolation proof is green, but MCP
-  behavior live execution remains blocked.
+- Blocker: CloudML native task placement is available, but the required remote
+  malicious-isolation probe has not yet been staged, submitted, and collected;
+  local isolation proof is green, but MCP behavior live execution remains
+  blocked until the CloudML evidence is complete.
 - Last proof: Phase 1 deterministic optimizer/candidate/selection/promotion
   tests, eval/agent suites, smoke/open-ended/map-build eval commands, repo-wide
   Ruff/format, and quality ratchet passed on 2026-08-05. Bounded live Skill

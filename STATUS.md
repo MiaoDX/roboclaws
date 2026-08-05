@@ -88,10 +88,10 @@ execution blocked until Phase 3 malicious isolation passes.
 
 The local Phase 3 isolation contract is proven by
 `output/eval-harness/20260804T121407Z/preflight/sandbox-isolation-sanitized.json`
-and the Sandbox boundary tests. The required remote placement is blocked:
-CloudML has no Docker-capable worker, so MCP behavior live execution remains
-disabled. Phase 4 may run description-only deterministic/live proof when its
-provider preflight is available; it must not substitute behavior execution.
+and the Sandbox boundary tests. CloudML native task placement is available,
+but its remote malicious-isolation probe has not yet been staged, submitted,
+and collected. MCP behavior live execution remains disabled until that proof;
+Phase 4 description-only proof must not substitute behavior execution.
 
 ## Current Blockers
 
