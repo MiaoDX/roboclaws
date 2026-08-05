@@ -28,8 +28,20 @@ Both optimizer and robot roles use OpenAI Agents SDK and record distinct
 identities. Candidate generation cannot mutate the checkout. Quality and
 privacy gates precede efficiency ranking; one training winner may receive one
 sealed confirmation, and promotion always requires a digest-bound human
-approval. MCP behavior candidates remain blocked from live execution until the
-dedicated malicious isolation gate passes.
+approval. A failed authoritative training status rejects that candidate as
+ineligible for selection; it does not mean the optimizer or training
+infrastructure failed unless the attempt classification says so.
+
+MCP behavior candidates use a separate candidate worker boundary. The trusted
+runtime first projects an atomic baseline-public response, validates forbidden
+keys, and sends only that JSON to a content-addressed worker image. The worker
+runs without provider credentials, network, repository/eval mounts, writable
+root state, or host capabilities; only its ephemeral scratch space is writable.
+The trusted supervisor retains provider access and owns durable artifacts.
+Behavior execution remains fail-closed unless the campaign binds a passing
+local/remote isolation attestation and the candidate passes the static gate.
+The current CloudML native-container attestation is under
+`output/eval-evolution/20260805-phase3-isolation/cloudml/`.
 
 An eval suite answers whether a capability is improving over time, not whether
 one demo happened to complete:
@@ -243,7 +255,8 @@ Keep grader truth private. Generated mess sets, acceptable destinations,
 hidden targets, and private manifests may feed graders and maintainer reports,
 but they must not appear in agent-facing MCP inputs, capability metadata, or
 public map artifacts.
-## Eval Evolution MCP Description Gate
+
+## Eval Evolution MCP Gates
 
 MCP description evolution is limited to existing public `ToolDescriptor`
 summaries. The frozen target records the profile id/version, exact public tool
@@ -252,6 +265,9 @@ allows only non-empty summary text changes; tool additions/removals, metadata
 changes, stale parent identity, and newly introduced private terminology are
 rejected before any live execution.
 
-MCP behavior candidates remain blocked until the Phase 3 malicious isolation
-gate proves credential scrubbing, private-data isolation, and unauthorized
-write/network denial.
+MCP behavior candidates require a campaign-bound isolation attestation that
+proves credential scrubbing, private-data isolation, and unauthorized
+write/network denial. The current local and CloudML native-container evidence
+passes that gate. A candidate may then project existing-tool public responses
+inside the isolated worker, but cannot change the public tool set or bypass the
+trusted supervisor's output validation.
