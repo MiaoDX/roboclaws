@@ -32,15 +32,12 @@ from roboclaws.household.realworld_contract_fixture_projection import (
     _public_destination_policy_tool_for_fixture_category,
     _recommended_place_tool,
 )
+from roboclaws.household.realworld_visual_candidates import CLEANUP_ACTIONABLE_HANDLE_STATES
 from roboclaws.household.semantic_acceptability import public_source_requires_cleanup
 from roboclaws.household.visual_scan_guidance import visual_scan_done_recovery_hint
 
 DONE_READINESS_POLICY_RAW_FPV = "raw_fpv_grounded_cleanup_chains"
 DONE_READINESS_POLICY_EXPLICIT = "explicit_grounded_cleanup_chains"
-CLEANUP_ACTIONABLE_HANDLE_STATES = frozenset({"pending", "navigating_to_object", "held"})
-NON_ACTIONABLE_HANDLE_STATES = frozenset({"placed", "placed_closed", "skipped", "stale"})
-
-
 _required_tool_for_candidate_state = realworld_visual_candidates._required_tool_for_candidate_state
 
 

@@ -45,7 +45,7 @@ CAMERA_MODEL_POLICY_SCHEMA = "camera_model_policy_v1"
 MODEL_DECLARED_OBSERVATIONS_SCHEMA = "model_declared_observations_v1"
 SIMULATED_CAMERA_MODEL_PROVENANCE = realworld_visual_candidates.SIMULATED_CAMERA_MODEL_PROVENANCE
 SANITIZED_VISIBLE_OBJECT_DETECTIONS_PROVENANCE = "sanitized_visible_object_detections"
-_NON_ACTIONABLE_HANDLE_STATES = realworld_done_readiness.NON_ACTIONABLE_HANDLE_STATES
+_NON_ACTIONABLE_HANDLE_STATES = realworld_visual_candidates.NON_ACTIONABLE_HANDLE_STATES
 _FORBIDDEN_AGENT_VIEW_KEYS = frozenset(
     {
         "generated_mess_set",

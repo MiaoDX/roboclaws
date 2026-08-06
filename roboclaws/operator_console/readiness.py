@@ -8,12 +8,11 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.core.json_sources import read_json_object
-from roboclaws.operator_console.launch_contract import ConsoleLaunchError
 from roboclaws.operator_console.routes import ConsoleLaunchSelection
-from roboclaws.operator_console.runtime_blocker_policy import port_owner_task
-
-DEFAULT_MCP_HOST = "127.0.0.1"
-DEFAULT_MCP_PORT = 18788
+from roboclaws.operator_console.runtime_blocker_policy import (
+    port_owner_task,
+    requested_mcp_endpoint,
+)
 
 
 @dataclass(frozen=True)
@@ -103,8 +102,7 @@ def _mcp_port_gate(
     runtime_tasks: list[dict[str, Any]] | None,
 ) -> GateEvaluation:
     del root, route, gate_map, provider_status
-    host = _override_host(override_map)
-    port = _override_port(override_map)
+    host, port = requested_mcp_endpoint(override_map)
     evidence = f"{host}:{port}"
     if _tcp_port_free(host, port):
         return GateEvaluation(evidence=evidence, severity=gate.severity, blocks_start=gate.required)
@@ -253,25 +251,6 @@ def _route_gate_payload(gate: Any, evaluation: GateEvaluation) -> dict[str, Any]
         "evidence": evaluation.evidence,
         "help_text": gate.help_text,
     }
-
-
-def _override_host(overrides: dict[str, str]) -> str:
-    host = str(overrides.get("host") or DEFAULT_MCP_HOST).strip()
-    return host or DEFAULT_MCP_HOST
-
-
-def _override_port(overrides: dict[str, str]) -> int:
-    return _parse_port(str(overrides.get("port") or DEFAULT_MCP_PORT))
-
-
-def _parse_port(value: str) -> int:
-    try:
-        port = int(str(value).strip())
-    except ValueError as exc:
-        raise ConsoleLaunchError(f"invalid MCP port: {value}") from exc
-    if not 1 <= port <= 65535:
-        raise ConsoleLaunchError(f"invalid MCP port: {value}")
-    return port
 
 
 _GATE_EVALUATORS: dict[str, Any] = {

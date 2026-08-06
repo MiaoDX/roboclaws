@@ -8,13 +8,13 @@ from typing import Any
 from urllib.parse import quote
 
 from roboclaws.core.json_sources import read_json_object
+from roboclaws.mcp.endpoint import DEFAULT_MCP_HOST
 from roboclaws.operator_console import runtime_host_probes
 from roboclaws.operator_console.paths import operator_output_request_path
 from roboclaws.operator_console.redaction import redact_text
 from roboclaws.operator_console.routes import selection_task_selector
 from roboclaws.operator_console.runtime_compat import float_or_none, pid_is_active
 from roboclaws.operator_console.runtime_host_probes import (
-    DEFAULT_MCP_HOST,
     _age_seconds,
     _int_or_none,
     _recent_epoch,

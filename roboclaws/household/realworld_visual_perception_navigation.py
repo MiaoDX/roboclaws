@@ -20,7 +20,7 @@ from roboclaws.household.realworld_visual_candidates import (
 )
 
 MODEL_DECLARED_OBSERVATION_SOURCE = "model_declared_observation"
-_NON_ACTIONABLE_HANDLE_STATES = frozenset({"placed", "placed_closed", "skipped", "stale"})
+_NON_ACTIONABLE_HANDLE_STATES = realworld_visual_candidates.NON_ACTIONABLE_HANDLE_STATES
 
 
 def _refresh_candidate_state(detection: dict[str, Any]) -> None:

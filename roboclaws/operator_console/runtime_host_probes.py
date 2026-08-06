@@ -8,9 +8,9 @@ import time
 from pathlib import Path
 from typing import Any
 
+from roboclaws.mcp.endpoint import DEFAULT_MCP_PORT
 from roboclaws.operator_console.runtime_compat import float_or_none
 
-DEFAULT_MCP_HOST, DEFAULT_MCP_PORT = "127.0.0.1", 18788
 LIVE_MARKERS = (
     "live_status.json",
     "run_result.json",

@@ -77,6 +77,12 @@ def test_household_mcp_writes_live_public_map_artifacts_before_done(tmp_path: Pa
 
     agent_view = json.loads(agent_view_path.read_text(encoding="utf-8"))
     runtime_map = json.loads(runtime_map_path.read_text(encoding="utf-8"))
+    trace_events = [
+        json.loads(line) for line in (tmp_path / "trace.jsonl").read_text().splitlines()
+    ]
 
     assert waypoint_id in agent_view["readiness"]["observed_waypoint_ids"]
     assert runtime_map["schema"] == "runtime_metric_map_v1"
+    assert not any(
+        event.get("event") == "live_public_artifact_write_failed" for event in trace_events
+    )

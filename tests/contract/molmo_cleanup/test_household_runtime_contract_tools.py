@@ -159,6 +159,11 @@ def test_realworld_contract_rejects_place_inside_before_opening_fridge() -> None
     _assert_no_forbidden_keys(skipped_open)
 
     assert contract.open_receptacle(fixture_id)["ok"] is True
+    repeated_navigation = contract.navigate_to_receptacle(fixture_id)
+    assert repeated_navigation["ok"] is False
+    assert repeated_navigation["error_reason"] == "semantic_order"
+    assert repeated_navigation["required_tool"] == "place_inside"
+    _assert_no_forbidden_keys(repeated_navigation)
     placed = contract.place_inside(fixture_id)
     closed = contract.close_receptacle(fixture_id)
 

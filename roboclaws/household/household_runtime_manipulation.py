@@ -105,6 +105,18 @@ class HouseholdRuntimeManipulationMixin:
         )
         if destination_policy_error is not None:
             return destination_policy_error
+        opened = self._opened_receptacle_for_handle
+        if opened == (self._held_handle, internal_fixture_id):
+            return self._semantic_order_error(
+                "navigate_to_receptacle",
+                required_tool="place_inside",
+                object_id=self._held_handle,
+                fixture_id=requested_fixture_id,
+                recovery_hint=(
+                    "This receptacle is already open for the held object. Call place_inside "
+                    "before close_receptacle; do not navigate again."
+                ),
+            )
         response = self.contract.navigate_to_receptacle(internal_fixture_id)
         if not response.get("ok"):
             return self._public_error_from_private(

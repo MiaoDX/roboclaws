@@ -26,6 +26,8 @@ CANDIDATE_STATE_SEMANTIC = "semantic_candidate"
 CANDIDATE_STATE_VISUAL_SCAN_REQUIRED = "visual_scan_required"
 CANDIDATE_STATE_VISUALLY_CONFIRMED = "visually_confirmed"
 CANDIDATE_STATE_NAVIGATION_AUTHORIZED = "navigation_authorized"
+NON_ACTIONABLE_HANDLE_STATES = frozenset({"placed", "placed_closed", "skipped", "stale"})
+CLEANUP_ACTIONABLE_HANDLE_STATES = frozenset({"pending", "navigating_to_object", "held"})
 VISUAL_GROUNDING_CATEGORY_HINTS = [
     "food",
     "dish",
