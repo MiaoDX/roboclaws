@@ -10,6 +10,21 @@ leave a link.
 
 ## Current Focus
 
+The reviewed multi-scene Skill-delivery probe is complete at
+`output/eval-probes/20260805-skill-delivery-multiscene/`. It paired
+`static-full` and `no-skill` on MolmoSpaces scenes 0, 10, and 12 with
+`kimi-k2.7-code`, identical runtime/tool identity, local serial execution, and
+zero automatic retries. Both cells are authoritative eval `0/3`; each has one
+behaviorally successful `run_result` at 0.8 restoration, but the checker rejects
+the semantic evidence. All six trials reached the product checker without
+provider, network, runtime, or privacy failures. The result is inconclusive;
+the product default remains unchanged and no baseline/catalog was published.
+
+See `docs/status/active/skill-delivery-multiscene-probe.md` for the paired table
+and evidence paths.
+
+## Previous Focus
+
 Eval Evolution Phases 0-4 are complete under
 `docs/plans/2026-08-04-eval-evolution-agent-sdk.md`. Optimizer and robot roles
 use OpenAI Agents SDK, feedback is sanitized, campaign/candidate identity is
