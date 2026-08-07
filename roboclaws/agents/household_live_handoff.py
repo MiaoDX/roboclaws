@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from typing import Any
 
@@ -10,6 +11,7 @@ from roboclaws.agents.drivers.openai_agents_budget import (
     raw_fpv_budget_failure as _raw_fpv_budget_failure,
 )
 from roboclaws.agents.drivers.openai_agents_live import OpenAIAgentsLiveRuntime
+from roboclaws.agents.experiment_telemetry import closed_export_record
 from roboclaws.agents.household_live_continuation import (
     _claim_operator_resume_request,
     _explicit_operator_handoff_requested,
@@ -25,6 +27,22 @@ from roboclaws.core.task_intents import household_intent_from_args as _household
 from roboclaws.core.task_intents import household_task_name_from_args as _household_run_id
 
 OPERATOR_HANDOFF_REASON = "operator_handoff_requested"
+
+
+def _eval_telemetry_identity() -> dict[str, Any]:
+    raw = os.environ.get("ROBOCLAWS_EVAL_TELEMETRY_IDENTITY", "").strip()
+    if not raw:
+        return {}
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
+    if not isinstance(payload, dict):
+        return {}
+    try:
+        return closed_export_record("identity", payload)
+    except ValueError:
+        return {}
 
 
 class HouseholdLiveHandoffMixin:
@@ -100,6 +118,7 @@ class HouseholdLiveHandoffMixin:
                     / f"openai-agents-spans.continuation-{attempt_index}.jsonl",
                 }
             )
+        telemetry_identity = _eval_telemetry_identity()
         return LiveAgentRequest(
             run_id=_household_run_id(self.args),
             skill_name=self.skill_name,
@@ -137,6 +156,7 @@ class HouseholdLiveHandoffMixin:
                 "intent": _household_intent(self.args),
                 "task_name": _household_run_id(self.args),
                 "evidence_lane": getattr(self.args, "profile", ""),
+                "telemetry_identity": telemetry_identity,
             },
             artifact_paths=artifact_paths,
         )

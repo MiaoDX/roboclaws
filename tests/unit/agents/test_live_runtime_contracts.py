@@ -12,6 +12,7 @@ from roboclaws.agents.household_live_config import (
     _load_agent_sdk_skill_context,
 )
 from roboclaws.agents.household_live_continuation import IncompleteTurnRecoveryPolicy
+from roboclaws.agents.household_live_handoff import _eval_telemetry_identity
 from roboclaws.agents.live_runtime import (
     LiveAgentMCPServer,
     LiveAgentRequest,
@@ -343,3 +344,23 @@ def test_context_budget_result_recovers_with_compact_continuation(tmp_path: Path
     assert "compact_continuation_state" in prompt
     assert "RAW-FPV continuation" in prompt
     assert "ORIGINAL FULL PROMPT" not in prompt
+
+
+def test_eval_telemetry_identity_is_closed_and_fail_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "ROBOCLAWS_EVAL_TELEMETRY_IDENTITY",
+        '{"suite_id":"suite-1","trial_id":"trial-1","repetition":0}',
+    )
+    assert _eval_telemetry_identity() == {
+        "suite_id": "suite-1",
+        "trial_id": "trial-1",
+        "repetition": 0,
+    }
+
+    monkeypatch.setenv("ROBOCLAWS_EVAL_TELEMETRY_IDENTITY", '{"api_key":"secret"}')
+    assert _eval_telemetry_identity() == {}
+
+    monkeypatch.setenv("ROBOCLAWS_EVAL_TELEMETRY_IDENTITY", "not-json")
+    assert _eval_telemetry_identity() == {}

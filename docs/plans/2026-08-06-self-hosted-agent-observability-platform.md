@@ -1,10 +1,10 @@
 ---
 plan_scope: self-hosted-agent-observability-platform
-status: PROPOSED
+status: APPROVED
 created: 2026-08-06
 last_reviewed: 2026-08-06
-implementation_allowed: false
-current_phase: planning-loop-review
+implementation_allowed: true
+current_phase: phase-2-production-selection-gate
 source:
   - user request to self-host OpenAI Agents SDK tracing and reduce custom observability
   - user requirement that Phoenix or Langfuse remain outside the real-robot control path
@@ -16,6 +16,10 @@ related_context:
   - docs/human/domain.md
   - docs/plans/live-agent-runtime-sdk-spike.md
   - docs/plans/live-agent-runtime-sdk-perf-followups.md
+approval:
+  approved_on: 2026-08-07
+  source: user request to implement this plan via intuitive-flow
+  preserves_later_review_gates: true
 ---
 
 # Self-Hosted Agent Observability And Experiment Platform
@@ -494,13 +498,34 @@ cross-run analysis, prompt/dataset experiment UI, annotation, and visualization.
 - Plan-aware eval recommendation succeeded at
   `output/eval-harness/20260806T075022Z/eval_harness.json`; it selected 29
   potential focused rows and executed none. Live rows remain behind the Phase 1
-  provider/cost gate.
-- Planning-loop status: complete; plan remains proposed and implementation is
-  blocked pending user review.
+  provider-readiness gate; user authorization cleared the former cost concern
+  because the selected routes use an existing token plan or internal free model.
+- Planning-loop status: complete; implementation was approved by the explicit
+  2026-08-07 implementation request. The separate
+  live-provider, production-adapter, and shared-deployment gates remain hard
+  stops.
+- Phase 0 status: complete. `roboclaws.agents.experiment_telemetry` owns the
+  dependency-free contract and registration-once SDK router; ADR-0149 and the
+  Phase 0 owner/parity inventory record the durable decision and current
+  evidence ownership. Changed-code review fixed async binding isolation,
+  callback/closure races, normalized artifact identity, and observable bounded
+  lifecycle degradation. Focused telemetry/runtime tests and the full agents
+  unit suite pass.
+- Phase 1 status: complete through both authorized live wire families. The bounded
+  deterministic fixture, real fail-open OpenInference/OTLP adapter, locked
+  dependencies, healthy localhost Phoenix deployment, ingestion hierarchy,
+  privacy/failure/latency fixtures, volume estimate, and local report are
+  complete. Kimi Chat produced one trace with 18 spans and MiniMax Responses
+  produced one successful trace with 26 spans; both have closed run/session/
+  trial identity and zero raw sensitive values. The first Responses attempt is
+  retained as a real turn-budget error trace. `uv lock --check`, repo-wide
+  Ruff/format, the full standalone pytest suite, Compose validation, and
+  changed-code reviews pass. MiniMax model/token attributes are unavailable in
+  the pinned OpenInference projection but remain in the local sanitized event
+  stream; no synthetic Phoenix fields are added.
 
 ## Recommended Next Action
 
-Complete the requested agent planning loop, reconcile accepted findings into
-this file, and present the whole plan for one user review. Implementation stays
-blocked until that review approves the plan and the Phoenix PoC cost/deployment
-envelope.
+Reconcile the completed Phase 1 evidence and stop at the separate Phoenix
+production-adapter selection gate. Production placement, authentication,
+retention, backup/deletion, and resource decisions remain later review gates.

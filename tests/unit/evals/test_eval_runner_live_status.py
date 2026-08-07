@@ -194,6 +194,11 @@ def test_live_surface_env_sets_provider_and_model_keys(tmp_path: Path) -> None:
         "agent_engine": "openai-agents-sdk",
         "provider_profile": "kimi-openai-chat",
         "model": "kimi-k2.7-code",
+        "telemetry_identity": {
+            "suite_id": "suite-1",
+            "trial_id": "trial-1",
+            "repetition": 0,
+        },
     }
 
     env = live_surface_env(kwargs, base_env={"PATH": "/bin"})
@@ -201,3 +206,8 @@ def test_live_surface_env_sets_provider_and_model_keys(tmp_path: Path) -> None:
     assert env["PATH"] == "/bin"
     assert env["ROBOCLAWS_PROVIDER_PROFILE"] == "kimi-openai-chat"
     assert env["ROBOCLAWS_OPENAI_AGENTS_MODEL"] == "kimi-k2.7-code"
+    assert json.loads(env["ROBOCLAWS_EVAL_TELEMETRY_IDENTITY"]) == {
+        "repetition": 0,
+        "suite_id": "suite-1",
+        "trial_id": "trial-1",
+    }
