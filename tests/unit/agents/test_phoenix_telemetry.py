@@ -31,11 +31,33 @@ def test_local_phoenix_adapter_is_disabled_without_explicit_endpoint() -> None:
 
 
 def test_local_phoenix_adapter_rejects_remote_or_non_otlp_endpoint() -> None:
-    with pytest.raises(ValueError, match="must target localhost"):
+    with pytest.raises(ValueError, match="must target a loopback"):
         create_local_phoenix_telemetry_adapter(
             identity={"run_id": "run-1"},
             environ={"ROBOCLAWS_PHOENIX_OTLP_ENDPOINT": "https://phoenix.example/v1/traces"},
         )
+
+
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "https://phoenix.example/v1/traces",
+        "http://0.0.0.0:6006/v1/traces",
+        "http://192.168.1.10:6006/v1/traces",
+    ],
+)
+def test_phoenix_config_rejects_non_loopback_endpoint(endpoint: str) -> None:
+    with pytest.raises(ValueError, match="must target a loopback"):
+        PhoenixTelemetryConfig(endpoint=endpoint)
+
+
+def test_phoenix_config_accepts_loopback_otlp_endpoints() -> None:
+    for endpoint in (
+        "http://127.0.0.1:6006/v1/traces",
+        "http://localhost:6006/v1/traces",
+        "http://[::1]:6006/v1/traces",
+    ):
+        assert PhoenixTelemetryConfig(endpoint=endpoint).endpoint == endpoint
     with pytest.raises(ValueError, match="exact /v1/traces"):
         create_local_phoenix_telemetry_adapter(
             identity={"run_id": "run-1"},
@@ -380,17 +402,27 @@ def test_phoenix_config_rejects_unclosed_project_name() -> None:
         PhoenixTelemetryConfig(project_name="private/project?token=secret")
 
 
-class _RefusingExporter(InMemorySpanExporter):
-    def export(self, spans: Any) -> SpanExportResult:
-        del spans
-        return SpanExportResult.FAILURE
+@pytest.mark.parametrize(
+    "failure",
+    [
+        ConnectionRefusedError("collector refused connection"),
+        TimeoutError("collector timed out"),
+        SpanExportResult.FAILURE,
+    ],
+    ids=["connection-refused", "timeout", "server-error"],
+)
+def test_export_failures_are_fail_open_and_credibly_counted(failure: object) -> None:
+    class FailingExporter(InMemorySpanExporter):
+        def export(self, spans: Any) -> SpanExportResult:
+            del spans
+            if isinstance(failure, BaseException):
+                raise failure
+            return failure  # type: ignore[return-value]
 
-
-def test_export_refusal_is_fail_open_and_credibly_counted() -> None:
     adapter = create_phoenix_telemetry_adapter(
         identity={"run_id": "run-1"},
         config=PhoenixTelemetryConfig(schedule_delay_ms=10),
-        span_exporter=_RefusingExporter(),
+        span_exporter=FailingExporter(),
     )
     trace = _Item("trace-1", name="robot-run")
     adapter.on_trace_start(trace)

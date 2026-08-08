@@ -51,8 +51,7 @@ class PhoenixTelemetryConfig:
     terminal_timeout_s: float = 2.0
 
     def __post_init__(self) -> None:
-        if not self.endpoint.startswith(("http://", "https://")):
-            raise ValueError("endpoint must be an HTTP(S) OTLP traces endpoint")
+        _validate_local_otlp_endpoint(self.endpoint, name="endpoint")
         if re.fullmatch(r"[A-Za-z0-9._-]{1,128}", self.project_name) is None:
             raise ValueError(
                 "project_name must contain only letters, digits, dot, dash, or underscore"
@@ -74,33 +73,38 @@ def create_local_phoenix_telemetry_adapter(
     identity: Mapping[str, Any],
     environ: Mapping[str, str] | None = None,
 ) -> PhoenixTelemetryAdapter | None:
-    """Create the explicitly enabled Phase 1 localhost adapter, or return disabled."""
+    """Create the explicitly enabled localhost adapter, or return disabled."""
     values = os.environ if environ is None else environ
     endpoint = values.get("ROBOCLAWS_PHOENIX_OTLP_ENDPOINT", "").strip()
     if not endpoint:
         return None
+    return create_phoenix_telemetry_adapter(
+        identity=identity,
+        config=PhoenixTelemetryConfig(
+            endpoint=endpoint,
+            project_name=values.get("ROBOCLAWS_PHOENIX_PROJECT", "roboclaws-local").strip(),
+            export_timeout_s=0.5,
+            terminal_timeout_s=0.9,
+        ),
+    )
+
+
+def _validate_local_otlp_endpoint(endpoint: str, *, name: str) -> None:
     parsed = urlsplit(endpoint)
     if parsed.scheme not in {"http", "https"} or parsed.hostname not in {
         "127.0.0.1",
         "localhost",
         "::1",
     }:
-        raise ValueError(
-            "ROBOCLAWS_PHOENIX_OTLP_ENDPOINT must target localhost during the Phase 1 PoC"
-        )
+        raise ValueError(f"{name} must target a loopback HTTP(S) endpoint")
+    if parsed.username or parsed.password:
+        raise ValueError(f"{name} must not contain user information")
+    try:
+        parsed.port
+    except ValueError as exc:
+        raise ValueError(f"{name} must contain a valid port") from exc
     if parsed.path != "/v1/traces" or parsed.query or parsed.fragment:
-        raise ValueError("ROBOCLAWS_PHOENIX_OTLP_ENDPOINT must use the exact /v1/traces OTLP path")
-    return create_phoenix_telemetry_adapter(
-        identity=identity,
-        config=PhoenixTelemetryConfig(
-            endpoint=endpoint,
-            project_name=values.get(
-                "ROBOCLAWS_PHOENIX_PROJECT", "roboclaws-phase1-live-poc"
-            ).strip(),
-            export_timeout_s=0.5,
-            terminal_timeout_s=0.9,
-        ),
-    )
+        raise ValueError(f"{name} must use the exact /v1/traces OTLP path")
 
 
 def phoenix_privacy_config() -> Any:
