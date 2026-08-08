@@ -2,7 +2,7 @@
 
 Owner/session: `/root` task control plane
 Started: 2026-08-07
-State: BLOCKED
+State: ACTIVE
 
 ## Scope
 
@@ -17,15 +17,11 @@ live-provider, production-adapter, deployment, and real-robot stop gates.
 
 ## Current Slice
 
-Phase 1 is complete through both live wire families. The deterministic fixture,
-real OpenInference/OTLP adapter, local Phoenix ingestion proof, Kimi Chat
-proof, and MiniMax Responses proof are complete; do not select Phoenix for
-production or begin Phase 2 placement work yet.
-
-The former provider-cost gate is cleared by the user. Phase 1 live evidence is
-complete. The next blocker is the
-separate Phase 2 human decision for Phoenix production selection, placement,
-authentication, retention, backup/deletion, and resource envelope.
+Phase 1 is complete through both live wire families. On 2026-08-08 the user
+selected Phoenix and approved the simplified topology: one opt-in Phoenix
+container on the local developer workstation, loopback-only and outside robot
+runtime processes. Shared deployment, cross-machine ingress, authentication
+gateways, backup services, and production cluster sizing are out of scope.
 
 ## Last Proven Evidence
 
@@ -62,21 +58,20 @@ authentication, retention, backup/deletion, and resource envelope.
   OpenInference projection for this route and are preserved only in the local sanitized event
   stream, without synthetic Phoenix fields.
 
-Blocker fingerprint:
-`human_gate:phase2_phoenix_production_selection_and_topology`. No production
-adapter, shared deployment, authentication, retention, or resource choice has
-been approved.
+Blocker fingerprint: none. The prior
+`human_gate:phase2_phoenix_production_selection_and_topology` gate was resolved
+by the 2026-08-08 local-workstation approval.
 
 ## Next Action
 
-Present the completed Phase 1 report for the separate Phoenix production
-selection and Phase 2 deployment decision. Do not start production placement
-or authentication work without that decision.
+Implement the Phase 2 fail-open and control-path proofs for the localhost-only
+topology, then continue through prompt identity, eval projection, and the
+evidence-led deletion matrix.
 
 ## Next Proof
 
-The next proof is the approved live Chat and Responses parity matrix, including
-hierarchy, model/usage/cache fields, errors, sanitization, and overhead.
+The next proof is Phoenix-disabled versus Phoenix-down product parity plus
+non-loopback endpoint denial and recorded no-movement control-path separation.
 
 ## Stop Condition
 
@@ -92,7 +87,6 @@ conflict. Completion requires every plan acceptance criterion and proof.
 
 ## Parked Work
 
-- Langfuse unless Phoenix fails a material PoC gate
 - durable local spool unless disconnected trace loss proves demand
-- Phoenix production placement, auth, retention, and resources until the Phase
-  2 approval gate
+- any shared Phoenix placement, cross-machine ingress, authentication gateway,
+  backup service, or larger resource envelope
