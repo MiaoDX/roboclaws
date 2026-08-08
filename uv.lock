@@ -3711,6 +3711,8 @@ molmospaces = [
 ]
 openai-agents = [
     { name = "openai-agents" },
+    { name = "openinference-instrumentation-openai-agents" },
+    { name = "opentelemetry-exporter-otlp-proto-http" },
 ]
 visual-grounding-dino = [
     { name = "torch" },
@@ -3734,7 +3736,9 @@ requires-dist = [
     { name = "openai-agents", marker = "extra == 'openai-agents'", specifier = "==0.19.2" },
     { name = "openai-agents", extras = ["docker"], marker = "extra == 'dev'", specifier = "==0.19.2" },
     { name = "openinference-instrumentation-openai-agents", marker = "extra == 'dev'", specifier = "==1.3.0" },
+    { name = "openinference-instrumentation-openai-agents", marker = "extra == 'openai-agents'", specifier = "==1.3.0" },
     { name = "opentelemetry-exporter-otlp-proto-http", marker = "extra == 'dev'", specifier = "==1.36.0" },
+    { name = "opentelemetry-exporter-otlp-proto-http", marker = "extra == 'openai-agents'", specifier = "==1.36.0" },
     { name = "pillow", specifier = ">=10.0" },
     { name = "pillow", marker = "extra == 'dev'", specifier = ">=10.0" },
     { name = "pydantic", marker = "extra == 'dev'", specifier = ">=2.0" },

@@ -43,6 +43,8 @@ dev = [
 ]
 openai-agents = [
     "openai-agents==0.19.2",
+    "openinference-instrumentation-openai-agents==1.3.0",
+    "opentelemetry-exporter-otlp-proto-http==1.36.0",
 ]
 
 [build-system]

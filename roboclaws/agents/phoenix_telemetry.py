@@ -215,6 +215,7 @@ class PhoenixTelemetryAdapter:
         self._terminal_timeout_s = terminal_timeout_s
         self._lock = threading.Lock()
         self._closed = False
+        self._submitted = 0
         self._exported = 0
         self._failed = 0
 
@@ -267,6 +268,9 @@ class PhoenixTelemetryAdapter:
                 return
         try:
             getattr(self._processor, method)(value)
+            if method in {"on_trace_end", "on_span_end"}:
+                with self._lock:
+                    self._submitted += 1
         except Exception:
             self._record_failed(1)
 
@@ -300,8 +304,18 @@ class PhoenixTelemetryAdapter:
             return self._status_locked(force_degraded=force_degraded)
 
     def _status_locked(self, *, force_degraded: bool = False) -> TelemetryStatus:
-        state = TelemetryState.DEGRADED if force_degraded or self._failed else TelemetryState.READY
-        return TelemetryStatus(state, exported=self._exported, failed=self._failed)
+        dropped = max(0, self._submitted - self._exported - self._failed)
+        state = (
+            TelemetryState.DEGRADED
+            if force_degraded or self._failed or dropped
+            else TelemetryState.READY
+        )
+        return TelemetryStatus(
+            state,
+            exported=self._exported,
+            dropped=dropped,
+            failed=self._failed,
+        )
 
 
 def create_phoenix_telemetry_adapter(

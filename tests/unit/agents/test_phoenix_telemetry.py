@@ -504,4 +504,36 @@ def test_phoenix_shutdown_is_bounded_when_exporter_blocks() -> None:
     status = adapter.shutdown()
     assert time.monotonic() - started < 0.08
     assert status.state is TelemetryState.DEGRADED
+    assert status.dropped == 1
+    release.set()
+
+
+def test_real_phoenix_queue_pressure_reports_dropped_spans() -> None:
+    release = threading.Event()
+
+    class BlockingExporter(InMemorySpanExporter):
+        def export(self, spans: Any) -> SpanExportResult:
+            release.wait()
+            return super().export(spans)
+
+    adapter = create_phoenix_telemetry_adapter(
+        identity={"run_id": "run-1"},
+        config=PhoenixTelemetryConfig(
+            queue_capacity=1,
+            max_export_batch_size=1,
+            schedule_delay_ms=1,
+            export_timeout_s=0.01,
+            terminal_timeout_s=0.02,
+        ),
+        span_exporter=BlockingExporter(),
+    )
+    for index in range(50):
+        trace = _Item(f"trace-{index}", name="robot-run")
+        adapter.on_trace_start(trace)
+        adapter.on_trace_end(trace)
+
+    status = adapter.shutdown()
+    assert status.state is TelemetryState.DEGRADED
+    assert status.dropped > 0
+    assert status.exported + status.failed + status.dropped == 50
     release.set()
