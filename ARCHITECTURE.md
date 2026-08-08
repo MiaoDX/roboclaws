@@ -127,6 +127,16 @@ Package proof CLIs
   baseline-public JSON through a credential-scrubbed, no-network, read-only
   worker boundary; provider access and durable artifacts stay in the trusted
   process. Promotion is digest-bound and human-only.
+- **Experiment Telemetry** is the dependency-free, closed-schema boundary owned
+  by `roboclaws.agents.experiment_telemetry`. Local run artifacts remain the
+  canonical evidence. The optional `PhoenixTelemetryAdapter` exports sanitized
+  OpenInference spans asynchronously and fail-open to a loopback-only Phoenix
+  service; prompt content is represented only by immutable Git, Skill, and
+  rendered-prompt digests. Phoenix cannot schedule, authorize, or gate product
+  or eval execution. The maintainer-only `phoenix-project` command reads an eval
+  suite and optional existing result bundle to project datasets, experiments,
+  and annotations; it never launches providers, simulators, CloudML, or
+  hardware work.
 
 Runtime Map Prior evaluation separates artifact production from consumption:
 
@@ -533,6 +543,13 @@ Every serious run should produce reviewable evidence:
 - Eval-suite outputs under `output/evals/<suite>/<stamp>/`, including
   `eval_results.json` and an eval report that links back to underlying product
   run artifacts.
+
+Phoenix is the supported generic trace and experiment browser, but it does not
+replace these local artifacts. The Phase 5 parity review retained local span
+JSONL for budgets, continuation, usage fidelity, and offline audit; local
+performance projection for provider-neutral metrics; same-or-better comparison
+for product-quality policy; and domain eval reports for regrade and selection.
+No standalone generic operator-console trace browser existed to delete.
 
 The artifact boundary matters: public agent evidence and private scoring truth
 must remain separate. Reports may display both, but agent inputs and MCP

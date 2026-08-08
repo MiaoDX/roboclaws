@@ -1,10 +1,10 @@
 ---
 plan_scope: self-hosted-agent-observability-platform
-status: APPROVED
+status: DONE
 created: 2026-08-06
 last_reviewed: 2026-08-08
 implementation_allowed: true
-current_phase: phase-2-local-workstation-runtime
+current_phase: complete
 source:
   - user request to self-host OpenAI Agents SDK tracing and reduce custom observability
   - user requirement that Phoenix or Langfuse remain outside the real-robot control path
@@ -377,6 +377,21 @@ grader results and aggregate identity.
 Gate: Phoenix-disabled and Phoenix-down test matrices still satisfy all product,
 eval, privacy, and artifact contracts.
 
+#### Phase 5 Deletion Matrix
+
+This matrix is the required pre-edit gate. Phoenix replaces generic interactive
+browsing, not canonical local evidence or robot/eval policy. No reviewed row has
+a deletion case, so Phase 5 makes no speculative code deletion.
+
+| Candidate | Current callers and artifact contract | Local-only role | Phoenix replacement | Offline proof / rollback | Decision and approval |
+| --- | --- | --- | --- | --- | --- |
+| OpenAI Agents span JSONL | `openai_agents_budget`, `live_performance`, `live_status_summary`, run handoff; `openai-agents-spans*.jsonl` | Context budget, continuation accounting, provider-usage fidelity, failure and offline audit | Span browsing only | Existing budget, status, performance, and replay tests; rollback would restore the same artifact | Retain; deletion would change canonical evidence and needs a new human gate |
+| Local performance/model-call projection | Live lifecycle and status summary; `live_performance.json` and optional model-call metrics | Cross-provider cache/token/latency normalization, explicit unavailable fields, offline report generation | Generic dashboards and aggregation only | `tests/unit/reports/test_live_performance.py`; local extraction works with Phoenix absent | Retain; no approval needed for no-op |
+| Same-or-better performance comparison | Maintainer comparison/report flows; serialized `roboclaws_report_performance_comparison_v1` | Rejects faster-but-worse runs and apples-to-oranges claims | Generic experiment comparison cannot enforce robot quality policy | Focused comparison tests over existing run directories; rollback is the current pure module | Retain; deletion would weaken a product-quality gate |
+| Eval comparison and domain report tables | Eval reports, runtime-prior selection, map-build reports | Regrade, prior selection, checker outcome, domain metrics, regression proof | Phoenix experiments can visualize scores but are noncanonical and lack private/domain context | Existing regrade/report/selection tests with Phoenix disabled | Retain; deletion would change eval and promotion contracts |
+| Operator-console generic trace browser/table | No such standalone surface found; console links canonical run artifacts and domain state | None to remove | Phoenix is the supported generic browser | Exact source/caller inventory above | No candidate; no edit |
+| Deterministic projection processor | Telemetry contract and failure-path tests only; no product UI or persisted public artifact | Deterministic async/fail-open/privacy proof | Phoenix cannot replace a test double used when Phoenix is absent | Focused telemetry lifecycle tests | Retain as test fixture; not duplicated production functionality |
+
 ## Verification
 
 Planning-stage selector:
@@ -531,9 +546,43 @@ cross-run analysis, prompt/dataset experiment UI, annotation, and visualization.
   with 2 CPU / 4 GiB limits and a named local volume. Cross-machine ingress,
   authentication gateways, backup services, and shared production sizing were
   removed from this plan rather than implemented speculatively.
+- Phase 2 status: complete in `15d324f8`. Direct adapter configuration now
+  rejects non-loopback OTLP endpoints; deterministic disabled, refused,
+  timeout, server-error, full-queue, bounded-shutdown, and recorded no-movement
+  parity proofs pass. The deployment validator locks the single opt-in service,
+  loopback ports, resource ceiling, restart policy, and named volume.
+- Phase 3 status: complete in `ee46ed85`. Immutable named/versioned prompt
+  identity is recorded in local artifacts and Phoenix attributes using Git,
+  Skill, and rendered-prompt digests only. Initial and continuation attempts
+  share one identity, contradictory reuse fails closed, open-ended prompts are
+  distinct from cleanup, and rendered prompt bodies are denied by tests.
+- Phase 4 status: complete in `d3ff160c`. `just agent::eval phoenix-project`
+  reads a repo suite and optional existing `eval_results.json`, writes a local
+  disabled/ready/unavailable mapping, and never invokes eval, provider,
+  simulator, CloudML, or hardware execution. Real Phoenix 11.20.0 projection
+  proved digest-idempotent dataset, experiment, run, and evaluation identity
+  for both smoke and three-trial cleanup results. The serialized local and
+  remote payloads contained no private goal reference, acceptable destination,
+  generated-mess truth, grader configuration, sealed holdout identity, or
+  prompt body. Connection failures remained sanitized and fail-open.
+- Phase 5 status: complete. The pre-edit deletion matrix found no proven
+  production duplication. Local span JSONL, performance/model-call projection,
+  same-or-better comparison, and eval/domain reports remain necessary for
+  offline audit, budget and continuation accounting, provider-neutral metrics,
+  regrade, and robot-quality policy. No standalone generic operator-console
+  trace browser exists. The deterministic processor remains a test fixture for
+  privacy, lifecycle, and failure proofs.
+- Final changed-code review completed in `5b6c7030`: the OpenAI Agents runtime
+  extra now owns its pinned telemetry dependencies, production queue loss is
+  reflected in the adapter's terminal status, Git provenance no longer collides
+  with mocked runtime subprocesses, and no-Skill delivery uses the immutable
+  empty-content digest. The full standalone suite and the dependency-triggered
+  pre-commit fast suite pass.
 
-## Recommended Next Action
+## Completion And Maintenance
 
-Complete the Phase 2 fail-open/control-path proofs for the approved localhost
-topology, then continue through prompt identity, eval projection, and the
-evidence-led deletion matrix. Stop before any shared deployment expansion.
+The approved localhost-only Phoenix rollout is complete. Keep local artifacts
+canonical and the service opt-in. Durable local spooling remains parked until
+disconnected trace loss proves demand. Any shared deployment, cross-machine
+ingress, authentication/TLS gateway, backup service, larger resource envelope,
+or onboard robot deployment requires a new plan and user approval.

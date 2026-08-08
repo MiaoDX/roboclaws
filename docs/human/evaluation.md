@@ -100,6 +100,33 @@ just agent::eval suite=scene_sampler_stress budget=smoke
 just agent::eval suite=long_horizon_tasks budget=smoke
 ```
 
+An existing suite and optional completed result bundle can be projected to the
+local Phoenix service without executing an eval:
+
+```bash
+just agent::eval phoenix-project \
+  suite=smoke_regression \
+  eval_results=output/evals/smoke_regression/<stamp>/eval_results.json \
+  endpoint=http://127.0.0.1:6006 \
+  output=output/evals/phoenix-projection/smoke.json
+```
+
+Only `suite` is required. Omitting `endpoint` writes a disabled mapping artifact
+without contacting Phoenix; omitting `eval_results` projects the dataset only;
+and omitting `output` selects a digest-bound path under
+`output/evals/phoenix-projection/`. The endpoint must use loopback HTTP.
+Unreachable or failing Phoenix services produce a sanitized `unavailable`
+mapping rather than changing local results.
+
+`phoenix-project` is a read-only projection command. It does not launch an eval,
+provider, simulator, CloudML task, or hardware operation. Local suite and result
+artifacts remain canonical. Phoenix receives public sample and trial identity,
+digests, closed launch identity, and allowlisted grader status; it does not
+receive prompt bodies, private references, generated-mess truth, acceptable
+destinations, grader configuration, or sealed holdout identity. When results
+are supplied, annotation timestamps use the existing `eval_results.json` file
+modification time because the result bundle has no grader timestamps.
+
 `baseline-core` is the normal broad local refresh without live providers.
 `baseline-live-default` adds the normal Kimi live rows. `baseline-refresh` adds
 the explicit four-profile comparison. Rows whose live preflight is not ready
