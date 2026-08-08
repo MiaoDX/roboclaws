@@ -116,10 +116,18 @@ def test_recorded_robot_shaped_no_movement_run_keeps_local_product_evidence(
 )
 def test_openai_agents_live_timing_fails_aloud_on_malformed_mcp_timing_source(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
     source_name: str,
     source_text: str,
     expected_detail: str,
 ) -> None:
+    monkeypatch.setattr(
+        "roboclaws.agents.household_live_config._source_git_sha", lambda _root: "a" * 40
+    )
+    monkeypatch.setattr(
+        "roboclaws.agents.household_live_lifecycle._load_agent_sdk_skill_context",
+        lambda *_args, **_kwargs: {"sha256": "b" * 64},
+    )
     run_dir = tmp_path / "run"
     run_dir.mkdir()
     args = _parse_live_openai_agents_args(
@@ -157,6 +165,11 @@ def test_openai_agents_live_timing_fails_aloud_on_malformed_mcp_timing_source(
         ]
     )
     runner = LiveOpenAIAgentsHouseholdRunner(args)
+    initial = runner._sdk_request(prompt=runner.initial_kickoff_prompt, attempt_index=0)
+    continuation = runner._sdk_request(prompt="PRIVATE CONTINUATION BODY", attempt_index=1)
+    assert initial.prompt_identity is runner.prompt_identity
+    assert continuation.prompt_identity is runner.prompt_identity
+    assert initial.metadata["telemetry_identity"] == continuation.metadata["telemetry_identity"]
     (run_dir / source_name).write_text(source_text, encoding="utf-8")
 
     source_error = runner._write_live_timing("finished", 0)

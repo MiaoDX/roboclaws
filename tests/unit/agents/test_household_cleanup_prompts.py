@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from roboclaws.agents.household_live_config import build_household_prompt_identity
 from roboclaws.agents.prompts.household_cleanup import (
     render_kickoff_prompt,
     render_map_build_prompt,
@@ -66,6 +67,44 @@ def test_kickoff_prompt_appends_sanitized_operator_session_context() -> None:
     assert "private_manifest" not in prompt
     assert "private_target_truth" not in prompt
     assert "global_movable_object_inventory" not in prompt
+
+
+def test_composed_prompt_identity_contains_only_public_digests(monkeypatch) -> None:
+    prompt = render_kickoff_prompt("world-public-labels", task="PRIVATE TASK BODY")
+    monkeypatch.setattr(
+        "roboclaws.agents.household_live_config._source_git_sha", lambda _root: "a" * 40
+    )
+
+    identity = build_household_prompt_identity(
+        repo_root=REPO_ROOT,
+        prompt=prompt,
+        prompt_source="profile-rendered-lane-default",
+        intent="cleanup",
+        skill_context={"sha256": "b" * 64},
+    )
+
+    projection = identity.projection()
+    assert projection["prompt_template_name"] == "household-cleanup-kickoff"
+    assert projection["prompt_variable_schema"] == "household-cleanup-kickoff-variables/v1"
+    assert projection["prompt_rendered_sha256"]
+    assert "PRIVATE TASK BODY" not in json.dumps(projection)
+
+
+def test_open_ended_prompt_identity_is_not_labeled_as_cleanup(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "roboclaws.agents.household_live_config._source_git_sha", lambda _root: "a" * 40
+    )
+
+    identity = build_household_prompt_identity(
+        repo_root=REPO_ROOT,
+        prompt=render_kickoff_prompt("world-public-labels", intent="open-ended"),
+        prompt_source="profile-rendered-lane-default",
+        intent="open-ended",
+        skill_context={"sha256": "b" * 64},
+    )
+
+    assert identity.template_name == "household-open-ended-kickoff"
+    assert identity.variable_schema == "household-open-ended-kickoff-variables/v1"
 
 
 def test_map_build_camera_grounded_prompt_uses_composite_cadence_when_enabled() -> None:

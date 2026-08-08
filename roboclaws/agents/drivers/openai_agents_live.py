@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import time
 from contextlib import nullcontext
 from dataclasses import dataclass
@@ -73,6 +74,9 @@ class OpenAIAgentsLiveRuntime:
             "openai-agents-skill-context.json",
         )
         status_path = request.artifact_path("live_status", "live_status.json")
+        prompt_identity_path = request.artifact_path("prompt_identity", "prompt-identity.json")
+        if request.prompt_identity is not None:
+            _write_prompt_identity(prompt_identity_path, request.prompt_identity.projection())
 
         try:
             result = _run_openai_agents(
@@ -101,6 +105,7 @@ class OpenAIAgentsLiveRuntime:
                         "openai_agents_events": events_path,
                         "openai_agents_spans": spans_path,
                         "openai_agents_skill_context": skill_context_path,
+                        "prompt_identity": prompt_identity_path,
                         "live_status": status_path,
                     },
                 )
@@ -125,6 +130,7 @@ class OpenAIAgentsLiveRuntime:
                     "openai_agents_events": events_path,
                     "openai_agents_spans": spans_path,
                     "openai_agents_skill_context": skill_context_path,
+                    "prompt_identity": prompt_identity_path,
                     "live_status": status_path,
                 },
             )
@@ -142,6 +148,7 @@ class OpenAIAgentsLiveRuntime:
                     "openai_agents_events": events_path,
                     "openai_agents_spans": spans_path,
                     "openai_agents_skill_context": skill_context_path,
+                    "prompt_identity": prompt_identity_path,
                     "live_status": status_path,
                 },
             )
@@ -163,6 +170,7 @@ class OpenAIAgentsLiveRuntime:
             "openai_agents_trace": trace_path,
             "openai_agents_spans": spans_path,
             "openai_agents_skill_context": skill_context_path,
+            "prompt_identity": prompt_identity_path,
             "live_status": status_path,
         }
         if run_result_path.exists():
@@ -183,6 +191,16 @@ class OpenAIAgentsLiveRuntime:
         )
         _write_json(status_path, normalized.to_live_status_payload())
         return normalized
+
+
+def _write_prompt_identity(path: Path, projection: dict[str, str]) -> None:
+    payload = {"schema": "roboclaws_prompt_identity_v1", **projection}
+    if path.exists():
+        existing = json.loads(path.read_text(encoding="utf-8"))
+        if existing != payload:
+            raise ValueError("prompt identity conflicts with the existing run artifact")
+        return
+    _write_json(path, payload)
 
 
 def _run_openai_agents(

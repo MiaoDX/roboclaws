@@ -35,6 +35,43 @@ class RunStatus(StrEnum):
     INCONCLUSIVE = "inconclusive"
 
 
+_SHA256 = re.compile(r"^[0-9a-f]{64}$")
+_GIT_SHA = re.compile(r"^[0-9a-f]{7,64}$")
+_PUBLIC_IDENTITY = re.compile(r"^[a-z0-9][a-z0-9._/-]{0,127}$")
+
+
+@dataclass(frozen=True)
+class PromptIdentity:
+    """Closed identity of one repo-rendered kickoff prompt; never its body."""
+
+    template_name: str
+    template_version: str
+    variable_schema: str
+    source_git_sha: str
+    skill_sha256: str
+    rendered_sha256: str
+
+    def __post_init__(self) -> None:
+        for name in ("template_name", "template_version", "variable_schema"):
+            if not _PUBLIC_IDENTITY.fullmatch(str(getattr(self, name))):
+                raise TelemetryContractError(f"prompt {name} must be a public identity label")
+        if not _GIT_SHA.fullmatch(self.source_git_sha):
+            raise TelemetryContractError("prompt source_git_sha must be a Git SHA")
+        for name in ("skill_sha256", "rendered_sha256"):
+            if not _SHA256.fullmatch(str(getattr(self, name))):
+                raise TelemetryContractError(f"prompt {name} must be a lowercase SHA-256")
+
+    def projection(self) -> dict[str, str]:
+        return {
+            "prompt_template_name": self.template_name,
+            "prompt_template_version": self.template_version,
+            "prompt_variable_schema": self.variable_schema,
+            "prompt_source_git_sha": self.source_git_sha,
+            "prompt_skill_sha256": self.skill_sha256,
+            "prompt_rendered_sha256": self.rendered_sha256,
+        }
+
+
 @dataclass(frozen=True)
 class RunIdentity:
     run_id: str
@@ -53,12 +90,16 @@ class RunIdentity:
     sample_digest: str = ""
     trial_id: str = ""
     repetition: int | None = None
+    prompt_identity: PromptIdentity | None = None
 
     def __post_init__(self) -> None:
         if not self.run_id.strip():
             raise TelemetryContractError("run_id is required")
         if self.repetition is not None and self.repetition < 0:
             raise TelemetryContractError("repetition must be non-negative")
+
+    def projection(self) -> dict[str, Any]:
+        return closed_export_record("identity", vars(self))
 
 
 @dataclass(frozen=True)
@@ -153,7 +194,19 @@ class ExperimentTelemetry:
         return TelemetryStatus(TelemetryState.DISABLED)
 
 
-_IDENTITY_FIELDS = frozenset(field.name for field in RunIdentity.__dataclass_fields__.values())
+_PROMPT_IDENTITY_FIELDS = frozenset(
+    {
+        "prompt_template_name",
+        "prompt_template_version",
+        "prompt_variable_schema",
+        "prompt_source_git_sha",
+        "prompt_skill_sha256",
+        "prompt_rendered_sha256",
+    }
+)
+_IDENTITY_FIELDS = frozenset(field.name for field in RunIdentity.__dataclass_fields__.values()) | (
+    _PROMPT_IDENTITY_FIELDS
+)
 _SPAN_FIELDS = frozenset(
     {
         "event",
@@ -210,16 +263,25 @@ def closed_export_record(kind: str, values: Mapping[str, Any]) -> dict[str, Any]
     accidentally smuggle private payloads through arbitrary metadata.
     """
 
+    exported = dict(values)
+    prompt_identity = exported.pop("prompt_identity", None)
+    if prompt_identity is not None:
+        if kind != "identity" or not isinstance(prompt_identity, PromptIdentity):
+            raise TelemetryContractError("prompt_identity must be a PromptIdentity")
+        prompt_projection = prompt_identity.projection()
+        if prompt_projection.keys() & exported.keys():
+            raise TelemetryContractError("prompt identity fields must have one canonical source")
+        exported.update(prompt_projection)
     allowed = _IDENTITY_FIELDS if kind == "identity" else _SPAN_FIELDS if kind == "span" else None
     if allowed is None:
         raise TelemetryContractError(f"unsupported export record kind: {kind}")
-    keys = {str(key) for key in values}
+    keys = {str(key) for key in exported}
     denied = sorted(keys & _PRIVATE_MARKERS)
     unexpected = sorted(keys - allowed)
     if denied or unexpected:
         detail = denied or unexpected
         raise TelemetryContractError(f"export fields are not allowlisted: {', '.join(detail)}")
-    return {key: _closed_scalar(value, key=key) for key, value in values.items() if value != ""}
+    return {key: _closed_scalar(value, key=key) for key, value in exported.items() if value != ""}
 
 
 def validated_artifact_projection(

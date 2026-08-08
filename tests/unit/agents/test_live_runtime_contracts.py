@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from roboclaws.agents.drivers.openai_agents_live import OpenAIAgentsLiveRuntime
+from roboclaws.agents.experiment_telemetry import PromptIdentity
 from roboclaws.agents.household_live_config import (
     MAX_AGENT_SDK_SKILL_CONTEXT_BYTES,
     _load_agent_sdk_skill_context,
@@ -24,6 +25,17 @@ from roboclaws.household.realworld_done_readiness import (
     COMPLETION_SNAPSHOT_SCHEMA,
     completion_snapshot_digest,
 )
+
+
+def _prompt_identity() -> PromptIdentity:
+    return PromptIdentity(
+        template_name="household-cleanup-kickoff",
+        template_version="v1",
+        variable_schema="household-cleanup-kickoff-variables/v1",
+        source_git_sha="a" * 40,
+        skill_sha256="b" * 64,
+        rendered_sha256="c" * 64,
+    )
 
 
 def test_live_agent_request_keeps_one_turn_policy_explicit(tmp_path: Path) -> None:
@@ -183,6 +195,59 @@ def test_openai_agents_runtime_missing_sdk_writes_normalized_failure(
     payload = json.loads((tmp_path / "run" / "live_status.json").read_text(encoding="utf-8"))
     assert payload["reason"] == "provider_config_failure"
     assert "not installed" in payload["detail"]
+
+
+def test_openai_agents_runtime_records_one_prompt_identity_across_continuations(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setattr(
+        "roboclaws.agents.drivers.openai_agents_live._run_openai_agents",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(ImportError("missing")),
+    )
+    run_dir = tmp_path / "run"
+    identity = _prompt_identity()
+    for prompt in ("PRIVATE INITIAL PROMPT", "PRIVATE CONTINUATION PROMPT"):
+        request = LiveAgentRequest(
+            run_id="household-world",
+            skill_name="household-world",
+            kickoff_prompt=prompt,
+            mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
+            run_dir=run_dir,
+            prompt_identity=identity,
+        )
+        assert OpenAIAgentsLiveRuntime().run(request).reason == "provider_config_failure"
+
+    artifact = json.loads((run_dir / "prompt-identity.json").read_text(encoding="utf-8"))
+    assert artifact == {"schema": "roboclaws_prompt_identity_v1", **identity.projection()}
+    assert "PRIVATE INITIAL PROMPT" not in json.dumps(artifact)
+    assert "PRIVATE CONTINUATION PROMPT" not in json.dumps(artifact)
+
+
+def test_openai_agents_runtime_rejects_contradictory_prompt_identity(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setattr(
+        "roboclaws.agents.drivers.openai_agents_live._run_openai_agents",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(ImportError("missing")),
+    )
+    base = dict(
+        run_id="household-world",
+        skill_name="household-world",
+        kickoff_prompt="prompt",
+        mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
+        run_dir=tmp_path / "run",
+    )
+    OpenAIAgentsLiveRuntime().run(LiveAgentRequest(**base, prompt_identity=_prompt_identity()))
+    changed = PromptIdentity(
+        template_name="household-cleanup-kickoff",
+        template_version="v1",
+        variable_schema="household-cleanup-kickoff-variables/v1",
+        source_git_sha="a" * 40,
+        skill_sha256="b" * 64,
+        rendered_sha256="d" * 64,
+    )
+    with pytest.raises(ValueError, match="conflicts"):
+        OpenAIAgentsLiveRuntime().run(LiveAgentRequest(**base, prompt_identity=changed))
 
 
 def test_openai_agents_runtime_accepts_post_done_sdk_cancellation(

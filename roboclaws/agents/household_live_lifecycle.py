@@ -53,6 +53,7 @@ from roboclaws.agents.household_live_config import (
     _load_agent_sdk_skill_context,
     _skill_context_timing_summary,
     _stable_prefix_packet,
+    build_household_prompt_identity,
     eval_skill_source_root,
 )
 from roboclaws.agents.household_live_continuation import (
@@ -141,6 +142,13 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
             args,
             profile=self.agent_sdk_perf_profile,
         )
+        self.prompt_identity = build_household_prompt_identity(
+            repo_root=args.repo_root,
+            prompt=self.initial_kickoff_prompt,
+            prompt_source=_kickoff_prompt_source(args, self.agent_sdk_perf_profile),
+            intent=_household_intent(args),
+            skill_context=self.skill_context,
+        )
         self.live_timing: dict[str, Any] = {
             "schema": "molmo_live_timing_v1",
             "started_at_epoch": self.started_at_epoch,
@@ -177,6 +185,7 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
                 self.agent_sdk_perf_profile["robot_view_capture_policy"]
             ),
             "prompt_profile_id": self.agent_sdk_perf_profile["profile_id"],
+            "prompt_identity": self.prompt_identity.projection(),
             "agent_sdk_skill_context": _skill_context_timing_summary(self.skill_context),
             "skill_delivery_cell": self.skill_delivery_cell,
             "model_visible_tool_surface": self.model_visible_tool_surface,

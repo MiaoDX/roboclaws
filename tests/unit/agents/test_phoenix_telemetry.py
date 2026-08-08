@@ -320,6 +320,12 @@ def test_real_openinference_hierarchy_is_sanitized_and_resource_is_closed() -> N
             "operator_session_id": "session-1",
             "trial_id": "trial-1",
             "repetition": 2,
+            "prompt_template_name": "household-cleanup-kickoff",
+            "prompt_template_version": "v1",
+            "prompt_variable_schema": "household-cleanup-kickoff-variables/v1",
+            "prompt_source_git_sha": "a" * 40,
+            "prompt_skill_sha256": "b" * 64,
+            "prompt_rendered_sha256": "c" * 64,
         },
         config=PhoenixTelemetryConfig(project_name="roboclaws-test", schedule_delay_ms=10),
         span_exporter=exporter,
@@ -374,9 +380,11 @@ def test_real_openinference_hierarchy_is_sanitized_and_resource_is_closed() -> N
     assert all(resource["roboclaws.run_id"] == "run-1" for resource in resources)
     assert all(resource["roboclaws.trial_id"] == "trial-1" for resource in resources)
     assert all(resource["roboclaws.repetition"] == 2 for resource in resources)
+    assert all(resource["roboclaws.prompt_rendered_sha256"] == "c" * 64 for resource in resources)
     assert all(resource["openinference.project.name"] == "roboclaws-test" for resource in resources)
     assert all(span.attributes["roboclaws.run_id"] == "run-1" for span in exported)
     assert all(span.attributes["roboclaws.trial_id"] == "trial-1" for span in exported)
+    assert all(span.attributes["roboclaws.prompt_rendered_sha256"] == "c" * 64 for span in exported)
     assert all(span.attributes["session.id"] == "session-1" for span in exported)
     serialized = repr([(span.attributes, span.resource.attributes) for span in exported])
     for forbidden in (
@@ -385,8 +393,17 @@ def test_real_openinference_hierarchy_is_sanitized_and_resource_is_closed() -> N
         "private args",
         "private result",
         "private invocation",
+        "PRIVATE KICKOFF BODY",
     ):
         assert forbidden not in serialized
+
+
+def test_phoenix_identity_explicitly_denies_prompt_body_content() -> None:
+    with pytest.raises(Exception, match="not allowlisted"):
+        create_phoenix_telemetry_adapter(
+            identity={"run_id": "run-1", "prompt_body": "PRIVATE KICKOFF BODY"},
+            span_exporter=InMemorySpanExporter(),
+        )
 
 
 def test_phoenix_factory_rejects_nonclosed_resource_identity() -> None:

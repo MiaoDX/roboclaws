@@ -5,13 +5,57 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import subprocess
 from pathlib import Path
 from typing import Any
 
+from roboclaws.agents.experiment_telemetry import PromptIdentity
 from roboclaws.agents.skill_delivery import build_skill_delivery, validate_skill_delivery_cell
 
 MAX_AGENT_SDK_SKILL_CONTEXT_BYTES = 24_000
 EVAL_SKILL_SOURCE_ROOT_ENV = "ROBOCLAWS_EVAL_SKILL_SOURCE_ROOT"
+
+
+def build_household_prompt_identity(
+    *,
+    repo_root: Path,
+    prompt: str,
+    prompt_source: str,
+    intent: str,
+    skill_context: dict[str, Any],
+) -> PromptIdentity:
+    if prompt_source in {"profile-rendered-lane-default", "provided-lane-default"}:
+        template_name = {
+            "cleanup": "household-cleanup-kickoff",
+            "map-build": "household-map-build-kickoff",
+            "open-ended": "household-open-ended-kickoff",
+        }.get(intent)
+        if template_name is None:
+            raise ValueError(f"unsupported household prompt identity intent: {intent}")
+        variable_schema = f"{template_name}-variables/v1"
+    else:
+        template_name = "household-provided-kickoff"
+        variable_schema = "household-provided-kickoff-variables/v1"
+    skill_sha256 = str(skill_context.get("sha256") or "")
+    return PromptIdentity(
+        template_name=template_name,
+        template_version="v1",
+        variable_schema=variable_schema,
+        source_git_sha=_source_git_sha(repo_root),
+        skill_sha256=skill_sha256,
+        rendered_sha256=hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
+    )
+
+
+def _source_git_sha(repo_root: Path) -> str:
+    completed = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repo_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return completed.stdout.strip().lower()
 
 
 def _estimated_tokens_from_chars(char_count: int) -> int:

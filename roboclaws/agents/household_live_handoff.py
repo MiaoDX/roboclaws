@@ -106,6 +106,7 @@ class HouseholdLiveHandoffMixin:
             "openai_agents_trace": self.run_dir / "openai-agents-trace.json",
             "openai_agents_spans": self.run_dir / "openai-agents-spans.jsonl",
             "openai_agents_skill_context": self.run_dir / "openai-agents-skill-context.json",
+            "prompt_identity": self.run_dir / "prompt-identity.json",
         }
         if attempt_index:
             artifact_paths.update(
@@ -125,6 +126,7 @@ class HouseholdLiveHandoffMixin:
             kickoff_prompt=prompt,
             mcp_server=LiveAgentMCPServer(name="cleanup", url=self.args.client_url),
             run_dir=self.run_dir,
+            prompt_identity=self.prompt_identity,
             model=self.args.model,
             provider_profile=self.args.provider_profile,
             max_turns=int(self.agent_sdk_perf_profile["max_turns"]),
@@ -156,7 +158,10 @@ class HouseholdLiveHandoffMixin:
                 "intent": _household_intent(self.args),
                 "task_name": _household_run_id(self.args),
                 "evidence_lane": getattr(self.args, "profile", ""),
-                "telemetry_identity": telemetry_identity,
+                "telemetry_identity": {
+                    **telemetry_identity,
+                    **self.prompt_identity.projection(),
+                },
             },
             artifact_paths=artifact_paths,
         )

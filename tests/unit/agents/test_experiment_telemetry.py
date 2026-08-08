@@ -13,6 +13,7 @@ from roboclaws.agents.experiment_telemetry import (
     BoundTraceSink,
     CompositeTraceSink,
     ExperimentTelemetry,
+    PromptIdentity,
     RunIdentity,
     RunOutcome,
     RunStatus,
@@ -24,6 +25,48 @@ from roboclaws.agents.experiment_telemetry import (
     closed_score_records,
     validated_artifact_projection,
 )
+
+
+def _prompt_identity() -> PromptIdentity:
+    return PromptIdentity(
+        template_name="household-cleanup-kickoff",
+        template_version="v1",
+        variable_schema="household-cleanup-kickoff-variables/v1",
+        source_git_sha="a" * 40,
+        skill_sha256="b" * 64,
+        rendered_sha256="c" * 64,
+    )
+
+
+def test_prompt_identity_is_immutable_closed_and_flattened_at_run_boundary() -> None:
+    prompt = _prompt_identity()
+    identity = RunIdentity(run_id="run-1", prompt_identity=prompt)
+
+    assert identity.projection() == {
+        "run_id": "run-1",
+        "agent_engine": "openai-agents-sdk",
+        "repetition": None,
+        **prompt.projection(),
+    }
+    with pytest.raises(Exception):
+        prompt.rendered_sha256 = "d" * 64  # type: ignore[misc]
+    with pytest.raises(TelemetryContractError, match="SHA-256"):
+        PromptIdentity(
+            template_name="household-cleanup-kickoff",
+            template_version="v1",
+            variable_schema="household-cleanup-kickoff-variables/v1",
+            source_git_sha="a" * 40,
+            skill_sha256="not-a-digest",
+            rendered_sha256="c" * 64,
+        )
+
+
+def test_prompt_body_is_not_part_of_closed_identity_projection() -> None:
+    with pytest.raises(TelemetryContractError, match="not allowlisted"):
+        closed_export_record(
+            "identity",
+            {"run_id": "run-1", "prompt_body": "PRIVATE KICKOFF BODY"},
+        )
 
 
 @dataclass
