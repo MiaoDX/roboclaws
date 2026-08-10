@@ -127,6 +127,27 @@ destinations, grader configuration, or sealed holdout identity. When results
 are supplied, annotation timestamps use the existing `eval_results.json` file
 modification time because the result bundle has no grader timestamps.
 
+Phoenix uses three distinct navigation levels:
+
+- Project answers where the trace ran: EvalTrial traces use `roboclaws-eval`.
+- Dataset is one immutable, version-bound public sample set owned by a suite.
+  Phoenix 11.20 cannot reconcile modify/remove snapshots through its supported
+  public API, so Dataset names retain the exact content suffix, for example
+  `roboclaws-household_world_smoke_regression-bb7f48f1a608acc5`.
+- Experiment is one tested configuration against one exact Dataset version. A
+  comparison bundle is split by agent engine, provider profile, model, Skill,
+  source Git SHA, and Skill digest. Repetitions remain runs inside the matching
+  Experiment.
+
+Experiment labels put suite version and readable configuration first, for
+example
+`roboclaws-household_world_smoke_regression-2026-06-15-direct-runner-not_applicable-not_applicable-household-world-8ee9960e`.
+The short suffix is only for scanning uniqueness. Exact Dataset version,
+configuration, source-bundle, Experiment, run, and evaluation identity remains
+in metadata and the local projection mapping; names are never parsed for
+correctness. Reprojecting unchanged evidence reuses those identities, while a
+corrected or regraded bundle creates a new immutable Experiment.
+
 `baseline-core` is the normal broad local refresh without live providers.
 `baseline-live-default` adds the normal Kimi live rows. `baseline-refresh` adds
 the explicit four-profile comparison. Rows whose live preflight is not ready

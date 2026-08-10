@@ -13,7 +13,11 @@ from openinference.semconv.trace import SpanAttributes
 from opentelemetry.sdk.trace.export import SpanExportResult
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
-from roboclaws.agents.experiment_telemetry import TelemetryRuntime, TelemetryState
+from roboclaws.agents.experiment_telemetry import (
+    TelemetryContractError,
+    TelemetryRuntime,
+    TelemetryState,
+)
 from roboclaws.agents.phoenix_telemetry import (
     DeterministicProjectionProcessor,
     PhoenixTelemetryAdapter,
@@ -27,13 +31,18 @@ from roboclaws.agents.phoenix_telemetry import (
 
 
 def test_local_phoenix_adapter_is_disabled_without_explicit_endpoint() -> None:
-    assert create_local_phoenix_telemetry_adapter(identity={"run_id": "run-1"}, environ={}) is None
+    assert (
+        create_local_phoenix_telemetry_adapter(
+            identity={"run_id": "run-1", "observability_context": "runtime"}, environ={}
+        )
+        is None
+    )
 
 
 def test_local_phoenix_adapter_rejects_remote_or_non_otlp_endpoint() -> None:
     with pytest.raises(ValueError, match="must target a loopback"):
         create_local_phoenix_telemetry_adapter(
-            identity={"run_id": "run-1"},
+            identity={"run_id": "run-1", "observability_context": "runtime"},
             environ={"ROBOCLAWS_PHOENIX_OTLP_ENDPOINT": "https://phoenix.example/v1/traces"},
         )
 
@@ -60,7 +69,7 @@ def test_phoenix_config_accepts_loopback_otlp_endpoints() -> None:
         assert PhoenixTelemetryConfig(endpoint=endpoint).endpoint == endpoint
     with pytest.raises(ValueError, match="exact /v1/traces"):
         create_local_phoenix_telemetry_adapter(
-            identity={"run_id": "run-1"},
+            identity={"run_id": "run-1", "observability_context": "runtime"},
             environ={"ROBOCLAWS_PHOENIX_OTLP_ENDPOINT": "http://127.0.0.1:6006/"},
         )
 
@@ -194,7 +203,8 @@ def test_runtime_composes_local_router_and_external_processor_once() -> None:
 
 def test_runtime_composes_real_phoenix_adapter_once() -> None:
     adapter = create_phoenix_telemetry_adapter(
-        identity={"run_id": "run-1"}, span_exporter=InMemorySpanExporter()
+        identity={"run_id": "run-1", "observability_context": "runtime"},
+        span_exporter=InMemorySpanExporter(),
     )
     installed: list[list[Any]] = []
     runtime = TelemetryRuntime(external_processor=adapter)
@@ -317,7 +327,11 @@ def test_real_openinference_hierarchy_is_sanitized_and_resource_is_closed() -> N
     adapter = create_phoenix_telemetry_adapter(
         identity={
             "run_id": "run-1",
+            "observability_context": "eval",
             "operator_session_id": "session-1",
+            "suite_id": "suite-1",
+            "suite_version": "1",
+            "sample_id": "sample-1",
             "trial_id": "trial-1",
             "repetition": 2,
             "prompt_template_name": "household-cleanup-kickoff",
@@ -327,7 +341,7 @@ def test_real_openinference_hierarchy_is_sanitized_and_resource_is_closed() -> N
             "prompt_skill_sha256": "b" * 64,
             "prompt_rendered_sha256": "c" * 64,
         },
-        config=PhoenixTelemetryConfig(project_name="roboclaws-test", schedule_delay_ms=10),
+        config=PhoenixTelemetryConfig(schedule_delay_ms=10),
         span_exporter=exporter,
     )
     trace = _Item("trace-1", name="robot-run")
@@ -381,7 +395,7 @@ def test_real_openinference_hierarchy_is_sanitized_and_resource_is_closed() -> N
     assert all(resource["roboclaws.trial_id"] == "trial-1" for resource in resources)
     assert all(resource["roboclaws.repetition"] == 2 for resource in resources)
     assert all(resource["roboclaws.prompt_rendered_sha256"] == "c" * 64 for resource in resources)
-    assert all(resource["openinference.project.name"] == "roboclaws-test" for resource in resources)
+    assert all(resource["openinference.project.name"] == "roboclaws-eval" for resource in resources)
     assert all(span.attributes["roboclaws.run_id"] == "run-1" for span in exported)
     assert all(span.attributes["roboclaws.trial_id"] == "trial-1" for span in exported)
     assert all(span.attributes["roboclaws.prompt_rendered_sha256"] == "c" * 64 for span in exported)
@@ -414,9 +428,30 @@ def test_phoenix_factory_rejects_nonclosed_resource_identity() -> None:
         )
 
 
-def test_phoenix_config_rejects_unclosed_project_name() -> None:
-    with pytest.raises(ValueError, match="project_name"):
-        PhoenixTelemetryConfig(project_name="private/project?token=secret")
+@pytest.mark.parametrize(
+    ("identity", "message"),
+    [
+        ({"run_id": "run-1"}, "observability_context"),
+        ({"run_id": "run-1", "observability_context": "invalid"}, "observability_context"),
+        (
+            {
+                "run_id": "run-1",
+                "observability_context": "runtime",
+                "trial_id": "trial-1",
+            },
+            "must not contain eval trial identity",
+        ),
+        (
+            {"run_id": "run-1", "observability_context": "eval", "suite_id": "suite-1"},
+            "requires complete eval trial identity",
+        ),
+    ],
+)
+def test_phoenix_project_routing_rejects_invalid_context(
+    identity: dict[str, object], message: str
+) -> None:
+    with pytest.raises(TelemetryContractError, match=message):
+        create_phoenix_telemetry_adapter(identity=identity, span_exporter=InMemorySpanExporter())
 
 
 @pytest.mark.parametrize(
@@ -437,7 +472,7 @@ def test_export_failures_are_fail_open_and_credibly_counted(failure: object) -> 
             return failure  # type: ignore[return-value]
 
     adapter = create_phoenix_telemetry_adapter(
-        identity={"run_id": "run-1"},
+        identity={"run_id": "run-1", "observability_context": "runtime"},
         config=PhoenixTelemetryConfig(schedule_delay_ms=10),
         span_exporter=FailingExporter(),
     )
@@ -472,7 +507,10 @@ def test_callback_and_lifecycle_exceptions_are_fail_open() -> None:
 
 def test_callbacks_after_phoenix_shutdown_are_ignored() -> None:
     exporter = InMemorySpanExporter()
-    adapter = create_phoenix_telemetry_adapter(identity={"run_id": "run-1"}, span_exporter=exporter)
+    adapter = create_phoenix_telemetry_adapter(
+        identity={"run_id": "run-1", "observability_context": "runtime"},
+        span_exporter=exporter,
+    )
     initial = adapter.shutdown()
     adapter.on_trace_start(_Item("late", name="late-private"))
     adapter.on_trace_end(_Item("late", name="late-private"))
@@ -489,7 +527,7 @@ def test_phoenix_shutdown_is_bounded_when_exporter_blocks() -> None:
             return super().export(spans)
 
     adapter = create_phoenix_telemetry_adapter(
-        identity={"run_id": "run-1"},
+        identity={"run_id": "run-1", "observability_context": "runtime"},
         config=PhoenixTelemetryConfig(
             schedule_delay_ms=10,
             export_timeout_s=0.01,
@@ -517,7 +555,7 @@ def test_real_phoenix_queue_pressure_reports_dropped_spans() -> None:
             return super().export(spans)
 
     adapter = create_phoenix_telemetry_adapter(
-        identity={"run_id": "run-1"},
+        identity={"run_id": "run-1", "observability_context": "runtime"},
         config=PhoenixTelemetryConfig(
             queue_capacity=1,
             max_export_batch_size=1,

@@ -416,16 +416,17 @@ def test_eval_telemetry_identity_is_closed_and_fail_disabled(
 ) -> None:
     monkeypatch.setenv(
         "ROBOCLAWS_EVAL_TELEMETRY_IDENTITY",
-        '{"suite_id":"suite-1","trial_id":"trial-1","repetition":0}',
+        '{"observability_context":"eval","suite_id":"suite-1","trial_id":"trial-1","repetition":0}',
     )
     assert _eval_telemetry_identity() == {
+        "observability_context": "eval",
         "suite_id": "suite-1",
         "trial_id": "trial-1",
         "repetition": 0,
     }
 
     monkeypatch.setenv("ROBOCLAWS_EVAL_TELEMETRY_IDENTITY", '{"api_key":"secret"}')
-    assert _eval_telemetry_identity() == {}
+    assert _eval_telemetry_identity() == {"observability_context": "invalid"}
 
     monkeypatch.setenv("ROBOCLAWS_EVAL_TELEMETRY_IDENTITY", "not-json")
-    assert _eval_telemetry_identity() == {}
+    assert _eval_telemetry_identity() == {"observability_context": "invalid"}

@@ -36,13 +36,13 @@ def _eval_telemetry_identity() -> dict[str, Any]:
     try:
         payload = json.loads(raw)
     except json.JSONDecodeError:
-        return {}
+        return {"observability_context": "invalid"}
     if not isinstance(payload, dict):
-        return {}
+        return {"observability_context": "invalid"}
     try:
         return closed_export_record("identity", payload)
     except ValueError:
-        return {}
+        return {"observability_context": "invalid"}
 
 
 class HouseholdLiveHandoffMixin:
@@ -120,6 +120,8 @@ class HouseholdLiveHandoffMixin:
                 }
             )
         telemetry_identity = _eval_telemetry_identity()
+        if not telemetry_identity:
+            telemetry_identity = {"observability_context": "runtime"}
         return LiveAgentRequest(
             run_id=_household_run_id(self.args),
             skill_name=self.skill_name,

@@ -40,14 +40,21 @@ To project sanitized live OpenAI Agents SDK traces into that service, set:
 
 ```bash
 export ROBOCLAWS_PHOENIX_OTLP_ENDPOINT=http://127.0.0.1:6006/v1/traces
-export ROBOCLAWS_PHOENIX_PROJECT=roboclaws-local
 ```
 
+Roboclaws routes traces to exactly two Projects. `roboclaws-runtime` contains
+normal product, operator, ad-hoc, and demo Robot Runs. `roboclaws-eval` contains
+Robot Runs executed as EvalTrials. Provider, model, task, suite, sample, and
+trial remain searchable trace attributes; they do not create Projects. Project
+selection is not configurable.
+
 Tracing remains disabled when the endpoint is unset and fails open when the
-local service is unavailable. Non-loopback OTLP endpoints are rejected. Shared
-Phoenix ownership, cross-machine collectors, authentication/TLS gateways,
-backups, larger resource envelopes, and onboard robot deployment are not
-supported by this topology.
+local service is unavailable. A missing, partial, malformed, or contradictory
+runtime/eval telemetry identity disables Phoenix export for that run and leaves
+an actionable local limitation without changing product execution. Non-loopback
+OTLP endpoints are rejected. Shared Phoenix ownership, cross-machine collectors,
+authentication/TLS gateways, backups, larger resource envelopes, and onboard
+robot deployment are not supported by this topology.
 
 ## Provider Keys
 

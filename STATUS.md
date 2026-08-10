@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-05
+Last updated: 2026-08-10
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -9,6 +9,24 @@ orientation, move it to plans, ADRs, retrospectives, or `docs/human/**` and
 leave a link.
 
 ## Current Focus
+
+Phoenix information architecture simplification is implemented under
+`docs/plans/2026-08-10-phoenix-information-architecture-simplification.md`.
+Future traces route only to `roboclaws-runtime` or `roboclaws-eval`; arbitrary
+Project selection is removed. Eval projection retains immutable digest-named
+Datasets because Phoenix 11.20 lacks supported modify/remove snapshot APIs, but
+now resolves exact Dataset versions, partitions heterogeneous bundles into
+readable homogeneous Experiments, and reuses Experiments, runs, and evaluations
+by full immutable identity.
+
+Focused tests, all eval unit tests, selected route/cleanup contracts, and the
+task-owned Phoenix 11.20 integration proof pass. Live Kimi evidence exported a
+normal runtime trace and three serial EvalTrial traces with ready telemetry and
+no drops or failures; Phoenix's built-in `default` Project has zero spans. The
+standalone product attempt reached `agent_done` but failed an existing cleanup
+checker on post-place observation coverage. The eval bundle completed `2/3`.
+
+## Previous Focus
 
 The reviewed multi-scene Skill-delivery probe is complete at
 `output/eval-probes/20260805-skill-delivery-multiscene/`. It paired
@@ -22,8 +40,6 @@ the product default remains unchanged and no baseline/catalog was published.
 
 See `docs/status/active/skill-delivery-multiscene-probe.md` for the paired table
 and evidence paths.
-
-## Previous Focus
 
 Eval Evolution Phases 0-4 are complete under
 `docs/plans/2026-08-04-eval-evolution-agent-sdk.md`. Optimizer and robot roles
@@ -103,13 +119,17 @@ providers.
 
 ## Next Action
 
-Keep the product default unchanged. A reviewed multi-scene `no-skill` versus
-`static-full` confirmation is still required before changing Skill delivery or
-publishing a durable eval baseline. Eval Evolution itself is available for new
-bounded campaigns through the blocked-by-default maintainer facade.
+Resolve or explicitly approve the pre-existing architecture import-baseline
+deltas, then rerun `just agent::verify` and close the Phoenix plan. Keep the
+product Skill-delivery default unchanged; its separate multi-scene confirmation
+requirement still applies.
 
 ## Current Blockers
 
+- `just agent::verify` currently reports pre-existing unbaselined package edges
+  from `evals`, `launch`, and `operator_console` to `mcp`. The Phoenix diff adds
+  none of those imports; blessing or removing them is outside this plan's
+  accepted architecture scope.
 - Eval baseline publication remains blocked until a new full candidate replaces
   the invalid `20260803T023049Z` evidence and receives human confirmation.
 - Agibot and B1 injected dependency readiness passes with the existing local SDK, Map 12 bundle,

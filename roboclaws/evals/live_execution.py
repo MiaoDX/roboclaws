@@ -132,6 +132,7 @@ def run_live_eval_trial(
                 skill_source_root=skill_source_root,
             )
             run_kwargs["telemetry_identity"] = {
+                "observability_context": "eval",
                 "suite_id": trial.suite_id,
                 "suite_version": trial.suite_version,
                 "sample_id": trial.sample_id,

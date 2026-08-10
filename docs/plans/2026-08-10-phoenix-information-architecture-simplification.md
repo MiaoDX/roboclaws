@@ -1,10 +1,10 @@
 ---
 plan_scope: phoenix-information-architecture-simplification
-status: REVIEWED
+status: BLOCKED_NEEDS_DECISION
 created: 2026-08-10
 last_reviewed: 2026-08-10
-implementation_allowed: false
-current_phase: preflight-draft
+implementation_allowed: true
+current_phase: final-verification
 source:
   - user request to reduce Phoenix concept and navigation cost
   - user preference to preserve Projects as a meaningful first-tab abstraction
@@ -20,12 +20,12 @@ related_context:
 
 ## Plan Ledger
 
-- Plan status: REVIEWED, agent planning loop converged; awaiting human implementation approval.
+- Plan status: implementation complete; closeout is blocked on an unrelated repo-wide verification decision.
 - Session scope: Phoenix Project, Dataset, and Experiment ownership and naming.
 - Parent plan: `2026-08-06-self-hosted-agent-observability-platform.md`.
-- Current slice: preflight contract drafted; implementation is not authorized in this session.
-- Next action: human approval of the preflight contract, then execute with `intuitive-flow`.
-- Blocked on: nothing.
+- Current slice: final repo-wide verification.
+- Next action: decide whether to approve or remove the pre-existing architecture import-baseline deltas, then rerun `just agent::verify`.
+- Blocked on: `just agent::verify` reports existing `evals|launch|operator_console -> mcp` package edges that this diff did not introduce.
 - Do not touch from this session: Phoenix data, historical projects, runtime behavior, eval
   execution, provider calls, canonical artifacts, privacy policy, or durable baseline/catalog data.
 
@@ -328,9 +328,16 @@ gate ambiguity; the third found no remaining P0/P1. The gate now distinguishes o
 Dataset naming from mandatory exact Experiment-to-Dataset-version binding. No P0/P1 remains after
 main-session judgment, the selection scan is saturated, and the planning loop is converged.
 
+Implementation evidence: the disposable Phoenix 11.20 proof confirmed exact `version_id` reads and
+explicit old-version Experiment binding, but the supported upload API exposes only create/append
+and no modify/remove snapshot route. Stable Dataset display naming is therefore parked as
+specified; immutable digest-named Datasets remain active. Exact version reconciliation,
+heterogeneous Experiment partitioning, corrected-evidence immutability, and unchanged reprojection
+passed against the task-owned service.
+
 ## Preflight Contract
 
-Preflight status: DRAFT
+Preflight status: APPROVED AND EXECUTING
 
 Task source: reviewed plan plus the user's request to execute it through intuitive-flow
 
