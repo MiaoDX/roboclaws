@@ -130,8 +130,10 @@ Package proof CLIs
 - **Experiment Telemetry** is the dependency-free, closed-schema boundary owned
   by `roboclaws.agents.experiment_telemetry`. Local run artifacts remain the
   canonical evidence. The optional `PhoenixTelemetryAdapter` exports sanitized
-  OpenInference spans asynchronously and fail-open to a loopback-only Phoenix
-  service; prompt content is represented only by immutable Git, Skill, and
+  OpenInference spans asynchronously and fail-open to a local Phoenix service.
+  OTLP ingestion stays loopback-only; an explicit Compose override may expose
+  only the Phoenix web port on one named private-LAN interface. Prompt content
+  is represented only by immutable Git, Skill, and
   rendered-prompt digests. Phoenix cannot schedule, authorize, or gate product
   or eval execution. The maintainer-only `phoenix-project` command reads an eval
   suite and optional existing result bundle to project datasets, experiments,

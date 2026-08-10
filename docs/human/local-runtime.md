@@ -11,13 +11,30 @@ Normal users configure keys only; command shape controls behavior.
 
 Phoenix is an opt-in observability service for the developer workstation. It is
 not started by Roboclaws and is not part of a robot runtime process. The
-supported deployment is pinned to Phoenix 11.20.0, binds only to loopback, uses
-at most 2 CPU and 4 GiB of memory, and persists data in a named local volume.
+supported deployment is pinned to Phoenix 11.20.0, uses at most 2 CPU and 4 GiB
+of memory, and persists data in a named local volume. Its default deployment
+binds only to loopback.
 
 ```bash
 ./scripts/dev/validate_phoenix_deployment.sh
 docker compose -f deploy/phoenix/compose.yaml up -d
 ```
+
+To expose only the Phoenix web UI/API on one trusted private-LAN interface,
+create the gitignored `deploy/phoenix/.env` from `.env.example`, set
+`PHOENIX_LAN_BIND_HOST` to that interface's address, and start the LAN override:
+
+```bash
+docker compose \
+  -f deploy/phoenix/compose.yaml \
+  -f deploy/phoenix/compose.lan.yaml \
+  up -d
+```
+
+The override adds `<PHOENIX_LAN_BIND_HOST>:6006`; it does not expose OTLP port
+4317. Local trace export continues through `127.0.0.1:6006`. Phoenix has no
+authentication or TLS in this mode, so use it only on an explicitly trusted
+private network and do not bind `0.0.0.0`.
 
 To project sanitized live OpenAI Agents SDK traces into that service, set:
 
@@ -27,9 +44,10 @@ export ROBOCLAWS_PHOENIX_PROJECT=roboclaws-local
 ```
 
 Tracing remains disabled when the endpoint is unset and fails open when the
-local service is unavailable. Non-loopback endpoints are rejected. Shared or
-cross-machine Phoenix, authentication/TLS gateways, backups, larger resource
-envelopes, and onboard robot deployment are not supported by this topology.
+local service is unavailable. Non-loopback OTLP endpoints are rejected. Shared
+Phoenix ownership, cross-machine collectors, authentication/TLS gateways,
+backups, larger resource envelopes, and onboard robot deployment are not
+supported by this topology.
 
 ## Provider Keys
 
