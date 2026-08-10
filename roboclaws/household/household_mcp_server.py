@@ -30,6 +30,12 @@ from roboclaws.core.task_intents import (
 from roboclaws.household import realworld_done_readiness
 from roboclaws.household.household_backend_contract import HouseholdBackendSession
 from roboclaws.household.household_mcp_artifacts import HouseholdMCPArtifactLifecycle
+from roboclaws.household.household_mcp_endpoint import (
+    DEFAULT_MCP_HOST as DEFAULT_HOST,
+)
+from roboclaws.household.household_mcp_endpoint import (
+    DEFAULT_MCP_PORT as DEFAULT_PORT,
+)
 from roboclaws.household.household_mcp_projection import (
     _build_realworld_mcp_contract,
     _complete_semantic_substep_handles,
@@ -57,12 +63,6 @@ from roboclaws.household.visual_grounding import (
     SIM_VISUAL_GROUNDING_PIPELINE_ID,
 )
 from roboclaws.maps.bundle import copy_nav2_map_bundle_snapshot
-from roboclaws.mcp.endpoint import (
-    DEFAULT_MCP_HOST as DEFAULT_HOST,
-)
-from roboclaws.mcp.endpoint import (
-    DEFAULT_MCP_PORT as DEFAULT_PORT,
-)
 
 __all__ = ["MCP_SERVER_NAME", "HouseholdWorldMCPServer", "make_household_world_mcp"]
 

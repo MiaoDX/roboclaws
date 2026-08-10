@@ -46,10 +46,13 @@ from roboclaws.evals.models import (
     EvalSample,
     EvalTrial,
 )
+from roboclaws.household.household_mcp_endpoint import (
+    EVAL_HARNESS_MCP_PORT_ENV,
+    free_mcp_port,
+)
 from roboclaws.launch.catalog import resolve_surface_launch
 from roboclaws.launch.executor import LaunchProcess, spawn_launch_plan
 from roboclaws.launch.plans import LaunchPlan
-from roboclaws.mcp.endpoint import EVAL_HARNESS_MCP_PORT_ENV, free_mcp_port
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ProductRun = Callable[..., dict[str, Any]]

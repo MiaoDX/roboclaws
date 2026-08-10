@@ -28,6 +28,18 @@ CONFIGURATION_FIELDS = (
 )
 
 
+class SuiteVersionContentMismatch(ValueError):
+    """The public samples changed without a corresponding eval suite version bump."""
+
+
+class ExactDatasetVersionNotFound(ValueError):
+    """No Phoenix Dataset version has the expected public sample content."""
+
+
+class ImmutableDatasetHistoryMismatch(ValueError):
+    """An immutable suite-version Dataset contains more than one Phoenix version."""
+
+
 def project_eval_to_phoenix(overrides: dict[str, str]) -> dict[str, object]:
     """Project a suite and optional existing results without executing any eval work."""
     values = dict(overrides)
@@ -142,7 +154,7 @@ def _project(
     results: list[tuple[EvalResult, dict[str, str]]],
     projection_time: str,
 ) -> dict[str, object]:
-    dataset_name = f"roboclaws-{path_token(suite_id)}-{dataset_digest[:16]}"
+    dataset_name = _dataset_name(suite_id, suite_version)
     dataset_query = urlencode({"name": dataset_name, "limit": 100})
     dataset = _find_named(_data(http.json("GET", f"/v1/datasets?{dataset_query}")), dataset_name)
     if dataset is None:
@@ -150,11 +162,17 @@ def _project(
         dataset = {"id": uploaded.get("dataset_id"), "name": dataset_name}
     dataset_id = _id(dataset, "dataset")
     examples_digest = _public_examples_digest(public_samples)
-    dataset_version_id, examples_payload = _resolve_dataset_version(
-        http,
-        dataset_id=dataset_id,
-        expected_examples_digest=examples_digest,
-    )
+    try:
+        dataset_version_id, examples_payload = _resolve_dataset_version(
+            http,
+            dataset_id=dataset_id,
+            expected_examples_digest=examples_digest,
+        )
+    except ExactDatasetVersionNotFound as exc:
+        raise SuiteVersionContentMismatch(
+            f"eval suite {suite_id!r} version {suite_version!r} has different public samples; "
+            "bump the suite version"
+        ) from exc
     examples = _list_of_mappings(examples_payload.get("examples"), "dataset examples")
     example_by_sample = _examples_by_sample(examples)
     example_mappings = [
@@ -264,6 +282,10 @@ def _resolve_dataset_version(
         _data(http.json("GET", f"/v1/datasets/{dataset_id}/versions?limit=100")),
         "dataset versions",
     )
+    if len(versions) != 1:
+        raise ImmutableDatasetHistoryMismatch(
+            "an immutable suite-version Dataset must contain exactly one Phoenix version"
+        )
     matches: list[tuple[str, dict[str, Any]]] = []
     for version in versions:
         version_id = str(version.get("version_id") or "")
@@ -277,13 +299,21 @@ def _resolve_dataset_version(
         public_rows = [_mapping(item.get("input")) for item in examples]
         if _public_examples_digest(public_rows) == expected_examples_digest:
             matches.append((version_id, payload))
-    if len(matches) != 1:
-        raise ValueError("Phoenix could not resolve one exact Dataset version by public content")
+    if not matches:
+        raise ExactDatasetVersionNotFound(
+            "Phoenix could not resolve an exact Dataset version by public content"
+        )
+    if len(matches) > 1:
+        raise ValueError("Phoenix resolved multiple Dataset versions with the same public content")
     return matches[0]
 
 
 def _public_examples_digest(rows: list[dict[str, Any]]) -> str:
     return _digest_json(sorted(rows, key=lambda row: str(row.get("sample_id") or "")))
+
+
+def _dataset_name(suite_id: str, suite_version: str) -> str:
+    return f"roboclaws-{path_token(suite_id)}-{path_token(suite_version)}"
 
 
 def _examples_by_sample(examples: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -599,6 +629,10 @@ def _validate_loopback_endpoint(endpoint: str) -> None:
 def _failure_reason(exc: Exception) -> str:
     if isinstance(exc, HTTPError):
         return f"phoenix_http_{exc.code}"
+    if isinstance(exc, ImmutableDatasetHistoryMismatch):
+        return "suite_version_dataset_mutated"
+    if isinstance(exc, SuiteVersionContentMismatch):
+        return "suite_version_content_mismatch"
     if isinstance(exc, ValueError):
         return "invalid_projection_input_or_response"
     if isinstance(exc, TimeoutError):

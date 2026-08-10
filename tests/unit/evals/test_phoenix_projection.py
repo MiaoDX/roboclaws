@@ -180,6 +180,7 @@ def test_projection_is_idempotent_and_exports_only_closed_public_fields(tmp_path
     second = json.loads(second_output.read_text())
     assert first["suite"] == second["suite"]
     assert first["dataset"] == second["dataset"]
+    assert first["dataset"]["name"] == "roboclaws-household_world_smoke_regression-2026-06-15"
     assert first["dataset"]["version_id"] == "version-1"
     assert first["experiments"] == second["experiments"]
     assert first["runs"] == second["runs"]
@@ -224,6 +225,67 @@ def test_projection_is_idempotent_and_exports_only_closed_public_fields(tmp_path
     version_reads = [path for method, path, _payload in FakePhoenix.calls if method == "GET"]
     assert any(path.endswith("/versions?limit=100") for path in version_reads)
     assert any(path.endswith("/examples?version_id=version-1") for path in version_reads)
+
+
+def test_same_suite_version_rejects_changed_public_samples(tmp_path: Path) -> None:
+    dataset_name = "roboclaws-household_world_smoke_regression-2026-06-15"
+    FakePhoenix("http://127.0.0.1:6006").upload_dataset(
+        name=dataset_name,
+        rows=[{"sample_id": "changed", "sample_version": "v2", "prompt_digest": "0" * 64}],
+    )
+    output = tmp_path / "mapping.json"
+
+    summary = phoenix_projection.project_eval_to_phoenix(
+        {
+            "suite": "smoke_regression",
+            "endpoint": "http://127.0.0.1:6006",
+            "output": str(output),
+        }
+    )
+
+    mapping = json.loads(output.read_text())
+    assert summary == {
+        "mapping": str(output),
+        "state": "unavailable",
+        "reason": "suite_version_content_mismatch",
+    }
+    assert mapping["dataset"] is None
+    assert len(FakePhoenix.datasets) == 1
+
+
+def test_same_suite_version_rejects_appended_dataset_history(tmp_path: Path) -> None:
+    dataset_name = "roboclaws-household_world_smoke_regression-2026-06-15"
+    http = FakePhoenix("http://127.0.0.1:6006")
+    created = http.upload_dataset(
+        name=dataset_name,
+        rows=[
+            {
+                "sample_id": "cleanup.smoke_seed7",
+                "sample_version": "2026-06-15",
+                "prompt_digest": "0" * 64,
+            }
+        ],
+    )
+    dataset_id = created["data"]["dataset_id"]
+    FakePhoenix.versions[dataset_id].append({"version_id": "version-2"})
+    output = tmp_path / "mapping.json"
+
+    summary = phoenix_projection.project_eval_to_phoenix(
+        {
+            "suite": "smoke_regression",
+            "endpoint": "http://127.0.0.1:6006",
+            "output": str(output),
+        }
+    )
+
+    assert summary["state"] == "unavailable"
+    assert summary["reason"] == "suite_version_dataset_mutated"
+
+
+def test_dataset_name_changes_with_suite_version() -> None:
+    assert phoenix_projection._dataset_name("household_world.smoke_regression", "2026-06-16") == (
+        "roboclaws-household_world_smoke_regression-2026-06-16"
+    )
 
 
 def test_heterogeneous_bundle_partitions_configuration_without_run_collisions(

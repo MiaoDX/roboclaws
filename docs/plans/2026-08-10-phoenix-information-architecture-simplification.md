@@ -1,10 +1,10 @@
 ---
 plan_scope: phoenix-information-architecture-simplification
-status: BLOCKED_NEEDS_DECISION
+status: DONE
 created: 2026-08-10
 last_reviewed: 2026-08-10
 implementation_allowed: true
-current_phase: final-verification
+current_phase: complete
 source:
   - user request to reduce Phoenix concept and navigation cost
   - user preference to preserve Projects as a meaningful first-tab abstraction
@@ -20,14 +20,17 @@ related_context:
 
 ## Plan Ledger
 
-- Plan status: implementation complete; closeout is blocked on an unrelated repo-wide verification decision.
+- Plan status: DONE; implementation and all required verification are complete.
 - Session scope: Phoenix Project, Dataset, and Experiment ownership and naming.
 - Parent plan: `2026-08-06-self-hosted-agent-observability-platform.md`.
-- Current slice: final repo-wide verification.
-- Next action: decide whether to approve or remove the pre-existing architecture import-baseline deltas, then rerun `just agent::verify`.
-- Blocked on: `just agent::verify` reports existing `evals|launch|operator_console -> mcp` package edges that this diff did not introduce.
+- Current slice: none.
+- Next action: none for this plan.
+- Blocked on: nothing.
 - Do not touch from this session: Phoenix data, historical projects, runtime behavior, eval
   execution, provider calls, canonical artifacts, privacy policy, or durable baseline/catalog data.
+- Final proof: focused Phoenix and endpoint-owner tests, all eval/launch/operator-console unit
+  tests, two consecutive projections against a fresh Phoenix 11.20 service, both required live SDK
+  proofs from the preceding implementation slice, and `just agent::verify` all pass.
 
 ## Decision Summary
 
@@ -36,7 +39,7 @@ Use Phoenix's three concepts, but give each exactly one job:
 | Phoenix concept | Roboclaws meaning | Cardinality |
 | --- | --- | --- |
 | Project | Stable observability context for Robot Run trace browsing | Exactly two |
-| Dataset | Versioned, reusable sample set owned by one eval suite | Prefer one stable identity per suite; retain immutable digest identity if exact versioning is not feasible |
+| Dataset | Immutable public sample release owned by one eval suite version | One per `(suite_id, suite_version)` |
 | Experiment | One homogeneous tested configuration against one exact dataset version | One per configuration partition of a projected result bundle |
 
 The default Project taxonomy is:
@@ -81,9 +84,8 @@ Official sources reviewed on 2026-08-10:
   root.
 - Replace the current single global default Project and arbitrary Project-name environment override
   with the two-project taxonomy.
-- Prefer one stable, human-readable Phoenix Dataset name per eval suite only after the pinned API
-  proves exact version reconciliation; otherwise preserve the current immutable digest-named
-  Dataset contract.
+- Give every immutable eval suite version one human-readable Phoenix Dataset name and fail
+  projection when public content changes without a suite-version bump.
 - Partition every projected result bundle by homogeneous public tested-configuration identity and
   give each resulting Experiment a concise, human-readable name while retaining exact identity in
   metadata.
@@ -114,7 +116,7 @@ observability context
   |-- normal/operator run ----------------------> Project: roboclaws-runtime
   `-- eval trial -------------------------------> Project: roboclaws-eval
                                                     |
-eval suite -> stable Dataset -> versioned examples |
+eval suite version -> immutable Dataset -> exact examples |
 eval result bundle -> Experiment -> runs/scores ---+
 ```
 
@@ -125,8 +127,9 @@ Ownership rules:
    The telemetry composition root maps only those two values to Project constants. Missing,
    malformed, or contradictory eval context disables external export for that run and records a
    local limitation; product execution remains fail-open.
-2. The eval projection owner maps `suite_id` to Dataset identity and exact public suite content to
-   a Dataset version. It never launches eval work or relies on an implicit latest version.
+2. The eval projection owner maps `(suite_id, suite_version)` to Dataset identity and verifies the
+   exact public suite content against an explicit Phoenix Dataset version. It never launches eval
+   work or relies on an implicit latest version.
 3. The result bundle owns one or more Experiment identities. Each Experiment has exactly one public
    tested-configuration key; provider/model/configuration fields partition Experiments rather than
    Projects.
@@ -137,8 +140,7 @@ Ownership rules:
 Names optimize scanning; metadata provides exact identity.
 
 - Project: fixed constants `roboclaws-runtime` and `roboclaws-eval`.
-- Dataset: `roboclaws-<suite-id>` after canonical path-token normalization when Phase 2 passes;
-  otherwise retain `roboclaws-<suite-id>-<digest>`.
+- Dataset: `roboclaws-<suite-id>-<suite-version>` after canonical path-token normalization.
 - Dataset version identity: Phoenix `dataset_version_id` plus a digest recomputed from the public
   examples fetched for that exact version. The local mapping records suite ID, suite version, full
   dataset digest, version ID, and projection schema.
@@ -191,32 +193,28 @@ track.
   not silently route to a catch-all Project and do not fail product execution.
 - Preserve opt-in telemetry and the existing loopback-only OTLP endpoint contract.
 
-### Phase 2: Prove Exact Dataset Versions, Then Make Identity Stable
+### Phase 2: Prove Exact Dataset Versions And Use Suite-Version Identity
 
-- First run a disposable pinned-Phoenix 11.20 API fixture proving exact snapshots for unchanged,
-  add-sample, modify-public-content, and remove-sample transitions. This is a projection contract
-  test only; it does not use production datasets.
+- First run a disposable pinned-Phoenix 11.20 API fixture proving exact version reads and explicit
+  Experiment binding. This is a projection contract test only; it does not use production datasets.
 - The proof must rediscover versions through supported public APIs, query examples with the
   supported `version_id` request parameter, recompute the full public-content digest, and create an
   Experiment using that resolved version ID. The returned Experiment must report the same exact ID
-  as `dataset_version_id`. An older result bundle must continue to resolve its older version after
-  a newer version exists.
-- If the proof passes, change Dataset display identity from `suite + digest suffix` to one stable
-  `roboclaws-<suite-id>` name and reconcile exact versions through the proven public API.
-- If the proof fails, stop only this phase and retain the current immutable digest-named Dataset
-  contract. Do not use Phoenix private APIs, destructive history mutation, a custom version
-  registry, or a client dependency solely to hide the digest.
-- Failure to reconcile add/modify/remove snapshots parks only stable Dataset naming. Failure to
-  create and rediscover an Experiment bound to an exact `dataset_version_id` blocks Phase 3 and
-  returns for review; implicit latest-version binding is never an allowed fallback.
+  as `dataset_version_id`.
+- Name the Dataset from `(suite_id, suite_version)`. Unchanged projection reuses that Dataset and
+  exact version. Add, modify, or remove changes require a suite-version bump and therefore create a
+  new immutable Dataset; content drift under the same suite version fails with an actionable reason.
+- Do not use Phoenix private APIs, destructive history mutation, a custom version registry, or a
+  client dependency to emulate modify/remove snapshots under one Dataset.
+- Failure to create and rediscover an Experiment bound to an exact `dataset_version_id` blocks
+  Phase 3; implicit latest-version binding is never an allowed fallback.
 - Correctness depends on version ID plus recomputed public-example digest and the canonical local
   mapping. Remote description or metadata is supplemental only where Phoenix 11.20 demonstrably
   supports immutable version-scoped fields.
 
 ### Phase 3: Make Experiments Readable
 
-- Run against the exact version returned by the stable Dataset path when Phase 2 passes, or the
-  single exact version of the retained digest-named Dataset when it is parked.
+- Run against the exact version resolved from the immutable suite-version Dataset.
 - Partition results by the tested-configuration key before creating Experiments. A homogeneous
   bundle creates one Experiment; a heterogeneous comparison bundle creates one Experiment per
   unique configuration, linked by the source bundle digest. Repetitions remain runs inside that
@@ -244,16 +242,16 @@ track.
 - A normal product trace appears in `roboclaws-runtime`; an eval-trial trace appears in
   `roboclaws-eval`.
 - The same provider/model/task can appear in both Projects without creating additional Projects.
-- When Phase 2 feasibility passes, reprojecting unchanged suite content reuses the same exact
-  Dataset version; add, modify, and remove changes create exact new versions under the same Dataset
-  identity. If it fails, current digest-named immutable Datasets remain unchanged.
-- Reprojecting an older result bundle after a newer Dataset version exists still resolves and reuses
-  the older exact version and Experiment.
+- Reprojecting unchanged suite content reuses the same exact Dataset version. Add, modify, and
+  remove changes require a suite-version bump and create a new immutable Dataset.
+- Public sample content changing without a suite-version bump fails projection explicitly.
+- Reprojecting an older suite version continues to resolve and reuse its exact Dataset, version,
+  and Experiment.
 - Reprojecting the same result bundle reuses its Experiment(s), runs, and evaluations.
 - A heterogeneous bundle produces one Experiment per unique tested configuration with no
   sample/repetition collision across providers or models.
-- A human can identify suite and tested configuration from Project and Experiment labels without
-  reading a 16-character content hash; Dataset labels also meet this criterion when Phase 2 passes.
+- A human can identify suite and suite version from the Dataset label, and tested configuration
+  from the Experiment label, without reading a content hash.
 - Full immutable identity remains available in metadata and the local projection mapping.
 - Existing historical Phoenix objects remain unchanged.
 - Phoenix unavailable/disabled behavior, queue bounds, terminal flush bounds, privacy denial tests,
@@ -265,9 +263,9 @@ track.
 - Focused unit tests for Project routing, configuration validation, Dataset version lookup/create,
   Experiment naming/idempotency, and unavailable/disabled projection.
 - Existing Phoenix telemetry privacy, lifecycle, projection, and CLI contract tests.
-- A disposable local pinned-Phoenix integration proof covering unchanged/add/modify/remove Dataset
-  snapshots, explicit old-version reuse, homogeneous and heterogeneous bundles, and unchanged
-  bundle reprojection.
+- A disposable local pinned-Phoenix integration proof covering immutable suite-version Dataset
+  creation/reuse, exact version reads, homogeneous and heterogeneous bundles, and unchanged bundle
+  reprojection. Unit contracts cover rejection of same-version public-content drift.
 - Stale-name searches proving no active default emits `roboclaws-local`, phase-specific Project
   names, or reads `ROBOCLAWS_PHOENIX_PROJECT`.
 - `ruff check` and format checks for changed files.
@@ -280,9 +278,7 @@ track.
 
 Stop and return for review if:
 
-- Phoenix 11.20 cannot reconcile stable Dataset identity plus exact versioned content without
-  private APIs, destructive history mutation, a new dependency, or a parallel registry; in that
-  case park stable naming and retain digest-named immutable Datasets;
+- Phoenix 11.20 cannot create or resolve the immutable suite-version Dataset through supported APIs;
 - Phoenix 11.20 cannot create and rediscover an Experiment bound to the resolved exact
   `dataset_version_id`; in that case block Phase 3 and return for review rather than use implicit
   latest-version behavior;
@@ -305,7 +301,7 @@ Accepted:
 - Remove arbitrary Project-name override and use one closed internal observability context.
 - Treat invalid context as telemetry degradation, preserving product fail-open behavior.
 - Bind Experiments and example lookup to an explicit Dataset version; never implicit latest.
-- Gate stable Dataset naming on exact add/modify/remove/unchanged snapshot proof.
+- Use suite-version Dataset identity and reject public-content drift without a version bump.
 - Partition heterogeneous bundles into homogeneous Experiments and strengthen digest/run reuse.
 - Remove the repeated historical inventory and any future deletion/classification track.
 
@@ -320,7 +316,7 @@ Parked:
 
 - Any optimizer-specific Project, pending a separate observed-noise case.
 - Historical object rename/archive/delete work.
-- Stable Dataset display names if Phoenix 11.20 cannot prove exact public snapshot reconciliation.
+- Historical digest-named Dataset objects; forward projection does not mutate or reuse them.
 - The final Experiment display grammar, which is a bounded fixture-driven implementation default.
 
 Round 2 re-ran all three scouts against the revised plan. Two identified the same narrow version
@@ -329,11 +325,11 @@ Dataset naming from mandatory exact Experiment-to-Dataset-version binding. No P0
 main-session judgment, the selection scan is saturated, and the planning loop is converged.
 
 Implementation evidence: the disposable Phoenix 11.20 proof confirmed exact `version_id` reads and
-explicit old-version Experiment binding, but the supported upload API exposes only create/append
-and no modify/remove snapshot route. Stable Dataset display naming is therefore parked as
-specified; immutable digest-named Datasets remain active. Exact version reconciliation,
-heterogeneous Experiment partitioning, corrected-evidence immutability, and unchanged reprojection
-passed against the task-owned service.
+explicit Experiment binding, while the supported upload API exposes only create/append. The
+forward-only contract therefore treats each suite version as one immutable Dataset release and
+requires a version bump for add/modify/remove changes. Exact version reconciliation, heterogeneous
+Experiment partitioning, corrected-evidence immutability, and unchanged reprojection passed against
+the task-owned service.
 
 ## Preflight Contract
 
@@ -355,9 +351,9 @@ Scope:
   identity/composition boundary and map it directly to `roboclaws-runtime` or `roboclaws-eval`.
 - Remove `ROBOCLAWS_PHOENIX_PROJECT` from code, tests, examples, and human documentation without a
   compatibility shim.
-- Prove exact Phoenix 11.20 Dataset snapshots and Experiment version binding in an isolated,
-  task-owned Phoenix instance; adopt stable suite Dataset names only if supported public APIs pass
-  the unchanged/add/modify/remove proof.
+- Prove exact Phoenix 11.20 Dataset version reads and Experiment binding in an isolated, task-owned
+  Phoenix instance; name each immutable Dataset from suite ID and suite version, and reject
+  same-version public-content drift.
 - Partition projected result bundles by the closed homogeneous tested-configuration key, bind each
   Experiment to an exact Dataset version, strengthen immutable projection/run identity, and make
   display names readable without parsing them for correctness.
@@ -396,9 +392,7 @@ Acceptance:
   bundles split without provider/model collisions; corrected/regraded evidence is immutable;
   historical Phoenix objects and canonical local artifacts remain unchanged; privacy and
   unavailable/disabled fail-open gates pass; docs match the observable UI.
-- BLOCKED_NEEDS_DECISION: implementation requires any expansion trigger or historical-data
-  mutation; stable Dataset naming itself is not a decision blocker and is parked automatically if
-  exact supported-API snapshot reconciliation fails.
+- BLOCKED_NEEDS_DECISION: implementation requires any expansion trigger or historical-data mutation.
 - BLOCKED_NEEDS_LOCAL_VALIDATION: the isolated Phoenix 11.20 contract proof, normal product trace,
   eval-trial trace, or UI/API hierarchy inspection cannot run or pass locally; code may be an
   intermediate branch but is not complete or merge-ready.
@@ -414,9 +408,9 @@ tests/contract/dev_tools/test_eval_just_recipe.py -q`; relevant broader standalo
 `just agent::eval recommend plan=docs/plans/2026-08-10-phoenix-information-architecture-simplification.md
 budget=focused`; integration=start a separate Compose project named
 `roboclaws-phoenix-ia-proof` from `deploy/phoenix/compose.yaml` on loopback ports 16006/14317 with
-its own task-owned volume, run the unchanged/add/modify/remove and old-version Experiment proof,
-then query exact Dataset/version/Experiment/run/evaluation identity; after validating the Compose
-project name and volume ownership, tear down only that task-owned project with `down -v`;
+its own task-owned volume, run immutable suite-version Dataset reuse and exact-version Experiment
+proof, then query exact Dataset/version/Experiment/run/evaluation identity; after validating the
+Compose project name and volume ownership, tear down only that task-owned project with `down -v`;
 product-run=with `ROBOCLAWS_PHOENIX_OTLP_ENDPOINT=http://127.0.0.1:16006/v1/traces`, run one cheapest
 ready serial `just run::surface surface=household-world agent_engine=openai-agents-sdk
 preset=cleanup evidence_lane=world-public-labels provider_profile=kimi-openai-chat` and one

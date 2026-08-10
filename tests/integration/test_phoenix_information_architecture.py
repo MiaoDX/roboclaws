@@ -48,6 +48,11 @@ def test_pinned_phoenix_exact_versions_and_projector_contract(tmp_path: Path) ->
     second = _read_json(second_path)
 
     assert first == second
+    assert first["dataset"]["name"] == ("roboclaws-household_world_smoke_regression-2026-06-15")
+    versions = http.json(
+        "GET", f"/v1/datasets/{first['dataset']['phoenix_id']}/versions?limit=100"
+    )["data"]
+    assert len(versions) == 1
     assert len(first["experiments"]) == 2
     assert len(first["runs"]) == 2
     assert len({run["experiment_id"] for run in first["runs"]}) == 2

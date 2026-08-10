@@ -136,12 +136,13 @@ Package proof CLIs
   is represented only by immutable Git, Skill, and
   rendered-prompt digests. Phoenix cannot schedule, authorize, or gate product
   or eval execution. The maintainer-only `phoenix-project` command reads an eval
-  suite and optional existing result bundle to project immutable digest-named
-  Datasets, exact Dataset versions, homogeneous tested-configuration
-  Experiments, and annotations. Trace routing is closed to exactly
-  `roboclaws-runtime` and `roboclaws-eval`; arbitrary Project selection is not a
-  runtime setting. The projector never launches providers, simulators, CloudML,
-  or hardware work.
+  suite and optional existing result bundle to project immutable
+  suite-version-named Datasets, exact Dataset versions, homogeneous
+  tested-configuration Experiments, and annotations. A suite-version Dataset
+  has exactly one Phoenix version; sample changes require a suite-version bump.
+  Trace routing is closed to exactly `roboclaws-runtime` and `roboclaws-eval`;
+  arbitrary Project selection is not a runtime setting. The projector never
+  launches providers, simulators, CloudML, or hardware work.
 
 Runtime Map Prior evaluation separates artifact production from consumption:
 

@@ -130,10 +130,10 @@ modification time because the result bundle has no grader timestamps.
 Phoenix uses three distinct navigation levels:
 
 - Project answers where the trace ran: EvalTrial traces use `roboclaws-eval`.
-- Dataset is one immutable, version-bound public sample set owned by a suite.
-  Phoenix 11.20 cannot reconcile modify/remove snapshots through its supported
-  public API, so Dataset names retain the exact content suffix, for example
-  `roboclaws-household_world_smoke_regression-bb7f48f1a608acc5`.
+- Dataset is one immutable public sample release owned by a suite version, for
+  example `roboclaws-household_world_smoke_regression-2026-06-15`. Add, modify,
+  or remove changes require a suite-version bump; projection fails if public
+  content drifts under an existing version or that Dataset has append history.
 - Experiment is one tested configuration against one exact Dataset version. A
   comparison bundle is split by agent engine, provider profile, model, Skill,
   source Git SHA, and Skill digest. Repetitions remain runs inside the matching

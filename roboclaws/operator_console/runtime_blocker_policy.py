@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from roboclaws.mcp.endpoint import DEFAULT_MCP_HOST, DEFAULT_MCP_PORT
+from roboclaws.household.household_mcp_endpoint import DEFAULT_MCP_HOST, DEFAULT_MCP_PORT
 from roboclaws.operator_console.launch_contract import ConsoleLaunchError
 from roboclaws.operator_console.routes import ConsoleLaunchSelection
 from roboclaws.operator_console.runtime_host_probes import (

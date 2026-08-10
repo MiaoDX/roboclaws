@@ -13,18 +13,19 @@ leave a link.
 Phoenix information architecture simplification is implemented under
 `docs/plans/2026-08-10-phoenix-information-architecture-simplification.md`.
 Future traces route only to `roboclaws-runtime` or `roboclaws-eval`; arbitrary
-Project selection is removed. Eval projection retains immutable digest-named
-Datasets because Phoenix 11.20 lacks supported modify/remove snapshot APIs, but
-now resolves exact Dataset versions, partitions heterogeneous bundles into
-readable homogeneous Experiments, and reuses Experiments, runs, and evaluations
-by full immutable identity.
+Project selection is removed. Eval projection names immutable Datasets by suite
+version and requires a version bump for public sample changes, avoiding Phoenix
+11.20's missing modify/remove snapshot APIs. It resolves exact Dataset versions,
+partitions heterogeneous bundles into readable homogeneous Experiments, and
+reuses Experiments, runs, and evaluations by full immutable identity.
 
-Focused tests, all eval unit tests, selected route/cleanup contracts, and the
-task-owned Phoenix 11.20 integration proof pass. Live Kimi evidence exported a
-normal runtime trace and three serial EvalTrial traces with ready telemetry and
-no drops or failures; Phoenix's built-in `default` Project has zero spans. The
-standalone product attempt reached `agent_done` but failed an existing cleanup
-checker on post-place observation coverage. The eval bundle completed `2/3`.
+Focused tests, the full repo verification gate, and two consecutive projections
+against a fresh task-owned Phoenix 11.20 service pass. Live Kimi evidence
+exported a normal runtime trace and three serial EvalTrial traces with ready
+telemetry and no drops or failures; Phoenix's built-in `default` Project has
+zero spans. The standalone product attempt reached `agent_done` but failed an
+existing cleanup checker on post-place observation coverage. The eval bundle
+completed `2/3`.
 
 ## Previous Focus
 
@@ -119,17 +120,12 @@ providers.
 
 ## Next Action
 
-Resolve or explicitly approve the pre-existing architecture import-baseline
-deltas, then rerun `just agent::verify` and close the Phoenix plan. Keep the
-product Skill-delivery default unchanged; its separate multi-scene confirmation
-requirement still applies.
+Keep the product Skill-delivery default unchanged; its separate multi-scene
+confirmation requirement still applies. Phoenix information architecture has
+no remaining implementation or verification action.
 
 ## Current Blockers
 
-- `just agent::verify` currently reports pre-existing unbaselined package edges
-  from `evals`, `launch`, and `operator_console` to `mcp`. The Phoenix diff adds
-  none of those imports; blessing or removing them is outside this plan's
-  accepted architecture scope.
 - Eval baseline publication remains blocked until a new full candidate replaces
   the invalid `20260803T023049Z` evidence and receives human confirmation.
 - Agibot and B1 injected dependency readiness passes with the existing local SDK, Map 12 bundle,

@@ -16,10 +16,13 @@ from roboclaws.agents.skill_delivery import sandbox_readiness
 from roboclaws.core.json_sources import read_json_object
 from roboclaws.evals.harness import local_execution, selector
 from roboclaws.evals.suite_loading import REPO_ROOT
+from roboclaws.household.household_mcp_endpoint import (
+    EVAL_HARNESS_MCP_PORT_ENV,
+    free_mcp_port,
+)
 from roboclaws.household.visual_grounding_sidecar.process import (
     ManagedVisualGroundingProcess,
 )
-from roboclaws.mcp.endpoint import EVAL_HARNESS_MCP_PORT_ENV, free_mcp_port
 
 DINO_SIDECAR_AUTOSTART_ENV = "ROBOCLAWS_EVAL_HARNESS_AUTOSTART_DINO_SIDECAR"
 SESSION_LIVE_MCP_PORT_ENV = "ROBOCLAWS_SESSION_LIVE_MCP_PORT"
