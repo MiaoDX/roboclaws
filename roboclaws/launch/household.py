@@ -16,7 +16,6 @@ from roboclaws.agents.prompts.household_cleanup import (
     render_kickoff_prompt,
     render_map_build_prompt,
 )
-from roboclaws.core.dotenv import update_env_from_dotenv_file
 from roboclaws.core.open_ended_artifacts import validate_open_ended_artifacts
 from roboclaws.core.provider_catalog import provider_route_spec
 from roboclaws.household.cleanup_validation import load_run_results, validate_run_result
@@ -223,7 +222,6 @@ def _live_command(
     run_dir: Path,
     map_bundle: Path,
 ) -> list[str]:
-    update_env_from_dotenv_file(Path(".env"))
     provider = execution.plan.provider_profile or ""
     route = provider_route_spec(provider)
     model = _get(execution.kv, "model", os.environ.get("ROBOCLAWS_OPENAI_AGENTS_MODEL", ""))
