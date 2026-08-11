@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-10
+Last updated: 2026-08-11
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -13,11 +13,13 @@ leave a link.
 Phoenix information architecture simplification is implemented under
 `docs/plans/2026-08-10-phoenix-information-architecture-simplification.md`.
 Future traces route only to `roboclaws-runtime` or `roboclaws-eval`; arbitrary
-Project selection is removed. Eval projection names immutable Datasets by suite
-version and requires a version bump for public sample changes, avoiding Phoenix
-11.20's missing modify/remove snapshot APIs. It resolves exact Dataset versions,
-partitions heterogeneous bundles into readable homogeneous Experiments, and
-reuses Experiments, runs, and evaluations by full immutable identity.
+Project selection is removed. Eval projection names Datasets by stable suite
+task, keeps suite version and content identity in metadata, and binds every
+Experiment to one exact immutable Dataset version. Public sample changes require
+a suite-version bump plus an explicit local Phoenix rebuild and reprojection
+because Phoenix 11.20 cannot modify or remove snapshot examples. Heterogeneous
+bundles split into readable homogeneous Experiments, and unchanged Experiments,
+runs, and evaluations reuse full immutable identity.
 
 Focused tests, the full repo verification gate, and two consecutive projections
 against a fresh task-owned Phoenix 11.20 service pass. Live Kimi evidence
@@ -25,7 +27,10 @@ exported a normal runtime trace and three serial EvalTrial traces with ready
 telemetry and no drops or failures; Phoenix's built-in `default` Project has
 zero spans. The standalone product attempt reached `agent_done` but failed an
 existing cleanup checker on post-place observation coverage. The eval bundle
-completed `2/3`.
+completed `2/3`. The permanent local Phoenix store has now been rebuilt and the
+existing baseline artifacts reprojected without rerunning providers: its API
+contains six task-only Datasets, eight Experiments, and 32 Runs; eight ready v3
+mappings record 151 Evaluations.
 
 ## Previous Focus
 

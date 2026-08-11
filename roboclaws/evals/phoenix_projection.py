@@ -15,7 +15,7 @@ from roboclaws.core.json_sources import read_json_object
 from roboclaws.evals.models import EvalResult
 from roboclaws.evals.suite_loading import REPO_ROOT, load_suite, path_token
 
-MAPPING_SCHEMA = "roboclaws_phoenix_eval_projection_v2"
+MAPPING_SCHEMA = "roboclaws_phoenix_eval_projection_v3"
 DEFAULT_OUTPUT_ROOT = REPO_ROOT / "output" / "evals" / "phoenix-projection"
 MISSING_CONFIGURATION_VALUE = "missing"
 CONFIGURATION_FIELDS = (
@@ -28,16 +28,16 @@ CONFIGURATION_FIELDS = (
 )
 
 
-class SuiteVersionContentMismatch(ValueError):
-    """The public samples changed without a corresponding eval suite version bump."""
+class TaskDatasetContentMismatch(ValueError):
+    """The task Dataset does not contain the requested immutable suite release."""
 
 
 class ExactDatasetVersionNotFound(ValueError):
     """No Phoenix Dataset version has the expected public sample content."""
 
 
-class ImmutableDatasetHistoryMismatch(ValueError):
-    """An immutable suite-version Dataset contains more than one Phoenix version."""
+class TaskDatasetHistoryMismatch(ValueError):
+    """A task Dataset has unsupported append history in Phoenix 11.20."""
 
 
 def project_eval_to_phoenix(overrides: dict[str, str]) -> dict[str, object]:
@@ -154,7 +154,7 @@ def _project(
     results: list[tuple[EvalResult, dict[str, str]]],
     projection_time: str,
 ) -> dict[str, object]:
-    dataset_name = _dataset_name(suite_id, suite_version)
+    dataset_name = _dataset_name(suite_id)
     dataset_query = urlencode({"name": dataset_name, "limit": 100})
     dataset = _find_named(_data(http.json("GET", f"/v1/datasets?{dataset_query}")), dataset_name)
     if dataset is None:
@@ -169,9 +169,10 @@ def _project(
             expected_examples_digest=examples_digest,
         )
     except ExactDatasetVersionNotFound as exc:
-        raise SuiteVersionContentMismatch(
-            f"eval suite {suite_id!r} version {suite_version!r} has different public samples; "
-            "bump the suite version"
+        raise TaskDatasetContentMismatch(
+            f"task Dataset {dataset_name!r} does not contain eval suite version "
+            f"{suite_version!r}; bump the suite version, rebuild the local Phoenix data, "
+            "and reproject canonical artifacts"
         ) from exc
     examples = _list_of_mappings(examples_payload.get("examples"), "dataset examples")
     example_by_sample = _examples_by_sample(examples)
@@ -283,8 +284,9 @@ def _resolve_dataset_version(
         "dataset versions",
     )
     if len(versions) != 1:
-        raise ImmutableDatasetHistoryMismatch(
-            "an immutable suite-version Dataset must contain exactly one Phoenix version"
+        raise TaskDatasetHistoryMismatch(
+            "a task Dataset must contain exactly one immutable Phoenix version; rebuild the "
+            "local Phoenix data and reproject canonical artifacts"
         )
     matches: list[tuple[str, dict[str, Any]]] = []
     for version in versions:
@@ -312,8 +314,8 @@ def _public_examples_digest(rows: list[dict[str, Any]]) -> str:
     return _digest_json(sorted(rows, key=lambda row: str(row.get("sample_id") or "")))
 
 
-def _dataset_name(suite_id: str, suite_version: str) -> str:
-    return f"roboclaws-{path_token(suite_id)}-{path_token(suite_version)}"
+def _dataset_name(suite_id: str) -> str:
+    return f"roboclaws-{path_token(suite_id)}"
 
 
 def _examples_by_sample(examples: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -629,10 +631,10 @@ def _validate_loopback_endpoint(endpoint: str) -> None:
 def _failure_reason(exc: Exception) -> str:
     if isinstance(exc, HTTPError):
         return f"phoenix_http_{exc.code}"
-    if isinstance(exc, ImmutableDatasetHistoryMismatch):
-        return "suite_version_dataset_mutated"
-    if isinstance(exc, SuiteVersionContentMismatch):
-        return "suite_version_content_mismatch"
+    if isinstance(exc, TaskDatasetHistoryMismatch):
+        return "task_dataset_history_unsupported"
+    if isinstance(exc, TaskDatasetContentMismatch):
+        return "task_dataset_content_mismatch"
     if isinstance(exc, ValueError):
         return "invalid_projection_input_or_response"
     if isinstance(exc, TimeoutError):

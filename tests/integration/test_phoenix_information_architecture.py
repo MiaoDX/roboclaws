@@ -48,7 +48,7 @@ def test_pinned_phoenix_exact_versions_and_projector_contract(tmp_path: Path) ->
     second = _read_json(second_path)
 
     assert first == second
-    assert first["dataset"]["name"] == ("roboclaws-household_world_smoke_regression-2026-06-15")
+    assert first["dataset"]["name"] == "roboclaws-household_world_smoke_regression"
     versions = http.json(
         "GET", f"/v1/datasets/{first['dataset']['phoenix_id']}/versions?limit=100"
     )["data"]

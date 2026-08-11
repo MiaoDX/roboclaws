@@ -137,9 +137,11 @@ Package proof CLIs
   rendered-prompt digests. Phoenix cannot schedule, authorize, or gate product
   or eval execution. The maintainer-only `phoenix-project` command reads an eval
   suite and optional existing result bundle to project immutable
-  suite-version-named Datasets, exact Dataset versions, homogeneous
-  tested-configuration Experiments, and annotations. A suite-version Dataset
-  has exactly one Phoenix version; sample changes require a suite-version bump.
+  task-named Datasets, exact Dataset versions, homogeneous tested-configuration
+  Experiments, and annotations. A task Dataset has exactly one immutable
+  Phoenix version in a deployed local store. Public sample changes require a
+  suite-version bump followed by an explicit local Phoenix rebuild and
+  reprojection because Phoenix 11.20 cannot modify or remove snapshot examples.
   Trace routing is closed to exactly `roboclaws-runtime` and `roboclaws-eval`;
   arbitrary Project selection is not a runtime setting. The projector never
   launches providers, simulators, CloudML, or hardware work.
