@@ -166,7 +166,6 @@ def _timeout(
 ) -> LiveEvalTimeoutError:
     return LiveEvalTimeoutError(
         "live eval timeout",
-        timeout_s=1200.0,
         timeout_kind=timeout_kind,
         wall_clock_budget_s=1200.0,
         stall_timeout_s=180.0,

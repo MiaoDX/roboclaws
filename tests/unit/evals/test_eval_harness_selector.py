@@ -105,15 +105,22 @@ def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
     assert manifest["summary"]["live_agent_eval_row_count"] == 11
     assert rows["openai-agents-sdk-open-task-live-eval"]["status"] == "not_run"
     assert rows["openai-agents-sdk-cleanup-live-eval"]["status"] == "not_run"
-    assert "live_stall_timeout_s=180" in rows["openai-agents-sdk-cleanup-live-eval"]["command"]
+    assert not any(
+        item.startswith(("live_timeout_s=", "live_stall_timeout_s="))
+        for item in rows["openai-agents-sdk-cleanup-live-eval"]["command"]
+    )
     provider_rows = [
         row
         for row_id, row in rows.items()
         if row_id.startswith("map-build-consumer-openai-agents-sdk-")
     ]
     assert len(provider_rows) == 4
-    assert all("live_timeout_s=1500" in row["command"] for row in provider_rows)
-    assert all("live_stall_timeout_s=180" in row["command"] for row in provider_rows)
+    assert all(
+        not any(
+            item.startswith(("live_timeout_s=", "live_stall_timeout_s=")) for item in row["command"]
+        )
+        for row in provider_rows
+    )
     assert rows["direct-camera-grounded-grounding-dino"]["status"] == "not_run"
     assert rows["direct-map-build-grounding-dino"]["status"] == "not_run"
     assert rows["long-horizon-tasks-eval-suite"]["status"] == "not_run"
@@ -475,7 +482,7 @@ def test_map_build_consumer_change_selects_four_profile_model_matrix(
         assert f"runtime_map_prior={prior}" in row["command"]
         assert row["axes"]["suite"] == "map_consumer_fixed_prior"
         assert "agent_engine=openai-agents-sdk" in row["command"]
-        assert "live_timeout_s=1500" in row["command"]
+        assert not any(item.startswith("live_timeout_s=") for item in row["command"])
         assert "live_execution=run" in row["command"]
         assert row["axes"]["provider_cell_count"] == "4"
         assert row["axes"]["default_local_concurrency_width"] == "1"

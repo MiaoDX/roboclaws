@@ -235,13 +235,15 @@ just agent::eval suite=open_ended_goals budget=smoke \
   live_execution=run
 ```
 
-Live evals use a 1200-second wall-clock budget and a 120-second no-progress
+Live evals use a 1500-second wall-clock budget and a 180-second no-progress
 timeout unless the catalog row owns a larger contract. Provider availability,
 missing credentials, port conflicts, and runtime readiness are classified
 separately from agent behavior.
 
 The `session-live` route verifies an Operator Session parent run, active-run
-steering, terminal artifacts, and a linked child goal. It is also opt-in:
+steering, terminal artifacts, and a linked child goal. The parent and child are
+separate agent runs, so each receives a fresh 1500-second wall-clock budget. It
+is also opt-in:
 
 ```bash
 just agent::eval session-live budget=smoke \

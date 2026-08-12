@@ -17,6 +17,7 @@ from roboclaws.evals.agent_identity import (
 from roboclaws.evals.canonical_prior import promote_canonical_runtime_prior
 from roboclaws.evals.dependencies import sample_artifact_key
 from roboclaws.evals.harness import runner as harness_runner
+from roboclaws.evals.live_runtime import DEFAULT_LIVE_WALL_CLOCK_BUDGET_S
 from roboclaws.evals.map_build_reports import (
     discover_eval_results_paths,
     write_map_build_matrix_report,
@@ -179,7 +180,9 @@ def _run_session_live_from_overrides(overrides: dict[str, str]):
     agent_engine = values.pop("agent_engine", "openai-agents-sdk")
     provider_profile = values.pop("provider_profile", "kimi-openai-chat")
     live_execution = values.pop("live_execution", "blocked")
-    live_timeout_s = _optional_float(values.pop("live_timeout_s", None)) or 900.0
+    live_timeout_s = (
+        _optional_float(values.pop("live_timeout_s", None)) or DEFAULT_LIVE_WALL_CLOCK_BUDGET_S
+    )
     _reject_overrides(values, "session-live eval")
     return run_session_live_eval(
         output_root=output_root,

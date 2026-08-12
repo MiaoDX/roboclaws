@@ -30,10 +30,7 @@ from roboclaws.evals.live_runtime import (
     live_surface_command,
     live_surface_env,
     live_surface_run_dir,
-    live_timeout_completion_grace_s,
     live_wall_clock_budget_s,
-    wait_for_live_surface_completion,
-    wait_for_timed_out_live_surface_artifact,
 )
 from roboclaws.evals.live_timeout import (
     LiveEvalTimeoutError,
@@ -56,9 +53,6 @@ from roboclaws.launch.plans import LaunchPlan
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ProductRun = Callable[..., dict[str, Any]]
-DEFAULT_LIVE_WALL_CLOCK_BUDGET_S = 1200.0
-DEFAULT_LIVE_STALL_TIMEOUT_S = 120.0
-DEFAULT_LIVE_TIMEOUT_COMPLETION_GRACE_S = 30.0
 LIVE_PROCESS_POLL_S = 1.0
 
 
@@ -202,7 +196,6 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
     wall_clock_budget_s = live_wall_clock_budget_s(kwargs)
     stall_timeout_s = live_stall_timeout_s(kwargs)
     started_wall_time_s = time.time()
-    started = time.monotonic()
     record: dict[str, Any] = {
         "command": command,
         "returncode": None,
@@ -230,24 +223,16 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
             stdout=completed.stdout,
             started_wall_time_s=started_wall_time_s,
         )
-        sample_run_dir = wait_for_timed_out_live_surface_artifact(
-            kwargs,
-            output_dir=sample_run_root,
-            effective_run_dir=sample_run_dir,
-            started_wall_time_s=started_wall_time_s,
-        )
         record.update(
             {
                 "returncode": completed.returncode,
                 "stdout": completed.stdout,
                 "stderr": completed.stderr,
                 "timeout_kind": completed.timeout_kind,
-                "timeout_s": wall_clock_budget_s,
                 "wall_clock_budget_s": wall_clock_budget_s,
                 "stall_timeout_s": stall_timeout_s,
                 "timeout_elapsed_s": completed.elapsed_s,
                 "timeout_last_progress_elapsed_s": completed.last_progress_elapsed_s,
-                "timeout_completion_grace_s": live_timeout_completion_grace_s(),
                 "effective_run_dir": str(sample_run_dir),
                 "live_status": _load_json(sample_run_dir / "live_status.json"),
             }
@@ -255,7 +240,6 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
         record["timeout_debug_snapshot"] = live_timeout_snapshot(
             sample_run_dir,
             live_status=record["live_status"],
-            timeout_s=wall_clock_budget_s,
             timeout_kind=completed.timeout_kind,
             wall_clock_budget_s=wall_clock_budget_s,
             stall_timeout_s=stall_timeout_s,
@@ -279,7 +263,6 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
         )
         raise LiveEvalTimeoutError(
             message,
-            timeout_s=wall_clock_budget_s,
             timeout_kind=completed.timeout_kind,
             wall_clock_budget_s=wall_clock_budget_s,
             stall_timeout_s=stall_timeout_s,
@@ -309,13 +292,7 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
         _write_live_eval_command_record(run_dir / "live_eval_command.json", record)
         message = completed.stderr.strip() or completed.stdout.strip()
         raise RuntimeError(f"live surface run failed with exit {completed.returncode}: {message}")
-    sample_run_dir = wait_for_live_surface_completion(
-        kwargs,
-        output_dir=sample_run_root,
-        effective_run_dir=sample_run_dir,
-        elapsed_s=time.monotonic() - started,
-        started_wall_time_s=started_wall_time_s,
-    )
+    _live_surface_already_complete(sample_run_dir, require_terminal_status=False)
     record["effective_run_dir"] = str(sample_run_dir)
     record["live_status"] = _load_json(sample_run_dir / "live_status.json")
     _write_live_eval_command_record(run_dir / "live_eval_command.json", record)

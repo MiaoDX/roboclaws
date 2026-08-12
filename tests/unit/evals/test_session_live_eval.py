@@ -301,15 +301,31 @@ def test_session_live_waits_for_lifecycle_phase_after_product_status_passed() ->
         patch("roboclaws.evals.session_live.pid_is_active", side_effect=[True, False]),
         patch("roboclaws.evals.session_live.time.sleep"),
     ):
-        terminal = _wait_for_terminal("http://console", "run-1", deadline=time.monotonic() + 1)
+        terminal = _wait_for_terminal("http://console", "run-1", timeout_s=1)
 
     assert terminal["phase"] == "finished"
+
+
+def test_session_live_starts_a_fresh_timeout_for_each_agent_run() -> None:
+    terminal = {"status": "done", "phase": "finished"}
+
+    with (
+        patch("roboclaws.evals.session_live._api_json", return_value=terminal),
+        patch(
+            "roboclaws.evals.session_live.time.monotonic",
+            side_effect=[100.0, 100.0, 900.0, 900.0],
+        ) as monotonic,
+    ):
+        assert _wait_for_terminal("http://console", "parent", timeout_s=1500) == terminal
+        assert _wait_for_terminal("http://console", "child", timeout_s=1500) == terminal
+
+    assert monotonic.call_count == 4
 
 
 def test_session_live_stops_console_run_before_reporting_timeout() -> None:
     with patch("roboclaws.evals.session_live._api_json", return_value={}) as api_json:
         with pytest.raises(RuntimeError, match="did not reach terminal state before timeout"):
-            _wait_for_terminal("http://console", "run-1", deadline=time.monotonic() - 1)
+            _wait_for_terminal("http://console", "run-1", timeout_s=0)
 
     api_json.assert_called_once_with(
         "http://console",
@@ -326,7 +342,7 @@ def test_session_live_preserves_timeout_when_console_stop_fails() -> None:
         side_effect=RuntimeError("stop failed"),
     ):
         with pytest.raises(RuntimeError, match="did not reach terminal state before timeout"):
-            _wait_for_terminal("http://console", "run-1", deadline=time.monotonic() - 1)
+            _wait_for_terminal("http://console", "run-1", timeout_s=0)
 
 
 def _consume_parent_steer_then_finish(
