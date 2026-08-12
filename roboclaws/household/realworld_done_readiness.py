@@ -285,13 +285,14 @@ def completion_snapshot(
         }
         for blocker in blockers
     ]
-    if not blockers:
+    task_intent = str(readiness.get("task_intent") or "cleanup")
+    if not blockers and not household_intent_is_open_ended(task_intent):
         next_actions = [{"required_tool": "done"}]
     snapshot = {
         "schema": COMPLETION_SNAPSHOT_SCHEMA,
         "source_tool": source_tool,
         "response_id": response_id,
-        "task_intent": readiness.get("task_intent", "cleanup"),
+        "task_intent": task_intent,
         "status": readiness.get("status", "blocked"),
         "blockers": blockers,
         "next_actions": next_actions,
@@ -306,7 +307,9 @@ def attach_completion_snapshot(
 ) -> dict[str, Any]:
     augmented = dict(response)
     augmented["completion"] = dict(snapshot)
-    if snapshot.get("status") == "ready":
+    if snapshot.get("status") == "ready" and not household_intent_is_open_ended(
+        str(snapshot.get("task_intent") or "cleanup")
+    ):
         augmented["required_next_tool"] = "done"
         augmented["instruction"] = (
             "MCP-visible cleanup readiness is ready. Call done now; done is terminal and "

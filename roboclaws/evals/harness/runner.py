@@ -216,7 +216,11 @@ def _requirement_blocker(
             return _environment_blocker(str(posture["reason"]))
     if requirement == "dino_sidecar" and not prior_blockers and not _ensure_dino_sidecar(manifest):
         return _environment_blocker("Grounding DINO visual-grounding sidecar is not reachable")
-    if requirement == "runtime_map_prior" and not _runtime_prior_available(manifest):
+    if requirement == "runtime_map_prior" and not _runtime_prior_available(row, manifest):
+        if row.get("axes", {}).get("suite") == "map_consumer_fixed_prior":
+            return _environment_blocker(
+                "fixed-prior consumer row requires explicit runtime_map_prior=<path>"
+            )
         return _environment_blocker(
             "map-build prior artifact is required before cleanup consumer row"
         )
@@ -543,10 +547,12 @@ def _close_managed_dino_sidecar() -> None:
             sidecar.close()
 
 
-def _runtime_prior_available(manifest: dict[str, Any]) -> bool:
+def _runtime_prior_available(row: dict[str, Any], manifest: dict[str, Any]) -> bool:
     explicit = Path(str(manifest.get("runtime_map_prior") or ""))
     if str(explicit) != "." and explicit.is_file():
         return True
+    if row.get("axes", {}).get("suite") == "map_consumer_fixed_prior":
+        return False
     for row in manifest.get("rows") or []:
         if row.get("row_id") != RUNTIME_MAP_PRIOR_SOURCE_ROW_ID:
             continue

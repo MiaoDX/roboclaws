@@ -87,10 +87,13 @@ def test_row_catalog_loads_current_eval_harness_rows(tmp_path: Path) -> None:
 def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
     tmp_path: Path,
 ) -> None:
+    prior = tmp_path / "canonical-prior.json"
+    prior.write_text('{"schema":"runtime_map_prior_snapshot_v1"}\n', encoding="utf-8")
     manifest = selector.build_eval_harness(
         budget="smoke",
         profile="baseline-refresh",
         output_dir=tmp_path,
+        runtime_map_prior=str(prior),
     )
 
     rows = _selected_rows(manifest)
@@ -365,6 +368,37 @@ def test_runtime_prior_blocker_uses_current_map_build_row(
     blockers = runner._row_blockers(rows["direct-cleanup-runtime-prior-consumer"], manifest)
 
     assert blockers == []
+
+
+def test_fixed_prior_provider_does_not_use_current_map_build_row(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    repo_root = tmp_path / "repo"
+    (repo_root / ".venv" / "bin").mkdir(parents=True)
+    (repo_root / ".venv" / "bin" / "python").touch()
+    monkeypatch.setattr(runner, "REPO_ROOT", repo_root)
+    manifest = selector.build_eval_harness(
+        budget="focused",
+        profile="baseline-live-default",
+        output_dir=tmp_path / "harness",
+    )
+    rows = {row["row_id"]: row for row in manifest["rows"]}
+    map_row = rows["direct-map-build-world-public"]
+    prior = Path(map_row["row_dir"]) / "run" / "seed-7" / "runtime_metric_map.json"
+    prior.parent.mkdir(parents=True)
+    prior.write_text('{"schema":"runtime_metric_map_v1"}\n', encoding="utf-8")
+    map_row["status"] = "ran"
+    map_row["outcome"] = "passed"
+
+    fixed_prior_row = rows["map-build-consumer-openai-agents-sdk-kimi-openai-chat"]
+    fixed_prior_row["selected"] = True
+    blockers = runner._row_blockers(fixed_prior_row, manifest)
+
+    assert {
+        "category": "environment_blocked",
+        "detail": "fixed-prior consumer row requires explicit runtime_map_prior=<path>",
+    } in blockers
 
 
 def test_smoke_budget_records_relevant_expensive_rows_as_user_budget_skipped(

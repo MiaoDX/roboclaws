@@ -43,6 +43,30 @@ def test_observe_prioritizes_done_when_cleanup_readiness_is_ready(tmp_path: Path
     assert done["ok"] is True
 
 
+def test_open_ended_metric_map_does_not_recommend_done_before_goal_evidence(
+    tmp_path: Path,
+) -> None:
+    server = make_household_world_mcp(
+        run_dir=tmp_path,
+        scenario=_empty_cleanup_scenario("open-ended-completion-guidance"),
+        port=0,
+        task_intent="open-ended",
+        task_prompt="Find Generated exploration candidate 5 and report its location.",
+        map_bundle_dir=PREBUILT_BUNDLE,
+        required_capability_profiles=(HOUSEHOLD_WORLD_PROFILE, HOUSEHOLD_EPISODE_PROFILE),
+    )
+    try:
+        metric_map = server.call_tool("metric_map")
+    finally:
+        server.close()
+
+    assert metric_map["inspection_waypoints"][4]["waypoint_id"] == "room_6_inspection"
+    assert metric_map["completion"]["status"] == "ready"
+    assert metric_map["completion"]["next_actions"] == []
+    assert "required_next_tool" not in metric_map
+    assert "Call done now" not in str(metric_map.get("instruction") or "")
+
+
 def test_household_mcp_writes_live_public_map_artifacts_before_done(tmp_path: Path) -> None:
     server = make_household_world_mcp(
         run_dir=tmp_path,

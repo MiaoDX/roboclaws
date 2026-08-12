@@ -257,6 +257,13 @@ just agent::eval session-live budget=smoke \
 The legacy `map_build_consumer` suite is an explicit same-provider end-to-end
 research profile, not the normal comparison baseline.
 
+`baseline-live-default` proves prior consumption with a same-run direct chain:
+`direct-map-build-world-public` produces `runtime_metric_map.json`, then
+`direct-cleanup-runtime-prior-consumer` consumes that exact artifact. The
+fixed-prior provider matrix is not part of that default. Run
+`baseline-refresh` with an explicit `runtime_map_prior=<path>` when every
+provider must consume one identical immutable prior.
+
 After maintainer approval, promote an accepted selector report to the
 content-addressed catalog:
 

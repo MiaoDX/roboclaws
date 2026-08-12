@@ -474,7 +474,6 @@
         "runtime_map_prior"
       ],
       "profiles": [
-        "baseline-live-default",
         "baseline-refresh"
       ]
     },
