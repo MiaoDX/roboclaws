@@ -104,7 +104,7 @@ def run_live_eval_trial(
     live_product_runner: ProductRun,
     hooks: LiveTrialHooks,
     skill_source_root: Path | None = None,
-    live_retry_limit: int = 1,
+    live_retry_limit: int = 0,
 ) -> EvalResult:
     """Run and grade one live-agent eval trial through the product surface."""
 

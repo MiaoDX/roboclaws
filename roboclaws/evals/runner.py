@@ -102,7 +102,7 @@ def run_eval_from_overrides(overrides: dict[str, str]) -> EvalSuiteRun:
     live_execution = values.pop("live_execution", "blocked")
     skill_delivery_cell = validate_skill_delivery_cell(values.pop("skill_delivery_cell", None))
     skill_source_root = _optional_path(values.pop("skill_source_root", None))
-    live_retry_limit = int(values.pop("live_retry_limit", "1"))
+    live_retry_limit = int(values.pop("live_retry_limit", "0"))
     live_timeout_s = _optional_float(values.pop("live_timeout_s", None))
     live_stall_timeout_s = _optional_float(values.pop("live_stall_timeout_s", None))
     regrade_source = _optional_path(values.pop("regrade_source", None))
@@ -218,7 +218,7 @@ def run_eval_suite(
     live_execution: str = "blocked",
     skill_delivery_cell: str = "static-full",
     skill_source_root: Path | None = None,
-    live_retry_limit: int = 1,
+    live_retry_limit: int = 0,
     live_timeout_s: float | None = None,
     live_stall_timeout_s: float | None = None,
     regrade_source: Path | None = None,

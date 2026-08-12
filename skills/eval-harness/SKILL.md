@@ -83,6 +83,8 @@ just agent::eval promote-regression \
   is the release/nightly full refresh.
 - All named baseline profiles run selected rows or record explicit blocked
   evidence; their rows are not converted to `skipped_by_budget`.
+- Live trials do not retry by default. Set `live_retry_limit=<N>` only when the
+  evaluation contract explicitly calls for audited fresh-directory retries.
 - `execute budget=smoke`: deterministic confidence only; selected expensive or
   live rows are recorded as skipped by user budget in `profile=adaptive`.
 - `execute budget=focused`: default maintainer mode; selected required live

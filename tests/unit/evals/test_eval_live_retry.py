@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from roboclaws.evals import runner
 from roboclaws.evals.live_retry import (
     LIVE_TRIAL_ATTEMPTS_FILENAME,
     is_retryable_model_call_stall,
@@ -120,6 +121,20 @@ def test_campaign_can_disable_automatic_retry(tmp_path: Path) -> None:
     assert seen == [run_dir]
     audit = json.loads((run_dir / LIVE_TRIAL_ATTEMPTS_FILENAME).read_text())
     assert audit["retry_policy"]["max_retries"] == 0
+
+
+def test_eval_cli_disables_automatic_retry_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, object] = {}
+
+    def capture_run(*_args: object, **kwargs: object) -> object:
+        captured.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(runner, "run_eval_suite", capture_run)
+
+    runner.run_eval_from_overrides({"suite": "open_ended_goals"})
+
+    assert captured["live_retry_limit"] == 0
 
 
 def test_non_model_stall_is_not_retried_or_audited(tmp_path: Path) -> None:

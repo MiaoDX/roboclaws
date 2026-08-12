@@ -118,7 +118,7 @@ def _run_trial(
     product_runner: ProductRun,
     live_product_runner: ProductRun | None,
     skill_source_root: Path | None = None,
-    live_retry_limit: int = 1,
+    live_retry_limit: int = 0,
 ) -> EvalResult:
     run_dir.mkdir(parents=True, exist_ok=True)
     if agent_engine != "direct-runner":
