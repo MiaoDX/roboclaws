@@ -382,7 +382,6 @@ def test_cleanup_report_labels_observe_roles_and_zero_pixel_focus(tmp_path: Path
             "scan_observe_count": 1,
             "cleanup_action_count": 2,
             "post_place_observe_count": 1,
-            "post_place_observe_complete": True,
             "first_cleanup_before_full_survey": True,
             "events": [],
         },

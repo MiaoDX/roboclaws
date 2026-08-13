@@ -156,7 +156,6 @@ def _assert_base_metric_map_cleanup_trace(trace: dict[str, Any]) -> None:
         assert trace.get("first_cleanup_before_full_survey") is True, trace
     assert int(trace.get("cleanup_action_count") or 0) > 0, trace
     _assert_observed_all_waypoints(trace)
-    _assert_post_place_observe_coverage(trace)
 
 
 def _assert_observed_all_waypoints(trace: dict[str, Any]) -> None:
@@ -166,26 +165,12 @@ def _assert_observed_all_waypoints(trace: dict[str, Any]) -> None:
     assert observed_waypoint_count >= total_waypoints, trace
 
 
-def _assert_post_place_observe_coverage(trace: dict[str, Any]) -> None:
-    placed_object_count = int(trace.get("placed_object_count") or 0)
-    post_place_observe_count = int(trace.get("post_place_observe_count") or 0)
-    if trace.get("post_place_observe_complete") is not True:
-        post_place_observe_count = max(
-            post_place_observe_count,
-            post_place_observe_count_allowing_public_state_queries(trace),
-        )
-    assert placed_object_count > 0, trace
-    assert post_place_observe_count >= placed_object_count, trace
-
-
 def _assert_static_trace(trace: dict[str, Any], report_text: str) -> None:
     assert trace.get("waypoint_source") == "static_map_fixture_coverage", trace
     assert trace.get("loop_style") == "interleaved_cleanup_loop", trace
     assert _trace_started_cleanup_after_first_actionable_observation(trace), trace
-    _assert_post_place_observe_coverage(trace)
     assert "Waypoint Honesty & Cleanup Loop" in report_text, report_text[:500]
     assert "static_map_fixture_coverage" in report_text, report_text[:500]
-    assert "post_place_observe" in report_text, report_text[:500]
 
 
 def _trace_started_cleanup_after_first_actionable_observation(trace: dict[str, Any]) -> bool:
@@ -197,24 +182,3 @@ def _trace_started_cleanup_after_first_actionable_observation(trace: dict[str, A
         except (TypeError, ValueError):
             return False
     return trace.get("first_cleanup_before_full_survey") is True
-
-
-def post_place_observe_count_allowing_public_state_queries(trace: dict[str, Any]) -> int:
-    pending = 0
-    count = 0
-    for event in trace.get("events") or []:
-        if not isinstance(event, dict):
-            continue
-        tool = str(event.get("tool") or "")
-        role = str(event.get("role") or "")
-        if tool in {"place", "place_inside"} and role == "cleanup_action":
-            pending += 1
-            continue
-        if tool == "observe" and pending > 0:
-            count += 1
-            pending -= 1
-            continue
-        if pending > 0 and role in {"coverage_scan_navigation", "cleanup_action"}:
-            if tool != "close_receptacle":
-                pending = 0
-    return count

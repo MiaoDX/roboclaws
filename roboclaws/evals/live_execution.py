@@ -290,7 +290,10 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
     )
     if completed.returncode != 0:
         _write_live_eval_command_record(run_dir / "live_eval_command.json", record)
+        status_failure_class = str(record["live_status"].get("failure_class") or "")
         message = completed.stderr.strip() or completed.stdout.strip()
+        if status_failure_class:
+            message = f"{status_failure_class}: {message}"
         raise RuntimeError(f"live surface run failed with exit {completed.returncode}: {message}")
     _live_surface_already_complete(sample_run_dir, require_terminal_status=False)
     record["effective_run_dir"] = str(sample_run_dir)

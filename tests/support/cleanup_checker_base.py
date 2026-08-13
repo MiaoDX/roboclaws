@@ -21,9 +21,6 @@ from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household import cleanup_validation as cleanup_checker
 from roboclaws.household.agibot_household_backend import AgibotHouseholdBackend
 from roboclaws.household.cleanup_validation_planner import _assert_focused_robot_step
-from roboclaws.household.cleanup_validation_waypoints import (
-    post_place_observe_count_allowing_public_state_queries,
-)
 from roboclaws.household.household_mcp_server import make_household_world_mcp
 from roboclaws.household.household_runtime_contract import (
     CAMERA_MODEL_POLICY_MODE,

@@ -15,3 +15,11 @@ def test_grading_classifies_provider_billing_limit() -> None:
     )
 
     assert failure_class == "model_or_provider_unavailable"
+
+
+def test_grading_classifies_checker_validation_failure_separately_from_outcome() -> None:
+    failure_class = failure_class_from_exception(
+        RuntimeError("checker_validation_failed: cleanup checker exited with status 1")
+    )
+
+    assert failure_class == "checker_validation_failed"

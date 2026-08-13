@@ -98,9 +98,9 @@ navigate_to_object(object_id)
 pick(object_id)
 navigate_to_receptacle(candidate_fixture_id)
 open_receptacle(candidate_fixture_id)      # only for fridge/refrigerator targets
-place_inside(candidate_fixture_id)         # for fridge/refrigerator/shelf targets
+place_inside(candidate_fixture_id)         # when recommended by the public candidate
 close_receptacle(candidate_fixture_id)     # only after opening fridge-like targets
-place(candidate_fixture_id)                # for normal surfaces instead of place_inside
+place(candidate_fixture_id)                # when recommended by the public candidate
 ```
 
 Do not observe again after a successful placement unless a public tool response
@@ -108,14 +108,11 @@ requires fresh visual evidence. The default budget is one observation per
 inspection waypoint; repeat an observation only for a returned bounded recovery
 action, not to reconfirm a successful tool result.
 
-Choose `place_inside` for fridge, refrigerator, shelf, bookshelf, bookcase, or
-shelving targets. Choose `place` for table, sofa, bed, desk, sink, counter,
-stand, hamper, and other surface-like fixtures. If any tool returns
+Use the public candidate's `recommended_tool` for placement. If any tool returns
 `error_reason: semantic_order`, call its `required_tool` with the same public
-object or fixture id, then retry the failed step once.
-
-After `open_receptacle` succeeds, call `place_inside` next with that same
-fixture id. Do not navigate again until the held object has been placed.
+object or fixture id, then retry the failed step once. Tool responses and the
+latest `completion` snapshot own mandatory ordering and recovery; do not infer
+additional required steps from fixture category names.
 
 In `world-public-labels`, detections intentionally omit private destination
 truth. Treat `destination_policy` as public category/fixture-affordance

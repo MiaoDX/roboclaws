@@ -18,7 +18,6 @@ from roboclaws.household.cleanup_validation_support import (
 )
 from roboclaws.household.cleanup_validation_waypoints import (
     assert_waypoint_honesty,
-    post_place_observe_count_allowing_public_state_queries,
 )
 from roboclaws.household.household_runtime_contract import (
     REAL_ROBOT_MAP_BUNDLE_SCHEMA,
@@ -228,10 +227,6 @@ def _is_open_ended_intent(data: dict[str, Any]) -> bool:
     goal_contract = data.get("goal_contract") if isinstance(data.get("goal_contract"), dict) else {}
     intent = str(data.get("task_intent") or goal_contract.get("intent") or "").strip()
     return intent == "open-ended"
-
-
-def _post_place_observe_count_allowing_public_state_queries(trace: dict[str, Any]) -> int:
-    return post_place_observe_count_allowing_public_state_queries(trace)
 
 
 def _assert_real_robot_alignment(data: dict[str, Any], base: Path, report_text: str) -> None:

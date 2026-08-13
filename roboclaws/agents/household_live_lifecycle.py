@@ -66,7 +66,7 @@ from roboclaws.agents.household_live_continuation import (
     _sdk_attempt_summary,
     _task_aware_continuation_suffix,
 )
-from roboclaws.agents.household_live_errors import LiveAgentRunFailure
+from roboclaws.agents.household_live_errors import CheckerValidationError, LiveAgentRunFailure
 from roboclaws.agents.household_live_handoff import HouseholdLiveHandoffMixin
 from roboclaws.agents.live_status_writer import LiveRunStatusWriter
 from roboclaws.agents.live_timing import (
@@ -217,6 +217,19 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
             print(f"error: {exc}", file=sys.stderr)
             self._write_status("failed", 1, **exc.failure.status_fields())
             self._write_live_timing("failed", 1, **exc.failure.status_fields())
+            self._cleanup_server()
+            self._release_visual_slot()
+            self.status_writer.stop_heartbeat()
+            return 1
+        except CheckerValidationError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            self._write_status(
+                "failed",
+                1,
+                reason=str(exc),
+                failure_class="checker_validation_failed",
+            )
+            self._write_live_timing("failed", 1, reason=str(exc))
             self._cleanup_server()
             self._release_visual_slot()
             self.status_writer.stop_heartbeat()
@@ -442,7 +455,7 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
         finally:
             self._mark_timing("checker_end")
         if status != 0:
-            raise RuntimeError(f"cleanup checker exited with status {status}")
+            raise CheckerValidationError(status)
         print(f"==> report: {self.run_dir / 'report.html'}")
 
     def _mark_timing(self, name: str) -> None:
@@ -563,7 +576,15 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
         retryable: bool | None = None,
         resume_available: bool | None = None,
         detail: str = "",
+        failure_class: str = "",
     ) -> None:
         self.status_writer.write(
-            phase, exit_status, reason, provider_reason, retryable, resume_available, detail
+            phase=phase,
+            exit_status=exit_status,
+            reason=reason,
+            provider_reason=provider_reason,
+            retryable=retryable,
+            resume_available=resume_available,
+            detail=detail,
+            failure_class=failure_class,
         )

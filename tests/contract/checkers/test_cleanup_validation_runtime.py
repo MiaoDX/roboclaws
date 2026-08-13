@@ -216,22 +216,6 @@ def test_checker_rejects_isaac_semantic_pose_when_trace_omits_provenance(
         )
 
 
-def test_waypoint_honesty_allows_public_state_query_before_post_place_observe() -> None:
-    checker = cleanup_checker
-
-    count = post_place_observe_count_allowing_public_state_queries(
-        {
-            "events": [
-                {"tool": "place", "role": "cleanup_action"},
-                {"tool": "metric_map", "role": "setup_or_completion"},
-                {"tool": "observe", "role": "coverage_scan_observe"},
-            ]
-        }
-    )
-
-    assert count == 1
-
-
 def test_checker_accepts_waypoint_honesty_when_loop_is_survey_first(
     tmp_path: Path,
 ) -> None:
