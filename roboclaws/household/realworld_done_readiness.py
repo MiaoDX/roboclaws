@@ -27,7 +27,6 @@ from roboclaws.household.realworld_agent_view_contract import (
     public_success_threshold,
 )
 from roboclaws.household.realworld_contract_fixture_projection import (
-    _is_place_anchor,
     _normalize_fixture_category_label,
     _public_destination_policy_tool_for_fixture_category,
     _recommended_place_tool,
@@ -42,9 +41,7 @@ _required_tool_for_candidate_state = realworld_visual_candidates._required_tool_
 
 
 def pending_cleanup_candidates(contract: HouseholdRuntimeContract) -> list[dict[str, Any]]:
-    worklist = contract.cleanup_worklist_payload(
-        static_fixture_projection=contract.static_fixture_projection()
-    )
+    worklist = contract.cleanup_worklist_payload()
     pending = []
     for item in worklist.get("objects", []):
         state = str(item.get("state") or "")
@@ -141,14 +138,12 @@ def destination_options_for_policy(
     if not preferred:
         return []
     options = []
-    for anchor in realworld_runtime_map_targets.runtime_public_semantic_anchors(contract):
-        if not _is_place_anchor(anchor):
-            continue
-        category = _normalize_fixture_category_label(anchor.get("category"))
+    for fixture in realworld_runtime_map_targets.public_runtime_fixture_candidates(contract):
+        category = _normalize_fixture_category_label(fixture.get("category"))
         if category not in preferred:
             continue
-        anchor_id = str(anchor.get("anchor_id") or "")
-        if not anchor_id:
+        fixture_id = str(fixture.get("fixture_id") or "")
+        if not fixture_id:
             continue
         tool_by_category = dict(policy.get("placement_tool_by_fixture_category") or {})
         recommended_tool = str(
@@ -158,11 +153,11 @@ def destination_options_for_policy(
         )
         options.append(
             {
-                "candidate_fixture_id": anchor_id,
+                "candidate_fixture_id": fixture_id,
                 "candidate_fixture_category": category,
                 "recommended_tool": recommended_tool,
                 "candidate_source": "runtime_public_semantic_anchor",
-                "waypoint_id": str(anchor.get("waypoint_id") or ""),
+                "waypoint_id": str(fixture.get("preferred_manipulation_waypoint_id") or ""),
             }
         )
     return options

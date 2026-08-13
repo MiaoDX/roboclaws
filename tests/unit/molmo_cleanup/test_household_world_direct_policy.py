@@ -29,8 +29,8 @@ def test_direct_policy_uses_same_waypoint_public_destination_for_unknown_categor
     )
     selected_detections = []
 
-    def target_fixture_for_detection(detection, projection, **kwargs):
-        del projection, kwargs
+    def target_fixture_for_detection(detection, **kwargs):
+        del kwargs
         selected_detections.append(dict(detection))
         if "candidate_fixture_id" not in detection:
             return {"fixture_id": "anchor_fixture_bed"}
@@ -51,7 +51,6 @@ def test_direct_policy_uses_same_waypoint_public_destination_for_unknown_categor
     target = household_direct_cleanup_selection.direct_policy_target_fixture(
         contract=contract,
         detection=detection,
-        static_fixture_projection={},
     )
 
     assert target == {"fixture_id": "anchor_fixture_desk"}
@@ -74,8 +73,8 @@ def test_direct_policy_keeps_non_source_category_inference(monkeypatch) -> None:
     )
     calls = []
 
-    def target_fixture_for_detection(detection, projection, **kwargs):
-        del projection, kwargs
+    def target_fixture_for_detection(detection, **kwargs):
+        del kwargs
         calls.append(dict(detection))
         return {"fixture_id": "anchor_fixture_sink"}
 
@@ -91,7 +90,6 @@ def test_direct_policy_keeps_non_source_category_inference(monkeypatch) -> None:
             "support_estimate": {"fixture_id": "anchor_fixture_bed"},
             "destination_policy": {"preferred_fixture_categories": ["sink", "countertop"]},
         },
-        static_fixture_projection={},
     )
 
     assert target == {"fixture_id": "anchor_fixture_sink"}
