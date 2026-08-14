@@ -15,12 +15,12 @@ def run_json_worker_once(
     worker_name: str,
     python_executable: Path,
     missing_runtime_hint: str,
-    worker_script: Path,
     state_path: Path,
     command: str,
     args: tuple[str, ...],
     env: dict[str, str],
     timeout_s: float,
+    worker_module: str,
 ) -> dict[str, Any]:
     if not python_executable.is_file():
         raise RuntimeError(
@@ -28,7 +28,7 @@ def run_json_worker_once(
         )
     worker_command = worker_command_args(
         python_executable=python_executable,
-        worker_script=worker_script,
+        worker_module=worker_module,
         state_path=state_path,
         command=command,
         args=args,
@@ -57,14 +57,15 @@ def run_json_worker_once(
 def worker_command_args(
     *,
     python_executable: Path,
-    worker_script: Path,
     state_path: Path,
     command: str,
     args: tuple[str, ...],
+    worker_module: str,
 ) -> list[str]:
     return [
         str(python_executable),
-        str(worker_script),
+        "-m",
+        worker_module,
         "--state-path",
         str(state_path),
         command,

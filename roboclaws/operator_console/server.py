@@ -56,9 +56,11 @@ from roboclaws.operator_console.routes import (
     list_worlds,
     selection_task_selector,
 )
-from roboclaws.operator_console.runtime_inventory import (
+from roboclaws.operator_console.runtime_blocker_policy import (
     requested_mcp_endpoint,
     runtime_blockers_from_inventory,
+)
+from roboclaws.operator_console.runtime_inventory import (
     runtime_blockers_payload,
     runtime_inventory_payload,
 )
@@ -229,7 +231,7 @@ class ConsoleRequestHandler(SimpleHTTPRequestHandler):
 
     def do_HEAD(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
-        if parsed.path in {"/", "/index.html", "/app.js", "/styles.css"}:
+        if self._is_static_asset(parsed.path):
             return self._static_file(parsed.path, body=False)
         return super().do_HEAD()
 
@@ -246,7 +248,7 @@ class ConsoleRequestHandler(SimpleHTTPRequestHandler):
         return self.send_error(HTTPStatus.NOT_FOUND)
 
     def _handle_static_get(self, parsed: ParseResult) -> bool:
-        if parsed.path in {"/", "/index.html", "/app.js", "/styles.css"}:
+        if self._is_static_asset(parsed.path):
             self._static_file(parsed.path)
             return True
         if parsed.path.startswith("/previews/"):
@@ -256,6 +258,17 @@ class ConsoleRequestHandler(SimpleHTTPRequestHandler):
             self._serve_map_preview_asset(parsed.path)
             return True
         return False
+
+    def _is_static_asset(self, request_path: str) -> bool:
+        if request_path in {"/", "/index.html", "/styles.css"}:
+            return True
+        name = request_path.removeprefix("/")
+        return (
+            "/" not in name
+            and name.endswith(".js")
+            and not name.startswith(".")
+            and (self.static_root / name).is_file()
+        )
 
     def _handle_api_get(self, parsed: ParseResult) -> bool:
         if parsed.path == "/api/routes":

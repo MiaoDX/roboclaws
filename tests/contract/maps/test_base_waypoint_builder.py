@@ -5,6 +5,14 @@ from pathlib import Path
 import pytest
 
 from roboclaws.core.json_sources import read_json_object
+from roboclaws.maps.b1_base_metric_map import (
+    DEFAULT_LABELS,
+    DEFAULT_MAP_BUNDLE,
+    DEFAULT_ROBOT_PROFILE,
+    DEFAULT_ROOM_SEMANTICS,
+    _origin_payload,
+    _rooms_and_waypoints,
+)
 from roboclaws.maps.base_waypoints import (
     BASE_WAYPOINT_GENERATION_POLICY,
     BASE_WAYPOINT_PURPOSE,
@@ -16,14 +24,6 @@ from roboclaws.maps.base_waypoints import (
 )
 from roboclaws.maps.bundle_validation import parse_map_yaml
 from roboclaws.maps.rasterize import FREE_PIXEL, OCCUPIED_PIXEL, OccupancyGrid, load_pgm
-from scripts.maps.build_b1_map12_base_metric_map import (
-    DEFAULT_LABELS,
-    DEFAULT_MAP_BUNDLE,
-    DEFAULT_ROBOT_PROFILE,
-    DEFAULT_ROOM_SEMANTICS,
-    _origin_payload,
-    _rooms_and_waypoints,
-)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 

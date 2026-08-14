@@ -8,9 +8,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from roboclaws.agents.drivers.openai_agents_live import (
+from roboclaws.agents.drivers.openai_agents_live import _run_with_async_mcp_server
+from roboclaws.agents.drivers.openai_agents_retry_model import (
     _RetryingModel,
-    _run_with_async_mcp_server,
     _should_retry_model_service_failure,
 )
 from roboclaws.agents.live_runtime import LiveAgentMCPServer, LiveAgentRequest

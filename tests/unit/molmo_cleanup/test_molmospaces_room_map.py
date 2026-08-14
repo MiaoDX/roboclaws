@@ -4,7 +4,7 @@ import pytest
 
 pytest.importorskip("mujoco")
 
-from scripts.molmo_cleanup.molmospaces_room_map import (  # noqa: E402
+from roboclaws.backends.molmospaces.room_map import (  # noqa: E402
     MANUAL_ADJUSTMENT_COLOR,
     ROBOT_PATH_COLOR,
     render_robot_map,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import subprocess
 import sys
@@ -8,20 +9,20 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.maps.bundle import validate_base_metric_map_v1_bundle, validate_nav2_map_bundle
-from scripts.maps.build_b1_map12_base_metric_map import (
+from roboclaws.maps.b1_base_metric_map import (
     B1_BASE_METRIC_LABELS_SCHEMA,
     B1_BASE_METRIC_MAP_MANIFEST_SCHEMA,
     WAYPOINT_GENERATION_POLICY,
     build_base_metric_map_bundle,
     validate_base_metric_labels,
 )
+from roboclaws.maps.bundle import validate_base_metric_map_v1_bundle, validate_nav2_map_bundle
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 MAP_BUNDLE = REPO_ROOT / "vendors" / "agibot_sdk" / "artifacts" / "maps" / "robot_map_12" / "agibot"
 BASE_LABELS = REPO_ROOT / "assets" / "maps" / "b1-map12-base-metric-labels.json"
 ROOM_SEMANTICS = REPO_ROOT / "assets" / "maps" / "b1-map12-room-semantics.json"
-SCRIPT = REPO_ROOT / "scripts" / "maps" / "build_b1_map12_base_metric_map.py"
+MODULE = "roboclaws.maps.b1_base_metric_map"
 
 
 def test_checked_in_base_metric_labels_are_accepted_source_of_truth() -> None:
@@ -138,7 +139,8 @@ def test_base_metric_map_cli_generates_bundle(tmp_path: Path) -> None:
     completed = subprocess.run(
         [
             sys.executable,
-            str(SCRIPT),
+            "-m",
+            MODULE,
             "--map-bundle",
             str(MAP_BUNDLE),
             "--labels",
@@ -159,6 +161,64 @@ def test_base_metric_map_cli_generates_bundle(tmp_path: Path) -> None:
     assert payload["navigation_area_count"] == 5
     assert payload["inspection_waypoint_count"] == 5
     assert validate_nav2_map_bundle(output_dir).ok
+
+
+def test_package_cli_rebuild_matches_api_assets_provenance_and_digests(tmp_path: Path) -> None:
+    api_output = tmp_path / "api-bundle"
+    cli_output = tmp_path / "cli-bundle"
+    build_base_metric_map_bundle(
+        map_bundle=MAP_BUNDLE,
+        labels_path=BASE_LABELS,
+        room_semantics_path=ROOM_SEMANTICS,
+        output_dir=api_output,
+    )
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            MODULE,
+            "--map-bundle",
+            str(MAP_BUNDLE),
+            "--labels",
+            str(BASE_LABELS),
+            "--room-semantics",
+            str(ROOM_SEMANTICS),
+            "--output-dir",
+            str(cli_output),
+        ],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    deterministic_assets = (
+        "map.yaml",
+        "map.pgm",
+        "raw_map.json.gz",
+        "semantics.json",
+        "source.json",
+        "preview.png",
+    )
+    assert {name: _sha256(api_output / name) for name in deterministic_assets} == {
+        name: _sha256(cli_output / name) for name in deterministic_assets
+    }
+
+    manifest = _read_json(cli_output / "base_metric_map_manifest.json")
+    semantics = _read_json(cli_output / "semantics.json")
+    assert semantics["provenance"]["b1_base_metric_map_builder"] == (
+        "roboclaws/maps/b1_base_metric_map.py"
+    )
+    assert manifest["source_file_hashes"] == {
+        str(path): _sha256(path)
+        for path in (
+            BASE_LABELS,
+            ROOM_SEMANTICS,
+            MAP_BUNDLE / "nav2.yaml",
+            MAP_BUNDLE / "occupancy.pgm",
+            MAP_BUNDLE / "source.json",
+        )
+    }
 
 
 def test_base_metric_map_rejects_dt_label_mismatch(tmp_path: Path) -> None:
@@ -274,6 +334,10 @@ def labels_source_frame(path: Path) -> str:
 
 def _read_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _read_map_yaml(path: Path) -> dict:

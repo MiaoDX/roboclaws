@@ -83,7 +83,7 @@ household-world generated_mess_count="10":
     {{standalone_pytest}} -q \
       tests/contract/molmo_cleanup/test_household_runtime_contract.py \
       tests/contract/molmo_cleanup/test_molmospaces_realworld_cleanup.py \
-      tests/contract/checkers/test_check_molmo_realworld_cleanup_result.py \
+      tests/contract/checkers/test_cleanup_validation_*.py \
       tests/contract/reports/test_molmo_cleanup_report.py \
       tests/contract/dev_tools/test_verify_just_recipes.py
     just harness::household-world "1 2 3" "output/household-world-harness" "帮我收拾这个房间" "{{generated_mess_count}}"
@@ -95,7 +95,7 @@ molmo-realworld-agent-mcp generated_mess_count="10":
     set -euo pipefail
     {{standalone_pytest}} -q \
       tests/contract/molmo_cleanup/test_household_mcp_server.py \
-      tests/contract/checkers/test_check_molmo_realworld_cleanup_result.py \
+      tests/contract/checkers/test_cleanup_validation_*.py \
       tests/contract/molmo_cleanup/test_molmo_mcp_smoke_shared_semantic_loop.py \
       tests/contract/dev_tools/test_verify_just_recipes.py
     just harness::molmo-realworld-agent-mcp "1" "output/molmo-realworld-agent-mcp-harness" "帮我收拾这个房间" "{{generated_mess_count}}"
@@ -108,7 +108,7 @@ molmo-realworld-agent-dogfood-kit:
     {{standalone_pytest}} -q \
       tests/contract/molmo_cleanup/test_household_agent_server.py \
       tests/contract/molmo_cleanup/test_household_mcp_server.py \
-      tests/contract/checkers/test_check_molmo_realworld_cleanup_result.py \
+      tests/contract/checkers/test_cleanup_validation_*.py \
       tests/contract/dev_tools/test_verify_just_recipes.py
     just harness::molmo-realworld-agent-dogfood-kit
 
@@ -121,7 +121,7 @@ molmo-realworld-raw-fpv generated_mess_count="10":
       tests/contract/molmo_cleanup/test_household_runtime_contract.py \
       tests/contract/molmo_cleanup/test_household_mcp_server.py \
       tests/contract/reports/test_molmo_cleanup_report.py \
-      tests/contract/checkers/test_check_molmo_realworld_cleanup_result.py \
+      tests/contract/checkers/test_cleanup_validation_*.py \
       tests/contract/dev_tools/test_verify_just_recipes.py
     just harness::molmo-realworld-raw-fpv "7" "output/molmo-realworld-raw-fpv-harness" "帮我收拾这个房间" "{{generated_mess_count}}"
 
@@ -145,7 +145,7 @@ molmo-planner-proof-bundle-execute-rerun:
       tests/contract/dev_tools/test_verify_just_recipes.py \
       tests/unit/scripts/test_run_molmo_planner_proof_bundle_from_requests.py \
       tests/contract/checkers/test_check_molmo_planner_proof_bundle_runner_result.py \
-      tests/contract/checkers/test_check_molmo_realworld_cleanup_result.py
+      tests/contract/checkers/test_cleanup_validation_*.py
     just harness::molmo-planner-proof-bundle-execute-rerun
 
 # Full local confidence ladder for active deterministic gates.

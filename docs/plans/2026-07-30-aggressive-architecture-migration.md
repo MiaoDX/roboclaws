@@ -1,6 +1,6 @@
 # Aggressive Architecture Migration
 
-**Status:** Authorized; Waves 0-4 complete, Wave 5 active
+**Status:** Authorized; Waves 0-5 complete, Wave 6 active
 **Created:** 2026-07-30
 **Execution unit:** This entire plan, delivered in bounded waves and slices
 **Supersedes:** the broad-module-splitting non-goal in
@@ -892,6 +892,131 @@ hardware proof cannot run for a demonstrated environment reason.
   lines net; 167 focused contracts and the end-to-end proof-bundle product gate
   pass. Oversized modules decrease from 68 to 67, package owners add no script
   imports, and generic Isaac smoke remains current. Wave 4 is complete.
-- Next action: begin Wave 5 with the MolmoSpaces backend package migration,
-  preserving worker protocol and subprocess behavior while eliminating the
-  script-owned product subsystem forward-only.
+- Wave 5 completed slice: fourteen MolmoSpaces script owners totaling 7,254
+  lines moved forward-only into `roboclaws/backends/molmospaces/`. The package
+  has explicit protocol/dispatch, initialization/state, navigation/action, and
+  capture/perception owners; every production module is at or below 700 lines
+  and the canonical module CLI is six lines. The migration adds 175 lines
+  across package boundaries and focused test support, so it is recorded as
+  structural movement rather than deletion. 154 focused tests, module CLI,
+  architecture graph, and package-to-scripts policy pass; oversized modules
+  decrease from 67 to 66.
+- Wave 5 completed slice: 38 Isaac worker and generic runtime-smoke script
+  owners totaling 13,893 lines moved forward-only into
+  `roboclaws/backends/isaaclab/`. The package now has acyclic initialization,
+  state, command, camera/capture, evidence, protocol, and checker owners; the
+  composition owner is 82 lines, the module CLI is six lines, and every
+  production module is at or below 694 lines. The split adds 720 source lines
+  for explicit boundaries and is recorded as structural movement. 183 focused
+  tests and static ratchets pass at 311 modules / 884 edges with zero
+  SCCs/pairs; oversized modules decrease from 66 to 65. Worker execution is
+  module-only, `.venv-isaaclab` isolation remains, and Isaac preflight, generic
+  smoke, and B1 smoke default EULA acceptance to false.
+- Wave 5 completed slice: the 2,192-line cleanup checker and five supporting
+  script checkers moved into package-owned household validation, with
+  benchmark-only advisory scoring isolated under eval. The product live runner
+  now invokes `roboclaws.household.cleanup_validation_cli`; eval and harness
+  rows explicitly use `roboclaws.evals.cleanup_result_cli` when advisory
+  scoring is required. The 5,169-line checker suite is split by behavior. The
+  focused suite and static ratchets pass at 326 modules / 961 edges with zero
+  SCCs/pairs; oversized modules decrease from 65 to 63, leaving only the
+  physical Agibot launcher as a ratcheted package-to-script violation.
+- Wave 5 completed slice: twelve B1/Agibot implementation owners moved into
+  `roboclaws/maps`, `roboclaws/backends/isaaclab`, and `roboclaws/household`.
+  Current Just, typed-launch, operator-preview, authoring, and test callers use
+  module owners; retained review inputs remain. A deterministic package-CLI
+  rebuild matches package-API SHA-256 digests for all six accepted base-map
+  assets and preserves source/provenance hashes. 246 focused contracts collect
+  with 235 passed and 11 environment-skipped; all twelve module help probes
+  pass. The graph is 338 modules / 993 edges with zero SCCs, bidirectional
+  pairs, or package-to-script violations. Oversized modules remain at 63: the
+  moved readiness and alignment owners are explicitly retained for the Wave
+  6-7 behavior splits. Wave 5 is complete.
+- Wave 6 completed slice: the 2,697-line operator-console browser monolith is
+  split into ten native ES modules with `state.js` as the sole mutable state
+  owner and a 180-line `app.js` composition entrypoint. The server exposes only
+  root-level, non-hidden module assets with no-store delivery. Pure private
+  layout/source-wiring tests were removed; packaging, static-asset security,
+  retired-surface, preview artifact/privacy, readiness-policy, and accessibility
+  guards remain. The focused console suite, browser bundle, module syntax, and
+  static ratchets pass. Real Chromium proof covered route/workflow selection,
+  FPV mode and image dialog, latest-result attach, active-run rendering,
+  background tasks, manual control, and mobile/tablet/desktop layouts without
+  console errors.
+- Wave 6 completed slice: the 1,133-line operator-console runtime inventory is
+  split into inventory sources, canonical task/resource model, route blocker
+  policy, and host probes, with a 61-line payload composition owner. Launcher,
+  readiness, server, and tests import their true owners directly; no old-owner
+  re-export facade remains. The full operator-console suite, focused inventory
+  and readiness contracts, Ruff/format checks, and static ratchets pass.
+  Oversized Python modules decrease from 63 to 62; the graph is 342 modules /
+  1,011 edges with zero SCCs, bidirectional pairs, or forbidden edges.
+- Wave 6 completed slice: the 1,883-line OpenAI live driver and 1,700-line
+  mixed model-input owner are split forward-only into composition, run
+  configuration, validated setting values, retry, provider racing, event log,
+  event projection, completed history, RAW-FPV image memory, camera-grounded
+  history, and compaction owners. The old model-input module is deleted; tests
+  and performance-profile callers use true owners with no compatibility
+  exports. All 201 focused SDK runtime/input/budget/metrics contracts and
+  Ruff/format/static ratchets pass. Serialized provider, cost, event, result,
+  and privacy contracts remain unchanged. Oversized Python modules decrease
+  from 62 to 60; the graph is 352 modules / 1,052 edges with zero SCCs,
+  bidirectional pairs, or forbidden edges.
+- Wave 6 completed slice: household MCP projection, runtime-map target
+  selection, visual perception/navigation, direct cleanup selection, and
+  Agibot SDK contract/projection/stage execution now have direct behavior
+  owners. The retained MCP server, runtime-map target, visual lifecycle,
+  Agibot runner, and episode modules delegate without compatibility exports.
+  The 12 focused household direct/MCP/runtime/Agibot suites pass with 11
+  environment-dependent Agibot cases skipped; Ruff/format, diff, quality, and
+  architecture ratchets pass. Public artifact, privacy, target-selection, and
+  physical-movement gates remain unchanged. Oversized Python modules decrease
+  from 60 to 58; the graph is 359 modules / 1,087 edges with zero SCCs,
+  bidirectional pairs, or forbidden edges.
+- Wave 6 completed slice: MolmoSpaces scene catalog data, typed sampler rows,
+  sampling/profile/prefilter policy, source preparation, scanner validation,
+  and map-bundle naming moved forward-only from `launch` to
+  `worlds/molmospaces`. The cross-backend launch catalog now consumes the
+  recursively immutable `worlds.contracts.WorldSpec`; all package, script,
+  skill, console, eval, and test callers import direct owners and the old eight
+  launch modules are absent. The focused world/catalog/console/eval/map-bundle
+  suites and static ratchets pass with deterministic sampler projections and
+  public launch behavior unchanged. The graph is 362 modules / 1,089 edges
+  with zero SCCs, bidirectional pairs, or forbidden edges; oversized Python
+  modules remain at 58.
+- Wave 6 completed slice: the 1,996-line mixed household report owner is split
+  into cleanup composition, semantic/tables, HTML/JavaScript document, styles,
+  planner/proof/grasp-cache composition, and snapshot/trace owners; artifact
+  loading and rerendering remain with `artifact_report.py`. All callers import
+  direct owners without a facade. The duplicate grasp-collision diagnostic
+  renderer is removed while retained task-sampler evidence remains. All 87
+  focused report/rerender/planner/proof/grasp-cache contracts and static
+  ratchets pass with report HTML, schema, privacy, and visual-core behavior
+  unchanged. The graph is 367 modules / 1,102 edges with zero SCCs,
+  bidirectional pairs, or forbidden edges; oversized Python modules decrease
+  from 58 to 57.
+- Wave 6 completed slice: the 1,796-line eval runner and 1,029-line live
+  runtime are split into suite loading, trial execution, live process
+  execution, live product policy, grading, open-ended grading, grader source
+  and failure projection, persistence, and existing aggregation/report owners.
+  Runner is a 329-line composition owner, live runtime is 533 lines, and every
+  grading owner is below 800 lines. `evals/cli.py` imports only runner from the
+  eval package, with no reverse import or compatibility facade. All 277 eval
+  unit tests, 19 CLI/distribution contracts, and static ratchets pass in the
+  main environment; suite/result schemas, CLI behavior, privacy grading, live
+  blocked/preflight behavior, and report output are unchanged. The graph is
+  375 modules / 1,128 edges with zero SCCs, bidirectional pairs, or forbidden
+  edges; oversized Python modules decrease from 57 to 55.
+- Wave 6 completed slice: planner-proof request construction, selection,
+  fallback selection, result projection, feasibility contracts, and grasp-cache
+  availability/generation now have direct household owners. Runtime-prior
+  contracts, online snapshot wrapping, Agibot/Nav2 conversion, artifact reads,
+  target materialization, and source/frame/digest validation now have direct
+  map owners. The three mixed owners decrease from 1,860/1,221/1,277 lines to
+  518/414/64 lines; every new owner is below 800. All 186 focused planner,
+  proof, checker, script, grasp-cache, runtime-prior, source-frame, catalog,
+  and B1 contracts pass. Static ratchets pass at 389 modules / 1,165 edges
+  with zero SCCs, bidirectional pairs, or forbidden edges; oversized Python
+  modules decrease from 55 to 52.
+- Next action: finish Wave 6 retained test/support cleanup and run the Wave 6
+  product and partition verification matrix.

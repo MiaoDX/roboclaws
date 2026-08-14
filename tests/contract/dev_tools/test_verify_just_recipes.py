@@ -322,7 +322,7 @@ def test_planner_proof_bundle_runner_harness_stays_dry_run() -> None:
     body = recipe.group(0)
     for expected in (
         "roboclaws.household.household_world_episode",
-        "scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py",
+        "roboclaws.evals.cleanup_result_cli",
         "scripts/molmo_cleanup/run_molmo_planner_proof_bundle_from_requests.py",
         "scripts/molmo_cleanup/check_molmo_planner_proof_bundle_runner_result.py",
         "--backend api_semantic_synthetic",

@@ -3,15 +3,15 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.isaac_lab_cleanup.check_b1_map12_readiness import (
+from roboclaws.backends.isaaclab.b1_navigation_report import main as render_main
+from roboclaws.backends.isaaclab.b1_navigation_smoke import parse_args as smoke_parse_args
+from roboclaws.backends.isaaclab.b1_readiness import (
     READINESS_SCHEMA,
     SEMANTIC_SOURCE,
     SEMANTIC_USD_BLOCKED,
     WAYPOINT_POSE_REQUESTS_SCHEMA,
     readiness_artifact_with_navigation,
 )
-from scripts.isaac_lab_cleanup.render_b1_map12_navigation_report import main as render_main
-from scripts.isaac_lab_cleanup.run_b1_map12_navigation_smoke import parse_args as smoke_parse_args
 from tests.contract.maps.test_b1_map12_digital_twin_readiness import (
     _write_reviewable_image,
     navigation_payload,

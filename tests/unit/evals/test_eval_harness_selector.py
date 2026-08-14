@@ -188,7 +188,7 @@ def test_changed_file_signals_select_expected_eval_harness_rows(tmp_path: Path) 
         },
         {
             "name": "scene_sampler",
-            "changed_files": ["roboclaws/launch/scene_sampler.py"],
+            "changed_files": ["roboclaws/worlds/molmospaces/sampling.py"],
             "present_rows": ("scene-sampler-stress-eval-suite",),
         },
         {

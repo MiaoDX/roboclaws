@@ -12,7 +12,7 @@ from typing import Any
 import pytest
 from pytest import MonkeyPatch
 
-from roboclaws.evals import cli
+from roboclaws.evals import runner as eval_runner
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 RUNNER_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "run_eval_harness.py"
@@ -333,9 +333,9 @@ def test_row_timeout_is_recorded_and_process_is_stopped(tmp_path: Path) -> None:
 def test_eval_cli_forwards_execution_overrides(monkeypatch: MonkeyPatch) -> None:
     captured: list[str] = []
     fake_runner = SimpleNamespace(main=lambda argv: captured.extend(argv) or 0)
-    monkeypatch.setattr(cli, "_load_eval_harness_runner", lambda: fake_runner)
+    monkeypatch.setattr(eval_runner, "load_eval_harness_runner", lambda: fake_runner)
 
-    exit_code = cli._run_eval_harness(
+    exit_code = eval_runner.run_eval_harness(
         "execute",
         {
             "max_parallel": "4",

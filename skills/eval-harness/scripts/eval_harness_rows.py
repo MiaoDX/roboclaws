@@ -7,9 +7,9 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from roboclaws.launch.map_bundles import molmospaces_nav2_map_bundle_path
-from roboclaws.launch.scene_sampler import parse_molmospaces_world_id
-from roboclaws.launch.scene_sampler_sources import sampler_world_id
+from roboclaws.worlds.molmospaces.catalog import sampler_world_id
+from roboclaws.worlds.molmospaces.map_bundles import molmospaces_nav2_map_bundle_path
+from roboclaws.worlds.molmospaces.sampling import parse_molmospaces_world_id
 
 ROW_SCHEMA = "roboclaws_eval_harness_row_v1"
 CATALOG_PATH = Path(__file__).resolve().parents[1] / "catalog" / "rows.json"

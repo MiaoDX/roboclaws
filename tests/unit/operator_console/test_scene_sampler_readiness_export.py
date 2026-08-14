@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from roboclaws.launch import scene_sampler
+from roboclaws.worlds.molmospaces import sampling as scene_sampler
 from scripts.operator_console.export_scene_sampler_readiness import (
     _candidate_indices,
     _write_named_artifacts,

@@ -11,11 +11,11 @@ if __package__ in {None, ""}:
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
 
-from scripts.maps.fit_b1_map12_scene_alignment import (  # noqa: E402
+from roboclaws.maps.b1_alignment import (  # noqa: E402
     build_alignment_residuals,
     validate_alignment_residual_artifact,
 )
-from scripts.maps.promote_b1_map12_semantic_review_packet import (  # noqa: E402
+from roboclaws.maps.b1_semantic_review_promotion import (  # noqa: E402
     DEFAULT_PACKET,
     PromotionError,
     build_reviewed_correspondence_manifest,

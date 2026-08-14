@@ -7,7 +7,7 @@ import random
 
 from PIL import Image
 
-from roboclaws.agents.drivers.openai_agents_model_input import (
+from roboclaws.agents.drivers.openai_agents_compaction import (
     _compact_model_input_items,
 )
 

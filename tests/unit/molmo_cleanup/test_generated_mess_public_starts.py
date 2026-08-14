@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import pytest
 
+from roboclaws.backends.molmospaces.scenario_state import target_start_receptacle_id
 from roboclaws.household.generated_mess import (
     build_generated_mess_manifest,
     generated_mess_public_distractor_settlement_plan,
     targets_from_generated_mess_manifest,
 )
 from roboclaws.household.semantic_acceptability import public_source_requires_cleanup
-from scripts.molmo_cleanup.molmospaces_scenario_state import target_start_receptacle_id
 
 
 def test_generated_mess_manifest_uses_public_cleanup_required_starts() -> None:

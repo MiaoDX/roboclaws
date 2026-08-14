@@ -47,7 +47,7 @@ household-world seeds="1 2 3" output_dir="output/household-world-harness" task="
         --output-dir "${run_dir}"
     done
     seed_csv="$(printf '%s' "{{seeds}}" | tr ' ' ',')"
-    .venv/bin/python scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py \
+    .venv/bin/python -m roboclaws.evals.cleanup_result_cli \
       --expect-task "{{task}}" \
       --expect-backend molmospaces_subprocess \
       --expect-seeds "${seed_csv}" \
@@ -80,7 +80,7 @@ molmo-realworld-agent-mcp seeds="1" output_dir="output/molmo-realworld-agent-mcp
         --output-dir "${run_dir}"
     done
     seed_csv="$(printf '%s' "{{seeds}}" | tr ' ' ',')"
-    .venv/bin/python scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py \
+    .venv/bin/python -m roboclaws.evals.cleanup_result_cli \
       --expect-task "{{task}}" \
       --expect-backend molmospaces_subprocess \
       --expect-policy household_contract_smoke_agent \
@@ -107,7 +107,7 @@ molmo-realworld-agent-dogfood-kit seed="7" output_dir="output/molmo-realworld-ag
       --task "{{task}}" \
       --policy household_contract_smoke_agent \
       --output-dir "$run_dir"
-    .venv/bin/python scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py \
+    .venv/bin/python -m roboclaws.evals.cleanup_result_cli \
       --expect-task "{{task}}" \
       --expect-backend api_semantic_synthetic \
       --expect-policy household_contract_smoke_agent \
@@ -139,7 +139,7 @@ molmo-realworld-raw-fpv seed="7" output_dir="output/molmo-realworld-raw-fpv-harn
       --robot-name rby1m \
       --record-robot-views \
       --output-dir "$run_dir"
-    .venv/bin/python scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py \
+    .venv/bin/python -m roboclaws.evals.cleanup_result_cli \
       --expect-task "{{task}}" \
       --expect-backend molmospaces_subprocess \
       --min-generated-mess-count "{{generated_mess_count}}" \
@@ -168,7 +168,7 @@ molmo-planner-proof-bundle-runner output_dir="output/molmo-planner-proof-bundle-
       --map-bundle-dir "{{map_bundle}}" \
       --generated-mess-count "{{generated_mess_count}}" \
       --output-dir "${cleanup_dir}"
-    .venv/bin/python scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py \
+    .venv/bin/python -m roboclaws.evals.cleanup_result_cli \
       --expect-task "{{task}}" \
       --expect-backend api_semantic_synthetic \
       --min-generated-mess-count 5 \
@@ -208,7 +208,7 @@ molmo-planner-proof-bundle-execute-rerun output_dir="output/molmo-planner-proof-
       --record-robot-views \
       --generated-mess-count "{{generated_mess_count}}" \
       --output-dir "${cleanup_dir}"
-    .venv/bin/python scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py \
+    .venv/bin/python -m roboclaws.evals.cleanup_result_cli \
       --expect-task "{{task}}" \
       --expect-backend molmospaces_subprocess \
       --min-generated-mess-count "{{min_generated_mess_count}}" \
@@ -231,7 +231,7 @@ molmo-planner-proof-bundle-execute-rerun output_dir="output/molmo-planner-proof-
       --require-proof-outputs \
       --require-cleanup-rerun-output \
       "${bundle_dir}"
-    .venv/bin/python scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py \
+    .venv/bin/python -m roboclaws.evals.cleanup_result_cli \
       --expect-task "{{task}}" \
       --expect-backend molmospaces_subprocess \
       --min-generated-mess-count "{{min_generated_mess_count}}" \
@@ -351,7 +351,7 @@ isaac-runtime-preflight *overrides:
     min_free_gb="80"
     skip_gpu_probe="false"
     install="false"
-    accept_nvidia_eula="true"
+    accept_nvidia_eula="false"
     strict="false"
     for arg in "${args[@]}"; do
       if [[ "$arg" != *=* ]]; then
@@ -431,7 +431,7 @@ isaac-runtime-smoke *overrides:
     require_segmentation_evidence="false"
     segmentation_data_types=""
     segmentation_semantic_filter=""
-    accept_nvidia_eula="true"
+    accept_nvidia_eula="false"
     for arg in "${args[@]}"; do
       if [[ "$arg" != *=* ]]; then
         echo "error: override '$arg' is not key=value" >&2
@@ -469,7 +469,7 @@ isaac-runtime-smoke *overrides:
     if [[ "$accept_nvidia_eula" == "true" ]]; then
       export OMNI_KIT_ACCEPT_EULA="YES"
     fi
-    worker_cmd=("$runtime_python" scripts/isaac_lab_cleanup/isaac_lab_backend_worker.py \
+    worker_cmd=("$runtime_python" -m roboclaws.backends.isaaclab.worker \
       --state-path "$state_path" \
       init \
       --run-dir "$run_dir" \
@@ -512,13 +512,13 @@ isaac-runtime-smoke *overrides:
       echo "error: Isaac runtime smoke init did not write state: ${state_path}" >&2
       exit 1
     fi
-    robot_views_cmd=("$runtime_python" scripts/isaac_lab_cleanup/isaac_lab_backend_worker.py \
+    robot_views_cmd=("$runtime_python" -m roboclaws.backends.isaaclab.worker \
       --state-path "$state_path" \
       robot_views \
       --output-dir "${run_dir}/robot_views" \
       --label "runtime_smoke")
     "${robot_views_cmd[@]}" 2>&1 | tee "$robot_views_result"
-    check_cmd=(.venv/bin/python scripts/isaac_lab_cleanup/check_isaac_lab_runtime_smoke_result.py \
+    check_cmd=(.venv/bin/python -m roboclaws.backends.isaaclab.smoke_checker \
       --init-result "$init_result" \
       --state-path "$state_path" \
       --robot-views-result "$robot_views_result")
@@ -566,7 +566,7 @@ b1-map12-navigation-smoke *overrides:
     robot_name="rby1m"
     prepare_robot_usd="true"
     require_navigation_success="true"
-    accept_nvidia_eula="true"
+    accept_nvidia_eula="false"
     for arg in "${args[@]}"; do
       if [[ "$arg" != *=* ]]; then
         echo "error: override '$arg' is not key=value" >&2
@@ -599,7 +599,7 @@ b1-map12-navigation-smoke *overrides:
     if [[ "$accept_nvidia_eula" == "true" ]]; then
       export OMNI_KIT_ACCEPT_EULA="YES"
     fi
-    "$runtime_python" scripts/isaac_lab_cleanup/check_b1_map12_readiness.py \
+    "$runtime_python" -m roboclaws.backends.isaaclab.b1_readiness \
       --b1-root "$b1_root" \
       --map12-root "$map12_root" \
       --alignment-artifact "$alignment_artifact" \
@@ -608,7 +608,7 @@ b1-map12-navigation-smoke *overrides:
       "$runtime_python" scripts/isaac_lab_cleanup/import_rby1m_robot_usd.py --static-only
     fi
     smoke_args=(
-      scripts/isaac_lab_cleanup/run_b1_map12_navigation_smoke.py
+      -m roboclaws.backends.isaaclab.b1_navigation_smoke
       --readiness-artifact "$readiness_output" \
       --output-dir "$run_dir" \
       --robot-name "$robot_name" \
@@ -628,9 +628,9 @@ b1-map12-navigation-smoke *overrides:
     if [[ "$require_navigation_success" == "true" ]]; then
       final_args+=(--require-navigation-success)
     fi
-    "$runtime_python" scripts/isaac_lab_cleanup/check_b1_map12_readiness.py "${final_args[@]}"
+    "$runtime_python" -m roboclaws.backends.isaaclab.b1_readiness "${final_args[@]}"
     report_args=(
-      scripts/isaac_lab_cleanup/render_b1_map12_navigation_report.py
+      -m roboclaws.backends.isaaclab.b1_navigation_report
       --run-dir "$run_dir" \
       --navigation-artifact "${run_dir}/navigation_smoke.json" \
       --readiness-artifact "${run_dir}/readiness_with_navigation.json"

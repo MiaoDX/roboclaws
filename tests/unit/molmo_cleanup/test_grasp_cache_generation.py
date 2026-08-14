@@ -12,7 +12,7 @@ from roboclaws.household.grasp_cache_generation import (
     load_generation_preflight_from_manifest,
     run_grasp_cache_generation,
 )
-from roboclaws.household.report import render_grasp_cache_generation_report
+from roboclaws.household.report_planner import render_grasp_cache_generation_report
 
 
 def test_generation_dry_run_writes_objects_list(tmp_path: Path) -> None:

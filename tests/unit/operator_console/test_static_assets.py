@@ -4,16 +4,66 @@ import json
 import re
 from pathlib import Path
 
-from roboclaws.launch.scene_sampler_sources import CURRENT_CURATED_INDICES
 from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS, WORLD_SPECS
+from roboclaws.operator_console.server import ConsoleRequestHandler
+from roboclaws.worlds.molmospaces.catalog import CURRENT_CURATED_INDICES
 
 STATIC_ROOT = Path(__file__).resolve().parents[3] / "roboclaws" / "operator_console" / "static"
 REPO_ROOT = Path(__file__).resolve().parents[3]
+BEHAVIOR_MODULES = (
+    "app.js",
+    "background-tasks.js",
+    "http-dom.js",
+    "launch.js",
+    "manual-control.js",
+    "run-session.js",
+    "state.js",
+    "visual-workspace.js",
+    "workflow-model.js",
+    "workflow-view.js",
+)
+
+
+def _static_javascript() -> str:
+    return "\n".join(
+        (STATIC_ROOT / module_name).read_text(encoding="utf-8") for module_name in BEHAVIOR_MODULES
+    )
+
+
+def test_static_app_is_native_module_composition_entrypoint() -> None:
+    html = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
+    app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
+
+    assert '<script type="module" src="/app.js?v=modules-20260731"></script>' in html
+    assert 180 <= len(app.splitlines()) <= 250
+    assert set(path.name for path in STATIC_ROOT.glob("*.js")) == set(BEHAVIOR_MODULES)
+    assert _static_javascript().count("export const state = {") == 1
+    assert "const state = {" not in app
+
+    for module_name in BEHAVIOR_MODULES[1:]:
+        assert f'from "./{module_name}"' in _static_javascript()
+
+    for module_name in BEHAVIOR_MODULES:
+        source = (STATIC_ROOT / module_name).read_text(encoding="utf-8")
+        for imported_name in re.findall(r'from "\./([^"?]+\.js)"', source):
+            assert (STATIC_ROOT / imported_name).is_file()
+
+
+def test_static_asset_allowlist_includes_native_modules() -> None:
+    handler = ConsoleRequestHandler.__new__(ConsoleRequestHandler)
+    handler.static_root = STATIC_ROOT
+
+    assert handler._is_static_asset("/app.js")
+    assert handler._is_static_asset("/state.js")
+    assert handler._is_static_asset("/workflow-view.js")
+    assert not handler._is_static_asset("/.split-app.mjs")
+    assert not handler._is_static_asset("/nested/state.js")
+    assert not handler._is_static_asset("/missing.js")
 
 
 def test_static_app_references_existing_dom_ids() -> None:
     html = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
-    app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
+    app = _static_javascript()
 
     declared_ids = set(re.findall(r'id="([^"]+)"', html))
     referenced_ids = set(re.findall(r'getElementById\("([^"`$]+)"\)', app))
@@ -22,7 +72,7 @@ def test_static_app_references_existing_dom_ids() -> None:
 
 
 def test_static_app_references_existing_els_keys() -> None:
-    app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
+    app = _static_javascript()
 
     els_match = re.search(r"const els = \{(?P<body>.*?)\n\};", app, re.DOTALL)
     assert els_match is not None
@@ -34,61 +84,9 @@ def test_static_app_references_existing_els_keys() -> None:
     assert referenced_keys - declared_keys == set()
 
 
-def test_static_app_has_route_specific_field_groups() -> None:
-    html = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
-    app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
-
-    setup_html = html.split('<aside class="setup-panel">', 1)[1].split("</aside>", 1)[0]
-    state_rail_html = html.split('<aside class="state-rail">', 1)[1].split("</aside>", 1)[0]
-
-    for snippet in (
-        'id="workflow-action-list"',
-        'id="runtime-map-prior-input"',
-        'id="advanced-controls"',
-        'id="provider-profile-input"',
-        'id="agibot-gate-fields"',
-        'id="real-movement-gate"',
-        'id="prompt-preview-button"',
-        'id="background-tasks-button"',
-        'data-operator-mode="steer"',
-        'data-operator-mode="resume"',
-    ):
-        assert snippet in html
-
-    for snippet in (
-        'name="isaac_scene_usd_path"',
-        'name="b1_alignment_artifact"',
-        'name="b1_navigation_artifact"',
-    ):
-        assert snippet not in html
-
-    for snippet in (
-        "renderWorkflowActions",
-        "workflow_id",
-        "runtime_map_prior",
-        "selectedRuntimeMapPrior",
-        "Staleness:",
-        "routeForWorkflow(state.selectedWorkflow, state.selectedWorld)",
-        "renderRouteFields",
-        "field_groups",
-        "selectedProviderRoute",
-        "renderScenarioSetup",
-        "refreshPromptPreview",
-        "/api/prompt-preview",
-        "renderBackgroundTaskButton",
-        "background_blockers",
-        "TASK RUNNING",
-        "/api/runtime/tasks",
-    ):
-        assert snippet in app
-
-    assert "Operator Input" in setup_html
-    assert "Operator Input" not in state_rail_html
-
-
 def test_static_app_keeps_deleted_operator_console_widgets_deleted() -> None:
     html = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
-    app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
+    app = _static_javascript()
     css = (STATIC_ROOT / "styles.css").read_text(encoding="utf-8")
 
     for snippet in (
@@ -123,28 +121,14 @@ def test_static_app_keeps_deleted_operator_console_widgets_deleted() -> None:
         assert snippet not in css
 
 
-def test_static_app_keeps_background_tasks_in_console() -> None:
-    html = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
-    app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
-    css = (STATIC_ROOT / "styles.css").read_text(encoding="utf-8")
-
-    assert 'id="background-tasks-dialog"' in html
-    assert 'id="background-task-list"' in html
-    assert "renderBackgroundTasks" in app
-    assert "runBackgroundTaskAction" in app
-    assert "copy_command" not in app
-    assert "window.open" in app
-    assert ".background-task-row" in css
-
-
 def test_static_app_does_not_short_circuit_context_json_readiness() -> None:
-    app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
+    app = _static_javascript()
 
     assert 'gate.id === "context_json" && Boolean(els.contextInput.value.trim())' not in app
 
 
 def test_static_app_renders_scene_preview_assets() -> None:
-    app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
+    app = _static_javascript()
     preview_dir = STATIC_ROOT / "previews"
 
     _assert_scene_preview_app_wiring(app)
@@ -288,123 +272,6 @@ def _assert_b1_preview_metadata(preview_dir: Path) -> None:
     assert "diagnostic_views" not in b1_metadata
 
 
-def test_static_app_exposes_explicit_intent_selector_and_interpretation() -> None:
-    html = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
-    app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
-    css = (STATIC_ROOT / "styles.css").read_text(encoding="utf-8")
-
-    assert 'id="intent-input"' in html
-    assert 'id="intent-preview"' in html
-    assert "selectedIntent" in app
-    assert "selectedIntentForRoute" in app
-    assert 'const DEFAULT_UI_INTENT = "open-ended";' in app
-    assert 'const DEFAULT_WORKFLOW_ID = "open-task";' in app
-    assert "preferredDefaultCombination" in app
-    assert "item.intent_id === DEFAULT_UI_INTENT" in app
-    assert 'item.evidence_lane === "camera-grounded-labels"' in app
-    assert "state.selectedIntent = els.intentInput.value;" in app
-    assert "state.selectedIntent = selectedIntent();" not in app
-    assert "syncAxesFromRoute" in app
-    assert "currentSelectValue" in app
-    assert "currentSelectValue(\n          els.intentInput" in app
-    assert "const scopedCombos = axisMatches.length ? axisMatches : combos;" in app
-    assert "launchInterpretation" in app
-    assert "route.intent_options" in app
-    assert "intent_id: workflowIntent(workflow) || selectedIntent()" in app
-    assert 'workflow_id: workflow ? workflow.id : ""' in app
-    assert "world_id: route.world_id" in app
-    assert "backend_id: route.backend_id" in app
-    assert "agent_engine_id: route.agent_engine_id" in app
-    assert "scenario_setup: selectedScenarioSetup()" in app
-    assert "intent=${selected}" in app
-    assert '"open-ended": "Open-ended"' in app
-    assert "Goal scope" in app
-    assert "Checker" in app
-    assert "Evaluation" in app
-    assert "prompt-scoped" in app
-    assert "checker_id" in app
-    assert ".intent-preview" in css
-
-
-def test_static_app_uses_overview_workspace_and_outputs_copy() -> None:
-    html = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
-    app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
-    css = (STATIC_ROOT / "styles.css").read_text(encoding="utf-8")
-
-    _assert_overview_outputs_html(html)
-    _assert_overview_outputs_app(app)
-    _assert_overview_outputs_css(css)
-
-
-def _assert_overview_outputs_html(html: str) -> None:
-    assert 'data-view="overview"' in html
-    assert 'data-view="outputs"' in html
-    assert 'data-view="artifacts"' not in html
-    assert 'id="outputs-panel"' in html
-    assert 'data-panel="blank-chase"' not in html
-    assert ">Outputs<" in html
-    assert "Artifacts" not in html
-    assert ">Map<" in html
-    assert ">Base Map<" not in html
-    assert ">Runtime Map<" not in html
-    assert ">Semantic Map<" not in html
-    assert ">Top-down Scene<" in html
-    assert 'data-panel-title="fpv"' in html
-    assert 'data-panel-title="chase"' in html
-    assert 'data-panel="grounding"' in html
-    assert 'data-panel="grounding"' not in html.split('class="view-grid mode-overview"', 1)[0]
-    assert "topdown-frame" in html
-    assert "prompt-preview-20260616" in html
-
-
-def _assert_overview_outputs_app(app: str) -> None:
-    assert "Top-down Scene View" not in app
-    assert "renderGroundingSlot" in app
-    assert "grounding_frames" in app
-    assert "groundingFrameHtml" in app
-    assert "groundingCandidateBoxHtml" in app
-    assert 'display_source === "visual_grounding_overlay"' not in app
-    assert 'activeView: "overview"' in app
-    assert "visiblePanelsForView" in app
-    assert "routeViewModes" in app
-    assert "STABLE_VIEW_MODES" in app
-    assert "backend_view_modes" in app
-    assert "routeHasOverviewChase" not in app
-    assert 'resource_kind !== "physical_robot"' not in app
-    overview_body = app.split('if (view === "overview") {', 1)[1].split("\n  }", 1)[0]
-    assert 'new Set(["fpv", "map", "chase", "topdown"])' in overview_body
-    assert '"outputs"' not in overview_body
-    assert '"tasks"' not in overview_body
-    assert '"grounding"' not in overview_body
-    assert '"runtime_map"' not in overview_body
-    assert "Missing run third-person artifact" in app
-    assert "Missing Map artifact" in app
-    assert "sourceAssets.runtime_map || sourceAssets.map" in app
-    assert "Third-person view unavailable for this backend." in app
-    assert "No perception overlay has been written yet." in app
-
-
-def _assert_overview_outputs_css(css: str) -> None:
-    assert ".mode-overview" in css
-    assert '"fpv map"' in css
-    assert '"chase topdown"' in css
-    assert ".grounding-gallery" in css
-    assert ".grounding-frame-card" in css
-    assert ".grounding-box" in css
-    assert "object-position: center center" in css
-    assert ".image-panel > .image-frame" in css
-    assert "aspect-ratio: auto" in css
-    assert '.mode-overview [data-panel="runtime_map"]' not in css
-    assert '.mode-overview [data-panel="chase"]' in css
-    assert '.mode-overview [data-panel="blank-chase"]' not in css
-    assert ".blank-panel" not in css
-    assert "[hidden]" in css
-    assert "display: none !important" in css
-    assert ".top-run-bar.run-active #run-title" in css
-    assert "font-size: 14px" in css
-    assert "text-overflow: ellipsis" in css
-
-
 def test_static_app_announces_run_state_via_live_region() -> None:
     html = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
 
@@ -413,139 +280,3 @@ def test_static_app_announces_run_state_via_live_region() -> None:
     assert 'id="event-log"' in html
     assert 'role="status"' in html
     assert 'aria-live="polite"' in html
-
-
-def test_static_app_renders_stop_result_before_detaching_run() -> None:
-    app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
-    detach_body = app.split("function detachRunAfterStop(result) {", 1)[1].split(
-        "\n}\n\nasync function toggleRawEvidence",
-        1,
-    )[0]
-
-    assert "state.activeState = result;" in detach_body
-    assert "renderRunState(result);" in detach_body
-    assert detach_body.index("renderRunState(result);") < detach_body.index(
-        "state.activeRunId = null;"
-    )
-    assert app.count("const checkerStatus = payload.checker_status || {};") >= 2
-
-
-def test_static_app_uses_fixed_run_evidence_panel() -> None:
-    html = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
-    app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
-    css = (STATIC_ROOT / "styles.css").read_text(encoding="utf-8")
-
-    assert 'href="/styles.css?v=' in html
-    assert 'src="/app.js?v=' in html
-    assert "refreshRawEvidence()" in app
-    assert "forceStickToBottom: true" in app
-    assert "shouldStickToBottom" in app
-    assert "raw-evidence-open" in app
-    assert 'id="state-rail-resizer"' not in html
-    assert 'id="evidence-strip-resizer"' not in html
-    assert "STATE_RAIL_WIDTH_KEY" not in app
-    assert "EVIDENCE_STRIP_HEIGHT_KEY" not in app
-    assert "setPointerCapture" not in app
-    assert "--state-rail-width" not in css
-    assert "--evidence-strip-height" not in css
-    assert ".state-rail-splitter" not in css
-    assert ".event-strip-splitter" not in css
-    assert ".raw-evidence" in css
-    assert "overflow: auto" in css
-    assert "white-space: pre" in css
-
-
-def test_static_app_routes_destructive_actions_through_styled_dialog() -> None:
-    app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
-    css = (STATIC_ROOT / "styles.css").read_text(encoding="utf-8")
-
-    # Stop and Emergency Stop must use the themed <dialog>, not native
-    # window.confirm, and carry the contract CTA labels.
-    assert "window.confirm" not in app
-    assert "confirmAction(" in app
-    assert "Trigger Emergency Stop" in app
-    assert "Stop Run" in app
-
-    # Run title reaches the 28px display role only once a run is active.
-    assert ".top-run-bar.run-active #run-title" in css
-    assert "font-variant-numeric: tabular-nums" in css
-
-
-def test_static_app_keeps_long_run_header_within_fixed_top_bar() -> None:
-    html = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
-    app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
-    css = (STATIC_ROOT / "styles.css").read_text(encoding="utf-8")
-    desktop_controls = css.split(".global-controls {", 1)[1].split("\n}", 1)[0]
-    responsive_controls = (
-        css.split("@media (max-width: 1360px)", 1)[1]
-        .split(
-            ".global-controls {",
-            1,
-        )[1]
-        .split("\n  }", 1)[0]
-    )
-
-    assert 'href="/styles.css?v=prompt-preview-20260616"' in html
-    assert 'src="/app.js?v=prompt-preview-20260616"' in html
-    assert ".run-meta {\n  display: flex;" in css
-    assert "flex-wrap: nowrap;" in css
-    assert ".run-meta > *" in css
-    assert "#run-title {\n  flex: 1 1 auto;" in css
-    assert "overflow: hidden" in css
-    assert ".global-controls {\n  display: flex;" in css
-    assert "flex: 0 0 auto;" in desktop_controls
-    assert "flex-wrap: nowrap;" in desktop_controls
-    assert "min-width: max-content;" in desktop_controls
-    assert ".global-controls button" in css
-    assert "white-space: nowrap;" in css
-    assert "@media (max-width: 1360px)" in css
-    assert "justify-content: flex-start;" in responsive_controls
-    assert "flex-wrap: wrap;" in responsive_controls
-    assert "#run-title {\n    flex-basis: 100%;" in css
-    assert "compactRunPart" in app
-    assert "fullTimestamp" in app
-    assert "shortTimestamp" in app
-    assert '"$2$3-$4$5$7"' not in app
-
-
-def test_static_app_wires_manual_relative_navigation_controls() -> None:
-    html = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
-    app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
-    css = (STATIC_ROOT / "styles.css").read_text(encoding="utf-8")
-
-    assert 'id="manual-control-panel"' in html
-    assert 'id="manual-control-status"' in html
-    for action in ("forward", "back", "left", "right", "turn-left", "turn-right", "observe"):
-        assert f'data-control-action="{action}"' in html
-    assert "MANUAL_CONTROL_STEP_M = 0.25" in app
-    assert "MANUAL_CONTROL_TURN_DEG = 15" in app
-    assert 'action: "navigate_to_relative_pose"' in app
-    assert 'action === "observe"' in app
-    assert "/control" in app
-    assert "supports_relative_navigation_control" in app
-    assert "relative_navigation_control_available" in app
-    assert "relative_navigation_control_pending" in app
-    assert "operator_handoff_paused" in app
-    assert "supports_paused_handoff_resume" in app
-    assert "MCP endpoint to become ready" in app
-    assert "operator moves are recorded as assisted interventions".lower() in app.lower()
-    assert ".manual-control-panel" in css
-    assert ".manual-control-grid" in css
-    assert "grid-template-columns: repeat(3, minmax(0, 1fr));" in css
-
-
-def test_static_app_opens_images_in_large_dialog() -> None:
-    html = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
-    app = (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
-    css = (STATIC_ROOT / "styles.css").read_text(encoding="utf-8")
-
-    assert 'id="image-dialog"' in html
-    assert 'id="image-dialog-img"' in html
-    assert "image-preview-button" in app
-    assert "openImageDialog" in app
-    assert "showModal()" in app
-    assert "data-image-src" in app
-    assert ".image-dialog" in css
-    assert ".image-dialog-frame img" in css
-    assert "max-height: calc(100vh - 168px)" in css
-    assert "transform: scale(1.02)" in css

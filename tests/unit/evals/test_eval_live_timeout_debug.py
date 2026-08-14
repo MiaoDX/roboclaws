@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from roboclaws.evals import live_runtime
+from roboclaws.evals import live_execution
 from roboclaws.evals.live_timeout import LiveEvalTimeoutError
 from roboclaws.evals.runner import run_eval_suite
 
@@ -82,13 +82,13 @@ def test_live_surface_product_records_timeout_debug_snapshot(
         def wait(self, timeout: float | None = None) -> int:
             return 143
 
-    monkeypatch.setattr(live_runtime, "spawn_launch_plan", FakePopen)
-    monkeypatch.setattr(live_runtime.os, "killpg", lambda _pid, _signal: None)
-    monkeypatch.setattr(live_runtime.time, "monotonic", fake_monotonic)
-    monkeypatch.setattr(live_runtime.time, "sleep", fake_sleep)
+    monkeypatch.setattr(live_execution, "spawn_launch_plan", FakePopen)
+    monkeypatch.setattr(live_execution.os, "killpg", lambda _pid, _signal: None)
+    monkeypatch.setattr(live_execution.time, "monotonic", fake_monotonic)
+    monkeypatch.setattr(live_execution.time, "sleep", fake_sleep)
 
     with pytest.raises(LiveEvalTimeoutError) as exc_info:
-        live_runtime.run_live_surface_product(
+        live_execution.run_live_surface_product(
             **_live_surface_kwargs(
                 tmp_path / "trial-0000",
                 live_timeout_s=50.0,
@@ -104,7 +104,7 @@ def test_live_surface_product_records_timeout_debug_snapshot(
     assert exc_info.value.live_status["phase"] == "running-sdk"
     assert sleeps == [1.0, 1.0, 1.0, 1.0, 1.0]
     assert timeout_run_dir is not None
-    assert popen_kwargs["cwd"] == live_runtime.REPO_ROOT
+    assert popen_kwargs["cwd"] == live_execution.REPO_ROOT
     record = json.loads((tmp_path / "trial-0000" / "live_eval_command.json").read_text())
     assert record["returncode"] == "stall_timeout"
     assert record["timeout_kind"] == "stall_timeout"
@@ -138,12 +138,12 @@ def test_live_surface_timeout_terminates_the_entire_process_group(
             return 143
 
     monkeypatch.setattr(
-        live_runtime.os,
+        live_execution.os,
         "killpg",
         lambda process_group_id, sig: signals.append((process_group_id, sig)),
     )
 
-    live_runtime._terminate_live_surface_process(FakeProcess())  # type: ignore[arg-type]
+    live_execution._terminate_live_surface_process(FakeProcess())  # type: ignore[arg-type]
 
     assert signals == [
         (4321, signal.SIGTERM),
@@ -263,13 +263,13 @@ def test_live_surface_product_records_wall_clock_budget_timeout(
         def wait(self, timeout: float | None = None) -> int:
             return 143
 
-    monkeypatch.setattr(live_runtime, "spawn_launch_plan", FakePopen)
-    monkeypatch.setattr(live_runtime.os, "killpg", lambda _pid, _signal: None)
-    monkeypatch.setattr(live_runtime.time, "monotonic", fake_monotonic)
-    monkeypatch.setattr(live_runtime.time, "sleep", fake_sleep)
+    monkeypatch.setattr(live_execution, "spawn_launch_plan", FakePopen)
+    monkeypatch.setattr(live_execution.os, "killpg", lambda _pid, _signal: None)
+    monkeypatch.setattr(live_execution.time, "monotonic", fake_monotonic)
+    monkeypatch.setattr(live_execution.time, "sleep", fake_sleep)
 
     with pytest.raises(LiveEvalTimeoutError) as exc_info:
-        live_runtime.run_live_surface_product(
+        live_execution.run_live_surface_product(
             **_live_surface_kwargs(
                 tmp_path / "trial-0000",
                 live_timeout_s=5.0,

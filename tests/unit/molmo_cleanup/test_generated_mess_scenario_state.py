@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.isaac_lab_cleanup import isaac_scenario_state
+from roboclaws.backends.isaaclab import isaac_scenario_state
 
 
 class _Hooks:
@@ -13,13 +13,13 @@ class _Hooks:
 
 def test_molmospaces_manifest_target_rejects_invalid_relation() -> None:
     pytest.importorskip("mujoco")
-    from scripts.molmo_cleanup import molmospaces_scenario_state
+    from roboclaws.backends.molmospaces import scenario_state
 
     with pytest.raises(
         ValueError,
         match="generated mess manifest relation must be 'on' or 'inside'",
     ):
-        molmospaces_scenario_state.target_relation(
+        scenario_state.target_relation(
             {},
             {"object_id": "mug_01", "relation": "beside"},
             hooks=_Hooks(),
@@ -28,14 +28,14 @@ def test_molmospaces_manifest_target_rejects_invalid_relation() -> None:
 
 def test_molmospaces_manifest_target_rejects_invalid_placement_index() -> None:
     pytest.importorskip("mujoco")
-    from scripts.molmo_cleanup import molmospaces_scenario_state
+    from roboclaws.backends.molmospaces import scenario_state
 
     for placement_index in (None, 1.2, True):
         with pytest.raises(
             ValueError,
             match="generated mess manifest placement_index must be an integer",
         ):
-            molmospaces_scenario_state.target_placement_index(
+            scenario_state.target_placement_index(
                 4,
                 {"object_id": "mug_01", "placement_index": placement_index},
             )
@@ -43,22 +43,22 @@ def test_molmospaces_manifest_target_rejects_invalid_placement_index() -> None:
 
 def test_molmospaces_non_manifest_seed_keeps_backend_fallbacks() -> None:
     pytest.importorskip("mujoco")
-    from scripts.molmo_cleanup import molmospaces_scenario_state
+    from roboclaws.backends.molmospaces import scenario_state
 
     assert (
-        molmospaces_scenario_state.target_relation(
+        scenario_state.target_relation(
             {},
             None,
             hooks=_Hooks(),
         )
         == "inside"
     )
-    assert molmospaces_scenario_state.target_placement_index(4, None) == 4
+    assert scenario_state.target_placement_index(4, None) == 4
 
 
 def test_molmospaces_placement_clearance_score_prefers_open_candidate(monkeypatch) -> None:
     pytest.importorskip("mujoco")
-    from scripts.molmo_cleanup import molmospaces_placement
+    from roboclaws.backends.molmospaces import placement as molmospaces_placement
 
     aabbs = {
         "occupied": {
@@ -109,7 +109,7 @@ def test_molmospaces_placement_clearance_score_prefers_open_candidate(monkeypatc
 
 def test_molmospaces_direct_support_chooses_farther_clear_slot(monkeypatch) -> None:
     pytest.importorskip("mujoco")
-    from scripts.molmo_cleanup import molmospaces_placement
+    from roboclaws.backends.molmospaces import placement as molmospaces_placement
 
     occupied = {
         "min_x": -0.15,

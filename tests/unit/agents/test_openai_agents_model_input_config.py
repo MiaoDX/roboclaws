@@ -6,10 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.agents.drivers.openai_agents_model_input import (
-    _compact_model_input_items,
-    _input_compaction_config,
-)
+from roboclaws.agents.drivers.openai_agents_compaction import _compact_model_input_items
+from roboclaws.agents.drivers.openai_agents_input_config import _input_compaction_config
 from roboclaws.agents.drivers.openai_agents_perf_profile import resolve_agent_sdk_perf_profile
 from roboclaws.agents.live_runtime import LiveAgentMCPServer, LiveAgentRequest
 

@@ -70,4 +70,5 @@ def test_current_graph_freezes_authoritative_cycles_and_package_pairs() -> None:
     assert policies["core-product-inversions"]["known_violations"] == []
     assert policies["planned-reverse-package-edges"]["status"] == "green"
     assert policies["planned-reverse-package-edges"]["known_violations"] == []
-    assert policies["package-to-scripts"]["status"] == "ratcheted-known-red"
+    assert policies["package-to-scripts"]["status"] == "green"
+    assert policies["package-to-scripts"]["known_violations"] == []

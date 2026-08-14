@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.household.planner_proof_requests import PLANNER_PROOF_REQUESTS_SCHEMA
+from roboclaws.household.planner_proof_contracts import PLANNER_PROOF_REQUESTS_SCHEMA
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SCRIPT_PATH = (

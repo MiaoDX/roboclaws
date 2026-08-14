@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from roboclaws.launch.scene_sampler import MolmoSpacesSceneRef
+from roboclaws.worlds.molmospaces.sampling import MolmoSpacesSceneRef
 from scripts.operator_console.render_scene_previews import (
     B1_MAP12_WORLD_ID,
     PREVIEW_METADATA_SCHEMA,

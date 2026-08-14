@@ -10,6 +10,7 @@ from roboclaws.household import (
 from roboclaws.household import (
     realworld_runtime_map_contract,
     realworld_runtime_map_targets,
+    realworld_runtime_target_selection,
 )
 from roboclaws.household.semantic_acceptability import (
     public_source_requires_cleanup,
@@ -146,7 +147,7 @@ def runtime_metric_map_payload(
         assert_no_forbidden_agent_view_keys=assert_no_forbidden_agent_view_keys,
     )
     map_update_candidates: list[dict[str, Any]] = []
-    target_candidates = realworld_runtime_map_targets.runtime_target_candidates(
+    target_candidates = realworld_runtime_target_selection.runtime_target_candidates(
         contract,
         public_semantic_anchors=public_semantic_anchors,
         observed_objects=runtime_observed_objects,
@@ -171,12 +172,12 @@ def runtime_metric_map_payload(
         "public_semantic_anchors": public_semantic_anchors,
         "observed_objects": runtime_observed_objects,
         "target_candidates": target_candidates,
-        "target_search_summary": realworld_runtime_map_targets.target_search_summary(
+        "target_search_summary": realworld_runtime_target_selection.target_search_summary(
             contract,
             target_candidates,
             assert_no_forbidden_agent_view_keys=assert_no_forbidden_agent_view_keys,
         ),
-        "target_query_recovery": realworld_runtime_map_targets.target_query_recovery_summary(
+        "target_query_recovery": realworld_runtime_target_selection.target_query_recovery_summary(
             contract,
             target_candidates,
             assert_no_forbidden_agent_view_keys=assert_no_forbidden_agent_view_keys,

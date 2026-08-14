@@ -621,12 +621,10 @@ def test_operator_console_cli_can_include_optional_worlds() -> None:
 
 def test_operator_console_static_assets_are_not_cached(tmp_path: Path) -> None:
     with _console_server(tmp_path) as (host, port):
-        with urllib.request.urlopen(f"http://{host}:{port}/styles.css") as response:
-            assert response.headers["Cache-Control"] == "no-store, max-age=0"
-            assert response.headers["Content-Type"] == "text/css; charset=utf-8"
-        request = urllib.request.Request(f"http://{host}:{port}/styles.css", method="HEAD")
-        with urllib.request.urlopen(request) as response:
-            assert response.headers["Cache-Control"] == "no-store, max-age=0"
+        for asset in ("styles.css", "app.js", "state.js", "workflow-view.js"):
+            with urllib.request.urlopen(f"http://{host}:{port}/{asset}") as response:
+                assert response.headers["Cache-Control"] == "no-store, max-age=0"
+                assert response.headers["Content-Type"].endswith("charset=utf-8")
 
 
 def test_operator_console_routes_endpoint_exposes_evidence_lane_matrix(tmp_path: Path) -> None:

@@ -9,7 +9,7 @@ import pytest
 
 
 def test_molmospaces_worker_read_state_rejects_missing_state_source(tmp_path: Path) -> None:
-    from scripts.molmo_cleanup.molmospaces_worker_protocol import read_state
+    from roboclaws.backends.molmospaces.protocol import read_state
 
     missing = tmp_path / "missing_state.json"
 
@@ -21,7 +21,7 @@ def test_molmospaces_worker_read_state_rejects_missing_state_source(tmp_path: Pa
 
 
 def test_molmospaces_worker_read_state_rejects_malformed_state_source(tmp_path: Path) -> None:
-    from scripts.molmo_cleanup.molmospaces_worker_protocol import read_state
+    from roboclaws.backends.molmospaces.protocol import read_state
 
     state_path = tmp_path / "state.json"
     state_path.write_text("{bad json\n", encoding="utf-8")
@@ -34,7 +34,7 @@ def test_molmospaces_worker_read_state_rejects_malformed_state_source(tmp_path: 
 
 
 def test_molmospaces_worker_read_state_rejects_non_object_state_source(tmp_path: Path) -> None:
-    from scripts.molmo_cleanup.molmospaces_worker_protocol import read_state
+    from roboclaws.backends.molmospaces.protocol import read_state
 
     state_path = tmp_path / "state.json"
     state_path.write_text("[]", encoding="utf-8")
@@ -47,20 +47,20 @@ def test_molmospaces_worker_read_state_rejects_non_object_state_source(tmp_path:
 
 
 def test_molmospaces_worker_read_state_loads_valid_state(tmp_path: Path) -> None:
-    from scripts.molmo_cleanup.molmospaces_worker_protocol import read_state
+    from roboclaws.backends.molmospaces.protocol import read_state
 
     state_path = tmp_path / "state.json"
-    state = {"schema": "molmospaces_subprocess_worker_state_v1", "locations": {}}
+    state = {"schema": "runtime_state_v1", "locations": {}}
     state_path.write_text(json.dumps(state), encoding="utf-8")
 
     assert read_state(state_path) == state
 
 
-def test_molmospaces_worker_state_persists_home_paths_portably(
+def test_state_persists_home_paths_portably(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from scripts.molmo_cleanup.molmospaces_worker_protocol import read_state, write_state
+    from roboclaws.backends.molmospaces.protocol import read_state, write_state
 
     home = tmp_path / "operator-home"
     monkeypatch.setenv("HOME", str(home))
@@ -84,7 +84,7 @@ def test_init_state_builds_init_envelope_with_injected_hooks(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     pytest.importorskip("mujoco")
-    from scripts.molmo_cleanup.molmospaces_worker_state import init_state
+    from roboclaws.backends.molmospaces.state import init_state
 
     _install_fake_molmospaces_modules(tmp_path, monkeypatch)
     scene_xml = tmp_path / "scene.xml"
@@ -126,7 +126,7 @@ def test_init_state_private_manifest_preserves_generated_manifest_destinations(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     pytest.importorskip("mujoco")
-    from scripts.molmo_cleanup.molmospaces_worker_state import init_state
+    from roboclaws.backends.molmospaces.state import init_state
 
     _install_fake_molmospaces_modules(tmp_path, monkeypatch)
     scene_xml = tmp_path / "scene.xml"
@@ -178,7 +178,7 @@ def test_init_state_seeds_robot_pose_for_targetless_open_task(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     pytest.importorskip("mujoco")
-    from scripts.molmo_cleanup.molmospaces_worker_state import init_state
+    from roboclaws.backends.molmospaces.state import init_state
 
     _install_fake_molmospaces_modules(tmp_path, monkeypatch)
     scene_xml = tmp_path / "scene.xml"
@@ -215,7 +215,7 @@ def test_init_state_seeds_robot_pose_for_targetless_open_task(
 
 
 def test_source_room_labels_reads_adjacent_scene_json(tmp_path: Path) -> None:
-    from scripts.molmo_cleanup.molmospaces_worker_init import source_room_labels
+    from roboclaws.backends.molmospaces.initialization import source_room_labels
 
     scene_xml = tmp_path / "val_5.xml"
     scene_xml.write_text("<mujoco/>", encoding="utf-8")
@@ -268,7 +268,7 @@ def test_source_room_labels_fails_on_corrupt_adjacent_scene_json(
     payload: str,
     error: str,
 ) -> None:
-    from scripts.molmo_cleanup.molmospaces_worker_init import source_room_labels
+    from roboclaws.backends.molmospaces.initialization import source_room_labels
 
     scene_xml = tmp_path / "val_5.xml"
     scene_xml.write_text("<mujoco/>", encoding="utf-8")
@@ -281,7 +281,7 @@ def test_source_room_labels_fails_on_corrupt_adjacent_scene_json(
 def test_source_room_labels_fails_on_empty_source_scene_json_before_ithor_fallback(
     tmp_path: Path,
 ) -> None:
-    from scripts.molmo_cleanup.molmospaces_worker_init import source_room_labels
+    from roboclaws.backends.molmospaces.initialization import source_room_labels
 
     scene_xml = tmp_path / "FloorPlan301_physics.xml"
     scene_xml.write_text("<mujoco/>", encoding="utf-8")
@@ -292,7 +292,7 @@ def test_source_room_labels_fails_on_empty_source_scene_json_before_ithor_fallba
 
 
 def test_source_room_labels_uses_explicit_ithor_floorplan_provenance(tmp_path: Path) -> None:
-    from scripts.molmo_cleanup.molmospaces_worker_init import source_room_labels
+    from roboclaws.backends.molmospaces.initialization import source_room_labels
 
     scene_xml = tmp_path / "FloorPlan301_physics.xml"
     scene_xml.write_text("<mujoco/>", encoding="utf-8")
@@ -308,7 +308,7 @@ def test_source_room_labels_uses_explicit_ithor_floorplan_provenance(tmp_path: P
 
 
 def test_source_room_labels_fails_without_source_label_data(tmp_path: Path) -> None:
-    from scripts.molmo_cleanup.molmospaces_worker_init import source_room_labels
+    from roboclaws.backends.molmospaces.initialization import source_room_labels
 
     scene_xml = tmp_path / "scene.xml"
     scene_xml.write_text("<mujoco/>", encoding="utf-8")
@@ -318,7 +318,7 @@ def test_source_room_labels_fails_without_source_label_data(tmp_path: Path) -> N
 
 
 def test_all_supported_sim_scene_room_formats_have_source_room_labels(tmp_path: Path) -> None:
-    from scripts.molmo_cleanup.molmospaces_worker_init import source_room_labels
+    from roboclaws.backends.molmospaces.initialization import source_room_labels
 
     # Physical-robot and B1 digital-twin room-label parity is future work, not sim coverage.
     scenes = {
@@ -384,7 +384,7 @@ def _init_hooks(
     robot_pose: dict[str, object] | None = None,
     generated_mess_manifest: dict[str, object] | None = None,
 ):
-    from scripts.molmo_cleanup.molmospaces_worker_state import MolmoInitHooks
+    from roboclaws.backends.molmospaces.state import MolmoInitHooks
 
     return MolmoInitHooks(
         backend="molmospaces_subprocess",

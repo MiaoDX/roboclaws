@@ -6,22 +6,20 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from roboclaws.maps.bundle import validate_nav2_map_bundle
-from roboclaws.maps.runtime_prior_snapshot import (
-    materialize_runtime_prior_targets,
-    runtime_metric_map_from_prior_artifact,
-    runtime_prior_snapshot_from_nav2_cleanup_bundle,
-)
-from scripts.isaac_lab_cleanup.check_b1_map12_readiness import (
-    DEFAULT_B1_VISUAL_ROUTE_SCENE_USD,
-    NAVIGATION_PROVENANCE,
-)
-from scripts.maps.augment_b1_map12_base_metric_map import (
+from roboclaws.backends.isaaclab.b1_base_metric_augmentation import (
     B1_MAP12_BASE_METRIC_SIDECAR_SCHEMA,
     B1_ROBOT_CONSUMPTION_MANIFEST_SCHEMA,
     augment_base_metric_map_bundle,
 )
-from scripts.maps.build_b1_map12_base_metric_map import build_base_metric_map_bundle
+from roboclaws.backends.isaaclab.b1_readiness import (
+    DEFAULT_B1_VISUAL_ROUTE_SCENE_USD,
+    NAVIGATION_PROVENANCE,
+)
+from roboclaws.maps.b1_base_metric_map import build_base_metric_map_bundle
+from roboclaws.maps.bundle import validate_nav2_map_bundle
+from roboclaws.maps.runtime_prior_artifact import runtime_metric_map_from_prior_artifact
+from roboclaws.maps.runtime_prior_conversion import runtime_prior_snapshot_from_nav2_cleanup_bundle
+from roboclaws.maps.runtime_prior_materialization import materialize_runtime_prior_targets
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 MAP12_BUNDLE = (

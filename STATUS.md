@@ -15,9 +15,45 @@ The aggressive architecture migration is active under
 complete: exact baselines and field-level parity are proven, all six module
 cycles and five bidirectional package pairs are removed, the Wave 1-2 guards
 are locked green, and unconditional investigation/rehearsal stacks are retired.
-Waves 0-4 are complete: Wave 4 collapsed both conditional scene-camera and
-planner manipulation diagnostic workbenches while retaining their product
-contracts. Wave 5 is moving active product subsystems out of scripts.
+Waves 0-5 are complete. MolmoSpaces, Isaac Lab, cleanup validation, B1 rebuild
+and reproducibility, and the physical Agibot pilot now have package-owned
+module CLIs. The graph has no package-to-script violations; Wave 6 behavior
+splits are active. The operator-console browser monolith is now ten native ES
+modules with one state owner and a 180-line composition entrypoint; focused,
+static, and real-browser workflow proofs pass. Runtime inventory now has
+separate source, task-model, blocker-policy, and host-probe owners with a
+61-line composition module; its full console and static gates pass. The OpenAI
+Agents SDK runtime now has direct owners for composition, configuration,
+retry/racing, events, history, image/grounded memory, and compaction; 201
+focused contracts and static ratchets pass with serialized provider, cost,
+privacy, and result behavior unchanged. Household MCP projection, runtime-map
+target selection, visual perception/navigation, direct cleanup selection, and
+Agibot SDK contract/projection/stage execution now have direct owners; the
+retained adapters delegate without compatibility exports. The focused
+household suites and static ratchets pass, oversized Python modules decrease to
+58, and the graph is 359 modules / 1,087 edges with zero SCCs or forbidden
+edges. MolmoSpaces catalog, sampling/profile/prefilter policy, preparation,
+scanner validation, and map-bundle naming now live under
+`worlds/molmospaces`; launch consumes recursively immutable `WorldSpec` values.
+Focused world/catalog/console/eval/map-bundle suites and static ratchets pass at
+362 modules / 1,089 edges with zero SCCs or forbidden edges. Household report
+composition, semantic/tables, document, styles, planner/proof/grasp-cache,
+snapshot/trace, and artifact-rerender behavior now have direct owners; the
+duplicate grasp-collision diagnostic renderer is gone. Report contracts and
+static ratchets pass at 367 modules / 1,102 edges, and oversized Python modules
+decrease to 57. Eval suite loading, trial/live execution, grading, persistence,
+aggregation/reporting, and CLI composition now have direct owners; CLI imports
+only runner from the eval package. The full eval unit and CLI/distribution
+contracts pass at 375 modules / 1,128 edges, and oversized Python modules
+decrease to 55.
+Planner proof request construction, selection, fallback selection, result
+projection, feasibility contracts, and grasp-cache lifecycle now have direct
+household owners. Runtime-prior contracts, online snapshot wrapping,
+Agibot/Nav2 conversion, artifact reads, target materialization, and
+source/frame/digest validation now have direct map owners. The 186 focused
+planner/proof/runtime-prior contracts and static ratchets pass at 389 modules /
+1,165 edges with zero SCCs or forbidden edges, and oversized Python modules
+decrease to 52.
 The migration preserves public launch, artifact, privacy, provider, simulator,
 and operator behavior while removing dependency cycles, retiring completed
 investigation surfaces, moving product subsystems out of scripts, and splitting
@@ -102,9 +138,8 @@ providers.
 
 ## Next Action
 
-Begin Wave 5 by moving the MolmoSpaces subprocess backend worker and runtime
-dependencies into a package-owned module CLI, then migrate callers forward-only
-without changing worker protocol or artifacts. The
+Continue Wave 6 with retained test/support cleanup and wave-level product and
+partition verification. The
 refreshed immutable candidate remains unmodified; publication remains
 unauthorized and separate from this campaign.
 

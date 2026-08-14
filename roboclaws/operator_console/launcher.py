@@ -50,13 +50,13 @@ from roboclaws.operator_console.routes import (
     get_selection,
     selection_task_selector,
 )
-from roboclaws.operator_console.runtime_compat import pid_is_active  # noqa: F401
-from roboclaws.operator_console.runtime_inventory import (
+from roboclaws.operator_console.runtime_blocker_policy import (
     background_blocker_message,
     blocking_tasks_for_route,
     requested_mcp_endpoint,
-    runtime_inventory_payload,
 )
+from roboclaws.operator_console.runtime_compat import pid_is_active  # noqa: F401
+from roboclaws.operator_console.runtime_inventory import runtime_inventory_payload
 from roboclaws.operator_console.state import resolve_display_run_dir
 from roboclaws.operator_console.state_summary import (
     existing_terminal_phase,

@@ -1,0 +1,8 @@
+PLANNER_PROOF_REQUESTS_SCHEMA = "planner_cleanup_proof_requests_v1"
+PLANNER_PROOF_BUNDLE_RUN_MANIFEST_SCHEMA = "planner_cleanup_proof_bundle_run_manifest_v1"
+PLANNER_PROOF_RESULT_SUMMARY_SCHEMA = "planner_cleanup_proof_result_summary_v1"
+PLANNER_PROOF_REQUEST_SELECTION_SCHEMA = "planner_cleanup_proof_request_selection_v1"
+PLANNER_PROOF_EXECUTION_HORIZON_SCHEMA = "planner_cleanup_proof_execution_horizon_v1"
+PLANNER_PROOF_REQUEST_FALLBACK_GENERATION_SCHEMA = (
+    "planner_cleanup_proof_request_fallback_generation_v1"
+)

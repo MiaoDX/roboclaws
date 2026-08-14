@@ -15,20 +15,22 @@ from roboclaws.agents.drivers.openai_agents_budget import (
     openai_agents_observe_budget_advisory,
     raw_fpv_budget_metrics,
 )
-from roboclaws.agents.drivers.openai_agents_live import (
-    OpenAIAgentsLiveRuntime,
-    _default_sdk_model_settings_payload,
-    _failure_from_exception,
-    _mcp_client_session_timeout_seconds,
+from roboclaws.agents.drivers.openai_agents_compaction import _compact_model_input_items
+from roboclaws.agents.drivers.openai_agents_event_projection import _model_input_shape_summary
+from roboclaws.agents.drivers.openai_agents_live import OpenAIAgentsLiveRuntime
+from roboclaws.agents.drivers.openai_agents_perf_profile import (
+    resolve_agent_sdk_perf_profile as _resolve_agent_sdk_perf_profile,
+)
+from roboclaws.agents.drivers.openai_agents_provider_runtime import (
+    failure_from_exception as _failure_from_exception,
+)
+from roboclaws.agents.drivers.openai_agents_retry_model import (
     _RetryingModel,
     _should_retry_model_service_failure,
 )
-from roboclaws.agents.drivers.openai_agents_model_input import (
-    _compact_model_input_items,
-    _model_input_shape_summary,
-)
-from roboclaws.agents.drivers.openai_agents_perf_profile import (
-    resolve_agent_sdk_perf_profile as _resolve_agent_sdk_perf_profile,
+from roboclaws.agents.drivers.openai_agents_run_config import (
+    _default_sdk_model_settings_payload,
+    _mcp_client_session_timeout_seconds,
 )
 from roboclaws.agents.drivers.openai_agents_spans import RoboclawsSpanRecorder
 from roboclaws.agents.household_live_runner import (
@@ -92,7 +94,6 @@ def test_live_agent_request_keeps_one_turn_policy_explicit(tmp_path: Path) -> No
         run_dir=tmp_path / "run",
         artifact_paths={"live_status": tmp_path / "status.json"},
     )
-
     assert request.one_turn is True
     assert request.max_turns is None
     assert request.artifact_path("live_status", "live_status.json") == tmp_path / "status.json"
@@ -185,7 +186,6 @@ def test_live_agent_result_reads_existing_cli_artifacts(tmp_path: Path) -> None:
     (run_dir / "openai-agents-spans.jsonl").write_text('{"event":"span_end"}\n', encoding="utf-8")
 
     result = live_agent_result_from_artifacts(run_dir)
-
     assert result.phase == "failed"
     assert result.reason == "tool_binding_failure"
     assert result.retryable is False
@@ -1418,7 +1418,7 @@ def test_openai_agents_runtime_configures_model_input_compaction_filter(
     assert "call_model_input_filter" not in events[0]["sdk_run_config"]
 
 
-def test_openai_agents_model_input_filter_warns_before_model_call_on_observe_budget(
+def test_openai_agents_compaction_filter_warns_before_model_call_on_observe_budget(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -3166,7 +3166,7 @@ def test_openai_agents_cleanup_runner_invokes_sdk_then_checker(tmp_path: Path, m
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner._port_accepting",
+        "roboclaws.agents.drivers.household_live.port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
@@ -3180,7 +3180,7 @@ def test_openai_agents_cleanup_runner_invokes_sdk_then_checker(tmp_path: Path, m
         return 0
 
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner._run_and_tee",
+        "roboclaws.agents.drivers.household_live.run_and_tee",
         fake_run_and_tee,
     )
     lock_path = tmp_path / "live.lock"
@@ -3293,7 +3293,7 @@ def _assert_openai_agents_timeline_and_checker(
     assert timing["timeline"]["latency_attribution"]["mcp_client_session_timeout_s"] == 30.0
     assert checker_commands
     checker_command = checker_commands[0]
-    assert "scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py" in checker_command
+    assert checker_command[1:3] == ["-m", "roboclaws.household.cleanup_validation_cli"]
     assert "--expect-policy" in checker_command
     assert "openai_agents_agent" in checker_command
     assert "--require-clean-agent-run" in checker_command
@@ -3426,7 +3426,7 @@ def test_openai_agents_camera_grounded_composite_profile_adds_private_server_fla
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner._port_accepting",
+        "roboclaws.agents.drivers.household_live.port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
@@ -3439,7 +3439,7 @@ def test_openai_agents_camera_grounded_composite_profile_adds_private_server_fla
         return 0
 
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner._run_and_tee",
+        "roboclaws.agents.drivers.household_live.run_and_tee",
         fake_run_and_tee,
     )
     args = Namespace(
@@ -3546,7 +3546,7 @@ def test_openai_agents_robot_view_capture_policy_adds_private_server_flag(
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner._port_accepting",
+        "roboclaws.agents.drivers.household_live.port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
@@ -3554,7 +3554,7 @@ def test_openai_agents_robot_view_capture_policy_adds_private_server_flag(
         lambda: FakeRuntime(),
     )
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner._run_and_tee",
+        "roboclaws.agents.drivers.household_live.run_and_tee",
         lambda *_args, **_kwargs: 0,
     )
     args = Namespace(
@@ -3724,7 +3724,7 @@ def test_openai_agents_camera_grounded_composite_runner_rerenders_stale_two_step
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner._port_accepting",
+        "roboclaws.agents.drivers.household_live.port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
@@ -3737,7 +3737,7 @@ def test_openai_agents_camera_grounded_composite_runner_rerenders_stale_two_step
         return 0
 
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner._run_and_tee",
+        "roboclaws.agents.drivers.household_live.run_and_tee",
         fake_run_and_tee,
     )
     stale_prompt = render_kickoff_prompt("camera-grounded-labels")
@@ -3863,7 +3863,7 @@ def test_openai_agents_cleanup_runner_loads_canonical_skill_context(
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner._port_accepting",
+        "roboclaws.agents.drivers.household_live.port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
@@ -3876,7 +3876,7 @@ def test_openai_agents_cleanup_runner_loads_canonical_skill_context(
         return 0
 
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner._run_and_tee",
+        "roboclaws.agents.drivers.household_live.run_and_tee",
         fake_run_and_tee,
     )
     args = Namespace(
@@ -4008,7 +4008,7 @@ def test_openai_agents_cleanup_runner_continues_incomplete_sdk_turn(
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner._port_accepting",
+        "roboclaws.agents.drivers.household_live.port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
@@ -4022,7 +4022,7 @@ def test_openai_agents_cleanup_runner_continues_incomplete_sdk_turn(
         return 0
 
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner._run_and_tee",
+        "roboclaws.agents.drivers.household_live.run_and_tee",
         fake_run_and_tee,
     )
     args = Namespace(
@@ -4165,7 +4165,7 @@ def test_openai_agents_cleanup_runner_compact_continuation_excludes_full_prompt(
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner._port_accepting",
+        "roboclaws.agents.drivers.household_live.port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
@@ -4178,7 +4178,7 @@ def test_openai_agents_cleanup_runner_compact_continuation_excludes_full_prompt(
         return 0
 
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner._run_and_tee",
+        "roboclaws.agents.drivers.household_live.run_and_tee",
         fake_run_and_tee,
     )
     full_prompt = "FULL ORIGINAL PROMPT THAT SHOULD NOT REPEAT"
@@ -4694,7 +4694,7 @@ def test_openai_agents_cleanup_runner_compact_continuation_preserves_composite_c
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner._port_accepting",
+        "roboclaws.agents.drivers.household_live.port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
@@ -4702,7 +4702,7 @@ def test_openai_agents_cleanup_runner_compact_continuation_preserves_composite_c
         lambda: FakeRuntime(),
     )
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner._run_and_tee",
+        "roboclaws.agents.drivers.household_live.run_and_tee",
         lambda command, *, cwd, stdout_path, stderr_path, env: 0,
     )
     full_prompt = "FULL ORIGINAL PROMPT THAT SHOULD NOT REPEAT"
@@ -4807,7 +4807,7 @@ def test_openai_agents_cleanup_runner_uses_profiled_compact_kickoff_prompt(
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner._port_accepting",
+        "roboclaws.agents.drivers.household_live.port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
@@ -4815,7 +4815,7 @@ def test_openai_agents_cleanup_runner_uses_profiled_compact_kickoff_prompt(
         lambda: FakeRuntime(),
     )
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner._run_and_tee",
+        "roboclaws.agents.drivers.household_live.run_and_tee",
         lambda command, *, cwd, stdout_path, stderr_path, env: 0,
     )
     args = Namespace(
@@ -5433,7 +5433,7 @@ def test_openai_agents_cleanup_runner_fails_after_bounded_continuation(
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner._port_accepting",
+        "roboclaws.agents.drivers.household_live.port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
@@ -5447,7 +5447,7 @@ def test_openai_agents_cleanup_runner_fails_after_bounded_continuation(
         return 0
 
     monkeypatch.setattr(
-        "roboclaws.agents.household_live_runner._run_and_tee",
+        "roboclaws.agents.drivers.household_live.run_and_tee",
         fake_run_and_tee,
     )
     args = Namespace(
@@ -6608,7 +6608,7 @@ def test_openai_agents_context_metrics_missing_usage_is_unavailable(tmp_path: Pa
     assert cache["stable_prefix_hash"] == "stable-hash"
 
 
-def test_openai_agents_model_input_filter_metrics_are_aggregate_only(tmp_path: Path) -> None:
+def test_openai_agents_compaction_filter_metrics_are_aggregate_only(tmp_path: Path) -> None:
     run_dir = tmp_path / "run"
     run_dir.mkdir()
     (run_dir / "openai-agents-events.jsonl").write_text(

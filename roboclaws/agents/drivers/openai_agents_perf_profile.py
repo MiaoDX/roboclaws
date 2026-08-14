@@ -5,14 +5,11 @@ import math
 import os
 from typing import Any
 
-from roboclaws.agents.drivers.openai_agents_live import (
-    DEFAULT_MODEL_SERVICE_RETRY_ATTEMPTS,
-    DEFAULT_MODEL_SERVICE_RETRY_SLEEP_S,
+from roboclaws.agents.drivers import openai_agents_retry_model as retry_model
+from roboclaws.agents.drivers.openai_agents_run_config import (
     DEFAULT_OPENAI_AGENTS_MAX_TURNS,
     KIMI_CODING_USER_AGENT,
     MCP_CLIENT_SESSION_TIMEOUT_ENV,
-    MODEL_SERVICE_RETRY_ATTEMPTS_ENV,
-    MODEL_SERVICE_RETRY_SLEEP_ENV,
 )
 from roboclaws.agents.provider_transport import compatible_model_settings
 from roboclaws.agents.thinking_policy import normalize_thinking_mode
@@ -192,14 +189,14 @@ def resolve_agent_sdk_perf_profile(args: argparse.Namespace) -> dict[str, Any]:
         "model_service_retry_attempts": _int_setting(
             args,
             "model_service_retry_attempts",
-            MODEL_SERVICE_RETRY_ATTEMPTS_ENV,
-            default=DEFAULT_MODEL_SERVICE_RETRY_ATTEMPTS,
+            retry_model.MODEL_SERVICE_RETRY_ATTEMPTS_ENV,
+            default=retry_model.DEFAULT_MODEL_SERVICE_RETRY_ATTEMPTS,
         ),
         "model_service_retry_sleep_s": _float_setting(
             args,
             "model_service_retry_sleep_s",
-            MODEL_SERVICE_RETRY_SLEEP_ENV,
-            default=DEFAULT_MODEL_SERVICE_RETRY_SLEEP_S,
+            retry_model.MODEL_SERVICE_RETRY_SLEEP_ENV,
+            default=retry_model.DEFAULT_MODEL_SERVICE_RETRY_SLEEP_S,
         ),
     }
     payload["sdk_model_settings"] = _sdk_model_settings_for_profile(payload)

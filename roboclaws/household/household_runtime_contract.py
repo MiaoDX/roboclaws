@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+import roboclaws.household.realworld_visual_perception_navigation as visual_perception
 from roboclaws.core.json_sources import read_json_value
 from roboclaws.core.raw_fpv_guidance import (
     RAW_FPV_DECLARATION_STRATEGY,
@@ -18,9 +19,9 @@ from roboclaws.household import (
     realworld_done_readiness,
     realworld_runtime_map_contract,
     realworld_runtime_map_targets,
+    realworld_runtime_target_selection,
     realworld_tool_responses,
     realworld_visual_candidate_declarations,
-    realworld_visual_candidate_lifecycle,
     realworld_visual_candidates,
 )
 from roboclaws.household.household_backend_contract import HouseholdBackendSession
@@ -641,7 +642,7 @@ class HouseholdRuntimeContract:
         producer_type: str = MAIN_CLEANUP_AGENT_PRODUCER,
         producer_id: str = "cleanup_agent",
     ) -> dict[str, Any]:
-        return realworld_visual_candidate_lifecycle.navigate_to_visual_candidate(
+        return visual_perception.navigate_to_visual_candidate(
             self,
             source_observation_id,
             category=category,
@@ -1378,7 +1379,7 @@ class HouseholdRuntimeContract:
         source_observation_id: str,
         visual_confirmation: bool,
     ) -> list[dict[str, Any]]:
-        return realworld_visual_candidate_lifecycle.visible_detections_for_waypoint(
+        return visual_perception.visible_detections_for_waypoint(
             self,
             waypoint,
             source_observation_id=source_observation_id,
@@ -1394,7 +1395,7 @@ class HouseholdRuntimeContract:
         observation_id: str,
         model_provenance: str,
     ) -> list[dict[str, Any]]:
-        return realworld_visual_candidate_lifecycle.camera_model_candidates_for_waypoint(
+        return visual_perception.camera_model_candidates_for_waypoint(
             self,
             waypoint,
             observation_id=observation_id,
@@ -1477,7 +1478,7 @@ class HouseholdRuntimeContract:
             source_observation_id=source_observation_id,
             inspection_observation_schema=INSPECTION_OBSERVATION_SCHEMA,
             target_candidate_evidence_lane=(
-                realworld_runtime_map_targets.target_candidate_evidence_lane
+                realworld_runtime_target_selection.target_candidate_evidence_lane
             ),
             assert_no_forbidden_agent_view_keys=_assert_no_forbidden_agent_view_keys,
         )
@@ -1487,14 +1488,14 @@ class HouseholdRuntimeContract:
         tool: str,
         object_id: str,
     ) -> dict[str, Any] | None:
-        return realworld_visual_candidate_lifecycle.unresolved_visual_candidate_error(
+        return visual_perception.unresolved_visual_candidate_error(
             self,
             tool,
             object_id,
         )
 
     def _visual_evidence_for_handle(self, handle: str) -> dict[str, Any]:
-        return realworld_visual_candidate_lifecycle.visual_evidence_for_handle(
+        return visual_perception.visual_evidence_for_handle(
             self,
             handle,
             assert_no_forbidden_agent_view_keys=_assert_no_forbidden_agent_view_keys,
@@ -1505,7 +1506,7 @@ class HouseholdRuntimeContract:
         tool: str,
         object_id: str,
     ) -> dict[str, Any] | None:
-        return realworld_visual_candidate_lifecycle.visual_evidence_actionability_error(
+        return visual_perception.visual_evidence_actionability_error(
             self,
             tool,
             object_id,
@@ -1692,7 +1693,7 @@ class HouseholdRuntimeContract:
             return 0.5
 
     def _handle_is_non_actionable(self, handle: str) -> bool:
-        return realworld_visual_candidate_lifecycle.handle_is_non_actionable(self, handle)
+        return visual_perception.handle_is_non_actionable(self, handle)
 
     def _preferred_waypoint_for_fixture(self, fixture_id: str) -> str:
         fixture = self._fixtures.get(fixture_id) or {}
@@ -1803,14 +1804,12 @@ class HouseholdRuntimeContract:
         handle: str,
         detection: dict[str, Any],
     ) -> dict[str, Any]:
-        return (
-            realworld_visual_candidate_lifecycle.ensure_generated_inspection_waypoint_for_detection(
-                self,
-                handle,
-                detection,
-                safe_anchor_id=_safe_anchor_id,
-                assert_no_forbidden_agent_view_keys=_assert_no_forbidden_agent_view_keys,
-            )
+        return visual_perception.ensure_generated_inspection_waypoint_for_detection(
+            self,
+            handle,
+            detection,
+            safe_anchor_id=_safe_anchor_id,
+            assert_no_forbidden_agent_view_keys=_assert_no_forbidden_agent_view_keys,
         )
 
     def _generated_inspection_waypoint_for_object(self, handle: str) -> dict[str, Any]:

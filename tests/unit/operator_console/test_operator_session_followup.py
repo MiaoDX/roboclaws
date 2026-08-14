@@ -355,7 +355,7 @@ def test_next_goal_autostart_releases_parent_lock_during_live_status_wind_down(
     with (
         patch.dict(os.environ, KIMI_ENV),
         patch("roboclaws.operator_console.readiness.DEFAULT_MCP_PORT", mcp_port),
-        patch("roboclaws.operator_console.runtime_inventory.DEFAULT_MCP_PORT", mcp_port),
+        patch("roboclaws.operator_console.runtime_host_probes.DEFAULT_MCP_PORT", mcp_port),
         patch("roboclaws.operator_console.launcher.spawn_launch_plan", return_value=FakeProcess()),
         _console_server(tmp_path) as (host, port),
     ):

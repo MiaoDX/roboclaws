@@ -4,37 +4,17 @@ from __future__ import annotations
 
 import os
 import shutil
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from roboclaws.launch.map_bundles import molmospaces_nav2_map_bundle_arg
-from roboclaws.launch.scene_sampler import (
+from roboclaws.worlds.contracts import WorldSpec
+from roboclaws.worlds.molmospaces.map_bundles import molmospaces_nav2_map_bundle_arg
+from roboclaws.worlds.molmospaces.sampling import (
     READINESS_READY,
     parse_molmospaces_world_id,
     sampler_rows,
     ui_molmospaces_world_ids,
 )
-
-
-@dataclass(frozen=True)
-class WorldSpec:
-    """A room, map, site, or scene selected before backend/runtime choices."""
-
-    id: str
-    label: str
-    surface_id: str
-    available_backends: tuple[str, ...]
-    scene_source: str
-    tags: tuple[str, ...]
-    default_backend: str
-    resource_kind: str
-    availability: str = "enabled"
-    optional_validation: bool = False
-    default_overrides: tuple[str, ...] = ()
-    preview_assets: tuple[tuple[str, str], ...] = ()
-    sampler_metadata: dict[str, object] | None = None
-
 
 MOLMOSPACES_CONSOLE_WORLD_IDS: tuple[str, ...] = ui_molmospaces_world_ids()
 
