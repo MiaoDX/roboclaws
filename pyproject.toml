@@ -11,7 +11,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-openclaw = ["mcp[cli]>=1.27"]
 molmospaces = [
     "molmo-spaces[mujoco] @ git+https://github.com/allenai/molmospaces.git@3c50ae6093f7e4a4ef32529f8a773715da410a2f",
     "torch==2.7.1+cpu",
@@ -86,7 +85,6 @@ addopts = "--tb=short -q --strict-markers"
 markers = [
     "unit: fast isolated behavior tests through public module APIs.",
     "contract: public schema, CLI, MCP tool, replay, report, and artifact compatibility tests.",
-    "integration: requires Docker (pinned Gateway image) or real model-provider API calls. The pre-commit hook excludes these; run them post-merge via `just dev::test-integration` or plain `pytest` to run everything.",
-    "local: requires local GPU, paid API key, real simulator, or real Gateway.",
+    "local: requires local GPU, paid API key, real simulator, or backend service.",
     "slow: CI-safe but expensive enough to exclude from tight feedback loops.",
 ]

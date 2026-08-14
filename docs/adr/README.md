@@ -38,6 +38,7 @@ guidance:
 | [0142](0142-scope-isaac-to-digital-twin-and-retire-molmospaces-isaac.md) | Scope Isaac To Digital Twin And Retire MolmoSpaces Isaac | Keeps B1 Isaac current while retiring MolmoSpaces Isaac support. |
 | [0144](0144-use-relative-pose-navigation-as-public-mcp-capability.md) | Use Relative Pose Navigation As Public MCP Capability | Distinguishes robot-local movement from waypoint navigation and preserves operator attribution. |
 | [0146](0146-reuse-canonical-map-priors-for-agent-matrices.md) | Reuse Canonical Map Priors For Agent Matrices | Separates MapBuild quality, fixed-prior Agent comparison, and explicit end-to-end evaluation. |
+| [0148](0148-retire-openclaw-and-local-docker-runtime.md) | Retire OpenClaw And Local Docker Runtime | Keeps active agent execution host-based while preserving CloudML image contracts. |
 
 ## Archived Superseded ADRs
 

@@ -46,15 +46,6 @@ AGENT_ENGINE_SPECS: dict[str, AgentEngineSpec] = {
         supported_provider_profiles=(),
         default_provider_profile=None,
     ),
-    "openclaw-gateway": AgentEngineSpec(
-        id="openclaw-gateway",
-        label="OpenClaw Gateway",
-        dispatch_runner="openclaw",
-        internal_runner_class="gateway",
-        supported_provider_profiles=supported_provider_profiles("openclaw-gateway"),
-        default_provider_profile=default_provider_profile("openclaw-gateway"),
-        availability="validation-required",
-    ),
 }
 
 

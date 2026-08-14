@@ -148,7 +148,6 @@ def _add_core_checker_args(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Validate contract/report evidence without requiring cleanup success.",
     )
-    parser.add_argument("--require-openclaw-minimum", action="store_true")
     parser.add_argument("--require-robot-views", action="store_true")
     parser.add_argument("--require-advisory-scoring", action="store_true")
 
@@ -309,8 +308,6 @@ def main() -> None:
         expect_policy = (
             "map_build_baseline"
             if args.require_map_build
-            else "openclaw_agent"
-            if args.require_openclaw_minimum
             else CAMERA_MODEL_POLICY_NAME
             if args.require_camera_model_policy
             else "deterministic_sweep_baseline"
@@ -329,7 +326,6 @@ def main() -> None:
             require_agent_driven=args.require_agent_driven,
             require_clean_agent_run=args.require_clean_agent_run,
             allow_partial_cleanup=args.allow_partial_cleanup,
-            require_openclaw_minimum=args.require_openclaw_minimum,
             require_robot_views=args.require_robot_views,
             require_advisory_scoring=args.require_advisory_scoring,
             require_raw_fpv_observations=args.require_raw_fpv_observations,
@@ -441,14 +437,15 @@ def _assert_core_run_result(data: dict[str, Any], opts: _ResultOptions) -> tuple
     assert data.get("planner_uses_private_manifest") is False, data
     assert data.get("static_fixture_projection_mode") == "room_only", data
     assert data.get("generated_mess_count", 0) >= opts["min_generated_mess_count"], data
+    if opts["require_agent_driven"]:
+        _assert_agent_driven_public_tool_use(data)
     raw_contract_only = (
         opts["require_raw_fpv_observations"]
         and not opts["require_model_declared_observations"]
         and not opts["require_clean_agent_run"]
     )
     enforce_success = (
-        (opts["require_clean_agent_run"] or not opts["require_openclaw_minimum"])
-        and not raw_contract_only
+        not raw_contract_only
         and not opts["allow_partial_cleanup"]
         and not opts["require_map_build"]
     )
@@ -458,6 +455,24 @@ def _assert_core_run_result(data: dict[str, Any], opts: _ResultOptions) -> tuple
     _assert_core_thresholds(data, opts)
     _assert_expected_core_fields(data, opts)
     return enforce_success, semantic_success_gate
+
+
+def _assert_agent_driven_public_tool_use(data: dict[str, Any]) -> None:
+    assert data.get("agent_driven") is True, data
+    counts = data.get("tool_event_counts") or {}
+    public_requests = sum(
+        int(counts.get(f"{tool}:request") or 0)
+        for tool in (
+            "metric_map",
+            "static_fixture_projection",
+            "navigate_to_waypoint",
+            "observe",
+            *SEMANTIC_RESPONSE_PHASES,
+            "done",
+        )
+    )
+    assert public_requests >= 1, (public_requests, counts, data)
+    assert int(counts.get("scene_objects:request") or 0) == 0, (counts, data)
 
 
 def _assert_core_cleanup_success(
@@ -657,8 +672,6 @@ def _assert_optional_agent_observation_gates(
     enforce_success: bool,
     map_build: bool,
 ) -> None:
-    if opts["require_openclaw_minimum"]:
-        _assert_openclaw_minimum(data)
     if opts["require_clean_agent_run"] and not opts["allow_partial_cleanup"]:
         _assert_clean_agent_run(data, min_complete_count=opts["min_semantic_accepted_count"])
     if opts["require_robot_views"]:
@@ -780,28 +793,6 @@ def _needs_isaac_runtime(opts: _ResultOptions) -> bool:
             "require_isaac_scene_index_map_context",
         )
     )
-
-
-def _assert_openclaw_minimum(data: dict[str, Any]) -> None:
-    assert data.get("policy") == "openclaw_agent", data
-    assert data.get("agent_driven") is True, data
-    assert data.get("mcp_server") == "household_world", data
-    artifacts = data.get("artifacts") or {}
-    assert artifacts.get("trace"), data
-    assert artifacts.get("report"), data
-    counts = data.get("tool_event_counts") or {}
-    public_requests = 0
-    for tool in (
-        "metric_map",
-        "static_fixture_projection",
-        "navigate_to_waypoint",
-        "observe",
-        *SEMANTIC_RESPONSE_PHASES,
-        "done",
-    ):
-        public_requests += int(counts.get(f"{tool}:request") or 0)
-    assert public_requests >= 1, (public_requests, counts, data)
-    assert int(counts.get("scene_objects:request") or 0) == 0, (counts, data)
 
 
 def _assert_evidence_lane(

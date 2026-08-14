@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import json
-import subprocess
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from roboclaws.agents.provider_registry import normalize_provider_route, provider_route_spec
 from roboclaws.launch.environment_setup import (
@@ -43,12 +41,6 @@ ALLOWED_ROUTE_OVERRIDES = {
     "operator_session_context_json",
     "runtime_map_prior",
 }
-
-RunCommand = Callable[..., Any]
-
-
-class DockerMountSourceError(RuntimeError):
-    """Raised when Docker mount metadata exists but is not readable evidence."""
 
 
 def build_surface_launch_args(
@@ -383,93 +375,3 @@ def _parse_nonnegative_int(
     if value < 0:
         raise error_type(f"{key} must be >= 0")
     return value
-
-
-def docker_container_ids_with_mount(
-    source: Path,
-    *,
-    run_command: RunCommand = subprocess.run,
-) -> list[str]:
-    result = _docker_ps(run_command)
-    if result is None:
-        return []
-    container_ids: list[str] = []
-    for container_id in result.stdout.split():
-        if _docker_container_mounts_source(container_id, source, run_command=run_command):
-            container_ids.append(container_id)
-    return container_ids
-
-
-def docker_container_mount_sources(
-    container_id: str,
-    *,
-    run_command: RunCommand = subprocess.run,
-) -> list[Path]:
-    sources: list[Path] = []
-    for mount in _docker_container_mounts(container_id, run_command=run_command):
-        mount_source = mount.get("Source")
-        if not mount_source:
-            continue
-        try:
-            sources.append(Path(str(mount_source)).resolve())
-        except OSError:
-            continue
-    return sources
-
-
-def _docker_ps(run_command: RunCommand) -> Any | None:
-    try:
-        result = run_command(
-            ["docker", "ps", "-q"],
-            check=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            text=True,
-        )
-    except (FileNotFoundError, OSError):
-        return None
-    return result if result.returncode == 0 else None
-
-
-def _docker_container_mounts_source(
-    container_id: str,
-    source: Path,
-    *,
-    run_command: RunCommand,
-) -> bool:
-    return any(
-        mount_source == source
-        for mount_source in docker_container_mount_sources(container_id, run_command=run_command)
-    )
-
-
-def _docker_container_mounts(container_id: str, *, run_command: RunCommand) -> list[Any]:
-    try:
-        inspect = run_command(
-            ["docker", "inspect", "--format", "{{json .Mounts}}", container_id],
-            check=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            text=True,
-        )
-    except (FileNotFoundError, OSError):
-        return []
-    if inspect.returncode != 0:
-        return []
-    try:
-        mounts = json.loads(inspect.stdout)
-    except json.JSONDecodeError as exc:
-        raise DockerMountSourceError(
-            f"docker inspect mounts for {container_id} contain invalid JSON: {exc.msg}"
-        ) from exc
-    if not isinstance(mounts, list):
-        raise DockerMountSourceError(
-            f"docker inspect mounts for {container_id} must be a JSON array"
-        )
-    invalid_mount = next((mount for mount in mounts if not isinstance(mount, dict)), None)
-    if invalid_mount is not None:
-        raise DockerMountSourceError(
-            "docker inspect mounts for "
-            f"{container_id} must contain JSON objects; got {type(invalid_mount).__name__}"
-        )
-    return mounts

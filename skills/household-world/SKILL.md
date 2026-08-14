@@ -2,8 +2,7 @@
 name: household-world
 description: Complete household-world goals through public household MCP tools.
 metadata:
-  openclaw:
-    emoji: H
+  display_name: Household World
 ---
 
 # Household World

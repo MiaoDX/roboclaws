@@ -26,7 +26,6 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 JUSTFILE = REPO_ROOT / "justfile"
 JUST_DIR = REPO_ROOT / "just"
 AGENT_JUST = JUST_DIR / "agent.just"
-OPENCLAW_JUST = JUST_DIR / "openclaw.just"
 MOLMO_JUST = JUST_DIR / "molmo.just"
 CODING_AGENT_ENV = REPO_ROOT / "scripts" / "dev" / "coding_agent_env.sh"
 LIVE_OPENAI_AGENTS_RUNNER = REPO_ROOT / "roboclaws/agents/household_live_runner.py"
@@ -246,13 +245,11 @@ def test_public_just_summary_is_small_facade() -> None:
         "agent::verify",
         "agent::harness",
         "agent::mcp",
-        "agent::gateway",
         "agent::eval",
         "console::run",
     }
 
     hidden_recipes = {
-        "openclaw::run",
         "vlm::run",
         "molmo::cleanup",
         "harness::household-world",
@@ -340,8 +337,6 @@ def test_justfile_marks_implementation_modules_private() -> None:
     text = JUSTFILE.read_text(encoding="utf-8")
 
     for module in (
-        "openclaw",
-        "chat",
         "dev",
         "mcp",
         "harness",
@@ -883,38 +878,19 @@ def test_surface_launch_rejects_retired_vlm_policy_engine() -> None:
         )
 
     assert "expected direct-runner|openai-agents-sdk" in exc.value.hint
-    assert "openclaw-gateway is validation-required" in exc.value.hint
     assert "codex-cli" not in exc.value.hint
     assert "claude-code" not in exc.value.hint
 
 
-def test_public_engine_docs_keep_guarded_maintainer_routes_out_of_public_list() -> None:
+def test_public_engine_docs_list_only_current_engines() -> None:
     readme = (JUST_DIR / "README.md").read_text(encoding="utf-8")
     engine_section = readme.split("Agent engines:", 1)[1].split("Provider profiles", 1)[0]
     taxonomy = (REPO_ROOT / "docs" / "human" / "agent-task-command-taxonomy.md").read_text(
         encoding="utf-8"
     )
-    taxonomy_engine_bullets = [
-        line.strip()
-        for line in taxonomy.split("Current agent engines:", 1)[1]
-        .split("Validation-required maintainer engines", 1)[0]
-        .splitlines()
-        if line.strip().startswith("- ")
-    ]
-
     assert "openclaw-gateway" not in engine_section
     assert "openclaw-gateway" not in readme
-    assert "Validation-required maintainer engines" in readme
-    assert "- `openclaw-gateway`" not in taxonomy_engine_bullets
-    assert "Validation-required maintainer engines" in taxonomy
-
-
-def test_retired_maintainer_demo_doc_does_not_publish_current_command() -> None:
-    demo_doc = (REPO_ROOT / "docs" / "human" / "openclaw" / "demo.md").read_text(encoding="utf-8")
-
-    assert "historical" in demo_doc
-    assert "agent_engine=openclaw-gateway" not in demo_doc
-    assert "same public launch catalog" not in demo_doc
+    assert "openclaw-gateway" not in taxonomy
 
 
 def test_human_docs_do_not_surface_legacy_cleanup_commands_as_current() -> None:
@@ -977,17 +953,9 @@ def test_planner_proof_surface_route_passes_default_map_bundle() -> None:
     ]
 
 
-def test_openclaw_module_no_longer_exposes_direct_game_recipe() -> None:
-    text = OPENCLAW_JUST.read_text(encoding="utf-8")
-
-    assert not re.search(r"^run\b", text, re.MULTILINE)
-    assert "ROBOCLAWS_MCP_URL is required" in text
-    assert "openclaw::run" not in text
-
-
 @pytest.mark.parametrize(
     "target",
-    ("navigator", "regression", "sim", "openclaw", "agent-validation"),
+    ("navigator", "regression", "sim", "agent-validation"),
 )
 def test_agent_harness_rejects_retired_targets(target: str) -> None:
     binary = just_bin()
@@ -1357,16 +1325,6 @@ def test_molmo_map_build_strips_cleanup_quality_gate() -> None:
     assert 'checker_visual_args=("${filtered_checker_visual_args[@]}")' in text
 
 
-def test_household_cleanup_prompt_override_does_not_make_openclaw_active() -> None:
-    stderr = assert_household_cleanup_run_fails(
-        "openclaw",
-        "world-public-labels",
-        "prompt=我渴了，帮我找些解渴的东西",
-    )
-
-    assert "openclaw-gateway is validation-required future abstraction work" in stderr
-
-
 def test_molmo_camera_raw_prompt_contains_run_constraints_not_generic_strategy() -> None:
     prompt = render_kickoff_prompt("camera-raw-fpv")
 
@@ -1711,7 +1669,7 @@ def test_live_agent_server_routes_use_cli_modules_not_examples() -> None:
     sdk_runner_text = LIVE_OPENAI_AGENTS_RUNNER.read_text(encoding="utf-8")
     household_live_text = HOUSEHOLD_LIVE_DRIVER.read_text(encoding="utf-8")
 
-    assert "roboclaws.cli.agent_server household-world" in molmo_text
+    assert "roboclaws.agents.household_live_runner" in molmo_text
     assert "roboclaws.cli.agent_server household-cleanup" not in molmo_text
     assert "examples/molmo_cleanup/molmo_realworld_cleanup_agent_server.py" not in molmo_text
     assert "examples/molmo_cleanup/molmo_realworld_cleanup_agent_server.py" not in sdk_runner_text
@@ -1880,7 +1838,7 @@ def test_molmo_live_dispatch_is_sdk_only_and_probeable() -> None:
     runner_text = LIVE_OPENAI_AGENTS_RUNNER.read_text(encoding="utf-8")
     household_live_text = HOUSEHOLD_LIVE_DRIVER.read_text(encoding="utf-8")
 
-    assert "live_drivers=(openai-agents-live openclaw-live)" in molmo_text
+    assert "live_drivers=(openai-agents-live)" in molmo_text
     assert "codex-live" not in molmo_text
     assert "claude-live" not in molmo_text
     assert "run_live_codex.sh" not in molmo_text
@@ -1894,8 +1852,6 @@ def test_molmo_live_dispatch_is_sdk_only_and_probeable() -> None:
     assert "active MCP servers:" not in molmo_text
     assert "ROBOCLAWS_MOLMO_ALLOW_BATCH_VISUAL_BACKENDS" in molmo_text
     assert "ROBOCLAWS_MOLMO_MAX_VISUAL_BACKENDS" in molmo_text
-    assert "roboclaws.household.visual_backend_slots acquire" in molmo_text
-    assert "visual_backend_slot.json" in molmo_text
     assert "refusing to choose another port" in molmo_text
     assert "live_status.json" in molmo_text
     assert "tmux_session.txt" not in molmo_text

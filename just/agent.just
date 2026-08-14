@@ -65,24 +65,6 @@ mcp action="up" server="household-world" host="127.0.0.1" port="18788" output_di
     fi
     exec "${command[@]}"
 
-# Manage the OpenClaw Gateway lifecycle.
-gateway action="up" token_file=".openclaw-token" provider="kimi" agents="2":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    action="$1"
-    case "$action" in
-      pull|pull-image) command=(just openclaw::pull-image) ;;
-      up|down) command=(just openclaw::gateway "$action" "$2" "$3" "$4") ;;
-      *) echo "error: unsupported gateway action '$action' (expected up|down|pull-image)" >&2; exit 1 ;;
-    esac
-    if [[ "${ROBOCLAWS_JUST_TRACE:-}" == "1" ]]; then
-      printf 'just'
-      printf '\t%s' "${command[@]:1}"
-      printf '\n'
-      exit 0
-    fi
-    exec "${command[@]}"
-
 # Run a repo-native eval suite.
 eval *overrides:
     @exec {{python_bin}} -m roboclaws.evals.cli "$@"

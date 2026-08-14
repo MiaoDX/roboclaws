@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.launch.agent_engines import agent_engine_spec
 from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS, WORLD_SPECS
 from roboclaws.operator_console import workflows as console_workflows
 from roboclaws.operator_console.launcher import ConsoleLaunchError, build_launch_argv
@@ -245,12 +244,6 @@ def test_openai_agents_route_payload_lists_provider_profiles() -> None:
     assert route_by_profile["minimax-responses"]["route_capabilities"]["image_transport"] == (
         "unknown"
     )
-
-
-def test_openclaw_agent_engine_marks_validation_required() -> None:
-    spec = agent_engine_spec("openclaw-gateway")
-
-    assert spec.availability == "validation-required"
 
 
 def test_console_exposes_all_supported_household_evidence_lanes() -> None:

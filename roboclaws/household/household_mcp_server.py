@@ -85,7 +85,6 @@ AGENT_POLICIES = {
     "household_contract_smoke_agent",
     "codex_agent",
     "claude_code_agent",
-    "openclaw_agent",
 }
 REPORT_RERUN_COMMAND_ENV = "ROBOCLAWS_REPORT_RERUN_COMMAND"
 

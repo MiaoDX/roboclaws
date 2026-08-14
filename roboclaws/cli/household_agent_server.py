@@ -70,7 +70,7 @@ class _ServerBackendSetup:
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Expose ADR-0003 Molmo cleanup tools to Codex, Claude Code, or OpenClaw.",
+        description="Expose ADR-0003 Molmo cleanup tools to household agents.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("--host", default=DEFAULT_HOST)
@@ -191,17 +191,6 @@ def mcp_url(host: str, port: int) -> str:
     return f"http://{host}:{port}/mcp"
 
 
-def client_setup_commands(url: str) -> dict[str, str]:
-    port = url.rsplit(":", 1)[-1].split("/", 1)[0]
-    return {
-        "OpenClaw": (
-            "SKILLS_DIR=$PWD/skills/household-world "
-            f"ROBOCLAWS_MCP_URL=http://host.docker.internal:{port}/mcp "
-            "just chat::run"
-        ),
-    }
-
-
 def print_setup(
     output_dir: Path,
     url: str,
@@ -213,7 +202,6 @@ def print_setup(
     evidence_lane: str | None = None,
     task_intent: str = "",
 ) -> None:
-    commands = client_setup_commands(url)
     print("\nMolmo real-world cleanup MCP server is ready.")
     print(f"MCP URL       : {url}")
     print(f"Artifacts     : {output_dir}")
@@ -225,13 +213,6 @@ def print_setup(
     if evidence_lane:
         print(f"Evidence lane : {evidence_lane}")
     print(f"Visual report : {'enabled' if record_robot_views else 'disabled'}")
-    print("\nFor OpenClaw, start the Gateway with the same MCP URL, for example:")
-    if _is_loopback_url(url):
-        print(
-            "  Docker note: restart this server with --host 0.0.0.0 for OpenClaw; "
-            "the Gateway container cannot reach a host-only 127.0.0.1 bind."
-        )
-    print(f"  {commands['OpenClaw']}")
     print("\nThen start the agent and use this kickoff:")
     open_ended_task = household_intent_is_open_ended(task_intent)
     if open_ended_task:

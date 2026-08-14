@@ -25,8 +25,8 @@ for the old blocked attempt.
 Stop condition: the plan acceptance checklist is either verified, or required
 provider/local product proof is blocked and recorded as local validation.
 
-No-touch scope: `vendors/agibot_sdk`, OpenClaw Gateway proof, generated
+No-touch scope: `vendors/agibot_sdk`, generated
 `output/` artifacts unless verification commands create them.
 
 Parked work: full cleanup-shaped runtime/server rename; full cleanup artifact
-schema replacement; OpenClaw default route proof.
+schema replacement. OpenClaw was retired separately by ADR-0148.

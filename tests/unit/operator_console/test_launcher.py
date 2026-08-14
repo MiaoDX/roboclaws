@@ -40,7 +40,7 @@ KIMI_ENV = {
 }
 
 
-def test_new_console_run_id_is_filesystem_and_docker_mount_safe() -> None:
+def test_new_console_run_id_is_filesystem_safe() -> None:
     run_id = _new_run_id(get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK))
 
     assert "/" not in run_id
@@ -897,7 +897,7 @@ def test_stop_console_run_releases_failed_terminal_lock_without_relabeling_failu
     assert live_status["exit_status"] == 1
 
 
-def test_stop_console_run_stops_docker_container_bound_to_attempt_workspace(
+def test_stop_console_run_never_invokes_docker_for_attempt_workspace(
     tmp_path: Path,
 ) -> None:
     route = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
@@ -928,24 +928,15 @@ def test_stop_console_run_stops_docker_container_bound_to_attempt_workspace(
     (attempt_dir / "server.pid").write_text(f"{server_pid}\n", encoding="utf-8")
     ResourceLock(tmp_path, route.lock_name).acquire(run_id=run_id, pid=wrapper_pid)
 
-    docker_stops: list[list[str]] = []
-
     def fake_run(command, **kwargs):  # noqa: ANN001, ANN003, ANN202
         del kwargs
+        assert command[0] != "docker"
 
         class Result:
             returncode = 0
             stdout = ""
 
         result = Result()
-        if command == ["docker", "ps", "-q"]:
-            result.stdout = "container-a\ncontainer-b\n"
-        elif command[:4] == ["docker", "inspect", "--format", "{{json .Mounts}}"]:
-            container_id = command[4]
-            source = workspace if container_id == "container-b" else tmp_path / "other"
-            result.stdout = json.dumps([{"Source": str(source.resolve())}])
-        elif command[:2] == ["docker", "stop"]:
-            docker_stops.append(list(command))
         return result
 
     with (
@@ -957,10 +948,11 @@ def test_stop_console_run_stops_docker_container_bound_to_attempt_workspace(
     ):
         stop_console_run(tmp_path, run_id)
 
-    assert docker_stops == [["docker", "stop", "--time", "5", "container-b"]]
+    state = json.loads((run_dir / "operator_state.json").read_text(encoding="utf-8"))
+    assert state["phase"] == "stopped_by_operator"
 
 
-def test_stop_console_run_rejects_corrupt_docker_mount_source_before_state_rewrite(
+def test_stop_console_run_ignores_retired_docker_workspace_metadata(
     tmp_path: Path,
 ) -> None:
     route = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
@@ -995,16 +987,13 @@ def test_stop_console_run_rejects_corrupt_docker_mount_source_before_state_rewri
 
     def fake_run(command, **kwargs):  # noqa: ANN001, ANN003, ANN202
         del kwargs
+        assert command[0] != "docker"
 
         class Result:
             returncode = 0
             stdout = ""
 
         result = Result()
-        if command == ["docker", "ps", "-q"]:
-            result.stdout = "container-a\n"
-        elif command[:4] == ["docker", "inspect", "--format", "{{json .Mounts}}"]:
-            result.stdout = "{bad-mounts"
         return result
 
     with (
@@ -1013,14 +1002,14 @@ def test_stop_console_run_rejects_corrupt_docker_mount_source_before_state_rewri
         patch("roboclaws.operator_console.launcher.os.getpgid", side_effect=lambda pid: pid),
         patch("roboclaws.operator_console.launcher.os.killpg"),
         patch("roboclaws.operator_console.launcher.subprocess.run", side_effect=fake_run),
-        pytest.raises(ConsoleLaunchError, match="operator stop source error") as exc_info,
     ):
         stop_console_run(tmp_path, run_id)
 
-    assert "docker inspect mounts for container-a contain invalid JSON" in str(exc_info.value)
-    assert json.loads(state_path.read_text(encoding="utf-8"))["phase"] == "starting"
-    assert json.loads(live_status_path.read_text(encoding="utf-8"))["phase"] == "running-sdk"
-    assert ResourceLock(tmp_path, route.lock_name).read().held is True
+    assert json.loads(state_path.read_text(encoding="utf-8"))["phase"] == "stopped_by_operator"
+    assert (
+        json.loads(live_status_path.read_text(encoding="utf-8"))["phase"] == "stopped_by_operator"
+    )
+    assert ResourceLock(tmp_path, route.lock_name).read().held is False
 
 
 def test_stop_console_run_rejects_malformed_operator_state_source(tmp_path: Path) -> None:

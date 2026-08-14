@@ -30,8 +30,6 @@ provider or wire API.
 | --- | --- | --- |
 | `direct-runner` | Deterministic product and suite baseline. | None. |
 | `openai-agents-sdk` | Maintained live-agent engine. | One explicit SDK profile is required. |
-| `openclaw-gateway` | Separate validation-required integration. | Uses its own gateway configuration and is outside the normal eval baseline. |
-
 Retired coding-agent engines are rejected by launch validation and are not
 preserved as compatibility aliases.
 

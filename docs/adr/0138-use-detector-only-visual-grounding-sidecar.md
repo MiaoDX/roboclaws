@@ -4,6 +4,9 @@ Status: Accepted
 
 Date: 2026-06-12
 
+Partially superseded by [ADR-0148](0148-retire-openclaw-and-local-docker-runtime.md)
+for its OpenClaw-only provider-routing carve-out.
+
 ## Context
 
 ADR-0133 introduced the HTTP Visual Grounding Service and allowed hosted VLM

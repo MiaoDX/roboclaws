@@ -18,20 +18,18 @@
 #     to run the full tight-loop suite.
 #
 # Design notes:
-#   - Tests marked `@pytest.mark.integration`, `@pytest.mark.local`, or
-#     `@pytest.mark.slow` are excluded from commit-time tight loops. Run
-#     them with focused pytest commands, post-merge integration, or CI.
+#   - Tests marked `@pytest.mark.local` or `@pytest.mark.slow` are excluded
+#     from commit-time tight loops. Run them with focused pytest commands or CI.
 #   - We run tests through the standalone wrapper to avoid host-wide ROS
 #     contamination leaking into PYTHONPATH (and breaking `lark` import).
-#   - No network calls. The Docker-gated integration tests auto-skip
-#     without Docker anyway, but the `integration` marker keeps the
-#     hook fast even when Docker IS installed (saves ~80s).
+#   - No network calls. Environment-bound tests belong in the explicit local
+#     layer rather than the commit-time suite.
 
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
-FAST_PYTEST_MARKER="not integration and not local and not slow"
+FAST_PYTEST_MARKER="not local and not slow"
 
 # --- Ruff: lint + format check -------------------------------------------
 if command -v ruff >/dev/null 2>&1; then

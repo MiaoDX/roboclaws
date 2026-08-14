@@ -36,7 +36,7 @@ def test_network_status_reports_work_when_probe_returns_http(tmp_path: Path) -> 
 
     assert "network: work" in result.stdout
     assert "work-probe.example.test" in result.stdout
-    assert "OpenClaw and system-provider Codex/Claude manual-debug recipes" in result.stdout
+    assert "system-provider Codex/Claude manual-debug recipes" in result.stdout
     assert "repo-local OpenAI Agents SDK provider routes are allowed" in result.stdout
     assert "system-provider Codex just recipes are blocked" not in result.stdout
 
@@ -56,7 +56,7 @@ def test_assert_off_work_blocks_when_probe_is_reachable(tmp_path: Path) -> None:
 
 def test_assert_off_work_allows_when_probe_is_unreachable(tmp_path: Path) -> None:
     result = subprocess.run(
-        ["bash", str(SCRIPT), "--assert-off-work", "OpenClaw"],
+        ["bash", str(SCRIPT), "--assert-off-work", "Claude Code"],
         cwd=REPO_ROOT,
         env=_fake_curl(tmp_path, "000"),
         check=True,
@@ -145,7 +145,7 @@ def test_openai_agents_provider_gate_allows_chat_without_network_probe() -> None
     assert "OpenAI Agents SDK provider gate ok (kimi-openai-chat)" in result.stderr
 
 
-def test_current_and_manual_debug_just_recipes_use_network_guard() -> None:
+def test_retired_local_runtime_recipes_are_absent() -> None:
     assert not (JUST_DIR / "appliance.just").exists()
     assert not (REPO_ROOT / "Dockerfile.railway").exists()
     assert not (REPO_ROOT / "railway.toml").exists()
@@ -154,15 +154,8 @@ def test_current_and_manual_debug_just_recipes_use_network_guard() -> None:
     assert not (REPO_ROOT / "scripts" / "appliance-run-interactive.sh").exists()
     assert not (REPO_ROOT / "scripts" / "appliance_control_ui_smoke.py").exists()
 
-    openclaw_guarded_files = (
-        JUST_DIR / "openclaw.just",
-        JUST_DIR / "chat.just",
-        JUST_DIR / "dev.just",
-    )
-
-    for path in openclaw_guarded_files:
-        text = path.read_text(encoding="utf-8")
-        assert "bash scripts/dev/network_status.sh --assert-off-work" in text, path
+    assert not (JUST_DIR / "openclaw.just").exists()
+    assert not (JUST_DIR / "chat.just").exists()
 
     molmo_text = (JUST_DIR / "molmo.just").read_text(encoding="utf-8")
     assert "roboclaws_assert_openai_agents_provider_allowed" in molmo_text

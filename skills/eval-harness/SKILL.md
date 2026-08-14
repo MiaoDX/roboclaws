@@ -84,8 +84,8 @@ just agent::eval promote-regression \
 
 Never downgrade a selected live-agent eval into deterministic-only success.
 Missing provider keys, provider 5xx/429, and model-service failures are
-`model_or_provider_unavailable`. Missing Docker, simulator/runtime, DINO
-sidecar, Python env, or live-session capacity is `environment_blocked`.
+`model_or_provider_unavailable`. Missing simulator/runtime, DINO sidecar,
+Python env, or live-session capacity is `environment_blocked`.
 
 ## Outputs
 

@@ -6,9 +6,7 @@
 # Drivers:
 # - direct          deterministic Python cleanup loop; no MCP server
 # - mcp-smoke       deterministic ADR-0003 MCP tool smoke; no live LLM agent
-# - openclaw-smoke  OpenClaw-labeled MCP smoke; no live Gateway
 # - openai-agents-live OpenAI Agents SDK route connected to the cleanup MCP server
-# - openclaw-live   live OpenClaw Gateway connected to the cleanup MCP server
 #
 # Cleanup evidence lanes:
 # - smoke                  cheap verification preset; uses world-public labels
@@ -20,9 +18,7 @@
 # - just molmo::quick-check
 # - just molmo::review-report
 # - just molmo::mcp-smoke-report
-# - just molmo::openclaw-smoke-report
 # - just molmo::camera-raw-fpv-report
-# - just molmo::openclaw-report
 
 set working-directory := '..'
 
@@ -570,7 +566,7 @@ household-world-impl:
       interactive_visual_cap="${ROBOCLAWS_MOLMO_MAX_VISUAL_BACKENDS:-1}"
     fi
 
-    live_drivers=(openai-agents-live openclaw-live)
+    live_drivers=(openai-agents-live)
     for live_driver in "${live_drivers[@]}"; do
       if [[ "$driver" == "$live_driver" ]]; then
         seed_count="$(wc -w <<<"$seeds" | tr -d ' ')"
@@ -586,22 +582,13 @@ household-world-impl:
         mkdir -p "$run_dir"
         check_visual_grounding_readiness_for_run "$run_dir"
         copy_b1_run_artifacts_to_seed_dir "$run_dir"
-        policy="${driver%-live}_agent"
-        if [[ "$driver" == "openai-agents-live" ]]; then
-          policy="openai_agents_agent"
-        fi
+        policy="openai_agents_agent"
         server_host="$host"
         client_url="http://${host}:${port}/mcp"
         server_startup_timeout_s="${ROBOCLAWS_MOLMO_LIVE_SERVER_STARTUP_TIMEOUT_S:-600}"
-        if [[ "$driver" == "openclaw-live" ]]; then
-          bash scripts/dev/network_status.sh --assert-off-work "OpenClaw Molmo cleanup live report"
-          server_host="0.0.0.0"
-          client_url="http://host.docker.internal:${port}/mcp"
-        elif [[ "$driver" == "openai-agents-live" ]]; then
-          source scripts/dev/coding_agent_env.sh
-          roboclaws_load_dotenv .env
-          roboclaws_assert_openai_agents_provider_allowed
-        fi
+        source scripts/dev/coding_agent_env.sh
+        roboclaws_load_dotenv .env
+        roboclaws_assert_openai_agents_provider_allowed
         openai_agents_model=""
         openai_agents_profile=""
         openai_agents_profile_summary=""
@@ -799,101 +786,6 @@ household-world-impl:
           exit "$exit_code"
         fi
 
-        visual_slot_path=""
-        slot_run_id="$(basename "$run_root")/seed-${seed}"
-        if [[ "$backend" == "molmospaces_subprocess" ]]; then
-          visual_slot_json="$(.venv/bin/python -m roboclaws.household.visual_backend_slots acquire \
-            --repo-root "$PWD" \
-            --run-id "$slot_run_id" \
-            --pid "$$" \
-            --backend "$backend" \
-            --port "$port" \
-            --output-dir "$run_dir" \
-            --status-path "${run_dir}/live_status.json" \
-            --owner "$driver")"
-          printf '%s\n' "$visual_slot_json" > "${run_dir}/visual_backend_slot.json"
-          visual_slot_path="$(printf '%s' "$visual_slot_json" | .venv/bin/python -c 'import json, sys; print(json.load(sys.stdin)["path"])')"
-        fi
-        .venv/bin/python -m roboclaws.cli.agent_server household-world "${server_args[@]}" &
-        server_pid="$!"
-        cleanup_server() {
-          set +e
-          if kill -0 "$server_pid" >/dev/null 2>&1; then
-            kill "$server_pid" >/dev/null 2>&1 || true
-            wait "$server_pid" >/dev/null 2>&1 || true
-          fi
-          if [[ -n "$visual_slot_path" ]]; then
-            .venv/bin/python -m roboclaws.household.visual_backend_slots release \
-              --path "$visual_slot_path" \
-              --run-id "$slot_run_id" \
-              --pid "$$" >/dev/null 2>&1 || true
-          fi
-          stop_managed_visual_grounding_sidecar
-        }
-        trap cleanup_server EXIT INT TERM
-        wait_for_mcp_ready() {
-          local wait_host="$1"
-          local wait_port="$2"
-          for _ in {1..240}; do
-            if (echo > /dev/tcp/"$wait_host"/"$wait_port") >/dev/null 2>&1; then
-              return 0
-            fi
-            if ! kill -0 "$server_pid" >/dev/null 2>&1; then
-              wait "$server_pid" >/dev/null 2>&1 || true
-              return 1
-            fi
-            sleep 0.5
-          done
-          return 1
-        }
-        if ! wait_for_mcp_ready "$host" "$port"; then
-          echo "error: cleanup MCP server did not become ready at ${host}:${port}" >&2
-          exit 1
-        fi
-
-        echo "==> launching OpenClaw Gateway chat with household-world skill"
-        echo "==> MCP URL from Gateway container: ${client_url}"
-        SKILLS_DIR="$PWD/skills/household-world" \
-          ROBOCLAWS_MCP_URL="$client_url" \
-          just chat::run
-
-        echo "==> waiting for cleanup MCP server to finish after agent done"
-        wait "$server_pid"
-        trap - EXIT INT TERM
-
-        if [[ -f "${run_dir}/run_result.json" ]]; then
-          if [[ "$open_ended_intent" == "true" ]]; then
-            .venv/bin/python -m roboclaws.launch.open_ended_artifacts \
-              "${run_dir}/run_result.json"
-            echo "==> report: ${run_dir}/report.html"
-            exit 0
-          fi
-          checker_args=(
-            --expect-task "$task"
-            --expect-backend "$backend"
-            --expect-policy "$policy"
-            --expect-profile "$implementation_evidence_lane"
-            --expect-mcp-server household_world
-            --min-generated-mess-count "$min_generated_mess_count"
-            --require-agent-driven
-            --require-advisory-scoring
-            "${checker_visual_args[@]}"
-          )
-          if [[ "$driver" == "openclaw-live" ]]; then
-            checker_args+=(--require-openclaw-minimum)
-          fi
-          if [[ "$profile_requires_clean_success" == "true" && "$driver" != "openclaw-live" && "$open_ended_intent" != "true" ]]; then
-            checker_args+=(--require-clean-agent-run)
-          fi
-          .venv/bin/python scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py \
-            "${checker_args[@]}" \
-            "${run_dir}/run_result.json"
-          echo "==> report: ${run_dir}/report.html"
-        else
-          echo "error: live run finished without ${run_dir}/run_result.json" >&2
-          exit 1
-        fi
-        exit 0
       fi
     done
 
@@ -925,11 +817,8 @@ household-world-impl:
             "${goal_contract_args[@]}" \
             --output-dir "$run_dir"
           ;;
-        mcp-smoke|openclaw-smoke)
+        mcp-smoke)
           policy="household_contract_smoke_agent"
-          if [[ "$driver" == "openclaw-smoke" ]]; then
-            policy="openclaw_agent"
-          fi
           .venv/bin/python scripts/molmo_cleanup/run_molmo_realworld_agent_mcp_smoke.py \
             --seed "$seed" \
             --backend "$backend" \
@@ -974,17 +863,6 @@ household-world-impl:
           --expect-policy household_contract_smoke_agent
           --expect-mcp-server household_world
           --require-agent-driven
-        )
-        if [[ "$profile_requires_clean_success" == "true" && "$open_ended_intent" != "true" ]]; then
-          checker_args+=(--require-clean-agent-run)
-        fi
-        ;;
-      openclaw-smoke)
-        checker_args+=(
-          --expect-policy openclaw_agent
-          --expect-mcp-server household_world
-          --require-agent-driven
-          --require-openclaw-minimum
         )
         if [[ "$profile_requires_clean_success" == "true" && "$open_ended_intent" != "true" ]]; then
           checker_args+=(--require-clean-agent-run)

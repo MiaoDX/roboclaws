@@ -9,8 +9,8 @@ world/backend/preset/agent-engine combination as a separate recipe.
 - `agent::*` is for maintainer-level dispatch into private implementation
   modules.
 
-Lower modules such as `molmo::*`, `harness::*`, `verify::*`, `mcp::*`,
-`chat::*`, and `dev::*` are private. They remain runnable for
+Lower modules such as `molmo::*`, `harness::*`, `verify::*`, `mcp::*`, and
+`dev::*` are private. They remain runnable for
 debugging, but they are hidden from `just --summary` and shell completion.
 
 ## Main Grammar
@@ -59,9 +59,8 @@ Provider profiles are selected only for the SDK live engine:
 `direct-runner` is a deterministic contract/eval baseline and does not accept
 `provider_profile`; it is not a live robot agent runtime.
 
-Validation-required maintainer engines stay out of the normal public engine
-list. Use the repo-local maintainer docs and network guards before running
-those routes.
+Other engine values are unsupported; no gateway or local-container route is
+retained behind the public catalog.
 
 Reports for non-Molmo tasks:
 

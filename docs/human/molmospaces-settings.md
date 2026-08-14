@@ -468,8 +468,8 @@ just run::surface surface=household-world agent_engine=<engine> preset=cleanup e
 | Evidence lane | `camera-raw-fpv` | MolmoSpaces/RBY1M report; agent receives raw camera artifacts and no structured labels. |
 | Evidence lane | `camera-grounded-labels` | MolmoSpaces/RBY1M report; agent receives camera-derived structured candidates produced by `camera_labeler`. |
 
-Guarded smoke/live drivers are validation-required maintainer routes. Keep
-them out of normal operator runbooks until their separate proof is green.
+These driver names are private implementation details. Operators select the
+public agent engine and evidence lane through `just run::surface`.
 
 `verify::*` remains the confidence-gate namespace: it runs focused tests and then
 delegates scenario execution to `harness::*`. `harness::*` remains the

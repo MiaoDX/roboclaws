@@ -3529,9 +3529,6 @@ molmospaces = [
 openai-agents = [
     { name = "openai-agents" },
 ]
-openclaw = [
-    { name = "mcp", extra = ["cli"] },
-]
 visual-grounding-dino = [
     { name = "torch" },
     { name = "transformers" },
@@ -3546,7 +3543,6 @@ requires-dist = [
     { name = "clip", marker = "extra == 'visual-grounding-yoloe'", git = "https://github.com/ultralytics/CLIP.git" },
     { name = "imageio", marker = "extra == 'dev'", specifier = ">=2.30" },
     { name = "mcp", extras = ["cli"], marker = "extra == 'dev'", specifier = ">=1.27" },
-    { name = "mcp", extras = ["cli"], marker = "extra == 'openclaw'", specifier = ">=1.27" },
     { name = "molmo-spaces", extras = ["mujoco"], marker = "extra == 'dev'", git = "https://github.com/allenai/molmospaces.git?rev=3c50ae6093f7e4a4ef32529f8a773715da410a2f" },
     { name = "molmo-spaces", extras = ["mujoco"], marker = "extra == 'molmospaces'", git = "https://github.com/allenai/molmospaces.git?rev=3c50ae6093f7e4a4ef32529f8a773715da410a2f" },
     { name = "numpy", specifier = ">=1.24" },
@@ -3568,7 +3564,7 @@ requires-dist = [
     { name = "transformers", marker = "extra == 'visual-grounding-dino'", specifier = ">=4.52,<5" },
     { name = "ultralytics", marker = "extra == 'visual-grounding-yoloe'", specifier = ">=8.3" },
 ]
-provides-extras = ["openclaw", "molmospaces", "visual-grounding-dino", "visual-grounding-yoloe", "dev", "openai-agents"]
+provides-extras = ["molmospaces", "visual-grounding-dino", "visual-grounding-yoloe", "dev", "openai-agents"]
 
 [[package]]
 name = "rpds-py"

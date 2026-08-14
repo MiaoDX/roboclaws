@@ -84,11 +84,10 @@ Harness recipes
   launch validation rather than preserved as compatibility aliases.
   `direct-runner` is the deterministic contract/eval baseline, not a live robot
   agent runtime.
-  Validation-required maintainer engines stay outside the normal public engine
-  list until their separate proof gates are green. The active stabilization
-  focus is the OpenAI Agents SDK live route plus deterministic direct-runner
-  proof; higher-level agent frameworks are later clients after those lower
-  routes are stable.
+  Other engine values are ordinary unsupported inputs; the active contract has
+  no gateway, local-container, compatibility, or deprecated-command route. The
+  maintained product shape is the OpenAI Agents SDK live route plus
+  deterministic direct-runner proof.
   `roboclaws.agents.household_live_runner` owns the active OpenAI Agents SDK
   household lifecycle and imports its reusable budget, continuation, metrics,
   performance-profile, and status helpers from package modules.
