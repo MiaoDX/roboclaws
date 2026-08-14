@@ -102,7 +102,7 @@ def _assert_smoke_run_result(run_result: dict[str, Any]) -> None:
     assert agent_view_module.observed_objects(run_result["agent_view"])
     assert run_result["cleanup_policy_trace"]["loop_style"] == "interleaved_cleanup_loop"
     assert run_result["cleanup_policy_trace"]["first_cleanup_before_full_survey"] is True
-    assert run_result["cleanup_policy_trace"]["post_place_observe_complete"] is True
+    assert "post_place_observe_complete" not in run_result["cleanup_policy_trace"]
     assert run_result["real_robot_readiness"]["schema"] == "real_robot_readiness_v1"
     assert run_result["real_robot_readiness"]["semantic_navigation_only"] is True
     assert run_result["real_robot_readiness"]["map_bundle_snapshot_present"] is True

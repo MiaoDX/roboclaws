@@ -619,7 +619,6 @@ def run_physical_agibot_cleanup_pilot(
             "cleanup_action_count": 0,
             "placed_object_count": 0,
             "post_place_observe_count": 0,
-            "post_place_observe_complete": True,
             "first_cleanup_before_full_survey": False,
             "events": policy_events,
             "public_contract_note": (

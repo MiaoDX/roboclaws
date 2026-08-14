@@ -71,7 +71,6 @@ class HouseholdRuntimePerceptionMixin:
     def _public_candidate_hint(self, detection: dict[str, Any]) -> dict[str, Any]:
         candidate = self.target_fixture_for_detection(
             detection,
-            self.static_fixture_projection(),
             include_runtime_backend_fixtures=True,
         )
         if candidate is None:

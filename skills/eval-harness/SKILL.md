@@ -74,14 +74,17 @@ just agent::eval promote-regression \
   direct local-simulator product rows, and DINO product rows. It excludes all
   live-provider rows and is the normal broad local refresh.
 - `profile=baseline-live-default`: select `baseline-core` plus the current
-  Kimi live-agent capability rows. It excludes the custom Responses and
-  MiniMax alternate-provider rows.
+  Kimi live-agent capability rows and the direct same-run map-build-to-consumer
+  proof. It excludes the fixed-prior provider matrix.
 - `profile=baseline-refresh`: select the catalog baseline set directly:
   deterministic gates, all current eval suites including long-horizon tasks,
   direct product rows, DINO rows, all default live rows, and the explicit
-  alternate-provider matrix. This is the release/nightly full refresh.
+  alternate-provider matrix when `runtime_map_prior=<path>` is supplied. This
+  is the release/nightly full refresh.
 - All named baseline profiles run selected rows or record explicit blocked
   evidence; their rows are not converted to `skipped_by_budget`.
+- Live trials do not retry by default. Set `live_retry_limit=<N>` only when the
+  evaluation contract explicitly calls for audited fresh-directory retries.
 - `execute budget=smoke`: deterministic confidence only; selected expensive or
   live rows are recorded as skipped by user budget in `profile=adaptive`.
 - `execute budget=focused`: default maintainer mode; selected required live

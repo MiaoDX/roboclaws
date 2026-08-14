@@ -304,7 +304,7 @@ def test_scene_index_backend_room_outline_waypoints_avoid_fixture_occupied_goals
         assert navigation["ok"] is True, navigation
 
 
-def test_cleanup_policy_trace_allows_public_map_query_before_post_place_observe() -> None:
+def test_cleanup_policy_trace_records_optional_post_place_observe() -> None:
     trace = cleanup_policy_trace_from_events(
         [
             _trace_response("navigate_to_waypoint", {"ok": True, "waypoint_id": "room_1_scan_1"}),
@@ -335,7 +335,7 @@ def test_cleanup_policy_trace_allows_public_map_query_before_post_place_observe(
 
     assert trace["placed_object_count"] == 1
     assert trace["post_place_observe_count"] == 1
-    assert trace["post_place_observe_complete"] is True
+    assert "post_place_observe_complete" not in trace
     assert trace["events"][-1]["role"] == "post_place_observe"
 
 

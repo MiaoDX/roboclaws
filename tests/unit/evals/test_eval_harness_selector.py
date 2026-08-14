@@ -87,10 +87,13 @@ def test_row_catalog_loads_current_eval_harness_rows(tmp_path: Path) -> None:
 def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
     tmp_path: Path,
 ) -> None:
+    prior = tmp_path / "canonical-prior.json"
+    prior.write_text('{"schema":"runtime_map_prior_snapshot_v1"}\n', encoding="utf-8")
     manifest = selector.build_eval_harness(
         budget="smoke",
         profile="baseline-refresh",
         output_dir=tmp_path,
+        runtime_map_prior=str(prior),
     )
 
     rows = _selected_rows(manifest)
@@ -102,15 +105,22 @@ def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
     assert manifest["summary"]["live_agent_eval_row_count"] == 11
     assert rows["openai-agents-sdk-open-task-live-eval"]["status"] == "not_run"
     assert rows["openai-agents-sdk-cleanup-live-eval"]["status"] == "not_run"
-    assert "live_stall_timeout_s=180" in rows["openai-agents-sdk-cleanup-live-eval"]["command"]
+    assert not any(
+        item.startswith(("live_timeout_s=", "live_stall_timeout_s="))
+        for item in rows["openai-agents-sdk-cleanup-live-eval"]["command"]
+    )
     provider_rows = [
         row
         for row_id, row in rows.items()
         if row_id.startswith("map-build-consumer-openai-agents-sdk-")
     ]
     assert len(provider_rows) == 4
-    assert all("live_timeout_s=1500" in row["command"] for row in provider_rows)
-    assert all("live_stall_timeout_s=180" in row["command"] for row in provider_rows)
+    assert all(
+        not any(
+            item.startswith(("live_timeout_s=", "live_stall_timeout_s=")) for item in row["command"]
+        )
+        for row in provider_rows
+    )
     assert rows["direct-camera-grounded-grounding-dino"]["status"] == "not_run"
     assert rows["direct-map-build-grounding-dino"]["status"] == "not_run"
     assert rows["long-horizon-tasks-eval-suite"]["status"] == "not_run"
@@ -367,6 +377,37 @@ def test_runtime_prior_blocker_uses_current_map_build_row(
     assert blockers == []
 
 
+def test_fixed_prior_provider_does_not_use_current_map_build_row(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    repo_root = tmp_path / "repo"
+    (repo_root / ".venv" / "bin").mkdir(parents=True)
+    (repo_root / ".venv" / "bin" / "python").touch()
+    monkeypatch.setattr(runner, "REPO_ROOT", repo_root)
+    manifest = selector.build_eval_harness(
+        budget="focused",
+        profile="baseline-live-default",
+        output_dir=tmp_path / "harness",
+    )
+    rows = {row["row_id"]: row for row in manifest["rows"]}
+    map_row = rows["direct-map-build-world-public"]
+    prior = Path(map_row["row_dir"]) / "run" / "seed-7" / "runtime_metric_map.json"
+    prior.parent.mkdir(parents=True)
+    prior.write_text('{"schema":"runtime_metric_map_v1"}\n', encoding="utf-8")
+    map_row["status"] = "ran"
+    map_row["outcome"] = "passed"
+
+    fixed_prior_row = rows["map-build-consumer-openai-agents-sdk-kimi-openai-chat"]
+    fixed_prior_row["selected"] = True
+    blockers = runner._row_blockers(fixed_prior_row, manifest)
+
+    assert {
+        "category": "environment_blocked",
+        "detail": "fixed-prior consumer row requires explicit runtime_map_prior=<path>",
+    } in blockers
+
+
 def test_smoke_budget_records_relevant_expensive_rows_as_user_budget_skipped(
     tmp_path: Path,
 ) -> None:
@@ -441,7 +482,7 @@ def test_map_build_consumer_change_selects_four_profile_model_matrix(
         assert f"runtime_map_prior={prior}" in row["command"]
         assert row["axes"]["suite"] == "map_consumer_fixed_prior"
         assert "agent_engine=openai-agents-sdk" in row["command"]
-        assert "live_timeout_s=1500" in row["command"]
+        assert not any(item.startswith("live_timeout_s=") for item in row["command"])
         assert "live_execution=run" in row["command"]
         assert row["axes"]["provider_cell_count"] == "4"
         assert row["axes"]["default_local_concurrency_width"] == "1"

@@ -35,6 +35,7 @@ FAILURE_CLASSES = frozenset(
         "model_or_provider_unavailable",
         "budget_exhausted",
         "grader_inconclusive",
+        "checker_validation_failed",
         "harness_bug_unclassified",
     }
 )

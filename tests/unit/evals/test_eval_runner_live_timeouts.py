@@ -38,37 +38,8 @@ def test_live_surface_product_uses_default_live_budgets(
     live_exec.run_live_surface_product(**_live_surface_kwargs(tmp_path / "trial-0000"))
 
     command_record = json.loads((tmp_path / "trial-0000" / "live_eval_command.json").read_text())
-    assert command_record["wall_clock_budget_s"] == 1200.0
-    assert command_record["stall_timeout_s"] == 120.0
-
-
-def test_live_timeout_completion_grace_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
-    import roboclaws.evals.live_runtime as live_runtime
-
-    monkeypatch.delenv("ROBOCLAWS_LIVE_EVAL_TIMEOUT_COMPLETION_GRACE_S", raising=False)
-    assert live_runtime.live_timeout_completion_grace_s() == 30.0
-
-    monkeypatch.setenv("ROBOCLAWS_LIVE_EVAL_TIMEOUT_COMPLETION_GRACE_S", "0")
-    assert live_runtime.live_timeout_completion_grace_s() == 0.0
-
-    monkeypatch.setenv("ROBOCLAWS_LIVE_EVAL_TIMEOUT_COMPLETION_GRACE_S", "7.5")
-    assert live_runtime.live_timeout_completion_grace_s() == 7.5
-
-
-@pytest.mark.parametrize("value", ["bad", "nan", "inf", "-1"])
-def test_live_timeout_completion_grace_rejects_invalid_env(
-    monkeypatch: pytest.MonkeyPatch,
-    value: str,
-) -> None:
-    import roboclaws.evals.live_runtime as live_runtime
-
-    monkeypatch.setenv("ROBOCLAWS_LIVE_EVAL_TIMEOUT_COMPLETION_GRACE_S", value)
-
-    with pytest.raises(
-        ValueError,
-        match=r"ROBOCLAWS_LIVE_EVAL_TIMEOUT_COMPLETION_GRACE_S must be a non-negative finite",
-    ):
-        live_runtime.live_timeout_completion_grace_s()
+    assert command_record["wall_clock_budget_s"] == 1500.0
+    assert command_record["stall_timeout_s"] == 180.0
 
 
 @pytest.mark.parametrize("value", ["0", "-1", "nan", "inf", "soon"])
@@ -81,7 +52,7 @@ def test_live_surface_timeout_rejects_invalid_config(value: str) -> None:
         ValueError,
         match=r"live_timeout_s must be a positive finite number of seconds",
     ):
-        live_runtime.live_surface_timeout_s(kwargs)
+        live_runtime.live_wall_clock_budget_s(kwargs)
 
 
 @pytest.mark.parametrize("value", ["0", "-1", "nan", "inf", "soon"])
@@ -104,10 +75,8 @@ def test_live_surface_timeout_accessors_use_split_defaults_and_overrides() -> No
     import roboclaws.evals.live_runtime as live_runtime
 
     defaults = _live_surface_kwargs(Path("trial-0000"))
-    assert live_runtime.live_wall_clock_budget_s(defaults) == 1200.0
-    assert live_runtime.live_surface_timeout_s(defaults) == 1200.0
-    assert live_runtime.explicit_live_surface_timeout_s(defaults) == 1200.0
-    assert live_runtime.live_stall_timeout_s(defaults) == 120.0
+    assert live_runtime.live_wall_clock_budget_s(defaults) == 1500.0
+    assert live_runtime.live_stall_timeout_s(defaults) == 180.0
 
     explicit = _live_surface_kwargs(
         Path("trial-0000"),

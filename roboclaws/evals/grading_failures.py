@@ -43,8 +43,8 @@ def failure_class_from_exception(exc: Exception) -> str:
         )
     ):
         return "budget_exhausted"
-    if "cleanup checker exited with status 1" in message:
-        return "private_goal_not_satisfied"
+    if "checker_validation_failed" in message:
+        return "checker_validation_failed"
     environment_tokens = ("no module named", "not installed", "unavailable", "timed out", "mcp")
     if "another interactive codex molmo cleanup session appears to be active" in message:
         return "environment_blocked"

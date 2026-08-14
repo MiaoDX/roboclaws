@@ -235,13 +235,15 @@ just agent::eval suite=open_ended_goals budget=smoke \
   live_execution=run
 ```
 
-Live evals use a 1200-second wall-clock budget and a 120-second no-progress
+Live evals use a 1500-second wall-clock budget and a 180-second no-progress
 timeout unless the catalog row owns a larger contract. Provider availability,
 missing credentials, port conflicts, and runtime readiness are classified
 separately from agent behavior.
 
 The `session-live` route verifies an Operator Session parent run, active-run
-steering, terminal artifacts, and a linked child goal. It is also opt-in:
+steering, terminal artifacts, and a linked child goal. The parent and child are
+separate agent runs, so each receives a fresh 1500-second wall-clock budget. It
+is also opt-in:
 
 ```bash
 just agent::eval session-live budget=smoke \
@@ -256,6 +258,13 @@ just agent::eval session-live budget=smoke \
 `map_consumer_fixed_prior` consumes one explicit read-only canonical prior.
 The legacy `map_build_consumer` suite is an explicit same-provider end-to-end
 research profile, not the normal comparison baseline.
+
+`baseline-live-default` proves prior consumption with a same-run direct chain:
+`direct-map-build-world-public` produces `runtime_metric_map.json`, then
+`direct-cleanup-runtime-prior-consumer` consumes that exact artifact. The
+fixed-prior provider matrix is not part of that default. Run
+`baseline-refresh` with an explicit `runtime_map_prior=<path>` when every
+provider must consume one identical immutable prior.
 
 After maintainer approval, promote an accepted selector report to the
 content-addressed catalog:

@@ -172,14 +172,9 @@ class HouseholdRuntimeArtifactsMixin:
             assert_no_forbidden_agent_view_keys=_assert_no_forbidden_agent_view_keys,
         )
 
-    def cleanup_worklist_payload(
-        self,
-        *,
-        static_fixture_projection: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
+    def cleanup_worklist_payload(self) -> dict[str, Any]:
         return realworld_contract_payloads.cleanup_worklist_payload(
             self,
-            static_fixture_projection=static_fixture_projection,
             cleanup_worklist_schema=CLEANUP_WORKLIST_SCHEMA,
             non_actionable_handle_states=_NON_ACTIONABLE_HANDLE_STATES,
             candidate_actionability_status=_candidate_actionability_status,
@@ -224,14 +219,12 @@ class HouseholdRuntimeArtifactsMixin:
     def target_fixture_for_detection(
         self,
         detection: dict[str, Any],
-        static_fixture_projection: dict[str, Any],
         *,
         include_runtime_backend_fixtures: bool = False,
     ) -> dict[str, Any] | None:
         return realworld_runtime_map_targets.target_fixture_for_detection(
             self,
             detection,
-            static_fixture_projection,
             include_runtime_backend_fixtures=include_runtime_backend_fixtures,
         )
 

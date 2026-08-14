@@ -54,7 +54,6 @@ def target_plausibility_for_candidate(
     public_target = realworld_runtime_map_targets.target_fixture_for_detection(
         contract,
         pseudo_detection,
-        contract.static_fixture_projection(),
     )
     expected = str((public_target or {}).get("fixture_id") or "")
     return {

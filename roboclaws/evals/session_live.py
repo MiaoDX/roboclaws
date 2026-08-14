@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from roboclaws.agents.provider_registry import provider_readiness
+from roboclaws.evals.live_runtime import DEFAULT_LIVE_WALL_CLOCK_BUDGET_S
 from roboclaws.evals.models import EVAL_RESULT_SCHEMA, MISSING_NOT_APPLICABLE
 from roboclaws.evals.reports import RESULTS_BUNDLE_SCHEMA
 from roboclaws.household.household_mcp_endpoint import free_mcp_port
@@ -65,7 +66,7 @@ def run_session_live_eval(
     agent_engine: str = "openai-agents-sdk",
     provider_profile: str = "kimi-openai-chat",
     live_execution: str = "blocked",
-    live_timeout_s: float = 900.0,
+    live_timeout_s: float = DEFAULT_LIVE_WALL_CLOCK_BUDGET_S,
     env: dict[str, str] | None = None,
     start_server: StartServer | None = None,
 ) -> SessionLiveRun:
@@ -158,7 +159,7 @@ def _run_live_flow(
                     route=route,
                     base_url=base_url,
                     provider_profile=provider_profile,
-                    deadline=time.monotonic() + live_timeout_s,
+                    live_timeout_s=live_timeout_s,
                     env=env,
                 )
             except SessionLiveHTTPError as exc:
@@ -245,7 +246,7 @@ def _exercise_session_flow(
     route: ConsoleLaunchSelection,
     base_url: str,
     provider_profile: str,
-    deadline: float,
+    live_timeout_s: float,
     env: dict[str, str],
 ) -> dict[str, Any]:
     session = _api_json(base_url, "POST", "/api/sessions", {})
@@ -274,7 +275,7 @@ def _exercise_session_flow(
     if steer.get("status") != "queued":
         raise RuntimeError("steer message was not queued")
 
-    parent_state = _wait_for_terminal(base_url, parent_run_id, deadline=deadline)
+    parent_state = _wait_for_terminal(base_url, parent_run_id, timeout_s=live_timeout_s)
     parent_dir = console_output_root(root) / "runs" / parent_run_id
     provider_blocker = _blocked_parent_provider_result(
         parent_dir=parent_dir,
@@ -303,7 +304,7 @@ def _exercise_session_flow(
     child_run_id = str(child.get("run_id") or "")
     if not child_run_id:
         raise RuntimeError("child run did not return run_id")
-    child_state = _wait_for_terminal(base_url, child_run_id, deadline=deadline)
+    child_state = _wait_for_terminal(base_url, child_run_id, timeout_s=live_timeout_s)
     child_operator_state = _read_json_object(
         console_output_root(root) / "runs" / child_run_id / "operator_state.json"
     )
@@ -326,7 +327,8 @@ def _exercise_session_flow(
     )
 
 
-def _wait_for_terminal(base_url: str, run_id: str, *, deadline: float) -> dict[str, Any]:
+def _wait_for_terminal(base_url: str, run_id: str, *, timeout_s: float) -> dict[str, Any]:
+    deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
         state = _api_json(base_url, "GET", f"/api/runs/{run_id}", {})
         phase = str(state.get("phase") or "").lower()
