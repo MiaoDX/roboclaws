@@ -26,7 +26,7 @@ visual-grounding-yoloe = [
 ]
 dev = [
     "openai>=1.50",
-    "openai-agents==0.17.4",
+    "openai-agents[docker]==0.19.2",
     "pydantic>=2.0",
     "Pillow>=10.0",
     "numpy>=1.24",
@@ -40,7 +40,7 @@ dev = [
     "torchvision==0.22.1+cpu",
 ]
 openai-agents = [
-    "openai-agents==0.17.4",
+    "openai-agents==0.19.2",
 ]
 
 [build-system]

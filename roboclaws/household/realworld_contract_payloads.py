@@ -576,6 +576,7 @@ def cleanup_worklist_payload(
             candidate_source = "policy_required_destination_selection"
             destination_policy_status = "policy_required"
         destination_policy = public_destination_policy_for_category(detection.get("category"))
+        generated_waypoint = contract._generated_inspection_waypoint_for_object(handle)
         row = {
             "object_id": handle,
             "state": state,
@@ -595,6 +596,12 @@ def cleanup_worklist_payload(
             "visual_grounding_evidence": visual_grounding_evidence,
             "candidate_source": candidate_source,
             "last_waypoint_id": lifecycle.get("waypoint_id", ""),
+            "source_waypoint_id": str(
+                detection.get("waypoint_id") or lifecycle.get("waypoint_id") or ""
+            ),
+            "generated_inspection_waypoint_id": str(
+                generated_waypoint.get("waypoint_id") if generated_waypoint else ""
+            ),
             "perception_source": lifecycle.get("perception_source", "visible_detection"),
             "destination_policy_status": destination_policy_status,
         }

@@ -244,8 +244,8 @@ def _drive_open_ended_probe(server: Any) -> None:
 
 def _clean_pending_worklist(server: Any, handled_handles: set[str]) -> None:
     while True:
-        readiness = server.call_tool("done", reason="probe public cleanup readiness")
-        if readiness.get("ok"):
+        readiness = server._agent_view_payload()["readiness"]["completion"]
+        if readiness.get("status") == "ready":
             return
         pending = _pending_cleanup_candidates_from_done(readiness)
         next_item = next(
@@ -267,7 +267,8 @@ def _clean_pending_worklist(server: Any, handled_handles: set[str]) -> None:
 
 def _pending_cleanup_candidates_from_done(done_response: dict[str, Any]) -> list[dict[str, Any]]:
     candidates = []
-    for blocker in (done_response.get("completion") or {}).get("blockers") or []:
+    completion = done_response.get("completion") or done_response
+    for blocker in completion.get("blockers") or []:
         if blocker.get("type") != "pending_cleanup_candidates":
             continue
         candidates.extend(

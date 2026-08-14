@@ -17,6 +17,7 @@ from roboclaws.agents.drivers.openai_agents_input_config import _input_compactio
 from roboclaws.agents.drivers.openai_agents_retry_model import _model_service_retry_config
 from roboclaws.agents.live_runtime import LiveAgentRequest
 from roboclaws.agents.provider_registry import openai_agents_runtime_settings
+from roboclaws.agents.skill_delivery import render_instructions
 from roboclaws.agents.thinking_policy import apply_model_thinking_policy
 from roboclaws.core.provider_catalog import PROVIDER_PROFILE_KIMI_OPENAI_CHAT, WIRE_CHAT_COMPLETIONS
 
@@ -26,10 +27,10 @@ KIMI_CODING_USER_AGENT = "claude-code/1.0.0"
 MODEL_RACING_OBSERVABILITY_SCHEMA = "agent_sdk_model_racing_observability_v1"
 
 
-def _instructions_with_skill_context(request: LiveAgentRequest) -> tuple[str, dict[str, Any]]:
+def _instructions_with_skill_context(request: LiveAgentRequest) -> tuple[Any, dict[str, Any]]:
     context = request.metadata.get("skill_context") if isinstance(request.metadata, dict) else None
     if not isinstance(context, dict):
-        return request.kickoff_prompt, _skill_context_summary(
+        return None, _skill_context_summary(
             {
                 "skill_name": request.skill_name,
                 "included": False,
@@ -51,15 +52,9 @@ def _instructions_with_skill_context(request: LiveAgentRequest) -> tuple[str, di
         }
     )
     if not content:
-        return request.kickoff_prompt, summary
-    instructions = (
-        "Canonical skill context for this private OpenAI Agents SDK run:\n\n"
-        f"{content.rstrip()}\n\n"
-        "Run-specific context supplies the operator goal, selected lane, budgets, artifacts, "
-        "and episode facts. The operator goal and public safety or required-tool responses are "
-        "authoritative; otherwise the canonical Skill owns task strategy:\n\n"
-        f"{request.kickoff_prompt}"
-    )
+        return None, summary
+    delivery = context.get("delivery")
+    instructions = delivery.instructions() if delivery is not None else render_instructions(content)
     return instructions, summary
 
 
@@ -67,11 +62,44 @@ def _skill_context_summary(payload: dict[str, Any]) -> dict[str, Any]:
     return _drop_empty(_to_jsonable(payload))
 
 
-def _write_skill_context_summary(path: Path, summary: dict[str, Any]) -> None:
-    payload = {
+def _write_skill_context_summary(
+    path: Path,
+    summary: dict[str, Any],
+    *,
+    request: LiveAgentRequest | None = None,
+) -> None:
+    payload: dict[str, Any] = {
         "schema": "openai_agents_skill_context_v1",
         **summary,
     }
+    if request is not None:
+        context = request.metadata.get("skill_context")
+        delivery = context.get("delivery") if isinstance(context, dict) else None
+        if isinstance(context, dict):
+            payload.update(
+                _skill_context_summary(
+                    {
+                        key: context.get(key)
+                        for key in (
+                            "skill_name",
+                            "included",
+                            "reason",
+                            "source_path",
+                            "relative_path",
+                            "sha256",
+                            "bytes",
+                            "estimated_tokens",
+                            "policy",
+                        )
+                    }
+                )
+            )
+        if delivery is not None:
+            delivery_payload = delivery.artifact(
+                tool_surface=tuple(request.metadata.get("model_visible_tool_surface") or ())
+            )
+            delivery_payload.pop("schema", None)
+            payload.update(delivery_payload)
     _write_json(path, _drop_empty(payload))
 
 

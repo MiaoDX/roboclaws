@@ -9,6 +9,7 @@ from roboclaws.agents.live_runtime import (
     LiveAgentMCPServer,
     LiveAgentRequest,
 )
+from roboclaws.household.cleanup_validation_args import parse_args as parse_cleanup_args
 
 
 def _isolated_repo_root(tmp_path: Path) -> Path:
@@ -117,6 +118,10 @@ def _assert_openai_agents_timeline_and_checker(
     assert checker_commands
     checker_command = checker_commands[0]
     assert checker_command[1:3] == ["-m", "roboclaws.household.cleanup_validation_cli"]
+    parsed_checker_args = parse_cleanup_args(checker_command[3:])
+    assert parsed_checker_args.path.name == "run_result.json"
+    assert parsed_checker_args.expect_profile is None
+    assert "--require-advisory-scoring" not in checker_command
     assert "--expect-policy" in checker_command
     assert "openai_agents_agent" in checker_command
     assert "--require-clean-agent-run" in checker_command

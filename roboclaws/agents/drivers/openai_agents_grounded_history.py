@@ -130,6 +130,12 @@ def _camera_grounded_history_info(
         call_id=call_id,
         tool_names_by_call_id=tool_names_by_call_id,
     )
+    if tool and tool not in {
+        "observe_camera_grounded_candidates",
+        "declare_visual_candidates",
+        "observe",
+    }:
+        return None
     output = payload.get("output") if "output" in payload else payload.get("content")
     if output is None:
         return None

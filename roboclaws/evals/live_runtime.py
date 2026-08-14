@@ -91,14 +91,12 @@ def wait_for_live_surface_completion(
     effective_run_dir: Path,
     elapsed_s: float = 0.0,
     poll_s: float = 1.0,
-    allow_cleanup_checker_failure: bool = False,
     started_wall_time_s: float | None = None,
 ) -> Path:
     """Validate foreground live-product artifacts after the public route exits."""
 
     if _live_surface_already_complete(
         effective_run_dir,
-        allow_cleanup_checker_failure=allow_cleanup_checker_failure,
         require_terminal_status=False,
     ):
         return effective_run_dir
@@ -108,7 +106,6 @@ def wait_for_live_surface_completion(
 def _live_surface_already_complete(
     effective_run_dir: Path,
     *,
-    allow_cleanup_checker_failure: bool = False,
     require_terminal_status: bool,
 ) -> bool:
     if (effective_run_dir / "run_result.json").is_file() and not require_terminal_status:
@@ -116,8 +113,6 @@ def _live_surface_already_complete(
         if status:
             exit_status = status.get("exit_status")
             if exit_status not in {None, 0}:
-                if allow_cleanup_checker_failure and _is_cleanup_checker_failure(status):
-                    return True
                 _raise_for_terminal_live_status(effective_run_dir, status)
         return True
     return _live_surface_run_is_terminal(effective_run_dir)
@@ -224,6 +219,8 @@ def live_product_run_kwargs(
     model: str | None,
     live_timeout_s: float | None,
     live_stall_timeout_s: float | None,
+    skill_delivery_cell: str = "static-full",
+    model_visible_tool_surface: tuple[str, ...] | list[str] = (),
 ) -> dict[str, Any]:
     """Return product-run kwargs plus live-agent routing metadata."""
 
@@ -242,6 +239,8 @@ def live_product_run_kwargs(
             "model": model,
             "live_timeout_s": live_timeout_s,
             "live_stall_timeout_s": live_stall_timeout_s,
+            "skill_delivery_cell": skill_delivery_cell,
+            "model_visible_tool_surface": list(model_visible_tool_surface),
         }
     )
     return kwargs
@@ -395,6 +394,12 @@ def live_surface_env(kwargs: dict[str, Any], *, base_env: Any) -> dict[str, str]
     """Return environment overrides for the selected live agent engine."""
 
     env = dict(base_env)
+    env["ROBOCLAWS_EVAL_SKILL_DELIVERY_CELL"] = str(
+        kwargs.get("skill_delivery_cell") or "static-full"
+    )
+    env["ROBOCLAWS_EVAL_MODEL_VISIBLE_TOOL_SURFACE"] = json.dumps(
+        list(kwargs.get("model_visible_tool_surface") or ()), separators=(",", ":")
+    )
     provider_profile = str(kwargs.get("provider_profile") or "")
     if provider_profile:
         if kwargs["agent_engine"] == "openai-agents-sdk":
@@ -519,21 +524,6 @@ def _write_live_eval_command_record(path: Path, payload: dict[str, Any]) -> None
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def _recover_eval_run_result_after_nonzero_checker_exit(
-    kwargs: dict[str, Any],
-    *,
-    sample_run_dir: Path,
-) -> dict[str, Any]:
-    if not _is_recoverable_checker_eval_sample(kwargs):
-        return {}
-    return _load_json(sample_run_dir / "run_result.json")
-
-
-def _is_recoverable_checker_eval_sample(kwargs: dict[str, Any]) -> bool:
-    sample: EvalSample | None = kwargs.get("eval_sample")
-    return sample is not None and sample.intent in {"cleanup", "open-ended"}
-
-
 def _live_surface_run_is_terminal(run_dir: Path) -> bool:
     status = _load_json(run_dir / "live_status.json")
     if not status:
@@ -544,11 +534,6 @@ def _live_surface_run_is_terminal(run_dir: Path) -> bool:
     if exit_status not in {None, 0}:
         _raise_for_terminal_live_status(run_dir, status)
     return False
-
-
-def _is_cleanup_checker_failure(status: dict[str, Any]) -> bool:
-    reason = str(status.get("reason") or "").lower()
-    return "cleanup checker exited with status" in reason
 
 
 def _raise_for_terminal_live_status(run_dir: Path, status: dict[str, Any]) -> None:

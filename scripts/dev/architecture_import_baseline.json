@@ -56,7 +56,7 @@
       "core"
     ]
   },
-  "edge_count": 1648,
+  "edge_count": 1646,
   "edges": [
     {
       "kind": "import",
@@ -602,29 +602,23 @@
       "kind": "import",
       "line": 59,
       "source": "roboclaws.agents.household_live_continuation",
-      "target": "roboclaws.core.evaluation"
+      "target": "roboclaws.core.json_sources"
     },
     {
       "kind": "import",
       "line": 60,
       "source": "roboclaws.agents.household_live_continuation",
-      "target": "roboclaws.core.json_sources"
+      "target": "roboclaws.core.operator_messages"
     },
     {
       "kind": "import",
       "line": 61,
       "source": "roboclaws.agents.household_live_continuation",
-      "target": "roboclaws.core.operator_messages"
-    },
-    {
-      "kind": "import",
-      "line": 62,
-      "source": "roboclaws.agents.household_live_continuation",
       "target": "roboclaws.core.raw_fpv_guidance"
     },
     {
       "kind": "import",
-      "line": 63,
+      "line": 62,
       "source": "roboclaws.agents.household_live_continuation",
       "target": "roboclaws.core.task_intents"
     },
@@ -840,31 +834,31 @@
     },
     {
       "kind": "import",
-      "line": 89,
+      "line": 85,
       "source": "roboclaws.agents.household_live_lifecycle",
       "target": "roboclaws.core.live_performance"
     },
     {
       "kind": "import",
-      "line": 93,
+      "line": 89,
       "source": "roboclaws.agents.household_live_lifecycle",
       "target": "roboclaws.core.open_ended_artifacts"
     },
     {
       "kind": "import",
-      "line": 94,
+      "line": 90,
       "source": "roboclaws.agents.household_live_lifecycle",
       "target": "roboclaws.core.robot_view_capture"
     },
     {
       "kind": "import",
-      "line": 95,
+      "line": 91,
       "source": "roboclaws.agents.household_live_lifecycle",
       "target": "roboclaws.core.task_intents"
     },
     {
       "kind": "import",
-      "line": 98,
+      "line": 94,
       "source": "roboclaws.agents.household_live_lifecycle",
       "target": "roboclaws.core.task_intents"
     },
@@ -2893,30 +2887,24 @@
     {
       "kind": "import",
       "line": 5,
-      "source": "roboclaws.evals.cleanup_result_args",
-      "target": "roboclaws.household.cleanup_validation_args"
-    },
-    {
-      "kind": "import",
-      "line": 3,
-      "source": "roboclaws.evals.cleanup_result_cli",
-      "target": "roboclaws.evals.cleanup_result_args"
-    },
-    {
-      "kind": "import",
-      "line": 4,
       "source": "roboclaws.evals.cleanup_result_cli",
       "target": "roboclaws.evals.cleanup_result_grader"
     },
     {
       "kind": "import",
-      "line": 5,
+      "line": 6,
+      "source": "roboclaws.evals.cleanup_result_cli",
+      "target": "roboclaws.household.cleanup_validation_args"
+    },
+    {
+      "kind": "import",
+      "line": 10,
       "source": "roboclaws.evals.cleanup_result_cli",
       "target": "roboclaws.household.cleanup_validation_cli"
     },
     {
       "kind": "import",
-      "line": 6,
+      "line": 11,
       "source": "roboclaws.evals.cleanup_result_cli",
       "target": "roboclaws.household.cleanup_validation_support"
     },
@@ -3138,31 +3126,31 @@
     },
     {
       "kind": "import",
-      "line": 39,
+      "line": 38,
       "source": "roboclaws.evals.live_execution",
       "target": "roboclaws.evals.live_timeout"
     },
     {
       "kind": "import",
-      "line": 44,
+      "line": 43,
       "source": "roboclaws.evals.live_execution",
       "target": "roboclaws.evals.models"
     },
     {
       "kind": "import",
-      "line": 50,
+      "line": 49,
       "source": "roboclaws.evals.live_execution",
       "target": "roboclaws.launch.catalog"
     },
     {
       "kind": "import",
-      "line": 51,
+      "line": 50,
       "source": "roboclaws.evals.live_execution",
       "target": "roboclaws.launch.executor"
     },
     {
       "kind": "import",
-      "line": 52,
+      "line": 51,
       "source": "roboclaws.evals.live_execution",
       "target": "roboclaws.launch.plans"
     },
@@ -10505,7 +10493,7 @@
       "target": "roboclaws.worlds.molmospaces.contracts"
     }
   ],
-  "module_count": 525,
+  "module_count": 524,
   "module_sccs": [],
   "package_bidirectional_edges": [],
   "policies": [

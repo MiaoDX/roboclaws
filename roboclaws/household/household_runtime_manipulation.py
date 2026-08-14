@@ -282,8 +282,6 @@ class HouseholdRuntimeManipulationMixin:
         readiness = self.evaluate_done_readiness(
             semantic_cleanup_evidence=semantic_cleanup_evidence,
         )
-        if readiness["status"] == "blocked":
-            return self._done_readiness_blocked_response(readiness)
         done = self.contract.done(reason=reason)
         if not done.get("ok"):
             return done
@@ -291,7 +289,7 @@ class HouseholdRuntimeManipulationMixin:
         final_locations = dict(done["final_locations"])
         metrics = self._realworld_metrics(score, final_locations)
         score.update(metrics)
-        return self._ok(
+        response = self._ok(
             "done",
             reason=reason,
             cleanup_status=metrics["completion_status"],
@@ -302,6 +300,18 @@ class HouseholdRuntimeManipulationMixin:
             contract=REALWORLD_CONTRACT,
             policy_uses_private_truth=False,
         )
+        if readiness["status"] == "blocked":
+            blocked = self._done_readiness_blocked_response(readiness)
+            blocked.update(
+                cleanup_status="incomplete",
+                score=score,
+                final_locations=final_locations,
+                final_containment=done.get("final_containment", {}),
+                tool_event_counts=done.get("tool_event_counts", {}),
+                terminal=True,
+            )
+            return blocked
+        return response
 
     def evaluate_done_readiness(
         self,

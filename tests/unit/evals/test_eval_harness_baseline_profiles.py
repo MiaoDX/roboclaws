@@ -12,11 +12,21 @@ LIVE_AGENT_ROW_IDS = {
     "openai-agents-sdk-open-task-live-eval",
     "openai-agents-sdk-session-live-eval",
     "openai-agents-sdk-cleanup-live-eval",
+    "openai-agents-sdk-cleanup-no-skill-eval",
+    "openai-agents-sdk-cleanup-dynamic-full-eval",
+    "openai-agents-sdk-cleanup-dynamic-routed-eval",
+    "openai-agents-sdk-cleanup-sandbox-skills-eval",
 }
 ALTERNATE_PROVIDER_MATRIX_ROW_IDS = {
     "map-build-consumer-openai-agents-sdk-codex-responses",
     "map-build-consumer-openai-agents-sdk-mimo-responses",
     "map-build-consumer-openai-agents-sdk-minimax-responses",
+}
+EXPERIMENTAL_SKILL_DELIVERY_ROW_IDS = {
+    "openai-agents-sdk-cleanup-no-skill-eval",
+    "openai-agents-sdk-cleanup-dynamic-full-eval",
+    "openai-agents-sdk-cleanup-dynamic-routed-eval",
+    "openai-agents-sdk-cleanup-sandbox-skills-eval",
 }
 
 
@@ -64,7 +74,9 @@ def test_baseline_live_default_profile_excludes_alternate_provider_sweep(
     )
 
     rows = _selected_rows(manifest)
-    assert set(rows) == set(_selected_rows(full)) - ALTERNATE_PROVIDER_MATRIX_ROW_IDS
+    assert set(rows) == set(_selected_rows(full)) - (
+        ALTERNATE_PROVIDER_MATRIX_ROW_IDS | EXPERIMENTAL_SKILL_DELIVERY_ROW_IDS
+    )
     assert manifest["summary"]["selected_row_count"] == 22
     assert manifest["summary"]["live_agent_eval_row_count"] == 4
     assert manifest["summary"]["budget_skipped_count"] == 0

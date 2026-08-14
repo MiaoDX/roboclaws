@@ -130,6 +130,9 @@ class HouseholdLiveHandoffMixin:
                 "sdk_run_config": self.agent_sdk_perf_profile["sdk_run_config"],
                 "model_thinking_mode": self.agent_sdk_perf_profile["model_thinking_mode"],
                 "skill_context": self.skill_context,
+                "model_visible_tool_surface": self.live_timing.get(
+                    "model_visible_tool_surface", []
+                ),
                 "surface": "household-world",
                 "intent": _household_intent(self.args),
                 "task_name": _household_run_id(self.args),

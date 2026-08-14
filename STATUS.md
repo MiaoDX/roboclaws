@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-02
+Last updated: 2026-08-04
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -10,10 +10,27 @@ leave a link.
 
 ## Current Focus
 
-The latest hybrid eval candidate at `output/eval-harness/20260731T100528Z/`
-passes all 25 selected rows with no behavior failures, provider failures,
-blocked rows, infrastructure retries, or regressions. It is awaiting human
-confirmation; durable baseline publication remains unauthorized.
+The post-refactor Skill delivery comparison is terminal at
+`output/eval-harness/20260804T121407Z/`. It tested five cells with the kickoff
+goal only in user input, using `kimi-openai-chat` / `kimi-k2.7-code`, cleanup
+seed 7, and three serial repetitions per cell. `no-skill` passed 3/3;
+`static-full` passed 2/3; `dynamic-full` and restricted `sandbox-skills` each
+passed 1/3; `dynamic-routed` passed 0/3. The failed trials were checker/behavior
+failures, not provider or infrastructure failures.
+
+This one-scene matrix challenges `static-full`, but it is insufficient to
+remove the Skill globally. The product default remains unchanged pending a
+reviewed multi-scene `no-skill` versus `static-full` confirmation. Dynamic and
+Sandbox delivery have no promotion case. The Sandbox runtime passed its local
+Docker isolation contract with network disabled, no mounts or sensitive
+environment, and only the selected Skill reader exposed. No durable
+baseline/catalog artifact was published. See
+`docs/plans/2026-08-03-agent-skill-delivery-eval.md`.
+
+The invalid hybrid candidate at `output/eval-harness/20260803T023049Z/` remains
+retained as evidence and unpublished. Its checker/eval ownership regression is
+fixed: product checker failures now fail closed, `done` is terminal, and one
+canonical completion snapshot is shared across runtime evidence surfaces.
 
 The active product shape is:
 
@@ -48,12 +65,18 @@ providers.
 
 ## Next Action
 
-Review the ranked 25-row eval candidate and decide whether to publish its
-durable baseline/catalog artifacts. Publication remains separate and
-unauthorized until that confirmation.
+Keep `static-full` as the product default until a reviewed multi-scene
+confirmation compares it directly with `no-skill`. Do not promote a dynamic or
+Sandbox mode, or publish a baseline, from the one-scene matrix.
 
 ## Current Blockers
 
+- Eval baseline publication remains blocked until a new full candidate replaces
+  the invalid `20260803T023049Z` evidence and receives human confirmation.
+- CloudML still cannot host the Docker-backed Sandbox row because its current
+  worker has no Docker runtime. Local restricted Sandbox evaluation is proven;
+  enabling a CloudML sandbox backend or worker image remains a runtime/cost
+  decision.
 - Agibot and B1 injected dependency readiness passes with the existing local SDK, Map 12 bundle,
   B1 scene, and alignment/navigation proofs. Real-robot movement remains unauthorized and requires
   a present operator plus the existing localization, run-enablement, and E-stop gates.

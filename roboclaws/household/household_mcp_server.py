@@ -264,6 +264,8 @@ class HouseholdWorldMCPServer(HouseholdMCPArtifactLifecycle, HouseholdMCPTraceLi
         self._server_thread: threading.Thread | None = None
         self._closed = False
         self._done_result: dict[str, Any] | None = None
+        self._completion_response_id = 0
+        self._completion_snapshot: dict[str, Any] | None = None
 
     def _init_public_artifacts(self) -> None:
         self._before_snapshot = self._write_snapshot(
@@ -298,6 +300,8 @@ class HouseholdWorldMCPServer(HouseholdMCPArtifactLifecycle, HouseholdMCPTraceLi
 
     def call_tool(self, name: str, **kwargs: Any) -> dict[str, Any]:
         validate_household_mcp_tool_call(self, name)
+        if name == "done" and self._done_result is not None:
+            return self._done_result
         request = _json_safe(kwargs)
         self._write_tool_request(name, request)
         try:
@@ -313,13 +317,22 @@ class HouseholdWorldMCPServer(HouseholdMCPArtifactLifecycle, HouseholdMCPTraceLi
         response = self._augment_response(name, request, response)
         if name != "check_operator_messages":
             response = self._attach_operator_message_hint(response)
-        response = realworld_done_readiness.attach_completion_readiness_hint(self, name, response)
+        if name != "done":
+            self._completion_response_id += 1
+            self._completion_snapshot = realworld_done_readiness.completion_snapshot(
+                self,
+                source_tool=name,
+                response_id=self._completion_response_id,
+            )
+            response = realworld_done_readiness.attach_completion_snapshot(
+                response, self._completion_snapshot
+            )
         response = self._attach_raw_fpv_artifact_if_needed(name, response)
         self._write_tool_response(name, response)
-        if name == "done" and response.get("ok"):
+        if name == "done":
             return self._finalize_done(str(kwargs.get("reason", "")), response)
         self._record_tool_robot_view(name, request, response)
-        if response.get("ok") and name != "done":
+        if name != "done":
             self._write_live_public_artifacts(trigger=name)
         return response
 

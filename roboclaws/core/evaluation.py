@@ -15,7 +15,6 @@ def checker_flags_for_household_intent(
 
     flags = [
         "--require-agent-driven",
-        "--require-advisory-scoring",
         "--require-completion-claim",
         "--require-goal-contract",
     ]
@@ -61,54 +60,3 @@ def checker_flags_for_household_intent(
             )
         )
     return tuple(flags)
-
-
-def household_intent_id_for_checker(
-    *,
-    task_intent: str = "",
-    open_ended_task: bool = False,
-) -> str:
-    """Return the canonical household intent for live-run checker calls."""
-
-    if task_intent:
-        return task_intent
-    if open_ended_task:
-        return "open-ended"
-    return "cleanup"
-
-
-VALUE_CHECKER_FLAGS = frozenset(
-    {
-        "--min-semantic-accepted-count",
-        "--min-model-declared-observations",
-        "--min-model-declared-actions",
-        "--min-sweep-coverage",
-    }
-)
-
-
-def merge_checker_flags(*groups: tuple[str, ...] | list[str]) -> tuple[str, ...]:
-    """Merge checker flags, de-duplicating value-bearing flags as a unit."""
-
-    merged: list[str] = []
-    seen_flags: set[str] = set()
-    for group in groups:
-        index = 0
-        items = list(group)
-        while index < len(items):
-            item = items[index]
-            value = ""
-            has_value = item in VALUE_CHECKER_FLAGS
-            if has_value and index + 1 < len(items):
-                value = items[index + 1]
-            if item in seen_flags:
-                index += 2 if has_value else 1
-                continue
-            merged.append(item)
-            seen_flags.add(item)
-            if has_value:
-                merged.append(value)
-                index += 2
-            else:
-                index += 1
-    return tuple(merged)
