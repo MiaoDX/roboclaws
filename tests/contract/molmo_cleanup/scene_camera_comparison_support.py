@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
 import pytest
@@ -23,18 +22,6 @@ from roboclaws.household.scene_camera_comparison import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-
-MOLMO_JUST = REPO_ROOT / "just" / "molmo.just"
-
-
-def just_bin() -> str:
-    path = shutil.which("just")
-    if path:
-        return path
-    local_path = Path.home() / ".local/bin" / "just"
-    if local_path.exists():
-        return str(local_path)
-    pytest.skip("just binary is not available")
 
 
 def _require_official_render_sources() -> None:

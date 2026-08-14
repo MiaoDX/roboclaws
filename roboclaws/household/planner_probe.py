@@ -471,3 +471,7 @@ def _execute_policy_probe(
             "blockers", []
         ),
     }
+
+
+if __name__ == "__main__":
+    main()

@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -20,7 +21,17 @@ from roboclaws.backends.isaaclab.b1_readiness_validation import (
 from roboclaws.core.json_sources import read_json_object
 
 
-def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+@dataclass(frozen=True)
+class B1ReadinessRequest:
+    b1_root: Path
+    map12_root: Path
+    output: Path
+    navigation_artifact: Path | None = None
+    alignment_artifact: Path | None = None
+    require_navigation_success: bool = False
+
+
+def parse_args(argv: list[str] | None = None) -> B1ReadinessRequest:
     parser = argparse.ArgumentParser(
         description=(
             "Build the static B1 / robot_map_12 Digital Twin readiness artifact. "
@@ -47,42 +58,45 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument("--require-navigation-success", action="store_true")
-    return parser.parse_args(argv)
+    return B1ReadinessRequest(**vars(parser.parse_args(argv)))
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = parse_args(argv)
+    return run_b1_readiness(parse_args(argv))
+
+
+def run_b1_readiness(request: B1ReadinessRequest) -> int:
     try:
-        payload = build_readiness_artifact(args.b1_root, args.map12_root)
-        if args.alignment_artifact is not None:
+        payload = build_readiness_artifact(request.b1_root, request.map12_root)
+        if request.alignment_artifact is not None:
             alignment_payload = read_json_object(
-                args.alignment_artifact,
+                request.alignment_artifact,
                 label="alignment artifact",
             )
             payload = readiness_artifact_with_alignment(
                 payload,
                 alignment_payload,
-                alignment_artifact_path=args.alignment_artifact,
+                alignment_artifact_path=request.alignment_artifact,
             )
         navigation_payload: dict[str, Any] | None = None
-        if args.navigation_artifact is not None:
+        if request.navigation_artifact is not None:
             navigation_payload = read_json_object(
-                args.navigation_artifact,
+                request.navigation_artifact,
                 label="navigation artifact",
             )
             payload = readiness_artifact_with_navigation(
                 payload,
                 navigation_payload,
-                navigation_artifact_path=args.navigation_artifact,
+                navigation_artifact_path=request.navigation_artifact,
             )
     except (FileNotFoundError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     errors = validate_readiness_artifact(
         payload,
-        require_navigation_success=bool(args.require_navigation_success),
+        require_navigation_success=request.require_navigation_success,
     )
-    if args.require_navigation_success and navigation_payload is not None:
+    if request.require_navigation_success and navigation_payload is not None:
         errors.extend(
             f"navigation artifact: {error}"
             for error in validate_navigation_smoke_artifact(
@@ -94,14 +108,17 @@ def main(argv: list[str] | None = None) -> int:
         "status": "passed" if not errors else "failed",
         "errors": errors,
     }
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    request.output.parent.mkdir(parents=True, exist_ok=True)
+    request.output.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     print(
         json.dumps(
             {
                 "schema": READINESS_SCHEMA,
                 "status": payload["validation"]["status"],
-                "output": str(args.output),
+                "output": str(request.output),
                 "robot_navigation_supported": payload.get("robot_navigation_supported"),
                 "map12_overlay_status": payload.get("map12_overlay_status"),
                 "errors": errors,

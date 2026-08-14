@@ -31,7 +31,7 @@ for case_id in \
   'kimi:kimi-k2.7-code:chat' \
   'nvidia:nemotron-nano-vl:chat'
 do
-  just dev::model-matrix-benchmark \
+  .venv/bin/python scripts/dev/benchmark_model_matrix.py \
     --case "$case_id" \
     --layer health --layer first-content --layer throughput \
     --iterations 2 --timeout-s 90 \

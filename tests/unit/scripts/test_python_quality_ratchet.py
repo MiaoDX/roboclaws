@@ -43,6 +43,16 @@ def baseline_state() -> dict:
                 }
             ]
         },
+        "repository_size": {
+            "source": {
+                "loc": 1000,
+                "files_at_least": {"500": 2, "800": 1, "1000": 0},
+            },
+            "tests": {
+                "loc": 500,
+                "files_at_least": {"500": 1, "800": 0, "1000": 0},
+            },
+        },
     }
 
 
@@ -189,6 +199,24 @@ def test_ratchet_rejects_new_or_growing_oversized_modules() -> None:
         "oversized module grew roboclaws/large.py 900 -> 901 lines",
         "new oversized module scripts/new_big_module.py has 801 lines",
     ]
+
+
+@pytest.mark.parametrize("scope", ["source", "tests"])
+def test_ratchet_keeps_large_file_counts_observational(scope: str) -> None:
+    module = load_module()
+    current = baseline_state()
+    current["repository_size"][scope]["files_at_least"]["500"] += 1
+
+    assert module.compare_to_baseline(current, baseline_state()) == []
+
+
+def test_ratchet_keeps_total_loc_observational() -> None:
+    module = load_module()
+    current = baseline_state()
+    current["repository_size"]["source"]["loc"] += 10_000
+    current["repository_size"]["tests"]["loc"] += 10_000
+
+    assert module.compare_to_baseline(current, baseline_state()) == []
 
 
 def test_repository_size_records_exact_threshold_counts(tmp_path: Path) -> None:

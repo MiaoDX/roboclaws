@@ -7,10 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.agents.provider_registry import provider_readiness
-from roboclaws.core.agent_engines import (
-    is_retired_agent_engine,
-    retired_agent_engine_message,
-)
+from roboclaws.core.agent_engines import unsupported_agent_engine_message
 from roboclaws.core.provider_catalog import normalize_provider_route
 from roboclaws.evals.models import (
     MISSING_NOT_APPLICABLE,
@@ -25,12 +22,10 @@ from roboclaws.launch.agent_engines import AGENT_ENGINE_SPECS, AgentEngineSpec
 
 def agent_engine_spec(agent_engine: str) -> AgentEngineSpec:
     engine_id = str(agent_engine or "direct-runner").strip()
-    if is_retired_agent_engine(engine_id):
-        raise ValueError(retired_agent_engine_message(engine_id))
     try:
         return AGENT_ENGINE_SPECS[engine_id]
     except KeyError as exc:
-        raise ValueError(f"unknown eval agent_engine {engine_id!r}") from exc
+        raise ValueError(unsupported_agent_engine_message(engine_id)) from exc
 
 
 def eval_provider_profile(*, agent_engine: str, provider_profile: str | None) -> str:

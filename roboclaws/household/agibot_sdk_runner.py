@@ -9,7 +9,6 @@ from typing import Any
 from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household import profiles as evidence_profiles
 from roboclaws.household.agibot_map_bundle import write_agibot_nav2_map_bundle
-from roboclaws.household.agibot_map_defaults import DEFAULT_AGIBOT_CONFIDENCE_LAYER
 from roboclaws.household.agibot_operator_gates import (
     bounded_local_nudge_status,
     operator_localization_gate,
@@ -641,7 +640,6 @@ def run_physical_agibot_cleanup_pilot(
             "runner_script_configured": True,
             "agibot_map_artifact_dir_configured": True,
             "real_movement_enabled": real_movement_enabled,
-            "next_confidence_layer": DEFAULT_AGIBOT_CONFIDENCE_LAYER,
             "subphase_reports": subphase_reports,
             "gdk_imported_by_roboclaws": False,
             "public_tool_boundary": [

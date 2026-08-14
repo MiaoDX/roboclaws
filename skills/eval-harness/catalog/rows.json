@@ -212,8 +212,11 @@
       "row_id": "household-direct-world-public-product",
       "row_kind": "product_run",
       "command": [
-        "just",
-        "run::surface",
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.cli.main",
+        "run",
+        "surface",
         "surface=household-world",
         "world={default_world}",
         "backend={default_backend}",
@@ -238,7 +241,6 @@
         "agent_view_module"
       ],
       "requires": [
-        "just",
         "python_env"
       ],
       "profiles": [
@@ -278,8 +280,9 @@
       "row_id": "smoke-regression-eval-suite",
       "row_kind": "eval_suite",
       "command": [
-        "just",
-        "agent::eval",
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.evals.cli",
         "suite=smoke_regression",
         "budget=smoke",
         "output_dir={eval_output_root}",
@@ -297,7 +300,6 @@
         "launch_catalog"
       ],
       "requires": [
-        "just",
         "python_env"
       ],
       "profiles": [
@@ -310,8 +312,9 @@
       "row_id": "map-build-consumer-eval-suite",
       "row_kind": "eval_suite",
       "command": [
-        "just",
-        "agent::eval",
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.evals.cli",
         "suite=map_build_quality",
         "budget=smoke",
         "output_dir={eval_output_root}",
@@ -328,7 +331,6 @@
         "map_build"
       ],
       "requires": [
-        "just",
         "python_env"
       ],
       "profiles": [
@@ -341,8 +343,9 @@
       "row_id": "map-build-consumer-openai-agents-sdk-codex-responses",
       "row_kind": "live_agent_eval",
       "command": [
-        "just",
-        "agent::eval",
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.evals.cli",
         "suite=map_consumer_fixed_prior",
         "runtime_map_prior={runtime_map_prior}",
         "budget=focused",
@@ -373,7 +376,6 @@
         "map_build"
       ],
       "requires": [
-        "just",
         "python_env",
         "openai_agents_package",
         "provider_profile",
@@ -387,8 +389,9 @@
       "row_id": "map-build-consumer-openai-agents-sdk-mimo-responses",
       "row_kind": "live_agent_eval",
       "command": [
-        "just",
-        "agent::eval",
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.evals.cli",
         "suite=map_consumer_fixed_prior",
         "runtime_map_prior={runtime_map_prior}",
         "budget=focused",
@@ -419,7 +422,6 @@
         "map_build"
       ],
       "requires": [
-        "just",
         "python_env",
         "openai_agents_package",
         "provider_profile",
@@ -433,8 +435,9 @@
       "row_id": "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
       "row_kind": "live_agent_eval",
       "command": [
-        "just",
-        "agent::eval",
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.evals.cli",
         "suite=map_consumer_fixed_prior",
         "runtime_map_prior={runtime_map_prior}",
         "budget=focused",
@@ -465,7 +468,6 @@
         "map_build"
       ],
       "requires": [
-        "just",
         "python_env",
         "openai_agents_package",
         "provider_profile",
@@ -480,8 +482,9 @@
       "row_id": "map-build-consumer-openai-agents-sdk-minimax-responses",
       "row_kind": "live_agent_eval",
       "command": [
-        "just",
-        "agent::eval",
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.evals.cli",
         "suite=map_consumer_fixed_prior",
         "runtime_map_prior={runtime_map_prior}",
         "budget=focused",
@@ -512,7 +515,6 @@
         "map_build"
       ],
       "requires": [
-        "just",
         "python_env",
         "openai_agents_package",
         "provider_profile",
@@ -526,8 +528,9 @@
       "row_id": "open-ended-goals-eval-suite",
       "row_kind": "eval_suite",
       "command": [
-        "just",
-        "agent::eval",
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.evals.cli",
         "suite=open_ended_goals",
         "budget=smoke",
         "output_dir={eval_output_root}",
@@ -544,7 +547,6 @@
         "open_ended"
       ],
       "requires": [
-        "just",
         "python_env"
       ],
       "profiles": [
@@ -557,8 +559,9 @@
       "row_id": "scene-sampler-stress-eval-suite",
       "row_kind": "eval_suite",
       "command": [
-        "just",
-        "agent::eval",
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.evals.cli",
         "suite=scene_sampler_stress",
         "budget=smoke",
         "output_dir={eval_output_root}",
@@ -577,7 +580,6 @@
         "eval_harness"
       ],
       "requires": [
-        "just",
         "python_env"
       ],
       "profiles": [
@@ -590,8 +592,9 @@
       "row_id": "cleanup-capability-eval-suite",
       "row_kind": "eval_suite",
       "command": [
-        "just",
-        "agent::eval",
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.evals.cli",
         "suite=cleanup_capability",
         "budget=smoke",
         "output_dir={eval_output_root}",
@@ -609,7 +612,6 @@
         "mcp_checker"
       ],
       "requires": [
-        "just",
         "python_env"
       ],
       "profiles": [
@@ -622,8 +624,9 @@
       "row_id": "long-horizon-tasks-eval-suite",
       "row_kind": "eval_suite",
       "command": [
-        "just",
-        "agent::eval",
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.evals.cli",
         "suite=long_horizon_tasks",
         "budget=smoke",
         "output_dir={eval_output_root}",
@@ -640,7 +643,6 @@
         "long_horizon"
       ],
       "requires": [
-        "just",
         "python_env"
       ],
       "profiles": [
@@ -653,8 +655,9 @@
       "row_id": "openai-agents-sdk-open-task-live-eval",
       "row_kind": "live_agent_eval",
       "command": [
-        "just",
-        "agent::eval",
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.evals.cli",
         "suite=open_ended_goals",
         "budget=smoke",
         "output_dir={eval_output_root}",
@@ -679,7 +682,6 @@
         "open_ended"
       ],
       "requires": [
-        "just",
         "python_env",
         "openai_agents_package",
         "provider_profile"
@@ -693,8 +695,9 @@
       "row_id": "openai-agents-sdk-session-live-eval",
       "row_kind": "live_agent_eval",
       "command": [
-        "just",
-        "agent::eval",
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.evals.cli",
         "session-live",
         "budget=smoke",
         "output_dir={eval_output_root}",
@@ -721,7 +724,6 @@
         "eval_harness"
       ],
       "requires": [
-        "just",
         "python_env",
         "openai_agents_package",
         "provider_profile"
@@ -735,8 +737,9 @@
       "row_id": "openai-agents-sdk-cleanup-live-eval",
       "row_kind": "live_agent_eval",
       "command": [
-        "just",
-        "agent::eval",
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.evals.cli",
         "suite=cleanup_capability",
         "budget=smoke",
         "output_dir={eval_output_root}",
@@ -762,7 +765,6 @@
         "mcp_checker"
       ],
       "requires": [
-        "just",
         "python_env",
         "openai_agents_package",
         "provider_profile"
@@ -776,8 +778,11 @@
       "row_id": "planner-proof-dry-run-product",
       "row_kind": "product_run",
       "command": [
-        "just",
-        "run::surface",
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.cli.main",
+        "run",
+        "surface",
         "surface=planner-proof",
         "world=planner-proof/default",
         "backend={default_backend}",
@@ -798,7 +803,6 @@
         "planner_proof"
       ],
       "requires": [
-        "just",
         "python_env"
       ],
       "profiles": [
@@ -811,8 +815,11 @@
       "row_id": "direct-camera-grounded-grounding-dino",
       "row_kind": "product_run",
       "command": [
-        "just",
-        "run::surface",
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.cli.main",
+        "run",
+        "surface",
         "surface=household-world",
         "world={default_world}",
         "backend={default_backend}",
@@ -840,7 +847,6 @@
         "visual_grounding"
       ],
       "requires": [
-        "just",
         "python_env",
         "dino_sidecar"
       ],
@@ -855,8 +861,11 @@
       "row_kind": "product_run",
       "scene_scope": "selected",
       "command": [
-        "just",
-        "run::surface",
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.cli.main",
+        "run",
+        "surface",
         "surface=household-world",
         "world={default_world}",
         "backend={default_backend}",
@@ -884,7 +893,6 @@
         "visual_grounding"
       ],
       "requires": [
-        "just",
         "python_env",
         "dino_sidecar"
       ],
@@ -898,8 +906,11 @@
       "row_id": "direct-camera-raw-fpv",
       "row_kind": "product_run",
       "command": [
-        "just",
-        "run::surface",
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.cli.main",
+        "run",
+        "surface",
         "surface=household-world",
         "world={default_world}",
         "backend={default_backend}",
@@ -925,7 +936,6 @@
         "raw_fpv"
       ],
       "requires": [
-        "just",
         "python_env"
       ],
       "profiles": [
@@ -939,8 +949,11 @@
       "row_kind": "product_run",
       "scene_scope": "selected",
       "command": [
-        "just",
-        "run::surface",
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.cli.main",
+        "run",
+        "surface",
         "surface=household-world",
         "world={default_world}",
         "backend={default_backend}",
@@ -965,7 +978,6 @@
         "map_build"
       ],
       "requires": [
-        "just",
         "python_env"
       ],
       "profiles": [
@@ -978,8 +990,11 @@
       "row_id": "direct-cleanup-runtime-prior-consumer",
       "row_kind": "product_run",
       "command": [
-        "just",
-        "run::surface",
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.cli.main",
+        "run",
+        "surface",
         "surface=household-world",
         "world={default_world}",
         "backend={default_backend}",
@@ -1007,7 +1022,6 @@
         "map_build"
       ],
       "requires": [
-        "just",
         "python_env",
         "runtime_map_prior"
       ],

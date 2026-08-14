@@ -1,14 +1,7 @@
 from __future__ import annotations
 
-import sys
 from collections import defaultdict
-from pathlib import Path
 from typing import Any
-
-if __package__ in {None, ""}:
-    repo_root = Path(__file__).resolve().parents[2]
-    if str(repo_root) not in sys.path:
-        sys.path.insert(0, str(repo_root))
 
 from roboclaws.evals.visual_grounding_benchmark.artifacts import (
     _api_cost_summary,

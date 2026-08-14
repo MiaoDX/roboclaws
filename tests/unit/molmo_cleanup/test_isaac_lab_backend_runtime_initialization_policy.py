@@ -11,7 +11,6 @@ from roboclaws.backends.isaaclab import runtime as runtime_cli
 from roboclaws.backends.isaaclab import runtime_camera as runtime_camera
 from roboclaws.backends.isaaclab import runtime_capture as runtime_capture
 from roboclaws.backends.isaaclab import runtime_commands as runtime_commands
-from roboclaws.backends.isaaclab import runtime_dependencies as runtime_dependencies
 from roboclaws.backends.isaaclab import runtime_evidence as runtime_evidence
 from roboclaws.backends.isaaclab import runtime_initialization as runtime_initialization
 from roboclaws.backends.isaaclab import runtime_state as runtime_state
@@ -133,7 +132,7 @@ def test_isaac_lab_worker_detects_imported_rby1m_robot_usd(
         robot_usd,
     )
     monkeypatch.setattr(
-        runtime_dependencies,
+        runtime_state,
         "ISAAC_RBY1M_ROBOT_IMPORT_SUMMARY_PATH",
         summary_path,
     )
@@ -155,6 +154,12 @@ def test_isaac_lab_worker_detects_imported_rby1m_robot_usd(
     assert robot["embodiment"] == "rby1m"
     assert robot["robot_mounted_head_camera"] is True
     assert robot["robot_usd_path"] == str(robot_usd)
+
+
+def test_isaac_robot_import_resolves_repo_relative_artifacts() -> None:
+    relative_path = Path("output/isaaclab/robots/rby1m/robot.usda")
+
+    assert runtime_state._repo_path(relative_path) == Path.cwd() / relative_path
 
 
 def test_isaac_fake_worker_waypoint_navigation_updates_robot_view_pose(

@@ -1,31 +1,16 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
-
-def _repo_root() -> Path:
-    for parent in Path(__file__).resolve().parents:
-        if (parent / "justfile").is_file():
-            return parent
-    raise AssertionError("could not locate repo root")
-
-
-REPO_ROOT = _repo_root()
-RUNNER_PATH = REPO_ROOT / "scripts" / "operator_console" / "run_scene_sampler_source_prep.py"
+from roboclaws.worlds.molmospaces import source_prep_runner
 
 
 def _load_runner():
-    spec = importlib.util.spec_from_file_location("scene_sampler_source_prep_runner", RUNNER_PATH)
-    assert spec is not None
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
+    return source_prep_runner
 
 
 def _write_prep(path: Path, candidates: list[dict[str, object]]) -> None:

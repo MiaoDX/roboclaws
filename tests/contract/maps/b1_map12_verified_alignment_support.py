@@ -17,7 +17,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 
 ALIGNMENT_MODULE = "roboclaws.maps.b1_alignment"
 
-REVIEW_SCRIPT = REPO_ROOT / "scripts" / "maps" / "render_b1_map12_correspondence_review.py"
+REVIEW_MODULE = "roboclaws.maps.b1_map12_correspondence_review"
 
 PROMOTE_REVIEW_PACKET_MODULE = "roboclaws.maps.b1_semantic_review_promotion"
 

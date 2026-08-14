@@ -38,15 +38,10 @@ Verification inventory:
 - Stale-reference searches with `rg`.
 - `git diff --check` for every slice.
 
-Checkpoint cadence:
+Terminal state:
 
-- Update `docs/status/active/architecture-cleanup-campaign.md` after each
-  verified slice.
-- Commit each verified slice atomically.
-
-Active capsule:
-
-- `docs/status/active/architecture-cleanup-campaign.md`
+- The campaign is parked after reaching its saturation condition. It has no
+  active capsule and must not resume without fresh material evidence.
 
 Continue criteria:
 

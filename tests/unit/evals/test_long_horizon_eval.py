@@ -14,7 +14,6 @@ from roboclaws.evals.live_runtime import (
     live_surface_command,
     product_run_kwargs,
 )
-from roboclaws.evals.long_horizon import _call_tool_with_robot_view
 from roboclaws.evals.long_horizon_contract import long_horizon_spec
 from roboclaws.evals.long_horizon_grader import grade_long_horizon_task
 from roboclaws.evals.long_horizon_manifest import generated_mess_manifest
@@ -209,8 +208,8 @@ def test_long_horizon_live_command_uses_private_task_targets(tmp_path: Path) -> 
     ]
     plan = resolve_surface_launch(command[5:])
     assert plan.relocation_count == len(target_ids)
-    assert pinned_targets_arg in plan.overrides
-    assert f"generated_mess_manifest_path={manifest_path}" in plan.overrides
+    assert plan.adapter_options["generated_mess_object_ids"] == pinned_targets_arg.split("=", 1)[1]
+    assert plan.adapter_options["generated_mess_manifest_path"] == str(manifest_path)
 
 
 def test_long_horizon_generated_mess_manifest_comes_from_private_task_spec() -> None:
@@ -264,51 +263,6 @@ def test_long_horizon_chinese_food_restock_manifest_adds_cold_branch() -> None:
         SHELF,
         SHELF,
         FRIDGE,
-    ]
-
-
-def test_long_horizon_robot_view_capture_resolves_public_handle_to_internal_id(
-    tmp_path: Path,
-) -> None:
-    base_contract = _RecordingRobotViewBaseContract()
-    contract = _RobotViewContractStub(
-        internal_object_ids={"observed_003": TARGET_A},
-        internal_fixture_ids={SHELF: SHELF},
-    )
-    events: list[dict[str, Any]] = []
-    steps: list[dict[str, Any]] = []
-
-    response, next_index = _call_tool_with_robot_view(
-        events,
-        0.0,
-        "pick",
-        {"object_id": "observed_003"},
-        lambda: {
-            "ok": True,
-            "tool": "pick",
-            "object_id": "observed_003",
-            "previous_location_id": SHELF,
-        },
-        base_contract=base_contract,
-        contract=contract,
-        robot_view_steps=steps,
-        output_dir=tmp_path,
-        view_index=4,
-        record_robot_views=True,
-    )
-
-    assert response["ok"] is True
-    assert next_index == 5
-    assert len(base_contract.recorded_steps) == 1
-    assert base_contract.recorded_steps[0]["focus_object_id"] == TARGET_A
-    assert base_contract.recorded_steps[0]["focus_receptacle_id"] == SHELF
-    assert base_contract.recorded_steps[0]["semantic_phase"] == "pick"
-    assert steps == [
-        {
-            "label": "0004_pick_observed_003",
-            "focus_object_id": TARGET_A,
-            "focus_receptacle_id": SHELF,
-        }
     ]
 
 
@@ -587,41 +541,3 @@ def _category_for_object_id(object_id: str) -> str:
     if object_id == TARGET_APPLE:
         return "Apple"
     return "Bread"
-
-
-class _RecordingRobotViewBaseContract:
-    def __init__(self) -> None:
-        self.recorded_steps: list[dict[str, Any]] = []
-
-    def record_robot_view_step(self, **kwargs: Any) -> int:
-        self.recorded_steps.append(dict(kwargs))
-        kwargs["steps"].append(
-            {
-                "label": f"{kwargs['index']:04d}_{kwargs['label_suffix']}",
-                "focus_object_id": kwargs.get("focus_object_id"),
-                "focus_receptacle_id": kwargs.get("focus_receptacle_id"),
-            }
-        )
-        return int(kwargs["index"]) + 1
-
-
-class _RobotViewContractStub:
-    def __init__(
-        self,
-        *,
-        internal_object_ids: dict[str, str],
-        internal_fixture_ids: dict[str, str],
-    ) -> None:
-        self._internal_object_ids = internal_object_ids
-        self._internal_fixture_ids = internal_fixture_ids
-
-    def _internal_object_id(self, handle: str) -> str | None:
-        return self._internal_object_ids.get(handle)
-
-    def _handle_for_object(self, object_id: str) -> str:
-        raise AssertionError(f"robot-view capture must not mint handles for {object_id}")
-
-    def internal_fixture_id_for_public_reference(self, fixture_id: str | None) -> str | None:
-        if fixture_id is None:
-            return None
-        return self._internal_fixture_ids.get(fixture_id)

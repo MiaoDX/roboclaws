@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 import subprocess
 from pathlib import Path
@@ -9,10 +8,10 @@ from typing import Any
 import pytest
 from pytest import MonkeyPatch
 
+from roboclaws.evals.harness import rows as rows_module
+from roboclaws.evals.harness import runner, selector
+
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SELECTOR_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "select_eval_harness.py"
-ROWS_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "eval_harness_rows.py"
-RUNNER_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "run_eval_harness.py"
 
 EXPECTED_ROW_IDS = {
     "route-trace-contract-tests",
@@ -43,20 +42,6 @@ EXPECTED_ROW_IDS = {
 }
 
 
-def _load_module(name: str, path: Path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    assert spec is not None
-    assert spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-selector = _load_module("eval_harness_selector_test", SELECTOR_PATH)
-rows_module = _load_module("eval_harness_rows_test", ROWS_PATH)
-runner = _load_module("eval_harness_runner_test", RUNNER_PATH)
-
-
 def _selected_rows(manifest: dict) -> dict[str, dict]:
     return {row["row_id"]: row for row in manifest["rows"] if row["selected"]}
 
@@ -79,7 +64,20 @@ def test_row_catalog_loads_current_eval_harness_rows(tmp_path: Path) -> None:
 
     assert {row["row_id"] for row in rows} == EXPECTED_ROW_IDS
     assert all(row["schema"] == "roboclaws_eval_harness_row_v1" for row in rows)
-    assert rows_module.CATALOG_PATH.name == "rows.json"
+    assert all("just" not in row["requires"] for row in rows)
+    assert all(row["command"][0] != "just" for row in rows)
+    assert all(
+        row["command"][:3]
+        in (
+            [".venv/bin/python", "-m", "roboclaws.cli.main"],
+            [".venv/bin/python", "-m", "roboclaws.evals.cli"],
+        )
+        for row in rows
+        if row["command"][0] == ".venv/bin/python"
+    )
+    assert rows_module.CATALOG_PATH == (
+        REPO_ROOT / "skills" / "eval-harness" / "catalog" / "rows.json"
+    )
 
 
 def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
@@ -343,7 +341,6 @@ def test_runtime_prior_blocker_uses_current_map_build_row(
     tmp_path: Path,
     monkeypatch: MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(runner.shutil, "which", lambda name: f"/usr/bin/{name}")
     repo_root = tmp_path / "repo"
     (repo_root / ".venv" / "bin").mkdir(parents=True)
     (repo_root / ".venv" / "bin" / "python").touch()
@@ -595,23 +592,6 @@ def test_failed_live_row_with_busy_mcp_port_is_classified_as_blocked() -> None:
         assert row["blocker_category"] == "environment_blocked"
 
 
-def test_failed_dino_readiness_is_classified_as_environment_blocked() -> None:
-    row = {"exit_code": 1}
-
-    runner._classify_failed_row(
-        row,
-        stderr=(
-            "visual grounding sidecar is not ready for product runs: timeout. "
-            "visual grounding service timed out"
-        ),
-        stdout="",
-    )
-
-    assert row["status"] == "blocked"
-    assert row["outcome"] == "blocked"
-    assert row["blocker_category"] == "environment_blocked"
-
-
 def test_optional_blocked_rows_do_not_fail_harness_exit_status() -> None:
     manifest = {
         "rows": [
@@ -635,107 +615,6 @@ def test_optional_blocked_rows_do_not_fail_harness_exit_status() -> None:
     manifest["rows"][1]["status"] = "blocked"
     manifest["rows"][1]["outcome"] = "blocked"
     assert runner._exit_status(manifest) == 2
-
-
-def test_dino_sidecar_default_matches_documented_service_port(monkeypatch: MonkeyPatch) -> None:
-    calls: list[tuple[tuple[str, int], float]] = []
-
-    class _Socket:
-        def __enter__(self):
-            return self
-
-        def __exit__(self, exc_type, exc, tb) -> None:
-            return None
-
-    def fake_create_connection(address: tuple[str, int], timeout: float):
-        calls.append((address, timeout))
-        return _Socket()
-
-    monkeypatch.delenv("VISUAL_GROUNDING_BASE_URL", raising=False)
-    monkeypatch.setattr(runner.socket, "create_connection", fake_create_connection)
-
-    assert runner._dino_sidecar_available() is True
-    assert calls == [(("127.0.0.1", 18880), 0.35)]
-
-
-def test_dino_sidecar_requirement_autostarts_default_service(
-    tmp_path: Path,
-    monkeypatch: MonkeyPatch,
-) -> None:
-    calls = {"available": 0, "started": 0, "stopped": 0}
-
-    def fake_available() -> bool:
-        calls["available"] += 1
-        return calls["started"] > 0
-
-    def fake_start(manifest: dict) -> bool:
-        calls["started"] += 1
-        manifest["dino_sidecar_autostart"] = {"base_url": runner.DEFAULT_VISUAL_GROUNDING_BASE_URL}
-        return True
-
-    def fake_stop() -> None:
-        calls["stopped"] += 1
-
-    monkeypatch.delenv("ROBOCLAWS_EVAL_HARNESS_AUTOSTART_DINO_SIDECAR", raising=False)
-    monkeypatch.setattr(runner.shutil, "which", lambda name: f"/usr/bin/{name}")
-    monkeypatch.setattr(runner, "_dino_sidecar_available", fake_available)
-    monkeypatch.setattr(runner, "_start_managed_dino_sidecar", fake_start)
-    monkeypatch.setattr(runner, "_stop_managed_dino_sidecars", fake_stop)
-    monkeypatch.setattr(
-        runner,
-        "_run_row",
-        lambda row, manifest: row.update({"status": "ran", "outcome": "passed", "exit_code": 0}),
-    )
-    manifest = selector.build_eval_harness(
-        mode="execute",
-        budget="focused",
-        changed_files=["roboclaws/household/visual_grounding.py"],
-        output_dir=tmp_path,
-    )
-
-    runner._execute_harness(manifest)
-
-    row = _selected_rows(manifest)["direct-camera-grounded-grounding-dino"]
-    assert row["status"] == "ran"
-    assert row["outcome"] == "passed"
-    assert calls["available"] >= 1
-    assert calls["started"] == 1
-    assert calls["stopped"] == 1
-    assert manifest["dino_sidecar_autostart"]["base_url"] == (
-        runner.DEFAULT_VISUAL_GROUNDING_BASE_URL
-    )
-
-
-def test_dino_sidecar_autostart_can_be_disabled(
-    tmp_path: Path,
-    monkeypatch: MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("ROBOCLAWS_EVAL_HARNESS_AUTOSTART_DINO_SIDECAR", "0")
-    monkeypatch.setattr(runner.shutil, "which", lambda name: f"/usr/bin/{name}")
-    monkeypatch.setattr(runner, "_dino_sidecar_available", lambda: False)
-    monkeypatch.setattr(
-        runner,
-        "_start_managed_dino_sidecar",
-        lambda manifest: (_ for _ in ()).throw(AssertionError("should not start")),
-    )
-    manifest = selector.build_eval_harness(
-        mode="execute",
-        budget="focused",
-        changed_files=["roboclaws/household/visual_grounding.py"],
-        output_dir=tmp_path,
-    )
-
-    blockers = runner._row_blockers(
-        _selected_rows(manifest)["direct-camera-grounded-grounding-dino"],
-        manifest,
-    )
-
-    assert blockers == [
-        {
-            "category": "environment_blocked",
-            "detail": "Grounding DINO visual-grounding sidecar is not reachable",
-        }
-    ]
 
 
 def test_recommendation_writes_json_markdown_and_html(tmp_path: Path) -> None:

@@ -2,21 +2,15 @@ from __future__ import annotations
 
 import base64
 import io
-import sys
 from pathlib import Path
 from typing import Any
 
 from PIL import Image, ImageDraw
 
-if __package__ in {None, ""}:
-    repo_root = Path(__file__).resolve().parents[2]
-    if str(repo_root) not in sys.path:
-        sys.path.insert(0, str(repo_root))
-
-from roboclaws.evals.visual_grounding_benchmark.scoring import (  # noqa: E402
+from roboclaws.evals.visual_grounding_benchmark.scoring import (
     category_family as _category_family,
 )
-from roboclaws.household.visual_grounding import (  # noqa: E402
+from roboclaws.household.visual_grounding import (
     VisualGroundingClientConfig,
 )
 

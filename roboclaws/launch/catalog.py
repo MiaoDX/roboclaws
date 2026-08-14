@@ -10,11 +10,7 @@ The resolved plan crosses directly into the typed launch executor.
 
 from __future__ import annotations
 
-from roboclaws.core.agent_engines import (
-    ACTIVE_AGENT_ENGINE_IDS,
-    is_retired_agent_engine,
-    retired_agent_engine_message,
-)
+from roboclaws.core.agent_engines import unsupported_agent_engine_message
 from roboclaws.core.backend_catalog import BACKEND_SPECS, BackendSpec
 from roboclaws.core.environment_setup import (
     ENVIRONMENT_SETUP_BASELINE,
@@ -66,7 +62,6 @@ _RESOLVED_OVERRIDE_KEYS = (
     "provider_profile",
     "prompt",
     "evidence_lane",
-    "profile",
     "report",
     "run_preset",
     "scenario_setup",
@@ -90,8 +85,6 @@ def resolve_surface_launch(args: list[str] | tuple[str, ...]) -> LaunchPlan:
         validate_named_overrides(overrides)
     except ValueError as exc:
         raise LaunchError(str(exc)) from exc
-    _reject_removed_public_axes(overrides)
-
     surface_value = _override_value(overrides, "surface")
     agent_engine_value = _override_value(overrides, "agent_engine")
     if not surface_value or not agent_engine_value:
@@ -244,45 +237,12 @@ def _resolve_launch(
         goal_contract=goal_contract,
         scenario_setup=scenario_setup,
         relocation_count=relocation_count,
-        overrides=plan_overrides,
+        adapter_options=_override_options(plan_overrides),
     )
 
 
-def _reject_removed_public_axes(overrides: tuple[str, ...]) -> None:
-    if _override_value(overrides, "driver"):
-        raise LaunchError(
-            "driver= is no longer a public run::surface argument",
-            f"use agent_engine={'|'.join(ACTIVE_AGENT_ENGINE_IDS)}",
-        )
-    if _override_value(overrides, "map_mode"):
-        raise LaunchError(
-            "map_mode= is no longer a public run::surface argument",
-            "Base Metric Map is the start-of-run map contract; "
-            "use runtime_map_prior=<path> to supply Runtime Metric Map evidence",
-        )
-    if _override_value(overrides, "environment_setup"):
-        raise LaunchError(
-            "environment_setup= is no longer a public run::surface argument",
-            "use scenario_setup=baseline|relocate-cleanup-related-objects",
-        )
-    if _override_value(overrides, "b1_semantic_projection_artifact"):
-        raise LaunchError(
-            "b1_semantic_projection_artifact= is no longer a public run::surface argument",
-            "Base Metric Map room semantics are shared by B1 real-robot and "
-            "Digital Twin routes; pass only b1_alignment_artifact= and "
-            "b1_navigation_artifact= for robot-consumption proof",
-        )
-
-
-def _strip_named(value: str, name: str) -> str:
-    prefix = f"{name}="
-    if value.startswith(prefix):
-        return value[len(prefix) :]
-    return value
-
-
 def _normalize_surface(value: str) -> str:
-    surface = _strip_named(value, "surface")
+    surface = value
     if surface not in CANONICAL_SURFACES:
         raise LaunchError(
             f"unsupported surface '{surface}'",
@@ -293,7 +253,7 @@ def _normalize_surface(value: str) -> str:
 
 def _normalize_world(value: str | None, *, surface_id: str) -> WorldSpec:
     _reject_blank_axis(value, axis="world")
-    world_id = _strip_named(value, "world") if value else DEFAULT_WORLD_BY_SURFACE[surface_id]
+    world_id = value if value else DEFAULT_WORLD_BY_SURFACE[surface_id]
     try:
         spec = world_spec(world_id)
     except ValueError as exc:
@@ -308,7 +268,7 @@ def _normalize_world(value: str | None, *, surface_id: str) -> WorldSpec:
 
 def _normalize_backend(value: str | None, *, world: WorldSpec) -> BackendSpec:
     _reject_blank_axis(value, axis="backend")
-    backend_id = _strip_named(value, "backend") if value else world.default_backend
+    backend_id = value if value else world.default_backend
     spec = BACKEND_SPECS.get(backend_id)
     if spec is None:
         raise LaunchError(f"unsupported backend '{backend_id}'")
@@ -321,14 +281,11 @@ def _normalize_backend(value: str | None, *, world: WorldSpec) -> BackendSpec:
 
 
 def _normalize_agent_engine(value: str) -> AgentEngineSpec:
-    agent_engine = _strip_named(value, "agent_engine")
-    if is_retired_agent_engine(agent_engine):
-        raise LaunchError(retired_agent_engine_message(agent_engine))
+    agent_engine = value
     spec = AGENT_ENGINE_SPECS.get(agent_engine)
     if spec is None:
         raise LaunchError(
-            f"unsupported agent_engine '{agent_engine}'",
-            f"expected {'|'.join(ACTIVE_AGENT_ENGINE_IDS)}",
+            unsupported_agent_engine_message(agent_engine),
         )
     return spec
 
@@ -336,14 +293,6 @@ def _normalize_agent_engine(value: str) -> AgentEngineSpec:
 def _normalize_preset(value: str | None, *, surface: TaskSurfaceSpec) -> TaskPresetSpec | None:
     _reject_blank_axis(value, axis="preset")
     raw = str(value or "").strip()
-    if raw.startswith("preset="):
-        raw = raw.removeprefix("preset=")
-    if raw.startswith("run_preset="):
-        raise LaunchError(
-            "run_preset= is reserved for verification presets",
-            "use preset=cleanup|map-build for household task presets, "
-            "or run_preset=smoke for smoke verification",
-        )
     if not raw:
         return None
     if surface.surface_id != "household-world":
@@ -366,8 +315,6 @@ def _normalize_intent(
 ) -> str:
     _reject_blank_axis(value, axis="intent")
     raw = str(value or "").strip()
-    if raw.startswith("intent="):
-        raw = raw.removeprefix("intent=")
     if preset is not None and raw and raw != preset.intent_id:
         raise LaunchError(
             f"intent='{raw}' conflicts with preset='{preset.preset_id}'",
@@ -389,21 +336,15 @@ def _normalize_intent(
 
 
 def _override_value(overrides: tuple[str, ...], key: str) -> str | None:
-    prefixes = (f"{key}=", f"--{key}=", f"{key.replace('_', '-')}=", f"--{key.replace('_', '-')}=")
+    prefix = f"{key}="
     for override in overrides:
-        for prefix in prefixes:
-            if override.startswith(prefix):
-                return override[len(prefix) :]
+        if override.startswith(prefix):
+            return override[len(prefix) :]
     return None
 
 
 def _without_override(overrides: tuple[str, ...], key: str) -> tuple[str, ...]:
-    prefixes = (f"{key}=", f"--{key}=", f"{key.replace('_', '-')}=", f"--{key.replace('_', '-')}=")
-    return tuple(
-        override
-        for override in overrides
-        if not any(override.startswith(prefix) for prefix in prefixes)
-    )
+    return tuple(override for override in overrides if override.partition("=")[0] != key)
 
 
 def _resolve_evidence_mode(
@@ -416,11 +357,6 @@ def _resolve_evidence_mode(
     overrides: tuple[str, ...],
 ) -> tuple[str, str | None, str | None, tuple[str, ...]]:
     if surface.supported_profiles:
-        if _override_value(overrides, "profile") is not None:
-            raise LaunchError(
-                "profile= is no longer a public run::surface argument",
-                "use evidence_lane=world-public-labels|camera-grounded-labels|camera-raw-fpv",
-            )
         run_preset = _override_value(overrides, "run_preset")
         if run_preset and run_preset != "smoke":
             raise LaunchError("unsupported run_preset", "expected smoke")
@@ -445,12 +381,6 @@ def _resolve_evidence_mode(
                 f"expected {'|'.join(cleanup_evidence_lane_names())}",
             )
         camera_labeler = _override_value(overrides, "camera_labeler")
-        visual_grounding = _override_value(overrides, "visual_grounding")
-        if visual_grounding:
-            raise LaunchError(
-                "visual_grounding is no longer a public task axis",
-                "use camera_labeler=<labeler> with evidence_lane=camera-grounded-labels",
-            )
         try:
             validate_evidence_lane_camera_labeler(
                 evidence_lane=profile,
@@ -624,16 +554,6 @@ def _normalize_scenario_setup_overrides(
 ) -> tuple[tuple[str, ...], str | None, int | None]:
     if surface.surface_id != "household-world":
         return overrides, None, None
-    if _override_value(overrides, "environment_setup") is not None:
-        raise LaunchError(
-            "environment_setup= is no longer a public run::surface argument",
-            "use scenario_setup=baseline|relocate-cleanup-related-objects",
-        )
-    if _override_value(overrides, "generated_mess_count") is not None:
-        raise LaunchError(
-            "generated_mess_count is no longer a public run::surface argument",
-            "use scenario_setup=baseline|relocate-cleanup-related-objects and relocation_count=<N>",
-        )
     default_setup = preset.default_scenario_setup if preset else ENVIRONMENT_SETUP_BASELINE
     setup = _override_value(overrides, "scenario_setup") or default_setup
     if setup not in ENVIRONMENT_SETUP_OPTIONS:
@@ -655,11 +575,8 @@ def _normalize_scenario_setup_overrides(
             "use scenario_setup=relocate-cleanup-related-objects",
         )
     merged = _without_override(
-        _without_override(
-            _without_override(overrides, "scenario_setup"),
-            "relocation_count",
-        ),
-        "generated_mess_count",
+        _without_override(overrides, "scenario_setup"),
+        "relocation_count",
     )
     return merged, setup, parsed_relocation_count
 
@@ -682,6 +599,8 @@ def _parse_nonnegative_int(raw: str, *, key: str) -> int:
 
 
 def _override_key(item: str) -> str:
-    if "=" not in item:
-        return ""
-    return item.split("=", 1)[0].removeprefix("--").replace("-", "_")
+    return item.partition("=")[0]
+
+
+def _override_options(overrides: tuple[str, ...]) -> dict[str, str]:
+    return {_override_key(item): item.split("=", 1)[1] for item in overrides}

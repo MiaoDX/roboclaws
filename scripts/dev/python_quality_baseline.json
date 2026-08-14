@@ -10,11 +10,11 @@
     "source": {
       "files_at_least": {
         "1000": 0,
-        "500": 112,
+        "500": 115,
         "800": 0
       },
-      "loc": 164846,
-      "python_files": 567,
+      "loc": 167137,
+      "python_files": 562,
       "roots": [
         "roboclaws",
         "scripts"
@@ -26,8 +26,8 @@
         "500": 65,
         "800": 0
       },
-      "loc": 98903,
-      "python_files": 376,
+      "loc": 97893,
+      "python_files": 378,
       "roots": [
         "tests"
       ]
@@ -46,7 +46,7 @@
         "limit": 50,
         "message": "Too many statements (51 > 50)",
         "path": "tests/contract/maps/test_runtime_map_prior_snapshot.py",
-        "row": 45,
+        "row": 42,
         "symbol": "test_agibot_navigation_memory_converts_to_runtime_prior_snapshot_shape",
         "value": 51
       },

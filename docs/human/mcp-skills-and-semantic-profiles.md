@@ -391,7 +391,7 @@ describe what public robot capabilities the agent is allowed to rely on.
 | Skill library convention | `skills/README.md` |
 | Household-world skill | `skills/household-world/SKILL.md` |
 | Runtime map prior snapshot code | `roboclaws/maps/runtime_prior_snapshot.py` |
-| Agibot navigation-memory converter | `scripts/maps/convert_agibot_navigation_memory.py` |
+| Agibot navigation-memory converter | `python -m roboclaws.maps.runtime_prior_conversion agibot-navigation-memory` |
 | Profile/router contract tests | `tests/contract/mcp/test_semantic_profiles.py` |
 | Skill manifest tests | `tests/contract/skills/test_skill_manifests.py` |
 | Shareable architecture diagram | `docs/human/mcp-skills-and-semantic-profiles.svg` |

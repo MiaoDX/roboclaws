@@ -1,67 +1,59 @@
 from __future__ import annotations
 
 import json
-import subprocess
-import sys
 from pathlib import Path
 
+import pytest
+
+from roboclaws.evals.visual_grounding_benchmark.validation import validate_benchmark_path
+
 REPO_ROOT = Path(__file__).resolve().parents[3]
-CHECKER = REPO_ROOT / "scripts" / "visual_grounding" / "check_visual_grounding_benchmark_result.py"
 
 
 def test_visual_grounding_checker_rejects_malformed_result_source(tmp_path: Path) -> None:
     result_path = tmp_path / "visual_grounding_benchmark_result.json"
     result_path.write_text("{not json", encoding="utf-8")
 
-    result = _run_checker(tmp_path)
+    with pytest.raises(AssertionError) as exc_info:
+        validate_benchmark_path(tmp_path)
 
-    assert result.returncode == 1
-    assert "error: JSON file must contain valid JSON object" in result.stderr
-    assert "visual_grounding_benchmark_result.json" in result.stderr
-    assert "Traceback" not in result.stderr
+    message = str(exc_info.value)
+    assert "JSON file must contain valid JSON object" in message
+    assert "visual_grounding_benchmark_result.json" in message
 
 
 def test_visual_grounding_checker_rejects_non_object_result_source(tmp_path: Path) -> None:
     result_path = tmp_path / "visual_grounding_benchmark_result.json"
     result_path.write_text("[]", encoding="utf-8")
 
-    result = _run_checker(tmp_path)
+    with pytest.raises(AssertionError) as exc_info:
+        validate_benchmark_path(tmp_path)
 
-    assert result.returncode == 1
-    assert "error: JSON file must contain a JSON object" in result.stderr
-    assert "visual_grounding_benchmark_result.json" in result.stderr
-    assert "Traceback" not in result.stderr
+    message = str(exc_info.value)
+    assert "JSON file must contain a JSON object" in message
+    assert "visual_grounding_benchmark_result.json" in message
 
 
 def test_visual_grounding_checker_rejects_malformed_predictions_source(tmp_path: Path) -> None:
     _write_minimal_visual_grounding_checker_sources(tmp_path, predictions_text="{not json\n")
 
-    result = _run_checker(tmp_path)
+    with pytest.raises(AssertionError) as exc_info:
+        validate_benchmark_path(tmp_path)
 
-    assert result.returncode == 1
-    assert "error: JSONL row must contain valid JSON object" in result.stderr
-    assert "visual_grounding_predictions.jsonl:1" in result.stderr
-    assert "Traceback" not in result.stderr
+    message = str(exc_info.value)
+    assert "JSONL row must contain valid JSON object" in message
+    assert "visual_grounding_predictions.jsonl:1" in message
 
 
 def test_visual_grounding_checker_rejects_non_object_predictions_source(tmp_path: Path) -> None:
     _write_minimal_visual_grounding_checker_sources(tmp_path, predictions_text="[]\n")
 
-    result = _run_checker(tmp_path)
+    with pytest.raises(AssertionError) as exc_info:
+        validate_benchmark_path(tmp_path)
 
-    assert result.returncode == 1
-    assert "error: JSONL row must contain a JSON object" in result.stderr
-    assert "visual_grounding_predictions.jsonl:1" in result.stderr
-    assert "Traceback" not in result.stderr
-
-
-def _run_checker(path: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        [sys.executable, str(CHECKER), str(path)],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-    )
+    message = str(exc_info.value)
+    assert "JSONL row must contain a JSON object" in message
+    assert "visual_grounding_predictions.jsonl:1" in message
 
 
 def _write_minimal_visual_grounding_checker_sources(

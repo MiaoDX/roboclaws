@@ -6,14 +6,11 @@ from typing import Any
 from roboclaws.core.task_intents import normalize_household_intent
 from roboclaws.household import (
     realworld_agent_view_contract,
-    realworld_done_readiness,
     realworld_runtime_map_contract,
     realworld_visual_candidates,
 )
 from roboclaws.household.manipulation_contract import API_SEMANTIC_PROVENANCE
 from roboclaws.household.realworld_contract_fixture_projection import (
-    _OBJECT_CATEGORY_TARGETS,
-    _first_matching_fixture,
     _fixture_requires_open,
 )
 from roboclaws.household.realworld_contract_projection import (
@@ -25,49 +22,9 @@ from roboclaws.household.realworld_policy_trace import (
 )
 from roboclaws.maps.route import SIM_COSTMAP_PLANNER
 
-REALWORLD_CONTRACT = "realworld_cleanup_v1"
-REAL_ROBOT_MAP_BUNDLE_SCHEMA = "real_robot_map_bundle_v1"
-RUNTIME_METRIC_MAP_SCHEMA = "runtime_metric_map_v1"
-INSPECTION_OBSERVATION_SCHEMA = "target_inspection_observation_v1"
-CLEANUP_WORKLIST_SCHEMA = "cleanup_worklist_v1"
 CLEANUP_POLICY_TRACE_SCHEMA = "cleanup_policy_trace_v1"
 REAL_ROBOT_READINESS_SCHEMA = "real_robot_readiness_v1"
-DETERMINISTIC_SWEEP_POLICY = "deterministic_sweep_baseline"
-DEFAULT_REALWORLD_TASK = "帮我收拾这个房间"
 VISIBLE_OBJECT_DETECTIONS_MODE = "visible_object_detections"
-RAW_FPV_ONLY_MODE = "raw_fpv_only"
-CAMERA_MODEL_POLICY_MODE = "camera_model_policy"
-WORLD_LABELS_DETECTION_POLICY = "world_labels"
-SANITIZED_VISIBLE_OBJECT_DETECTIONS_POLICY = "sanitized_visible_object_detections"
-VISIBLE_DETECTION_EXPOSURE_POLICIES = frozenset(
-    (WORLD_LABELS_DETECTION_POLICY, SANITIZED_VISIBLE_OBJECT_DETECTIONS_POLICY)
-)
-CAMERA_MODEL_POLICY_SCHEMA = "camera_model_policy_v1"
-CAMERA_MODEL_POLICY_NAME = "camera_model_policy_baseline"
-MODEL_DECLARED_OBSERVATION_SCHEMA = "model_declared_observation_v1"
-MODEL_DECLARED_OBSERVATIONS_SCHEMA = "model_declared_observations_v1"
-VISUAL_GROUNDING_EVIDENCE_SCHEMA = realworld_visual_candidates.VISUAL_GROUNDING_EVIDENCE_SCHEMA
-DONE_READINESS_SCHEMA = "done_readiness_v1"
-DONE_READINESS_POLICY_RAW_FPV = realworld_done_readiness.DONE_READINESS_POLICY_RAW_FPV
-DONE_READINESS_POLICY_EXPLICIT = realworld_done_readiness.DONE_READINESS_POLICY_EXPLICIT
-MODEL_DECLARED_OBSERVATION_SOURCE = "model_declared_observation"
-MAIN_CLEANUP_AGENT_PRODUCER = realworld_visual_candidates.MAIN_CLEANUP_AGENT_PRODUCER
-TEST_AGENT_PRODUCER = realworld_visual_candidates.TEST_AGENT_PRODUCER
-SIMULATED_CAMERA_MODEL_PROVENANCE = realworld_visual_candidates.SIMULATED_CAMERA_MODEL_PROVENANCE
-SANITIZED_VISIBLE_OBJECT_DETECTIONS_PROVENANCE = "sanitized_visible_object_detections"
-WORLD_PUBLIC_LABELS_PROFILE = "world-public-labels"
-_visual_candidates = realworld_visual_candidates
-VISUAL_CANDIDATE_ALREADY_HANDLED_REASON = _visual_candidates.VISUAL_CANDIDATE_ALREADY_HANDLED_REASON
-VISUAL_EVIDENCE_REVIEWABLE_STATUS = realworld_visual_candidates.VISUAL_EVIDENCE_REVIEWABLE_STATUS
-VISUAL_EVIDENCE_NOT_REVIEWABLE_STATUS = _visual_candidates.VISUAL_EVIDENCE_NOT_REVIEWABLE_STATUS
-CANDIDATE_STATE_SEMANTIC = realworld_visual_candidates.CANDIDATE_STATE_SEMANTIC
-CANDIDATE_STATE_VISUALLY_CONFIRMED = realworld_visual_candidates.CANDIDATE_STATE_VISUALLY_CONFIRMED
-CANDIDATE_STATE_NAVIGATION_AUTHORIZED = _visual_candidates.CANDIDATE_STATE_NAVIGATION_AUTHORIZED
-VISUAL_GROUNDING_CATEGORY_HINTS = realworld_visual_candidates.VISUAL_GROUNDING_CATEGORY_HINTS
-REALWORLD_PERCEPTION_MODES = frozenset(
-    (VISIBLE_OBJECT_DETECTIONS_MODE, RAW_FPV_ONLY_MODE, CAMERA_MODEL_POLICY_MODE)
-)
-_NON_ACTIONABLE_HANDLE_STATES = frozenset({"placed", "placed_closed", "skipped", "stale"})
 _FORBIDDEN_AGENT_VIEW_KEYS = frozenset(
     {
         "generated_mess_set",
@@ -157,20 +114,6 @@ def _visual_candidate_validation_error(
         require_target_fixture_id=require_target_fixture_id,
         perception_mode=perception_mode,
         producer_type=producer_type,
-    )
-
-
-def infer_target_fixture_for_detection(
-    detection: dict[str, Any],
-    static_fixture_projection: dict[str, Any],
-) -> dict[str, Any] | None:
-    return realworld_runtime_map_contract.infer_target_fixture_for_detection(
-        detection,
-        static_fixture_projection,
-        norm=_norm,
-        object_category_targets=_OBJECT_CATEGORY_TARGETS,
-        first_matching_fixture=_first_matching_fixture,
-        fixture_requires_open=_fixture_requires_open,
     )
 
 

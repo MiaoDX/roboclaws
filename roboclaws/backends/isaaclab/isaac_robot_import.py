@@ -96,7 +96,7 @@ def rby1m_robot_import_plan(
 
 
 def repo_path(path: Path, *, anchor_file: str | Path) -> Path:
-    return Path(anchor_file).resolve().parents[2] / path
+    return Path(anchor_file).resolve().parents[3] / path
 
 
 def load_json_if_file(path: Path) -> dict[str, Any]:

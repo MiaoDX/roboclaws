@@ -40,9 +40,9 @@ def test_source_aware_candidate_worlds_are_launchable_but_not_default_visible() 
     assert spec.availability == "hidden"
     assert spec.sampler_metadata["selected_reason"] == "dynamic_source_aware_scanner_candidate"
     assert plan.world == world_id
-    assert "scene_source=ithor" in plan.overrides
-    assert "scene_index=1" in plan.overrides
-    assert "map_bundle=assets/maps/molmospaces/ithor/1" in plan.overrides
+    assert plan.adapter_options["scene_source"] == "ithor"
+    assert plan.adapter_options["scene_index"] == "1"
+    assert plan.adapter_options["map_bundle"] == "assets/maps/molmospaces/ithor/1"
 
 
 def test_household_molmospaces_launch_rejects_disabled_map_bundle() -> None:

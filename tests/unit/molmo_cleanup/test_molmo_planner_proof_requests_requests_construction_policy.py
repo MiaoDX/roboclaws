@@ -332,7 +332,6 @@ def test_proof_request_selection_generates_fallback_alias_requests(
         manifest=manifest,
         output_dir=tmp_path,
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
         request_selection=selection,
     )
 

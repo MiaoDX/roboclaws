@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import shutil
@@ -98,6 +99,27 @@ def write_agibot_nav2_map_bundle(
         semantics=semantics,
     )
     return snapshot
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Export an Agibot robot map artifact as a Nav2-shaped map bundle."
+    )
+    parser.add_argument("--source-map-dir", type=Path, required=True)
+    parser.add_argument("--context-json", type=Path, required=True)
+    parser.add_argument("--output-dir", type=Path, required=True)
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    snapshot = write_agibot_nav2_map_bundle(
+        source_map_dir=args.source_map_dir,
+        context_json=args.context_json,
+        bundle_dir=args.output_dir,
+    )
+    print(json.dumps(snapshot, indent=2, sort_keys=True))
+    return 0
 
 
 def _semantics_from_context(
@@ -372,3 +394,7 @@ def _dict(value: Any) -> dict[str, Any]:
 
 def _list(value: Any) -> list[Any]:
     return value if isinstance(value, list) else []
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

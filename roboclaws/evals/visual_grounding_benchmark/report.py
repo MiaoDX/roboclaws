@@ -1,14 +1,7 @@
 from __future__ import annotations
 
-import sys
 from html import escape
-from pathlib import Path
 from typing import Any
-
-if __package__ in {None, ""}:
-    repo_root = Path(__file__).resolve().parents[2]
-    if str(repo_root) not in sys.path:
-        sys.path.insert(0, str(repo_root))
 
 
 def _render_report(*, result: dict[str, Any], predictions: list[dict[str, Any]]) -> str:

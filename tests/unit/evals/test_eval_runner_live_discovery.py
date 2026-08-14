@@ -126,7 +126,7 @@ def test_live_surface_product_discovers_timestamped_run_dir(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from roboclaws.evals import live_execution as live_exec
+    import roboclaws.evals.live_execution as live_exec
 
     command_log: list[list[str]] = []
 
@@ -160,7 +160,7 @@ def test_live_surface_product_rejects_stale_sibling_run_artifacts(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from roboclaws.evals import live_execution as live_exec
+    import roboclaws.evals.live_execution as live_exec
 
     trial_dir = tmp_path / "trial-0000"
     stale_run_dir = trial_dir / "surface-run" / "old-run" / "seed-7"
@@ -189,7 +189,7 @@ def test_live_surface_product_rejects_mixed_fresh_and_stale_artifacts(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from roboclaws.evals import live_execution as live_exec
+    import roboclaws.evals.live_execution as live_exec
 
     trial_dir = tmp_path / "trial-0000"
     run_dir = trial_dir / "surface-run" / "seed-7"
@@ -218,7 +218,7 @@ def test_live_surface_product_rejects_stdout_artifacts_path_outside_surface_root
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from roboclaws.evals import live_execution as live_exec
+    import roboclaws.evals.live_execution as live_exec
 
     trial_dir = tmp_path / "trial-0000"
     stale_trial_dir = trial_dir
@@ -245,7 +245,7 @@ def test_live_surface_product_rejects_stdout_artifacts_path_without_seed_leaf(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from roboclaws.evals import live_execution as live_exec
+    import roboclaws.evals.live_execution as live_exec
 
     trial_dir = tmp_path / "trial-0000"
     wrong_leaf_dir = trial_dir / "surface-run" / "0615_0305"
@@ -273,7 +273,7 @@ def test_live_surface_product_rejects_stdout_artifacts_path_without_seed_leaf(
 def test_live_surface_discovery_fails_on_ambiguous_current_sibling_artifacts(
     tmp_path: Path,
 ) -> None:
-    from roboclaws.evals import live_execution as live_exec
+    import roboclaws.evals.live_execution as live_exec
 
     output_dir = tmp_path / "surface-run"
     for stamp in ("0615_0305", "0615_0306"):
@@ -295,7 +295,7 @@ def test_live_open_ended_eval_grades_artifacts_after_checker_nonzero_exit(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from roboclaws.evals import live_execution as live_exec
+    import roboclaws.evals.live_execution as live_exec
 
     def fake_run(command: list[str], **_kwargs: Any) -> Any:
         output_arg = next(item for item in command if item.startswith("output_dir="))
@@ -363,7 +363,7 @@ def test_live_open_ended_eval_rejects_failed_foreground_status_even_with_artifac
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from roboclaws.evals import live_execution as live_exec
+    import roboclaws.evals.live_execution as live_exec
 
     def fake_run(command: list[str], **_kwargs: Any) -> Any:
         output_arg = next(item for item in command if item.startswith("output_dir="))
@@ -413,7 +413,7 @@ def test_live_cleanup_eval_grades_artifacts_after_checker_nonzero_exit(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from roboclaws.evals import live_execution as live_exec
+    import roboclaws.evals.live_execution as live_exec
 
     def fake_run(command: list[str], **_kwargs: Any) -> Any:
         output_arg = next(item for item in command if item.startswith("output_dir="))

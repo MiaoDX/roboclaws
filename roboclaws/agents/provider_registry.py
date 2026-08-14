@@ -10,8 +10,8 @@ from typing import Any
 
 import roboclaws.core.provider_catalog as provider_catalog
 from roboclaws.core.agent_engines import (
-    is_retired_agent_engine,
-    retired_agent_engine_message,
+    ACTIVE_AGENT_ENGINE_IDS,
+    unsupported_agent_engine_message,
 )
 
 
@@ -42,9 +42,9 @@ def provider_readiness(
     selected = str(
         provider_profile or provider_catalog.default_provider_profile(agent_engine) or ""
     )
-    if is_retired_agent_engine(agent_engine):
+    if agent_engine not in ACTIVE_AGENT_ENGINE_IDS:
         return {
-            "driver": _driver_for_agent_engine(agent_engine),
+            "driver": agent_engine,
             "agent_engine": agent_engine,
             "provider": selected,
             "provider_profile": selected,
@@ -52,8 +52,7 @@ def provider_readiness(
             "required_env": [],
             "missing_env": [],
             "ok": False,
-            "message": retired_agent_engine_message(agent_engine),
-            "route_status": "retired",
+            "message": unsupported_agent_engine_message(agent_engine),
         }
     try:
         route = provider_catalog.resolve_provider_route_for_engine(agent_engine, provider_profile)
@@ -63,7 +62,7 @@ def provider_readiness(
             "add it to the provider registry or use a supported provider profile."
         )
         return {
-            "driver": _driver_for_agent_engine(agent_engine),
+            "driver": agent_engine,
             "agent_engine": agent_engine,
             "provider": selected,
             "provider_profile": selected,
@@ -75,7 +74,7 @@ def provider_readiness(
         }
     except ValueError as exc:
         return {
-            "driver": _driver_for_agent_engine(agent_engine),
+            "driver": agent_engine,
             "agent_engine": agent_engine,
             "provider": selected,
             "provider_profile": selected,
@@ -119,7 +118,7 @@ def provider_readiness(
         base_url_ok = False
         message = str(exc)
     return {
-        "driver": _driver_for_agent_engine(agent_engine),
+        "driver": agent_engine,
         "agent_engine": agent_engine,
         "provider": route.public_profile,
         "provider_profile": route.public_profile,
@@ -319,12 +318,6 @@ def _explicit_string(value: Any) -> str:
     if value is None:
         return ""
     return str(value).strip()
-
-
-def _driver_for_agent_engine(agent_engine: str) -> str:
-    return {
-        "openai-agents-sdk": "openai-agents-sdk",
-    }.get(agent_engine, agent_engine)
 
 
 def _engine_label(agent_engine: str) -> str:

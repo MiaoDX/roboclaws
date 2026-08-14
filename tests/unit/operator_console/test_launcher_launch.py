@@ -11,8 +11,8 @@ from roboclaws.operator_console.launch_contract import ConsoleLaunchError
 from roboclaws.operator_console.launch_lifecycle import _safe_run_id_suffix
 from roboclaws.operator_console.launcher import (
     LaunchRequest,
-    build_launch_argv,
-    build_workflow_launch_argv,
+    build_launch_args,
+    build_workflow_launch_args,
     start_console_run,
 )
 from roboclaws.operator_console.locks import ResourceLock
@@ -34,7 +34,7 @@ from tests.unit.operator_console.test_routes import _write_prior_catalog
 
 def test_launcher_builds_route_specific_overrides(tmp_path: Path) -> None:
     route = get_selection(AGIBOT_SDK_MAP_BUILD)
-    argv = build_launch_argv(
+    argv = build_launch_args(
         route,
         root=tmp_path,
         run_id="run-1",
@@ -51,7 +51,7 @@ def test_launcher_builds_route_specific_overrides(tmp_path: Path) -> None:
 def test_b1_camera_grounded_launch_includes_default_camera_labeler(tmp_path: Path) -> None:
     route = get_selection(B1_OPENAI_AGENTS_CAMERA_GROUNDED)
 
-    argv = build_launch_argv(
+    argv = build_launch_args(
         route,
         root=tmp_path,
         run_id="run-1",
@@ -77,7 +77,7 @@ def test_cleanup_workflow_launch_argv_uses_camera_grounded_and_standard_mess_def
         "camera-grounded-labels"
     )
 
-    argv = build_workflow_launch_argv(
+    argv = build_workflow_launch_args(
         route,
         workflow_id="cleanup",
         root=tmp_path,
@@ -103,7 +103,7 @@ def test_workflow_launch_allows_empty_catalog_and_accepts_explicit_runtime_prior
         "camera-grounded-labels"
     )
 
-    argv_without_prior = build_workflow_launch_argv(
+    argv_without_prior = build_workflow_launch_args(
         route,
         workflow_id="cleanup",
         root=tmp_path,
@@ -114,7 +114,7 @@ def test_workflow_launch_allows_empty_catalog_and_accepts_explicit_runtime_prior
 
     prior = tmp_path / "runtime_map_prior_snapshot.json"
     prior.write_text('{"schema":"runtime_map_prior_snapshot_v1"}\n', encoding="utf-8")
-    argv = build_workflow_launch_argv(
+    argv = build_workflow_launch_args(
         route,
         workflow_id="cleanup",
         root=tmp_path,
@@ -140,7 +140,7 @@ def test_workflow_launch_uses_accepted_catalog_prior_by_default(
     _write_prior_catalog(catalog, prior)
     monkeypatch.setattr(console_workflows, "RECOMMENDED_PRIOR_CATALOG_PATH", catalog)
 
-    argv = build_workflow_launch_argv(
+    argv = build_workflow_launch_args(
         route,
         workflow_id="cleanup",
         root=tmp_path,
@@ -167,7 +167,7 @@ def test_workflow_launch_explicit_prior_override_wins_over_catalog(
     _write_prior_catalog(catalog, catalog_prior)
     monkeypatch.setattr(console_workflows, "RECOMMENDED_PRIOR_CATALOG_PATH", catalog)
 
-    argv = build_workflow_launch_argv(
+    argv = build_workflow_launch_args(
         route,
         workflow_id="cleanup",
         root=tmp_path,
@@ -186,7 +186,7 @@ def test_workflow_launch_rejects_nonexistent_runtime_prior_override(tmp_path: Pa
     )
 
     with pytest.raises(ConsoleLaunchError, match="runtime_map_prior path does not exist"):
-        build_workflow_launch_argv(
+        build_workflow_launch_args(
             route,
             workflow_id="cleanup",
             root=tmp_path,
@@ -197,7 +197,7 @@ def test_workflow_launch_rejects_nonexistent_runtime_prior_override(tmp_path: Pa
 
 def test_launcher_replaces_route_default_overrides(tmp_path: Path) -> None:
     route = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
-    argv = build_launch_argv(
+    argv = build_launch_args(
         route,
         root=tmp_path,
         run_id="run-1",
@@ -220,7 +220,7 @@ def test_launcher_rejects_loose_object_relocation_override(tmp_path: Path) -> No
     route = get_selection(MUJOCO_SDK_CLEANUP)
 
     with pytest.raises(ConsoleLaunchError, match="unsupported scenario_setup"):
-        build_launch_argv(
+        build_launch_args(
             route,
             root=tmp_path,
             run_id="run-1",
@@ -228,11 +228,14 @@ def test_launcher_rejects_loose_object_relocation_override(tmp_path: Path) -> No
         )
 
 
-def test_launcher_rejects_old_public_generated_mess_override(tmp_path: Path) -> None:
+def test_launcher_rejects_unknown_generated_mess_override(tmp_path: Path) -> None:
     route = get_selection(MUJOCO_SDK_CLEANUP)
 
-    with pytest.raises(ConsoleLaunchError, match="generated_mess_count is no longer"):
-        build_launch_argv(
+    with pytest.raises(
+        ConsoleLaunchError,
+        match="unsupported route parameter: generated_mess_count",
+    ):
+        build_launch_args(
             route,
             root=tmp_path,
             run_id="run-1",
@@ -242,7 +245,7 @@ def test_launcher_rejects_old_public_generated_mess_override(tmp_path: Path) -> 
 
 def test_launcher_drops_relocation_count_for_baseline_setup(tmp_path: Path) -> None:
     route = get_selection(MUJOCO_SDK_CLEANUP)
-    argv = build_launch_argv(
+    argv = build_launch_args(
         route,
         root=tmp_path,
         run_id="run-1",
@@ -261,7 +264,7 @@ def test_launcher_passes_operator_message_path_for_steer_routes(tmp_path: Path) 
     route = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
     path = tmp_path / "operator_messages.jsonl"
 
-    argv = build_launch_argv(
+    argv = build_launch_args(
         route,
         root=tmp_path,
         run_id="run-1",
@@ -277,7 +280,7 @@ def test_launcher_passes_operator_resume_request_path_for_resumable_routes(
     route = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
     path = tmp_path / "operator_resume_requests.jsonl"
 
-    argv = build_launch_argv(
+    argv = build_launch_args(
         route,
         root=tmp_path,
         run_id="run-1",
@@ -465,7 +468,7 @@ def test_launcher_removes_empty_reserved_run_dir_when_argv_build_fails(
             return_value="20260620-101112",
         ),
         patch(
-            "roboclaws.operator_console.launcher.build_launch_argv",
+            "roboclaws.operator_console.launcher.build_launch_args",
             side_effect=ConsoleLaunchError("bad argv"),
         ),
         patch("roboclaws.operator_console.launcher.spawn_launch_plan") as popen,

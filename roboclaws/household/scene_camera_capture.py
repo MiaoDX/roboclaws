@@ -549,53 +549,6 @@ def _canonical_camera_control_views(
     return views
 
 
-def _camera_control_views(
-    anchors: list[dict[str, Any]],
-    *,
-    molmo_specs: list[dict[str, Any]],
-    isaac_specs: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    views = []
-    for anchor, molmo_spec, isaac_spec in zip(anchors, molmo_specs, isaac_specs, strict=True):
-        view = {
-            "view_id": molmo_spec["view_id"],
-            "label": molmo_spec["label"],
-            "anchor_id": anchor["anchor_id"],
-            "anchor_kind": anchor["anchor_kind"],
-            "category": anchor["category"],
-            "room_id": anchor["room_id"],
-            "camera_mode": "anchor_orbit",
-            "camera_orbit": dict(
-                molmo_spec.get("camera_orbit") or DEFAULT_SCENE_PROBE_CAMERA_ORBIT
-            ),
-            "lane_camera_orbits": {
-                MOLMOSPACES_LANE_ID: dict(
-                    molmo_spec.get("camera_orbit") or DEFAULT_SCENE_PROBE_CAMERA_ORBIT
-                ),
-                ISAAC_LANE_ID: _isaac_lane_camera_orbit(anchor),
-            },
-            "target_source": {
-                MOLMOSPACES_LANE_ID: molmo_spec.get("target_source"),
-                ISAAC_LANE_ID: isaac_spec.get("target_source"),
-            },
-            "lane_targets": {
-                MOLMOSPACES_LANE_ID: {
-                    "lookat": list(molmo_spec.get("lookat") or []),
-                    "focus_receptacle_id": molmo_spec.get("focus_receptacle_id"),
-                },
-                ISAAC_LANE_ID: {
-                    "usd_prim_path": isaac_spec.get("usd_prim_path"),
-                    "min_target_z": isaac_spec.get("min_target_z", 0.6),
-                },
-            },
-            "lookat": list(molmo_spec.get("lookat") or []),
-            "usd_prim_path": isaac_spec.get("usd_prim_path"),
-            "min_target_z": isaac_spec.get("min_target_z", 0.6),
-        }
-        views.append(view)
-    return views
-
-
 def _eye_from_mujoco_orbit(
     *,
     target: list[float],
@@ -611,41 +564,6 @@ def _eye_from_mujoco_orbit(
         float(target[1]) - math.sin(azimuth_rad) * horizontal,
         float(target[2]) - math.sin(elevation_rad) * distance,
     ]
-
-
-def _canonical_eye_from_room_context(
-    anchor: dict[str, Any],
-    *,
-    target: list[float],
-    distance: float,
-    azimuth: float,
-    elevation: float,
-) -> tuple[list[float], str]:
-    room_center = anchor.get("room_center_xy")
-    if isinstance(room_center, list) and len(room_center) >= 2:
-        dx = float(room_center[0]) - float(target[0])
-        dy = float(room_center[1]) - float(target[1])
-        norm = math.hypot(dx, dy)
-        if norm > 1e-6:
-            elevation_rad = math.radians(elevation)
-            horizontal = math.cos(elevation_rad) * distance
-            return (
-                [
-                    float(target[0]) + dx / norm * horizontal,
-                    float(target[1]) + dy / norm * horizontal,
-                    float(target[2]) - math.sin(elevation_rad) * distance,
-                ],
-                "room_center_to_anchor",
-            )
-    return (
-        _eye_from_mujoco_orbit(
-            target=target,
-            distance=distance,
-            azimuth=azimuth,
-            elevation=elevation,
-        ),
-        "anchor_orbit_fallback",
-    )
 
 
 def _image_entries(*, output_dir: Path, result: dict[str, Any]) -> dict[str, dict[str, Any]]:

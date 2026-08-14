@@ -8,7 +8,7 @@ import pytest
 
 from roboclaws.worlds.molmospaces import readiness as scene_sampler_readiness
 from roboclaws.worlds.molmospaces import sampling as scene_sampler
-from scripts.operator_console.export_scene_sampler_readiness import (
+from roboclaws.worlds.molmospaces.readiness_export import (
     _candidate_indices,
     _write_named_artifacts,
     export_readiness_artifacts,
@@ -364,6 +364,10 @@ def _assert_next_flow_source_statuses(next_flow: dict[str, Any]) -> None:
         "refresh_scene_only_prefilter",
         "inspect_prefilter_stop_reason",
     ]
+    assert "-m roboclaws.worlds.molmospaces.readiness_export" in ithor_commands[0]["command"]
+    for source in next_flow["sources"].values():
+        for command in source["recommended_commands"]:
+            assert "scripts/operator_console/" not in command["command"]
     holodeck = next_flow["sources"]["holodeck-objaverse-val"]
     assert holodeck["flow_status"] == "gate_mismatch"
     assert holodeck["next_action"] == "do_not_scan_without_gate_change"
@@ -393,10 +397,13 @@ def _assert_ithor_scanner_plan(scanner_execution: dict[str, Any]) -> None:
         assert "source_asset_available" in ithor_scanner["required_gates"]
         assert "source_asset_available" in ithor_scanner["missing_gates"]
         assert (
-            "render_scene_previews.py --world molmospaces/ithor/"
+            "roboclaws.operator_console.scene_preview_cli --world molmospaces/ithor/"
             in ithor_scanner["preview_command"]
         )
         assert "world=molmospaces/ithor/" in ithor_scanner["map_build_product_smoke_command"]
+        assert any(
+            arg.startswith("world=molmospaces/ithor/") for arg in ithor_scanner["launch_args"]
+        )
 
 
 def _assert_generated_eval(

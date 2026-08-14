@@ -7,11 +7,15 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.backends.isaaclab import isaac_runtime_diagnostics
+from roboclaws.backends.isaaclab import (
+    isaac_camera_geometry,
+    isaac_capture_quality,
+    isaac_render_diagnostics,
+    isaac_runtime_diagnostics,
+)
 from roboclaws.backends.isaaclab import runtime_camera as runtime_camera
 from roboclaws.backends.isaaclab import runtime_capture as runtime_capture
 from roboclaws.backends.isaaclab import runtime_commands as runtime_commands
-from roboclaws.backends.isaaclab import runtime_dependencies as runtime_dependencies
 from roboclaws.backends.isaaclab import runtime_evidence as runtime_evidence
 from roboclaws.backends.isaaclab import runtime_initialization as runtime_initialization
 from roboclaws.backends.isaaclab import runtime_state as runtime_state
@@ -256,7 +260,7 @@ def test_isaac_lab_backend_can_request_robot_view_colorcorr_gain_probe(
 
 
 def test_isaac_robot_view_color_profile_merges_comparison_override() -> None:
-    profile = runtime_dependencies._robot_view_color_profile(
+    profile = isaac_camera_geometry.robot_view_color_profile(
         {
             "backend_rgb_gain": {"isaaclab_subprocess": [0.9, 0.8, 0.7]},
             "backend_rgb_gain_source": "unit-comparison-profile",
@@ -342,12 +346,12 @@ def test_isaac_capture_quality_aa_probe_records_set_and_restore() -> None:
         isaac_aa_op=2,
         isaac_tonemap_op=None,
     )
-    capture_quality = runtime_dependencies._capture_quality_settings(
+    capture_quality = isaac_render_diagnostics.capture_quality_settings(
         render_settle_frames=0,
         settings=settings,
         settings_mutation=mutation,
     )
-    restored = runtime_dependencies._restore_isaac_capture_quality_overrides(
+    restored = isaac_capture_quality.restore_isaac_capture_quality_overrides(
         settings=settings,
         mutation=mutation,
     )
@@ -382,12 +386,12 @@ def test_isaac_native_tonemap_probe_records_set_and_restore() -> None:
         isaac_aa_op=None,
         isaac_tonemap_op=5,
     )
-    capture_quality = runtime_dependencies._capture_quality_settings(
+    capture_quality = isaac_render_diagnostics.capture_quality_settings(
         render_settle_frames=0,
         settings=settings,
         settings_mutation=mutation,
     )
-    restored = runtime_dependencies._restore_isaac_capture_quality_overrides(
+    restored = isaac_capture_quality.restore_isaac_capture_quality_overrides(
         settings=settings,
         mutation=mutation,
     )
@@ -423,12 +427,12 @@ def test_isaac_native_exposure_probe_records_set_and_restore() -> None:
         isaac_tonemap_op=None,
         isaac_exposure_bias=-1.0,
     )
-    capture_quality = runtime_dependencies._capture_quality_settings(
+    capture_quality = isaac_render_diagnostics.capture_quality_settings(
         render_settle_frames=0,
         settings=settings,
         settings_mutation=mutation,
     )
-    restored = runtime_dependencies._restore_isaac_capture_quality_overrides(
+    restored = isaac_capture_quality.restore_isaac_capture_quality_overrides(
         settings=settings,
         mutation=mutation,
     )
@@ -471,12 +475,12 @@ def test_isaac_native_colorcorr_gain_probe_records_set_and_restore() -> None:
         isaac_exposure_bias=None,
         isaac_colorcorr_gain=(0.9, 0.8, 0.7),
     )
-    capture_quality = runtime_dependencies._capture_quality_settings(
+    capture_quality = isaac_render_diagnostics.capture_quality_settings(
         render_settle_frames=0,
         settings=settings,
         settings_mutation=mutation,
     )
-    restored = runtime_dependencies._restore_isaac_capture_quality_overrides(
+    restored = isaac_capture_quality.restore_isaac_capture_quality_overrides(
         settings=settings,
         mutation=mutation,
     )

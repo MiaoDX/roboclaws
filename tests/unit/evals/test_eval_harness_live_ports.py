@@ -1,30 +1,16 @@
 from __future__ import annotations
 
-import importlib.util
 import os
-import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
 
 from pytest import MonkeyPatch
 
+from roboclaws.evals.harness import runner, selector
+
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SELECTOR_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "select_eval_harness.py"
-RUNNER_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "run_eval_harness.py"
-
-
-def _load_module(name: str, path: Path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    assert spec is not None
-    assert spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-selector = _load_module("eval_harness_port_selector_test", SELECTOR_PATH)
-runner = _load_module("eval_harness_port_runner_test", RUNNER_PATH)
+REPO_PYTHON = REPO_ROOT / ".venv" / "bin" / "python"
 
 
 def _selected_rows(manifest: dict) -> dict[str, dict]:
@@ -60,7 +46,13 @@ def test_execute_assigns_isolated_mcp_port_to_live_rows(
     runner._execute_harness(manifest)
 
     live_envs = [env for command, env in captured if "agent_engine=openai-agents-sdk" in command]
+    live_commands = [
+        command for command, _env in captured if "agent_engine=openai-agents-sdk" in command
+    ]
     assert live_envs
+    assert all(
+        command.startswith(".venv/bin/python -m roboclaws.evals.cli ") for command in live_commands
+    )
     assert all(env["ROBOCLAWS_EVAL_HARNESS_MCP_PORT"] != "18788" for env in live_envs)
     session_env = next(env for command, env in captured if "session-live" in command)
     assert (
@@ -72,27 +64,29 @@ def test_execute_assigns_isolated_mcp_port_to_live_rows(
 def test_eval_harness_mcp_port_env_becomes_surface_default_port() -> None:
     trace = _trace_run_surface_with_env("19421")
 
-    assert trace[:5] == [
-        "just",
-        "molmo::household-world-impl",
-        "driver=openai-agents-live",
-        "profile=world-public-labels",
-        "seeds=7",
+    assert trace[:4] == [
+        "cmd",
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.agents.household_live_runner",
     ]
-    assert "port=19421" in trace
+    port_index = trace.index("--port")
+    assert trace[port_index + 1] == "19421"
+    assert "--server-arg=19421" in trace
     assert "18788" not in trace
 
 
 def _trace_run_surface_with_env(port: str) -> list[str]:
-    binary = _just_bin()
     env = os.environ.copy()
     env["ROBOCLAWS_JUST_TRACE"] = "1"
     env["ROBOCLAWS_EVAL_HARNESS_MCP_PORT"] = port
-    env["PATH"] = f"{Path(binary).parent}{os.pathsep}{env.get('PATH', '')}"
     result = subprocess.run(
         [
-            binary,
-            "run::surface",
+            str(REPO_PYTHON),
+            "-m",
+            "roboclaws.cli.main",
+            "run",
+            "surface",
             "surface=household-world",
             "world=molmospaces/procthor-10k-val/0",
             "backend=mujoco",
@@ -109,12 +103,3 @@ def _trace_run_surface_with_env(port: str) -> list[str]:
     )
     assert result.returncode == 0, result.stderr
     return result.stdout.strip().split("\t")
-
-
-def _just_bin() -> str:
-    path = shutil.which("just")
-    if path:
-        return path
-    local_path = Path.home() / ".local/bin" / "just"
-    assert local_path.exists(), "just binary is not available"
-    return str(local_path)

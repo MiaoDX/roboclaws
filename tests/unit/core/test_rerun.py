@@ -20,7 +20,8 @@ def test_format_rerun_command_splits_surface_args_for_review() -> None:
 
 
 def test_format_rerun_command_keeps_short_commands_single_line() -> None:
-    assert format_rerun_command_for_display("just agent::verify mock") == "just agent::verify mock"
+    command = "just agent::verify"
+    assert format_rerun_command_for_display(command) == command
 
 
 def test_render_rerun_panel_uses_wrapping_command_class() -> None:

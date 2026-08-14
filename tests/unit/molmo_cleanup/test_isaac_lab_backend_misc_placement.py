@@ -7,10 +7,10 @@ from types import SimpleNamespace
 
 import pytest
 
+from roboclaws.backends.isaaclab import isaac_support_surface_geometry
 from roboclaws.backends.isaaclab import runtime_camera as runtime_camera
 from roboclaws.backends.isaaclab import runtime_capture as runtime_capture
 from roboclaws.backends.isaaclab import runtime_commands as runtime_commands
-from roboclaws.backends.isaaclab import runtime_dependencies as runtime_dependencies
 from roboclaws.backends.isaaclab import runtime_evidence as runtime_evidence
 from roboclaws.backends.isaaclab import runtime_initialization as runtime_initialization
 from roboclaws.backends.isaaclab import runtime_state as runtime_state
@@ -69,7 +69,7 @@ def test_isaac_lab_backend_can_navigate_to_relative_pose(
 
 
 def test_isaac_support_pose_uses_usd_world_bounds_center() -> None:
-    support = runtime_dependencies._support_pose_from_usd_bounds(
+    support = isaac_support_surface_geometry.support_pose_from_usd_bounds(
         {
             "center": [2.5, 5.5, 0.75],
             "max": [3.0, 6.0, 1.2],

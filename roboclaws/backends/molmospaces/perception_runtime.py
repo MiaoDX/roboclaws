@@ -81,14 +81,6 @@ def _render_free_camera(
     )
 
 
-def _load_rendered_robot_view_image(camera_views: dict[str, Any], *, role: str) -> Any:
-    return rendering.load_rendered_robot_view_image(camera_views, role=role)
-
-
-def _image_to_array(path: Path) -> Any:
-    return rendering.image_to_array(path)
-
-
 def _load_camera_view_specs(path: Path) -> list[dict[str, Any]]:
     payload = read_json_value(path, label="camera view spec")
     raw_views = payload.get("views") if isinstance(payload, dict) else payload
@@ -404,20 +396,12 @@ def _render_robot_map(state: dict[str, Any], *, focus: dict[str, Any] | None = N
     return room_map.render_robot_map(state, focus=focus)
 
 
-def _map_points(state: dict[str, Any], focus: dict[str, Any]) -> list[list[float]]:
-    return room_map.map_points(state, focus)
-
-
 def _room_relation_payload(
     state: dict[str, Any],
     receptacle: dict[str, Any],
     robot_point: list[float],
 ) -> dict[str, Any]:
     return navigation.room_relation_payload(state, receptacle, robot_point)
-
-
-def _target_room_id(state: dict[str, Any], receptacle: dict[str, Any]) -> str:
-    return navigation.target_room_id_for_receptacle(state, receptacle)
 
 
 def _room_outline_for_id(
@@ -454,19 +438,3 @@ def _collect_room_outlines(
     state: dict[str, Any],
 ) -> list[dict[str, Any]]:
     return room_map.collect_room_outlines(model, data, state, xyz=_xyz)
-
-
-def _geom_xy_bounds(
-    model: mujoco.MjModel,
-    data: mujoco.MjData,
-    geom_id: int,
-) -> tuple[list[float], list[float]] | None:
-    return room_map.geom_xy_bounds(model, data, geom_id, xyz=_xyz)
-
-
-def _fallback_room_outlines(state: dict[str, Any]) -> list[dict[str, Any]]:
-    return room_map.fallback_room_outlines(state)
-
-
-def _map_bounds(points: list[list[float]]) -> tuple[float, float, float, float]:
-    return room_map.map_bounds(points)

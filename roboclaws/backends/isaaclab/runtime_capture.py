@@ -2,36 +2,48 @@
 
 from __future__ import annotations
 
-from roboclaws.backends.isaaclab.runtime_dependencies import (
-    _DEFERRED_SIMULATION_APP,
+import argparse
+from pathlib import Path
+from typing import Any
+
+from roboclaws.backends.isaaclab import (
+    isaac_runtime_capture,
+    isaac_runtime_diagnostics,
+    isaac_runtime_smoke_usd,
+    isaac_scene_index_geometry,
+    isaac_scene_index_metadata,
+    isaac_support_surface_geometry,
+    isaac_worker_context,
+)
+from roboclaws.backends.isaaclab.isaac_segmentation_diagnostics import (
+    ISAAC_SEGMENTATION_DATA_TYPES,
+)
+from roboclaws.backends.isaaclab.runtime_lifecycle import DEFERRED_SIMULATION_APP
+from roboclaws.backends.isaaclab.runtime_settings import (
     DEFAULT_HEIGHT,
     DEFAULT_WIDTH,
-    ISAAC_SEGMENTATION_DATA_TYPES,
     REAL_ROBOT_VIEW_CAPTURE_METHOD,
     REAL_SMOKE_CAPTURE_METHOD,
     REAL_SMOKE_RENDERER_MODE,
     ROBOT_VIEW_KEYS,
-    Any,
-    CleanupScenario,
-    Path,
-    _authored_reference_asset_paths,
-    _dict,
-    _is_object_prim_path,
-    _is_receptacle_prim_path,
-    _local_reference_asset_missing,
-    _merge_molmospaces_metadata_index,
-    _module_version,
-    _pose_near,
-    _round_vec3,
-    _support_pose_from_support_surface,
-    _support_pose_from_usd_bounds,
-    _usd_handle_from_prim,
-    _usd_index_entry,
-    argparse,
-    isaac_runtime_capture,
-    isaac_runtime_smoke_usd,
-    isaac_scene_index_geometry,
 )
+from roboclaws.household.types import CleanupScenario
+
+_authored_reference_asset_paths = isaac_scene_index_geometry.authored_reference_asset_paths
+_dict = isaac_worker_context.dict_value
+_is_object_prim_path = isaac_scene_index_metadata.is_object_prim_path
+_is_receptacle_prim_path = isaac_scene_index_metadata.is_receptacle_prim_path
+_local_reference_asset_missing = isaac_scene_index_geometry.local_reference_asset_missing
+_merge_molmospaces_metadata_index = isaac_scene_index_metadata.merge_molmospaces_metadata_index
+_module_version = isaac_runtime_diagnostics.module_version
+_pose_near = isaac_worker_context.pose_near
+_round_vec3 = isaac_scene_index_geometry.round_vec3
+_support_pose_from_support_surface = (
+    isaac_support_surface_geometry.support_pose_from_support_surface
+)
+_support_pose_from_usd_bounds = isaac_support_surface_geometry.support_pose_from_usd_bounds
+_usd_handle_from_prim = isaac_scene_index_metadata.usd_handle_from_prim
+_usd_index_entry = isaac_scene_index_metadata.usd_index_entry
 
 
 def _require_isaac_import() -> None:
@@ -93,7 +105,7 @@ def _isaac_runtime_capture_hooks() -> isaac_runtime_capture.IsaacRuntimeCaptureH
 
 def _set_deferred_simulation_app(simulation_app: Any) -> None:
 
-    _DEFERRED_SIMULATION_APP[0] = simulation_app
+    DEFERRED_SIMULATION_APP[0] = simulation_app
 
 
 def _inspect_usd_scene_index(usd_path: Path) -> dict[str, Any]:

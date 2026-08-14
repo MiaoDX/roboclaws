@@ -9,11 +9,15 @@ from types import SimpleNamespace
 
 import pytest
 
+from roboclaws.backends.isaaclab import (
+    isaac_camera_geometry,
+    isaac_render_diagnostics,
+    isaac_scene_camera_geometry,
+)
 from roboclaws.backends.isaaclab import runtime as runtime_cli
 from roboclaws.backends.isaaclab import runtime_camera as runtime_camera
 from roboclaws.backends.isaaclab import runtime_capture as runtime_capture
 from roboclaws.backends.isaaclab import runtime_commands as runtime_commands
-from roboclaws.backends.isaaclab import runtime_dependencies as runtime_dependencies
 from roboclaws.backends.isaaclab import runtime_evidence as runtime_evidence
 from roboclaws.backends.isaaclab import runtime_initialization as runtime_initialization
 from roboclaws.backends.isaaclab import runtime_state as runtime_state
@@ -40,7 +44,7 @@ def test_isaac_camera_view_specs_reject_missing_source(tmp_path: Path) -> None:
         FileNotFoundError,
         match=r"camera view spec source is missing: .*missing_views\.json",
     ):
-        runtime_dependencies._load_camera_view_specs(missing)
+        isaac_scene_camera_geometry.load_camera_view_specs(missing)
 
 
 def test_isaac_camera_view_specs_reject_malformed_source(tmp_path: Path) -> None:
@@ -51,7 +55,7 @@ def test_isaac_camera_view_specs_reject_malformed_source(tmp_path: Path) -> None
         ValueError,
         match=r"camera view spec source must contain valid JSON: .*camera_views\.json",
     ):
-        runtime_dependencies._load_camera_view_specs(specs_path)
+        isaac_scene_camera_geometry.load_camera_view_specs(specs_path)
 
 
 def test_isaac_camera_view_specs_reject_wrong_shape_source(tmp_path: Path) -> None:
@@ -62,7 +66,7 @@ def test_isaac_camera_view_specs_reject_wrong_shape_source(tmp_path: Path) -> No
         ValueError,
         match="camera view spec must be a list or an object with a views list",
     ):
-        runtime_dependencies._load_camera_view_specs(specs_path)
+        isaac_scene_camera_geometry.load_camera_view_specs(specs_path)
 
 
 def test_isaac_camera_view_specs_accept_list_or_wrapped_views(tmp_path: Path) -> None:
@@ -83,11 +87,11 @@ def test_isaac_camera_view_specs_accept_list_or_wrapped_views(tmp_path: Path) ->
         encoding="utf-8",
     )
 
-    assert runtime_dependencies._load_camera_view_specs(list_path) == [
+    assert isaac_scene_camera_geometry.load_camera_view_specs(list_path) == [
         {"view_id": "fpv", "target": [0.0, 0.0, 0.0]},
         {"view_id": "map", "target": [1.0, 0.0, 0.0]},
     ]
-    assert runtime_dependencies._load_camera_view_specs(wrapped_path) == [
+    assert isaac_scene_camera_geometry.load_camera_view_specs(wrapped_path) == [
         {"view_id": "verify", "target": [2.0, 0.0, 0.0]}
     ]
 
@@ -239,13 +243,13 @@ def test_isaac_camera_lens_derives_horizontal_aperture_from_vertical_fov() -> No
 
 def test_isaac_rby1m_head_camera_lens_matches_mujoco_vertical_fov() -> None:
     aperture = runtime_camera._horizontal_aperture_from_lens(
-        {"vertical_fov_deg": runtime_dependencies.RBY1M_HEAD_CAMERA_VERTICAL_FOV_DEG},
+        {"vertical_fov_deg": isaac_camera_geometry.RBY1M_HEAD_CAMERA_VERTICAL_FOV_DEG},
         width=540,
         height=360,
-        focal_length=runtime_dependencies.RBY1M_HEAD_CAMERA_FOCAL_LENGTH_MM,
+        focal_length=isaac_camera_geometry.RBY1M_HEAD_CAMERA_FOCAL_LENGTH_MM,
     )
-    metadata = runtime_dependencies._usd_camera_fov_metadata(
-        focal_length=runtime_dependencies.RBY1M_HEAD_CAMERA_FOCAL_LENGTH_MM,
+    metadata = isaac_camera_geometry.usd_camera_fov_metadata(
+        focal_length=isaac_camera_geometry.RBY1M_HEAD_CAMERA_FOCAL_LENGTH_MM,
         horizontal_aperture=aperture,
         width=540,
         height=360,
@@ -256,15 +260,15 @@ def test_isaac_rby1m_head_camera_lens_matches_mujoco_vertical_fov() -> None:
 
 
 def test_isaac_rby1m_chase_camera_matches_mujoco_follower_pitch() -> None:
-    eye, target = runtime_dependencies._robot_relative_chase_eye_target(
+    eye, target = isaac_camera_geometry.robot_relative_chase_eye_target(
         {"x": 0.0, "y": 0.0, "z": 0.0, "yaw_deg": 0.0}
     )
     forward = tuple(target[index] - eye[index] for index in range(3))
     horizontal_distance = math.hypot(forward[0], forward[1])
     vertical_drop = -forward[2]
 
-    assert eye == pytest.approx(runtime_dependencies.RBY1M_CHASE_CAMERA_OFFSET_M)
-    assert target == pytest.approx(runtime_dependencies.RBY1M_CHASE_CAMERA_TARGET_OFFSET_M)
+    assert eye == pytest.approx(isaac_camera_geometry.RBY1M_CHASE_CAMERA_OFFSET_M)
+    assert target == pytest.approx(isaac_camera_geometry.RBY1M_CHASE_CAMERA_TARGET_OFFSET_M)
     assert horizontal_distance == pytest.approx(vertical_drop)
     assert math.degrees(math.atan2(vertical_drop, horizontal_distance)) == pytest.approx(45.0)
     assert horizontal_distance == pytest.approx(1.0)
@@ -428,7 +432,7 @@ def test_isaac_camera_render_product_paths_are_extracted() -> None:
         data=SimpleNamespace(render_product_paths=["/Render/Product/Chase"]),
     )
 
-    paths = runtime_dependencies._camera_render_product_paths(camera)
+    paths = isaac_render_diagnostics.camera_render_product_paths(camera)
 
     assert paths == ["/Render/Product/Fpv", "/Render/Product/Chase"]
 
@@ -533,7 +537,7 @@ def test_isaac_chase_pose_uses_robot_relative_camera_follower() -> None:
         "theta": math.radians(105.0),
     }
 
-    eye, target = runtime_dependencies._robot_relative_chase_eye_target(pose)
+    eye, target = isaac_camera_geometry.robot_relative_chase_eye_target(pose)
 
     assert eye == pytest.approx((3.267781, 3.862789, 2.556), abs=1e-6)
     assert target == pytest.approx((3.008962, 4.828715, 1.556), abs=1e-6)
@@ -547,7 +551,7 @@ def test_isaac_camera_view_poses_prefers_robot_relative_chase() -> None:
         def tensor(values, *, dtype, device):
             return values
 
-    poses = runtime_dependencies._isaac_camera_view_poses(
+    poses = isaac_camera_geometry.isaac_camera_view_poses(
         torch=_TinyTorch,
         device="cpu",
         scene_bounds={

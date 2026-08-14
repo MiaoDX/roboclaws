@@ -34,10 +34,7 @@ from roboclaws.household.semantic_timeline import (
 from roboclaws.household.tasks import HOUSEHOLD_TASK_SPECS
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-DEMO_PATH = REPO_ROOT / "examples" / "molmo_cleanup" / "molmospaces_realworld_cleanup.py"
-AGIBOT_SEMANTIC_ACTIONS_PATH = (
-    REPO_ROOT / "scripts" / "molmo_cleanup" / "run_agibot_robot_map_9_semantic_actions.py"
-)
+DEMO_PATH = REPO_ROOT / "roboclaws" / "household" / "household_world_episode.py"
 PREBUILT_BUNDLE = REPO_ROOT / "assets" / "maps" / "molmospaces" / "procthor-10k-val" / "0"
 ROBOT_MAP_9_ARTIFACT = REPO_ROOT / "vendors" / "agibot_sdk" / "artifacts" / "maps" / "robot_map_9"
 ROBOT_MAP_9_CONTEXT = REPO_ROOT / "tests" / "fixtures" / "agibot_robot_map_9_context.completed.json"
@@ -63,18 +60,6 @@ def _load_demo_module():
 
 def _load_checker_module():
     return cleanup_checker
-
-
-def _load_agibot_semantic_actions_module():
-    spec = importlib.util.spec_from_file_location(
-        "run_agibot_robot_map_9_semantic_actions",
-        AGIBOT_SEMANTIC_ACTIONS_PATH,
-    )
-    assert spec is not None
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
 
 
 def test_realworld_cleanup_demo_writes_public_private_artifacts(tmp_path: Path) -> None:
@@ -212,20 +197,6 @@ def test_realworld_cleanup_product_gate_rejects_legacy_agibot_robot_map_9_bundle
             seed=7,
             map_bundle_dir=bundle_dir,
             generated_mess_count=5,
-        )
-
-
-def test_agibot_semantic_actions_rehearsal_uses_legacy_rich_bundle_and_is_not_product_runtime(
-    tmp_path: Path,
-) -> None:
-    _require_robot_map_9_artifact()
-    rehearsal = _load_agibot_semantic_actions_module()
-
-    with pytest.raises(ValueError, match="invalid Base Metric Map v1 bundle"):
-        rehearsal.run_agibot_robot_map_9_semantic_actions(
-            run_dir=tmp_path / "run",
-            context_json=ROBOT_MAP_9_CONTEXT,
-            agibot_map_artifact_dir=ROBOT_MAP_9_ARTIFACT,
         )
 
 

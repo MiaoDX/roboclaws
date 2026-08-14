@@ -2,18 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from roboclaws.household import planner_proof_bundle_runner
 from roboclaws.household.planner_proof_contracts import PLANNER_PROOF_REQUESTS_SCHEMA
-
-REPO_ROOT = Path(__file__).resolve().parents[3]
-
-SCRIPT_PATH = (
-    REPO_ROOT / "scripts" / "molmo_cleanup" / "run_molmo_planner_proof_bundle_from_requests.py"
-)
-
-
-def _load_module():
-    return planner_proof_bundle_runner
 
 
 def _assert_inline_dry_run_manifest(manifest: dict[str, object]) -> None:
@@ -54,7 +43,7 @@ def _assert_inline_dry_run_command(command_item: dict[str, object]) -> None:
     assert command[command.index("--cleanup-tools") + 1] == (
         "navigate_to_object,pick,navigate_to_receptacle,place"
     )
-    assert command[:2] == ["python", "probe.py"]
+    assert command[:3] == ["python", "-m", "roboclaws.household.planner_probe"]
     assert "--cleanup-object-id" in command
     assert "observed_001" in command
     assert "--cleanup-planner-target-receptacle-id" in command
@@ -91,8 +80,6 @@ def _run_minimal_bundle(runner, cleanup_run_result: Path, *, output_dir: Path) -
         cleanup_run_result=cleanup_run_result,
         output_dir=output_dir,
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
-        cleanup_script=Path("cleanup.py"),
         molmospaces_python=None,
         molmospaces_root=None,
         embodiment="rby1m",

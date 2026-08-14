@@ -3,7 +3,7 @@
 #
 # Install once per clone:
 #
-#     just dev::install-hooks    # or: git config core.hooksPath .githooks
+#     git config core.hooksPath .githooks
 #
 # Bypass in emergencies:
 #
@@ -37,7 +37,7 @@ if command -v ruff >/dev/null 2>&1; then
 elif [[ -x .venv/bin/ruff ]]; then
     RUFF=.venv/bin/ruff
 else
-    echo "pre-commit: ruff not found on PATH or in .venv — install with 'pip install -e .[dev]'" >&2
+    echo "pre-commit: ruff not found on PATH or in .venv - run 'uv sync --extra dev'" >&2
     exit 1
 fi
 

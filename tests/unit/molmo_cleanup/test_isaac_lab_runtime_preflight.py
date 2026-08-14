@@ -1,19 +1,27 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SCRIPT = REPO_ROOT / "scripts" / "isaac_lab_cleanup" / "check_isaac_lab_runtime.py"
 
 
-def run_preflight(tmp_path: Path, *args: str) -> subprocess.CompletedProcess[str]:
+def run_preflight(
+    tmp_path: Path,
+    *args: str,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    subprocess_env = dict(os.environ if env is None else env)
+    if env is None:
+        subprocess_env.pop("OMNI_KIT_ACCEPT_EULA", None)
     return subprocess.run(
         [
             sys.executable,
-            str(SCRIPT),
+            "-m",
+            "roboclaws.backends.isaaclab.runtime_preflight",
             "--output-dir",
             str(tmp_path / "preflight"),
             "--stamp",
@@ -31,6 +39,7 @@ def run_preflight(tmp_path: Path, *args: str) -> subprocess.CompletedProcess[str
         check=False,
         capture_output=True,
         text=True,
+        env=subprocess_env,
     )
 
 
@@ -100,6 +109,20 @@ def test_isaac_lab_runtime_preflight_threads_eula_acceptance_into_install_script
         item for item in install_plan["steps"] if item["name"] == "install_isaac_lab_source"
     ][0]
     assert install_source_step["env"]["OMNI_KIT_ACCEPT_EULA"] == "YES"
+
+
+def test_isaac_lab_runtime_preflight_accepts_exact_eula_environment_value(
+    tmp_path: Path,
+) -> None:
+    result = run_preflight(
+        tmp_path,
+        env={**os.environ, "OMNI_KIT_ACCEPT_EULA": "YES"},
+    )
+
+    assert result.returncode == 0
+    report = load_report(result)
+    install_script = Path(report["install_plan"]["script_path"])  # type: ignore[index]
+    assert "OMNI_KIT_ACCEPT_EULA=YES" in install_script.read_text(encoding="utf-8")
 
 
 def test_isaac_lab_runtime_install_requires_eula_acknowledgement(tmp_path: Path) -> None:

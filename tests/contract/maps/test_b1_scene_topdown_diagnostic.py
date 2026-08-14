@@ -19,7 +19,7 @@ from scripts.maps.render_b1_scene_gaussian_topdown import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SCRIPT = REPO_ROOT / "scripts" / "maps" / "render_b1_scene_topdown_diagnostic.py"
+MODULE = "roboclaws.maps.b1_scene_topdown_diagnostic"
 SCENE_ROOT = (
     REPO_ROOT / "data" / "robot-data-lab" / "scene-engine" / "data" / ("2rd_floor_seperated")
 )
@@ -49,7 +49,8 @@ def test_b1_scene_topdown_diagnostic_cli_writes_packet_and_report(tmp_path: Path
     completed = subprocess.run(
         [
             sys.executable,
-            str(SCRIPT),
+            "-m",
+            MODULE,
             "--scene-root",
             str(SCENE_ROOT),
             "--output-dir",
@@ -78,7 +79,8 @@ def test_b1_scene_topdown_diagnostic_cli_rejects_non_positive_dimensions(
     completed = subprocess.run(
         [
             sys.executable,
-            str(SCRIPT),
+            "-m",
+            MODULE,
             "--scene-root",
             str(SCENE_ROOT),
             "--output-dir",

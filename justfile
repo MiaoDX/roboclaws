@@ -1,27 +1,11 @@
 # Roboclaws command runner.
 #
-# Public surface:
-# - just run::surface surface=<surface> agent_engine=<engine> [world=<world>]
-#   [backend=<backend>] [intent=<intent>] [key=value ...]
-# - just agent::<dispatcher> ...
-#
-# Implementation modules stay private so completion shows the composable facade,
-# not every lower-level recipe combination. Maintainers can still invoke private
-# modules explicitly when debugging.
+# Canonical repo tasks. Product and specialist implementation belongs to Python
+# package owners, not private Just registries.
 
 set dotenv-load := true
 set shell := ["bash", "-uc"]
 
-[private]
-mod dev       'just/dev.just'
-[private]
-mod mcp       'just/mcp.just'
-[private]
-mod harness   'just/harness.just'
-[private]
-mod verify    'just/verify.just'
-[private]
-mod molmo     'just/molmo.just'
 mod agent     'just/agent.just'
 mod run       'just/run.just'
 mod console   'just/console.just'

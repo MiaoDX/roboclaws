@@ -196,8 +196,8 @@ def _real_runtime_smoke_for_init(
     except Exception as exc:
         raise RuntimeError(
             "Real Isaac runtime smoke failed before backend init could prove "
-            "renderer/USD evidence. Run `just agent::harness "
-            "molmo-isaac-runtime-preflight` first and keep CI-only protocol "
+            "renderer/USD evidence. Run `python -m "
+            "roboclaws.backends.isaaclab.runtime_preflight` first and keep CI-only protocol "
             "tests on ROBOCLAWS_ISAACLAB_RUNTIME_MODE=fake."
         ) from exc
 

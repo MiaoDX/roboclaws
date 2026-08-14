@@ -3,13 +3,16 @@ from __future__ import annotations
 import gzip
 import json
 import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
-from roboclaws.household.agibot_map_bundle import write_agibot_nav2_map_bundle
+from roboclaws.household.agibot_map_bundle import (
+    write_agibot_nav2_map_bundle,
+)
 from roboclaws.maps.bundle import validate_nav2_map_bundle
-from scripts.maps.export_agibot_map_bundle import main as export_main
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 ROBOT_MAP_12_FIXTURE = REPO_ROOT / "tests" / "fixtures" / "runtime_map_prior" / "robot_map_12"
@@ -21,19 +24,28 @@ ROBOT_MAP_12_CONTEXT = (
 def test_export_agibot_map12_nav2_bundle(tmp_path: Path) -> None:
     bundle_dir = tmp_path / "agibot-robot-map-12"
 
-    rc = export_main(
+    result = subprocess.run(
         [
+            sys.executable,
+            "-m",
+            "roboclaws.household.agibot_map_bundle",
             "--source-map-dir",
             str(ROBOT_MAP_12_FIXTURE),
             "--context-json",
             str(ROBOT_MAP_12_CONTEXT),
             "--output-dir",
             str(bundle_dir),
-        ]
+        ],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
     )
 
     validation = validate_nav2_map_bundle(bundle_dir)
-    assert rc == 0
+    cli_snapshot = json.loads(result.stdout)
+    assert result.stderr == ""
+    assert cli_snapshot["source_schema"] == "nav2_cleanup_semantics_v1"
     assert validation.errors == ()
     assert validation.metadata["map_id"] == "agibot-robot-map-12_base_metric_map"
     assert validation.metadata["room_count"] == 4

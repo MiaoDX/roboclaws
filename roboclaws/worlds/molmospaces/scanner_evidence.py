@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shlex
 from pathlib import Path
 from typing import Any
 
@@ -218,7 +219,7 @@ def source_prep_next_action(prep_status: str) -> str:
 
 def preview_scanner_command(world_id: str) -> str:
     return (
-        ".venv/bin/python scripts/operator_console/render_scene_previews.py "
+        ".venv/bin/python -m roboclaws.operator_console.scene_preview_cli "
         f"--world {world_id} "
         "--output-dir output/scene-sampler-scanner/previews "
         "--work-dir output/scene-sampler-scanner/work"
@@ -226,13 +227,21 @@ def preview_scanner_command(world_id: str) -> str:
 
 
 def map_build_product_smoke_command(world_id: str) -> str:
-    return (
-        "just run::surface surface=household-world "
-        f"world={world_id} "
-        "backend=mujoco preset=map-build agent_engine=direct-runner "
-        "evidence_lane=world-public-labels seed=7 scenario_setup=baseline "
-        f"output_dir=output/scene-sampler-scanner/product-smoke/{world_id_slug(world_id)}"
-    )
+    return shlex.join(["just", "run::surface", *map_build_product_smoke_launch_args(world_id)])
+
+
+def map_build_product_smoke_launch_args(world_id: str) -> list[str]:
+    return [
+        "surface=household-world",
+        f"world={world_id}",
+        "backend=mujoco",
+        "preset=map-build",
+        "agent_engine=direct-runner",
+        "evidence_lane=world-public-labels",
+        "seed=7",
+        "scenario_setup=baseline",
+        f"output_dir=output/scene-sampler-scanner/product-smoke/{world_id_slug(world_id)}",
+    ]
 
 
 def scanner_preview_assets(

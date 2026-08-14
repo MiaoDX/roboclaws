@@ -48,7 +48,7 @@ def _open_ended_goal_contract(prompt: str):
     )
 
 
-SMOKE_PATH = REPO_ROOT / "scripts" / "molmo_cleanup" / "run_molmo_realworld_agent_mcp_smoke.py"
+SMOKE_PATH = REPO_ROOT / "roboclaws" / "household" / "household_mcp_smoke.py"
 
 PREBUILT_BUNDLE = REPO_ROOT / "assets" / "maps" / "molmospaces" / "procthor-10k-val" / "0"
 

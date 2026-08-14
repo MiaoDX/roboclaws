@@ -60,7 +60,7 @@ ruff check \
   --json
 
 for d in <16 active sampler bundle dirs>; do
-  .venv/bin/python scripts/maps/check_bundle.py "$d" --json
+  .venv/bin/python -m roboclaws.maps.bundle "$d" --json
 done
 ```
 

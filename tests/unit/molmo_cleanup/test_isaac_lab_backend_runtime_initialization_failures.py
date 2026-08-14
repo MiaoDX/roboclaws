@@ -5,11 +5,11 @@ from pathlib import Path
 
 import pytest
 
+from roboclaws.backends.isaaclab import isaac_runtime_smoke_usd
 from roboclaws.backends.isaaclab import runtime as runtime_cli
 from roboclaws.backends.isaaclab import runtime_camera as runtime_camera
 from roboclaws.backends.isaaclab import runtime_capture as runtime_capture
 from roboclaws.backends.isaaclab import runtime_commands as runtime_commands
-from roboclaws.backends.isaaclab import runtime_dependencies as runtime_dependencies
 from roboclaws.backends.isaaclab import runtime_evidence as runtime_evidence
 from roboclaws.backends.isaaclab import runtime_initialization as runtime_initialization
 from roboclaws.backends.isaaclab import runtime_state as runtime_state
@@ -72,7 +72,7 @@ def test_isaac_runtime_smoke_accepts_official_blocks_generated_scene(
 
     assert args.generated_scene_kind == "isaac_official_blocks"
     assert (
-        runtime_dependencies._generated_scene_filename(args.generated_scene_kind)
+        isaac_runtime_smoke_usd.generated_scene_filename(args.generated_scene_kind)
         == "roboclaws_isaac_official_blocks_scene.usda"
     )
 

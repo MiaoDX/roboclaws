@@ -2,34 +2,42 @@
 
 from __future__ import annotations
 
-from roboclaws.backends.isaaclab.runtime_dependencies import (
-    REAL_ROBOT_VIEW_CAPTURE_METHOD,
-    REAL_ROBOT_VIEW_RERENDER_METHOD,
-    REAL_SMOKE_CAPTURE_METHOD,
-    ROBOT_VIEW_KEYS,
-    Any,
-    Callable,
-    Image,
-    Path,
-    _dict,
-    _has_xy,
-    _isaac_native_render_diagnostics_unavailable,
-    _objects_by_id,
-    _receptacles_by_id,
-    argparse,
+import argparse
+from pathlib import Path
+from typing import Any, Callable
+
+from PIL import Image
+
+from roboclaws.backends.isaaclab import (
     isaac_camera_geometry,
+    isaac_render_diagnostics,
     isaac_robot_import,
     isaac_robot_pose_focus,
     isaac_robot_view_artifacts,
     isaac_scenario_builders,
     isaac_semantic_pose_robot_view,
     isaac_worker_commands,
+    isaac_worker_context,
     isaac_worker_outputs,
     isaac_worker_protocol,
+)
+from roboclaws.backends.isaaclab.runtime_settings import (
+    REAL_ROBOT_VIEW_CAPTURE_METHOD,
+    REAL_ROBOT_VIEW_RERENDER_METHOD,
+    REAL_SMOKE_CAPTURE_METHOD,
+    ROBOT_VIEW_KEYS,
 )
 from roboclaws.backends.isaaclab.runtime_state import (
     _with_isaac_robot_pose_hooks,
 )
+
+_dict = isaac_worker_context.dict_value
+_has_xy = isaac_worker_context.has_xy
+_isaac_native_render_diagnostics_unavailable = (
+    isaac_render_diagnostics.native_render_diagnostics_unavailable
+)
+_objects_by_id = isaac_worker_context.objects_by_id
+_receptacles_by_id = isaac_worker_context.receptacles_by_id
 
 type _IsaacWorkerCommand = Callable[[argparse.Namespace, dict[str, Any]], dict[str, Any]]
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import NoReturn
 
 from roboclaws.core.environment_setup_metadata import (
@@ -108,15 +108,15 @@ def export_env_from_plan(plan: LaunchPlan) -> dict[str, str]:
     }
     if plan.preset:
         env["ROBOCLAWS_TASK_PRESET"] = plan.preset
-    _export_adapter_env(env, plan.overrides)
+    _export_adapter_env(env, plan.adapter_options)
     _export_provider_profile_env(env, plan)
     _export_environment_setup_metadata_env(env, plan)
     return env
 
 
-def _export_adapter_env(env: dict[str, str], overrides: tuple[str, ...]) -> None:
+def _export_adapter_env(env: dict[str, str], options: Mapping[str, str]) -> None:
     for override_key, env_key in _ADAPTER_ENV_OVERRIDES:
-        value = _override_value(overrides, override_key)
+        value = options.get(override_key)
         if value is not None:
             env[env_key] = value
 
@@ -137,16 +137,8 @@ def _export_environment_setup_metadata_env(
         return
     env[ENVIRONMENT_SETUP_METADATA_ENV] = environment_setup_metadata_json(
         setup=plan.scenario_setup,
-        seed=_override_value(plan.overrides, "seed"),
+        seed=plan.adapter_options.get("seed"),
         relocation_count=(
             str(plan.relocation_count) if plan.relocation_count is not None else None
         ),
     )
-
-
-def _override_value(overrides: tuple[str, ...], key: str) -> str | None:
-    prefix = f"{key}="
-    for override in overrides:
-        if override.startswith(prefix):
-            return override.removeprefix(prefix)
-    return None

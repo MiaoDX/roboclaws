@@ -2,38 +2,44 @@
 
 from __future__ import annotations
 
-from roboclaws.backends.isaaclab.runtime_dependencies import (
-    HELD_LOCATION_ID,
-    ISAAC_RBY1M_ROBOT_IMPORT_SUMMARY_PATH,
-    ISAAC_RBY1M_ROBOT_USD_PATH,
-    ISAAC_SEMANTIC_POSE_EVENT_SCHEMA,
-    ISAAC_SEMANTIC_POSE_PROVENANCE,
-    ISAAC_SEMANTIC_POSE_STATE_SCHEMA,
-    ISAAC_SEMANTIC_POSE_STATE_SOURCE,
-    Any,
-    Callable,
-    CleanupScenario,
-    Path,
-    _dict,
-    _has_xy,
-    _norm,
-    _objects_by_id,
-    _optional_float,
-    _pose_near,
-    _receptacles_by_id,
-    _round_vec3,
-    _support_surface_from_usd_bounds,
-    _vec3,
+from pathlib import Path
+from typing import Any, Callable
+
+from roboclaws.backends.isaaclab import (
     isaac_camera_geometry,
     isaac_mapping_diagnostics,
     isaac_placement_resolution,
     isaac_robot_import,
     isaac_robot_pose_focus,
     isaac_scenario_state,
+    isaac_scene_index_geometry,
     isaac_semantic_pose_projection,
     isaac_semantic_pose_stage,
     isaac_semantic_pose_state,
+    isaac_support_surface_geometry,
+    isaac_worker_context,
 )
+from roboclaws.household.backend import HELD_LOCATION_ID
+from roboclaws.household.isaac_lab_backend import (
+    ISAAC_SEMANTIC_POSE_EVENT_SCHEMA,
+    ISAAC_SEMANTIC_POSE_STATE_SCHEMA,
+    ISAAC_SEMANTIC_POSE_STATE_SOURCE,
+)
+from roboclaws.household.manipulation_contract import ISAAC_SEMANTIC_POSE_PROVENANCE
+from roboclaws.household.types import CleanupScenario
+
+ISAAC_RBY1M_ROBOT_IMPORT_SUMMARY_PATH = isaac_robot_import.ISAAC_RBY1M_ROBOT_IMPORT_SUMMARY_PATH
+ISAAC_RBY1M_ROBOT_USD_PATH = isaac_robot_import.ISAAC_RBY1M_ROBOT_USD_PATH
+_dict = isaac_worker_context.dict_value
+_has_xy = isaac_worker_context.has_xy
+_norm = isaac_worker_context.norm
+_objects_by_id = isaac_worker_context.objects_by_id
+_optional_float = isaac_camera_geometry.optional_float
+_pose_near = isaac_worker_context.pose_near
+_receptacles_by_id = isaac_worker_context.receptacles_by_id
+_round_vec3 = isaac_scene_index_geometry.round_vec3
+_support_surface_from_usd_bounds = isaac_support_surface_geometry.support_surface_from_usd_bounds
+_vec3 = isaac_worker_context.vec3
 
 
 def _semantic_pose_target_position(

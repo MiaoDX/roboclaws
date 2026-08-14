@@ -8,15 +8,6 @@ import pytest
 from roboclaws.household import planner_proof_bundle_runner
 from roboclaws.household.planner_proof_contracts import PLANNER_PROOF_REQUESTS_SCHEMA
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-SCRIPT_PATH = (
-    REPO_ROOT / "scripts" / "molmo_cleanup" / "run_molmo_planner_proof_bundle_from_requests.py"
-)
-
-
-def _load_module():
-    return planner_proof_bundle_runner
-
 
 @pytest.mark.parametrize(
     ("source", "message"),
@@ -42,7 +33,6 @@ def test_runner_rejects_malformed_prior_proof_manifest_source(
     source: str,
     message: str,
 ) -> None:
-    runner = _load_module()
     cleanup_run_result = _cleanup_run_result(tmp_path)
     prior_manifest = tmp_path / "prior" / "proof_bundle_run_manifest.json"
     prior_manifest.parent.mkdir()
@@ -50,7 +40,7 @@ def test_runner_rejects_malformed_prior_proof_manifest_source(
 
     with pytest.raises(ValueError, match=message):
         _run_minimal_bundle(
-            runner,
+            planner_proof_bundle_runner,
             cleanup_run_result,
             output_dir=tmp_path / "bundle",
             prior_proof_bundle_manifest=prior_manifest,
@@ -81,7 +71,6 @@ def test_runner_rejects_malformed_prior_probe_run_result_source(
     source: str,
     message: str,
 ) -> None:
-    runner = _load_module()
     cleanup_run_result = _cleanup_run_result(tmp_path)
     prior_probe = tmp_path / "prior-probe" / "run_result.json"
     prior_probe.parent.mkdir()
@@ -89,7 +78,7 @@ def test_runner_rejects_malformed_prior_probe_run_result_source(
 
     with pytest.raises(ValueError, match=message):
         _run_minimal_bundle(
-            runner,
+            planner_proof_bundle_runner,
             cleanup_run_result,
             output_dir=tmp_path / "bundle",
             prior_planner_probe_run_result=prior_probe,
@@ -118,8 +107,6 @@ def _run_minimal_bundle(
         cleanup_run_result=cleanup_run_result,
         output_dir=output_dir,
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
-        cleanup_script=Path("cleanup.py"),
         molmospaces_python=None,
         molmospaces_root=None,
         embodiment="rby1m",

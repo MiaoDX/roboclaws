@@ -45,8 +45,9 @@ Eval suite
   graders, aggregate metrics, failure classes, and replayable regression
   evidence.
 
-Harness recipes
-  Lower-level runners and probes used by product, validation, and eval flows.
+Package proof CLIs
+  Specialist runners and probes owned by the package that implements the
+  behavior. Eval rows may invoke these owners without a second command registry.
 ```
 
 - **Runnable Surfaces And Presets** are public run contracts such as
@@ -66,7 +67,7 @@ Harness recipes
   owns adapter dispatch and child lifecycle; product callers do not reconstruct
   private commands. The launch catalog stores canonical axes, goal metadata,
   scenario setup, and relocation count directly on `LaunchPlan`;
-  `LaunchPlan.overrides` contains adapter-specific options only. Environment
+  `LaunchPlan.adapter_options` contains adapter-specific options only. Environment
   export and report rerun commands derive canonical state from the typed plan
   instead of reparsing string copies.
 - **Agent Skills** own strategy: prompts, scripts, examples, recovery loops,
@@ -319,9 +320,11 @@ just run::surface surface=planner-proof world=planner-proof/default backend=mujo
 just console::run
 ```
 
-The public `just agent::*` maintainer facade validates against and forwards to
-the private Just target registry directly. Python launch code owns typed
-product execution, not a second Just command-dispatch loop.
+The maintained Just surface contains only `run::surface`, `agent::eval`,
+`agent::verify`, and `console::run`.
+Specialist proofs use package CLIs directly. Python launch code owns typed
+product execution; there is no private Just target registry or second command
+dispatch loop.
 
 Backend availability is validated against the selected world. MolmoSpaces
 household worlds expose `backend=mujoco`; `backend=isaaclab` is current for

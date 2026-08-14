@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 from pathlib import Path
 
@@ -11,24 +10,6 @@ from roboclaws.household.planner_proof_requests import (
 from roboclaws.household.planner_proof_results import proof_result_summary_from_commands
 from roboclaws.household.planner_proof_selection import proof_request_selection_from_summary
 from roboclaws.household.report_planner import render_planner_proof_bundle_runner_report
-
-REPO_ROOT = Path(__file__).resolve().parents[3]
-
-CHECKER_PATH = (
-    REPO_ROOT / "scripts" / "molmo_cleanup" / "check_molmo_planner_proof_bundle_runner_result.py"
-)
-
-
-def _load_checker():
-    spec = importlib.util.spec_from_file_location(
-        "check_molmo_planner_proof_bundle_runner_result",
-        CHECKER_PATH,
-    )
-    assert spec is not None
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
 
 
 def _write_runner_artifact(base: Path) -> dict[str, object]:
