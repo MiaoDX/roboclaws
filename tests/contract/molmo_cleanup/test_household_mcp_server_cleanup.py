@@ -3,12 +3,15 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from roboclaws.core.robot_view_capture import ROBOT_VIEW_CAPTURE_POLICY_ACTION_TIMELINE
 from roboclaws.household.household_backend_contract import HouseholdBackendSession
 from roboclaws.household.household_runtime_contract import (
     RAW_FPV_ONLY_MODE,
 )
 from roboclaws.household.profiles import WORLD_PUBLIC_LABELS_PROFILE
+from roboclaws.household.realworld_done_readiness import completion_snapshot_digest
 from roboclaws.household.scenario import build_cleanup_scenario
 from tests.contract.molmo_cleanup.household_mcp_server_support import (
     _assert_run_evidence_lane,
@@ -34,15 +37,12 @@ def test_realworld_mcp_done_surfaces_corrupt_trace_source(tmp_path: Path) -> Non
         with (tmp_path / "trace.jsonl").open("a", encoding="utf-8") as stream:
             stream.write("[]\n")
 
-        response = server.call_tool("done", reason="source validation probe")
+        with pytest.raises(ValueError, match="trace source row must contain a JSON object"):
+            server.call_tool("done", reason="source validation probe")
     finally:
         server.close()
 
-    assert response["ok"] is False
-    assert response["status"] == "error"
-    assert response["error_reason"] == "exception"
-    assert "Molmo real-world MCP trace source row must contain a JSON object" in response["error"]
-    assert "trace.jsonl:" in response["error"]
+    assert not (tmp_path / "run_result.json").exists()
 
 
 def test_realworld_mcp_done_persists_facade_rerun_command(
@@ -87,6 +87,42 @@ def test_realworld_mcp_done_persists_facade_rerun_command(
     assert "household-cleanup direct world-public-labels" not in report
 
 
+def test_atomic_responses_project_canonical_completion_snapshot(tmp_path: Path) -> None:
+    server = make_household_world_mcp(
+        run_dir=tmp_path,
+        scenario=build_cleanup_scenario(seed=7),
+        port=0,
+        evidence_lane=WORLD_PUBLIC_LABELS_PROFILE,
+    )
+    try:
+        metric_map = server.call_tool("metric_map")
+        recoverable_error = server.call_tool("pick", object_id="stale_public_handle")
+        agent_view = json.loads((tmp_path / "agent_view.json").read_text(encoding="utf-8"))
+        trace = [
+            json.loads(line)
+            for line in (tmp_path / "trace.jsonl").read_text(encoding="utf-8").splitlines()
+        ]
+    finally:
+        server.close()
+
+    first = metric_map["completion"]
+    latest = recoverable_error["completion"]
+    assert recoverable_error["ok"] is False
+    assert first["source_tool"] == "metric_map"
+    assert latest["source_tool"] == "pick"
+    assert latest["response_id"] == first["response_id"] + 1
+    assert first["digest"] == completion_snapshot_digest(first)
+    assert latest["digest"] == completion_snapshot_digest(latest)
+    assert agent_view["readiness"]["completion"] == latest
+    traced = [
+        event["response"]["completion"] for event in trace if event.get("event") == "response"
+    ]
+    assert traced == [first, latest]
+    serialized = json.dumps(latest)
+    assert "private_manifest" not in serialized
+    assert "target_receptacle_id" not in serialized
+
+
 def test_realworld_mcp_rejects_skipped_semantic_pick_with_public_guidance(
     tmp_path: Path,
 ) -> None:
@@ -128,25 +164,33 @@ def test_realworld_mcp_raw_fpv_camera_raw_done_requires_complete_live_chains(
         _sweep_with_unresolved_raw_fpv_declarations(server, declaration_count=5)
         _complete_raw_fpv_heading_coverage(server)
         done = server.call_tool("done", reason="codex finished early after sweep")
+        run_result = json.loads((tmp_path / "run_result.json").read_text(encoding="utf-8"))
+        first_mtime = (tmp_path / "run_result.json").stat().st_mtime_ns
+        done_response_count = server._tool_event_counts["done:response"]
+        repeated = server.call_tool("done", reason="must not finalize twice")
     finally:
         server.close()
 
     assert done["ok"] is False
     assert done["tool"] == "done"
-    assert done["status"] == "blocked"
-    assert done["error_reason"] == "insufficient_raw_fpv_overlap_probe_coverage"
-    assert done["required_tool"] == "navigate_to_waypoint"
+    assert done["status"] == "terminal_incomplete"
+    assert done["error_reason"] == "terminal_incomplete"
     assert done["completion"]["status"] == "blocked"
     blocker = done["completion"]["blockers"][-1]
     assert blocker["type"] == "insufficient_grounded_cleanup_chains"
     assert blocker["current"] == 0
     assert blocker["required"] == 4
     assert blocker["required_tool"] == "navigate_to_visual_candidate"
-    assert "score" not in done
-    assert "cleanup_status" not in done
+    assert done["cleanup_status"] == "incomplete"
+    assert run_result["intent_status"] == "terminal_incomplete"
+    assert run_result["goal_status"] == "terminal_incomplete"
+    assert run_result["final_status"] == "terminal_incomplete"
     assert "target_receptacle_id" not in str(done)
     assert "private_manifest" not in str(done)
-    assert not (tmp_path / "run_result.json").exists()
+    assert (tmp_path / "run_result.json").exists()
+    assert repeated == done
+    assert (tmp_path / "run_result.json").stat().st_mtime_ns == first_mtime
+    assert server._tool_event_counts["done:response"] == done_response_count == 1
 
 
 def test_realworld_mcp_raw_fpv_camera_raw_done_allows_complete_live_chains(

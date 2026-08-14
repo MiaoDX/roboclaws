@@ -72,7 +72,7 @@ def dispatch_household_mcp_tool(
 
     trace_events = server._read_trace_events()
     recovery_response = raw_fpv_recovery_gate(
-        trace_events[:-1],
+        _completion_recovery_events(trace_events[:-1]),
         evidence_lane=str(server.evidence_lane or ""),
         task_intent=str(server.task_intent or ""),
         tool=name,
@@ -83,6 +83,34 @@ def dispatch_household_mcp_tool(
 
     handlers = tool_handlers_for_call(server, kwargs)
     return handlers[name]()
+
+
+def _completion_recovery_events(trace_events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Adapt canonical completion snapshots to the existing pure recovery policy."""
+
+    adapted = []
+    recovery_started = False
+    for event in trace_events:
+        response = event.get("response")
+        completion = response.get("completion") if isinstance(response, dict) else None
+        blockers = completion.get("blockers") if isinstance(completion, dict) else []
+        recovery_started = recovery_started or any(
+            isinstance(blocker, dict)
+            and blocker.get("type") == "insufficient_raw_fpv_overlap_probe_coverage"
+            for blocker in blockers or []
+        )
+        if (
+            recovery_started
+            and event.get("event") == "response"
+            and event.get("tool") != "done"
+            and isinstance(completion, dict)
+            and completion.get("schema") == "household_completion_snapshot_v1"
+            and completion.get("status") == "blocked"
+        ):
+            adapted.append(event)
+            event = {**event, "tool": "done", "response": {**response, "ok": False}}
+        adapted.append(event)
+    return adapted
 
 
 def validate_household_mcp_tool_call(server: Any, name: str) -> None:

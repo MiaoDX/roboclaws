@@ -59,11 +59,10 @@ show Private Evaluation after a run, but that information is not agent input.
    semantic anchors, inspected viewpoints, and the returned public search
    budget.
 
-Never return a final answer before calling `roboclaws__done(reason)`. When the
-remaining turn or tool budget is low, call `done` with the public progress and
-remaining risk instead of spending the closeout budget on optional observations.
-If `done` returns a required recovery action, perform only that bounded recovery
-before calling `done` again.
+Never return a final answer before calling `roboclaws__done(reason)`. Treat each
+atomic MCP response's versioned `completion` snapshot as the authoritative
+pre-terminal readiness state. Call `done` exactly once, only when that snapshot
+is ready; `done` is terminal and cannot be used to discover or recover work.
 
 ## Open-Ended Goals
 
@@ -89,8 +88,8 @@ any missing waypoint.
 
 Prefer a local cleanup loop after each useful observation instead of a full
 up-front survey. Clean plausible misplaced objects with only observed object
-handles. The contract-derived `cleanup_worklist` in Agent View and `done`
-recovery payloads are authoritative.
+handles. The contract-derived `cleanup_worklist` and versioned
+`readiness.completion` snapshot in Agent View are authoritative.
 
 For each observed cleanup handle, run this public tool chain:
 
@@ -125,8 +124,8 @@ In `camera-raw-fpv`, inspect raw FPV image evidence directly. Select at most
 one fresh high-confidence cleanup object per source observation, then call
 `roboclaws__navigate_to_visual_candidate(...)` only when you intend to act on a
 visual candidate. Do not pre-register raw-FPV candidates with
-`declare_visual_candidates`. If a compact continuation supplies a bounded
-public revisit queue after `done` reports a grounded-chain deficit, finish any
+`declare_visual_candidates`. If a compact continuation supplies bounded public
+next actions from the latest completion snapshot, finish any
 heading blocker first, then inspect each listed waypoint at most once from the
 specified fresh recovery view.
 
@@ -142,15 +141,15 @@ unknown `target_fixture_id` values rather than sending empty, null-like text.
 In `camera-grounded-labels`, use `roboclaws__declare_visual_candidates()` to
 register producer-labelled candidates before cleanup selection.
 
-After the local cleanup loop, call `done` as the authoritative closeout probe.
-Only close out after every public inspection waypoint has an observe response
-and every public recommended candidate is resolved. If `done` returns
-`pending_cleanup_candidates`, clean exactly those listed handles using their
-`candidate_fixture_id` or `destination_options`, then call `done` again.
-Follow a top-level `required_tool` or
+After the local cleanup loop, inspect the latest response's `completion` snapshot.
+Call `done` exactly once after its status is `ready`, every public inspection
+waypoint has an observe response, and every public recommended candidate is
+resolved. While it is blocked, follow `completion.next_actions` and
 `completion.blockers[*].required_tool`; if destination evidence is incomplete,
 continue the waypoint sweep rather than inventing fixture ids. Skip candidates
 reported as `already_handled` and avoid repeating work in the same stale area.
+When a `pending_cleanup_candidates` blocker is present, act only on those public
+candidate entries and preserve their returned waypoint identities.
 
 ## Map-Build Preset
 

@@ -178,10 +178,14 @@ def _build_payloads(
         done_reason=inputs.reason,
     )
     task_intent = _task_intent(inputs, goal_contract_payload)
-    intent_status = terminal_status_payload(
-        task_intent,
-        inputs.done_response["cleanup_status"],
-    )["final_status"]
+    intent_status = (
+        "terminal_incomplete"
+        if inputs.done_response.get("ok") is not True
+        else terminal_status_payload(
+            task_intent,
+            inputs.done_response["cleanup_status"],
+        )["final_status"]
+    )
     agent_scratchpad, _ = read_or_create_skill_scratchpad(
         run_dir=inputs.run_dir,
         note=(
@@ -224,7 +228,7 @@ def _base_run_result(
     paths: _RunArtifactPaths,
     payloads: _MCPDonePayloads,
 ) -> dict[str, Any]:
-    return compose_household_run_result(
+    run_result = compose_household_run_result(
         {
             "backend": inputs.backend,
             "task_name": inputs.task_name,
@@ -286,6 +290,13 @@ def _base_run_result(
             ),
         }
     )
+    if payloads.intent_status == "terminal_incomplete":
+        run_result.update(
+            intent_status="terminal_incomplete",
+            goal_status="terminal_incomplete",
+            final_status="terminal_incomplete",
+        )
+    return run_result
 
 
 def _attach_run_result_sections(

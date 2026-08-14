@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Callable
 
+from roboclaws.agents.skill_delivery import sandbox_readiness
 from roboclaws.evals import long_horizon_contract
 from roboclaws.evals.agent_identity import blocked_result_from_live_agent_request
 from roboclaws.evals.dependencies import dependency_failure, resolve_artifact_dependencies
@@ -35,6 +36,12 @@ from roboclaws.evals.models import (
 )
 from roboclaws.evals.suite_loading import REPO_ROOT
 from roboclaws.household.household_backend_contract import SYNTHETIC_BACKEND
+from roboclaws.mcp.profiles import (
+    HOUSEHOLD_EPISODE_PROFILE,
+    HOUSEHOLD_MANIPULATION_PROFILE,
+    HOUSEHOLD_WORLD_PROFILE,
+    contract_profile,
+)
 
 ProductRun = Callable[..., dict[str, Any]]
 
@@ -49,6 +56,7 @@ def _trial_from_sample(
     runner_class: str,
     provider_profile: str,
     model: str | None,
+    skill_delivery_cell: str = "static-full",
 ) -> EvalTrial:
     limitations: list[str] = []
     if (
@@ -83,6 +91,7 @@ def _trial_from_sample(
             "hardware": "local_cpu",
             "network": MISSING_NOT_APPLICABLE,
             "local_live_limitations": [],
+            "skill_delivery_cell": skill_delivery_cell,
         },
         limitations=limitations,
     )
@@ -102,6 +111,7 @@ def _run_trial(
     provider_profile: str,
     model: str | None,
     live_execution: str,
+    skill_delivery_cell: str = "static-full",
     live_timeout_s: float | None,
     live_stall_timeout_s: float | None,
     regrade_source_dir: Path | None,
@@ -110,6 +120,13 @@ def _run_trial(
 ) -> EvalResult:
     run_dir.mkdir(parents=True, exist_ok=True)
     if agent_engine != "direct-runner":
+        if skill_delivery_cell == "sandbox-skills":
+            posture = sandbox_readiness()
+            if posture["status"] != "ready":
+                return blocked_result_from_exception(
+                    trial,
+                    RuntimeError(f"sandbox-skills unavailable: {posture['reason']}"),
+                )
         if regrade_source_dir is not None:
             return _regrade_live_eval_trial(
                 sample=sample,
@@ -134,6 +151,7 @@ def _run_trial(
                 model=model,
                 live_timeout_s=live_timeout_s,
                 live_stall_timeout_s=live_stall_timeout_s,
+                skill_delivery_cell=skill_delivery_cell,
                 live_product_runner=live_product_runner or run_live_surface_product,
                 hooks=LiveTrialHooks(
                     failed_result_from_dependency=_failed_result_from_dependency,
@@ -343,9 +361,12 @@ def _mcp_profile(sample: EvalSample) -> str:
 
 
 def _tool_surface(sample: EvalSample) -> tuple[str, ...]:
+    profiles = [HOUSEHOLD_WORLD_PROFILE, HOUSEHOLD_EPISODE_PROFILE]
     if long_horizon_contract.manipulation_required(sample, sample.intent == "cleanup"):
-        return ("metric_map", "observe", "navigate", "pick", "place", "done")
-    return ("metric_map", "observe", "done")
+        profiles.insert(1, HOUSEHOLD_MANIPULATION_PROFILE)
+    return tuple(
+        name for profile_id in profiles for name in contract_profile(profile_id).public_tool_names()
+    )
 
 
 def _budget_steps(budget: str) -> int | str:

@@ -17,6 +17,13 @@ from tests.contract.molmo_cleanup.household_runtime_contract_support import (
 )
 
 
+def _assert_waypoint_identity(
+    candidate: dict[str, object], *, source_waypoint_id: str, generated_waypoint_id: str
+) -> None:
+    assert candidate["source_waypoint_id"] == source_waypoint_id
+    assert candidate["generated_inspection_waypoint_id"] == generated_waypoint_id
+
+
 def test_target_candidates_force_adaptive_public_reinspection_path() -> None:
     contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
     first_observation = _first_non_empty_observation(contract)
@@ -43,6 +50,11 @@ def test_target_candidates_force_adaptive_public_reinspection_path() -> None:
         and item["waypoint_id"] == generated_waypoint_id
     )
     metric_waypoints = contract.metric_map()["inspection_waypoints"]
+    worklist_candidate = next(
+        item
+        for item in contract.cleanup_worklist_payload()["objects"]
+        if item["object_id"] == handle
+    )
 
     assert generated_waypoint["waypoint_source"] == "generated_target_inspection_candidate"
     assert generated_waypoint["verified_navigation"] is True
@@ -53,6 +65,11 @@ def test_target_candidates_force_adaptive_public_reinspection_path() -> None:
         == pre_scan_candidate["candidate_id"]
     )
     assert generated_waypoint_id in {str(item["waypoint_id"]) for item in metric_waypoints}
+    _assert_waypoint_identity(
+        worklist_candidate,
+        source_waypoint_id=str(first_observation["waypoint_id"]),
+        generated_waypoint_id=generated_waypoint_id,
+    )
     blocked_navigation = contract.navigate_to_object(handle)
     assert blocked_navigation["ok"] is False
     assert blocked_navigation["error_reason"] == "visual_evidence_not_reviewable"

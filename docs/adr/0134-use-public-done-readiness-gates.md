@@ -4,7 +4,7 @@ Date: 2026-06-05
 
 ## Status
 
-Accepted
+Superseded by the terminal completion lifecycle below
 
 ## Context
 
@@ -21,7 +21,30 @@ grounded cleanup chains. Prompt guidance helped but was not authoritative, and
 embedding RAW_FPV-specific checks directly in the MCP server risks turning the
 server orchestration layer into a growing collection of task/profile branches.
 
-## Decision
+## Superseding Decision (2026-08-03)
+
+`done` is terminal-only. Every invocation writes terminal artifacts exactly once
+and ends the Robot Run. If readiness is blocked, the terminal outcome is
+`terminal_incomplete`; the checker rejects it and the Agent receives no further
+recovery turn.
+
+Agent View readiness is the sole pre-terminal completion authority. After every
+nonterminal atomic MCP response, including recoverable errors, the runtime
+computes one `household_completion_snapshot_v1` under `readiness.completion` and
+projects that exact snapshot and digest onto the response and public trace. Its
+monotonic response identity names the source tool. Blockers and executable next
+actions derive only from the existing public cleanup worklist and public runtime
+evidence. Source and generated inspection waypoint identities remain attached to
+actionable candidates.
+
+SDK continuation carries the latest canonical snapshot and digest. Missing,
+malformed, or stale state fails closed as terminal-incomplete; continuation does
+not reconstruct cleanup strategy from trace history or rejected `done` calls.
+No additional readiness or cleanup-query MCP tool is added.
+
+The public-only evidence boundary below remains in force.
+
+## Prior Decision
 
 Roboclaws will treat task/profile-specific completion readiness as a server-side
 Done Readiness Gate. A `done` call remains the public lifecycle tool, but before
@@ -45,7 +68,7 @@ They must not use or expose private generated mess membership, acceptable
 destination sets, hidden target lists, private manifests, hidden target
 receptacles, `is_misplaced`, or scorer object truth.
 
-Rejected `done` calls should return an additive public blocker structure while
+Historically, rejected `done` calls returned an additive public blocker structure while
 preserving existing top-level recovery fields during migration:
 
 ```json
@@ -71,9 +94,9 @@ preserving existing top-level recovery fields during migration:
 
 Numeric blocker fields may expose public progress and the minimum public
 acceptance requirement for the run, but they must not label that value as a
-private target count or reveal private target identities. Skills should consume
-the blocker generically: follow `required_tool` and public recovery hints, then
-call `done` again after more public evidence is complete.
+private target count or reveal private target identities. This recovery behavior
+is superseded: Skills consume the completion snapshot before terminal `done` and
+never retry `done`.
 
 The MCP tool surface should not grow a separate default `cleanup_worklist` or
 `check_done_ready` tool solely for this purpose. The authoritative completion

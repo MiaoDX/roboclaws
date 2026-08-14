@@ -139,6 +139,14 @@ class OpenAIAgentsLiveRuntime:
             )
             _write_json(status_path, normalized.to_live_status_payload())
             return normalized
+        finally:
+            context = request.metadata.get("skill_context")
+            if isinstance(context, dict):
+                _write_skill_context_summary(
+                    skill_context_path,
+                    {},
+                    request=request,
+                )
 
         finished_at = time.time()
         run_result_path = request.run_dir / "run_result.json"
@@ -187,9 +195,14 @@ def _run_openai_agents(
         add_trace_processor = None
         flush_traces = None
 
+    agent_cls = Agent
+    if _is_sandbox_skills_request(request):
+        from agents.sandbox import SandboxAgent  # type: ignore[import-not-found]
+
+        agent_cls = SandboxAgent
     parts = _openai_agents_run_parts(
         request,
-        agent_cls=Agent,
+        agent_cls=agent_cls,
         model_settings_cls=ModelSettings,
         run_config_cls=RunConfig,
         mcp_server_cls=MCPServerStreamableHttp,
@@ -291,9 +304,16 @@ def _openai_agents_run_parts(
         mcp_client_session_timeout_s=timeout_s,
     )
     model_settings = model_settings_cls(**_sdk_model_settings_payload(request))
-    run_config = run_config_cls(
-        model_settings=model_settings,
+    run_config_kwargs = {
+        "model_settings": model_settings,
         **_sdk_run_config_payload(request, events_path=events_path),
+    }
+    if _is_sandbox_skills_request(request):
+        from roboclaws.agents.drivers.openai_agents_sandbox_skills import sandbox_run_config
+
+        run_config_kwargs["sandbox"] = sandbox_run_config()
+    run_config = run_config_cls(
+        **run_config_kwargs,
     )
     server = mcp_server_cls(
         **_mcp_server_kwargs(
@@ -303,18 +323,21 @@ def _openai_agents_run_parts(
         )
     )
     instructions, skill_context_summary = _instructions_with_skill_context(request)
-    _write_skill_context_summary(skill_context_path, skill_context_summary)
-    agent = agent_cls(
-        **_agent_kwargs(
-            request,
-            model=_model_for_request(request),
-            model_settings=model_settings,
-            server=server,
-            instructions=instructions,
-            events_path=events_path,
-            runtime_config=runtime_config,
-        )
+    _write_skill_context_summary(skill_context_path, skill_context_summary, request=request)
+    agent_kwargs = _agent_kwargs(
+        request,
+        model=_model_for_request(request),
+        model_settings=model_settings,
+        server=server,
+        instructions=instructions,
+        events_path=events_path,
+        runtime_config=runtime_config,
     )
+    if _is_sandbox_skills_request(request):
+        from roboclaws.agents.drivers.openai_agents_sandbox_skills import sandbox_agent_kwargs
+
+        agent_kwargs.update(sandbox_agent_kwargs(request))
+    agent = agent_cls(**agent_kwargs)
     return _OpenAIAgentsRunParts(
         agent=agent,
         server=server,
@@ -346,7 +369,7 @@ def _agent_kwargs(
     model: Any,
     model_settings: Any,
     server: Any,
-    instructions: str,
+    instructions: Any,
     events_path: Path,
     runtime_config: dict[str, Any],
 ) -> dict[str, Any]:
@@ -363,6 +386,14 @@ def _agent_kwargs(
         "model": model,
         "model_settings": model_settings,
     }
+
+
+def _is_sandbox_skills_request(request: LiveAgentRequest) -> bool:
+    from roboclaws.agents.drivers.openai_agents_sandbox_skills import (
+        is_sandbox_skills_request,
+    )
+
+    return is_sandbox_skills_request(request)
 
 
 def _run_with_async_mcp_server(

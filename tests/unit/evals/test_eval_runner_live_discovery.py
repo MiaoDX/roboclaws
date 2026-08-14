@@ -291,7 +291,7 @@ def test_live_surface_discovery_fails_on_ambiguous_current_sibling_artifacts(
         )
 
 
-def test_live_open_ended_eval_grades_artifacts_after_checker_nonzero_exit(
+def test_live_open_ended_eval_fails_after_checker_nonzero_exit(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -339,11 +339,12 @@ def test_live_open_ended_eval_grades_artifacts_after_checker_nonzero_exit(
     )
 
     payload = json.loads(run.results_path.read_text())
-    assert payload["aggregate"]["passed"] == 3
-    assert payload["aggregate"]["failed"] == 0
+    assert payload["aggregate"]["passed"] == 0
+    assert payload["aggregate"]["failed"] == 3
     result = payload["results"][0]
-    assert result["status"] == "passed"
-    assert result["failure_class"] == "not_applicable"
+    assert result["status"] == "failed"
+    assert result["failure_class"] == "harness_bug_unclassified"
+    assert result["grader_outputs"]["runner"]["status"] == "failed"
     assert result["identity"]["agent_engine"] == "openai-agents-sdk"
     command_record = json.loads(
         (
@@ -402,14 +403,14 @@ def test_live_open_ended_eval_rejects_failed_foreground_status_even_with_artifac
     kwargs = _live_surface_kwargs(tmp_path / "trial-0000", live_timeout_s=12.5)
     kwargs["eval_sample"] = sample
 
-    with pytest.raises(RuntimeError, match="live surface run reported failed status 1"):
+    with pytest.raises(RuntimeError, match="live surface run failed with exit 1"):
         live_exec.run_live_surface_product(**kwargs)
 
     command_record = json.loads((tmp_path / "trial-0000" / "live_eval_command.json").read_text())
     assert command_record["returncode"] == 1
 
 
-def test_live_cleanup_eval_grades_artifacts_after_checker_nonzero_exit(
+def test_live_cleanup_eval_fails_after_checker_nonzero_exit(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -489,9 +490,9 @@ def test_live_cleanup_eval_grades_artifacts_after_checker_nonzero_exit(
         for item in payload["results"]
         if item["identity"]["sample_id"] == "cleanup.consumer_no_prior_seed7"
     )
-    assert result["status"] == "passed"
-    assert result["failure_class"] == "not_applicable"
-    assert result["grader_outputs"]["outcome"]["semantic_completion_status"] == "success"
+    assert result["status"] == "failed"
+    assert result["failure_class"] == "harness_bug_unclassified"
+    assert result["grader_outputs"]["runner"]["status"] == "failed"
     command_record = json.loads(
         (
             tmp_path

@@ -179,7 +179,6 @@ def render_kickoff_prompt(
             f"Per-waypoint observation budget={max(1, int(max_observe_per_waypoint))}. "
             f"Raw-FPV candidate-attempt budget={max(1, int(raw_fpv_candidate_budget))}. "
             f"Cleanup target cap={max(1, int(target_cleanup_count))}. "
-            f"Done retry budget={max(0, int(done_retry_budget))}. "
             "Raw image payload persistence=disabled. "
         )
     elif profile == "camera-grounded-labels":

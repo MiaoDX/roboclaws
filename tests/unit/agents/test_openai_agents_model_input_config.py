@@ -221,6 +221,37 @@ def test_model_input_camera_history_fails_aloud_on_malformed_mcp_text_content() 
         )
 
 
+def test_model_input_camera_history_ignores_non_camera_function_output() -> None:
+    items = [
+        {
+            "type": "function_call",
+            "call_id": "call_1",
+            "name": "read_selected_skill",
+            "arguments": '{"skill_name":"household-world"}',
+        },
+        {
+            "type": "function_call_output",
+            "call_id": "call_1",
+            "output": "{'skill_name': 'household-world', 'content': '# Skill'}",
+        },
+    ]
+
+    compacted, metrics = _compact_model_input_items(
+        items,
+        min_chars=999_999,
+        public_tool_output_summary=False,
+        repeated_metric_map_delta=False,
+        camera_grounded_history={
+            "enabled": True,
+            "mode": "retain_latest_actionable_outputs",
+            "retained_recent_outputs": 1,
+        },
+    )
+
+    assert compacted == items
+    assert metrics["camera_grounded_history_item_count"] == 0
+
+
 def test_model_input_camera_history_fails_aloud_on_non_object_json_mcp_output() -> None:
     items = [
         {
