@@ -99,6 +99,8 @@ def run_live_eval_trial(
     skill_delivery_cell: str = "static-full",
     live_product_runner: ProductRun,
     hooks: LiveTrialHooks,
+    skill_source_root: Path | None = None,
+    live_retry_limit: int = 1,
 ) -> EvalResult:
     """Run and grade one live-agent eval trial through the product surface."""
 
@@ -127,6 +129,7 @@ def run_live_eval_trial(
                     live_stall_timeout_s=live_stall_timeout_s,
                     skill_delivery_cell=skill_delivery_cell,
                     model_visible_tool_surface=trial.tool_surface,
+                    skill_source_root=skill_source_root,
                 )
             )
             return result, _live_eval_effective_run_dir(result, trial_run_dir=attempt_run_dir)
@@ -134,6 +137,7 @@ def run_live_eval_trial(
         run_result, effective_run_dir = run_with_model_call_stall_retry(
             run_dir=run_dir,
             run_attempt=run_attempt,
+            max_retries=live_retry_limit,
         )
     except Exception as exc:  # noqa: BLE001 - eval packets must classify runner failures.
         return hooks.blocked_result_from_exception(trial, exc)

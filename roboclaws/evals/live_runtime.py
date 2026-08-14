@@ -221,6 +221,7 @@ def live_product_run_kwargs(
     live_stall_timeout_s: float | None,
     skill_delivery_cell: str = "static-full",
     model_visible_tool_surface: tuple[str, ...] | list[str] = (),
+    skill_source_root: Path | None = None,
 ) -> dict[str, Any]:
     """Return product-run kwargs plus live-agent routing metadata."""
 
@@ -241,6 +242,7 @@ def live_product_run_kwargs(
             "live_stall_timeout_s": live_stall_timeout_s,
             "skill_delivery_cell": skill_delivery_cell,
             "model_visible_tool_surface": list(model_visible_tool_surface),
+            "skill_source_root": str(skill_source_root) if skill_source_root is not None else "",
         }
     )
     return kwargs
@@ -400,6 +402,9 @@ def live_surface_env(kwargs: dict[str, Any], *, base_env: Any) -> dict[str, str]
     env["ROBOCLAWS_EVAL_MODEL_VISIBLE_TOOL_SURFACE"] = json.dumps(
         list(kwargs.get("model_visible_tool_surface") or ()), separators=(",", ":")
     )
+    skill_source_root = str(kwargs.get("skill_source_root") or "")
+    if skill_source_root:
+        env["ROBOCLAWS_EVAL_SKILL_SOURCE_ROOT"] = skill_source_root
     provider_profile = str(kwargs.get("provider_profile") or "")
     if provider_profile:
         if kwargs["agent_engine"] == "openai-agents-sdk":

@@ -53,6 +53,7 @@ from roboclaws.agents.household_live_config import (
     _load_agent_sdk_skill_context,
     _skill_context_timing_summary,
     _stable_prefix_packet,
+    eval_skill_source_root,
 )
 from roboclaws.agents.household_live_continuation import (
     IncompleteTurnRecoveryPolicy,
@@ -130,7 +131,7 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
         ):
             raise ValueError("eval model-visible tool surface must be a JSON string list")
         self.skill_context = _load_agent_sdk_skill_context(
-            args.repo_root,
+            eval_skill_source_root(args.repo_root),
             skill_name=self.skill_name,
             delivery_cell=self.skill_delivery_cell,
             intent=_household_intent(args),

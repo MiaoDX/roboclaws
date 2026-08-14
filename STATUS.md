@@ -10,6 +10,15 @@ leave a link.
 
 ## Current Focus
 
+Eval Evolution Phase 0 is complete under
+`docs/plans/2026-08-04-eval-evolution-agent-sdk.md`. The accepted contracts bind
+both optimizer and robot roles to OpenAI Agents SDK, keep optimizer-visible
+feedback sanitized, freeze campaign/candidate identity, require sealed holdout
+and human promotion, and expose blocked-by-default `just agent::eval
+evolve|evolve-promote` commands. Phase 1 is the current Skill vertical slice.
+Codex CLI remains outside the implementation, and MCP behavior candidates
+remain barred from live execution until Phase 3 malicious isolation passes.
+
 The post-refactor Skill delivery comparison is terminal at
 `output/eval-harness/20260804T121407Z/`. It tested five cells with the kickoff
 goal only in user input, using `kimi-openai-chat` / `kimi-k2.7-code`, cleanup
@@ -26,6 +35,13 @@ Docker isolation contract with network disabled, no mounts or sensitive
 environment, and only the selected Skill reader exposed. No durable
 baseline/catalog artifact was published. See
 `docs/plans/2026-08-03-agent-skill-delivery-eval.md`.
+
+Phase 1 Eval Evolution Skill smoke completed at
+`output/eval-evolution/20260805-skill-smoke-v4/`. The Agents SDK optimizer
+materialized a content-addressed candidate and the paired robot training
+matrix ran with frozen identity and zero retries. Deterministic gates passed,
+but authoritative training status failed, so selection returned
+`no_improving_candidate`; sealed holdout and promotion were correctly skipped.
 
 The invalid hybrid candidate at `output/eval-harness/20260803T023049Z/` remains
 retained as evidence and unpublished. Its checker/eval ownership regression is
@@ -65,9 +81,15 @@ providers.
 
 ## Next Action
 
-Keep `static-full` as the product default until a reviewed multi-scene
-confirmation compares it directly with `no-skill`. Do not promote a dynamic or
-Sandbox mode, or publish a baseline, from the one-scene matrix.
+Implement Phase 2's MCP description-only evolution slice. Keep MCP behavior
+candidate live execution blocked until Phase 3 malicious isolation passes.
+
+The local Phase 3 isolation contract is proven by
+`output/eval-harness/20260804T121407Z/preflight/sandbox-isolation-sanitized.json`
+and the Sandbox boundary tests. The required remote placement is blocked:
+CloudML has no Docker-capable worker, so MCP behavior live execution remains
+disabled. Phase 4 may run description-only deterministic/live proof when its
+provider preflight is available; it must not substitute behavior execution.
 
 ## Current Blockers
 

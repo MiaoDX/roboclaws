@@ -117,6 +117,8 @@ def _run_trial(
     regrade_source_dir: Path | None,
     product_runner: ProductRun,
     live_product_runner: ProductRun | None,
+    skill_source_root: Path | None = None,
+    live_retry_limit: int = 1,
 ) -> EvalResult:
     run_dir.mkdir(parents=True, exist_ok=True)
     if agent_engine != "direct-runner":
@@ -152,6 +154,8 @@ def _run_trial(
                 live_timeout_s=live_timeout_s,
                 live_stall_timeout_s=live_stall_timeout_s,
                 skill_delivery_cell=skill_delivery_cell,
+                skill_source_root=skill_source_root,
+                live_retry_limit=live_retry_limit,
                 live_product_runner=live_product_runner or run_live_surface_product,
                 hooks=LiveTrialHooks(
                     failed_result_from_dependency=_failed_result_from_dependency,

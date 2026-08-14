@@ -32,6 +32,22 @@ def test_agent_eval_routes_to_eval_cli_with_unchanged_arguments() -> None:
     ]
 
 
+def test_agent_eval_routes_evolution_commands_without_a_second_facade() -> None:
+    args = (
+        "evolve",
+        "campaign=campaigns/skill-smoke.json",
+        "live_execution=blocked",
+    )
+
+    assert _trace_agent_eval(*args) == [
+        "cmd",
+        REPO_PYTHON,
+        "-m",
+        "roboclaws.evals.cli",
+        *args,
+    ]
+
+
 def test_surface_cleanup_live_run_dir_reaches_sdk_package_owner() -> None:
     route, plan_trace = trace_surface_run_with_plan(
         "surface=household-world",
