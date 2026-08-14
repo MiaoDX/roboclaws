@@ -5,10 +5,12 @@ import signal
 from pathlib import Path
 from typing import Any
 
-from roboclaws.household.manipulation_provenance import (
+from roboclaws.household.manipulation_contract import (
     BLOCKED_CAPABILITY_PROVENANCE,
     MANIPULATION_PROBE_CONTRACT,
     PLANNER_BACKED_PROVENANCE,
+)
+from roboclaws.household.manipulation_provenance import (
     blocked_planner_probe_evidence,
     planner_backed_probe_evidence,
 )

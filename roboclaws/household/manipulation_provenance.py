@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from roboclaws.household.backend import API_SEMANTIC_PROVENANCE
+from roboclaws.household.manipulation_contract import (
+    API_SEMANTIC_PROVENANCE,
+    BLOCKED_CAPABILITY_PROVENANCE,
+    ISAAC_SEMANTIC_POSE_PROVENANCE,
+    MANIPULATION_PROVENANCE_SCHEMA,
+    PLANNER_BACKED_PROVENANCE,
+)
 from roboclaws.household.planner_proof_quality import planner_proof_quality_evidence
-
-MANIPULATION_PROVENANCE_SCHEMA = "molmo_manipulation_provenance_v1"
-MANIPULATION_PROBE_CONTRACT = "planner_backed_manipulation_probe_v1"
-PLANNER_BACKED_PROVENANCE = "planner_backed"
-BLOCKED_CAPABILITY_PROVENANCE = "blocked_capability"
-ISAAC_SEMANTIC_POSE_PROVENANCE = "isaac_semantic_pose"
 
 
 def api_semantic_manipulation_evidence(

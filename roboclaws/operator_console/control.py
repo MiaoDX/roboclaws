@@ -12,7 +12,7 @@ from mcp.client.session import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 
 from roboclaws.core.json_sources import parse_json_object_text, read_json_object
-from roboclaws.operator_console.jsonl_sources import collect_jsonl_objects
+from roboclaws.core.jsonl_sources import collect_jsonl_objects
 from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.routes import ConsoleLaunchSelection
 from roboclaws.operator_console.state import derive_operator_state

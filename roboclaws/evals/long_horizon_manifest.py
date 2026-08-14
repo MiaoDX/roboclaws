@@ -6,15 +6,16 @@ import json
 from pathlib import Path
 from typing import Any
 
+from roboclaws.core.generated_mess import generated_mess_success_threshold
+from roboclaws.evals.long_horizon_contract import LongHorizonTaskSpec
 from roboclaws.evals.models import EvalSample
 from roboclaws.household.generated_mess import (
     GENERATED_MESS_MANIFEST_SCHEMA,
-    generated_mess_success_threshold,
     receptacle_prefers_inside,
 )
 
 
-def generated_mess_manifest(sample: EvalSample, spec: Any) -> dict[str, Any]:
+def generated_mess_manifest(sample: EvalSample, spec: LongHorizonTaskSpec) -> dict[str, Any]:
     """Build a private backend fixture manifest from a long-horizon task spec."""
 
     if not spec.target_object_ids:
@@ -49,14 +50,18 @@ def generated_mess_manifest(sample: EvalSample, spec: Any) -> dict[str, Any]:
     }
 
 
-def write_generated_mess_manifest(sample: EvalSample, spec: Any, path: Path) -> Path:
+def write_generated_mess_manifest(
+    sample: EvalSample, spec: LongHorizonTaskSpec, path: Path
+) -> Path:
     manifest = generated_mess_manifest(sample, spec)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return path
 
 
-def _manifest_target(spec: Any, *, object_id: str, placement_index: int) -> dict[str, Any]:
+def _manifest_target(
+    spec: LongHorizonTaskSpec, *, object_id: str, placement_index: int
+) -> dict[str, Any]:
     start_receptacle_id = spec.source_receptacle_ids[
         placement_index % len(spec.source_receptacle_ids)
     ]
@@ -74,7 +79,7 @@ def _manifest_target(spec: Any, *, object_id: str, placement_index: int) -> dict
     }
 
 
-def _selected_destination_id(spec: Any, *, cold: bool) -> str:
+def _selected_destination_id(spec: LongHorizonTaskSpec, *, cold: bool) -> str:
     if cold:
         for destination_id in spec.accepted_destination_ids:
             if "fridge" in destination_id.lower() or "refrigerator" in destination_id.lower():

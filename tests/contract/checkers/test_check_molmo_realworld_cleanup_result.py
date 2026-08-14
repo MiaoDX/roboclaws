@@ -17,11 +17,11 @@ from roboclaws.household.household_runtime_contract import (
     REALWORLD_CONTRACT,
     forbidden_agent_view_keys,
 )
-from roboclaws.household.manipulation_provenance import (
+from roboclaws.household.manipulation_contract import (
     MANIPULATION_PROBE_CONTRACT,
     PLANNER_BACKED_PROVENANCE,
-    planner_backed_probe_evidence,
 )
+from roboclaws.household.manipulation_provenance import planner_backed_probe_evidence
 from roboclaws.household.nav2_map_bundle import attach_nav2_map_bundle_snapshot
 from roboclaws.mcp.profiles import HOUSEHOLD_EPISODE_PROFILE, HOUSEHOLD_WORLD_PROFILE
 from scripts.isaac_lab_cleanup.check_b1_map12_readiness import (

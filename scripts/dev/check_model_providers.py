@@ -17,16 +17,16 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Literal
 
-from roboclaws.agents.provider_registry import (
-    WIRE_CHAT_COMPLETIONS,
-    WIRE_RESPONSES,
-    provider_route_spec,
-    route_base_url,
-)
+from roboclaws.agents.provider_registry import route_base_url
 from roboclaws.agents.provider_transport import provider_default_headers
 from roboclaws.agents.thinking_policy import thinking_request_body_for_wire
 from roboclaws.core.dotenv import update_env_from_dotenv_file
 from roboclaws.core.json_sources import parse_json_object_text
+from roboclaws.core.provider_catalog import (
+    WIRE_CHAT_COMPLETIONS,
+    WIRE_RESPONSES,
+    provider_route_spec,
+)
 from roboclaws.operator_console.redaction import redact_text
 
 DEFAULT_PROMPT = "Health check. Reply exactly ok."

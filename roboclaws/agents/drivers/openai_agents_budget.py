@@ -8,7 +8,7 @@ from typing import Any
 
 from roboclaws.agents.live_status import LiveAgentFailure
 from roboclaws.core.json_sources import read_jsonl_objects
-from roboclaws.household.raw_fpv_recovery import raw_fpv_recovery_exhaustion
+from roboclaws.core.raw_fpv_recovery import raw_fpv_recovery_exhaustion
 
 
 class OpenAIAgentsBudgetExceededError(RuntimeError):

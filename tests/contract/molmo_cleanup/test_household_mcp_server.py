@@ -9,6 +9,8 @@ from typing import Any
 
 import pytest
 
+from roboclaws.core.goals import normalize_goal_contract
+from roboclaws.core.task_intents import TASK_INTENT_SPECS
 from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household.backend import ApiSemanticCleanupBackend
 from roboclaws.household.household_backend_contract import HouseholdBackendSession
@@ -41,8 +43,6 @@ from roboclaws.household.types import (
     PrivateScoringManifest,
 )
 from roboclaws.launch.catalog import SURFACE_SPECS
-from roboclaws.launch.goals import normalize_goal_contract
-from roboclaws.launch.intents import TASK_INTENT_SPECS
 from roboclaws.mcp.profiles import (
     HOUSEHOLD_EPISODE_PROFILE,
     HOUSEHOLD_MANIPULATION_PROFILE,

@@ -1,4 +1,4 @@
-"""Sanitized live-agent report performance metrics."""
+"""Pure sanitized live-agent performance projections and comparisons."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from roboclaws.core.json_sources import (
     read_json_object,
     read_jsonl_objects,
 )
-from roboclaws.household.report_sections_timing import runtime_timing_from_trace
+from roboclaws.core.runtime_timing import runtime_timing_from_trace
 
 REPORT_PERFORMANCE_SCHEMA = "roboclaws_report_performance_metrics_v1"
 MODEL_CALL_METRIC_SCHEMA = "roboclaws_model_call_metric_v1"

@@ -6,11 +6,11 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from roboclaws.household.profiles import CAMERA_GROUNDED_LABELS_LANE
-from roboclaws.launch.environment_setup import (
+from roboclaws.core.environment_setup import (
     ENVIRONMENT_SETUP_BASELINE,
     ENVIRONMENT_SETUP_RELOCATE_CLEANUP_RELATED_OBJECTS,
 )
+from roboclaws.household.profiles import CAMERA_GROUNDED_LABELS_LANE
 from roboclaws.launch.worlds import WORLD_SPECS
 from roboclaws.maps.runtime_prior_catalog import (
     RUNTIME_PRIOR_CATALOG_SCHEMA,

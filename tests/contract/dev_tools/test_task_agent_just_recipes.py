@@ -17,9 +17,9 @@ from roboclaws.agents.prompts.household_cleanup import (
     render_kickoff_prompt,
     render_map_build_prompt,
 )
+from roboclaws.core.evaluation import checker_flags_for_household_intent
 from roboclaws.launch import resolve_surface_launch
 from roboclaws.launch.catalog import LaunchError
-from roboclaws.launch.evaluation import checker_flags_for_household_intent
 from roboclaws.launch.runners import export_env_from_plan
 
 REPO_ROOT = Path(__file__).resolve().parents[3]

@@ -1,4 +1,4 @@
-"""Goal normalization for surface/intent launches."""
+"""Goal contracts shared by launch and product runtimes."""
 
 from __future__ import annotations
 
@@ -8,13 +8,13 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.core.json_sources import parse_json_object_text, read_json_object
-from roboclaws.launch.intents import (
+from roboclaws.core.task_intents import (
     GOAL_SCOPE_AGENT_DECLARED,
     GOAL_SCOPE_PROMPT_SCOPED,
     GOAL_SCOPE_WHOLE_ROOM,
     TaskIntentSpec,
 )
-from roboclaws.launch.task_specs import TaskSurfaceSpec
+from roboclaws.core.task_specs import TaskSurfaceSpec
 
 GOAL_CONTRACT_SCHEMA = "roboclaws_goal_contract_v1"
 AGENT_COMPLETION_CLAIM_SCHEMA = "roboclaws_agent_completion_claim_v1"

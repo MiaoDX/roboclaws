@@ -4,6 +4,11 @@ import json
 from pathlib import Path
 from typing import Any
 
+from roboclaws.core.backend_catalog import (
+    BACKEND_SPECS,
+    SYNTHETIC_CLEANUP_IMPLEMENTATION_BACKEND,
+    BackendSpec,
+)
 from roboclaws.household.artifact_paths import home_relative_paths
 from roboclaws.household.backend import ApiSemanticCleanupBackend
 from roboclaws.household.isaac_lab_backend import (
@@ -19,11 +24,6 @@ from roboclaws.household.subprocess_backend import (
     MolmoSpacesSubprocessBackend,
 )
 from roboclaws.household.types import CleanupScenario, PrivateScoringManifest
-from roboclaws.launch.backends import (
-    BACKEND_SPECS,
-    SYNTHETIC_CLEANUP_IMPLEMENTATION_BACKEND,
-    BackendSpec,
-)
 
 SYNTHETIC_BACKEND = SYNTHETIC_CLEANUP_IMPLEMENTATION_BACKEND
 VISUAL_BACKENDS = frozenset({MOLMOSPACES_SUBPROCESS_BACKEND, ISAACLAB_SUBPROCESS_BACKEND})

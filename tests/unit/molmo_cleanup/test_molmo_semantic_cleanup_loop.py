@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from roboclaws.household.backend import API_SEMANTIC_PROVENANCE
+from roboclaws.household.manipulation_contract import API_SEMANTIC_PROVENANCE
 from roboclaws.household.semantic_cleanup_loop import run_semantic_cleanup_loop
 from roboclaws.household.semantic_timeline import (
     NAVIGATE_TO_OBJECT_PHASE,

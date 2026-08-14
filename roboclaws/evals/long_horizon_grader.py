@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.evals.final_state_evidence import FinalStateEvidence, final_state_evidence_for_run
-from roboclaws.evals.long_horizon import long_horizon_spec
+from roboclaws.evals.long_horizon_contract import long_horizon_spec
 from roboclaws.evals.models import MISSING_NOT_APPLICABLE, MISSING_UNAVAILABLE, EvalSample
 
 

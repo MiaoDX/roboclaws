@@ -1,8 +1,8 @@
-"""Checker policy helpers for resolved launch intents."""
+"""Checker policy values shared by launch and agent runtimes."""
 
 from __future__ import annotations
 
-from roboclaws.household.generated_mess import generated_mess_success_threshold
+from roboclaws.core.generated_mess import generated_mess_success_threshold
 
 
 def checker_flags_for_household_intent(

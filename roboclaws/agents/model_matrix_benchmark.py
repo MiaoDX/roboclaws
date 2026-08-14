@@ -8,9 +8,10 @@ import urllib.parse
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from roboclaws.agents.provider_registry import provider_route_spec, route_base_url
+from roboclaws.agents.provider_registry import route_base_url
 from roboclaws.agents.provider_transport import provider_default_headers
 from roboclaws.agents.thinking_policy import thinking_request_body_for_wire
+from roboclaws.core.provider_catalog import provider_route_spec
 
 WireApi = Literal["openai-chat", "openai-responses", "anthropic-messages"]
 BenchmarkLayer = Literal["health", "first-content", "throughput", "stream-throughput", "agent-case"]

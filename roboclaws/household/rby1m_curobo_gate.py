@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from roboclaws.household.manipulation_provenance import (
+from roboclaws.household.manipulation_contract import (
     BLOCKED_CAPABILITY_PROVENANCE,
     PLANNER_BACKED_PROVENANCE,
 )

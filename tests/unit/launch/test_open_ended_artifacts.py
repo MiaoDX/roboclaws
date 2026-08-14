@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.launch.open_ended_artifacts import validate_open_ended_artifacts
+from roboclaws.core.open_ended_artifacts import validate_open_ended_artifacts
 
 
 def test_open_ended_artifact_checker_accepts_single_run_result(tmp_path: Path) -> None:

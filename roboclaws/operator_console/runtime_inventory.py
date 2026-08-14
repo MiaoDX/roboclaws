@@ -10,11 +10,11 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
-from roboclaws.core.json_sources import read_json_object
-from roboclaws.household.visual_backend_slots import (
+from roboclaws.agents.visual_backend_slots import (
     VisualBackendSlotError,
     list_visual_backend_slots,
 )
+from roboclaws.core.json_sources import read_json_object
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root, operator_output_request_path
 from roboclaws.operator_console.redaction import redact_text

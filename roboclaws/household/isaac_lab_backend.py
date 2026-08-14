@@ -12,7 +12,6 @@ from roboclaws.household.subprocess_backend import _scenario_from_worker_payload
 from roboclaws.household.worker_runner import run_json_worker_once, worker_env, worker_timeout_s
 
 ISAACLAB_SUBPROCESS_BACKEND = "isaaclab_subprocess"
-ISAAC_SEMANTIC_POSE_PROVENANCE = "isaac_semantic_pose"
 ISAAC_SEMANTIC_POSE_STATE_SCHEMA = "isaac_semantic_pose_state_v1"
 ISAAC_SEMANTIC_POSE_EVENT_SCHEMA = "isaac_semantic_pose_event_v1"
 ISAAC_SEMANTIC_POSE_STATE_SOURCE = "backend_json_state"

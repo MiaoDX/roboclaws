@@ -1,3 +1,5 @@
+"""Shared map-build scan policy values."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

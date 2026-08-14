@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from roboclaws.household.backend import API_SEMANTIC_PROVENANCE
-from roboclaws.household.manipulation_provenance import (
+from roboclaws.household.manipulation_contract import (
+    API_SEMANTIC_PROVENANCE,
     BLOCKED_CAPABILITY_PROVENANCE,
     PLANNER_BACKED_PROVENANCE,
+)
+from roboclaws.household.manipulation_provenance import (
     api_semantic_manipulation_evidence,
     blocked_planner_probe_evidence,
     planner_backed_probe_evidence,

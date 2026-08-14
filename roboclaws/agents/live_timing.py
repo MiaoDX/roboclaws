@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.core.json_sources import read_json_object, read_json_value, read_jsonl_objects
-from roboclaws.household.report_sections_timing import runtime_timing_from_trace
+from roboclaws.core.runtime_timing import runtime_timing_from_trace
 
 
 def runner_timing_breakdown(timing: dict[str, Any], finished_at: float) -> dict[str, Any]:

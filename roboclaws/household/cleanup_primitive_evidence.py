@@ -4,11 +4,9 @@ from collections import Counter
 from collections.abc import Mapping
 from typing import Any
 
-from roboclaws.household.manipulation_provenance import (
+from roboclaws.household.manipulation_contract import (
     BLOCKED_CAPABILITY_PROVENANCE,
     PLANNER_BACKED_PROVENANCE,
-)
-from roboclaws.household.planner_primitive_executor import (
     PLANNER_PRIMITIVE_EXECUTOR_SCHEMA,
 )
 from roboclaws.household.semantic_timeline import (

@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from roboclaws.core.goals import normalize_goal_contract
+from roboclaws.core.task_intents import TASK_INTENT_SPECS
 from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household.agibot_map_bundle import write_agibot_nav2_map_bundle
 from roboclaws.household.household_runtime_contract import (
@@ -27,8 +29,6 @@ from roboclaws.household.semantic_timeline import (
     SEMANTIC_LOOP_VARIANT,
 )
 from roboclaws.household.tasks import HOUSEHOLD_TASK_SPECS
-from roboclaws.launch.goals import normalize_goal_contract
-from roboclaws.launch.intents import TASK_INTENT_SPECS
 from scripts.molmo_cleanup import isaac_runtime_checker
 
 REPO_ROOT = Path(__file__).resolve().parents[3]

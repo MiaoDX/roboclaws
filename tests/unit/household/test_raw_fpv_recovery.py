@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.agents.drivers.openai_agents_budget import raw_fpv_budget_failure
-from roboclaws.household.raw_fpv_recovery import (
+from roboclaws.core.raw_fpv_recovery import (
     raw_fpv_recovery_exhaustion,
     raw_fpv_recovery_gate,
     raw_fpv_recovery_state,

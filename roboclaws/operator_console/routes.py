@@ -5,10 +5,16 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from roboclaws.agents.provider_registry import (
+from roboclaws.core.backend_catalog import BACKEND_SPECS, BackendSpec
+from roboclaws.core.environment_setup import (
+    ENVIRONMENT_SETUP_BASELINE,
+    ENVIRONMENT_SETUP_RELOCATE_CLEANUP_RELATED_OBJECTS,
+)
+from roboclaws.core.provider_catalog import (
     provider_route_specs,
     route_payload,
 )
+from roboclaws.core.task_intents import TASK_INTENT_SPECS
 from roboclaws.household.profiles import (
     CAMERA_GROUNDED_LABELS_LANE,
     CAMERA_RAW_FPV_LANE,
@@ -16,13 +22,7 @@ from roboclaws.household.profiles import (
     cleanup_evidence_lane_names,
 )
 from roboclaws.launch.agent_engines import AGENT_ENGINE_SPECS
-from roboclaws.launch.backends import BACKEND_SPECS, BackendSpec
 from roboclaws.launch.catalog import LaunchError, resolve_surface_launch
-from roboclaws.launch.environment_setup import (
-    ENVIRONMENT_SETUP_BASELINE,
-    ENVIRONMENT_SETUP_RELOCATE_CLEANUP_RELATED_OBJECTS,
-)
-from roboclaws.launch.intents import TASK_INTENT_SPECS
 from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS, WORLD_SPECS
 from roboclaws.operator_console.workflows import (
     DEFAULT_PROVIDER_PROFILE,

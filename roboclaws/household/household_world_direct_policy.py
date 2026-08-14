@@ -6,6 +6,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from roboclaws.core.map_build_scan_profile import (
+    MapBuildScanProfile,
+)
+from roboclaws.core.map_build_scan_profile import (
+    map_build_scan_profile as build_map_build_scan_profile,
+)
 from roboclaws.household.household_backend_contract import HouseholdBackendSession
 from roboclaws.household.household_runtime_contract import (
     CAMERA_MODEL_POLICY_MODE,
@@ -13,12 +19,6 @@ from roboclaws.household.household_runtime_contract import (
     DETERMINISTIC_SWEEP_POLICY,
     RAW_FPV_ONLY_MODE,
     HouseholdRuntimeContract,
-)
-from roboclaws.household.map_build_scan_profile import (
-    MapBuildScanProfile,
-)
-from roboclaws.household.map_build_scan_profile import (
-    map_build_scan_profile as build_map_build_scan_profile,
 )
 from roboclaws.household.robot_view_camera_control import (
     ROBOT_VIEW_CAMERA_CONTROL_CONTRACT_SCHEMA,

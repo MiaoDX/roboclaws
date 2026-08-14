@@ -12,7 +12,7 @@ from statistics import median
 from typing import Any
 
 from roboclaws.core.json_sources import read_jsonl_objects
-from roboclaws.reports.live_performance import MODEL_CALL_METRIC_SCHEMA
+from roboclaws.core.live_performance import MODEL_CALL_METRIC_SCHEMA
 
 CALIBRATION_SCHEMA = "roboclaws_model_latency_calibration_v1"
 MIN_HOLDOUT_R2_FOR_STRONG_NORMALIZED_CLAIM = 0.20

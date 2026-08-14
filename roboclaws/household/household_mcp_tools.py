@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from roboclaws.household.raw_fpv_recovery import raw_fpv_recovery_gate
+from roboclaws.core.raw_fpv_recovery import raw_fpv_recovery_gate
 from roboclaws.household.realworld_mcp_atomic_tools import (
     atomic_cleanup_handlers,
     register_atomic_cleanup_tools,

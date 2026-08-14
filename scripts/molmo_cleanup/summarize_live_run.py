@@ -13,11 +13,11 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.core.json_sources import read_json_object, read_jsonl_objects
-from roboclaws.household.report_sections_timing import runtime_timing_from_trace
-from roboclaws.reports.live_performance import (
+from roboclaws.core.live_performance import (
     compare_report_performance_metrics,
     extract_report_performance_metrics,
 )
+from roboclaws.core.runtime_timing import runtime_timing_from_trace
 from scripts.molmo_cleanup.live_debug_summary import debug_snapshot_lines
 
 DEFAULT_SEARCH_ROOT = Path("output/molmo/codex-report")

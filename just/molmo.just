@@ -82,7 +82,7 @@ household-world-impl:
     task_run_id="${task_surface}.${task_intent}"
     if [[ -z "$goal_contract_json" && -z "$goal_contract_path" ]]; then
       goal_contract_json="$(
-        ROBOCLAWS_TASK_INTENT="$task_intent" ROBOCLAWS_TASK_PROMPT="$task" .venv/bin/python -c 'import os; from roboclaws.launch.catalog import SURFACE_SPECS; from roboclaws.launch.goals import normalize_goal_contract; from roboclaws.launch.intents import TASK_INTENT_SPECS; print(normalize_goal_contract(surface=SURFACE_SPECS["household-world"], intent=TASK_INTENT_SPECS[os.environ["ROBOCLAWS_TASK_INTENT"]], raw_prompt=os.environ.get("ROBOCLAWS_TASK_PROMPT", "")).to_json())'
+        ROBOCLAWS_TASK_INTENT="$task_intent" ROBOCLAWS_TASK_PROMPT="$task" .venv/bin/python -c 'import os; from roboclaws.core.goals import normalize_goal_contract; from roboclaws.core.task_intents import TASK_INTENT_SPECS; from roboclaws.launch.catalog import SURFACE_SPECS; print(normalize_goal_contract(surface=SURFACE_SPECS["household-world"], intent=TASK_INTENT_SPECS[os.environ["ROBOCLAWS_TASK_INTENT"]], raw_prompt=os.environ.get("ROBOCLAWS_TASK_PROMPT", "")).to_json())'
       )"
     fi
     goal_contract_args=()
@@ -207,7 +207,7 @@ household-world-impl:
       auto|"")
         ;;
       *)
-        backend="$("$python_bin" -m roboclaws.launch.backends cleanup-implementation-backend "$backend_override")"
+        backend="$("$python_bin" -m roboclaws.core.backend_catalog cleanup-implementation-backend "$backend_override")"
         ;;
     esac
     if [[ "$backend" == "isaaclab_subprocess" && "$launch_world_id" != "b1-map12" ]]; then
@@ -840,7 +840,7 @@ household-world-impl:
     done
 
     if [[ "$open_ended_intent" == "true" ]]; then
-      .venv/bin/python -m roboclaws.launch.open_ended_artifacts "$run_root"
+      .venv/bin/python -m roboclaws.core.open_ended_artifacts "$run_root"
       echo "==> reports:"
       find "$run_root" -maxdepth 2 -name report.html -print
       exit 0

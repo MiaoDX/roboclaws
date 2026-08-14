@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from roboclaws.agents.provider_registry import (
+from roboclaws.core.provider_catalog import (
     PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
     WIRE_CHAT_COMPLETIONS,
     WIRE_RESPONSES,

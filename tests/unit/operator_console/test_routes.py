@@ -7,7 +7,8 @@ import pytest
 
 from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS, WORLD_SPECS
 from roboclaws.operator_console import workflows as console_workflows
-from roboclaws.operator_console.launcher import ConsoleLaunchError, build_launch_argv
+from roboclaws.operator_console.launch_contract import ConsoleLaunchError
+from roboclaws.operator_console.launcher import build_launch_argv
 from roboclaws.operator_console.routes import (
     default_workflow_selection_id,
     get_selection,

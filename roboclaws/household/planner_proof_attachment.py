@@ -5,16 +5,15 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.core.json_sources import read_json_object
-from roboclaws.household.manipulation_provenance import (
+from roboclaws.household.manipulation_contract import (
     MANIPULATION_PROBE_CONTRACT,
     PLANNER_BACKED_PROVENANCE,
+    PLANNER_PROOF_ATTACHMENT_SCHEMA,
 )
 from roboclaws.household.planner_proof_quality import (
     planner_proof_quality_evidence,
     validate_planner_proof_quality_evidence,
 )
-
-PLANNER_PROOF_ATTACHMENT_SCHEMA = "planner_backed_cleanup_attachment_v1"
 
 
 def attach_planner_proof(

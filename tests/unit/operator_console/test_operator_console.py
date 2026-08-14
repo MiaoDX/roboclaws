@@ -17,8 +17,8 @@ from unittest.mock import patch
 
 import pytest
 
+from roboclaws.operator_console.launch_contract import ConsoleLaunchError
 from roboclaws.operator_console.launcher import (
-    ConsoleLaunchError,
     build_launch_argv,
     route_readiness,
 )

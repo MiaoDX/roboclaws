@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from roboclaws.household.profiles import cleanup_evidence_lane_names
-from roboclaws.launch.environment_setup import (
+from roboclaws.core.environment_setup import (
     ENVIRONMENT_SETUP_BASELINE,
     ENVIRONMENT_SETUP_RELOCATE_CLEANUP_RELATED_OBJECTS,
 )
-from roboclaws.launch.task_specs import TaskPresetSpec, TaskSurfaceSpec
+from roboclaws.core.task_specs import TaskPresetSpec, TaskSurfaceSpec
+from roboclaws.household.profiles import cleanup_evidence_lane_names
 
 HOUSEHOLD_EVIDENCE_LANES: tuple[str, ...] = cleanup_evidence_lane_names()
 

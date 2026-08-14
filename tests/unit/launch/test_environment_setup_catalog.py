@@ -7,14 +7,14 @@ from typing import Any
 import pytest
 
 import roboclaws.launch.executor as executor_module
-from roboclaws.launch.backends import (
+from roboclaws.core.backend_catalog import (
     cleanup_implementation_backend_ids,
     normalize_cleanup_implementation_backend,
 )
+from roboclaws.core.environment_setup_metadata import ENVIRONMENT_SETUP_METADATA_ENV
+from roboclaws.core.goals import normalize_goal_contract
+from roboclaws.core.task_intents import TASK_INTENT_SPECS
 from roboclaws.launch.catalog import SURFACE_SPECS, LaunchError, resolve_surface_launch
-from roboclaws.launch.environment_setup_metadata import ENVIRONMENT_SETUP_METADATA_ENV
-from roboclaws.launch.goals import normalize_goal_contract
-from roboclaws.launch.intents import TASK_INTENT_SPECS
 from roboclaws.launch.runners import export_env_from_plan
 
 

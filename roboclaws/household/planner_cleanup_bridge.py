@@ -2,11 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from roboclaws.household.manipulation_provenance import (
+from roboclaws.household.manipulation_contract import (
     BLOCKED_CAPABILITY_PROVENANCE,
     PLANNER_BACKED_PROVENANCE,
-)
-from roboclaws.household.planner_proof_attachment import (
     PLANNER_PROOF_ATTACHMENT_SCHEMA,
 )
 from roboclaws.household.planner_proof_bundle import (

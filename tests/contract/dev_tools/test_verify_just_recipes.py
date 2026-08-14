@@ -40,9 +40,11 @@ def test_verify_layer_keeps_static_checks_out_of_harness_namespace() -> None:
     assert '"$ruff_bin" check .' in verify_text
     assert '"$ruff_bin" format --check .' in verify_text
     assert "python scripts/dev/check_python_quality_ratchet.py" in verify_text
+    assert "python scripts/dev/check_architecture_import_graph.py" in verify_text
     assert "git diff --check" in verify_text
     assert "ruff_bin" not in harness_text
     assert "check_python_quality_ratchet.py" not in harness_text
+    assert "check_architecture_import_graph.py" not in harness_text
     assert "git diff --check" not in harness_text
 
 

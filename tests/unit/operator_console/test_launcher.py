@@ -9,8 +9,8 @@ from unittest.mock import patch
 import pytest
 
 from roboclaws.operator_console import workflows as console_workflows
+from roboclaws.operator_console.launch_contract import ConsoleLaunchError
 from roboclaws.operator_console.launcher import (
-    ConsoleLaunchError,
     LaunchRequest,
     _new_run_id,
     _safe_run_id_suffix,

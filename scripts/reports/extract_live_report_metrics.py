@@ -7,7 +7,7 @@ import argparse
 import json
 from pathlib import Path
 
-from roboclaws.reports.live_performance import (
+from roboclaws.core.live_performance import (
     extract_report_performance_metrics,
     read_model_latency_calibration,
 )

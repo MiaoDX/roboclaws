@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from roboclaws.household.backend import HELD_LOCATION_ID
-from roboclaws.household.isaac_lab_backend import ISAAC_SEMANTIC_POSE_PROVENANCE
+from roboclaws.household.manipulation_contract import ISAAC_SEMANTIC_POSE_PROVENANCE
 from scripts.isaac_lab_cleanup.isaac_support_surface_geometry import (
     ISAAC_DESCENDANT_SUPPORT_SURFACE_SOURCE,
     ISAAC_WORLD_BOUNDS_SUPPORT_SURFACE_SOURCE,

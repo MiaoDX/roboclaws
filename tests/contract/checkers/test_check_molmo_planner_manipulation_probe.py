@@ -8,8 +8,8 @@ from types import ModuleType, SimpleNamespace
 import numpy as np
 import pytest
 
+from roboclaws.household.manipulation_contract import MANIPULATION_PROBE_CONTRACT
 from roboclaws.household.manipulation_provenance import (
-    MANIPULATION_PROBE_CONTRACT,
     blocked_planner_probe_evidence,
     planner_backed_probe_evidence,
 )

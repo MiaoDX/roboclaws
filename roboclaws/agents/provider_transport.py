@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from roboclaws.agents.provider_registry import PROVIDER_PROFILE_CODEX_RESPONSES
+from roboclaws.core.provider_catalog import PROVIDER_PROFILE_CODEX_RESPONSES
 
 CODEX_WINDOW_ID_HEADER = "X-Codex-Window-Id"
 

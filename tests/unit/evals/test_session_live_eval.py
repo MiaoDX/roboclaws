@@ -8,13 +8,13 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
 
+from roboclaws.core.operator_messages import check_operator_messages_for_mcp
 from roboclaws.evals.session_live import (
     SESSION_LIVE_API_TIMEOUT_S,
     _blocked_parent_provider_result,
     _wait_for_terminal,
     run_session_live_eval,
 )
-from roboclaws.operator_console.interactions import check_operator_messages_for_mcp
 from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.routes import get_selection
 from roboclaws.operator_console.server import (

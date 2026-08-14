@@ -1,5 +1,3 @@
-"""Repo-native deterministic eval suite runner."""
-
 from __future__ import annotations
 
 import json
@@ -10,7 +8,8 @@ from pathlib import Path
 from typing import Any, Callable
 
 from roboclaws.core.json_sources import collect_jsonl_object_rows, read_json_object
-from roboclaws.evals import long_horizon as lh
+from roboclaws.evals import long_horizon_contract
+from roboclaws.evals import long_horizon_grader as lhg
 from roboclaws.evals.agent_identity import (
     agent_engine_spec,
     blocked_result_from_live_agent_request,
@@ -487,7 +486,7 @@ def _grade_trial(
         "privacy": _privacy_grader(run_result),
         "trajectory": _trajectory_grader(sample=sample, run_dir=run_dir, run_result=run_result),
         "outcome": _outcome_grader(sample=sample, run_dir=run_dir, run_result=run_result),
-        "long_horizon": lh.grade_long_horizon_task(sample, run_dir=run_dir, run_result=run_result),
+        "long_horizon": lhg.grade_long_horizon_task(sample, run_dir=run_dir, run_result=run_result),
         "sampler_admission": _sampler_admission_grader(sample=sample),
         "open_ended": _open_ended_grader(sample=sample, run_dir=run_dir, run_result=run_result),
         "efficiency": _efficiency_grader(run_dir=run_dir, run_result=run_result),
@@ -1399,7 +1398,7 @@ def _status_from_graders(grader_outputs: dict[str, Any]) -> tuple[str, str]:
         ("artifacts", "artifact_missing"),
         ("privacy", "private_truth_leak"),
         ("trajectory", "trajectory_policy_violation"),
-        (lh.LONG_HORIZON_GRADER_NAME, "private_goal_not_satisfied"),
+        (long_horizon_contract.LONG_HORIZON_GRADER_NAME, "private_goal_not_satisfied"),
         ("sampler_admission", "map_actionability_failure"),
         ("open_ended", "agent_no_completion_claim"),
         ("outcome", "private_goal_not_satisfied"),
@@ -1409,7 +1408,7 @@ def _status_from_graders(grader_outputs: dict[str, Any]) -> tuple[str, str]:
         grader = grader_outputs.get(grader_name, {})
         if grader.get("status") == "failed":
             return "failed", str(grader.get("failure_class") or failure_class)
-    long_horizon = grader_outputs.get(lh.LONG_HORIZON_GRADER_NAME, {})
+    long_horizon = grader_outputs.get(long_horizon_contract.LONG_HORIZON_GRADER_NAME, {})
     if long_horizon.get("status") == "inconclusive":
         return "inconclusive", str(long_horizon.get("failure_class") or "grader_inconclusive")
     return "passed", MISSING_NOT_APPLICABLE
@@ -1432,7 +1431,7 @@ def _metrics_from_graders(
             "artifact_readiness",
             MISSING_NOT_APPLICABLE,
         ),
-        **lh.metric_fields(grader_outputs),
+        **long_horizon_contract.metric_fields(grader_outputs),
         "tool_event_count": efficiency["tool_event_count"],
         "tool_call_count": efficiency.get("tool_call_count", 0),
         "tool_event_counts": efficiency.get("tool_event_counts", {}),
@@ -1763,13 +1762,13 @@ def _skill_name(sample: EvalSample) -> str:
 
 
 def _mcp_profile(sample: EvalSample) -> str:
-    if lh.manipulation_required(sample, sample.intent == "cleanup"):
+    if long_horizon_contract.manipulation_required(sample, sample.intent == "cleanup"):
         return "household_world+household_manipulation"
     return "household_world+household_episode"
 
 
 def _tool_surface(sample: EvalSample) -> tuple[str, ...]:
-    if lh.manipulation_required(sample, sample.intent == "cleanup"):
+    if long_horizon_contract.manipulation_required(sample, sample.intent == "cleanup"):
         return ("metric_map", "observe", "navigate", "pick", "place", "done")
     return ("metric_map", "observe", "done")
 
@@ -1795,13 +1794,3 @@ def _int_value(value: Any) -> int:
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-
-
-def main(argv: list[str] | None = None) -> int:
-    from roboclaws.evals.cli import main as cli_main
-
-    return cli_main(argv)
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

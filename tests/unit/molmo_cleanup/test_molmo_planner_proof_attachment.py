@@ -5,13 +5,15 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.household.manipulation_provenance import (
+from roboclaws.household.manipulation_contract import (
     MANIPULATION_PROBE_CONTRACT,
     PLANNER_BACKED_PROVENANCE,
+    PLANNER_PROOF_ATTACHMENT_SCHEMA,
+)
+from roboclaws.household.manipulation_provenance import (
     planner_backed_probe_evidence,
 )
 from roboclaws.household.planner_proof_attachment import (
-    PLANNER_PROOF_ATTACHMENT_SCHEMA,
     attach_planner_proof,
     validate_planner_proof_attachment,
 )

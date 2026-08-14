@@ -4,7 +4,7 @@ import os
 
 import pytest
 
-from roboclaws.household.visual_backend_slots import (
+from roboclaws.agents.visual_backend_slots import (
     VisualBackendSlotError,
     acquire_visual_backend_slot,
     list_visual_backend_slots,

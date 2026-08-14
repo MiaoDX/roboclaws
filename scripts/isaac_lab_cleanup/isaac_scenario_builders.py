@@ -5,10 +5,10 @@ import re
 from pathlib import Path
 from typing import Any
 
+from roboclaws.core.generated_mess import generated_mess_success_threshold
 from roboclaws.core.json_sources import read_json_object
 from roboclaws.household.generated_mess import (
     GENERATED_MESS_MANIFEST_SCHEMA,
-    generated_mess_success_threshold,
     select_generated_mess_targets,
     targets_from_generated_mess_manifest,
 )

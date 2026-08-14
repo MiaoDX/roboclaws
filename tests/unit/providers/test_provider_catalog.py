@@ -5,15 +5,17 @@ import json
 import pytest
 
 from roboclaws.agents.provider_registry import (
+    _main,
+    openai_agents_runtime_settings,
+    provider_readiness,
+)
+from roboclaws.core.provider_catalog import (
     MODEL_CAP_TEXT,
     PROVIDER_PROFILE_CODEX_RESPONSES,
     PROVIDER_PROFILE_MIMO_RESPONSES,
     ROUTE_CAP_UNKNOWN,
-    _main,
     default_provider_profile,
     model_aliases,
-    openai_agents_runtime_settings,
-    provider_readiness,
     provider_route_spec,
     provider_route_specs,
     resolve_model,

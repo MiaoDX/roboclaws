@@ -5,6 +5,11 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.core.json_sources import read_json_value
+from roboclaws.core.raw_fpv_guidance import (
+    RAW_FPV_DECLARATION_STRATEGY,
+    raw_fpv_inline_candidate_instruction,
+)
+from roboclaws.core.task_intents import normalize_household_intent
 from roboclaws.household import (
     realworld_agent_view_contract,
     realworld_contract_init,
@@ -18,14 +23,10 @@ from roboclaws.household import (
     realworld_visual_candidate_lifecycle,
     realworld_visual_candidates,
 )
-from roboclaws.household.backend import API_SEMANTIC_PROVENANCE
 from roboclaws.household.household_backend_contract import HouseholdBackendSession
+from roboclaws.household.manipulation_contract import API_SEMANTIC_PROVENANCE
 from roboclaws.household.planner_observed_binding import (
     observed_handle_planner_binding,
-)
-from roboclaws.household.raw_fpv_guidance import (
-    RAW_FPV_DECLARATION_STRATEGY,
-    raw_fpv_inline_candidate_instruction,
 )
 from roboclaws.household.realworld_contract_fixture_projection import (
     _OBJECT_CATEGORY_TARGETS,
@@ -56,9 +57,6 @@ from roboclaws.household.semantic_acceptability import (
 )
 from roboclaws.household.semantic_timeline import SEMANTIC_LOOP_VARIANT
 from roboclaws.household.target_query import resolve_target_query
-from roboclaws.household.task_intent import (
-    normalize_household_intent,
-)
 from roboclaws.household.types import CleanupScenario
 from roboclaws.household.visual_grounding import (
     EXTERNAL_VISUAL_GROUNDING_PROVENANCE,
@@ -88,7 +86,7 @@ CAMERA_MODEL_POLICY_MODE = "camera_model_policy"
 WORLD_LABELS_DETECTION_POLICY = "world_labels"
 SANITIZED_VISIBLE_OBJECT_DETECTIONS_POLICY = "sanitized_visible_object_detections"
 VISIBLE_DETECTION_EXPOSURE_POLICIES = frozenset(
-    {WORLD_LABELS_DETECTION_POLICY, SANITIZED_VISIBLE_OBJECT_DETECTIONS_POLICY}
+    (WORLD_LABELS_DETECTION_POLICY, SANITIZED_VISIBLE_OBJECT_DETECTIONS_POLICY)
 )
 CAMERA_MODEL_POLICY_SCHEMA = "camera_model_policy_v1"
 CAMERA_MODEL_POLICY_NAME = "camera_model_policy_baseline"
@@ -104,25 +102,16 @@ TEST_AGENT_PRODUCER = realworld_visual_candidates.TEST_AGENT_PRODUCER
 SIMULATED_CAMERA_MODEL_PROVENANCE = realworld_visual_candidates.SIMULATED_CAMERA_MODEL_PROVENANCE
 SANITIZED_VISIBLE_OBJECT_DETECTIONS_PROVENANCE = "sanitized_visible_object_detections"
 WORLD_PUBLIC_LABELS_PROFILE = "world-public-labels"
-VISUAL_CANDIDATE_ALREADY_HANDLED_REASON = (
-    realworld_visual_candidates.VISUAL_CANDIDATE_ALREADY_HANDLED_REASON
-)
+_visual_candidates = realworld_visual_candidates
+VISUAL_CANDIDATE_ALREADY_HANDLED_REASON = _visual_candidates.VISUAL_CANDIDATE_ALREADY_HANDLED_REASON
 VISUAL_EVIDENCE_REVIEWABLE_STATUS = realworld_visual_candidates.VISUAL_EVIDENCE_REVIEWABLE_STATUS
-VISUAL_EVIDENCE_NOT_REVIEWABLE_STATUS = (
-    realworld_visual_candidates.VISUAL_EVIDENCE_NOT_REVIEWABLE_STATUS
-)
+VISUAL_EVIDENCE_NOT_REVIEWABLE_STATUS = _visual_candidates.VISUAL_EVIDENCE_NOT_REVIEWABLE_STATUS
 CANDIDATE_STATE_SEMANTIC = realworld_visual_candidates.CANDIDATE_STATE_SEMANTIC
 CANDIDATE_STATE_VISUALLY_CONFIRMED = realworld_visual_candidates.CANDIDATE_STATE_VISUALLY_CONFIRMED
-CANDIDATE_STATE_NAVIGATION_AUTHORIZED = (
-    realworld_visual_candidates.CANDIDATE_STATE_NAVIGATION_AUTHORIZED
-)
+CANDIDATE_STATE_NAVIGATION_AUTHORIZED = _visual_candidates.CANDIDATE_STATE_NAVIGATION_AUTHORIZED
 VISUAL_GROUNDING_CATEGORY_HINTS = realworld_visual_candidates.VISUAL_GROUNDING_CATEGORY_HINTS
 REALWORLD_PERCEPTION_MODES = frozenset(
-    {
-        VISIBLE_OBJECT_DETECTIONS_MODE,
-        RAW_FPV_ONLY_MODE,
-        CAMERA_MODEL_POLICY_MODE,
-    }
+    (VISIBLE_OBJECT_DETECTIONS_MODE, RAW_FPV_ONLY_MODE, CAMERA_MODEL_POLICY_MODE)
 )
 _NON_ACTIONABLE_HANDLE_STATES = frozenset({"placed", "placed_closed", "skipped", "stale"})
 _FORBIDDEN_AGENT_VIEW_KEYS = frozenset(
@@ -148,12 +137,10 @@ _FORBIDDEN_AGENT_VIEW_KEYS = frozenset(
 
 
 class HouseholdRuntimeContract:
-    """ADR-0003 public/private cleanup contract.
+    """ADR-0003 public/private cleanup boundary.
 
-    The wrapped ``HouseholdBackendSession`` still owns state mutation and
-    deterministic private scoring. This contract is the public agent boundary:
-    it exposes metric navigation, room-level static fixture projection, and robot-local
-    observed object handles instead of a global object-inventory oracle.
+    The backend session owns mutation and private scoring; this contract exposes
+    metric navigation, static fixtures, and robot-local observed object handles.
     """
 
     def __init__(
@@ -173,8 +160,7 @@ class HouseholdRuntimeContract:
         public_acceptance_config: dict[str, Any] | None = None,
     ) -> None:
         realworld_contract_init.validate_contract_options(
-            static_fixture_projection_mode=static_fixture_projection_mode,
-            perception_mode=perception_mode,
+            static_fixture_projection_mode, perception_mode, REALWORLD_PERCEPTION_MODES
         )
         self.contract = contract
         self.backend = contract.backend
@@ -186,6 +172,17 @@ class HouseholdRuntimeContract:
             self,
             evidence_lane,
             public_acceptance_config,
+            acceptance_helpers=(_public_acceptance_config, normalize_household_intent),
+            perception_values=(
+                VISIBLE_OBJECT_DETECTIONS_MODE,
+                RAW_FPV_ONLY_MODE,
+                CAMERA_MODEL_POLICY_MODE,
+            ),
+            exposure_values=(
+                WORLD_PUBLIC_LABELS_PROFILE,
+                SANITIZED_VISIBLE_OBJECT_DETECTIONS_POLICY,
+                WORLD_LABELS_DETECTION_POLICY,
+            ),
         )
         realworld_contract_init.init_visual_grounding(
             self,
@@ -193,14 +190,16 @@ class HouseholdRuntimeContract:
             visual_grounding_pipeline_id=visual_grounding_pipeline_id,
             visual_grounding_artifact_base_dir=visual_grounding_artifact_base_dir,
             visual_grounding_run_id=visual_grounding_run_id,
+            default_pipeline_id=SIM_VISUAL_GROUNDING_PIPELINE_ID,
         )
-        realworld_contract_init.init_map_projection(
-            self,
-            map_bundle_dir,
-        )
+        realworld_contract_init.init_map_projection(self, map_bundle_dir)
         realworld_contract_init.init_public_map_projection(self)
         self._current_waypoint_id = realworld_contract_init.initial_waypoint_id(self)
-        realworld_contract_init.init_runtime_state(self, runtime_map_prior)
+        realworld_contract_init.init_runtime_state(
+            self,
+            runtime_map_prior,
+            snapshot_helpers=(_float_or_zero, _assert_no_forbidden_agent_view_keys),
+        )
 
     def _apply_scene_room_outlines_to_fixtures(
         self,

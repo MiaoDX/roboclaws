@@ -5,10 +5,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from roboclaws.core.environment_setup_metadata import environment_setup_run_metadata_from_env
+from roboclaws.core.goals import (
+    GoalContract,
+    completion_claim_from_done_reason,
+    write_goal_contract,
+)
+from roboclaws.core.map_build_scan_profile import MapBuildScanProfile
 from roboclaws.core.rerun import report_rerun_command_from_env
 from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household.advisory_scoring import build_advisory_evaluation
-from roboclaws.household.backend import API_SEMANTIC_PROVENANCE
 from roboclaws.household.cleanup_primitive_evidence import (
     cleanup_primitive_evidence_from_substeps,
 )
@@ -21,16 +27,18 @@ from roboclaws.household.household_runtime_contract import (
     real_robot_readiness_from_events,
 )
 from roboclaws.household.isaac_lab_backend import (
-    ISAAC_SEMANTIC_POSE_PROVENANCE,
     ISAACLAB_ROBOT_VIEW_VARIANT,
     ISAACLAB_SUBPROCESS_BACKEND,
+)
+from roboclaws.household.manipulation_contract import (
+    API_SEMANTIC_PROVENANCE,
+    ISAAC_SEMANTIC_POSE_PROVENANCE,
 )
 from roboclaws.household.manipulation_provenance import (
     api_semantic_manipulation_evidence,
     isaac_semantic_pose_manipulation_evidence,
     planner_backed_cleanup_manipulation_evidence,
 )
-from roboclaws.household.map_build_scan_profile import MapBuildScanProfile
 from roboclaws.household.nav2_map_bundle import attach_nav2_map_bundle_snapshot
 from roboclaws.household.planner_cleanup_bridge import planner_cleanup_bridge_evidence
 from roboclaws.household.planner_proof_requests import write_planner_proof_requests
@@ -47,13 +55,109 @@ from roboclaws.household.semantic_timeline import (
     semantic_substeps,
 )
 from roboclaws.household.types import CleanupScenario
-from roboclaws.launch.environment_setup_metadata import environment_setup_run_metadata_from_env
-from roboclaws.launch.goals import (
-    GoalContract,
-    completion_claim_from_done_reason,
-    write_goal_contract,
-)
 from roboclaws.maps.preview import render_runtime_metric_map_preview
+
+
+def goal_result_payload(
+    goal_contract: GoalContract | None,
+    *,
+    done_reason: str,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    if goal_contract is None:
+        return {}, {}
+    return (
+        goal_contract.to_payload(),
+        completion_claim_from_done_reason(done_reason, goal_contract=goal_contract),
+    )
+
+
+def terminal_status_payload(task_intent: str, cleanup_status: str) -> dict[str, str]:
+    status = "success" if task_intent == "open-ended" else cleanup_status
+    return {
+        "intent_status": status,
+        "goal_status": status,
+        "final_status": status,
+        "cleanup_status_role": "advisory" if task_intent == "open-ended" else "terminal",
+    }
+
+
+def public_agent_view_result_payload(agent_view: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "raw_fpv_observations": agent_view_module.raw_fpv_observations(agent_view),
+        "camera_model_policy_evidence": agent_view_module.camera_model_policy_evidence(agent_view),
+        "model_declared_observations": agent_view_module.model_declared_observations(agent_view),
+        "model_declared_observation_evidence": (
+            agent_view_module.model_declared_observation_evidence(agent_view)
+        ),
+    }
+
+
+def runtime_map_prior_summary(
+    *,
+    source: str,
+    object_prior_count: int,
+    anchor_prior_count: int,
+    room_prior_count: int,
+    loaded: bool | None = None,
+) -> dict[str, Any]:
+    return {
+        "loaded": (
+            bool(source or object_prior_count or anchor_prior_count or room_prior_count)
+            if loaded is None
+            else loaded
+        ),
+        "source_provided": bool(source),
+        "source": source,
+        "observed_object_count": object_prior_count,
+        "object_prior_count": object_prior_count,
+        "anchor_prior_count": anchor_prior_count,
+        "room_prior_count": room_prior_count,
+    }
+
+
+def evidence_lane_result_payload(
+    *,
+    evidence_lane: str | None,
+    backend: str,
+    perception_mode: str,
+    record_robot_views: bool,
+    camera_labeler: str,
+) -> dict[str, Any]:
+    if evidence_lane is None:
+        return {}
+    metadata = evidence_lane_metadata_for_run(
+        evidence_lane_name=evidence_lane,
+        backend=backend,
+        perception_mode=perception_mode,
+        record_robot_views=record_robot_views,
+        camera_labeler=(camera_labeler if perception_mode == CAMERA_MODEL_POLICY_MODE else None),
+    )
+    return {
+        "evidence_lane": metadata["evidence_lane"],
+        "evidence_lane_metadata": metadata,
+    }
+
+
+def attach_robot_view_result_metadata(
+    run_result: dict[str, Any],
+    *,
+    run_dir: Path,
+    backend: str,
+    robot_view_steps: list[dict[str, Any]],
+    capture_policy: str | None = None,
+) -> None:
+    if not robot_view_steps:
+        return
+    run_result["view_variant"] = (
+        ISAACLAB_ROBOT_VIEW_VARIANT
+        if backend == ISAACLAB_SUBPROCESS_BACKEND
+        else ROBOT_VIEW_VARIANT
+    )
+    run_result["robot_view_steps"] = robot_view_steps
+    if capture_policy is not None:
+        run_result["robot_view_capture_policy"] = capture_policy
+    run_result["robot_view_camera_control"] = robot_view_camera_control_summary(robot_view_steps)
+    run_result["artifacts"]["robot_views"] = str(run_dir / "robot_views")
 
 
 @dataclass(frozen=True)
@@ -148,9 +252,14 @@ def finalize_realworld_cleanup_run(inputs: RealWorldRunArtifactInputs) -> dict[s
     return run_result
 
 
-def _artifact_paths(output_dir: Path) -> _RunArtifactPaths:
+def _artifact_paths(
+    output_dir: Path,
+    *,
+    trace_path: Path | None = None,
+    run_result_path: Path | None = None,
+) -> _RunArtifactPaths:
     return _RunArtifactPaths(
-        trace=output_dir / "trace.jsonl",
+        trace=trace_path or output_dir / "trace.jsonl",
         agent_view=output_dir / "agent_view.json",
         runtime_metric_map=output_dir / "runtime_metric_map.json",
         runtime_metric_map_preview=output_dir / "runtime_metric_map_preview.png",
@@ -159,7 +268,7 @@ def _artifact_paths(output_dir: Path) -> _RunArtifactPaths:
         goal_contract=output_dir / "goal_contract.json",
         agent_scratchpad=output_dir / "agent_scratchpad.json",
         planner_proof_requests=output_dir / "planner_proof_requests.json",
-        run_result=output_dir / "run_result.json",
+        run_result=run_result_path or output_dir / "run_result.json",
     )
 
 
@@ -182,6 +291,10 @@ def _build_payloads(
         inputs.contract.public_receptacles_by_id(),
     )
     cleanup_primitive_evidence = cleanup_primitive_evidence_from_substeps(substeps)
+    goal_contract_payload, agent_completion_claim = goal_result_payload(
+        inputs.goal_contract,
+        done_reason=str(inputs.done.get("reason") or f"{inputs.policy_name} complete"),
+    )
     return _RunPayloads(
         agent_view=agent_view,
         runtime_metric_map=runtime_metric_map,
@@ -192,8 +305,8 @@ def _build_payloads(
             score=inputs.done["score"],
             scenario_id=inputs.scenario.scenario_id,
         ),
-        goal_contract_payload=_goal_contract_payload(inputs),
-        agent_completion_claim=_agent_completion_claim(inputs),
+        goal_contract_payload=goal_contract_payload,
+        agent_completion_claim=agent_completion_claim,
         substeps=substeps,
         cleanup_primitive_evidence=cleanup_primitive_evidence,
         planner_proof_requests=write_planner_proof_requests(
@@ -235,7 +348,6 @@ def _base_run_result(
         or ("map-build" if inputs.map_build else "cleanup")
     )
     cleanup_status = inputs.done["cleanup_status"]
-    final_status = "success" if task_intent == "open-ended" else cleanup_status
     return {
         "backend": inputs.backend,
         "scenario_id": inputs.scenario.scenario_id,
@@ -247,10 +359,7 @@ def _base_run_result(
         "agent_completion_claim": payloads.agent_completion_claim,
         "contract": REALWORLD_CONTRACT,
         "adr_0003_satisfied": True,
-        "intent_status": final_status,
-        "goal_status": final_status,
-        "final_status": final_status,
-        "cleanup_status_role": "advisory" if task_intent == "open-ended" else "terminal",
+        **terminal_status_payload(task_intent, cleanup_status),
         "terminate_reason": f"{inputs.policy_name} complete",
         "cleanup_status": cleanup_status,
         "completion_status": inputs.done["score"]["completion_status"],
@@ -283,16 +392,7 @@ def _base_run_result(
         "real_robot_readiness": payloads.real_robot_readiness,
         "agent_view": payloads.agent_view,
         "runtime_metric_map": payloads.runtime_metric_map,
-        "raw_fpv_observations": agent_view_module.raw_fpv_observations(payloads.agent_view),
-        "camera_model_policy_evidence": agent_view_module.camera_model_policy_evidence(
-            payloads.agent_view
-        ),
-        "model_declared_observations": agent_view_module.model_declared_observations(
-            payloads.agent_view
-        ),
-        "model_declared_observation_evidence": (
-            agent_view_module.model_declared_observation_evidence(payloads.agent_view)
-        ),
+        **public_agent_view_result_payload(payloads.agent_view),
         "map_build": _map_build_payload(inputs, artifacts),
         "agent_scratchpad": inputs.agent_scratchpad,
         "private_evaluation": payloads.private_evaluation,
@@ -312,43 +412,26 @@ def _attach_run_result_sections(
     run_result: dict[str, Any],
     payloads: _RunPayloads,
 ) -> None:
-    _attach_profile_metadata(run_result, payloads.profile_metadata)
+    if payloads.profile_metadata is not None:
+        run_result.update(
+            {
+                "evidence_lane": payloads.profile_metadata["evidence_lane"],
+                "evidence_lane_metadata": payloads.profile_metadata,
+            }
+        )
     attach_nav2_map_bundle_snapshot(
         run_result=run_result,
         run_dir=inputs.output_dir,
         source_bundle_dir=inputs.selected_bundle_dir,
     )
     inputs.base_contract.attach_runtime_metadata(run_result, run_dir=inputs.output_dir)
-    _attach_robot_view_metadata(inputs, run_result)
+    attach_robot_view_result_metadata(
+        run_result,
+        run_dir=inputs.output_dir,
+        backend=inputs.backend,
+        robot_view_steps=inputs.robot_view_steps,
+    )
     _attach_planner_proof_metadata(inputs, run_result, payloads)
-
-
-def _attach_profile_metadata(
-    run_result: dict[str, Any],
-    profile_metadata: dict[str, Any] | None,
-) -> None:
-    if profile_metadata is None:
-        return
-    run_result["evidence_lane"] = profile_metadata["evidence_lane"]
-    run_result["evidence_lane_metadata"] = profile_metadata
-
-
-def _attach_robot_view_metadata(
-    inputs: RealWorldRunArtifactInputs,
-    run_result: dict[str, Any],
-) -> None:
-    if not inputs.robot_view_steps:
-        return
-    run_result["view_variant"] = (
-        ISAACLAB_ROBOT_VIEW_VARIANT
-        if inputs.backend == ISAACLAB_SUBPROCESS_BACKEND
-        else ROBOT_VIEW_VARIANT
-    )
-    run_result["robot_view_steps"] = inputs.robot_view_steps
-    run_result["robot_view_camera_control"] = robot_view_camera_control_summary(
-        inputs.robot_view_steps
-    )
-    run_result["artifacts"]["robot_views"] = str(inputs.output_dir / "robot_views")
 
 
 def _attach_planner_proof_metadata(
@@ -364,21 +447,6 @@ def _attach_planner_proof_metadata(
         cleanup_primitive_evidence=payloads.cleanup_primitive_evidence,
     )
     run_result["artifacts"]["planner_proof_views"] = str(inputs.output_dir / "planner_proof")
-
-
-def _goal_contract_payload(inputs: RealWorldRunArtifactInputs) -> dict[str, Any]:
-    if inputs.goal_contract is None:
-        return {}
-    return inputs.goal_contract.to_payload()
-
-
-def _agent_completion_claim(inputs: RealWorldRunArtifactInputs) -> dict[str, Any]:
-    if inputs.goal_contract is None:
-        return {}
-    return completion_claim_from_done_reason(
-        str(inputs.done.get("reason") or f"{inputs.policy_name} complete"),
-        goal_contract=inputs.goal_contract,
-    )
 
 
 def _primitive_evidence(
@@ -417,15 +485,13 @@ def _primitive_evidence(
 def _profile_metadata(inputs: RealWorldRunArtifactInputs) -> dict[str, Any] | None:
     if inputs.evidence_lane is None:
         return None
-    return evidence_lane_metadata_for_run(
-        evidence_lane_name=inputs.evidence_lane,
+    return evidence_lane_result_payload(
+        evidence_lane=inputs.evidence_lane,
         backend=inputs.backend,
         perception_mode=inputs.perception_mode,
         record_robot_views=inputs.record_robot_views,
-        camera_labeler=(
-            _camera_labeler(inputs) if inputs.perception_mode == CAMERA_MODEL_POLICY_MODE else None
-        ),
-    )
+        camera_labeler=_camera_labeler(inputs),
+    )["evidence_lane_metadata"]
 
 
 def _camera_labeler(inputs: RealWorldRunArtifactInputs) -> str:
@@ -441,15 +507,13 @@ def _runtime_map_prior_summary(inputs: RealWorldRunArtifactInputs) -> dict[str, 
     anchor_prior_count = len((inputs.runtime_map_prior or {}).get("public_semantic_anchors") or [])
     room_prior_count = len((inputs.runtime_map_prior or {}).get("rooms") or [])
     source = str(inputs.runtime_map_prior_path or "")
-    return {
-        "loaded": bool(inputs.runtime_map_prior),
-        "source_provided": bool(source),
-        "source": source,
-        "observed_object_count": object_prior_count,
-        "object_prior_count": object_prior_count,
-        "anchor_prior_count": anchor_prior_count,
-        "room_prior_count": room_prior_count,
-    }
+    return runtime_map_prior_summary(
+        source=source,
+        object_prior_count=object_prior_count,
+        anchor_prior_count=anchor_prior_count,
+        room_prior_count=room_prior_count,
+        loaded=bool(inputs.runtime_map_prior),
+    )
 
 
 def _map_build_payload(
