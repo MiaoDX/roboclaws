@@ -450,24 +450,7 @@ def _planner_binding(
 
 
 def _planner_scene(contract: Any) -> dict[str, Any]:
-    backend = getattr(contract, "backend", None)
-    scene_xml = str(getattr(backend, "scene_xml", "") or "")
-    if not scene_xml:
-        return {
-            "schema": "planner_cleanup_proof_scene_v1",
-            "available": False,
-            "scene_xml": "",
-            "backend": str(getattr(backend, "backend", "") or ""),
-        }
-    return {
-        "schema": "planner_cleanup_proof_scene_v1",
-        "available": True,
-        "scene_xml": scene_xml,
-        "backend": str(getattr(backend, "backend", "") or ""),
-        "evidence_note": (
-            "Real MolmoSpaces cleanup scene used to sample exact planner proof tasks."
-        ),
-    }
+    return contract.planner_scene()
 
 
 def _cleanup_tools(steps: list[dict[str, Any]]) -> list[str]:

@@ -1,17 +1,21 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 from roboclaws.household.planner_observed_binding import (
     OBSERVED_HANDLE_PLANNER_BINDING_SCHEMA,
 )
 
 
 class _BindingContract:
-    backend = SimpleNamespace(
-        backend="molmospaces_subprocess",
-        scene_xml="/tmp/molmospaces-scene.xml",
-    )
+    def planner_scene(self) -> dict[str, object]:
+        return {
+            "schema": "planner_cleanup_proof_scene_v1",
+            "available": True,
+            "scene_xml": "/tmp/molmospaces-scene.xml",
+            "backend": "molmospaces_subprocess",
+            "evidence_note": (
+                "Real MolmoSpaces cleanup scene used to sample exact planner proof tasks."
+            ),
+        }
 
     def planner_observed_handle_binding(
         self,

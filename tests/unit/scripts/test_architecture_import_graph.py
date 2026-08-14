@@ -102,6 +102,33 @@ def test_dynamic_package_imports_participate_in_graph_edges(tmp_path: Path, monk
     ]
 
 
+def test_type_checking_imports_do_not_participate_in_runtime_graph(
+    tmp_path: Path, monkeypatch
+) -> None:
+    module = load_module()
+    package_root = tmp_path / "roboclaws"
+    package_root.mkdir()
+    (package_root / "source.py").write_text(
+        "\n".join(
+            (
+                "from typing import TYPE_CHECKING",
+                "if TYPE_CHECKING:",
+                "    from roboclaws.type_target import TypeTarget",
+                "else:",
+                "    from roboclaws.runtime_target import RuntimeTarget",
+            )
+        ),
+        encoding="utf-8",
+    )
+    (package_root / "type_target.py").write_text("class TypeTarget: ...\n", encoding="utf-8")
+    (package_root / "runtime_target.py").write_text("class RuntimeTarget: ...\n", encoding="utf-8")
+    monkeypatch.setattr(module, "REPO_ROOT", tmp_path)
+
+    assert module.collect_import_edges(package_root) == [
+        module.ImportEdge("roboclaws.source", "roboclaws.runtime_target", 5)
+    ]
+
+
 def test_current_graph_freezes_authoritative_cycles_and_package_pairs() -> None:
     module = load_module()
 

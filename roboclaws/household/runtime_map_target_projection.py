@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from roboclaws.household.household_runtime_contract import HouseholdRuntimeContract
 
 from roboclaws.household.realworld_contract_fixture_projection import (
     _anchor_affordances_for_fixture,
@@ -12,7 +15,6 @@ from roboclaws.household.realworld_contract_fixture_projection import (
 from roboclaws.household.realworld_contract_projection import _room_category_from_label
 from roboclaws.household.realworld_runtime_target_selection import safe_anchor_id
 
-RuntimeMapTargetContract = Any
 POSE_ROLE_INSPECTION_WAYPOINT = "inspection_waypoint"
 POSE_ROLE_BEST_VIEW_POSE = "best_view_pose"
 LOCALIZATION_STATUS_VIEWPOINT_ONLY = "viewpoint_only"
@@ -35,7 +37,7 @@ def _public_waypoint_id_for_private_fixture(contract: Any, fixture_id: str) -> s
 
 
 def _append_generated_public_semantic_anchors(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     *,
     anchors: list[dict[str, Any]],
     seen: set[str],
@@ -55,7 +57,7 @@ def _append_generated_public_semantic_anchors(
 
 
 def _append_fixture_public_semantic_anchors(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     *,
     anchors: list[dict[str, Any]],
     seen: set[str],
@@ -86,7 +88,7 @@ def _append_fixture_public_semantic_anchors(
 
 
 def _append_prior_public_semantic_anchors(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     *,
     anchors: list[dict[str, Any]],
     seen: set[str],
@@ -104,7 +106,7 @@ def _append_prior_public_semantic_anchors(
 
 
 def _room_area_public_semantic_anchor(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     waypoint: dict[str, Any],
 ) -> dict[str, Any]:
     room_id = str(waypoint.get("room_id") or "generated_area")
@@ -141,7 +143,7 @@ def _room_area_public_semantic_anchor(
 
 
 def _waypoint_public_semantic_anchor(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     waypoint: dict[str, Any],
 ) -> dict[str, Any]:
     waypoint_id = str(waypoint.get("waypoint_id") or "")
@@ -175,7 +177,7 @@ def _waypoint_public_semantic_anchor(
 
 
 def _fixture_public_semantic_anchor(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     fixture_id: str,
     anchor_id: str,
 ) -> dict[str, Any]:
@@ -271,7 +273,7 @@ def _fixture_public_semantic_anchor(
 
 
 def _supporting_detections_for_fixture(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     fixture_id: str,
 ) -> list[dict[str, Any]]:
     supporting = []

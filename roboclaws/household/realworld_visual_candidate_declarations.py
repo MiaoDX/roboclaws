@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from roboclaws.household.household_runtime_contract import HouseholdRuntimeContract
 
 from roboclaws.core.raw_fpv_guidance import (
     raw_fpv_visual_candidate_recovery,
@@ -33,36 +36,8 @@ SIMULATED_CAMERA_MODEL_PROVENANCE = realworld_visual_candidates.SIMULATED_CAMERA
 _manual_visual_grounding_pipeline = realworld_visual_candidates._manual_visual_grounding_pipeline
 
 
-class VisualCandidateDeclarationContract(Protocol):
-    contract: Any
-    perception_mode: str
-    visual_grounding_pipeline_id: str
-    visual_grounding_client: Any
-    visual_grounding_run_id: str
-    visual_grounding_artifact_base_dir: Any
-    scenario: Any
-    _camera_model_policy_events: list[dict[str, Any]]
-    _detections_by_handle: dict[str, dict[str, Any]]
-
-    def _raw_fpv_observation_by_id(self, observation_id: str | None) -> dict[str, Any] | None: ...
-
-    def _waypoint_by_id(self, waypoint_id: str) -> dict[str, Any] | None: ...
-
-    def _agent_visible_detection_payload(self, detection: dict[str, Any]) -> dict[str, Any]: ...
-
-    def _handle_for_object(self, object_id: str) -> str: ...
-
-    def _public_candidate_hint(self, detection: dict[str, Any]) -> dict[str, Any]: ...
-
-    def static_fixture_projection(self) -> dict[str, Any]: ...
-
-    def _ok(self, tool: str, **payload: Any) -> dict[str, Any]: ...
-
-    def _error(self, tool: str, error_reason: str, **payload: Any) -> dict[str, Any]: ...
-
-
 def declare_visual_candidates(
-    contract: VisualCandidateDeclarationContract,
+    contract: HouseholdRuntimeContract,
     observation_id: str | None = None,
     *,
     candidates: list[dict[str, Any]] | tuple[dict[str, Any], ...] | None = None,
@@ -127,7 +102,7 @@ def declare_visual_candidates(
 
 
 def _visual_candidate_declaration_inputs(
-    contract: VisualCandidateDeclarationContract,
+    contract: HouseholdRuntimeContract,
     *,
     raw_observation: dict[str, Any],
     waypoint: dict[str, Any],
@@ -176,7 +151,7 @@ def _visual_candidate_declaration_inputs(
 
 
 def _declaration_inputs_from_camera_label_producer(
-    contract: VisualCandidateDeclarationContract,
+    contract: HouseholdRuntimeContract,
     *,
     raw_observation: dict[str, Any],
     producer_result: dict[str, Any],
@@ -215,7 +190,7 @@ def _declaration_inputs_from_camera_label_producer(
 
 
 def _failed_visual_grounding_declaration_response(
-    contract: VisualCandidateDeclarationContract,
+    contract: HouseholdRuntimeContract,
     *,
     raw_observation: dict[str, Any],
     visual_grounding_pipeline: dict[str, Any],
@@ -241,7 +216,7 @@ def _failed_visual_grounding_declaration_response(
 
 
 def _registered_visual_candidate_declarations(
-    contract: VisualCandidateDeclarationContract,
+    contract: HouseholdRuntimeContract,
     *,
     raw_observation: dict[str, Any],
     waypoint: dict[str, Any],
@@ -283,7 +258,7 @@ def _registered_visual_candidate_declarations(
 
 
 def _invalid_visual_candidate_declaration_response(
-    contract: VisualCandidateDeclarationContract,
+    contract: HouseholdRuntimeContract,
     *,
     raw_observation: dict[str, Any],
     candidate_index: int,
@@ -306,7 +281,7 @@ def _invalid_visual_candidate_declaration_response(
 
 
 def _visual_candidate_declaration_response(
-    contract: VisualCandidateDeclarationContract,
+    contract: HouseholdRuntimeContract,
     *,
     raw_observation: dict[str, Any],
     declared: list[dict[str, Any]],
@@ -353,7 +328,7 @@ def _visual_candidate_declaration_response(
 
 
 def simulated_declaration_inputs_for_waypoint(
-    contract: VisualCandidateDeclarationContract,
+    contract: HouseholdRuntimeContract,
     waypoint: dict[str, Any],
     *,
     observation_id: str,
@@ -401,7 +376,7 @@ def simulated_declaration_inputs_for_waypoint(
 
 
 def simulated_raw_fpv_inputs_for_observation(
-    contract: VisualCandidateDeclarationContract,
+    contract: HouseholdRuntimeContract,
     waypoint: dict[str, Any],
     *,
     observation_id: str,
@@ -448,18 +423,16 @@ def simulated_raw_fpv_inputs_for_observation(
 
 
 def _uses_synthetic_raw_fpv_declarations(
-    contract: VisualCandidateDeclarationContract,
+    contract: HouseholdRuntimeContract,
 ) -> bool:
-    backend_name = getattr(getattr(contract, "contract", None), "backend_name", None)
     return (
-        callable(backend_name)
-        and backend_name() == SYNTHETIC_BACKEND
+        contract.contract.backend_name() == SYNTHETIC_BACKEND
         and contract.visual_grounding_pipeline_id == SIM_VISUAL_GROUNDING_PIPELINE_ID
     )
 
 
 def camera_label_producer_candidates(
-    contract: VisualCandidateDeclarationContract,
+    contract: HouseholdRuntimeContract,
     *,
     raw_observation: dict[str, Any],
     waypoint: dict[str, Any],
@@ -587,7 +560,7 @@ def _image_payload_is_usable(image: dict[str, Any]) -> bool:
 
 
 def _resolved_destination_fixture_id(
-    contract: VisualCandidateDeclarationContract,
+    contract: HouseholdRuntimeContract,
     *,
     category: str,
     source_fixture_id: str,
@@ -607,7 +580,7 @@ def _resolved_destination_fixture_id(
 
 
 def model_declared_observation_event(
-    contract: VisualCandidateDeclarationContract,
+    contract: HouseholdRuntimeContract,
     *,
     raw_observation: dict[str, Any],
     producer_type: str,

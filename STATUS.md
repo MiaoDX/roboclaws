@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-01
+Last updated: 2026-08-02
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -9,15 +9,6 @@ orientation, move it to plans, ADRs, retrospectives, or `docs/human/**` and
 leave a link.
 
 ## Current Focus
-
-The forward-only architecture cleanup is complete. Runtime modules now import
-from their defining owners, caller-free facades and rehearsal surfaces are gone,
-shared backend geometry has one neutral owner, and explicitly terminal status
-capsules are archived. Public launch grammar, runtime behavior, provider routes,
-artifacts, operator safety gates, and physical-movement authorization are
-unchanged. The canonical verification gate passes; see the current graph metrics
-from `scripts/dev/check_architecture_import_graph.py` rather than copying a stale
-snapshot here.
 
 The latest hybrid eval candidate at `output/eval-harness/20260731T100528Z/`
 passes all 25 selected rows with no behavior failures, provider failures,
@@ -57,10 +48,9 @@ providers.
 
 ## Next Action
 
-No implementation or verification work remains for the post-audit
-simplification, architecture migration, Just command-surface refactor, or
-baseline refresh. The 25-row candidate is awaiting human confirmation;
-publication remains unauthorized and separate from these campaigns.
+Review the ranked 25-row eval candidate and decide whether to publish its
+durable baseline/catalog artifacts. Publication remains separate and
+unauthorized until that confirmation.
 
 ## Current Blockers
 
@@ -83,6 +73,7 @@ publication remains unauthorized and separate from these campaigns.
 ## Current Source Links
 
 Plans:
+`docs/plans/2026-08-02-household-backend-port-refactor.md`,
 `docs/plans/2026-07-31-refactor-just-command-surface.md`,
 `docs/plans/2026-07-30-aggressive-architecture-migration.md`,
 `docs/plans/2026-07-30-retire-openclaw-and-local-docker-surfaces.md`,

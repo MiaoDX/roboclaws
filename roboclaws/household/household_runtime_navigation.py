@@ -24,10 +24,7 @@ from roboclaws.household.manipulation_contract import API_SEMANTIC_PROVENANCE
 from roboclaws.household.planner_observed_binding import (
     observed_handle_planner_binding,
 )
-from roboclaws.household.realworld_contract_projection import (
-    _room_outline_by_id,
-    _scene_index_fixture_pose,
-)
+from roboclaws.household.realworld_contract_projection import _room_outline_by_id
 from roboclaws.household.robot_view_pose import room_for_point
 from roboclaws.household.target_query import resolve_target_query
 from roboclaws.household.visual_scan_guidance import (
@@ -56,7 +53,7 @@ class HouseholdRuntimeNavigationMixin:
         room_outlines: list[dict[str, Any]],
     ) -> None:
         for fixture_id, fixture in list(self._fixtures.items()):
-            pose = _scene_index_fixture_pose(self.backend, fixture_id)
+            pose = self.contract.scene_index_fixture_pose(fixture_id)
             if pose is None:
                 continue
             room_id = room_for_point(room_outlines, pose[:2]) or str(

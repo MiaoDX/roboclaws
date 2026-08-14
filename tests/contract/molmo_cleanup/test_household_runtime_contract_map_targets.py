@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from roboclaws.household.backend import ApiSemanticCleanupBackend
 from roboclaws.household.household_backend_contract import HouseholdBackendSession
 from roboclaws.household.scenario import build_cleanup_scenario
 from roboclaws.household.types import (
@@ -54,8 +55,9 @@ def test_scene_index_backend_prefers_public_usd_fixture_overlay_over_stale_map_b
             success_threshold=1,
         ),
     )
-    session = HouseholdBackendSession(scenario)
-    session.backend.scenario_source = "isaac_scene_index"
+    backend = ApiSemanticCleanupBackend(scenario)
+    backend.scenario_source = "isaac_scene_index"
+    session = HouseholdBackendSession(scenario, backend=backend)
     contract = _contract(session)
 
     detection = None

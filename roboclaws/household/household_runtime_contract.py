@@ -101,8 +101,7 @@ class HouseholdRuntimeContract(
             static_fixture_projection_mode, perception_mode, REALWORLD_PERCEPTION_MODES
         )
         self.contract = contract
-        self.backend = contract.backend
-        self.scenario: CleanupScenario = contract.backend.scenario
+        self.scenario: CleanupScenario = contract.scenario
         self.task_prompt = task_prompt
         self.static_fixture_projection_mode = static_fixture_projection_mode
         self.perception_mode = perception_mode
@@ -138,3 +137,23 @@ class HouseholdRuntimeContract(
             runtime_map_prior,
             snapshot_helpers=(_float_or_zero, _assert_no_forbidden_agent_view_keys),
         )
+
+    def backend_name(self) -> str:
+        return self.contract.backend_name()
+
+    def backend_object_locations(self) -> dict[str, str]:
+        return self.contract.object_locations()
+
+    def backend_location_relation(self, object_id: str) -> str:
+        return self.contract.location_relation(object_id)
+
+    def backend_current_location(self, object_id: str) -> str:
+        return self.contract.current_location(object_id)
+
+    def backend_planner_task_binding(
+        self, object_id: str, target_receptacle_id: str
+    ) -> dict[str, Any]:
+        return self.contract.planner_task_binding(object_id, target_receptacle_id)
+
+    def planner_scene(self) -> dict[str, Any]:
+        return self.contract.planner_scene()

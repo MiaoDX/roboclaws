@@ -10,7 +10,10 @@ from roboclaws.core.backend_catalog import (
     BackendSpec,
 )
 from roboclaws.household.artifact_paths import home_relative_paths
-from roboclaws.household.backend import ApiSemanticCleanupBackend
+from roboclaws.household.household_backend_port import (
+    HouseholdBackendPort,
+    HouseholdRuntimeEvidence,
+)
 from roboclaws.household.isaac_lab_backend import (
     ISAACLAB_SUBPROCESS_BACKEND,
     IsaacLabSubprocessBackend,
@@ -39,40 +42,62 @@ class HouseholdBackendSession:
     ``object_done``.
     """
 
-    def __init__(self, scenario: CleanupScenario | None = None, backend: Any | None = None):
-        self.backend = backend or ApiSemanticCleanupBackend(scenario or build_cleanup_scenario())
+    def __init__(
+        self,
+        scenario: CleanupScenario | None = None,
+        backend: HouseholdBackendPort | None = None,
+    ):
+        if backend is None:
+            from roboclaws.household.backend import ApiSemanticCleanupBackend
+
+            backend = ApiSemanticCleanupBackend(scenario or build_cleanup_scenario())
+        self._port = backend
 
     @property
     def scenario(self) -> CleanupScenario:
-        return self.backend.scenario
+        return self._port.scenario
 
     def backend_name(self) -> str:
-        return cleanup_backend_name(self.backend)
+        return self._port.backend_name()
 
     def supports_visual_snapshots(self) -> bool:
-        return callable(getattr(self.backend, "write_snapshot", None))
+        return self._port.supports_visual_snapshots()
 
     def supports_robot_views(self) -> bool:
-        return callable(getattr(self.backend, "write_robot_views", None))
+        return self._port.supports_robot_views()
 
     def requested_generated_mess_count(self) -> int | None:
-        requested = getattr(self.backend, "requested_generated_mess_count", None)
-        try:
-            return int(requested)
-        except (TypeError, ValueError):
-            return None
+        return self._port.requested_mess_count()
 
     def object_locations(self) -> dict[str, str]:
-        return self.backend.object_locations()
+        return self._port.object_locations()
+
+    def current_location(self, object_id: str) -> str:
+        return str(self.object_locations().get(object_id) or "")
+
+    def location_relation(self, object_id: str) -> str:
+        return self._port.location_relation(object_id)
+
+    def scene_index_source(self) -> str:
+        return self._port.scene_index_source()
+
+    def scene_index_fixture_pose(self, fixture_id: str) -> list[float] | None:
+        return self._port.scene_index_fixture_pose(fixture_id)
+
+    def planner_scene(self) -> dict[str, Any]:
+        return self._port.planner_scene()
+
+    def planner_task_binding(self, object_id: str, receptacle_id: str) -> dict[str, Any]:
+        return self._port.planner_task_binding(object_id, receptacle_id)
+
+    def runtime_evidence(self) -> HouseholdRuntimeEvidence:
+        return self._port.runtime_evidence()
 
     def final_locations(self, fallback: dict[str, Any] | None = None) -> dict[str, Any]:
         return dict(fallback or self.object_locations())
 
     def write_visual_snapshot(self, output_path: Path, *, title: str) -> Path | None:
-        writer = getattr(self.backend, "write_snapshot", None)
-        if not callable(writer):
-            return None
-        return writer(output_path, title=title)
+        return self._port.write_snapshot(output_path, title=title)
 
     def record_robot_view_step(
         self,
@@ -91,7 +116,7 @@ class HouseholdBackendSession:
     ) -> int:
         return _record_robot_view_step(
             steps=steps,
-            backend=self.backend,
+            backend=self._port,
             output_dir=output_dir,
             index=index,
             action=action,
@@ -105,40 +130,19 @@ class HouseholdBackendSession:
         )
 
     def close(self) -> None:
-        backend_close = getattr(self.backend, "close", None)
-        if not callable(backend_close):
-            return
         try:
-            backend_close()
+            self._port.close()
         except Exception:
             pass
 
     def observe(self) -> dict[str, Any]:
-        return self.backend.observe()
+        return self._port.observe()
 
     def navigate_to_object(self, object_id: str) -> dict[str, Any]:
-        return self.backend.navigate_to_object(object_id=object_id)
+        return self._port.navigate_to_object(object_id=object_id)
 
     def navigate_to_waypoint(self, waypoint: dict[str, Any]) -> dict[str, Any]:
-        navigator = getattr(self.backend, "navigate_to_waypoint", None)
-        if callable(navigator):
-            return navigator(waypoint=waypoint)
-        fixture_ids = waypoint.get("fixture_ids") or []
-        fixture_id = str(fixture_ids[0]) if fixture_ids else ""
-        if not fixture_id:
-            return {
-                "ok": True,
-                "tool": "navigate_to_waypoint",
-                "status": "ok",
-                "state_mutation": "agent_pose_semantic",
-                "backend_pose_mutation_available": False,
-            }
-        navigation = dict(self.backend.navigate_to_receptacle(receptacle_id=fixture_id))
-        navigation["tool"] = "navigate_to_waypoint"
-        navigation["waypoint_id"] = str(waypoint.get("waypoint_id") or "")
-        navigation["fallback_receptacle_id"] = fixture_id
-        navigation["backend_pose_mutation_available"] = True
-        return navigation
+        return self._port.navigate_to_waypoint(waypoint=waypoint)
 
     def navigate_to_relative_pose(
         self,
@@ -147,47 +151,37 @@ class HouseholdBackendSession:
         lateral_m: float = 0.0,
         yaw_delta_deg: float = 0.0,
     ) -> dict[str, Any]:
-        navigator = getattr(self.backend, "navigate_to_relative_pose", None)
-        if callable(navigator):
-            return navigator(
-                forward_m=forward_m,
-                lateral_m=lateral_m,
-                yaw_delta_deg=yaw_delta_deg,
-            )
-        return {
-            "ok": False,
-            "tool": "navigate_to_relative_pose",
-            "status": "blocked_capability",
-            "error_reason": "relative_navigation_unavailable",
-            "backend": self.backend_name(),
-            "backend_pose_mutation_available": False,
-        }
+        return self._port.navigate_to_relative_pose(
+            forward_m=forward_m,
+            lateral_m=lateral_m,
+            yaw_delta_deg=yaw_delta_deg,
+        )
 
     def navigate_to_receptacle(self, receptacle_id: str) -> dict[str, Any]:
-        return self.backend.navigate_to_receptacle(receptacle_id=receptacle_id)
+        return self._port.navigate_to_receptacle(receptacle_id=receptacle_id)
 
     def pick(self, object_id: str) -> dict[str, Any]:
-        return self.backend.pick(object_id=object_id)
+        return self._port.pick(object_id=object_id)
 
     def open_receptacle(self, receptacle_id: str) -> dict[str, Any]:
-        return self.backend.open_receptacle(receptacle_id=receptacle_id)
+        return self._port.open_receptacle(receptacle_id=receptacle_id)
 
     def place(self, receptacle_id: str) -> dict[str, Any]:
-        return self.backend.place(receptacle_id=receptacle_id)
+        return self._port.place(receptacle_id=receptacle_id)
 
     def place_inside(self, receptacle_id: str) -> dict[str, Any]:
-        return self.backend.place_inside(receptacle_id=receptacle_id)
+        return self._port.place_inside(receptacle_id=receptacle_id)
 
     def close_receptacle(self, receptacle_id: str) -> dict[str, Any]:
-        return self.backend.close_receptacle(receptacle_id=receptacle_id)
+        return self._port.close_receptacle(receptacle_id=receptacle_id)
 
     def done(self, reason: str = "") -> dict[str, Any]:
-        return self.backend.done(reason=reason)
+        return self._port.done(reason=reason)
 
     def attach_runtime_metadata(self, run_result: dict[str, Any], *, run_dir: Path) -> None:
         attach_cleanup_backend_runtime_metadata(
             run_result=run_result,
-            backend=self.backend,
+            port=self._port,
             backend_name=self.backend_name(),
             run_dir=run_dir,
         )
@@ -255,15 +249,6 @@ def build_household_backend_session(
     return HouseholdBackendSession(scenario)
 
 
-def cleanup_backend_name(backend: Any, *, override: str = "") -> str:
-    if override:
-        return override
-    explicit = getattr(backend, "backend", "")
-    if explicit:
-        return str(explicit)
-    return SYNTHETIC_BACKEND
-
-
 def cleanup_backend_supports_visual_artifacts(backend_name: str) -> bool:
     return backend_name in VISUAL_BACKENDS
 
@@ -302,23 +287,27 @@ def validate_cleanup_run_options(
 def attach_cleanup_backend_runtime_metadata(
     *,
     run_result: dict[str, Any],
-    backend: Any,
+    port: HouseholdBackendPort,
     backend_name: str | None = None,
     run_dir: Path,
 ) -> None:
-    resolved_backend_name = backend_name or cleanup_backend_name(backend)
+    resolved_backend_name = backend_name or port.backend_name()
+    runtime_evidence = port.runtime_evidence()
     runtime_key = "not_applicable"
     if resolved_backend_name == ISAACLAB_SUBPROCESS_BACKEND:
-        _attach_isaac_runtime(run_result=run_result, backend=backend, run_dir=run_dir)
+        _attach_isaac_runtime(
+            run_result=run_result, runtime_evidence=runtime_evidence, run_dir=run_dir
+        )
         runtime_key = "isaac_runtime"
     elif resolved_backend_name == MOLMOSPACES_SUBPROCESS_BACKEND:
-        _attach_molmospaces_runtime(run_result=run_result, backend=backend)
+        _attach_molmospaces_runtime(run_result=run_result, runtime_evidence=runtime_evidence)
         runtime_key = "molmospaces_runtime"
     if resolved_backend_name in VISUAL_BACKENDS:
-        _attach_common_diagnostics(run_result, backend)
+        _attach_common_diagnostics(run_result, runtime_evidence)
     _attach_cleanup_backend_evidence(
         run_result=run_result,
-        backend=backend,
+        port=port,
+        runtime_evidence=runtime_evidence,
         backend_name=resolved_backend_name,
         runtime_key=runtime_key,
     )
@@ -340,41 +329,40 @@ def scenario_without_private_targets(scenario: CleanupScenario) -> CleanupScenar
     )
 
 
-def _attach_common_diagnostics(run_result: dict[str, Any], backend: Any) -> None:
-    mess_diagnostics = getattr(backend, "mess_placement_diagnostics", None)
-    placement_diagnostics = getattr(backend, "placement_diagnostics", None)
-    if mess_diagnostics is not None:
-        run_result["mess_placement_diagnostics"] = mess_diagnostics
-    if placement_diagnostics is not None:
-        run_result["placement_diagnostics"] = placement_diagnostics
+def _attach_common_diagnostics(
+    run_result: dict[str, Any], runtime_evidence: HouseholdRuntimeEvidence
+) -> None:
+    mess_diagnostics = runtime_evidence["mess_placement_diagnostics"]
+    placement_diagnostics = runtime_evidence["placement_diagnostics"]
+    run_result["mess_placement_diagnostics"] = mess_diagnostics
+    run_result["placement_diagnostics"] = placement_diagnostics
 
 
-def _attach_molmospaces_runtime(*, run_result: dict[str, Any], backend: Any) -> None:
+def _attach_molmospaces_runtime(
+    *, run_result: dict[str, Any], runtime_evidence: HouseholdRuntimeEvidence
+) -> None:
     run_result["molmospaces_runtime"] = home_relative_paths(
         {
-            "python_executable": str(getattr(backend, "python_executable", "")),
-            "runtime": getattr(backend, "runtime", {}),
-            "model_stats": getattr(backend, "model_stats", {}),
-            "scene_xml": getattr(backend, "scene_xml", ""),
-            "metadata_object_count": getattr(backend, "metadata_object_count", None),
-            "requested_generated_mess_count": getattr(
-                backend, "requested_generated_mess_count", None
-            ),
-            "generated_mess_count": getattr(backend, "generated_mess_count", None),
+            "python_executable": str(runtime_evidence["python_executable"]),
+            "runtime": runtime_evidence["runtime"],
+            "model_stats": runtime_evidence["model_stats"],
+            "scene_xml": runtime_evidence["scene_xml"],
+            "metadata_object_count": runtime_evidence["metadata_object_count"],
+            "requested_generated_mess_count": runtime_evidence["requested_generated_mess_count"],
+            "generated_mess_count": runtime_evidence["generated_mess_count"],
         }
     )
-    _attach_robot_metadata(run_result, backend)
+    _attach_robot_metadata(run_result, runtime_evidence)
 
 
 def _attach_isaac_runtime(
     *,
     run_result: dict[str, Any],
-    backend: Any,
+    runtime_evidence: HouseholdRuntimeEvidence,
     run_dir: Path,
 ) -> None:
     isaac_scene_index_path = run_dir / "isaac_scene_index.json"
-    scene_index_artifact = getattr(backend, "scene_index_artifact_payload", None)
-    scene_index_payload = scene_index_artifact() if callable(scene_index_artifact) else {}
+    scene_index_payload = runtime_evidence["scene_index_artifact"]
     if scene_index_payload:
         isaac_scene_index_path.write_text(
             json.dumps(scene_index_payload, indent=2, sort_keys=True) + "\n",
@@ -383,39 +371,38 @@ def _attach_isaac_runtime(
         run_result.setdefault("artifacts", {})["isaac_scene_index"] = str(isaac_scene_index_path)
     run_result["isaac_runtime"] = home_relative_paths(
         {
-            "python_executable": str(getattr(backend, "python_executable", "")),
-            "runtime": getattr(backend, "runtime", {}),
-            "scenario_source": getattr(backend, "scenario_source", ""),
-            "scene_usd": getattr(backend, "scene_usd", ""),
-            "scene_index": getattr(backend, "scene_index", None),
+            "python_executable": str(runtime_evidence["python_executable"]),
+            "runtime": runtime_evidence["runtime"],
+            "scenario_source": runtime_evidence["scenario_source"],
+            "scene_usd": runtime_evidence["scene_usd"],
+            "scene_index": runtime_evidence["scene_index"],
             "scene_index_artifact": str(isaac_scene_index_path) if scene_index_payload else "",
-            "object_index_count": len(getattr(backend, "object_index", {})),
-            "receptacle_index_count": len(getattr(backend, "receptacle_index", {})),
-            "object_index": getattr(backend, "object_index", {}),
-            "receptacle_index": getattr(backend, "receptacle_index", {}),
-            "scene_index_diagnostics": getattr(backend, "scene_index_diagnostics", {}),
-            "scene_binding_diagnostics": getattr(backend, "scene_binding_diagnostics", {}),
-            "segmentation": getattr(backend, "segmentation", {}),
-            "scene_load": getattr(backend, "scene_load", {}),
-            "mapping_gaps": getattr(backend, "current_mapping_gaps", []),
-            "snapshot_artifacts": getattr(backend, "snapshot_artifacts", []),
-            "semantic_pose_state": getattr(backend, "semantic_pose_state", {}),
-            "semantic_pose_view_capture": getattr(backend, "semantic_pose_view_capture", {}),
-            "robot": getattr(backend, "robot", None),
-            "robot_import": getattr(backend, "robot_import", {}),
-            "requested_generated_mess_count": getattr(
-                backend, "requested_generated_mess_count", None
-            ),
-            "generated_mess_count": getattr(backend, "generated_mess_count", None),
+            "object_index_count": len(runtime_evidence["object_index"]),
+            "receptacle_index_count": len(runtime_evidence["receptacle_index"]),
+            "object_index": runtime_evidence["object_index"],
+            "receptacle_index": runtime_evidence["receptacle_index"],
+            "scene_index_diagnostics": runtime_evidence["scene_index_diagnostics"],
+            "scene_binding_diagnostics": runtime_evidence["scene_binding_diagnostics"],
+            "segmentation": runtime_evidence["segmentation"],
+            "scene_load": runtime_evidence["scene_load"],
+            "mapping_gaps": runtime_evidence["mapping_gaps"],
+            "snapshot_artifacts": runtime_evidence["snapshot_artifacts"],
+            "semantic_pose_state": runtime_evidence["semantic_pose_state"],
+            "semantic_pose_view_capture": runtime_evidence["semantic_pose_view_capture"],
+            "robot": runtime_evidence["robot"],
+            "robot_import": runtime_evidence["robot_import"],
+            "requested_generated_mess_count": runtime_evidence["requested_generated_mess_count"],
+            "generated_mess_count": runtime_evidence["generated_mess_count"],
         }
     )
-    _attach_robot_metadata(run_result, backend)
+    _attach_robot_metadata(run_result, runtime_evidence)
 
 
 def _attach_cleanup_backend_evidence(
     *,
     run_result: dict[str, Any],
-    backend: Any,
+    port: HouseholdBackendPort,
+    runtime_evidence: HouseholdRuntimeEvidence,
     backend_name: str,
     runtime_key: str,
 ) -> None:
@@ -437,16 +424,14 @@ def _attach_cleanup_backend_evidence(
         },
         "capabilities": {
             "visual_artifacts": cleanup_backend_supports_visual_artifacts(backend_name),
-            "snapshot_writer": callable(getattr(backend, "write_snapshot", None)),
-            "robot_view_writer": callable(getattr(backend, "write_robot_views", None)),
+            "snapshot_writer": port.supports_visual_snapshots(),
+            "robot_view_writer": port.supports_robot_views(),
         },
         "generated_mess": {
-            "requested_count": _optional_int(
-                getattr(backend, "requested_generated_mess_count", None)
-            ),
-            "actual_count": _optional_int(getattr(backend, "generated_mess_count", None)),
+            "requested_count": port.requested_mess_count(),
+            "actual_count": _optional_int(runtime_evidence["generated_mess_count"]),
         },
-        "robot": _robot_evidence(run_result, backend),
+        "robot": _robot_evidence(run_result, runtime_evidence),
         "agent_facing": False,
         "private_manifest_exposed_to_agent": False,
     }
@@ -498,9 +483,11 @@ def _optional_int(value: Any) -> int | None:
         return None
 
 
-def _robot_evidence(run_result: dict[str, Any], backend: Any) -> dict[str, Any]:
-    robot = run_result.get("robot") or getattr(backend, "robot", None)
-    robot_import = run_result.get("robot_import") or getattr(backend, "robot_import", {})
+def _robot_evidence(
+    run_result: dict[str, Any], runtime_evidence: HouseholdRuntimeEvidence
+) -> dict[str, Any]:
+    robot = run_result.get("robot") or runtime_evidence["robot"]
+    robot_import = run_result.get("robot_import") or runtime_evidence["robot_import"]
     payload = {
         "present": isinstance(robot, dict),
         "robot_name": "",
@@ -513,10 +500,12 @@ def _robot_evidence(run_result: dict[str, Any], backend: Any) -> dict[str, Any]:
     return payload
 
 
-def _attach_robot_metadata(run_result: dict[str, Any], backend: Any) -> None:
-    robot = getattr(backend, "robot", None)
+def _attach_robot_metadata(
+    run_result: dict[str, Any], runtime_evidence: HouseholdRuntimeEvidence
+) -> None:
+    robot = runtime_evidence["robot"]
     if robot is None:
         return
     run_result["robot"] = robot
-    run_result["robot_import"] = getattr(backend, "robot_import", {})
+    run_result["robot_import"] = runtime_evidence["robot_import"]
     run_result["robot_name"] = robot.get("robot_name")

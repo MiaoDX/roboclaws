@@ -99,7 +99,7 @@ def detection_for_object_at_location(
         "locality_status": "same_waypoint_source_observation",
         "support_estimate": {
             "fixture_id": location_id,
-            "relation": location_relation(obj.object_id, contract.backend),
+            "relation": contract.backend_location_relation(obj.object_id),
             "confidence": 0.68,
             "source": perception_source,
             "perception_source": perception_source,
@@ -122,7 +122,7 @@ def detection_for_object_at_location(
 def objects_visible_from_waypoint(contract: Any, waypoint: dict[str, Any]) -> list[tuple[Any, str]]:
     waypoint = contract._private_waypoint_for_public_waypoint(waypoint)
     waypoint_id = str(waypoint.get("waypoint_id") or "")
-    locations = contract.backend.object_locations()
+    locations = contract.backend_object_locations()
     fixture_ids = set(waypoint.get("fixture_ids") or [])
     visible = []
     for obj in contract.scenario.objects:
@@ -154,7 +154,7 @@ def _fixture_best_view_waypoint_id(contract: Any, fixture_id: str) -> str:
 
 def objects_visible_from_room(contract: Any, waypoint: dict[str, Any]) -> list[tuple[Any, str]]:
     waypoint = contract._private_waypoint_for_public_waypoint(waypoint)
-    locations = contract.backend.object_locations()
+    locations = contract.backend_object_locations()
     visible = []
     for obj in contract.scenario.objects:
         location_id = locations.get(obj.object_id)
@@ -251,7 +251,7 @@ def camera_model_candidates_for_waypoint(
             "locality_status": "same_waypoint_source_observation",
             "support_estimate": {
                 "fixture_id": location_id,
-                "relation": location_relation(obj.object_id, contract.backend),
+                "relation": contract.backend_location_relation(obj.object_id),
                 "confidence": 0.68,
                 "source": camera_model_policy_mode,
                 "perception_source": camera_model_policy_mode,
@@ -607,7 +607,7 @@ def _visible_detection_payload(
         else "semantic_hint_requires_source_fpv_scan",
         "support_estimate": {
             "fixture_id": location_id,
-            "relation": location_relation(obj.object_id, contract.backend),
+            "relation": contract.backend_location_relation(obj.object_id),
             "confidence": 0.74,
             "source": "visible_detection",
             "perception_source": "visible_detection",
@@ -781,12 +781,6 @@ def candidate_actionability_status(
             assert_no_forbidden_agent_view_keys=assert_no_forbidden_agent_view_keys,
         ),
     )
-
-
-def location_relation(object_id: str, backend: Any) -> str:
-    containment = getattr(backend, "_containment", {})
-    relation = containment.get(object_id, {}).get("location_relation")
-    return str(relation or "on")
 
 
 def visibility_confidence(handle: str) -> float:

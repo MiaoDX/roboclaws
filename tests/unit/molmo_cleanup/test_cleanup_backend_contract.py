@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any
 
 from roboclaws.household.backend import ApiSemanticCleanupBackend
@@ -12,9 +11,10 @@ from roboclaws.household.household_backend_contract import (
     HouseholdBackendSession,
     attach_cleanup_backend_runtime_metadata,
     build_household_backend_session,
-    cleanup_backend_name,
 )
+from roboclaws.household.isaac_lab_backend import IsaacLabSubprocessBackend
 from roboclaws.household.scenario import build_cleanup_scenario
+from roboclaws.household.subprocess_backend import MolmoSpacesSubprocessBackend
 
 
 class _FacadeVisualBackend(ApiSemanticCleanupBackend):
@@ -24,6 +24,18 @@ class _FacadeVisualBackend(ApiSemanticCleanupBackend):
     def __init__(self) -> None:
         super().__init__(build_cleanup_scenario(seed=3))
         self.closed = False
+
+    def backend_name(self) -> str:
+        return "molmospaces_subprocess"
+
+    def supports_visual_snapshots(self) -> bool:
+        return True
+
+    def supports_robot_views(self) -> bool:
+        return True
+
+    def requested_mess_count(self) -> int | None:
+        return 4
 
     def write_snapshot(self, output_path: Path, *, title: str) -> Path:
         output_path.write_text(title, encoding="utf-8")
@@ -65,12 +77,52 @@ class _FacadeVisualBackend(ApiSemanticCleanupBackend):
         self.closed = True
 
 
-def test_cleanup_backend_name_uses_explicit_backend_id() -> None:
-    backend = SimpleNamespace(backend="molmospaces_subprocess")
+class _MetadataBackend:
+    def __init__(self, *, backend: str, **evidence: Any) -> None:
+        self.backend = backend
+        self._runtime_evidence = {
+            "python_executable": "",
+            "runtime": {},
+            "model_stats": {},
+            "scene_xml": "",
+            "metadata_object_count": None,
+            "scenario_source": "",
+            "scene_usd": "",
+            "scene_index": None,
+            "object_index": {},
+            "receptacle_index": {},
+            "scene_index_diagnostics": {},
+            "scene_binding_diagnostics": {},
+            "segmentation": {},
+            "scene_load": {},
+            "mapping_gaps": [],
+            "snapshot_artifacts": [],
+            "semantic_pose_state": {},
+            "semantic_pose_view_capture": {},
+            "robot": None,
+            "robot_import": {},
+            "requested_generated_mess_count": None,
+            "generated_mess_count": None,
+            "mess_placement_diagnostics": [],
+            "placement_diagnostics": [],
+            "scene_index_artifact": {},
+            **evidence,
+        }
 
-    assert cleanup_backend_name(backend) == "molmospaces_subprocess"
-    assert cleanup_backend_name(backend, override="isaaclab_subprocess") == "isaaclab_subprocess"
-    assert cleanup_backend_name(SimpleNamespace()) == SYNTHETIC_BACKEND
+    def backend_name(self) -> str:
+        return str(self.backend)
+
+    def supports_visual_snapshots(self) -> bool:
+        return self.backend in {"molmospaces_subprocess", "isaaclab_subprocess"}
+
+    def supports_robot_views(self) -> bool:
+        return self.supports_visual_snapshots()
+
+    def requested_mess_count(self) -> int | None:
+        return self._runtime_evidence["requested_generated_mess_count"]
+
+    def runtime_evidence(self) -> dict[str, Any]:
+        return self._runtime_evidence
 
 
 def test_synthetic_backend_factory_can_build_baseline_scenario(tmp_path: Path) -> None:
@@ -83,8 +135,8 @@ def test_synthetic_backend_factory_can_build_baseline_scenario(tmp_path: Path) -
 
     assert isinstance(session, HouseholdBackendSession)
     assert session.backend_name() == SYNTHETIC_BACKEND
-    assert session.backend.scenario.private_manifest.targets == ()
-    assert session.backend.scenario.private_manifest.success_threshold == 0
+    assert session.scenario.private_manifest.targets == ()
+    assert session.scenario.private_manifest.success_threshold == 0
 
 
 def test_molmospaces_backend_factory_forwards_generated_mess_manifest_path(
@@ -122,12 +174,12 @@ def test_molmospaces_backend_factory_forwards_generated_mess_manifest_path(
 def test_synthetic_runtime_metadata_attaches_normalized_backend_evidence(
     tmp_path: Path,
 ) -> None:
-    backend = SimpleNamespace(backend=SYNTHETIC_BACKEND)
+    backend = _MetadataBackend(backend=SYNTHETIC_BACKEND)
     run_result = {"artifacts": {}}
 
     attach_cleanup_backend_runtime_metadata(
         run_result=run_result,
-        backend=backend,
+        port=backend,
         run_dir=tmp_path,
     )
 
@@ -150,7 +202,7 @@ def test_molmospaces_runtime_metadata_omits_absolute_operator_home(
 ) -> None:
     home = tmp_path / "operator-home"
     monkeypatch.setenv("HOME", str(home))
-    backend = SimpleNamespace(
+    backend = _MetadataBackend(
         backend="molmospaces_subprocess",
         python_executable=home / "venv" / "bin" / "python",
         scene_xml=str(home / ".cache" / "molmospaces" / "scene.xml"),
@@ -165,13 +217,17 @@ def test_molmospaces_runtime_metadata_omits_absolute_operator_home(
 
     attach_cleanup_backend_runtime_metadata(
         run_result=run_result,
-        backend=backend,
+        port=backend,
         run_dir=tmp_path,
     )
 
     runtime = run_result["molmospaces_runtime"]
     assert runtime["python_executable"] == "~/venv/bin/python"
     assert runtime["scene_xml"] == "~/.cache/molmospaces/scene.xml"
+    assert run_result["cleanup_backend_evidence"]["diagnostics"] == {
+        "mess_placement": {"status": "available", "count": 0},
+        "placement": {"status": "available", "count": 0},
+    }
     assert str(home) not in json.dumps(run_result)
 
 
@@ -182,6 +238,7 @@ def test_cleanup_backend_session_exposes_optional_backend_capabilities(
     session = HouseholdBackendSession(backend.scenario, backend=backend)
 
     assert session.scenario is backend.scenario
+    assert not hasattr(session, "backend")
     assert session.supports_visual_snapshots() is True
     assert session.supports_robot_views() is True
     assert session.requested_generated_mess_count() == 4
@@ -210,7 +267,7 @@ def test_cleanup_backend_session_exposes_optional_backend_capabilities(
 
 
 def test_molmospaces_runtime_metadata_attaches_common_backend_payload(tmp_path: Path) -> None:
-    backend = SimpleNamespace(
+    backend = _MetadataBackend(
         backend="molmospaces_subprocess",
         python_executable=tmp_path / "python",
         runtime={"runtime": "fake"},
@@ -227,7 +284,7 @@ def test_molmospaces_runtime_metadata_attaches_common_backend_payload(tmp_path: 
 
     attach_cleanup_backend_runtime_metadata(
         run_result=run_result,
-        backend=backend,
+        port=backend,
         run_dir=tmp_path,
     )
 
@@ -258,7 +315,7 @@ def test_isaac_runtime_metadata_writes_scene_index_artifact(tmp_path: Path) -> N
         "agent_facing": False,
         "private_manifest_exposed_to_agent": False,
     }
-    backend = SimpleNamespace(
+    backend = _MetadataBackend(
         backend="isaaclab_subprocess",
         python_executable=tmp_path / "python",
         runtime={"runtime_mode": "fake"},
@@ -271,7 +328,7 @@ def test_isaac_runtime_metadata_writes_scene_index_artifact(tmp_path: Path) -> N
         scene_binding_diagnostics={"status": "placeholder_mapping"},
         segmentation={"status": "blocked_capability"},
         scene_load={"status": "fake_protocol"},
-        current_mapping_gaps=[{"area": "camera_capture"}],
+        mapping_gaps=[{"area": "camera_capture"}],
         snapshot_artifacts=[{"placeholder_visuals": True}],
         semantic_pose_state={"schema": "isaac_semantic_pose_state_v1"},
         semantic_pose_view_capture={},
@@ -279,13 +336,13 @@ def test_isaac_runtime_metadata_writes_scene_index_artifact(tmp_path: Path) -> N
         robot={"robot_name": "rby1m"},
         requested_generated_mess_count=1,
         generated_mess_count=1,
-        scene_index_artifact_payload=lambda: scene_index_payload,
+        scene_index_artifact=scene_index_payload,
     )
     run_result = {"artifacts": {}}
 
     attach_cleanup_backend_runtime_metadata(
         run_result=run_result,
-        backend=backend,
+        port=backend,
         run_dir=tmp_path,
     )
 
@@ -307,3 +364,73 @@ def test_isaac_runtime_metadata_writes_scene_index_artifact(tmp_path: Path) -> N
     assert evidence["agent_facing"] is False
     assert evidence["private_manifest_exposed_to_agent"] is False
     assert run_result["robot_import"] == {"status": "missing_urdf"}
+
+
+def test_molmospaces_runtime_evidence_reads_dynamic_state_once() -> None:
+    backend = MolmoSpacesSubprocessBackend.__new__(MolmoSpacesSubprocessBackend)
+    backend.runtime = {"runtime_mode": "fake"}
+    backend.model_stats = {"objects": 2}
+    backend.scene_xml = "/tmp/scene.xml"
+    backend.metadata_object_count = 2
+    backend.requested_generated_mess_count = 1
+    backend.generated_mess_count = 1
+    backend.python_executable = Path("python")
+    backend.robot = None
+    reads = 0
+
+    def read_state() -> dict[str, Any]:
+        nonlocal reads
+        reads += 1
+        return {
+            "mess_placement_diagnostics": [{"status": "ok"}],
+            "placement_diagnostics": [{"status": "placed"}],
+        }
+
+    backend._read_state = read_state  # type: ignore[method-assign]
+
+    evidence = backend.runtime_evidence()
+
+    assert reads == 1
+    assert evidence["mess_placement_diagnostics"] == [{"status": "ok"}]
+    assert evidence["placement_diagnostics"] == [{"status": "placed"}]
+
+
+def test_isaac_runtime_evidence_reads_dynamic_state_once() -> None:
+    backend = IsaacLabSubprocessBackend.__new__(IsaacLabSubprocessBackend)
+    backend.python_executable = Path("python")
+    backend.runtime = {"runtime_mode": "fake"}
+    backend.runtime_mode = "fake"
+    backend.scenario_source = "isaac_scene_index"
+    backend.scene_usd = "/tmp/scene.usd"
+    backend.scene_index = 3
+    backend.object_index = {"obj": {}}
+    backend.receptacle_index = {"sink": {}}
+    backend.scene_index_diagnostics = {}
+    backend.scene_binding_diagnostics = {}
+    backend.segmentation = {}
+    backend.scene_load = {}
+    backend.snapshot_artifacts = []
+    backend.robot = None
+    backend.robot_import = {}
+    backend.requested_generated_mess_count = 1
+    backend.generated_mess_count = 1
+    reads = 0
+
+    def read_state() -> dict[str, Any]:
+        nonlocal reads
+        reads += 1
+        return {
+            "mapping_gaps": [{"area": "camera_capture"}],
+            "semantic_pose_state": {"status": "ok"},
+            "semantic_pose_view_capture": {"status": "captured"},
+            "mess_placement_diagnostics": [{"status": "ok"}],
+            "placement_diagnostics": [{"status": "placed"}],
+        }
+
+    backend._read_state = read_state  # type: ignore[method-assign]
+
+    evidence = backend.runtime_evidence()
+
+    assert reads == 1
+    assert evidence["mapping_gaps"] == [{"area": "camera_capture"}]
+    assert evidence["scene_index_artifact"]["mapping_gaps"] == [{"area": "camera_capture"}]

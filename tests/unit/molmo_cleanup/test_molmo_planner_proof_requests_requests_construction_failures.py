@@ -10,9 +10,19 @@ from roboclaws.household.planner_proof_requests import (
 from roboclaws.household.planner_proof_selection import proof_request_selection_from_summary
 
 
+class _MissingBindingContract:
+    def planner_scene(self) -> dict[str, object]:
+        return {
+            "schema": "planner_cleanup_proof_scene_v1",
+            "available": False,
+            "scene_xml": "",
+            "backend": "synthetic_cleanup",
+        }
+
+
 def test_planner_proof_requests_record_blocked_binding() -> None:
     manifest = planner_proof_requests_from_substeps(
-        contract=object(),
+        contract=_MissingBindingContract(),
         substeps=[
             {
                 "object_id": "observed_001",
