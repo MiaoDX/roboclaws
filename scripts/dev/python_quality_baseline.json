@@ -236,42 +236,10 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1250,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/contract/agibot/test_agibot_map_context_scripts.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 1105,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/contract/checkers/test_check_molmo_planner_proof_bundle_runner_result.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 1878,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/contract/dev_tools/test_task_agent_just_recipes.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
         "lines": 974,
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
         "path": "tests/contract/maps/test_b1_map12_label_tool.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 2040,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/contract/maps/test_b1_map12_verified_alignment.py",
         "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
@@ -284,34 +252,18 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1547,
+        "lines": 952,
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
-        "path": "tests/contract/molmo_cleanup/test_household_mcp_server.py",
+        "path": "tests/contract/reports/test_molmo_cleanup_report_planner_proof_bundle_success.py",
         "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
         "disposition": "SPLIT",
-        "lines": 4206,
+        "lines": 885,
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
-        "path": "tests/contract/molmo_cleanup/test_household_runtime_contract.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 2062,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/contract/molmo_cleanup/test_scene_camera_comparison.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 3611,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/contract/reports/test_molmo_cleanup_report.py",
+        "path": "tests/contract/reports/test_molmo_cleanup_report_timeline.py",
         "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
@@ -324,26 +276,18 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 7136,
+        "lines": 932,
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
-        "path": "tests/unit/agents/test_live_runtime.py",
+        "path": "tests/unit/molmo_cleanup/isaac_lab_backend_support.py",
         "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
         "disposition": "SPLIT",
-        "lines": 3402,
+        "lines": 897,
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
-        "path": "tests/unit/evals/test_eval_runner.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 5498,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/unit/molmo_cleanup/test_isaac_lab_backend.py",
+        "path": "tests/unit/molmo_cleanup/test_isaac_lab_backend_runtime_initialization_success.py",
         "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
@@ -356,66 +300,10 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1966,
+        "lines": 844,
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
-        "path": "tests/unit/molmo_cleanup/test_molmo_cleanup_subprocess_backend.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 1876,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/unit/molmo_cleanup/test_molmo_planner_proof_requests.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 1399,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/unit/operator_console/test_launcher.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 1505,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/unit/operator_console/test_operator_console.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 1258,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/unit/operator_console/test_render_scene_previews.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 1394,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/unit/operator_console/test_state.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 1931,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/unit/scripts/test_run_molmo_planner_proof_bundle_from_requests.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 1978,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/unit/worlds/molmospaces/test_sampling.py",
+        "path": "tests/unit/worlds/molmospaces/test_sampling_catalog_catalog_policy.py",
         "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       }
     ],
@@ -439,12 +327,12 @@
     },
     "tests": {
       "files_at_least": {
-        "1000": 19,
-        "500": 49,
-        "800": 23
+        "1000": 0,
+        "500": 67,
+        "800": 9
       },
-      "loc": 96352,
-      "python_files": 233,
+      "loc": 98522,
+      "python_files": 366,
       "roots": [
         "tests"
       ]

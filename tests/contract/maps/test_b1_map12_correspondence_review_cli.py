@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from scripts.maps.render_b1_map12_correspondence_review import SCENE_TOPDOWN_PICK_SOURCE
+from roboclaws.maps.b1_map12_correspondence_review import SCENE_TOPDOWN_PICK_SOURCE
 from scripts.maps.render_b1_scene_gaussian_topdown import TOPDOWN_RENDER_SCHEMA
 
 REPO_ROOT = Path(__file__).resolve().parents[3]

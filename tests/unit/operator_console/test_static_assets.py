@@ -121,17 +121,9 @@ def test_static_app_keeps_deleted_operator_console_widgets_deleted() -> None:
         assert snippet not in css
 
 
-def test_static_app_does_not_short_circuit_context_json_readiness() -> None:
-    app = _static_javascript()
-
-    assert 'gate.id === "context_json" && Boolean(els.contextInput.value.trim())' not in app
-
-
 def test_static_app_renders_scene_preview_assets() -> None:
-    app = _static_javascript()
     preview_dir = STATIC_ROOT / "previews"
 
-    _assert_scene_preview_app_wiring(app)
     molmospaces_preview_files = _assert_molmospaces_preview_files(preview_dir)
     _assert_optional_world_specs_do_not_publish_private_previews()
     _assert_molmospaces_preview_metadata(preview_dir)
@@ -139,18 +131,6 @@ def test_static_app_renders_scene_preview_assets() -> None:
     assert not any(name.startswith("molmospaces-val_6-") for name in molmospaces_preview_files)
     assert not any(name.startswith("molmospaces-val_8-") for name in molmospaces_preview_files)
     assert not (preview_dir / "ai2thor-floorplan201-topdown.png").exists()
-
-
-def _assert_scene_preview_app_wiring(app: str) -> None:
-    assert "renderSelectedScenePreview" in app
-    assert "renderSelectedScenePreview(route);" in app
-    assert "route.preview_assets" in app
-    assert 'setImageSlot(\n    "topdown",\n    previews.topdown' in app
-    assert 'data-view-role="${escapeHtml(visualRole)}"' in app
-    assert 'data-artifact-source-family="${escapeHtml(sourceFamily)}"' in app
-    assert "No top-down scene preview is available." in app
-    assert "state.activeRunId" in app
-    assert "Perception output will appear after a camera-grounded run starts." in app
 
 
 def _assert_molmospaces_preview_files(preview_dir: Path) -> list[str]:

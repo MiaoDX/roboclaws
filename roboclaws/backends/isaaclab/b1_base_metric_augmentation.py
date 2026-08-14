@@ -17,7 +17,7 @@ if __package__ in {None, ""}:
 else:
     REPO_ROOT = Path(__file__).resolve().parents[3]
 
-from roboclaws.backends.isaaclab.b1_readiness import (  # noqa: E402
+from roboclaws.backends.isaaclab.b1_readiness_validation import (
     DEFAULT_B1_VISUAL_ROUTE_SCENE_USD,
     NAVIGATION_PROVENANCE,
     validate_alignment_residual_artifact,

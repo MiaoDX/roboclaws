@@ -30,12 +30,12 @@ from roboclaws.operator_console.interactions import (
     list_operator_messages,
 )
 from roboclaws.operator_console.launch_contract import ConsoleLaunchError
+from roboclaws.operator_console.launch_lifecycle import stop_console_run
 from roboclaws.operator_console.launcher import (
     LaunchRequest,
     load_repo_dotenv,
     route_readiness,
     start_console_run,
-    stop_console_run,
 )
 from roboclaws.operator_console.paths import (
     OUTPUT_ROOT_ENV,

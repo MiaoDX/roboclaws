@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import socket
 import threading
@@ -11,20 +10,16 @@ from pathlib import Path
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
-from mcp.server.fastmcp import Image as MCPImage
 
 from roboclaws.core.goals import (
     GoalContract,
     goal_contract_from_file,
     goal_contract_from_json,
 )
-from roboclaws.core.json_sources import read_jsonl_objects
 from roboclaws.core.operator_messages import (
     check_operator_messages_for_mcp,
-    pending_operator_message_hint,
 )
 from roboclaws.core.robot_view_capture import (
-    ROBOT_VIEW_CAPTURE_POLICY_ACTION_TIMELINE,
     ROBOT_VIEW_CAPTURE_POLICY_FULL,
 )
 from roboclaws.core.task_intents import (
@@ -32,51 +27,35 @@ from roboclaws.core.task_intents import (
     household_task_identity_from_contract,
     household_task_name,
 )
-from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household import realworld_done_readiness
 from roboclaws.household.household_backend_contract import HouseholdBackendSession
+from roboclaws.household.household_mcp_artifacts import HouseholdMCPArtifactLifecycle
 from roboclaws.household.household_mcp_projection import (
     _build_realworld_mcp_contract,
-    _compact_declare_visual_candidates_response,
-    _compact_raw_fpv_mcp_observe_state,
     _complete_semantic_substep_handles,
     _json_safe,
     _normalize_robot_view_capture_policy,
-    _write_json,
 )
 from roboclaws.household.household_mcp_tools import (
-    agent_view_public_tool_names,
     dispatch_household_mcp_tool,
     register_household_mcp_tools,
     validate_household_mcp_tool_call,
 )
+from roboclaws.household.household_mcp_trace import HouseholdMCPTraceLifecycle
 from roboclaws.household.household_runtime_contract import (
     CAMERA_MODEL_POLICY_MODE,
     DEFAULT_REALWORLD_TASK,
-    RAW_FPV_ONLY_MODE,
     REALWORLD_CONTRACT,
     VISIBLE_OBJECT_DETECTIONS_MODE,
     HouseholdRuntimeContract,
-    raw_fpv_inline_candidate_instruction,
 )
-from roboclaws.household.realworld_mcp_run_artifacts import (
-    RealWorldMCPDoneArtifactInputs,
-    finalize_realworld_mcp_done,
-)
-from roboclaws.household.realworld_run_artifacts import (
-    write_runtime_metric_map_preview_artifact,
-)
-from roboclaws.household.report_snapshots import write_state_snapshot
 from roboclaws.household.semantic_timeline import (
-    camera_offsets_from_raw_fpv_observation,
-    robot_view_capture_for_tool,
     semantic_substeps,
 )
 from roboclaws.household.types import CleanupScenario
 from roboclaws.household.visual_grounding import (
     SIM_VISUAL_GROUNDING_PIPELINE_ID,
 )
-from roboclaws.household.visual_scan_guidance import visual_scan_metric_map_instruction
 from roboclaws.maps.bundle import copy_nav2_map_bundle_snapshot
 
 __all__ = ["MCP_SERVER_NAME", "HouseholdWorldMCPServer", "make_household_world_mcp"]
@@ -156,7 +135,7 @@ def make_household_world_mcp(
     )
 
 
-class HouseholdWorldMCPServer:
+class HouseholdWorldMCPServer(HouseholdMCPArtifactLifecycle, HouseholdMCPTraceLifecycle):
     """FastMCP server wrapping ``HouseholdRuntimeContract`` for agent dogfood."""
 
     def __init__(
@@ -429,216 +408,6 @@ class HouseholdWorldMCPServer:
             "evidence_source": "public_mcp_trace_semantic_substeps",
         }
 
-    def _agent_view_payload(self) -> dict[str, Any]:
-        agent_view = self.contract.agent_view_payload()
-        return agent_view_module.with_public_tool_names(
-            agent_view,
-            agent_view_public_tool_names(
-                self,
-                agent_view_module.public_tool_names(agent_view),
-            ),
-            capability_profiles=self.required_capability_profiles,
-        )
-
-    def _write_live_public_artifacts(self, *, trigger: str) -> None:
-        """Refresh public map artifacts while a live MCP run is still in progress."""
-
-        try:
-            agent_view = self._agent_view_payload()
-            runtime_metric_map = agent_view_module.runtime_metric_map(agent_view)
-            _write_json(self.run_dir / "agent_view.json", agent_view)
-            _write_json(self.run_dir / "runtime_metric_map.json", runtime_metric_map)
-            write_runtime_metric_map_preview_artifact(
-                output_dir=self.run_dir,
-                runtime_metric_map=runtime_metric_map,
-            )
-        except Exception as exc:
-            self.write_runtime_event(
-                "live_public_artifact_write_failed",
-                trigger=trigger,
-                error=str(exc),
-            )
-
-    def _augment_response(
-        self,
-        tool: str,
-        request: dict[str, Any],
-        response: dict[str, Any],
-    ) -> dict[str, Any]:
-        augmented = dict(response)
-        if tool == "metric_map":
-            augmented["instruction"] = (
-                "inspection_waypoints are static map/fixture coverage candidates, not mess hints. "
-                "Generated exploration candidate N means 1-based sweep_index=N, never zero-based. "
-                f"Prefer navigate_to_waypoint -> observe. {visual_scan_metric_map_instruction()}"
-            )
-        if tool == "observe" and self.perception_mode == CAMERA_MODEL_POLICY_MODE:
-            raw = augmented.get("raw_fpv_observation") or {}
-            augmented["instruction"] = (
-                "Call declare_visual_candidates with observation_id="
-                f"{raw.get('observation_id', '')} before choosing cleanup candidates. "
-                "For camera-grounded-labels, pass only observation_id and omit "
-                "candidates so the configured camera labeler produces labels. Service URLs, "
-                "credentials, and image paths are server-side details."
-            )
-        if tool == "observe" and self.perception_mode == RAW_FPV_ONLY_MODE:
-            raw = augmented.get("raw_fpv_observation") or {}
-            augmented["instruction"] = raw_fpv_inline_candidate_instruction(
-                str(raw.get("observation_id") or "")
-            )
-        if tool == "declare_visual_candidates" and augmented.get("ok"):
-            augmented = _compact_declare_visual_candidates_response(augmented)
-            augmented["instruction"] = (
-                "For the first returned candidate with candidate_state=navigation_authorized, "
-                "call navigate_to_object with its public object_id."
-            )
-        if tool in {"place", "place_inside", "close_receptacle"} and augmented.get("ok"):
-            augmented["instruction"] = (
-                "After placing and closing if needed, call observe once in the current "
-                "room/fixture area before choosing the next object or waypoint."
-            )
-        return augmented
-
-    def _attach_operator_message_hint(self, response: dict[str, Any]) -> dict[str, Any]:
-        path = self.operator_messages_path
-        run_dir = path.parent if path is not None else self.run_dir
-        hint = pending_operator_message_hint(run_dir)
-        if not hint:
-            return response
-        augmented = dict(response)
-        augmented.update(hint)
-        return augmented
-
-    def _finalize_done(self, reason: str, done_response: dict[str, Any]) -> dict[str, Any]:
-        if self._done_result is not None:
-            return self._done_result
-
-        after_snapshot = self._write_snapshot("after.png", title="After real-world cleanup")
-        self._record_robot_view("after", label_suffix="after")
-        trace_events = self._read_trace_events()
-        finalized = finalize_realworld_mcp_done(
-            RealWorldMCPDoneArtifactInputs(
-                run_dir=self.run_dir,
-                trace_path=self.trace_path,
-                run_result_path=self.run_result_path,
-                base_contract=self.base_contract,
-                contract=self.contract,
-                scenario=self.scenario,
-                task_name=self.task_name,
-                task_prompt=self.task_prompt,
-                task_intent=self.task_intent,
-                goal_contract=self.goal_contract,
-                policy=self.policy,
-                agent_driven=self.agent_driven,
-                policy_uses_private_truth=self.policy_uses_private_truth,
-                static_fixture_projection_mode=self.static_fixture_projection_mode,
-                perception_mode=self.perception_mode,
-                map_bundle_dir=self.map_bundle_dir,
-                runtime_map_prior_source=self.runtime_map_prior_source,
-                evidence_lane=self.evidence_lane,
-                record_robot_views=self.record_robot_views,
-                planner_proof_run_result=self.planner_proof_run_result,
-                robot_view_steps=self.robot_view_steps,
-                robot_view_capture_policy=self.robot_view_capture_policy,
-                before_snapshot=self._before_snapshot,
-                after_snapshot=after_snapshot,
-                trace_events=trace_events,
-                agent_view=self._agent_view_payload(),
-                done_response=done_response,
-                reason=reason,
-                tool_event_counts=dict(self._tool_event_counts),
-                rerun_command=self.rerun_command,
-                mcp_server_name=MCP_SERVER_NAME,
-            )
-        )
-        self._done_result = {
-            "ok": True,
-            "tool": "done",
-            "status": "ok",
-            "intent_status": finalized.intent_status,
-            "goal_status": finalized.intent_status,
-            "cleanup_status": done_response["cleanup_status"],
-            "score": done_response["score"],
-            "run_result": str(self.run_result_path),
-            "report": str(finalized.report_path),
-            "contract": REALWORLD_CONTRACT,
-            "agent_driven": self.agent_driven,
-        }
-        self.done_event.set()
-        self.write_runtime_event(
-            "molmo_realworld_cleanup_mcp_done",
-            cleanup_status=done_response["cleanup_status"],
-            restored_count=done_response["score"]["restored_count"],
-            total_targets=done_response["score"]["total_targets"],
-        )
-        return self._done_result
-
-    def _attach_raw_fpv_artifact_if_needed(
-        self,
-        tool: str,
-        response: dict[str, Any],
-    ) -> dict[str, Any]:
-        if (
-            tool != "observe"
-            or self.perception_mode not in {RAW_FPV_ONLY_MODE, CAMERA_MODEL_POLICY_MODE}
-            or not response.get("ok")
-            or not self.record_robot_views
-        ):
-            return response
-        raw = response.get("raw_fpv_observation")
-        if not isinstance(raw, dict):
-            return response
-        observation_id = str(raw.get("observation_id", ""))
-        if not observation_id:
-            return response
-        step = self._record_robot_view(
-            f"observe {observation_id}",
-            label_suffix=observation_id,
-            **camera_offsets_from_raw_fpv_observation(raw),
-        )
-        if step is None:
-            return response
-        attached = self.contract.attach_raw_fpv_observation_artifact(
-            observation_id,
-            views=step.get("views") or {},
-            robot_view_label=str(step.get("label", "")),
-            camera_control_contract=step.get("camera_control_contract")
-            if isinstance(step.get("camera_control_contract"), dict)
-            else None,
-        )
-        if attached is None:
-            return response
-        updated = dict(response)
-        updated["raw_fpv_observation"] = attached
-        return updated
-
-    def _mcp_observe_response(self) -> dict[str, Any] | list[Any]:
-        response = self.call_tool("observe")
-        if (
-            self.perception_mode != RAW_FPV_ONLY_MODE
-            or not response.get("ok")
-            or not self.record_robot_views
-        ):
-            return response
-        raw = response.get("raw_fpv_observation") or {}
-        image_artifacts = raw.get("image_artifacts") or {}
-        fpv_path = image_artifacts.get("fpv") or raw.get("fpv_image")
-        if not fpv_path:
-            return response
-        resolved = Path(str(fpv_path))
-        if not resolved.is_absolute():
-            resolved = self.run_dir / resolved
-        if not resolved.is_file():
-            return response
-        state_text = json.dumps(
-            _compact_raw_fpv_mcp_observe_state(
-                response,
-                cleanup_worklist=self.contract.cleanup_worklist_payload(),
-            ),
-            sort_keys=True,
-        )
-        return [state_text, MCPImage(data=resolved.read_bytes(), format="png")]
-
     def write_runtime_event(self, event: str, **data: Any) -> None:
         self._write_trace(tool="<runtime>", event=event, **data)
 
@@ -689,159 +458,6 @@ class HouseholdWorldMCPServer:
                 pass
         if self._server_thread is not None:
             self._server_thread.join(timeout=0.5)
-
-    def _write_snapshot(self, filename: str, *, title: str) -> Path:
-        output_path = self.run_dir / filename
-        if self.base_contract.supports_visual_snapshots():
-            try:
-                visual_snapshot = self.base_contract.write_visual_snapshot(output_path, title=title)
-                if visual_snapshot is not None:
-                    return visual_snapshot
-            except Exception as exc:
-                self.write_runtime_event(
-                    "snapshot_capture_failed",
-                    filename=filename,
-                    error=str(exc),
-                    fallback="state_snapshot",
-                )
-        return write_state_snapshot(
-            self.scenario,
-            self.base_contract.object_locations(),
-            output_path,
-            title=title,
-        )
-
-    def _record_tool_robot_view(
-        self,
-        tool: str,
-        request: dict[str, Any],
-        response: dict[str, Any],
-    ) -> None:
-        if not self.record_robot_views or not response.get("ok"):
-            return
-        if not self._should_record_tool_robot_view(tool):
-            self.write_runtime_event(
-                "robot_view_capture_skipped",
-                skipped_tool=tool,
-                policy=self.robot_view_capture_policy,
-                reason="report_only_observation",
-            )
-            return
-        capture = robot_view_capture_for_tool(
-            tool,
-            request,
-            response,
-            object_id_transform=lambda handle: (
-                self.contract._internal_object_id(handle) if handle is not None else None
-            ),
-        )
-        if capture is None:
-            return
-        self._record_robot_view(**capture)
-
-    def _should_record_tool_robot_view(self, tool: str) -> bool:
-        if self.robot_view_capture_policy == ROBOT_VIEW_CAPTURE_POLICY_FULL:
-            return True
-        if self.robot_view_capture_policy == ROBOT_VIEW_CAPTURE_POLICY_ACTION_TIMELINE:
-            return tool not in {"observe", "scene_objects"}
-        raise ValueError(
-            f"unsupported robot_view_capture_policy '{self.robot_view_capture_policy}'"
-        )
-
-    def _record_robot_view(
-        self,
-        action: str,
-        *,
-        label_suffix: str,
-        focus_object_id: str | None = None,
-        focus_receptacle_id: str | None = None,
-        semantic_phase: str | None = None,
-        action_evidence: dict[str, Any] | None = None,
-        camera_yaw_offset_deg: float = 0.0,
-        camera_pitch_offset_deg: float = 0.0,
-    ) -> dict[str, Any] | None:
-        if not self.record_robot_views:
-            return None
-        if not self.base_contract.supports_robot_views():
-            raise RuntimeError("robot view capture requires backend.write_robot_views")
-        previous_count = len(self.robot_view_steps)
-        capture_started = time.monotonic()
-        try:
-            self._robot_view_index = self.base_contract.record_robot_view_step(
-                steps=self.robot_view_steps,
-                output_dir=self.run_dir,
-                index=self._robot_view_index,
-                action=action,
-                label_suffix=label_suffix,
-                focus_object_id=focus_object_id,
-                focus_receptacle_id=self.contract.internal_fixture_id_for_public_reference(
-                    focus_receptacle_id
-                ),
-                semantic_phase=semantic_phase,
-                action_evidence=action_evidence,
-                camera_yaw_offset_deg=camera_yaw_offset_deg,
-                camera_pitch_offset_deg=camera_pitch_offset_deg,
-            )
-        except Exception as exc:
-            self.write_runtime_event(
-                "robot_view_capture_failed",
-                action=action,
-                label_suffix=label_suffix,
-                elapsed_s=round(time.monotonic() - capture_started, 6),
-                error=str(exc),
-            )
-            return None
-        if len(self.robot_view_steps) <= previous_count:
-            return None
-        capture_elapsed_s = round(time.monotonic() - capture_started, 6)
-        step = self.robot_view_steps[-1]
-        step["capture_elapsed_s"] = capture_elapsed_s
-        self.write_runtime_event(
-            "robot_view_capture",
-            action=action,
-            label=step.get("label", ""),
-            elapsed_s=capture_elapsed_s,
-        )
-        return step
-
-    def _write_tool_request(self, tool: str, request: dict[str, Any]) -> None:
-        self._tool_event_counts[f"{tool}:request"] = (
-            self._tool_event_counts.get(f"{tool}:request", 0) + 1
-        )
-        self._write_trace(tool=tool, event="request", request=request)
-
-    def _write_tool_response(self, tool: str, response: dict[str, Any]) -> None:
-        self._tool_event_counts[f"{tool}:response"] = (
-            self._tool_event_counts.get(f"{tool}:response", 0) + 1
-        )
-        trace_response = response
-        if tool == "observe" and self.perception_mode == RAW_FPV_ONLY_MODE:
-            trace_response = dict(response)
-            trace_response["agent_facing_compact_state"] = _compact_raw_fpv_mcp_observe_state(
-                response,
-                cleanup_worklist=self.contract.cleanup_worklist_payload(),
-            )
-        self._write_trace(tool=tool, event="response", response=trace_response)
-
-    def _write_trace(self, *, tool: str, event: str, **payload: Any) -> None:
-        trace_event = {
-            "ts": time.time(),
-            "wallclock_elapsed": round(time.time() - self._started_at, 6),
-            "tool": tool,
-            "event": event,
-            **_json_safe(payload),
-        }
-        line = json.dumps(trace_event, sort_keys=True)
-        with self._trace_lock:
-            if self._closed:
-                return
-            self._trace_fp.write(line + "\n")
-            self._trace_fp.flush()
-
-    def _read_trace_events(self) -> list[dict[str, Any]]:
-        with self._trace_lock:
-            self._trace_fp.flush()
-        return read_jsonl_objects(self.trace_path, label="Molmo real-world MCP trace")
 
 
 def _goal_contract_from_env() -> GoalContract | None:

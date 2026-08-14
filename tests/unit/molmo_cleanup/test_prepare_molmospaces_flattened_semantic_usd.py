@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.isaac_lab_cleanup.prepare_molmospaces_flattened_semantic_usd import (
+from roboclaws.backends.isaaclab.molmospaces_semantic_usd import (
     prepare_flattened_semantic_usd,
 )
 

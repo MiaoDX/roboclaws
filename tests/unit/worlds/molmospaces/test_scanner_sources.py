@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.worlds.molmospaces import scanner as scene_sampler_scanner
+from roboclaws.worlds.molmospaces import scanner_evidence as scene_sampler_scanner
 
 
 def test_scene_sampler_scanner_optional_json_loads_object(tmp_path: Path) -> None:

@@ -1,6 +1,6 @@
 # Aggressive Architecture Migration
 
-**Status:** Authorized; Waves 0-5 complete, Wave 6 active
+**Status:** Authorized; Waves 0-5 complete, Wave 6 verification active
 **Created:** 2026-07-30
 **Execution unit:** This entire plan, delivered in bounded waves and slices
 **Supersedes:** the broad-module-splitting non-goal in
@@ -1018,5 +1018,15 @@ hardware proof cannot run for a demonstrated environment reason.
   and B1 contracts pass. Static ratchets pass at 389 modules / 1,165 edges
   with zero SCCs, bidirectional pairs, or forbidden edges; oversized Python
   modules decrease from 55 to 52.
-- Next action: finish Wave 6 retained test/support cleanup and run the Wave 6
-  product and partition verification matrix.
+- Wave 6 completed slice: 19 oversized retained test owners are split into 123
+  behavior and adjacent support modules with exact 998-test identity. Current
+  node IDs, focused Just recipes, eval rows, and collection markers use the new
+  owners; no test module remains at or above 1,000 lines and oversized Python
+  modules decrease from 52 to 38. All 998 moved tests pass in the main
+  environment. Real Chromium proves selected-scene FPV/map/topdown/chase
+  previews load, and a nonexistent Agibot context path remains `NEEDS CONTEXT`
+  with Start disabled and no console errors; the two redundant workflow
+  source-string assertions are removed while packaging, security, artifact,
+  privacy, DOM-integrity, and retired-surface guards remain.
+- Next action: run the Wave 6 partition/product/SDK/Just verification matrix,
+  then execute Wave 7 telemetry, status, and final cleanup.

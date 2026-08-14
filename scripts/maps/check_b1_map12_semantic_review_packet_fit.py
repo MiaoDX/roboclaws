@@ -11,10 +11,8 @@ if __package__ in {None, ""}:
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
 
-from roboclaws.maps.b1_alignment import (  # noqa: E402
-    build_alignment_residuals,
-    validate_alignment_residual_artifact,
-)
+from roboclaws.maps.b1_alignment_artifact import build_alignment_residuals
+from roboclaws.maps.b1_alignment_contract import validate_alignment_residual_artifact
 from roboclaws.maps.b1_semantic_review_promotion import (  # noqa: E402
     DEFAULT_PACKET,
     PromotionError,

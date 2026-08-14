@@ -16,9 +16,9 @@ if __package__ in {None, ""}:
         sys.path.insert(0, str(repo_root))
 
 from roboclaws.core.json_sources import read_json_object
-from roboclaws.maps.b1_alignment import apply_transform_point
+from roboclaws.maps.b1_alignment_transform import apply_transform_point
+from roboclaws.maps.b1_scene_topdown_rendering import scene_projector_from_topdown_packet
 from roboclaws.maps.bundle_validation import parse_map_yaml
-from scripts.maps.render_b1_scene_topdown_diagnostic import scene_projector_from_topdown_packet
 
 DEFAULT_MAP_BUNDLE = Path("vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot")
 DEFAULT_SCENE_TOPDOWN = Path(

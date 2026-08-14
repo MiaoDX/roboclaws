@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tests.contract.molmo_cleanup.test_household_mcp_server import (
+from tests.contract.molmo_cleanup.household_mcp_server_support import (
     _complete_raw_fpv_heading_coverage,
     _raw_fpv_camera_raw_server,
 )

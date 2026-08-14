@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from roboclaws.household import scene_camera_comparison
+from roboclaws.household import scene_camera_capture
 
 
 class _FakeDistribution:
@@ -18,7 +18,7 @@ class _FakeDistribution:
 
 def _set_distribution(monkeypatch: pytest.MonkeyPatch, direct_url_text: str | None) -> None:
     monkeypatch.setattr(
-        scene_camera_comparison.metadata,
+        scene_camera_capture.metadata,
         "distribution",
         lambda package: _FakeDistribution(direct_url_text),
     )
@@ -35,7 +35,7 @@ def test_official_molmospaces_source_reports_installed_git_metadata(
         ),
     )
 
-    source = scene_camera_comparison._official_molmospaces_source()
+    source = scene_camera_capture._official_molmospaces_source()
 
     assert source == {
         "package": "molmo-spaces",
@@ -51,11 +51,11 @@ def test_official_molmospaces_source_reports_missing_package(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def raise_missing(_package: str) -> Any:
-        raise scene_camera_comparison.metadata.PackageNotFoundError("molmo-spaces")
+        raise scene_camera_capture.metadata.PackageNotFoundError("molmo-spaces")
 
-    monkeypatch.setattr(scene_camera_comparison.metadata, "distribution", raise_missing)
+    monkeypatch.setattr(scene_camera_capture.metadata, "distribution", raise_missing)
 
-    source = scene_camera_comparison._official_molmospaces_source()
+    source = scene_camera_capture._official_molmospaces_source()
 
     assert source == {
         "package": "molmo-spaces",
@@ -71,7 +71,7 @@ def test_official_molmospaces_source_reports_unreadable_direct_url_metadata(
 ) -> None:
     _set_distribution(monkeypatch, direct_url_text)
 
-    source = scene_camera_comparison._official_molmospaces_source()
+    source = scene_camera_capture._official_molmospaces_source()
 
     assert source["package"] == "molmo-spaces"
     assert source["status"] == "metadata_unreadable"
@@ -84,7 +84,7 @@ def test_official_molmospaces_source_reports_missing_direct_url_metadata(
 ) -> None:
     _set_distribution(monkeypatch, None)
 
-    source = scene_camera_comparison._official_molmospaces_source()
+    source = scene_camera_capture._official_molmospaces_source()
 
     assert source == {
         "package": "molmo-spaces",

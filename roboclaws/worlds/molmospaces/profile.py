@@ -20,7 +20,7 @@ from roboclaws.worlds.molmospaces.contracts import (
     READINESS_REJECTED,
     SAMPLER_GENERATOR_VERSION,
 )
-from roboclaws.worlds.molmospaces.preparation import (
+from roboclaws.worlds.molmospaces.preparation_io import (
     molmospaces_get_scenes_args,
     molmospaces_module_status,
     molmospaces_scene_index_map,

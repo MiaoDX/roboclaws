@@ -12,11 +12,11 @@ from roboclaws.core.json_sources import (
     read_json_object,
     read_jsonl_objects,
 )
+from roboclaws.core.live_performance_calibration import normalized_model_timing
 from roboclaws.core.runtime_timing import runtime_timing_from_trace
 
 REPORT_PERFORMANCE_SCHEMA = "roboclaws_report_performance_metrics_v1"
 MODEL_CALL_METRIC_SCHEMA = "roboclaws_model_call_metric_v1"
-COMPARISON_SCHEMA = "roboclaws_report_performance_comparison_v1"
 
 FORBIDDEN_PRIVACY_KEYS = {
     "api_key",
@@ -94,7 +94,7 @@ def extract_report_performance_metrics(
         "limitations": [],
     }
     packet["timing"].update(
-        _normalized_model_timing(
+        normalized_model_timing(
             packet["timing"],
             packet["model_work"],
             calibration=calibration,
@@ -117,14 +117,11 @@ def extract_model_call_metrics(
         live_timing if live_timing is not None else read_json(run_dir / "live_timing.json")
     )
     engine = _agent_engine(live_timing, run_dir)
-    if engine == "openai-agents-sdk":
-        rows = _openai_agents_model_call_rows(run_dir, live_timing)
-    elif engine == "codex-cli":
-        rows = _codex_model_call_rows(run_dir, live_timing)
-    elif engine == "claude-code":
-        rows = _claude_model_call_rows(run_dir, live_timing)
-    else:
-        rows = []
+    rows = (
+        _openai_agents_model_call_rows(run_dir, live_timing)
+        if engine == "openai-agents-sdk"
+        else []
+    )
 
     if rows:
         return rows
@@ -146,90 +143,6 @@ def write_model_call_metrics_jsonl(path: Path, rows: list[dict[str, Any]]) -> No
     path.write_text(
         "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
         encoding="utf-8",
-    )
-
-
-def compare_report_performance_metrics(
-    baseline: dict[str, Any],
-    candidate: dict[str, Any],
-    *,
-    key: str = "",
-    quality_waiver: str = "",
-    diagnostic: bool = False,
-) -> dict[str, Any]:
-    """Compare two extracted packets with speed-claim guardrails."""
-
-    quality = _quality_comparison(baseline.get("quality"), candidate.get("quality"))
-    timing = _timing_comparison(baseline.get("timing"), candidate.get("timing"))
-    model_work = _model_work_comparison(baseline.get("model_work"), candidate.get("model_work"))
-    call_counts = _call_count_comparison(
-        baseline.get("call_counts"),
-        candidate.get("call_counts"),
-    )
-    identity = _identity_comparison(
-        baseline.get("run_identity"),
-        candidate.get("run_identity"),
-    )
-    faster = timing.get("observed_wall_delta_s") is not None and timing["observed_wall_delta_s"] < 0
-    status = "diagnostic"
-    reasons: list[str] = []
-    if identity["apples_to_oranges"] and not diagnostic:
-        status = "rejected"
-        reasons.append("apples-to-oranges comparison requires diagnostic=true")
-    elif quality["regressed"] and not quality_waiver:
-        status = "rejected"
-        reasons.append("candidate is faster but worse" if faster else "behavior quality regressed")
-    elif faster:
-        status = "accepted"
-        reasons.append("candidate faster with same-or-better recorded quality")
-    else:
-        status = "diagnostic"
-        reasons.append("no observed wall-time speed win")
-    if quality_waiver:
-        reasons.append(f"quality waiver: {quality_waiver}")
-        if status == "rejected" and not identity["apples_to_oranges"]:
-            status = "accepted"
-
-    return {
-        "schema": COMPARISON_SCHEMA,
-        "key": key,
-        "status": status,
-        "reasons": reasons,
-        "quality_policy": "same_or_better",
-        "quality_waiver": quality_waiver,
-        "identity_comparison": identity,
-        "quality_comparison": quality,
-        "call_count_comparison": call_counts,
-        "model_work_comparison": model_work,
-        "timing_comparison": timing,
-        "baseline": {
-            "run_dir": baseline.get("run_dir"),
-            "run_identity": baseline.get("run_identity"),
-        },
-        "candidate": {
-            "run_dir": candidate.get("run_dir"),
-            "run_identity": candidate.get("run_identity"),
-        },
-    }
-
-
-def compare_run_dirs(
-    *,
-    baseline_dir: Path,
-    candidate_dir: Path,
-    key: str = "",
-    quality_waiver: str = "",
-    diagnostic: bool = False,
-    calibration: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    baseline = extract_report_performance_metrics(baseline_dir, calibration=calibration)
-    candidate = extract_report_performance_metrics(candidate_dir, calibration=calibration)
-    return compare_report_performance_metrics(
-        baseline,
-        candidate,
-        key=key,
-        quality_waiver=quality_waiver,
-        diagnostic=diagnostic,
     )
 
 
@@ -435,11 +348,7 @@ def _timing_packet(
     observed_wall = _float_or_none(runner.get("total_elapsed_s")) or _float_or_none(
         mcp.get("total_elapsed_s")
     )
-    runner_agent_s = (
-        _float_or_none(runner.get("openai_agents_elapsed_s"))
-        or _float_or_none(runner.get("codex_exec_elapsed_s"))
-        or _float_or_none(runner.get("claude_exec_elapsed_s"))
-    )
+    runner_agent_s = _float_or_none(runner.get("openai_agents_elapsed_s"))
     mcp_elapsed = _float_or_none(mcp.get("total_elapsed_s"))
     tool_handler = _float_or_none(mcp.get("tool_handler_s"))
     robot_view = _float_or_none(mcp.get("robot_view_capture_s"))
@@ -461,285 +370,6 @@ def _timing_packet(
         "observed_model_api_s": observed_model_api,
         "non_model_s": non_model,
     }
-
-
-def _normalized_model_timing(
-    timing: dict[str, Any],
-    model_work: dict[str, Any],
-    *,
-    calibration: dict[str, Any] | None = None,
-    run_identity: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    estimate = _estimate_model_work_s(model_work, calibration, run_identity)
-    observed = _float_or_none(timing.get("observed_model_api_s"))
-    residual = None
-    if observed is not None and estimate["estimated_s"] is not None:
-        residual = round(observed - float(estimate["estimated_s"]), 3)
-    broader_residual = None
-    if observed is None:
-        runner_agent = _float_or_none(timing.get("runner_agent_s"))
-        mcp_elapsed = _float_or_none(timing.get("mcp_elapsed_s"))
-        if runner_agent is not None and mcp_elapsed is not None:
-            broader_residual = round(max(0.0, runner_agent - mcp_elapsed), 3)
-    return {
-        "estimated_model_work_s": estimate,
-        "model_latency_residual_s": residual,
-        "model_or_sdk_residual_s": broader_residual,
-        "model_work_available": bool(model_work.get("available")),
-    }
-
-
-def _estimate_model_work_s(
-    model_work: dict[str, Any],
-    calibration: dict[str, Any] | None,
-    run_identity: dict[str, Any] | None,
-) -> dict[str, Any]:
-    calibration = _dict(calibration)
-    if not calibration:
-        return _unavailable_model_work_estimate()
-    limitations = _calibration_limitations(calibration)
-    if calibration.get("schema") != "roboclaws_model_latency_calibration_v1":
-        return _unavailable_model_work_estimate(
-            source=_calibration_source(calibration),
-            limitations=["calibration_schema_unrecognized"],
-        )
-    if calibration.get("available") is not True:
-        return _unavailable_model_work_estimate(
-            source=_calibration_source(calibration),
-            calibration=calibration,
-            limitations={"calibration_unavailable", *limitations},
-        )
-    coefficient_selection = _select_calibration_coefficients(calibration, run_identity)
-    coefficients = coefficient_selection["coefficients"]
-    if not coefficients:
-        return _unavailable_model_work_estimate(
-            source=_calibration_source(calibration),
-            calibration=calibration,
-            limitations={
-                "calibration_coefficients_unavailable",
-                *limitations,
-                *coefficient_selection["limitations"],
-            },
-        )
-    values, missing = _coefficient_values_and_missing(model_work, coefficients)
-    image_units, image_coefficient, image_missing = _image_estimation_inputs(
-        model_work,
-        coefficients,
-    )
-    missing.extend(image_missing)
-    if missing or not model_work.get("available"):
-        return _unavailable_model_work_estimate(
-            source=_calibration_source(calibration),
-            calibration=calibration,
-            limitations={
-                *limitations,
-                *coefficient_selection["limitations"],
-                *(f"{item}_unavailable" for item in missing),
-                *([] if model_work.get("available") else ["model_work_unavailable"]),
-            },
-        )
-    estimated = _estimated_model_work_seconds(
-        model_work,
-        values,
-        image_units=image_units,
-        image_coefficient=image_coefficient,
-    )
-    return {
-        "available": True,
-        "source": _calibration_source(calibration),
-        "estimated_s": round(estimated, 3),
-        "limitations": sorted({*limitations, *coefficient_selection["limitations"]}),
-        "policy": "calibrated_explicit_packet_required_for_normalized_model_time",
-        "sample_count": _int_or_none(calibration.get("sample_count")),
-        "total_row_count": _int_or_none(calibration.get("total_row_count")),
-        "coefficient_scope": coefficient_selection["scope"],
-    }
-
-
-def _unavailable_model_work_estimate(
-    *,
-    source: str = "unavailable",
-    limitations: set[str] | list[str] | None = None,
-    calibration: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    packet = {
-        "available": False,
-        "source": source,
-        "estimated_s": None,
-        "limitations": sorted({str(item) for item in limitations if str(item)})
-        if limitations is not None
-        else ["calibration_coefficients_unavailable"],
-        "policy": (
-            "No authoritative repo-default coefficients are committed for v1. "
-            "Use calibrate_model_latency.py with a named dataset before making "
-            "normalized speed claims."
-        ),
-    }
-    if calibration is not None:
-        packet["sample_count"] = _int_or_none(calibration.get("sample_count"))
-        packet["total_row_count"] = _int_or_none(calibration.get("total_row_count"))
-    return packet
-
-
-def _calibration_source(calibration: dict[str, Any]) -> str:
-    return str(calibration.get("source_path") or "calibration_packet")
-
-
-def _calibration_limitations(calibration: dict[str, Any]) -> list[str]:
-    return [str(item) for item in calibration.get("limitations") or [] if str(item)]
-
-
-def _coefficient_values_and_missing(
-    model_work: dict[str, Any],
-    coefficients: dict[str, Any],
-) -> tuple[dict[str, float], list[str]]:
-    required = {
-        "uncached_input_s_per_token": "total_uncached_input_tokens",
-        "cached_input_s_per_token": "total_cached_input_tokens",
-        "output_s_per_token": "total_output_tokens",
-        "reasoning_s_per_token": "total_reasoning_tokens",
-    }
-    values: dict[str, float] = {
-        "intercept_s": _float_or_none(coefficients.get("intercept_s")) or 0.0
-    }
-    missing: list[str] = []
-    for coefficient_key, work_key in required.items():
-        _record_coefficient_value(
-            values,
-            missing,
-            coefficient_key=coefficient_key,
-            coefficient_value=_float_or_none(coefficients.get(coefficient_key)),
-            work_key=work_key,
-            work_value=_int_or_none(model_work.get(work_key)),
-        )
-    return values, missing
-
-
-def _record_coefficient_value(
-    values: dict[str, float],
-    missing: list[str],
-    *,
-    coefficient_key: str,
-    coefficient_value: float | None,
-    work_key: str,
-    work_value: int | None,
-) -> None:
-    if work_value is None:
-        if coefficient_value not in {None, 0.0}:
-            missing.append(work_key)
-        values[coefficient_key] = 0.0
-        return
-    if coefficient_value is None:
-        if work_value > 0:
-            missing.append(coefficient_key)
-        values[coefficient_key] = 0.0
-        return
-    values[coefficient_key] = coefficient_value
-
-
-def _image_estimation_inputs(
-    model_work: dict[str, Any],
-    coefficients: dict[str, Any],
-) -> tuple[int, float | None, list[str]]:
-    image_units = _image_input_units(model_work)
-    image_coefficient = _first_float(
-        coefficients,
-        "image_input_s_per_unit",
-        "image_s_per_unit",
-        "image_input_s_per_pixel",
-    )
-    if image_units > 0 and image_coefficient is None:
-        return image_units, 0.0, ["image_s_per_unit"]
-    return image_units, image_coefficient, []
-
-
-def _estimated_model_work_seconds(
-    model_work: dict[str, Any],
-    values: dict[str, float],
-    *,
-    image_units: int,
-    image_coefficient: float | None,
-) -> float:
-    return (
-        values["intercept_s"]
-        + (_int_or_none(model_work.get("total_uncached_input_tokens")) or 0)
-        * values["uncached_input_s_per_token"]
-        + (_int_or_none(model_work.get("total_cached_input_tokens")) or 0)
-        * values["cached_input_s_per_token"]
-        + (_int_or_none(model_work.get("total_output_tokens")) or 0) * values["output_s_per_token"]
-        + (_int_or_none(model_work.get("total_reasoning_tokens")) or 0)
-        * values["reasoning_s_per_token"]
-        + image_units * (image_coefficient or 0.0)
-    )
-
-
-def _select_calibration_coefficients(
-    calibration: dict[str, Any],
-    run_identity: dict[str, Any] | None,
-) -> dict[str, Any]:
-    sets = calibration.get("coefficient_sets")
-    if isinstance(sets, list):
-        identity = _dict(run_identity)
-        ranked: list[tuple[int, dict[str, Any]]] = []
-        for item in sets:
-            if not isinstance(item, dict):
-                continue
-            mismatched = False
-            score = 0
-            for key in ("agent_engine", "provider_profile", "model", "wire_api", "evidence_lane"):
-                expected = str(item.get(key) or "")
-                actual = str(identity.get(key) or "")
-                if not expected:
-                    continue
-                if actual and expected != actual:
-                    mismatched = True
-                    break
-                score += 1
-            if not mismatched:
-                ranked.append((score, item))
-        if ranked:
-            _, best = sorted(ranked, key=lambda pair: pair[0], reverse=True)[0]
-            return {
-                "coefficients": _dict(best.get("coefficients")),
-                "limitations": [str(item) for item in best.get("limitations") or [] if str(item)],
-                "scope": {
-                    key: best.get(key)
-                    for key in (
-                        "agent_engine",
-                        "provider_profile",
-                        "model",
-                        "wire_api",
-                        "evidence_lane",
-                    )
-                    if best.get(key)
-                }
-                or {"type": "matched_coefficient_set"},
-            }
-        return {
-            "coefficients": {},
-            "limitations": ["calibration_no_matching_coefficient_set"],
-            "scope": {},
-        }
-    return {
-        "coefficients": _dict(calibration.get("coefficients")),
-        "limitations": [],
-        "scope": {"type": "global"},
-    }
-
-
-def _image_input_units(model_work: dict[str, Any]) -> int:
-    pixels = _int_or_none(model_work.get("image_input_pixels")) or 0
-    if pixels > 0:
-        return pixels
-    return _int_or_none(model_work.get("image_input_count")) or 0
-
-
-def _first_float(container: dict[str, Any], *keys: str) -> float | None:
-    for key in keys:
-        value = _float_or_none(container.get(key))
-        if value is not None:
-            return value
-    return None
 
 
 def _openai_agents_model_call_rows(
@@ -792,118 +422,6 @@ def _openai_agents_model_call_rows(
                 )
             )
             call_index += 1
-    return rows
-
-
-def _codex_model_call_rows(run_dir: Path, live_timing: dict[str, Any]) -> list[dict[str, Any]]:
-    events = [
-        event for path in sorted(run_dir.glob("codex-events*.jsonl")) for event in read_jsonl(path)
-    ]
-    usage_events = [event for event in events if isinstance(event.get("usage"), dict)]
-    duration_events = [
-        event
-        for event in events
-        if _first_duration_s(event) is not None or isinstance(event.get("usage"), dict)
-    ]
-    selected = duration_events or usage_events
-    rows: list[dict[str, Any]] = []
-    for call_index, event in enumerate(selected):
-        usage = _dict(event.get("usage"))
-        duration = _first_duration_s(event)
-        limitations: list[str] = []
-        if not usage:
-            limitations.append("usage_unavailable")
-        if duration is None:
-            limitations.append("duration_unavailable")
-        input_tokens = _int_or_none(
-            usage.get("input_tokens")
-            or usage.get("prompt_tokens")
-            or usage.get("total_input_tokens")
-        )
-        cached_tokens = _int_or_none(usage.get("cached_input_tokens") or usage.get("cached_tokens"))
-        output_tokens = _int_or_none(
-            usage.get("output_tokens")
-            or usage.get("completion_tokens")
-            or usage.get("total_output_tokens")
-        )
-        reasoning_tokens = _int_or_none(
-            usage.get("reasoning_output_tokens") or usage.get("reasoning_tokens")
-        )
-        rows.append(
-            _model_call_row(
-                agent_engine="codex-cli",
-                provider_profile=str(live_timing.get("provider_profile") or ""),
-                wire_api=str(live_timing.get("wire_api") or ""),
-                model=str(live_timing.get("model") or ""),
-                call_index=call_index,
-                duration_s=duration,
-                input_tokens=input_tokens,
-                cached_input_tokens=cached_tokens,
-                output_tokens=output_tokens,
-                reasoning_tokens=reasoning_tokens,
-                status="failure" if str(event.get("type") or "") == "error" else "success",
-                failure_class=(
-                    str(event.get("type") or "") if str(event.get("type") or "") == "error" else ""
-                ),
-                source="codex_event",
-                limitations=limitations,
-            )
-        )
-    if rows:
-        return rows
-    codex_summary = _dict(live_timing.get("codex_events"))
-    usage = _dict(codex_summary.get("usage"))
-    if usage or _float_or_none(codex_summary.get("model_api_time_s")) is not None:
-        return [
-            _model_call_row(
-                agent_engine="codex-cli",
-                provider_profile=str(live_timing.get("provider_profile") or ""),
-                wire_api=str(live_timing.get("wire_api") or ""),
-                model=str(live_timing.get("model") or ""),
-                duration_s=_float_or_none(codex_summary.get("model_api_time_s")),
-                input_tokens=_int_or_none(usage.get("input_tokens")),
-                cached_input_tokens=_int_or_none(usage.get("cached_input_tokens")),
-                output_tokens=_int_or_none(usage.get("output_tokens")),
-                reasoning_tokens=_int_or_none(
-                    usage.get("reasoning_output_tokens") or usage.get("reasoning_tokens")
-                ),
-                source="codex_event",
-                limitations=["aggregate_codex_summary"],
-            )
-        ]
-    return []
-
-
-def _claude_model_call_rows(run_dir: Path, live_timing: dict[str, Any]) -> list[dict[str, Any]]:
-    events = [
-        event for path in sorted(run_dir.glob("claude-events*.jsonl")) for event in read_jsonl(path)
-    ]
-    usage_events = [event for event in events if isinstance(event.get("usage"), dict)]
-    rows: list[dict[str, Any]] = []
-    for call_index, event in enumerate(usage_events):
-        usage = _dict(event.get("usage"))
-        duration = _first_duration_s(event)
-        limitations = [] if duration is not None else ["duration_unavailable"]
-        input_tokens = _int_or_none(usage.get("input_tokens"))
-        output_tokens = _int_or_none(usage.get("output_tokens"))
-        rows.append(
-            _model_call_row(
-                agent_engine="claude-code",
-                provider_profile=str(live_timing.get("provider_profile") or ""),
-                wire_api=str(live_timing.get("wire_api") or ""),
-                model=str(live_timing.get("model") or ""),
-                call_index=call_index,
-                duration_s=duration,
-                input_tokens=input_tokens,
-                cached_input_tokens=_int_or_none(usage.get("cache_read_input_tokens"))
-                or _int_or_none(usage.get("cached_input_tokens")),
-                output_tokens=output_tokens,
-                status="failure" if event.get("is_error") is True else "success",
-                failure_class="error" if event.get("is_error") is True else "",
-                source="claude_event",
-                limitations=limitations,
-            )
-        )
     return rows
 
 
@@ -973,10 +491,6 @@ def _agent_engine(live_timing: dict[str, Any], run_dir: Path) -> str:
         or (run_dir / "openai-agents-events.jsonl").exists()
     ):
         return "openai-agents-sdk"
-    if live_timing.get("codex_events") is not None or (run_dir / "codex-events.jsonl").exists():
-        return "codex-cli"
-    if runtime == "claude-code" or (run_dir / "claude-events.jsonl").exists():
-        return "claude-code"
     return str(live_timing.get("agent_engine") or "unknown")
 
 
@@ -1011,148 +525,6 @@ def _terminal_state(live_timing: dict[str, Any], status: dict[str, Any]) -> str:
         return str(reason)
     phase = live_timing.get("phase") or status.get("phase")
     return str(phase or "unknown")
-
-
-def _quality_comparison(
-    baseline: Any,
-    candidate: Any,
-) -> dict[str, Any]:
-    baseline = _dict(baseline)
-    candidate = _dict(candidate)
-    checks = {
-        "checker_state": candidate.get("checker_state") == baseline.get("checker_state")
-        or candidate.get("checker_state") == "result-present",
-        "restored_count": _not_lower(
-            candidate.get("restored_count"),
-            baseline.get("restored_count"),
-        ),
-        "mess_restoration_rate": _not_lower(
-            candidate.get("mess_restoration_rate"),
-            baseline.get("mess_restoration_rate"),
-        ),
-        "sweep_coverage_rate": _not_lower_with_cap(
-            candidate.get("sweep_coverage_rate"),
-            baseline.get("sweep_coverage_rate"),
-            cap=1.0,
-        ),
-        "disturbance_count": _not_higher(
-            candidate.get("disturbance_count"),
-            baseline.get("disturbance_count"),
-        ),
-        "failed_or_noop_tool_count": _not_higher(
-            candidate.get("failed_or_noop_tool_count"),
-            baseline.get("failed_or_noop_tool_count"),
-        ),
-        "semantic_accepted_count": _not_lower(
-            candidate.get("semantic_accepted_count"),
-            baseline.get("semantic_accepted_count"),
-        ),
-    }
-    return {
-        "policy": "same_or_better",
-        "regressed": not all(checks.values()),
-        "checks": checks,
-        "baseline": baseline,
-        "candidate": candidate,
-    }
-
-
-def _timing_comparison(baseline: Any, candidate: Any) -> dict[str, Any]:
-    baseline = _dict(baseline)
-    candidate = _dict(candidate)
-    return {
-        "observed_wall_delta_s": _delta(
-            candidate.get("observed_wall_s"),
-            baseline.get("observed_wall_s"),
-        ),
-        "mcp_between_tool_gap_delta_s": _delta(
-            candidate.get("mcp_between_tool_gap_s"),
-            baseline.get("mcp_between_tool_gap_s"),
-        ),
-        "observed_model_api_delta_s": _delta(
-            candidate.get("observed_model_api_s"),
-            baseline.get("observed_model_api_s"),
-        ),
-        "estimated_model_work_delta_s": _delta(
-            _dict(candidate.get("estimated_model_work_s")).get("estimated_s"),
-            _dict(baseline.get("estimated_model_work_s")).get("estimated_s"),
-        ),
-        "model_latency_residual_delta_s": _delta(
-            candidate.get("model_latency_residual_s"),
-            baseline.get("model_latency_residual_s"),
-        ),
-        "model_or_sdk_residual_delta_s": _delta(
-            candidate.get("model_or_sdk_residual_s"),
-            baseline.get("model_or_sdk_residual_s"),
-        ),
-        "baseline": baseline,
-        "candidate": candidate,
-    }
-
-
-def _model_work_comparison(baseline: Any, candidate: Any) -> dict[str, Any]:
-    baseline = _dict(baseline)
-    candidate = _dict(candidate)
-    return {
-        "total_uncached_input_tokens_delta": _int_delta(
-            candidate.get("total_uncached_input_tokens"),
-            baseline.get("total_uncached_input_tokens"),
-        ),
-        "total_output_tokens_delta": _int_delta(
-            candidate.get("total_output_tokens"),
-            baseline.get("total_output_tokens"),
-        ),
-        "available": bool(baseline.get("available")) and bool(candidate.get("available")),
-        "baseline": baseline,
-        "candidate": candidate,
-    }
-
-
-def _call_count_comparison(baseline: Any, candidate: Any) -> dict[str, Any]:
-    baseline = _dict(baseline)
-    candidate = _dict(candidate)
-    return {
-        "model_call_count_delta": _int_delta(
-            candidate.get("model_call_count"),
-            baseline.get("model_call_count"),
-        ),
-        "mcp_tool_call_count_delta": _int_delta(
-            candidate.get("mcp_tool_call_count"),
-            baseline.get("mcp_tool_call_count"),
-        ),
-        "baseline": baseline,
-        "candidate": candidate,
-    }
-
-
-def _identity_comparison(baseline: Any, candidate: Any) -> dict[str, Any]:
-    baseline = _dict(baseline)
-    candidate = _dict(candidate)
-    compare_keys = (
-        "surface",
-        "intent",
-        "task_name",
-        "agent_engine",
-        "provider_profile",
-        "wire_api",
-        "model",
-        "evidence_lane",
-        "seed",
-        "profile_id",
-    )
-    mismatches = [
-        key
-        for key in compare_keys
-        if baseline.get(key) not in {None, ""}
-        and candidate.get(key) not in {None, ""}
-        and baseline.get(key) != candidate.get(key)
-    ]
-    return {
-        "apples_to_oranges": bool(mismatches),
-        "mismatched_fields": mismatches,
-        "baseline": baseline,
-        "candidate": candidate,
-    }
 
 
 def _profile_id(live_timing: dict[str, Any]) -> str:
@@ -1231,8 +603,8 @@ def _semantic_accepted_count(score: dict[str, Any]) -> int | None:
 
 
 def _non_tool_turn_count(live_timing: dict[str, Any]) -> int | None:
-    codex = _dict(live_timing.get("codex_events"))
-    item_counts = _dict(codex.get("item_counts"))
+    sdk = _dict(live_timing.get("openai_agents"))
+    item_counts = _dict(sdk.get("item_counts"))
     if item_counts:
         return sum(
             int(value or 0) for key, value in item_counts.items() if str(key) != "function_call"
@@ -1251,8 +623,8 @@ def _model_api_time(model_calls: list[dict[str, Any]], live_timing: dict[str, An
     direct = _float_or_none(live_timing.get("model_api_time_s"))
     if direct is not None:
         return direct
-    codex = _dict(live_timing.get("codex_events"))
-    return _float_or_none(codex.get("model_api_time_s"))
+    sdk = _dict(live_timing.get("openai_agents"))
+    return _float_or_none(sdk.get("model_api_time_s"))
 
 
 def _sum_int(rows: list[dict[str, Any]], key: str) -> int | None:
@@ -1306,38 +678,6 @@ def _reasoning_tokens(usage: dict[str, Any]) -> int | None:
     if isinstance(details, dict):
         return _int_or_none(details.get("reasoning_tokens"))
     return _int_or_none(usage.get("reasoning_tokens"))
-
-
-def _first_duration_s(event: dict[str, Any]) -> float | None:
-    stack: list[Any] = [event]
-    while stack:
-        item = stack.pop()
-        if isinstance(item, dict):
-            for key, value in item.items():
-                key_text = str(key).lower()
-                if isinstance(value, (int, float)) and key_text in {
-                    "duration_s",
-                    "elapsed_s",
-                    "model_api_time_s",
-                    "api_time_s",
-                    "api_elapsed_s",
-                    "model_latency_s",
-                }:
-                    return float(value)
-                if isinstance(value, (int, float)) and key_text in {
-                    "duration_ms",
-                    "elapsed_ms",
-                    "model_api_time_ms",
-                    "api_time_ms",
-                    "api_elapsed_ms",
-                    "model_latency_ms",
-                }:
-                    return float(value) / 1000.0
-                if isinstance(value, (dict, list)):
-                    stack.append(value)
-        elif isinstance(item, list):
-            stack.extend(item)
-    return None
 
 
 def _privacy_scan_text(text: str, path: Path, row_id: str) -> list[dict[str, Any]]:
@@ -1413,46 +753,6 @@ def _int_or_none(value: Any) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return None
-
-
-def _delta(candidate: Any, baseline: Any) -> float | None:
-    candidate_value = _float_or_none(candidate)
-    baseline_value = _float_or_none(baseline)
-    if candidate_value is None or baseline_value is None:
-        return None
-    return round(candidate_value - baseline_value, 3)
-
-
-def _int_delta(candidate: Any, baseline: Any) -> int | None:
-    candidate_value = _int_or_none(candidate)
-    baseline_value = _int_or_none(baseline)
-    if candidate_value is None or baseline_value is None:
-        return None
-    return candidate_value - baseline_value
-
-
-def _not_lower(candidate: Any, baseline: Any) -> bool:
-    candidate_value = _float_or_none(candidate)
-    baseline_value = _float_or_none(baseline)
-    if candidate_value is None or baseline_value is None:
-        return True
-    return candidate_value >= baseline_value
-
-
-def _not_lower_with_cap(candidate: Any, baseline: Any, *, cap: float) -> bool:
-    candidate_value = _float_or_none(candidate)
-    baseline_value = _float_or_none(baseline)
-    if candidate_value is None or baseline_value is None:
-        return True
-    return min(candidate_value, cap) >= min(baseline_value, cap)
-
-
-def _not_higher(candidate: Any, baseline: Any) -> bool:
-    candidate_value = _float_or_none(candidate)
-    baseline_value = _float_or_none(baseline)
-    if candidate_value is None or baseline_value is None:
-        return True
-    return candidate_value <= baseline_value
 
 
 def _nearest_rank_percentile(values: list[int], percentile: float) -> int | None:

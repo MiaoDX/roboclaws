@@ -10,7 +10,8 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.core.json_sources import read_json_object
-from roboclaws.core.live_performance import compare_run_dirs, read_model_latency_calibration
+from roboclaws.core.live_performance import read_model_latency_calibration
+from roboclaws.core.live_performance_comparison import compare_run_dirs
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

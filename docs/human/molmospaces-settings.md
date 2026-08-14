@@ -526,7 +526,7 @@ just molmo::status
 just molmo::status output/household/household-world/open-ended/openai-agents-live-world-public-labels/seed-7
 ```
 
-The status probe reports elapsed time, MCP tool progress, and
+The package-owned SDK status probe reports elapsed time, MCP tool progress, and
 `run_result.json` / `report.html` readiness. Interactive/operator MolmoSpaces
 visual cleanup remains single-instance by default because each visual run owns a
 MuJoCo-backed MolmoSpaces backend. If the requested MCP port is busy, the

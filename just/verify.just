@@ -64,14 +64,14 @@ ci-required output_dir="output/demo":
     fi
     just verify::mock
     ./scripts/dev/run_pytest_standalone.sh -q \
-      tests/contract/reports/test_molmo_cleanup_report.py \
+      tests/contract/reports/test_molmo_cleanup_report_*.py \
       tests/contract/reports/test_molmo_cleanup_artifact_report.py
     mkdir -p "$output_dir"
 
 # L2: focused fixture/schema/report contracts.
 contract:
     {{standalone_pytest}} -q \
-      tests/contract/reports/test_molmo_cleanup_report.py \
+      tests/contract/reports/test_molmo_cleanup_report_*.py \
       tests/contract/reports/test_molmo_cleanup_artifact_report.py \
       tests/contract/reports/test_molmo_report_visual_core.py
 
@@ -81,10 +81,10 @@ household-world generated_mess_count="10":
     #!/usr/bin/env bash
     set -euo pipefail
     {{standalone_pytest}} -q \
-      tests/contract/molmo_cleanup/test_household_runtime_contract.py \
+      tests/contract/molmo_cleanup/test_household_runtime_contract_*.py \
       tests/contract/molmo_cleanup/test_molmospaces_realworld_cleanup.py \
       tests/contract/checkers/test_cleanup_validation_*.py \
-      tests/contract/reports/test_molmo_cleanup_report.py \
+      tests/contract/reports/test_molmo_cleanup_report_*.py \
       tests/contract/dev_tools/test_verify_just_recipes.py
     just harness::household-world "1 2 3" "output/household-world-harness" "帮我收拾这个房间" "{{generated_mess_count}}"
 
@@ -94,7 +94,7 @@ molmo-realworld-agent-mcp generated_mess_count="10":
     #!/usr/bin/env bash
     set -euo pipefail
     {{standalone_pytest}} -q \
-      tests/contract/molmo_cleanup/test_household_mcp_server.py \
+      tests/contract/molmo_cleanup/test_household_mcp_server_*.py \
       tests/contract/checkers/test_cleanup_validation_*.py \
       tests/contract/molmo_cleanup/test_molmo_mcp_smoke_shared_semantic_loop.py \
       tests/contract/dev_tools/test_verify_just_recipes.py
@@ -107,7 +107,7 @@ molmo-realworld-agent-dogfood-kit:
     set -euo pipefail
     {{standalone_pytest}} -q \
       tests/contract/molmo_cleanup/test_household_agent_server.py \
-      tests/contract/molmo_cleanup/test_household_mcp_server.py \
+      tests/contract/molmo_cleanup/test_household_mcp_server_*.py \
       tests/contract/checkers/test_cleanup_validation_*.py \
       tests/contract/dev_tools/test_verify_just_recipes.py
     just harness::molmo-realworld-agent-dogfood-kit
@@ -118,9 +118,9 @@ molmo-realworld-raw-fpv generated_mess_count="10":
     #!/usr/bin/env bash
     set -euo pipefail
     {{standalone_pytest}} -q \
-      tests/contract/molmo_cleanup/test_household_runtime_contract.py \
-      tests/contract/molmo_cleanup/test_household_mcp_server.py \
-      tests/contract/reports/test_molmo_cleanup_report.py \
+      tests/contract/molmo_cleanup/test_household_runtime_contract_*.py \
+      tests/contract/molmo_cleanup/test_household_mcp_server_*.py \
+      tests/contract/reports/test_molmo_cleanup_report_*.py \
       tests/contract/checkers/test_cleanup_validation_*.py \
       tests/contract/dev_tools/test_verify_just_recipes.py
     just harness::molmo-realworld-raw-fpv "7" "output/molmo-realworld-raw-fpv-harness" "帮我收拾这个房间" "{{generated_mess_count}}"
@@ -132,8 +132,8 @@ molmo-planner-proof-bundle-runner:
     set -euo pipefail
     {{standalone_pytest}} -q \
       tests/contract/dev_tools/test_verify_just_recipes.py \
-      tests/unit/scripts/test_run_molmo_planner_proof_bundle_from_requests.py \
-      tests/contract/checkers/test_check_molmo_planner_proof_bundle_runner_result.py
+      tests/unit/scripts/test_run_molmo_planner_proof_bundle_from_requests_*.py \
+      tests/contract/checkers/test_check_molmo_planner_proof_bundle_runner_result_*.py
     just harness::molmo-planner-proof-bundle-runner
 
 # ADR-0044 local-dev proof-bundle execution gate. Requires local CUDA and
@@ -143,8 +143,8 @@ molmo-planner-proof-bundle-execute-rerun:
     set -euo pipefail
     {{standalone_pytest}} -q \
       tests/contract/dev_tools/test_verify_just_recipes.py \
-      tests/unit/scripts/test_run_molmo_planner_proof_bundle_from_requests.py \
-      tests/contract/checkers/test_check_molmo_planner_proof_bundle_runner_result.py \
+      tests/unit/scripts/test_run_molmo_planner_proof_bundle_from_requests_*.py \
+      tests/contract/checkers/test_check_molmo_planner_proof_bundle_runner_result_*.py \
       tests/contract/checkers/test_cleanup_validation_*.py
     just harness::molmo-planner-proof-bundle-execute-rerun
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from roboclaws.household.household_backend_contract import HouseholdBackendSession
 from roboclaws.household.scenario import build_cleanup_scenario
-from tests.contract.molmo_cleanup.test_household_runtime_contract import (
+from tests.contract.molmo_cleanup.household_runtime_contract_support import (
     _confirm_world_label_detection,
     _contract,
     _first_detection_by_category,

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.household.household_runtime_contract import HouseholdRuntimeContract
-from roboclaws.household.semantic_timeline import robot_view_capture_for_tool
+from roboclaws.household.semantic_camera_timeline import robot_view_capture_for_tool
 
 
 def _call_tool(
