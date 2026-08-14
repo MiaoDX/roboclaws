@@ -6,7 +6,6 @@ import html
 import importlib.util
 import json
 import os
-import socket
 import threading
 import time
 import urllib.error
@@ -22,6 +21,7 @@ from typing import Any, Callable
 from roboclaws.agents.provider_registry import provider_readiness
 from roboclaws.evals.models import EVAL_RESULT_SCHEMA, MISSING_NOT_APPLICABLE
 from roboclaws.evals.reports import RESULTS_BUNDLE_SCHEMA
+from roboclaws.mcp.endpoint import free_mcp_port
 from roboclaws.operator_console.interactions import MESSAGE_LOG
 from roboclaws.operator_console.paths import OUTPUT_ROOT_ENV, console_output_root
 from roboclaws.operator_console.routes import ConsoleLaunchSelection, list_console_combinations
@@ -223,9 +223,7 @@ def _start_http_server(root: Path) -> ThreadingHTTPServer:
 
 
 def _free_port() -> str:
-    with socket.socket() as listener:
-        listener.bind(("127.0.0.1", 0))
-        return str(listener.getsockname()[1])
+    return str(free_mcp_port())
 
 
 def _session_live_route(provider_profile: str) -> ConsoleLaunchSelection | None:

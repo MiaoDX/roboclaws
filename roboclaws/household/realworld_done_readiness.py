@@ -32,13 +32,12 @@ from roboclaws.household.realworld_contract_fixture_projection import (
     _public_destination_policy_tool_for_fixture_category,
     _recommended_place_tool,
 )
+from roboclaws.household.realworld_visual_candidates import CLEANUP_ACTIONABLE_HANDLE_STATES
 from roboclaws.household.semantic_acceptability import public_source_requires_cleanup
 from roboclaws.household.visual_scan_guidance import visual_scan_done_recovery_hint
 
 DONE_READINESS_POLICY_RAW_FPV = "raw_fpv_grounded_cleanup_chains"
 DONE_READINESS_POLICY_EXPLICIT = "explicit_grounded_cleanup_chains"
-
-
 _required_tool_for_candidate_state = realworld_visual_candidates._required_tool_for_candidate_state
 
 
@@ -49,10 +48,30 @@ def pending_cleanup_candidates(contract: HouseholdRuntimeContract) -> list[dict[
     pending = []
     for item in worklist.get("objects", []):
         state = str(item.get("state") or "")
-        if state not in {"pending", "held"}:
+        if state not in CLEANUP_ACTIONABLE_HANDLE_STATES:
             continue
         if item.get("grounding_status") in {"ambiguous", "unresolved"}:
             continue
+        candidate_fixture_id = str(item.get("candidate_fixture_id") or "")
+        candidate = {
+            "object_id": str(item.get("object_id") or ""),
+            "category": str(item.get("category") or ""),
+            "state": state,
+            "source_fixture_id": str(item.get("source_fixture_id") or ""),
+            "candidate_fixture_id": candidate_fixture_id,
+            "candidate_state": str(item.get("candidate_state") or ""),
+            "source_waypoint_id": str(item.get("source_waypoint_id") or ""),
+            "generated_inspection_waypoint_id": str(
+                item.get("generated_inspection_waypoint_id") or ""
+            ),
+            "required_tool": (
+                "navigate_to_receptacle"
+                if state == "held"
+                else "pick"
+                if state == "navigating_to_object"
+                else _required_tool_for_candidate_state(str(item.get("candidate_state") or ""))
+            ),
+        }
         if contract.sanitize_world_labels:
             if state != "held" and not _public_source_requires_cleanup(contract, item):
                 continue
@@ -60,63 +79,31 @@ def pending_cleanup_candidates(contract: HouseholdRuntimeContract) -> list[dict[
                 contract,
                 item.get("destination_policy") or {},
             )
-            candidate_state = str(item.get("candidate_state") or "")
             if state != "held" and not destination_options:
                 continue
-            pending.append(
-                {
-                    "object_id": str(item.get("object_id") or ""),
-                    "category": str(item.get("category") or ""),
-                    "state": state,
-                    "source_fixture_id": str(item.get("source_fixture_id") or ""),
-                    "candidate_fixture_id": "",
-                    "candidate_state": candidate_state,
-                    "destination_policy_status": str(
-                        item.get("destination_policy_status") or "policy_required"
-                    ),
-                    "destination_policy": dict(item.get("destination_policy") or {}),
-                    "destination_options": destination_options,
-                    "source_waypoint_id": str(item.get("source_waypoint_id") or ""),
-                    "generated_inspection_waypoint_id": str(
-                        item.get("generated_inspection_waypoint_id") or ""
-                    ),
-                    "required_tool": "navigate_to_receptacle"
-                    if state == "held"
-                    else _required_tool_for_candidate_state(str(item.get("candidate_state") or "")),
-                }
+            candidate.update(
+                candidate_fixture_id="",
+                destination_policy_status=str(
+                    item.get("destination_policy_status") or "policy_required"
+                ),
+                destination_policy=dict(item.get("destination_policy") or {}),
+                destination_options=destination_options,
             )
-            continue
-        candidate_fixture_id = str(item.get("candidate_fixture_id") or "")
-        source_fixture_id = str(item.get("source_fixture_id") or "")
-        if state != "held" and item.get("cleanup_recommended") is not True:
-            continue
-        if not candidate_fixture_id or candidate_fixture_id == source_fixture_id:
-            continue
-        internal_candidate_fixture_id = (
-            contract.internal_fixture_id_for_public_reference(candidate_fixture_id)
-            or candidate_fixture_id
-        )
-        pending.append(
-            {
-                "object_id": str(item.get("object_id") or ""),
-                "category": str(item.get("category") or ""),
-                "state": state,
-                "source_fixture_id": source_fixture_id,
-                "candidate_fixture_id": candidate_fixture_id,
-                "candidate_state": str(item.get("candidate_state") or ""),
-                "source_waypoint_id": str(item.get("source_waypoint_id") or ""),
-                "generated_inspection_waypoint_id": str(
-                    item.get("generated_inspection_waypoint_id") or ""
-                ),
-                "required_tool": "navigate_to_receptacle"
-                if state == "held"
-                else _required_tool_for_candidate_state(str(item.get("candidate_state") or "")),
-                "recommended_tool": _recommended_place_tool(
-                    internal_candidate_fixture_id,
-                    contract._fixtures,
-                ),
-            }
-        )
+        else:
+            source_fixture_id = candidate["source_fixture_id"]
+            if state != "held" and item.get("cleanup_recommended") is not True:
+                continue
+            if not candidate_fixture_id or candidate_fixture_id == source_fixture_id:
+                continue
+            internal_candidate_fixture_id = (
+                contract.internal_fixture_id_for_public_reference(candidate_fixture_id)
+                or candidate_fixture_id
+            )
+            candidate["recommended_tool"] = _recommended_place_tool(
+                internal_candidate_fixture_id,
+                contract._fixtures,
+            )
+        pending.append(candidate)
     return pending
 
 

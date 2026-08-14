@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from roboclaws.operator_console import runtime_host_probes
+from roboclaws.mcp.endpoint import DEFAULT_MCP_PORT
 from roboclaws.operator_console.runtime_blocker_policy import runtime_blockers_from_inventory
 from roboclaws.operator_console.runtime_host_probes import _dedupe_ints, _host_probe_enabled
 from roboclaws.operator_console.runtime_inventory_sources import (
@@ -32,7 +32,7 @@ def runtime_inventory_payload(
     """Return a redacted inventory of repo-relevant local background tasks."""
 
     root = root.resolve()
-    port_list = _dedupe_ints([runtime_host_probes.DEFAULT_MCP_PORT] if ports is None else ports)
+    port_list = _dedupe_ints([DEFAULT_MCP_PORT] if ports is None else ports)
     tasks: list[dict[str, Any]] = []
     tasks.extend(_operator_console_tasks(root, include_recent_terminal=include_recent_terminal))
     tasks.extend(_eval_harness_tasks(root, include_recent_terminal=include_recent_terminal))

@@ -5,11 +5,10 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from roboclaws.mcp.endpoint import DEFAULT_MCP_HOST, DEFAULT_MCP_PORT
+from roboclaws.operator_console.launch_contract import ConsoleLaunchError
 from roboclaws.operator_console.routes import ConsoleLaunchSelection
 from roboclaws.operator_console.runtime_host_probes import (
-    DEFAULT_MCP_HOST,
-    DEFAULT_MCP_PORT,
-    _parse_port,
     _same_host,
 )
 from roboclaws.operator_console.runtime_task_model import _summary, _task_can_block
@@ -36,7 +35,14 @@ def runtime_blockers_from_inventory(inventory: dict[str, Any]) -> dict[str, Any]
 def requested_mcp_endpoint(overrides: dict[str, str] | None = None) -> tuple[str, int]:
     overrides = overrides or {}
     host = str(overrides.get("host") or DEFAULT_MCP_HOST).strip() or DEFAULT_MCP_HOST
-    return host, _parse_port(str(overrides.get("port") or DEFAULT_MCP_PORT))
+    raw_port = str(overrides.get("port") or DEFAULT_MCP_PORT)
+    try:
+        port = int(raw_port.strip())
+    except ValueError as exc:
+        raise ConsoleLaunchError(f"invalid MCP port: {raw_port}") from exc
+    if not 1 <= port <= 65535:
+        raise ConsoleLaunchError(f"invalid MCP port: {raw_port}")
+    return host, port
 
 
 def blocking_tasks_for_route(
