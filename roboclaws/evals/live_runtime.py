@@ -405,6 +405,11 @@ def live_surface_env(kwargs: dict[str, Any], *, base_env: Any) -> dict[str, str]
     env["ROBOCLAWS_EVAL_MODEL_VISIBLE_TOOL_SURFACE"] = json.dumps(
         list(kwargs.get("model_visible_tool_surface") or ()), separators=(",", ":")
     )
+    telemetry_identity = kwargs.get("telemetry_identity")
+    if telemetry_identity:
+        env["ROBOCLAWS_EVAL_TELEMETRY_IDENTITY"] = json.dumps(
+            telemetry_identity, separators=(",", ":"), sort_keys=True
+        )
     skill_source_root = str(kwargs.get("skill_source_root") or "")
     if skill_source_root:
         env["ROBOCLAWS_EVAL_SKILL_SOURCE_ROOT"] = skill_source_root

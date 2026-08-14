@@ -70,12 +70,17 @@ python -m roboclaws.agents.live_status_cli [run-dir]
 just agent::eval recommend plan=docs/plans/example.md budget=focused
 just agent::eval execute since=origin/main budget=focused
 just agent::eval suite=smoke_regression budget=smoke
+just agent::eval phoenix-project suite=smoke_regression [eval_results=<path>] [endpoint=http://127.0.0.1:6006] [output=<path>]
 just agent::verify
 ```
 
 `agent::eval` records selected, skipped, failed, and blocked rows under
 `output/eval-harness/`. Live execution remains explicit through
 `live_execution=run`.
+
+`phoenix-project` is a read-only maintainer projection of a repo suite and an
+optional existing `eval_results.json`. Without `endpoint` it writes a disabled
+local mapping; an endpoint must be a loopback Phoenix HTTP origin.
 
 ## Specialist Package CLIs
 

@@ -63,6 +63,10 @@ def run_cli_tool(mode: str, overrides: dict[str, str]) -> dict[str, object]:
         from roboclaws.evals.evolution_control import run_evolution_command
 
         return run_evolution_command(mode, overrides, suite_runner=run_eval_suite)
+    if mode == "phoenix-project":
+        from roboclaws.evals.phoenix_projection import project_eval_to_phoenix
+
+        return project_eval_to_phoenix(overrides)
     if mode == "promote-regression":
         return promote_regression_from_cli_overrides(overrides)
     if mode == "map-build-report":

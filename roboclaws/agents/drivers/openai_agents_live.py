@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import time
+from contextlib import nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -42,8 +44,15 @@ from roboclaws.agents.drivers.openai_agents_spans import (
     RoboclawsSpanRecorder,
     append_span_limitation,
 )
+from roboclaws.agents.experiment_telemetry import (
+    SDK_TELEMETRY_RUNTIME,
+    BoundTraceSink,
+    CompositeTraceSink,
+    TelemetryState,
+)
 from roboclaws.agents.live_runtime import LiveAgentRequest, LiveAgentResult
 from roboclaws.agents.live_status import LiveAgentFailure
+from roboclaws.agents.phoenix_telemetry import create_local_phoenix_telemetry_adapter
 
 
 class OpenAIAgentsLiveRuntime:
@@ -65,6 +74,9 @@ class OpenAIAgentsLiveRuntime:
             "openai-agents-skill-context.json",
         )
         status_path = request.artifact_path("live_status", "live_status.json")
+        prompt_identity_path = request.artifact_path("prompt_identity", "prompt-identity.json")
+        if request.prompt_identity is not None:
+            _write_prompt_identity(prompt_identity_path, request.prompt_identity.projection())
 
         try:
             result = _run_openai_agents(
@@ -93,6 +105,7 @@ class OpenAIAgentsLiveRuntime:
                         "openai_agents_events": events_path,
                         "openai_agents_spans": spans_path,
                         "openai_agents_skill_context": skill_context_path,
+                        "prompt_identity": prompt_identity_path,
                         "live_status": status_path,
                     },
                 )
@@ -117,6 +130,7 @@ class OpenAIAgentsLiveRuntime:
                     "openai_agents_events": events_path,
                     "openai_agents_spans": spans_path,
                     "openai_agents_skill_context": skill_context_path,
+                    "prompt_identity": prompt_identity_path,
                     "live_status": status_path,
                 },
             )
@@ -134,6 +148,7 @@ class OpenAIAgentsLiveRuntime:
                     "openai_agents_events": events_path,
                     "openai_agents_spans": spans_path,
                     "openai_agents_skill_context": skill_context_path,
+                    "prompt_identity": prompt_identity_path,
                     "live_status": status_path,
                 },
             )
@@ -155,6 +170,7 @@ class OpenAIAgentsLiveRuntime:
             "openai_agents_trace": trace_path,
             "openai_agents_spans": spans_path,
             "openai_agents_skill_context": skill_context_path,
+            "prompt_identity": prompt_identity_path,
             "live_status": status_path,
         }
         if run_result_path.exists():
@@ -177,6 +193,16 @@ class OpenAIAgentsLiveRuntime:
         return normalized
 
 
+def _write_prompt_identity(path: Path, projection: dict[str, str]) -> None:
+    payload = {"schema": "roboclaws_prompt_identity_v1", **projection}
+    if path.exists():
+        existing = json.loads(path.read_text(encoding="utf-8"))
+        if existing != payload:
+            raise ValueError("prompt identity conflicts with the existing run artifact")
+        return
+    _write_json(path, payload)
+
+
 def _run_openai_agents(
     request: LiveAgentRequest,
     *,
@@ -189,11 +215,6 @@ def _run_openai_agents(
         from agents.mcp import MCPServerStreamableHttp  # type: ignore[import-not-found]
     except ImportError:
         raise
-    try:
-        from agents import add_trace_processor, flush_traces  # type: ignore[import-not-found]
-    except ImportError:
-        add_trace_processor = None
-        flush_traces = None
 
     agent_cls = Agent
     if _is_sandbox_skills_request(request):
@@ -223,59 +244,109 @@ def _run_openai_agents(
         },
     )
     span_processor = RoboclawsSpanRecorder(spans_path, runtime_config=parts.runtime_config)
-    if add_trace_processor is None:
+    try:
+        SDK_TELEMETRY_RUNTIME.initialize()
+    except Exception as exc:
         append_span_limitation(
             spans_path,
             runtime_config=parts.runtime_config,
-            reason="sdk_trace_processor_api_unavailable",
+            reason="sdk_trace_processor_registration_failed",
+            exc=exc,
         )
         span_processor = None
-    else:
-        try:
-            add_trace_processor(span_processor)
-        except Exception as exc:
-            append_span_limitation(
-                spans_path,
-                runtime_config=parts.runtime_config,
-                reason="sdk_trace_processor_registration_failed",
-                exc=exc,
-            )
-            span_processor = None
 
+    phoenix_processor = None
     try:
-        if hasattr(parts.server, "__aenter__"):
-            return _run_with_async_mcp_server(
-                parts.server,
-                parts.agent,
-                request,
+        telemetry_identity = request.metadata.get("telemetry_identity")
+        if not isinstance(telemetry_identity, dict):
+            telemetry_identity = {}
+        phoenix_processor = create_local_phoenix_telemetry_adapter(
+            identity={
+                **telemetry_identity,
+                "run_id": request.run_id,
+                "agent_engine": "openai-agents-sdk",
+                "provider_profile": request.provider_profile,
+            }
+        )
+    except Exception as exc:
+        append_span_limitation(
+            spans_path,
+            runtime_config=parts.runtime_config,
+            reason="phoenix_telemetry_initialization_failed",
+            exc=exc,
+        )
+
+    sinks = tuple(sink for sink in (span_processor, phoenix_processor) if sink is not None)
+    trace_sink = CompositeTraceSink(*sinks) if len(sinks) > 1 else (sinks[0] if sinks else None)
+    bound_sink = BoundTraceSink(SDK_TELEMETRY_RUNTIME, trace_sink) if trace_sink else None
+    try:
+        with bound_sink if bound_sink is not None else nullcontext():
+            if hasattr(parts.server, "__aenter__"):
+                return _run_with_async_mcp_server(
+                    parts.server,
+                    parts.agent,
+                    request,
+                    events_path,
+                    run_config=parts.run_config,
+                )
+            runner_kwargs: dict[str, Any] = {"max_turns": _max_turns(request)}
+            runner_kwargs["run_config"] = parts.run_config
+            result = Runner.run_sync(parts.agent, request.kickoff_prompt, **runner_kwargs)
+            _append_event(
                 events_path,
-                run_config=parts.run_config,
+                {
+                    "event": "result",
+                    "ts_epoch": time.time(),
+                    "summary": _summarize_sdk_result(result),
+                },
             )
-        runner_kwargs: dict[str, Any] = {"max_turns": _max_turns(request)}
-        runner_kwargs["run_config"] = parts.run_config
-        result = Runner.run_sync(parts.agent, request.kickoff_prompt, **runner_kwargs)
+            return result
+    finally:
+        if bound_sink is not None:
+            _record_trace_lifecycle_status(events_path, bound_sink)
+        if phoenix_processor is not None:
+            _record_phoenix_status(events_path, phoenix_processor.shutdown())
+
+
+def _record_trace_lifecycle_status(events_path: Path, binding: BoundTraceSink) -> None:
+    for operation, status in (
+        ("flush", binding.flush_status),
+        ("shutdown", binding.shutdown_status),
+    ):
+        if status.state is TelemetryState.READY:
+            continue
+        try:
+            _append_event(
+                events_path,
+                {
+                    "event": "trace_lifecycle_degraded",
+                    "ts_epoch": time.time(),
+                    "operation": operation,
+                    "state": status.state.value,
+                    "dropped": status.dropped,
+                    "failed": status.failed,
+                },
+            )
+        except Exception:
+            # Telemetry failure reporting must not replace the product outcome.
+            pass
+
+
+def _record_phoenix_status(events_path: Path, status: Any) -> None:
+    try:
         _append_event(
             events_path,
-            {"event": "result", "ts_epoch": time.time(), "summary": _summarize_sdk_result(result)},
+            {
+                "event": "phoenix_telemetry_status",
+                "ts_epoch": time.time(),
+                "state": status.state.value,
+                "exported": status.exported,
+                "dropped": status.dropped,
+                "failed": status.failed,
+            },
         )
-        return result
-    finally:
-        if flush_traces is not None:
-            try:
-                flush_traces()
-            except Exception as exc:
-                _append_event(
-                    events_path,
-                    {
-                        "event": "trace_flush_error",
-                        "ts_epoch": time.time(),
-                        "error_type": exc.__class__.__name__,
-                        "message": str(exc),
-                    },
-                )
-        if span_processor is not None:
-            span_processor.force_flush()
-            span_processor.shutdown()
+    except Exception:
+        pass
 
 
 @dataclass(frozen=True)

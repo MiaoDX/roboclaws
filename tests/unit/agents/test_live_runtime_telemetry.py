@@ -17,11 +17,89 @@ from roboclaws.agents.household_live_lifecycle import LiveOpenAIAgentsHouseholdR
 from roboclaws.agents.household_live_runner import (
     parse_args as _parse_live_openai_agents_args,
 )
+from roboclaws.agents.live_runtime import live_agent_result_from_artifacts
 from roboclaws.agents.live_timing import live_timing_timeline as _live_timing_timeline
 from roboclaws.agents.live_timing import mcp_control_plane_metrics as _mcp_control_plane_metrics
+from roboclaws.agents.phoenix_telemetry import (
+    DeterministicProjectionProcessor,
+    ProjectionProcessorConfig,
+)
 from tests.unit.agents.live_runtime_support import (
     _isolated_repo_root,
 )
+
+
+@pytest.mark.parametrize("telemetry_state", ["disabled", "connection-refused", "timeout"])
+def test_recorded_robot_shaped_no_movement_run_keeps_local_product_evidence(
+    tmp_path: Path,
+    telemetry_state: str,
+) -> None:
+    run_dir = tmp_path / telemetry_state
+    run_dir.mkdir()
+    canonical_result = {
+        "task_name": "real-robot-readiness",
+        "cleanup_success": True,
+        "movement_authorized": False,
+        "control_path": ["readiness", "observe", "stop"],
+    }
+    (run_dir / "run_result.json").write_text(
+        json.dumps(canonical_result, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    (run_dir / "live_status.json").write_text(
+        json.dumps({"phase": "finished", "exit_status": 0}) + "\n",
+        encoding="utf-8",
+    )
+    before = (run_dir / "run_result.json").read_bytes()
+
+    telemetry_status = "disabled"
+    if telemetry_state != "disabled":
+        failure = (
+            ConnectionRefusedError("collector unavailable")
+            if telemetry_state == "connection-refused"
+            else TimeoutError("collector timeout")
+        )
+
+        def fail_export(payload: bytes) -> None:
+            del payload
+            raise failure
+
+        processor = DeterministicProjectionProcessor(
+            fail_export,
+            identity={"run_id": "recorded-real-robot-no-movement"},
+            config=ProjectionProcessorConfig(terminal_flush_s=0.05),
+        )
+
+        class RecordedData:
+            type = "agent"
+
+            @staticmethod
+            def export() -> dict[str, str]:
+                return {"type": "agent", "name": "readiness-observe"}
+
+        class RecordedSpan:
+            trace_id = "trace-recorded"
+            span_id = "readiness-observe"
+            parent_id = ""
+            span_data = RecordedData()
+
+        processor.on_span_end(RecordedSpan())
+        status = processor.shutdown()
+        assert status.failed == 1
+        telemetry_status = status.state.value
+
+    result = live_agent_result_from_artifacts(run_dir)
+    assert telemetry_status in {"disabled", "degraded"}
+    assert (run_dir / "run_result.json").read_bytes() == before
+    assert result.phase == "finished"
+    assert result.exit_status == 0
+    assert result.run_result_present is True
+    assert result.task_completion == {
+        "task_name": "real-robot-readiness",
+        "cleanup_success": True,
+    }
+    assert canonical_result["movement_authorized"] is False
+    assert "move" not in canonical_result["control_path"]
 
 
 @pytest.mark.parametrize(
@@ -38,10 +116,18 @@ from tests.unit.agents.live_runtime_support import (
 )
 def test_openai_agents_live_timing_fails_aloud_on_malformed_mcp_timing_source(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
     source_name: str,
     source_text: str,
     expected_detail: str,
 ) -> None:
+    monkeypatch.setattr(
+        "roboclaws.agents.household_live_config._source_git_sha", lambda _root: "a" * 40
+    )
+    monkeypatch.setattr(
+        "roboclaws.agents.household_live_lifecycle._load_agent_sdk_skill_context",
+        lambda *_args, **_kwargs: {"sha256": "b" * 64},
+    )
     run_dir = tmp_path / "run"
     run_dir.mkdir()
     args = _parse_live_openai_agents_args(
@@ -79,6 +165,11 @@ def test_openai_agents_live_timing_fails_aloud_on_malformed_mcp_timing_source(
         ]
     )
     runner = LiveOpenAIAgentsHouseholdRunner(args)
+    initial = runner._sdk_request(prompt=runner.initial_kickoff_prompt, attempt_index=0)
+    continuation = runner._sdk_request(prompt="PRIVATE CONTINUATION BODY", attempt_index=1)
+    assert initial.prompt_identity is runner.prompt_identity
+    assert continuation.prompt_identity is runner.prompt_identity
+    assert initial.metadata["telemetry_identity"] == continuation.metadata["telemetry_identity"]
     (run_dir / source_name).write_text(source_text, encoding="utf-8")
 
     source_error = runner._write_live_timing("finished", 0)

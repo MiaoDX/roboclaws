@@ -11,6 +11,7 @@ _TOOL_MODES = {
     "evolve",
     "evolve-promote",
     "map-build-report",
+    "phoenix-project",
     "promote-regression",
     "runtime-prior-promote",
     "runtime-prior-select",

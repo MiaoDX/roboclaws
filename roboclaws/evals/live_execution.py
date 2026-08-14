@@ -117,22 +117,32 @@ def run_live_eval_trial(
             return hooks.failed_result_from_dependency(trial, run_dir, failure)
 
         def run_attempt(attempt_run_dir: Path) -> tuple[dict[str, Any], Path]:
-            result = live_product_runner(
-                **live_product_run_kwargs(
-                    sample,
-                    run_dir=attempt_run_dir,
-                    budget=budget,
-                    dependency_artifacts=dependency_artifacts,
-                    agent_engine=agent_engine,
-                    provider_profile=provider_profile,
-                    model=model,
-                    live_timeout_s=live_timeout_s,
-                    live_stall_timeout_s=live_stall_timeout_s,
-                    skill_delivery_cell=skill_delivery_cell,
-                    model_visible_tool_surface=trial.tool_surface,
-                    skill_source_root=skill_source_root,
-                )
+            run_kwargs = live_product_run_kwargs(
+                sample,
+                run_dir=attempt_run_dir,
+                budget=budget,
+                dependency_artifacts=dependency_artifacts,
+                agent_engine=agent_engine,
+                provider_profile=provider_profile,
+                model=model,
+                live_timeout_s=live_timeout_s,
+                live_stall_timeout_s=live_stall_timeout_s,
+                skill_delivery_cell=skill_delivery_cell,
+                model_visible_tool_surface=trial.tool_surface,
+                skill_source_root=skill_source_root,
             )
+            run_kwargs["telemetry_identity"] = {
+                "suite_id": trial.suite_id,
+                "suite_version": trial.suite_version,
+                "sample_id": trial.sample_id,
+                "trial_id": trial.trial_id,
+                "repetition": trial.repetition_index,
+                "surface": trial.surface,
+                "world": trial.world,
+                "backend": trial.backend,
+                "intent": trial.intent,
+            }
+            result = live_product_runner(**run_kwargs)
             return result, _live_eval_effective_run_dir(result, trial_run_dir=attempt_run_dir)
 
         run_result, effective_run_dir = run_with_model_call_stall_retry(
