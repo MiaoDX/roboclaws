@@ -36,7 +36,7 @@ from roboclaws.evals.models import (
 )
 from roboclaws.evals.suite_loading import REPO_ROOT
 from roboclaws.household.household_backend_contract import SYNTHETIC_BACKEND
-from roboclaws.mcp.profiles import (
+from roboclaws.household.realworld_contract_payloads import (
     HOUSEHOLD_EPISODE_PROFILE,
     HOUSEHOLD_MANIPULATION_PROFILE,
     HOUSEHOLD_WORLD_PROFILE,

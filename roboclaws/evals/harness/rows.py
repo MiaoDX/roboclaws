@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.agents.skill_delivery import build_skill_delivery
-from roboclaws.mcp.profiles import (
+from roboclaws.household.realworld_contract_payloads import (
     HOUSEHOLD_EPISODE_PROFILE,
     HOUSEHOLD_MANIPULATION_PROFILE,
     HOUSEHOLD_WORLD_PROFILE,

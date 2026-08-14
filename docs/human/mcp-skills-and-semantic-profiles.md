@@ -106,6 +106,21 @@ MCP is different: it is the public robot capability boundary. A skill can call
 many MCP tools, but the skill itself is not automatically a robot capability
 claim.
 
+Eval Evolution may optimize existing MCP descriptions or bounded public
+response projections, but it does not let candidates change the public tool
+set. Description candidates may change only allowlisted summaries while tool
+identity, classification, provenance, and ordering remain frozen. Behavior
+candidates are materialized by digest, checked without importing or executing
+candidate Python on the trusted host, and run only in the dedicated isolated
+worker after a campaign-bound attestation passes.
+
+The trusted MCP server creates the baseline-public projection before the
+candidate boundary. The candidate receives one sanitized JSON request and
+returns one validated JSON response; it never receives raw world state,
+provider credentials, eval/checker code, holdout data, or durable output access.
+Candidate failure fails the call closed. There is no same-process or trusted-host
+fallback, and promotion remains a separate human-approved operation.
+
 A **trace-preserving skill routine** is the preferred first shape for repeated
 composition. It can use scripts, evals, structured output, and explicit recovery
 while still leaving MCP bounded to public capabilities. If a routine is later

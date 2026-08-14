@@ -96,6 +96,7 @@ def test_materializes_full_snapshot_and_freezes_identity(
     )
     assert skill.read_text(encoding="utf-8").endswith("Original.\n")
     assert record["identity_frozen"] is True
+    assert Path(record["workspace"]).is_absolute()
     assert (
         materialize_skill_candidate(
             campaign, patch=patch, output_root=tmp_path / "output", repo_root=repo

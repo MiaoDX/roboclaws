@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-04
+Last updated: 2026-08-05
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -10,14 +10,21 @@ leave a link.
 
 ## Current Focus
 
-Eval Evolution Phase 0 is complete under
-`docs/plans/2026-08-04-eval-evolution-agent-sdk.md`. The accepted contracts bind
-both optimizer and robot roles to OpenAI Agents SDK, keep optimizer-visible
-feedback sanitized, freeze campaign/candidate identity, require sealed holdout
-and human promotion, and expose blocked-by-default `just agent::eval
-evolve|evolve-promote` commands. Phase 1 is the current Skill vertical slice.
-Codex CLI remains outside the implementation, and MCP behavior candidates
-remain barred from live execution until Phase 3 malicious isolation passes.
+Eval Evolution Phases 0-4 are complete under
+`docs/plans/2026-08-04-eval-evolution-agent-sdk.md`. Optimizer and robot roles
+use OpenAI Agents SDK, feedback is sanitized, campaign/candidate identity is
+frozen, holdout is sealed, and promotion is human-only. Skill, MCP-description,
+and isolated existing-tool response-projection candidates are available through
+the blocked-by-default `just agent::eval evolve|evolve-promote` facade. Codex
+CLI remains outside the implementation.
+
+Final proof includes local and CloudML candidate-isolation denial, an equivalent
+paired baseline/candidate product smoke, and the diff-selected live matrix at
+`output/eval-harness/20260805T101810Z/`. The live session row passed. Across the
+five cleanup delivery rows, `static-full`, `no-skill`, `dynamic-routed`, and
+`sandbox-skills` each passed 1/3 while `dynamic-full` passed 0/3. Every failed
+trial reached the product checker; none was a provider, network, or harness
+failure. No candidate was promoted and no default or durable baseline changed.
 
 The post-refactor Skill delivery comparison is terminal at
 `output/eval-harness/20260804T121407Z/`. It tested five cells with the kickoff
@@ -81,24 +88,15 @@ providers.
 
 ## Next Action
 
-Implement Phase 2's MCP description-only evolution slice. Keep MCP behavior
-candidate live execution blocked until Phase 3 malicious isolation passes.
-
-The local Phase 3 isolation contract is proven by
-`output/eval-harness/20260804T121407Z/preflight/sandbox-isolation-sanitized.json`
-and the Sandbox boundary tests. The required remote placement is blocked:
-CloudML has no Docker-capable worker, so MCP behavior live execution remains
-disabled. Phase 4 may run description-only deterministic/live proof when its
-provider preflight is available; it must not substitute behavior execution.
+Keep the product default unchanged. A reviewed multi-scene `no-skill` versus
+`static-full` confirmation is still required before changing Skill delivery or
+publishing a durable eval baseline. Eval Evolution itself is available for new
+bounded campaigns through the blocked-by-default maintainer facade.
 
 ## Current Blockers
 
 - Eval baseline publication remains blocked until a new full candidate replaces
   the invalid `20260803T023049Z` evidence and receives human confirmation.
-- CloudML still cannot host the Docker-backed Sandbox row because its current
-  worker has no Docker runtime. Local restricted Sandbox evaluation is proven;
-  enabling a CloudML sandbox backend or worker image remains a runtime/cost
-  decision.
 - Agibot and B1 injected dependency readiness passes with the existing local SDK, Map 12 bundle,
   B1 scene, and alignment/navigation proofs. Real-robot movement remains unauthorized and requires
   a present operator plus the existing localization, run-enablement, and E-stop gates.

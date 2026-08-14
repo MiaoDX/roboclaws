@@ -203,15 +203,24 @@ def run_optimizer_agent(
             "provider_profile": settings["provider_profile"],
         },
     )
-    try:
-        result = Runner.run_sync(
-            agent,
-            "Read the bounded inputs and submit one candidate.",
-            max_turns=_sdk_turn_budget(campaign),
-            run_config=run_config,
-        )
-    finally:
-        asyncio.run(client.close())
+
+    async def run_with_timeout() -> Any:
+        try:
+            return await asyncio.wait_for(
+                Runner.run(
+                    agent,
+                    "Read the bounded inputs and submit one candidate.",
+                    max_turns=_sdk_turn_budget(campaign),
+                    run_config=run_config,
+                ),
+                timeout=float(campaign.budgets["timeout_s"]),
+            )
+        except asyncio.TimeoutError as exc:
+            raise TimeoutError("optimizer provider call exceeded campaign timeout_s") from exc
+        finally:
+            await client.close()
+
+    result = asyncio.run(run_with_timeout())
     if not proposal:
         raise ValueError("optimizer completed without submitting a candidate")
     return OptimizerOutcome(

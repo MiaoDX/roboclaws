@@ -11,6 +11,9 @@ from mcp.server.fastmcp import Image as MCPImage
 from roboclaws.core.operator_messages import pending_operator_message_hint
 from roboclaws.core.raw_fpv_guidance import raw_fpv_inline_candidate_instruction
 from roboclaws.household import agent_view as agent_view_module
+from roboclaws.household.candidate_projection_protocol import (
+    project_candidate_public_response,
+)
 from roboclaws.household.household_mcp_projection import (
     _compact_declare_visual_candidates_response,
     _compact_raw_fpv_mcp_observe_state,
@@ -97,6 +100,7 @@ class HouseholdMCPArtifactLifecycle:
             )
         if tool == "declare_visual_candidates" and augmented.get("ok"):
             augmented = _compact_declare_visual_candidates_response(augmented)
+            augmented = project_candidate_public_response("declare_visual_candidates", augmented)
             augmented["instruction"] = (
                 "For the first returned candidate with candidate_state=navigation_authorized, "
                 "call navigate_to_object with its public object_id."
@@ -261,11 +265,12 @@ class HouseholdMCPArtifactLifecycle:
             resolved = self.run_dir / resolved
         if not resolved.is_file():
             return response
+        compact_state = _compact_raw_fpv_mcp_observe_state(
+            response,
+            cleanup_worklist=self.contract.cleanup_worklist_payload(),
+        )
         state_text = json.dumps(
-            _compact_raw_fpv_mcp_observe_state(
-                response,
-                cleanup_worklist=self.contract.cleanup_worklist_payload(),
-            ),
+            project_candidate_public_response("raw_fpv_observe_state", compact_state),
             sort_keys=True,
         )
         return [state_text, MCPImage(data=resolved.read_bytes(), format="png")]
