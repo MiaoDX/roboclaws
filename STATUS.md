@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-05
+Last updated: 2026-08-11
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -9,6 +9,30 @@ orientation, move it to plans, ADRs, retrospectives, or `docs/human/**` and
 leave a link.
 
 ## Current Focus
+
+Phoenix information architecture simplification is implemented under
+`docs/plans/2026-08-10-phoenix-information-architecture-simplification.md`.
+Future traces route only to `roboclaws-runtime` or `roboclaws-eval`; arbitrary
+Project selection is removed. Eval projection names Datasets by stable suite
+task, keeps suite version and content identity in metadata, and binds every
+Experiment to one exact immutable Dataset version. Public sample changes require
+a suite-version bump plus an explicit local Phoenix rebuild and reprojection
+because Phoenix 11.20 cannot modify or remove snapshot examples. Heterogeneous
+bundles split into readable homogeneous Experiments, and unchanged Experiments,
+runs, and evaluations reuse full immutable identity.
+
+Focused tests, the full repo verification gate, and two consecutive projections
+against a fresh task-owned Phoenix 11.20 service pass. Live Kimi evidence
+exported a normal runtime trace and three serial EvalTrial traces with ready
+telemetry and no drops or failures; Phoenix's built-in `default` Project has
+zero spans. The standalone product attempt reached `agent_done` but failed an
+existing cleanup checker on post-place observation coverage. The eval bundle
+completed `2/3`. The permanent local Phoenix store has now been rebuilt and the
+existing baseline artifacts reprojected without rerunning providers: its API
+contains six task-only Datasets, eight Experiments, and 32 Runs; eight ready v3
+mappings record 151 Evaluations.
+
+## Previous Focus
 
 The reviewed multi-scene Skill-delivery probe is complete at
 `output/eval-probes/20260805-skill-delivery-multiscene/`. It paired
@@ -22,8 +46,6 @@ the product default remains unchanged and no baseline/catalog was published.
 
 See `docs/status/active/skill-delivery-multiscene-probe.md` for the paired table
 and evidence paths.
-
-## Previous Focus
 
 Eval Evolution Phases 0-4 are complete under
 `docs/plans/2026-08-04-eval-evolution-agent-sdk.md`. Optimizer and robot roles
@@ -103,10 +125,9 @@ providers.
 
 ## Next Action
 
-Keep the product default unchanged. A reviewed multi-scene `no-skill` versus
-`static-full` confirmation is still required before changing Skill delivery or
-publishing a durable eval baseline. Eval Evolution itself is available for new
-bounded campaigns through the blocked-by-default maintainer facade.
+Keep the product Skill-delivery default unchanged; its separate multi-scene
+confirmation requirement still applies. Phoenix information architecture has
+no remaining implementation or verification action.
 
 ## Current Blockers
 

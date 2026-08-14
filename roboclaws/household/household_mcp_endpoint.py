@@ -1,4 +1,4 @@
-"""Canonical local MCP endpoint defaults and ephemeral-port allocation."""
+"""Canonical local household MCP endpoint defaults and ephemeral-port allocation."""
 
 from __future__ import annotations
 

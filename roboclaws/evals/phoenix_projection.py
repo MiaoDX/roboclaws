@@ -15,8 +15,29 @@ from roboclaws.core.json_sources import read_json_object
 from roboclaws.evals.models import EvalResult
 from roboclaws.evals.suite_loading import REPO_ROOT, load_suite, path_token
 
-MAPPING_SCHEMA = "roboclaws_phoenix_eval_projection_v1"
+MAPPING_SCHEMA = "roboclaws_phoenix_eval_projection_v3"
 DEFAULT_OUTPUT_ROOT = REPO_ROOT / "output" / "evals" / "phoenix-projection"
+MISSING_CONFIGURATION_VALUE = "missing"
+CONFIGURATION_FIELDS = (
+    "agent_engine",
+    "provider_profile",
+    "model",
+    "skill_name",
+    "prompt_source_git_sha",
+    "prompt_skill_sha256",
+)
+
+
+class TaskDatasetContentMismatch(ValueError):
+    """The task Dataset does not contain the requested immutable suite release."""
+
+
+class ExactDatasetVersionNotFound(ValueError):
+    """No Phoenix Dataset version has the expected public sample content."""
+
+
+class TaskDatasetHistoryMismatch(ValueError):
+    """A task Dataset has unsupported append history in Phoenix 11.20."""
 
 
 def project_eval_to_phoenix(overrides: dict[str, str]) -> dict[str, object]:
@@ -60,7 +81,7 @@ def project_eval_to_phoenix(overrides: dict[str, str]) -> dict[str, object]:
             "dataset_digest": dataset_digest,
         },
         "dataset": None,
-        "experiment": None,
+        "experiments": [],
         "examples": [],
         "runs": [],
         "evaluations": [],
@@ -133,18 +154,28 @@ def _project(
     results: list[tuple[EvalResult, dict[str, str]]],
     projection_time: str,
 ) -> dict[str, object]:
-    dataset_name = f"roboclaws-{path_token(suite_id)}-{dataset_digest[:16]}"
+    dataset_name = _dataset_name(suite_id)
     dataset_query = urlencode({"name": dataset_name, "limit": 100})
     dataset = _find_named(_data(http.json("GET", f"/v1/datasets?{dataset_query}")), dataset_name)
     if dataset is None:
         uploaded = _mapping(_data(http.upload_dataset(name=dataset_name, rows=public_samples)))
         dataset = {"id": uploaded.get("dataset_id"), "name": dataset_name}
     dataset_id = _id(dataset, "dataset")
-    examples_payload = _mapping(_data(http.json("GET", f"/v1/datasets/{dataset_id}/examples")))
+    examples_digest = _public_examples_digest(public_samples)
+    try:
+        dataset_version_id, examples_payload = _resolve_dataset_version(
+            http,
+            dataset_id=dataset_id,
+            expected_examples_digest=examples_digest,
+        )
+    except ExactDatasetVersionNotFound as exc:
+        raise TaskDatasetContentMismatch(
+            f"task Dataset {dataset_name!r} does not contain eval suite version "
+            f"{suite_version!r}; bump the suite version, rebuild the local Phoenix data, "
+            "and reproject canonical artifacts"
+        ) from exc
     examples = _list_of_mappings(examples_payload.get("examples"), "dataset examples")
-    example_by_sample = {
-        str(_mapping(item.get("input")).get("sample_id") or ""): item for item in examples
-    }
+    example_by_sample = _examples_by_sample(examples)
     example_mappings = [
         _example_mapping(http.endpoint, dataset_id, row, example_by_sample)
         for row in public_samples
@@ -152,78 +183,316 @@ def _project(
     projection: dict[str, object] = {
         "dataset": {
             "name": dataset_name,
+            "digest": dataset_digest,
+            "examples_digest": examples_digest,
             "phoenix_id": dataset_id,
+            "version_id": dataset_version_id,
             "url": f"{http.endpoint}/datasets/{dataset_id}",
         },
         "examples": example_mappings,
-        "experiment": None,
+        "experiments": [],
         "runs": [],
         "evaluations": [],
     }
     if not results:
         return projection
-
-    experiment_digest = _digest_json([identity for _result, identity in results])
-    experiment_name = f"roboclaws-{suite_version}-{experiment_digest[:16]}"
-    experiments = _data(http.json("GET", f"/v1/datasets/{dataset_id}/experiments"))
-    experiment = _find_by_digest(experiments, experiment_digest)
-    if experiment is None:
-        experiment = _data(
-            http.json(
-                "POST",
-                f"/v1/datasets/{dataset_id}/experiments",
-                {"name": experiment_name, "metadata": {"projection_digest": experiment_digest}},
-            )
-        )
-    experiment_id = _id(experiment, "experiment")
-    projection["experiment"] = {
-        "name": experiment_name,
-        "digest": experiment_digest,
-        "phoenix_id": experiment_id,
-        "url": f"{http.endpoint}/experiments/{experiment_id}",
-    }
-    existing_runs = _list_of_mappings(
-        _data(http.json("GET", f"/v1/experiments/{experiment_id}/runs")), "experiment runs"
+    source_bundle_digest = _source_bundle_digest(results, required_graders)
+    existing_experiments = _list_of_mappings(
+        _data(http.json("GET", f"/v1/datasets/{dataset_id}/experiments")),
+        "experiments",
     )
-    run_by_identity = {
-        (str(item.get("dataset_example_id") or ""), int(item.get("repetition_number") or 0)): item
-        for item in existing_runs
-    }
+    experiment_mappings: list[dict[str, Any]] = []
     evaluations: list[dict[str, str | None]] = []
     run_mappings: list[dict[str, str]] = []
-    for result, identity in results:
-        run_digest = _digest_json(identity)
-        example_id = _id(example_by_sample[identity["sample_id"]], "example")
-        repetition_number = int(identity["repetition_index"])
-        run = run_by_identity.get((example_id, repetition_number))
-        if run is None:
-            run = _data(
-                http.json(
-                    "POST",
-                    f"/v1/experiments/{experiment_id}/runs",
-                    {
-                        "dataset_example_id": example_id,
-                        "output": {"status": result.status, "identity": identity},
-                        "repetition_number": repetition_number,
-                        "start_time": projection_time,
-                        "end_time": projection_time,
-                        "trace_id": identity.get("trace_id") or None,
-                    },
+    for configuration, partition in _partition_results(results):
+        experiment_digest = _experiment_projection_digest(
+            dataset_version_id=dataset_version_id,
+            source_bundle_digest=source_bundle_digest,
+            configuration=configuration,
+            results=partition,
+            required_graders=required_graders,
+        )
+        experiment_name = _experiment_name(
+            suite_id=suite_id,
+            suite_version=suite_version,
+            configuration=configuration,
+            digest=experiment_digest,
+        )
+        matches = _find_all_by_digest(existing_experiments, experiment_digest)
+        if len(matches) > 1:
+            raise ValueError("Phoenix contains ambiguous experiments for one projection digest")
+        experiment = matches[0] if matches else None
+        if experiment is None:
+            experiment = _mapping(
+                _data(
+                    http.json(
+                        "POST",
+                        f"/v1/datasets/{dataset_id}/experiments",
+                        {
+                            "name": experiment_name,
+                            "version_id": dataset_version_id,
+                            "metadata": {
+                                "projection_schema": MAPPING_SCHEMA,
+                                "dataset_version_id": dataset_version_id,
+                                "tested_configuration": configuration,
+                                "tested_configuration_digest": _digest_json(configuration),
+                                "source_bundle_digest": source_bundle_digest,
+                                "experiment_projection_digest": experiment_digest,
+                            },
+                        },
+                    )
                 )
             )
+        if experiment.get("dataset_version_id") != dataset_version_id:
+            raise ValueError("Phoenix Experiment resolved to the wrong Dataset version")
+        experiment_id = _id(experiment, "experiment")
+        experiment_mappings.append(
+            {
+                "name": experiment_name,
+                "digest": experiment_digest,
+                "source_bundle_digest": source_bundle_digest,
+                "configuration": configuration,
+                "phoenix_id": experiment_id,
+                "dataset_version_id": dataset_version_id,
+                "url": f"{http.endpoint}/experiments/{experiment_id}",
+            }
+        )
+        partition_runs, partition_evaluations = _project_experiment_runs(
+            http,
+            experiment_id=experiment_id,
+            partition=partition,
+            example_by_sample=example_by_sample,
+            required_graders=required_graders,
+            projection_time=projection_time,
+        )
+        run_mappings.extend(partition_runs)
+        evaluations.extend(partition_evaluations)
+    projection["experiments"] = experiment_mappings
+    projection["runs"] = run_mappings
+    projection["evaluations"] = evaluations
+    return projection
+
+
+def _resolve_dataset_version(
+    http: PhoenixHttp,
+    *,
+    dataset_id: str,
+    expected_examples_digest: str,
+) -> tuple[str, dict[str, Any]]:
+    versions = _list_of_mappings(
+        _data(http.json("GET", f"/v1/datasets/{dataset_id}/versions?limit=100")),
+        "dataset versions",
+    )
+    if len(versions) != 1:
+        raise TaskDatasetHistoryMismatch(
+            "a task Dataset must contain exactly one immutable Phoenix version; rebuild the "
+            "local Phoenix data and reproject canonical artifacts"
+        )
+    matches: list[tuple[str, dict[str, Any]]] = []
+    for version in versions:
+        version_id = str(version.get("version_id") or "")
+        if not version_id:
+            raise ValueError("Phoenix Dataset version response has no version_id")
+        query = urlencode({"version_id": version_id})
+        payload = _mapping(_data(http.json("GET", f"/v1/datasets/{dataset_id}/examples?{query}")))
+        if payload.get("version_id") != version_id:
+            raise ValueError("Phoenix returned examples for the wrong Dataset version")
+        examples = _list_of_mappings(payload.get("examples"), "dataset examples")
+        public_rows = [_mapping(item.get("input")) for item in examples]
+        if _public_examples_digest(public_rows) == expected_examples_digest:
+            matches.append((version_id, payload))
+    if not matches:
+        raise ExactDatasetVersionNotFound(
+            "Phoenix could not resolve an exact Dataset version by public content"
+        )
+    if len(matches) > 1:
+        raise ValueError("Phoenix resolved multiple Dataset versions with the same public content")
+    return matches[0]
+
+
+def _public_examples_digest(rows: list[dict[str, Any]]) -> str:
+    return _digest_json(sorted(rows, key=lambda row: str(row.get("sample_id") or "")))
+
+
+def _dataset_name(suite_id: str) -> str:
+    return f"roboclaws-{path_token(suite_id)}"
+
+
+def _examples_by_sample(examples: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    result: dict[str, dict[str, Any]] = {}
+    for item in examples:
+        sample_id = str(_mapping(item.get("input")).get("sample_id") or "")
+        if not sample_id or sample_id in result:
+            raise ValueError("Phoenix Dataset version has missing or duplicate sample identity")
+        result[sample_id] = item
+    return result
+
+
+def _configuration_key(identity: dict[str, str]) -> dict[str, str]:
+    return {
+        field: str(identity.get(field) or MISSING_CONFIGURATION_VALUE)
+        for field in CONFIGURATION_FIELDS
+    }
+
+
+def _partition_results(
+    results: list[tuple[EvalResult, dict[str, str]]],
+) -> list[tuple[dict[str, str], list[tuple[EvalResult, dict[str, str]]]]]:
+    partitions: dict[str, tuple[dict[str, str], list[tuple[EvalResult, dict[str, str]]]]] = {}
+    for result, identity in results:
+        configuration = _configuration_key(identity)
+        digest = _digest_json(configuration)
+        partitions.setdefault(digest, (configuration, []))[1].append((result, identity))
+    return [partitions[digest] for digest in sorted(partitions)]
+
+
+def _grader_labels(result: EvalResult, required_graders: tuple[str, ...]) -> dict[str, str]:
+    return {
+        grader: status
+        for grader in required_graders
+        if (status := _grader_status(result, grader)) is not None
+    }
+
+
+def _source_bundle_digest(
+    results: list[tuple[EvalResult, dict[str, str]]], required_graders: tuple[str, ...]
+) -> str:
+    return _digest_json(
+        sorted(
+            (
+                {
+                    "identity": identity,
+                    "status": result.status,
+                    "grader_labels": _grader_labels(result, required_graders),
+                }
+                for result, identity in results
+            ),
+            key=lambda item: (
+                str(item["identity"].get("trial_id") or ""),
+                str(item["identity"].get("repetition_index") or ""),
+            ),
+        )
+    )
+
+
+def _experiment_projection_digest(
+    *,
+    dataset_version_id: str,
+    source_bundle_digest: str,
+    configuration: dict[str, str],
+    results: list[tuple[EvalResult, dict[str, str]]],
+    required_graders: tuple[str, ...],
+) -> str:
+    return _digest_json(
+        {
+            "projection_schema": MAPPING_SCHEMA,
+            "dataset_version_id": dataset_version_id,
+            "source_bundle_digest": source_bundle_digest,
+            "tested_configuration": configuration,
+            "grader_contract": list(required_graders),
+            "results": [
+                {
+                    "identity": identity,
+                    "status": result.status,
+                    "grader_labels": _grader_labels(result, required_graders),
+                }
+                for result, identity in sorted(
+                    results,
+                    key=lambda item: (
+                        item[1].get("trial_id", ""),
+                        item[1].get("repetition_index", ""),
+                    ),
+                )
+            ],
+        }
+    )
+
+
+def _experiment_name(
+    *,
+    suite_id: str,
+    suite_version: str,
+    configuration: dict[str, str],
+    digest: str,
+) -> str:
+    fields = (
+        path_token(suite_id),
+        path_token(suite_version),
+        path_token(configuration["agent_engine"]),
+        path_token(configuration["provider_profile"]),
+        path_token(configuration["model"]),
+        path_token(configuration["skill_name"]),
+    )
+    readable = "-".join(field[:32] for field in fields)
+    return f"roboclaws-{readable}-{digest[:8]}"
+
+
+def _project_experiment_runs(
+    http: PhoenixHttp,
+    *,
+    experiment_id: str,
+    partition: list[tuple[EvalResult, dict[str, str]]],
+    example_by_sample: dict[str, dict[str, Any]],
+    required_graders: tuple[str, ...],
+    projection_time: str,
+) -> tuple[list[dict[str, str]], list[dict[str, str | None]]]:
+    existing_runs = _list_of_mappings(
+        _data(http.json("GET", f"/v1/experiments/{experiment_id}/runs")),
+        "experiment runs",
+    )
+    runs_by_digest: dict[str, list[dict[str, Any]]] = {}
+    for run in existing_runs:
+        output = _mapping(run.get("output"))
+        digest = str(output.get("projection_digest") or "")
+        if digest:
+            runs_by_digest.setdefault(digest, []).append(run)
+    run_mappings: list[dict[str, str]] = []
+    evaluations: list[dict[str, str | None]] = []
+    for result, identity in partition:
+        grader_labels = _grader_labels(result, required_graders)
+        run_digest = _digest_json(
+            {"identity": identity, "status": result.status, "grader_labels": grader_labels}
+        )
+        matches = runs_by_digest.get(run_digest, [])
+        if len(matches) > 1:
+            raise ValueError("Phoenix contains ambiguous runs for one projection digest")
+        example_id = _id(example_by_sample[identity["sample_id"]], "example")
+        repetition_number = int(identity["repetition_index"])
+        run = matches[0] if matches else None
+        if run is None:
+            run = _mapping(
+                _data(
+                    http.json(
+                        "POST",
+                        f"/v1/experiments/{experiment_id}/runs",
+                        {
+                            "dataset_example_id": example_id,
+                            "output": {
+                                "status": result.status,
+                                "identity": identity,
+                                "projection_digest": run_digest,
+                            },
+                            "repetition_number": repetition_number,
+                            "start_time": projection_time,
+                            "end_time": projection_time,
+                            "trace_id": identity.get("trace_id") or None,
+                        },
+                    )
+                )
+            )
+            runs_by_digest[run_digest] = [run]
         run_id = _id(run, "experiment run")
+        run_url = f"{http.endpoint}/experiments/{experiment_id}/runs/{run_id}"
         run_mappings.append(
             {
                 "trial_id": identity["trial_id"],
                 "digest": run_digest,
+                "experiment_id": experiment_id,
                 "phoenix_id": run_id,
-                "url": f"{http.endpoint}/experiments/{experiment_id}/runs/{run_id}",
+                "url": run_url,
             }
         )
-        for grader in required_graders:
-            status = _grader_status(result, grader)
-            if status is None:
-                continue
+        for grader, status in grader_labels.items():
             evaluation_name = f"{grader}.status"
             evaluation_digest = _digest_json([run_digest, evaluation_name, status])
             evaluation = _mapping(
@@ -252,16 +521,10 @@ def _project(
                     "label": status,
                     "digest": evaluation_digest,
                     "phoenix_id": str(evaluation_id) if evaluation_id else None,
-                    "url": (
-                        f"{http.endpoint}/experiments/{experiment_id}/runs/{run_id}"
-                        if run_id
-                        else None
-                    ),
+                    "url": run_url,
                 }
             )
-    projection["runs"] = run_mappings
-    projection["evaluations"] = evaluations
-    return projection
+    return run_mappings, evaluations
 
 
 def _public_result_identity(result: EvalResult) -> dict[str, str]:
@@ -368,6 +631,10 @@ def _validate_loopback_endpoint(endpoint: str) -> None:
 def _failure_reason(exc: Exception) -> str:
     if isinstance(exc, HTTPError):
         return f"phoenix_http_{exc.code}"
+    if isinstance(exc, TaskDatasetHistoryMismatch):
+        return "task_dataset_history_unsupported"
+    if isinstance(exc, TaskDatasetContentMismatch):
+        return "task_dataset_content_mismatch"
     if isinstance(exc, ValueError):
         return "invalid_projection_input_or_response"
     if isinstance(exc, TimeoutError):
@@ -389,16 +656,14 @@ def _find_named(items: Any, name: str) -> dict[str, Any] | None:
     )
 
 
-def _find_by_digest(items: Any, digest: str) -> dict[str, Any] | None:
+def _find_all_by_digest(items: Any, digest: str) -> list[dict[str, Any]]:
     rows = _list_of_mappings(items, "Phoenix experiments")
-    return next(
-        (
-            item
-            for item in rows
-            if _mapping(item.get("metadata")).get("projection_digest") == digest
-        ),
-        None,
-    )
+    return [
+        item
+        for item in rows
+        if isinstance(item.get("metadata"), dict)
+        and item["metadata"].get("experiment_projection_digest") == digest
+    ]
 
 
 def _list_of_mappings(value: Any, label: str) -> list[dict[str, Any]]:

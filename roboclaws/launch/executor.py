@@ -11,6 +11,10 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import IO, Any
 
+from roboclaws.household.household_mcp_endpoint import (
+    DEFAULT_MCP_PORT,
+    EVAL_HARNESS_MCP_PORT_ENV,
+)
 from roboclaws.household.planner_proof_execution import (
     DEFAULT_MAP_BUNDLE,
     PlannerProofRequest,
@@ -22,7 +26,6 @@ from roboclaws.launch.household import execute_household_plan
 from roboclaws.launch.plans import LaunchPlan
 from roboclaws.launch.runners import _append_optional, _die, _exec_or_trace, _get
 from roboclaws.launch.worlds import resolve_optional_world_dependencies
-from roboclaws.mcp.endpoint import DEFAULT_MCP_PORT, EVAL_HARNESS_MCP_PORT_ENV
 
 SUPPORTED_OVERRIDE_KEYS = frozenset(
     (

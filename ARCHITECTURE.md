@@ -130,13 +130,21 @@ Package proof CLIs
 - **Experiment Telemetry** is the dependency-free, closed-schema boundary owned
   by `roboclaws.agents.experiment_telemetry`. Local run artifacts remain the
   canonical evidence. The optional `PhoenixTelemetryAdapter` exports sanitized
-  OpenInference spans asynchronously and fail-open to a loopback-only Phoenix
-  service; prompt content is represented only by immutable Git, Skill, and
+  OpenInference spans asynchronously and fail-open to a local Phoenix service.
+  OTLP ingestion stays loopback-only; an explicit Compose override may expose
+  only the Phoenix web port on one named private-LAN interface. Prompt content
+  is represented only by immutable Git, Skill, and
   rendered-prompt digests. Phoenix cannot schedule, authorize, or gate product
   or eval execution. The maintainer-only `phoenix-project` command reads an eval
-  suite and optional existing result bundle to project datasets, experiments,
-  and annotations; it never launches providers, simulators, CloudML, or
-  hardware work.
+  suite and optional existing result bundle to project immutable
+  task-named Datasets, exact Dataset versions, homogeneous tested-configuration
+  Experiments, and annotations. A task Dataset has exactly one immutable
+  Phoenix version in a deployed local store. Public sample changes require a
+  suite-version bump followed by an explicit local Phoenix rebuild and
+  reprojection because Phoenix 11.20 cannot modify or remove snapshot examples.
+  Trace routing is closed to exactly `roboclaws-runtime` and `roboclaws-eval`;
+  arbitrary Project selection is not a runtime setting. The projector never
+  launches providers, simulators, CloudML, or hardware work.
 
 Runtime Map Prior evaluation separates artifact production from consumption:
 

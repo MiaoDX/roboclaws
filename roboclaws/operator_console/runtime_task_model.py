@@ -8,7 +8,7 @@ from typing import Any
 from urllib.parse import quote
 
 from roboclaws.core.json_sources import read_json_object
-from roboclaws.mcp.endpoint import DEFAULT_MCP_HOST
+from roboclaws.household.household_mcp_endpoint import DEFAULT_MCP_HOST
 from roboclaws.operator_console import runtime_host_probes
 from roboclaws.operator_console.paths import operator_output_request_path
 from roboclaws.operator_console.redaction import redact_text

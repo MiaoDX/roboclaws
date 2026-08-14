@@ -1,0 +1,4 @@
+services:
+  phoenix:
+    ports:
+      - "${PHOENIX_LAN_BIND_HOST:?set PHOENIX_LAN_BIND_HOST}:${PHOENIX_LAN_HTTP_PORT:-6006}:6006"

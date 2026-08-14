@@ -24,6 +24,52 @@ def _fake_curl(tmp_path: Path, http_code: str) -> dict[str, str]:
     return env
 
 
+def test_network_status_loads_probe_from_repo_dotenv(tmp_path: Path) -> None:
+    dotenv = tmp_path / ".env"
+    dotenv.write_text(
+        "ROBOCLAWS_WORK_NETWORK_PROBE_URL=https://dotenv-probe.example.test/\n",
+        encoding="utf-8",
+    )
+    env = _fake_curl(tmp_path, "204")
+    env.pop("ROBOCLAWS_WORK_NETWORK_PROBE_URL")
+    env["ROBOCLAWS_DOTENV_PATH"] = str(dotenv)
+
+    result = subprocess.run(
+        ["bash", str(SCRIPT)],
+        cwd=REPO_ROOT,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "network: work" in result.stdout
+    assert "dotenv-probe.example.test" in result.stdout
+
+
+def test_network_status_explicit_env_overrides_repo_dotenv(tmp_path: Path) -> None:
+    dotenv = tmp_path / ".env"
+    dotenv.write_text(
+        "ROBOCLAWS_WORK_NETWORK_PROBE_URL=https://dotenv-probe.example.test/\n",
+        encoding="utf-8",
+    )
+    env = _fake_curl(tmp_path, "204")
+    env["ROBOCLAWS_WORK_NETWORK_PROBE_URL"] = "https://explicit-probe.example.test/"
+    env["ROBOCLAWS_DOTENV_PATH"] = str(dotenv)
+
+    result = subprocess.run(
+        ["bash", str(SCRIPT)],
+        cwd=REPO_ROOT,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "explicit-probe.example.test" in result.stdout
+    assert "dotenv-probe.example.test" not in result.stdout
+
+
 def test_network_status_reports_work_when_probe_returns_http(tmp_path: Path) -> None:
     result = subprocess.run(
         ["bash", str(SCRIPT)],
@@ -182,3 +228,4 @@ def test_retired_local_runtime_recipes_are_absent() -> None:
 
     assert not (JUST_DIR / "dev.just").exists()
     assert (REPO_ROOT / "scripts" / "dev" / "network_status.sh").is_file()
+    assert os.access(REPO_ROOT / "scripts" / "dev" / "network_status.sh", os.X_OK)

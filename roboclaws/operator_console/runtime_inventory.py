@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from roboclaws.mcp.endpoint import DEFAULT_MCP_PORT
+from roboclaws.household.household_mcp_endpoint import DEFAULT_MCP_PORT
 from roboclaws.operator_console.runtime_blocker_policy import runtime_blockers_from_inventory
 from roboclaws.operator_console.runtime_host_probes import _dedupe_ints, _host_probe_enabled
 from roboclaws.operator_console.runtime_inventory_sources import (

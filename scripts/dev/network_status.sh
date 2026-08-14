@@ -7,6 +7,49 @@
 
 set -euo pipefail
 
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+dotenv_path="${ROBOCLAWS_DOTENV_PATH:-$repo_root/.env}"
+
+load_repo_dotenv() {
+  [[ -f "$dotenv_path" ]] || return 0
+
+  local probe_url_was_set=0
+  local connect_timeout_was_set=0
+  local max_time_was_set=0
+  local probe_url_override=""
+  local connect_timeout_override=""
+  local max_time_override=""
+  if [[ -v ROBOCLAWS_WORK_NETWORK_PROBE_URL ]]; then
+    probe_url_was_set=1
+    probe_url_override="$ROBOCLAWS_WORK_NETWORK_PROBE_URL"
+  fi
+  if [[ -v ROBOCLAWS_WORK_NETWORK_CONNECT_TIMEOUT ]]; then
+    connect_timeout_was_set=1
+    connect_timeout_override="$ROBOCLAWS_WORK_NETWORK_CONNECT_TIMEOUT"
+  fi
+  if [[ -v ROBOCLAWS_WORK_NETWORK_MAX_TIME ]]; then
+    max_time_was_set=1
+    max_time_override="$ROBOCLAWS_WORK_NETWORK_MAX_TIME"
+  fi
+
+  set -a
+  # shellcheck disable=SC1090
+  source "$dotenv_path"
+  set +a
+
+  if ((probe_url_was_set)); then
+    export ROBOCLAWS_WORK_NETWORK_PROBE_URL="$probe_url_override"
+  fi
+  if ((connect_timeout_was_set)); then
+    export ROBOCLAWS_WORK_NETWORK_CONNECT_TIMEOUT="$connect_timeout_override"
+  fi
+  if ((max_time_was_set)); then
+    export ROBOCLAWS_WORK_NETWORK_MAX_TIME="$max_time_override"
+  fi
+}
+
+load_repo_dotenv
+
 probe_url="${ROBOCLAWS_WORK_NETWORK_PROBE_URL:-}"
 connect_timeout="${ROBOCLAWS_WORK_NETWORK_CONNECT_TIMEOUT:-1}"
 max_time="${ROBOCLAWS_WORK_NETWORK_MAX_TIME:-3}"
@@ -22,6 +65,7 @@ Environment:
   ROBOCLAWS_WORK_NETWORK_PROBE_URL       required office-network probe URL
   ROBOCLAWS_WORK_NETWORK_CONNECT_TIMEOUT curl connect timeout in seconds
   ROBOCLAWS_WORK_NETWORK_MAX_TIME        curl max time in seconds
+  ROBOCLAWS_DOTENV_PATH                  optional repo dotenv path override
 EOF
 }
 

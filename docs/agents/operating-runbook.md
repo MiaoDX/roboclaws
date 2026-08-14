@@ -94,6 +94,11 @@ Before system-provider Claude Code workflows:
 scripts/dev/network_status.sh
 ```
 
+The script loads `ROBOCLAWS_WORK_NETWORK_PROBE_URL` and optional timeout values
+from the repo-local `.env`. Explicit shell environment values take precedence.
+Keep the internal probe URL machine-local; `.env.example` records only the
+variable name.
+
 If it reports `network: work`, do not run those guarded routes. Model-only
 overrides do not bypass the guard.
 
