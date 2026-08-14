@@ -73,41 +73,6 @@ household-world-impl:
     launch_world_id="${ROBOCLAWS_LAUNCH_WORLD_ID:-}"
     operator_session_context_json="${ROBOCLAWS_OPERATOR_SESSION_CONTEXT_JSON:-}"
     python_bin="${ROBOCLAWS_DEVTOOLS_PYTHON:-.venv/bin/python}"
-    if [[ "${ROBOCLAWS_JUST_TRACE:-}" == "1" ]]; then
-      trace_map_bundle="$map_bundle"
-      trace_isaac_scene_usd_path="$isaac_scene_usd_path"
-      trace_b1_alignment_artifact="$b1_alignment_artifact"
-      trace_b1_navigation_artifact="$b1_navigation_artifact"
-      if [[ "$launch_world_id" == "b1-map12" || ( -n "$b1_alignment_artifact" && -n "$b1_navigation_artifact" ) ]]; then
-        trace_map_bundle="<configured>"
-        trace_isaac_scene_usd_path="<configured>"
-        trace_b1_alignment_artifact="<configured>"
-        trace_b1_navigation_artifact="<configured>"
-      fi
-      trace_args=(
-        "$driver" "$profile" "$seeds" "$output_dir" "$task"
-        "$generated_mess_count" "$host" "$port" "$trace_map_bundle"
-        "$cleanup_routine" "$robot_views" "$camera_labeler"
-        "$visual_grounding_timeout_s" "$map_build"
-        "$runtime_map_prior" "$backend_override" "$scene_source"
-        "$scene_index" "$trace_isaac_scene_usd_path"
-        "$min_generated_mess_count_override" "$generated_mess_object_ids"
-        "$task_surface" "$task_intent" "$operator_messages_path"
-        "$trace_b1_alignment_artifact" "$trace_b1_navigation_artifact"
-      )
-      if [[ -n "$skill_name" || -n "$goal_contract_json" || -n "$goal_contract_path" || -n "$run_dir_override" ]]; then
-        trace_args+=("$skill_name" "$goal_contract_json" "$goal_contract_path")
-      fi
-      if [[ -n "$run_dir_override" ]]; then
-        trace_args+=("$run_dir_override")
-      fi
-      printf 'just\tmolmo::household-world-impl'
-      for arg in "${trace_args[@]}"; do
-        printf '\t%s' "$arg"
-      done
-      printf '\n'
-      exit 0
-    fi
     if [[ -z "$skill_name" ]]; then
       skill_name="household-world"
     fi
@@ -133,51 +98,11 @@ household-world-impl:
     fi
     generated_mess_success_threshold=$(( (generated_mess_count * 7 + 9) / 10 ))
 
-    if [[ "$camera_labeler" == visual_grounding=* ]]; then
-      echo "error: visual_grounding is no longer a public task axis; use camera_labeler=<labeler> with evidence_lane=camera-grounded-labels" >&2
-      exit 1
-    fi
     if [[ "$profile" == "camera-grounded-labels" ]]; then
-      if [[ -z "$camera_labeler" ]]; then
-        echo "error: evidence_lane=camera-grounded-labels requires camera_labeler" >&2
-        exit 1
-      fi
-      case "$camera_labeler" in
-        grounding-dino|yoloe|omdet-turbo|yolo-world)
-          visual_grounding="$camera_labeler"
-          ;;
-        *)
-          echo "error: unsupported camera_labeler '$camera_labeler'" >&2
-          exit 1
-          ;;
-      esac
+      visual_grounding="$camera_labeler"
     else
-      if [[ -n "$camera_labeler" ]]; then
-        echo "error: camera_labeler is only valid for evidence_lane=camera-grounded-labels" >&2
-        exit 1
-      fi
       visual_grounding="sim"
     fi
-
-    case "$driver" in
-      direct|mcp-smoke|openclaw-smoke|openai-agents-live|openclaw-live)
-        ;;
-      *)
-        echo "error: unsupported driver '$driver'" >&2
-        echo "       expected direct|mcp-smoke|openclaw-smoke|openai-agents-live|openclaw-live" >&2
-        echo "       use mcp-smoke/openclaw-smoke for deterministic substitutes; live agent names are explicit" >&2
-        exit 1
-        ;;
-    esac
-
-    case "$cleanup_routine" in
-      auto|skill)
-        ;;
-      *)
-        echo "error: unsupported cleanup_routine '$cleanup_routine' (expected auto|skill)" >&2
-        exit 1
-        ;;
-    esac
 
     case "$robot_views" in
       auto|on|off|true|false|1|0)

@@ -33,8 +33,6 @@ from roboclaws.household.ci_live_reports import (  # noqa: E402
 )
 from roboclaws.household.household_runtime_contract import DEFAULT_REALWORLD_TASK  # noqa: E402
 
-PROVIDER_TIMING_PROXY_ENV = "ROBOCLAWS_PROVIDER_TIMING_PROXY"
-
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -174,7 +172,6 @@ def _run_entry(
             "env": {
                 "ROBOCLAWS_PROVIDER_PROFILE": entry.provider_profile,
                 _model_env_key(entry): entry.model,
-                PROVIDER_TIMING_PROXY_ENV: _default_provider_timing_proxy_value(),
             },
             "cache_roots": [
                 "~/.cache/uv",
@@ -198,7 +195,6 @@ def _run_entry(
     env = os.environ.copy()
     env["ROBOCLAWS_PROVIDER_PROFILE"] = entry.provider_profile
     env[_model_env_key(entry)] = entry.model
-    env.setdefault(PROVIDER_TIMING_PROXY_ENV, "1")
     env["ROBOCLAWS_REPORT_RERUN_COMMAND"] = rerun_command
     try:
         _run_checked(command, env=env)
@@ -281,7 +277,7 @@ def _live_command(
         "scenario_setup=relocate-cleanup-related-objects",
         f"relocation_count={generated_mess_count}",
         f"output_dir={entry_output_dir}",
-        f"task={args.task}",
+        f"prompt={args.task}",
         f"host={args.host}",
         f"port={args.port}",
     ]
@@ -303,12 +299,11 @@ def _live_report_rerun_command(entry: MolmoLiveModelEntry, args: argparse.Namesp
         f"seed={args.seed}",
         "scenario_setup=relocate-cleanup-related-objects",
         f"relocation_count={generated_mess_count}",
-        f"task={args.task}",
+        f"prompt={args.task}",
     ]
     return (
         f"ROBOCLAWS_PROVIDER_PROFILE={entry.provider_profile} "
         f"{_model_env_key(entry)}={entry.model} "
-        f"{PROVIDER_TIMING_PROXY_ENV}={_default_provider_timing_proxy_value()} "
         f"{shell_join(command)}"
     )
 
@@ -317,10 +312,6 @@ def _model_env_key(entry: MolmoLiveModelEntry) -> str:
     if entry.agent_engine == "openai-agents-sdk":
         return "ROBOCLAWS_OPENAI_AGENTS_MODEL"
     raise ValueError(f"unsupported Molmo live agent engine: {entry.agent_engine}")
-
-
-def _default_provider_timing_proxy_value() -> str:
-    return os.environ.get(PROVIDER_TIMING_PROXY_ENV, "1")
 
 
 def _prewarm(args: argparse.Namespace, *, generated_mess_count: int) -> None:

@@ -58,14 +58,9 @@ SLOW_MODULES = {
     "test_molmospaces_realworld_cleanup.py",
     "test_household_runtime_contract.py",
     "test_household_mcp_server.py",
-    "test_molmospaces_agibot_contract_rehearsal.py",
-    "test_agibot_map_evidence_refresh_report.py",
 }
 
 SLOW_TESTS = {
-    "test_agibot_evidence_refresh_prompt.py": {
-        "test_agibot_molmospaces_sim_rehearsal_records_open_evidence_refresh_prompt",
-    },
     "test_molmo_mcp_smoke_shared_semantic_loop.py": {
         "test_realworld_mcp_smoke_uses_shared_fixture_style_semantic_loop",
     },
@@ -90,7 +85,6 @@ CONTRACT_NAME_PARTS = (
     "realworld",
     "replay",
     "report",
-    "run_artifacts",
     "transcript",
     "verify_",
 )

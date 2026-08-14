@@ -78,12 +78,18 @@ def test_map_build_camera_grounded_prompt_uses_composite_cadence_when_enabled() 
 
     assert "observe_camera_grounded_candidates" in prompt
     assert "Waypoint observation tool=observe_camera_grounded_candidates" in prompt
-    assert "Prefer one observe_camera_grounded_candidates response per waypoint_id" in prompt
-    assert "One bounded re-observation is allowed" in prompt
-    assert "skip routine multi-heading scanning" in prompt
-    assert "successful camera or pose change" in prompt
-    assert "move to the next public waypoint instead of adjusting pose" not in prompt
-    assert "declare_visual_candidates for each raw FPV observation" not in prompt
+    assert "Per-waypoint observation budget=1" in prompt
+    assert "Camera-grounded observation mode=composite" in prompt
+    assert "response already includes the server-side declaration" in prompt
+    assert (
+        "do not call declare_visual_candidates again for the same source_observation_id" in prompt
+    )
+    assert "profile observe cadence=5 per waypoint" in prompt
+    assert "effective observe cadence=1 per waypoint" in prompt
+    assert "max_observe_per_waypoint override=true" in prompt
+    assert "profile body-turn cadence overridden=true" in prompt
+    assert "bounded re-observation" not in prompt
+    assert "multi-heading scanning" not in prompt
     assert "Manipulation tools are not entitled for this run" in prompt
     assert "blocked_capability" not in prompt
 
@@ -96,8 +102,10 @@ def test_map_build_camera_grounded_baseline_prompt_keeps_two_step_cadence() -> N
     )
 
     assert "Waypoint observation tool=observe" in prompt
-    assert "configured camera labeler labels the frame" in prompt
-    assert (
-        "after navigating to each public inspection waypoint call "
-        "observe_camera_grounded_candidates" not in prompt
-    )
+    assert "Camera-grounded observation mode=observe plus declare_visual_candidates" in prompt
+    assert "Per-waypoint observation budget=5" in prompt
+    assert "profile observe cadence=5 per waypoint" in prompt
+    assert "effective observe cadence=5 per waypoint" in prompt
+    assert "max_observe_per_waypoint override=false" in prompt
+    assert "profile body-turn cadence overridden=false" in prompt
+    assert "Waypoint observation tool=observe_camera_grounded_candidates" not in prompt

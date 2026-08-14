@@ -22,8 +22,6 @@ HOUSEHOLD_PRESET_SPECS: dict[str, TaskPresetSpec] = {
             "household_episode",
         ),
         default_scenario_setup=ENVIRONMENT_SETUP_RELOCATE_CLEANUP_RELATED_OBJECTS,
-        report_profile="cleanup",
-        validation_gate_tags=("cleanup", "manipulation", "private-scorer-boundary"),
     ),
     "map-build": TaskPresetSpec(
         preset_id="map-build",
@@ -31,8 +29,6 @@ HOUSEHOLD_PRESET_SPECS: dict[str, TaskPresetSpec] = {
         skill_name="household-world",
         required_capabilities=("household_world", "household_episode"),
         default_scenario_setup=ENVIRONMENT_SETUP_BASELINE,
-        report_profile="runtime_metric_map",
-        validation_gate_tags=("map-build", "runtime-metric-map"),
     ),
 }
 
@@ -52,8 +48,6 @@ HOUSEHOLD_TASK_SPECS: dict[str, TaskSurfaceSpec] = {
         default_profile="world-public-labels",
         supported_profiles=HOUSEHOLD_EVIDENCE_LANES,
         default_backend="molmospaces_subprocess",
-        mcp_server_id="household_world",
-        checker_base="household_world",
         required_capabilities=(
             "household_world",
             "household_manipulation",
@@ -72,8 +66,6 @@ HOUSEHOLD_TASK_SPECS: dict[str, TaskSurfaceSpec] = {
         default_profile=None,
         supported_profiles=(),
         default_backend="molmospaces_subprocess",
-        mcp_server_id="planner_proof",
-        checker_base="planner_proof_report",
         required_capabilities=("planner_proof",),
     ),
 }

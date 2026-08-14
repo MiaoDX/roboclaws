@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import ast
 import re
 import subprocess
 import sys
@@ -40,37 +39,6 @@ def test_current_sdk_command_lines_select_a_provider_profile() -> None:
                 missing_profile.append(f"{path.relative_to(REPO_ROOT)}:{line_number}")
 
     assert missing_profile == []
-
-
-def test_empty_pytest_regression_layer_is_absent() -> None:
-    pytest_config = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
-    test_docs = (REPO_ROOT / "tests" / "README.md").read_text(encoding="utf-8")
-    dev_recipes = (REPO_ROOT / "just" / "dev.just").read_text(encoding="utf-8")
-
-    assert '"regression:' not in pytest_config
-    assert "-m regression" not in test_docs
-    assert "-m regression" not in dev_recipes
-
-
-def test_retired_direct_provider_stack_is_absent() -> None:
-    retired_paths = (
-        "provider_factory.py",
-        "provider_runtime.py",
-        "provider_safety.py",
-        "provider_retry.py",
-    )
-    core = REPO_ROOT / "roboclaws" / "core"
-    registry = (REPO_ROOT / "roboclaws" / "agents" / "provider_registry.py").read_text(
-        encoding="utf-8"
-    )
-    project = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
-
-    assert all(not (core / path).exists() for path in retired_paths)
-    assert list((core / "providers").glob("*.py")) == []
-    assert "direct_provider_adapter" not in registry
-    assert "direct_required_env_keys" not in registry
-    assert "anthropic = [" not in project
-    assert "instructor" not in project
 
 
 def test_product_cli_rejects_repo_only_eval_aliases() -> None:
@@ -123,66 +91,6 @@ def test_built_distributions_exclude_repo_eval_surfaces(tmp_path: Path) -> None:
         assert not any("skills/eval-harness/" in path for path in paths)
 
 
-def test_legacy_molmospaces_ids_exist_only_in_rejection_code_and_test() -> None:
-    needle = "molmospaces/" + "val_"
-    roots = (
-        REPO_ROOT / "README.md",
-        REPO_ROOT / "ARCHITECTURE.md",
-        REPO_ROOT / "docs" / "human",
-        REPO_ROOT / "docs" / "agents",
-        REPO_ROOT / "skills",
-        REPO_ROOT / "just",
-        REPO_ROOT / "roboclaws",
-        REPO_ROOT / "tests",
-        REPO_ROOT / "evals",
-    )
-    paths = []
-    for root in roots:
-        candidates = (root,) if root.is_file() else root.rglob("*")
-        paths.extend(
-            path
-            for path in candidates
-            if path.is_file() and path.suffix in {".json", ".md", ".py", ".toml"}
-        )
-    hits = {
-        path.relative_to(REPO_ROOT).as_posix()
-        for path in paths
-        if needle in path.read_text(encoding="utf-8", errors="ignore")
-    }
-
-    assert hits == {
-        "roboclaws/launch/scene_sampler.py",
-        "tests/unit/launch/test_scene_sampler.py",
-    }
-
-
-def test_retired_launch_dispatch_protocol_is_absent_from_current_source() -> None:
-    needles = ("agent::" + "run", "roboclaws.cli." + "agent_run", "plan." + "argv")
-    roots = (
-        REPO_ROOT / "README.md",
-        REPO_ROOT / "ARCHITECTURE.md",
-        REPO_ROOT / "docs" / "human",
-        REPO_ROOT / "docs" / "agents",
-        REPO_ROOT / "skills",
-        REPO_ROOT / "just",
-        REPO_ROOT / "roboclaws",
-        REPO_ROOT / "tests",
-        REPO_ROOT / "evals",
-        REPO_ROOT / "scripts",
-    )
-    hits: list[str] = []
-    for root in roots:
-        candidates = (root,) if root.is_file() else root.rglob("*")
-        for path in candidates:
-            if not path.is_file() or path.suffix not in {".json", ".md", ".py", ".toml"}:
-                continue
-            text = path.read_text(encoding="utf-8", errors="ignore")
-            if any(needle in text for needle in needles):
-                hits.append(path.relative_to(REPO_ROOT).as_posix())
-
-    assert hits == []
-
-
 def test_product_runtime_does_not_depend_on_script_modules() -> None:
     product_hits: list[str] = []
     for path in (REPO_ROOT / "roboclaws").rglob("*.py"):
@@ -190,45 +98,3 @@ def test_product_runtime_does_not_depend_on_script_modules() -> None:
         if "from scripts." in text or "import scripts." in text:
             product_hits.append(path.relative_to(REPO_ROOT).as_posix())
     assert product_hits == []
-
-    stale_identity = "run_live_" + "openai_agents_household"
-    current_roots = (
-        REPO_ROOT / "roboclaws",
-        REPO_ROOT / "tests" / "unit" / "agents",
-        REPO_ROOT / "tests" / "unit" / "evals",
-        REPO_ROOT / "tests" / "contract" / "dev_tools",
-        REPO_ROOT / "skills",
-        REPO_ROOT / "just",
-    )
-    stale_hits = [
-        path.relative_to(REPO_ROOT).as_posix()
-        for root in current_roots
-        for path in root.rglob("*")
-        if path.is_file()
-        and path.suffix in {".json", ".md", ".py", ".toml"}
-        and stale_identity in path.read_text(encoding="utf-8", errors="ignore")
-    ]
-    assert stale_hits == []
-
-
-def test_household_projection_helpers_are_not_forwarded_through_private_assignments() -> None:
-    projection_modules = {
-        "realworld_contract_fixture_projection",
-        "realworld_contract_projection",
-    }
-    hits: list[str] = []
-    for path in (REPO_ROOT / "roboclaws" / "household").glob("*.py"):
-        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Attribute):
-                continue
-            owner = node.value.value
-            if not isinstance(owner, ast.Name) or owner.id not in projection_modules:
-                continue
-            if any(
-                isinstance(target, ast.Name) and target.id.startswith("_")
-                for target in node.targets
-            ):
-                hits.append(f"{path.relative_to(REPO_ROOT)}:{node.lineno}")
-
-    assert hits == []

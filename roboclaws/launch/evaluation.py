@@ -1,58 +1,8 @@
-"""Evaluation policy helpers for resolved launch intents."""
+"""Checker policy helpers for resolved launch intents."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from roboclaws.household.generated_mess import generated_mess_success_threshold
-from roboclaws.launch.intents import TaskIntentSpec
-
-
-@dataclass(frozen=True)
-class EvaluationSpec:
-    """Layered verification semantics for a resolved run."""
-
-    evaluation_id: str
-    hard_gates: tuple[str, ...]
-    intent_gates: tuple[str, ...]
-    completion_claim_required: bool
-    advisory_evaluators: tuple[str, ...] = ()
-
-
-def evaluation_spec_for_intent(intent: TaskIntentSpec) -> EvaluationSpec:
-    """Return the evaluation policy for an intent."""
-
-    hard = ("mcp_done", "run_result", "report", "trace", "goal_contract")
-    if intent.intent_id == "cleanup":
-        return EvaluationSpec(
-            evaluation_id="cleanup_v1",
-            hard_gates=hard,
-            intent_gates=("cleanup_checker",),
-            completion_claim_required=True,
-            advisory_evaluators=("advisory_scoring",),
-        )
-    if intent.intent_id == "map-build":
-        return EvaluationSpec(
-            evaluation_id="map_build_v1",
-            hard_gates=(*hard, "runtime_metric_map"),
-            intent_gates=("runtime_metric_map_checker",),
-            completion_claim_required=True,
-            advisory_evaluators=("advisory_scoring",),
-        )
-    if intent.intent_id == "open-ended":
-        return EvaluationSpec(
-            evaluation_id="open_ended_v1",
-            hard_gates=hard,
-            intent_gates=("open_ended_artifact_checker",),
-            completion_claim_required=True,
-            advisory_evaluators=("advisory_scoring",),
-        )
-    return EvaluationSpec(
-        evaluation_id=f"{intent.intent_id}_v1",
-        hard_gates=("completion_claim", *intent.required_artifacts),
-        intent_gates=(intent.checker_policy,),
-        completion_claim_required=True,
-    )
 
 
 def checker_flags_for_household_intent(

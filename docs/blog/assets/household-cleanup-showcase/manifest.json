@@ -1,14 +1,15 @@
 {
   "schema": "roboclaws_visual_showcase_v1",
   "source_run_dir": "/home/mi/ws/gogo/roboclaws/output/household/household-cleanup/codex-world-labels-sanitized/0606_1142/seed-7",
-  "profile": "household-cleanup",
   "frame_count": 27,
   "size": {
     "width": 1280,
     "height": 720
   },
   "context": {
-    "task": "household-cleanup",
+    "task_name": "household-world",
+    "task_surface": "household-world",
+    "task_intent": "cleanup",
     "driver": "Codex agent",
     "profile": "world-labels-sanitized",
     "backend": "molmospaces_subprocess",

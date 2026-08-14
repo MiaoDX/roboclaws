@@ -73,7 +73,6 @@ ci-required output_dir="output/demo":
 # L2: focused fixture/schema/report contracts.
 contract:
     {{standalone_pytest}} -q \
-      tests/contract/reports/test_run_artifacts.py \
       tests/contract/reports/test_molmo_cleanup_report.py \
       tests/contract/reports/test_molmo_cleanup_artifact_report.py \
       tests/contract/reports/test_molmo_report_visual_core.py

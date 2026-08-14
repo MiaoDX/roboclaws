@@ -24,7 +24,11 @@ from roboclaws.operator_console.redaction import redact_text
 from roboclaws.operator_console.routes import ConsoleLaunchSelection
 from roboclaws.operator_console.runtime_compat import pid_is_active  # noqa: F401
 from roboclaws.operator_console.state_checker import checker_status
-from roboclaws.operator_console.state_summary import camera_angle_summary
+from roboclaws.operator_console.state_summary import (
+    camera_angle_summary,
+    is_active_run_phase,
+    is_terminal_run_phase,
+)
 
 LIVE_RUN_MARKERS = (
     "live_status.json",
@@ -294,7 +298,7 @@ def _wrapper_launch_failure(
     if live_status or run_result or display_run_dir != run_dir:
         return {}
     phase = str(status.get("phase") or "").strip().lower()
-    if not _phase_is_active(phase):
+    if not is_active_run_phase(phase):
         return {}
     if not status.get("pid"):
         return {}
@@ -330,7 +334,7 @@ def _stale_live_status_failure(
     live_status: dict[str, Any], run_result: dict[str, Any]
 ) -> dict[str, str]:
     phase = str(live_status.get("phase") or "").strip().lower()
-    if not _phase_is_active(phase) or run_result:
+    if not is_active_run_phase(phase) or run_result:
         return {}
     pid = _live_status_owner_pid(live_status)
     if pid is None or pid_is_active(pid):
@@ -765,7 +769,7 @@ def _status_from_phase(phase: str, checker: dict[str, Any], terminal_reason: str
         return "passed"
     if terminal_reason and lower in {"failed", "error", "terminated"}:
         return "failed"
-    if _phase_is_active(lower):
+    if is_active_run_phase(lower):
         return lower
     return "idle"
 
@@ -777,19 +781,10 @@ def _status_label(phase: str, terminal_reason: str) -> str:
 
 
 def _control_terminal_state(phase: str, status: str, terminal_reason: str) -> bool:
-    terminal_values = {
-        "done",
-        "finished",
-        "passed",
-        "failed",
-        "stopped_by_operator",
-        "human_takeover_stop",
-        "emergency_stopped",
-    }
     return (
-        phase.lower() in terminal_values
-        or status.lower() in terminal_values
-        or terminal_reason.lower() in terminal_values
+        is_terminal_run_phase(phase)
+        or is_terminal_run_phase(status)
+        or is_terminal_run_phase(terminal_reason)
     )
 
 
@@ -828,20 +823,6 @@ def _latest_action(trace: dict[str, Any], run_result: dict[str, Any]) -> str:
     return ""
 
 
-def _phase_is_active(phase: str) -> bool:
-    return phase in {
-        "queued",
-        "starting",
-        "starting-server",
-        "running",
-        "running-sdk",
-        "waiting-for-server-finish",
-        "checking-result",
-        "paused",
-        "stopping",
-    }
-
-
 def _stop_available(
     *,
     root: Path,
@@ -851,15 +832,9 @@ def _stop_available(
     phase: str,
 ) -> bool:
     normalized = phase.lower()
-    if _phase_is_active(normalized):
+    if is_active_run_phase(normalized):
         return True
-    if normalized not in {
-        "failed",
-        "finished",
-        "passed",
-        "stopped_by_operator",
-        "human_takeover_stop",
-    }:
+    if not is_terminal_run_phase(normalized) or normalized in {"done", "emergency_stopped"}:
         return False
     lock_name = str(status.get("backend_lock") or (route.lock_name if route else ""))
     if not lock_name:

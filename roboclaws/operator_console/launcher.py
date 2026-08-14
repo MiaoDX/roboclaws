@@ -37,7 +37,6 @@ from roboclaws.operator_console.launch_support import (
     launch_prompt_for_intent,
     provider_env_overrides_for_route,
     public_env_overrides,
-    resolve_console_launch_plan,
 )
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root
@@ -63,6 +62,7 @@ from roboclaws.operator_console.state import resolve_display_run_dir
 from roboclaws.operator_console.state_summary import (
     existing_terminal_phase,
     existing_terminal_reason,
+    is_terminal_run_phase,
 )
 from roboclaws.operator_console.workflows import (
     get_operator_workflow,
@@ -296,7 +296,7 @@ def start_console_run(
             launch_prompt=launch_prompt,
             overrides=overrides,
         )
-        plan = resolve_console_launch_plan(argv, error_type=ConsoleLaunchError)
+        plan = resolve_surface_launch(argv[2:])
         mcp_host, mcp_port = requested_mcp_endpoint(overrides)
         mcp_url = f"http://{mcp_host}:{mcp_port}/mcp"
         log_path = run_dir / "console-launch.log"
@@ -649,9 +649,7 @@ def _display_run_attachable(
     active_pid: int | None,
 ) -> bool:
     phase = str(live_status.get("phase") or "").lower()
-    if phase in {"finished", "failed", "stopped_by_operator", "human_takeover_stop"} and (
-        "exit_status" in live_status
-    ):
+    if is_terminal_run_phase(phase) and "exit_status" in live_status:
         return False
     if phase:
         return True

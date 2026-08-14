@@ -212,7 +212,7 @@ def _runtime_map_prior_row(
         "scenario_setup=baseline",
         f"seed={seed}",
         f"output_dir={row_output_dir}",
-        f"task={task}",
+        f"prompt={task}",
         f"map_bundle={map_bundle}",
     ]
     return _row_payload(
@@ -262,7 +262,7 @@ def _cleanup_grid_row(
         "scenario_setup=relocate-cleanup-related-objects",
         f"relocation_count={generated_mess_count}",
         f"output_dir={row_output_dir}",
-        f"task={task}",
+        f"prompt={task}",
         f"map_bundle={map_bundle}",
     ]
     if lane.camera_labeler:

@@ -6,9 +6,7 @@ import argparse
 import json
 from typing import Any
 
-from roboclaws.household.map_build_scan_profile import (
-    map_build_scan_profile,
-)
+from roboclaws.household.map_build_scan_profile import map_build_scan_profile
 from roboclaws.household.task_intent import (
     HOUSEHOLD_INTENT_MAP_BUILD,
     household_intent_from_goal_contract,
@@ -122,8 +120,8 @@ def _with_task(
 MAP_BUILD_RUN_CONTEXT = (
     "This run is surface=household-world intent=map-build. User task: {task}. "
     "Manipulation tools are not entitled for this run. Evidence lane={profile}. "
-    "Waypoint observation tool={waypoint_observe_tool}. {waypoint_observe_budget_rule}"
-    "{camera_grounded_rule}"
+    "Waypoint observation tool={waypoint_observe_tool}. {waypoint_observe_budget}"
+    "{camera_grounded_mode}"
 )
 
 WORLD_LABELS_RUN_CONTEXT = (
@@ -132,59 +130,19 @@ WORLD_LABELS_RUN_CONTEXT = (
 )
 
 CAMERA_LABELS_RUN_CONTEXT = (
-    "Evidence lane=camera-grounded-labels. For each task-relevant raw FPV observation, call "
-    "declare_visual_candidates with observation_id only so the configured server-side labeler "
-    "produces public candidates; service URLs, credentials, and image paths are not agent input. "
+    "Evidence lane=camera-grounded-labels. Camera-grounded observation mode=observe plus "
+    "declare_visual_candidates with observation_id only. "
+)
+
+COMPOSITE_CAMERA_GROUNDED_RUN_FACT = (
+    "Camera-grounded observation mode=composite via observe_camera_grounded_candidates. "
+    "Its response already includes the server-side declaration; do not call "
+    "declare_visual_candidates again for the same source_observation_id. "
 )
 
 CAMERA_LABELS_COMPOSITE_RUN_CONTEXT = (
-    "Evidence lane=camera-grounded-labels with composite observation enabled. Use "
-    "observe_camera_grounded_candidates instead of a separate observe plus declaration. "
-    "Treat its observation as waypoint evidence and its declaration as server-side labeler "
-    "output; do not call "
-    "declare_visual_candidates again for the same source_observation_id unless "
-    "a public tool explicitly asks for it. Service URLs, credentials, image paths, and model "
-    "hosts are not agent input. "
+    "Evidence lane=camera-grounded-labels. " + COMPOSITE_CAMERA_GROUNDED_RUN_FACT
 )
-
-
-def _camera_raw_compact_prompt(
-    *,
-    target_cleanup_count: int = 7,
-    raw_fpv_candidate_budget: int = 24,
-    max_observe_per_waypoint: int = 4,
-    done_retry_budget: int = 1,
-) -> str:
-    cleanup_count = max(1, int(target_cleanup_count))
-    candidate_budget = max(1, int(raw_fpv_candidate_budget))
-    observe_budget = max(1, int(max_observe_per_waypoint))
-    done_budget = max(0, int(done_retry_budget))
-    return (
-        "Evidence lane=camera-raw-fpv. Inspect raw FPV image blocks directly; no structured "
-        f"labels are provided. Per-waypoint distinct-heading budget={observe_budget}. Every "
-        "waypoint must complete that many "
-        "materially distinct robot-body headings, even when the cleanup gate is already met. "
-        "The canonical navigate_to_waypoint then observe supplies the first heading. Repeat "
-        "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90) then observe at "
-        "that same waypoint until the required distinct-heading count is reached. A repeated "
-        "heading does not count; rotate again instead of moving to the next waypoint. If a fresh "
-        "candidate requires an immediate cleanup chain, return afterward and finish that "
-        "waypoint's missing body headings. "
-        "When a waypoint has not produced a public cleanup_recommended=true candidate by its "
-        "final distinct heading, take one extra overlap probe after those body headings: call "
-        "adjust_camera(yaw_delta_deg=45, pitch_delta_deg=20) exactly once, then observe. This "
-        "camera-only probe does not count as a distinct robot-body heading and is the only "
-        "permitted extra observation during the initial sweep. A compact continuation may "
-        "authorize one later bounded recovery view at explicitly listed public revisit "
-        "waypoints when done still reports a grounded-chain deficit. "
-        "Choose at most one fresh high-confidence cleanup "
-        "candidate per raw FPV observation. Raw-FPV candidate-attempt budget="
-        f"{candidate_budget} raw-FPV candidate attempts. Never retry the same "
-        "source_observation_id/category/region or visual-candidate id after a public failure. "
-        f"source_observation_id/category/region. Cleanup target cap={cleanup_count}. Done retry "
-        f"budget={done_budget}; a retry is permitted only after resolving a returned public "
-        "blocker. Raw image payloads must not be persisted. "
-    )
 
 
 def render_kickoff_prompt(
@@ -209,19 +167,20 @@ def render_kickoff_prompt(
     if open_ended:
         prompt = "Evidence lane=" + profile + ". "
         if profile == "camera-grounded-labels":
-            prompt = (
-                prompt
-                + " "
-                + _camera_grounded_open_ended_rule(
-                    camera_grounded_composite_tools=camera_grounded_composite_tools
-                )
+            prompt += (
+                COMPOSITE_CAMERA_GROUNDED_RUN_FACT
+                if camera_grounded_composite_tools
+                else "Camera-grounded observation mode=observe plus "
+                "declare_visual_candidates with observation_id only. "
             )
     elif profile == "camera-raw-fpv":
-        prompt = _camera_raw_compact_prompt(
-            target_cleanup_count=target_cleanup_count,
-            raw_fpv_candidate_budget=raw_fpv_candidate_budget,
-            max_observe_per_waypoint=max_observe_per_waypoint,
-            done_retry_budget=done_retry_budget,
+        prompt = (
+            "Evidence lane=camera-raw-fpv; structured labels are absent. "
+            f"Per-waypoint observation budget={max(1, int(max_observe_per_waypoint))}. "
+            f"Raw-FPV candidate-attempt budget={max(1, int(raw_fpv_candidate_budget))}. "
+            f"Cleanup target cap={max(1, int(target_cleanup_count))}. "
+            f"Done retry budget={max(0, int(done_retry_budget))}. "
+            "Raw image payload persistence=disabled. "
         )
     elif profile == "camera-grounded-labels":
         prompt = CAMERA_LABELS_RUN_CONTEXT
@@ -238,30 +197,10 @@ def render_kickoff_prompt(
         household_intent=household_intent,
         goal_contract=goal_contract,
     )
-    return _with_operator_session_context(
+    return append_operator_session_context(
         prompt,
         operator_session_context=operator_session_context,
         operator_session_context_json=operator_session_context_json,
-    )
-
-
-def _camera_grounded_open_ended_rule(*, camera_grounded_composite_tools: bool) -> str:
-    if camera_grounded_composite_tools:
-        return (
-            "This open-ended run uses camera-grounded-labels: after navigating to a public "
-            "waypoint or target candidate, call observe_camera_grounded_candidates so the "
-            "configured camera labeler labels the current FPV frame. Use returned public "
-            "camera_model_candidates, model_declared_observations, and runtime_metric_map "
-            "evidence for the operator task; do not ask for service URLs, credentials, image "
-            "paths, or model hosts."
-        )
-    return (
-        "This open-ended run uses camera-grounded-labels: after each task-relevant observe "
-        "response with a raw FPV observation_id, call declare_visual_candidates with "
-        "observation_id only and omit candidates so the configured camera labeler labels the "
-        "frame. Use returned public camera_model_candidates, model_declared_observations, and "
-        "runtime_metric_map evidence for the operator task; do not ask for service URLs, "
-        "credentials, image paths, or model hosts."
     )
 
 
@@ -276,17 +215,46 @@ def render_map_build_prompt(
 ) -> str:
     """Render the live-agent kickoff prompt for intent=map-build."""
 
-    selected_scan_profile = map_build_scan_profile()
-    cadence = _map_build_observe_cadence(
-        profile,
-        camera_grounded_composite_tools=camera_grounded_composite_tools,
-        max_observe_per_waypoint=max_observe_per_waypoint,
+    scan_profile = map_build_scan_profile()
+    composite = profile == "camera-grounded-labels" and camera_grounded_composite_tools
+    observe_tool = "observe_camera_grounded_candidates" if composite else "observe"
+    profile_observe_count = scan_profile.observe_count_per_waypoint
+    effective_observe_count = (
+        profile_observe_count
+        if max_observe_per_waypoint is None
+        else max(1, int(max_observe_per_waypoint))
     )
-    prompt = CUSTOM_PREFIX + MAP_BUILD_RUN_CONTEXT.format(task=task, profile=profile, **cadence)
-    prompt += " " + _map_build_scan_profile_prompt(
-        selected_scan_profile.to_payload(),
-        max_observe_per_waypoint=max_observe_per_waypoint,
-        observe_tool=cadence["waypoint_observe_tool"],
+    body_turn_cadence_overridden = scan_profile.uses_robot_body_turns and (
+        effective_observe_count == 1
+    )
+    observe_budget = f"Per-waypoint observation budget={effective_observe_count}. "
+    camera_grounded_mode = ""
+    if profile == "camera-grounded-labels":
+        camera_grounded_mode = (
+            COMPOSITE_CAMERA_GROUNDED_RUN_FACT
+            if composite
+            else "Camera-grounded observation mode=observe plus declare_visual_candidates. "
+        )
+    prompt = CUSTOM_PREFIX + MAP_BUILD_RUN_CONTEXT.format(
+        task=task,
+        profile=profile,
+        waypoint_observe_tool=observe_tool,
+        waypoint_observe_budget=observe_budget,
+        camera_grounded_mode=camera_grounded_mode,
+    )
+    prompt += (
+        f" MapBuild scan_profile={scan_profile.profile_id}; "
+        f"body-turn count per waypoint={scan_profile.body_turn_count_per_waypoint}; "
+        f"body-turn yaw delta deg={scan_profile.body_turn_yaw_delta_deg:g}; "
+        f"profile observe cadence={profile_observe_count} per waypoint; "
+        f"effective observe cadence={effective_observe_count} per waypoint; "
+        "max_observe_per_waypoint override="
+        f"{str(max_observe_per_waypoint is not None).lower()}; "
+        "profile body-turn cadence overridden="
+        f"{str(body_turn_cadence_overridden).lower()}; "
+        f"stable-anchor priority={str(scan_profile.stable_anchor_priority).lower()}; "
+        f"stable-anchor categories/policy={scan_profile.description}; "
+        f"movable-prior policy={scan_profile.movable_prior_policy}."
     )
     prompt += " " + OPERATOR_STEER_CHECKPOINT_RULES
     if profile == "camera-raw-fpv":
@@ -294,88 +262,6 @@ def render_map_build_prompt(
     elif profile == "world-public-labels":
         prompt += " visible_object_detections omit destination oracle fields."
     prompt += " " + RUN_ARTIFACT_CONTRACT
-    return _with_operator_session_context(
-        prompt,
-        operator_session_context=operator_session_context,
-        operator_session_context_json=operator_session_context_json,
-    )
-
-
-def _map_build_observe_cadence(
-    profile: str,
-    *,
-    camera_grounded_composite_tools: bool,
-    max_observe_per_waypoint: int | None = None,
-) -> dict[str, str]:
-    observe_budget = _map_build_observe_budget_rule(
-        max_observe_per_waypoint=max_observe_per_waypoint,
-        observe_tool=(
-            "observe_camera_grounded_candidates"
-            if profile == "camera-grounded-labels" and camera_grounded_composite_tools
-            else "observe"
-        ),
-    )
-    if profile == "camera-grounded-labels" and camera_grounded_composite_tools:
-        return {
-            "waypoint_observe_tool": "observe_camera_grounded_candidates",
-            "waypoint_observe_budget_rule": observe_budget,
-            "camera_grounded_rule": (
-                "For camera-grounded-labels with the private SDK composite observation tool "
-                "enabled, after navigating to each public inspection waypoint call "
-                "observe_camera_grounded_candidates so the configured camera labeler labels "
-                "the current FPV frame. Treat the response observation as the waypoint "
-                "observation evidence and the response declaration as camera-labeler map "
-                "evidence. Do not resume the older observe plus declare_visual_candidates "
-                "cadence, and do not call declare_visual_candidates again for the same "
-                "source_observation_id unless a public tool explicitly asks for it. "
-            ),
-        }
-    if profile == "camera-grounded-labels":
-        return {
-            "waypoint_observe_tool": "observe",
-            "waypoint_observe_budget_rule": observe_budget,
-            "camera_grounded_rule": (
-                "For camera-grounded-labels, call declare_visual_candidates for each raw FPV "
-                "observation with observation_id only and omit candidates so the configured "
-                "camera labeler labels the frame. "
-            ),
-        }
-    return {
-        "waypoint_observe_tool": "observe",
-        "waypoint_observe_budget_rule": observe_budget,
-        "camera_grounded_rule": "",
-    }
-
-
-def _map_build_observe_budget_rule(
-    *,
-    max_observe_per_waypoint: int | None,
-    observe_tool: str,
-) -> str:
-    if max_observe_per_waypoint is None:
-        return ""
-    observe_budget = max(1, int(max_observe_per_waypoint))
-    if observe_budget == 1:
-        return (
-            f"Prefer one {observe_tool} response per waypoint_id. If evidence remains "
-            "ambiguous, record the ambiguity and move on. One bounded re-observation is "
-            "allowed only when a public tool requests it or after a successful camera, "
-            "pose, or world-state change can produce materially new Runtime Metric Map "
-            "evidence. "
-        )
-    return (
-        f"Use at most {observe_budget} {observe_tool} responses per waypoint_id, including "
-        "any pose-adjustment recovery; after the budget is reached, record the public "
-        "ambiguity and move to the next public waypoint. "
-    )
-
-
-def _with_operator_session_context(
-    prompt: str,
-    *,
-    operator_session_context: dict[str, Any] | None = None,
-    operator_session_context_json: str = "",
-) -> str:
     return append_operator_session_context(
         prompt,
         operator_session_context=operator_session_context,
@@ -464,40 +350,6 @@ def _strip_operator_session_private_text(text: str) -> str:
     for term in OPERATOR_SESSION_PRIVATE_TERMS:
         output = output.replace(term, "[redacted_private_field]")
     return output
-
-
-def _map_build_scan_profile_prompt(
-    scan_profile: dict[str, object],
-    *,
-    max_observe_per_waypoint: int | None = None,
-    observe_tool: str = "observe",
-) -> str:
-    profile_id = str(scan_profile.get("profile") or "fixture-focused")
-    body_turn_count = int(scan_profile.get("body_turn_count_per_waypoint") or 4)
-    yaw_delta = float(scan_profile.get("body_turn_yaw_delta_deg") or 90.0)
-    emphasis = (
-        " Prioritize stable semantic anchors: fixtures, surfaces, receptacles, "
-        "room or area anchors, and navigation-visible landmarks. Record movable "
-        "objects only as observations that future runs must recheck before action."
-        if bool(scan_profile.get("stable_anchor_priority"))
-        else ""
-    )
-    if max_observe_per_waypoint is not None and max(1, int(max_observe_per_waypoint)) == 1:
-        return (
-            f"MapBuild scan_profile={profile_id}: this managed profile prefers one "
-            f"{observe_tool} response per waypoint_id, so skip routine multi-heading "
-            "scanning. Use one bounded re-observation only after a successful camera or "
-            "pose change when public evidence is ambiguous or a tool requests it; otherwise "
-            f"record missing heading coverage as public ambiguity.{emphasis}"
-        )
-    return (
-        f"MapBuild scan_profile={profile_id}: at each inspection waypoint, after the "
-        f"initial observe, call navigate_to_relative_pose(forward_m=0, lateral_m=0, "
-        f"yaw_delta_deg={yaw_delta:g}) then observe again for each of {body_turn_count} "
-        "bounded robot-body headings. If navigate_to_relative_pose is blocked, report "
-        "the blocked capability instead of silently treating camera-only scanning as "
-        f"complete MapBuild scan proof.{emphasis}"
-    )
 
 
 def main(argv: list[str] | None = None) -> int:

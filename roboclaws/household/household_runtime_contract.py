@@ -281,9 +281,6 @@ class HouseholdRuntimeContract:
             assert_no_forbidden_agent_view_keys=_assert_no_forbidden_agent_view_keys,
         )
 
-    def source_map_static_fixture_projection(self) -> dict[str, Any]:
-        return realworld_contract_projection._source_map_static_fixture_projection(self)
-
     def navigate_to_room(self, room_id: str) -> dict[str, Any]:
         room = next((item for item in self._rooms if item["room_id"] == room_id), None)
         if room is None:

@@ -36,7 +36,7 @@ Use the bundled renderer:
 
 ```bash
 python skills/visual-result-showcase/scripts/render_household_cleanup_showcase.py \
-  --run-dir output/household/household-cleanup/codex-world-public-labels/0606_1142/seed-7 \
+  --run-dir output/household/household-world/cleanup/direct-world-public-labels/seed-7 \
   --out-dir docs/blog/assets/household-cleanup-showcase
 ```
 

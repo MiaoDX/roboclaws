@@ -40,10 +40,8 @@ from roboclaws.evals.models import (
 )
 from roboclaws.household.household_backend_contract import SYNTHETIC_BACKEND
 from roboclaws.launch.backends import BACKEND_SPECS
-from roboclaws.launch.catalog import SURFACE_SPECS, resolve_surface_launch
+from roboclaws.launch.catalog import resolve_surface_launch
 from roboclaws.launch.executor import LaunchProcess, spawn_launch_plan
-from roboclaws.launch.goals import normalize_goal_contract
-from roboclaws.launch.intents import TASK_INTENT_SPECS
 from roboclaws.launch.map_bundles import molmospaces_nav2_map_bundle_path
 from roboclaws.launch.plans import LaunchPlan
 
@@ -567,9 +565,6 @@ def live_surface_command(kwargs: dict[str, Any], *, output_dir: Path) -> list[st
     runtime_map_prior = str(kwargs.get("runtime_map_prior_path") or "")
     if runtime_map_prior:
         command.append(f"runtime_map_prior={runtime_map_prior}")
-    goal_contract = str(kwargs.get("goal_contract_json") or "")
-    if goal_contract:
-        command.append(f"goal_contract_json={goal_contract}")
     task_prompt = str(kwargs.get("task_prompt") or "")
     if task_prompt and (sample is None or sample.prompt not in {"", MISSING_NOT_APPLICABLE}):
         command.append(f"prompt={task_prompt}")
@@ -780,9 +775,6 @@ def product_run_kwargs(
                 scene_index=kwargs["scene_index"],
             )
         )
-    goal_contract = _goal_contract_json(sample)
-    if goal_contract:
-        kwargs["goal_contract_json"] = goal_contract
     runtime_map_prior = str((dependency_artifacts or {}).get("runtime_map_prior_path") or "")
     if runtime_map_prior:
         kwargs["runtime_map_prior_path"] = runtime_map_prior
@@ -862,23 +854,6 @@ def scene_index(sample: EvalSample) -> int:
         (sample.launch_overrides or {}).get("scene_index", 0),
         "launch_overrides.scene_index",
     )
-
-
-def _goal_contract_json(sample: EvalSample) -> str:
-    launch_overrides = sample.launch_overrides or {}
-    override = str(launch_overrides.get("goal_contract_json") or "")
-    if override:
-        return override
-    if sample.intent not in TASK_INTENT_SPECS:
-        return ""
-    surface = SURFACE_SPECS.get(sample.surface)
-    if surface is None:
-        return ""
-    return normalize_goal_contract(
-        surface=surface,
-        intent=TASK_INTENT_SPECS[sample.intent],
-        raw_prompt="" if sample.prompt in MISSING_SENTINELS else sample.prompt,
-    ).to_json()
 
 
 def live_surface_env(kwargs: dict[str, Any], *, base_env: Any) -> dict[str, str]:

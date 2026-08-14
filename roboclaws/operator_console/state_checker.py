@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from roboclaws.operator_console.state_summary import run_result_success
+from roboclaws.operator_console.state_summary import is_active_run_phase, run_result_success
 
 
 def checker_status(
@@ -58,7 +58,7 @@ def checker_status(
             "reason": "",
             "message": "Checker is running.",
         }
-    if normalized_phase in _ACTIVE_PHASES:
+    if is_active_run_phase(normalized_phase):
         return {
             "status": "waiting",
             "report_exists": False,
@@ -150,16 +150,3 @@ def _checker_log_failure_reason(checker_log: Path) -> str:
             "response before trying another cleanup tool."
         )
     return ""
-
-
-_ACTIVE_PHASES = {
-    "queued",
-    "starting",
-    "starting-server",
-    "running",
-    "running-sdk",
-    "waiting-for-server-finish",
-    "checking-result",
-    "paused",
-    "stopping",
-}

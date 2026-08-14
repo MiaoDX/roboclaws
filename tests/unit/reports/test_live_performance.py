@@ -11,7 +11,6 @@ from roboclaws.reports.live_performance import (
     ReportPerformanceSourceError,
     compare_run_dirs,
     extract_model_call_metrics,
-    extract_provider_request_metrics,
     extract_report_performance_metrics,
     privacy_findings_for_run_dir,
     write_model_call_metrics_jsonl,
@@ -232,83 +231,6 @@ def test_privacy_gate_scans_model_call_metrics(tmp_path: Path) -> None:
     assert any(finding["reason"] == "forbidden key raw_prompt" for finding in findings)
 
 
-def test_provider_request_metrics_add_transport_timing_without_model_api_override(
-    tmp_path: Path,
-) -> None:
-    run_dir = _write_run(
-        tmp_path / "run",
-        restored=5,
-        elapsed_s=70,
-        gap_s=30,
-        duration_s=12.5,
-    )
-    (run_dir / "provider_request_metrics.jsonl").write_text(
-        json.dumps(
-            {
-                "schema": "roboclaws_provider_request_metric_v1",
-                "proxy_request_id": "req-1",
-                "agent_engine": "codex-cli",
-                "provider_profile": "kimi-openai-chat",
-                "method": "POST",
-                "path": "/v1/responses",
-                "started_at_epoch": 1.0,
-                "upstream_headers_received_at_epoch": 2.0,
-                "first_response_byte_at_epoch": 2.5,
-                "finished_at_epoch": 11.0,
-                "duration_s": 10.0,
-                "time_to_headers_s": 1.0,
-                "time_to_first_byte_s": 1.5,
-                "stream_duration_s": 8.5,
-                "request_body_bytes": 123,
-                "response_body_bytes": 456,
-                "status_code": 200,
-                "streaming": True,
-                "provider_request_id": "safe-id",
-                "model": "gpt-5.5",
-                "limitations": [],
-            }
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    packet = extract_report_performance_metrics(run_dir, write_model_call_metrics=True)
-
-    assert packet["timing"]["observed_model_api_s"] == 12.5
-    assert packet["timing"]["provider_request_count"] == 1
-    assert packet["timing"]["provider_http_duration_s"] == 10.0
-    assert packet["timing"]["provider_http_time_to_first_byte_s"] == 1.5
-    assert packet["timing"]["provider_http_stream_duration_s"] == 8.5
-    assert packet["timing"]["provider_http_status_counts"] == {"200": 1}
-    assert "provider_http_timing_not_internal_model_compute" in packet["limitations"]
-    rows = [
-        json.loads(line)
-        for line in (run_dir / "model_call_metrics.jsonl").read_text(encoding="utf-8").splitlines()
-    ]
-    assert rows[0]["provider_http_transport_evidence"]["mapping"] == "aggregate"
-    assert "provider_http_timing_aggregate_only" in rows[0]["limitations"]
-
-
-def test_provider_request_metrics_are_privacy_scanned(tmp_path: Path) -> None:
-    run_dir = tmp_path / "run"
-    run_dir.mkdir()
-    (run_dir / "provider_request_metrics.jsonl").write_text(
-        json.dumps(
-            {
-                "schema": "roboclaws_provider_request_metric_v1",
-                "proxy_request_id": "req-1",
-                "raw_prompt": "do not persist",
-            }
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    findings = privacy_findings_for_run_dir(run_dir)
-
-    assert any(finding["reason"] == "forbidden key raw_prompt" for finding in findings)
-
-
 def test_report_performance_metrics_fail_aloud_on_malformed_json_source(
     tmp_path: Path,
 ) -> None:
@@ -356,39 +278,6 @@ def test_report_performance_metrics_fail_aloud_on_non_object_jsonl_source(
         match=r"openai-agents-spans\.jsonl:1",
     ):
         extract_model_call_metrics(run_dir)
-
-
-def test_extract_provider_request_metrics_ignores_other_schemas(tmp_path: Path) -> None:
-    run_dir = tmp_path / "run"
-    run_dir.mkdir()
-    (run_dir / "provider_request_metrics.jsonl").write_text(
-        '{"schema":"other","duration_s":99}\n'
-        '{"schema":"roboclaws_provider_request_metric_v1","duration_s":2.5}\n',
-        encoding="utf-8",
-    )
-
-    rows = extract_provider_request_metrics(run_dir)
-
-    assert len(rows) == 1
-    assert rows[0]["duration_s"] == 2.5
-
-
-def test_provider_request_metrics_fail_aloud_on_malformed_jsonl_source(
-    tmp_path: Path,
-) -> None:
-    run_dir = tmp_path / "run"
-    run_dir.mkdir()
-    (run_dir / "provider_request_metrics.jsonl").write_text(
-        '{"schema":"roboclaws_provider_request_metric_v1","duration_s":2.5}\n'
-        '{"schema":"roboclaws_provider_request_metric_v1"',
-        encoding="utf-8",
-    )
-
-    with pytest.raises(
-        ReportPerformanceSourceError,
-        match=r"provider_request_metrics\.jsonl:2",
-    ):
-        extract_provider_request_metrics(run_dir)
 
 
 def _write_run(
