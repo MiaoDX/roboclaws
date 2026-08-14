@@ -98,6 +98,22 @@ def test_canonical_prior_promotion_requires_explicit_approval(tmp_path: Path) ->
         )
 
 
+def test_canonical_prior_promotion_rejects_no_accepted_candidate(tmp_path: Path) -> None:
+    report, manifest = _write_inputs(tmp_path)
+    payload = json.loads(report.read_text())
+    payload["status"] = "no_accepted_candidate"
+    payload["selected_candidate_id"] = ""
+    payload["catalog_entry"] = None
+    report.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="accepted selector report"):
+        promote_canonical_runtime_prior(
+            selection_report_path=report,
+            promotion_manifest_path=manifest,
+            output_root=tmp_path / "out",
+        )
+
+
 def test_canonical_prior_promotion_rejects_mutated_cached_artifact(tmp_path: Path) -> None:
     report, manifest = _write_inputs(tmp_path)
     promoted = promote_canonical_runtime_prior(

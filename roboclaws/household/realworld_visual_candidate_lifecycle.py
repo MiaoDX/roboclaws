@@ -36,7 +36,7 @@ VISUAL_EVIDENCE_REQUIRED_ACTIONABILITY = (
 VISUAL_CANDIDATE_ALREADY_HANDLED_REASON = (
     realworld_visual_candidates.VISUAL_CANDIDATE_ALREADY_HANDLED_REASON
 )
-_NON_ACTIONABLE_HANDLE_STATES = frozenset({"placed", "placed_closed", "skipped", "stale"})
+_NON_ACTIONABLE_HANDLE_STATES = realworld_visual_candidates.NON_ACTIONABLE_HANDLE_STATES
 
 
 def _norm(value: Any) -> str:

@@ -19,7 +19,6 @@ from roboclaws.household.household_mcp_projection import (
     _compact_raw_fpv_mcp_observe_state,
     _write_json,
 )
-from roboclaws.household.household_mcp_tools import agent_view_public_tool_names
 from roboclaws.household.household_runtime_contract import (
     CAMERA_MODEL_POLICY_MODE,
     RAW_FPV_ONLY_MODE,
@@ -41,10 +40,7 @@ class HouseholdMCPArtifactLifecycle:
         agent_view = self.contract.agent_view_payload()
         agent_view = agent_view_module.with_public_tool_names(
             agent_view,
-            agent_view_public_tool_names(
-                self,
-                agent_view_module.public_tool_names(agent_view),
-            ),
+            self.registered_public_tool_names,
             capability_profiles=self.required_capability_profiles,
         )
         completion = getattr(self, "_completion_snapshot", None)

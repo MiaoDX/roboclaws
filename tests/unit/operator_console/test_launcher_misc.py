@@ -5,6 +5,7 @@ import socket
 from pathlib import Path
 from unittest.mock import patch
 
+from roboclaws.operator_console.launch_contract import ConsoleLaunchError
 from roboclaws.operator_console.launch_lifecycle import _new_run_id
 from roboclaws.operator_console.launcher import (
     build_launch_args,
@@ -247,6 +248,18 @@ def test_mcp_port_gate_rejects_port_that_is_already_accepting_connections(
         gate["id"] == "mcp_port_free" and gate["status"] == "needs_action"
         for gate in readiness["gates"]
     )
+
+
+def test_mcp_port_gate_rejects_invalid_requested_port(tmp_path: Path) -> None:
+    route = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
+
+    for port in ("not-a-port", "0", "65536"):
+        try:
+            route_readiness(tmp_path, route, overrides={"port": port}, env=KIMI_ENV)
+        except ConsoleLaunchError as exc:
+            assert str(exc) == f"invalid MCP port: {port}"
+        else:  # pragma: no cover - explicit assertion without an added pytest dependency.
+            raise AssertionError("expected invalid MCP port to fail")
 
 
 def test_openai_agents_open_task_route_uses_sdk_driver(tmp_path: Path) -> None:

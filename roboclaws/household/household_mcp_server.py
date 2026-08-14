@@ -57,11 +57,15 @@ from roboclaws.household.visual_grounding import (
     SIM_VISUAL_GROUNDING_PIPELINE_ID,
 )
 from roboclaws.maps.bundle import copy_nav2_map_bundle_snapshot
+from roboclaws.mcp.endpoint import (
+    DEFAULT_MCP_HOST as DEFAULT_HOST,
+)
+from roboclaws.mcp.endpoint import (
+    DEFAULT_MCP_PORT as DEFAULT_PORT,
+)
 
 __all__ = ["MCP_SERVER_NAME", "HouseholdWorldMCPServer", "make_household_world_mcp"]
 
-DEFAULT_HOST = "127.0.0.1"
-DEFAULT_PORT = 18788
 STARTUP_TIMEOUT_S = 2.0
 MCP_SERVER_NAME = "household_world"
 AGENT_POLICIES = {
@@ -247,8 +251,8 @@ class HouseholdWorldMCPServer(HouseholdMCPArtifactLifecycle, HouseholdMCPTraceLi
             raise ValueError("record_robot_views requires a backend with write_robot_views")
 
         self._init_runtime_state()
-        self._init_public_artifacts()
         self._init_fastmcp(host)
+        self._init_public_artifacts()
         self._write_initialized_event()
 
     def _init_runtime_state(self) -> None:

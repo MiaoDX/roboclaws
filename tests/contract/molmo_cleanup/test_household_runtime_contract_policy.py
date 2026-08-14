@@ -175,6 +175,29 @@ def test_world_labels_done_rejects_held_public_candidate_with_receptacle_hint() 
     _assert_no_forbidden_keys(done)
 
 
+def test_world_labels_done_rejects_navigated_public_candidate_until_pick() -> None:
+    contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
+    detection = _confirm_world_label_detection(
+        contract,
+        _first_detection_by_category(contract, "food"),
+    )
+
+    assert contract.navigate_to_object(detection["object_id"])["ok"] is True
+
+    done = contract.done("finished immediately after object navigation")
+
+    assert done["ok"] is False
+    assert done["error_reason"] == "pending_cleanup_candidates"
+    pending = next(
+        item
+        for item in done["pending_cleanup_candidates"]
+        if item["object_id"] == detection["object_id"]
+    )
+    assert pending["state"] == "navigating_to_object"
+    assert pending["required_tool"] == "pick"
+    _assert_no_forbidden_keys(done)
+
+
 def test_world_labels_rejects_destination_outside_public_policy() -> None:
     contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
     detection = _confirm_world_label_detection(

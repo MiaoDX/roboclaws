@@ -114,6 +114,9 @@ stand, hamper, and other surface-like fixtures. If any tool returns
 `error_reason: semantic_order`, call its `required_tool` with the same public
 object or fixture id, then retry the failed step once.
 
+After `open_receptacle` succeeds, call `place_inside` next with that same
+fixture id. Do not navigate again until the held object has been placed.
+
 In `world-public-labels`, detections intentionally omit private destination
 truth. Treat `destination_policy` as public category/fixture-affordance
 guidance: resolve preferred categories with `resolve_target_query` and match

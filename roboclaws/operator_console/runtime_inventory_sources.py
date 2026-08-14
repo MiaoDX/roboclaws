@@ -9,11 +9,11 @@ from roboclaws.agents.visual_backend_slots import (
     VisualBackendSlotError,
     list_visual_backend_slots,
 )
+from roboclaws.mcp.endpoint import DEFAULT_MCP_HOST
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.runtime_compat import float_or_none
 from roboclaws.operator_console.runtime_host_probes import (
-    DEFAULT_MCP_HOST,
     _has_live_markers,
     _int_or_none,
     _latest_paths,

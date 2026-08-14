@@ -142,7 +142,3 @@ def tool_handlers_for_call(
         "check_operator_messages": check_operator_messages,
         "done": done,
     }
-
-
-def agent_view_public_tool_names(server: Any, base_tool_names: list[str]) -> list[str]:
-    return list(server.registered_public_tool_names)

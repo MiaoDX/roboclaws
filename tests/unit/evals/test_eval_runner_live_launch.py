@@ -88,6 +88,15 @@ def test_live_surface_command_uses_current_public_launch_axes(tmp_path: Path) ->
     assert plan.evidence_mode == "smoke"
 
 
+def test_live_surface_command_uses_explicit_mcp_port(tmp_path: Path) -> None:
+    kwargs = _live_surface_kwargs(tmp_path / "trial-0000")
+    kwargs["port"] = "19422"
+
+    command = live_surface_command(kwargs, output_dir=tmp_path / "surface-run")
+
+    assert "port=19422" in command
+
+
 def test_live_surface_command_passes_map_build_camera_labeler(tmp_path: Path) -> None:
     sample = load_eval_sample(
         Path(__file__).resolve().parents[3]

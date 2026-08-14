@@ -22,6 +22,7 @@ from roboclaws.launch.household import execute_household_plan
 from roboclaws.launch.plans import LaunchPlan
 from roboclaws.launch.runners import _append_optional, _die, _exec_or_trace, _get
 from roboclaws.launch.worlds import resolve_optional_world_dependencies
+from roboclaws.mcp.endpoint import DEFAULT_MCP_PORT, EVAL_HARNESS_MCP_PORT_ENV
 
 SUPPORTED_OVERRIDE_KEYS = frozenset(
     (
@@ -179,7 +180,11 @@ def _household_run(
             output_dir=output_dir,
             prompt=prompt,
             host=_get(kv, "host", "127.0.0.1"),
-            port=_get(kv, "port", os.environ.get("ROBOCLAWS_EVAL_HARNESS_MCP_PORT", "18788")),
+            port=_get(
+                kv,
+                "port",
+                os.environ.get(EVAL_HARNESS_MCP_PORT_ENV, str(DEFAULT_MCP_PORT)),
+            ),
             camera_labeler=camera_labeler,
             visual_grounding_timeout_s=visual_grounding_timeout_s,
             resolved_task_intent=plan.intent,

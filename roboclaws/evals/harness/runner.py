@@ -19,9 +19,9 @@ from roboclaws.evals.suite_loading import REPO_ROOT
 from roboclaws.household.visual_grounding_sidecar.process import (
     ManagedVisualGroundingProcess,
 )
+from roboclaws.mcp.endpoint import EVAL_HARNESS_MCP_PORT_ENV, free_mcp_port
 
 DINO_SIDECAR_AUTOSTART_ENV = "ROBOCLAWS_EVAL_HARNESS_AUTOSTART_DINO_SIDECAR"
-EVAL_HARNESS_MCP_PORT_ENV = "ROBOCLAWS_EVAL_HARNESS_MCP_PORT"
 SESSION_LIVE_MCP_PORT_ENV = "ROBOCLAWS_SESSION_LIVE_MCP_PORT"
 DINO_SIDECAR_STARTUP_TIMEOUT_S = 15.0
 ROW_BLOCKER_REQUIREMENT_PRIORITY = {
@@ -275,17 +275,11 @@ def _row_environment(row: dict[str, Any]) -> dict[str, str]:
 def _live_row_mcp_port(row: dict[str, Any]) -> str:
     if str(row.get("row_kind") or "") != "live_agent_eval":
         return ""
-    row_id = str(row.get("row_id") or "")
-    if not row_id:
-        return ""
-    return str(19000 + (_stable_row_port_offset(row_id) % 1000))
-
-
-def _stable_row_port_offset(row_id: str) -> int:
-    total = 0
-    for index, char in enumerate(row_id):
-        total += (index + 1) * ord(char)
-    return total
+    port = str(row.get("mcp_port") or "")
+    if not port:
+        port = str(free_mcp_port())
+        row["mcp_port"] = port
+    return port
 
 
 def _command_uses_session_live(row: dict[str, Any]) -> bool:

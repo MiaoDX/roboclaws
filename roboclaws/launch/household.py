@@ -31,6 +31,7 @@ from roboclaws.maps.runtime_prior_conversion import (
     runtime_prior_snapshot_from_nav2_cleanup_bundle,
 )
 from roboclaws.maps.runtime_prior_materialization import materialize_runtime_prior_targets
+from roboclaws.mcp.endpoint import DEFAULT_MCP_PORT, EVAL_HARNESS_MCP_PORT_ENV
 from roboclaws.worlds.molmospaces.map_bundles import molmospaces_nav2_map_bundle_path
 
 _REPO_PYTHON = ".venv/bin/python"
@@ -264,7 +265,7 @@ def _live_command(
     port = _get(
         execution.kv,
         "port",
-        os.environ.get("ROBOCLAWS_EVAL_HARNESS_MCP_PORT", "18788"),
+        os.environ.get(EVAL_HARNESS_MCP_PORT_ENV, str(DEFAULT_MCP_PORT)),
     )
     timeout = os.environ.get("ROBOCLAWS_OPENAI_AGENTS_MCP_CLIENT_SESSION_TIMEOUT_S") or (
         "120" if execution.backend == "isaaclab_subprocess" else "30"

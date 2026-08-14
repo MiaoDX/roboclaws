@@ -69,6 +69,9 @@ def live_surface_command(kwargs: dict[str, Any], *, output_dir: Path) -> list[st
         kwargs,
         relocation_count=_generated_mess_count(kwargs),
     )
+    port = str(kwargs.get("port") or "")
+    if port:
+        command.append(f"port={port}")
     runtime_map_prior = str(kwargs.get("runtime_map_prior_path") or "")
     if runtime_map_prior:
         command.append(f"runtime_map_prior={runtime_map_prior}")
