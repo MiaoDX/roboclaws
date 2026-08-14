@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +12,12 @@ from roboclaws.evals.map_build_reports import (
     map_build_matrix_summary_from_bundles,
 )
 from roboclaws.evals.models import MISSING_NOT_APPLICABLE, MISSING_UNAVAILABLE
+from roboclaws.maps.runtime_prior_catalog import (
+    BLOCKING_STALE,
+    RUNTIME_PRIOR_CATALOG_SCHEMA,
+    RuntimePriorCatalogKey,
+    classify_runtime_prior_compatibility,
+)
 from roboclaws.maps.runtime_prior_snapshot import (
     PRIVATE_TRUTH_KEYS,
     RUNTIME_MAP_PRIOR_SNAPSHOT_SCHEMA,
@@ -20,55 +25,8 @@ from roboclaws.maps.runtime_prior_snapshot import (
 
 RUNTIME_PRIOR_SELECTION_MANIFEST_SCHEMA = "runtime_map_prior_selection_manifest_v1"
 RUNTIME_PRIOR_SELECTION_REPORT_SCHEMA = "runtime_map_prior_selection_report_v1"
-RUNTIME_PRIOR_CATALOG_SCHEMA = "runtime_map_prior_catalog_v1"
-
-COMPATIBLE = "compatible"
-ADVISORY_REGRADE = "advisory_regrade"
-STALE = "stale"
-BLOCKING_STALE = "blocking_stale"
-ACCEPTED_STALENESS = frozenset({COMPATIBLE, ADVISORY_REGRADE, STALE})
-
 _DEFAULT_MIN_PUBLIC_SEMANTIC_ANCHORS = 1
 _DEFAULT_MIN_STABLE_SEMANTIC_ANCHOR_CATEGORIES = 1
-
-
-@dataclass(frozen=True)
-class RuntimePriorCatalogKey:
-    """Stable scene/map identity for reusable prior catalog entries."""
-
-    world: str
-    backend: str
-    source_map_identity: str
-    scene_identity: str
-
-    @property
-    def id(self) -> str:
-        return "::".join((self.world, self.backend, self.source_map_identity, self.scene_identity))
-
-    @classmethod
-    def from_mapping(cls, payload: dict[str, Any]) -> "RuntimePriorCatalogKey":
-        forbidden_keys = {
-            "scenario_setup",
-            "relocation_seed",
-            "generated_mess_set",
-            "relocated_object_ids",
-            "hidden_target_list",
-            "acceptable_destinations",
-        }
-        present = sorted(key for key in forbidden_keys if key in payload)
-        if present:
-            raise ValueError(
-                f"runtime prior catalog key contains private cleanup fields: {present}"
-            )
-        return cls(
-            world=_required_string(payload, "world"),
-            backend=_required_string(payload, "backend"),
-            source_map_identity=_required_string(payload, "source_map_identity"),
-            scene_identity=_required_string(payload, "scene_identity"),
-        )
-
-    def to_payload(self) -> dict[str, str]:
-        return asdict(self)
 
 
 def write_runtime_prior_selection(
@@ -164,22 +122,6 @@ def runtime_prior_catalog_from_reports(reports: list[dict[str, Any]]) -> dict[st
     }
 
 
-def load_runtime_prior_catalog(path: Path) -> tuple[dict[str, Any], ...]:
-    """Read a recommended-prior catalog file."""
-
-    payload = read_json_object(path, label="runtime prior catalog")
-    _require_schema(payload, RUNTIME_PRIOR_CATALOG_SCHEMA)
-    entries = payload.get("entries")
-    if not isinstance(entries, list):
-        raise ValueError("runtime prior catalog entries must be a list")
-    normalized = []
-    for index, entry in enumerate(entries):
-        if not isinstance(entry, dict):
-            raise ValueError(f"runtime prior catalog entry {index} must be an object")
-        normalized.append(_normalize_catalog_entry(entry))
-    return tuple(normalized)
-
-
 def load_runtime_prior_selection_manifest(path: Path) -> dict[str, Any]:
     manifest = read_json_object(path, label="runtime prior selection manifest")
     _require_schema(manifest, RUNTIME_PRIOR_SELECTION_MANIFEST_SCHEMA)
@@ -203,42 +145,6 @@ def load_runtime_prior_selection_manifest(path: Path) -> dict[str, Any]:
 
 def discover_runtime_prior_eval_results(raw_refs: str) -> list[Path]:
     return discover_eval_results_paths(raw_refs)
-
-
-def classify_runtime_prior_compatibility(
-    *,
-    entry_contract: dict[str, Any],
-    current_contract: dict[str, Any],
-    prior_path: str = "",
-) -> str:
-    """Classify catalog prior staleness against current scene/map contracts."""
-
-    if prior_path and not Path(prior_path).is_file():
-        return BLOCKING_STALE
-    for key in ("world", "backend", "source_map_identity"):
-        old = str(entry_contract.get(key) or "")
-        new = str(current_contract.get(key) or "")
-        if old and new and old != new:
-            return BLOCKING_STALE
-    for key in ("runtime_map_prior_schema", "public_map_contract_version"):
-        old = str(entry_contract.get(key) or "")
-        new = str(current_contract.get(key) or "")
-        if old and new and old != new:
-            return STALE
-    old_grader = str(entry_contract.get("grader_version") or "")
-    new_grader = str(current_contract.get("grader_version") or "")
-    if old_grader and new_grader and old_grader != new_grader:
-        return ADVISORY_REGRADE
-    return COMPATIBLE
-
-
-def catalog_entry_auto_enables(entry: dict[str, Any]) -> bool:
-    """Return whether the operator console may default to this catalog entry."""
-
-    status = str(entry.get("status") or "")
-    staleness = str(entry.get("staleness") or entry.get("compatibility") or "")
-    path = str(entry.get("path") or "")
-    return status == "accepted" and staleness in ACCEPTED_STALENESS and bool(path)
 
 
 def _candidate_row(manifest: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
@@ -484,35 +390,6 @@ def _catalog_entry_from_selected(
             f"compatibility:{staleness}",
         ],
     }
-
-
-def _normalize_catalog_entry(entry: dict[str, Any]) -> dict[str, Any]:
-    catalog_key = (
-        RuntimePriorCatalogKey.from_mapping(entry["catalog_key"]).to_payload()
-        if isinstance(entry.get("catalog_key"), dict)
-        else {}
-    )
-    normalized = {
-        "id": _required_string(entry, "id"),
-        "world_id": _required_string(entry, "world_id"),
-        "backend_id": _required_string(entry, "backend_id"),
-        "path": _required_string(entry, "path"),
-        "status": _required_string(entry, "status"),
-        "staleness": _required_string(entry, "staleness"),
-        "source": _required_string(entry, "source"),
-        "catalog_key": catalog_key,
-        "selected_candidate_id": str(entry.get("selected_candidate_id") or ""),
-        "run_id": str(entry.get("run_id") or ""),
-        "product_route": dict(entry.get("product_route") or {}),
-        "producer": dict(entry.get("producer") or {}),
-        "source_map_contract": dict(entry.get("source_map_contract") or {}),
-        "current_contract": dict(entry.get("current_contract") or {}),
-        "evidence": _string_tuple(entry.get("evidence") or ()),
-        "canonical_digest": str(entry.get("canonical_digest") or ""),
-        "artifact_sha256": str(entry.get("artifact_sha256") or ""),
-        "canonical_provenance": str(entry.get("canonical_provenance") or ""),
-    }
-    return normalized
 
 
 def _runtime_prior_path_schema_valid(path: str) -> bool:

@@ -74,7 +74,7 @@ def test_start_console_run_uses_one_provider_profile_selection(tmp_path: Path) -
         seen_env.update(kwargs["env"])
         return FakeProcess()
 
-    with patch("roboclaws.operator_console.launcher.subprocess.Popen", side_effect=fake_popen):
+    with patch("roboclaws.operator_console.launcher.spawn_launch_plan", side_effect=fake_popen):
         state = start_console_run(
             tmp_path,
             LaunchRequest(

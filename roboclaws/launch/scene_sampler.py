@@ -73,7 +73,6 @@ from roboclaws.launch.scene_sampler_scanner import (
     world_id_slug,
 )
 from roboclaws.launch.scene_sampler_sources import (
-    CURRENT_ALIAS_INDICES,
     SCANNER_READY_METADATA,
     SCENE_SAMPLER_SELECTION_SEED,
     SCENE_SAMPLER_SELECTION_STRATEGY,
@@ -83,7 +82,6 @@ from roboclaws.launch.scene_sampler_sources import (
     category_manifest,
     category_provenance,
     known_indices_for_source,
-    legacy_world_id,
     sampler_world_id,
     scanner_metadata,
     source_eval_indices,
@@ -190,28 +188,15 @@ def sampler_blocked_rows() -> tuple[SceneSamplerRow, ...]:
     return tuple(row for row in sampler_rows() if row.readiness_status != READINESS_READY)
 
 
-def legacy_molmospaces_world_ids() -> tuple[str, ...]:
-    """Return all current source-opaque aliases kept launchable for migration."""
-
-    return tuple(f"molmospaces/val_{index}" for index in CURRENT_ALIAS_INDICES)
-
-
 def parse_molmospaces_world_id(world_id: str) -> MolmoSpacesSceneRef:
-    """Parse legacy and source-aware MolmoSpaces world ids.
-
-    Legacy ids such as ``molmospaces/val_9`` are preserved as
-    ``procthor-10k-val`` aliases. New source-aware ids use
-    ``molmospaces/<scene_source>/<index>``.
-    """
+    """Parse a source-aware ``molmospaces/<scene_source>/<index>`` world id."""
 
     legacy_prefix = "molmospaces/val_"
     if world_id.startswith(legacy_prefix):
-        return MolmoSpacesSceneRef(
-            scene_source="procthor-10k-val",
-            scene_index=_parse_scene_index(
-                world_id.removeprefix(legacy_prefix),
-                world_id=world_id,
-            ),
+        index = _parse_scene_index(world_id.removeprefix(legacy_prefix), world_id=world_id)
+        raise ValueError(
+            f"legacy MolmoSpaces world id {world_id!r} is unsupported; "
+            f"use 'molmospaces/procthor-10k-val/{index}'"
         )
 
     parts = world_id.split("/")
@@ -224,7 +209,7 @@ def parse_molmospaces_world_id(world_id: str) -> MolmoSpacesSceneRef:
             scene_index=_parse_scene_index(parts[2], world_id=world_id),
         )
 
-    raise ValueError(f"unsupported MolmoSpaces world id: {world_id}")
+    raise ValueError(f"unsupported world {world_id!r}")
 
 
 def ui_molmospaces_world_ids() -> tuple[str, ...]:
@@ -1148,7 +1133,7 @@ def _ready_row(*, source: str, scene_index: int) -> SceneSamplerRow:
     selected_reason = (
         "selected_by_preview_scanner_for_source_diversity_and_map_actionability_seed"
         if lanes
-        else rejected_reason or "alias_preserved_not_selected"
+        else rejected_reason or "candidate_not_selected"
     )
     failure_class = str((metadata or {}).get("failure_class") or "")
     if rejected_reason and not failure_class:
@@ -1162,7 +1147,6 @@ def _ready_row(*, source: str, scene_index: int) -> SceneSamplerRow:
         readiness_status=status,
         lanes=tuple(lanes),
         world_id=sampler_world_id(source=source, scene_index=scene_index),
-        legacy_world_id=legacy_world_id(source=source, scene_index=scene_index),
         room_count=room_count,
         waypoint_count=waypoint_count,
         category_provenance=category_provenance(source),
@@ -1205,7 +1189,6 @@ def _blocked_source_row(scene_source: str) -> SceneSamplerRow:
         readiness_status=READINESS_BLOCKED,
         lanes=(),
         world_id=f"molmospaces/{scene_source}/blocked",
-        legacy_world_id="",
         room_count=0,
         waypoint_count=0,
         category_provenance="unavailable",

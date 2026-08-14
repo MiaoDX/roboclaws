@@ -1634,7 +1634,6 @@ def test_worker_robot_views_uses_robot_head_camera_for_fpv(
         "qpos": [],
         "tool_event_counts": {},
     }
-
     fake_model = SimpleNamespace(jnt_qposadr=[0, 1])
     fake_data = SimpleNamespace(qpos=[0.0, 0.0])
     joint_ids = {"robot_0/head_0": 0, "robot_0/head_1": 1}
@@ -1675,9 +1674,10 @@ def test_worker_robot_views_uses_robot_head_camera_for_fpv(
         worker.Image.new("RGB", (16, 12)).save(image_path)
         return {
             "ok": True,
-            "images": {"topdown_scene": str(image_path)},
+            "images": {"topdown_scene": "~/0001_observe.topdown_scene/topdown_scene.png"},
         }
 
+    monkeypatch.setattr(Path, "home", classmethod(lambda _cls: tmp_path))
     monkeypatch.setattr(worker, "_render_camera_views_with_model_data", fake_topdown_render)
     result = worker.write_robot_views(
         state,
@@ -1715,7 +1715,7 @@ def test_worker_robot_views_uses_robot_head_camera_for_fpv(
     assert result["camera_adjustment"]["applied"] is True
     assert fake_data.qpos[0] == pytest.approx(np.deg2rad(12.5))
     assert fake_data.qpos[1] == pytest.approx(np.deg2rad(-7.0))
-    assert Path(result["views"]["fpv"]).is_file()
+    assert (tmp_path / "0001_observe.fpv.png").is_file()
 
 
 def test_worker_robot_view_camera_offset_updates_head_joints_for_render(

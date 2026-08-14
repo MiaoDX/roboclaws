@@ -199,7 +199,7 @@ def _identity() -> dict[str, object]:
         "surface": "household-world",
         "intent": "cleanup",
         "preset": "cleanup",
-        "world": "molmospaces/val_0",
+        "world": "molmospaces/procthor-10k-val/0",
         "backend": "mujoco",
         "evidence_lane": "world-public-labels",
         "camera_labeler": MISSING_NOT_APPLICABLE,

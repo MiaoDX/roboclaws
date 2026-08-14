@@ -42,8 +42,6 @@ class ModelSpec:
     model_capabilities: frozenset[str]
     default_use: bool = False
     default_use_note: str = ""
-    direct_provider_adapter: str | None = None
-    direct_required_env_keys: tuple[str, ...] = ()
     cost_per_m: dict[str, float] = field(default_factory=dict)
     openclaw_model_id: str | None = None
 
@@ -122,15 +120,12 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         aliases=("mock",),
         family="mock",
         model_capabilities=_caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
-        direct_provider_adapter="mock",
     ),
     ModelSpec(
         model_id="gpt-4o",
         aliases=("gpt-4o",),
         family="gpt",
         model_capabilities=_caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
-        direct_provider_adapter="openai",
-        direct_required_env_keys=("OPENAI_API_KEY",),
         cost_per_m={"input": 5.00, "output": 15.00},
     ),
     ModelSpec(
@@ -138,8 +133,6 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         aliases=("gpt-4o-mini",),
         family="gpt",
         model_capabilities=_caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
-        direct_provider_adapter="openai",
-        direct_required_env_keys=("OPENAI_API_KEY",),
         cost_per_m={"input": 0.15, "output": 0.60},
     ),
     ModelSpec(
@@ -147,8 +140,6 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         aliases=("kimi-k2-5", "k2p5"),
         family="kimi",
         model_capabilities=_caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
-        direct_provider_adapter="kimi",
-        direct_required_env_keys=("KIMI_API_KEY",),
         cost_per_m={"input": 1.00, "output": 3.00},
         openclaw_model_id="anthropic_kimi/k2p5",
     ),
@@ -163,8 +154,6 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
             "The provider accepts arbitrary K2.7 suffixes and echoes them, so the "
             "catalog keeps the canonical model id only."
         ),
-        direct_provider_adapter="kimi-coding",
-        direct_required_env_keys=("KIMI_API_KEY",),
         cost_per_m={"input": 1.00, "output": 3.00},
     ),
     ModelSpec(
@@ -172,8 +161,6 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         aliases=("kimi-coding", "kimi-for-coding"),
         family="kimi",
         model_capabilities=_caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
-        direct_provider_adapter="kimi-coding",
-        direct_required_env_keys=("KIMI_API_KEY",),
         cost_per_m={"input": 1.00, "output": 3.00},
     ),
     ModelSpec(
@@ -181,8 +168,6 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         aliases=("anthropic", "claude-3-5-sonnet-20241022"),
         family="anthropic",
         model_capabilities=_caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
-        direct_provider_adapter="anthropic",
-        direct_required_env_keys=("ANTHROPIC_API_KEY",),
         cost_per_m={"input": 3.00, "output": 15.00},
     ),
     ModelSpec(
@@ -190,8 +175,6 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         aliases=("claude-3-haiku-20240307",),
         family="anthropic",
         model_capabilities=_caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
-        direct_provider_adapter="anthropic",
-        direct_required_env_keys=("ANTHROPIC_API_KEY",),
         cost_per_m={"input": 0.25, "output": 1.25},
     ),
     ModelSpec(
@@ -310,10 +293,6 @@ def maybe_resolve_model(model_name: str | None) -> ModelSpec | None:
         return resolve_model(model_name)
     except KeyError:
         return None
-
-
-def required_env_keys(model_name: str) -> tuple[str, ...]:
-    return resolve_model(model_name).direct_required_env_keys
 
 
 def openclaw_model_id(model_name: str) -> str:

@@ -3115,7 +3115,7 @@ def _patch_live_surface_popen(
     class FakePopen:
         def __init__(
             self,
-            command: list[str],
+            plan: Any,
             *,
             stdout: Any = None,
             stderr: Any = None,
@@ -3123,8 +3123,7 @@ def _patch_live_surface_popen(
         ) -> None:
             kwargs.pop("cwd", None)
             kwargs.pop("env", None)
-            kwargs.pop("text", None)
-            self.completed = fake_run(command, **kwargs)
+            self.completed = fake_run(list(plan.overrides), **kwargs)
             self.returncode = self.completed.returncode
             if stdout is not None:
                 stdout.write(str(getattr(self.completed, "stdout", "") or ""))
@@ -3143,7 +3142,7 @@ def _patch_live_surface_popen(
         def wait(self, timeout: float | None = None) -> int:
             return self.returncode
 
-    monkeypatch.setattr(live_runtime.subprocess, "Popen", FakePopen)
+    monkeypatch.setattr(live_runtime, "spawn_launch_plan", FakePopen)
 
 
 def _write_product_artifacts(

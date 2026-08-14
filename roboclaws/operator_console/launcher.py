@@ -21,6 +21,7 @@ from roboclaws.core.dotenv import load_dotenv_file
 from roboclaws.core.json_sources import read_json_object
 from roboclaws.household.evidence_lane_policy import evidence_lane_compatibility
 from roboclaws.launch.catalog import LaunchError, resolve_surface_launch
+from roboclaws.launch.executor import LaunchProcess, spawn_launch_plan
 from roboclaws.launch.worlds import optional_world_dependency_status
 from roboclaws.operator_console import context_packets
 from roboclaws.operator_console.interactions import (
@@ -36,6 +37,7 @@ from roboclaws.operator_console.launch_support import (
     launch_prompt_for_intent,
     provider_env_overrides_for_route,
     public_env_overrides,
+    resolve_console_launch_plan,
 )
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.paths import console_output_root
@@ -76,8 +78,6 @@ class ConsoleLaunchError(ValueError):
 
 
 class _JsonSourceError(ValueError):
-    """Internal source error for present launcher JSON artifacts."""
-
     def __init__(self, path: Path, reason: str) -> None:
         self.path = path
         self.reason = reason
@@ -270,7 +270,7 @@ def start_console_run(
 
     run_id, run_dir = _reserve_new_run_dir(root, route)
     lock = ResourceLock(root, route.lock_name)
-    process: subprocess.Popen[bytes] | None = None
+    process: LaunchProcess | None = None
     try:
         if route.supports_operator_steer:
             overrides.setdefault("operator_messages_path", str(run_dir / MESSAGE_LOG))
@@ -296,18 +296,18 @@ def start_console_run(
             launch_prompt=launch_prompt,
             overrides=overrides,
         )
+        plan = resolve_console_launch_plan(argv, error_type=ConsoleLaunchError)
         mcp_host, mcp_port = requested_mcp_endpoint(overrides)
         mcp_url = f"http://{mcp_host}:{mcp_port}/mcp"
         log_path = run_dir / "console-launch.log"
         lock_state = lock.acquire(run_id=run_id)
         with log_path.open("ab") as log_stream:
-            process = subprocess.Popen(
-                argv,
+            process = spawn_launch_plan(
+                plan,
                 cwd=root,
                 env=run_env,
                 stdout=log_stream,
-                stderr=subprocess.STDOUT,
-                start_new_session=True,
+                stderr=log_stream,
             )
         lock_state = lock.update_pid(run_id=run_id, pid=process.pid)
     except Exception:

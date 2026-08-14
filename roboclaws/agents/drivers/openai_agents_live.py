@@ -439,8 +439,9 @@ def _instructions_with_skill_context(request: LiveAgentRequest) -> tuple[str, di
     instructions = (
         "Canonical skill context for this private OpenAI Agents SDK run:\n\n"
         f"{content.rstrip()}\n\n"
-        "Run-specific kickoff instructions override any conflicting generic skill-context "
-        "guidance for this run:\n\n"
+        "Run-specific context supplies the operator goal, selected lane, budgets, artifacts, "
+        "and episode facts. The operator goal and public safety or required-tool responses are "
+        "authoritative; otherwise the canonical Skill owns task strategy:\n\n"
         f"{request.kickoff_prompt}"
     )
     return instructions, summary

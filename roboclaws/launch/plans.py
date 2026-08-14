@@ -11,13 +11,10 @@ from roboclaws.launch.goals import GoalContract
 class LaunchPlan:
     """Resolved public surface/intent route before execution.
 
-    The launch plan names the canonical axes first, then the private dispatch
-    command that the current implementation should execute. The command
-    intentionally still points at ``just agent::run``; that dispatcher owns the
-    final lowering into implementation recipes.
+    Named canonical and implementation fields cross directly into the launch
+    executor; no second command parser reconstructs this state.
     """
 
-    argv: tuple[str, ...]
     surface: str
     intent: str
     preset: str | None

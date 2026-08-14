@@ -133,6 +133,8 @@ def derive_operator_state(
             or ""
         ),
     )
+    if run_result and phase.lower() in {"idle", "starting", "running", "checking-result"}:
+        phase = "finished" if checker["status"] == "passed" else "failed"
     terminal_status = dict(status)
     terminal_status.update(launch_failure)
     terminal_status.update(stale_live_failure)
@@ -140,10 +142,7 @@ def derive_operator_state(
     terminal_reason = _terminal_reason(terminal_status, live_status, run_result)
     artifacts = [link.to_payload(root) for link in _artifact_links(display_run_dir)]
     artifacts.extend(link.to_payload(root) for link in _wrapper_artifact_links(run_dir))
-    latest_view_assets = _latest_view_assets(
-        root,
-        display_run_dir,
-    )
+    latest_view_assets = _latest_view_assets(root, display_run_dir)
     public_result = _public_run_result_summary(run_result)
     prompt_preview = _prompt_preview(status, live_status, run_result, display_run_dir)
     run_id = str(status.get("run_id") or run_dir.name)

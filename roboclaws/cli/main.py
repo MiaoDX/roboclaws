@@ -13,15 +13,11 @@ def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     if len(args) >= 2 and args[0] == "run" and args[1] == "surface":
         return surface_run_main(args[2:])
-    if args and args[0] == "eval":
-        from roboclaws.evals.cli import main as eval_main
-
-        return eval_main(args[1:])
     if args and args[0] == "agent":
         return agent_main(args[1:])
     if args and args[0] == "agent-server":
         return agent_server_main(args[1:])
-    die("expected subcommand: run surface | eval | agent | agent-server")
+    die("expected subcommand: run surface | agent | agent-server")
 
 
 if __name__ == "__main__":

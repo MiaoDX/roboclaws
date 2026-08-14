@@ -27,9 +27,7 @@ from roboclaws.household.ci_live_reports import (
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 RUN_MATRIX_PATH = REPO_ROOT / "scripts" / "molmo_cleanup" / "run_ci_live_cleanup_matrix.py"
-RUN_OPENAI_AGENTS_PATH = (
-    REPO_ROOT / "scripts" / "molmo_cleanup" / "run_live_openai_agents_household.py"
-)
+RUN_OPENAI_AGENTS_PATH = REPO_ROOT / "roboclaws" / "agents" / "household_live_runner.py"
 ASSEMBLE_LIVE_PAGES_PATH = REPO_ROOT / "scripts" / "molmo_cleanup" / "assemble_ci_live_pages.py"
 PAGES_INDEX_PATH = REPO_ROOT / "scripts" / "reports" / "write_pages_index.py"
 
@@ -147,7 +145,7 @@ def test_dry_run_matrix_writes_status_and_manifest(tmp_path: Path) -> None:
         "just",
         "run::surface",
         "surface=household-world",
-        "world=molmospaces/val_0",
+        "world=molmospaces/procthor-10k-val/0",
         "backend=mujoco",
         "intent=cleanup",
         "agent_engine=openai-agents-sdk",
@@ -158,7 +156,7 @@ def test_dry_run_matrix_writes_status_and_manifest(tmp_path: Path) -> None:
         "ROBOCLAWS_PROVIDER_PROFILE=kimi-openai-chat "
         "ROBOCLAWS_OPENAI_AGENTS_MODEL=kimi-k2.7-code "
         "ROBOCLAWS_PROVIDER_TIMING_PROXY=1 "
-        "just run::surface surface=household-world world=molmospaces/val_0 "
+        "just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 "
         "backend=mujoco intent=cleanup agent_engine=openai-agents-sdk "
         "provider_profile=kimi-openai-chat evidence_lane=world-public-labels"
     )
@@ -194,7 +192,7 @@ def test_dry_run_agents_sdk_entry_uses_entry_engine_and_model_env(tmp_path: Path
         "just",
         "run::surface",
         "surface=household-world",
-        "world=molmospaces/val_0",
+        "world=molmospaces/procthor-10k-val/0",
         "backend=mujoco",
         "intent=cleanup",
         "agent_engine=openai-agents-sdk",
@@ -309,7 +307,7 @@ def test_latest_seed_artifact_dir_ignores_seed_dirs_without_diagnostic_evidence(
 def test_live_openai_agents_explicit_operator_handoff_pauses_without_continuation(
     tmp_path: Path, monkeypatch
 ) -> None:
-    run_sdk = _load_module(RUN_OPENAI_AGENTS_PATH, "run_live_openai_agents_household")
+    run_sdk = _load_module(RUN_OPENAI_AGENTS_PATH, "household_live_runner_handoff")
     run_dir = tmp_path / "run"
     run_dir.mkdir()
     args = SimpleNamespace(
@@ -401,7 +399,7 @@ def test_live_openai_agents_explicit_operator_handoff_pauses_without_continuatio
 def test_live_openai_agents_paused_handoff_consumes_resume_request_and_runs_second_turn(
     tmp_path: Path, monkeypatch
 ) -> None:
-    run_sdk = _load_module(RUN_OPENAI_AGENTS_PATH, "run_live_openai_agents_household")
+    run_sdk = _load_module(RUN_OPENAI_AGENTS_PATH, "household_live_runner_resume")
     run_dir = tmp_path / "run"
     run_dir.mkdir()
     resume_path = run_dir / "operator_resume_requests.jsonl"

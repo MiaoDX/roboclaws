@@ -30,7 +30,7 @@ OPENCLAW_JUST = JUST_DIR / "openclaw.just"
 MOLMO_JUST = JUST_DIR / "molmo.just"
 AGENT_CLI = REPO_ROOT / "roboclaws" / "cli" / "agent.py"
 CODING_AGENT_ENV = REPO_ROOT / "scripts" / "dev" / "coding_agent_env.sh"
-LIVE_OPENAI_AGENTS_RUNNER = REPO_ROOT / "scripts/molmo_cleanup/run_live_openai_agents_household.py"
+LIVE_OPENAI_AGENTS_RUNNER = REPO_ROOT / "roboclaws/agents/household_live_runner.py"
 HOUSEHOLD_LIVE_DRIVER = REPO_ROOT / "roboclaws" / "agents" / "drivers" / "household_live.py"
 HOUSEHOLD_AGENT_SERVER_MODULE = "roboclaws.cli.agent_server"
 CODE_AGENT_ENV_VARS = (
@@ -169,10 +169,6 @@ def trace_agent_verify(*args: str) -> list[str]:
     return trace_just("agent::verify", *args)
 
 
-def trace_agent_run(*args: str) -> list[str]:
-    return trace_just("agent::run", *args)
-
-
 def trace_agent_mcp(*args: str) -> list[str]:
     return trace_just("agent::mcp", *args)
 
@@ -211,23 +207,6 @@ def assert_household_map_build_run_fails(
     return assert_surface_run_fails(
         *household_map_build_args(agent_engine, evidence_lane, *overrides)
     )
-
-
-def assert_agent_run_fails(*args: str) -> str:
-    binary = just_bin()
-    env = os.environ.copy()
-    env["ROBOCLAWS_JUST_TRACE"] = "1"
-    env["PATH"] = f"{Path(binary).parent}{os.pathsep}{env.get('PATH', '')}"
-    result = subprocess.run(
-        [binary, "agent::run", *args],
-        cwd=REPO_ROOT,
-        env=env,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode != 0
-    return result.stderr
 
 
 def assert_surface_run_fails(*args: str) -> str:
@@ -269,7 +248,6 @@ def test_public_just_summary_is_small_facade() -> None:
 
     assert summary == {
         "run::surface",
-        "agent::run",
         "agent::verify",
         "agent::harness",
         "agent::mcp",
@@ -386,30 +364,6 @@ def test_justfile_marks_implementation_modules_private() -> None:
     assert re.search(r"^mod run\s+'just/run\.just'$", text, re.MULTILINE)
 
 
-def test_agent_module_exposes_compact_dispatchers() -> None:
-    text = AGENT_JUST.read_text(encoding="utf-8")
-
-    expected_headers = (
-        r"^run dispatch_target agent_engine mode=\"\" \*overrides:",
-        r"^verify target=\"mock\" \*args:",
-        r"^harness target \*args:",
-        r"^mcp action=\"up\"",
-        r"^gateway action=\"up\"",
-    )
-    for header in expected_headers:
-        assert re.search(header, text, re.MULTILINE), f"missing recipe header: {header}"
-
-    removed_combo_aliases = (
-        "codex-nav",
-        "claude-nav",
-        "openclaw-territory",
-        "vlm-coverage",
-        "script-territory",
-    )
-    for alias in removed_combo_aliases:
-        assert not re.search(rf"^{alias}\b", text, re.MULTILINE)
-
-
 def test_agent_verify_routes_required_ci_gate_to_verify_module() -> None:
     route = trace_agent_verify("ci-required", "output_dir=output/custom-demo", "steps=3")
 
@@ -510,59 +464,6 @@ def test_agent_mcp_rejects_task_named_household_dispatch_targets() -> None:
     assert '"household-world.map-build"' not in body
     assert '"household-cleanup"' not in body
     assert '"semantic-map-build"' not in body
-
-
-def test_surface_prompt_mapping_household_cleanup_sdk_world_labels_default() -> None:
-    route = trace_surface_run(
-        "surface=household-world",
-        "agent_engine=openai-agents-sdk",
-        "provider_profile=kimi-openai-chat",
-        "preset=cleanup",
-    )
-
-    assert route[:6] == [
-        "just",
-        "molmo::household-world-impl",
-        "openai-agents-live",
-        "world-public-labels",
-        "7",
-        "output/household/household-world/cleanup/openai-agents-live-world-public-labels",
-    ]
-
-
-def test_surface_prompt_omitted_intent_with_prompt_infers_open_ended() -> None:
-    route, plan_trace = trace_surface_run_with_plan(
-        "surface=household-world",
-        "agent_engine=openai-agents-sdk",
-        "provider_profile=kimi-openai-chat",
-        "prompt=我渴了，帮我找些解渴的东西",
-    )
-
-    assert route[:6] == [
-        "just",
-        "molmo::household-world-impl",
-        "openai-agents-live",
-        "world-public-labels",
-        "7",
-        "output/household/household-world/open-ended/openai-agents-live-world-public-labels",
-    ]
-    assert "我渴了，帮我找些解渴的东西" in route
-    assert route[23:25] == ["household-world", "open-ended"]
-    assert "b1_alignment_review=assets/maps/b1-map12-alignment-review.json" not in plan_trace
-    assert not any(item.startswith("b1_alignment_artifact=") for item in plan_trace)
-    assert not any(item.startswith("b1_navigation_artifact=") for item in plan_trace)
-    assert plan_trace[:6] == [
-        "launch-plan",
-        "surface=household-world",
-        "world=molmospaces/val_0",
-        "backend=mujoco",
-        "intent=open-ended",
-        "preset=",
-    ]
-    assert "skill=household-world" in plan_trace
-    assert "prompt=household_open_ended" in plan_trace
-    assert "checker=open_ended_report" in plan_trace
-    assert "goal=我渴了，帮我找些解渴的东西" in plan_trace
 
 
 def test_surface_open_ended_supports_mcp_smoke_for_local_gate() -> None:
@@ -695,7 +596,7 @@ def test_surface_launch_plan_exposes_goal_contract_and_evaluation_policy() -> No
     )
 
     assert plan.surface == "household-world"
-    assert plan.world == "molmospaces/val_0"
+    assert plan.world == "molmospaces/procthor-10k-val/0"
     assert plan.backend == "mujoco"
     assert plan.implementation_backend == "molmospaces_subprocess"
     assert plan.agent_engine == "openai-agents-sdk"
@@ -734,13 +635,7 @@ def test_surface_map_build_defaults_to_openai_agents_sdk_camera_grounded_dino() 
     assert plan.evidence_mode == "camera-grounded-labels"
     assert plan.profile == "camera-grounded-labels"
     assert "camera_labeler=grounding-dino" in plan.overrides
-    assert plan.argv[:5] == (
-        "just",
-        "agent::run",
-        "household-world",
-        "openai-agents-sdk",
-        "camera-grounded-labels",
-    )
+    assert plan.implementation_backend == "molmospaces_subprocess"
 
 
 def test_surface_launch_exports_goal_contract_to_lower_recipe_environment() -> None:
@@ -784,7 +679,7 @@ def test_surface_launch_exports_operator_session_context_to_lower_recipe_environ
     env = export_env_from_overrides(plan.overrides)
 
     assert env["ROBOCLAWS_OPERATOR_SESSION_CONTEXT_JSON"] == context
-    assert not any(item.startswith("operator_session_context_json=") for item in plan.argv)
+    assert f"operator_session_context_json={context}" in plan.overrides
     assert json.loads(env["ROBOCLAWS_GOAL_CONTRACT_JSON"])["normalized_goal"] == "next task"
 
 
@@ -829,68 +724,6 @@ def test_household_checker_flags_are_generated_from_intent_policy() -> None:
     assert "--allow-partial-cleanup" in map_flags
 
 
-def test_prompt_mapping_household_cleanup_sdk_world_labels_default() -> None:
-    route = trace_household_cleanup_run(
-        "openai-agents-sdk", "", "provider_profile=kimi-openai-chat"
-    )
-
-    assert route[:6] == [
-        "just",
-        "molmo::household-world-impl",
-        "openai-agents-live",
-        "world-public-labels",
-        "7",
-        "output/household/household-world/cleanup/openai-agents-live-world-public-labels",
-    ]
-
-
-def test_prompt_mapping_household_cleanup_sdk_smoke_override() -> None:
-    route = trace_household_cleanup_run(
-        "openai-agents-sdk", "smoke", "provider_profile=kimi-openai-chat"
-    )
-
-    assert route[:6] == [
-        "just",
-        "molmo::household-world-impl",
-        "openai-agents-live",
-        "smoke",
-        "7",
-        "output/household/household-world/cleanup/openai-agents-live-smoke",
-    ]
-
-
-def test_openai_agents_sdk_cleanup_route_is_active_live_route() -> None:
-    molmo_text = MOLMO_JUST.read_text(encoding="utf-8")
-
-    assert "openai-agents-live" in molmo_text
-    assert "run_live_openai_agents_household.py" in molmo_text
-    assert 'policy="openai_agents_agent"' in molmo_text
-    assert "--agent-sdk-perf-profile" in molmo_text
-    assert "ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE" in molmo_text
-    assert "--model-thinking-mode" in molmo_text
-    assert "ROBOCLAWS_OPENAI_AGENTS_THINKING_MODE" in molmo_text
-    assert "--context-soft-limit-tokens" in molmo_text
-    assert "ROBOCLAWS_OPENAI_AGENTS_MODEL ROBOCLAWS_PROVIDER_PROFILE" in molmo_text
-    assert "ROBOCLAWS_PROVIDER_PROFILE ROBOCLAWS_OPENAI_AGENTS_MODEL" in molmo_text
-    assert "openai-agents-live" in trace_household_cleanup_run(
-        "openai-agents-sdk", "", "provider_profile=kimi-openai-chat"
-    )
-
-    plan = resolve_surface_launch(
-        (
-            "surface=household-world",
-            "agent_engine=openai-agents-sdk",
-            "provider_profile=kimi-openai-chat",
-            "preset=cleanup",
-            "run_preset=smoke",
-            "evidence_lane=world-public-labels",
-        )
-    )
-    assert plan.agent_engine == "openai-agents-sdk"
-    assert plan.dispatch_runner == "openai-agents-live"
-    assert plan.internal_runner_class == "smoke"
-
-
 def test_openai_agents_runner_script_uses_runtime_contract_and_checker() -> None:
     runner_text = LIVE_OPENAI_AGENTS_RUNNER.read_text(encoding="utf-8")
 
@@ -899,19 +732,6 @@ def test_openai_agents_runner_script_uses_runtime_contract_and_checker() -> None
     assert "household_server_argv" in runner_text
     assert "CHECKER_SCRIPT" in runner_text
     assert "run_result.json" in runner_text
-
-
-def test_prompt_mapping_household_cleanup_direct_world_labels_sanitized() -> None:
-    route = trace_household_cleanup_run("direct", "world-public-labels")
-
-    assert route[:6] == [
-        "just",
-        "molmo::household-world-impl",
-        "direct",
-        "world-public-labels",
-        "7",
-        "output/household/household-world/cleanup/direct-world-public-labels",
-    ]
 
 
 @pytest.mark.parametrize(
@@ -1009,30 +829,11 @@ def test_surface_router_is_importable_source_of_truth() -> None:
         )
     )
 
-    assert resolved.argv == (
-        "just",
-        "agent::run",
-        "household-world",
-        "openai-agents-sdk",
-        "smoke",
-        "output_dir=output/custom",
-        "scene_source=procthor-10k-val",
-        "scene_index=0",
-        "map_bundle=assets/maps/molmospaces/procthor-10k-val/0",
-        "task_surface=household-world",
-        "task_intent=cleanup",
-        "task_preset=cleanup",
-        "world=molmospaces/val_0",
-        "backend=mujoco",
-        "skill_name=household-world",
-        "required_capability_profiles=household_world,household_manipulation,household_episode",
-        "backend=molmospaces_subprocess",
-        "generated_mess_count=5",
-    )
+    assert "output_dir=output/custom" in resolved.overrides
     assert "scenario_setup=relocate-cleanup-related-objects" in resolved.overrides
     assert "relocation_count=5" in resolved.overrides
-    assert not any(item.startswith("generated_mess_count=") for item in resolved.overrides)
-    assert resolved.world == "molmospaces/val_0"
+    assert "generated_mess_count=5" in resolved.overrides
+    assert resolved.world == "molmospaces/procthor-10k-val/0"
     assert resolved.backend == "mujoco"
     assert resolved.agent_engine == "openai-agents-sdk"
     assert resolved.provider_profile == "kimi-openai-chat"
@@ -1056,25 +857,10 @@ def test_surface_launch_plan_exposes_domain_metadata_before_dispatch() -> None:
         )
     )
 
-    assert plan.argv == (
-        "just",
-        "agent::run",
-        "household-world",
-        "openai-agents-sdk",
-        "smoke",
-        "task_surface=household-world",
-        "task_intent=cleanup",
-        "task_preset=cleanup",
-        "world=agibot-g2/map-12",
-        "backend=agibot-gdk",
-        "skill_name=household-world",
-        "required_capability_profiles=household_world,household_manipulation,household_episode",
-        "backend=agibot_gdk",
-        "generated_mess_count=5",
-    )
     assert "scenario_setup=relocate-cleanup-related-objects" in plan.overrides
     assert "relocation_count=5" in plan.overrides
-    assert not any(item.startswith("generated_mess_count=") for item in plan.overrides)
+    assert "generated_mess_count=5" in plan.overrides
+    assert plan.implementation_backend == "agibot_gdk"
     assert plan.dispatch_target == "household-world"
     assert plan.preset == "cleanup"
     assert plan.skill_name == "household-world"
@@ -1157,50 +943,6 @@ def test_human_docs_do_not_surface_legacy_cleanup_commands_as_current() -> None:
     assert "just run::surface surface=household-world" in settings
 
 
-def test_trace_mode_exposes_resolved_python_launch_plan() -> None:
-    route, plan_trace = trace_household_cleanup_run_with_plan(
-        "openai-agents-sdk",
-        "camera-grounded-labels",
-        "provider_profile=kimi-openai-chat",
-        "camera_labeler=grounding-dino",
-    )
-
-    assert route[:5] == [
-        "just",
-        "molmo::household-world-impl",
-        "openai-agents-live",
-        "camera-grounded-labels",
-        "7",
-    ]
-    assert plan_trace[:7] == [
-        "launch-plan",
-        "surface=household-world",
-        "world=molmospaces/val_0",
-        "backend=mujoco",
-        "intent=cleanup",
-        "preset=cleanup",
-        "agent_engine=openai-agents-sdk",
-    ]
-    assert "provider_profile=kimi-openai-chat" in plan_trace
-    assert "skill=household-world" in plan_trace
-    assert "dispatch_runner=openai-agents-live" in plan_trace
-    assert "dispatch_target=household-world" in plan_trace
-    assert "mode=camera-grounded-labels" in plan_trace
-    assert "profile=camera-grounded-labels" in plan_trace
-    assert "report=" in plan_trace
-    assert "prompt=household_cleanup" in plan_trace
-    assert "checker=cleanup_report" in plan_trace
-    assert (
-        "target=just agent::run household-world openai-agents-sdk camera-grounded-labels "
-        "camera_labeler=grounding-dino scene_source=procthor-10k-val scene_index=0 "
-        "map_bundle=assets/maps/molmospaces/procthor-10k-val/0 "
-        "task_surface=household-world task_intent=cleanup task_preset=cleanup "
-        "world=molmospaces/val_0 backend=mujoco skill_name=household-world "
-        "required_capability_profiles=household_world,household_manipulation,household_episode "
-        "backend=molmospaces_subprocess generated_mess_count=5"
-    ) in plan_trace
-
-
 def test_python_launch_plan_accepts_world_labels_sanitized_lane() -> None:
     plan = resolve_surface_launch(
         (
@@ -1219,28 +961,10 @@ def test_python_launch_plan_accepts_world_labels_sanitized_lane() -> None:
         "camera-grounded-labels",
         "camera-raw-fpv",
     )
-    assert plan.argv == (
-        "just",
-        "agent::run",
-        "household-world",
-        "openai-agents-sdk",
-        "world-public-labels",
-        "scene_source=procthor-10k-val",
-        "scene_index=0",
-        "map_bundle=assets/maps/molmospaces/procthor-10k-val/0",
-        "task_surface=household-world",
-        "task_intent=cleanup",
-        "task_preset=cleanup",
-        "world=molmospaces/val_0",
-        "backend=mujoco",
-        "skill_name=household-world",
-        "required_capability_profiles=household_world,household_manipulation,household_episode",
-        "backend=molmospaces_subprocess",
-        "generated_mess_count=5",
-    )
     assert "scenario_setup=relocate-cleanup-related-objects" in plan.overrides
     assert "relocation_count=5" in plan.overrides
-    assert not any(item.startswith("generated_mess_count=") for item in plan.overrides)
+    assert "generated_mess_count=5" in plan.overrides
+    assert plan.implementation_backend == "molmospaces_subprocess"
 
 
 def test_prompt_mapping_rejects_retired_ai2thor_nav_task() -> None:
@@ -1298,24 +1022,6 @@ def test_agent_harness_rejects_retired_targets(target: str) -> None:
     assert f"unsupported harness target '{target}'" in result.stderr
 
 
-def test_key_value_third_argument_keeps_molmo_profile_default() -> None:
-    route = trace_household_cleanup_run(
-        "openai-agents-sdk",
-        "",
-        "provider_profile=kimi-openai-chat",
-        "output_dir=output/custom",
-    )
-
-    assert route[:6] == [
-        "just",
-        "molmo::household-world-impl",
-        "openai-agents-live",
-        "world-public-labels",
-        "7",
-        "output/custom",
-    ]
-
-
 def test_map_build_rejects_public_map_mode_axis() -> None:
     stderr = assert_household_map_build_run_fails(
         "direct",
@@ -1327,60 +1033,6 @@ def test_map_build_rejects_public_map_mode_axis() -> None:
     assert "map_mode= is no longer a public run::surface argument" in stderr
 
 
-def test_molmo_cleanup_route_passes_selected_map_bundle_override() -> None:
-    route = trace_household_cleanup_run(
-        "openai-agents-sdk",
-        "world-public-labels",
-        "provider_profile=kimi-openai-chat",
-        "map_bundle=assets/maps/molmospaces/procthor-10k-val/0",
-    )
-
-    assert route[:10] == [
-        "just",
-        "molmo::household-world-impl",
-        "openai-agents-live",
-        "world-public-labels",
-        "7",
-        "output/household/household-world/cleanup/openai-agents-live-world-public-labels",
-        "帮我收拾这个房间",
-        "5",
-        "127.0.0.1",
-        "18788",
-    ]
-    assert route[10] == "assets/maps/molmospaces/procthor-10k-val/0"
-
-
-def test_molmo_cleanup_route_passes_visual_grounding_override() -> None:
-    route = trace_agent_run(
-        "household-world",
-        "mcp-smoke",
-        "camera-grounded-labels",
-        "camera_labeler=grounding-dino",
-    )
-
-    assert route[:6] == [
-        "just",
-        "molmo::household-world-impl",
-        "mcp-smoke",
-        "camera-grounded-labels",
-        "7",
-        "output/household/household-world/cleanup/mcp-smoke-camera-grounded-labels",
-    ]
-    assert route[13] == "grounding-dino"
-
-
-def test_molmo_cleanup_rejects_isaac_backend_override() -> None:
-    stderr = assert_agent_run_fails(
-        "household-world",
-        "direct",
-        "world-public-labels",
-        "backend=isaaclab_subprocess",
-    )
-
-    assert "backend=isaaclab_subprocess is scoped to world=b1-map12" in stderr
-    assert "MolmoSpaces household routes use backend=molmospaces_subprocess" in stderr
-
-
 def test_household_cleanup_rejects_public_legacy_rich_map_mode() -> None:
     stderr = assert_household_cleanup_run_fails(
         "direct",
@@ -1389,24 +1041,6 @@ def test_household_cleanup_rejects_public_legacy_rich_map_mode() -> None:
     )
 
     assert "map_mode= is no longer a public run::surface argument" in stderr
-
-
-def test_agent_run_rejects_public_map_mode_override() -> None:
-    stderr = assert_agent_run_fails(
-        "household-world",
-        "direct-runner",
-        "world-public-labels",
-        "map_mode=minimal",
-    )
-
-    assert "unsupported override key 'map_mode'" in stderr
-
-
-@pytest.mark.parametrize("dispatch_target", ("household-cleanup", "semantic-map-build"))
-def test_agent_run_rejects_legacy_household_dispatch_targets(dispatch_target: str) -> None:
-    stderr = assert_agent_run_fails(dispatch_target, "direct-runner", "world-public-labels")
-
-    assert "unsupported report 'world-public-labels'" in stderr
 
 
 def test_map_build_routes_agibot_backend_to_physical_pilot_cli(tmp_path: Path) -> None:
@@ -1449,10 +1083,11 @@ def test_map_build_sdk_routes_agibot_backend_to_live_runner(tmp_path: Path) -> N
         "visual_grounding_timeout_s=12.5",
     )
 
-    assert route[:3] == [
+    assert route[:4] == [
         "cmd",
         ".venv/bin/python",
-        "scripts/molmo_cleanup/run_live_openai_agents_household.py",
+        "-m",
+        "roboclaws.agents.household_live_runner",
     ]
     assert "--repo-root" in route
     assert str(REPO_ROOT) in route
@@ -1470,132 +1105,7 @@ def test_map_build_sdk_routes_agibot_backend_to_live_runner(tmp_path: Path) -> N
     assert "agibot_gdk" in route
     assert "--policy" in route
     assert "openai_agents_agibot_map_build" in route
-    assert str(LIVE_OPENAI_AGENTS_RUNNER.relative_to(REPO_ROOT)) in route
     assert "molmo::cleanup" not in route
-
-
-def test_map_build_sdk_routes_molmospaces_backend_to_live_runner() -> None:
-    route = trace_household_map_build_run(
-        "openai-agents-sdk",
-        "world-public-labels",
-        "provider_profile=kimi-openai-chat",
-        "backend=molmospaces_subprocess",
-    )
-
-    assert route[:7] == [
-        "just",
-        "molmo::household-world-impl",
-        "openai-agents-live",
-        "world-public-labels",
-        "7",
-        "output/household/household-world/map-build/openai-agents-live-world-public-labels",
-        "帮我建立这个房间的 Runtime Metric Map",
-    ]
-    assert route[15] == "on"
-    assert route[17] == "molmospaces_subprocess"
-    assert route[18] == "procthor-10k-val"
-    assert route[-1] == "map-build"
-
-
-def test_map_build_sdk_rejects_molmospaces_isaac_backend_override() -> None:
-    stderr = assert_agent_run_fails(
-        "household-world",
-        "openai-agents-sdk",
-        "world-public-labels",
-        "backend=isaaclab_subprocess",
-    )
-
-    assert "backend=isaaclab_subprocess is scoped to world=b1-map12" in stderr
-
-
-def test_b1_public_launch_routes_isaac_backend_to_current_implementation(tmp_path: Path) -> None:
-    route, plan_trace = trace_surface_run_with_plan(
-        "surface=household-world",
-        "world=b1-map12",
-        "backend=isaaclab",
-        "agent_engine=openai-agents-sdk",
-        "provider_profile=kimi-openai-chat",
-        "prompt=inspect the digital twin",
-        "evidence_lane=world-public-labels",
-        *_b1_dependency_args(tmp_path),
-    )
-
-    assert route[:6] == [
-        "just",
-        "molmo::household-world-impl",
-        "openai-agents-live",
-        "world-public-labels",
-        "7",
-        "output/household/household-world/open-ended/openai-agents-live-world-public-labels",
-    ]
-    assert route[10] == "<configured>"
-    assert route[12] == "on"
-    assert route[17] == "isaaclab_subprocess"
-    assert route[20] == "<configured>"
-    assert route[23:25] == ["household-world", "open-ended"]
-    assert route[26:28] == ["<configured>", "<configured>"]
-    assert "world=b1-map12" in plan_trace
-    assert "backend=isaaclab" in plan_trace
-    target_trace = next(item for item in plan_trace if item.startswith("target=just agent::run "))
-    assert "household-world openai-agents-sdk world-public-labels" in target_trace
-    assert "map_bundle=<configured>" in target_trace
-    assert "b1_alignment_review=" not in target_trace
-    assert "isaac_scene_usd_path=<configured>" in target_trace
-    assert "world=b1-map12" in target_trace
-    assert "backend=isaaclab_subprocess" in target_trace
-    assert "generated_mess_count=0" in target_trace
-    assert "b1_alignment_artifact=<configured>" in target_trace
-    assert "b1_navigation_artifact=<configured>" in target_trace
-    assert str(tmp_path) not in "\n".join([*route, *plan_trace])
-    assert "b1_semantic_projection_artifact=" not in target_trace
-
-
-def test_b1_public_launch_supports_camera_grounded_labels(tmp_path: Path) -> None:
-    route, plan_trace = trace_surface_run_with_plan(
-        "surface=household-world",
-        "world=b1-map12",
-        "backend=isaaclab",
-        "agent_engine=openai-agents-sdk",
-        "provider_profile=kimi-openai-chat",
-        "prompt=inspect the digital twin with camera grounded labels",
-        "evidence_lane=camera-grounded-labels",
-        *_b1_dependency_args(tmp_path),
-    )
-
-    assert route[3] == "camera-grounded-labels"
-    assert route[13] == "grounding-dino"
-    assert route[17] == "isaaclab_subprocess"
-    assert route[26:28] == ["<configured>", "<configured>"]
-    target_trace = next(item for item in plan_trace if item.startswith("target=just agent::run "))
-    assert "household-world openai-agents-sdk camera-grounded-labels" in target_trace
-    assert "backend=isaaclab_subprocess" in target_trace
-    assert "camera_labeler=grounding-dino" in target_trace
-    assert "b1_alignment_artifact=<configured>" in target_trace
-    assert "b1_navigation_artifact=<configured>" in target_trace
-    assert str(tmp_path) not in "\n".join([*route, *plan_trace])
-
-
-def test_b1_public_launch_passes_explicit_robot_consumption_proof_artifacts(
-    tmp_path: Path,
-) -> None:
-    route, plan_trace = trace_surface_run_with_plan(
-        "surface=household-world",
-        "world=b1-map12",
-        "backend=isaaclab",
-        "agent_engine=openai-agents-sdk",
-        "provider_profile=kimi-openai-chat",
-        "prompt=inspect the digital twin",
-        "evidence_lane=world-public-labels",
-        *_b1_dependency_args(tmp_path),
-    )
-
-    assert route[26:28] == ["<configured>", "<configured>"]
-    assert len(route) == 28
-    target_trace = next(item for item in plan_trace if item.startswith("target=just agent::run "))
-    assert "b1_alignment_artifact=<configured>" in target_trace
-    assert "b1_navigation_artifact=<configured>" in target_trace
-    assert str(tmp_path) not in "\n".join([*route, *plan_trace])
-    assert "b1_semantic_projection_artifact=" not in target_trace
 
 
 def test_b1_public_launch_rejects_stale_semantic_projection_artifact_axis() -> None:
@@ -1764,106 +1274,6 @@ def test_household_cleanup_routes_agibot_backend_override_to_cleanup_pilot_cli(
     assert str(tmp_path / "agibot_map") in route
 
 
-def test_household_cleanup_routes_agibot_molmospaces_sim_backend_to_rehearsal() -> None:
-    route = trace_agent_run(
-        "household-world",
-        "direct-runner",
-        "world-public-labels",
-        "backend=agibot_molmospaces_sim",
-        "context_json=tests/fixtures/agibot_robot_map_9_context.completed.json",
-        "agibot_map_artifact_dir=vendors/agibot_sdk/artifacts/maps/robot_map_9",
-        "run_dir=output/agibot/molmospaces-sim/test-run",
-        "rehearsal_mode=cleanup-actions",
-        "generated_mess_count=5",
-        "cleanup_object_count=1",
-    )
-
-    assert route[:3] == [
-        "cmd",
-        ".venv/bin/python",
-        "scripts/molmo_cleanup/run_molmospaces_agibot_contract_rehearsal.py",
-    ]
-    assert "--run-dir" in route
-    assert "output/agibot/molmospaces-sim/test-run" in route
-    assert "--runtime" in route
-    assert "fixture" in route
-    assert "--flow" in route
-    assert "prehardware" in route
-    assert "--intent" in route
-    assert "cleanup" in route
-    assert "--profile" in route
-    assert "world-public-labels" in route
-    assert "--rehearsal-mode" in route
-    assert "cleanup-actions" in route
-    assert "--context-json" in route
-    assert "tests/fixtures/agibot_robot_map_9_context.completed.json" in route
-    assert "--agibot-map-artifact-dir" in route
-    assert "vendors/agibot_sdk/artifacts/maps/robot_map_9" in route
-    assert "--seed" in route
-    assert "7" in route
-    assert "--cleanup-object-count" in route
-    assert "1" in route
-
-
-def test_map_build_routes_agibot_molmospaces_sim_to_base_metric_map_prehardware() -> None:
-    route = trace_agent_run(
-        "household-world",
-        "direct-runner",
-        "camera-grounded-labels",
-        "backend=agibot_molmospaces_sim",
-        "task_intent=map-build",
-        "run_dir=output/agibot/molmospaces-sim/map-build-test",
-        "runtime=molmospaces-subprocess",
-        "camera_labeler=grounding-dino",
-        "generated_mess_count=0",
-    )
-
-    assert route[:3] == [
-        "cmd",
-        ".venv/bin/python",
-        "scripts/molmo_cleanup/run_molmospaces_agibot_contract_rehearsal.py",
-    ]
-    assert "--flow" in route
-    assert "prehardware" in route
-    assert "--intent" in route
-    assert "map-build" in route
-    assert "--profile" in route
-    assert "camera-grounded-labels" in route
-    assert "--camera-labeler" in route
-    assert "grounding-dino" in route
-    assert "--runtime" in route
-    assert "molmospaces-subprocess" in route
-    assert "--include-robot" in route
-    assert "--record-robot-views" in route
-
-
-def test_map_build_agibot_sim_defaults_camera_labeler_for_public_facade() -> None:
-    route = trace_agent_run(
-        "household-world",
-        "direct-runner",
-        "camera-grounded-labels",
-        "backend=agibot_molmospaces_sim",
-        "runtime=fixture",
-        "camera_labeler=grounding-dino",
-        "generated_mess_count=0",
-    )
-
-    assert "--camera-labeler" in route
-    assert "grounding-dino" in route
-
-
-def test_agibot_molmospaces_sim_backend_rejects_multi_seed_runs() -> None:
-    stderr = assert_agent_run_fails(
-        "household-world",
-        "direct-runner",
-        "world-public-labels",
-        "backend=agibot_molmospaces_sim",
-        "seeds=1 2",
-    )
-
-    assert "backend=agibot_molmospaces_sim accepts exactly one seed per run" in stderr
-
-
 def test_live_cleanup_server_entrypoint_accepts_agibot_shared_mcp_backend() -> None:
     result = subprocess.run(
         [
@@ -1933,20 +1343,6 @@ def test_molmo_apple2apple_grid_recipe_strips_key_value_prefixes(tmp_path: Path)
     )
 
 
-def test_molmo_cleanup_world_labels_recipe_uses_map_bundle_gate() -> None:
-    text = MOLMO_JUST.read_text(encoding="utf-8")
-
-    assert 'map_bundle="auto"' in text
-    assert 'python_bin" -m roboclaws.launch.map_bundles' in text
-    assert "--map-bundle-dir" in text
-    removed_require_flag = "--require-map-" + "bundle"
-    removed_synthetic_flag = "--allow-synthetic-map-" + "projection"
-    assert removed_require_flag not in text
-    assert removed_synthetic_flag not in text
-    assert "using backend-derived public metric map" not in text
-    assert "map_bundle=${map_bundle_dir} is not allowed" in text
-
-
 def test_molmo_world_labels_checker_matches_official_acceptance_gate() -> None:
     text = MOLMO_JUST.read_text(encoding="utf-8")
     match = re.search(r"world-public-labels\)\n(?P<body>.*?)\n\s+;;", text, re.DOTALL)
@@ -1976,139 +1372,6 @@ def test_molmo_map_build_strips_cleanup_quality_gate() -> None:
     assert 'checker_visual_args=("${filtered_checker_visual_args[@]}")' in text
 
 
-def test_molmo_world_labels_allows_explicit_robot_view_capture_toggle() -> None:
-    route = trace_household_cleanup_run(
-        "openai-agents-sdk",
-        "world-public-labels",
-        "provider_profile=kimi-openai-chat",
-        "robot_views=off",
-    )
-
-    assert route[:12] == [
-        "just",
-        "molmo::household-world-impl",
-        "openai-agents-live",
-        "world-public-labels",
-        "7",
-        "output/household/household-world/cleanup/openai-agents-live-world-public-labels",
-        "帮我收拾这个房间",
-        "5",
-        "127.0.0.1",
-        "18788",
-        "assets/maps/molmospaces/procthor-10k-val/0",
-        "skill",
-    ]
-    assert route[12] == "off"
-
-
-def test_prompt_mapping_molmo_cleanup_camera_profiles() -> None:
-    raw_route = trace_household_cleanup_run("direct", "camera-raw-fpv")
-    labels_route = trace_household_cleanup_run(
-        "direct",
-        "camera-grounded-labels",
-        "camera_labeler=grounding-dino",
-    )
-
-    assert raw_route[:7] == [
-        "just",
-        "molmo::household-world-impl",
-        "direct",
-        "camera-raw-fpv",
-        "7",
-        "output/household/household-world/cleanup/direct-camera-raw-fpv",
-        "帮我收拾这个房间",
-    ]
-    assert labels_route[:7] == [
-        "just",
-        "molmo::household-world-impl",
-        "direct",
-        "camera-grounded-labels",
-        "7",
-        "output/household/household-world/cleanup/direct-camera-grounded-labels",
-        "帮我收拾这个房间",
-    ]
-    assert raw_route[11] == "skill"
-
-
-def test_prompt_mapping_map_build_direct_enables_sweep() -> None:
-    route = trace_household_map_build_run("direct", "smoke")
-
-    assert route[:6] == [
-        "just",
-        "molmo::household-world-impl",
-        "direct",
-        "smoke",
-        "7",
-        "output/household/household-world/map-build/direct-smoke",
-    ]
-    assert route[6] == "帮我建立这个房间的 Runtime Metric Map"
-    assert route[15] == "on"
-
-
-def test_prompt_mapping_map_build_openai_agents_sdk_routes_to_live_driver() -> None:
-    route = trace_household_map_build_run(
-        "openai-agents-sdk", "", "provider_profile=kimi-openai-chat"
-    )
-
-    assert route[:6] == [
-        "just",
-        "molmo::household-world-impl",
-        "openai-agents-live",
-        "camera-grounded-labels",
-        "7",
-        "output/household/household-world/map-build/openai-agents-live-camera-grounded-labels",
-    ]
-    assert route[6] == "帮我建立这个房间的 Runtime Metric Map"
-    assert route[13] == "grounding-dino"
-    assert route[15] == "on"
-
-
-def test_household_cleanup_route_passes_runtime_map_prior_override() -> None:
-    route = trace_household_cleanup_run(
-        "direct",
-        "smoke",
-        "runtime_map_prior=output/prior/runtime_metric_map.json",
-    )
-
-    assert route[15] == "off"
-    assert route[16] == "output/prior/runtime_metric_map.json"
-
-
-def test_household_cleanup_route_passes_operator_messages_path_override() -> None:
-    route = trace_household_cleanup_run(
-        "openai-agents-sdk",
-        "world-public-labels",
-        "provider_profile=kimi-openai-chat",
-        "operator_messages_path=output/operator-console/runs/run-a/operator_messages.jsonl",
-    )
-
-    assert route[-1] == "output/operator-console/runs/run-a/operator_messages.jsonl"
-
-
-def test_household_open_ended_prompt_uses_first_class_intent_not_custom_mode() -> None:
-    route = trace_household_cleanup_run(
-        "openai-agents-sdk",
-        "world-public-labels",
-        "provider_profile=kimi-openai-chat",
-        "prompt=我渴了，帮我找些解渴的东西",
-        "task_intent=open-ended",
-    )
-
-    assert "我渴了，帮我找些解渴的东西" in route
-    assert route[-2:] == ["household-world", "open-ended"]
-
-
-def test_household_cleanup_prompt_override_does_not_imply_direct_open_ended_intent() -> None:
-    route = trace_household_cleanup_run(
-        "direct",
-        "smoke",
-        "prompt=我渴了，帮我找些解渴的东西",
-    )
-
-    assert "我渴了，帮我找些解渴的东西" in route
-    assert route[-2:] == ["household-world", "cleanup"]
-
-
 def test_household_cleanup_prompt_override_does_not_make_openclaw_active() -> None:
     stderr = assert_household_cleanup_run_fails(
         "openclaw",
@@ -2119,46 +1382,30 @@ def test_household_cleanup_prompt_override_does_not_make_openclaw_active() -> No
     assert "openclaw-gateway is validation-required future abstraction work" in stderr
 
 
-def test_molmo_camera_raw_prompt_requires_exact_waypoint_checklist() -> None:
+def test_molmo_camera_raw_prompt_contains_run_constraints_not_generic_strategy() -> None:
     prompt = render_kickoff_prompt("camera-raw-fpv")
 
-    assert "exact inspection_waypoints checklist" in prompt
-    assert "sweep public waypoints with navigate_to_waypoint then observe" in prompt
     assert "cleanup MCP tool entries exactly as exposed by Codex" in prompt
     assert "namespace cleanup" in prompt
     assert "server named cleanup" not in prompt
-    assert "Call done only after every public waypoint has an observe response" in prompt
     assert "never mcp__cleanup__" in prompt
-    assert "must complete 4 materially distinct robot-body headings" in prompt
+    assert "Per-waypoint distinct-heading budget=4" in prompt
     assert "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90)" in prompt
     assert "even when the cleanup gate is already met" in prompt
     assert "extra overlap probe after those body headings" in prompt
-    assert "Compact action cadence for camera-raw-fpv" in prompt
+    assert "Evidence lane=camera-raw-fpv" in prompt
     assert "at most one fresh high-confidence cleanup candidate" in prompt
     assert "source_observation_id/category/region" in prompt
-    assert "for a left-edge candidate use yaw_delta_deg=45" in prompt
-    assert "for a right-edge candidate use yaw_delta_deg=-45" in prompt
-    assert "for a bottom-edge candidate use pitch_delta_deg=20" in prompt
-    assert "Use the exact visual class when the image makes it clear" in prompt
-    assert "Use broader cleanup categories" in prompt
-    assert "only when the exact object class is uncertain" in prompt
-    assert "use image_region={type:bbox,value:[x,y,width,height]}" in prompt
     assert "Never retry the same source_observation_id/category/region" in prompt
-    assert "Omit source_fixture_id with Base Metric Map context" in prompt
-    assert "Never send bbox_normalized" in prompt
-    assert 'target_fixture_id=""' in prompt
-    assert 'target_fixture_id="None"' in prompt
-    assert "target_fixture_id=null" in prompt
-    assert "bare x/y/width/height fields" in prompt
-    assert "Clean up to 7 grounded visual candidates when possible" in prompt
-    assert "place/place_inside" in prompt
-    assert "Use place_inside for shelf/bookshelf/bookcase/shelving/fridge targets" in prompt
+    assert "Cleanup target cap=7" in prompt
+    assert "Required closeout artifacts" in prompt
+    assert "place/place_inside" not in prompt
 
 
 def test_molmo_camera_raw_prompt_scales_to_requested_cleanup_count() -> None:
     prompt = render_kickoff_prompt("camera-raw-fpv", target_cleanup_count=5)
 
-    assert "Clean up to 5 grounded visual candidates when possible" in prompt
+    assert "Cleanup target cap=5" in prompt
     assert "at least seven grounded cleanup chains have succeeded" not in prompt
 
 
@@ -2190,7 +1437,7 @@ def test_openai_agents_cleanup_checker_policy_uses_checker_profile(
 ) -> None:
     module = load_script_module(
         LIVE_OPENAI_AGENTS_RUNNER,
-        "run_live_openai_agents_household_checker_profile_test",
+        "household_live_runner_checker_profile_test",
     )
     run_dir = tmp_path / "openai-agents"
     run_dir.mkdir()
@@ -2248,19 +1495,16 @@ def test_molmo_world_labels_prompt_requires_nav2_bundle_checklist() -> None:
 
     assert "This run is surface=household-world intent=cleanup" in prompt
     assert "User task: clean up this room" in prompt
-    assert "Call metric_map" in prompt
-    assert "exact inspection_waypoints checklist" in prompt
-    assert "for each unchecked waypoint call navigate_to_waypoint then observe" in prompt
-    assert "runtime_metric_map.public_semantic_anchors" in prompt
-    assert "place/place_inside" in prompt
-    assert "Use place_inside for shelf/bookshelf/bookcase/shelving/fridge targets" in prompt
+    assert "Evidence lane=world-public-labels" in prompt
+    assert "visible_object_detections" in prompt
+    assert "private destination truth" in prompt
     assert "cleanup MCP tool entries exactly as exposed by Codex" in prompt
     assert "namespace cleanup" in prompt
     assert "server named cleanup" not in prompt
-    assert "Call done when every public waypoint has an observe response" in prompt
     assert "never mcp__cleanup__" in prompt
     assert "roboclaws__" in prompt
-    assert "Do not call scene_objects" in prompt
+    assert "Required closeout artifacts" in prompt
+    assert "navigate_to_waypoint" not in prompt
 
 
 def test_molmo_cleanup_live_prompt_includes_open_ended_user_task() -> None:
@@ -2274,8 +1518,7 @@ def test_molmo_cleanup_live_prompt_includes_open_ended_user_task() -> None:
     assert "custom operator task" not in prompt
     assert "The following operator task is authoritative" in prompt
     assert "我渴了，帮我找些解渴的东西" in prompt
-    assert "Inspect only as much as the operator task needs" in prompt
-    assert "Unless the operator explicitly asks you to wait or not call done" in prompt
+    assert "Evidence lane=world-public-labels" in prompt
     assert "Use the MCP tools as a bounded household robot capability surface" in prompt
     assert "Use the household MCP tool entries exactly as exposed by Codex" in prompt
     assert "Use the bundled household-world skill instructions" in prompt
@@ -2308,7 +1551,7 @@ def test_molmo_open_ended_camera_grounded_prompt_requires_label_declaration() ->
     assert "camera_model_candidates" in prompt
     assert "model_declared_observations" in prompt
     assert "service URLs" in prompt
-    assert "Unless the operator explicitly asks you to wait or not call done" in prompt
+    assert "Required closeout artifacts" in prompt
 
 
 def test_molmo_open_ended_camera_grounded_prompt_can_use_composite_tool() -> None:
@@ -2340,12 +1583,10 @@ def test_molmo_cleanup_live_prompt_uses_cleanup_intent_without_open_ended_intent
 def test_molmo_world_labels_prompt_uses_single_lane_default() -> None:
     prompt = render_kickoff_prompt("world-public-labels")
 
-    assert "Compact action cadence for world-public-labels" in prompt
-    assert "exact inspection_waypoints checklist" in prompt
-    assert "navigate_to_waypoint then observe" in prompt
-    assert "pending_cleanup_candidates" in prompt
-    assert "required_tool" in prompt
-    assert "destination_options" in prompt
+    assert "Evidence lane=world-public-labels" in prompt
+    assert "visible_object_detections" in prompt
+    assert "navigate_to_waypoint then observe" not in prompt
+    assert "pending_cleanup_candidates" not in prompt
     assert "cleanup_recommended" not in prompt
     assert "first complete an anchor discovery sweep" not in prompt
 
@@ -2354,15 +1595,14 @@ def test_molmo_label_prompts_keep_public_done_boundary() -> None:
     world_prompt = render_kickoff_prompt("world-public-labels")
     camera_prompt = render_kickoff_prompt("camera-grounded-labels")
 
-    assert "Compact action cadence for world-public-labels" in world_prompt
-    assert "observe -> candidate decision" in world_prompt
-    assert "pending_cleanup_candidates" in world_prompt
-    assert "only MCP done producing run_result.json counts" in world_prompt
-    assert "private scoring artifacts" in world_prompt
-    assert "Compact action cadence for camera-grounded-labels" in camera_prompt
+    assert "Evidence lane=world-public-labels" in world_prompt
+    assert "observe -> candidate decision" not in world_prompt
+    assert "pending_cleanup_candidates" not in world_prompt
+    assert "only the MCP done response creates the authoritative run result" in world_prompt
+    assert "Evidence lane=camera-grounded-labels" in camera_prompt
     assert "declare_visual_candidates with observation_id only" in camera_prompt
     assert "service URLs" in camera_prompt
-    assert "only MCP done producing run_result.json counts" in camera_prompt
+    assert "only the MCP done response creates the authoritative run result" in camera_prompt
 
 
 def test_molmo_compact_camera_prompt_can_prefer_composite_observe_tool() -> None:
@@ -2372,9 +1612,9 @@ def test_molmo_compact_camera_prompt_can_prefer_composite_observe_tool() -> None
     )
 
     assert "observe_camera_grounded_candidates instead of a separate observe" in prompt
-    assert "response declaration as the camera-labeler candidate output" in prompt
+    assert "declaration as server-side labeler output" in prompt
     assert "do not call declare_visual_candidates again for the same" in prompt
-    assert "only MCP done producing run_result.json counts" in prompt
+    assert "only the MCP done response creates the authoritative run result" in prompt
 
 
 def test_molmo_just_openai_agents_composite_env_forwards_prompt_flag() -> None:
@@ -2437,20 +1677,15 @@ def test_molmo_raw_fpv_compact_prompt_includes_budget_contract() -> None:
         done_retry_budget=1,
     )
 
-    assert "Compact action cadence for camera-raw-fpv" in prompt
-    assert "run budget of 3 raw-FPV candidate attempts" in prompt
-    assert "must complete 2 materially distinct robot-body headings" in prompt
+    assert "Evidence lane=camera-raw-fpv" in prompt
+    assert "Raw-FPV candidate-attempt budget=3" in prompt
+    assert "Per-waypoint distinct-heading budget=2" in prompt
     assert "extra overlap probe after those body headings" in prompt
     assert "adjust_camera(yaw_delta_deg=45, pitch_delta_deg=20) exactly once" in prompt
     assert "does not count as a distinct robot-body heading" in prompt
-    assert "retry done at most 1 time(s)" in prompt
+    assert "Done retry budget=1" in prompt
     assert "Never retry the same source_observation_id/category/region" in prompt
-    assert "left, right, bottom, or top FPV edge" in prompt
-    assert "for a bottom-edge candidate use pitch_delta_deg=20" in prompt
-    assert "for a top-edge candidate use pitch_delta_deg=-20" in prompt
-    assert "overlap without a clear edge direction" in prompt
-    assert prompt.count("Do not declare or act from a tiny sliver") == 1
-    assert "only MCP done producing run_result.json counts" in prompt
+    assert "only the MCP done response creates the authoritative run result" in prompt
 
 
 def test_molmo_live_openai_agents_uses_single_lane_default_prompt() -> None:
@@ -2473,22 +1708,15 @@ def test_map_build_live_prompt_disables_cleanup_actions() -> None:
     )
 
     assert "This run is surface=household-world intent=map-build" in prompt
-    assert "This is not a cleanup run" in prompt
     assert "User task: 帮我建立这个房间的 Runtime Metric Map" in prompt
     assert "Use the bundled household-world skill instructions" in prompt
     assert "Manipulation tools are not entitled for this run" in prompt
-    assert "sweep every inspection waypoint" in prompt
-    assert "declare_visual_candidates" in prompt
-    assert "adjust_camera" in prompt
-    assert "observe again" in prompt
+    assert "Evidence lane=camera-grounded-labels" in prompt
+    assert "Waypoint observation tool=observe" in prompt
     assert "scan_profile=fixture-focused" in prompt
     assert "navigate_to_relative_pose" in prompt
     assert "stable semantic anchors" in prompt
     assert "future runs must recheck before action" in prompt
-    assert "required_next_tool" in prompt
-    assert "required_tool" in prompt
-    assert "generated target-inspection candidate" in prompt
-    assert "public inspection waypoint" in prompt
     assert "runtime_metric_map.json" in prompt
 
 
@@ -2566,56 +1794,6 @@ def test_agent_server_cli_errors_use_canonical_targets(
     assert "expected household-world" in stderr
     assert "household-cleanup" not in stderr
     assert "semantic-map-build" not in stderr
-
-
-def test_molmo_cleanup_recipe_passes_goal_contract_to_all_household_runners() -> None:
-    plan = resolve_surface_launch(
-        (
-            "surface=household-world",
-            "agent_engine=openai-agents-sdk",
-            "provider_profile=kimi-openai-chat",
-            "preset=cleanup",
-            "evidence_lane=world-public-labels",
-        )
-    )
-    exported_env = export_env_from_overrides(plan.overrides)
-
-    assert json.loads(exported_env["ROBOCLAWS_GOAL_CONTRACT_JSON"])["intent"] == "cleanup"
-    assert exported_env["ROBOCLAWS_TASK_INTENT"] == "cleanup"
-    assert exported_env["ROBOCLAWS_TASK_SKILL"] == "household-world"
-
-    env = os.environ.copy()
-    env.update(
-        {
-            "ROBOCLAWS_JUST_TRACE": "1",
-            "ROBOCLAWS_GOAL_CONTRACT_JSON": exported_env["ROBOCLAWS_GOAL_CONTRACT_JSON"],
-            "ROBOCLAWS_GOAL_CONTRACT_PATH": "/tmp/roboclaws-goal-contract.json",
-        }
-    )
-    result = subprocess.run(
-        [
-            just_bin(),
-            "molmo::household-world-impl",
-            "direct",
-            "world-public-labels",
-            "7",
-            "output/test-goal-contract-trace",
-            "clean",
-            "1",
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    route = result.stdout.strip().split("\t")
-
-    assert route[0:4] == ["just", "molmo::household-world-impl", "direct", "world-public-labels"]
-    assert route[-2:] == [
-        exported_env["ROBOCLAWS_GOAL_CONTRACT_JSON"],
-        "/tmp/roboclaws-goal-contract.json",
-    ]
 
 
 def test_ci_does_not_define_codex_live_proof() -> None:
@@ -2702,13 +1880,7 @@ def test_openai_agents_launcher_applies_provider_overrides_per_invocation() -> N
 
     assert plan.provider_profile == "kimi-openai-chat"
     assert exported_env["ROBOCLAWS_PROVIDER_PROFILE"] == "kimi-openai-chat"
-    assert plan.argv[:4] == (
-        "just",
-        "agent::run",
-        "household-world",
-        "openai-agents-sdk",
-    )
-    assert "provider_profile=kimi-openai-chat" not in plan.argv
+    assert "provider_profile=kimi-openai-chat" in plan.overrides
 
     assert "MM_API_KEY" in helper_text
     assert "MM_BASE_URL" in helper_text
@@ -2741,7 +1913,7 @@ def test_molmo_live_dispatch_is_sdk_only_and_probeable() -> None:
     assert "refusing to choose another port" in molmo_text
     assert "live_status.json" in molmo_text
     assert "tmux_session.txt" not in molmo_text
-    assert "scripts/molmo_cleanup/run_live_openai_agents_household.py" in molmo_text
+    assert "roboclaws.agents.household_live_runner" in molmo_text
     assert "acquire_household_live_run_lease" in runner_text
     assert "acquire_visual_backend_slot" in household_live_text
     assert "no MolmoSpaces visual backend slot is available" in household_live_text

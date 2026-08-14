@@ -9,14 +9,12 @@ from typing import Any
 from roboclaws.household.map_build_scan_profile import (
     map_build_scan_profile,
 )
-from roboclaws.household.raw_fpv_guidance import raw_fpv_inline_candidate_instruction
 from roboclaws.household.task_intent import (
     HOUSEHOLD_INTENT_MAP_BUILD,
     household_intent_from_goal_contract,
     household_intent_is_open_ended,
     normalize_household_intent,
 )
-from roboclaws.household.visual_scan_guidance import visual_scan_prompt_rule
 from roboclaws.launch.goals import GoalContract, goal_contract_from_json
 
 TOOL_PROTOCOL_PREFIX = (
@@ -39,45 +37,9 @@ CUSTOM_PREFIX = (
     + OPEN_TASK_TOOL_PROTOCOL_PREFIX
 )
 
-COMMON_WAYPOINT_RULES = (
-    "Call metric_map first, build an exact waypoint checklist "
-    "from metric_map.inspection_waypoints, treat the selected Nav2 map bundle only "
-    "through metric_map and runtime_metric_map, not raw occupancy images, sweep every "
-    "waypoint with navigate_to_waypoint then observe, mark a waypoint complete only "
-    "after that waypoint_id has an observe response, "
-    "and resolve named targets, stale fixture ids, destination categories, or "
-    "open-ended search terms through resolve_target_query and "
-    "runtime_metric_map.target_candidates before acting on them; "
-)
-
-COMMON_CLEANUP_RULES = (
-    "clean plausible observed objects only after their candidate_state is "
-    f"navigation_authorized; {visual_scan_prompt_rule()} Clean with "
-    "navigate->pick->navigate->open?->place/place_inside following required_tool "
-    "if returned, use place_inside for "
-    "shelf/bookshelf/bookcase/shelving/fridge targets, do not call scene_objects "
-    "or read private scoring artifacts, compare the checklist before done, visit "
-    "any missing waypoint_id, and call done only after every "
-    "metric_map.inspection_waypoints waypoint_id has been observed so the report "
-    "is generated."
-)
-
-OPEN_ENDED_TASK_RULES = (
-    "The operator task is authoritative. Use metric_map when map context is needed. "
-    "Use resolve_target_query for named places, stale labels, or search terms. Navigate "
-    "to public waypoints or target_candidates, call observe, and use adjust_camera only "
-    "for bounded public recovery when target evidence or observation evidence is "
-    "incomplete. Inspect only as much as the operator task needs. For information, "
-    "search, or inspection goals, answer from public observations, target_candidates, "
-    "and the inspected search budget; not-found answers require enough public evidence "
-    "that the useful search space has been checked or exhausted. For manipulation "
-    "goals, act only on task-relevant observed objects or visual candidates, use public "
-    "navigation/manipulation tools, and follow required_tool, required_next_tool, "
-    "blocked_capability, actionability status, or public error responses. Do not call "
-    "scene_objects or read private scoring artifacts. Unless the operator explicitly "
-    "asks you to wait or not call done, call done when the operator task is satisfied, "
-    "blocked by a public capability response, or exhausted by the public search budget, "
-    "with a reason summarizing public evidence and remaining risk."
+RUN_ARTIFACT_CONTRACT = (
+    "Required closeout artifacts: run_result.json, runtime_metric_map.json, and report.html; "
+    "only the MCP done response creates the authoritative run result. "
 )
 HOUSEHOLD_CLEANUP_TASK_PREFIX = (
     "This run is surface=household-world intent=cleanup. User task: {task}. "
@@ -157,93 +119,32 @@ def _with_task(
     )
 
 
-MAP_BUILD_RULES = (
-    "This run is surface=household-world intent=map-build. "
-    "This is not a cleanup run. User task: {task}. "
-    "Manipulation tools are not entitled for this run; do not clean any object. "
-    "Call metric_map first, build an exact waypoint "
-    "checklist from metric_map.inspection_waypoints, and sweep every inspection "
-    "waypoint with navigate_to_waypoint then {waypoint_observe_tool}. Mark a waypoint "
-    "complete only after that waypoint_id has a {waypoint_observe_response} response; "
-    "{waypoint_observe_budget_rule}"
-    "do not treat one empty observation as enough to complete an ambiguous waypoint "
-    "or target search. If a target query, visual candidate, anchor, or waypoint "
-    "observation has incomplete public evidence, call adjust_camera or "
-    "navigate_to_relative_pose and observe again only when a public tool asks for it or "
-    "when that successful bounded camera or pose change can produce materially new "
-    "evidence; otherwise record the ambiguity and move on. Use "
-    "resolve_target_query for any target-search, "
-    "stale label, or open-ended map question and leave not-found claims tied to the "
-    "returned public search budget. If a public tool returns required_next_tool or "
-    "required_tool, call that tool before continuing. If a target candidate is "
-    "visible_only, needs_observe, or names a generated target-inspection candidate, "
-    "navigate only to the public inspection waypoint returned by metric_map, "
-    "resolve_target_query, or tool recovery.{target_candidate_recovery_rule} "
+MAP_BUILD_RUN_CONTEXT = (
+    "This run is surface=household-world intent=map-build. User task: {task}. "
+    "Manipulation tools are not entitled for this run. Evidence lane={profile}. "
+    "Waypoint observation tool={waypoint_observe_tool}. {waypoint_observe_budget_rule}"
     "{camera_grounded_rule}"
-    "Use the returned observations and runtime_metric_map public anchors as "
-    "map evidence only. Compare the checklist before done, visit any missing "
-    "waypoint_id, and call done only after every metric_map.inspection_waypoints "
-    "waypoint_id has been observed so runtime_metric_map.json and report.html are "
-    "generated."
 )
 
-WORLD_LABELS_COMPACT_PROMPT = (
-    "Compact action cadence for world-public-labels. Call metric_map, "
-    "build the exact inspection_waypoints checklist, and for each unchecked waypoint call "
-    "navigate_to_waypoint then observe. Treat visible_object_detections as public structured "
-    "detections without destination oracle fields. Clean only public observed candidates whose "
-    "candidate_state or tool response authorizes navigation. Use destination_policy, "
-    "destination_options, runtime_metric_map.public_semantic_anchors, required_tool, and public "
-    "recovery hints to choose placement; when the destination is named or stale, call "
-    "resolve_target_query with operation=destination before choosing the public anchor. "
-    "Prefer one short chain at a time: "
-    "observe -> candidate decision -> navigate_to_object -> pick -> navigate_to_receptacle -> "
-    "open? -> place/place_inside -> observe. Use place_inside for shelf/bookshelf/bookcase/"
-    "shelving/fridge targets. If done reports pending_cleanup_candidates, clean only those "
-    "public handles before another broad sweep. Call done when every public waypoint has an "
-    "observe response and public pending candidates are resolved. Do not call scene_objects, "
-    "read private scoring artifacts, invent fixture ids, or treat SDK turn completion as task "
-    "success; only MCP done producing run_result.json counts."
+WORLD_LABELS_RUN_CONTEXT = (
+    "Evidence lane=world-public-labels. visible_object_detections are public structured "
+    "observations and omit private destination truth. "
 )
 
-CAMERA_LABELS_COMPACT_PROMPT = (
-    "Compact action cadence for camera-grounded-labels. Call metric_map, "
-    "build the exact inspection_waypoints checklist, and for each unchecked waypoint call "
-    "navigate_to_waypoint then observe. For each raw FPV observation, call "
-    "declare_visual_candidates with observation_id only and omit candidates so the configured "
-    "camera labeler produces labels; do not ask for service URLs, credentials, image paths, or "
-    "model hosts. Clean only returned public camera candidates whose candidate_state is "
-    "navigation_authorized. Prefer one short chain at a time: observe -> declare labels -> "
-    "candidate decision -> navigate_to_object -> pick -> navigate_to_receptacle -> open? -> "
-    "place/place_inside -> observe. Use place_inside for shelf/bookshelf/bookcase/shelving/"
-    "fridge targets. If done reports pending_cleanup_candidates, clean only those public "
-    "handles before another broad sweep. Call done when every public waypoint has an observe "
-    "response and public pending candidates are resolved. Do not call scene_objects, read "
-    "private scoring artifacts, or treat SDK turn completion as task success; only MCP done "
-    "producing run_result.json counts."
+CAMERA_LABELS_RUN_CONTEXT = (
+    "Evidence lane=camera-grounded-labels. For each task-relevant raw FPV observation, call "
+    "declare_visual_candidates with observation_id only so the configured server-side labeler "
+    "produces public candidates; service URLs, credentials, and image paths are not agent input. "
 )
 
-CAMERA_LABELS_COMPOSITE_COMPACT_PROMPT = (
-    "Compact action cadence for camera-grounded-labels with the private SDK "
-    "composite observation tool enabled. Call metric_map, build the exact "
-    "inspection_waypoints checklist, and for each unchecked waypoint call "
-    "navigate_to_waypoint then observe_camera_grounded_candidates instead of a "
-    "separate observe plus declare_visual_candidates pair. Treat the response "
-    "observation as the waypoint observe evidence and the response declaration "
-    "as the camera-labeler candidate output; do not call "
+CAMERA_LABELS_COMPOSITE_RUN_CONTEXT = (
+    "Evidence lane=camera-grounded-labels with composite observation enabled. Use "
+    "observe_camera_grounded_candidates instead of a separate observe plus declaration. "
+    "Treat its observation as waypoint evidence and its declaration as server-side labeler "
+    "output; do not call "
     "declare_visual_candidates again for the same source_observation_id unless "
-    "a public tool explicitly asks for it. Do not ask for service URLs, "
-    "credentials, image paths, or model hosts. Clean only returned public camera "
-    "candidates whose candidate_state is navigation_authorized. Prefer one "
-    "short chain at a time: observe_camera_grounded_candidates -> candidate "
-    "decision -> navigate_to_object -> pick -> navigate_to_receptacle -> "
-    "open? -> place/place_inside -> observe_camera_grounded_candidates. Use "
-    "place_inside for shelf/bookshelf/bookcase/shelving/fridge targets. If done "
-    "reports pending_cleanup_candidates, clean only those public handles before "
-    "another broad sweep. Call done when every public waypoint has observation "
-    "evidence and public pending candidates are resolved. Do not call "
-    "scene_objects, read private scoring artifacts, or treat SDK turn completion "
-    "as task success; only MCP done producing run_result.json counts."
+    "a public tool explicitly asks for it. Service URLs, credentials, image paths, and model "
+    "hosts are not agent input. "
 )
 
 
@@ -259,10 +160,9 @@ def _camera_raw_compact_prompt(
     observe_budget = max(1, int(max_observe_per_waypoint))
     done_budget = max(0, int(done_retry_budget))
     return (
-        "Compact action cadence for camera-raw-fpv. Call metric_map, build "
-        "the exact inspection_waypoints checklist, and sweep public waypoints with "
-        "navigate_to_waypoint then observe. Inspect raw FPV image blocks directly; do not expect "
-        f"structured labels. Before done, every waypoint must complete {observe_budget} "
+        "Evidence lane=camera-raw-fpv. Inspect raw FPV image blocks directly; no structured "
+        f"labels are provided. Per-waypoint distinct-heading budget={observe_budget}. Every "
+        "waypoint must complete that many "
         "materially distinct robot-body headings, even when the cleanup gate is already met. "
         "The canonical navigate_to_waypoint then observe supplies the first heading. Repeat "
         "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90) then observe at "
@@ -278,24 +178,12 @@ def _camera_raw_compact_prompt(
         "authorize one later bounded recovery view at explicitly listed public revisit "
         "waypoints when done still reports a grounded-chain deficit. "
         "Choose at most one fresh high-confidence cleanup "
-        "candidate per raw FPV observation and stay within the run budget of "
+        "candidate per raw FPV observation. Raw-FPV candidate-attempt budget="
         f"{candidate_budget} raw-FPV candidate attempts. Never retry the same "
         "source_observation_id/category/region or visual-candidate id after a public failure. "
-        + raw_fpv_inline_candidate_instruction()
-        + " Omit source_fixture_id with Base Metric Map context. Use "
-        "navigate_to_visual_candidate -> pick -> navigate_to_receptacle -> open? -> "
-        "place/place_inside when grounding succeeds, then observe once before choosing another "
-        "candidate. Use place_inside for shelf/bookshelf/bookcase/shelving/fridge targets. If "
-        "grounding is unresolved, record the public failure, move to another waypoint, or stop "
-        "after the budget is exhausted; do not loop until provider context failure. Do not "
-        "pre-register raw-FPV candidates with declare_visual_candidates. "
-        f"Clean up to {cleanup_count} grounded visual candidates when possible. Call done only "
-        "after every public waypoint has an observe response and successful cleanup chains meet "
-        "the public gate, or after the bounded raw-FPV profile has no safe public candidate "
-        f"remaining. If done reports blockers, retry done at most {done_budget} time(s) after "
-        "resolving public blockers. Do not call scene_objects, read private scoring artifacts, "
-        "persist raw image payloads, or treat SDK turn completion as task success; only MCP done "
-        "producing run_result.json counts."
+        f"source_observation_id/category/region. Cleanup target cap={cleanup_count}. Done retry "
+        f"budget={done_budget}; a retry is permitted only after resolving a returned public "
+        "blocker. Raw image payloads must not be persisted. "
     )
 
 
@@ -319,7 +207,7 @@ def render_kickoff_prompt(
     household_intent = normalize_household_intent(household_intent)
     open_ended = household_intent_is_open_ended(household_intent)
     if open_ended:
-        prompt = OPEN_ENDED_TASK_RULES
+        prompt = "Evidence lane=" + profile + ". "
         if profile == "camera-grounded-labels":
             prompt = (
                 prompt
@@ -336,14 +224,14 @@ def render_kickoff_prompt(
             done_retry_budget=done_retry_budget,
         )
     elif profile == "camera-grounded-labels":
-        prompt = CAMERA_LABELS_COMPACT_PROMPT
+        prompt = CAMERA_LABELS_RUN_CONTEXT
         if camera_grounded_composite_tools:
-            prompt = CAMERA_LABELS_COMPOSITE_COMPACT_PROMPT
+            prompt = CAMERA_LABELS_COMPOSITE_RUN_CONTEXT
     elif profile == "world-public-labels":
-        prompt = WORLD_LABELS_COMPACT_PROMPT
+        prompt = WORLD_LABELS_RUN_CONTEXT
     else:
-        prompt = COMMON_WAYPOINT_RULES + COMMON_CLEANUP_RULES
-    prompt = f"{prompt} {OPERATOR_STEER_CHECKPOINT_RULES}"
+        prompt = "Evidence lane=" + profile + ". "
+    prompt = f"{prompt} {RUN_ARTIFACT_CONTRACT}{OPERATOR_STEER_CHECKPOINT_RULES}"
     prompt = _with_task(
         prompt,
         task,
@@ -394,7 +282,7 @@ def render_map_build_prompt(
         camera_grounded_composite_tools=camera_grounded_composite_tools,
         max_observe_per_waypoint=max_observe_per_waypoint,
     )
-    prompt = CUSTOM_PREFIX + MAP_BUILD_RULES.format(task=task, **cadence)
+    prompt = CUSTOM_PREFIX + MAP_BUILD_RUN_CONTEXT.format(task=task, profile=profile, **cadence)
     prompt += " " + _map_build_scan_profile_prompt(
         selected_scan_profile.to_payload(),
         max_observe_per_waypoint=max_observe_per_waypoint,
@@ -402,16 +290,10 @@ def render_map_build_prompt(
     )
     prompt += " " + OPERATOR_STEER_CHECKPOINT_RULES
     if profile == "camera-raw-fpv":
-        prompt = (
-            prompt + " This is the raw-FPV map-build lane: inspect each raw FPV image block "
-            "returned by observe, record only public map evidence, and do not declare "
-            "cleanup candidates."
-        )
+        prompt += " Raw-FPV image blocks are public map evidence; structured labels are absent."
     elif profile == "world-public-labels":
-        prompt = (
-            prompt + " Treat visible_object_detections as structured public detections without "
-            "destination oracle fields; use them only as map labels."
-        )
+        prompt += " visible_object_detections omit destination oracle fields."
+    prompt += " " + RUN_ARTIFACT_CONTRACT
     return _with_operator_session_context(
         prompt,
         operator_session_context=operator_session_context,
@@ -436,12 +318,7 @@ def _map_build_observe_cadence(
     if profile == "camera-grounded-labels" and camera_grounded_composite_tools:
         return {
             "waypoint_observe_tool": "observe_camera_grounded_candidates",
-            "waypoint_observe_response": "observe_camera_grounded_candidates",
             "waypoint_observe_budget_rule": observe_budget,
-            "target_candidate_recovery_rule": _map_build_target_candidate_recovery_rule(
-                max_observe_per_waypoint=max_observe_per_waypoint,
-                observe_tool="observe_camera_grounded_candidates",
-            ),
             "camera_grounded_rule": (
                 "For camera-grounded-labels with the private SDK composite observation tool "
                 "enabled, after navigating to each public inspection waypoint call "
@@ -456,12 +333,7 @@ def _map_build_observe_cadence(
     if profile == "camera-grounded-labels":
         return {
             "waypoint_observe_tool": "observe",
-            "waypoint_observe_response": "observe",
             "waypoint_observe_budget_rule": observe_budget,
-            "target_candidate_recovery_rule": _map_build_target_candidate_recovery_rule(
-                max_observe_per_waypoint=max_observe_per_waypoint,
-                observe_tool="observe",
-            ),
             "camera_grounded_rule": (
                 "For camera-grounded-labels, call declare_visual_candidates for each raw FPV "
                 "observation with observation_id only and omit candidates so the configured "
@@ -470,30 +342,9 @@ def _map_build_observe_cadence(
         }
     return {
         "waypoint_observe_tool": "observe",
-        "waypoint_observe_response": "observe",
         "waypoint_observe_budget_rule": observe_budget,
-        "target_candidate_recovery_rule": _map_build_target_candidate_recovery_rule(
-            max_observe_per_waypoint=max_observe_per_waypoint,
-            observe_tool="observe",
-        ),
         "camera_grounded_rule": "",
     }
-
-
-def _map_build_target_candidate_recovery_rule(
-    *,
-    max_observe_per_waypoint: int | None,
-    observe_tool: str,
-) -> str:
-    if max_observe_per_waypoint is not None and max(1, int(max_observe_per_waypoint)) == 1:
-        return (
-            " If that waypoint_id has already used its preferred observation budget, "
-            "record the target-candidate ambiguity as public map evidence and move on "
-            "unless a public tool requests a re-observation or a successful bounded "
-            f"camera, pose, or world-state change makes one more {observe_tool} call "
-            "materially useful."
-        )
-    return f" Then call {observe_tool} again."
 
 
 def _map_build_observe_budget_rule(

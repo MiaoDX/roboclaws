@@ -148,25 +148,6 @@ wheels = [
 ]
 
 [[package]]
-name = "anthropic"
-version = "0.96.0"
-source = { registry = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/" }
-dependencies = [
-    { name = "anyio" },
-    { name = "distro" },
-    { name = "docstring-parser" },
-    { name = "httpx" },
-    { name = "jiter" },
-    { name = "pydantic" },
-    { name = "sniffio" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/b9/7e/672f533dee813028d2c699bfd2a7f52c9118d7353680d9aa44b9e23f717f/anthropic-0.96.0.tar.gz", hash = "sha256:9de947b737f39452f68aa520f1c2239d44119c9b73b0fb6d4e6ca80f00279ee6", size = 658210, upload-time = "2026-04-16T14:28:02.846Z" }
-wheels = [
-    { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/48/5a/72f33204064b6e87601a71a6baf8d855769f8a0c1eaae8d06a1094872371/anthropic-0.96.0-py3-none-any.whl", hash = "sha256:9a6e335a354602a521cd9e777e92bfd46ba6e115bf9bbfe6135311e8fb2015b2", size = 635930, upload-time = "2026-04-16T14:28:01.436Z" },
-]
-
-[[package]]
 name = "antlr4-python3-runtime"
 version = "4.9.3"
 source = { registry = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/" }
@@ -1348,28 +1329,6 @@ source = { registry = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/" }
 sdist = { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/72/34/14ca021ce8e5dfedc35312d08ba8bf51fdd999c576889fc2c24cb97f4f10/iniconfig-2.3.0.tar.gz", hash = "sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730", size = 20503, upload-time = "2025-10-18T21:55:43.219Z" }
 wheels = [
     { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/cb/b1/3846dd7f199d53cb17f49cba7e651e9ce294d8497c8c150530ed11865bb8/iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12", size = 7484, upload-time = "2025-10-18T21:55:41.639Z" },
-]
-
-[[package]]
-name = "instructor"
-version = "1.15.1"
-source = { registry = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/" }
-dependencies = [
-    { name = "aiohttp" },
-    { name = "docstring-parser" },
-    { name = "jinja2" },
-    { name = "jiter" },
-    { name = "openai" },
-    { name = "pydantic" },
-    { name = "pydantic-core" },
-    { name = "requests" },
-    { name = "rich" },
-    { name = "tenacity" },
-    { name = "typer" },
-]
-sdist = { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/dc/a4/832cfb15420360e26d2d85bd9d5fe1e4b839d52587574d389bc31284bf6f/instructor-1.15.1.tar.gz", hash = "sha256:c72406469d9025b742e83cf0c13e914b317db2089d08d889944e74fcd659ef94", size = 69948370, upload-time = "2026-04-03T01:51:30.107Z" }
-wheels = [
-    { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/d8/c8/36c5d9b80aaf40ba9a7084a8fc18c967db6bf248a4cc8d0f0816b14284be/instructor-1.15.1-py3-none-any.whl", hash = "sha256:be81d17ba2b154a04ab4720808f24f9d6b598f80992f82eaf9cc79006099cf6c", size = 178156, upload-time = "2026-04-03T01:51:23.098Z" },
 ]
 
 [[package]]
@@ -3548,15 +3507,9 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-anthropic = [
-    { name = "anthropic" },
-    { name = "instructor" },
-]
 dev = [
     { name = "aiohttp" },
-    { name = "anthropic" },
     { name = "imageio" },
-    { name = "instructor" },
     { name = "mcp", extra = ["cli"] },
     { name = "molmo-spaces", extra = ["mujoco"] },
     { name = "numpy" },
@@ -3575,10 +3528,6 @@ molmospaces = [
     { name = "molmo-spaces", extra = ["mujoco"] },
     { name = "torch" },
     { name = "torchvision" },
-]
-openai = [
-    { name = "instructor" },
-    { name = "openai" },
 ]
 openai-agents = [
     { name = "openai-agents" },
@@ -3599,13 +3548,8 @@ visual-grounding-yoloe = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", marker = "extra == 'dev'", specifier = ">=3.13" },
-    { name = "anthropic", marker = "extra == 'anthropic'", specifier = ">=0.40" },
-    { name = "anthropic", marker = "extra == 'dev'", specifier = ">=0.40" },
     { name = "clip", marker = "extra == 'visual-grounding-yoloe'", git = "https://github.com/ultralytics/CLIP.git" },
     { name = "imageio", marker = "extra == 'dev'", specifier = ">=2.30" },
-    { name = "instructor", marker = "extra == 'anthropic'", specifier = ">=1.5" },
-    { name = "instructor", marker = "extra == 'dev'", specifier = ">=1.5" },
-    { name = "instructor", marker = "extra == 'openai'", specifier = ">=1.5" },
     { name = "jinja2", specifier = ">=3.1" },
     { name = "mcp", extras = ["cli"], marker = "extra == 'dev'", specifier = ">=1.27" },
     { name = "mcp", extras = ["cli"], marker = "extra == 'openclaw'", specifier = ">=1.27" },
@@ -3614,7 +3558,6 @@ requires-dist = [
     { name = "numpy", specifier = ">=1.24" },
     { name = "numpy", marker = "extra == 'dev'", specifier = ">=1.24" },
     { name = "openai", marker = "extra == 'dev'", specifier = ">=1.50" },
-    { name = "openai", marker = "extra == 'openai'", specifier = ">=1.50" },
     { name = "openai-agents", marker = "extra == 'dev'", specifier = "==0.17.4" },
     { name = "openai-agents", marker = "extra == 'openai-agents'", specifier = "==0.17.4" },
     { name = "pillow", specifier = ">=10.0" },
@@ -3633,7 +3576,7 @@ requires-dist = [
     { name = "tyro", marker = "extra == 'openclaw'", specifier = ">=0.9.0" },
     { name = "ultralytics", marker = "extra == 'visual-grounding-yoloe'", specifier = ">=8.3" },
 ]
-provides-extras = ["anthropic", "openai", "openclaw", "molmospaces", "visual-grounding-dino", "visual-grounding-yoloe", "dev", "openai-agents"]
+provides-extras = ["openclaw", "molmospaces", "visual-grounding-dino", "visual-grounding-yoloe", "dev", "openai-agents"]
 
 [[package]]
 name = "rpds-py"
@@ -4069,15 +4012,6 @@ dependencies = [
 sdist = { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/c5/5d/9b82fc6dcd4e40686d8da4a97796121a11ba341580771b591fa5181fa2ba/teledex-0.0.6.tar.gz", hash = "sha256:66bc1414870faed583fd81abdad8b36bc1230ef291ed1c4e7132dbde82449996", size = 9788, upload-time = "2026-03-23T05:13:07.268Z" }
 wheels = [
     { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/ac/5b/4f65bfd76a3daf6208abd584b1fbf8c747abbe75526e92f47c2a6289d0f9/teledex-0.0.6-py3-none-any.whl", hash = "sha256:8dd08cbd43da3c0e84a2cac0e48ddeed1b8ce8659a96a02208c9b7c7eaf28f37", size = 9106, upload-time = "2026-03-23T05:13:06.099Z" },
-]
-
-[[package]]
-name = "tenacity"
-version = "9.1.4"
-source = { registry = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/" }
-sdist = { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/47/c6/ee486fd809e357697ee8a44d3d69222b344920433d3b6666ccd9b374630c/tenacity-9.1.4.tar.gz", hash = "sha256:adb31d4c263f2bd041081ab33b498309a57c77f9acf2db65aadf0898179cf93a", size = 49413, upload-time = "2026-02-07T10:45:33.841Z" }
-wheels = [
-    { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/d7/c1/eb8f9debc45d3b7918a32ab756658a0904732f75e555402972246b0b8e71/tenacity-9.1.4-py3-none-any.whl", hash = "sha256:6095a360c919085f28c6527de529e76a06ad89b23659fa881ae0649b867a9d55", size = 28926, upload-time = "2026-02-07T10:45:32.24Z" },
 ]
 
 [[package]]

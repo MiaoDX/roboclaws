@@ -141,6 +141,8 @@ def _float_or_zero(value: Any) -> float:
 def run_result_success(run_result: dict[str, Any]) -> bool:
     if not run_result:
         return False
+    if is_map_build_run_result(run_result):
+        return _map_build_run_result_success(run_result)
     if run_result_has_failure(run_result):
         return False
     if is_open_ended_run_result(run_result):
@@ -168,9 +170,29 @@ def _standard_run_result_success(run_result: dict[str, Any]) -> bool:
 
 
 def run_result_has_failure(run_result: dict[str, Any]) -> bool:
+    if is_map_build_run_result(run_result):
+        return _map_build_run_result_failure(run_result)
     if is_open_ended_run_result(run_result):
         return _open_ended_run_result_failure(run_result)
     return _standard_run_result_failure(run_result)
+
+
+def is_map_build_run_result(run_result: dict[str, Any]) -> bool:
+    return str(run_result.get("task_intent") or "") == "map-build"
+
+
+def _map_build_run_result_success(run_result: dict[str, Any]) -> bool:
+    if _any_true_status(run_result, ("ok", "success", "runtime_map_success")):
+        return True
+    if _any_success_status(run_result, ("final_status", "status")):
+        return True
+    return _any_success_status(_dict_value(run_result, "score"), ("status",))
+
+
+def _map_build_run_result_failure(run_result: dict[str, Any]) -> bool:
+    return _any_false_status(run_result, ("ok", "success", "runtime_map_success")) or (
+        _any_failure_status(run_result, ("final_status", "status"))
+    )
 
 
 def _open_ended_run_result_failure(run_result: dict[str, Any]) -> bool:

@@ -377,12 +377,12 @@ def test_prompt_preview_uses_valid_openai_agents_numeric_env_overrides() -> None
         ),
     )
 
-    assert "run budget of 3 raw-FPV candidate attempts" in payload["agent_kickoff_prompt"]
     assert (
-        "every waypoint must complete 2 materially distinct robot-body headings"
+        "Raw-FPV candidate-attempt budget=3 raw-FPV candidate attempts"
         in payload["agent_kickoff_prompt"]
     )
-    assert "retry done at most 0 time(s)" in payload["agent_kickoff_prompt"]
+    assert "Per-waypoint distinct-heading budget=2" in payload["agent_kickoff_prompt"]
+    assert "Done retry budget=0" in payload["agent_kickoff_prompt"]
 
 
 def test_prompt_preview_keeps_existing_prompt_minimums_for_zero_budget_env() -> None:
@@ -401,11 +401,11 @@ def test_prompt_preview_keeps_existing_prompt_minimums_for_zero_budget_env() -> 
         ),
     )
 
-    assert "run budget of 1 raw-FPV candidate attempts" in payload["agent_kickoff_prompt"]
     assert (
-        "every waypoint must complete 1 materially distinct robot-body headings"
+        "Raw-FPV candidate-attempt budget=1 raw-FPV candidate attempts"
         in payload["agent_kickoff_prompt"]
     )
+    assert "Per-waypoint distinct-heading budget=1" in payload["agent_kickoff_prompt"]
 
 
 def test_console_readiness_omits_isaac_marker_diagnostic_but_keeps_locks_blocking(

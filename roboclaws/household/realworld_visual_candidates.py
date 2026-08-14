@@ -6,7 +6,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from roboclaws.household import realworld_contract_projection
+from roboclaws.household.realworld_contract_fixture_projection import _OBJECT_CATEGORY_TARGETS
 from roboclaws.household.visual_grounding import (
     EXTERNAL_VISUAL_GROUNDING_PROVENANCE,
     image_payload_for_raw_observation,
@@ -40,7 +40,6 @@ _EXACT_VISUAL_CATEGORY_ALIASES = frozenset(
     {"cup", "mug", "plate", "bowl", "utensil", "fork", "knife", "spoon", "ladle"}
 )
 _EXACT_VISUAL_SYNONYM_GROUPS = (frozenset({"spoon", "ladle"}),)
-_OBJECT_CATEGORY_TARGETS = realworld_contract_projection._OBJECT_CATEGORY_TARGETS
 
 
 def _visual_grounding_evidence_for_candidate(

@@ -30,101 +30,47 @@ timestamp_cmd := "TZ=Asia/Shanghai date +%m%d_%H%M"
 default:
     @just --list molmo
 
-# Private household-world implementation runner. Public callers should
-# enter through `run::surface`; maintainers should enter through `agent::run`.
+# Private household-world implementation runner. The typed launch executor
+# supplies its named environment contract.
 [private]
-household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="output/molmo/cleanup" task="帮我收拾这个房间" generated_mess_count="10" host="127.0.0.1" port="18788" map_bundle="auto" cleanup_routine="auto" robot_views="auto" camera_labeler="" visual_grounding_timeout_s="auto" map_build="off" runtime_map_prior="" backend_override="auto" scene_source="procthor-10k-val" scene_index="0" isaac_scene_usd_path="" min_generated_mess_count_override="auto" generated_mess_object_ids="" task_surface="household-world" task_intent="cleanup" operator_messages_path="" b1_alignment_artifact="" b1_navigation_artifact="" skill_name="" goal_contract_json="" goal_contract_path="" run_dir_override="":
+household-world-impl:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    driver="{{driver}}"
-    profile="{{profile}}"
-    seeds="{{seeds}}"
-    output_dir="{{output_dir}}"
-    task="{{task}}"
-    generated_mess_count="{{generated_mess_count}}"
-    host="{{host}}"
-    port="{{port}}"
-    map_bundle="{{map_bundle}}"
-    cleanup_routine="{{cleanup_routine}}"
-    robot_views="{{robot_views}}"
-    camera_labeler="{{camera_labeler}}"
+    driver="${ROBOCLAWS_EXEC_DRIVER:?typed executor did not set driver}"
+    profile="${ROBOCLAWS_EXEC_PROFILE:?typed executor did not set profile}"
+    seeds="${ROBOCLAWS_EXEC_SEEDS:?typed executor did not set seeds}"
+    output_dir="${ROBOCLAWS_EXEC_OUTPUT_DIR:?typed executor did not set output_dir}"
+    task="${ROBOCLAWS_EXEC_TASK:?typed executor did not set task}"
+    generated_mess_count="${ROBOCLAWS_EXEC_GENERATED_MESS_COUNT:?typed executor did not set generated_mess_count}"
+    host="${ROBOCLAWS_EXEC_HOST:?typed executor did not set host}"
+    port="${ROBOCLAWS_EXEC_PORT:?typed executor did not set port}"
+    map_bundle="${ROBOCLAWS_EXEC_MAP_BUNDLE:-auto}"
+    cleanup_routine="${ROBOCLAWS_EXEC_CLEANUP_ROUTINE:-auto}"
+    robot_views="${ROBOCLAWS_EXEC_ROBOT_VIEWS:-auto}"
+    camera_labeler="${ROBOCLAWS_EXEC_CAMERA_LABELER:-}"
     visual_grounding=""
-    visual_grounding_timeout_s="{{visual_grounding_timeout_s}}"
-    map_build="{{map_build}}"
-    runtime_map_prior="{{runtime_map_prior}}"
-    backend_override="{{backend_override}}"
-    scene_source="{{scene_source}}"
-    scene_index="{{scene_index}}"
-    isaac_scene_usd_path="{{isaac_scene_usd_path}}"
-    min_generated_mess_count_override="{{min_generated_mess_count_override}}"
-    generated_mess_object_ids="{{generated_mess_object_ids}}"
+    visual_grounding_timeout_s="${ROBOCLAWS_EXEC_VISUAL_GROUNDING_TIMEOUT_S:-auto}"
+    map_build="${ROBOCLAWS_EXEC_MAP_BUILD:-off}"
+    runtime_map_prior="${ROBOCLAWS_EXEC_RUNTIME_MAP_PRIOR:-}"
+    backend_override="${ROBOCLAWS_EXEC_BACKEND:-auto}"
+    scene_source="${ROBOCLAWS_EXEC_SCENE_SOURCE:-procthor-10k-val}"
+    scene_index="${ROBOCLAWS_EXEC_SCENE_INDEX:-0}"
+    isaac_scene_usd_path="${ROBOCLAWS_EXEC_ISAAC_SCENE_USD_PATH:-}"
+    min_generated_mess_count_override="${ROBOCLAWS_EXEC_MIN_GENERATED_MESS_COUNT:-auto}"
+    generated_mess_object_ids="${ROBOCLAWS_EXEC_GENERATED_MESS_OBJECT_IDS:-}"
     generated_mess_manifest_path="${ROBOCLAWS_GENERATED_MESS_MANIFEST_PATH:-}"
-    task_surface="{{task_surface}}"
-    task_intent="{{task_intent}}"
-    operator_messages_path="{{operator_messages_path}}"
-    b1_alignment_artifact="{{b1_alignment_artifact}}"
-    b1_navigation_artifact="{{b1_navigation_artifact}}"
-    skill_name="{{skill_name}}"
-    goal_contract_json="{{goal_contract_json}}"
-    goal_contract_path="{{goal_contract_path}}"
-    run_dir_override="{{run_dir_override}}"
+    task_surface="${ROBOCLAWS_EXEC_TASK_SURFACE:-household-world}"
+    task_intent="${ROBOCLAWS_EXEC_TASK_INTENT:-cleanup}"
+    operator_messages_path="${ROBOCLAWS_EXEC_OPERATOR_MESSAGES_PATH:-}"
+    b1_alignment_artifact="${ROBOCLAWS_EXEC_B1_ALIGNMENT_ARTIFACT:-}"
+    b1_navigation_artifact="${ROBOCLAWS_EXEC_B1_NAVIGATION_ARTIFACT:-}"
+    skill_name="${ROBOCLAWS_EXEC_SKILL_NAME:-household-world}"
+    goal_contract_json="${ROBOCLAWS_GOAL_CONTRACT_JSON:-}"
+    goal_contract_path="${ROBOCLAWS_GOAL_CONTRACT_PATH:-}"
+    run_dir_override="${ROBOCLAWS_EXEC_RUN_DIR:-}"
 
-    # Just recipe parameters are positional. Strip optional key= prefixes for
-    # the first axes so maintainer callers can use key=value style.
-    driver="${driver#driver=}"
-    profile="${profile#profile=}"
-    seeds="${seeds#seeds=}"
-    output_dir="${output_dir#output_dir=}"
-    task="${task#task=}"
-    generated_mess_count="${generated_mess_count#generated_mess_count=}"
-    host="${host#host=}"
-    port="${port#port=}"
-    map_bundle="${map_bundle#map_bundle=}"
-    cleanup_routine="${cleanup_routine#cleanup_routine=}"
-    robot_views="${robot_views#robot_views=}"
-    robot_views="${robot_views#record_robot_views=}"
-    profile="${profile#evidence_lane=}"
-    camera_labeler="${camera_labeler#camera_labeler=}"
-    camera_labeler="${camera_labeler#camera-labeler=}"
-    visual_grounding_timeout_s="${visual_grounding_timeout_s#visual_grounding_timeout_s=}"
-    visual_grounding_timeout_s="${visual_grounding_timeout_s#visual_grounding_timeout=}"
-    map_build="${map_build#map_build=}"
-    runtime_map_prior="${runtime_map_prior#runtime_map_prior=}"
-    backend_override="${backend_override#backend=}"
-    backend_override="${backend_override#backend_override=}"
-    scene_source="${scene_source#scene_source=}"
-    scene_index="${scene_index#scene_index=}"
-    isaac_scene_usd_path="${isaac_scene_usd_path#isaac_scene_usd_path=}"
-    min_generated_mess_count_override="${min_generated_mess_count_override#min_generated_mess_count=}"
-    min_generated_mess_count_override="${min_generated_mess_count_override#min_generated_mess_count_override=}"
-    generated_mess_object_ids="${generated_mess_object_ids#generated_mess_object_ids=}"
-    task_surface="${task_surface#task_surface=}"
-    task_surface="${task_surface#task-surface=}"
-    task_surface="${task_surface:-household-world}"
-    task_intent="${task_intent#task_intent=}"
-    task_intent="${task_intent#task-intent=}"
-    task_intent="${task_intent#intent=}"
-    task_intent="${task_intent:-${ROBOCLAWS_TASK_INTENT:-cleanup}}"
     launch_world_id="${ROBOCLAWS_LAUNCH_WORLD_ID:-}"
-    operator_messages_path="${operator_messages_path#operator_messages_path=}"
-    operator_messages_path="${operator_messages_path#operator-messages-path=}"
-    b1_alignment_artifact="${b1_alignment_artifact#b1_alignment_artifact=}"
-    b1_alignment_artifact="${b1_alignment_artifact#b1-alignment-artifact=}"
-    b1_navigation_artifact="${b1_navigation_artifact#b1_navigation_artifact=}"
-    b1_navigation_artifact="${b1_navigation_artifact#b1-navigation-artifact=}"
-    skill_name="${skill_name#skill_name=}"
-    skill_name="${skill_name#skill-name=}"
-    skill_name="${skill_name:-${ROBOCLAWS_TASK_SKILL:-}}"
-    goal_contract_json="${goal_contract_json#goal_contract_json=}"
-    goal_contract_json="${goal_contract_json#goal-contract-json=}"
-    goal_contract_path="${goal_contract_path#goal_contract_path=}"
-    goal_contract_path="${goal_contract_path#goal-contract-path=}"
-    run_dir_override="${run_dir_override#run_dir=}"
-    run_dir_override="${run_dir_override#run-dir=}"
-    run_dir_override="${run_dir_override:-${ROBOCLAWS_MOLMO_RUN_DIR_OVERRIDE:-}}"
-    goal_contract_json="${goal_contract_json:-${ROBOCLAWS_GOAL_CONTRACT_JSON:-}}"
-    goal_contract_path="${goal_contract_path:-${ROBOCLAWS_GOAL_CONTRACT_PATH:-}}"
     operator_session_context_json="${ROBOCLAWS_OPERATOR_SESSION_CONTEXT_JSON:-}"
     python_bin="${ROBOCLAWS_DEVTOOLS_PYTHON:-.venv/bin/python}"
     if [[ "${ROBOCLAWS_JUST_TRACE:-}" == "1" ]]; then
@@ -821,7 +767,7 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
           fi
           runner_args=(
             .venv/bin/python
-            scripts/molmo_cleanup/run_live_openai_agents_household.py
+            -m roboclaws.agents.household_live_runner
             --repo-root "$PWD"
             --run-dir "$run_dir"
             --status-path "$status_path"
@@ -1129,24 +1075,19 @@ household-world-impl driver="mcp-smoke" profile="smoke" seeds="7" output_dir="ou
 
 # Cheap default: deterministic MCP smoke on the synthetic backend.
 quick-check driver="mcp-smoke" profile="smoke" seed="7" output_dir="output/molmo/quick-check" task="帮我收拾这个房间" generated_mess_count="10":
-    just molmo::household-world-impl "{{driver}}" "{{profile}}" "{{seed}}" "{{output_dir}}" "{{task}}" "{{generated_mess_count}}"
+    just run::surface surface=household-world preset=cleanup agent_engine=direct-runner evidence_lane=smoke seed="{{seed}}" output_dir="{{output_dir}}" prompt="{{task}}" scenario_setup=relocate-cleanup-related-objects relocation_count="{{generated_mess_count}}"
 
 # Canonical human review report: direct cleanup, real MolmoSpaces/RBY1M visuals.
 review-report seeds="1 2 3" output_dir="output/molmo/review-report" task="帮我收拾这个房间" generated_mess_count="10":
-    just molmo::household-world-impl direct world-public-labels "{{seeds}}" "{{output_dir}}" "{{task}}" "{{generated_mess_count}}"
+    just run::surface surface=household-world preset=cleanup agent_engine=direct-runner evidence_lane=world-public-labels seeds="{{seeds}}" output_dir="{{output_dir}}" prompt="{{task}}" scenario_setup=relocate-cleanup-related-objects relocation_count="{{generated_mess_count}}"
 
 # Deterministic ADR-0003 MCP tool smoke with real MolmoSpaces/RBY1M visuals.
 mcp-smoke-report seed="7" output_dir="output/molmo/mcp-smoke-report" task="帮我收拾这个房间" generated_mess_count="10":
-    just molmo::household-world-impl mcp-smoke world-public-labels "{{seed}}" "{{output_dir}}" "{{task}}" "{{generated_mess_count}}"
-
-# OpenClaw-shaped/policy-labeled smoke with real MolmoSpaces/RBY1M visuals.
-[private]
-openclaw-smoke-report seed="7" output_dir="output/molmo/openclaw-smoke-report" task="帮我收拾这个房间" generated_mess_count="10":
-    just molmo::household-world-impl openclaw-smoke world-public-labels "{{seed}}" "{{output_dir}}" "{{task}}" "{{generated_mess_count}}"
+    just run::surface surface=household-world preset=cleanup agent_engine=direct-runner evidence_lane=smoke seed="{{seed}}" output_dir="{{output_dir}}" prompt="{{task}}" scenario_setup=relocate-cleanup-related-objects relocation_count="{{generated_mess_count}}"
 
 # Raw camera-input evidence report. This proves camera artifact plumbing, not cleanup success.
 camera-raw-fpv-report seed="7" output_dir="output/molmo/camera-raw-fpv-report" task="帮我收拾这个房间" generated_mess_count="10":
-    just molmo::household-world-impl direct camera-raw-fpv "{{seed}}" "{{output_dir}}" "{{task}}" "{{generated_mess_count}}"
+    just run::surface surface=household-world preset=cleanup agent_engine=direct-runner evidence_lane=camera-raw-fpv seed="{{seed}}" output_dir="{{output_dir}}" prompt="{{task}}" scenario_setup=relocate-cleanup-related-objects relocation_count="{{generated_mess_count}}"
 
 # Probe a live-agent run. Defaults to the latest live cleanup report.
 status path="":
@@ -1259,11 +1200,6 @@ apple2apple-grid mode="dry-run" output_dir="output/molmo/apple2apple-grid" seed=
       fi
     fi
     "$python_bin" scripts/molmo_cleanup/run_molmo_apple2apple_test_grid.py "${args[@]}"
-
-# Live OpenClaw Gateway report. Starts the cleanup MCP server and then chat::run.
-[private]
-openclaw-report seed="7" output_dir="output/molmo/openclaw-report" task="帮我收拾这个房间" generated_mess_count="10" profile="world-public-labels" port="18788":
-    just molmo::household-world-impl openclaw-live "{{profile}}" "{{seed}}" "{{output_dir}}" "{{task}}" "{{generated_mess_count}}" 0.0.0.0 "{{port}}"
 
 # Render-only scene identity probe: same MolmoSpaces scene anchors through MuJoCo and Isaac.
 scene-camera-comparison seed="7" generated_mess_count="1" output_dir="output/molmo/scene-camera-comparison" scene_source="procthor-10k-val" scene_index="1" scene_usd_path="output/isaaclab/flattened-semantic-usd/0604_val1_mujoco_body_pose_fix/scene_semantic.usda" render_width="960" render_height="640" lighting_profile="default":

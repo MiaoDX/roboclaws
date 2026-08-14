@@ -19,18 +19,6 @@ _TASK_ENV_OVERRIDES = (
 )
 
 
-def build_agent_run_argv(
-    *,
-    dispatch_target: str,
-    agent_engine: str,
-    mode: str,
-    overrides: tuple[str, ...],
-) -> tuple[str, ...]:
-    """Return the private dispatcher command for a public launch route."""
-
-    return ("just", "agent::run", dispatch_target, agent_engine, mode, *overrides)
-
-
 def export_env_from_overrides(overrides: tuple[str, ...]) -> dict[str, str]:
     """Return environment variables implied by launch-only overrides."""
 

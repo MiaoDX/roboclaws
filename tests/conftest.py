@@ -74,12 +74,7 @@ SLOW_TESTS = {
     },
 }
 
-LAYER_DIRS = ("local", "slow", "integration", "contract", "regression", "unit")
-
-REGRESSION_NAME_PARTS = (
-    "refactor_regression",
-    "view_experiment",
-)
+LAYER_DIRS = ("local", "slow", "integration", "contract", "unit")
 
 CONTRACT_NAME_PARTS = (
     "appliance",
@@ -100,7 +95,7 @@ CONTRACT_NAME_PARTS = (
     "verify_",
 )
 
-EXPLICIT_LAYER_MARKERS = ("local", "slow", "integration", "contract", "regression", "unit")
+EXPLICIT_LAYER_MARKERS = ("local", "slow", "integration", "contract", "unit")
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -132,8 +127,6 @@ def _layer_for_item(item: pytest.Item) -> str:
         return directory_layer
     if any(part in stem for part in CONTRACT_NAME_PARTS):
         return "contract"
-    if any(part in stem for part in REGRESSION_NAME_PARTS):
-        return "regression"
     return "unit"
 
 

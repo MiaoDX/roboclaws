@@ -41,10 +41,10 @@ def test_world_catalog_exposes_scene_first_console_choices() -> None:
     assert tuple(world_id for world_id in worlds if world_id.startswith("molmospaces/")) == (
         *MOLMOSPACES_CONSOLE_WORLD_IDS,
     )
-    assert "molmospaces/val_6" not in worlds
-    assert "molmospaces/val_8" not in worlds
+    assert "molmospaces/procthor-10k-val/6" not in worlds
+    assert "molmospaces/procthor-10k-val/8" not in worlds
     default_world = MOLMOSPACES_CONSOLE_WORLD_IDS[0]
-    assert default_world == "molmospaces/val_0"
+    assert default_world == "molmospaces/procthor-10k-val/0"
     assert worlds[default_world]["available_backends"] == ["mujoco"]
     assert worlds["molmospaces/procthor-10k-val/11"]["available_backends"] == ["mujoco"]
     assert worlds["molmospaces/procthor-10k-val/11"]["preview_assets"] == {
@@ -136,7 +136,7 @@ def test_molmospaces_scene_previews_have_render_provenance() -> None:
         previews = WORLD_SPECS[world_id].preview_assets
         assert {view for view, _path in previews} == {"fpv", "map", "chase", "topdown"}
         assert all(path.startswith("/previews/") for _view, path in previews)
-        scene_name = world_id.replace("/", "-")
+        scene_name = Path(previews[0][1]).name.rsplit("-", 1)[0]
         metadata_path = preview_root / f"{scene_name}-preview.json"
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
         assert metadata["schema"] == "operator_console_scene_preview_v1"
@@ -185,7 +185,7 @@ def test_console_combinations_are_catalog_backed_axes() -> None:
         for route in enabled
     } >= {
         (
-            "molmospaces/val_0",
+            "molmospaces/procthor-10k-val/0",
             "mujoco",
             "map-build",
             "direct-runner",
@@ -448,15 +448,16 @@ def test_molmospaces_cleanup_routes_are_selectable_for_ui_scenes() -> None:
     all_ids = {route.id for route in list_console_combinations()}
     enabled_ids = {route.id for route in list_console_combinations(include_disabled=False)}
 
-    assert not any(route_id.startswith("molmospaces/val_6::") for route_id in all_ids)
-    assert not any(route_id.startswith("molmospaces/val_8::") for route_id in all_ids)
+    assert not any(route_id.startswith("molmospaces/procthor-10k-val/6::") for route_id in all_ids)
+    assert not any(route_id.startswith("molmospaces/procthor-10k-val/8::") for route_id in all_ids)
 
     assert (
-        "molmospaces/val_1::mujoco::map-build::openai-agents-sdk::world-public-labels"
+        "molmospaces/procthor-10k-val/1::mujoco::map-build::openai-agents-sdk::world-public-labels"
         not in all_ids
     )
     assert (
-        "molmospaces/val_1::mujoco::cleanup::openai-agents-sdk::world-public-labels" not in all_ids
+        "molmospaces/procthor-10k-val/1::mujoco::cleanup::"
+        "openai-agents-sdk::world-public-labels" not in all_ids
     )
 
     assert not any(

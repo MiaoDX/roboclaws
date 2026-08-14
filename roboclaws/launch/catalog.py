@@ -5,10 +5,7 @@ The public launch catalog resolves orthogonal launch axes:
 ``surface`` + ``world`` + ``backend`` + ``intent`` + ``agent_engine`` +
 ``provider_profile`` + evidence/report mode + ``scenario_setup``.
 
-The current implementation still lowers to the private ``agent::run``
-dispatcher. That dispatcher may call older implementation recipes, but the
-catalog emits launch-shaped private dispatch targets rather than legacy public
-task ids.
+The resolved plan crosses directly into the typed launch executor.
 """
 
 from __future__ import annotations
@@ -28,6 +25,7 @@ from roboclaws.launch.environment_setup import (
     RELOCATION_SETUP_OPTIONS,
 )
 from roboclaws.launch.evaluation import evaluation_spec_for_intent
+from roboclaws.launch.executor import validate_named_overrides
 from roboclaws.launch.goals import normalize_goal_contract
 from roboclaws.launch.intents import TASK_INTENT_SPECS, TaskIntentSpec
 from roboclaws.launch.plans import LaunchPlan
@@ -36,7 +34,6 @@ from roboclaws.launch.retired_agent_engines import (
     is_retired_agent_engine,
     retired_agent_engine_message,
 )
-from roboclaws.launch.runners import build_agent_run_argv
 from roboclaws.launch.task_specs import TaskPresetSpec, TaskSurfaceSpec
 from roboclaws.launch.worlds import DEFAULT_WORLD_BY_SURFACE, WorldSpec, world_spec
 
@@ -119,6 +116,10 @@ def resolve_surface_launch(args: list[str] | tuple[str, ...]) -> LaunchPlan:
     """Resolve ``just run::surface`` named arguments into a launch plan."""
 
     overrides = tuple(args)
+    try:
+        validate_named_overrides(overrides)
+    except ValueError as exc:
+        raise LaunchError(str(exc)) from exc
     _reject_removed_public_axes(overrides)
 
     surface_value = _override_value(overrides, "surface")
@@ -259,25 +260,9 @@ def _resolve_launch(
         goal_contract_json=goal_contract.to_json(),
         required_capability_profiles=required_capabilities,
     )
-    dispatch_overrides = (
-        *_without_dispatch_stripped_overrides(plan_overrides),
-        *(
-            (f"world={world.id}",)
-            if backend.implementation_backend == "isaaclab_subprocess"
-            else ()
-        ),
-        f"backend={backend.implementation_backend}",
-        *dispatch_setup_overrides,
-    )
-    argv = build_agent_run_argv(
-        dispatch_target=intent.dispatch_target,
-        agent_engine=agent_engine.id,
-        mode=evidence_mode,
-        overrides=dispatch_overrides,
-    )
+    plan_overrides = (*plan_overrides, *dispatch_setup_overrides)
     evaluation = evaluation_spec_for_intent(intent)
     return LaunchPlan(
-        argv=argv,
         surface=surface.surface_id,
         intent=intent.intent_id,
         preset=preset.preset_id if preset else None,
@@ -361,8 +346,8 @@ def _normalize_world(value: str | None, *, surface_id: str) -> WorldSpec:
     world_id = _strip_named(value, "world") if value else DEFAULT_WORLD_BY_SURFACE[surface_id]
     try:
         spec = world_spec(world_id)
-    except (KeyError, ValueError):
-        raise LaunchError(f"unsupported world '{world_id}'")
+    except ValueError as exc:
+        raise LaunchError(str(exc)) from exc
     if spec.surface_id != surface_id:
         raise LaunchError(
             f"world '{world_id}' cannot run surface '{surface_id}'",

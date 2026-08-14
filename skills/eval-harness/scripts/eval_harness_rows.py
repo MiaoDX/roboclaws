@@ -13,7 +13,7 @@ from roboclaws.launch.scene_sampler_sources import sampler_world_id
 
 ROW_SCHEMA = "roboclaws_eval_harness_row_v1"
 CATALOG_PATH = Path(__file__).resolve().parents[1] / "catalog" / "rows.json"
-DEFAULT_WORLD = "molmospaces/val_0"
+DEFAULT_WORLD = "molmospaces/procthor-10k-val/0"
 DEFAULT_SCENE_SOURCE = "procthor-10k-val"
 DEFAULT_SCENE_INDEX = "0"
 DEFAULT_BACKEND = "mujoco"

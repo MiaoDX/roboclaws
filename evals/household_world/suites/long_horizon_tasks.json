@@ -32,7 +32,7 @@
     "relationship_to_open_ended": "long_horizon_tasks is a focused open-ended eval subset, not a separate public task axis",
     "live_provider_required": true,
     "semantic_satisfaction": "authoritative_private_state_grader",
-    "pilot_scene": "molmospaces/val_0",
+    "pilot_scene": "molmospaces/procthor-10k-val/0",
     "unsupported_in_v1": [
       "stairs",
       "elevator",

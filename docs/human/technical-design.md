@@ -32,6 +32,11 @@ The household presets are:
 
 No-preset household runs are open-ended prompt-driven tasks.
 
+The launch catalog resolves these axes once into a typed launch plan.
+`roboclaws.launch.executor` owns the closed direct/SDK adapter dispatch and
+child-process lifecycle; product, console, and eval callers execute that plan
+instead of rebuilding private commands or positional argument lists.
+
 The design goal is not to hide a whole task behind one opaque tool. Every
 serious run should leave reviewable evidence: a goal contract, public MCP/tool
 trace, runtime map or report artifacts, and a human-readable `report.html`.
@@ -43,6 +48,9 @@ context, generated exploration candidates, and public room-category hints when
 available. Map-build and observations enrich that context into a Runtime Metric
 Map. Downstream runs can consume either raw `runtime_metric_map.json` or the
 canonical `runtime_map_prior_snapshot_v1` package.
+`roboclaws.maps.runtime_prior_catalog` owns catalog loading, compatibility, and
+auto-enable policy for product consumers. Candidate scoring, selection reports,
+and explicit promotion remain eval responsibilities.
 
 Cleanup separates:
 
@@ -101,6 +109,11 @@ The first eval command shape is `just agent::eval ...`. Eval samples must reuse
 the current household surfaces, MCP tools, public/private evidence split, and
 Base Metric Map / Runtime Metric Map contracts instead of introducing a
 parallel task taxonomy.
+
+Evaluation is repository-owned maintainer code. Source and wheel distributions
+contain the product runtime but omit `roboclaws.evals`, eval definitions, and
+the eval-harness skill; maintainers run evals from a Git checkout through
+`just agent::eval`.
 
 ## Current Non-Goals
 

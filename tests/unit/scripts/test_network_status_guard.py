@@ -176,10 +176,10 @@ def test_current_and_manual_debug_just_recipes_use_network_guard() -> None:
         result = subprocess.run(
             [
                 just_binary,
-                "agent::run",
-                "household-world",
-                engine,
-                "world-public-labels",
+                "run::surface",
+                "surface=household-world",
+                f"agent_engine={engine}",
+                "evidence_lane=world-public-labels",
             ],
             cwd=REPO_ROOT,
             env=env,

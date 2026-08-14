@@ -290,7 +290,7 @@ def test_realworld_cleanup_demo_persists_facade_rerun_command(
     demo = _load_demo_module()
     prior = "output/household/household-world/map-build/anchor/seed-7/runtime_metric_map.json"
     command = (
-        "just run::surface surface=household-world world=molmospaces/val_0 "
+        "just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 "
         "backend=mujoco intent=cleanup agent_engine=openai-agents-sdk "
         "provider_profile=kimi-openai-chat evidence_lane=world-public-labels seed=7 "
         "scenario_setup=relocate-cleanup-related-objects relocation_count=5 "
@@ -313,7 +313,7 @@ def test_realworld_cleanup_demo_persists_facade_rerun_command(
     assert "just run::surface \\\n" in report
     for arg in (
         "surface=household-world",
-        "world=molmospaces/val_0",
+        "world=molmospaces/procthor-10k-val/0",
         "backend=mujoco",
         "intent=cleanup",
         "agent_engine=openai-agents-sdk",

@@ -56,12 +56,15 @@ Harness recipes
   `surface=planner-proof intent=planner-proof`. They own command names,
   parameters, report shape, and acceptance gates.
 - **Worlds / Scenes** are operator-facing rooms, maps, or digital twins such as
-  `world=molmospaces/val_0`, `world=agibot-g2/map-12`,
+  `world=molmospaces/procthor-10k-val/0`, `world=agibot-g2/map-12`,
   `world=b1-map12`, or `world=planner-proof/default`.
 - **Backend Runtimes** are execution adapter ids such as `backend=mujoco`,
   `backend=isaaclab`, or `backend=agibot-gdk`. Product support is
   world-scoped: MolmoSpaces household scenes use MuJoCo, B1 / Map 12 uses
   Isaac Lab, and Agibot map runs use Agibot GDK.
+  `roboclaws.launch.executor` consumes the resolved typed launch plan once and
+  owns adapter dispatch and child lifecycle; product callers do not reconstruct
+  private commands.
 - **Agent Skills** own strategy: prompts, scripts, examples, recovery loops,
   and trace-preserving routines such as `navigate -> pick -> place`.
 - **Agent Engines And Provider Profiles** distinguish the product runtime
@@ -82,6 +85,9 @@ Harness recipes
   focus is the OpenAI Agents SDK live route plus deterministic direct-runner
   proof; higher-level agent frameworks are later clients after those lower
   routes are stable.
+  `roboclaws.agents.household_live_runner` owns the active OpenAI Agents SDK
+  household lifecycle and imports its reusable budget, continuation, metrics,
+  performance-profile, and status helpers from package modules.
 - **Capability Profiles** define reusable capability environments. Skills
   require profiles; profiles should not be copied into task-specific supersets.
 - **MCP Capability Contract And Tools** are the stable public robot interface:
@@ -137,13 +143,13 @@ and future physical robot parity.
 
 Key pieces:
 
-- `roboclaws/household/realworld_contract.py` owns the public/private
-  household contract.
+- `roboclaws/household/household_runtime_contract.py` owns the public/private
+  household runtime contract.
 - `roboclaws/household/agent_view.py` owns the sectioned Agent View v2 boundary
   for public household-world agent inputs, saved `agent_view.json` artifacts,
   live agent-facing responses, and sidecar public-evidence guards.
-- `roboclaws/household/realworld_cleanup.py` owns the direct deterministic
-  cleanup and map-build sweep CLI used by `just` and harness recipes.
+- `roboclaws/household/direct_episode.py` owns the direct deterministic
+  household episode used by the launch surface and eval harness.
 - `roboclaws/household/semantic_cleanup_loop.py` owns the direct semantic
   cleanup flow.
 - `roboclaws/maps/` owns reusable navigation map artifacts, projections, and
@@ -197,9 +203,9 @@ just run::surface surface=<surface> agent_engine=<engine> [world=<world>] [backe
 Examples:
 
 ```bash
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=map-build agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=camera-grounded-labels camera_labeler=grounding-dino scenario_setup=baseline seed=7
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=direct-runner evidence_lane=world-public-labels scenario_setup=relocate-cleanup-related-objects seed=7
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat prompt="find something useful to drink"
+just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=map-build agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=camera-grounded-labels camera_labeler=grounding-dino scenario_setup=baseline seed=7
+just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=cleanup agent_engine=direct-runner evidence_lane=world-public-labels scenario_setup=relocate-cleanup-related-objects seed=7
+just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat prompt="find something useful to drink"
 just run::surface surface=planner-proof world=planner-proof/default backend=mujoco intent=planner-proof agent_engine=direct-runner mode=dry-run
 just console::run
 ```
@@ -384,7 +390,7 @@ Every serious run should produce reviewable evidence:
 - `report.html` for human review.
 - Optional planner-proof bundles when cleanup substeps are checked against
   local RBY1M/CuRobo proof.
-- Future eval-suite outputs under `output/evals/<suite>/<stamp>/`, including
+- Eval-suite outputs under `output/evals/<suite>/<stamp>/`, including
   `eval_results.json` and an eval report that links back to underlying product
   run artifacts.
 
