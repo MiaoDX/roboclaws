@@ -7,7 +7,6 @@
 # - just harness::molmo-realworld-raw-fpv  ADR-0013 raw FPV-only observation evidence
 # - just harness::molmo-planner-proof-bundle-runner  proof-request dry-run handoff
 # - just harness::molmo-planner-proof-bundle-execute-rerun  local GPU proof-bundle execution
-# - just harness::molmo-planner-manipulation-probe  ADR-0014 planner-backed manipulation proof gate
 # - just harness::molmo-visual-grounding-benchmark  perception-isolated HTTP grounding harness
 # - just harness::isaac-runtime-preflight  Isaac Lab local runtime setup gate
 # - just harness::isaac-runtime-smoke  strict Isaac Lab renderer/USD smoke gate
@@ -121,7 +120,7 @@ molmo-realworld-agent-dogfood-kit seed="7" output_dir="output/molmo-realworld-ag
 
 # ADR-0013 raw FPV-only evidence harness. This intentionally proves perception
 # boundary and report artifacts, not camera-only cleanup success.
-molmo-realworld-raw-fpv seed="7" output_dir="output/molmo-realworld-raw-fpv-harness" task="帮我收拾这个房间" generated_mess_count="10":
+molmo-realworld-raw-fpv seed="7" output_dir="output/molmo-realworld-raw-fpv-harness" task="帮我收拾这个房间" generated_mess_count="10" map_bundle="assets/maps/molmospaces/procthor-10k-val/0":
     #!/usr/bin/env bash
     set -euo pipefail
     stamp="$({{timestamp_cmd}})"
@@ -133,6 +132,7 @@ molmo-realworld-raw-fpv seed="7" output_dir="output/molmo-realworld-raw-fpv-harn
       --backend molmospaces_subprocess \
       --task "{{task}}" \
       --static-fixture-projection-mode room_only \
+      --map-bundle-dir "{{map_bundle}}" \
       --perception-mode raw_fpv_only \
       --generated-mess-count "{{generated_mess_count}}" \
       --include-robot \
@@ -241,26 +241,6 @@ molmo-planner-proof-bundle-execute-rerun output_dir="output/molmo-planner-proof-
       --require-planner-backed-cleanup-primitives \
       --require-planner-cleanup-bridge-ready \
       "${rerun_dir}/run_result.json"
-
-# ADR-0014 planner-backed manipulation proof gate. The default is a safe
-# config-import probe that records blocked-capability evidence; use
-# --probe-mode execute plus the strict checker when local planner execution is
-# ready to be accepted as real manipulation proof.
-molmo-planner-manipulation-probe output_dir="output/molmo-planner-manipulation-probe-harness" embodiment="franka" probe_mode="config_import" steps="2":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    stamp="$({{timestamp_cmd}})"
-    run_dir="{{output_dir}}/${stamp}"
-    mkdir -p "$run_dir"
-    echo "==> run dir: ${run_dir}"
-    .venv/bin/python scripts/molmo_cleanup/run_molmo_planner_manipulation_probe.py \
-      --output-dir "$run_dir" \
-      --embodiment "{{embodiment}}" \
-      --probe-mode "{{probe_mode}}" \
-      --steps "{{steps}}"
-    .venv/bin/python scripts/molmo_cleanup/check_molmo_planner_manipulation_probe.py \
-      --accept-blocked-capability \
-      "${run_dir}/run_result.json"
 
 # ADR-0133 perception-isolated visual-grounding benchmark. This calls the
 # configured HTTP grounding service over fixed public RAW_FPV-style fixtures and

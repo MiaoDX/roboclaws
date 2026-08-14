@@ -1,10 +1,98 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 from PIL import Image
+
+
+def render_domain_calibration(
+    view_results: list[dict[str, Any]],
+    *,
+    baseline_lane_id: str,
+    candidate_lane_id: str,
+    optional_float: Callable[[Any], float | None],
+) -> dict[str, Any]:
+    """Estimate whether one global candidate luminance gain explains the visual delta."""
+    pairs = []
+    for item in view_results:
+        lanes = item.get("lanes") if isinstance(item.get("lanes"), dict) else {}
+        baseline = (
+            lanes.get(baseline_lane_id) if isinstance(lanes.get(baseline_lane_id), dict) else {}
+        )
+        candidate = (
+            lanes.get(candidate_lane_id) if isinstance(lanes.get(candidate_lane_id), dict) else {}
+        )
+        baseline_luminance = optional_float(baseline.get("mean_luminance"))
+        candidate_luminance = optional_float(candidate.get("mean_luminance"))
+        if baseline_luminance is None or candidate_luminance is None or candidate_luminance <= 0:
+            continue
+        pairs.append(
+            {
+                "view_id": str(item.get("view_id") or ""),
+                "molmospaces_luminance": baseline_luminance,
+                "isaac_luminance": candidate_luminance,
+            }
+        )
+    if not pairs:
+        return {
+            "schema": "scene_camera_render_domain_calibration_v1",
+            "status": "missing_luminance_pairs",
+            "pair_count": 0,
+        }
+
+    numerator = sum(pair["molmospaces_luminance"] * pair["isaac_luminance"] for pair in pairs)
+    denominator = sum(pair["isaac_luminance"] ** 2 for pair in pairs)
+    gain = numerator / denominator if denominator > 0 else 1.0
+    residuals = []
+    original_abs_deltas = []
+    for pair in pairs:
+        calibrated = pair["isaac_luminance"] * gain
+        residual = calibrated - pair["molmospaces_luminance"]
+        original_delta = pair["isaac_luminance"] - pair["molmospaces_luminance"]
+        original_abs_deltas.append(abs(original_delta))
+        residuals.append(
+            {
+                **pair,
+                "calibrated_isaac_luminance": calibrated,
+                "original_luminance_delta": original_delta,
+                "calibrated_luminance_residual": residual,
+                "abs_calibrated_luminance_residual": abs(residual),
+            }
+        )
+    mean_original_delta = sum(original_abs_deltas) / len(original_abs_deltas)
+    abs_residuals = [item["abs_calibrated_luminance_residual"] for item in residuals]
+    mean_residual = sum(abs_residuals) / len(abs_residuals)
+    max_residual = max(abs_residuals)
+    improvement_fraction = (
+        1.0 - mean_residual / mean_original_delta if mean_original_delta > 0 else 1.0
+    )
+    if mean_original_delta <= 10.0:
+        status = "already_luminance_matched"
+        next_action = "Do not tune exposure from this artifact; inspect material/texture deltas."
+    elif mean_residual <= 12.0 and max_residual <= 20.0:
+        status = "global_luminance_gain_sufficient"
+        next_action = "A global Isaac exposure/gain adjustment is a plausible next renderer slice."
+    else:
+        status = "view_dependent_render_domain_delta"
+        next_action = (
+            "A single global gain leaves large residuals; inspect per-room lights, material "
+            "albedo, indirect lighting, and tone response before changing camera geometry."
+        )
+    return {
+        "schema": "scene_camera_render_domain_calibration_v1",
+        "status": status,
+        "pair_count": len(pairs),
+        "global_isaac_luminance_gain": gain,
+        "mean_abs_original_luminance_delta": mean_original_delta,
+        "mean_abs_calibrated_luminance_residual": mean_residual,
+        "max_abs_calibrated_luminance_residual": max_residual,
+        "mean_luminance_delta_improvement_fraction": improvement_fraction,
+        "recommended_next_action": next_action,
+        "residuals": residuals,
+    }
 
 
 def image_visual_metrics(path: Path) -> dict[str, Any]:

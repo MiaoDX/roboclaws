@@ -124,7 +124,7 @@
       },
       {
         "disposition": "MERGE",
-        "lines": 2024,
+        "lines": 1996,
         "max_module_lines": 800,
         "owner": "Wave 6 report ownership",
         "path": "roboclaws/household/report.py",
@@ -148,7 +148,7 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1979,
+        "lines": 1994,
         "max_module_lines": 800,
         "owner": "Wave 6 retained owner split",
         "path": "roboclaws/household/scene_camera_comparison.py",
@@ -299,14 +299,6 @@
         "trigger": "move retained product behavior to its package owner and reduce the CLI adapter"
       },
       {
-        "disposition": "DELETE",
-        "lines": 995,
-        "max_module_lines": 800,
-        "owner": "Wave 3 unconditional deletion",
-        "path": "scripts/molmo_cleanup/run_agent_sdk_perf_matrix.py",
-        "trigger": "delete after the Wave 0 caller ledger and neighboring preservation proofs pass"
-      },
-      {
         "disposition": "SPLIT",
         "lines": 1103,
         "max_module_lines": 800,
@@ -321,30 +313,6 @@
         "owner": "Wave 5 package ownership migration",
         "path": "scripts/molmo_cleanup/run_molmo_planner_proof_bundle_from_requests.py",
         "trigger": "move retained product behavior to its package owner and reduce the CLI adapter"
-      },
-      {
-        "disposition": "DELETE",
-        "lines": 1659,
-        "max_module_lines": 800,
-        "owner": "Wave 3 unconditional deletion",
-        "path": "scripts/molmo_cleanup/run_raw_fpv_perception_probe.py",
-        "trigger": "delete after the Wave 0 caller ledger and neighboring preservation proofs pass"
-      },
-      {
-        "disposition": "DELETE",
-        "lines": 1826,
-        "max_module_lines": 800,
-        "owner": "Wave 3 unconditional deletion",
-        "path": "scripts/molmo_cleanup/run_robot_camera_apple2apple_comparison.py",
-        "trigger": "delete after the Wave 0 caller ledger and neighboring preservation proofs pass"
-      },
-      {
-        "disposition": "DELETE",
-        "lines": 1979,
-        "max_module_lines": 800,
-        "owner": "Wave 3 unconditional deletion",
-        "path": "scripts/molmo_cleanup/summarize_robot_camera_visual_parity.py",
-        "trigger": "delete after the Wave 0 caller ledger and neighboring preservation proofs pass"
       },
       {
         "disposition": "SPLIT",
@@ -384,14 +352,6 @@
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
         "path": "tests/contract/agibot/test_agibot_map_context_scripts.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 1615,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/contract/checkers/test_check_molmo_planner_manipulation_probe.py",
         "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
@@ -460,7 +420,7 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 2142,
+        "lines": 2062,
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
         "path": "tests/contract/molmo_cleanup/test_scene_camera_comparison.py",
@@ -508,14 +468,6 @@
       },
       {
         "disposition": "SPLIT",
-        "lines": 1131,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/unit/molmo_cleanup/test_agent_sdk_perf_matrix.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
         "lines": 5499,
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
@@ -544,30 +496,6 @@
         "max_module_lines": 800,
         "owner": "Wave 6 test topology",
         "path": "tests/unit/molmo_cleanup/test_molmo_planner_proof_requests.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 1818,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/unit/molmo_cleanup/test_raw_fpv_perception_probe.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 3214,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/unit/molmo_cleanup/test_robot_camera_apple2apple_comparison.py",
-        "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
-      },
-      {
-        "disposition": "SPLIT",
-        "lines": 2262,
-        "max_module_lines": 800,
-        "owner": "Wave 6 test topology",
-        "path": "tests/unit/molmo_cleanup/test_robot_camera_visual_parity_summary.py",
         "trigger": "split with the retained behavior owner; preserve contract/privacy guards"
       },
       {
@@ -618,12 +546,12 @@
     "line_count": "physical UTF-8 lines in Python files under the named roots",
     "source": {
       "files_at_least": {
-        "1000": 33,
-        "500": 129,
-        "800": 47
+        "1000": 30,
+        "500": 112,
+        "800": 43
       },
-      "loc": 180320,
-      "python_files": 421,
+      "loc": 160412,
+      "python_files": 381,
       "roots": [
         "roboclaws",
         "scripts"
@@ -631,12 +559,12 @@
     },
     "tests": {
       "files_at_least": {
-        "1000": 25,
-        "500": 51,
-        "800": 29
+        "1000": 20,
+        "500": 45,
+        "800": 24
       },
-      "loc": 108942,
-      "python_files": 237,
+      "loc": 96526,
+      "python_files": 222,
       "roots": [
         "tests"
       ]
