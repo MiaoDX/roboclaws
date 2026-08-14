@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping
 
+from roboclaws.agents.experiment_telemetry import PromptIdentity
 from roboclaws.agents.live_status import LiveAgentFailure
 from roboclaws.core.json_sources import json_source_type_name, read_json_object
 
@@ -29,6 +30,7 @@ class LiveAgentRequest:
     kickoff_prompt: str
     mcp_server: LiveAgentMCPServer
     run_dir: Path
+    prompt_identity: PromptIdentity | None = None
     model: str = ""
     provider_profile: str = ""
     max_turns: int | None = None
@@ -205,6 +207,7 @@ def live_agent_artifacts(
         "openai_agents_trace": run_dir / "openai-agents-trace.json",
         "openai_agents_spans": run_dir / "openai-agents-spans.jsonl",
         "openai_agents_skill_context": run_dir / "openai-agents-skill-context.json",
+        "prompt_identity": run_dir / "prompt-identity.json",
     }
     return {name: path for name, path in candidates.items() if path.exists()}
 

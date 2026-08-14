@@ -7,6 +7,30 @@ need. The rule is:
 Normal users configure keys only; command shape controls behavior.
 ```
 
+## Optional Local Phoenix
+
+Phoenix is an opt-in observability service for the developer workstation. It is
+not started by Roboclaws and is not part of a robot runtime process. The
+supported deployment is pinned to Phoenix 11.20.0, binds only to loopback, uses
+at most 2 CPU and 4 GiB of memory, and persists data in a named local volume.
+
+```bash
+./scripts/dev/validate_phoenix_deployment.sh
+docker compose -f deploy/phoenix/compose.yaml up -d
+```
+
+To project sanitized live OpenAI Agents SDK traces into that service, set:
+
+```bash
+export ROBOCLAWS_PHOENIX_OTLP_ENDPOINT=http://127.0.0.1:6006/v1/traces
+export ROBOCLAWS_PHOENIX_PROJECT=roboclaws-local
+```
+
+Tracing remains disabled when the endpoint is unset and fails open when the
+local service is unavailable. Non-loopback endpoints are rejected. Shared or
+cross-machine Phoenix, authentication/TLS gateways, backups, larger resource
+envelopes, and onboard robot deployment are not supported by this topology.
+
 ## Provider Keys
 
 Copy `.env.example` to `.env`, then fill only the keys you have:

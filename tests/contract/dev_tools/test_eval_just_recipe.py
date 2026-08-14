@@ -48,6 +48,22 @@ def test_agent_eval_routes_evolution_commands_without_a_second_facade() -> None:
     ]
 
 
+def test_agent_eval_routes_phoenix_projection_without_suite_execution() -> None:
+    args = (
+        "phoenix-project",
+        "suite=smoke_regression",
+        "output=/tmp/phoenix-mapping.json",
+    )
+
+    assert _trace_agent_eval(*args) == [
+        "cmd",
+        REPO_PYTHON,
+        "-m",
+        "roboclaws.evals.cli",
+        *args,
+    ]
+
+
 def test_surface_cleanup_live_run_dir_reaches_sdk_package_owner() -> None:
     route, plan_trace = trace_surface_run_with_plan(
         "surface=household-world",
