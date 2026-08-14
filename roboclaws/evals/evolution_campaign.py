@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from dataclasses import asdict
+from functools import partial
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
@@ -23,10 +24,10 @@ from roboclaws.evals.evolution_contracts import (
     validate_optimizer_visible_payload,
 )
 from roboclaws.evals.evolution_selection import run_sealed_holdout_once, select_training_winner
-from roboclaws.evals.runner import run_eval_suite
 
 OptimizerRunner = Callable[..., OptimizerOutcome]
 MatrixRunner = Callable[[Campaign, Path | None, str], list[dict[str, Any]]]
+SuiteRunner = Callable[..., Any]
 
 
 def run_mcp_description_campaign(
@@ -58,6 +59,7 @@ def run_skill_campaign(
     output_root: Path,
     optimizer_runner: OptimizerRunner = run_optimizer_agent,
     matrix_runner: MatrixRunner | None = None,
+    suite_runner: SuiteRunner | None = None,
 ) -> dict[str, Any]:
     if campaign.target["kind"] != "skill":
         raise ValueError("Phase 1 campaign runner supports target.kind=skill only")
@@ -104,7 +106,9 @@ def run_skill_campaign(
             training=None,
             sealed_confirmation=None,
         )
-    run_matrix = matrix_runner or _run_training_matrix
+    if matrix_runner is None and suite_runner is None:
+        raise ValueError("skill campaign requires a suite runner")
+    run_matrix = matrix_runner or partial(_run_training_matrix, suite_runner=suite_runner)
     baseline_trials = run_matrix(campaign, None, "training-baseline")
     candidate_trials = run_matrix(campaign, workspace, "training-candidate")
     training = select_training_winner(
@@ -209,8 +213,14 @@ def _skill_deterministic_gates(campaign: Campaign, *, workspace: Path) -> dict[s
 
 
 def _run_training_matrix(
-    campaign: Campaign, workspace: Path | None, lane: str
+    campaign: Campaign,
+    workspace: Path | None,
+    lane: str,
+    *,
+    suite_runner: SuiteRunner | None,
 ) -> list[dict[str, Any]]:
+    if suite_runner is None:
+        raise ValueError("skill campaign requires a suite runner")
     suites = campaign.training.get("suites")
     if (
         not isinstance(suites, list)
@@ -220,7 +230,7 @@ def _run_training_matrix(
         raise ValueError("training.suites must be a non-empty string list")
     trials: list[dict[str, Any]] = []
     for suite_ref in suites:
-        run = run_eval_suite(
+        run = suite_runner(
             suite_ref,
             output_root=Path("output/eval-evolution") / campaign.campaign_id / "evals" / lane,
             budget=str(campaign.training.get("budget") or "focused"),

@@ -16,7 +16,7 @@ from roboclaws.evals.evolution_mcp_description import (
     MCPDescriptionSnapshot,
     validate_description_candidate,
 )
-from roboclaws.mcp.profiles import contract_profile
+from roboclaws.household.realworld_contract_payloads import contract_profile
 
 
 class CandidateValidationError(ValueError):
@@ -32,6 +32,38 @@ def materialize_skill_candidate(
 ) -> dict[str, Any]:
     if campaign.target["kind"] != "skill":
         raise ValueError("materialize_skill_candidate requires target.kind=skill")
+    return _materialize_patch_candidate(
+        campaign,
+        patch=patch,
+        output_root=output_root,
+        repo_root=repo_root,
+    )
+
+
+def materialize_mcp_behavior_candidate(
+    campaign: Campaign,
+    *,
+    patch: str,
+    output_root: Path,
+    repo_root: Path,
+) -> dict[str, Any]:
+    if campaign.target["kind"] != "mcp-behavior":
+        raise ValueError("MCP behavior materialization requires target.kind=mcp-behavior")
+    return _materialize_patch_candidate(
+        campaign,
+        patch=patch,
+        output_root=output_root,
+        repo_root=repo_root,
+    )
+
+
+def _materialize_patch_candidate(
+    campaign: Campaign,
+    *,
+    patch: str,
+    output_root: Path,
+    repo_root: Path,
+) -> dict[str, Any]:
     patch_bytes = patch.encode("utf-8")
     limits = campaign.candidate_limits
     max_bytes = limits.get("max_patch_bytes")
@@ -41,7 +73,13 @@ def materialize_skill_candidate(
         raise ValueError("candidate patch must not contain binary data")
     _verify_baseline_target(campaign, repo_root=Path(repo_root))
     patch_digest = sha256(patch_bytes).hexdigest()
-    workspace = Path(output_root) / campaign.campaign_id / "candidates" / "by-sha256" / patch_digest
+    workspace = (
+        Path(output_root).resolve()
+        / campaign.campaign_id
+        / "candidates"
+        / "by-sha256"
+        / patch_digest
+    )
     if workspace.exists():
         return _load_existing_candidate(workspace, patch_digest=patch_digest)
     workspace.mkdir(parents=True)
@@ -144,7 +182,7 @@ def _extract_baseline_snapshot(*, repo_root: Path, commit: str, workspace: Path)
 def _verify_baseline_target(campaign: Campaign, *, repo_root: Path) -> None:
     mutable_paths = tuple(str(path) for path in campaign.target["mutable_paths"])
     if len(mutable_paths) != 1:
-        raise ValueError("Skill candidate baseline requires exactly one mutable path")
+        raise ValueError("patch candidate baseline requires exactly one mutable path")
     result = subprocess.run(
         ["git", "show", f"{campaign.target['baseline_commit']}:{mutable_paths[0]}"],
         cwd=repo_root,

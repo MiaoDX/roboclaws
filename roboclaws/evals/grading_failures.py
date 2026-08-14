@@ -29,10 +29,9 @@ def blocked_result_from_exception(trial: EvalTrial, exc: Exception) -> EvalResul
 
 
 def failure_class_from_exception(exc: Exception) -> str:
-    if isinstance(exc, LiveEvalTimeoutError) and exc.timeout_kind == "wall_clock_budget_exhausted":
-        return "budget_exhausted"
-    if isinstance(exc, (ImportError, ModuleNotFoundError, TimeoutError)):
-        return "environment_blocked"
+    typed_failure_class = _typed_failure_class(exc)
+    if typed_failure_class is not None:
+        return typed_failure_class
     message = str(exc).lower()
     if any(
         token in message
@@ -44,6 +43,8 @@ def failure_class_from_exception(exc: Exception) -> str:
         )
     ):
         return "budget_exhausted"
+    if "cleanup checker exited with status 1" in message:
+        return "private_goal_not_satisfied"
     environment_tokens = ("no module named", "not installed", "unavailable", "timed out", "mcp")
     if "another interactive codex molmo cleanup session appears to be active" in message:
         return "environment_blocked"
@@ -92,3 +93,11 @@ def failure_class_from_exception(exc: Exception) -> str:
     if any(token in message for token in provider_tokens):
         return "model_or_provider_unavailable"
     return "harness_bug_unclassified"
+
+
+def _typed_failure_class(exc: Exception) -> str | None:
+    if isinstance(exc, LiveEvalTimeoutError) and exc.timeout_kind == "wall_clock_budget_exhausted":
+        return "budget_exhausted"
+    if isinstance(exc, (ImportError, ModuleNotFoundError, TimeoutError)):
+        return "environment_blocked"
+    return None

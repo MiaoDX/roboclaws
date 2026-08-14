@@ -45,6 +45,11 @@ Eval suite
   graders, aggregate metrics, failure classes, and replayable regression
   evidence.
 
+Eval Evolution
+  Campaign-bound optimizer, candidate, selection, isolation, and human-only
+  promotion contracts under the eval facade. Skill and MCP candidates are
+  content-addressed and cannot mutate the checkout during evaluation.
+
 Package proof CLIs
   Specialist runners and probes owned by the package that implements the
   behavior. Eval rows may invoke these owners without a second command registry.
@@ -116,6 +121,12 @@ Package proof CLIs
   through versioned samples, deterministic graders, optional advisory graders,
   aggregate metrics such as `pass@k` / `pass^k`, and failure replay. Their first
   maintainer facade is `just agent::eval ...`.
+- **Eval Evolution** is the bounded candidate-improvement control plane inside
+  `roboclaws.evals`. Optimizer and robot live roles use OpenAI Agents SDK with
+  distinct identities. MCP behavior candidates receive only trusted
+  baseline-public JSON through a credential-scrubbed, no-network, read-only
+  worker boundary; provider access and durable artifacts stay in the trusted
+  process. Promotion is digest-bound and human-only.
 
 Runtime Map Prior evaluation separates artifact production from consumption:
 

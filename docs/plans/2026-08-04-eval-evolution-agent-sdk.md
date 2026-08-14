@@ -1,12 +1,16 @@
 ---
 plan_scope: eval-evolution-agent-sdk
-status: APPROVED_FOR_IMPLEMENTATION
+status: DONE_NO_CANDIDATE_PROMOTED
 created: 2026-08-04
-last_reviewed: 2026-08-04
+last_reviewed: 2026-08-05
 implementation_allowed: true
-current_phase: 1
+current_phase: complete
 completed_phases:
   - 0
+  - 1
+  - 2
+  - 3
+  - 4
 source:
   - user request for a formal Skill and MCP optimization capability
   - user requirement that all live optimization use OpenAI Agents SDK, never Codex CLI
@@ -371,9 +375,9 @@ change a product default, publish a baseline/catalog, or promote regressions.
 
 ## Implementation Phases
 
-Phase 0 completed its contract, threat-model, malicious-boundary, command
-grammar, focused-test, and repo-wide lint gates on 2026-08-05. Phase 1 is the
-current implementation slice; later phase stop gates remain unchanged.
+Phases 0-4 completed on 2026-08-05. The implementation preserved every stop
+gate: no candidate promotion, default change, baseline publication, public MCP
+tool change, or Codex CLI route occurred.
 
 ### Phase 0: Contracts And Threat Model
 
@@ -444,6 +448,50 @@ blocked; Skill and MCP-description evolution remain valid shipped capability.
 5. Run focused tests, repo-wide Ruff/format, standalone pytest, and the
    diff-selected `just agent::eval recommend|execute` gates.
 6. Update human evaluation/Skill-first MCP docs and archive the active capsule.
+
+### Implementation Closeout
+
+Phases 0-4 are implemented. The bounded Skill campaign completed through the
+OpenAI Agents SDK optimizer and robot roles; its candidate failed the
+authoritative training quality gate, so selection correctly returned
+`no_improving_candidate` and did not run holdout or promotion. This is a
+candidate-quality rejection, not an infrastructure or optimizer-launch failure.
+
+The MCP-description facade froze and gated one `household_world` candidate with
+the public tool set and immutable fields unchanged. The Phase 3 isolation image
+passed both local denial probes and one no-retry CloudML native-container task:
+
+- task `t-20260805173517-zkdxo`;
+- image digest
+  `sha256:73a8b470bb4f5cea6413bc0a56f69c8982e87764efbf28dcf080d57e2401fe5f`;
+- attestation
+  `output/eval-evolution/20260805-phase3-isolation/cloudml/attestation.json`;
+- collected result
+  `output/eval-evolution/20260805-phase3-isolation/cloudml/collected/result.json`.
+
+The isolated MCP behavior worker then completed a paired synthetic product
+smoke against the same seed and Base Metric Map as baseline. Both lanes restored
+5/5 objects, reached sweep coverage 1.0, produced four declaration responses,
+and had zero semantic-order errors. The candidate saw only baseline-public JSON,
+ran as uid/gid 65534 with no network, a read-only root, no capabilities, and a
+scrubbed environment. No candidate was promoted and no default, baseline,
+catalog, or public MCP tool surface changed.
+
+The diff-selected harness recommendation is at
+`output/eval-harness/20260805T101638Z/`, and execution evidence is at
+`output/eval-harness/20260805T101810Z/`. The live session row passed. The five
+cleanup delivery rows completed all three provider trials: `static-full`,
+`no-skill`, `dynamic-routed`, and `sandbox-skills` each passed 1/3, while
+`dynamic-full` passed 0/3. The rejected trials were product checker/behavior
+failures. Historical results labeled some of them `environment_blocked` or
+`harness_bug_unclassified`; the classifier now gives the authoritative cleanup
+checker result precedence and reports `private_goal_not_satisfied`.
+
+Final repository gates passed: Ruff, format checking, the Python quality
+ratchet, focused Eval Evolution and architecture tests, the import graph with
+zero cycles, and the full standalone pytest suite. The harness command returned
+nonzero because required live rows contained genuine behavior failures, not
+because execution or infrastructure was unavailable. No automatic retry ran.
 
 ## Acceptance Criteria
 
@@ -537,16 +585,3 @@ Implementation defaults that do not require another product decision:
   regression promotion, default switching, and baseline publication.
 - **Parked:** global capability-slice row taxonomy and generic
   `evolution_target` fields until campaign-local identity proves insufficient.
-
-## New-Window Handoff
-
-After human approval, start a fresh implementation window with:
-
-```text
-Implement docs/plans/2026-08-04-eval-evolution-agent-sdk.md through
-$intuitive-flow. Preserve the full phased scope and stop gates. Start at Phase
-0, use OpenAI Agents SDK for the optimizer and robot trials, and do not add or
-invoke Codex CLI. Do not run MCP behavior candidates live until Phase 3's
-malicious isolation proof passes. Use an active capsule and commit each phase
-separately after its required gates.
-```

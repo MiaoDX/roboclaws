@@ -23,6 +23,12 @@ from roboclaws.mcp.profiles import (
     HOUSEHOLD_MANIPULATION_PROFILE,
     HOUSEHOLD_WORLD_PROFILE,
 )
+from roboclaws.mcp.profiles import (
+    ContractProfile as ContractProfile,
+)
+from roboclaws.mcp.profiles import (
+    contract_profile as contract_profile,
+)
 
 
 def runtime_metric_map_payload(
