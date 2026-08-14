@@ -14,7 +14,6 @@
 # - just verify::molmo-realworld-raw-fpv  ADR-0013 raw FPV-only observation proof
 # - just verify::molmo-planner-proof-bundle-runner  proof-request dry-run handoff
 # - just verify::molmo-planner-proof-bundle-execute-rerun  local GPU proof-bundle execution
-# - just verify::molmo-planner-manipulation-probe  ADR-0014 planner manipulation proof gate
 # - just verify::full-local        active deterministic local gates
 
 set working-directory := '..'
@@ -148,19 +147,6 @@ molmo-planner-proof-bundle-execute-rerun:
       tests/contract/checkers/test_check_molmo_planner_proof_bundle_runner_result.py \
       tests/contract/checkers/test_check_molmo_realworld_cleanup_result.py
     just harness::molmo-planner-proof-bundle-execute-rerun
-
-# ADR-0014 planner-backed manipulation proof gate. Default verification accepts
-# explicit blocked-capability evidence; strict planner-backed proof uses the
-# checker --require-planner-backed flag outside this default gate.
-molmo-planner-manipulation-probe:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    {{standalone_pytest}} -q \
-      tests/contract/reports/test_molmo_cleanup_report.py \
-      tests/unit/molmo_cleanup/test_molmo_manipulation_provenance.py \
-      tests/contract/checkers/test_check_molmo_planner_manipulation_probe.py \
-      tests/contract/dev_tools/test_verify_just_recipes.py
-    just harness::molmo-planner-manipulation-probe
 
 # Full local confidence ladder for active deterministic gates.
 full-local:

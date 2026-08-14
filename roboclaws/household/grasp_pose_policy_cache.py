@@ -11,7 +11,7 @@ from roboclaws.household.grasp_cache_generation import (
     generation_xml_path,
     objects_list_from_generation_preflight,
 )
-from roboclaws.household.grasp_initial_contact_diagnostics import (
+from roboclaws.household.grasp_probe_runtime import (
     PROBE_SCRIPT,
     run_molmospaces_probe_command,
 )

@@ -901,54 +901,6 @@ status path="":
     fi
     exec .venv/bin/python scripts/molmo_cleanup/summarize_live_run.py
 
-# Local rehearsal for the opt-in hosted Molmo live CI job.
-ci-rehearsal entry="agents-sdk-kimi-k2.7-code" dry_run="":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    entry="{{entry}}"
-    dry_run="{{dry_run}}"
-    dry_args=()
-    case "$dry_run" in
-      ""|live)
-        ;;
-      --dry-run|dry-run|dry|true)
-        dry_args=(--dry-run --skip-uv-sync --skip-prewarm)
-        ;;
-      *)
-        echo "error: unsupported ci-rehearsal mode '$dry_run' (expected live or --dry-run)" >&2
-        exit 1
-        ;;
-    esac
-    .venv/bin/python scripts/molmo_cleanup/run_ci_live_cleanup_matrix.py \
-      --entry "$entry" \
-      --output-dir "output/molmo/ci-rehearsal" \
-      --published-dir "output/molmo/ci-rehearsal/site/molmo/live" \
-      "${dry_args[@]}"
-
-# Serial local rehearsal for all Molmo live CI model/profile entries.
-ci-rehearsal-all dry_run="":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    dry_run="{{dry_run}}"
-    dry_args=()
-    case "$dry_run" in
-      ""|live)
-        ;;
-      --dry-run|dry-run|dry|true)
-        dry_args=(--dry-run --skip-uv-sync --skip-prewarm)
-        ;;
-      *)
-        echo "error: unsupported ci-rehearsal-all mode '$dry_run' (expected live or --dry-run)" >&2
-        exit 1
-        ;;
-    esac
-    .venv/bin/python scripts/molmo_cleanup/run_ci_live_cleanup_matrix.py \
-      --all \
-      --continue-on-error \
-      --output-dir "output/molmo/ci-rehearsal" \
-      --published-dir "output/molmo/ci-rehearsal/site/molmo/live" \
-      "${dry_args[@]}"
-
 # Build or execute the current MolmoSpaces apple-to-apple comparison grid.
 apple2apple-grid mode="dry-run" output_dir="output/molmo/apple2apple-grid" seed="7" generated_mess_count="10" row="" runtime_map_prior="" visual_grounding_timeout_s="auto":
     #!/usr/bin/env bash
@@ -1077,10 +1029,15 @@ scene-camera-comparison seed="7" generated_mess_count="1" output_dir="output/mol
       echo "       prepare or pass scene_usd_path=..." >&2
       exit 1
     fi
+    if [[ "${OMNI_KIT_ACCEPT_EULA:-}" != "YES" ]]; then
+      echo "error: scene-camera comparison requires explicit prior Omniverse EULA acceptance" >&2
+      echo "       rerun with OMNI_KIT_ACCEPT_EULA=YES only after accepting the EULA" >&2
+      exit 1
+    fi
 
     stamp="$({{timestamp_cmd}})"
     run_dir="${output_dir}/${stamp}"
-    OMNI_KIT_ACCEPT_EULA="${OMNI_KIT_ACCEPT_EULA:-YES}" \
+    OMNI_KIT_ACCEPT_EULA="$OMNI_KIT_ACCEPT_EULA" \
       .venv/bin/python scripts/molmo_cleanup/run_molmospaces_scene_camera_comparison.py \
       --output-dir "$run_dir" \
       --scene-usd-path "$scene_usd_path" \

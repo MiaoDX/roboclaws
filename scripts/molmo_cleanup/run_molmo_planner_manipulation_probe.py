@@ -57,12 +57,12 @@ CUROBO_LOW_MEMORY_PROFILE: dict[str, dict[str, Any]] = {
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Create a MolmoSpaces planner-backed manipulation probe artifact."
+        description="Execute one bound planner proof command for a proof-bundle run."
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("output/molmo-planner-manipulation-probe-harness"),
+        required=True,
     )
     parser.add_argument(
         "--python-executable",

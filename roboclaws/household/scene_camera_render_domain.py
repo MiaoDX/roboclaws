@@ -6,100 +6,90 @@ from typing import Any
 
 from roboclaws.household.camera_control import CAMERA_CONTROL_API_NAME
 from roboclaws.household.scene_camera_render_diagnostics import render_source_snippet
-from roboclaws.household.scene_camera_render_sources import (
-    ISAAC_LANE_ID,
-    MOLMOSPACES_LANE_ID,
-    OFFICIAL_RENDER_SOURCE_REFERENCES,
+
+MOLMOSPACES_LANE_ID = "molmospaces-mujoco"
+ISAAC_LANE_ID = "isaaclab-prepared-usd"
+
+OFFICIAL_RENDER_SOURCE_REFERENCES = (
+    {
+        "evidence_id": "mujoco_housegen_materials",
+        "lane": MOLMOSPACES_LANE_ID,
+        "path": "vendors/molmospaces/molmo_spaces/housegen/builder.py",
+        "line_start": 361,
+        "line_end": 399,
+        "claim": (
+            "MuJoCo scene generation parses source-scene material albedo, specular values, "
+            "and diffuse texture paths into MJCF material metadata."
+        ),
+    },
+    {
+        "evidence_id": "mujoco_housegen_lights",
+        "lane": MOLMOSPACES_LANE_ID,
+        "path": "vendors/molmospaces/molmo_spaces/housegen/builder.py",
+        "line_start": 455,
+        "line_end": 470,
+        "claim": (
+            "MuJoCo housegen optionally exports house lights, otherwise it creates a "
+            "default MJCF light at scene-build time."
+        ),
+    },
+    {
+        "evidence_id": "mujoco_asset_texture_material_collection",
+        "lane": MOLMOSPACES_LANE_ID,
+        "path": "vendors/molmospaces/molmo_spaces/housegen/builder.py",
+        "line_start": 1372,
+        "line_end": 1452,
+        "claim": (
+            "MuJoCo asset import copies texture slots and material RGBA into the scene "
+            "spec before rendering."
+        ),
+    },
+    {
+        "evidence_id": "isaac_preview_surface_material_conversion",
+        "lane": ISAAC_LANE_ID,
+        "path": (
+            "vendors/molmospaces/molmo_spaces_isaac/src/molmo_spaces_isaac/assets/utils/material.py"
+        ),
+        "line_start": 52,
+        "line_end": 112,
+        "claim": (
+            "Isaac USD conversion maps MJCF materials to USD PreviewSurface materials, "
+            "forces opacity to 1.0, maps shininess to roughness, and handles diffuse "
+            "textures through USD texture nodes."
+        ),
+    },
+    {
+        "evidence_id": "isaac_material_binding_texture_warning",
+        "lane": ISAAC_LANE_ID,
+        "path": (
+            "vendors/molmospaces/molmo_spaces_isaac/src/"
+            "molmo_spaces_isaac/assets/house_converter.py"
+        ),
+        "line_start": 288,
+        "line_end": 322,
+        "claim": (
+            "Isaac material binding warns that textured materials bound to non-Mesh prims "
+            "can discard textures at render time."
+        ),
+    },
+    {
+        "evidence_id": "isaac_default_lights_and_shadow_flags",
+        "lane": ISAAC_LANE_ID,
+        "path": (
+            "vendors/molmospaces/molmo_spaces_isaac/src/"
+            "molmo_spaces_isaac/assets/house_converter.py"
+        ),
+        "line_start": 325,
+        "line_end": 380,
+        "claim": (
+            "Isaac scene conversion authors default DistantLight/DomeLight and disables "
+            "shadow casting on selected wall or ceiling visual prims."
+        ),
+    },
 )
 
 CANONICAL_CAMERA_PROJECTION_THRESHOLD_PX = 0.5
 REPO_ROOT = Path(__file__).resolve().parents[2]
-
-
-def render_domain_calibration(
-    view_results: list[dict[str, Any]],
-    *,
-    optional_float: Callable[[Any], float | None],
-) -> dict[str, Any]:
-    """Estimate whether one global Isaac luminance gain explains the visual delta."""
-
-    pairs = []
-    for item in view_results:
-        lanes = item.get("lanes") if isinstance(item.get("lanes"), dict) else {}
-        molmo = (
-            lanes.get(MOLMOSPACES_LANE_ID)
-            if isinstance(lanes.get(MOLMOSPACES_LANE_ID), dict)
-            else {}
-        )
-        isaac = lanes.get(ISAAC_LANE_ID) if isinstance(lanes.get(ISAAC_LANE_ID), dict) else {}
-        molmo_luminance = optional_float(molmo.get("mean_luminance"))
-        isaac_luminance = optional_float(isaac.get("mean_luminance"))
-        if molmo_luminance is None or isaac_luminance is None or isaac_luminance <= 0:
-            continue
-        pairs.append(
-            {
-                "view_id": str(item.get("view_id") or ""),
-                "molmospaces_luminance": molmo_luminance,
-                "isaac_luminance": isaac_luminance,
-            }
-        )
-    if not pairs:
-        return {
-            "schema": "scene_camera_render_domain_calibration_v1",
-            "status": "missing_luminance_pairs",
-            "pair_count": 0,
-        }
-
-    numerator = sum(pair["molmospaces_luminance"] * pair["isaac_luminance"] for pair in pairs)
-    denominator = sum(pair["isaac_luminance"] ** 2 for pair in pairs)
-    gain = numerator / denominator if denominator > 0 else 1.0
-    residuals = []
-    original_abs_deltas = []
-    for pair in pairs:
-        calibrated = pair["isaac_luminance"] * gain
-        residual = calibrated - pair["molmospaces_luminance"]
-        original_delta = pair["isaac_luminance"] - pair["molmospaces_luminance"]
-        original_abs_deltas.append(abs(original_delta))
-        residuals.append(
-            {
-                **pair,
-                "calibrated_isaac_luminance": calibrated,
-                "original_luminance_delta": original_delta,
-                "calibrated_luminance_residual": residual,
-                "abs_calibrated_luminance_residual": abs(residual),
-            }
-        )
-    mean_original_delta = sum(original_abs_deltas) / len(original_abs_deltas)
-    abs_residuals = [item["abs_calibrated_luminance_residual"] for item in residuals]
-    mean_residual = sum(abs_residuals) / len(abs_residuals)
-    max_residual = max(abs_residuals)
-    improvement_fraction = (
-        1.0 - mean_residual / mean_original_delta if mean_original_delta > 0 else 1.0
-    )
-    if mean_original_delta <= 10.0:
-        status = "already_luminance_matched"
-        next_action = "Do not tune exposure from this artifact; inspect material/texture deltas."
-    elif mean_residual <= 12.0 and max_residual <= 20.0:
-        status = "global_luminance_gain_sufficient"
-        next_action = "A global Isaac exposure/gain adjustment is a plausible next renderer slice."
-    else:
-        status = "view_dependent_render_domain_delta"
-        next_action = (
-            "A single global gain leaves large residuals; inspect per-room lights, material "
-            "albedo, indirect lighting, and tone response before changing camera geometry."
-        )
-    return {
-        "schema": "scene_camera_render_domain_calibration_v1",
-        "status": status,
-        "pair_count": len(pairs),
-        "global_isaac_luminance_gain": gain,
-        "mean_abs_original_luminance_delta": mean_original_delta,
-        "mean_abs_calibrated_luminance_residual": mean_residual,
-        "max_abs_calibrated_luminance_residual": max_residual,
-        "mean_luminance_delta_improvement_fraction": improvement_fraction,
-        "recommended_next_action": next_action,
-        "residuals": residuals,
-    }
 
 
 def backend_swap_geometry_contract(

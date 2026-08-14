@@ -7,9 +7,6 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-MANIPULATION_CHECKER_PATH = (
-    REPO_ROOT / "scripts" / "molmo_cleanup" / "check_molmo_planner_manipulation_probe.py"
-)
 BUNDLE_CHECKER_PATH = (
     REPO_ROOT / "scripts" / "molmo_cleanup" / "check_molmo_planner_proof_bundle_runner_result.py"
 )
@@ -22,60 +19,6 @@ def _load_module(path: Path, name: str):
     assert spec.loader is not None
     spec.loader.exec_module(module)
     return module
-
-
-@pytest.mark.parametrize(
-    ("source", "message"),
-    [
-        (
-            "{not-json\n",
-            (
-                r"planner manipulation probe result source must contain valid JSON object: "
-                r".*run_result\.json"
-            ),
-        ),
-        (
-            "[]\n",
-            (
-                r"planner manipulation probe result source must contain a JSON object: "
-                r".*run_result\.json"
-            ),
-        ),
-    ],
-)
-def test_planner_manipulation_probe_checker_rejects_bad_source(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    source: str,
-    message: str,
-) -> None:
-    checker = _load_module(
-        MANIPULATION_CHECKER_PATH,
-        "check_molmo_planner_manipulation_probe_sources",
-    )
-    run_result = tmp_path / "run_result.json"
-    run_result.write_text(source, encoding="utf-8")
-    monkeypatch.setattr(sys, "argv", ["check_molmo_planner_manipulation_probe.py", str(tmp_path)])
-
-    with pytest.raises(ValueError, match=message):
-        checker.main()
-
-
-def test_planner_manipulation_probe_checker_rejects_missing_source(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    checker = _load_module(
-        MANIPULATION_CHECKER_PATH,
-        "check_molmo_planner_manipulation_probe_missing_source",
-    )
-    monkeypatch.setattr(sys, "argv", ["check_molmo_planner_manipulation_probe.py", str(tmp_path)])
-
-    with pytest.raises(
-        FileNotFoundError,
-        match=r"planner manipulation probe result source is missing: .*run_result\.json",
-    ):
-        checker.main()
 
 
 @pytest.mark.parametrize(

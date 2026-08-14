@@ -595,18 +595,19 @@ is for scene/camera review only: it does not run cleanup, pick/place, private
 scoring, or pickup box annotation. The main lane now uses explicit canonical
 `eye`/`target`/`up` poses in the MolmoSpaces scene frame for both backends.
 Room-level views use MolmoSpaces room mesh world bounds, not MuJoCo mesh
-`geom_size`, so the room camera starts from a real room scale. The report also
-records camera-pose, camera-intrinsics, room-scale, lighting, color profile,
-and USD-bounds residuals separately. MuJoCo canonical views convert the explicit
+`geom_size`, so the room camera starts from a real room scale. The comparison
+manifest records camera-pose, camera-intrinsics, room-scale, lighting, color
+profile, and USD-bounds residuals separately; the compact `report.html` links
+the retained render artifacts for review. MuJoCo canonical views convert the explicit
 `eye`/`target` request into MuJoCo's free-camera azimuth/elevation convention
 before rendering; the manifest records the backend pose used for the parity
 check. The camera request also carries MuJoCo runtime render state separately
 from legacy object-center positions, including articulated child joint names
 and `qpos` values when MolmoSpaces exposes them. Isaac uses the
-prepared USD's scene lights plus the configured soft fill profile and reports
+prepared USD's scene lights plus the configured soft fill profile and records
 both existing and added light counts. Target-vs-USD
 diagnostics are bounds-aware: large receptacles may aim the camera above a
-surface, so the report treats a target inside the USD XY footprint and within
+surface, so the manifest treats a target inside the USD XY footprint and within
 the configured surface-aim height allowance separately from a true target/scene
 frame mismatch. A passing camera-pose contract means the two backends accepted
 the same render-camera API pose; material differences, renderer lighting, or

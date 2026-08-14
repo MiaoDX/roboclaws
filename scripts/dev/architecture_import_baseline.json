@@ -43,7 +43,7 @@
     "reports": [],
     "roboclaws": []
   },
-  "edge_count": 740,
+  "edge_count": 711,
   "edges": [
     {
       "kind": "import",
@@ -1493,12 +1493,6 @@
     },
     {
       "kind": "import",
-      "line": 11,
-      "source": "roboclaws.household.ci_live_reports",
-      "target": "roboclaws.core.json_sources"
-    },
-    {
-      "kind": "import",
       "line": 7,
       "source": "roboclaws.household.cleanup_primitive_evidence",
       "target": "roboclaws.household.manipulation_contract"
@@ -1547,24 +1541,6 @@
     },
     {
       "kind": "import",
-      "line": 10,
-      "source": "roboclaws.household.grasp_filter_diagnostics",
-      "target": "roboclaws.core.json_sources"
-    },
-    {
-      "kind": "import",
-      "line": 11,
-      "source": "roboclaws.household.grasp_filter_diagnostics",
-      "target": "roboclaws.household.grasp_cache_generation"
-    },
-    {
-      "kind": "import",
-      "line": 16,
-      "source": "roboclaws.household.grasp_filter_diagnostics",
-      "target": "roboclaws.household.planner_task_feasibility"
-    },
-    {
-      "kind": "import",
       "line": 9,
       "source": "roboclaws.household.grasp_generation_setup",
       "target": "roboclaws.core.json_sources"
@@ -1574,18 +1550,6 @@
       "line": 10,
       "source": "roboclaws.household.grasp_generation_setup",
       "target": "roboclaws.household.planner_task_feasibility"
-    },
-    {
-      "kind": "import",
-      "line": 8,
-      "source": "roboclaws.household.grasp_initial_contact_diagnostics",
-      "target": "roboclaws.core.json_sources"
-    },
-    {
-      "kind": "import",
-      "line": 9,
-      "source": "roboclaws.household.grasp_initial_contact_diagnostics",
-      "target": "roboclaws.household.grasp_cache_generation"
     },
     {
       "kind": "import",
@@ -1603,7 +1567,7 @@
       "kind": "import",
       "line": 14,
       "source": "roboclaws.household.grasp_pose_policy_cache",
-      "target": "roboclaws.household.grasp_initial_contact_diagnostics"
+      "target": "roboclaws.household.grasp_probe_runtime"
     },
     {
       "kind": "import",
@@ -3019,83 +2983,83 @@
       "kind": "import",
       "line": 35,
       "source": "roboclaws.household.report",
-      "target": "roboclaws.household.report_sections_grasp_diagnostics"
+      "target": "roboclaws.household.report_sections_grasp_generation"
     },
     {
       "kind": "import",
-      "line": 41,
+      "line": 39,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.report_sections_isaac"
     },
     {
       "kind": "import",
-      "line": 42,
+      "line": 40,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.report_sections_map"
     },
     {
       "kind": "import",
-      "line": 46,
+      "line": 44,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.report_sections_nav2_map"
     },
     {
       "kind": "import",
-      "line": 47,
+      "line": 45,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.report_sections_probe"
     },
     {
       "kind": "import",
-      "line": 54,
+      "line": 52,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.report_sections_probe_failures"
     },
     {
       "kind": "import",
-      "line": 63,
+      "line": 61,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.report_sections_probe_runtime"
     },
     {
       "kind": "import",
-      "line": 71,
+      "line": 69,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.report_sections_proof"
     },
     {
       "kind": "import",
-      "line": 78,
+      "line": 76,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.report_sections_proof_bundle"
     },
     {
       "kind": "import",
-      "line": 88,
+      "line": 86,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.report_sections_proof_selection"
     },
     {
       "kind": "import",
-      "line": 89,
+      "line": 87,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.report_sections_robot"
     },
     {
       "kind": "import",
-      "line": 93,
+      "line": 91,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.report_sections_timing"
     },
     {
       "kind": "import",
-      "line": 94,
+      "line": 92,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.semantic_timeline"
     },
     {
       "kind": "import",
-      "line": 100,
+      "line": 98,
       "source": "roboclaws.household.report",
       "target": "roboclaws.household.types"
     },
@@ -3233,97 +3197,79 @@
     },
     {
       "kind": "import",
-      "line": 16,
+      "line": 17,
       "source": "roboclaws.household.scene_camera_comparison",
       "target": "roboclaws.core.json_sources"
     },
     {
       "kind": "import",
-      "line": 17,
+      "line": 18,
       "source": "roboclaws.household.scene_camera_comparison",
       "target": "roboclaws.household"
     },
     {
       "kind": "import",
-      "line": 26,
+      "line": 25,
       "source": "roboclaws.household.scene_camera_comparison",
       "target": "roboclaws.household.artifact_paths"
     },
     {
       "kind": "import",
-      "line": 27,
+      "line": 26,
       "source": "roboclaws.household.scene_camera_comparison",
       "target": "roboclaws.household.camera_control"
     },
     {
       "kind": "import",
-      "line": 40,
+      "line": 39,
       "source": "roboclaws.household.scene_camera_comparison",
       "target": "roboclaws.household.isaac_lab_backend"
     },
     {
       "kind": "import",
-      "line": 17,
+      "line": 18,
       "source": "roboclaws.household.scene_camera_comparison",
       "target": "roboclaws.household.scene_camera_geometry_contract"
     },
     {
       "kind": "import",
-      "line": 17,
+      "line": 18,
       "source": "roboclaws.household.scene_camera_comparison",
       "target": "roboclaws.household.scene_camera_image_metrics"
     },
     {
       "kind": "import",
-      "line": 17,
+      "line": 18,
       "source": "roboclaws.household.scene_camera_comparison",
       "target": "roboclaws.household.scene_camera_lighting_diagnostics"
     },
     {
       "kind": "import",
-      "line": 41,
+      "line": 40,
       "source": "roboclaws.household.scene_camera_comparison",
       "target": "roboclaws.household.scene_camera_render_diagnostics"
     },
     {
       "kind": "import",
-      "line": 44,
+      "line": 43,
       "source": "roboclaws.household.scene_camera_comparison",
       "target": "roboclaws.household.scene_camera_render_diagnostics"
     },
     {
       "kind": "import",
-      "line": 17,
+      "line": 18,
       "source": "roboclaws.household.scene_camera_comparison",
       "target": "roboclaws.household.scene_camera_render_domain"
     },
     {
       "kind": "import",
-      "line": 17,
-      "source": "roboclaws.household.scene_camera_comparison",
-      "target": "roboclaws.household.scene_camera_report"
-    },
-    {
-      "kind": "import",
-      "line": 47,
-      "source": "roboclaws.household.scene_camera_comparison",
-      "target": "roboclaws.household.scene_camera_report_hydration"
-    },
-    {
-      "kind": "import",
-      "line": 17,
-      "source": "roboclaws.household.scene_camera_comparison",
-      "target": "roboclaws.household.scene_camera_source_artifacts"
-    },
-    {
-      "kind": "import",
-      "line": 17,
+      "line": 18,
       "source": "roboclaws.household.scene_camera_comparison",
       "target": "roboclaws.household.scene_camera_usda_contract"
     },
     {
       "kind": "import",
-      "line": 51,
+      "line": 46,
       "source": "roboclaws.household.scene_camera_comparison",
       "target": "roboclaws.household.subprocess_backend"
     },
@@ -3374,126 +3320,6 @@
       "line": 8,
       "source": "roboclaws.household.scene_camera_render_domain",
       "target": "roboclaws.household.scene_camera_render_diagnostics"
-    },
-    {
-      "kind": "import",
-      "line": 9,
-      "source": "roboclaws.household.scene_camera_render_domain",
-      "target": "roboclaws.household.scene_camera_render_sources"
-    },
-    {
-      "kind": "import",
-      "line": 7,
-      "source": "roboclaws.household.scene_camera_report",
-      "target": "roboclaws.household.scene_camera_report_figures"
-    },
-    {
-      "kind": "import",
-      "line": 8,
-      "source": "roboclaws.household.scene_camera_report",
-      "target": "roboclaws.household.scene_camera_report_format"
-    },
-    {
-      "kind": "import",
-      "line": 9,
-      "source": "roboclaws.household.scene_camera_report",
-      "target": "roboclaws.household.scene_camera_report_sections_contract"
-    },
-    {
-      "kind": "import",
-      "line": 21,
-      "source": "roboclaws.household.scene_camera_report",
-      "target": "roboclaws.household.scene_camera_report_sections_diagnostics"
-    },
-    {
-      "kind": "import",
-      "line": 7,
-      "source": "roboclaws.household.scene_camera_report_figures",
-      "target": "roboclaws.household"
-    },
-    {
-      "kind": "import",
-      "line": 7,
-      "source": "roboclaws.household.scene_camera_report_figures",
-      "target": "roboclaws.household.scene_camera_image_metrics"
-    },
-    {
-      "kind": "import",
-      "line": 7,
-      "source": "roboclaws.household.scene_camera_report_figures",
-      "target": "roboclaws.household.scene_camera_render_domain"
-    },
-    {
-      "kind": "import",
-      "line": 8,
-      "source": "roboclaws.household.scene_camera_report_figures",
-      "target": "roboclaws.household.scene_camera_report_format"
-    },
-    {
-      "kind": "import",
-      "line": 7,
-      "source": "roboclaws.household.scene_camera_report_format",
-      "target": "roboclaws.household"
-    },
-    {
-      "kind": "import",
-      "line": 7,
-      "source": "roboclaws.household.scene_camera_report_format",
-      "target": "roboclaws.household.scene_camera_render_domain"
-    },
-    {
-      "kind": "import",
-      "line": 8,
-      "source": "roboclaws.household.scene_camera_report_sections_contract",
-      "target": "roboclaws.household"
-    },
-    {
-      "kind": "import",
-      "line": 8,
-      "source": "roboclaws.household.scene_camera_report_sections_contract",
-      "target": "roboclaws.household.scene_camera_lighting_diagnostics"
-    },
-    {
-      "kind": "import",
-      "line": 8,
-      "source": "roboclaws.household.scene_camera_report_sections_contract",
-      "target": "roboclaws.household.scene_camera_render_domain"
-    },
-    {
-      "kind": "import",
-      "line": 9,
-      "source": "roboclaws.household.scene_camera_report_sections_contract",
-      "target": "roboclaws.household.scene_camera_report_format"
-    },
-    {
-      "kind": "import",
-      "line": 7,
-      "source": "roboclaws.household.scene_camera_report_sections_diagnostics",
-      "target": "roboclaws.household"
-    },
-    {
-      "kind": "import",
-      "line": 7,
-      "source": "roboclaws.household.scene_camera_report_sections_diagnostics",
-      "target": "roboclaws.household.scene_camera_lighting_diagnostics"
-    },
-    {
-      "kind": "import",
-      "line": 7,
-      "source": "roboclaws.household.scene_camera_report_sections_diagnostics",
-      "target": "roboclaws.household.scene_camera_render_domain"
-    },
-    {
-      "kind": "import",
-      "line": 8,
-      "source": "roboclaws.household.scene_camera_report_sections_diagnostics",
-      "target": "roboclaws.household.scene_camera_report_format"
-    },
-    {
-      "kind": "import",
-      "line": 6,
-      "source": "roboclaws.household.scene_camera_source_artifacts",
-      "target": "roboclaws.core.json_sources"
     },
     {
       "kind": "import",
@@ -4750,7 +4576,7 @@
       "target": "roboclaws.maps.runtime_prior_catalog"
     }
   ],
-  "module_count": 249,
+  "module_count": 239,
   "module_sccs": [],
   "package_bidirectional_edges": [],
   "policies": [

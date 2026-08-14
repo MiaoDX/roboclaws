@@ -11,11 +11,13 @@ leave a link.
 ## Current Focus
 
 The aggressive architecture migration is active under
-`docs/plans/2026-07-30-aggressive-architecture-migration.md`. Waves 0-2 are
+`docs/plans/2026-07-30-aggressive-architecture-migration.md`. Waves 0-3 are
 complete: exact baselines and field-level parity are proven, all six module
-cycles and five bidirectional package pairs are removed, and the Wave 1-2
-reverse/inversion guards are locked green. Wave 3 is retiring unconditional
-investigation and rehearsal stacks leaf-to-root.
+cycles and five bidirectional package pairs are removed, the Wave 1-2 guards
+are locked green, and unconditional investigation/rehearsal stacks are retired.
+Waves 0-4 are complete: Wave 4 collapsed both conditional scene-camera and
+planner manipulation diagnostic workbenches while retaining their product
+contracts. Wave 5 is moving active product subsystems out of scripts.
 The migration preserves public launch, artifact, privacy, provider, simulator,
 and operator behavior while removing dependency cycles, retiring completed
 investigation surfaces, moving product subsystems out of scripts, and splitting
@@ -100,8 +102,9 @@ providers.
 
 ## Next Action
 
-Execute the Wave 3 unconditional deletion ledger in bounded green slices,
-starting with robot-camera parity and its frozen caller/proof manifest. The
+Begin Wave 5 by moving the MolmoSpaces subprocess backend worker and runtime
+dependencies into a package-owned module CLI, then migrate callers forward-only
+without changing worker protocol or artifacts. The
 refreshed immutable candidate remains unmodified; publication remains
 unauthorized and separate from this campaign.
 

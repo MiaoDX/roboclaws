@@ -32,10 +32,8 @@ from roboclaws.household.report_sections_grasp_cache import (
     grasp_cache_availability_preflight_section,
     grasp_cache_generation_preflight_section,
 )
-from roboclaws.household.report_sections_grasp_diagnostics import (
+from roboclaws.household.report_sections_grasp_generation import (
     grasp_cache_generation_report_sections,
-    grasp_filter_diagnostics_report_sections,
-    grasp_initial_contact_diagnostics_report_sections,
     grasp_pose_policy_cache_report_sections,
 )
 from roboclaws.household.report_sections_isaac import isaac_runtime_section
@@ -459,32 +457,6 @@ def render_grasp_pose_policy_cache_report(
     output_dir.mkdir(parents=True, exist_ok=True)
     report_path = output_dir / "report.html"
     body = "\n".join(_present_sections(grasp_pose_policy_cache_report_sections(result)))
-    report_path.write_text(_wrap_html(body, extra_css=_planner_report_css()), encoding="utf-8")
-    return report_path
-
-
-def render_grasp_filter_diagnostics_report(
-    *,
-    output_dir: Path,
-    result: dict[str, Any],
-) -> Path:
-    """Write a reviewable report for bounded grasp perturbation-filter diagnostics."""
-    output_dir.mkdir(parents=True, exist_ok=True)
-    report_path = output_dir / "report.html"
-    body = "\n".join(_present_sections(grasp_filter_diagnostics_report_sections(result)))
-    report_path.write_text(_wrap_html(body, extra_css=_planner_report_css()), encoding="utf-8")
-    return report_path
-
-
-def render_grasp_initial_contact_diagnostics_report(
-    *,
-    output_dir: Path,
-    result: dict[str, Any],
-) -> Path:
-    """Write a reviewable report for rigid-grasp initial-contact diagnostics."""
-    output_dir.mkdir(parents=True, exist_ok=True)
-    report_path = output_dir / "report.html"
-    body = "\n".join(_present_sections(grasp_initial_contact_diagnostics_report_sections(result)))
     report_path.write_text(_wrap_html(body, extra_css=_planner_report_css()), encoding="utf-8")
     return report_path
 

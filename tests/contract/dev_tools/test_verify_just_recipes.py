@@ -12,7 +12,6 @@ MOLMO_JUST = JUST_DIR / "molmo.just"
 PRE_COMMIT_HOOK = REPO_ROOT / ".githooks" / "pre-commit"
 CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
 ROOT_MOLMO_SCRIPT_COMPAT_SHIMS = (
-    "check_molmo_planner_manipulation_probe.py",
     "check_molmo_planner_proof_bundle_runner_result.py",
     "check_molmo_realworld_cleanup_result.py",
     "molmospaces_subprocess_worker.py",
@@ -21,8 +20,6 @@ ROOT_MOLMO_SCRIPT_COMPAT_SHIMS = (
     "run_molmo_planner_proof_bundle_from_requests.py",
     "run_molmo_realworld_agent_mcp_smoke.py",
     "run_molmospaces_grasp_cache_generation.py",
-    "run_molmospaces_grasp_filter_diagnostics.py",
-    "run_molmospaces_grasp_initial_contact_diagnostics.py",
     "run_molmospaces_grasp_pose_policy_cache_generation.py",
     "setup_molmospaces_grasp_generation.py",
 )
@@ -144,7 +141,6 @@ def test_verify_delegates_scenario_gates_to_harness() -> None:
         "just harness::molmo-realworld-raw-fpv",
         "just harness::molmo-planner-proof-bundle-runner",
         "just harness::molmo-planner-proof-bundle-execute-rerun",
-        "just harness::molmo-planner-manipulation-probe",
     )
     for call in expected_calls:
         assert call in text
@@ -166,13 +162,21 @@ def test_harness_exposes_named_execution_rigs() -> None:
             r"^molmo-planner-proof-bundle-execute-rerun "
             r"output_dir=\"output/molmo-planner-proof-bundle-execute-rerun\""
         ),
-        (
-            r"^molmo-planner-manipulation-probe "
-            r"output_dir=\"output/molmo-planner-manipulation-probe-harness\""
-        ),
     )
     for header in expected_headers:
         assert re.search(header, text, re.MULTILINE), f"missing recipe header: {header}"
+
+
+def test_standalone_planner_manipulation_diagnostic_surface_stays_retired() -> None:
+    harness_text = HARNESS_JUST.read_text(encoding="utf-8")
+    verify_text = VERIFY_JUST.read_text(encoding="utf-8")
+
+    assert "molmo-planner-manipulation-probe" not in harness_text
+    assert "molmo-planner-manipulation-probe" not in verify_text
+    assert not (
+        REPO_ROOT / "scripts/molmo_cleanup/check_molmo_planner_manipulation_probe.py"
+    ).exists()
+    assert not (REPO_ROOT / "scripts/molmo_cleanup/planner_manipulation_probe_checker.py").exists()
 
 
 def test_molmo_operator_surface_exposes_typed_runner_and_current_reports() -> None:
@@ -253,7 +257,6 @@ def test_molmo_harness_output_roots_keep_timestamped_runs() -> None:
         "molmo-realworld-raw-fpv",
         "molmo-planner-proof-bundle-runner",
         "molmo-planner-proof-bundle-execute-rerun",
-        "molmo-planner-manipulation-probe",
     )
     for recipe_name in recipe_names:
         recipe = re.search(
@@ -297,30 +300,12 @@ def test_raw_fpv_harness_uses_raw_mode_and_checker() -> None:
     body = recipe.group(0)
     for expected in (
         "--backend molmospaces_subprocess",
+        "--map-bundle-dir",
         "--perception-mode raw_fpv_only",
         "--include-robot",
         "--record-robot-views",
         "--require-robot-views",
         "--require-raw-fpv-observations",
-    ):
-        assert expected in body
-
-
-def test_planner_manipulation_probe_accepts_only_explicit_blocked_gate() -> None:
-    text = HARNESS_JUST.read_text(encoding="utf-8")
-
-    recipe = re.search(
-        r"^molmo-planner-manipulation-probe[\s\S]*?(?=^# |\Z)",
-        text,
-        re.MULTILINE,
-    )
-    assert recipe is not None
-    body = recipe.group(0)
-    for expected in (
-        "scripts/molmo_cleanup/run_molmo_planner_manipulation_probe.py",
-        "--probe-mode",
-        "scripts/molmo_cleanup/check_molmo_planner_manipulation_probe.py",
-        "--accept-blocked-capability",
     ):
         assert expected in body
 
@@ -352,7 +337,7 @@ def test_planner_proof_bundle_execute_rerun_gate_is_strict_and_local() -> None:
     text = HARNESS_JUST.read_text(encoding="utf-8")
 
     recipe = re.search(
-        r"^molmo-planner-proof-bundle-execute-rerun[\s\S]*?(?=^# ADR-0014)",
+        r"^molmo-planner-proof-bundle-execute-rerun[\s\S]*?(?=^# ADR-0133)",
         text,
         re.MULTILINE,
     )
