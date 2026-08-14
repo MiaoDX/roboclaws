@@ -6,13 +6,39 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-TERMINAL_RUN_PHASES = {
-    "failed",
-    "finished",
-    "passed",
-    "stopped_by_operator",
-    "human_takeover_stop",
-}
+ACTIVE_RUN_PHASES = frozenset(
+    {
+        "queued",
+        "starting",
+        "starting-server",
+        "running",
+        "running-sdk",
+        "waiting-for-server-finish",
+        "checking-result",
+        "paused",
+        "stopping",
+    }
+)
+
+TERMINAL_RUN_PHASES = frozenset(
+    {
+        "done",
+        "emergency_stopped",
+        "failed",
+        "finished",
+        "passed",
+        "stopped_by_operator",
+        "human_takeover_stop",
+    }
+)
+
+
+def is_active_run_phase(value: Any) -> bool:
+    return str(value or "").strip().lower() in ACTIVE_RUN_PHASES
+
+
+def is_terminal_run_phase(value: Any) -> bool:
+    return str(value or "").strip().lower() in TERMINAL_RUN_PHASES
 
 
 @dataclass
@@ -251,7 +277,7 @@ def is_failure_string(value: Any) -> bool:
 def terminal_status_phase(live_status: dict[str, Any], state: dict[str, Any]) -> str:
     for payload in (live_status, state):
         phase = str(payload.get("phase") or "").strip().lower()
-        if phase in TERMINAL_RUN_PHASES:
+        if is_terminal_run_phase(phase):
             return phase
     return ""
 

@@ -14,8 +14,6 @@ class TaskPresetSpec:
     skill_name: str
     required_capabilities: tuple[str, ...]
     default_scenario_setup: str
-    report_profile: str
-    validation_gate_tags: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -36,8 +34,6 @@ class TaskSurfaceSpec:
     default_profile: str | None
     supported_profiles: tuple[str, ...]
     default_backend: str
-    mcp_server_id: str
-    checker_base: str
     required_capabilities: tuple[str, ...]
     supported_presets: tuple[str, ...] = ()
     default_preset: str | None = None

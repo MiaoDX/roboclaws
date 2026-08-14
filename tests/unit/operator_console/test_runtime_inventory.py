@@ -10,6 +10,7 @@ from roboclaws.operator_console.launcher import route_readiness
 from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.routes import get_selection
 from roboclaws.operator_console.runtime_inventory import (
+    _status_from_phase,
     runtime_blockers_payload,
     runtime_inventory_payload,
 )
@@ -21,6 +22,18 @@ KIMI_ENV = {
     "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
     "KIMI_API_KEY": "key",
 }
+
+
+def test_emergency_stopped_phase_is_terminal_without_live_resource() -> None:
+    assert (
+        _status_from_phase(
+            " Emergency_Stopped ",
+            pid=None,
+            tmux_session="",
+            has_live_resource=False,
+        )
+        == "terminal"
+    )
 
 
 def test_runtime_inventory_lists_eval_harness_sdk_live_row(tmp_path: Path) -> None:

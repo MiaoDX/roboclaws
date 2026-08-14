@@ -64,7 +64,11 @@ Harness recipes
   Isaac Lab, and Agibot map runs use Agibot GDK.
   `roboclaws.launch.executor` consumes the resolved typed launch plan once and
   owns adapter dispatch and child lifecycle; product callers do not reconstruct
-  private commands.
+  private commands. The launch catalog stores canonical axes, goal metadata,
+  scenario setup, and relocation count directly on `LaunchPlan`;
+  `LaunchPlan.overrides` contains adapter-specific options only. Environment
+  export and report rerun commands derive canonical state from the typed plan
+  instead of reparsing string copies.
 - **Agent Skills** own strategy: prompts, scripts, examples, recovery loops,
   and trace-preserving routines such as `navigate -> pick -> place`.
 - **Agent Engines And Provider Profiles** distinguish the product runtime
@@ -210,6 +214,10 @@ just run::surface surface=planner-proof world=planner-proof/default backend=mujo
 just console::run
 ```
 
+The public `just agent::*` maintainer facade validates against and forwards to
+the private Just target registry directly. Python launch code owns typed
+product execution, not a second Just command-dispatch loop.
+
 Backend availability is validated against the selected world. MolmoSpaces
 household worlds expose `backend=mujoco`; `backend=isaaclab` is current for
 `world=b1-map12`, not as a MolmoSpaces alternative.
@@ -270,6 +278,9 @@ sanitized public `next_goal_packet` containing the session id, parent run id,
 parent public summary, and public artifact links. Private scorer truth,
 generated mess truth, acceptable destinations, private manifests, and global
 movable-object inventories must not be injected into follow-up context.
+Normalized active and terminal run phases are owned by
+`roboclaws.operator_console.state_summary`; launcher, inventory, interaction,
+and control consumers do not keep local phase taxonomies.
 
 ## Evaluation Layer
 
@@ -370,10 +381,6 @@ Every serious run should produce reviewable evidence:
   policy, readiness, and privacy sections.
 - `model_call_metrics.jsonl` for sanitized per-call model-work rows when the
   live OpenAI Agents SDK route exposes compatible usage or timing telemetry.
-- `provider_request_metrics.jsonl` for opt-in, redacted provider HTTP timing
-  rows from maintainer/debug routes when `ROBOCLAWS_PROVIDER_TIMING_PROXY=1` is
-  enabled. These rows are transport timing evidence, not provider-internal model
-  compute time.
 - `roboclaws_report_performance_metrics_v1` packets, usually produced by the
   report-performance extractor, for maintainer comparisons of quality,
   call-count work, model work, normalized-estimate availability, and residual

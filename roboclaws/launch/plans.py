@@ -32,14 +32,8 @@ class LaunchPlan:
     prompt_id: str
     checker_id: str
     skill_name: str
-    mcp_server_id: str
     required_capabilities: tuple[str, ...]
-    required_artifacts: tuple[str, ...]
     goal_contract: GoalContract
-    evaluation_id: str
-    evaluation_hard_gates: tuple[str, ...]
-    evaluation_intent_gates: tuple[str, ...]
-    completion_claim_required: bool
-    supported_reports: tuple[str, ...]
-    supported_profiles: tuple[str, ...]
+    scenario_setup: str | None
+    relocation_count: int | None
     overrides: tuple[str, ...]

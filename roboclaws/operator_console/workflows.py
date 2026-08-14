@@ -15,7 +15,7 @@ from roboclaws.launch.worlds import WORLD_SPECS
 from roboclaws.maps.runtime_prior_catalog import (
     RUNTIME_PRIOR_CATALOG_SCHEMA,
     RuntimeMapPriorCatalogEntry,
-    load_runtime_prior_catalog_entries,
+    load_runtime_prior_catalog,
 )
 
 DEFAULT_CAMERA_LABELER = "grounding-dino"
@@ -112,12 +112,7 @@ def list_recommended_priors() -> tuple[RuntimeMapPriorCatalogEntry, ...]:
 
 def recommended_prior_for(world_id: str, backend_id: str) -> RuntimeMapPriorCatalogEntry | None:
     for entry in list_recommended_priors():
-        if (
-            entry.world_id == world_id
-            and entry.backend_id == backend_id
-            and entry.status == "accepted"
-            and entry.auto_enabled
-        ):
+        if entry.world_id == world_id and entry.backend_id == backend_id and entry.auto_enabled:
             return entry
     return None
 
@@ -187,7 +182,7 @@ def runtime_prior_override_exists(path: str, *, root: Path) -> bool:
 def _load_recommended_priors(path: Path) -> tuple[RuntimeMapPriorCatalogEntry, ...]:
     if not path.is_file():
         return ()
-    return load_runtime_prior_catalog_entries(path)
+    return load_runtime_prior_catalog(path)
 
 
 __all__ = [

@@ -24,7 +24,6 @@ from roboclaws.launch.environment_setup import (
     ENVIRONMENT_SETUP_OPTIONS,
     RELOCATION_SETUP_OPTIONS,
 )
-from roboclaws.launch.evaluation import evaluation_spec_for_intent
 from roboclaws.launch.executor import validate_named_overrides
 from roboclaws.launch.goals import normalize_goal_contract
 from roboclaws.launch.intents import TASK_INTENT_SPECS, TaskIntentSpec
@@ -56,49 +55,19 @@ SUPPORTED_SURFACE_ROUTES: set[tuple[str, str, str]] = {
     for dispatch_runner in spec.supported_dispatch_runners
     if dispatch_runner in TASK_INTENT_SPECS[intent_id].supported_dispatch_runners
 }
-_SURFACE_CONTEXT_STRIPPED_OVERRIDE_KEYS = (
+_RESOLVED_OVERRIDE_KEYS = (
     "surface",
     "intent",
     "preset",
-    "task_preset",
     "world",
     "backend",
     "agent_engine",
     "provider_profile",
-    "skill_name",
-    "goal_contract_json",
-)
-_LAUNCH_ONLY_OVERRIDE_KEYS = (
-    "task_surface",
-    "task_intent",
-    "task_preset",
-    "world",
-    "backend",
-    "agent_engine",
-    "provider_profile",
-    "skill_name",
-    "goal_contract_json",
-    "goal_contract_path",
-    "operator_session_context_json",
+    "prompt",
     "evidence_lane",
     "profile",
     "report",
     "run_preset",
-    "preset",
-    "scenario_setup",
-    "relocation_count",
-)
-_DISPATCH_STRIPPED_OVERRIDE_KEYS = (
-    "agent_engine",
-    "provider_profile",
-    "goal_contract_json",
-    "goal_contract_path",
-    "operator_session_context_json",
-    "evidence_lane",
-    "profile",
-    "report",
-    "run_preset",
-    "preset",
     "scenario_setup",
     "relocation_count",
 )
@@ -234,7 +203,7 @@ def _resolve_launch(
         world=world,
         profile=profile,
     )
-    overrides, dispatch_setup_overrides = _normalize_scenario_setup_overrides(
+    overrides, scenario_setup, relocation_count = _normalize_scenario_setup_overrides(
         overrides,
         surface=surface,
         intent=intent,
@@ -247,21 +216,7 @@ def _resolve_launch(
         raw_prompt=prompt,
         required_capabilities=required_capabilities,
     )
-    plan_overrides = _overrides_with_surface_context(
-        overrides,
-        surface_id=surface.surface_id,
-        intent_id=intent.intent_id,
-        preset_id=preset.preset_id if preset else "",
-        world_id=world.id,
-        backend_id=backend.id,
-        agent_engine_id=agent_engine.id,
-        provider_profile=resolved_provider_profile,
-        skill_name=preset.skill_name if preset else intent.skill_name,
-        goal_contract_json=goal_contract.to_json(),
-        required_capability_profiles=required_capabilities,
-    )
-    plan_overrides = (*plan_overrides, *dispatch_setup_overrides)
-    evaluation = evaluation_spec_for_intent(intent)
+    plan_overrides = _without_overrides(overrides, _RESOLVED_OVERRIDE_KEYS)
     return LaunchPlan(
         surface=surface.surface_id,
         intent=intent.intent_id,
@@ -284,16 +239,10 @@ def _resolve_launch(
         prompt_id=intent.prompt_id,
         checker_id=intent.checker_id,
         skill_name=preset.skill_name if preset else intent.skill_name,
-        mcp_server_id=surface.mcp_server_id,
         required_capabilities=required_capabilities,
-        required_artifacts=intent.required_artifacts,
         goal_contract=goal_contract,
-        evaluation_id=evaluation.evaluation_id,
-        evaluation_hard_gates=evaluation.hard_gates,
-        evaluation_intent_gates=evaluation.intent_gates,
-        completion_claim_required=evaluation.completion_claim_required,
-        supported_reports=surface.supported_reports,
-        supported_profiles=surface.supported_profiles,
+        scenario_setup=scenario_setup,
+        relocation_count=relocation_count,
         overrides=plan_overrides,
     )
 
@@ -678,9 +627,9 @@ def _normalize_scenario_setup_overrides(
     surface: TaskSurfaceSpec,
     intent: TaskIntentSpec,
     preset: TaskPresetSpec | None,
-) -> tuple[tuple[str, ...], tuple[str, ...]]:
+) -> tuple[tuple[str, ...], str | None, int | None]:
     if surface.surface_id != "household-world":
-        return overrides, ()
+        return overrides, None, None
     if _override_value(overrides, "environment_setup") is not None:
         raise LaunchError(
             "environment_setup= is no longer a public run::surface argument",
@@ -699,11 +648,13 @@ def _normalize_scenario_setup_overrides(
             f"expected {'|'.join(ENVIRONMENT_SETUP_OPTIONS)}",
         )
     relocation_count = _override_value(overrides, "relocation_count")
-    private_count = "0"
+    parsed_relocation_count = None
     if setup in RELOCATION_SETUP_OPTIONS:
         relocation_count = relocation_count or "5"
-        _parse_nonnegative_int(relocation_count, key="relocation_count")
-        private_count = relocation_count
+        parsed_relocation_count = _parse_nonnegative_int(
+            relocation_count,
+            key="relocation_count",
+        )
     elif relocation_count not in {None, "", "0"}:
         raise LaunchError(
             "relocation_count is only valid when scenario_setup relocates objects",
@@ -716,71 +667,13 @@ def _normalize_scenario_setup_overrides(
         ),
         "generated_mess_count",
     )
-    merged = (*merged, f"scenario_setup={setup}")
-    if setup in RELOCATION_SETUP_OPTIONS:
-        merged = (*merged, f"relocation_count={relocation_count}")
-    return merged, (f"generated_mess_count={private_count}",)
-
-
-def _overrides_with_surface_context(
-    overrides: tuple[str, ...],
-    *,
-    surface_id: str,
-    intent_id: str,
-    preset_id: str,
-    world_id: str,
-    backend_id: str,
-    agent_engine_id: str,
-    provider_profile: str | None,
-    skill_name: str,
-    goal_contract_json: str,
-    required_capability_profiles: tuple[str, ...],
-) -> tuple[str, ...]:
-    merged = _without_overrides(overrides, _SURFACE_CONTEXT_STRIPPED_OVERRIDE_KEYS)
-    return _with_missing_overrides(
-        merged,
-        (
-            ("task_surface", surface_id, True),
-            ("task_intent", intent_id, True),
-            ("task_preset", preset_id, False),
-            ("world", world_id, True),
-            ("backend", backend_id, True),
-            ("agent_engine", agent_engine_id, True),
-            ("provider_profile", provider_profile or "", False),
-            ("skill_name", skill_name, False),
-            ("goal_contract_json", goal_contract_json, True),
-            (
-                "required_capability_profiles",
-                ",".join(required_capability_profiles),
-                True,
-            ),
-        ),
-    )
-
-
-def _without_launch_only_overrides(overrides: tuple[str, ...]) -> tuple[str, ...]:
-    return _without_overrides(overrides, _LAUNCH_ONLY_OVERRIDE_KEYS)
-
-
-def _without_dispatch_stripped_overrides(overrides: tuple[str, ...]) -> tuple[str, ...]:
-    return _without_overrides(overrides, _DISPATCH_STRIPPED_OVERRIDE_KEYS)
+    return merged, setup, parsed_relocation_count
 
 
 def _without_overrides(overrides: tuple[str, ...], keys: tuple[str, ...]) -> tuple[str, ...]:
     result = overrides
     for key in keys:
         result = _without_override(result, key)
-    return result
-
-
-def _with_missing_overrides(
-    overrides: tuple[str, ...],
-    entries: tuple[tuple[str, str, bool], ...],
-) -> tuple[str, ...]:
-    result = overrides
-    for key, value, required in entries:
-        if (required or value) and _override_value(result, key) is None:
-            result = (*result, f"{key}={value}")
     return result
 
 

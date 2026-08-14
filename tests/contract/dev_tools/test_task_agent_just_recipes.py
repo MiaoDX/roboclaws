@@ -20,7 +20,7 @@ from roboclaws.agents.prompts.household_cleanup import (
 from roboclaws.launch import resolve_surface_launch
 from roboclaws.launch.catalog import LaunchError
 from roboclaws.launch.evaluation import checker_flags_for_household_intent
-from roboclaws.launch.runners import export_env_from_overrides
+from roboclaws.launch.runners import export_env_from_plan
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 JUSTFILE = REPO_ROOT / "justfile"
@@ -28,7 +28,6 @@ JUST_DIR = REPO_ROOT / "just"
 AGENT_JUST = JUST_DIR / "agent.just"
 OPENCLAW_JUST = JUST_DIR / "openclaw.just"
 MOLMO_JUST = JUST_DIR / "molmo.just"
-AGENT_CLI = REPO_ROOT / "roboclaws" / "cli" / "agent.py"
 CODING_AGENT_ENV = REPO_ROOT / "scripts" / "dev" / "coding_agent_env.sh"
 LIVE_OPENAI_AGENTS_RUNNER = REPO_ROOT / "roboclaws/agents/household_live_runner.py"
 HOUSEHOLD_LIVE_DRIVER = REPO_ROOT / "roboclaws" / "agents" / "drivers" / "household_live.py"
@@ -36,10 +35,6 @@ HOUSEHOLD_AGENT_SERVER_MODULE = "roboclaws.cli.agent_server"
 CODE_AGENT_ENV_VARS = (
     "ROBOCLAWS_PROVIDER_PROFILE",
     "ROBOCLAWS_CODE_AGENT_MODEL",
-    "ROBOCLAWS_PROVIDER_TIMING_PROXY",
-    "ROBOCLAWS_TIMING_PROXY_UPSTREAM_BASE_URL",
-    "ROBOCLAWS_TIMING_PROXY_BIND_HOST",
-    "ROBOCLAWS_TIMING_PROXY_BIND_PORT",
     "KIMI_API_KEY",
     "OPENAI_API_KEY",
     "CODEX_RESPONSES_BASE_URL",
@@ -397,10 +392,10 @@ def test_agent_harness_no_longer_advertises_agent_validation() -> None:
 
 
 def test_agent_harness_allows_molmo_visual_grounding_benchmark_target() -> None:
-    agent_text = AGENT_CLI.read_text(encoding="utf-8")
+    agent_text = AGENT_JUST.read_text(encoding="utf-8")
     harness_text = (JUST_DIR / "harness.just").read_text(encoding="utf-8")
 
-    assert "molmo-visual-grounding-benchmark" in agent_text
+    assert "molmo-visual-grounding-benchmark" not in agent_text
     assert re.search(r"^molmo-visual-grounding-benchmark \*overrides:", harness_text, re.MULTILINE)
     assert "run_visual_grounding_benchmark.py" in harness_text
     assert "check_visual_grounding_benchmark_result.py" in harness_text
@@ -457,7 +452,7 @@ def test_agent_mcp_rejects_task_named_household_dispatch_targets() -> None:
     assert_agent_mcp_fails("up", "household-world.cleanup")
     stderr = assert_agent_mcp_fails("up", "household-world.map-build")
 
-    body = AGENT_CLI.read_text(encoding="utf-8")
+    body = (JUST_DIR / "mcp.just").read_text(encoding="utf-8")
     assert "(expected household-world)" in stderr
     assert '"household-world"' in body
     assert '"household-world.cleanup"' not in body
@@ -476,7 +471,7 @@ def test_surface_open_ended_supports_mcp_smoke_for_local_gate() -> None:
             "prompt=我渴了，帮我找些解渴的东西",
         )
     )
-    env = export_env_from_overrides(plan.overrides)
+    env = export_env_from_plan(plan)
 
     assert plan.surface == "household-world"
     assert plan.intent == "open-ended"
@@ -585,7 +580,7 @@ def test_surface_cleanup_prompt_stays_cleanup_intent_when_explicit() -> None:
     assert "user-scoped request" in plan.goal_contract.normalized_goal
 
 
-def test_surface_launch_plan_exposes_goal_contract_and_evaluation_policy() -> None:
+def test_surface_launch_plan_exposes_typed_goal_contract() -> None:
     plan = resolve_surface_launch(
         (
             "surface=household-world",
@@ -611,12 +606,10 @@ def test_surface_launch_plan_exposes_goal_contract_and_evaluation_policy() -> No
     assert plan.goal_contract.surface == "household-world"
     assert plan.goal_contract.intent == "map-build"
     assert plan.goal_contract.goal_scope == "whole-room"
-    assert "goal_contract.json" in plan.required_artifacts
-    assert plan.evaluation_id == "map_build_v1"
-    assert "goal_contract" in plan.evaluation_hard_gates
-    assert "runtime_metric_map" in plan.evaluation_hard_gates
-    assert plan.completion_claim_required is True
-    assert any(item.startswith("goal_contract_json=") for item in plan.overrides)
+    assert json.loads(export_env_from_plan(plan)["ROBOCLAWS_GOAL_CONTRACT_JSON"])["intent"] == (
+        "map-build"
+    )
+    assert not any(item.startswith("goal_contract_json=") for item in plan.overrides)
 
 
 def test_surface_map_build_defaults_to_openai_agents_sdk_camera_grounded_dino() -> None:
@@ -648,7 +641,7 @@ def test_surface_launch_exports_goal_contract_to_lower_recipe_environment() -> N
             "evidence_lane=world-public-labels",
         )
     )
-    env = export_env_from_overrides(plan.overrides)
+    env = export_env_from_plan(plan)
 
     assert env["ROBOCLAWS_TASK_SURFACE"] == "household-world"
     assert env["ROBOCLAWS_TASK_INTENT"] == "cleanup"
@@ -676,7 +669,7 @@ def test_surface_launch_exports_operator_session_context_to_lower_recipe_environ
             f"operator_session_context_json={context}",
         )
     )
-    env = export_env_from_overrides(plan.overrides)
+    env = export_env_from_plan(plan)
 
     assert env["ROBOCLAWS_OPERATOR_SESSION_CONTEXT_JSON"] == context
     assert f"operator_session_context_json={context}" in plan.overrides
@@ -830,9 +823,8 @@ def test_surface_router_is_importable_source_of_truth() -> None:
     )
 
     assert "output_dir=output/custom" in resolved.overrides
-    assert "scenario_setup=relocate-cleanup-related-objects" in resolved.overrides
-    assert "relocation_count=5" in resolved.overrides
-    assert "generated_mess_count=5" in resolved.overrides
+    assert resolved.scenario_setup == "relocate-cleanup-related-objects"
+    assert resolved.relocation_count == 5
     assert resolved.world == "molmospaces/procthor-10k-val/0"
     assert resolved.backend == "mujoco"
     assert resolved.agent_engine == "openai-agents-sdk"
@@ -857,9 +849,8 @@ def test_surface_launch_plan_exposes_domain_metadata_before_dispatch() -> None:
         )
     )
 
-    assert "scenario_setup=relocate-cleanup-related-objects" in plan.overrides
-    assert "relocation_count=5" in plan.overrides
-    assert "generated_mess_count=5" in plan.overrides
+    assert plan.scenario_setup == "relocate-cleanup-related-objects"
+    assert plan.relocation_count == 5
     assert plan.implementation_backend == "agibot_gdk"
     assert plan.dispatch_target == "household-world"
     assert plan.preset == "cleanup"
@@ -956,14 +947,8 @@ def test_python_launch_plan_accepts_world_labels_sanitized_lane() -> None:
 
     assert plan.evidence_mode == "world-public-labels"
     assert plan.profile == "world-public-labels"
-    assert plan.supported_profiles == (
-        "world-public-labels",
-        "camera-grounded-labels",
-        "camera-raw-fpv",
-    )
-    assert "scenario_setup=relocate-cleanup-related-objects" in plan.overrides
-    assert "relocation_count=5" in plan.overrides
-    assert "generated_mess_count=5" in plan.overrides
+    assert plan.scenario_setup == "relocate-cleanup-related-objects"
+    assert plan.relocation_count == 5
     assert plan.implementation_backend == "molmospaces_subprocess"
 
 
@@ -1389,15 +1374,13 @@ def test_molmo_camera_raw_prompt_contains_run_constraints_not_generic_strategy()
     assert "namespace cleanup" in prompt
     assert "server named cleanup" not in prompt
     assert "never mcp__cleanup__" in prompt
-    assert "Per-waypoint distinct-heading budget=4" in prompt
-    assert "navigate_to_relative_pose(forward_m=0, lateral_m=0, yaw_delta_deg=90)" in prompt
-    assert "even when the cleanup gate is already met" in prompt
-    assert "extra overlap probe after those body headings" in prompt
+    assert "Per-waypoint observation budget=4" in prompt
     assert "Evidence lane=camera-raw-fpv" in prompt
-    assert "at most one fresh high-confidence cleanup candidate" in prompt
-    assert "source_observation_id/category/region" in prompt
-    assert "Never retry the same source_observation_id/category/region" in prompt
+    assert "Raw-FPV candidate-attempt budget=24" in prompt
     assert "Cleanup target cap=7" in prompt
+    assert "Done retry budget=1" in prompt
+    assert "navigate_to_relative_pose" not in prompt
+    assert "overlap probe" not in prompt
     assert "Required closeout artifacts" in prompt
     assert "place/place_inside" not in prompt
 
@@ -1545,12 +1528,9 @@ def test_molmo_open_ended_camera_grounded_prompt_requires_label_declaration() ->
     )
 
     assert "This run is surface=household-world with no task preset" in prompt
-    assert "This open-ended run uses camera-grounded-labels" in prompt
-    assert "call declare_visual_candidates with observation_id only" in prompt
-    assert "configured camera labeler labels the frame" in prompt
-    assert "camera_model_candidates" in prompt
-    assert "model_declared_observations" in prompt
-    assert "service URLs" in prompt
+    assert "Camera-grounded observation mode=observe plus" in prompt
+    assert "declare_visual_candidates with observation_id only" in prompt
+    assert "configured camera labeler labels the frame" not in prompt
     assert "Required closeout artifacts" in prompt
 
 
@@ -1562,10 +1542,9 @@ def test_molmo_open_ended_camera_grounded_prompt_can_use_composite_tool() -> Non
         camera_grounded_composite_tools=True,
     )
 
-    assert "This open-ended run uses camera-grounded-labels" in prompt
-    assert "call observe_camera_grounded_candidates" in prompt
-    assert "configured camera labeler labels the current FPV frame" in prompt
-    assert "do not ask for service URLs" in prompt
+    assert "Camera-grounded observation mode=composite" in prompt
+    assert "observe_camera_grounded_candidates" in prompt
+    assert "configured camera labeler labels the current FPV frame" not in prompt
 
 
 def test_molmo_cleanup_live_prompt_uses_cleanup_intent_without_open_ended_intent() -> None:
@@ -1601,7 +1580,6 @@ def test_molmo_label_prompts_keep_public_done_boundary() -> None:
     assert "only the MCP done response creates the authoritative run result" in world_prompt
     assert "Evidence lane=camera-grounded-labels" in camera_prompt
     assert "declare_visual_candidates with observation_id only" in camera_prompt
-    assert "service URLs" in camera_prompt
     assert "only the MCP done response creates the authoritative run result" in camera_prompt
 
 
@@ -1611,9 +1589,12 @@ def test_molmo_compact_camera_prompt_can_prefer_composite_observe_tool() -> None
         camera_grounded_composite_tools=True,
     )
 
-    assert "observe_camera_grounded_candidates instead of a separate observe" in prompt
-    assert "declaration as server-side labeler output" in prompt
-    assert "do not call declare_visual_candidates again for the same" in prompt
+    assert "Camera-grounded observation mode=composite" in prompt
+    assert "observe_camera_grounded_candidates" in prompt
+    assert "response already includes the server-side declaration" in prompt
+    assert (
+        "do not call declare_visual_candidates again for the same source_observation_id" in prompt
+    )
     assert "only the MCP done response creates the authoritative run result" in prompt
 
 
@@ -1679,12 +1660,10 @@ def test_molmo_raw_fpv_compact_prompt_includes_budget_contract() -> None:
 
     assert "Evidence lane=camera-raw-fpv" in prompt
     assert "Raw-FPV candidate-attempt budget=3" in prompt
-    assert "Per-waypoint distinct-heading budget=2" in prompt
-    assert "extra overlap probe after those body headings" in prompt
-    assert "adjust_camera(yaw_delta_deg=45, pitch_delta_deg=20) exactly once" in prompt
-    assert "does not count as a distinct robot-body heading" in prompt
+    assert "Per-waypoint observation budget=2" in prompt
     assert "Done retry budget=1" in prompt
-    assert "Never retry the same source_observation_id/category/region" in prompt
+    assert "adjust_camera" not in prompt
+    assert "distinct robot-body heading" not in prompt
     assert "only the MCP done response creates the authoritative run result" in prompt
 
 
@@ -1714,9 +1693,16 @@ def test_map_build_live_prompt_disables_cleanup_actions() -> None:
     assert "Evidence lane=camera-grounded-labels" in prompt
     assert "Waypoint observation tool=observe" in prompt
     assert "scan_profile=fixture-focused" in prompt
-    assert "navigate_to_relative_pose" in prompt
-    assert "stable semantic anchors" in prompt
-    assert "future runs must recheck before action" in prompt
+    assert "body-turn count per waypoint=4" in prompt
+    assert "body-turn yaw delta deg=90" in prompt
+    assert "profile observe cadence=5 per waypoint" in prompt
+    assert "effective observe cadence=5 per waypoint" in prompt
+    assert "max_observe_per_waypoint override=false" in prompt
+    assert "profile body-turn cadence overridden=false" in prompt
+    assert "stable-anchor priority=true" in prompt
+    assert "fixtures, surfaces, receptacles" in prompt
+    assert "movable-prior policy=" in prompt
+    assert "navigate_to_relative_pose" not in prompt
     assert "runtime_metric_map.json" in prompt
 
 
@@ -1876,11 +1862,11 @@ def test_openai_agents_launcher_applies_provider_overrides_per_invocation() -> N
             "evidence_lane=world-public-labels",
         )
     )
-    exported_env = export_env_from_overrides(plan.overrides)
+    exported_env = export_env_from_plan(plan)
 
     assert plan.provider_profile == "kimi-openai-chat"
     assert exported_env["ROBOCLAWS_PROVIDER_PROFILE"] == "kimi-openai-chat"
-    assert "provider_profile=kimi-openai-chat" in plan.overrides
+    assert not any(item.startswith("provider_profile=") for item in plan.overrides)
 
     assert "MM_API_KEY" in helper_text
     assert "MM_BASE_URL" in helper_text

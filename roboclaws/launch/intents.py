@@ -18,8 +18,6 @@ class TaskIntentSpec:
     default_goal_scope: str
     done_readiness_policy: str
     checker_policy: str
-    required_artifacts: tuple[str, ...]
-    completion_claim_schema: str
     evaluation_policy: str
     skill_name: str
     required_capabilities: tuple[str, ...] = ()
@@ -45,8 +43,6 @@ TASK_INTENT_SPECS: dict[str, TaskIntentSpec] = {
         default_goal_scope=GOAL_SCOPE_WHOLE_ROOM,
         done_readiness_policy="cleanup_sweep_and_pending_candidates",
         checker_policy="cleanup_success",
-        required_artifacts=("run_result.json", "report.html", "trace.jsonl", "goal_contract.json"),
-        completion_claim_schema="roboclaws_agent_completion_claim_v1",
         evaluation_policy="cleanup",
         skill_name="household-world",
         required_capabilities=(
@@ -65,14 +61,6 @@ TASK_INTENT_SPECS: dict[str, TaskIntentSpec] = {
         default_goal_scope=GOAL_SCOPE_WHOLE_ROOM,
         done_readiness_policy="map_sweep",
         checker_policy="runtime_metric_map",
-        required_artifacts=(
-            "run_result.json",
-            "report.html",
-            "trace.jsonl",
-            "goal_contract.json",
-            "runtime_metric_map.json",
-        ),
-        completion_claim_schema="roboclaws_agent_completion_claim_v1",
         evaluation_policy="map_build",
         skill_name="household-world",
         required_capabilities=("household_world", "household_episode"),
@@ -87,8 +75,6 @@ TASK_INTENT_SPECS: dict[str, TaskIntentSpec] = {
         default_goal_scope=GOAL_SCOPE_AGENT_DECLARED,
         done_readiness_policy="agent_declared_goal",
         checker_policy="open_ended_advisory",
-        required_artifacts=("run_result.json", "report.html", "trace.jsonl", "goal_contract.json"),
-        completion_claim_schema="roboclaws_agent_completion_claim_v1",
         evaluation_policy="open_ended",
         skill_name="household-world",
         required_capabilities=(
@@ -107,8 +93,6 @@ TASK_INTENT_SPECS: dict[str, TaskIntentSpec] = {
         default_goal_scope=GOAL_SCOPE_AGENT_DECLARED,
         done_readiness_policy="planner_proof",
         checker_policy="planner_proof_report",
-        required_artifacts=("report.html",),
-        completion_claim_schema="roboclaws_agent_completion_claim_v1",
         evaluation_policy="planner_proof",
         skill_name="molmo-planner-proof",
         required_capabilities=("planner_proof",),

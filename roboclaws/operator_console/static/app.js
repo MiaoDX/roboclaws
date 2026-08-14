@@ -1189,26 +1189,7 @@ function isRunTerminal(payload = state.activeState || {}) {
     return false;
   }
   const controls = payload.controls || {};
-  if (controls.next_goal_available === true) {
-    return true;
-  }
-  const statusValues = [
-    payload.status,
-    payload.phase,
-    payload.terminal_reason,
-    payload.checker_status && payload.checker_status.status,
-  ].map((value) => String(value || "").toLowerCase());
-  return statusValues.some((value) =>
-    [
-      "done",
-      "finished",
-      "passed",
-      "stopped_by_operator",
-      "human_takeover_stop",
-      "emergency_stopped",
-      "failed",
-    ].includes(value)
-  );
+  return controls.next_goal_available === true;
 }
 
 function isRealMovementGate(gate) {

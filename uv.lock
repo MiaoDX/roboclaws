@@ -3501,14 +3501,12 @@ name = "roboclaws"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "jinja2" },
     { name = "numpy" },
     { name = "pillow" },
 ]
 
 [package.optional-dependencies]
 dev = [
-    { name = "aiohttp" },
     { name = "imageio" },
     { name = "mcp", extra = ["cli"] },
     { name = "molmo-spaces", extra = ["mujoco"] },
@@ -3522,7 +3520,6 @@ dev = [
     { name = "ruff" },
     { name = "torch" },
     { name = "torchvision" },
-    { name = "tyro" },
 ]
 molmospaces = [
     { name = "molmo-spaces", extra = ["mujoco"] },
@@ -3534,7 +3531,6 @@ openai-agents = [
 ]
 openclaw = [
     { name = "mcp", extra = ["cli"] },
-    { name = "tyro" },
 ]
 visual-grounding-dino = [
     { name = "torch" },
@@ -3547,10 +3543,8 @@ visual-grounding-yoloe = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiohttp", marker = "extra == 'dev'", specifier = ">=3.13" },
     { name = "clip", marker = "extra == 'visual-grounding-yoloe'", git = "https://github.com/ultralytics/CLIP.git" },
     { name = "imageio", marker = "extra == 'dev'", specifier = ">=2.30" },
-    { name = "jinja2", specifier = ">=3.1" },
     { name = "mcp", extras = ["cli"], marker = "extra == 'dev'", specifier = ">=1.27" },
     { name = "mcp", extras = ["cli"], marker = "extra == 'openclaw'", specifier = ">=1.27" },
     { name = "molmo-spaces", extras = ["mujoco"], marker = "extra == 'dev'", git = "https://github.com/allenai/molmospaces.git?rev=3c50ae6093f7e4a4ef32529f8a773715da410a2f" },
@@ -3572,8 +3566,6 @@ requires-dist = [
     { name = "torchvision", marker = "extra == 'dev'", specifier = "==0.22.1+cpu", index = "https://download.pytorch.org/whl/cpu" },
     { name = "torchvision", marker = "extra == 'molmospaces'", specifier = "==0.22.1+cpu", index = "https://download.pytorch.org/whl/cpu" },
     { name = "transformers", marker = "extra == 'visual-grounding-dino'", specifier = ">=4.52,<5" },
-    { name = "tyro", marker = "extra == 'dev'", specifier = ">=0.9.0" },
-    { name = "tyro", marker = "extra == 'openclaw'", specifier = ">=0.9.0" },
     { name = "ultralytics", marker = "extra == 'visual-grounding-yoloe'", specifier = ">=8.3" },
 ]
 provides-extras = ["openclaw", "molmospaces", "visual-grounding-dino", "visual-grounding-yoloe", "dev", "openai-agents"]

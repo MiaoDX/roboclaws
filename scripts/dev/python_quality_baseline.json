@@ -28,11 +28,6 @@
         "path": "roboclaws/evals/runner.py"
       },
       {
-        "lines": 1887,
-        "max_module_lines": 800,
-        "path": "roboclaws/household/agibot_contract_rehearsal.py"
-      },
-      {
         "lines": 1239,
         "max_module_lines": 800,
         "path": "roboclaws/household/agibot_sdk_runner.py"
@@ -211,11 +206,6 @@
         "lines": 995,
         "max_module_lines": 800,
         "path": "scripts/molmo_cleanup/run_agent_sdk_perf_matrix.py"
-      },
-      {
-        "lines": 950,
-        "max_module_lines": 800,
-        "path": "scripts/molmo_cleanup/run_codex_cleanup_apple2apple_summary.py"
       },
       {
         "lines": 2192,

@@ -137,7 +137,6 @@ def test_dry_run_matrix_writes_status_and_manifest(tmp_path: Path) -> None:
     assert payload["env"] == {
         "ROBOCLAWS_OPENAI_AGENTS_MODEL": "kimi-k2.7-code",
         "ROBOCLAWS_PROVIDER_PROFILE": "kimi-openai-chat",
-        "ROBOCLAWS_PROVIDER_TIMING_PROXY": "1",
     }
     assert payload["profile"] == "world-public-labels"
     assert payload["generated_mess_count"] == 5
@@ -155,7 +154,6 @@ def test_dry_run_matrix_writes_status_and_manifest(tmp_path: Path) -> None:
     assert payload["rerun_command"].startswith(
         "ROBOCLAWS_PROVIDER_PROFILE=kimi-openai-chat "
         "ROBOCLAWS_OPENAI_AGENTS_MODEL=kimi-k2.7-code "
-        "ROBOCLAWS_PROVIDER_TIMING_PROXY=1 "
         "just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 "
         "backend=mujoco intent=cleanup agent_engine=openai-agents-sdk "
         "provider_profile=kimi-openai-chat evidence_lane=world-public-labels"
@@ -186,7 +184,6 @@ def test_dry_run_agents_sdk_entry_uses_entry_engine_and_model_env(tmp_path: Path
     assert payload["env"] == {
         "ROBOCLAWS_OPENAI_AGENTS_MODEL": "kimi-k2.7-code",
         "ROBOCLAWS_PROVIDER_PROFILE": "kimi-openai-chat",
-        "ROBOCLAWS_PROVIDER_TIMING_PROXY": "1",
     }
     assert payload["command"][:9] == [
         "just",
@@ -221,29 +218,6 @@ def test_dry_run_generated_mess_count_override(tmp_path: Path) -> None:
     payload = json.loads(status_path.read_text(encoding="utf-8"))
     assert payload["generated_mess_count"] == 12
     assert "relocation_count=12" in payload["command"]
-
-
-def test_ci_live_matrix_preserves_provider_timing_proxy_escape_hatch(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    run_matrix = _load_module(RUN_MATRIX_PATH, "run_ci_live_cleanup_matrix")
-    monkeypatch.setenv("ROBOCLAWS_PROVIDER_TIMING_PROXY", "0")
-
-    status = run_matrix.main(_ci_live_dry_run_args(tmp_path, "agents-sdk-kimi-k2.7-code"))
-
-    assert status == 0
-    payload = json.loads(
-        (
-            tmp_path / "site" / "molmo" / "live" / "agents-sdk-kimi-k2.7-code" / "status.json"
-        ).read_text(encoding="utf-8")
-    )
-    assert payload["env"]["ROBOCLAWS_PROVIDER_TIMING_PROXY"] == "0"
-    assert payload["rerun_command"].startswith(
-        "ROBOCLAWS_PROVIDER_PROFILE=kimi-openai-chat "
-        "ROBOCLAWS_OPENAI_AGENTS_MODEL=kimi-k2.7-code "
-        "ROBOCLAWS_PROVIDER_TIMING_PROXY=0 "
-    )
 
 
 def test_failed_live_entry_publishes_partial_seed_diagnostics(tmp_path: Path, monkeypatch) -> None:
