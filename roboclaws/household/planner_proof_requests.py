@@ -14,10 +14,7 @@ from roboclaws.household.planner_proof_contracts import (
     PLANNER_PROOF_REQUESTS_SCHEMA,
 )
 from roboclaws.household.planner_proof_fallbacks import (
-    planner_arg as _planner_arg,
-)
-from roboclaws.household.planner_proof_fallbacks import (
-    prior_fallback_candidate_filters_by_source_request,
+    planner_arg,
 )
 from roboclaws.household.planner_proof_results import (
     proof_result_summary_from_commands as _proof_result_summary_from_commands,
@@ -35,9 +32,6 @@ from roboclaws.household.semantic_timeline import (
     canonical_cleanup_tool_sequence,
 )
 
-_prior_fallback_candidate_filters_by_source_request = (
-    prior_fallback_candidate_filters_by_source_request
-)
 _FALLBACK_REQUEST_ID_MARKER = "_fallback_"
 _RUNTIME_ALIAS_RE = re.compile(r"^(?P<prefix>.+)_(?P<group>\d+)_(?P<variant>\d+)_(?P<room>\d+)$")
 HOUSEHOLD_EPISODE_MODULE = "roboclaws.household.household_world_episode"
@@ -470,7 +464,7 @@ def _request_tools(request: dict[str, Any]) -> list[str]:
     else:
         values = [str(item) for item in raw_tools if str(item)]
     if not values:
-        cleanup_tools = _planner_arg(request.get("planner_probe_args") or {}, "--cleanup-tools")
+        cleanup_tools = planner_arg(request.get("planner_probe_args") or {}, "--cleanup-tools")
         values = cleanup_tools.split(",") if cleanup_tools else []
     return [
         tool for tool in canonical_cleanup_tool_sequence(values) if tool in SEMANTIC_SUBPHASE_LABELS

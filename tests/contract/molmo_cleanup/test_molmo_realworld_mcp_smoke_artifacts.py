@@ -18,6 +18,12 @@ PREBUILT_BUNDLE = REPO_ROOT / "assets" / "maps" / "molmospaces" / "procthor-10k-
 
 def test_realworld_mcp_smoke_writes_agent_artifacts(tmp_path: Path) -> None:
     smoke = _load_smoke_module()
+    scratchpad_text = (
+        '{"schema":"molmo_cleanup_skill_scratchpad_v1","authoritative":false,'
+        '"observed_handles":{},"waypoints":{},"current_intent":null,'
+        '"failed_attempts":[],"reconciliation_notes":[],"notes":["preserve bytes"]}\n'
+    )
+    (tmp_path / "agent_scratchpad.json").write_text(scratchpad_text, encoding="utf-8")
 
     run_result = smoke.run_smoke(
         output_dir=tmp_path,
@@ -29,6 +35,7 @@ def test_realworld_mcp_smoke_writes_agent_artifacts(tmp_path: Path) -> None:
 
     _assert_smoke_run_result(run_result)
     _assert_smoke_report_and_artifacts(tmp_path, trace_text=trace_text, report_text=report_text)
+    assert (tmp_path / "agent_scratchpad.json").read_text(encoding="utf-8") == scratchpad_text
 
 
 def test_smoke_run_result_reader_accepts_json_object(tmp_path: Path) -> None:

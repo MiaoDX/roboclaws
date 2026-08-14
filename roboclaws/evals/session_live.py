@@ -11,6 +11,8 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
 from http.server import ThreadingHTTPServer
@@ -146,54 +148,73 @@ def _run_live_flow(
             details={"route": "missing"},
         )
 
-    previous_env_values: dict[str, str | None] = {}
+    with _temporary_environment(env, output_dir=output_dir):
+        server = (start_server or _start_http_server)(root)
+        with _running_server(server):
+            base_url = f"http://{server.server_address[0]}:{server.server_address[1]}"
+            try:
+                return _exercise_session_flow(
+                    root=root,
+                    route=route,
+                    base_url=base_url,
+                    provider_profile=provider_profile,
+                    deadline=time.monotonic() + live_timeout_s,
+                    env=env,
+                )
+            except SessionLiveHTTPError as exc:
+                return _blocked_result(
+                    provider_profile=provider_profile,
+                    reason=str(exc),
+                    failure_class="environment_blocked",
+                    details={
+                        "method": exc.method,
+                        "path": exc.path,
+                        "status": exc.status,
+                        "body": exc.body,
+                    },
+                )
+            except RuntimeError as exc:
+                return _failed_result(
+                    provider_profile=provider_profile,
+                    reason=str(exc),
+                    failure_class=_runtime_failure_class(exc),
+                    details=_runtime_failure_details(exc),
+                )
+
+
+@contextmanager
+def _temporary_environment(env: dict[str, str], *, output_dir: Path) -> Iterator[None]:
+    previous_values: dict[str, str | None] = {}
     for key, value in env.items():
         if os.environ.get(key) != value:
-            previous_env_values[key] = os.environ.get(key)
+            previous_values[key] = os.environ.get(key)
             os.environ[key] = value
-    previous_env_values.setdefault(OUTPUT_ROOT_ENV, os.environ.get(OUTPUT_ROOT_ENV))
+    previous_values.setdefault(OUTPUT_ROOT_ENV, os.environ.get(OUTPUT_ROOT_ENV))
     os.environ[OUTPUT_ROOT_ENV] = str(output_dir / "operator-console")
-    server = (start_server or _start_http_server)(root)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
     try:
-        base_url = f"http://{server.server_address[0]}:{server.server_address[1]}"
-        return _exercise_session_flow(
-            root=root,
-            route=route,
-            base_url=base_url,
-            provider_profile=provider_profile,
-            deadline=time.monotonic() + live_timeout_s,
-            env=env,
-        )
-    except SessionLiveHTTPError as exc:
-        return _blocked_result(
-            provider_profile=provider_profile,
-            reason=str(exc),
-            failure_class="environment_blocked",
-            details={
-                "method": exc.method,
-                "path": exc.path,
-                "status": exc.status,
-                "body": exc.body,
-            },
-        )
-    except RuntimeError as exc:
-        return _failed_result(
-            provider_profile=provider_profile,
-            reason=str(exc),
-            failure_class=_runtime_failure_class(exc),
-            details=_runtime_failure_details(exc),
-        )
+        yield
     finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
-        for key, previous in previous_env_values.items():
+        for key, previous in previous_values.items():
             if previous is None:
                 os.environ.pop(key, None)
             else:
                 os.environ[key] = previous
+
+
+@contextmanager
+def _running_server(server: ThreadingHTTPServer) -> Iterator[None]:
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    try:
+        thread.start()
+        yield
+    finally:
+        try:
+            if thread.ident is not None:
+                server.shutdown()
+        finally:
+            server.server_close()
+            if thread.ident is not None:
+                thread.join(timeout=2)
 
 
 def _start_http_server(root: Path) -> ThreadingHTTPServer:

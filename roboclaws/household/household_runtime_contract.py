@@ -141,6 +141,31 @@ class HouseholdRuntimeContract(
     def backend_name(self) -> str:
         return self.contract.backend_name()
 
+    def run_result_overrides(self) -> dict[str, Any]:
+        return {}
+
+    def runtime_map_prior_counts(self) -> tuple[int, int]:
+        return len(self._runtime_map_anchor_priors), len(self._runtime_map_room_priors)
+
+    def real_robot_readiness_payload(
+        self,
+        trace_events: list[dict[str, Any]],
+        robot_view_steps: list[dict[str, Any]],
+        agent_view: dict[str, Any],
+    ) -> dict[str, Any]:
+        return real_robot_readiness_from_events(
+            agent_view=agent_view,
+            trace_events=trace_events,
+            robot_view_steps=robot_view_steps,
+        )
+
+    def cleanup_policy_trace_payload(
+        self,
+        trace_events: list[dict[str, Any]],
+        agent_view: dict[str, Any],
+    ) -> dict[str, Any]:
+        return cleanup_policy_trace_from_events(trace_events, agent_view)
+
     def backend_object_locations(self) -> dict[str, str]:
         return self.contract.object_locations()
 

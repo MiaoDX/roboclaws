@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 SCRATCHPAD_SCHEMA = "molmo_cleanup_skill_scratchpad_v1"
-DEFAULT_PATH = Path("cleanup_scratch.json")
+DEFAULT_PATH = Path("agent_scratchpad.json")
 
 
 def empty_scratchpad() -> dict[str, Any]:

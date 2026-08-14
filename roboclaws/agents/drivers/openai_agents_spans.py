@@ -8,6 +8,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from roboclaws.agents.drivers.openai_agents_event_projection import _drop_empty, _to_jsonable
+
 
 class RoboclawsSpanRecorder:
     """Tracing processor that writes sanitized SDK span metadata.
@@ -210,31 +212,3 @@ def _append_event(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(payload, sort_keys=True) + "\n")
-
-
-def _drop_empty(payload: dict[str, Any]) -> dict[str, Any]:
-    return {key: value for key, value in payload.items() if not _is_empty_json_value(value)}
-
-
-def _is_empty_json_value(value: Any) -> bool:
-    if value is None:
-        return True
-    if isinstance(value, str) and value == "":
-        return True
-    if isinstance(value, (list, tuple, dict)) and not value:
-        return True
-    return False
-
-
-def _to_jsonable(value: Any) -> Any:
-    if isinstance(value, (str, int, float, bool)) or value is None:
-        return value
-    if isinstance(value, dict):
-        return {str(key): _to_jsonable(item) for key, item in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_to_jsonable(item) for item in value]
-    if hasattr(value, "model_dump"):
-        return _to_jsonable(value.model_dump())
-    if hasattr(value, "__dict__"):
-        return _to_jsonable(vars(value))
-    return str(value)

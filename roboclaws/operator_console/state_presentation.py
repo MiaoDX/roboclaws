@@ -8,28 +8,11 @@ from typing import Any
 
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.routes import ConsoleLaunchSelection
+from roboclaws.operator_console.state_artifacts import LIVE_RUN_MARKERS
 from roboclaws.operator_console.state_summary import (
     is_active_run_phase,
     is_terminal_run_phase,
 )
-
-LIVE_RUN_MARKERS = (
-    "live_status.json",
-    "run_result.json",
-    "trace.jsonl",
-    "report.html",
-    "runtime_metric_map.json",
-    "tmux_session.txt",
-    "driver.log",
-    "openai-agents-events.jsonl",
-    "openai-agents-trace.json",
-)
-
-
-def _artifact_href(root: Path, path: Path) -> str:
-    if not path.is_relative_to(root):
-        return ""
-    return f"/artifacts/{path.relative_to(root)}?v={path.stat().st_mtime_ns}"
 
 
 def _terminal_reason(

@@ -42,19 +42,17 @@ from roboclaws.agents.drivers.openai_agents_spans import (
     RoboclawsSpanRecorder,
     append_span_limitation,
 )
-from roboclaws.agents.live_runtime import LiveAgentRequest, LiveAgentResult, LiveAgentRuntime
+from roboclaws.agents.live_runtime import LiveAgentRequest, LiveAgentResult
 from roboclaws.agents.live_status import LiveAgentFailure
 
 
-class OpenAIAgentsLiveRuntime(LiveAgentRuntime):
+class OpenAIAgentsLiveRuntime:
     """Run one Roboclaws live-agent turn through the OpenAI Agents SDK.
 
     This runtime is intentionally private/experimental. It does not claim Codex
     CLI equivalence and it does not infer cleanup completion; the MCP server's
     ``done`` path still owns ``run_result.json`` and checker eligibility.
     """
-
-    runtime_name = "openai-agents-live"
 
     def run(self, request: LiveAgentRequest) -> LiveAgentResult:
         started_at = time.time()

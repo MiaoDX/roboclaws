@@ -93,6 +93,25 @@ def public_agent_view_result_payload(agent_view: dict[str, Any]) -> dict[str, An
     }
 
 
+def compose_household_run_result(payload: dict[str, Any]) -> dict[str, Any]:
+    task_intent = str(payload["task_intent"])
+    cleanup_status = str(payload["cleanup_status"])
+    score = payload["score"]
+    agent_view = payload["agent_view"]
+    return {
+        **payload,
+        "contract": REALWORLD_CONTRACT,
+        "adr_0003_satisfied": True,
+        **terminal_status_payload(task_intent, cleanup_status),
+        "completion_status": score["completion_status"],
+        "mess_restoration_rate": score["mess_restoration_rate"],
+        "sweep_coverage_rate": score["sweep_coverage_rate"],
+        "disturbance_count": score["disturbance_count"],
+        "semantic_loop_variant": SEMANTIC_LOOP_VARIANT,
+        **public_agent_view_result_payload(agent_view),
+    }
+
+
 def runtime_map_prior_summary(
     *,
     source: str,
@@ -235,11 +254,22 @@ def finalize_realworld_cleanup_run(inputs: RealWorldRunArtifactInputs) -> dict[s
     artifacts = _artifact_paths(inputs.output_dir)
     write_trace_jsonl(artifacts.trace, inputs.trace_events)
     payloads = _build_payloads(inputs, artifacts)
-    _write_public_artifacts(inputs, artifacts, payloads)
+    write_household_run_public_artifacts(
+        artifacts,
+        agent_view=payloads.agent_view,
+        runtime_metric_map=payloads.runtime_metric_map,
+        private_evaluation=payloads.private_evaluation,
+        advisory_evaluation=payloads.advisory_evaluation,
+        agent_scratchpad=inputs.agent_scratchpad,
+        goal_contract=inputs.goal_contract,
+        render_runtime_map_preview=True,
+        write_agent_scratchpad=True,
+    )
     run_result = _base_run_result(inputs, artifacts, payloads)
     _attach_run_result_sections(inputs, run_result, payloads)
     run_result = _with_run_metadata(run_result, inputs.run_metadata_overrides)
-    report_path = render_cleanup_report(
+    persist_household_run_result(
+        artifacts,
         run_dir=inputs.output_dir,
         scenario=inputs.scenario,
         run_result=run_result,
@@ -248,8 +278,6 @@ def finalize_realworld_cleanup_run(inputs: RealWorldRunArtifactInputs) -> dict[s
         after_snapshot=inputs.after_snapshot,
         robot_view_steps=inputs.robot_view_steps,
     )
-    run_result["artifacts"]["report"] = str(report_path)
-    _write_json(artifacts.run_result, run_result)
     return run_result
 
 
@@ -321,22 +349,56 @@ def _build_payloads(
     )
 
 
-def _write_public_artifacts(
-    inputs: RealWorldRunArtifactInputs,
+def write_household_run_public_artifacts(
     artifacts: _RunArtifactPaths,
-    payloads: _RunPayloads,
+    *,
+    agent_view: dict[str, Any],
+    runtime_metric_map: dict[str, Any],
+    private_evaluation: dict[str, Any],
+    advisory_evaluation: dict[str, Any],
+    agent_scratchpad: dict[str, Any],
+    goal_contract: GoalContract | None,
+    render_runtime_map_preview: bool,
+    write_agent_scratchpad: bool,
 ) -> None:
-    _write_json(artifacts.agent_view, payloads.agent_view)
-    _write_json(artifacts.runtime_metric_map, payloads.runtime_metric_map)
-    write_runtime_metric_map_preview_artifact(
-        output_dir=inputs.output_dir,
-        runtime_metric_map=payloads.runtime_metric_map,
+    _write_json(artifacts.agent_view, agent_view)
+    _write_json(artifacts.runtime_metric_map, runtime_metric_map)
+    if render_runtime_map_preview:
+        write_runtime_metric_map_preview_artifact(
+            output_dir=artifacts.runtime_metric_map.parent,
+            runtime_metric_map=runtime_metric_map,
+        )
+    _write_json(artifacts.private_evaluation, private_evaluation)
+    _write_json(artifacts.advisory_evaluation, advisory_evaluation)
+    if write_agent_scratchpad:
+        _write_json(artifacts.agent_scratchpad, agent_scratchpad)
+    if goal_contract is not None:
+        write_goal_contract(artifacts.goal_contract, goal_contract)
+
+
+def persist_household_run_result(
+    artifacts: _RunArtifactPaths,
+    *,
+    run_dir: Path,
+    scenario: CleanupScenario,
+    run_result: dict[str, Any],
+    trace_events: list[dict[str, Any]],
+    before_snapshot: Path,
+    after_snapshot: Path,
+    robot_view_steps: list[dict[str, Any]],
+) -> Path:
+    report_path = render_cleanup_report(
+        run_dir=run_dir,
+        scenario=scenario,
+        run_result=run_result,
+        trace_events=trace_events,
+        before_snapshot=before_snapshot,
+        after_snapshot=after_snapshot,
+        robot_view_steps=robot_view_steps,
     )
-    _write_json(artifacts.private_evaluation, payloads.private_evaluation)
-    _write_json(artifacts.advisory_evaluation, payloads.advisory_evaluation)
-    _write_json(artifacts.agent_scratchpad, inputs.agent_scratchpad)
-    if inputs.goal_contract is not None:
-        write_goal_contract(artifacts.goal_contract, inputs.goal_contract)
+    run_result["artifacts"]["report"] = str(report_path)
+    _write_json(artifacts.run_result, run_result)
+    return report_path
 
 
 def _base_run_result(
@@ -349,63 +411,64 @@ def _base_run_result(
         or ("map-build" if inputs.map_build else "cleanup")
     )
     cleanup_status = inputs.done["cleanup_status"]
-    return {
-        "backend": inputs.backend,
-        "scenario_id": inputs.scenario.scenario_id,
-        "seed": inputs.seed,
-        "task_prompt": inputs.task_prompt,
-        "task_surface": payloads.goal_contract_payload.get("surface", "household-world"),
-        "task_intent": task_intent,
-        "goal_contract": payloads.goal_contract_payload,
-        "agent_completion_claim": payloads.agent_completion_claim,
-        "contract": REALWORLD_CONTRACT,
-        "adr_0003_satisfied": True,
-        **terminal_status_payload(task_intent, cleanup_status),
-        "terminate_reason": f"{inputs.policy_name} complete",
-        "cleanup_status": cleanup_status,
-        "completion_status": inputs.done["score"]["completion_status"],
-        "primitive_provenance": payloads.primitive.provenance,
-        "primitive_provenance_summary": payloads.primitive.summary,
-        "manipulation_evidence": payloads.primitive.manipulation,
-        "policy": inputs.policy_name,
-        "planner": inputs.policy_name,
-        "agent_driven": False,
-        "policy_uses_private_truth": False,
-        "planner_uses_private_manifest": False,
-        "planner_proof_cleanup_executor_enabled": (inputs.use_planner_proof_for_cleanup_primitives),
-        "static_fixture_projection_mode": inputs.contract.static_fixture_projection_mode,
-        "perception_mode": inputs.perception_mode,
-        "map_build_mode": inputs.map_build,
-        "cleanup_actions_disabled": inputs.map_build,
-        "runtime_metric_map_prior": _runtime_map_prior_summary(inputs),
-        "camera_labeler": _camera_labeler(inputs),
-        "visual_grounding_pipeline_id": inputs.contract.visual_grounding_pipeline_id,
-        "requested_generated_mess_count": inputs.generated_mess_count,
-        "generated_mess_count": payloads.private_evaluation["generated_mess_count"],
-        "mess_restoration_rate": inputs.done["score"]["mess_restoration_rate"],
-        "sweep_coverage_rate": inputs.done["score"]["sweep_coverage_rate"],
-        "disturbance_count": inputs.done["score"]["disturbance_count"],
-        "semantic_loop_variant": SEMANTIC_LOOP_VARIANT,
-        "semantic_substeps": payloads.substeps,
-        "cleanup_primitive_evidence": payloads.cleanup_primitive_evidence,
-        "planner_proof_requests": payloads.planner_proof_requests,
-        "cleanup_policy_trace": payloads.cleanup_policy_trace,
-        "real_robot_readiness": payloads.real_robot_readiness,
-        "agent_view": payloads.agent_view,
-        "runtime_metric_map": payloads.runtime_metric_map,
-        **public_agent_view_result_payload(payloads.agent_view),
-        "map_build": _map_build_payload(inputs, artifacts),
-        "agent_scratchpad": inputs.agent_scratchpad,
-        "private_evaluation": payloads.private_evaluation,
-        "advisory_evaluation": payloads.advisory_evaluation,
-        "score": inputs.done["score"],
-        "final_locations": inputs.done["final_locations"],
-        "final_containment": inputs.done.get("final_containment", {}),
-        "tool_event_counts": payloads.public_tool_counts,
-        "backend_tool_event_counts": inputs.done["tool_event_counts"],
-        "rerun_command": report_rerun_command_from_env(),
-        "artifacts": _base_artifacts_payload(artifacts, inputs),
-    }
+    return compose_household_run_result(
+        {
+            "backend": inputs.backend,
+            "scenario_id": inputs.scenario.scenario_id,
+            "seed": inputs.seed,
+            "task_prompt": inputs.task_prompt,
+            "task_surface": payloads.goal_contract_payload.get("surface", "household-world"),
+            "task_intent": task_intent,
+            "goal_contract": payloads.goal_contract_payload,
+            "agent_completion_claim": payloads.agent_completion_claim,
+            "terminate_reason": f"{inputs.policy_name} complete",
+            "cleanup_status": cleanup_status,
+            "primitive_provenance": payloads.primitive.provenance,
+            "primitive_provenance_summary": payloads.primitive.summary,
+            "manipulation_evidence": payloads.primitive.manipulation,
+            "policy": inputs.policy_name,
+            "planner": inputs.policy_name,
+            "agent_driven": False,
+            "policy_uses_private_truth": False,
+            "planner_uses_private_manifest": False,
+            "planner_proof_cleanup_executor_enabled": (
+                inputs.use_planner_proof_for_cleanup_primitives
+            ),
+            "static_fixture_projection_mode": inputs.contract.static_fixture_projection_mode,
+            "perception_mode": inputs.perception_mode,
+            "map_build_mode": inputs.map_build,
+            "cleanup_actions_disabled": inputs.map_build,
+            "runtime_metric_map_prior": _runtime_map_prior_summary(inputs),
+            "camera_labeler": _camera_labeler(inputs),
+            "visual_grounding_pipeline_id": inputs.contract.visual_grounding_pipeline_id,
+            "requested_generated_mess_count": inputs.generated_mess_count,
+            "generated_mess_count": payloads.private_evaluation["generated_mess_count"],
+            "semantic_substeps": payloads.substeps,
+            "cleanup_primitive_evidence": payloads.cleanup_primitive_evidence,
+            "planner_proof_requests": payloads.planner_proof_requests,
+            "cleanup_policy_trace": payloads.cleanup_policy_trace,
+            "real_robot_readiness": payloads.real_robot_readiness,
+            "agent_view": payloads.agent_view,
+            "runtime_metric_map": payloads.runtime_metric_map,
+            "map_build": _map_build_payload(inputs, artifacts),
+            "agent_scratchpad": inputs.agent_scratchpad,
+            "private_evaluation": payloads.private_evaluation,
+            "advisory_evaluation": payloads.advisory_evaluation,
+            "score": inputs.done["score"],
+            "final_locations": inputs.done["final_locations"],
+            "final_containment": inputs.done.get("final_containment", {}),
+            "tool_event_counts": payloads.public_tool_counts,
+            "backend_tool_event_counts": inputs.done["tool_event_counts"],
+            "rerun_command": report_rerun_command_from_env(),
+            "artifacts": household_run_artifact_payload(
+                artifacts,
+                before_snapshot=inputs.before_snapshot,
+                after_snapshot=inputs.after_snapshot,
+                goal_contract=inputs.goal_contract,
+                include_runtime_map_preview=True,
+            ),
+        }
+    )
 
 
 def _attach_run_result_sections(
@@ -541,23 +604,28 @@ def _map_build_payload(
     }
 
 
-def _base_artifacts_payload(
+def household_run_artifact_payload(
     artifacts: _RunArtifactPaths,
-    inputs: RealWorldRunArtifactInputs,
+    *,
+    before_snapshot: Path,
+    after_snapshot: Path,
+    goal_contract: GoalContract | None,
+    include_runtime_map_preview: bool,
 ) -> dict[str, str]:
     payload = {
         "agent_view": str(artifacts.agent_view),
         "runtime_metric_map": str(artifacts.runtime_metric_map),
-        "runtime_metric_map_preview": str(artifacts.runtime_metric_map_preview),
         "private_evaluation": str(artifacts.private_evaluation),
         "advisory_evaluation": str(artifacts.advisory_evaluation),
         "agent_scratchpad": str(artifacts.agent_scratchpad),
         "planner_proof_requests": str(artifacts.planner_proof_requests),
         "trace": str(artifacts.trace),
-        "before_snapshot": str(inputs.before_snapshot),
-        "after_snapshot": str(inputs.after_snapshot),
+        "before_snapshot": str(before_snapshot),
+        "after_snapshot": str(after_snapshot),
     }
-    if inputs.goal_contract is not None:
+    if include_runtime_map_preview:
+        payload["runtime_metric_map_preview"] = str(artifacts.runtime_metric_map_preview)
+    if goal_contract is not None:
         payload["goal_contract"] = str(artifacts.goal_contract)
     return payload
 
