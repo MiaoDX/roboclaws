@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 from pathlib import Path
 from typing import Any
@@ -10,6 +11,7 @@ from typing import Any
 from roboclaws.agents.skill_delivery import build_skill_delivery, validate_skill_delivery_cell
 
 MAX_AGENT_SDK_SKILL_CONTEXT_BYTES = 24_000
+EVAL_SKILL_SOURCE_ROOT_ENV = "ROBOCLAWS_EVAL_SKILL_SOURCE_ROOT"
 
 
 def _estimated_tokens_from_chars(char_count: int) -> int:
@@ -76,6 +78,23 @@ def _load_agent_sdk_skill_context(
         "delivery": delivery,
         "delivery_cell": delivery_cell,
     }
+
+
+def eval_skill_source_root(default_repo_root: Path) -> Path:
+    raw = os.environ.get(EVAL_SKILL_SOURCE_ROOT_ENV)
+    if not raw:
+        return Path(default_repo_root)
+    root = Path(raw).resolve()
+    record_path = root / "candidate.json"
+    try:
+        record = json.loads(record_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError("eval Skill source root requires a readable candidate.json") from exc
+    if not isinstance(record, dict) or record.get("identity_frozen") is not True:
+        raise ValueError("eval Skill source root requires frozen candidate identity")
+    if record.get("target_kind") != "skill" or record.get("workspace") != str(root):
+        raise ValueError("eval Skill source root candidate identity mismatch")
+    return root
 
 
 def _skill_context_timing_summary(skill_context: dict[str, Any]) -> dict[str, Any]:

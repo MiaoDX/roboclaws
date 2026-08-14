@@ -17,12 +17,16 @@ def run_with_model_call_stall_retry(
     *,
     run_dir: Path,
     run_attempt: LiveAttempt,
+    max_retries: int = LIVE_MODEL_CALL_STALL_RETRY_LIMIT,
 ) -> tuple[dict[str, Any], Path]:
     """Retry one in-flight model stall in a fresh child directory."""
 
+    if max_retries not in {0, 1}:
+        raise ValueError("live eval max_retries must be 0 or 1")
+
     attempts: list[dict[str, Any]] = []
     audit_path = run_dir / LIVE_TRIAL_ATTEMPTS_FILENAME
-    for attempt_index in range(LIVE_MODEL_CALL_STALL_RETRY_LIMIT + 1):
+    for attempt_index in range(max_retries + 1):
         attempt_run_dir = run_dir if attempt_index == 0 else run_dir / f"retry-{attempt_index:04d}"
         try:
             result = run_attempt(attempt_run_dir)
@@ -36,11 +40,15 @@ def run_with_model_call_stall_retry(
                     exc=exc,
                 )
             )
-            if retryable and attempt_index < LIVE_MODEL_CALL_STALL_RETRY_LIMIT:
-                _write_attempts(audit_path, attempts, final_outcome="retrying")
+            if retryable and attempt_index < max_retries:
+                _write_attempts(
+                    audit_path, attempts, final_outcome="retrying", max_retries=max_retries
+                )
                 continue
             if attempts[0]["status"] == "stalled":
-                _write_attempts(audit_path, attempts, final_outcome="failed")
+                _write_attempts(
+                    audit_path, attempts, final_outcome="failed", max_retries=max_retries
+                )
                 setattr(exc, "live_trial_attempts", attempts)
                 setattr(exc, "live_trial_attempts_path", str(audit_path))
             raise
@@ -54,7 +62,7 @@ def run_with_model_call_stall_retry(
             )
         )
         if attempt_index:
-            _write_attempts(audit_path, attempts, final_outcome="passed")
+            _write_attempts(audit_path, attempts, final_outcome="passed", max_retries=max_retries)
         return run_result, effective_run_dir
     raise AssertionError("live trial retry loop exhausted without a result")
 
@@ -94,13 +102,15 @@ def _attempt_record(
     return record
 
 
-def _write_attempts(path: Path, attempts: list[dict[str, Any]], *, final_outcome: str) -> None:
+def _write_attempts(
+    path: Path, attempts: list[dict[str, Any]], *, final_outcome: str, max_retries: int
+) -> None:
     path.write_text(
         json.dumps(
             {
                 "schema": "roboclaws_live_trial_attempts_v1",
                 "retry_policy": {
-                    "max_retries": LIVE_MODEL_CALL_STALL_RETRY_LIMIT,
+                    "max_retries": max_retries,
                     "timeout_kind": "stall_timeout",
                     "timeout_signal": "model_call_in_flight",
                 },

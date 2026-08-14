@@ -1,0 +1,35 @@
+{
+  "schema": "roboclaws_eval_sample_v1",
+  "sample_id": "evolution.skill_holdout_scene11_seed7",
+  "version": "2026-08-05",
+  "surface": "household-world",
+  "intent": "cleanup",
+  "preset": "cleanup",
+  "world": "molmospaces/procthor-10k-val/11",
+  "backend": "mujoco",
+  "evidence_lane": "world-public-labels",
+  "camera_labeler": "not_applicable",
+  "scenario_setup": "relocate-cleanup-related-objects",
+  "seed": 7,
+  "prompt": "not_applicable",
+  "goal_contract_hash": "unavailable",
+  "allowed_agent_engines": ["openai-agents-sdk"],
+  "provider_profiles": ["codex-responses", "mimo-responses", "minimax-responses", "kimi-openai-chat"],
+  "trial_count": 1,
+  "required_graders": ["artifacts", "privacy", "trajectory", "outcome"],
+  "private_goal_reference": {
+    "schema": "household_eval_private_goal_reference_v1",
+    "private_truth_scope": "grader_only",
+    "generated_mess_count": 5,
+    "acceptable_destinations": "private"
+  },
+  "launch_overrides": {
+    "agent_engine": "openai-agents-sdk",
+    "scene_source": "procthor-10k-val",
+    "scene_index": 11,
+    "evidence_lane": "world-public-labels",
+    "seed": 7,
+    "scenario_setup": "relocate-cleanup-related-objects",
+    "relocation_count": 5
+  }
+}

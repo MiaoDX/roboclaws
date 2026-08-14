@@ -8,6 +8,8 @@ import os
 import sys
 
 _TOOL_MODES = {
+    "evolve",
+    "evolve-promote",
     "map-build-report",
     "promote-regression",
     "runtime-prior-promote",

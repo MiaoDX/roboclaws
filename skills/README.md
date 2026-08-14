@@ -38,6 +38,9 @@ profile, public/private boundaries are clear, and traces can preserve substeps.
   optionally executes deterministic gates, product rows, eval suites,
   live-agent evals, perception rows, simulator rows, and map/cleanup-consumer
   rows from plan, diff, or explicit axis signals.
+- `eval-evolution`: bounded Agents SDK optimizer campaigns for one Skill or
+  existing MCP target, with frozen evidence, sealed confirmation, and explicit
+  human-only patch promotion.
 - `raw-fpv-visual-labeler`: perception-only RAW-FPV frame-group labeling
   contract for visible cleanup-relevant movable objects.
 - `scene-gaussian-map-alignment`: scene-specific alignment workflow for
