@@ -123,7 +123,7 @@ scoped smoke as a completed full baseline refresh.
 2. Check the current CML context without printing credential fields. Query
    queue resources and workspace quota with machine-readable output where
    supported.
-3. Before live provider rows, run `just dev::network-status`. Stop guarded
+3. Before live provider rows, run `scripts/dev/network_status.sh`. Stop guarded
    provider routes when it reports `network: work`.
 4. Read each provider row's `provider_network_scope` and
    `allowed_execution_targets` from the frozen manifest before probing any

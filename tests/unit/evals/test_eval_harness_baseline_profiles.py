@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import importlib.util
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-SELECTOR_PATH = REPO_ROOT / "skills" / "eval-harness" / "scripts" / "select_eval_harness.py"
+from roboclaws.evals.harness import selector
 
 LIVE_AGENT_ROW_IDS = {
     "map-build-consumer-openai-agents-sdk-codex-responses",
@@ -20,18 +18,6 @@ ALTERNATE_PROVIDER_MATRIX_ROW_IDS = {
     "map-build-consumer-openai-agents-sdk-mimo-responses",
     "map-build-consumer-openai-agents-sdk-minimax-responses",
 }
-
-
-def _load_selector():
-    spec = importlib.util.spec_from_file_location("eval_harness_baseline_profiles", SELECTOR_PATH)
-    assert spec is not None
-    assert spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-selector = _load_selector()
 
 
 def _selected_rows(manifest: dict) -> dict[str, dict]:

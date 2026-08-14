@@ -3,16 +3,15 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from roboclaws.household import planner_proof_bundle_validation
 from roboclaws.household.planner_proof_results import proof_result_summary_from_commands
 from roboclaws.household.report_planner import render_planner_proof_bundle_runner_report
 from tests.contract.checkers.check_molmo_planner_proof_bundle_runner_result_support import (
-    _load_checker,
     _runner_manifest,
 )
 
 
 def test_checker_accepts_local_runtime_blocked_runner_artifact(tmp_path: Path) -> None:
-    checker = _load_checker()
     manifest = _runner_manifest(tmp_path)
     manifest["status"] = "local_runtime_blocked"
     manifest["local_runtime_preflight"] = {
@@ -244,4 +243,4 @@ def test_checker_accepts_local_runtime_blocked_runner_artifact(tmp_path: Path) -
     )
     render_planner_proof_bundle_runner_report(output_dir=tmp_path, manifest=manifest)
 
-    checker._assert_runner_result(manifest, tmp_path)
+    planner_proof_bundle_validation.assert_runner_result(manifest, tmp_path)

@@ -37,7 +37,6 @@ def agibot_sdk_runner_section(
     )
     tools = ", ".join(str(item) for item in runner.get("public_tool_boundary") or [])
     gdk_imported = runner.get("gdk_imported_by_roboclaws", "unknown")
-    next_layer = str(runner.get("next_confidence_layer") or "")
     metrics = (
         '<div class="metric-grid">'
         f"{metric('Backend variant', runner.get('backend_variant', 'unknown'))}"
@@ -58,20 +57,12 @@ def agibot_sdk_runner_section(
         "Dry-run rows are reviewable rehearsal evidence, not physical PNC "
         "execution proof."
     )
-    next_layer_note = (
-        '<p class="note">Next confidence layer: '
-        f"{html.escape(next_layer)}. This report is the map/SDK dry-run layer; "
-        "semantic cleanup actions and real GDK execution remain separate layers.</p>"
-        if next_layer
-        else ""
-    )
     return (
         '<section class="panel agibot-sdk-runner">'
         f"<h2>{heading}</h2>"
         f'<p class="note">{html.escape(intro)}</p>'
         f"{metrics}"
         f'<p class="note">Public Roboclaws tools preserved: {html.escape(tools)}</p>'
-        f"{next_layer_note}"
         f"{table}</section>"
     )
 

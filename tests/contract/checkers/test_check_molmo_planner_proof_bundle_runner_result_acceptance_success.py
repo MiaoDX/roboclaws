@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 import pytest
 
+from roboclaws.household import planner_proof_bundle_validation
 from roboclaws.household.planner_proof_results import proof_result_summary_from_commands
 from roboclaws.household.planner_proof_selection import proof_request_selection_from_summary
 from roboclaws.household.report_planner import render_planner_proof_bundle_runner_report
 from tests.contract.checkers.check_molmo_planner_proof_bundle_runner_result_support import (
-    _load_checker,
     _runner_manifest,
     _write_manifest_and_report,
     _write_runner_artifact,
@@ -18,45 +17,35 @@ from tests.contract.checkers.check_molmo_planner_proof_bundle_runner_result_supp
 
 
 def test_checker_accepts_valid_runner_artifact(tmp_path: Path) -> None:
-    checker = _load_checker()
     manifest = _write_runner_artifact(tmp_path)
 
-    checker._assert_runner_result(manifest, tmp_path)
+    planner_proof_bundle_validation.assert_runner_result(manifest, tmp_path)
 
 
 def test_checker_accepts_directory_path_via_main(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    checker = _load_checker()
     _write_runner_artifact(tmp_path)
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        ["check_molmo_planner_proof_bundle_runner_result.py", str(tmp_path)],
-    )
 
-    checker.main()
+    planner_proof_bundle_validation.main([str(tmp_path)])
 
-    assert "molmo-planner-proof-bundle-runner ok" in capsys.readouterr().out
+    assert "planner-proof-bundle ok" in capsys.readouterr().out
 
 
 def test_checker_accepts_paths_relative_to_current_working_dir(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    checker = _load_checker()
     monkeypatch.chdir(tmp_path)
     base = Path("bundle")
     base.mkdir()
     manifest = _write_runner_artifact(base)
 
-    checker._assert_runner_result(manifest, base)
+    planner_proof_bundle_validation.assert_runner_result(manifest, base)
 
 
 def test_checker_accepts_generated_fallback_commands(tmp_path: Path) -> None:
-    checker = _load_checker()
     manifest = _runner_manifest(tmp_path)
     manifest["ready_request_count"] = 0
     manifest["commands"][0]["request_id"] = "proof_001_fallback_01"
@@ -299,11 +288,10 @@ def test_checker_accepts_generated_fallback_commands(tmp_path: Path) -> None:
     assert 'src="prior-proof/final.png"' in report
     assert f'src="{tmp_path}/prior-proof/final.png"' not in report
     assert "PriorBread_1" in report
-    checker._assert_runner_result(manifest, tmp_path)
+    planner_proof_bundle_validation.assert_runner_result(manifest, tmp_path)
 
 
 def test_checker_accepts_partial_selection_with_exhausted_fallbacks(tmp_path: Path) -> None:
-    checker = _load_checker()
     manifest = _runner_manifest(tmp_path)
     manifest["commands"][0]["request_id"] = "proof_002"
     manifest["commands"][0]["object_id"] = "observed_002"
@@ -407,13 +395,12 @@ def test_checker_accepts_partial_selection_with_exhausted_fallbacks(tmp_path: Pa
     )
     render_planner_proof_bundle_runner_report(output_dir=tmp_path, manifest=manifest)
 
-    checker._assert_runner_result(manifest, tmp_path)
+    planner_proof_bundle_validation.assert_runner_result(manifest, tmp_path)
     report = (tmp_path / "report.html").read_text(encoding="utf-8")
     assert "Grasp Feasibility Blocker Matrix" in report
 
 
 def test_checker_accepts_grasp_only_task_sampler_diagnostics(tmp_path: Path) -> None:
-    checker = _load_checker()
     manifest = _runner_manifest(tmp_path)
     manifest["proof_request_selection"] = proof_request_selection_from_summary(
         {
@@ -494,11 +481,10 @@ def test_checker_accepts_grasp_only_task_sampler_diagnostics(tmp_path: Path) -> 
     assert "Post-Placement Rejection Views" in report
     assert "Post-placement rejection flow: pickup/body" in report
     assert "Task sampler placement failures" not in report
-    checker._assert_runner_result(manifest, tmp_path)
+    planner_proof_bundle_validation.assert_runner_result(manifest, tmp_path)
 
 
 def test_checker_accepts_visible_warmup_artifact(tmp_path: Path) -> None:
-    checker = _load_checker()
     manifest = _runner_manifest(tmp_path)
     warmup_dir = tmp_path / "rby1m_curobo_warmup"
     manifest["warmup"] = {
@@ -519,10 +505,12 @@ def test_checker_accepts_visible_warmup_artifact(tmp_path: Path) -> None:
     }
     _write_manifest_and_report(tmp_path, manifest)
 
-    checker._assert_runner_result(manifest, tmp_path)
+    planner_proof_bundle_validation.assert_runner_result(manifest, tmp_path)
 
     with pytest.raises(AssertionError):
-        checker._assert_runner_result(manifest, tmp_path, require_proof_outputs=True)
+        planner_proof_bundle_validation.assert_runner_result(
+            manifest, tmp_path, require_proof_outputs=True
+        )
 
     warmup_dir.mkdir()
     (warmup_dir / "run_result.json").write_text("{}", encoding="utf-8")
@@ -534,4 +522,6 @@ def test_checker_accepts_visible_warmup_artifact(tmp_path: Path) -> None:
     manifest["proof_result_summary"] = proof_result_summary_from_commands(manifest["commands"])
     _write_manifest_and_report(tmp_path, manifest)
 
-    checker._assert_runner_result(manifest, tmp_path, require_proof_outputs=True)
+    planner_proof_bundle_validation.assert_runner_result(
+        manifest, tmp_path, require_proof_outputs=True
+    )

@@ -1,70 +1,28 @@
-# Agent-maintainer dispatchers.
+# Canonical agent and CI tasks.
 
 set working-directory := '..'
 set positional-arguments
 
+# Prevent namespace-only invocation from running the first public recipe.
 [private]
 default:
     @just --list agent
 
-python_bin := env_var_or_default("ROBOCLAWS_DEVTOOLS_PYTHON", ".venv/bin/python")
-
-# Dispatch to a private verification gate.
-verify target="mock" *args:
+# Run the single required local/CI gate.
+verify:
     #!/usr/bin/env bash
     set -euo pipefail
-    target="$1"
-    shift
-    if ! just --show "verify::${target}" >/dev/null 2>&1; then
-      echo "error: unsupported verify target '$target'" >&2
-      exit 1
-    fi
-    command=(just "verify::${target}" "$@")
-    if [[ "${ROBOCLAWS_JUST_TRACE:-}" == "1" ]]; then
-      printf 'just'
-      printf '\t%s' "${command[@]:1}"
-      printf '\n'
-      exit 0
-    fi
-    exec "${command[@]}"
-
-# Dispatch to a private harness recipe.
-harness target *args:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    target="$1"
-    shift
-    if ! just --show "harness::${target}" >/dev/null 2>&1; then
-      echo "error: unsupported harness target '$target'" >&2
-      exit 1
-    fi
-    command=(just "harness::${target}" "$@")
-    if [[ "${ROBOCLAWS_JUST_TRACE:-}" == "1" ]]; then
-      printf 'just'
-      printf '\t%s' "${command[@]:1}"
-      printf '\n'
-      exit 0
-    fi
-    exec "${command[@]}"
-
-# Manage a household MCP server.
-mcp action="up" server="household-world" host="127.0.0.1" port="18788" output_dir=".tmp/roboclaws-mcp/run":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    action="$1"
-    case "$action" in
-      up) command=(just mcp::up "$2" "$3" "$4" "$5") ;;
-      down) command=(just mcp::down) ;;
-      *) echo "error: unsupported mcp action '$action' (expected up|down)" >&2; exit 1 ;;
-    esac
-    if [[ "${ROBOCLAWS_JUST_TRACE:-}" == "1" ]]; then
-      printf 'just'
-      printf '\t%s' "${command[@]:1}"
-      printf '\n'
-      exit 0
-    fi
-    exec "${command[@]}"
+    .venv/bin/ruff check .
+    .venv/bin/ruff format --check .
+    .venv/bin/python scripts/dev/check_python_quality_ratchet.py
+    .venv/bin/python scripts/dev/check_architecture_import_graph.py
+    git diff --check
+    ROBOCLAWS_PYTEST_CLEAR_PROVIDER_ENV=1 ./scripts/dev/run_pytest_standalone.sh \
+      -m "not local and not slow" -q --durations=5
+    ./scripts/dev/run_pytest_standalone.sh -q \
+      tests/contract/reports/test_molmo_cleanup_report_*.py \
+      tests/contract/reports/test_molmo_cleanup_artifact_report.py
 
 # Run a repo-native eval suite.
 eval *overrides:
-    @exec {{python_bin}} -m roboclaws.evals.cli "$@"
+    @exec .venv/bin/python -m roboclaws.evals.cli "$@"

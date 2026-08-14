@@ -10,12 +10,12 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
+import roboclaws.evals.cleanup_result_args as cleanup_validation_args
 from roboclaws.backends.isaaclab.b1_base_metric_augmentation import augment_base_metric_map_bundle
 from roboclaws.backends.isaaclab.b1_readiness_validation import (
     DEFAULT_B1_VISUAL_ROUTE_SCENE_USD,
     NAVIGATION_PROVENANCE,
 )
-from roboclaws.evals import cleanup_result_args as cleanup_validation_args
 from roboclaws.evals.cleanup_result_grader import assert_advisory_scoring
 from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household import cleanup_validation as cleanup_checker
@@ -40,8 +40,8 @@ from roboclaws.maps.b1_base_metric_map import build_base_metric_map_bundle
 from roboclaws.mcp.profiles import HOUSEHOLD_EPISODE_PROFILE, HOUSEHOLD_WORLD_PROFILE
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEMO_PATH = REPO_ROOT / "examples" / "molmo_cleanup" / "molmospaces_realworld_cleanup.py"
-SMOKE_PATH = REPO_ROOT / "scripts" / "molmo_cleanup" / "run_molmo_realworld_agent_mcp_smoke.py"
+DEMO_PATH = REPO_ROOT / "roboclaws" / "household" / "household_world_episode.py"
+SMOKE_PATH = REPO_ROOT / "roboclaws" / "household" / "household_mcp_smoke.py"
 AGIBOT_CONTEXT_FIXTURE = REPO_ROOT / "tests" / "fixtures" / "agibot_map_context.completed.json"
 AGIBOT_SDK_RUNNER_PATH = REPO_ROOT / "vendors/agibot_sdk/tools/run_agibot_cleanup_backend.py"
 B1_MAP12_BUNDLE = REPO_ROOT / "vendors/agibot_sdk/artifacts/maps/robot_map_12/agibot"

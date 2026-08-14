@@ -14,12 +14,11 @@
 set working-directory := '..'
 set positional-arguments
 
+# Prevent namespace-only invocation from running the first public recipe.
 [private]
 default:
     @just --list run
 
 # Run a canonical surface/intent route through explicit launch axes.
 surface *overrides:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    exec .venv/bin/python -m roboclaws.cli.main run surface "$@"
+    @exec .venv/bin/python -m roboclaws.cli.main run surface "$@"

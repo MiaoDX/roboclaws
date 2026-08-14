@@ -147,11 +147,6 @@ def normalized_launch_overrides(
     error_type: type[ValueError] = ValueError,
 ) -> dict[str, str]:
     normalized = {str(key): str(value) for key, value in overrides.items()}
-    if "generated_mess_count" in normalized:
-        raise error_type(
-            "generated_mess_count is no longer a public route parameter; "
-            "use scenario_setup and relocation_count"
-        )
     default_map = {
         override_key(item): item.split("=", 1)[1]
         for item in route.launch_default_overrides

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -29,8 +30,6 @@ from roboclaws.maps.spatial_contract import source_frame_spatial_contract
 REPO_ROOT = Path(__file__).resolve().parents[3]
 ROBOT_MAP_12_FIXTURE = REPO_ROOT / "tests" / "fixtures" / "runtime_map_prior" / "robot_map_12"
 CANONICAL_SCENE_BUNDLE = REPO_ROOT / "assets" / "maps" / "molmospaces" / "procthor-10k-val" / "0"
-CONVERTER_PATH = REPO_ROOT / "scripts" / "maps" / "convert_agibot_navigation_memory.py"
-NAV2_BUNDLE_CONVERTER_PATH = REPO_ROOT / "scripts" / "maps" / "convert_nav2_cleanup_bundle.py"
 FORBIDDEN_PRIVATE_KEYS = {
     "acceptable_destination_sets",
     "generated_mess_set",
@@ -209,21 +208,36 @@ def test_nav2_cleanup_bundle_rejects_invalid_waypoint_geometry(
         runtime_prior_snapshot_from_nav2_cleanup_bundle(bundle_dir)
 
 
-def test_agibot_navigation_memory_converter_script_writes_snapshot_and_summary(
+def test_agibot_navigation_memory_converter_cli_writes_snapshot_and_summary(
     tmp_path: Path,
 ) -> None:
-    converter = _load_module(CONVERTER_PATH, "convert_agibot_navigation_memory")
     output = tmp_path / "runtime_map_prior_snapshot.json"
     summary = tmp_path / "materialized_targets.json"
 
-    converter.main(
-        [str(ROBOT_MAP_12_FIXTURE), "--output", str(output), "--summary-json", str(summary)]
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "roboclaws.maps.runtime_prior_conversion",
+            "agibot-navigation-memory",
+            str(ROBOT_MAP_12_FIXTURE),
+            "--output",
+            str(output),
+            "--summary-json",
+            str(summary),
+        ],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
     )
 
     snapshot = json.loads(output.read_text(encoding="utf-8"))
     targets = json.loads(summary.read_text(encoding="utf-8"))
 
     assert snapshot["schema"] == RUNTIME_MAP_PRIOR_SNAPSHOT_SCHEMA
+    assert result.stderr == ""
+    assert "runtime-map-prior snapshot exported" in result.stdout
     assert snapshot["producer"]["type"] == "offline_navigation_memory_conversion"
     assert "anchor_sink_kitchen_1" in targets["actionable_fixture_ids"]
     assert "anchor_plastic_bottle_table_1" not in targets["actionable_fixture_ids"]
@@ -273,19 +287,36 @@ def test_nav2_cleanup_bundle_converts_to_runtime_prior_snapshot_shape(tmp_path: 
     _assert_no_forbidden_keys(snapshot)
 
 
-def test_nav2_cleanup_bundle_converter_script_writes_snapshot_and_summary(
+def test_nav2_cleanup_bundle_converter_cli_writes_snapshot_and_summary(
     tmp_path: Path,
 ) -> None:
-    converter = _load_module(NAV2_BUNDLE_CONVERTER_PATH, "convert_nav2_cleanup_bundle")
     bundle_dir = _write_minimal_nav2_cleanup_bundle(tmp_path / "bundle")
     output = tmp_path / "runtime_map_prior_snapshot.json"
     summary = tmp_path / "materialized_targets.json"
 
-    converter.main([str(bundle_dir), "--output", str(output), "--summary-json", str(summary)])
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "roboclaws.maps.runtime_prior_conversion",
+            "nav2-cleanup-bundle",
+            str(bundle_dir),
+            "--output",
+            str(output),
+            "--summary-json",
+            str(summary),
+        ],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
     snapshot = json.loads(output.read_text(encoding="utf-8"))
     targets = json.loads(summary.read_text(encoding="utf-8"))
     assert snapshot["schema"] == RUNTIME_MAP_PRIOR_SNAPSHOT_SCHEMA
+    assert result.stderr == ""
+    assert "runtime-map-prior snapshot exported" in result.stdout
     assert snapshot["producer"]["type"] == "offline_nav2_cleanup_bundle_conversion"
     assert targets["actionable_waypoint_ids"] == ["room_a_center"]
 
@@ -492,12 +523,3 @@ def _invalid_nav_goal(nav_goal: dict, case: str) -> object:
     else:
         result[field] = "not-a-number"
     return result
-
-
-def _load_module(path: Path, name: str):
-    spec = importlib.util.spec_from_file_location(name, path)
-    assert spec is not None
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module

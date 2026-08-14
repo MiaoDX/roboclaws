@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import argparse
 import copy
 import hashlib
 import json
 import shutil
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -352,6 +354,38 @@ def validate_base_metric_map_v1_bundle(bundle_dir: Path) -> MapBundleValidation:
     return MapBundleValidation(bundle_dir, errors, warnings, metadata)
 
 
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Validate a prebuilt Base Metric Map v1 bundle before agent runtime."
+    )
+    parser.add_argument("bundle_dir", type=Path)
+    parser.add_argument("--json", action="store_true", help="Print machine-readable validation.")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    result = validate_base_metric_map_v1_bundle(args.bundle_dir)
+    label = "base-metric-map-v1-bundle"
+    if args.json:
+        print(json.dumps(result.as_dict(), indent=2, sort_keys=True))
+    elif result.ok:
+        meta = result.metadata
+        print(
+            f"{label} ok: "
+            f"{args.bundle_dir} "
+            f"rooms={meta.get('room_count', 0)} "
+            f"fixtures={meta.get('static_landmark_count', 0)} "
+            f"waypoints={meta.get('waypoint_count', 0)}"
+        )
+    else:
+        print(f"{label} invalid: {args.bundle_dir}", file=sys.stderr)
+        for error in result.errors:
+            print(f"- {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def _bundle_local_paths() -> dict[str, Path]:
     return {
         "map_yaml": Path("map.yaml"),
@@ -658,3 +692,7 @@ def _stable_hash(value: Any) -> str:
 
 def _file_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

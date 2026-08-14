@@ -8,7 +8,7 @@ import pytest
 from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS, WORLD_SPECS
 from roboclaws.operator_console import workflows as console_workflows
 from roboclaws.operator_console.launch_contract import ConsoleLaunchError
-from roboclaws.operator_console.launcher import build_launch_argv
+from roboclaws.operator_console.launcher import build_launch_args
 from roboclaws.operator_console.routes import (
     default_workflow_selection_id,
     get_selection,
@@ -431,7 +431,7 @@ def test_molmospaces_scene_choices_use_scene_specific_launch_defaults(tmp_path) 
             "href": "/previews/molmospaces-procthor-10k-val-11-topdown.png",
         },
     }
-    argv = build_launch_argv(val10, root=tmp_path, run_id="run-val-10")
+    argv = build_launch_args(val10, root=tmp_path, run_id="run-val-10")
     assert "world=molmospaces/procthor-objaverse-val/10" in argv
     assert "scene_source=procthor-objaverse-val" in argv
     assert "scene_index=10" in argv
@@ -555,16 +555,14 @@ def test_payload_exposes_orthogonal_ui_metadata() -> None:
 
 def test_prompt_gating_uses_argv_element_not_shell_joining(tmp_path) -> None:
     selection = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
-    argv = build_launch_argv(
+    argv = build_launch_args(
         selection,
         root=tmp_path,
         run_id="run-1",
         prompt="collect mugs; rm -rf / should stay text",
     )
 
-    assert argv[:6] == [
-        "just",
-        "run::surface",
+    assert argv[:4] == [
         "surface=household-world",
         "world=molmospaces/procthor-objaverse-val/0",
         "backend=mujoco",
@@ -578,7 +576,7 @@ def test_prompt_gating_uses_argv_element_not_shell_joining(tmp_path) -> None:
 
 def test_map_build_launch_defaults_to_baseline_scenario_setup(tmp_path) -> None:
     selection = get_selection(MUJOCO_DIRECT_MAP_BUILD)
-    argv = build_launch_argv(selection, root=tmp_path, run_id="run-1")
+    argv = build_launch_args(selection, root=tmp_path, run_id="run-1")
 
     assert "preset=map-build" in argv
     assert "scenario_setup=baseline" in argv
@@ -590,7 +588,7 @@ def test_camera_grounded_lane_launch_includes_default_camera_labeler(tmp_path) -
     selection = get_selection(
         "molmospaces/procthor-objaverse-val/0::mujoco::map-build::direct-runner::camera-grounded-labels"
     )
-    argv = build_launch_argv(selection, root=tmp_path, run_id="run-1")
+    argv = build_launch_args(selection, root=tmp_path, run_id="run-1")
 
     assert "evidence_lane=camera-grounded-labels" in argv
     assert "camera_labeler=grounding-dino" in argv
@@ -599,7 +597,7 @@ def test_camera_grounded_lane_launch_includes_default_camera_labeler(tmp_path) -
 def test_b1_map12_open_ended_launch_uses_scene_and_map_bundle(tmp_path) -> None:
     injected = write_b1_readiness_fixtures(tmp_path)
     selection = get_selection(B1_OPENAI_AGENTS_OPEN_TASK)
-    argv = build_launch_argv(
+    argv = build_launch_args(
         selection,
         root=tmp_path,
         run_id="run-1",
@@ -623,13 +621,13 @@ def test_b1_map12_launch_requires_injected_robot_proof_artifacts(tmp_path) -> No
     selection = get_selection(B1_OPENAI_AGENTS_OPEN_TASK)
 
     with pytest.raises(ConsoleLaunchError, match="b1_alignment_artifact"):
-        build_launch_argv(selection, root=tmp_path, run_id="run-1")
+        build_launch_args(selection, root=tmp_path, run_id="run-1")
 
 
 def test_prompt_rejected_for_unsupported_selection(tmp_path) -> None:
     selection = get_selection(AGIBOT_SDK_CLEANUP)
     with pytest.raises(ConsoleLaunchError, match="custom prompt"):
-        build_launch_argv(selection, root=tmp_path, run_id="run-1", prompt="unsafe")
+        build_launch_args(selection, root=tmp_path, run_id="run-1", prompt="unsafe")
 
 
 def _write_prior_catalog(

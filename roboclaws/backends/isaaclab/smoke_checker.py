@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -20,7 +21,22 @@ MIN_REVIEWABLE_IMAGE_STDDEV = 5.0
 MIN_REVIEWABLE_IMAGE_COLOR_COUNT = 128
 
 
-def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+@dataclass(frozen=True)
+class SmokeCheckRequest:
+    init_result: Path
+    state_path: Path | None = None
+    robot_views_result: Path | None = None
+    require_real_rendering: bool = False
+    require_usd_stage_loaded: bool = False
+    require_local_scene_usd: bool = False
+    require_usd_scene_index: bool = False
+    require_selected_usd_bindings: bool = False
+    require_robot_view_images: bool = False
+    require_nonblank_image: bool = False
+    require_segmentation_evidence: bool = False
+
+
+def parse_args(argv: list[str] | None = None) -> SmokeCheckRequest:
     parser = argparse.ArgumentParser(description="Validate Isaac Lab runtime smoke evidence.")
     parser.add_argument("--init-result", type=Path, required=True)
     parser.add_argument("--state-path", type=Path)
@@ -33,29 +49,32 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--require-robot-view-images", action="store_true")
     parser.add_argument("--require-nonblank-image", action="store_true")
     parser.add_argument("--require-segmentation-evidence", action="store_true")
-    return parser.parse_args(argv)
+    return SmokeCheckRequest(**vars(parser.parse_args(argv)))
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = parse_args(argv)
-    result = read_init_result(args.init_result)
-    state = read_sidecar_json(args.state_path, label="Isaac runtime smoke state")
+    return check_runtime_smoke(parse_args(argv))
+
+
+def check_runtime_smoke(request: SmokeCheckRequest) -> int:
+    result = read_init_result(request.init_result)
+    state = read_sidecar_json(request.state_path, label="Isaac runtime smoke state")
     robot_views_result = read_sidecar_json(
-        args.robot_views_result,
+        request.robot_views_result,
         label="Isaac runtime smoke robot views result",
     )
     errors = validate(
         result=result,
         state=state,
         robot_views_result=robot_views_result,
-        require_real_rendering=args.require_real_rendering,
-        require_usd_stage_loaded=args.require_usd_stage_loaded,
-        require_local_scene_usd=args.require_local_scene_usd,
-        require_usd_scene_index=args.require_usd_scene_index,
-        require_selected_usd_bindings=args.require_selected_usd_bindings,
-        require_robot_view_images=args.require_robot_view_images,
-        require_nonblank_image=args.require_nonblank_image,
-        require_segmentation_evidence=args.require_segmentation_evidence,
+        require_real_rendering=request.require_real_rendering,
+        require_usd_stage_loaded=request.require_usd_stage_loaded,
+        require_local_scene_usd=request.require_local_scene_usd,
+        require_usd_scene_index=request.require_usd_scene_index,
+        require_selected_usd_bindings=request.require_selected_usd_bindings,
+        require_robot_view_images=request.require_robot_view_images,
+        require_nonblank_image=request.require_nonblank_image,
+        require_segmentation_evidence=request.require_segmentation_evidence,
     )
     summary = {
         "schema": SCHEMA,

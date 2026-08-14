@@ -4,7 +4,6 @@ from __future__ import annotations
 import argparse
 import ast
 import json
-import os
 import re
 import subprocess
 import sys
@@ -25,8 +24,8 @@ _MEASURE_RE = re.compile(r"\((?P<value>\d+)\s*>\s*(?P<limit>\d+)\)")
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Ratchet Ruff complexity and Pylint-compatible too-many-lines debt "
-            "against an explicit baseline."
+            "Ratchet Ruff complexity, large-module counts, and Pylint-compatible "
+            "too-many-lines debt against an explicit baseline."
         )
     )
     parser.add_argument(
@@ -485,13 +484,7 @@ def format_quality_debt_summary(summary: dict[str, Any]) -> str:
 
 
 def ruff_command() -> str:
-    override = os.environ.get("ROBOCLAWS_RUFF")
-    if override:
-        return override
-    local = REPO_ROOT / ".venv" / "bin" / "ruff"
-    if local.exists():
-        return str(local)
-    return "ruff"
+    return str(REPO_ROOT / ".venv" / "bin" / "ruff")
 
 
 def _measure_from_message(message: str) -> tuple[int, int]:

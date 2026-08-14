@@ -232,16 +232,14 @@ perception-isolated visual-grounding benchmark over fixed RAW_FPV observations.
 Benchmark command shape:
 
 ```bash
-just agent::harness molmo-visual-grounding-benchmark pipeline=grounding-dino
-just agent::harness molmo-visual-grounding-benchmark pipeline=grounding-dino,yoloe,omdet-turbo
-just agent::harness molmo-visual-grounding-benchmark \
-  matrix=harness/visual_grounding/first_wave_gpu_sidecar_matrix.json \
-  corpus=harness/visual_grounding/local_raw_fpv_corpus.json \
-  base_url=http://127.0.0.1:18880 \
-  timeout_s=60
-just agent::harness molmo-visual-grounding-benchmark pipeline=grounding-dino
-just agent::harness molmo-visual-grounding-benchmark pipeline=yoloe
-just agent::harness molmo-visual-grounding-benchmark pipeline=omdet-turbo
+python -m roboclaws.evals.visual_grounding_benchmark.runner --pipeline grounding-dino
+python -m roboclaws.evals.visual_grounding_benchmark.runner \
+  --pipeline grounding-dino --pipeline yoloe --pipeline omdet-turbo
+python -m roboclaws.evals.visual_grounding_benchmark.runner \
+  --matrix harness/visual_grounding/first_wave_gpu_sidecar_matrix.json \
+  --corpus harness/visual_grounding/local_raw_fpv_corpus.json \
+  --base-url http://127.0.0.1:18880 \
+  --timeout-s 60
 ```
 
 That benchmark should compare candidate recall, false positives, duplicate
@@ -343,15 +341,15 @@ print("transformers", transformers.__version__)
 print("ultralytics", ultralytics.__version__)
 PY
 
-.venv-visual-grounding/bin/python scripts/visual_grounding/serve_visual_grounding_service.py \
+.venv-visual-grounding/bin/python -m roboclaws.household.visual_grounding_sidecar.service \
   --pipeline real-router --adapter-mode real
 
 VISUAL_GROUNDING_YOLOE_MODEL_ID=yoloe-11s-seg.pt \
-  .venv-visual-grounding/bin/python scripts/visual_grounding/serve_visual_grounding_service.py \
+  .venv-visual-grounding/bin/python -m roboclaws.household.visual_grounding_sidecar.service \
     --pipeline real-router --adapter-mode real
 
 VISUAL_GROUNDING_OMDET_MODEL_ID=omlab/omdet-turbo-swin-tiny-hf \
-  .venv-visual-grounding/bin/python scripts/visual_grounding/serve_visual_grounding_service.py \
+  .venv-visual-grounding/bin/python -m roboclaws.household.visual_grounding_sidecar.service \
     --pipeline real-router --adapter-mode real
 ```
 
@@ -373,7 +371,7 @@ configurable service in its default mode. It should return explicit unavailable
 evidence instead of fake candidates:
 
 ```bash
-.venv/bin/python scripts/visual_grounding/serve_visual_grounding_service.py --pipeline grounding-dino
+.venv/bin/python -m roboclaws.household.visual_grounding_sidecar.service --pipeline grounding-dino
 ```
 
 Current default: DINO base recall (`IDEA-Research/grounding-dino-base`,
@@ -392,7 +390,7 @@ by supported SDK live-agent routes; they are not visual-grounding camera labeler
 List the sidecar adapter slots without starting the server:
 
 ```bash
-.venv/bin/python scripts/visual_grounding/serve_visual_grounding_service.py --list-adapters
+.venv/bin/python -m roboclaws.household.visual_grounding_sidecar.service --list-adapters
 ```
 
 The adapter catalog includes a redacted `runtime` readiness block for each
@@ -436,8 +434,8 @@ the current source of truth before claiming a run supports a setting.
 
 | Entrypoint | Visible Detections | Raw FPV Only | Camera Labels | Notes |
 |------------|--------------------|--------------|---------------------|-------|
-| `python -m roboclaws.household.household_world_episode` | yes | yes | yes | Deterministic household-world demo and checker path. The example path is only a thin wrapper. |
-| `scripts/molmo_cleanup/run_molmo_realworld_agent_mcp_smoke.py` | yes | yes | yes | Dogfood/smoke wrapper used by several just recipes; uses model-declared simulated producers where camera-label declarations are exercised. |
+| `python -m roboclaws.household.household_world_episode` | yes | yes | yes | Deterministic household-world demo and checker path. |
+| `python -m roboclaws.household.household_mcp_smoke` | yes | yes | yes | Package-owned dogfood/smoke path using model-declared simulated producers where camera-label declarations are exercised. |
 | `python -m roboclaws.cli.agent_server household-world` | yes | yes | yes | Direct live-agent server CLI exposes raw-FPV declaration tools and supports the `camera_model_policy` declaration path. |
 | `HouseholdRuntimeContract` / `realworld_mcp_server` internals | yes | yes | yes | Internals use `declare_visual_candidates` and `navigate_to_visual_candidate` for camera evidence to handle registration. |
 
@@ -471,12 +469,9 @@ just run::surface surface=household-world agent_engine=<engine> preset=cleanup e
 These driver names are private implementation details. Operators select the
 public agent engine and evidence lane through `just run::surface`.
 
-`verify::*` remains the confidence-gate namespace: it runs focused tests and then
-delegates scenario execution to `harness::*`. `harness::*` remains the
-lower-level implementation-rig namespace, useful when debugging a specific
-script or checker. The `molmo::*` report recipes below are convenience wrappers
-over the private household cleanup implementation runner; they are not a
-separate public cleanup dispatcher.
+`just agent::verify` is the single confidence gate. Focused
+household, planner, and visual-grounding debugging uses the package owner
+directly; there is no private Just implementation registry.
 All cleanup profiles require a selected prebuilt Base Metric Map bundle; the
 facade resolves `map_bundle=auto` to
 `assets/maps/molmospaces/<scene_source>/<scene_index>`, and `map_bundle=...`
@@ -485,19 +480,8 @@ bundle with
 `scripts/maps/generate_molmospaces_scene_bundles.py --scene <source>/<index> --force`
 before launching a new scene; `map_bundle=none` is not a valid simulator path.
 
-Convenience report recipes:
-
-| Command | Expands To | Use It For |
-|---------|------------|------------|
-| `just molmo::quick-check` | `mcp-smoke smoke` | Cheap contract check; accepts `driver=` and `profile=` overrides. |
-| `just molmo::review-report` | `direct world-public-labels` | Canonical human review/status report. |
-| `just molmo::mcp-smoke-report` | `mcp-smoke world-public-labels` | Real visual MCP smoke without a live external agent. |
-| `just molmo::camera-raw-report` | `direct camera-raw-fpv` | Camera-only observation evidence; not cleanup-success proof. |
-
-The `driver=` and `profile=` tokens above are
-private implementation-runner vocabulary. Prefer `agent_engine=...`,
-`provider_profile=...`, and `evidence_lane=...` in new docs, plans, and user
-runbooks.
+Use `agent_engine=...`, `provider_profile=...`, and `evidence_lane=...` on the
+canonical surface instead of private driver or report recipe vocabulary.
 
 For live SDK reports, repo-local `.env` keys are honored the same way as the
 direct navigation demos. Normal users configure keys only; command shape
@@ -522,8 +506,8 @@ just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 b
 Probe a live SDK run without attaching:
 
 ```bash
-just molmo::status
-just molmo::status output/household/household-world/open-ended/openai-agents-live-world-public-labels/seed-7
+python -m roboclaws.agents.live_status_cli
+python -m roboclaws.agents.live_status_cli output/household/household-world/open-ended/openai-agents-live-world-public-labels/seed-7
 ```
 
 The package-owned SDK status probe reports elapsed time, MCP tool progress, and
@@ -571,19 +555,19 @@ timestamp root, for example `output/molmo/review-report/0511_1628/seed-1/`.
 Fast synthetic contract smoke:
 
 ```bash
-just molmo::quick-check
+python -m roboclaws.household.household_mcp_smoke --output-dir output/household-mcp-smoke --map-bundle-dir assets/maps/molmospaces/procthor-10k-val/0
 ```
 
 Real visual status/review report:
 
 ```bash
-just molmo::review-report
+just run::surface surface=household-world agent_engine=direct-runner preset=cleanup evidence_lane=world-public-labels
 ```
 
 Render-only MuJoCo/Isaac scene camera comparison:
 
 ```bash
-just molmo::scene-camera-comparison
+python -m roboclaws.household.scene_camera_comparison
 ```
 
 The retired Genesis candidate lane is no longer runnable from this recipe. The
@@ -616,25 +600,25 @@ display color-management differences can still prevent full visual identity.
 Real visual MCP smoke:
 
 ```bash
-just molmo::mcp-smoke-report
+python -m roboclaws.household.household_mcp_smoke --output-dir output/household-mcp-smoke --map-bundle-dir assets/maps/molmospaces/procthor-10k-val/0
 ```
 
 Raw camera evidence:
 
 ```bash
-just molmo::camera-raw-report
+just run::surface surface=household-world agent_engine=direct-runner preset=cleanup evidence_lane=camera-raw-fpv
 ```
 
 Planner proof-bundle dry run:
 
 ```bash
-just harness::molmo-planner-proof-bundle-runner
+python -m roboclaws.household.planner_proof_execution --output-dir output/planner-proof --mode dry-run
 ```
 
 Local strict proof/rerun attempt:
 
 ```bash
-just harness::molmo-planner-proof-bundle-execute-rerun
+python -m roboclaws.household.planner_proof_execution --output-dir output/planner-proof-rerun --mode execute-rerun
 ```
 
 ## Current Boundaries

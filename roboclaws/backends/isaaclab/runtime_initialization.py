@@ -2,26 +2,36 @@
 
 from __future__ import annotations
 
-from roboclaws.backends.isaaclab.runtime_dependencies import (
+import argparse
+from pathlib import Path
+from typing import Any
+
+from roboclaws.backends.isaaclab import (
+    isaac_mapping_diagnostics,
+    isaac_scene_bindings,
+    isaac_scene_index_geometry,
+    isaac_worker_context,
+    isaac_worker_state,
+)
+from roboclaws.backends.isaaclab.runtime_settings import (
     DEFAULT_HEIGHT,
     DEFAULT_WIDTH,
     REAL_ROBOT_VIEW_CAPTURE_METHOD,
     REAL_SMOKE_CAPTURE_METHOD,
     STATE_SCHEMA,
-    Any,
-    Path,
-    _dict,
-    _fallback_room_outlines_from_indices,
-    _index_or_default,
-    _object_index,
-    _receptacle_index,
-    _room_outlines_from_scene_index_diagnostics,
-    _scene_binding_diagnostics,
-    argparse,
-    isaac_mapping_diagnostics,
-    isaac_scene_index_geometry,
-    isaac_worker_state,
 )
+
+_dict = isaac_worker_context.dict_value
+_index_or_default = isaac_worker_context.index_or_default
+_object_index = isaac_worker_context.object_index
+_receptacle_index = isaac_worker_context.receptacle_index
+_fallback_room_outlines_from_indices = (
+    isaac_scene_index_geometry.fallback_room_outlines_from_indices
+)
+_room_outlines_from_scene_index_diagnostics = (
+    isaac_scene_index_geometry.room_outlines_from_scene_index_diagnostics
+)
+_scene_binding_diagnostics = isaac_scene_bindings.scene_binding_diagnostics
 
 
 def init_state(args: argparse.Namespace) -> dict[str, Any]:

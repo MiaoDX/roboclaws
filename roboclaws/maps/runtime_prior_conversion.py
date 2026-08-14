@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import argparse
 import copy
+import json
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +33,7 @@ from roboclaws.maps.runtime_prior_conversion_helpers import (
     _snapshot_summary,
     _waypoint_from_anchor,
 )
+from roboclaws.maps.runtime_prior_materialization import materialize_runtime_prior_targets
 from roboclaws.maps.runtime_prior_source_validation import (
     _artifact_paths,
     _assert_no_private_truth,
@@ -39,6 +42,9 @@ from roboclaws.maps.runtime_prior_source_validation import (
     _source_hashes,
     _source_map_geometry,
 )
+
+AGIBOT_NAVIGATION_MEMORY_SOURCE = "agibot-navigation-memory"
+NAV2_CLEANUP_BUNDLE_SOURCE = "nav2-cleanup-bundle"
 
 
 def runtime_prior_snapshot_from_agibot_navigation_memory(
@@ -326,3 +332,63 @@ def runtime_prior_snapshot_from_nav2_cleanup_bundle(
     snapshot["summary"] = _snapshot_summary(snapshot)
     _assert_no_private_truth(snapshot)
     return snapshot
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Convert an offline map source into a runtime_map_prior_snapshot_v1 artifact."
+    )
+    subparsers = parser.add_subparsers(dest="source_type", required=True)
+    agibot_parser = subparsers.add_parser(
+        AGIBOT_NAVIGATION_MEMORY_SOURCE,
+        help="Convert an Agibot navigation_memory map folder.",
+    )
+    agibot_parser.add_argument(
+        "source_dir",
+        type=Path,
+        help="Map folder containing navigation_memory.json and agibot/nav2.yaml.",
+    )
+    nav2_parser = subparsers.add_parser(
+        NAV2_CLEANUP_BUNDLE_SOURCE,
+        help="Convert a compiled Nav2 cleanup map bundle.",
+    )
+    nav2_parser.add_argument(
+        "source_dir",
+        type=Path,
+        help="Bundle folder containing map.yaml, map.pgm, and semantics.json.",
+    )
+    for source_parser in (agibot_parser, nav2_parser):
+        source_parser.add_argument("--output", type=Path, required=True)
+        source_parser.add_argument(
+            "--summary-json",
+            type=Path,
+            help="Optional path for a compact materialized-target summary.",
+        )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = parse_args(argv)
+    if args.source_type == AGIBOT_NAVIGATION_MEMORY_SOURCE:
+        snapshot = runtime_prior_snapshot_from_agibot_navigation_memory(args.source_dir)
+    else:
+        snapshot = runtime_prior_snapshot_from_nav2_cleanup_bundle(args.source_dir)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(snapshot, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    materialized = materialize_runtime_prior_targets(snapshot)
+    if args.summary_json is not None:
+        args.summary_json.parent.mkdir(parents=True, exist_ok=True)
+        args.summary_json.write_text(
+            json.dumps(materialized, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+    print(
+        "runtime-map-prior snapshot exported: "
+        f"{args.output} anchors={snapshot['summary']['anchor_count']} "
+        f"fixtures={snapshot['summary']['fixture_candidate_count']} "
+        f"waypoints={snapshot['summary']['inspection_waypoint_count']}"
+    )
+
+
+if __name__ == "__main__":
+    main()

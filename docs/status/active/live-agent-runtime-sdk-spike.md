@@ -126,8 +126,8 @@ Result:
   metadata, and errors. They do not persist raw prompts, model text, function
   inputs/outputs, credentials, or private evaluator truth.
 - `LiveAgentResult` artifact discovery now includes OpenAI Agents span files.
-- The lower private `just molmo::cleanup` direct route now synthesizes the
-  default goal contract when no explicit contract path is supplied.
+- The typed household launch owner synthesizes the default goal contract when
+  no explicit contract is supplied.
 - Agent SDK performance profiles now persist resolved prompt mode,
   continuation mode, SDK turn cap, context budgets, raw-FPV budgets, and cache
   settings in `live_timing.json`.

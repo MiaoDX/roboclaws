@@ -9,6 +9,10 @@ from typing import Any
 REPORT_RERUN_COMMAND_ENV = "ROBOCLAWS_REPORT_RERUN_COMMAND"
 
 
+def public_surface_rerun_argv(launch_args: Iterable[Any]) -> list[str]:
+    return ["just", "run::surface", *(str(item) for item in launch_args)]
+
+
 def report_rerun_command_from_env() -> str:
     return os.environ.get(REPORT_RERUN_COMMAND_ENV, "").strip()
 

@@ -29,14 +29,12 @@ from roboclaws.household.scene_camera_results import (
     contact_sheet_entries as _contact_sheet_entries,
 )
 from tests.contract.molmo_cleanup.scene_camera_comparison_support import (
-    MOLMO_JUST,
     REPO_ROOT,
     _assert_scene_camera_report_artifacts,
     _manifest,
     _write_image,
     _write_render_contract_probe_fixtures,
     _write_scene_camera_comparison_fixture_images,
-    just_bin,
 )
 
 
@@ -262,12 +260,11 @@ def test_scene_camera_shadow_parity_probe_reports_visual_gate_failure() -> None:
 def test_scene_camera_comparison_cli_rejects_non_positive_render_dimensions(
     tmp_path: Path,
 ) -> None:
-    script = REPO_ROOT / "scripts" / "molmo_cleanup" / "run_molmospaces_scene_camera_comparison.py"
-
     completed = subprocess.run(
         [
             sys.executable,
-            str(script),
+            "-m",
+            "roboclaws.household.scene_camera_comparison",
             "--scene-usd-path",
             str(tmp_path / "missing.usda"),
             "--output-dir",
@@ -278,6 +275,7 @@ def test_scene_camera_comparison_cli_rejects_non_positive_render_dimensions(
         check=False,
         capture_output=True,
         text=True,
+        cwd=REPO_ROOT,
     )
 
     assert completed.returncode == 2
@@ -286,7 +284,8 @@ def test_scene_camera_comparison_cli_rejects_non_positive_render_dimensions(
     completed = subprocess.run(
         [
             sys.executable,
-            str(script),
+            "-m",
+            "roboclaws.household.scene_camera_comparison",
             "--scene-usd-path",
             str(tmp_path / "missing.usda"),
             "--output-dir",
@@ -297,6 +296,7 @@ def test_scene_camera_comparison_cli_rejects_non_positive_render_dimensions(
         check=False,
         capture_output=True,
         text=True,
+        cwd=REPO_ROOT,
     )
 
     assert completed.returncode == 2
@@ -317,18 +317,23 @@ def test_scene_camera_comparison_recipe_checks_prepared_usd_before_running(tmp_p
     env["ROBOCLAWS_ISAACLAB_PYTHON"] = str(isaac_python)
     result = subprocess.run(
         [
-            just_bin(),
-            "-f",
-            str(MOLMO_JUST),
-            "scene-camera-comparison",
-            "seed=7",
-            "generated_mess_count=1",
-            "output_dir=output/molmo/scene-camera-comparison",
-            "scene_source=procthor-10k-val",
-            "scene_index=1",
-            f"scene_usd_path={missing_usd}",
+            sys.executable,
+            "-m",
+            "roboclaws.household.scene_camera_comparison",
+            "--seed",
+            "7",
+            "--generated-mess-count",
+            "1",
+            "--output-dir",
+            "output/molmo/scene-camera-comparison",
+            "--scene-source",
+            "procthor-10k-val",
+            "--scene-index",
+            "1",
+            "--scene-usd-path",
+            str(missing_usd),
         ],
-        cwd=tmp_path,
+        cwd=REPO_ROOT,
         env=env,
         check=False,
         capture_output=True,
@@ -355,13 +360,13 @@ def test_scene_camera_comparison_recipe_requires_explicit_eula_acceptance(tmp_pa
     env["ROBOCLAWS_ISAACLAB_PYTHON"] = str(isaac_python)
     result = subprocess.run(
         [
-            just_bin(),
-            "-f",
-            str(MOLMO_JUST),
-            "scene-camera-comparison",
-            f"scene_usd_path={scene_usd}",
+            sys.executable,
+            "-m",
+            "roboclaws.household.scene_camera_comparison",
+            "--scene-usd-path",
+            str(scene_usd),
         ],
-        cwd=tmp_path,
+        cwd=REPO_ROOT,
         env=env,
         check=False,
         capture_output=True,
@@ -369,5 +374,5 @@ def test_scene_camera_comparison_recipe_requires_explicit_eula_acceptance(tmp_pa
     )
 
     assert result.returncode != 0
-    assert "requires explicit prior Omniverse EULA acceptance" in result.stderr
+    assert "requires NVIDIA Omniverse EULA acceptance" in result.stderr
     assert "OMNI_KIT_ACCEPT_EULA=YES" in result.stderr

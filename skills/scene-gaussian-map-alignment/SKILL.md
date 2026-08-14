@@ -50,8 +50,9 @@ exist at candidate poses; it does not by itself prove Nav2 planner parity.
 2. Run the deterministic tools that apply to the available assets:
 
    ```bash
-   python scripts/maps/export_agibot_map_bundle.py \
+   python -m roboclaws.household.agibot_map_bundle \
      --source-map-dir <map-root> \
+     --context-json <context-json> \
      --output-dir assets/maps/<bundle-name>
 
    .venv-isaaclab/bin/python -m roboclaws.backends.isaaclab.b1_readiness \

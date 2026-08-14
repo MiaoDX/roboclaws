@@ -497,3 +497,7 @@ def _float_or_none(raw: str | None) -> float | None:
 def _round_float(value: float) -> float:
     rounded = round(float(value), 8)
     return 0.0 if rounded == -0.0 else rounded
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

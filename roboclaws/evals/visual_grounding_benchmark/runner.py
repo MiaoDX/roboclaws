@@ -7,16 +7,13 @@ import math
 import os
 import sys
 import time
+from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-if __package__ in {None, ""}:
-    repo_root = Path(__file__).resolve().parents[2]
-    if str(repo_root) not in sys.path:
-        sys.path.insert(0, str(repo_root))
-
-from roboclaws.core.json_sources import read_json_object  # noqa: E402
+from roboclaws.core.json_sources import read_json_object
 from roboclaws.evals.visual_grounding_benchmark.artifacts import (
     _load_observation_image,
     _proposer_request,
@@ -43,7 +40,8 @@ from roboclaws.evals.visual_grounding_benchmark.summary import (
     _rank_pipelines,
     _summarize_pipeline,
 )
-from roboclaws.household.visual_grounding import (  # noqa: E402
+from roboclaws.evals.visual_grounding_benchmark.validation import validate_benchmark_path
+from roboclaws.household.visual_grounding import (
     DEFAULT_VISUAL_GROUNDING_BASE_URL,
     DEFAULT_VISUAL_GROUNDING_TIMEOUT_S,
     HttpVisualGroundingClient,
@@ -60,6 +58,25 @@ CORPUS_SCHEMA = "visual_grounding_benchmark_corpus_v1"
 RESULT_SCHEMA = "visual_grounding_benchmark_result_v1"
 PREDICTION_SCHEMA = "visual_grounding_prediction_v1"
 RETIRED_FAKE_PIPELINE_IDS = frozenset({"fake-http", "contract-fake"})
+
+
+@dataclass(frozen=True)
+class BenchmarkRequest:
+    corpus: Path
+    output_dir: Path
+    pipelines: tuple[str, ...]
+    matrix: Path | None
+    base_url: str
+    timeout_s: float
+    include_private_label_details: bool = False
+
+
+@dataclass(frozen=True)
+class BenchmarkRunResult:
+    output_dir: Path
+    result_path: Path
+    predictions_path: Path
+    report_path: Path
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -110,16 +127,43 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Include per-observation private label details in the benchmark result/report.",
     )
+    parser.add_argument("--expect-pipeline", default="")
+    parser.add_argument("--require-success", action="store_true")
+    parser.add_argument("--require-candidates", action="store_true")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     output_dir = args.output_dir or Path("output/visual-grounding-benchmark") / _stamp()
+    run = run_benchmark(
+        BenchmarkRequest(
+            corpus=args.corpus,
+            output_dir=output_dir,
+            pipelines=tuple(args.pipeline),
+            matrix=args.matrix,
+            base_url=args.base_url,
+            timeout_s=args.timeout_s,
+            include_private_label_details=args.include_private_label_details,
+        )
+    )
+    validate_benchmark_path(
+        run.result_path,
+        expect_pipeline=args.expect_pipeline,
+        require_success=args.require_success,
+        require_candidates=args.require_candidates,
+        allow_private_label_details=args.include_private_label_details,
+    )
+    print(f"ok: visual grounding benchmark artifacts passed ({run.output_dir})")
+    return 0
+
+
+def run_benchmark(request: BenchmarkRequest) -> BenchmarkRunResult:
+    output_dir = request.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    corpus = _load_corpus(args.corpus)
-    benchmark_rows = _benchmark_rows(args)
+    corpus = _load_corpus(request.corpus)
+    benchmark_rows = _benchmark_rows(request)
     predictions_path = output_dir / "visual_grounding_predictions.jsonl"
     all_predictions: list[dict[str, Any]] = []
     pipeline_results: list[dict[str, Any]] = []
@@ -129,8 +173,8 @@ def main(argv: list[str] | None = None) -> int:
             pipeline_id = str(row["pipeline_id"])
             config = VisualGroundingClientConfig(
                 pipeline_id=pipeline_id,
-                base_url=args.base_url,
-                timeout_s=args.timeout_s,
+                base_url=request.base_url,
+                timeout_s=request.timeout_s,
                 api_key=os.environ.get("VISUAL_GROUNDING_API_KEY", ""),
                 proposer_id=str(
                     row.get("producer_id")
@@ -146,7 +190,7 @@ def main(argv: list[str] | None = None) -> int:
             client = HttpVisualGroundingClient(config)
             predictions = _run_pipeline(
                 corpus=corpus,
-                corpus_path=args.corpus,
+                corpus_path=request.corpus,
                 output_dir=output_dir,
                 benchmark_row=row,
                 client=client,
@@ -162,7 +206,7 @@ def main(argv: list[str] | None = None) -> int:
                     corpus=corpus,
                     auth_mode=config.auth_mode,
                     service_config=config.redacted_metadata(),
-                    include_private_label_details=args.include_private_label_details,
+                    include_private_label_details=request.include_private_label_details,
                 )
             )
 
@@ -173,12 +217,12 @@ def main(argv: list[str] | None = None) -> int:
         "schema": RESULT_SCHEMA,
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "corpus": {
-            "path": str(args.corpus),
+            "path": str(request.corpus),
             "schema": corpus["schema"],
             "name": corpus.get("name", ""),
             "observation_count": len(corpus["observations"]),
             "private_labels_in_requests": False,
-            "private_label_details_included": bool(args.include_private_label_details),
+            "private_label_details_included": request.include_private_label_details,
         },
         "pipelines": pipeline_results,
         "family_sweep": _family_sweep_summary(pipeline_results),
@@ -204,7 +248,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     print(f"visual grounding benchmark result: {result_path}")
     print(f"visual grounding benchmark report: {report_path}")
-    return 0
+    return BenchmarkRunResult(
+        output_dir=output_dir,
+        result_path=result_path,
+        predictions_path=predictions_path,
+        report_path=report_path,
+    )
 
 
 def _load_corpus(path: Path) -> dict[str, Any]:
@@ -217,21 +266,21 @@ def _load_corpus(path: Path) -> dict[str, Any]:
     return corpus
 
 
-def _benchmark_rows(args: argparse.Namespace) -> list[dict[str, Any]]:
-    filters = set(_pipeline_ids(args.pipeline)) if args.pipeline else set()
-    if args.matrix is None:
-        pipeline_ids = _pipeline_ids(args.pipeline)
+def _benchmark_rows(request: BenchmarkRequest) -> list[dict[str, Any]]:
+    filters = set(_pipeline_ids(request.pipelines)) if request.pipelines else set()
+    if request.matrix is None:
+        pipeline_ids = _pipeline_ids(request.pipelines)
         return [_default_benchmark_row(pipeline_id) for pipeline_id in pipeline_ids]
 
-    matrix = _read_source_json_object(args.matrix, label="visual grounding benchmark matrix")
+    matrix = _read_source_json_object(request.matrix, label="visual grounding benchmark matrix")
     if matrix.get("schema") != "visual_grounding_benchmark_matrix_v1":
-        raise SystemExit(f"unsupported benchmark matrix schema in {args.matrix}")
+        raise SystemExit(f"unsupported benchmark matrix schema in {request.matrix}")
     raw_rows = matrix.get("rows")
     if not isinstance(raw_rows, list):
-        raise SystemExit(f"benchmark matrix rows must be a list: {args.matrix}")
-    rows = [_normalize_benchmark_row(row, source=args.matrix) for row in raw_rows]
+        raise SystemExit(f"benchmark matrix rows must be a list: {request.matrix}")
+    rows = [_normalize_benchmark_row(row, source=request.matrix) for row in raw_rows]
     if not rows:
-        raise SystemExit(f"benchmark matrix has no rows: {args.matrix}")
+        raise SystemExit(f"benchmark matrix has no rows: {request.matrix}")
     if filters:
         rows = [
             row
@@ -313,7 +362,7 @@ def _positive_seconds(value: Any) -> float:
     return parsed
 
 
-def _pipeline_ids(raw_values: list[str]) -> list[str]:
+def _pipeline_ids(raw_values: Sequence[str]) -> list[str]:
     values = raw_values or [os.environ.get("VISUAL_GROUNDING_PIPELINE_ID", "grounding-dino")]
     pipeline_ids: list[str] = []
     for value in values:
@@ -428,3 +477,11 @@ def _run_pipeline(
             prediction["error"] = dict(response.get("error") or {})
         predictions.append(prediction)
     return predictions
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except AssertionError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc

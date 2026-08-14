@@ -22,4 +22,4 @@ def test_source_aware_molmospaces_sampler_worlds_are_launchable() -> None:
             ]
         )
         assert plan.world == world_id
-        assert f"scene_source={row.scene_source}" in plan.overrides
+        assert plan.adapter_options["scene_source"] == row.scene_source

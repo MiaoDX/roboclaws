@@ -99,7 +99,6 @@ external publication, or hardware motion requires re-approval.
 
 Context: must-read=this plan, `STATUS.md`, `ARCHITECTURE.md`,
 `docs/agents/operating-runbook.md`,
-`docs/status/active/architecture-cleanup-campaign.md`,
 `docs/plans/2026-07-27-restore-codex-mimo-responses-cells.md`, launch catalog and
 plans/executor code, provider registry and retired provider subtree,
 Runtime-Prior selection/console consumers, household skill/prompt/MCP response

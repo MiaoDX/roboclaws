@@ -40,7 +40,7 @@ jobs:
         run: uv sync --extra dev
 
       - name: Run required PR gate
-        run: just agent::verify ci-required
+        run: just agent::verify
 
       - name: Check public release candidate
         run: | # pragma: allowlist secret

@@ -40,8 +40,9 @@ Latest deterministic rerun after docs alignment passed 5/5 at
 Last live evidence: root-env OpenAI Agents SDK post-fix thin matrix ran the
 open-ended MapBuild consumer chain against `codex-router-responses`,
 `mimo-inside-openai-chat`, `kimi-openai-chat`, and `minimax-responses` after
-`7983d53c`. Provider health passed first via `just dev::model-provider-health
-all` from the root repo env. Results live under
+`7983d53c`. Provider health passed first via
+`.venv/bin/python scripts/dev/check_model_providers.py --mode all` from the root
+repo env. Results live under
 `output/evals-live-thin-postfix/household_world_map_build_consumer_open_ended_thin/20260625T-postfix-*/eval_results.json`.
 All four profiles completed without provider/key failures. All four
 fixture-focused prior rows passed the private `room_8_inspection` stable-anchor

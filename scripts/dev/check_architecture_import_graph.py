@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import re
 from pathlib import Path
 from typing import Iterable, NamedTuple
 
@@ -11,6 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 PACKAGE_ROOT = REPO_ROOT / "roboclaws"
 SCHEMA = "roboclaws_architecture_import_graph_v1"
 DEFAULT_BASELINE = REPO_ROOT / "scripts" / "dev" / "architecture_import_baseline.json"
+SCRIPT_PATH_PATTERN = re.compile(r"(?<![\w.])scripts/[A-Za-z0-9_*./-]+\.py")
 
 
 class ImportEdge(NamedTuple):
@@ -73,15 +75,7 @@ def collect_import_edges(root: Path = PACKAGE_ROOT) -> list[ImportEdge]:
     for source, path in modules.items():
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
-            targets: list[str] = []
-            if isinstance(node, ast.Import):
-                targets = [alias.name for alias in node.names]
-            elif isinstance(node, ast.ImportFrom):
-                base = resolve_from(source, node)
-                if base:
-                    targets = [base]
-                    targets.extend(f"{base}.{alias.name}" for alias in node.names)
-            for target in targets:
+            for target in _import_targets(source, node):
                 candidates = [target]
                 while candidates[-1] and candidates[-1] not in modules and "." in candidates[-1]:
                     candidates.append(candidates[-1].rsplit(".", 1)[0])
@@ -96,18 +90,84 @@ def collect_script_references(root: Path = PACKAGE_ROOT) -> list[list[str]]:
     for source, path in python_modules(root).items():
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                for alias in node.names:
-                    if alias.name == "scripts" or alias.name.startswith("scripts."):
-                        references.add((source, alias.name))
-            elif isinstance(node, ast.ImportFrom):
-                if node.module == "scripts" or (node.module or "").startswith("scripts."):
-                    references.add((source, node.module or "scripts"))
-            elif isinstance(node, ast.Constant) and isinstance(node.value, str):
-                value = node.value.replace("\\", "/")
-                if value.startswith("scripts/") and ".py" in value:
-                    references.add((source, value.split(".py", 1)[0] + ".py"))
+            references.update((source, target) for target in _script_targets(node))
     return [list(item) for item in sorted(references)]
+
+
+def _import_targets(source: str, node: ast.AST) -> list[str]:
+    if isinstance(node, ast.Import):
+        return [alias.name for alias in node.names]
+    if isinstance(node, ast.ImportFrom):
+        base = resolve_from(source, node)
+        if base:
+            return [base, *(f"{base}.{alias.name}" for alias in node.names)]
+        return []
+    dynamic_target = _dynamic_import_target(node)
+    return [dynamic_target] if dynamic_target else []
+
+
+def _script_targets(node: ast.AST) -> set[str]:
+    targets: set[str] = set()
+    if isinstance(node, ast.Import):
+        targets.update(
+            alias.name
+            for alias in node.names
+            if alias.name == "scripts" or alias.name.startswith("scripts.")
+        )
+    elif isinstance(node, ast.ImportFrom):
+        module = node.module or "scripts"
+        if module == "scripts" or module.startswith("scripts."):
+            targets.add(module)
+    dynamic_target = _dynamic_import_target(node)
+    if dynamic_target == "scripts" or (dynamic_target or "").startswith("scripts."):
+        targets.add(dynamic_target or "scripts")
+    static_text = _static_path_text(node)
+    if static_text is not None:
+        targets.update(SCRIPT_PATH_PATTERN.findall(static_text.replace("\\", "/")))
+    return targets
+
+
+def _static_path_text(node: ast.AST) -> str | None:
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.JoinedStr):
+        parts: list[str] = []
+        for value in node.values:
+            if isinstance(value, ast.Constant) and isinstance(value.value, str):
+                parts.append(value.value)
+            elif isinstance(value, ast.FormattedValue):
+                parts.append("*")
+            else:
+                return None
+        return "".join(parts)
+    if isinstance(node, ast.Call) and node.args and _is_path_constructor(node.func):
+        return _static_path_text(node.args[0])
+    if isinstance(node, ast.BinOp) and isinstance(node.op, (ast.Add, ast.Div)):
+        left = _static_path_text(node.left)
+        right = _static_path_text(node.right)
+        if left is None or right is None:
+            return None
+        if isinstance(node.op, ast.Div):
+            return f"{left.rstrip('/')}/{right.lstrip('/')}"
+        return left + right
+    return None
+
+
+def _is_path_constructor(node: ast.AST) -> bool:
+    if isinstance(node, ast.Name):
+        return node.id == "Path"
+    return isinstance(node, ast.Attribute) and node.attr == "Path"
+
+
+def _dynamic_import_target(node: ast.AST) -> str | None:
+    if not isinstance(node, ast.Call) or not node.args:
+        return None
+    is_import = isinstance(node.func, ast.Name) and node.func.id == "__import__"
+    is_import_module = isinstance(node.func, ast.Attribute) and node.func.attr == "import_module"
+    if not (is_import or is_import_module):
+        return None
+    target = _static_path_text(node.args[0])
+    return target if target and "*" not in target else None
 
 
 def strongly_connected_components(  # noqa: C901 - Tarjan traversal stays together.
@@ -256,6 +316,17 @@ def compare_to_baseline(current: dict, baseline: dict) -> list[str]:
     return failures
 
 
+def success_summary(state: dict) -> str:
+    policy_violation_count = sum(len(policy["known_violations"]) for policy in state["policies"])
+    return (
+        "architecture import graph ok: "
+        f"{state['module_count']} modules, {state['edge_count']} edges, "
+        f"{len(state['module_sccs'])} SCCs, "
+        f"{len(state['package_bidirectional_edges'])} bidirectional package pairs, "
+        f"{policy_violation_count} policy violations"
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Record or check the roboclaws AST import graph.")
     parser.add_argument("--write", type=Path, help="Write the deterministic graph state as JSON.")
@@ -280,7 +351,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"missing architecture baseline: {args.baseline}")
         return 1
     if not args.write:
-        print(json.dumps(state, indent=2, sort_keys=True))
+        print(success_summary(state))
     return 0
 
 

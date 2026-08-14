@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
+from roboclaws.household import planner_proof_bundle_validation
 from roboclaws.household.planner_proof_results import proof_result_summary_from_commands
 from roboclaws.household.report_planner import render_planner_proof_bundle_runner_report
 from tests.contract.checkers.check_molmo_planner_proof_bundle_runner_result_support import (
-    _load_checker,
     _runner_manifest,
     _write_manifest_and_report,
     _write_runner_artifact,
@@ -16,7 +16,6 @@ from tests.contract.checkers.check_molmo_planner_proof_bundle_runner_result_supp
 
 
 def test_checker_can_require_prior_covered_exclusion(tmp_path: Path) -> None:
-    checker = _load_checker()
     manifest = _runner_manifest(tmp_path)
     manifest["commands"] = []
     manifest["command_count"] = 0
@@ -70,7 +69,7 @@ def test_checker_can_require_prior_covered_exclusion(tmp_path: Path) -> None:
     )
     render_planner_proof_bundle_runner_report(output_dir=tmp_path, manifest=manifest)
 
-    checker._assert_runner_result(
+    planner_proof_bundle_validation.assert_runner_result(
         manifest,
         tmp_path,
         max_selected_requests=0,
@@ -79,11 +78,12 @@ def test_checker_can_require_prior_covered_exclusion(tmp_path: Path) -> None:
 
 
 def test_checker_can_require_expected_proof_outputs(tmp_path: Path) -> None:
-    checker = _load_checker()
     manifest = _write_runner_artifact(tmp_path)
 
     with pytest.raises(AssertionError):
-        checker._assert_runner_result(manifest, tmp_path, require_proof_outputs=True)
+        planner_proof_bundle_validation.assert_runner_result(
+            manifest, tmp_path, require_proof_outputs=True
+        )
 
     proof_dir = tmp_path / "proofs" / "001_observed_001_to_sink_01"
     proof_dir.mkdir(parents=True, exist_ok=True)
@@ -92,4 +92,6 @@ def test_checker_can_require_expected_proof_outputs(tmp_path: Path) -> None:
     manifest["proof_result_summary"] = proof_result_summary_from_commands(manifest["commands"])
     _write_manifest_and_report(tmp_path, manifest)
 
-    checker._assert_runner_result(manifest, tmp_path, require_proof_outputs=True)
+    planner_proof_bundle_validation.assert_runner_result(
+        manifest, tmp_path, require_proof_outputs=True
+    )

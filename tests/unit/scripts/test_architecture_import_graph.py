@@ -53,6 +53,55 @@ def test_comparison_allows_removals_but_rejects_new_edges() -> None:
     assert module.compare_to_baseline(current, baseline) == ["new package edges from a: ['c']"]
 
 
+def test_script_references_detect_embedded_commands_and_argv_paths(
+    tmp_path: Path, monkeypatch
+) -> None:
+    module = load_module()
+    package_root = tmp_path / "roboclaws"
+    package_root.mkdir()
+    (package_root / "sample.py").write_text(
+        "\n".join(
+            (
+                'COMMAND = ".venv/bin/python scripts/operator_console/export.py --dry-run"',
+                'ARGV = [".venv/bin/python", "scripts/operator_console/runner.py"]',
+                'JOINED = "scripts/maps/" + "joined.py"',
+                'PATHED = Path("scripts") / "maps" / "path_runner.py"',
+                'FORMATTED = f"scripts/tools/{command}.py"',
+                'DYNAMIC = importlib.import_module("scripts.dynamic_runner")',
+                'OTHER_DYNAMIC = __import__("scripts.other_runner")',
+            )
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(module, "REPO_ROOT", tmp_path)
+
+    assert module.collect_script_references(package_root) == [
+        ["roboclaws.sample", "scripts.dynamic_runner"],
+        ["roboclaws.sample", "scripts.other_runner"],
+        ["roboclaws.sample", "scripts/maps/joined.py"],
+        ["roboclaws.sample", "scripts/maps/path_runner.py"],
+        ["roboclaws.sample", "scripts/operator_console/export.py"],
+        ["roboclaws.sample", "scripts/operator_console/runner.py"],
+        ["roboclaws.sample", "scripts/tools/*.py"],
+    ]
+
+
+def test_dynamic_package_imports_participate_in_graph_edges(tmp_path: Path, monkeypatch) -> None:
+    module = load_module()
+    package_root = tmp_path / "roboclaws"
+    package_root.mkdir()
+    (package_root / "source.py").write_text(
+        'TARGET = importlib.import_module("roboclaws.target")\n',
+        encoding="utf-8",
+    )
+    (package_root / "target.py").write_text("VALUE = 1\n", encoding="utf-8")
+    monkeypatch.setattr(module, "REPO_ROOT", tmp_path)
+
+    assert module.collect_import_edges(package_root) == [
+        module.ImportEdge("roboclaws.source", "roboclaws.target", 1)
+    ]
+
+
 def test_current_graph_freezes_authoritative_cycles_and_package_pairs() -> None:
     module = load_module()
 
@@ -72,3 +121,72 @@ def test_current_graph_freezes_authoritative_cycles_and_package_pairs() -> None:
     assert policies["planned-reverse-package-edges"]["known_violations"] == []
     assert policies["package-to-scripts"]["status"] == "green"
     assert policies["package-to-scripts"]["known_violations"] == []
+
+
+def test_default_success_output_is_concise(tmp_path: Path, monkeypatch, capsys) -> None:
+    module = load_module()
+    state = {
+        "module_count": 12,
+        "edge_count": 34,
+        "module_sccs": [],
+        "package_bidirectional_edges": [],
+        "allowed_package_edge_matrix": {},
+        "policies": [
+            {"id": "package-to-scripts", "known_violations": []},
+            {"id": "core-product-inversions", "known_violations": []},
+        ],
+    }
+    baseline = tmp_path / "baseline.json"
+    baseline.write_text(json.dumps(state), encoding="utf-8")
+    monkeypatch.setattr(module, "build_graph_state", lambda: state)
+
+    assert module.main(["--baseline", str(baseline)]) == 0
+    assert capsys.readouterr().out == (
+        "architecture import graph ok: 12 modules, 34 edges, 0 SCCs, "
+        "0 bidirectional package pairs, 0 policy violations\n"
+    )
+
+
+def test_write_keeps_full_json_output_and_stdout_silent(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    module = load_module()
+    state = {
+        "module_count": 1,
+        "edge_count": 0,
+        "module_sccs": [],
+        "package_bidirectional_edges": [],
+        "allowed_package_edge_matrix": {},
+        "policies": [],
+    }
+    output = tmp_path / "graph.json"
+    missing_baseline = tmp_path / "missing-baseline.json"
+    monkeypatch.setattr(module, "build_graph_state", lambda: state)
+
+    assert module.main(["--baseline", str(missing_baseline), "--write", str(output)]) == 0
+    assert json.loads(output.read_text(encoding="utf-8")) == state
+    assert capsys.readouterr().out == ""
+
+
+def test_failure_output_keeps_detailed_regressions(tmp_path: Path, monkeypatch, capsys) -> None:
+    module = load_module()
+    baseline = {
+        "module_sccs": [],
+        "package_bidirectional_edges": [],
+        "allowed_package_edge_matrix": {"a": []},
+        "policies": [{"id": "package-to-scripts", "known_violations": []}],
+    }
+    current = {
+        "module_count": 2,
+        "edge_count": 1,
+        "module_sccs": [],
+        "package_bidirectional_edges": [],
+        "allowed_package_edge_matrix": {"a": ["b"]},
+        "policies": [{"id": "package-to-scripts", "known_violations": []}],
+    }
+    baseline_path = tmp_path / "baseline.json"
+    baseline_path.write_text(json.dumps(baseline), encoding="utf-8")
+    monkeypatch.setattr(module, "build_graph_state", lambda: current)
+
+    assert module.main(["--baseline", str(baseline_path)]) == 1
+    assert capsys.readouterr().out == "new package edges from a: ['b']\n"

@@ -6,8 +6,6 @@ from typing import Any
 
 from roboclaws.household.realworld_contract_fixture_projection import (
     _driveable_ways,
-    _fixture_affordances,
-    _fixture_footprint,
     _polygon_center_world,
     _room_id,
     _vec3,
@@ -17,7 +15,6 @@ from roboclaws.maps.bundle import metric_map_bundle_metadata
 from roboclaws.maps.spatial_contract import (
     ALIGNMENT_STATUS_NATIVE,
     GEOMETRY_SOURCE_GENERATED_CANDIDATE,
-    GEOMETRY_SOURCE_OPERATOR_NAVIGATION_ZONE,
     POLYGON_ROLE_NAVIGATION_AREA,
     normalize_spatial_room,
 )
@@ -364,24 +361,6 @@ def _scene_index_public_fixture_overlay(
     return overlay
 
 
-def _metric_map_room_payload(room: dict[str, Any]) -> dict[str, Any]:
-    payload = normalize_spatial_room(
-        {
-            "room_id": room["room_id"],
-            "room_label": room["room_label"],
-            "fixture_count": len(room["fixture_ids"]),
-            "polygon": room.get("polygon", []),
-        },
-        frame_id="map",
-        polygon_role=POLYGON_ROLE_NAVIGATION_AREA,
-        geometry_source=GEOMETRY_SOURCE_OPERATOR_NAVIGATION_ZONE,
-        alignment_status=ALIGNMENT_STATUS_NATIVE,
-    )
-    if isinstance(room.get("scene_room_outline"), dict):
-        payload["scene_room_outline"] = dict(room["scene_room_outline"])
-    return payload
-
-
 def _public_room_hints_from_metric_map(
     metric_map: dict[str, Any],
     *,
@@ -526,21 +505,6 @@ def _room_category_from_label(room_label: str, room_id: str = "") -> str:
     return "room_area"
 
 
-def _scene_room_outlines_from_backend(backend: Any) -> list[dict[str, Any]]:
-    if str(getattr(backend, "scenario_source", "")) != "isaac_scene_index":
-        return []
-    outlines = getattr(backend, "room_outlines", None)
-    if outlines is None:
-        diagnostics = getattr(backend, "scene_index_diagnostics", {})
-        if isinstance(diagnostics, dict):
-            outlines = diagnostics.get("room_outlines")
-    return [
-        dict(item)
-        for item in (outlines or [])
-        if isinstance(item, dict) and item.get("center") and item.get("half_extents")
-    ]
-
-
 def _scene_index_fixture_pose(backend: Any, fixture_id: str) -> list[float] | None:
     receptacle_index = getattr(backend, "receptacle_index", {})
     if not isinstance(receptacle_index, dict):
@@ -567,57 +531,6 @@ def _room_outline_by_id(
     room_id: str,
 ) -> dict[str, Any] | None:
     return next((item for item in room_outlines if str(item.get("room_id") or "") == room_id), None)
-
-
-def _static_fixture_projection_with_scene_index_overlay(
-    rooms: list[Any],
-    overlay_fixtures: dict[str, dict[str, Any]],
-    *,
-    static_fixture_projection_mode: str,
-) -> list[dict[str, Any]]:
-    overlay_room = {
-        "room_id": "isaac_scene_index",
-        "room_label": "Isaac scene index fixtures",
-        "fixture_source": "isaac_scene_index",
-        "fixtures": [
-            _scene_index_static_fixture_projection_row(
-                fixture_id, fixture, static_fixture_projection_mode
-            )
-            for fixture_id, fixture in sorted(overlay_fixtures.items())
-        ],
-    }
-    return [overlay_room] + [dict(room) for room in rooms if isinstance(room, dict)]
-
-
-def _scene_index_static_fixture_projection_row(
-    fixture_id: str,
-    fixture: dict[str, Any],
-    static_fixture_projection_mode: str,
-) -> dict[str, Any]:
-    pose = fixture.get("pose") if isinstance(fixture.get("pose"), dict) else {}
-    return {
-        "fixture_id": fixture_id,
-        "category": str(fixture.get("category") or fixture.get("name") or fixture_id),
-        "name": str(fixture.get("name") or fixture_id),
-        "room_id": "isaac_scene_index",
-        "affordances": _fixture_affordances(fixture),
-        "footprint": _fixture_footprint(fixture_id),
-        "pose": {
-            "frame_id": str(pose.get("frame_id") or "map"),
-            "x": float(pose.get("x", 0.0)),
-            "y": float(pose.get("y", 0.0)),
-            "yaw": float(pose.get("yaw", 0.0)),
-        },
-        "manipulation_frame": f"{fixture_id}_manipulation",
-        "preferred_inspection_waypoint_id": str(
-            fixture.get("preferred_inspection_waypoint_id") or ""
-        ),
-        "preferred_manipulation_waypoint_id": str(
-            fixture.get("preferred_manipulation_waypoint_id") or ""
-        ),
-        "position_detail": static_fixture_projection_mode,
-        "public_fixture_source": "isaac_scene_index",
-    }
 
 
 def _first_waypoint_id(waypoints: list[dict[str, Any]]) -> str:

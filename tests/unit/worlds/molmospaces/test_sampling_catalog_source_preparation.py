@@ -57,9 +57,13 @@ def test_scene_sampler_source_prep_report_lists_manual_prep_steps(monkeypatch) -
     assert ithor["scene_prefilter_expensive_proof_candidate_count"] == 0
     assert ithor["next_scan_world_ids"] == []
     assert ithor["install_candidates"] == []
-    assert any(
-        command["name"] == "rerun_readiness_after_prep" for command in ithor["operator_commands"]
+    rerun_command = next(
+        command
+        for command in ithor["operator_commands"]
+        if command["name"] == "rerun_readiness_after_prep"
     )
+    assert "-m roboclaws.worlds.molmospaces.readiness_export" in rerun_command["command"]
+    assert "scripts/operator_console/" not in rerun_command["command"]
 
     holodeck = report["sources"]["holodeck-objaverse-val"]
     assert holodeck["prep_status"] == "gate_mismatch"
@@ -322,12 +326,15 @@ def test_scene_sampler_scanner_execution_plan_runs_metadata_worklist_candidates(
     assert holodeck["candidates"][0]["scanner_status"] == "ready_for_product_smoke"
     assert holodeck["candidates"][0]["world_id"] == "molmospaces/holodeck-objaverse-val/22"
     assert (
-        "render_scene_previews.py --world molmospaces/holodeck-objaverse-val/22"
+        "roboclaws.operator_console.scene_preview_cli --world molmospaces/holodeck-objaverse-val/22"
         in (holodeck["candidates"][0]["preview_command"])
     )
     assert (
         "world=molmospaces/holodeck-objaverse-val/22"
         in (holodeck["candidates"][0]["map_build_product_smoke_command"])
+    )
+    assert (
+        "world=molmospaces/holodeck-objaverse-val/22" in (holodeck["candidates"][0]["launch_args"])
     )
 
 

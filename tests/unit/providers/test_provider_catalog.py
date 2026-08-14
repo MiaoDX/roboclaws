@@ -38,6 +38,21 @@ def test_openai_agents_registry_has_exact_public_profile_set() -> None:
     assert default_provider_profile("openai-agents-sdk") is None
 
 
+@pytest.mark.parametrize("agent_engine", ("codex-cli", "claude-code", "future-engine"))
+def test_unknown_agent_engines_share_one_readiness_error(agent_engine: str) -> None:
+    readiness = provider_readiness(
+        agent_engine=agent_engine,
+        provider_profile="kimi-openai-chat",
+        env={},
+    )
+
+    assert readiness["ok"] is False
+    assert readiness["message"] == (
+        f"unsupported agent_engine '{agent_engine}'; expected direct-runner|openai-agents-sdk"
+    )
+    assert "route_status" not in readiness
+
+
 @pytest.mark.parametrize(
     "deleted",
     [

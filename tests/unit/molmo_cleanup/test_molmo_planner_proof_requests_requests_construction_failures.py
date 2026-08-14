@@ -78,7 +78,6 @@ def test_proof_request_selection_excludes_prior_task_feasibility_blocked(
         manifest=manifest,
         output_dir=tmp_path,
         runner_python=Path("python"),
-        probe_script=Path("probe.py"),
         request_selection=selection,
     )
 

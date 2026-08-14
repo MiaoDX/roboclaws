@@ -21,7 +21,6 @@ from roboclaws.maps.project import metric_map_from_bundle, static_landmarks_from
 from roboclaws.maps.route import SIM_COSTMAP_PLANNER, validate_metric_map_route
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-CHECKER_PATH = REPO_ROOT / "scripts" / "maps" / "check_bundle.py"
 CANONICAL_SCENE_BUNDLE = REPO_ROOT / "assets" / "maps" / "molmospaces" / "procthor-10k-val" / "0"
 
 
@@ -348,7 +347,7 @@ def test_checker_cli_reports_invalid_bundle_without_traceback(tmp_path: Path) ->
     invalid_bundle.mkdir()
 
     result = subprocess.run(
-        [_repo_python(), str(CHECKER_PATH), str(invalid_bundle)],
+        [_repo_python(), "-m", "roboclaws.maps.bundle", str(invalid_bundle)],
         cwd=REPO_ROOT,
         check=False,
         capture_output=True,

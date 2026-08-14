@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from roboclaws.operator_console.launch_lifecycle import _new_run_id
 from roboclaws.operator_console.launcher import (
-    build_launch_argv,
+    build_launch_args,
     load_repo_dotenv,
     route_readiness,
 )
@@ -42,7 +42,7 @@ def test_operator_console_sdk_map_build_does_not_select_baseline_profile(
 ) -> None:
     route = get_selection(AGIBOT_SDK_MAP_BUILD)
 
-    argv = build_launch_argv(
+    argv = build_launch_args(
         route,
         root=tmp_path,
         run_id="run-1",
@@ -251,11 +251,9 @@ def test_mcp_port_gate_rejects_port_that_is_already_accepting_connections(
 
 def test_openai_agents_open_task_route_uses_sdk_driver(tmp_path: Path) -> None:
     route = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
-    argv = build_launch_argv(route, root=tmp_path, run_id="run-1")
+    argv = build_launch_args(route, root=tmp_path, run_id="run-1")
 
-    assert argv[:6] == [
-        "just",
-        "run::surface",
+    assert argv[:4] == [
         "surface=household-world",
         "world=molmospaces/procthor-objaverse-val/0",
         "backend=mujoco",

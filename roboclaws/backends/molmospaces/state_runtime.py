@@ -103,14 +103,6 @@ def _score(final_locations: dict[str, str], manifest: dict[str, Any]) -> dict[st
     return scenario_state.score(final_locations, manifest)
 
 
-def _nearest_receptacle(position: list[float], receptacles: list[dict[str, Any]]) -> str:
-    return scenario_state.nearest_receptacle(position, receptacles)
-
-
-def _first_wrong_receptacle(state: dict[str, Any], target: dict[str, Any]) -> str:
-    return scenario_state.first_wrong_receptacle(state, target)
-
-
 def _first_receptacle_id(state: dict[str, Any]) -> str | None:
     return scenario_state.first_receptacle_id(state)
 
@@ -219,26 +211,6 @@ def _resolve_placement(
     )
 
 
-def _direct_support_placement(
-    model: mujoco.MjModel,
-    data: mujoco.MjData,
-    state: dict[str, Any],
-    obj: dict[str, Any],
-    receptacle: dict[str, Any],
-    *,
-    index: int,
-) -> dict[str, Any] | None:
-    return placement.direct_support_placement(
-        model,
-        data,
-        state,
-        obj,
-        receptacle,
-        index=index,
-        hooks=_molmo_placement_hooks(),
-    )
-
-
 def _surface_candidate_positions(
     surface: dict[str, Any],
     *,
@@ -264,28 +236,6 @@ def _candidate_has_direct_support(
     return placement.candidate_has_direct_support(position, surface, footprint)
 
 
-def _candidate_is_clear_of_dynamic_objects(
-    model: mujoco.MjModel,
-    data: mujoco.MjData,
-    state: dict[str, Any],
-    obj: dict[str, Any],
-    position: list[float],
-    *,
-    footprint: tuple[float, float],
-    bottom_offset: float,
-) -> bool:
-    return placement.candidate_is_clear_of_dynamic_objects(
-        model,
-        data,
-        state,
-        obj,
-        position,
-        footprint=footprint,
-        bottom_offset=bottom_offset,
-        hooks=_molmo_placement_hooks(),
-    )
-
-
 def _elevated_position_over_surface(
     surface: dict[str, Any],
     *,
@@ -309,14 +259,6 @@ def _placement_position(
     )
 
 
-def _object_surface_lift(object_category: str | None) -> float:
-    return placement.object_surface_lift(object_category)
-
-
-def _direct_support_clearance(obj: dict[str, Any], receptacle: dict[str, Any]) -> float:
-    return placement.direct_support_clearance(obj, receptacle)
-
-
 def _receptacle_support_surfaces(
     model: mujoco.MjModel,
     data: mujoco.MjData,
@@ -330,81 +272,8 @@ def _receptacle_support_surfaces(
     )
 
 
-def _support_surface_from_geom(
-    model: mujoco.MjModel,
-    data: mujoco.MjData,
-    geom_id: int,
-) -> dict[str, Any] | None:
-    return placement.support_surface_from_geom(
-        model,
-        data,
-        geom_id,
-        hooks=_molmo_placement_hooks(),
-    )
-
-
-def _geom_has_upward_support_normal(data: mujoco.MjData, geom_id: int) -> bool:
-    return placement.geom_has_upward_support_normal(data, geom_id)
-
-
-def _geom_world_half_extents(
-    model: mujoco.MjModel,
-    data: mujoco.MjData,
-    geom_id: int,
-) -> tuple[float, float, float] | None:
-    return placement.geom_world_half_extents(model, data, geom_id)
-
-
-def _oriented_half_extents(
-    xmat: Any,
-    local: tuple[float, float, float],
-) -> tuple[float, float, float]:
-    return placement.oriented_half_extents(xmat, local)
-
-
 def _support_top_z(surfaces: list[dict[str, Any]]) -> float | None:
     return placement.support_top_z(surfaces)
-
-
-def _object_bottom_offset(
-    model: mujoco.MjModel,
-    data: mujoco.MjData,
-    obj: dict[str, Any],
-) -> float:
-    return placement.object_bottom_offset(model, data, obj, hooks=_molmo_placement_hooks())
-
-
-def _object_height(
-    model: mujoco.MjModel,
-    data: mujoco.MjData,
-    obj: dict[str, Any],
-) -> float:
-    return placement.object_height(model, data, obj, hooks=_molmo_placement_hooks())
-
-
-def _object_world_aabb(
-    model: mujoco.MjModel,
-    data: mujoco.MjData,
-    obj: dict[str, Any],
-) -> dict[str, float] | None:
-    return placement.object_world_aabb(model, data, obj, hooks=_molmo_placement_hooks())
-
-
-def _aabb_xy_overlaps(
-    first: tuple[float, float, float, float],
-    second: dict[str, float],
-    *,
-    margin: float,
-) -> bool:
-    return placement.aabb_xy_overlaps(first, second, margin=margin)
-
-
-def _object_footprint_half_extents(
-    model: mujoco.MjModel,
-    data: mujoco.MjData,
-    obj: dict[str, Any],
-) -> tuple[float, float]:
-    return placement.object_footprint_half_extents(model, data, obj, hooks=_molmo_placement_hooks())
 
 
 def _receptacle_requires_open(receptacle: dict[str, Any]) -> bool:

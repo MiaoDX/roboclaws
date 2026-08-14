@@ -8,10 +8,13 @@ from types import SimpleNamespace
 
 import pytest
 
+from roboclaws.backends.isaaclab import (
+    isaac_scene_index_metadata,
+    isaac_stage_lighting,
+)
 from roboclaws.backends.isaaclab import runtime_camera as runtime_camera
 from roboclaws.backends.isaaclab import runtime_capture as runtime_capture
 from roboclaws.backends.isaaclab import runtime_commands as runtime_commands
-from roboclaws.backends.isaaclab import runtime_dependencies as runtime_dependencies
 from roboclaws.backends.isaaclab import runtime_evidence as runtime_evidence
 from roboclaws.backends.isaaclab import runtime_initialization as runtime_initialization
 from roboclaws.backends.isaaclab import runtime_state as runtime_state
@@ -309,7 +312,7 @@ def test_isaac_stage_light_paths_detects_existing_lights_without_pxr() -> None:
                 _FakePrim("/val_1/Geometry/table", False),
             ]
 
-    paths = runtime_dependencies._stage_light_paths(
+    paths = isaac_stage_lighting.stage_light_paths(
         _FakeStage(),
         light_api=object(),
     )
@@ -321,10 +324,10 @@ def test_isaac_stage_light_paths_detects_existing_lights_without_pxr() -> None:
 
 
 def test_isaac_usd_index_path_heuristics_skip_container_prims() -> None:
-    assert runtime_dependencies._is_object_prim_path("/World/Objects") is False
-    assert runtime_dependencies._is_object_prim_path("/World/Objects/mug_01") is True
-    assert runtime_dependencies._is_receptacle_prim_path("/World/Receptacles") is False
-    assert runtime_dependencies._is_receptacle_prim_path("/World/Receptacles/sink_01") is True
+    assert isaac_scene_index_metadata.is_object_prim_path("/World/Objects") is False
+    assert isaac_scene_index_metadata.is_object_prim_path("/World/Objects/mug_01") is True
+    assert isaac_scene_index_metadata.is_receptacle_prim_path("/World/Receptacles") is False
+    assert isaac_scene_index_metadata.is_receptacle_prim_path("/World/Receptacles/sink_01") is True
 
 
 def test_isaac_molmospaces_scene_metadata_indexes_real_geometry_prims(
@@ -363,7 +366,7 @@ def test_isaac_molmospaces_scene_metadata_indexes_real_geometry_prims(
     object_index: dict[str, dict[str, object]] = {}
     receptacle_index: dict[str, dict[str, object]] = {}
 
-    runtime_dependencies._merge_molmospaces_metadata_index(
+    isaac_scene_index_metadata.merge_molmospaces_metadata_index(
         usd_path=scene_usd,
         prim_paths_by_name={
             "mug_8caf1bb3f88e9a00e02dfe9e6518aeb0_1_0_7": [
@@ -390,7 +393,7 @@ def test_isaac_molmospaces_scene_metadata_indexes_real_geometry_prims(
 
 def test_isaac_molmospaces_metadata_prefers_top_level_geometry_prim() -> None:
     assert (
-        runtime_dependencies._molmospaces_metadata_prim_path(
+        isaac_scene_index_metadata.molmospaces_metadata_prim_path(
             "mug_01",
             {
                 "mug_01": [

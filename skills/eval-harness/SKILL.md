@@ -17,6 +17,13 @@ It is an orchestration skill, not a robot behavior skill. Keep household-world
 task strategy in `household-world`; keep reusable robot capability semantics
 in MCP tools and capability profiles.
 
+Use Just only as the human-facing facade shown below. Frozen rows execute their
+package owners directly: eval rows use `python -m roboclaws.evals.cli`, and
+product rows use `python -m roboclaws.cli.main run surface`. Keep the subprocess
+boundary for row timeout and isolation; do not route an executing row back
+through Just or add a second command registry. The eval CLI grammar is an
+optional documented kebab-case tool name followed by `key=value` arguments.
+
 ## Commands
 
 Recommend rows without running them:

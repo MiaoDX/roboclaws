@@ -6,11 +6,14 @@ from pathlib import Path
 
 import pytest
 
+from roboclaws.backends.isaaclab import (
+    isaac_scene_bindings,
+    isaac_scene_index_metadata,
+)
 from roboclaws.backends.isaaclab import runtime as runtime_cli
 from roboclaws.backends.isaaclab import runtime_camera as runtime_camera
 from roboclaws.backends.isaaclab import runtime_capture as runtime_capture
 from roboclaws.backends.isaaclab import runtime_commands as runtime_commands
-from roboclaws.backends.isaaclab import runtime_dependencies as runtime_dependencies
 from roboclaws.backends.isaaclab import runtime_evidence as runtime_evidence
 from roboclaws.backends.isaaclab import runtime_initialization as runtime_initialization
 from roboclaws.backends.isaaclab import runtime_state as runtime_state
@@ -81,7 +84,7 @@ def test_isaac_molmospaces_scene_metadata_ignores_bad_optional_source(
     scene_usd.write_text("#usda 1.0\n", encoding="utf-8")
     (scene_dir / "scene_metadata.json").write_text(source_text, encoding="utf-8")
 
-    assert runtime_dependencies._load_molmospaces_scene_metadata(scene_usd) == {}
+    assert isaac_scene_index_metadata.load_molmospaces_scene_metadata(scene_usd) == {}
 
 
 def test_isaac_molmospaces_scene_metadata_allows_missing_optional_source(
@@ -90,7 +93,7 @@ def test_isaac_molmospaces_scene_metadata_allows_missing_optional_source(
     scene_usd = tmp_path / "scene.usda"
     scene_usd.write_text("#usda 1.0\n", encoding="utf-8")
 
-    assert runtime_dependencies._load_molmospaces_scene_metadata(scene_usd) == {}
+    assert isaac_scene_index_metadata.load_molmospaces_scene_metadata(scene_usd) == {}
 
 
 def test_isaac_scene_binding_can_match_synthetic_handle_to_real_usd_metadata() -> None:
@@ -111,7 +114,7 @@ def test_isaac_scene_binding_can_match_synthetic_handle_to_real_usd_metadata() -
         },
     }
 
-    binding = runtime_dependencies._bind_public_scene_item(
+    binding = isaac_scene_bindings.bind_public_scene_item(
         public_id="mug_01",
         public_label="ceramic mug",
         category="dish",
@@ -147,7 +150,7 @@ def test_isaac_scene_binding_does_not_bind_generic_dish_to_unrelated_category() 
         }
     }
 
-    binding = runtime_dependencies._bind_public_scene_item(
+    binding = isaac_scene_bindings.bind_public_scene_item(
         public_id="mug_01",
         public_label="ceramic mug",
         category="dish",
@@ -171,7 +174,7 @@ def test_isaac_scene_binding_still_allows_specific_unique_category() -> None:
         }
     }
 
-    binding = runtime_dependencies._bind_public_scene_item(
+    binding = isaac_scene_bindings.bind_public_scene_item(
         public_id="cleanup_object_01",
         public_label="unlabeled cleanup object",
         category="Mug",
@@ -273,7 +276,7 @@ def test_isaac_scene_index_can_generate_scene_specific_cleanup_scenario() -> Non
     target = scenario.private_manifest.targets[0]
     assert target.object_id == "bowl_847a24bfa9d8b1a1f26661ebbb850f56_1_0_2"
     assert target.valid_receptacle_ids == ("sink_07e796f32d0d3efce9acf4be00f3bc53_1_0_3",)
-    bindings = runtime_dependencies._scene_binding_diagnostics(
+    bindings = isaac_scene_bindings.scene_binding_diagnostics(
         runtime_mode="real",
         scenario=scenario,
         object_index=object_index,

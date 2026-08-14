@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from roboclaws.household import planner_proof_bundle_validation
 from tests.contract.checkers.check_molmo_planner_proof_bundle_runner_result_support import (
-    _load_checker,
     _runner_manifest,
     _write_manifest_and_report,
     _write_runner_artifact,
@@ -14,26 +14,31 @@ from tests.contract.checkers.check_molmo_planner_proof_bundle_runner_result_supp
 
 
 def test_checker_rejects_missing_report(tmp_path: Path) -> None:
-    checker = _load_checker()
     manifest = _write_runner_artifact(tmp_path)
     (tmp_path / "report.html").unlink()
 
     with pytest.raises(AssertionError):
-        checker._assert_runner_result(manifest, tmp_path)
+        planner_proof_bundle_validation.assert_runner_result(manifest, tmp_path)
+
+
+def test_checker_rejects_report_without_bundle_marker(tmp_path: Path) -> None:
+    manifest = _write_runner_artifact(tmp_path)
+    (tmp_path / "report.html").write_text("<h1>unrelated report</h1>", encoding="utf-8")
+
+    with pytest.raises(AssertionError):
+        planner_proof_bundle_validation.assert_runner_result(manifest, tmp_path)
 
 
 def test_checker_rejects_missing_command_report_path(tmp_path: Path) -> None:
-    checker = _load_checker()
     manifest = _runner_manifest(tmp_path)
     del manifest["commands"][0]["report"]
     _write_manifest_and_report(tmp_path, manifest)
 
     with pytest.raises(AssertionError):
-        checker._assert_runner_result(manifest, tmp_path)
+        planner_proof_bundle_validation.assert_runner_result(manifest, tmp_path)
 
 
-def test_checker_requires_timeout_stage_evidence_in_report(tmp_path: Path) -> None:
-    checker = _load_checker()
+def test_checker_accepts_timeout_stage_evidence_from_artifact(tmp_path: Path) -> None:
     manifest = _runner_manifest(tmp_path)
     proof_dir = tmp_path / "proofs" / "001_observed_001_to_sink_01"
     proof_dir.mkdir(parents=True)
@@ -67,4 +72,6 @@ def test_checker_requires_timeout_stage_evidence_in_report(tmp_path: Path) -> No
     )
     _write_manifest_and_report(tmp_path, manifest)
 
-    checker._assert_runner_result(manifest, tmp_path, require_proof_outputs=True)
+    planner_proof_bundle_validation.assert_runner_result(
+        manifest, tmp_path, require_proof_outputs=True
+    )

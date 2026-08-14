@@ -17,10 +17,10 @@ else:
     REPO_ROOT = Path(__file__).resolve().parents[2]
 
 from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS, WORLD_SPECS  # noqa: E402
-from roboclaws.worlds.molmospaces.world_ids import parse_molmospaces_world_id  # noqa: E402
-from scripts.operator_console.export_scene_sampler_readiness import (  # noqa: E402
-    _write_generated_eval_artifacts,
+from roboclaws.worlds.molmospaces.readiness_export import (  # noqa: E402
+    write_generated_eval_artifacts,
 )
+from roboclaws.worlds.molmospaces.world_ids import parse_molmospaces_world_id  # noqa: E402
 
 COMMITTED_SCENE_SAMPLER_SUITE = REPO_ROOT / "evals/household_world/suites/scene_sampler_stress.json"
 COMMITTED_SCENE_SAMPLER_SAMPLES = REPO_ROOT / "evals/household_world/samples/scene_sampler"
@@ -78,7 +78,7 @@ def check_scene_catalog_sync(*, output_dir: Path) -> dict[str, Any]:
 
 
 def _generated_eval_fixture_issues(output_dir: Path) -> list[SyncIssue]:
-    generated = _write_generated_eval_artifacts(output_dir)
+    generated = write_generated_eval_artifacts(output_dir)
     generated_suite = Path(str(generated["generated_eval_suite"]))
     generated_samples = [Path(path) for path in generated["generated_eval_samples"]]
     issues: list[SyncIssue] = []
@@ -178,7 +178,7 @@ def _preview_asset_issues() -> list[SyncIssue]:
                 check="operator_console_previews",
                 message=f"{world_id} preview assets are incomplete or missing: {missing}",
                 action=(
-                    ".venv/bin/python scripts/operator_console/render_scene_previews.py "
+                    ".venv/bin/python -m roboclaws.operator_console.scene_preview_cli "
                     f"--world {world_id}"
                 ),
             )

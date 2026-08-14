@@ -157,9 +157,6 @@ def test_retired_local_runtime_recipes_are_absent() -> None:
     assert not (JUST_DIR / "openclaw.just").exists()
     assert not (JUST_DIR / "chat.just").exists()
 
-    molmo_text = (JUST_DIR / "molmo.just").read_text(encoding="utf-8")
-    assert "roboclaws_assert_openai_agents_provider_allowed" in molmo_text
-
     assert not (JUST_DIR / "code.just").exists()
 
     env = os.environ.copy()
@@ -183,4 +180,5 @@ def test_retired_local_runtime_recipes_are_absent() -> None:
         assert result.returncode != 0
         assert f"unsupported agent_engine '{engine}'" in result.stderr
 
-    assert "network-status:" in (JUST_DIR / "dev.just").read_text(encoding="utf-8")
+    assert not (JUST_DIR / "dev.just").exists()
+    assert (REPO_ROOT / "scripts" / "dev" / "network_status.sh").is_file()

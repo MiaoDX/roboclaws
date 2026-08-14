@@ -132,7 +132,11 @@ def _patch_live_surface_popen(
         ) -> None:
             kwargs.pop("cwd", None)
             kwargs.pop("env", None)
-            self.completed = fake_run(list(plan.overrides), launch_plan=plan, **kwargs)
+            self.completed = fake_run(
+                [f"{key}={value}" for key, value in plan.adapter_options.items()],
+                launch_plan=plan,
+                **kwargs,
+            )
             self.returncode = self.completed.returncode
             if stdout is not None:
                 stdout.write(str(getattr(self.completed, "stdout", "") or ""))

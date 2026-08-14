@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from roboclaws.core.goals import GoalContract
@@ -36,4 +37,4 @@ class LaunchPlan:
     goal_contract: GoalContract
     scenario_setup: str | None
     relocation_count: int | None
-    overrides: tuple[str, ...]
+    adapter_options: Mapping[str, str]

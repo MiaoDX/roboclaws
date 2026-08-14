@@ -48,7 +48,7 @@ Instruction priority:
 - Keep Isaac Lab out of the normal `.venv`; it belongs in `.venv-isaaclab/`.
 - Do not commit `.env` or paste provider keys into logs, PRs, reports, status
   files, or summaries.
-- Before system-provider Claude Code workflows, run `just dev::network-status`.
+- Before system-provider Claude Code workflows, run `scripts/dev/network_status.sh`.
   If it reports `network: work`, do not run those guarded routes.
 - The active live-agent product engine is `openai-agents-sdk`. `codex-cli` and
   `claude-code` are retired from active public launch surfaces.
@@ -95,7 +95,7 @@ Common examples:
 just run::surface surface=household-world agent_engine=direct-runner preset=map-build evidence_lane=camera-grounded-labels camera_labeler=grounding-dino
 just run::surface surface=household-world agent_engine=openai-agents-sdk preset=cleanup evidence_lane=world-public-labels
 just run::surface surface=household-world agent_engine=openai-agents-sdk prompt="find something useful to drink"
-just agent::verify mock
+just agent::verify
 ```
 
 Use `just/README.md` for the full launch-axis grammar. Prefer `agent::eval
@@ -121,7 +121,7 @@ Live verification policy:
   artifacts.
 - If a live proof is required but cannot run, prove the blocker with the
   repo's guarded preflight/status command output, such as
-  `just dev::network-status`, provider readiness, missing credentials, occupied
+  `scripts/dev/network_status.sh`, provider readiness, missing credentials, occupied
   runtime resources, or unavailable hardware. Record the concrete blocker and
   stop instead of silently substituting only deterministic tests.
 - For candidate-selection workflows, run or regrade the candidate matrix first

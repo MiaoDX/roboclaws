@@ -21,18 +21,6 @@
     ],
     "notes": "Selected rows may require household world, manipulation, episode, visual-grounding, OpenAI Agents SDK live-agent, eval-suite, or simulator runtime support depending on matched signals."
   },
-  "scripts": [
-    {
-      "path": "scripts/select_eval_harness.py",
-      "kind": "selector",
-      "summary": "Builds an auditable eval-harness manifest from plan text, git diff files, and explicit axis overrides."
-    },
-    {
-      "path": "scripts/run_eval_harness.py",
-      "kind": "runner",
-      "summary": "Writes JSON/Markdown/HTML eval-harness manifests and optionally executes selected rows."
-    }
-  ],
   "evidence_outputs": [
     "eval_harness.json",
     "eval_harness.md",

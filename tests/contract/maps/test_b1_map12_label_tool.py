@@ -51,7 +51,6 @@ NAVIGATION_MEMORY = (
 SCENE_ROOT = (
     REPO_ROOT / "data" / "robot-data-lab" / "scene-engine" / "data" / ("2rd_floor_seperated")
 )
-SCRIPT = REPO_ROOT / "scripts" / "maps" / "render_b1_map12_label_tool.py"
 REMOVED_AUTHORED_BUNDLE = REPO_ROOT / "assets" / "maps" / "agibot-robot-map-12"
 
 

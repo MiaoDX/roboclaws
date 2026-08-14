@@ -14,6 +14,7 @@ from roboclaws.core.provider_catalog import (
     provider_route_specs,
     route_payload,
 )
+from roboclaws.core.rerun import public_surface_rerun_argv
 from roboclaws.core.task_intents import TASK_INTENT_SPECS
 from roboclaws.household.profiles import (
     CAMERA_GROUNDED_LABELS_LANE,
@@ -224,7 +225,7 @@ class ConsoleLaunchSelection:
             "field_groups": list(backend.field_groups),
             "view_modes": list(STABLE_WORKSPACE_VIEW_MODES),
             "backend_view_modes": list(backend.view_modes),
-            "argv_preview": ["just", "run::surface", *self.base_args()],
+            "argv_preview": public_surface_rerun_argv(self.base_args()),
             "intent_options": [_intent_option(self.intent_id)],
         }
         return payload

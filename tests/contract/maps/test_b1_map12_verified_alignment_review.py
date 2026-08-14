@@ -30,7 +30,7 @@ from tests.contract.maps.b1_map12_verified_alignment_support import (
     PROMOTE_MANUAL_DRAFT_MODULE,
     RAW_MAP12_BUNDLE,
     REPO_ROOT,
-    REVIEW_SCRIPT,
+    REVIEW_MODULE,
     SEMANTIC_ANCHOR_REVIEW_PACKET_SCRIPT,
     VENDOR_MAP12_BUNDLE,
     alignment_anchor,
@@ -394,7 +394,8 @@ def test_review_cli_requires_scene_topdown_render_argument(tmp_path: Path) -> No
     completed = subprocess.run(
         [
             sys.executable,
-            str(REVIEW_SCRIPT),
+            "-m",
+            REVIEW_MODULE,
             "--correspondences",
             str(manifest_path),
             "--map-bundle",
@@ -421,7 +422,8 @@ def test_review_cli_writes_packet_with_rendered_scene_topdown(tmp_path: Path) ->
     completed = subprocess.run(
         [
             sys.executable,
-            str(REVIEW_SCRIPT),
+            "-m",
+            REVIEW_MODULE,
             "--correspondences",
             str(manifest_path),
             "--map-bundle",
