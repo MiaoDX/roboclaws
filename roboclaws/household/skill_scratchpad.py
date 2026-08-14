@@ -37,16 +37,11 @@ def read_or_create_skill_scratchpad(
     run_dir: Path,
     note: str = "",
 ) -> tuple[dict[str, Any], Path]:
-    for name in ("agent_scratchpad.json", "cleanup_scratch.json"):
-        path = run_dir / name
-        if path.is_file():
-            data = read_json_object(path, label="skill scratchpad")
-            validate_skill_scratchpad(data)
-            target = run_dir / "agent_scratchpad.json"
-            if path != target:
-                target.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
-            return data, target
+    path = run_dir / "agent_scratchpad.json"
+    if path.is_file():
+        data = read_json_object(path, label="skill scratchpad")
+        validate_skill_scratchpad(data)
+        return data, path
     data = empty_skill_scratchpad(note=note)
-    target = run_dir / "agent_scratchpad.json"
-    target.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
-    return data, target
+    path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
+    return data, path

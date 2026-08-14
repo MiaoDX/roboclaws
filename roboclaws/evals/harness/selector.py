@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import argparse
 import datetime as dt
-import json
 import re
 import subprocess
 from collections.abc import Iterable, Sequence
@@ -194,50 +192,6 @@ EXPLICIT_AXIS_SIGNAL_OVERRIDES: tuple[tuple[str, str, str], ...] = (
     ("evidence_lane", "camera-raw-fpv", "raw_fpv"),
     ("camera_labeler", "grounding-dino", "visual_grounding"),
 )
-
-
-def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Select adaptive Roboclaws eval-harness rows.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    parser.add_argument("--mode", choices=("recommend", "execute"), default="recommend")
-    parser.add_argument("--budget", choices=("smoke", "focused", "full"), default="focused")
-    parser.add_argument("--profile", choices=HARNESS_PROFILES, default="adaptive")
-    parser.add_argument("--plan", type=Path)
-    parser.add_argument("--since")
-    parser.add_argument("--changed-file", action="append", default=[])
-    parser.add_argument("--agent-engine", default="")
-    parser.add_argument("--provider-profile", default="")
-    parser.add_argument("--intent", default="")
-    parser.add_argument("--preset", default="")
-    parser.add_argument("--evidence-lane", default="")
-    parser.add_argument("--camera-labeler", default="")
-    parser.add_argument("--scene", action="append", default=[])
-    parser.add_argument("--output-dir", type=Path)
-    return parser.parse_args(argv)
-
-
-def main(argv: list[str] | None = None) -> int:
-    args = parse_args(argv)
-    manifest = build_eval_harness(
-        mode=args.mode,
-        budget=args.budget,
-        profile=args.profile,
-        plan=args.plan,
-        since=args.since,
-        changed_files=_split_csv_values(args.changed_file),
-        agent_engine=_split_csv(args.agent_engine),
-        provider_profile=_split_csv(args.provider_profile),
-        intent=_split_csv(args.intent),
-        preset=_split_csv(args.preset),
-        evidence_lane=_split_csv(args.evidence_lane),
-        camera_labeler=_split_csv(args.camera_labeler),
-        scenes=_split_csv_values(args.scene),
-        output_dir=args.output_dir,
-    )
-    print(json.dumps(manifest, indent=2, sort_keys=True))
-    return 0
 
 
 def build_eval_harness(
@@ -577,7 +531,3 @@ def _utc_timestamp() -> str:
 def _default_output_dir() -> Path:
     stamp = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
     return DEFAULT_OUTPUT_ROOT / stamp
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

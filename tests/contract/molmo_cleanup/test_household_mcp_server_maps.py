@@ -158,6 +158,40 @@ def test_realworld_mcp_reports_anchor_only_runtime_map_prior_as_loaded(tmp_path:
     }
 
 
+def test_realworld_mcp_prior_summary_uses_normalized_construction_snapshot(tmp_path: Path) -> None:
+    runtime_map_prior = {
+        "schema": "runtime_metric_map_v1",
+        "public_semantic_anchors": [
+            {"anchor_id": "anchor_1", "anchor_type": "room_area"},
+            None,
+        ],
+        "observed_objects": [],
+        "rooms": [{"room_id": "room_1"}, None],
+    }
+    server = make_household_world_mcp(
+        run_dir=tmp_path,
+        scenario=build_cleanup_scenario(seed=7),
+        port=0,
+        perception_mode=CAMERA_MODEL_POLICY_MODE,
+        runtime_map_prior=runtime_map_prior,
+        runtime_map_prior_source="prior/runtime_metric_map.json",
+    )
+    runtime_map_prior["public_semantic_anchors"].append({"anchor_id": "late_anchor"})
+    runtime_map_prior["rooms"].append({"room_id": "late_room"})
+    try:
+        metric_map = server.call_tool("metric_map")
+        for waypoint in metric_map["inspection_waypoints"]:
+            server.call_tool("navigate_to_waypoint", waypoint_id=waypoint["waypoint_id"])
+            server.call_tool("observe")
+        done = server.call_tool("done", reason="normalized prior summary")
+        run_result = json.loads(Path(done["run_result"]).read_text(encoding="utf-8"))
+    finally:
+        server.close()
+
+    assert run_result["runtime_metric_map_prior"]["anchor_prior_count"] == 1
+    assert run_result["runtime_metric_map_prior"]["room_prior_count"] == 1
+
+
 def test_realworld_mcp_defaults_to_base_metric_map(tmp_path: Path) -> None:
     server = make_household_world_mcp(
         run_dir=tmp_path,

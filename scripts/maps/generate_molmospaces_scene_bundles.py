@@ -15,10 +15,9 @@ if __package__ in {None, ""}:
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
 
-from roboclaws.household.household_backend_contract import (
-    build_household_backend_session,  # noqa: E402
+from roboclaws.household.subprocess_backend import (  # noqa: E402
+    MolmoSpacesSubprocessBackend,
 )
-from roboclaws.household.subprocess_backend import MOLMOSPACES_SUBPROCESS_BACKEND  # noqa: E402
 from roboclaws.maps.bundle import (  # noqa: E402
     metric_map_bundle_metadata,
     validate_base_metric_map_v1_bundle,
@@ -236,17 +235,16 @@ def _generate_scene_bundle(
     scene_run_dir.mkdir(parents=True, exist_ok=True)
     staged_bundle_dir = scene_run_dir / "bundle"
 
-    session = build_household_backend_session(
-        backend_name=MOLMOSPACES_SUBPROCESS_BACKEND,
+    backend = MolmoSpacesSubprocessBackend(
         run_dir=scene_run_dir,
         seed=seed,
         generated_mess_count=0,
         scene_source=target.scene_source,
         scene_index=target.scene_index,
-        molmospaces_python=molmospaces_python,
+        python_executable=molmospaces_python,
     )
     try:
-        backend_state = _backend_state_payload(session)
+        backend_state = backend._read_state()
         (scene_run_dir / "source_map_preparation_evidence.json").write_text(
             json.dumps(backend_state, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
@@ -279,7 +277,7 @@ def _generate_scene_bundle(
         base_metric_validation = validate_base_metric_map_v1_bundle(output_dir)
         base_metric_validation.raise_for_errors()
     finally:
-        session.close()
+        backend.close()
 
     return {
         "scene_source": target.scene_source,
@@ -292,16 +290,6 @@ def _generate_scene_bundle(
         "validation": validation.as_dict(),
         "base_metric_validation": base_metric_validation.as_dict(),
     }
-
-
-def _backend_state_payload(session: Any) -> dict[str, Any]:
-    backend = getattr(session, "backend", None)
-    state_reader = getattr(backend, "_read_state", None)
-    if callable(state_reader):
-        state = state_reader()
-        if isinstance(state, dict):
-            return state
-    raise RuntimeError("MolmoSpaces source-map preparation requires backend state evidence")
 
 
 def _parse_scene_spec(spec: str) -> SceneTarget:

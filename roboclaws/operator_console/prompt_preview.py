@@ -11,7 +11,7 @@ from roboclaws.agents.prompts.household_cleanup import (
 )
 from roboclaws.launch.catalog import LaunchError, resolve_surface_launch
 from roboclaws.operator_console.launch_support import build_surface_launch_args
-from roboclaws.operator_console.routes import ConsoleLaunchSelection
+from roboclaws.operator_console.routes import DEFAULT_PROMPTS, ConsoleLaunchSelection
 
 AGIBOT_MAP_BUILD_WRAPPER_SUMMARY = (
     "Agibot map-build adds a live-route wrapper that restricts the agent to public "
@@ -126,11 +126,7 @@ def _operator_prompt(route: ConsoleLaunchSelection, intent_id: str, prompt: str)
 
 
 def _default_prompt_for_intent(intent_id: str) -> str:
-    if intent_id == "map-build":
-        return "帮我建立这个房间的 Runtime Metric Map"
-    if intent_id == "open-ended":
-        return "在这个场景中完成开放性导航任务，并报告你看到的证据。"
-    return "帮我收拾这个房间"
+    return DEFAULT_PROMPTS.get(intent_id, DEFAULT_PROMPTS["cleanup"])
 
 
 def prompt_preview_env(

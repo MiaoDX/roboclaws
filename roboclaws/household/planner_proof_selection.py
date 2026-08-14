@@ -12,29 +12,18 @@ from roboclaws.household.planner_proof_fallback_selection import (
     build_fallback_requests_for_blocked_request,
 )
 from roboclaws.household.planner_proof_fallbacks import (
-    discovered_runtime_aliases_by_source_request as _discovered_runtime_aliases_by_source_request,
-)
-from roboclaws.household.planner_proof_fallbacks import (
-    planner_arg as _planner_arg,
-)
-from roboclaws.household.planner_proof_fallbacks import (
+    discovered_runtime_aliases_by_source_request,
+    nonempty_prior_blocker_fields,
+    planner_arg,
     prior_fallback_candidate_filters_by_source_request,
-)
-from roboclaws.household.planner_proof_fallbacks import (
-    proof_cleanup_task_config as _proof_cleanup_task_config,
-)
-from roboclaws.household.planner_proof_fallbacks import (
-    unique_nonempty_values as _unique_nonempty_values,
+    proof_cleanup_task_config,
+    unique_nonempty_values,
 )
 from roboclaws.household.planner_proof_quality import (
     planner_proof_quality_evidence,
 )
 from roboclaws.household.planner_proof_results import normalized_blockers
-from roboclaws.household.planner_proof_selection_evidence import prior_result_blocker_fields
 
-_prior_fallback_candidate_filters_by_source_request = (
-    prior_fallback_candidate_filters_by_source_request
-)
 _FALLBACK_REQUEST_ID_MARKER = "_fallback_"
 _RUNTIME_ALIAS_RE = re.compile(r"^(?P<prefix>.+)_(?P<group>\d+)_(?P<variant>\d+)_(?P<room>\d+)$")
 
@@ -71,11 +60,11 @@ def proof_request_selection_from_summary(
     prior_results = _prior_results_by_request_id(prior_summary)
     prior_results_by_cleanup_pair = _prior_results_by_cleanup_pair(prior_summary)
     prior_results_by_planner_object_target = _prior_results_by_planner_object_target(prior_summary)
-    discovered_aliases_by_request = _discovered_runtime_aliases_by_source_request(
+    discovered_aliases_by_request = discovered_runtime_aliases_by_source_request(
         ready_requests,
         prior_summary,
     )
-    prior_candidate_filters_by_request = _prior_fallback_candidate_filters_by_source_request(
+    prior_candidate_filters_by_request = prior_fallback_candidate_filters_by_source_request(
         prior_summary
     )
     selected = []
@@ -225,7 +214,7 @@ def _proof_request_selection_mode(
 def _normalized_request_ids(request_ids: Sequence[str] | None) -> list[str]:
     if not request_ids:
         return []
-    return _unique_nonempty_values([str(item).strip() for item in request_ids])
+    return unique_nonempty_values([str(item).strip() for item in request_ids])
 
 
 def _request_id_filter(
@@ -372,8 +361,8 @@ def _cleanup_pair_from_result(result: dict[str, Any]) -> tuple[str, str]:
 
 def _planner_object_target_pair_from_request(request: dict[str, Any]) -> tuple[str, str]:
     args = request.get("planner_probe_args") or {}
-    planner_object_id = _planner_arg(args, "--cleanup-planner-object-id")
-    planner_target_id = _planner_arg(args, "--cleanup-planner-target-receptacle-id")
+    planner_object_id = planner_arg(args, "--cleanup-planner-object-id")
+    planner_target_id = planner_arg(args, "--cleanup-planner-target-receptacle-id")
     return (
         planner_object_id,
         str(request.get("target_receptacle_id") or planner_target_id),
@@ -381,7 +370,7 @@ def _planner_object_target_pair_from_request(request: dict[str, Any]) -> tuple[s
 
 
 def _planner_object_target_pair_from_result(result: dict[str, Any]) -> tuple[str, str]:
-    config = _proof_cleanup_task_config(result)
+    config = proof_cleanup_task_config(result)
     planner_object_id = str(config.get("planner_object_id") or "")
     planner_target_id = str(config.get("planner_target_receptacle_id") or "")
     return (
@@ -490,7 +479,7 @@ def _selected_request(
         ),
     }
     item.update(
-        _nonempty_prior_blocker_fields(
+        nonempty_prior_blocker_fields(
             prior_result.get("task_feasibility_blocker_kind")
             or fallback.get("prior_task_feasibility_blocker_kind"),
             prior_result.get("task_feasibility_blocker_summary")
@@ -593,7 +582,7 @@ def _target_feasibility_blocker(
         "execution_attempted": bool(item.get("execution_attempted")),
     }
     blocker.update(
-        _nonempty_prior_blocker_fields(
+        nonempty_prior_blocker_fields(
             item.get("prior_task_feasibility_blocker_kind"),
             item.get("prior_task_feasibility_blocker_summary"),
         )
@@ -629,15 +618,7 @@ def _prior_result_evidence_fields(result: dict[str, Any]) -> dict[str, Any]:
 
 
 def _prior_result_blocker_fields(result: dict[str, Any]) -> dict[str, Any]:
-    return prior_result_blocker_fields(result)
-
-
-def _nonempty_prior_blocker_fields(kind: Any, summary: Any) -> dict[str, str]:
-    fields = {}
-    kind_text = str(kind or "")
-    summary_text = str(summary or "")
-    if kind_text:
-        fields["prior_task_feasibility_blocker_kind"] = kind_text
-    if summary_text:
-        fields["prior_task_feasibility_blocker_summary"] = summary_text
-    return fields
+    return nonempty_prior_blocker_fields(
+        result.get("task_feasibility_blocker_kind"),
+        result.get("task_feasibility_blocker_summary"),
+    )

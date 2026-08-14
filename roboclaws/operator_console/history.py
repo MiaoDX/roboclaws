@@ -10,10 +10,10 @@ from typing import Any
 from roboclaws.core.json_sources import read_json_object
 from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.state import (
-    LIVE_RUN_MARKERS,
     display_run_id,
     resolve_display_run_dir,
 )
+from roboclaws.operator_console.state_artifacts import LIVE_RUN_MARKERS
 
 
 @dataclass(frozen=True)

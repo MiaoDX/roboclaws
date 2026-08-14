@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,8 @@ from roboclaws.operator_console.redaction import redact_text
 from roboclaws.operator_console.routes import ConsoleLaunchSelection
 from roboclaws.operator_console.runtime_compat import pid_is_active  # noqa: F401
 from roboclaws.operator_console.state_artifacts import (
+    LIVE_RUN_MARKERS,
+    _artifact_href,
     _artifact_links,
     _latest_existing,
     _latest_view_assets,
@@ -35,25 +38,27 @@ from roboclaws.operator_console.state_presentation import (
     _terminal_reason,
     _tool_call_summary,
 )
-from roboclaws.operator_console.state_source_contract import JsonSourceError
 from roboclaws.operator_console.state_summary import (
     camera_angle_summary,
     is_active_run_phase,
 )
 
-LIVE_RUN_MARKERS = (
-    "live_status.json",
-    "run_result.json",
-    "trace.jsonl",
-    "report.html",
-    "runtime_metric_map.json",
-    "tmux_session.txt",
-    "driver.log",
-    "openai-agents-events.jsonl",
-    "openai-agents-trace.json",
-)
-
 AGENT_EVENT_GLOBS = ("openai-agents-events*.jsonl",)
+
+
+@dataclass(frozen=True)
+class JsonSourceError:
+    path: Path
+    label: str
+    reason: str
+
+    def to_payload(self, root: Path) -> dict[str, str]:
+        return {
+            "label": self.label,
+            "path": str(self.path),
+            "href": _artifact_href(root, self.path) if self.path.exists() else "",
+            "reason": self.reason,
+        }
 
 
 def derive_operator_state(

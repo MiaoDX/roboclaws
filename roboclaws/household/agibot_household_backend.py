@@ -49,6 +49,9 @@ class AgibotHouseholdBackendSession:
     def requested_generated_mess_count(self) -> int:
         return 0
 
+    def attach_runtime_metadata(self, run_result: dict[str, Any], *, run_dir: Path) -> None:
+        del run_result, run_dir
+
     def close(self) -> None:
         return None
 
