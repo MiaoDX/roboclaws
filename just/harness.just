@@ -4,8 +4,6 @@
 # - just harness::household-world  public/private household-world cleanup harness
 # - just harness::molmo-realworld-agent-mcp  ADR-0003 MCP smoke agent harness
 # - just harness::molmo-realworld-agent-dogfood-kit  ADR-0003 direct-agent kit smoke
-# - just harness::molmo-realworld-openclaw-dogfood-kit  ADR-0003 OpenClaw minimum-gate kit smoke
-# - just harness::molmo-realworld-openclaw-visual-dogfood-kit  ADR-0003 OpenClaw visual kit smoke
 # - just harness::molmo-realworld-raw-fpv  ADR-0013 raw FPV-only observation evidence
 # - just harness::molmo-planner-proof-bundle-runner  proof-request dry-run handoff
 # - just harness::molmo-planner-proof-bundle-execute-rerun  local GPU proof-bundle execution
@@ -118,66 +116,6 @@ molmo-realworld-agent-dogfood-kit seed="7" output_dir="output/molmo-realworld-ag
       --min-generated-mess-count 5 \
       --require-agent-driven \
       --require-clean-agent-run \
-      --require-advisory-scoring \
-      "${run_dir}/run_result.json"
-
-# ADR-0003 OpenClaw dogfood kit smoke. This does not launch Gateway; it proves
-# the OpenClaw-labeled artifact shape and minimum checker before a local Gateway
-# attempt supplies real OpenClaw evidence.
-molmo-realworld-openclaw-dogfood-kit seed="7" output_dir="output/molmo-realworld-openclaw-dogfood-kit" task="帮我收拾这个房间":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    stamp="$({{timestamp_cmd}})"
-    run_dir="{{output_dir}}/${stamp}"
-    mkdir -p "$run_dir"
-    echo "==> run dir: ${run_dir}"
-    .venv/bin/python scripts/molmo_cleanup/run_molmo_realworld_agent_mcp_smoke.py \
-      --seed "{{seed}}" \
-      --backend api_semantic_synthetic \
-      --task "{{task}}" \
-      --policy openclaw_agent \
-      --output-dir "$run_dir"
-    .venv/bin/python scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py \
-      --expect-task "{{task}}" \
-      --expect-backend api_semantic_synthetic \
-      --expect-policy openclaw_agent \
-      --expect-mcp-server household_world \
-      --min-generated-mess-count 5 \
-      --require-agent-driven \
-      --require-openclaw-minimum \
-      --require-advisory-scoring \
-      "${run_dir}/run_result.json"
-
-# ADR-0010 OpenClaw visual dogfood kit smoke. This does not launch Gateway; it
-# proves OpenClaw-labeled ADR-0003 artifacts still render the real
-# MolmoSpaces/RBY1M Robot View Timeline through the shared report underlay.
-molmo-realworld-openclaw-visual-dogfood-kit seed="7" output_dir="output/molmo-realworld-openclaw-visual-dogfood-kit" task="帮我收拾这个房间" generated_mess_count="10":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    stamp="$({{timestamp_cmd}})"
-    run_dir="{{output_dir}}/${stamp}"
-    mkdir -p "$run_dir"
-    echo "==> run dir: ${run_dir}"
-    .venv/bin/python scripts/molmo_cleanup/run_molmo_realworld_agent_mcp_smoke.py \
-      --seed "{{seed}}" \
-      --backend molmospaces_subprocess \
-      --task "{{task}}" \
-      --policy openclaw_agent \
-      --generated-mess-count "{{generated_mess_count}}" \
-      --include-robot \
-      --robot-name rby1m \
-      --record-robot-views \
-      --output-dir "$run_dir"
-    .venv/bin/python scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py \
-      --expect-task "{{task}}" \
-      --expect-backend molmospaces_subprocess \
-      --expect-policy openclaw_agent \
-      --expect-mcp-server household_world \
-      --min-generated-mess-count "{{generated_mess_count}}" \
-      --require-agent-driven \
-      --require-openclaw-minimum \
-      --require-clean-agent-run \
-      --require-robot-views \
       --require-advisory-scoring \
       "${run_dir}/run_result.json"
 

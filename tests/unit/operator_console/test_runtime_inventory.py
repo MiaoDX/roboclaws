@@ -235,60 +235,21 @@ def test_runtime_inventory_surfaces_invalid_visual_backend_slot_limit(
     assert blockers["summary"]["active"] == 0
 
 
-def test_runtime_inventory_surfaces_corrupt_docker_mount_metadata(tmp_path: Path) -> None:
+def test_runtime_inventory_never_invokes_docker(tmp_path: Path) -> None:
     (tmp_path / "pyproject.toml").write_text("[project]\nname='roboclaws-test'\n", encoding="utf-8")
     (tmp_path / "roboclaws").mkdir()
 
     def fake_run(command: list[str], **kwargs) -> SimpleNamespace:  # noqa: ANN003
         del kwargs
-        if command[:3] == ["docker", "ps", "--format"]:
-            return SimpleNamespace(
-                returncode=0,
-                stdout="container-a\tworker-a\troboclaws-worker\tUp 1 minute\n",
-            )
-        if command[:4] == ["docker", "inspect", "--format", "{{json .Mounts}}"]:
-            return SimpleNamespace(returncode=0, stdout="{bad-mounts")
+        assert command[0] != "docker"
         return SimpleNamespace(returncode=1, stdout="")
 
     with patch("roboclaws.operator_console.runtime_inventory.subprocess.run", side_effect=fake_run):
         payload = runtime_inventory_payload(tmp_path, ports=[])
         blockers = runtime_blockers_payload(tmp_path, ports=[])
 
-    task = next(item for item in payload["tasks"] if item["owner"] == "docker")
-    assert task["id"] == "source-error:docker:container-a:mounts"
-    assert task["status"] == "source_error"
-    assert task["error_reason"] == "invalid_docker_mounts"
-    assert "docker inspect mounts for container-a are unreadable: invalid_json" in task["message"]
-    assert task["resources"][0]["kind"] == "source_error"
-    assert task["resources"][0]["active"] is False
-    assert task["resources"][0]["container_id"] == "container-a"
-    assert [item["id"] for item in blockers["tasks"]] == [task["id"]]
-
-
-def test_runtime_inventory_lists_repo_mounted_docker_container(tmp_path: Path) -> None:
-    (tmp_path / "pyproject.toml").write_text("[project]\nname='roboclaws-test'\n", encoding="utf-8")
-    (tmp_path / "roboclaws").mkdir()
-
-    def fake_run(command: list[str], **kwargs) -> SimpleNamespace:  # noqa: ANN003
-        del kwargs
-        if command[:3] == ["docker", "ps", "--format"]:
-            return SimpleNamespace(
-                returncode=0,
-                stdout="container-a\tworker-a\troboclaws-worker\tUp 1 minute\n",
-            )
-        if command[:4] == ["docker", "inspect", "--format", "{{json .Mounts}}"]:
-            mounts = [{"Source": str((tmp_path / "output" / "run").resolve())}]
-            return SimpleNamespace(returncode=0, stdout=json.dumps(mounts))
-        return SimpleNamespace(returncode=1, stdout="")
-
-    with patch("roboclaws.operator_console.runtime_inventory.subprocess.run", side_effect=fake_run):
-        payload = runtime_inventory_payload(tmp_path)
-
-    task = next(item for item in payload["tasks"] if item["owner"] == "docker")
-    assert task["id"] == "docker:container-a"
-    assert task["status"] == "running"
-    assert task["resources"][0]["kind"] == "docker_container"
-    assert task["resources"][0]["container_id"] == "container-a"
+    assert payload["tasks"] == []
+    assert blockers["tasks"] == []
 
 
 def test_runtime_blockers_payload_omits_terminal_history(tmp_path: Path) -> None:

@@ -85,9 +85,8 @@ Agent engines are product runtimes, not tasks:
 - deterministic direct runner;
 - OpenAI Agents SDK live route.
 
-Validation-required maintainer routes stay outside the normal public engine
-list until their separate proof gates are green. Retired Docker-backed
-`codex-cli` and `claude-code` routes are not current product engines.
+Retired agent engines are ordinary unsupported values. The product does not
+retain gateway, local-container, compatibility, or deprecated-command routes.
 Script-style proof and dry-run paths belong under direct runners, harness
 recipes, or backend adapters; they are not public agent engines.
 

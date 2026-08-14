@@ -9,10 +9,10 @@ contract have since superseded.
 
 | # | Status | File | Topic | Key Conclusion |
 |---|--------|------|-------|---------------|
-| 01 | Historical | [openclaw-isaaclab-feasibility](01-openclaw-isaaclab-feasibility.md) | OpenClaw + Isaac Lab feasibility | Technically feasible but not for quick PoC; use current backend gates before treating it as roadmap guidance. |
+| 01 | Historical; superseded by ADR-0148 | [openclaw-isaaclab-feasibility](01-openclaw-isaaclab-feasibility.md) | OpenClaw + Isaac Lab feasibility | Retained as historical research; OpenClaw is no longer a current runtime. |
 | 02 | Superseded by ADR-0137 | [ai2thor-multiagent-foundations](02-ai2thor-multiagent-foundations.md) | AI2-THOR multi-agent API + OpenClaw integration | AI2-THOR findings remain historical; AI2-THOR is no longer a current public launch axis. |
 | 03 | Partly superseded by household-world direction | [simulation-platforms-2026](03-simulation-platforms-2026.md) | 2026 simulation platform landscape | Platform survey remains useful context, but the active direction is MolmoSpaces/MuJoCo plus explicit backend gates. |
-| 04 | Historical context | [openclaw-robotics-ecosystem](04-openclaw-robotics-ecosystem.md) | OpenClaw robotics ecosystem mapping | OpenClaw remains validation-required until off-work-network Gateway proof is green. |
+| 04 | Historical; superseded by ADR-0148 | [openclaw-robotics-ecosystem](04-openclaw-robotics-ecosystem.md) | OpenClaw robotics ecosystem mapping | Retained as historical ecosystem context; OpenClaw is retired. |
 | 05 | Superseded by retired game/public-surface cleanup | [real-model-smoke-validation](05-real-model-smoke-validation.md) | Issue #50 local-dev validation | Territory/coverage findings are history, not current product strategy. |
 | 06 | Current background | [visual-grounding-perception-producer](06-visual-grounding-perception-producer.md) | Edge visual-grounding perception producer | Separate producer service; fast proposer first, optional verifier only when measured quality requires it. |
 | 07 | Current background | [agent-sdk-vs-frameworks-for-coding-loop](07-agent-sdk-vs-frameworks-for-coding-loop.md) | OpenAI Agents SDK vs. Claude Agent SDK vs. other frameworks, for the code-holds-the-loop MCP robot agent | Decisive axis is loop ownership, not provider compat; thin DIY loop on the MCP Python SDK (or PydanticAI) beats both vendor SDKs for this use case; OpenAI Agents SDK preferred of the two; resilience must be engineered regardless. |

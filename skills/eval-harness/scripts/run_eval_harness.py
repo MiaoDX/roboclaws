@@ -37,7 +37,6 @@ ROW_BLOCKER_REQUIREMENT_PRIORITY = {
     "python_env": 3,
     "dino_sidecar": 4,
     "runtime_map_prior": 5,
-    "docker": 6,
 }
 RUNTIME_MAP_PRIOR_SOURCE_ROW_ID = "direct-map-build-world-public"
 
@@ -193,8 +192,6 @@ def _requirement_blocker(
         return _environment_blocker("just is not on PATH")
     if requirement == "python_env" and not (REPO_ROOT / ".venv" / "bin" / "python").exists():
         return _environment_blocker(".venv/bin/python is missing")
-    if requirement == "docker" and shutil.which("docker") is None:
-        return _environment_blocker("docker is not on PATH")
     if requirement == "provider_profile":
         return _provider_requirement_blocker(axes)
     if requirement == "openai_agents_package" and not _has_module("agents"):

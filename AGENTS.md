@@ -20,7 +20,7 @@ Task-routed reads:
 - New project orientation or runnable examples: `README.md`.
 - Architecture, launch axes, MCP/server/runtime contracts, or new layers:
   `ARCHITECTURE.md`.
-- Environment setup, local hazards, live providers, browser QA, Docker,
+- Environment setup, local hazards, live providers, browser QA,
   standard gates, or git hygiene: `docs/agents/operating-runbook.md`.
 - GSD phase execution/resume: `.planning/STATE.md` plus the current phase file.
 - Pre-GSD plan shaping/review/handoff: `docs/plans/<slug>.md`.
@@ -48,8 +48,7 @@ Instruction priority:
 - Keep Isaac Lab out of the normal `.venv`; it belongs in `.venv-isaaclab/`.
 - Do not commit `.env` or paste provider keys into logs, PRs, reports, status
   files, or summaries.
-- Before OpenClaw Gateway, `just chat::run`, OpenClaw local/integration gates,
-  or system-provider Claude Code workflows, run `just dev::network-status`.
+- Before system-provider Claude Code workflows, run `just dev::network-status`.
   If it reports `network: work`, do not run those guarded routes.
 - The active live-agent product engine is `openai-agents-sdk`. `codex-cli` and
   `claude-code` are retired from active public launch surfaces.

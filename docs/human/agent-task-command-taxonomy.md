@@ -40,9 +40,8 @@ Current agent engines:
 - `direct-runner`
 - `openai-agents-sdk`
 
-Validation-required maintainer engines are not part of the normal public engine
-list. Retired `codex-cli` and `claude-code` values fail current launch
-validation instead of acting as compatibility aliases.
+Other engine values fail current launch validation instead of acting as
+compatibility aliases or hidden maintainer routes.
 
 `prompt=...` without a household preset runs the default open-task contract.
 `preset=cleanup prompt=...` keeps cleanup semantics while narrowing the
@@ -57,11 +56,10 @@ just agent::verify <target> [args ...]
 just agent::harness <target> [args ...]
 just agent::eval recommend|execute|suite=<suite>|promote-regression ...
 just agent::mcp up|down
-just agent::gateway up|down|pull-image
 ```
 
-Lower modules such as `molmo::*`, `harness::*`, `verify::*`, `mcp::*`, and
-`chat::*` are private implementation details.
+Lower modules such as `molmo::*`, `harness::*`, `verify::*`, and `mcp::*` are
+private implementation details.
 They remain runnable for debugging, but they are hidden from `just --summary`
 and should not be the first response to natural-language run requests.
 

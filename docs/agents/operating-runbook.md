@@ -68,8 +68,7 @@ Current live product route:
 Every OpenAI Agents SDK launch selects one of these profiles explicitly. The
 runtime never falls back between Responses and Chat Completions transports.
 
-Before OpenClaw Gateway, `just chat::run`, OpenClaw local/integration gates, or
-system-provider Claude Code workflows:
+Before system-provider Claude Code workflows:
 
 ```bash
 just dev::network-status
@@ -87,20 +86,6 @@ AppArmor or sysctl settings. Use the per-command fallback:
 ```bash
 GSTACK_CHROMIUM_NO_SANDBOX=1 browse goto http://127.0.0.1:<port>
 ```
-
-## Docker Hygiene For OpenClaw Local Runs
-
-OpenClaw is a private/maintainer path, not a current public launch axis. Before
-starting a new Gateway, check stale containers:
-
-```bash
-docker ps -a --format '{{.Names}}\t{{.Status}}' | grep -E 'openclaw-gateway' || echo "no stale gateway"
-docker rm -f openclaw-gateway   # only if a stale gateway is present
-docker ps --format '{{.Names}}\t{{.Image}}'
-```
-
-After a run, leave the Gateway on `profile: minimal` or tear it down explicitly.
-Do not leave it on `profile: coding`.
 
 ## Test And Lint Workflow
 
@@ -146,11 +131,10 @@ Use `agent::*` for deeper maintainer control:
 just agent::verify <target> [args ...]
 just agent::harness <target> [args ...]
 just agent::mcp up|down
-just agent::gateway up|down|pull-image
 ```
 
-Lower modules such as `openclaw::*`, `molmo::*`, `harness::*`, `verify::*`,
-`mcp::*`, `chat::*`, and `dev::*` are private implementation
+Lower modules such as `molmo::*`, `harness::*`, `verify::*`, `mcp::*`, and
+`dev::*` are private implementation
 details. They remain runnable for debugging but should not be the first choice
 for natural-language run requests.
 
@@ -171,8 +155,8 @@ Local workstation sessions are required for real provider keys, simulator/GPU,
 robot/backend services, screenshots/GIF evidence, and multi-round live debug
 loops.
 
-If a change's core claim depends on real hardware, real simulator rendering,
-real provider behavior, or OpenClaw Gateway integration, validate it locally or
+If a change's core claim depends on real hardware, real simulator rendering, or
+real provider behavior, validate it locally or
 state the missing validation explicitly. CI is continuous proof, not first
 validation for local-only claims.
 

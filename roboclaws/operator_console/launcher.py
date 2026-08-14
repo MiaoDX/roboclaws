@@ -30,10 +30,8 @@ from roboclaws.operator_console.interactions import (
     attach_run_to_session,
 )
 from roboclaws.operator_console.launch_support import (
-    DockerMountSourceError,
     apply_env_overrides,
     build_surface_launch_args,
-    docker_container_ids_with_mount,
     launch_prompt_for_intent,
     provider_env_overrides_for_route,
     public_env_overrides,
@@ -705,7 +703,6 @@ def _live_run_pid(display_run_dir: Path) -> int | None:
 def _stop_live_child_run(display_run_dir: Path) -> None:
     live_pid = _live_run_pid(display_run_dir)
     stop_pids = _live_run_stop_pids(live_pid)
-    _stop_docker_containers_for_run(display_run_dir)
     _kill_tmux_session(display_run_dir)
     for pid in stop_pids:
         _terminate_process_group(pid)
@@ -829,27 +826,6 @@ def _dedupe_pids(pids: list[int]) -> list[int]:
     return output
 
 
-def _stop_docker_containers_for_run(display_run_dir: Path) -> None:
-    workspace = (display_run_dir / "agent-docker-workspace").resolve()
-    if not workspace.exists():
-        return
-    try:
-        container_ids = _docker_container_ids_with_mount(workspace)
-    except DockerMountSourceError as exc:
-        raise ConsoleLaunchError(f"operator stop source error: {exc}") from exc
-    for container_id in container_ids:
-        subprocess.run(
-            ["docker", "stop", "--time", "5", container_id],
-            check=False,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-
-
-def _docker_container_ids_with_mount(source: Path) -> list[str]:
-    return docker_container_ids_with_mount(source, run_command=subprocess.run)
-
-
 def _read_optional_json_source(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
@@ -935,7 +911,7 @@ def _remove_empty_reserved_run_dir(run_dir: Path) -> None:
 
 
 def _safe_run_id_suffix(raw: str) -> str:
-    """Return a readable id fragment that is safe in paths and Docker bind specs."""
+    """Return a readable id fragment that is safe in paths."""
 
     slug = RUN_ID_SAFE_RE.sub("-", raw).strip("-._")
     slug = re.sub(r"-{2,}", "-", slug)

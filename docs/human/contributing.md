@@ -77,8 +77,8 @@ the first place a local-only claim is exercised.
 | `molmo-live-cleanup` | push to `main` or manual workflow | Opt-in live household cleanup reports through configured provider profiles. |
 | `publish-pages` | push to `main` | Publishes the Molmo live report site and Pages index. |
 
-Required CI must stay deterministic and secret-light. Real provider, Gateway,
-GPU, Isaac, Agibot, and robot-backed runs belong in advisory, manual, scheduled,
+Required CI must stay deterministic and secret-light. Real provider, GPU,
+Isaac, Agibot, and robot-backed runs belong in advisory, manual, scheduled,
 or local-only gates unless explicitly promoted.
 
 ## Secrets

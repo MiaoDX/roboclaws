@@ -54,7 +54,6 @@ def _agent_engine_id(agent_engine: str) -> str:
         "openai-agents-live": "openai-agents-sdk",
         "direct": "direct-runner",
         "mcp-smoke": "direct-runner",
-        "openclaw": "openclaw-gateway",
     }
     return engine_map.get(agent_engine, agent_engine)
 
