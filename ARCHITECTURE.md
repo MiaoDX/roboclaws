@@ -77,7 +77,11 @@ Harness recipes
   model/key route (`provider_profile=codex-responses`, `mimo-responses`,
   `minimax-responses`, or `kimi-openai-chat`). Codex and MiMo use separate
   environment-owned endpoint, key, and request-model triples while sharing the
-  standard Responses model path. A thin Codex-only HTTP compatibility adapter
+  standard Responses model path. Their internal routes are eligible on both the
+  local workstation and CloudML. Kimi and MiniMax use external routes and eval
+  only from the local workstation; provider rows carry this as
+  `provider_network_scope` plus fail-closed `allowed_execution_targets`
+  manifest fields. A thin Codex-only HTTP compatibility adapter
   supplies required ephemeral request metadata and omits unsupported default
   settings; artifacts retain only public profile/model labels.
   Retired live engines `codex-cli` and `claude-code` are rejected by current
@@ -195,7 +199,9 @@ Key pieces:
   base-map proof augmentation, waypoint requests, navigation reproducibility,
   and navigation reporting. These run as package modules while Isaac
   dependencies remain isolated
-  in `.venv-isaaclab/`; harnesses do not accept the Omniverse EULA by default.
+  in `.venv-isaaclab/`. Harnesses derive prior Omniverse EULA acceptance from
+  the machine-local `OMNI_KIT_ACCEPT_EULA=YES` environment contract; without
+  it they do not accept by default, and an explicit false override still wins.
 - `roboclaws/maps/b1_*.py` owns B1 base-map construction, reviewed alignment,
   semantic projection, and explicit promotion workflows. Current authoring
   tools consume these owners; accepted input assets remain review-controlled.
@@ -240,6 +246,14 @@ model-input compaction have direct behavior owners. The retired mixed
 the true owners while serialized event, cost, privacy, and result schemas stay
 unchanged.
 
+The household SDK launch adapter is `agents/household_live_runner.py`; direct
+configuration, lifecycle, handoff, continuation, profile, and metrics owners
+sit beside it. Current run inspection uses
+`python -m roboclaws.agents.live_status_cli`; live-performance extraction reads
+OpenAI Agents SDK telemetry only. Historical reports may retain serialized
+retired-engine identity, but current reporting does not parse retired Codex CLI
+or Claude Code event streams.
+
 The retained household runtime is split by behavior rather than transport.
 MCP response projection and artifact serialization, runtime-map target
 selection, visual perception/navigation, direct cleanup target selection, and
@@ -258,6 +272,15 @@ scanner validation, and canonical map-bundle naming. `launch/worlds.py`
 resolves cross-backend catalog entries and optional dependency status; it does
 not own MolmoSpaces sampling behavior. Current package, script, skill, console,
 eval, and test callers import the world owners directly.
+
+Retained authoring, preview, probe, visual-grounding, and showcase scripts are
+thin adapters over package owners. B1/Isaac authoring behavior lives under
+`roboclaws.maps` and `roboclaws.backends.isaaclab`; planner probe/proof behavior
+lives under `roboclaws.household`; scene previews live under
+`roboclaws.operator_console`; visual-grounding service and benchmark behavior
+live under `roboclaws.household.visual_grounding_sidecar` and
+`roboclaws.evals.visual_grounding_benchmark`; showcase rendering lives under
+`roboclaws.reports`. Package code never imports or executes script modules.
 
 The clean-slate direction is:
 

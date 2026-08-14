@@ -9,7 +9,11 @@ from roboclaws.evals.final_state_evidence import (
     physical_final_state_evidence,
     simulator_evidence_from_run_result,
 )
-from roboclaws.evals.live_runtime import live_product_run_kwargs, live_surface_command
+from roboclaws.evals.live_runtime import (
+    live_product_run_kwargs,
+    live_surface_command,
+    product_run_kwargs,
+)
 from roboclaws.evals.long_horizon import _call_tool_with_robot_view
 from roboclaws.evals.long_horizon_contract import long_horizon_spec
 from roboclaws.evals.long_horizon_grader import grade_long_horizon_task
@@ -142,6 +146,31 @@ def test_long_horizon_smoke_keeps_private_molmospaces_runtime(
     assert all(
         str(kwargs["map_bundle_dir"]).endswith("procthor-10k-val/0") for kwargs in captured_kwargs
     )
+
+
+def test_direct_eval_product_kwargs_include_canonical_goal_contract(tmp_path: Path) -> None:
+    sample = load_eval_sample(
+        REPO_ROOT
+        / "evals/household_world/samples/long_horizon/food_restock_chinese_val0_seed7.json"
+    )
+
+    kwargs = product_run_kwargs(
+        sample,
+        run_dir=tmp_path / "trial-0000",
+        budget="smoke",
+    )
+
+    contract = json.loads(kwargs["goal_contract_json"])
+    assert contract["schema"] == "roboclaws_goal_contract_v1"
+    assert contract["surface"] == sample.surface
+    assert contract["intent"] == sample.intent
+    assert contract["raw_prompt"] == sample.prompt
+    assert contract["normalized_goal"] == sample.prompt
+    assert contract["required_capabilities"] == [
+        "household_world",
+        "household_manipulation",
+        "household_episode",
+    ]
 
 
 def test_long_horizon_live_command_uses_private_task_targets(tmp_path: Path) -> None:

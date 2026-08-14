@@ -11,6 +11,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[3]
 JUST_DIR = REPO_ROOT / "just"
 HARNESS_JUST = JUST_DIR / "harness.just"
+EULA_ENV_DEFAULT = 'if [[ "${OMNI_KIT_ACCEPT_EULA:-}" == "YES" ]]'
 
 
 def just_bin() -> str:
@@ -51,7 +52,9 @@ def test_agent_harness_allows_isaac_runtime_preflight_target() -> None:
         re.MULTILINE | re.DOTALL,
     )
     assert recipe_match is not None
-    assert 'accept_nvidia_eula="false"' in recipe_match.group("body")
+    recipe_body = recipe_match.group("body")
+    assert 'accept_nvidia_eula="false"' in recipe_body
+    assert EULA_ENV_DEFAULT in recipe_body
 
     route = trace_agent_harness(
         "isaac-runtime-preflight",
@@ -146,7 +149,6 @@ def test_agent_harness_allows_b1_map12_navigation_smoke_target() -> None:
     assert 'accept_nvidia_eula="false"' in harness_text
     assert "--require-navigation-success" in harness_text
     assert 'OMNI_KIT_ACCEPT_EULA="YES"' in harness_text
-
     route = trace_agent_harness(
         "b1-map12-navigation-smoke",
         "output_dir=/tmp/roboclaws-b1-map12-navigation",
@@ -166,3 +168,17 @@ def test_agent_harness_allows_b1_map12_navigation_smoke_target() -> None:
         "require_navigation_success=false",
         "accept_nvidia_eula=false",
     ]
+
+
+def test_isaac_harnesses_derive_eula_acceptance_from_repo_environment() -> None:
+    harness_text = HARNESS_JUST.read_text(encoding="utf-8")
+
+    assert harness_text.count(EULA_ENV_DEFAULT) == 3
+    for recipe in (
+        "isaac-runtime-preflight",
+        "isaac-runtime-smoke",
+        "b1-map12-navigation-smoke",
+    ):
+        recipe_body = harness_text.split(f"{recipe} *overrides:\n", 1)[1]
+        assert recipe_body.index(EULA_ENV_DEFAULT) < recipe_body.index('for arg in "${args[@]}"')
+        assert recipe_body.index('for arg in "${args[@]}"') < recipe_body.index('printf -v "$key"')

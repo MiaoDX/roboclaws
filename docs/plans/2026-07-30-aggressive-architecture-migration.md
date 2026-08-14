@@ -1,6 +1,6 @@
 # Aggressive Architecture Migration
 
-**Status:** Authorized; Waves 0-5 complete, Wave 6 verification active
+**Status:** SUCCESS; Waves 0-7 and all final gates complete
 **Created:** 2026-07-30
 **Execution unit:** This entire plan, delivered in bounded waves and slices
 **Supersedes:** the broad-module-splitting non-goal in
@@ -738,8 +738,11 @@ hardware proof cannot run for a demonstrated environment reason.
 
 ## Plan Ledger
 
-- Current status: ACTIVE.
-- Current wave: Wave 3, unconditional investigation/rehearsal deletion stacks.
+- Current status: SUCCESS. Waves 0-7 and all deterministic, product, provider,
+  browser, B1, and Isaac runtime gates are complete.
+- Current wave: final verification complete. The migration propagated the
+  operator's existing machine-local EULA acceptance; it did not accept terms
+  on the operator's behalf, publish artifacts, or move a physical robot.
 - Completed waves: Wave 0 froze exact size/disposition and import-graph
   baselines, expanded the deletion consumer ledger and public fixture index,
   corrected the planned topology from five/four to six/five, and wired both
@@ -1028,5 +1031,37 @@ hardware proof cannot run for a demonstrated environment reason.
   with Start disabled and no console errors; the two redundant workflow
   source-string assertions are removed while packaging, security, artifact,
   privacy, DOM-integrity, and retired-surface guards remain.
-- Next action: run the Wave 6 partition/product/SDK/Just verification matrix,
-  then execute Wave 7 telemetry, status, and final cleanup.
+- Wave 7 completed slice: retired Codex CLI and Claude Code event extraction is
+  absent from current performance reporting while historical serialized engine
+  identities remain readable. `just molmo::status [path]` keeps its grammar and
+  now invokes a 54-line package SDK status CLI. All retained source/test owners
+  are below 800 lines, migrated script entrypoints are thin adapters, and no
+  compatibility facade remains. The final graph is 502 modules / 1,504 edges
+  with zero SCCs, package pairs, or forbidden edges. Final size is 164,846
+  source LOC and 98,903 test LOC; zero source/test files are at or above 800 or
+  1,000 lines. The LOC and 112-file `>=500` outcome improve but do not meet the
+  plan's campaign targets, which remain reported rather than overriding
+  preserved behavior.
+- Final verification: Ruff, format, the standalone full suite, deterministic
+  eval suites, direct product rows, Kimi open-task, repaired SDK session-live,
+  and repaired cleanup live repetitions pass. The session-live repair stops a
+  console-launched child before reporting timeout so it cannot retain the sole
+  visual-backend slot. The selected matrix and reports are under
+  `output/evals/aggressive-architecture-migration-final-execute/`; the two
+  affected SDK repair attempts each passed, and no further retries are needed.
+- Browser/runtime proof: the split operator console loaded every ES module and
+  preview asset without console errors or horizontal overflow; camera mode,
+  the native image dialog, and mobile/tablet/desktop layouts passed. Screenshots
+  are in `output/evals/aggressive-architecture-migration-final-execute/`.
+- B1/Isaac proof: retained B1 readiness passed with a verified Map 12 overlay
+  and `robot_navigation_supported: false`. Machine-local
+  `OMNI_KIT_ACCEPT_EULA=YES` now supplies the harness default while an explicit
+  false override remains authoritative. Strict preflight passed every check,
+  including `runtime_import_isaacsim`, and the real generic smoke passed USD
+  stage loading, RTX rendering, selected scene bindings, nonblank capture, and
+  FPV/topdown/chase/verification robot views. Evidence is under
+  `output/isaaclab/preflight/aggressive-architecture-eula-persisted/0731_120411/`
+  and
+  `output/isaaclab/runtime-smoke/aggressive-architecture-final/eula-persisted/`.
+- Next action: none for this migration. Publication and real-robot movement
+  remain separate human decisions under their existing gates.

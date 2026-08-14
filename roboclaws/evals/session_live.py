@@ -335,7 +335,23 @@ def _wait_for_terminal(base_url: str, run_id: str, *, deadline: float) -> dict[s
             if not isinstance(pid, int) or not pid_is_active(pid):
                 return state
         time.sleep(1.0)
+    _stop_timed_out_run(base_url, run_id)
     raise RuntimeError(f"run {run_id} did not reach terminal state before timeout")
+
+
+def _stop_timed_out_run(base_url: str, run_id: str) -> None:
+    try:
+        _api_json(
+            base_url,
+            "POST",
+            f"/api/runs/{run_id}/stop",
+            {},
+            timeout_s=SESSION_LIVE_API_TIMEOUT_S,
+        )
+    except (OSError, RuntimeError, ValueError):
+        # Preserve the timeout as the primary eval result; the console stop path
+        # remains best-effort when its server or run state is already gone.
+        return
 
 
 def _blocked_parent_provider_result(

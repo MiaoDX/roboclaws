@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-07-30
+Last updated: 2026-07-31
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -10,59 +10,43 @@ leave a link.
 
 ## Current Focus
 
-The aggressive architecture migration is active under
-`docs/plans/2026-07-30-aggressive-architecture-migration.md`. Waves 0-3 are
-complete: exact baselines and field-level parity are proven, all six module
-cycles and five bidirectional package pairs are removed, the Wave 1-2 guards
-are locked green, and unconditional investigation/rehearsal stacks are retired.
-Waves 0-5 are complete. MolmoSpaces, Isaac Lab, cleanup validation, B1 rebuild
-and reproducibility, and the physical Agibot pilot now have package-owned
-module CLIs. The graph has no package-to-script violations; Wave 6 behavior
-splits are active. The operator-console browser monolith is now ten native ES
-modules with one state owner and a 180-line composition entrypoint; focused,
-static, and real-browser workflow proofs pass. Runtime inventory now has
-separate source, task-model, blocker-policy, and host-probe owners with a
-61-line composition module; its full console and static gates pass. The OpenAI
-Agents SDK runtime now has direct owners for composition, configuration,
-retry/racing, events, history, image/grounded memory, and compaction; 201
-focused contracts and static ratchets pass with serialized provider, cost,
-privacy, and result behavior unchanged. Household MCP projection, runtime-map
-target selection, visual perception/navigation, direct cleanup selection, and
-Agibot SDK contract/projection/stage execution now have direct owners; the
-retained adapters delegate without compatibility exports. The focused
-household suites and static ratchets pass, oversized Python modules decrease to
-58, and the graph is 359 modules / 1,087 edges with zero SCCs or forbidden
-edges. MolmoSpaces catalog, sampling/profile/prefilter policy, preparation,
-scanner validation, and map-bundle naming now live under
-`worlds/molmospaces`; launch consumes recursively immutable `WorldSpec` values.
-Focused world/catalog/console/eval/map-bundle suites and static ratchets pass at
-362 modules / 1,089 edges with zero SCCs or forbidden edges. Household report
-composition, semantic/tables, document, styles, planner/proof/grasp-cache,
-snapshot/trace, and artifact-rerender behavior now have direct owners; the
-duplicate grasp-collision diagnostic renderer is gone. Report contracts and
-static ratchets pass at 367 modules / 1,102 edges, and oversized Python modules
-decrease to 57. Eval suite loading, trial/live execution, grading, persistence,
-aggregation/reporting, and CLI composition now have direct owners; CLI imports
-only runner from the eval package. The full eval unit and CLI/distribution
-contracts pass at 375 modules / 1,128 edges, and oversized Python modules
-decrease to 55.
-Planner proof request construction, selection, fallback selection, result
-projection, feasibility contracts, and grasp-cache lifecycle now have direct
-household owners. Runtime-prior contracts, online snapshot wrapping,
-Agibot/Nav2 conversion, artifact reads, target materialization, and
-source/frame/digest validation now have direct map owners. The 186 focused
-planner/proof/runtime-prior contracts and static ratchets pass at 389 modules /
-1,165 edges with zero SCCs or forbidden edges, and oversized Python modules
-decrease to 52.
-Nineteen oversized retained test owners are now split by behavior with exact
-998-test identity; all moved tests pass, no test module remains at or above
-1,000 lines, and oversized Python modules decrease to 38. Current Just, eval,
-and marker node IDs use the new owners. Real Chromium proves scene-preview
-loading and server-owned Agibot context readiness without console errors.
-The migration preserves public launch, artifact, privacy, provider, simulator,
-and operator behavior while removing dependency cycles, retiring completed
-investigation surfaces, moving product subsystems out of scripts, and splitting
-retained oversized owners by behavior.
+The post-migration eval baseline refresh is complete. Direct eval product rows
+now propagate the canonical GoalContract into household launch kwargs; the
+previous `open-ended-goals` and `long-horizon-tasks` behavior regressions both
+pass. Provider placement is fail-closed in the frozen harness manifest:
+Codex/MiMo internal routes may run locally or on CloudML, while Kimi/MiniMax
+external routes are local-only.
+
+The fresh hybrid candidate at
+`output/eval-harness/20260731T100528Z/` passes all 25 selected rows: 20
+CloudML rows and five local external-provider rows. It records zero behavior
+failures, provider failures, blocked rows, infrastructure retries, or
+regressions against the previous durable baseline. Exact-value secret scanning
+passes, the candidate is awaiting human confirmation, and publication remains
+unauthorized.
+
+The aggressive architecture migration is implemented under
+`docs/plans/2026-07-30-aggressive-architecture-migration.md`. Waves 0-7 and all
+final gates are complete. Machine-local Omniverse EULA acceptance now flows
+from the gitignored `.env` into Isaac preflight and smoke harnesses; strict
+preflight and the real generic runtime smoke pass. Retired investigation and
+rehearsal stacks are gone, product subsystems have package owners, and active
+scripts are thin adapters. Current
+OpenAI Agents SDK lifecycle, telemetry, status, household runtime, planner,
+MolmoSpaces world, operator-console preview/state, B1/Isaac authoring,
+visual-grounding, reporting, and showcase behavior are split by direct owner
+without compatibility facades.
+
+The regenerated graph is 502 modules / 1,504 edges with zero SCCs,
+bidirectional package pairs, package-to-script edges, or forbidden policy
+violations. Python quality has zero source or test files at or above 800 lines;
+source files at or above 1,000 lines fell from 33 to zero and test files at or
+above 1,000 fell from 25 to zero. Final size is 164,846 source LOC and 98,903
+test LOC, with 112 source files at or above 500 lines. Those LOC and 500-line
+counts improve the baseline but do not reach the plan's non-behavior-overriding
+campaign targets. Public launch grammar, artifacts, privacy, provider routes,
+simulator behavior, operator safety, and physical movement gates remain
+unchanged.
 
 OpenClaw and repo-owned workstation-local Docker runtime surfaces are retired
 under `docs/plans/2026-07-30-retire-openclaw-and-local-docker-surfaces.md` and
@@ -98,18 +82,6 @@ direct projection owners. Retired direct-provider code, compatibility aliases,
 positional launch lowering, product-to-eval imports, and installable eval CLI
 aliases are gone.
 
-The public runtime has exactly four explicit OpenAI Agents SDK provider
-profiles: `codex-responses`, `mimo-responses`, `minimax-responses`, and
-`kimi-openai-chat`. All four provider health probes and fixed-prior consumer
-rows pass. The Kimi open-task and cleanup smoke rows also pass. The accepted
-six-row live matrix recorded zero provider failures, privacy leaks, and
-trajectory violations; Kimi's two repaired rows stayed within the approved
-single-rerun envelope.
-
-The previous sanitized candidate is superseded for publication. The refreshed
-candidate built from the final cleanup source is the current publication-review
-artifact; publication remains a separate human decision.
-
 The active product shape is:
 
 - `surface=household-world` for no-preset open household goals.
@@ -143,19 +115,15 @@ providers.
 
 ## Next Action
 
-Complete Wave 6 product and partition verification, then execute Wave 7
-telemetry, status, and final cleanup. The
-refreshed immutable candidate remains unmodified; publication remains
-unauthorized and separate from this campaign.
+No implementation or verification work remains for the architecture migration
+or baseline refresh. The 25-row candidate is awaiting human confirmation;
+publication remains unauthorized and separate from this campaign.
 
 ## Current Blockers
 
 - Agibot and B1 injected dependency readiness passes with the existing local SDK, Map 12 bundle,
   B1 scene, and alignment/navigation proofs. Real-robot movement remains unauthorized and requires
   a present operator plus the existing localization, run-enablement, and E-stop gates.
-- Isaac strict preflight now passes disk, GPU, Torch, Isaac Lab, and runtime checks with 602.55 GiB
-  free. Importing Isaac Sim remains blocked on explicit Omniverse EULA acceptance; the refactor did
-  not accept it on the operator's behalf.
 
 ## Human Review Surface
 
