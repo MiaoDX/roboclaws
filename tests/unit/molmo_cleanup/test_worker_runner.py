@@ -9,23 +9,24 @@ import pytest
 from roboclaws.household import worker_runner
 
 
-def test_worker_command_args_include_state_path_and_command(tmp_path: Path) -> None:
+def test_worker_command_args_include_module_state_and_command(tmp_path: Path) -> None:
     command = worker_runner.worker_command_args(
-        python_executable=tmp_path / "python",
-        worker_script=tmp_path / "worker.py",
+        python_executable=Path("/runtime/python"),
+        worker_module="roboclaws.backends.isaaclab.worker",
         state_path=tmp_path / "state.json",
-        command="observe",
-        args=("--flag", "value"),
+        command="init",
+        args=("--seed", "7"),
     )
 
     assert command == [
-        str(tmp_path / "python"),
-        str(tmp_path / "worker.py"),
+        "/runtime/python",
+        "-m",
+        "roboclaws.backends.isaaclab.worker",
         "--state-path",
         str(tmp_path / "state.json"),
-        "observe",
-        "--flag",
-        "value",
+        "init",
+        "--seed",
+        "7",
     ]
 
 
@@ -75,7 +76,7 @@ def test_run_json_worker_once_reports_missing_runtime(tmp_path: Path) -> None:
             worker_name="Test",
             python_executable=tmp_path / "missing-python",
             missing_runtime_hint="Set TEST_PYTHON.",
-            worker_script=tmp_path / "worker.py",
+            worker_module="test.worker",
             state_path=tmp_path / "state.json",
             command="init",
             args=(),
@@ -104,7 +105,7 @@ def test_run_json_worker_once_uses_env_timeout_and_parses_stdout(
         worker_name="Test",
         python_executable=python,
         missing_runtime_hint="Set TEST_PYTHON.",
-        worker_script=tmp_path / "worker.py",
+        worker_module="test.worker",
         state_path=tmp_path / "state.json",
         command="observe",
         args=("--x", "1"),
@@ -115,7 +116,8 @@ def test_run_json_worker_once_uses_env_timeout_and_parses_stdout(
     assert payload == {"ok": True}
     assert captured["command"] == [
         str(python),
-        str(tmp_path / "worker.py"),
+        "-m",
+        "test.worker",
         "--state-path",
         str(tmp_path / "state.json"),
         "observe",
@@ -143,7 +145,7 @@ def test_run_json_worker_once_reports_timeout(
             worker_name="Test",
             python_executable=python,
             missing_runtime_hint="Set TEST_PYTHON.",
-            worker_script=tmp_path / "worker.py",
+            worker_module="test.worker",
             state_path=tmp_path / "state.json",
             command="snapshot",
             args=(),
@@ -169,7 +171,7 @@ def test_run_json_worker_once_reports_nonzero_exit(
             worker_name="Test",
             python_executable=python,
             missing_runtime_hint="Set TEST_PYTHON.",
-            worker_script=tmp_path / "worker.py",
+            worker_module="test.worker",
             state_path=tmp_path / "state.json",
             command="init",
             args=(),

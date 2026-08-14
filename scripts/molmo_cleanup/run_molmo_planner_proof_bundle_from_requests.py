@@ -15,29 +15,29 @@ if __package__ in {None, ""}:
         sys.path.insert(0, str(repo_root))
 
 from roboclaws.core.json_sources import read_json_object as read_source_json_object  # noqa: E402
+from roboclaws.household import (  # noqa: E402
+    planner_proof_results,
+    planner_proof_selection,
+    report_planner,  # noqa: E402
+)
+from roboclaws.household.planner_proof_contracts import PLANNER_PROOF_REQUESTS_SCHEMA  # noqa: E402
 from roboclaws.household.planner_proof_requests import (  # noqa: E402
-    PLANNER_PROOF_REQUESTS_SCHEMA,
     build_cleanup_rerun_command,
     build_probe_commands,
     build_probe_warmup_command,
     proof_bundle_run_manifest,
     proof_execution_horizon,
-    proof_request_selection_from_summary,
-    proof_result_summary_from_commands,
 )
 from roboclaws.household.planner_task_feasibility import (  # noqa: E402
     grasp_feasibility_signature_counts,
 )
-from roboclaws.household.report import render_planner_proof_bundle_runner_report  # noqa: E402
 from roboclaws.household.subprocess_backend import DEFAULT_MOLMOSPACES_PYTHON  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_PROBE_SCRIPT = (
     REPO_ROOT / "scripts" / "molmo_cleanup" / "run_molmo_planner_manipulation_probe.py"
 )
-DEFAULT_CLEANUP_SCRIPT = (
-    REPO_ROOT / "examples" / "molmo_cleanup" / "molmospaces_realworld_cleanup.py"
-)
+DEFAULT_CLEANUP_SCRIPT = REPO_ROOT / "examples/molmo_cleanup/molmospaces_realworld_cleanup.py"
 
 
 def parse_args() -> argparse.Namespace:
@@ -186,7 +186,7 @@ def run_from_cleanup_result(
         prior_proof_bundle_manifest,
         prior_planner_probe_run_result,
     )
-    proof_request_selection = proof_request_selection_from_summary(
+    proof_request_selection = planner_proof_selection.proof_request_selection_from_summary(
         requests,
         prior_proof_result_summary=prior_summary,
         include_request_ids=request_ids,
@@ -300,7 +300,7 @@ def run_from_cleanup_result(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    report_path = render_planner_proof_bundle_runner_report(
+    report_path = report_planner.render_planner_proof_bundle_runner_report(
         output_dir=output_dir,
         manifest=manifest,
     )
@@ -541,7 +541,7 @@ def _load_standalone_probe_result_summary(run_result_paths: list[Path]) -> dict[
         _standalone_probe_command(run_result_path, index)
         for index, run_result_path in enumerate(run_result_paths, start=1)
     ]
-    summary = proof_result_summary_from_commands(commands)
+    summary = planner_proof_results.proof_result_summary_from_commands(commands)
     summary["source_kind"] = "standalone_planner_probe_run_result"
     summary["evidence_note"] = (
         "Prior proof-result summary loaded directly from standalone planner-probe "

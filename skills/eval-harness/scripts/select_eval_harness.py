@@ -161,6 +161,7 @@ SIGNAL_RULES: tuple[dict[str, Any], ...] = (
         "id": "scene_sampler",
         "label": "MolmoSpaces scene sampler",
         "patterns": (
+            r"worlds/molmospaces/(?:catalog|contracts|map_bundles|prefilter|preparation|profile|sampling|scanner)\.py",
             r"scene[-_]sampler",
             r"scene sampling",
             r"scene_source",

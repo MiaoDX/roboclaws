@@ -341,7 +341,7 @@ household-world-impl:
     case "$map_bundle_dir" in
       auto)
         map_bundle_dir="$(
-          "$python_bin" -m roboclaws.launch.map_bundles \
+          "$python_bin" -m roboclaws.worlds.molmospaces.map_bundles \
             --scene-source "$scene_source" \
             --scene-index "$scene_index"
         )"
@@ -358,10 +358,10 @@ household-world-impl:
     if [[ "$backend" == "isaaclab_subprocess" && "$launch_world_id" == "b1-map12" ]]; then
       b1_base_map_bundle_dir="${output_dir}/b1-map12-base-metric-map"
       b1_runtime_map_bundle_dir="${output_dir}/b1-map12-base-metric-map-with-proof"
-      "$python_bin" scripts/maps/build_b1_map12_base_metric_map.py \
+      "$python_bin" -m roboclaws.maps.b1_base_metric_map \
         --map-bundle "$map_bundle_dir" \
         --output-dir "$b1_base_map_bundle_dir" >/dev/null
-      "$python_bin" scripts/maps/augment_b1_map12_base_metric_map.py \
+      "$python_bin" -m roboclaws.backends.isaaclab.b1_base_metric_augmentation \
         --base-map-bundle "$b1_base_map_bundle_dir" \
         --alignment-artifact "$b1_alignment_artifact" \
         --navigation-artifact "$b1_navigation_artifact" \
@@ -870,7 +870,7 @@ household-world-impl:
         ;;
     esac
 
-    .venv/bin/python scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py \
+    .venv/bin/python -m roboclaws.evals.cleanup_result_cli \
       "${checker_args[@]}" \
       "$run_root"
     echo "==> reports:"

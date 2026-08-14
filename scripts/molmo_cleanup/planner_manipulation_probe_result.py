@@ -15,7 +15,7 @@ from roboclaws.household.manipulation_provenance import (
     planner_backed_probe_evidence,
 )
 from roboclaws.household.rby1m_curobo_gate import rby1m_curobo_gate_from_planner_probe
-from roboclaws.household.report import render_planner_manipulation_report
+from roboclaws.household.report_planner import render_planner_manipulation_report
 from roboclaws.household.subprocess_backend import MOLMOSPACES_SUBPROCESS_BACKEND
 
 PROBE_TASK = "pick_and_place"

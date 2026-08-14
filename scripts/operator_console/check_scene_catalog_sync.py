@@ -16,8 +16,8 @@ if __package__ in {None, ""}:
 else:
     REPO_ROOT = Path(__file__).resolve().parents[2]
 
-from roboclaws.launch.scene_sampler import parse_molmospaces_world_id  # noqa: E402
 from roboclaws.launch.worlds import MOLMOSPACES_CONSOLE_WORLD_IDS, WORLD_SPECS  # noqa: E402
+from roboclaws.worlds.molmospaces.sampling import parse_molmospaces_world_id  # noqa: E402
 from scripts.operator_console.export_scene_sampler_readiness import (  # noqa: E402
     _write_generated_eval_artifacts,
 )

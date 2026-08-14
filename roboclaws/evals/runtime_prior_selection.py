@@ -18,7 +18,7 @@ from roboclaws.maps.runtime_prior_catalog import (
     RuntimePriorCatalogKey,
     classify_runtime_prior_compatibility,
 )
-from roboclaws.maps.runtime_prior_snapshot import (
+from roboclaws.maps.runtime_prior_contracts import (
     PRIVATE_TRUTH_KEYS,
     RUNTIME_MAP_PRIOR_SNAPSHOT_SCHEMA,
 )

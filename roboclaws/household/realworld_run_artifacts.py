@@ -46,7 +46,8 @@ from roboclaws.household.profiles import (
     camera_labeler_from_visual_grounding_pipeline,
     evidence_lane_metadata_for_run,
 )
-from roboclaws.household.report import render_cleanup_report, write_trace_jsonl
+from roboclaws.household.report import render_cleanup_report
+from roboclaws.household.report_snapshots import write_trace_jsonl
 from roboclaws.household.semantic_timeline import (
     ROBOT_VIEW_VARIANT,
     SEMANTIC_LOOP_VARIANT,

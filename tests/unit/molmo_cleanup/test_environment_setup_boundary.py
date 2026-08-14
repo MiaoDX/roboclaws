@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 from pathlib import Path
 
@@ -10,26 +9,16 @@ from roboclaws.core.environment_setup_metadata import (
     ENVIRONMENT_SETUP_METADATA_ENV,
     environment_setup_run_metadata_from_env,
 )
+from roboclaws.evals import cleanup_result_grader as checker_module
 from roboclaws.household.household_runtime_contract import (
     _assert_no_forbidden_agent_view_keys,
     forbidden_agent_view_keys,
 )
 from roboclaws.household.realworld_run_artifacts import _merge_run_metadata
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-CHECKER_PATH = REPO_ROOT / "scripts" / "molmo_cleanup" / "check_molmo_realworld_cleanup_result.py"
-
 
 def _load_checker_module():
-    spec = importlib.util.spec_from_file_location(
-        "check_molmo_realworld_cleanup_result",
-        CHECKER_PATH,
-    )
-    assert spec is not None
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
+    return checker_module
 
 
 def test_environment_setup_terms_are_forbidden_in_agent_view() -> None:
@@ -177,7 +166,7 @@ def test_zero_target_advisory_scoring_accepts_empty_object_reviews(tmp_path: Pat
         encoding="utf-8",
     )
 
-    checker._assert_advisory_scoring(
+    checker.assert_advisory_scoring(
         {
             "generated_mess_count": 0,
             "advisory_evaluation": advisory,
@@ -212,7 +201,7 @@ def test_nonzero_target_advisory_scoring_still_requires_object_reviews(
     )
 
     with pytest.raises(AssertionError):
-        checker._assert_advisory_scoring(
+        checker.assert_advisory_scoring(
             {
                 "generated_mess_count": 1,
                 "advisory_evaluation": advisory,

@@ -12,13 +12,13 @@ if __package__ in {None, ""}:
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
 
-from roboclaws.core.json_sources import read_json_object  # noqa: E402
-from scripts.isaac_lab_cleanup.check_b1_map12_readiness import (  # noqa: E402
+from roboclaws.backends.isaaclab.b1_readiness import (  # noqa: E402
     ALIGNMENT_RESIDUALS_SCHEMA,
     residual_backed_waypoint_from_nav_goal,
     validate_alignment_residual_artifact,
 )
-from scripts.maps.suggest_b1_map12_manual_anchor_semantics import (  # noqa: E402
+from roboclaws.core.json_sources import read_json_object  # noqa: E402
+from roboclaws.maps.b1_semantic_anchor_suggestions import (  # noqa: E402
     REVIEW_PACKET_SCHEMA,
 )
 

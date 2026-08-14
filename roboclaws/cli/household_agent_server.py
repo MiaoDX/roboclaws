@@ -14,7 +14,10 @@ from typing import Any
 from urllib.parse import urlparse
 
 from roboclaws.core.goals import goal_contract_from_file, goal_contract_from_json
-from roboclaws.core.robot_view_capture import ROBOT_VIEW_CAPTURE_POLICY_FULL
+from roboclaws.core.robot_view_capture import (
+    ROBOT_VIEW_CAPTURE_POLICIES,
+    ROBOT_VIEW_CAPTURE_POLICY_FULL,
+)
 from roboclaws.core.task_intents import (
     HOUSEHOLD_INTENT_CLEANUP,
     household_intent_from_goal_contract,
@@ -33,7 +36,6 @@ from roboclaws.household.household_mcp_server import (
     DEFAULT_HOST,
     DEFAULT_PORT,
     MCP_SERVER_NAME,
-    ROBOT_VIEW_CAPTURE_POLICIES,
     HouseholdWorldMCPServer,
     make_household_world_mcp,
 )
@@ -51,7 +53,7 @@ from roboclaws.household.subprocess_backend import MOLMOSPACES_SUBPROCESS_BACKEN
 from roboclaws.household.visual_grounding import (
     SIM_VISUAL_GROUNDING_PIPELINE_ID,
 )
-from roboclaws.maps.runtime_prior_snapshot import read_runtime_map_prior_artifact
+from roboclaws.maps.runtime_prior_artifact import read_runtime_map_prior_artifact
 
 log = logging.getLogger("household-world-agent-server")
 AGIBOT_GDK_BACKEND = "agibot_gdk"

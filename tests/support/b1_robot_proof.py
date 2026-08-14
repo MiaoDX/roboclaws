@@ -5,7 +5,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from scripts.isaac_lab_cleanup.check_b1_map12_readiness import (
+from roboclaws.backends.isaaclab.b1_readiness import (
     DEFAULT_B1_VISUAL_ROUTE_SCENE_USD,
     KNOWN_POOR_BBOX_SEED_POLICY,
     NAVIGATION_PROVENANCE,

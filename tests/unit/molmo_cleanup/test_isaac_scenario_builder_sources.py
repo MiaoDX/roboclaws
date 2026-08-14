@@ -5,11 +5,11 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.household.generated_mess import GENERATED_MESS_MANIFEST_SCHEMA
-from scripts.isaac_lab_cleanup.isaac_scenario_builders import (
+from roboclaws.backends.isaaclab.isaac_scenario_builders import (
     load_generated_mess_manifest,
     scenario_from_map_bundle,
 )
+from roboclaws.household.generated_mess import GENERATED_MESS_MANIFEST_SCHEMA
 
 
 @pytest.mark.parametrize(

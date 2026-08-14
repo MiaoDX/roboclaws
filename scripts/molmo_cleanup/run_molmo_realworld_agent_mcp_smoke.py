@@ -44,7 +44,7 @@ from roboclaws.household.tasks import HOUSEHOLD_PRESET_SPECS, HOUSEHOLD_TASK_SPE
 from roboclaws.household.visual_grounding import (  # noqa: E402
     SIM_VISUAL_GROUNDING_PIPELINE_ID,
 )
-from roboclaws.maps.runtime_prior_snapshot import (
+from roboclaws.maps.runtime_prior_artifact import (
     read_runtime_map_prior_artifact,  # noqa: E402
 )
 

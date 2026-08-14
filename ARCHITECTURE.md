@@ -156,25 +156,108 @@ Key pieces:
 - `roboclaws/household/semantic_cleanup_loop.py` owns the direct semantic
   cleanup flow.
 - `roboclaws/maps/` owns reusable navigation map artifacts, projections, and
-  Runtime Map Prior Snapshot conversion.
+  Runtime Map Prior Snapshot behavior. `runtime_prior_contracts.py` owns the
+  shared schemas/privacy keys; `runtime_prior_snapshot.py` wraps online runtime
+  maps; `runtime_prior_conversion.py` converts Agibot and Nav2 sources;
+  `runtime_prior_artifact.py` reads persisted priors;
+  `runtime_prior_materialization.py` projects consumer targets; and
+  `runtime_prior_source_validation.py` owns source/frame/digest validation.
+- Planner proof behavior is split by ownership: `planner_proof_requests.py`
+  builds bound requests and run manifests; `planner_proof_selection.py` and
+  `planner_proof_fallback_selection.py` select current and fallback requests;
+  `planner_proof_results.py` projects result summaries; and
+  `planner_grasp_cache.py` plus `planner_grasp_cache_generation.py` own cache
+  availability and generation preflights. Shared proof and feasibility schema
+  names live in their focused contract modules.
 - `roboclaws/household/household_mcp_server.py` exposes the profile-composed
   household MCP capability surface for SDK live agents and future higher-level
   MCP clients.
 - `roboclaws/cli/household_agent_server.py` is the thin server adapter that
   assembles live household MCP server processes behind
   `python -m roboclaws.cli.agent_server ...`.
-- `roboclaws/household/report.py` renders the shared report.
+- Household reports are split by behavior. `report.py` composes cleanup
+  reports; `report_tables.py` owns semantic and tabular projections;
+  `report_document.py` assembles HTML and JavaScript;
+  `report_styles.py` owns base and planner CSS; `report_planner.py` composes
+  planner, proof-bundle, and grasp-cache reports; `report_snapshots.py` writes
+  state images and trace JSONL; and `artifact_report.py` loads artifacts and
+  rerenders cleanup reports. Current callers import these owners directly.
 - `roboclaws/household/camera_control.py` owns the external render-camera
   request schema used by MuJoCo product runs and B1/generic Isaac probes.
+- `roboclaws/backends/molmospaces/` owns the MolmoSpaces JSON worker runtime:
+  protocol/dispatch, initialization/state, navigation/actions, and
+  capture/perception. Its sole executable boundary is
+  `python -m roboclaws.backends.molmospaces.worker`; household code invokes the
+  module and does not resolve script paths.
+- `roboclaws/backends/isaaclab/` owns the Isaac Lab JSON worker and generic
+  runtime-smoke validation: protocol/state, initialization, navigation/actions,
+  scene/robot capture, rendering diagnostics, checker policy, and B1 readiness,
+  base-map proof augmentation, waypoint requests, navigation reproducibility,
+  and navigation reporting. These run as package modules while Isaac
+  dependencies remain isolated
+  in `.venv-isaaclab/`; harnesses do not accept the Omniverse EULA by default.
+- `roboclaws/maps/b1_*.py` owns B1 base-map construction, reviewed alignment,
+  semantic projection, and explicit promotion workflows. Current authoring
+  tools consume these owners; accepted input assets remain review-controlled.
+- `roboclaws/household/cleanup_validation*.py` owns cleanup artifact, schema,
+  privacy, map, planner, robot-view, and backend structural validation. Product
+  runs use `python -m roboclaws.household.cleanup_validation_cli` and never
+  depend on eval code. `roboclaws/evals/cleanup_result_*` composes that product
+  validation with benchmark-only advisory scoring for eval and harness rows.
 - `roboclaws/household/agibot_sdk_runner.py` owns the Roboclaws-side Agibot
   SDK subprocess adapter, including conversion of SDK-local exports into the
   public household Agent View v2 artifact. The vendor runner at
   `vendors/agibot_sdk/tools/run_agibot_cleanup_backend.py` stays SDK-local.
+- `roboclaws/household/agibot_physical_pilot.py` is the package CLI for the
+  physical pilot. The typed launch executor invokes this module while retaining
+  localization, run-enablement, E-stop, and explicit real-movement gates.
 - `roboclaws/operator_console/` provides the standalone local agent operator
   console. It exposes explicit SDK/direct route metadata, per-backend locks,
   route gates, normalized live operator state, redacted raw-log access, and
   links to existing run artifacts. It starts catalog-approved runs and surfaces
   state; it does not own robot task strategy.
+
+The operator-console browser client is native ES modules under
+`roboclaws/operator_console/static/`. `app.js` is the composition entrypoint;
+`state.js` is the sole mutable application-state owner, with workflow model and
+view, launch, background-task, run-session, manual-control, visual-workspace,
+and HTTP/DOM behavior owned by their named modules. The server serves only
+root-level, non-hidden JavaScript assets from that static directory and marks
+them no-store.
+
+Runtime inventory is composed by `operator_console/runtime_inventory.py` from
+four explicit owners: filesystem and runtime sources, canonical task/resource
+payloads, route blocker policy, and host probes. Launcher, readiness, and
+server callers import policy directly; the composition module owns only the
+inventory and blocker payload assembly and is not a compatibility facade.
+
+The OpenAI Agents SDK driver is composed by
+`agents/drivers/openai_agents_live.py`. Run configuration, validated setting
+values, retry behavior, provider racing, event logging and projection,
+completed-tool history, RAW-FPV image memory, camera-grounded history, and
+model-input compaction have direct behavior owners. The retired mixed
+`openai_agents_model_input` owner is absent; tests and runtime callers import
+the true owners while serialized event, cost, privacy, and result schemas stay
+unchanged.
+
+The retained household runtime is split by behavior rather than transport.
+MCP response projection and artifact serialization, runtime-map target
+selection, visual perception/navigation, direct cleanup target selection, and
+Agibot SDK contract/projection/stage execution have direct household owners.
+`household_mcp_server.py`, `household_world_episode.py`,
+`realworld_runtime_map_targets.py`, `realworld_visual_candidate_lifecycle.py`,
+and `agibot_sdk_runner.py` remain composition or adapter owners; they do not
+re-export the extracted behavior. Public Agent View, MCP, runtime-map, privacy,
+and physical-pilot safety contracts remain unchanged.
+
+World discovery is owned outside launch. `roboclaws/worlds/contracts.py`
+defines the recursively immutable `WorldSpec` consumed by the launch catalog,
+and `roboclaws/worlds/molmospaces/` owns source catalog data, typed sampler
+rows, deterministic sampling/profile/prefilter policy, source preparation,
+scanner validation, and canonical map-bundle naming. `launch/worlds.py`
+resolves cross-backend catalog entries and optional dependency status; it does
+not own MolmoSpaces sampling behavior. Current package, script, skill, console,
+eval, and test callers import the world owners directly.
 
 The clean-slate direction is:
 
@@ -305,6 +388,14 @@ deterministic runner is exposed as `just agent::eval suite=smoke_regression
 budget=smoke`. Do not add a third-party eval framework until deterministic
 household suites have proven the sample, artifact, grader, privacy, and result
 packet contracts that Roboclaws needs.
+
+Eval execution is composed by `evals/runner.py`. Suite loading, trial
+execution, live process execution, live product policy, artifact/privacy/
+outcome grading, open-ended grading, grader source handling, failure/result
+projection, result persistence, and aggregation/reporting have direct owners.
+`evals/cli.py` imports only the runner from the eval package; the runner
+composes suite execution and CLI tool-mode dispatch without a reverse import
+or compatibility facade.
 
 The maintained orchestration facade is `eval-harness`, exposed through
 `just agent::eval recommend|execute|suite|promote-regression`. It supersedes the

@@ -1,22 +1,15 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-CHECKER_PATH = REPO_ROOT / "scripts" / "molmo_cleanup" / "isaac_semantic_pose_checker.py"
+from roboclaws.household import cleanup_validation_isaac_pose as checker_module
 
 
 def _load_checker():
-    spec = importlib.util.spec_from_file_location("isaac_semantic_pose_checker", CHECKER_PATH)
-    assert spec is not None
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
+    return checker_module
 
 
 @pytest.mark.parametrize(

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -26,6 +25,7 @@ from roboclaws.household.subprocess_backend import (
     _parse_persistent_worker_packet,
     _worker_kwargs_from_args,
 )
+from tests.support.molmospaces_worker_modules import load_molmospaces_worker_modules
 
 
 def _repo_root() -> Path:
@@ -36,17 +36,11 @@ def _repo_root() -> Path:
 
 
 REPO_ROOT = _repo_root()
-WORKER_PATH = REPO_ROOT / "scripts" / "molmo_cleanup" / "molmospaces_subprocess_worker.py"
 
 
 def _load_worker_module():
     pytest.importorskip("mujoco")
-    spec = importlib.util.spec_from_file_location("molmospaces_subprocess_worker", WORKER_PATH)
-    assert spec is not None
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
+    return load_molmospaces_worker_modules()
 
 
 def test_parse_last_json_object_tolerates_upstream_stdout_noise() -> None:
@@ -115,6 +109,7 @@ def test_subprocess_backend_worker_defaults_to_egl_for_mujoco(
     result = backend._run_worker("locations")
 
     assert result["ok"] is True
+    assert captured["command"][1:3] == ["-m", "roboclaws.backends.molmospaces.worker"]
     assert captured["env"]["MUJOCO_GL"] == "egl"
     assert captured["timeout"] == 120.0
 

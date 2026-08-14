@@ -11,6 +11,7 @@ from roboclaws.household import (
     realworld_runtime_map_targets,
     realworld_visual_candidate_lifecycle,
     realworld_visual_candidates,
+    realworld_visual_perception_navigation,
 )
 from roboclaws.household.household_backend_contract import SYNTHETIC_BACKEND
 from roboclaws.household.visual_grounding import (
@@ -360,12 +361,12 @@ def simulated_declaration_inputs_for_waypoint(
 ) -> list[dict[str, Any]]:
     assert_no_forbidden = assert_no_forbidden_agent_view_keys or (lambda _payload: None)
     inputs = []
-    for obj, location_id in realworld_visual_candidate_lifecycle.objects_visible_from_waypoint(
+    for obj, location_id in realworld_visual_perception_navigation.objects_visible_from_waypoint(
         contract,
         waypoint,
     ):
         handle = contract._handle_for_object(obj.object_id)
-        detection = realworld_visual_candidate_lifecycle.detection_for_object_at_location(
+        detection = realworld_visual_perception_navigation.detection_for_object_at_location(
             contract,
             obj,
             location_id=location_id,
@@ -424,7 +425,7 @@ def simulated_raw_fpv_inputs_for_observation(
             )
         ]
     inputs: list[dict[str, Any]] = []
-    for obj, location_id in realworld_visual_candidate_lifecycle.objects_visible_from_waypoint(
+    for obj, location_id in realworld_visual_perception_navigation.objects_visible_from_waypoint(
         contract,
         waypoint,
     ):

@@ -1,24 +1,15 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-CHECKER_PATH = REPO_ROOT / "scripts" / "molmo_cleanup" / "check_molmo_realworld_cleanup_result.py"
+from roboclaws.household import cleanup_validation_planner as checker_module
 
 
 def _load_checker():
-    spec = importlib.util.spec_from_file_location(
-        "check_molmo_realworld_cleanup_result", CHECKER_PATH
-    )
-    assert spec is not None
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
+    return checker_module
 
 
 @pytest.mark.parametrize(

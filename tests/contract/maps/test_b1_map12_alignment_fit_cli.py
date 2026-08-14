@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SCRIPT = REPO_ROOT / "scripts" / "maps" / "fit_b1_map12_scene_alignment.py"
+MODULE = "roboclaws.maps.b1_alignment"
 RAW_MAP12_BUNDLE = REPO_ROOT / "assets" / "maps" / "agibot-robot-map-12"
 
 
@@ -66,7 +66,8 @@ def _run_alignment_cli(
     return subprocess.run(
         [
             sys.executable,
-            str(SCRIPT),
+            "-m",
+            MODULE,
             "--correspondences",
             str(manifest_path),
             "--map-bundle",

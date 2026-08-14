@@ -10,7 +10,7 @@ import pytest
 from PIL import Image
 
 import scripts.maps.render_b1_scene_topdown_diagnostic as scene_diagnostic
-from scripts.maps.fit_b1_map12_scene_alignment import build_alignment_residuals
+from roboclaws.maps.b1_alignment import build_alignment_residuals
 from scripts.maps.render_b1_map12_label_tool import (
     LABEL_DRAFT_MANIFEST_SCHEMA,
     LABEL_TOOL_PACKET_SCHEMA,

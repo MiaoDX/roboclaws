@@ -1,0 +1,4 @@
+GRASP_FEASIBILITY_SIGNATURE_SCHEMA = "planner_grasp_feasibility_signature_v1"
+GRASP_FEASIBILITY_MITIGATION_DECISION_SCHEMA = "planner_grasp_feasibility_mitigation_decision_v1"
+GRASP_CACHE_AVAILABILITY_PREFLIGHT_SCHEMA = "planner_grasp_cache_availability_preflight_v1"
+GRASP_CACHE_GENERATION_PREFLIGHT_SCHEMA = "planner_grasp_cache_generation_preflight_v1"

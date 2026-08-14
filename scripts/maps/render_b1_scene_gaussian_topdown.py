@@ -479,11 +479,11 @@ def _capture_one_scene_cli(args: argparse.Namespace) -> int:
     if args.camera_request is None or args.views_dir is None or args.result is None:
         raise ValueError("--capture-one-scene requires --camera-request, --views-dir, and --result")
     request = read_json_object(args.camera_request, label="camera request")
-    from scripts.isaac_lab_cleanup import isaac_lab_backend_worker
+    from roboclaws.backends.isaaclab import runtime_camera
 
     args.result.parent.mkdir(parents=True, exist_ok=True)
     try:
-        capture = isaac_lab_backend_worker.capture_scene_camera_views(
+        capture = runtime_camera.capture_scene_camera_views(
             scene_usd=args.scene_usd,
             camera_request=request,
             output_dir=args.views_dir,

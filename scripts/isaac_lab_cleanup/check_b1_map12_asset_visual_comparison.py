@@ -12,14 +12,14 @@ if __package__ in {None, ""}:
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
 
-from roboclaws.core.json_sources import read_json_object  # noqa: E402
-from scripts.isaac_lab_cleanup.check_b1_map12_readiness import (
+from roboclaws.backends.isaaclab.b1_readiness import (
     NAVIGATION_SMOKE_SCHEMA,
     SEMANTIC_SOURCE,
     _dict,
     reviewable_image_errors,
     validate_robot_view_waypoint_evidence,
 )
+from roboclaws.core.json_sources import read_json_object  # noqa: E402
 
 ASSET_VISUAL_COMPARISON_SCHEMA = "b1_map12_asset_visual_comparison_v1"
 DEFAULT_REQUIRED_VIEWS = ("fpv", "chase")

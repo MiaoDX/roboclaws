@@ -8,10 +8,10 @@ from pathlib import Path
 
 import pytest
 
-from scripts.isaac_lab_cleanup.run_b1_map12_navigation_smoke import run_navigation_smoke
+from roboclaws.backends.isaaclab.b1_navigation_smoke import run_navigation_smoke
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SCRIPT = REPO_ROOT / "scripts" / "isaac_lab_cleanup" / "run_b1_map12_navigation_smoke.py"
+MODULE = "roboclaws.backends.isaaclab.b1_navigation_smoke"
 
 
 @pytest.mark.parametrize(
@@ -131,7 +131,8 @@ def test_navigation_smoke_capture_one_rejects_malformed_request_source(
     completed = subprocess.run(
         [
             sys.executable,
-            str(SCRIPT),
+            "-m",
+            MODULE,
             "_capture-one",
             "--request",
             str(request_path),
@@ -165,7 +166,7 @@ def test_navigation_smoke_records_malformed_child_result_as_source_failure(
 
     monkeypatch.setattr(subprocess, "run", fake_run)
     monkeypatch.setattr(
-        "scripts.isaac_lab_cleanup.isaac_lab_backend_worker._rby1m_robot_import_plan",
+        "roboclaws.backends.isaaclab.runtime_state._rby1m_robot_import_plan",
         lambda robot_name: {"status": "imported", "robot_name": robot_name},
     )
 
@@ -203,7 +204,8 @@ def _run_smoke(
     return subprocess.run(
         [
             sys.executable,
-            str(SCRIPT),
+            "-m",
+            MODULE,
             "--readiness-artifact",
             str(readiness_path),
             "--waypoint-pose-requests",

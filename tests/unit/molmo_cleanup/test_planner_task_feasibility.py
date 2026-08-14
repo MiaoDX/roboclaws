@@ -3,10 +3,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from roboclaws.household import planner_task_feasibility
+from roboclaws.household import planner_grasp_cache_generation
+from roboclaws.household.planner_grasp_cache import grasp_cache_availability_preflight
+from roboclaws.household.planner_grasp_cache_generation import grasp_cache_generation_preflight
 from roboclaws.household.planner_task_feasibility import (
-    grasp_cache_availability_preflight,
-    grasp_cache_generation_preflight,
     grasp_feasibility_mitigation_decision,
     grasp_feasibility_signature,
     grasp_feasibility_signature_counts,
@@ -383,7 +383,7 @@ def test_grasp_cache_generation_preflight_blocks_malformed_runtime_probe_stdout(
     }
 
     monkeypatch.setattr(
-        planner_task_feasibility,
+        planner_grasp_cache_generation,
         "_run_preflight_command",
         lambda _command, *, timeout_s: {"status": "ready", "stdout": "{not-json\n", "stderr": ""},
     )
@@ -416,7 +416,7 @@ def test_grasp_cache_generation_preflight_blocks_non_object_runtime_probe_stdout
     }
 
     monkeypatch.setattr(
-        planner_task_feasibility,
+        planner_grasp_cache_generation,
         "_run_preflight_command",
         lambda _command, *, timeout_s: {"status": "ready", "stdout": "[]\n", "stderr": ""},
     )
@@ -449,7 +449,7 @@ def test_grasp_cache_generation_preflight_blocks_missing_runtime_probe_paths(
     }
 
     monkeypatch.setattr(
-        planner_task_feasibility,
+        planner_grasp_cache_generation,
         "_run_preflight_command",
         lambda _command, *, timeout_s: {
             "status": "ready",

@@ -497,7 +497,8 @@ def _agibot_gdk_server_args(
 def _agibot_gdk_cleanup(output_dir: str, kv: dict[str, str]) -> int:
     cmd = [
         ".venv/bin/python",
-        "scripts/molmo_cleanup/run_physical_agibot_cleanup_pilot.py",
+        "-m",
+        "roboclaws.household.agibot_physical_pilot",
         "--output-dir",
         output_dir,
     ]

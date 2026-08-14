@@ -9,7 +9,10 @@ import pytest
 
 from roboclaws.core.goals import normalize_goal_contract
 from roboclaws.core.task_intents import TASK_INTENT_SPECS
+from roboclaws.evals.cleanup_result_grader import assert_advisory_scoring
 from roboclaws.household import agent_view as agent_view_module
+from roboclaws.household import cleanup_validation as cleanup_checker
+from roboclaws.household import cleanup_validation_isaac as isaac_runtime_checker
 from roboclaws.household.agibot_map_bundle import write_agibot_nav2_map_bundle
 from roboclaws.household.household_runtime_contract import (
     CAMERA_MODEL_POLICY_MODE,
@@ -29,11 +32,9 @@ from roboclaws.household.semantic_timeline import (
     SEMANTIC_LOOP_VARIANT,
 )
 from roboclaws.household.tasks import HOUSEHOLD_TASK_SPECS
-from scripts.molmo_cleanup import isaac_runtime_checker
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEMO_PATH = REPO_ROOT / "examples" / "molmo_cleanup" / "molmospaces_realworld_cleanup.py"
-CHECKER_PATH = REPO_ROOT / "scripts" / "molmo_cleanup" / "check_molmo_realworld_cleanup_result.py"
 AGIBOT_SEMANTIC_ACTIONS_PATH = (
     REPO_ROOT / "scripts" / "molmo_cleanup" / "run_agibot_robot_map_9_semantic_actions.py"
 )
@@ -61,15 +62,7 @@ def _load_demo_module():
 
 
 def _load_checker_module():
-    spec = importlib.util.spec_from_file_location(
-        "check_molmo_realworld_cleanup_result",
-        CHECKER_PATH,
-    )
-    assert spec is not None
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
+    return cleanup_checker
 
 
 def _load_agibot_semantic_actions_module():
@@ -541,7 +534,7 @@ def _assert_isaac_fake_checker_contract(
     run_result: dict[str, object],
     tmp_path: Path,
 ) -> None:
-    checker._assert_result(
+    checker.validate_run_result(
         run_result,
         tmp_path,
         expect_task=None,
@@ -550,7 +543,6 @@ def _assert_isaac_fake_checker_contract(
         expect_profile="world-public-labels",
         min_generated_mess_count=1,
         require_robot_views=True,
-        require_advisory_scoring=True,
         min_semantic_accepted_count=1,
         min_sweep_coverage=1.0,
         require_waypoint_honesty=True,
@@ -558,8 +550,10 @@ def _assert_isaac_fake_checker_contract(
         require_isaac_runtime=True,
         require_isaac_semantic_pose=True,
     )
+    report_text = (tmp_path / "report.html").read_text(encoding="utf-8")
+    assert_advisory_scoring(run_result, tmp_path, report_text)
     with pytest.raises(AssertionError):
-        checker._assert_result(
+        checker.validate_run_result(
             run_result,
             tmp_path,
             expect_task=None,
@@ -568,7 +562,7 @@ def _assert_isaac_fake_checker_contract(
             require_isaac_snapshot_provenance=True,
         )
     with pytest.raises(AssertionError):
-        checker._assert_result(
+        checker.validate_run_result(
             run_result,
             tmp_path,
             expect_task=None,

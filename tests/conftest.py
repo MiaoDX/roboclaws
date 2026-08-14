@@ -28,7 +28,7 @@ LOCAL_ASSET_TESTS = {
     "test_base_waypoint_builder.py": {
         "test_base_waypoint_builder_preserves_b1_map12_waypoints",
     },
-    "test_check_molmo_realworld_cleanup_result.py": {
+    "test_cleanup_validation_runtime.py": {
         "test_checker_accepts_b1_robot_consumption_proof_without_rby1m_readiness",
         "test_checker_rejects_b1_robot_consumption_manifest_drift",
         "test_checker_rejects_b1_robot_consumption_without_manifest",

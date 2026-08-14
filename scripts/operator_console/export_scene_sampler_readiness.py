@@ -15,7 +15,7 @@ if __package__ in {None, ""}:
 else:
     REPO_ROOT = Path(__file__).resolve().parents[2]
 
-from roboclaws.launch.scene_sampler import (  # noqa: E402
+from roboclaws.worlds.molmospaces.sampling import (  # noqa: E402
     candidate_profile_report,
     candidate_readiness_report,
     eval_projection_metadata,

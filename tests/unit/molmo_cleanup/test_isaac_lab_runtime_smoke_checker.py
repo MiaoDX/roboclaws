@@ -8,7 +8,6 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-CHECKER = REPO_ROOT / "scripts" / "isaac_lab_cleanup" / "check_isaac_lab_runtime_smoke_result.py"
 
 
 def write_smoke_image(path: Path) -> None:
@@ -59,7 +58,8 @@ def run_checker(
     return subprocess.run(
         [
             sys.executable,
-            str(CHECKER),
+            "-m",
+            "roboclaws.backends.isaaclab.smoke_checker",
             "--init-result",
             str(result_path),
             *state_args,

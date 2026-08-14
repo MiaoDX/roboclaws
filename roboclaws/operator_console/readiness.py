@@ -10,7 +10,7 @@ from typing import Any
 from roboclaws.core.json_sources import read_json_object
 from roboclaws.operator_console.launch_contract import ConsoleLaunchError
 from roboclaws.operator_console.routes import ConsoleLaunchSelection
-from roboclaws.operator_console.runtime_inventory import port_owner_task
+from roboclaws.operator_console.runtime_blocker_policy import port_owner_task
 
 DEFAULT_MCP_HOST = "127.0.0.1"
 DEFAULT_MCP_PORT = 18788

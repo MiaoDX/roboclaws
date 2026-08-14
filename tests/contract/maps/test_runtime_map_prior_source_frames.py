@@ -5,10 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.maps.runtime_prior_snapshot import (
-    runtime_prior_snapshot_from_nav2_cleanup_bundle,
-    runtime_prior_snapshot_from_runtime_metric_map,
-)
+from roboclaws.maps.runtime_prior_conversion import runtime_prior_snapshot_from_nav2_cleanup_bundle
+from roboclaws.maps.runtime_prior_snapshot import runtime_prior_snapshot_from_runtime_metric_map
 from roboclaws.maps.spatial_contract import source_frame_spatial_contract
 
 

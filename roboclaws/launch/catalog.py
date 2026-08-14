@@ -34,7 +34,8 @@ from roboclaws.household.tasks import HOUSEHOLD_PRESET_SPECS, HOUSEHOLD_TASK_SPE
 from roboclaws.launch.agent_engines import AGENT_ENGINE_SPECS, AgentEngineSpec
 from roboclaws.launch.executor import validate_named_overrides
 from roboclaws.launch.plans import LaunchPlan
-from roboclaws.launch.worlds import DEFAULT_WORLD_BY_SURFACE, WorldSpec, world_spec
+from roboclaws.launch.worlds import DEFAULT_WORLD_BY_SURFACE, world_spec
+from roboclaws.worlds.contracts import WorldSpec
 
 CANONICAL_SURFACES: set[str] = {
     "household-world",

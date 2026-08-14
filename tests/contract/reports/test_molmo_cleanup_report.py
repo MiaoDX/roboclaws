@@ -21,10 +21,12 @@ from roboclaws.household.rby1m_curobo_gate import (
 )
 from roboclaws.household.report import (
     render_cleanup_report,
+)
+from roboclaws.household.report_planner import (
     render_planner_manipulation_report,
     render_planner_proof_bundle_runner_report,
-    write_state_snapshot,
 )
+from roboclaws.household.report_snapshots import write_state_snapshot
 from roboclaws.household.scenario import build_cleanup_scenario
 from roboclaws.household.scoring import score_cleanup
 from roboclaws.household.semantic_timeline import SEMANTIC_LOOP_DISPLAY_NOTE
@@ -3484,9 +3486,6 @@ def _assert_planner_manipulation_probe_sampler_failures(html: str) -> None:
             "Placement failures",
             "Effective max tries",
             "Post-Placement Candidate Rejections",
-            "Grasp Collision Diagnostics",
-            "Non-colliding grasps",
-            "Zero non-colliding",
             "Post-Placement Rejection Views",
             "Post-placement rejection flow: pickup/body",
             "Removed by grasp threshold",

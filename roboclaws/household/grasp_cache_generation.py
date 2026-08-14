@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.core.json_sources import read_json_object
-from roboclaws.household.planner_task_feasibility import (
+from roboclaws.household.planner_grasp_cache import (
     grasp_cache_availability_preflight,
     validate_grasp_cache_file,
 )

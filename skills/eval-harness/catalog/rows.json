@@ -229,7 +229,7 @@
         "-q",
         "tests/contract/dev_tools/test_task_agent_just_recipes.py::test_surface_open_ended_supports_mcp_smoke_for_local_gate",
         "tests/contract/molmo_cleanup/test_household_mcp_server.py::test_realworld_mcp_open_ended_intent_is_recorded_in_run_result",
-        "tests/contract/checkers/test_check_molmo_realworld_cleanup_result.py::test_checker_allows_open_ended_agent_view_with_no_visible_objects"
+        "tests/contract/checkers/test_cleanup_validation_maps.py::test_checker_allows_open_ended_agent_view_with_no_visible_objects"
       ],
       "axes": {
         "intent": "open-ended"
