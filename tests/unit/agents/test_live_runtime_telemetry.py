@@ -170,6 +170,7 @@ def test_openai_agents_live_timing_fails_aloud_on_malformed_mcp_timing_source(
     assert initial.prompt_identity is runner.prompt_identity
     assert continuation.prompt_identity is runner.prompt_identity
     assert initial.metadata["telemetry_identity"] == continuation.metadata["telemetry_identity"]
+    assert initial.metadata["telemetry_identity"]["observability_context"] == "runtime"
     (run_dir / source_name).write_text(source_text, encoding="utf-8")
 
     source_error = runner._write_live_timing("finished", 0)

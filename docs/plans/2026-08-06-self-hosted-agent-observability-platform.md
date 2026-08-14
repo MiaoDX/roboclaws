@@ -2,7 +2,7 @@
 plan_scope: self-hosted-agent-observability-platform
 status: DONE
 created: 2026-08-06
-last_reviewed: 2026-08-08
+last_reviewed: 2026-08-10
 implementation_allowed: true
 current_phase: complete
 source:
@@ -21,6 +21,8 @@ approval:
   source: user request to implement this plan via intuitive-flow
   local_workstation_topology_approved_on: 2026-08-08
   local_workstation_topology_source: user approval to simplify and implement via intuitive-flow
+  private_lan_web_access_approved_on: 2026-08-10
+  private_lan_web_access_source: user confirmed the local network is trusted and requested access from 10.169.12.60
   preserves_later_review_gates: true
 ---
 
@@ -73,8 +75,10 @@ terminal status, checker output, or local artifact completeness.
   OpenAI Agents SDK trace, Phoenix project/session/trace, and local artifacts.
 - One-way projection of public prompt identity, public eval dataset fields,
   experiment identity, and local grader scores.
-- One supported Phoenix topology: an opt-in container on the local developer
-  workstation, bound to loopback and outside robot runtime processes.
+- One supported Phoenix owner: an opt-in container on the local developer
+  workstation, outside robot runtime processes. The base deployment is
+  loopback-only; an explicit override may additionally bind the web port to one
+  named trusted private-LAN interface while collector ingress stays loopback.
 - Parity and failure proofs before deleting duplicated generic observability.
 
 ### Non-Goals
@@ -90,8 +94,10 @@ terminal status, checker output, or local artifact completeness.
   Runtime Metric Map, checker reports, eval result bundles, sealed holdout, or
   human-only promotion.
 - No permanent dual support for Phoenix and Langfuse.
-- No shared Phoenix host, cross-machine collector ingress, TLS/authentication
-  gateway, backup service, or production cluster in this implementation.
+- No shared Phoenix ownership, cross-machine collector ingress,
+  TLS/authentication gateway, backup service, or production cluster in this
+  implementation. The approved private-LAN web binding is read/browse access to
+  the developer-owned service, not a shared collector deployment.
 - No real-robot movement as part of implementation verification. The final
   hardware-facing proof is a no-movement launch/readiness or recorded-replay
   proof unless a present operator separately authorizes movement.
@@ -99,10 +105,12 @@ terminal status, checker output, or local artifact completeness.
 ### User-Review Gates
 
 - Phoenix and the local-workstation topology were approved on 2026-08-08. The
-  supported service binds only to loopback, uses the existing named local
-  volume, and remains opt-in.
-- Any later shared host, cross-machine reachability, authentication, backup
-  service, or resource expansion is a new user-review gate outside this plan.
+  base service binds only to loopback, uses the existing named local volume,
+  and remains opt-in. On 2026-08-10 the user approved an explicit web-only bind
+  to trusted private-LAN interface `10.169.12.60`; OTLP remains loopback-only.
+- Any later shared service ownership, cross-machine collector ingress,
+  authentication, backup service, or resource expansion is a new user-review
+  gate outside this plan.
 - Approve the exact live PoC cells before provider calls. The default proposal
   is one cheap Chat Completions profile and one cheap Responses profile, serial,
   with zero automatic retries.
@@ -304,9 +312,11 @@ current local-only evidence system; no second adapter is implemented.
 
 ### Phase 2: Fail-Open Runtime On The Local Workstation
 
-- Support one deployment shape: the pinned Phoenix container on the developer
-  workstation, bound to `127.0.0.1`, capped at 2 CPU and 4 GiB RAM, with its
-  existing named local volume. It is opt-in and has no runtime auto-start.
+- Support the pinned Phoenix container on the developer workstation, capped at
+  2 CPU and 4 GiB RAM, with its existing named local volume. The base deployment
+  binds to `127.0.0.1`; the separately approved override adds a web-only bind on
+  one named trusted private-LAN interface. It is opt-in and has no runtime
+  auto-start.
 - Put batching, queue limits, retry limits, flush deadlines, and exporter status
   behind `PhoenixTelemetryAdapter`.
 - Prove disabled export, connection refusal, timeout, server error, full queue,
@@ -520,8 +530,10 @@ cross-run analysis, prompt/dataset experiment UI, annotation, and visualization.
   because the selected routes use an existing token plan or internal free model.
 - Planning-loop status: complete; implementation was approved by the explicit
   2026-08-07 implementation request. The live-provider gate was cleared for the
-  Phase 1 cells. Phoenix selection and the localhost-only workstation topology
-  were approved on 2026-08-08; shared deployment remains out of scope.
+  Phase 1 cells. Phoenix selection and the localhost-default workstation
+  topology were approved on 2026-08-08; web-only access on named private-LAN
+  interface `10.169.12.60` was approved on 2026-08-10. Shared collector
+  deployment remains out of scope.
 - Phase 0 status: complete. `roboclaws.agents.experiment_telemetry` owns the
   dependency-free contract and registration-once SDK router; ADR-0149 and the
   Phase 0 owner/parity inventory record the durable decision and current
@@ -541,11 +553,12 @@ cross-run analysis, prompt/dataset experiment UI, annotation, and visualization.
   changed-code reviews pass. MiniMax model/token attributes are unavailable in
   the pinned OpenInference projection but remain in the local sanitized event
   stream; no synthetic Phoenix fields are added.
-- Phase 2 topology decision: Phoenix is the selected adapter. The only supported
-  deployment is the existing opt-in, loopback-bound local workstation container
-  with 2 CPU / 4 GiB limits and a named local volume. Cross-machine ingress,
-  authentication gateways, backup services, and shared production sizing were
-  removed from this plan rather than implemented speculatively.
+- Phase 2 topology decision: Phoenix is the selected adapter. The supported
+  service is the existing opt-in local workstation container with 2 CPU / 4 GiB
+  limits and a named local volume. It is localhost-only by default; the approved
+  override exposes only its web port on one named trusted private-LAN interface.
+  Cross-machine collector ingress, authentication gateways, backup services,
+  and shared production sizing remain out of scope.
 - Phase 2 status: complete in `15d324f8`. Direct adapter configuration now
   rejects non-loopback OTLP endpoints; deterministic disabled, refused,
   timeout, server-error, full-queue, bounded-shutdown, and recorded no-movement
@@ -578,11 +591,18 @@ cross-run analysis, prompt/dataset experiment UI, annotation, and visualization.
   with mocked runtime subprocesses, and no-Skill delivery uses the immutable
   empty-content digest. The full standalone suite and the dependency-triggered
   pre-commit fast suite pass.
+- Private-LAN web access was approved on 2026-08-10. The optional Compose
+  override preserves loopback HTTP and OTLP bindings, adds only
+  `10.169.12.60:6006`, and leaves the named volume, resource limits, restart
+  policy, trace privacy, and fail-open runtime contracts unchanged.
 
 ## Completion And Maintenance
 
-The approved localhost-only Phoenix rollout is complete. Keep local artifacts
-canonical and the service opt-in. Durable local spooling remains parked until
-disconnected trace loss proves demand. Any shared deployment, cross-machine
-ingress, authentication/TLS gateway, backup service, larger resource envelope,
-or onboard robot deployment requires a new plan and user approval.
+The approved Phoenix rollout is complete. The base service remains localhost
+only; the explicitly approved LAN override exposes only the web port on the
+named `10.169.12.60` interface while OTLP ingestion stays on loopback. Keep local
+artifacts canonical and the service opt-in. Durable local spooling remains
+parked until disconnected trace loss proves demand. Any shared service
+ownership, cross-machine collector ingress, authentication/TLS gateway, backup
+service, larger resource envelope, or onboard robot deployment requires a new
+plan and user approval.

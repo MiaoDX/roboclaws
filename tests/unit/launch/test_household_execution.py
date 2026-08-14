@@ -168,7 +168,6 @@ def test_live_smoke_uses_smoke_profile_for_server_and_checker(
 ) -> None:
     execution = _execution(dispatch_runner="openai-agents-live")
     execution.profile = "smoke"
-    monkeypatch.setattr(household, "update_env_from_dotenv_file", lambda _path: None)
     monkeypatch.setattr(household, "render_kickoff_prompt", lambda *_args, **_kwargs: "kickoff")
 
     command = household._live_command(

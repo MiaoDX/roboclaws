@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import os
 import queue
-import re
 import threading
 import time
 from collections.abc import Mapping
@@ -43,7 +42,6 @@ class ProjectionProcessorConfig:
 @dataclass(frozen=True)
 class PhoenixTelemetryConfig:
     endpoint: str = "http://127.0.0.1:6006/v1/traces"
-    project_name: str = "roboclaws-local-poc"
     queue_capacity: int = 512
     max_export_batch_size: int = 64
     schedule_delay_ms: int = 200
@@ -52,10 +50,6 @@ class PhoenixTelemetryConfig:
 
     def __post_init__(self) -> None:
         _validate_local_otlp_endpoint(self.endpoint, name="endpoint")
-        if re.fullmatch(r"[A-Za-z0-9._-]{1,128}", self.project_name) is None:
-            raise ValueError(
-                "project_name must contain only letters, digits, dot, dash, or underscore"
-            )
         if self.queue_capacity < 1:
             raise ValueError("queue_capacity must be positive")
         if not 1 <= self.max_export_batch_size <= self.queue_capacity:
@@ -82,7 +76,6 @@ def create_local_phoenix_telemetry_adapter(
         identity=identity,
         config=PhoenixTelemetryConfig(
             endpoint=endpoint,
-            project_name=values.get("ROBOCLAWS_PHOENIX_PROJECT", "roboclaws-local").strip(),
             export_timeout_s=0.5,
             terminal_timeout_s=0.9,
         ),
@@ -332,12 +325,11 @@ def create_phoenix_telemetry_adapter(
 
     settings = config or PhoenixTelemetryConfig()
     closed_identity = closed_export_record("identity", identity)
+    project_name = _phoenix_project_name(closed_identity)
     identity_attributes = {f"roboclaws.{key}": value for key, value in closed_identity.items()}
     if operator_session_id := closed_identity.get("operator_session_id"):
         identity_attributes["session.id"] = operator_session_id
-    resource = Resource.create(
-        {**identity_attributes, "openinference.project.name": settings.project_name}
-    )
+    resource = Resource.create({**identity_attributes, "openinference.project.name": project_name})
     provider = TracerProvider(resource=resource, shutdown_on_exit=False)
     tracer = OITracer(provider.get_tracer("roboclaws.phoenix"), phoenix_privacy_config())
     processor = _new_openinference_processor(tracer)
@@ -370,6 +362,27 @@ def create_phoenix_telemetry_adapter(
     provider.add_span_processor(batch)
     adapter._batch_processor = batch
     return adapter
+
+
+def _phoenix_project_name(identity: Mapping[str, Any]) -> str:
+    context = identity.get("observability_context")
+    eval_fields = ("suite_id", "suite_version", "sample_id", "trial_id", "repetition")
+    present_eval_fields = {field for field in eval_fields if identity.get(field) not in {None, ""}}
+    if context == "runtime":
+        if present_eval_fields:
+            raise TelemetryContractError(
+                "runtime observability_context must not contain eval trial identity"
+            )
+        return "roboclaws-runtime"
+    if context == "eval":
+        missing = [field for field in eval_fields if field not in present_eval_fields]
+        if missing:
+            raise TelemetryContractError(
+                "eval observability_context requires complete eval trial identity: "
+                + ", ".join(missing)
+            )
+        return "roboclaws-eval"
+    raise TelemetryContractError("observability_context must be exactly runtime or eval")
 
 
 class DeterministicProjectionProcessor:

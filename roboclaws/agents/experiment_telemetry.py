@@ -75,6 +75,7 @@ class PromptIdentity:
 @dataclass(frozen=True)
 class RunIdentity:
     run_id: str
+    observability_context: str = ""
     operator_session_id: str = ""
     trace_id: str = ""
     git_sha: str = ""

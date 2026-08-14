@@ -21,7 +21,7 @@ from typing import Any, Callable
 from roboclaws.agents.provider_registry import provider_readiness
 from roboclaws.evals.models import EVAL_RESULT_SCHEMA, MISSING_NOT_APPLICABLE
 from roboclaws.evals.reports import RESULTS_BUNDLE_SCHEMA
-from roboclaws.mcp.endpoint import free_mcp_port
+from roboclaws.household.household_mcp_endpoint import free_mcp_port
 from roboclaws.operator_console.interactions import MESSAGE_LOG
 from roboclaws.operator_console.paths import OUTPUT_ROOT_ENV, console_output_root
 from roboclaws.operator_console.routes import ConsoleLaunchSelection, list_console_combinations

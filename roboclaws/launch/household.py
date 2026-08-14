@@ -16,10 +16,13 @@ from roboclaws.agents.prompts.household_cleanup import (
     render_kickoff_prompt,
     render_map_build_prompt,
 )
-from roboclaws.core.dotenv import update_env_from_dotenv_file
 from roboclaws.core.open_ended_artifacts import validate_open_ended_artifacts
 from roboclaws.core.provider_catalog import provider_route_spec
 from roboclaws.household.cleanup_validation import load_run_results, validate_run_result
+from roboclaws.household.household_mcp_endpoint import (
+    DEFAULT_MCP_PORT,
+    EVAL_HARNESS_MCP_PORT_ENV,
+)
 from roboclaws.household.household_mcp_smoke import run_smoke
 from roboclaws.household.household_runtime_contract import CAMERA_MODEL_POLICY_NAME
 from roboclaws.household.household_world_episode import run_household_world_episode
@@ -31,7 +34,6 @@ from roboclaws.maps.runtime_prior_conversion import (
     runtime_prior_snapshot_from_nav2_cleanup_bundle,
 )
 from roboclaws.maps.runtime_prior_materialization import materialize_runtime_prior_targets
-from roboclaws.mcp.endpoint import DEFAULT_MCP_PORT, EVAL_HARNESS_MCP_PORT_ENV
 from roboclaws.worlds.molmospaces.map_bundles import molmospaces_nav2_map_bundle_path
 
 _REPO_PYTHON = ".venv/bin/python"
@@ -220,7 +222,6 @@ def _live_command(
     run_dir: Path,
     map_bundle: Path,
 ) -> list[str]:
-    update_env_from_dotenv_file(Path(".env"))
     provider = execution.plan.provider_profile or ""
     route = provider_route_spec(provider)
     model = _get(execution.kv, "model", os.environ.get("ROBOCLAWS_OPENAI_AGENTS_MODEL", ""))

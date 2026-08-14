@@ -16,6 +16,7 @@ REAL_PHOENIX_HTTP = phoenix_projection.PhoenixHttp
 class FakePhoenix:
     datasets: list[dict[str, Any]] = []
     examples: dict[str, list[dict[str, Any]]] = {}
+    versions: dict[str, list[dict[str, Any]]] = {}
     experiments: dict[str, list[dict[str, Any]]] = {}
     runs: dict[str, list[dict[str, Any]]] = {}
     evaluations: dict[tuple[str, str], dict[str, Any]] = {}
@@ -28,6 +29,7 @@ class FakePhoenix:
     def reset(cls) -> None:
         cls.datasets = []
         cls.examples = {}
+        cls.versions = {}
         cls.experiments = {}
         cls.runs = {}
         cls.evaluations = {}
@@ -40,13 +42,17 @@ class FakePhoenix:
         self.examples[dataset["id"]] = [
             {"id": f"example-{index}", "input": row} for index, row in enumerate(rows, 1)
         ]
+        self.versions[dataset["id"]] = [{"version_id": "version-1"}]
         return {"data": {"dataset_id": dataset["id"], "version_id": "version-1"}}
 
     def json(self, method: str, path: str, payload: object | None = None) -> dict[str, Any]:
         self.calls.append((method, path, payload))
         if method == "GET" and path.startswith("/v1/datasets?"):
             return {"data": self.datasets}
-        if method == "GET" and path.endswith("/examples"):
+        if method == "GET" and "/versions?" in path:
+            dataset_id = path.split("/")[3]
+            return {"data": self.versions[dataset_id]}
+        if method == "GET" and "/examples?" in path:
             dataset_id = path.split("/")[3]
             return {
                 "data": {
@@ -61,6 +67,7 @@ class FakePhoenix:
                 return {"data": self.experiments.get(dataset_id, [])}
             experiment = {
                 "id": f"experiment-{len(self.experiments.get(dataset_id, [])) + 1}",
+                "dataset_version_id": payload["version_id"],
                 **payload,
             }
             self.experiments.setdefault(dataset_id, []).append(experiment)
@@ -102,7 +109,7 @@ def test_disabled_projection_writes_complete_mapping_without_network(tmp_path: P
     assert summary["state"] == "disabled"
     assert mapping["state"] == "disabled"
     assert mapping["dataset"] is None
-    assert mapping["experiment"] is None
+    assert mapping["experiments"] == []
     assert mapping["examples"] == []
     assert mapping["runs"] == []
     assert FakePhoenix.calls == []
@@ -173,7 +180,9 @@ def test_projection_is_idempotent_and_exports_only_closed_public_fields(tmp_path
     second = json.loads(second_output.read_text())
     assert first["suite"] == second["suite"]
     assert first["dataset"] == second["dataset"]
-    assert first["experiment"] == second["experiment"]
+    assert first["dataset"]["name"] == "roboclaws-household_world_smoke_regression"
+    assert first["dataset"]["version_id"] == "version-1"
+    assert first["experiments"] == second["experiments"]
     assert first["runs"] == second["runs"]
     assert first["evaluations"] == second["evaluations"]
     exported = json.dumps(FakePhoenix.calls)
@@ -213,6 +222,152 @@ def test_projection_is_idempotent_and_exports_only_closed_public_fields(tmp_path
         "privacy.status",
         "trajectory.status",
     }
+    version_reads = [path for method, path, _payload in FakePhoenix.calls if method == "GET"]
+    assert any(path.endswith("/versions?limit=100") for path in version_reads)
+    assert any(path.endswith("/examples?version_id=version-1") for path in version_reads)
+
+
+def test_task_dataset_rejects_changed_public_samples(tmp_path: Path) -> None:
+    dataset_name = "roboclaws-household_world_smoke_regression"
+    FakePhoenix("http://127.0.0.1:6006").upload_dataset(
+        name=dataset_name,
+        rows=[{"sample_id": "changed", "sample_version": "v2", "prompt_digest": "0" * 64}],
+    )
+    output = tmp_path / "mapping.json"
+
+    summary = phoenix_projection.project_eval_to_phoenix(
+        {
+            "suite": "smoke_regression",
+            "endpoint": "http://127.0.0.1:6006",
+            "output": str(output),
+        }
+    )
+
+    mapping = json.loads(output.read_text())
+    assert summary == {
+        "mapping": str(output),
+        "state": "unavailable",
+        "reason": "task_dataset_content_mismatch",
+    }
+    assert mapping["dataset"] is None
+    assert len(FakePhoenix.datasets) == 1
+
+
+def test_task_dataset_rejects_appended_history(tmp_path: Path) -> None:
+    dataset_name = "roboclaws-household_world_smoke_regression"
+    http = FakePhoenix("http://127.0.0.1:6006")
+    created = http.upload_dataset(
+        name=dataset_name,
+        rows=[
+            {
+                "sample_id": "cleanup.smoke_seed7",
+                "sample_version": "2026-06-15",
+                "prompt_digest": "0" * 64,
+            }
+        ],
+    )
+    dataset_id = created["data"]["dataset_id"]
+    FakePhoenix.versions[dataset_id].append({"version_id": "version-2"})
+    output = tmp_path / "mapping.json"
+
+    summary = phoenix_projection.project_eval_to_phoenix(
+        {
+            "suite": "smoke_regression",
+            "endpoint": "http://127.0.0.1:6006",
+            "output": str(output),
+        }
+    )
+
+    assert summary["state"] == "unavailable"
+    assert summary["reason"] == "task_dataset_history_unsupported"
+
+
+def test_dataset_name_is_stable_across_suite_versions() -> None:
+    assert phoenix_projection._dataset_name("household_world.smoke_regression") == (
+        "roboclaws-household_world_smoke_regression"
+    )
+
+
+def test_heterogeneous_bundle_partitions_configuration_without_run_collisions(
+    tmp_path: Path,
+) -> None:
+    results = _write_results(tmp_path / "eval_results.json")
+    payload = json.loads(results.read_text())
+    second = json.loads(json.dumps(payload["results"][0]))
+    second["identity"].update(
+        {
+            "trial_id": "trial-2",
+            "provider_profile": "kimi-openai-chat",
+            "model": "kimi-k2.7-code",
+        }
+    )
+    payload["results"].append(second)
+    results.write_text(json.dumps(payload))
+    output = tmp_path / "mapping.json"
+
+    phoenix_projection.project_eval_to_phoenix(
+        {
+            "suite": "smoke_regression",
+            "eval_results": str(results),
+            "endpoint": "http://127.0.0.1:6006",
+            "output": str(output),
+        }
+    )
+
+    mapping = json.loads(output.read_text())
+    assert len(mapping["experiments"]) == 2
+    assert {row["configuration"]["provider_profile"] for row in mapping["experiments"]} == {
+        "not_applicable",
+        "kimi-openai-chat",
+    }
+    assert len(mapping["runs"]) == 2
+    assert len({row["experiment_id"] for row in mapping["runs"]}) == 2
+    run_posts = [
+        payload
+        for method, path, payload in FakePhoenix.calls
+        if method == "POST" and path.endswith("/runs")
+    ]
+    assert {row["repetition_number"] for row in run_posts} == {0}
+    assert {row["dataset_example_id"] for row in run_posts} == {"example-1"}
+
+
+def test_regraded_bundle_creates_new_immutable_experiment_and_then_reuses_it(
+    tmp_path: Path,
+) -> None:
+    results = _write_results(tmp_path / "eval_results.json")
+    overrides = {
+        "suite": "smoke_regression",
+        "eval_results": str(results),
+        "endpoint": "http://127.0.0.1:6006",
+    }
+    phoenix_projection.project_eval_to_phoenix(overrides | {"output": str(tmp_path / "first.json")})
+    payload = json.loads(results.read_text())
+    payload["results"][0]["grader_outputs"]["privacy"]["status"] = "failed"
+    results.write_text(json.dumps(payload))
+
+    phoenix_projection.project_eval_to_phoenix(
+        overrides | {"output": str(tmp_path / "second.json")}
+    )
+    creates_after_correction = [
+        call for call in FakePhoenix.calls if call[0] == "POST" and call[1].endswith("/experiments")
+    ]
+    phoenix_projection.project_eval_to_phoenix(overrides | {"output": str(tmp_path / "third.json")})
+    all_creates = [
+        call for call in FakePhoenix.calls if call[0] == "POST" and call[1].endswith("/experiments")
+    ]
+
+    assert len(creates_after_correction) == 2
+    assert len(all_creates) == 2
+    first = json.loads((tmp_path / "first.json").read_text())
+    second = json.loads((tmp_path / "second.json").read_text())
+    third = json.loads((tmp_path / "third.json").read_text())
+    assert first["experiments"][0]["phoenix_id"] != second["experiments"][0]["phoenix_id"]
+    assert (
+        first["experiments"][0]["source_bundle_digest"]
+        != second["experiments"][0]["source_bundle_digest"]
+    )
+    assert second["experiments"] == third["experiments"]
+    assert second["runs"] == third["runs"]
 
 
 def test_server_failure_is_fail_open_with_unavailable_mapping(

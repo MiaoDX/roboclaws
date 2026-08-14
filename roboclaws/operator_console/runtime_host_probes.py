@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from roboclaws.mcp.endpoint import DEFAULT_MCP_PORT
+from roboclaws.household.household_mcp_endpoint import DEFAULT_MCP_PORT
 from roboclaws.operator_console.runtime_compat import float_or_none
 
 LIVE_MARKERS = (
