@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from roboclaws.household import agent_view as agent_view_module
+from roboclaws.household.backend import ApiSemanticCleanupBackend
 from roboclaws.household.household_backend_contract import HouseholdBackendSession
 from roboclaws.household.household_runtime_contract import (
     RAW_FPV_ONLY_MODE,
@@ -36,7 +37,7 @@ from tests.contract.molmo_cleanup.household_runtime_contract_support import (
     _first_detection_waypoint,
     _first_non_empty_observation,
     _policy_trace_agent_view,
-    _PoseRecordingBackend,
+    _PortPoseRecordingBackend,
     _public_destination_fixture_for_detection,
     _trace_response,
 )
@@ -122,9 +123,9 @@ def test_scene_index_backend_public_map_uses_usd_room_outline_scale() -> None:
             success_threshold=1,
         ),
     )
-    session = HouseholdBackendSession(scenario)
-    session.backend.scenario_source = "isaac_scene_index"
-    session.backend.room_outlines = [
+    backend = ApiSemanticCleanupBackend(scenario)
+    backend.scenario_source = "isaac_scene_index"
+    backend.room_outlines = [
         {
             "room_id": "room_2",
             "label": "Room 2",
@@ -142,7 +143,7 @@ def test_scene_index_backend_public_map_uses_usd_room_outline_scale() -> None:
             "usd_prim_path": "/val_1/Geometry/room_3_visual_0",
         },
     ]
-    session.backend.receptacle_index = {
+    backend.receptacle_index = {
         "diningtable_f113cf7f8367e89f709b53cbee1a1c05_1_0_2": {
             "usd_world_bounds": {"center": [2.717858, 5.93953, 0.374628]}
         },
@@ -151,6 +152,7 @@ def test_scene_index_backend_public_map_uses_usd_room_outline_scale() -> None:
         },
     }
 
+    session = HouseholdBackendSession(scenario, backend=backend)
     contract = _contract(session)
     metric_map = contract.metric_map()
     assert metric_map["rooms"]
@@ -230,9 +232,9 @@ def test_scene_index_backend_room_outline_waypoints_avoid_fixture_occupied_goals
             success_threshold=1,
         ),
     )
-    session = HouseholdBackendSession(scenario)
-    session.backend.scenario_source = "isaac_scene_index"
-    session.backend.room_outlines = [
+    backend = ApiSemanticCleanupBackend(scenario)
+    backend.scenario_source = "isaac_scene_index"
+    backend.room_outlines = [
         {
             "room_id": "room_2",
             "label": "Room 2",
@@ -250,7 +252,7 @@ def test_scene_index_backend_room_outline_waypoints_avoid_fixture_occupied_goals
             "usd_prim_path": "/val_1/Geometry/room_3_visual_0",
         },
     ]
-    session.backend.receptacle_index = {
+    backend.receptacle_index = {
         "bed_258d27d5fe50e324961c7a8698ace951_1_0_2": {
             "usd_world_bounds": {"center": [2.818349, 8.99204, 0.856923]}
         },
@@ -277,6 +279,7 @@ def test_scene_index_backend_room_outline_waypoints_avoid_fixture_occupied_goals
         },
     }
 
+    session = HouseholdBackendSession(scenario, backend=backend)
     contract = _contract(session)
     metric_map = contract.metric_map()
     static_fixture_projection = contract.static_fixture_projection()
@@ -696,7 +699,7 @@ def test_minimal_raw_fpv_waypoint_navigation_moves_backend_before_capture(
     tmp_path: Path,
 ) -> None:
     scenario = build_cleanup_scenario(seed=7)
-    backend = _PoseRecordingBackend(scenario)
+    backend = _PortPoseRecordingBackend(scenario)
     contract = HouseholdRuntimeContract(
         HouseholdBackendSession(scenario, backend=backend),
         perception_mode=RAW_FPV_ONLY_MODE,

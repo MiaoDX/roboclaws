@@ -78,6 +78,13 @@ semantics before claiming parity. MolmoSpaces household scenes use MuJoCo as
 the active backend; MolmoSpaces Isaac support is retired rather than kept as a
 hidden or compatibility route.
 
+Inside the household runtime, backend-neutral policy depends on one typed
+backend port. Synthetic, MolmoSpaces, and Isaac Lab adapters implement that
+port; the runtime session keeps each concrete adapter private and consumes one
+canonical evidence snapshot for reports and artifacts. Backend capabilities,
+planner bindings, navigation effects, and runtime evidence are explicit port
+operations rather than optional fields discovered at runtime.
+
 ## Agent Strategy
 
 Agent engines are product runtimes, not tasks:

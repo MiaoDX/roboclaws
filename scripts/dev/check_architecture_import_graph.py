@@ -74,7 +74,7 @@ def collect_import_edges(root: Path = PACKAGE_ROOT) -> list[ImportEdge]:
     edges: set[ImportEdge] = set()
     for source, path in modules.items():
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-        for node in ast.walk(tree):
+        for node in runtime_ast_nodes(tree):
             for target in _import_targets(source, node):
                 candidates = [target]
                 while candidates[-1] and candidates[-1] not in modules and "." in candidates[-1]:
@@ -83,6 +83,24 @@ def collect_import_edges(root: Path = PACKAGE_ROOT) -> list[ImportEdge]:
                 if resolved and resolved != source:
                     edges.add(ImportEdge(source, resolved, int(node.lineno)))
     return sorted(edges)
+
+
+def runtime_ast_nodes(tree: ast.AST) -> Iterable[ast.AST]:
+    """Yield nodes that can execute at runtime, excluding type-checking guards."""
+
+    yield tree
+    for child in ast.iter_child_nodes(tree):
+        if isinstance(child, ast.If) and _is_type_checking_guard(child.test):
+            for fallback in child.orelse:
+                yield from runtime_ast_nodes(fallback)
+            continue
+        yield from runtime_ast_nodes(child)
+
+
+def _is_type_checking_guard(node: ast.AST) -> bool:
+    return (isinstance(node, ast.Name) and node.id == "TYPE_CHECKING") or (
+        isinstance(node, ast.Attribute) and node.attr == "TYPE_CHECKING"
+    )
 
 
 def collect_script_references(root: Path = PACKAGE_ROOT) -> list[list[str]]:

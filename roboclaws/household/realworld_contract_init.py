@@ -168,7 +168,7 @@ def init_runtime_state(
     target._current_receptacle_for_handle = None
     target._opened_receptacle_for_handle = None
     target._pending_close_receptacle_for_handle = None
-    target._initial_locations = target.backend.object_locations()
+    target._initial_locations = target.contract.object_locations()
 
 
 def _init_bundle_map_projection(target: Any) -> None:
@@ -200,7 +200,7 @@ def _init_bundle_map_projection(target: Any) -> None:
     )
     target._scene_index_fixture_overlay = (
         realworld_contract_projection._scene_index_public_fixture_overlay(
-            backend=target.backend,
+            session=target.contract,
             scenario=target.scenario,
             existing_fixtures=target._fixtures,
             fallback_waypoint_id=realworld_contract_projection._first_waypoint_id(

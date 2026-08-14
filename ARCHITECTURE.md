@@ -259,6 +259,12 @@ The retained household runtime is split by behavior rather than transport.
 MCP response projection and artifact serialization, runtime-map target
 selection, visual perception/navigation, direct cleanup target selection, and
 Agibot SDK contract/projection/stage execution have direct household owners.
+`household_backend_port.py` owns the typed boundary used by the synthetic,
+MolmoSpaces, and Isaac Lab adapters. `HouseholdRuntimeContract` reaches those
+adapters only through `HouseholdBackendSession`; the session keeps the concrete
+adapter private and exposes canonical operations and a complete typed runtime
+evidence snapshot. Runtime policy does not probe optional adapter fields or
+retain a raw adapter escape hatch.
 `household_mcp_server.py`, `household_world_episode.py`,
 `realworld_runtime_map_targets.py`, `realworld_visual_candidate_lifecycle.py`,
 and `agibot_sdk_runner.py` remain composition or adapter owners; they do not

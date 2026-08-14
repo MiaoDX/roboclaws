@@ -68,7 +68,6 @@ class PlannerBackedCleanupContractAdapter:
         self.contract = contract
         self.executor = executor
         self.executor_name = executor_name
-        self.backend = getattr(contract, "backend", None)
         self._current_object_id: str | None = None
         self._held_object_id: str | None = None
         self._source_receptacle_id: str | None = None

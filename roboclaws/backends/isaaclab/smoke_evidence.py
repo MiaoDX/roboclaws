@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from roboclaws.household.subprocess_backend import _parse_last_json_object
+from roboclaws.household.worker_runner import parse_last_json_object
 
 
 def read_init_result(path: Path) -> dict[str, Any]:
@@ -32,5 +32,5 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
     try:
         payload = json.loads(text)
     except json.JSONDecodeError:
-        payload = _parse_last_json_object(text)
+        payload = parse_last_json_object(text)
     return payload if isinstance(payload, dict) else None

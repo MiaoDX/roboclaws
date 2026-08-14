@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Collection, Iterable, Mapping, Sequence
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from roboclaws.household.household_runtime_contract import HouseholdRuntimeContract
 
 from roboclaws.household import (
     realworld_runtime_map_contract,
@@ -40,36 +42,8 @@ def _norm(value: Any) -> str:
     return re.sub(r"[^a-z0-9]+", "", str(value).lower())
 
 
-class RuntimeMapTargetContract(Protocol):
-    perception_mode: str
-    sanitize_world_labels: bool
-    _camera_adjustment_events: Sequence[dict[str, Any]]
-    _current_waypoint_id: str
-    _detections_by_handle: Mapping[str, dict[str, Any]]
-    _fixtures: dict[str, dict[str, Any]]
-    _generated_inspection_waypoints: Mapping[str, dict[str, Any]]
-    _inspection_observations: Sequence[dict[str, Any]]
-    _fixture_observations_by_fixture_id: Mapping[str, dict[str, Any]]
-    _object_lifecycle: Mapping[str, dict[str, Any]]
-    _observed_waypoint_ids: Collection[str]
-    _private_waypoint_by_public_id: Mapping[str, dict[str, Any]]
-    _public_anchor_ids_by_private_fixture_id: dict[str, str]
-    _public_waypoints: Iterable[dict[str, Any]]
-    _runtime_map_anchor_priors: Iterable[dict[str, Any]]
-    _waypoints: Iterable[dict[str, Any]]
-
-    def _generated_inspection_waypoint_for_object(self, handle: str) -> dict[str, Any]: ...
-    def _observation_id_for_waypoint(self, waypoint_id: str) -> str: ...
-    def _private_waypoint_for_public_waypoint(self, waypoint: dict[str, Any]) -> dict[str, Any]: ...
-    def _preferred_waypoint_for_fixture(self, fixture_id: str) -> str: ...
-    def _public_navigation_waypoints(self) -> list[dict[str, Any]]: ...
-    def _waypoint_by_id(self, waypoint_id: str) -> dict[str, Any] | None: ...
-    def _waypoint_pose(self, waypoint: dict[str, Any]) -> dict[str, float]: ...
-    def static_fixture_projection(self) -> dict[str, Any]: ...
-
-
 def runtime_public_semantic_anchors(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     *,
     assert_no_forbidden_agent_view_keys: Any = None,
 ) -> list[dict[str, Any]]:
@@ -94,7 +68,7 @@ def runtime_public_semantic_anchors(
     return anchors
 
 
-def seed_public_fixture_anchor_ids_from_prior_anchors(contract: RuntimeMapTargetContract) -> None:
+def seed_public_fixture_anchor_ids_from_prior_anchors(contract: HouseholdRuntimeContract) -> None:
     for anchor in contract._runtime_map_anchor_priors:
         anchor_id = str(anchor.get("anchor_id") or "")
         if not _is_place_anchor(anchor) or not anchor_id:
@@ -105,7 +79,7 @@ def seed_public_fixture_anchor_ids_from_prior_anchors(contract: RuntimeMapTarget
 
 
 def seed_public_fixture_anchor_ids_for_waypoint(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     waypoint: dict[str, Any],
 ) -> None:
     private_waypoint = contract._private_waypoint_for_public_waypoint(waypoint)
@@ -116,7 +90,7 @@ def seed_public_fixture_anchor_ids_for_waypoint(
 
 
 def record_fixture_observations_for_waypoint(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     waypoint: dict[str, Any],
     *,
     source_observation_id: str,
@@ -153,7 +127,7 @@ def record_fixture_observations_for_waypoint(
 
 
 def _fixture_ids_for_public_waypoint(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     waypoint: dict[str, Any],
 ) -> list[str]:
     private_waypoint = contract._private_waypoint_for_public_waypoint(waypoint)
@@ -166,7 +140,7 @@ def _fixture_ids_for_public_waypoint(
 
 
 def public_runtime_fixture_candidates(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     *,
     include_runtime_backend_fixtures: bool = False,
     assert_no_forbidden_agent_view_keys: Any = None,
@@ -237,7 +211,7 @@ def public_runtime_fixture_candidates(
 
 
 def _public_runtime_fixture_candidate_from_fixture(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     *,
     fixture_id: str,
     fixture: dict[str, Any],
@@ -263,7 +237,7 @@ def _public_runtime_fixture_candidate_from_fixture(
 
 
 def target_fixture_for_detection(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     detection: dict[str, Any],
     static_fixture_projection: dict[str, Any],
     *,
@@ -277,7 +251,7 @@ def target_fixture_for_detection(
 
 
 def resolve_runtime_anchor_target_fixture_id(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     category: str,
     *,
     include_runtime_backend_fixtures: bool = False,
@@ -296,7 +270,7 @@ def resolve_runtime_anchor_target_fixture_id(
 
 
 def public_fixture_reference_payload(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     value: Any,
 ) -> Any:
     fixture_keys = {
@@ -344,7 +318,7 @@ def public_fixture_reference_payload(
 
 
 def public_fixture_reference_id(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     fixture_id: str,
 ) -> str:
     if not fixture_id:
@@ -354,7 +328,7 @@ def public_fixture_reference_id(
     return public_anchor_id_for_fixture(contract, fixture_id)
 
 
-def public_anchor_id_for_fixture(contract: RuntimeMapTargetContract, fixture_id: str) -> str:
+def public_anchor_id_for_fixture(contract: HouseholdRuntimeContract, fixture_id: str) -> str:
     fixture_id = str(fixture_id or "")
     if not fixture_id:
         return ""
@@ -383,7 +357,7 @@ def public_anchor_id_for_fixture(contract: RuntimeMapTargetContract, fixture_id:
 
 
 def _fixture_anchor_allocation_key(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     fixture_id: str,
 ) -> tuple[str, str, str]:
     fixture = getattr(contract, "_fixtures", {}).get(fixture_id) or {}
@@ -397,7 +371,7 @@ def _fixture_anchor_allocation_key(
 
 
 def internal_fixture_id_for_public_reference(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     fixture_id: str | None,
 ) -> str | None:
     if fixture_id is None:
@@ -410,7 +384,7 @@ def internal_fixture_id_for_public_reference(
 
 
 def internal_fixture_id_for_public_anchor(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     anchor_id: str,
 ) -> str:
     if not anchor_id:
@@ -439,7 +413,7 @@ def internal_fixture_id_for_public_anchor(
 
 
 def public_waypoint_for_private_fixture(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     fixture_id: str,
 ) -> dict[str, Any]:
     private_waypoint_id = contract._preferred_waypoint_for_fixture(fixture_id)
@@ -458,7 +432,7 @@ def public_waypoint_for_private_fixture(
 
 
 def public_waypoint_id_for_private_fixture(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     fixture_id: str,
 ) -> str:
     waypoint = public_waypoint_for_private_fixture(contract, fixture_id)
@@ -467,7 +441,7 @@ def public_waypoint_id_for_private_fixture(
 
 
 def best_internal_fixture_for_anchor(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     anchor: dict[str, Any],
 ) -> str:
     category = str(anchor.get("category") or "")
@@ -493,7 +467,7 @@ def best_internal_fixture_for_anchor(
 
 
 def _best_internal_fixture_for_prior_anchor(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     anchor: dict[str, Any],
 ) -> str:
     """Bind prior anchors only when the local waypoint evidence agrees."""
@@ -535,7 +509,7 @@ def _anchor_category_matches_fixture(
 
 
 def runtime_anchor_target_fixture_for_detection(
-    contract: RuntimeMapTargetContract,
+    contract: HouseholdRuntimeContract,
     detection: dict[str, Any],
     *,
     include_runtime_backend_fixtures: bool = False,

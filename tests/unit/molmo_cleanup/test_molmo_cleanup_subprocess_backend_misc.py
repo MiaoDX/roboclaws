@@ -10,7 +10,6 @@ from roboclaws.household import worker_runner
 from roboclaws.household.subprocess_backend import (
     MOLMOSPACES_SUBPROCESS_BACKEND,
     MolmoSpacesSubprocessBackend,
-    _parse_last_json_object,
     _parse_persistent_worker_packet,
     _worker_kwargs_from_args,
 )
@@ -20,7 +19,7 @@ from tests.unit.molmo_cleanup.molmo_cleanup_subprocess_backend_support import (
 
 
 def test_parse_last_json_object_tolerates_upstream_stdout_noise() -> None:
-    payload = _parse_last_json_object(
+    payload = worker_runner.parse_last_json_object(
         "Using SCENES_ROOT: /tmp/assets\n"
         + json.dumps({"ok": True, "tool": "init", "backend": MOLMOSPACES_SUBPROCESS_BACKEND})
         + "\n"

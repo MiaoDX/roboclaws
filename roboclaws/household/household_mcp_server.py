@@ -218,8 +218,7 @@ class HouseholdWorldMCPServer(HouseholdMCPArtifactLifecycle, HouseholdMCPTraceLi
         )
         self.contract = contract
         self.base_contract = contract.contract
-        backend_name = getattr(contract, "backend_name", None)
-        self.backend_name = str(backend_name()) if callable(backend_name) else ""
+        self.backend_name = contract.backend_name()
         self.scenario = contract.scenario
         self.task_prompt = task_prompt
         self.task_intent, self.task_name = household_task_identity_from_contract(

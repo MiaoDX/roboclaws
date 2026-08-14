@@ -89,7 +89,39 @@ class _PoseRecordingBackend:
         }
 
 
-class _RelativePoseBackend(_PoseRecordingBackend):
+class _PortPoseRecordingBackend(_PoseRecordingBackend):
+    def backend_name(self) -> str:
+        return "synthetic_cleanup"
+
+    def supports_visual_snapshots(self) -> bool:
+        return False
+
+    def supports_robot_views(self) -> bool:
+        return True
+
+    def requested_mess_count(self) -> int | None:
+        return None
+
+    def location_relation(self, object_id: str) -> str:
+        return "on"
+
+    def scene_index_source(self) -> str:
+        return ""
+
+    def scene_index_fixture_pose(self, fixture_id: str) -> list[float] | None:
+        return None
+
+    def navigate_to_waypoint(self, *, waypoint: dict[str, object]) -> dict[str, object]:
+        return {
+            "ok": True,
+            "tool": "navigate_to_waypoint",
+            "status": "ok",
+            "state_mutation": "agent_pose_semantic",
+            "backend_pose_mutation_available": False,
+        }
+
+
+class _RelativePoseBackend(_PortPoseRecordingBackend):
     def __init__(self, scenario: CleanupScenario) -> None:
         super().__init__(scenario)
         self.relative_pose_calls: list[dict[str, float]] = []

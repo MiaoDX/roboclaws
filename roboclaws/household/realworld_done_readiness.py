@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Collection, Mapping, Sequence
-from typing import Any, Protocol
+from collections.abc import Callable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from roboclaws.household.household_runtime_contract import HouseholdRuntimeContract
 
 from roboclaws.core.map_build_scan_profile import map_build_scan_profile
 from roboclaws.core.task_intents import (
@@ -33,31 +36,10 @@ DONE_READINESS_POLICY_RAW_FPV = "raw_fpv_grounded_cleanup_chains"
 DONE_READINESS_POLICY_EXPLICIT = "explicit_grounded_cleanup_chains"
 
 
-class DoneReadinessContract(Protocol):
-    task_intent: str
-    perception_mode: str
-    public_acceptance_config: Mapping[str, Any]
-    sanitize_world_labels: bool
-    _fixtures: dict[str, dict[str, Any]]
-    _detections_by_handle: dict[str, dict[str, Any]]
-    _model_declared_observations: Sequence[dict[str, Any]]
-    _observed_waypoint_ids: Collection[str]
-    _public_waypoints: Sequence[dict[str, Any]]
-    _raw_fpv_observations: Sequence[dict[str, Any]]
-
-    def cleanup_worklist_payload(
-        self,
-        *,
-        static_fixture_projection: dict[str, Any] | None = None,
-    ) -> dict[str, Any]: ...
-    def static_fixture_projection(self) -> dict[str, Any]: ...
-    def internal_fixture_id_for_public_reference(self, fixture_id: str | None) -> str | None: ...
-
-
 _required_tool_for_candidate_state = realworld_visual_candidates._required_tool_for_candidate_state
 
 
-def pending_cleanup_candidates(contract: DoneReadinessContract) -> list[dict[str, Any]]:
+def pending_cleanup_candidates(contract: HouseholdRuntimeContract) -> list[dict[str, Any]]:
     worklist = contract.cleanup_worklist_payload(
         static_fixture_projection=contract.static_fixture_projection()
     )
@@ -128,7 +110,7 @@ def pending_cleanup_candidates(contract: DoneReadinessContract) -> list[dict[str
 
 
 def _public_source_requires_cleanup(
-    contract: DoneReadinessContract,
+    contract: HouseholdRuntimeContract,
     item: Mapping[str, Any],
 ) -> bool:
     source_fixture_id = str(item.get("source_fixture_id") or "")
@@ -142,7 +124,7 @@ def _public_source_requires_cleanup(
     )
 
 
-def held_cleanup_candidates(contract: DoneReadinessContract) -> list[dict[str, Any]]:
+def held_cleanup_candidates(contract: HouseholdRuntimeContract) -> list[dict[str, Any]]:
     return [
         item
         for item in pending_cleanup_candidates(contract)
@@ -151,7 +133,7 @@ def held_cleanup_candidates(contract: DoneReadinessContract) -> list[dict[str, A
 
 
 def destination_options_for_policy(
-    contract: DoneReadinessContract,
+    contract: HouseholdRuntimeContract,
     policy: dict[str, Any],
 ) -> list[dict[str, Any]]:
     preferred = [
@@ -189,7 +171,7 @@ def destination_options_for_policy(
 
 
 def evaluate_done_readiness(
-    contract: DoneReadinessContract,
+    contract: HouseholdRuntimeContract,
     *,
     semantic_cleanup_evidence: dict[str, Any] | None = None,
     schema: str,
@@ -356,7 +338,7 @@ def done_readiness_blocked_response(
     return error_builder("done", error_reason, status="blocked", **payload)
 
 
-def required_model_declared_observations(contract: DoneReadinessContract) -> int:
+def required_model_declared_observations(contract: HouseholdRuntimeContract) -> int:
     if open_ended_task_intent(contract):
         return 0
     configured = positive_int(
@@ -371,7 +353,7 @@ def required_model_declared_observations(contract: DoneReadinessContract) -> int
 
 
 def raw_fpv_cleanup_readiness_blockers(
-    contract: DoneReadinessContract,
+    contract: HouseholdRuntimeContract,
     *,
     require_overlap_probe: bool = False,
 ) -> list[dict[str, Any]]:
@@ -406,7 +388,7 @@ def raw_fpv_cleanup_readiness_blockers(
 
 
 def raw_fpv_overlap_probe_blocker(
-    contract: DoneReadinessContract,
+    contract: HouseholdRuntimeContract,
 ) -> dict[str, Any] | None:
     recommended_waypoint_ids = {
         str(declaration.get("waypoint_id") or "")
@@ -479,7 +461,7 @@ def _is_bounded_overlap_probe(observation: dict[str, Any]) -> bool:
 
 
 def grounded_cleanup_chain_blocker(
-    contract: DoneReadinessContract,
+    contract: HouseholdRuntimeContract,
     semantic_cleanup_evidence: dict[str, Any] | None,
     *,
     raw_fpv_only_mode: str,
@@ -525,7 +507,7 @@ def grounded_cleanup_chain_blocker(
     return blocker
 
 
-def raw_fpv_heading_coverage_blocker(contract: DoneReadinessContract) -> dict[str, Any] | None:
+def raw_fpv_heading_coverage_blocker(contract: HouseholdRuntimeContract) -> dict[str, Any] | None:
     profile = map_build_scan_profile()
     required_count = min(4, max(1, profile.observe_count_per_waypoint))
     heading_buckets = _raw_fpv_heading_buckets_by_waypoint(
@@ -602,7 +584,7 @@ def _raw_fpv_body_heading_degrees(observation: dict[str, Any]) -> float | None:
 
 
 def grounded_cleanup_chain_requirement(
-    contract: DoneReadinessContract,
+    contract: HouseholdRuntimeContract,
     *,
     raw_fpv_only_mode: str,
 ) -> tuple[int, str]:
@@ -651,7 +633,7 @@ def grounded_cleanup_chain_recovery_hint(required_tool: str) -> str:
     )
 
 
-def sweep_coverage(contract: DoneReadinessContract) -> dict[str, Any]:
+def sweep_coverage(contract: HouseholdRuntimeContract) -> dict[str, Any]:
     waypoints = contract._public_waypoints
     total_waypoints = len(waypoints)
     unvisited = [
@@ -669,9 +651,9 @@ def sweep_coverage(contract: DoneReadinessContract) -> dict[str, Any]:
     }
 
 
-def open_ended_task_intent(contract: DoneReadinessContract) -> bool:
+def open_ended_task_intent(contract: HouseholdRuntimeContract) -> bool:
     return household_intent_is_open_ended(contract.task_intent)
 
 
-def map_build_task_intent(contract: DoneReadinessContract) -> bool:
+def map_build_task_intent(contract: HouseholdRuntimeContract) -> bool:
     return normalize_household_intent(contract.task_intent) == HOUSEHOLD_INTENT_MAP_BUILD
