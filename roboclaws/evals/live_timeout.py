@@ -19,7 +19,6 @@ class LiveEvalTimeoutError(TimeoutError):
         self,
         message: str,
         *,
-        timeout_s: float | None,
         effective_run_dir: Path,
         live_status: dict[str, Any],
         timeout_debug_snapshot: dict[str, Any],
@@ -29,7 +28,6 @@ class LiveEvalTimeoutError(TimeoutError):
         stall_timeout_s: float | None = None,
     ) -> None:
         super().__init__(message)
-        self.timeout_s = timeout_s
         self.timeout_kind = timeout_kind
         self.wall_clock_budget_s = wall_clock_budget_s
         self.stall_timeout_s = stall_timeout_s
@@ -45,7 +43,6 @@ def live_timeout_snapshot(
     effective_run_dir: Path,
     *,
     live_status: dict[str, Any],
-    timeout_s: float | None,
     timeout_kind: str = "timeout",
     wall_clock_budget_s: float | None = None,
     stall_timeout_s: float | None = None,
@@ -59,7 +56,6 @@ def live_timeout_snapshot(
             "run_result_present": (effective_run_dir / "run_result.json").is_file(),
             "report_present": (effective_run_dir / "report.html").is_file(),
         }
-    snapshot["eval_timeout_s"] = timeout_s
     snapshot["timeout_kind"] = timeout_kind
     snapshot["eval_wall_clock_budget_s"] = wall_clock_budget_s
     snapshot["eval_stall_timeout_s"] = stall_timeout_s
@@ -84,7 +80,7 @@ def live_exception_debug_fields(exc: Exception) -> dict[str, Any]:
     timeout_kind = getattr(exc, "timeout_kind", "")
     if timeout_kind:
         fields["timeout_kind"] = str(timeout_kind)
-    for name in ("timeout_s", "wall_clock_budget_s", "stall_timeout_s"):
+    for name in ("wall_clock_budget_s", "stall_timeout_s"):
         value = getattr(exc, name, None)
         if value is not None:
             fields[name] = value

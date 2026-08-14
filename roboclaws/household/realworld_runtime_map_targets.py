@@ -157,9 +157,11 @@ def public_runtime_fixture_candidates(
             contract,
             anchor_id,
         )
-        fixture = contract._fixtures.get(fixture_id) if fixture_id else {}
-        category = str(anchor.get("category") or (fixture or {}).get("category") or "")
-        name = str(anchor.get("label") or (fixture or {}).get("name") or category or anchor_id)
+        fixture = contract._fixtures.get(fixture_id) if fixture_id else None
+        if fixture is None:
+            continue
+        category = str(anchor.get("category") or fixture.get("category") or "")
+        name = str(anchor.get("label") or fixture.get("name") or category or anchor_id)
         waypoint_id = str(
             anchor.get("waypoint_id")
             or (
@@ -239,7 +241,6 @@ def _public_runtime_fixture_candidate_from_fixture(
 def target_fixture_for_detection(
     contract: HouseholdRuntimeContract,
     detection: dict[str, Any],
-    static_fixture_projection: dict[str, Any],
     *,
     include_runtime_backend_fixtures: bool = False,
 ) -> dict[str, Any] | None:

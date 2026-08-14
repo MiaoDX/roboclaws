@@ -286,7 +286,6 @@ def _cleanup_policy_badges(trace: dict[str, Any]) -> str:
                 "First cleanup before full survey",
                 trace.get("first_cleanup_before_full_survey", False),
             ),
-            _badge("Post-place observe complete", trace.get("post_place_observe_complete", False)),
             _badge("Agent reasoning visible", trace.get("agent_reasoning_visible", False)),
         )
     )

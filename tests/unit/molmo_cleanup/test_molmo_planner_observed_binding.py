@@ -19,7 +19,6 @@ def test_realworld_observed_handle_planner_binding_stays_private() -> None:
     detection = _first_detection_by_category(contract, "dish")
     target_fixture = contract.target_fixture_for_detection(
         detection,
-        contract.static_fixture_projection(),
     )
     assert target_fixture is not None
 

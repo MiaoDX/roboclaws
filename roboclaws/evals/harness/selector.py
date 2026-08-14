@@ -256,6 +256,7 @@ def build_eval_harness(
         budget=budget,
         profile=profile,
         explicit_axes=explicit_axes,
+        runtime_map_prior=runtime_map_prior,
     )
     selected = [row for row in rows if row["selected"]]
     return {
@@ -392,11 +393,17 @@ def _apply_selection_rules(
     budget: str,
     profile: str,
     explicit_axes: dict[str, list[str]],
+    runtime_map_prior: str = "",
 ) -> None:
     signal_ids = {signal["id"] for signal in signals}
     signal_by_id = {signal["id"]: signal for signal in signals}
     for row in rows:
         if profile != "adaptive":
+            if (
+                row.get("axes", {}).get("suite") == "map_consumer_fixed_prior"
+                and not runtime_map_prior
+            ):
+                continue
             if profile not in row.get("profiles", []):
                 continue
             profile_signal_id = f"{profile.replace('-', '_')}_profile"

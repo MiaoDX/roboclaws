@@ -161,9 +161,6 @@ def _policy_trace_payload(
         "cleanup_action_count": accumulator.cleanup_action_count,
         "placed_object_count": accumulator.placed_object_count,
         "post_place_observe_count": accumulator.post_place_observe_count,
-        "post_place_observe_complete": (
-            accumulator.post_place_observe_count >= accumulator.placed_object_count
-        ),
         "first_actionable_observation_index": _public_index(
             accumulator.first_actionable_observation_index
         ),

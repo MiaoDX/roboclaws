@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import json
 import math
-import os
 import sys
-import time
 from pathlib import Path
 from typing import Any
 
@@ -27,9 +25,8 @@ from roboclaws.household.tasks import HOUSEHOLD_PRESET_SPECS, HOUSEHOLD_TASK_SPE
 from roboclaws.worlds.molmospaces.map_bundles import molmospaces_nav2_map_bundle_path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_LIVE_WALL_CLOCK_BUDGET_S = 1200.0
-DEFAULT_LIVE_STALL_TIMEOUT_S = 120.0
-DEFAULT_LIVE_TIMEOUT_COMPLETION_GRACE_S = 30.0
+DEFAULT_LIVE_WALL_CLOCK_BUDGET_S = 1500.0
+DEFAULT_LIVE_STALL_TIMEOUT_S = 180.0
 LIVE_PROCESS_POLL_S = 1.0
 
 
@@ -87,25 +84,6 @@ def live_surface_run_dir(kwargs: dict[str, Any], *, output_dir: Path) -> Path:
     return output_dir / f"seed-{int(kwargs['seed'])}"
 
 
-def wait_for_live_surface_completion(
-    kwargs: dict[str, Any],
-    *,
-    output_dir: Path,
-    effective_run_dir: Path,
-    elapsed_s: float = 0.0,
-    poll_s: float = 1.0,
-    started_wall_time_s: float | None = None,
-) -> Path:
-    """Validate foreground live-product artifacts after the public route exits."""
-
-    if _live_surface_already_complete(
-        effective_run_dir,
-        require_terminal_status=False,
-    ):
-        return effective_run_dir
-    return effective_run_dir
-
-
 def _live_surface_already_complete(
     effective_run_dir: Path,
     *,
@@ -121,10 +99,6 @@ def _live_surface_already_complete(
     return _live_surface_run_is_terminal(effective_run_dir)
 
 
-def live_surface_timeout_s(kwargs: dict[str, Any]) -> float:
-    return live_wall_clock_budget_s(kwargs)
-
-
 def live_wall_clock_budget_s(kwargs: dict[str, Any]) -> float:
     timeout_s = kwargs.get("live_timeout_s")
     if timeout_s is None:
@@ -132,48 +106,11 @@ def live_wall_clock_budget_s(kwargs: dict[str, Any]) -> float:
     return _positive_timeout_value(timeout_s, "live_timeout_s")
 
 
-def explicit_live_surface_timeout_s(kwargs: dict[str, Any]) -> float | None:
-    return live_wall_clock_budget_s(kwargs)
-
-
 def live_stall_timeout_s(kwargs: dict[str, Any]) -> float:
     timeout_s = kwargs.get("live_stall_timeout_s")
     if timeout_s is None:
         return DEFAULT_LIVE_STALL_TIMEOUT_S
     return _positive_timeout_value(timeout_s, "live_stall_timeout_s")
-
-
-def _live_surface_wait_deadline(*, timeout_s: float, elapsed_s: float) -> float:
-    remaining_s = max(timeout_s - max(elapsed_s, 0.0), 0.0)
-    return time.monotonic() + remaining_s
-
-
-def wait_for_timed_out_live_surface_artifact(
-    kwargs: dict[str, Any],
-    *,
-    output_dir: Path,
-    effective_run_dir: Path,
-    poll_s: float = 1.0,
-    started_wall_time_s: float | None = None,
-) -> Path:
-    """Return the last discovered run dir after a foreground subprocess timeout."""
-
-    return effective_run_dir
-
-
-def live_timeout_completion_grace_s() -> float:
-    raw = str(os.environ.get("ROBOCLAWS_LIVE_EVAL_TIMEOUT_COMPLETION_GRACE_S") or "").strip()
-    if not raw:
-        return DEFAULT_LIVE_TIMEOUT_COMPLETION_GRACE_S
-    return _non_negative_timeout_value(raw, "ROBOCLAWS_LIVE_EVAL_TIMEOUT_COMPLETION_GRACE_S")
-
-
-def _non_negative_timeout_value(value: object, setting_name: str) -> float:
-    return _finite_timeout_value(
-        value,
-        setting_name,
-        allow_zero=True,
-    )
 
 
 def _positive_timeout_value(value: object, setting_name: str) -> float:

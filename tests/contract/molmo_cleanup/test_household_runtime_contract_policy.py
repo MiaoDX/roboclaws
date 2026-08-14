@@ -236,6 +236,25 @@ def test_world_labels_rejects_destination_outside_public_policy() -> None:
     _assert_no_forbidden_keys(rejected)
 
 
+def test_world_labels_destination_options_are_executable_public_receptacles() -> None:
+    contract = _contract(HouseholdBackendSession(build_cleanup_scenario(seed=7)))
+    detection = _confirm_world_label_detection(
+        contract,
+        _first_detection_by_category(contract, "dish"),
+    )
+    assert contract.navigate_to_object(detection["object_id"])["ok"] is True
+    picked = contract.pick(detection["object_id"])
+
+    public_receptacles = contract.public_receptacles_by_id()
+    option_ids = {str(option["candidate_fixture_id"]) for option in picked["destination_options"]}
+
+    assert option_ids
+    assert option_ids <= public_receptacles.keys()
+    for option_id in option_ids:
+        internal_id = contract.internal_fixture_id_for_public_reference(option_id)
+        assert internal_id in contract._fixtures  # noqa: SLF001
+
+
 def test_open_ended_done_still_rejects_held_public_candidate() -> None:
     contract = _contract(
         HouseholdBackendSession(build_cleanup_scenario(seed=7)),

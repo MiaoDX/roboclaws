@@ -41,6 +41,25 @@ runnable surface and optional preset answer "what public run is this and how is
 it accepted?", a skill answers "how should I accomplish this goal?", and a
 profile answers "which stable robot capabilities may this skill rely on?"
 
+## Skill And MCP Ownership Rule
+
+Put guidance in a skill when a capable agent may reasonably choose another
+successful approach. Put behavior in MCP/runtime when every client must obey it
+for correctness, safety, or lifecycle consistency.
+
+| Owner | Owns | Must not own |
+| --- | --- | --- |
+| Skill | Task decomposition, search order, cost/observation heuristics, preferred recovery strategy, and reusable multi-tool routines | Hidden acceptance conditions, authoritative state, mandatory tool ordering, or backend safety invariants |
+| MCP/runtime | Tool schemas, public state transitions, capability and safety gates, mandatory ordering, machine-readable errors, `required_tool`, and canonical completion readiness | Benchmark-specific recipes or one task's preferred exploration strategy |
+| Eval/checker | Outcome thresholds, artifact integrity, privacy, and conformance to the public runtime contract | New agent obligations that were not exposed by MCP/runtime during the run |
+
+The practical test is enforceability: if violating an instruction must make a
+run fail, the runtime must expose and enforce it. A skill may explain the rule,
+but it cannot be its canonical owner. For example, a successful `place` is
+complete unless its public response returns a placement-verification blocker
+with `required_tool=observe`. The checker validates that public transition; it
+does not independently require an observation after every placement.
+
 ## Abstraction Ladder
 
 Build from the bottom up, but let the agent enter from the top:

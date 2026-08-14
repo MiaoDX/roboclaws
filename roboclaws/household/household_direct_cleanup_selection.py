@@ -34,11 +34,9 @@ def direct_policy_target_fixture(
     *,
     contract: HouseholdRuntimeContract,
     detection: dict[str, Any],
-    static_fixture_projection: dict[str, Any],
 ) -> dict[str, Any] | None:
     inferred = contract.target_fixture_for_detection(
         detection,
-        static_fixture_projection,
         include_runtime_backend_fixtures=True,
     )
     if not contract.sanitize_world_labels:
@@ -59,7 +57,6 @@ def direct_policy_target_fixture(
         return inferred
     return contract.target_fixture_for_detection(
         {**detection, **selected},
-        static_fixture_projection,
         include_runtime_backend_fixtures=True,
     )
 
@@ -90,9 +87,7 @@ def _preferred_public_destination_option(
 def current_worklist_target_fixture(
     *, contract: HouseholdRuntimeContract, object_id: str, source_fixture_id: str
 ) -> dict[str, Any] | None:
-    worklist = contract.cleanup_worklist_payload(
-        static_fixture_projection=contract.static_fixture_projection()
-    )
+    worklist = contract.cleanup_worklist_payload()
     for item in worklist.get("objects", []):
         if str(item.get("object_id") or "") != object_id:
             continue

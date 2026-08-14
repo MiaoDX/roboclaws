@@ -438,6 +438,7 @@ def test_checker_allows_base_metric_map_waypoint_honesty_for_survey_first_cleanu
         output_dir=tmp_path,
         seed=7,
     )
+    result["cleanup_policy_trace"]["post_place_observe_count"] = 0
 
     checker.validate_run_result(
         result,
@@ -454,7 +455,6 @@ def test_checker_allows_base_metric_map_waypoint_honesty_for_survey_first_cleanu
     assert trace["loop_style"] == "survey_first_cleanup_loop"
     assert trace["first_cleanup_before_full_survey"] is False
     assert trace["placed_object_count"] == 5
-    assert trace["post_place_observe_count"] >= trace["placed_object_count"]
 
 
 def test_checker_allows_base_metric_map_waypoint_honesty_for_online_interleaved_cleanup(

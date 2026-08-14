@@ -4,6 +4,27 @@ import json
 from pathlib import Path
 
 from roboclaws.agents import live_status_cli, live_status_summary
+from roboclaws.agents.live_status_writer import LiveRunStatusWriter
+
+
+def test_live_status_writer_persists_machine_readable_failure_class(tmp_path: Path) -> None:
+    status_path = tmp_path / "live_status.json"
+    writer = LiveRunStatusWriter(
+        run_dir=tmp_path,
+        status_path=status_path,
+        started_at_epoch=0.0,
+        lease_status_fields=lambda: {},
+    )
+
+    writer.write(
+        phase="failed",
+        exit_status=1,
+        reason="cleanup checker exited with status 1",
+        failure_class="checker_validation_failed",
+    )
+
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    assert status["failure_class"] == "checker_validation_failed"
 
 
 def test_open_ended_status_uses_claim_headline(tmp_path: Path, capsys) -> None:

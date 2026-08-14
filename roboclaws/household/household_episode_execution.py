@@ -289,7 +289,6 @@ def _maybe_clean_visible_object(
     target_fixture = direct_policy_target_fixture(
         contract=contract,
         detection=detection,
-        static_fixture_projection=static_fixture_projection,
     )
     if target_fixture is None:
         contract._mark_visual_scan_unresolved(  # noqa: SLF001
@@ -434,7 +433,6 @@ def _confirm_visual_scan_candidate(
     target_fixture = direct_policy_target_fixture(
         contract=contract,
         detection=detection,
-        static_fixture_projection=static_fixture_projection,
     )
     if target_fixture is None:
         contract._mark_visual_scan_unresolved(  # noqa: SLF001

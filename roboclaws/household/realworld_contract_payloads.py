@@ -60,11 +60,7 @@ def runtime_metric_map_payload(
         else contract.static_fixture_projection()
     )
     public_worklist = (
-        cleanup_worklist
-        if cleanup_worklist is not None
-        else contract.cleanup_worklist_payload(
-            static_fixture_projection=public_static_fixture_projection
-        )
+        cleanup_worklist if cleanup_worklist is not None else contract.cleanup_worklist_payload()
     )
     worklist_by_handle = {
         str(item.get("object_id") or ""): dict(item)
@@ -222,9 +218,7 @@ def agent_view_payload(
     ]
     metric_map = contract.metric_map()
     static_fixture_projection = contract.static_fixture_projection()
-    cleanup_worklist = contract.cleanup_worklist_payload(
-        static_fixture_projection=static_fixture_projection
-    )
+    cleanup_worklist = contract.cleanup_worklist_payload()
     model_declared = contract.model_declared_observations_payload()
     runtime_metric_map = dict(metric_map.get("runtime_metric_map") or {})
     if not runtime_metric_map:
@@ -505,7 +499,6 @@ def record_inspection_observation(
 def cleanup_worklist_payload(
     contract: HouseholdRuntimeContract,
     *,
-    static_fixture_projection: dict[str, Any] | None = None,
     cleanup_worklist_schema: str,
     non_actionable_handle_states: Collection[str],
     candidate_actionability_status: Callable[[dict[str, Any]], str],
@@ -514,11 +507,6 @@ def cleanup_worklist_payload(
     recommended_place_tool: Callable[[str, dict[str, dict[str, Any]]], str],
     assert_no_forbidden_agent_view_keys: Callable[[Any], None],
 ) -> dict[str, Any]:
-    public_fixtures = (
-        static_fixture_projection
-        if static_fixture_projection is not None
-        else contract.static_fixture_projection()
-    )
     lifecycle_rows = []
     for handle in sorted(contract._detections_by_handle):
         detection = contract._detections_by_handle[handle]
@@ -537,10 +525,7 @@ def cleanup_worklist_payload(
             }
         )
         public_candidate = realworld_runtime_map_targets.target_fixture_for_detection(
-            contract,
-            detection,
-            public_fixtures,
-            include_runtime_backend_fixtures=True,
+            contract, detection, include_runtime_backend_fixtures=True
         )
         candidate_fixture_id = (public_candidate or {}).get("fixture_id", "")
         source_fixture_id = str(support.get("fixture_id") or "")

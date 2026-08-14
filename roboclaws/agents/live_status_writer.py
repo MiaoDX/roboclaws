@@ -58,6 +58,7 @@ class LiveRunStatusWriter:
         retryable: bool | None = None,
         resume_available: bool | None = None,
         detail: str = "",
+        failure_class: str = "",
     ) -> None:
         with self.lock:
             if self.terminal and exit_status is None:
@@ -87,6 +88,8 @@ class LiveRunStatusWriter:
                 payload["resume_available"] = resume_available
             if detail:
                 payload["detail"] = detail
+            if failure_class:
+                payload["failure_class"] = failure_class
             payload.update(self.lease_status_fields())
             if exit_status is not None:
                 payload["finished_at_epoch"] = now

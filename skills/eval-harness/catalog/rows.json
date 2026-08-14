@@ -353,8 +353,6 @@
         "stamp=map-build-consumer-openai-agents-sdk-codex-responses",
         "agent_engine=openai-agents-sdk",
         "provider_profile=codex-responses",
-        "live_timeout_s=1500",
-        "live_stall_timeout_s=180",
         "live_execution=run"
       ],
       "axes": {
@@ -399,8 +397,6 @@
         "stamp=map-build-consumer-openai-agents-sdk-mimo-responses",
         "agent_engine=openai-agents-sdk",
         "provider_profile=mimo-responses",
-        "live_timeout_s=1500",
-        "live_stall_timeout_s=180",
         "live_execution=run"
       ],
       "axes": {
@@ -445,8 +441,6 @@
         "stamp=map-build-consumer-openai-agents-sdk-kimi-openai-chat",
         "agent_engine=openai-agents-sdk",
         "provider_profile=kimi-openai-chat",
-        "live_timeout_s=1500",
-        "live_stall_timeout_s=180",
         "live_execution=run"
       ],
       "axes": {
@@ -474,7 +468,6 @@
         "runtime_map_prior"
       ],
       "profiles": [
-        "baseline-live-default",
         "baseline-refresh"
       ]
     },
@@ -492,8 +485,6 @@
         "stamp=map-build-consumer-openai-agents-sdk-minimax-responses",
         "agent_engine=openai-agents-sdk",
         "provider_profile=minimax-responses",
-        "live_timeout_s=1500",
-        "live_stall_timeout_s=180",
         "live_execution=run"
       ],
       "axes": {
@@ -748,7 +739,6 @@
         "agent_engine=openai-agents-sdk",
         "provider_profile={agent_sdk_provider}",
         "skill_delivery_cell=static-full",
-        "live_stall_timeout_s=180",
         "live_execution=run"
       ],
       "axes": {
@@ -780,7 +770,7 @@
       "row_id": "openai-agents-sdk-cleanup-no-skill-eval",
       "skill_delivery_cell": "no-skill",
       "row_kind": "live_agent_eval",
-      "command": [".venv/bin/python", "-m", "roboclaws.evals.cli", "suite=cleanup_capability", "budget=smoke", "output_dir={eval_output_root}", "stamp=openai-agents-sdk-cleanup-no-skill-eval", "agent_engine=openai-agents-sdk", "provider_profile={agent_sdk_provider}", "skill_delivery_cell=no-skill", "live_stall_timeout_s=180", "live_execution=run"],
+      "command": [".venv/bin/python", "-m", "roboclaws.evals.cli", "suite=cleanup_capability", "budget=smoke", "output_dir={eval_output_root}", "stamp=openai-agents-sdk-cleanup-no-skill-eval", "agent_engine=openai-agents-sdk", "provider_profile={agent_sdk_provider}", "skill_delivery_cell=no-skill", "live_execution=run"],
       "axes": {"agent_engine": "openai-agents-sdk", "provider_profile": "{agent_sdk_provider}", "intent": "cleanup", "preset": "cleanup", "evidence_lane": "world-public-labels", "backend": "{default_backend}", "world": "{default_world}"},
       "reason_selected": "Skill-delivery evaluation no-skill control.",
       "expense": "live-agent",
@@ -792,7 +782,7 @@
       "row_id": "openai-agents-sdk-cleanup-dynamic-full-eval",
       "skill_delivery_cell": "dynamic-full",
       "row_kind": "live_agent_eval",
-      "command": [".venv/bin/python", "-m", "roboclaws.evals.cli", "suite=cleanup_capability", "budget=smoke", "output_dir={eval_output_root}", "stamp=openai-agents-sdk-cleanup-dynamic-full-eval", "agent_engine=openai-agents-sdk", "provider_profile={agent_sdk_provider}", "skill_delivery_cell=dynamic-full", "live_stall_timeout_s=180", "live_execution=run"],
+      "command": [".venv/bin/python", "-m", "roboclaws.evals.cli", "suite=cleanup_capability", "budget=smoke", "output_dir={eval_output_root}", "stamp=openai-agents-sdk-cleanup-dynamic-full-eval", "agent_engine=openai-agents-sdk", "provider_profile={agent_sdk_provider}", "skill_delivery_cell=dynamic-full", "live_execution=run"],
       "axes": {"agent_engine": "openai-agents-sdk", "provider_profile": "{agent_sdk_provider}", "intent": "cleanup", "preset": "cleanup", "evidence_lane": "world-public-labels", "backend": "{default_backend}", "world": "{default_world}"},
       "reason_selected": "Skill-delivery evaluation byte-identical dynamic callback control.",
       "expense": "live-agent",
@@ -804,7 +794,7 @@
       "row_id": "openai-agents-sdk-cleanup-dynamic-routed-eval",
       "skill_delivery_cell": "dynamic-routed",
       "row_kind": "live_agent_eval",
-      "command": [".venv/bin/python", "-m", "roboclaws.evals.cli", "suite=cleanup_capability", "budget=smoke", "output_dir={eval_output_root}", "stamp=openai-agents-sdk-cleanup-dynamic-routed-eval", "agent_engine=openai-agents-sdk", "provider_profile={agent_sdk_provider}", "skill_delivery_cell=dynamic-routed", "live_stall_timeout_s=180", "live_execution=run"],
+      "command": [".venv/bin/python", "-m", "roboclaws.evals.cli", "suite=cleanup_capability", "budget=smoke", "output_dir={eval_output_root}", "stamp=openai-agents-sdk-cleanup-dynamic-routed-eval", "agent_engine=openai-agents-sdk", "provider_profile={agent_sdk_provider}", "skill_delivery_cell=dynamic-routed", "live_execution=run"],
       "axes": {"agent_engine": "openai-agents-sdk", "provider_profile": "{agent_sdk_provider}", "intent": "cleanup", "preset": "cleanup", "evidence_lane": "world-public-labels", "backend": "{default_backend}", "world": "{default_world}"},
       "reason_selected": "Skill-delivery evaluation frozen shared, intent, and evidence guidance.",
       "expense": "live-agent",
@@ -816,7 +806,7 @@
       "row_id": "openai-agents-sdk-cleanup-sandbox-skills-eval",
       "skill_delivery_cell": "sandbox-skills",
       "row_kind": "live_agent_eval",
-      "command": [".venv/bin/python", "-m", "roboclaws.evals.cli", "suite=cleanup_capability", "budget=smoke", "output_dir={eval_output_root}", "stamp=openai-agents-sdk-cleanup-sandbox-skills-eval", "agent_engine=openai-agents-sdk", "provider_profile={agent_sdk_provider}", "skill_delivery_cell=sandbox-skills", "live_stall_timeout_s=180", "live_execution=run"],
+      "command": [".venv/bin/python", "-m", "roboclaws.evals.cli", "suite=cleanup_capability", "budget=smoke", "output_dir={eval_output_root}", "stamp=openai-agents-sdk-cleanup-sandbox-skills-eval", "agent_engine=openai-agents-sdk", "provider_profile={agent_sdk_provider}", "skill_delivery_cell=sandbox-skills", "live_execution=run"],
       "axes": {"agent_engine": "openai-agents-sdk", "provider_profile": "{agent_sdk_provider}", "intent": "cleanup", "preset": "cleanup", "evidence_lane": "world-public-labels", "backend": "{default_backend}", "world": "{default_world}"},
       "reason_selected": "Exploratory official SandboxAgent plus Skills readiness and isolation row.",
       "expense": "live-agent",

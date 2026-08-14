@@ -554,9 +554,7 @@ def _unhandled_worklist_detections(
     *,
     handled_handles: set[str],
 ) -> list[dict[str, Any]]:
-    worklist = contract.cleanup_worklist_payload(
-        static_fixture_projection=contract.static_fixture_projection()
-    )
+    worklist = contract.cleanup_worklist_payload()
     detections = []
     for item in worklist.get("objects", []):
         handle = str(item.get("object_id") or "")

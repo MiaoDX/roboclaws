@@ -107,10 +107,8 @@ def test_live_surface_product_records_timeout_debug_snapshot(
     record = json.loads((tmp_path / "trial-0000" / "live_eval_command.json").read_text())
     assert record["returncode"] == "stall_timeout"
     assert record["timeout_kind"] == "stall_timeout"
-    assert record["timeout_s"] == 50.0
     assert record["wall_clock_budget_s"] == 50.0
     assert record["stall_timeout_s"] == 5.0
-    assert record["timeout_completion_grace_s"] == 30.0
     assert record["timeout_child_cleanup"]["status"] == "server_pid_unavailable"
     assert record["timeout_debug_snapshot"]["timeout_kind"] == "stall_timeout"
     assert record["timeout_debug_snapshot"]["eval_wall_clock_budget_s"] == 50.0
@@ -166,7 +164,6 @@ def test_live_eval_wall_clock_budget_timeout_reaches_failed_result(
         }
         raise LiveEvalTimeoutError(
             "live eval trial timed out after 300s",
-            timeout_s=300.0,
             timeout_kind="wall_clock_budget_exhausted",
             wall_clock_budget_s=300.0,
             stall_timeout_s=120.0,
