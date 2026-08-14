@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, TextIO
 
-from roboclaws.household.visual_backend_slots import (
+from roboclaws.agents.visual_backend_slots import (
     MOLMOSPACES_SUBPROCESS_BACKEND,
     VisualBackendSlotError,
     VisualBackendSlotLease,

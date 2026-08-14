@@ -4,12 +4,14 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from roboclaws.household.manipulation_provenance import PLANNER_BACKED_PROVENANCE
+from roboclaws.household.manipulation_contract import (
+    PLANNER_BACKED_PROVENANCE,
+    PLANNER_PROOF_ATTACHMENT_SCHEMA,
+)
 from roboclaws.household.planner_probe_primitive_executor import (
     cleanup_primitive_binding_from_attachment,
 )
 from roboclaws.household.planner_proof_attachment import (
-    PLANNER_PROOF_ATTACHMENT_SCHEMA,
     attach_planner_proof,
     validate_planner_proof_attachment,
 )

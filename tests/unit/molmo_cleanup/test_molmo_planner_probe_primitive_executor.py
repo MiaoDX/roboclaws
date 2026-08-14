@@ -7,16 +7,18 @@ from roboclaws.household.cleanup_primitive_evidence import (
     validate_cleanup_primitive_evidence,
 )
 from roboclaws.household.household_backend_contract import HouseholdBackendSession
+from roboclaws.household.manipulation_contract import (
+    PLANNER_PROBE_PRIMITIVE_BINDING_SCHEMA,
+    CleanupPrimitiveRequest,
+)
 from roboclaws.household.planner_cleanup_bridge import (
     planner_cleanup_bridge_evidence,
     validate_planner_cleanup_bridge_evidence,
 )
 from roboclaws.household.planner_primitive_executor import (
-    CleanupPrimitiveRequest,
     PlannerBackedCleanupContractAdapter,
 )
 from roboclaws.household.planner_probe_primitive_executor import (
-    PLANNER_PROBE_PRIMITIVE_BINDING_SCHEMA,
     PLANNER_PROBE_PRIMITIVE_EXECUTOR_SCHEMA,
     ProbeBackedCleanupPrimitiveExecutor,
 )

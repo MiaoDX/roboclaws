@@ -1,3 +1,5 @@
+"""Pure RAW-FPV recovery policy and state projection."""
+
 from __future__ import annotations
 
 from typing import Any

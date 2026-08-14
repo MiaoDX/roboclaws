@@ -7,7 +7,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from roboclaws.agents.provider_registry import (
+from roboclaws.core.provider_catalog import (
     PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
     provider_route_spec,
 )

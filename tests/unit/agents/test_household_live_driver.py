@@ -8,7 +8,7 @@ import pytest
 from roboclaws.agents.drivers.household_live import (
     acquire_household_live_run_lease,
 )
-from roboclaws.household.visual_backend_slots import MOLMOSPACES_SUBPROCESS_BACKEND
+from roboclaws.agents.visual_backend_slots import MOLMOSPACES_SUBPROCESS_BACKEND
 
 
 def test_household_live_run_lease_writes_file_lock_payload(tmp_path: Path) -> None:

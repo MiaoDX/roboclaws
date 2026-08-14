@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.launch.goals import goal_contract_from_file, goal_contract_from_json
+from roboclaws.core.goals import goal_contract_from_file, goal_contract_from_json
 
 
 def test_goal_contract_from_file_returns_none_for_empty_source() -> None:

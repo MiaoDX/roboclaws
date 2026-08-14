@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from roboclaws.household.backend import API_SEMANTIC_PROVENANCE, ApiSemanticCleanupBackend
+from roboclaws.household.backend import ApiSemanticCleanupBackend
+from roboclaws.household.manipulation_contract import API_SEMANTIC_PROVENANCE
 from roboclaws.household.scenario import build_cleanup_scenario
 
 

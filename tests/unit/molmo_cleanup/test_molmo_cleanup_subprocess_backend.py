@@ -8,11 +8,11 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+from roboclaws.core.generated_mess import generated_mess_success_threshold
 from roboclaws.household import worker_runner
 from roboclaws.household.camera_control import scene_light_rig
 from roboclaws.household.generated_mess import (
     build_generated_mess_manifest,
-    generated_mess_success_threshold,
     select_generated_mess_targets,
     targets_from_generated_mess_manifest,
 )

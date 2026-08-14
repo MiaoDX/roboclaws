@@ -1,4 +1,4 @@
-"""Retired public agent-engine contracts."""
+"""Active and retired public agent-engine identifiers."""
 
 from __future__ import annotations
 

@@ -1,86 +1,18 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass, field
 from typing import Any
 
-from roboclaws.household.backend import API_SEMANTIC_PROVENANCE
-from roboclaws.household.manipulation_provenance import (
+from roboclaws.household.manipulation_contract import (
+    API_SEMANTIC_PROVENANCE,
     BLOCKED_CAPABILITY_PROVENANCE,
     PLANNER_BACKED_PROVENANCE,
+    PLANNER_CLEANUP_PRIMITIVE_TOOLS,
+    PLANNER_PRIMITIVE_EXECUTOR_SCHEMA,
+    CleanupPrimitiveBackend,
+    CleanupPrimitiveRequest,
+    CleanupPrimitiveResult,
 )
-
-PLANNER_PRIMITIVE_EXECUTOR_SCHEMA = "planner_cleanup_primitive_executor_v1"
-PLANNER_CLEANUP_PRIMITIVE_TOOLS = frozenset(
-    {
-        "navigate_to_object",
-        "pick",
-        "navigate_to_receptacle",
-        "open_receptacle",
-        "place",
-        "place_inside",
-        "close_receptacle",
-    }
-)
-
-
-@dataclass(frozen=True)
-class CleanupPrimitiveRequest:
-    tool: str
-    object_id: str = ""
-    target_receptacle_id: str = ""
-    source_receptacle_id: str = ""
-    phase_label: str = ""
-    request: Mapping[str, Any] = field(default_factory=dict)
-    context: Mapping[str, Any] = field(default_factory=dict)
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "tool": self.tool,
-            "object_id": self.object_id,
-            "target_receptacle_id": self.target_receptacle_id,
-            "source_receptacle_id": self.source_receptacle_id,
-            "phase_label": self.phase_label or self.tool,
-            "request": dict(self.request),
-            "context": dict(self.context),
-        }
-
-
-@dataclass(frozen=True)
-class CleanupPrimitiveResult:
-    ok: bool
-    primitive_provenance: str
-    planner_backed: bool
-    strict_proof_eligible: bool
-    executor: str
-    status: str = "ok"
-    evidence: Mapping[str, Any] = field(default_factory=dict)
-    blockers: tuple[Mapping[str, Any], ...] = ()
-    state_mutation: str | None = None
-    tool: str = ""
-
-    def to_dict(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {
-            "ok": self.ok,
-            "status": self.status,
-            "primitive_provenance": self.primitive_provenance,
-            "planner_backed": self.planner_backed,
-            "strict_proof_eligible": self.strict_proof_eligible,
-            "executor": self.executor,
-            "evidence": dict(self.evidence),
-            "blockers": [dict(item) for item in self.blockers],
-        }
-        if self.state_mutation is not None:
-            payload["state_mutation"] = self.state_mutation
-        if self.tool:
-            payload["tool"] = self.tool
-        return payload
-
-
-CleanupPrimitiveExecutor = Callable[
-    [CleanupPrimitiveRequest],
-    CleanupPrimitiveResult | Mapping[str, Any],
-]
 
 
 def planner_backed_cleanup_primitive_result(
@@ -130,7 +62,7 @@ class PlannerBackedCleanupContractAdapter:
         self,
         contract: Any,
         *,
-        executor: CleanupPrimitiveExecutor | None,
+        executor: CleanupPrimitiveBackend | None,
         executor_name: str = "planner_cleanup_primitive_executor",
     ) -> None:
         self.contract = contract

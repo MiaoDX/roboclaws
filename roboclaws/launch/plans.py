@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from roboclaws.launch.goals import GoalContract
+from roboclaws.core.goals import GoalContract
 
 
 @dataclass(frozen=True)

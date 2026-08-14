@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.core.json_sources import read_json_object
+from roboclaws.operator_console.launch_contract import ConsoleLaunchError
 from roboclaws.operator_console.routes import ConsoleLaunchSelection
 from roboclaws.operator_console.runtime_inventory import port_owner_task
 
@@ -267,9 +268,9 @@ def _parse_port(value: str) -> int:
     try:
         port = int(str(value).strip())
     except ValueError as exc:
-        raise _console_launch_error(f"invalid MCP port: {value}") from exc
+        raise ConsoleLaunchError(f"invalid MCP port: {value}") from exc
     if not 1 <= port <= 65535:
-        raise _console_launch_error(f"invalid MCP port: {value}")
+        raise ConsoleLaunchError(f"invalid MCP port: {value}")
     return port
 
 
@@ -279,12 +280,6 @@ _GATE_EVALUATORS: dict[str, Any] = {
     "request_field": _request_field_gate,
     "operator_gate": _operator_gate,
 }
-
-
-def _console_launch_error(message: str) -> ValueError:
-    from roboclaws.operator_console.launcher import ConsoleLaunchError
-
-    return ConsoleLaunchError(message)
 
 
 def _truthy_override(raw: str | None) -> bool:

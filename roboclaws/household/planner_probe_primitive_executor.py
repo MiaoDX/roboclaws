@@ -3,20 +3,20 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from roboclaws.household.manipulation_provenance import PLANNER_BACKED_PROVENANCE
-from roboclaws.household.planner_primitive_executor import (
+from roboclaws.household.manipulation_contract import (
+    PLANNER_BACKED_PROVENANCE,
+    PLANNER_PROBE_PRIMITIVE_BINDING_SCHEMA,
+    PLANNER_PROOF_ATTACHMENT_SCHEMA,
     CleanupPrimitiveRequest,
     CleanupPrimitiveResult,
+)
+from roboclaws.household.planner_primitive_executor import (
     blocked_cleanup_primitive_result,
     planner_backed_cleanup_primitive_result,
-)
-from roboclaws.household.planner_proof_attachment import (
-    PLANNER_PROOF_ATTACHMENT_SCHEMA,
 )
 from roboclaws.household.semantic_timeline import canonical_cleanup_tool_sequence
 
 PLANNER_PROBE_PRIMITIVE_EXECUTOR_SCHEMA = "planner_probe_cleanup_primitive_executor_v1"
-PLANNER_PROBE_PRIMITIVE_BINDING_SCHEMA = "planner_probe_cleanup_primitive_binding_v1"
 TARGET_SIDE_TOOLS = frozenset(
     {
         "navigate_to_receptacle",

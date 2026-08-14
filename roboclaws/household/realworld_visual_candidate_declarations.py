@@ -3,16 +3,16 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any, Protocol
 
+from roboclaws.core.raw_fpv_guidance import (
+    raw_fpv_visual_candidate_recovery,
+    raw_fpv_visual_candidate_recovery_hint,
+)
 from roboclaws.household import (
     realworld_runtime_map_targets,
     realworld_visual_candidate_lifecycle,
     realworld_visual_candidates,
 )
 from roboclaws.household.household_backend_contract import SYNTHETIC_BACKEND
-from roboclaws.household.raw_fpv_guidance import (
-    raw_fpv_visual_candidate_recovery,
-    raw_fpv_visual_candidate_recovery_hint,
-)
 from roboclaws.household.visual_grounding import (
     EXTERNAL_VISUAL_GROUNDING_PROVENANCE,
     SIM_VISUAL_GROUNDING_PIPELINE_ID,

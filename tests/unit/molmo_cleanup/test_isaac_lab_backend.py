@@ -14,13 +14,13 @@ from PIL import Image, ImageDraw
 from roboclaws.household.b1_nurec_scene import prepare_b1_nurec_scene_usd
 from roboclaws.household.isaac_lab_backend import (
     ISAAC_SCENE_INDEX_ARTIFACT_SCHEMA,
-    ISAAC_SEMANTIC_POSE_PROVENANCE,
     ISAAC_SEMANTIC_POSE_STATE_SCHEMA,
     ISAAC_SEMANTIC_POSE_STATE_SOURCE,
     ISAACLAB_ROBOT_VIEW_VARIANT,
     ISAACLAB_SUBPROCESS_BACKEND,
     IsaacLabSubprocessBackend,
 )
+from roboclaws.household.manipulation_contract import ISAAC_SEMANTIC_POSE_PROVENANCE
 from scripts.isaac_lab_cleanup import isaac_lab_backend_worker, isaac_runtime_diagnostics
 
 

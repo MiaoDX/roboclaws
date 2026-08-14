@@ -14,7 +14,9 @@ from roboclaws.agents.drivers.openai_agents_live import (
     MODEL_SERVICE_RETRY_ATTEMPTS_ENV,
     MODEL_SERVICE_RETRY_SLEEP_ENV,
 )
-from roboclaws.agents.provider_registry import (
+from roboclaws.agents.provider_transport import compatible_model_settings
+from roboclaws.agents.thinking_policy import normalize_thinking_mode
+from roboclaws.core.provider_catalog import (
     PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
     ROUTE_CAP_SUPPORTED,
     WIRE_CHAT_COMPLETIONS,
@@ -24,9 +26,7 @@ from roboclaws.agents.provider_registry import (
     provider_route_spec,
     route_capabilities_for_engine,
 )
-from roboclaws.agents.provider_transport import compatible_model_settings
-from roboclaws.agents.thinking_policy import normalize_thinking_mode
-from roboclaws.household.household_mcp_server import (
+from roboclaws.core.robot_view_capture import (
     ROBOT_VIEW_CAPTURE_POLICIES,
     ROBOT_VIEW_CAPTURE_POLICY_FULL,
 )

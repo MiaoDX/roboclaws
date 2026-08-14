@@ -26,7 +26,7 @@ from roboclaws.household.household_runtime_contract import (
     RUNTIME_METRIC_MAP_SCHEMA,
     forbidden_agent_view_keys,
 )
-from roboclaws.household.manipulation_provenance import BLOCKED_CAPABILITY_PROVENANCE
+from roboclaws.household.manipulation_contract import BLOCKED_CAPABILITY_PROVENANCE
 from roboclaws.household.report import render_cleanup_report, write_state_snapshot
 from roboclaws.household.scenario import build_cleanup_scenario
 from roboclaws.household.types import CleanupScenario

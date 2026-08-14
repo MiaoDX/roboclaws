@@ -7,11 +7,11 @@ import sys
 from collections.abc import Sequence
 from typing import NoReturn
 
-from roboclaws.launch.agent_engines import AGENT_ENGINE_SPECS
-from roboclaws.launch.environment_setup_metadata import (
+from roboclaws.core.environment_setup_metadata import (
     ENVIRONMENT_SETUP_METADATA_ENV,
     environment_setup_metadata_json,
 )
+from roboclaws.launch.agent_engines import AGENT_ENGINE_SPECS
 from roboclaws.launch.plans import LaunchPlan
 
 _ADAPTER_ENV_OVERRIDES = (

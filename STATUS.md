@@ -10,6 +10,17 @@ leave a link.
 
 ## Current Focus
 
+The aggressive architecture migration is active under
+`docs/plans/2026-07-30-aggressive-architecture-migration.md`. Waves 0-2 are
+complete: exact baselines and field-level parity are proven, all six module
+cycles and five bidirectional package pairs are removed, and the Wave 1-2
+reverse/inversion guards are locked green. Wave 3 is retiring unconditional
+investigation and rehearsal stacks leaf-to-root.
+The migration preserves public launch, artifact, privacy, provider, simulator,
+and operator behavior while removing dependency cycles, retiring completed
+investigation surfaces, moving product subsystems out of scripts, and splitting
+retained oversized owners by behavior.
+
 OpenClaw and repo-owned workstation-local Docker runtime surfaces are retired
 under `docs/plans/2026-07-30-retire-openclaw-and-local-docker-surfaces.md` and
 ADR-0148. The maintained product has exactly two agent engines,
@@ -89,9 +100,10 @@ providers.
 
 ## Next Action
 
-Review the completed OpenClaw/local-Docker retirement. The refreshed immutable
-candidate remains unmodified and is superseded for publication review;
-publication remains unauthorized and is a separate human decision.
+Execute the Wave 3 unconditional deletion ledger in bounded green slices,
+starting with robot-camera parity and its frozen caller/proof manifest. The
+refreshed immutable candidate remains unmodified; publication remains
+unauthorized and separate from this campaign.
 
 ## Current Blockers
 
@@ -117,6 +129,7 @@ publication remains unauthorized and is a separate human decision.
 ## Current Source Links
 
 Plans:
+`docs/plans/2026-07-30-aggressive-architecture-migration.md`,
 `docs/plans/2026-07-30-retire-openclaw-and-local-docker-surfaces.md`,
 `docs/plans/2026-07-30-post-cleanup-saturation-refactors.md`,
 `docs/plans/2026-07-28-forward-only-post-review-cleanup.md`,

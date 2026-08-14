@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from roboclaws.household.task_intent import (
+from roboclaws.core.task_intents import (
     household_intent_from_args,
     normalize_household_intent,
 )

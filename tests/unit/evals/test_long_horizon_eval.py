@@ -10,7 +10,9 @@ from roboclaws.evals.final_state_evidence import (
     simulator_evidence_from_run_result,
 )
 from roboclaws.evals.live_runtime import live_product_run_kwargs, live_surface_command
-from roboclaws.evals.long_horizon import _call_tool_with_robot_view, long_horizon_spec
+from roboclaws.evals.long_horizon import _call_tool_with_robot_view
+from roboclaws.evals.long_horizon_contract import long_horizon_spec
+from roboclaws.evals.long_horizon_grader import grade_long_horizon_task
 from roboclaws.evals.long_horizon_manifest import generated_mess_manifest
 from roboclaws.evals.models import load_eval_sample, load_eval_suite
 from roboclaws.evals.runner import run_eval_suite
@@ -346,8 +348,6 @@ def test_long_horizon_physical_placeholder_state_is_inconclusive(tmp_path: Path)
             "final_locations": {object_id: SHELF for object_id in object_ids},
         }
     )
-
-    from roboclaws.evals.long_horizon import grade_long_horizon_task
 
     grade = grade_long_horizon_task(sample, run_dir=tmp_path, run_result=run_result)
 

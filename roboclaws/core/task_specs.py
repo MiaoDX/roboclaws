@@ -1,4 +1,4 @@
-"""Surface spec declarations used by the launch catalog."""
+"""Task surface declarations shared by launch and product packages."""
 
 from __future__ import annotations
 

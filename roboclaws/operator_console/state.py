@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.core.json_sources import read_json_object
+from roboclaws.core.jsonl_sources import collect_jsonl_objects
+from roboclaws.core.operator_messages import operator_message_state
 from roboclaws.maps.preview import (
     BASE_MAP_SOURCE_FAMILY,
     BASE_METRIC_MAP_PREVIEW_ROLE,
@@ -18,7 +20,6 @@ from roboclaws.maps.preview import (
     TOPDOWN_SCENE_RENDER_ROLE,
 )
 from roboclaws.operator_console.grounding_assets import grounding_frames_payload
-from roboclaws.operator_console.jsonl_sources import collect_jsonl_objects
 from roboclaws.operator_console.locks import ResourceLock
 from roboclaws.operator_console.redaction import redact_text
 from roboclaws.operator_console.routes import ConsoleLaunchSelection
@@ -150,9 +151,7 @@ def derive_operator_state(
     public_result = _public_run_result_summary(run_result)
     prompt_preview = _prompt_preview(status, live_status, run_result, display_run_dir)
     run_id = str(status.get("run_id") or run_dir.name)
-    from roboclaws.operator_console.interactions import operator_message_state
-
-    interaction_state = operator_message_state(root, run_dir)
+    interaction_state = operator_message_state(run_dir)
     normalized_status = _status_from_phase(phase, checker, terminal_reason)
     controls_terminal = _control_terminal_state(phase, normalized_status, terminal_reason)
     supports_relative_control = bool(route.supports_relative_navigation_control) if route else False

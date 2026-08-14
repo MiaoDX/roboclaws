@@ -1,0 +1,7 @@
+"""Robot-view capture policy values shared by runtimes and clients."""
+
+ROBOT_VIEW_CAPTURE_POLICY_FULL = "full"
+ROBOT_VIEW_CAPTURE_POLICY_ACTION_TIMELINE = "action_timeline"
+ROBOT_VIEW_CAPTURE_POLICIES = frozenset(
+    {ROBOT_VIEW_CAPTURE_POLICY_FULL, ROBOT_VIEW_CAPTURE_POLICY_ACTION_TIMELINE}
+)

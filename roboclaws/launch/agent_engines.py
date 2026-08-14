@@ -5,10 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from roboclaws.agents.provider_registry import (
-    default_provider_profile,
     provider_env_key,
-    supported_provider_profiles,
 )
+from roboclaws.core.provider_catalog import default_provider_profile, supported_provider_profiles
 
 
 @dataclass(frozen=True)

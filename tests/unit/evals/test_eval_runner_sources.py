@@ -1,9 +1,29 @@
 from __future__ import annotations
 
+import ast
 import json
 from pathlib import Path
 
+import roboclaws.evals.runner as eval_runner
 from roboclaws.evals.runner import _load_optional_json_mapping, _load_required_json_mapping
+
+
+def test_eval_runner_does_not_import_cli() -> None:
+    source = Path(eval_runner.__file__).read_text(encoding="utf-8")
+    imports = [
+        node
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, (ast.Import, ast.ImportFrom))
+    ]
+
+    assert not any(
+        (isinstance(node, ast.ImportFrom) and node.module in {"cli", "roboclaws.evals.cli"})
+        or (
+            isinstance(node, ast.Import)
+            and any(alias.name == "roboclaws.evals.cli" for alias in node.names)
+        )
+        for node in imports
+    )
 
 
 def test_eval_runner_json_artifact_missing_policy(tmp_path: Path) -> None:

@@ -5,6 +5,7 @@ import random
 from collections.abc import Sequence
 from typing import Any
 
+from roboclaws.core.generated_mess import generated_mess_success_threshold
 from roboclaws.household.semantic_acceptability import (
     canonical_public_object_category,
     public_source_requires_cleanup,
@@ -560,10 +561,6 @@ def first_receptacle_for_categories(
             if receptacle["category"] == category:
                 return receptacle
     return None
-
-
-def generated_mess_success_threshold(target_count: int) -> int:
-    return max(1, math.ceil(target_count * 0.70))
 
 
 def _dict(value: Any) -> dict[str, Any]:

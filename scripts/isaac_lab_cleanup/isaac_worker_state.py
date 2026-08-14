@@ -5,10 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from roboclaws.household.isaac_lab_backend import (
-    ISAAC_SEMANTIC_POSE_PROVENANCE,
-    ISAACLAB_SUBPROCESS_BACKEND,
-)
+from roboclaws.household.isaac_lab_backend import ISAACLAB_SUBPROCESS_BACKEND
+from roboclaws.household.manipulation_contract import ISAAC_SEMANTIC_POSE_PROVENANCE
 
 
 @dataclass(frozen=True)

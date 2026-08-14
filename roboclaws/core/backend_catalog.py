@@ -1,4 +1,4 @@
-"""Launch backend metadata."""
+"""Runtime backend catalog values shared by product packages."""
 
 from __future__ import annotations
 

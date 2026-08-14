@@ -4,11 +4,17 @@ import math
 from collections.abc import Callable, Collection, Mapping, Sequence
 from typing import Any, Protocol
 
+from roboclaws.core.map_build_scan_profile import map_build_scan_profile
+from roboclaws.core.task_intents import (
+    HOUSEHOLD_INTENT_CLEANUP,
+    HOUSEHOLD_INTENT_MAP_BUILD,
+    household_intent_is_open_ended,
+    normalize_household_intent,
+)
 from roboclaws.household import (
     realworld_runtime_map_targets,
     realworld_visual_candidates,
 )
-from roboclaws.household.map_build_scan_profile import map_build_scan_profile
 from roboclaws.household.realworld_agent_view_contract import (
     nonnegative_int,
     positive_int,
@@ -21,12 +27,6 @@ from roboclaws.household.realworld_contract_fixture_projection import (
     _recommended_place_tool,
 )
 from roboclaws.household.semantic_acceptability import public_source_requires_cleanup
-from roboclaws.household.task_intent import (
-    HOUSEHOLD_INTENT_CLEANUP,
-    HOUSEHOLD_INTENT_MAP_BUILD,
-    household_intent_is_open_ended,
-    normalize_household_intent,
-)
 from roboclaws.household.visual_scan_guidance import visual_scan_done_recovery_hint
 
 DONE_READINESS_POLICY_RAW_FPV = "raw_fpv_grounded_cleanup_chains"

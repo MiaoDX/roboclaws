@@ -6,12 +6,12 @@ import json
 import os
 from typing import Any
 
-from roboclaws.core.json_sources import parse_json_object_text
-from roboclaws.launch.environment_setup import (
+from roboclaws.core.environment_setup import (
     ENVIRONMENT_SETUP_BASELINE,
     ENVIRONMENT_SETUP_OPTIONS,
     RELOCATION_SETUP_OPTIONS,
 )
+from roboclaws.core.json_sources import parse_json_object_text
 
 ENVIRONMENT_SETUP_METADATA_ENV = "ROBOCLAWS_ENVIRONMENT_SETUP_JSON"
 

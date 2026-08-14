@@ -23,10 +23,10 @@ from roboclaws.household.camera_control import (
 )
 from roboclaws.household.isaac_lab_backend import (
     ISAAC_SEMANTIC_POSE_EVENT_SCHEMA,
-    ISAAC_SEMANTIC_POSE_PROVENANCE,
     ISAAC_SEMANTIC_POSE_STATE_SCHEMA,
     ISAAC_SEMANTIC_POSE_STATE_SOURCE,
 )
+from roboclaws.household.manipulation_contract import ISAAC_SEMANTIC_POSE_PROVENANCE
 from roboclaws.household.types import (
     CleanupScenario,
 )

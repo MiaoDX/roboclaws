@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from roboclaws.evals import long_horizon as lh
+from roboclaws.evals.long_horizon_contract import long_horizon_spec
 from roboclaws.evals.long_horizon_manifest import write_generated_mess_manifest
 from roboclaws.evals.models import EvalSample
 
@@ -16,7 +16,7 @@ def attach_generated_mess_manifest(
     sample: EvalSample,
     run_dir: Path,
 ) -> None:
-    spec = lh.long_horizon_spec(sample)
+    spec = long_horizon_spec(sample)
     if spec is None:
         return
     path = write_generated_mess_manifest(

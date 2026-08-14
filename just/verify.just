@@ -39,6 +39,7 @@ static:
     "$ruff_bin" check .
     "$ruff_bin" format --check .
     python scripts/dev/check_python_quality_ratchet.py
+    python scripts/dev/check_architecture_import_graph.py
     git diff --check
 
 # L1: static checks plus fast unit/mock tests.

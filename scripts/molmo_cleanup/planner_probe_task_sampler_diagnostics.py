@@ -6,7 +6,7 @@ from pathlib import Path
 from types import MethodType, SimpleNamespace
 from typing import Any, Callable
 
-from roboclaws.household.planner_probe_primitive_executor import (
+from roboclaws.household.manipulation_contract import (
     PLANNER_PROBE_PRIMITIVE_BINDING_SCHEMA,
 )
 from roboclaws.household.semantic_timeline import canonical_cleanup_tool_sequence

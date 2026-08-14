@@ -7,10 +7,10 @@ from types import SimpleNamespace
 from PIL import Image
 
 from roboclaws.household.advisory_scoring import build_advisory_evaluation
-from roboclaws.household.backend import API_SEMANTIC_PROVENANCE
 from roboclaws.household.cleanup_primitive_evidence import (
     cleanup_primitive_evidence_from_substeps,
 )
+from roboclaws.household.manipulation_contract import API_SEMANTIC_PROVENANCE
 from roboclaws.household.manipulation_provenance import (
     api_semantic_manipulation_evidence,
     blocked_planner_probe_evidence,

@@ -10,7 +10,6 @@ from PIL import Image, ImageStat
 
 from roboclaws.core.json_sources import read_json_object, read_jsonl_objects
 from roboclaws.household import agent_view as agent_view_module
-from roboclaws.household.backend import API_SEMANTIC_PROVENANCE
 from roboclaws.household.cleanup_primitive_evidence import (
     validate_cleanup_primitive_evidence,
 )
@@ -33,6 +32,7 @@ from roboclaws.household.isaac_lab_backend import (
     ISAACLAB_ROBOT_VIEW_VARIANT,
     ISAACLAB_SUBPROCESS_BACKEND,
 )
+from roboclaws.household.manipulation_contract import API_SEMANTIC_PROVENANCE
 from roboclaws.household.planner_cleanup_bridge import (
     validate_planner_cleanup_bridge_evidence,
 )

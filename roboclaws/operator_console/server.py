@@ -29,8 +29,8 @@ from roboclaws.operator_console.interactions import (
     get_operator_session,
     list_operator_messages,
 )
+from roboclaws.operator_console.launch_contract import ConsoleLaunchError
 from roboclaws.operator_console.launcher import (
-    ConsoleLaunchError,
     LaunchRequest,
     load_repo_dotenv,
     route_readiness,

@@ -13,7 +13,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from roboclaws.core.json_sources import read_json_object, read_jsonl_object_rows
-from roboclaws.household.task_intent import HOUSEHOLD_INTENT_CLEANUP, household_task_identity
+from roboclaws.core.task_intents import HOUSEHOLD_INTENT_CLEANUP, household_task_identity
 
 SCHEMA = "roboclaws_visual_showcase_v1"
 DEFAULT_SIZE = (1280, 720)

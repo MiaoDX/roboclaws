@@ -1,4 +1,4 @@
-"""Public environment setup vocabulary for household launch routes."""
+"""Environment setup vocabulary shared by launch and household runtimes."""
 
 from __future__ import annotations
 

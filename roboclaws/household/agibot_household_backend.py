@@ -17,7 +17,7 @@ from roboclaws.household.household_runtime_contract import (
     REAL_ROBOT_MAP_BUNDLE_SCHEMA,
     REALWORLD_CONTRACT,
 )
-from roboclaws.household.manipulation_provenance import BLOCKED_CAPABILITY_PROVENANCE
+from roboclaws.household.manipulation_contract import BLOCKED_CAPABILITY_PROVENANCE
 from roboclaws.household.profiles import (
     AGIBOT_GDK_BACKEND_VARIANT,
     AGIBOT_SDK_RUNNER_BACKEND,

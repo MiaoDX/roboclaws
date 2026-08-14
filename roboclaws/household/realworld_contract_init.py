@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -17,15 +18,14 @@ from roboclaws.maps.project import (
 
 
 def validate_contract_options(
-    *,
     static_fixture_projection_mode: str,
     perception_mode: str,
+    perception_modes: frozenset[str],
 ) -> None:
-    helpers = _contract_helpers()
     if static_fixture_projection_mode not in {"room_only", "exact_fixtures"}:
         raise ValueError("static_fixture_projection_mode must be room_only or exact_fixtures")
-    if perception_mode not in helpers.REALWORLD_PERCEPTION_MODES:
-        allowed = ", ".join(sorted(helpers.REALWORLD_PERCEPTION_MODES))
+    if perception_mode not in perception_modes:
+        allowed = ", ".join(sorted(perception_modes))
         raise ValueError(f"perception_mode must be one of: {allowed}")
 
 
@@ -33,21 +33,31 @@ def init_profile_and_acceptance(
     target: Any,
     evidence_lane: str | None,
     public_acceptance_config: dict[str, Any] | None,
+    *,
+    acceptance_helpers: tuple[
+        Callable[[dict[str, Any] | None], dict[str, Any]], Callable[[Any], Any]
+    ],
+    perception_values: tuple[str, str, str],
+    exposure_values: tuple[str, str, str],
 ) -> None:
-    helpers = _contract_helpers()
-    target.evidence_lane = _default_public_evidence_lane(target, evidence_lane)
-    target.public_acceptance_config = helpers._public_acceptance_config(public_acceptance_config)
-    target.task_intent = helpers.normalize_household_intent(
+    public_acceptance_config_factory, normalize_household_intent = acceptance_helpers
+    visible_mode, raw_fpv_mode, camera_model_mode = perception_values
+    world_labels_profile, sanitized_policy, world_labels_policy = exposure_values
+    target.evidence_lane = _default_public_evidence_lane(
+        target,
+        evidence_lane,
+        perception_values=perception_values,
+        world_labels_profile=world_labels_profile,
+    )
+    target.public_acceptance_config = public_acceptance_config_factory(public_acceptance_config)
+    target.task_intent = normalize_household_intent(
         target.public_acceptance_config.get("task_intent")
     )
     target.sanitize_world_labels = (
-        target.perception_mode == helpers.VISIBLE_OBJECT_DETECTIONS_MODE
-        and target.evidence_lane == helpers.WORLD_PUBLIC_LABELS_PROFILE
+        target.perception_mode == visible_mode and target.evidence_lane == world_labels_profile
     )
     target.visible_detection_exposure_policy = (
-        helpers.SANITIZED_VISIBLE_OBJECT_DETECTIONS_POLICY
-        if target.sanitize_world_labels
-        else helpers.WORLD_LABELS_DETECTION_POLICY
+        sanitized_policy if target.sanitize_world_labels else world_labels_policy
     )
 
 
@@ -58,13 +68,13 @@ def init_visual_grounding(
     visual_grounding_pipeline_id: str,
     visual_grounding_artifact_base_dir: str | Path | None,
     visual_grounding_run_id: str,
+    default_pipeline_id: str,
 ) -> None:
-    helpers = _contract_helpers()
     target.visual_grounding_client = visual_grounding_client
     target.visual_grounding_pipeline_id = str(
         visual_grounding_pipeline_id
         or getattr(visual_grounding_client, "pipeline_id", "")
-        or helpers.SIM_VISUAL_GROUNDING_PIPELINE_ID
+        or default_pipeline_id
     )
     target.visual_grounding_artifact_base_dir = (
         Path(visual_grounding_artifact_base_dir)
@@ -102,8 +112,13 @@ def initial_waypoint_id(target: Any) -> str:
     return str(first_waypoint)
 
 
-def init_runtime_state(target: Any, runtime_map_prior: dict[str, Any] | None) -> None:
-    helpers = _contract_helpers()
+def init_runtime_state(
+    target: Any,
+    runtime_map_prior: dict[str, Any] | None,
+    *,
+    snapshot_helpers: tuple[Callable[[Any], float], Callable[[Any], None]],
+) -> None:
+    float_or_zero, assert_no_forbidden_agent_view_keys = snapshot_helpers
     target._observed_waypoint_ids = set()
     target._observed_handles_by_object_id = {}
     target._object_ids_by_handle = {}
@@ -116,27 +131,27 @@ def init_runtime_state(target: Any, runtime_map_prior: dict[str, Any] | None) ->
     target._model_declared_observations = []
     target._runtime_map_priors = realworld_runtime_map_contract.runtime_map_priors_from_snapshot(
         runtime_map_prior,
-        float_or_zero=helpers._float_or_zero,
-        assert_no_forbidden_agent_view_keys=helpers._assert_no_forbidden_agent_view_keys,
+        float_or_zero=float_or_zero,
+        assert_no_forbidden_agent_view_keys=assert_no_forbidden_agent_view_keys,
     )
     target._runtime_map_anchor_priors = (
         realworld_runtime_map_contract.runtime_map_anchor_priors_from_snapshot(
             runtime_map_prior,
-            float_or_zero=helpers._float_or_zero,
-            assert_no_forbidden_agent_view_keys=helpers._assert_no_forbidden_agent_view_keys,
+            float_or_zero=float_or_zero,
+            assert_no_forbidden_agent_view_keys=assert_no_forbidden_agent_view_keys,
         )
     )
     target._runtime_map_room_priors = (
         realworld_runtime_map_contract.runtime_map_room_priors_from_snapshot(
             runtime_map_prior,
             public_room_hint_payload=realworld_contract_projection._public_room_hint_payload,
-            assert_no_forbidden_agent_view_keys=helpers._assert_no_forbidden_agent_view_keys,
+            assert_no_forbidden_agent_view_keys=assert_no_forbidden_agent_view_keys,
         )
     )
     target._runtime_prior_digital_twin_capabilities = (
         realworld_runtime_map_contract.runtime_prior_digital_twin_capabilities(
             runtime_map_prior,
-            assert_no_forbidden_agent_view_keys=helpers._assert_no_forbidden_agent_view_keys,
+            assert_no_forbidden_agent_view_keys=assert_no_forbidden_agent_view_keys,
         )
     )
     target._public_anchor_ids_by_private_fixture_id = {}
@@ -219,20 +234,20 @@ def _init_public_map_projection(target: Any) -> None:
     )
 
 
-def _contract_helpers() -> Any:
-    from roboclaws.household import household_runtime_contract as realworld_contract
-
-    return realworld_contract
-
-
-def _default_public_evidence_lane(target: Any, evidence_lane: str | None) -> str:
-    helpers = _contract_helpers()
+def _default_public_evidence_lane(
+    target: Any,
+    evidence_lane: str | None,
+    *,
+    perception_values: tuple[str, str, str],
+    world_labels_profile: str,
+) -> str:
+    visible_mode, raw_fpv_mode, camera_model_mode = perception_values
     if evidence_lane:
         return str(evidence_lane).strip().lower().replace("_", "-")
-    if target.perception_mode == helpers.VISIBLE_OBJECT_DETECTIONS_MODE:
-        return helpers.WORLD_PUBLIC_LABELS_PROFILE
-    if target.perception_mode == helpers.RAW_FPV_ONLY_MODE:
+    if target.perception_mode == visible_mode:
+        return world_labels_profile
+    if target.perception_mode == raw_fpv_mode:
         return "camera-raw-fpv"
-    if target.perception_mode == helpers.CAMERA_MODEL_POLICY_MODE:
+    if target.perception_mode == camera_model_mode:
         return "camera-grounded-labels"
     return ""

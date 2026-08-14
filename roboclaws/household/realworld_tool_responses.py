@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Protocol
 
 from roboclaws.household import realworld_runtime_map_targets
-from roboclaws.household.backend import API_SEMANTIC_PROVENANCE
+from roboclaws.household.manipulation_contract import API_SEMANTIC_PROVENANCE
 
 
 class ToolResponseContract(Protocol):
