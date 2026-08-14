@@ -352,6 +352,9 @@ isaac-runtime-preflight *overrides:
     skip_gpu_probe="false"
     install="false"
     accept_nvidia_eula="false"
+    if [[ "${OMNI_KIT_ACCEPT_EULA:-}" == "YES" ]]; then
+      accept_nvidia_eula="true"
+    fi
     strict="false"
     for arg in "${args[@]}"; do
       if [[ "$arg" != *=* ]]; then
@@ -432,6 +435,9 @@ isaac-runtime-smoke *overrides:
     segmentation_data_types=""
     segmentation_semantic_filter=""
     accept_nvidia_eula="false"
+    if [[ "${OMNI_KIT_ACCEPT_EULA:-}" == "YES" ]]; then
+      accept_nvidia_eula="true"
+    fi
     for arg in "${args[@]}"; do
       if [[ "$arg" != *=* ]]; then
         echo "error: override '$arg' is not key=value" >&2
@@ -567,6 +573,9 @@ b1-map12-navigation-smoke *overrides:
     prepare_robot_usd="true"
     require_navigation_success="true"
     accept_nvidia_eula="false"
+    if [[ "${OMNI_KIT_ACCEPT_EULA:-}" == "YES" ]]; then
+      accept_nvidia_eula="true"
+    fi
     for arg in "${args[@]}"; do
       if [[ "$arg" != *=* ]]; then
         echo "error: override '$arg' is not key=value" >&2

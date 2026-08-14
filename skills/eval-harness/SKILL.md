@@ -103,7 +103,10 @@ output/eval-harness/<stamp>/
 The manifest schema is `roboclaws_eval_harness_manifest_v1`. Rows use
 `roboclaws_eval_harness_row_v1` and may be `deterministic_gate`,
 `product_run`, `eval_suite`, `live_agent_eval`, `regression_promotion`, or
-`manual_review`.
+`manual_review`. Provider rows also carry a fail-closed
+`provider_network_scope` and `allowed_execution_targets` contract. Codex and
+MiMo are internal routes eligible for local or CloudML execution; Kimi and
+MiniMax are external routes eligible only for local execution.
 
 ## Selection Rules
 

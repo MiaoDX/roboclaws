@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.core.backend_catalog import BACKEND_SPECS
+from roboclaws.core.goals import normalize_goal_contract
+from roboclaws.core.task_intents import TASK_INTENT_SPECS
 from roboclaws.evals import live_long_horizon
 from roboclaws.evals.live_artifacts import load_live_eval_json
 from roboclaws.evals.long_horizon_contract import generated_mess_object_ids
@@ -21,6 +23,7 @@ from roboclaws.evals.models import (
     EvalSample,
 )
 from roboclaws.household.household_backend_contract import SYNTHETIC_BACKEND
+from roboclaws.household.tasks import HOUSEHOLD_PRESET_SPECS, HOUSEHOLD_TASK_SPECS
 from roboclaws.worlds.molmospaces.map_bundles import molmospaces_nav2_map_bundle_path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -269,6 +272,7 @@ def product_run_kwargs(
             "eval_sample_version": sample.version,
             "eval_suite_runner": "roboclaws.evals.runner",
         },
+        "goal_contract_json": _goal_contract_json(sample),
     }
     if kwargs["evidence_lane"] == "camera-grounded-labels":
         kwargs["visual_grounding"] = camera_labeler(sample)
@@ -283,6 +287,33 @@ def product_run_kwargs(
     if runtime_map_prior:
         kwargs["runtime_map_prior_path"] = runtime_map_prior
     return kwargs
+
+
+def _goal_contract_json(sample: EvalSample) -> str:
+    surface = HOUSEHOLD_TASK_SPECS.get(sample.surface)
+    intent = TASK_INTENT_SPECS.get(sample.intent)
+    if surface is None or intent is None or sample.intent not in surface.supported_intents:
+        raise ValueError(
+            f"eval sample {sample.sample_id!r} has no canonical goal contract route for "
+            f"surface={sample.surface!r} intent={sample.intent!r}"
+        )
+
+    required_capabilities = intent.required_capabilities
+    if sample.preset not in MISSING_SENTINELS:
+        preset = HOUSEHOLD_PRESET_SPECS.get(sample.preset)
+        if preset is None or preset.intent_id != intent.intent_id:
+            raise ValueError(
+                f"eval sample {sample.sample_id!r} has invalid preset {sample.preset!r} "
+                f"for intent {sample.intent!r}"
+            )
+        required_capabilities = preset.required_capabilities
+
+    return normalize_goal_contract(
+        surface=surface,
+        intent=intent,
+        raw_prompt="" if sample.prompt in MISSING_SENTINELS else sample.prompt,
+        required_capabilities=required_capabilities,
+    ).to_json()
 
 
 def implementation_backend(sample: EvalSample, *, budget: str) -> str:

@@ -20,6 +20,17 @@ The `dev` extra includes the standard MolmoSpaces/MuJoCo CPU runtime used by
 local cleanup demos. Keep Isaac Lab isolated in `.venv-isaaclab/` and install
 other optional extras only when a workflow explicitly needs them.
 
+After reviewing and accepting the NVIDIA Omniverse EULA, persist that
+machine-local decision in the gitignored repo `.env`:
+
+```bash
+OMNI_KIT_ACCEPT_EULA=YES
+```
+
+`just` loads `.env` automatically. Isaac preflight and smoke harnesses derive
+their acceptance default from this variable, while an explicit
+`accept_nvidia_eula=false` remains available for CI and guarded negative tests.
+
 If PyPI downloads are slow or flaky, keep mirror selection machine-local:
 
 ```bash
@@ -67,6 +78,15 @@ Current live product route:
 
 Every OpenAI Agents SDK launch selects one of these profiles explicitly. The
 runtime never falls back between Responses and Chat Completions transports.
+
+Provider eval placement is fixed by the harness manifest, not inferred from a
+one-off connectivity probe:
+
+- `codex-responses` and `mimo-responses` are internal routes allowed on the
+  local workstation and CloudML, subject to route readiness.
+- `kimi-openai-chat` and `minimax-responses` are external routes allowed only
+  on the local workstation. CloudML has no supported public-internet route for
+  them; never submit those rows to CloudML even if an incidental probe succeeds.
 
 Before system-provider Claude Code workflows:
 

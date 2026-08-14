@@ -102,8 +102,11 @@ artifact before the consumer task is submitted in a separate Pod.
 The default result/capability refresh allows at most two active rows per
 provider. It records provider throttling and does not treat concurrent-run
 latency as comparable performance evidence. A latency or cost baseline instead
-uses at most one active row per provider. External-egress rows run locally with
-`max_parallel=1`, may overlap the CloudML wave, and merge into the same hybrid
+uses at most one active row per provider. Kimi and MiniMax are external-provider
+rows and always run locally with `max_parallel=1`; a successful ad hoc CloudML
+probe cannot override that placement. Codex and MiMo are internal-provider rows
+eligible for local or CloudML execution after route readiness passes. Local
+provider rows may overlap the CloudML wave and merge into the same hybrid
 report. A terminal report may preserve explicitly blocked external rows, but it
 is not an accepted complete baseline and must not be published as one.
 

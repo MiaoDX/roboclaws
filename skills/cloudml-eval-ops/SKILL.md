@@ -125,8 +125,12 @@ scoped smoke as a completed full baseline refresh.
    supported.
 3. Before live provider rows, run `just dev::network-status`. Stop guarded
    provider routes when it reports `network: work`.
-4. Probe selected provider routes from the intended worker network. Do not
-   substitute provider profiles when a route is unavailable.
+4. Read each provider row's `provider_network_scope` and
+   `allowed_execution_targets` from the frozen manifest before probing any
+   route. Kimi and MiniMax are external providers restricted to `local`; never
+   probe or submit them from CloudML. Probe only CloudML-eligible internal
+   provider routes from the intended worker network. Do not substitute provider
+   profiles when a route is unavailable.
 5. Resolve pinned image digests, read-only input mounts, one run-owned writable
    output prefix, and the maximum concurrency. Require CPU jobs to request at
    least four CPU units. Do not combine `BEST_EFFORT_PUBLIC` with the training
@@ -153,9 +157,17 @@ Place solely from each row's `execution_requirements`:
 - deterministic CPU rows -> CPU pool;
 - MuJoCo rows -> simulator-capable CPU or GPU pool;
 - Grounding DINO rows -> CUDA/DINO-capable GPU pool;
-- `network:external-egress` rows -> an explicitly proven egress pool or local;
-- `network:configured-endpoint` rows -> only a worker that passed that profile's
-  route probe.
+- `provider_network_scope=external` or `allowed_execution_targets=["local"]`
+  rows -> local only, regardless of any observed CloudML route or probe result;
+- `provider_network_scope=internal` rows that include `cloudml` in
+  `allowed_execution_targets` -> CloudML only after that profile's route probe
+  passes on the intended worker network.
+
+Fail closed when a provider row lacks either placement field. Before submitting
+a task, require `cloudml` to occur in every assigned provider row's
+`allowed_execution_targets`. The eval worker repeats this check before row
+execution so an incorrectly submitted CloudML task cannot issue a provider
+request.
 
 For a full `baseline-refresh`, assign exactly one selected CloudML row to each
 CloudML task, set `nodeNumber=1`, and set worker `max_parallel=1`, including for
@@ -176,9 +188,10 @@ the plan records their independent resource and provider bounds.
 Keep Grounding DINO colocated with its corresponding MuJoCo row. The same worker
 Pod runs the simulator/runtime and its local HTTP visual-grounding sidecar; do
 not replace this with a shared cross-Pod DINO service during a baseline refresh.
-Run external-egress rows locally with `max_parallel=1` when no proven CloudML
-egress pool exists. Those local rows may overlap the CloudML wave and must merge
-into the same final report.
+Run external-provider rows locally with `max_parallel=1`. Kimi and MiniMax must
+never enter a CloudML shard, even if an ad hoc network probe happens to succeed.
+Those local rows may overlap the CloudML wave and must merge into the same final
+report.
 
 Require this identity equation before submission:
 
@@ -267,7 +280,7 @@ grader/report exit semantics are preserved.
 
 Distinguish a terminal report from an accepted complete baseline. A report may
 retain explicitly blocked rows as evidence, but a full baseline with any
-blocked external-egress row is incomplete and must not be accepted or published
+blocked external-provider row is incomplete and must not be accepted or published
 as the durable baseline.
 
 For a parallel proof, additionally record at least two independent task/row
