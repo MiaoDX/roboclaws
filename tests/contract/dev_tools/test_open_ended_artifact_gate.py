@@ -10,7 +10,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 MOLMO_JUST = REPO_ROOT / "just" / "molmo.just"
-LIVE_OPENAI_AGENTS_RUNNER = REPO_ROOT / "roboclaws/agents/household_live_runner.py"
+LIVE_OPENAI_AGENTS_LIFECYCLE = REPO_ROOT / "roboclaws/agents/household_live_lifecycle.py"
 
 
 def test_molmo_direct_open_ended_recipe_uses_artifact_gate_before_cleanup_checker() -> None:
@@ -31,8 +31,8 @@ def test_openai_agents_open_ended_uses_artifact_gate_not_cleanup_checker(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     module = _load_script_module(
-        LIVE_OPENAI_AGENTS_RUNNER,
-        "household_live_runner_custom_gate_test",
+        LIVE_OPENAI_AGENTS_LIFECYCLE,
+        "household_live_lifecycle_custom_gate_test",
     )
     run_dir = tmp_path / "openai-agents"
     _write_open_ended_artifacts(run_dir)

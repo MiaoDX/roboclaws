@@ -20,13 +20,15 @@ from roboclaws.household.visual_grounding import (  # noqa: E402
     validate_visual_grounding_request,
     visual_grounding_failure_response,
 )
-from scripts.visual_grounding.adapters import (  # noqa: E402
+from roboclaws.household.visual_grounding_sidecar.adapter_contracts import (  # noqa: E402
     ADAPTER_MODE_AUTO,
     ADAPTER_MODE_REAL,
     ADAPTER_MODE_UNAVAILABLE,
     DEFAULT_PIPELINE_ID,
     REAL_ROUTER_PIPELINE_ID,
     visual_grounding_adapter_catalog,
+)
+from roboclaws.household.visual_grounding_sidecar.adapter_service import (  # noqa: E402
     visual_grounding_service_response,
 )
 

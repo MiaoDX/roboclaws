@@ -4,7 +4,15 @@ import json
 from pathlib import Path
 from typing import Any
 
-from roboclaws.core.json_sources import read_jsonl_objects
+from roboclaws.agents.drivers.openai_agents_metric_math import (
+    continuation_attempt_count as _continuation_attempt_count,
+)
+from roboclaws.agents.drivers.openai_agents_metric_math import (
+    estimated_tokens_from_chars as _estimated_tokens_from_chars,
+)
+from roboclaws.agents.drivers.openai_agents_metric_sources import (
+    read_openai_agents_jsonl_source,
+)
 
 MODEL_SERVICE_FALLBACK_SCHEMA = "openai_agents_model_service_fallback_v1"
 MODEL_RACING_OBSERVABILITY_SCHEMA = "openai_agents_model_racing_observability_v1"
@@ -25,92 +33,6 @@ MODEL_INPUT_SUM_FIELDS = tuple(
     camera_grounded_history_bytes_after camera_grounded_history_bytes_reduced
     """.split()
 )
-
-
-def openai_agents_event_metrics(run_dir: Path) -> dict[str, Any]:
-    event_paths = sorted(run_dir.glob("openai-agents-events*.jsonl"))
-    if not event_paths:
-        return {
-            "available": False,
-            "reason": "openai-agents event files not present",
-        }
-
-    event_counts: dict[str, int] = {}
-    tool_error_classifications: dict[str, int] = {}
-    tool_error_messages: list[str] = []
-    result_count = 0
-    for path in event_paths:
-        for event in read_openai_agents_jsonl_source(path):
-            event_type = str(event.get("event") or "")
-            if event_type:
-                event_counts[event_type] = event_counts.get(event_type, 0) + 1
-            if event_type == "result":
-                result_count += 1
-            if event_type != "tool_error":
-                continue
-            classification = str(event.get("classification") or "tool_error")
-            tool_error_classifications[classification] = (
-                tool_error_classifications.get(classification, 0) + 1
-            )
-            message = str(event.get("message") or "")
-            if message and len(tool_error_messages) < 8:
-                tool_error_messages.append(message)
-
-    return {
-        "available": True,
-        "event_files": [path.name for path in event_paths],
-        "event_counts": dict(sorted(event_counts.items())),
-        "result_count": result_count,
-        "tool_error_count": sum(tool_error_classifications.values()),
-        "tool_error_classifications": dict(sorted(tool_error_classifications.items())),
-        "tool_error_messages_sample": tool_error_messages,
-    }
-
-
-def openai_agents_span_metrics(run_dir: Path) -> dict[str, Any]:
-    span_paths = sorted(run_dir.glob("openai-agents-spans*.jsonl"))
-    if not span_paths:
-        return {
-            "available": False,
-            "reason": "openai-agents span files not present",
-        }
-
-    event_counts: dict[str, int] = {}
-    span_type_counts: dict[str, int] = {}
-    limitations: list[dict[str, Any]] = []
-    span_end_count = 0
-    for path in span_paths:
-        for event in read_openai_agents_jsonl_source(path):
-            event_type = str(event.get("event") or "")
-            if event_type:
-                event_counts[event_type] = event_counts.get(event_type, 0) + 1
-            if event_type == "span_capture_unavailable":
-                limitations.append(
-                    {
-                        "reason": event.get("reason", ""),
-                        "error_type": event.get("error_type", ""),
-                        "message": event.get("message", ""),
-                    }
-                )
-            if event_type != "span_end":
-                continue
-            span_end_count += 1
-            span_type = str(event.get("span_type") or "unknown")
-            span_type_counts[span_type] = span_type_counts.get(span_type, 0) + 1
-
-    return {
-        "available": True,
-        "span_files": [path.name for path in span_paths],
-        "event_counts": dict(sorted(event_counts.items())),
-        "span_end_count": span_end_count,
-        "span_type_counts": dict(sorted(span_type_counts.items())),
-        "limitations": limitations,
-        "sanitization_note": (
-            "Span artifacts retain IDs, timing, span types, model/usage, MCP tool metadata, "
-            "and errors. Raw prompts, model text, function inputs, and function outputs are "
-            "not persisted."
-        ),
-    }
 
 
 def openai_agents_context_metrics(run_dir: Path, timing: dict[str, Any]) -> dict[str, Any]:
@@ -722,32 +644,6 @@ def _nearest_rank_percentile(values: list[int], percentile: float) -> int | None
     ordered = sorted(values)
     index = max(0, min(len(ordered) - 1, int(len(ordered) * percentile + 0.999999) - 1))
     return ordered[index]
-
-
-def _estimated_tokens_from_chars(char_count: int) -> int:
-    if char_count <= 0:
-        return 0
-    return max(1, round(char_count / 4))
-
-
-def _continuation_attempt_count(timing: dict[str, Any]) -> int:
-    attempts = timing.get("openai_agents_attempts")
-    if not isinstance(attempts, list):
-        return 0
-    return sum(
-        1
-        for attempt in attempts
-        if isinstance(attempt, dict) and int(attempt.get("attempt_index") or 0) > 0
-    )
-
-
-def read_openai_agents_jsonl_source(
-    path: Path, *, source_label: str = "OpenAI Agents metrics source"
-) -> list[dict[str, Any]]:
-    if not path.is_file():
-        return []
-    label = source_label.removesuffix(" source")
-    return read_jsonl_objects(path, label=label)
 
 
 def _unavailable_metrics(source: str, limitation: str) -> dict[str, Any]:

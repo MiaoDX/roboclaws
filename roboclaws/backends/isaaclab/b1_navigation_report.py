@@ -13,7 +13,7 @@ if __package__ in {None, ""}:
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
 
-from roboclaws.backends.isaaclab.b1_readiness import (
+from roboclaws.backends.isaaclab.b1_readiness_validation import (
     NAVIGATION_SMOKE_SCHEMA,
     READINESS_SCHEMA,
     WAYPOINT_POSE_REQUESTS_SCHEMA,

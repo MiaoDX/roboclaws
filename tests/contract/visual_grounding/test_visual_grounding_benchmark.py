@@ -7,18 +7,20 @@ import threading
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 
-from scripts.visual_grounding.adapters import (
-    REAL_ROUTER_PIPELINE_ID,
-    _set_yolo_classes_if_needed,
+from roboclaws.evals.visual_grounding_benchmark.scoring import (
+    score_predictions as _score_predictions,
+)
+from roboclaws.evals.visual_grounding_benchmark.summary import _family_sweep_summary
+from roboclaws.household.visual_grounding_sidecar.adapter_candidates import (
     _yolo_prompt_labels,
+)
+from roboclaws.household.visual_grounding_sidecar.adapter_contracts import (
+    REAL_ROUTER_PIPELINE_ID,
     effective_pipeline_id,
     pipeline_request_is_allowed,
     visual_grounding_adapter_catalog,
 )
-from scripts.visual_grounding.run_visual_grounding_benchmark import (
-    _family_sweep_summary,
-    _score_predictions,
-)
+from roboclaws.household.visual_grounding_sidecar.adapter_runtime import _set_yolo_classes_if_needed
 from scripts.visual_grounding.serve_visual_grounding_service import (
     make_handler as make_configurable_handler,
 )

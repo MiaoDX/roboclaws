@@ -68,7 +68,11 @@
       "command": [
         "./scripts/dev/run_pytest_standalone.sh",
         "-q",
-        "tests/contract/dev_tools/test_task_agent_just_recipes.py"
+        "tests/contract/dev_tools/test_task_agent_just_recipes_backends.py",
+        "tests/contract/dev_tools/test_task_agent_just_recipes_facades.py",
+        "tests/contract/dev_tools/test_task_agent_just_recipes_launch.py",
+        "tests/contract/dev_tools/test_task_agent_just_recipes_misc.py",
+        "tests/contract/dev_tools/test_task_agent_just_recipes_prompts.py"
       ],
       "axes": {
         "intent": "route-trace"
@@ -147,22 +151,22 @@
       "command": [
         "./scripts/dev/run_pytest_standalone.sh",
         "-q",
-        "tests/contract/molmo_cleanup/test_household_runtime_contract.py::test_realworld_agent_view_payload_keeps_private_evaluation_out",
-        "tests/contract/molmo_cleanup/test_household_runtime_contract.py::test_realworld_raw_fpv_mode_suppresses_structured_detections",
-        "tests/contract/molmo_cleanup/test_household_runtime_contract.py::test_realworld_camera_model_policy_registers_model_labelled_candidates",
-        "tests/contract/molmo_cleanup/test_household_runtime_contract.py::test_realworld_camera_model_policy_records_sim_pipeline_provenance",
-        "tests/contract/molmo_cleanup/test_household_runtime_contract.py::test_realworld_camera_labels_http_failure_is_visible_without_sim_fallback",
-        "tests/contract/molmo_cleanup/test_household_runtime_contract.py::test_realworld_camera_labels_missing_raw_image_fails_before_sidecar",
-        "tests/contract/molmo_cleanup/test_household_runtime_contract.py::test_realworld_camera_labels_http_success_uses_destination_resolver",
-        "tests/contract/molmo_cleanup/test_household_mcp_server.py::test_realworld_mcp_registered_tools_match_profile_public_surface",
-        "tests/contract/molmo_cleanup/test_household_mcp_server.py::test_agent_sdk_camera_grounded_composite_flag_cannot_expand_entitlement",
-        "tests/contract/molmo_cleanup/test_household_mcp_server.py::test_realworld_mcp_rejects_removed_static_fixture_projection_tool",
+        "tests/contract/molmo_cleanup/test_household_runtime_contract_tools.py::test_realworld_agent_view_payload_keeps_private_evaluation_out",
+        "tests/contract/molmo_cleanup/test_household_runtime_contract_raw_fpv_misc.py::test_realworld_raw_fpv_mode_suppresses_structured_detections",
+        "tests/contract/molmo_cleanup/test_household_runtime_contract_policy.py::test_realworld_camera_model_policy_registers_model_labelled_candidates",
+        "tests/contract/molmo_cleanup/test_household_runtime_contract_policy.py::test_realworld_camera_model_policy_records_sim_pipeline_provenance",
+        "tests/contract/molmo_cleanup/test_household_runtime_contract_camera_labels.py::test_realworld_camera_labels_http_failure_is_visible_without_sim_fallback",
+        "tests/contract/molmo_cleanup/test_household_runtime_contract_camera_labels.py::test_realworld_camera_labels_missing_raw_image_fails_before_sidecar",
+        "tests/contract/molmo_cleanup/test_household_runtime_contract_camera_labels.py::test_realworld_camera_labels_http_success_uses_destination_resolver",
+        "tests/contract/molmo_cleanup/test_household_mcp_server_tools.py::test_realworld_mcp_registered_tools_match_profile_public_surface",
+        "tests/contract/molmo_cleanup/test_household_mcp_server_misc.py::test_agent_sdk_camera_grounded_composite_flag_cannot_expand_entitlement",
+        "tests/contract/molmo_cleanup/test_household_mcp_server_tools.py::test_realworld_mcp_rejects_removed_static_fixture_projection_tool",
         "tests/contract/mcp/test_semantic_profiles.py",
         "tests/unit/molmo_cleanup/test_visual_grounding.py::test_visual_grounding_request_rejects_static_fixture_projection_field",
         "tests/unit/molmo_cleanup/test_visual_grounding.py::test_visual_grounding_request_rejects_private_public_map_hints",
         "tests/unit/molmo_cleanup/test_visual_grounding.py::test_visual_grounding_request_rejects_private_hint_keys",
         "tests/contract/molmo_cleanup/test_physical_agibot_pilot.py::test_agibot_map_build_camera_labels_call_external_grounding",
-        "tests/contract/agibot/test_agibot_map_context_scripts.py::test_vendor_sdk_runner_exports_base_metric_context_generated_candidates"
+        "tests/contract/agibot/test_agibot_map_context_scripts_context.py::test_vendor_sdk_runner_exports_base_metric_context_generated_candidates"
       ],
       "axes": {
         "intent": "agent-view",
@@ -227,8 +231,8 @@
       "command": [
         "./scripts/dev/run_pytest_standalone.sh",
         "-q",
-        "tests/contract/dev_tools/test_task_agent_just_recipes.py::test_surface_open_ended_supports_mcp_smoke_for_local_gate",
-        "tests/contract/molmo_cleanup/test_household_mcp_server.py::test_realworld_mcp_open_ended_intent_is_recorded_in_run_result",
+        "tests/contract/dev_tools/test_task_agent_just_recipes_launch.py::test_surface_open_ended_supports_mcp_smoke_for_local_gate",
+        "tests/contract/molmo_cleanup/test_household_mcp_server_misc.py::test_realworld_mcp_open_ended_intent_is_recorded_in_run_result",
         "tests/contract/checkers/test_cleanup_validation_maps.py::test_checker_allows_open_ended_agent_view_with_no_visible_objects"
       ],
       "axes": {

@@ -2,12 +2,9 @@ from __future__ import annotations
 
 import base64
 import io
-import json
 import subprocess
 import sys
 import threading
-import urllib.error
-import urllib.request
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -20,8 +17,13 @@ from roboclaws.household.visual_grounding import (
     VisualGroundingClientConfig,
     visual_grounding_request,
 )
-from scripts.visual_grounding import adapters
-from scripts.visual_grounding.adapters import visual_grounding_adapter_catalog
+from roboclaws.household.visual_grounding_sidecar import (
+    adapter_errors,
+    adapter_grounding_dino,
+    adapter_runtime,
+    adapter_service,
+    adapter_yolo,
+)
 from scripts.visual_grounding.check_visual_grounding_readiness import (
     _readiness_request,
     check_visual_grounding_readiness,
@@ -41,7 +43,7 @@ def test_model_loader_prefers_complete_local_cache() -> None:
             cls.calls.append(kwargs)
             return object()
 
-    adapters._from_pretrained_local_first(_Factory, "cached-model")
+    adapter_runtime._from_pretrained_local_first(_Factory, "cached-model")
 
     assert _Factory.calls == [{"local_files_only": True}]
 
@@ -57,7 +59,7 @@ def test_model_loader_uses_network_only_when_local_cache_is_missing() -> None:
                 raise OSError("not cached")
             return object()
 
-    adapters._from_pretrained_local_first(_Factory, "uncached-model")
+    adapter_runtime._from_pretrained_local_first(_Factory, "uncached-model")
 
     assert _Factory.calls == [{"local_files_only": True}, {}]
 
@@ -210,12 +212,12 @@ def test_real_mode_dispatches_grounding_dino_adapter(monkeypatch) -> None:
         }
 
     monkeypatch.setattr(
-        adapters,
-        "_grounding_dino_real_response",
+        adapter_grounding_dino,
+        "grounding_dino_real_response",
         fake_grounding_dino_response,
     )
 
-    response = adapters.visual_grounding_service_response(
+    response = adapter_service.visual_grounding_service_response(
         payload=_request("grounding-dino"),
         configured_pipeline_id="grounding-dino",
         adapter_mode="real",
@@ -268,8 +270,8 @@ def test_product_readiness_accepts_real_grounding_dino_sidecar(monkeypatch) -> N
         }
 
     monkeypatch.setattr(
-        adapters,
-        "_grounding_dino_real_response",
+        adapter_grounding_dino,
+        "grounding_dino_real_response",
         fake_grounding_dino_response,
     )
     server = _start_service(pipeline_id="grounding-dino", adapter_mode="real")
@@ -300,16 +302,16 @@ def test_grounding_dino_real_mode_defaults_to_base_recall(monkeypatch) -> None:
         seen["model_id"] = model_id
         seen["requested_device"] = requested_device
         seen["requested_dtype"] = requested_dtype
-        raise adapters.VisualGroundingDeviceError("stop before model inference")
+        raise adapter_errors.VisualGroundingDeviceError("stop before model inference")
 
     monkeypatch.delenv("VISUAL_GROUNDING_DINO_MODEL_ID", raising=False)
     monkeypatch.delenv("VISUAL_GROUNDING_DINO_BOX_THRESHOLD", raising=False)
     monkeypatch.delenv("VISUAL_GROUNDING_DINO_TEXT_THRESHOLD", raising=False)
     monkeypatch.delenv("VISUAL_GROUNDING_DEVICE", raising=False)
     monkeypatch.delenv("VISUAL_GROUNDING_TORCH_DTYPE", raising=False)
-    monkeypatch.setattr(adapters, "_load_grounding_dino", fake_load_grounding_dino)
+    monkeypatch.setattr(adapter_grounding_dino, "_load_grounding_dino", fake_load_grounding_dino)
 
-    response = adapters.visual_grounding_service_response(
+    response = adapter_service.visual_grounding_service_response(
         payload=_request("grounding-dino", image=_jpeg_image_payload()),
         configured_pipeline_id="grounding-dino",
         adapter_mode="real",
@@ -336,9 +338,9 @@ def test_real_mode_reports_grounding_dino_missing_dependency(monkeypatch) -> Non
     ) -> tuple[Any, Any, Any, dict[str, Any]]:
         raise ImportError("missing sidecar deps")
 
-    monkeypatch.setattr(adapters, "_load_grounding_dino", missing_grounding_dino)
+    monkeypatch.setattr(adapter_grounding_dino, "_load_grounding_dino", missing_grounding_dino)
 
-    response = adapters.visual_grounding_service_response(
+    response = adapter_service.visual_grounding_service_response(
         payload=_request("grounding-dino", image=_jpeg_image_payload()),
         configured_pipeline_id="grounding-dino",
         adapter_mode="real",
@@ -362,9 +364,9 @@ def test_real_mode_reports_grounding_dino_device_unavailable(monkeypatch) -> Non
         assert model_id == "IDEA-Research/grounding-dino-base"
         assert requested_device == "cuda"
         assert requested_dtype == "float16"
-        raise adapters.VisualGroundingDeviceError("cuda unavailable")
+        raise adapter_errors.VisualGroundingDeviceError("cuda unavailable")
 
-    monkeypatch.setattr(adapters, "_load_grounding_dino", cuda_unavailable)
+    monkeypatch.setattr(adapter_grounding_dino, "_load_grounding_dino", cuda_unavailable)
     request = _request("grounding-dino", image=_jpeg_image_payload())
     request["pipeline_request"]["proposer"]["runtime_parameters"] = {
         "device": "cuda",
@@ -373,7 +375,7 @@ def test_real_mode_reports_grounding_dino_device_unavailable(monkeypatch) -> Non
         "text_threshold": 0.2,
     }
 
-    response = adapters.visual_grounding_service_response(
+    response = adapter_service.visual_grounding_service_response(
         payload=request,
         configured_pipeline_id="grounding-dino",
         adapter_mode="real",
@@ -397,13 +399,13 @@ def test_real_mode_rejects_malformed_request_runtime_parameter(monkeypatch) -> N
     ) -> tuple[Any, Any, Any, dict[str, Any]]:
         raise AssertionError("invalid runtime parameters should fail before model loading")
 
-    monkeypatch.setattr(adapters, "_load_grounding_dino", should_not_load_model)
+    monkeypatch.setattr(adapter_grounding_dino, "_load_grounding_dino", should_not_load_model)
     request = _request("grounding-dino", image=_jpeg_image_payload())
     request["pipeline_request"]["proposer"]["runtime_parameters"] = {
         "box_threshold": "not-a-number",
     }
 
-    response = adapters.visual_grounding_service_response(
+    response = adapter_service.visual_grounding_service_response(
         payload=request,
         configured_pipeline_id="grounding-dino",
         adapter_mode="real",
@@ -419,7 +421,7 @@ def test_real_mode_rejects_malformed_request_runtime_parameter(monkeypatch) -> N
     )
 
     request["pipeline_request"]["proposer"]["runtime_parameters"] = {"box_threshold": True}
-    response = adapters.visual_grounding_service_response(
+    response = adapter_service.visual_grounding_service_response(
         payload=request,
         configured_pipeline_id="grounding-dino",
         adapter_mode="real",
@@ -439,9 +441,9 @@ def test_real_mode_rejects_malformed_env_runtime_parameter(monkeypatch) -> None:
         raise AssertionError(f"invalid runtime env should fail before loading {producer_id} model")
 
     monkeypatch.setenv("VISUAL_GROUNDING_YOLO_IMAGE_SIZE", "wide")
-    monkeypatch.setattr(adapters, "_load_yolo_model", should_not_load_model)
+    monkeypatch.setattr(adapter_yolo, "_load_yolo_model", should_not_load_model)
 
-    response = adapters.visual_grounding_service_response(
+    response = adapter_service.visual_grounding_service_response(
         payload=_request("yolo-world", image=_jpeg_image_payload()),
         configured_pipeline_id="yolo-world",
         adapter_mode="real",
@@ -452,308 +454,6 @@ def test_real_mode_rejects_malformed_env_runtime_parameter(monkeypatch) -> None:
     assert response["error"]["reason"] == "invalid_runtime_parameter"
     assert "VISUAL_GROUNDING_YOLO_IMAGE_SIZE" in response["error"]["message"]
     assert response["pipeline"]["stages"][0]["status"] == "invalid_runtime_parameter"
-
-
-def test_real_mode_dispatches_yolo_world_through_standard_yolo_loader(monkeypatch) -> None:
-    seen: dict[str, str] = {}
-
-    class FakeBoxes:
-        xyxy = [[1, 2, 7, 6]]
-        conf = [0.72]
-        cls = [0]
-
-    class FakeResult:
-        boxes = FakeBoxes()
-        names = {0: "dish"}
-
-    class FakeModel:
-        def predict(self, *, source: str, conf: float, verbose: bool) -> list[FakeResult]:
-            assert source.endswith(".jpg")
-            assert conf > 0
-            assert verbose is False
-            return [FakeResult()]
-
-    def fake_yolo_loader(model_id: str, *, producer_id: str) -> FakeModel:
-        seen["model_id"] = model_id
-        seen["producer_id"] = producer_id
-        return FakeModel()
-
-    monkeypatch.setattr(adapters, "_load_yolo_model", fake_yolo_loader)
-
-    response = adapters.visual_grounding_service_response(
-        payload=_request("yolo-world", image=_jpeg_image_payload()),
-        configured_pipeline_id="yolo-world",
-        adapter_mode="real",
-        latency_ms=1,
-    )
-
-    assert response["status"] == "ok"
-    assert seen["producer_id"] == "yolo-world"
-    assert response["pipeline"]["stages"][0]["producer_id"] == "yolo-world"
-    assert response["candidates"][0]["category"] == "dish"
-    assert response["diagnostics"]["diagnostic_mode"] == "real_yolo-world"
-
-
-def test_real_mode_dispatches_omdet_turbo_adapter(monkeypatch) -> None:
-    seen: dict[str, Any] = {}
-
-    class FakeInputs(dict):
-        input_ids = [[1]]
-
-        def to(self, device: str) -> "FakeInputs":
-            seen["device"] = device
-            return self
-
-    class FakeProcessor:
-        def __call__(
-            self,
-            *,
-            images: Image.Image,
-            text: list[str],
-            task: str,
-            return_tensors: str,
-        ) -> FakeInputs:
-            assert images.size == (10, 10)
-            assert text == ["a dish", "a book", "a toy"]
-            assert task.startswith("Detect")
-            assert return_tensors == "pt"
-            seen["text"] = text
-            return FakeInputs(pixel_values="fake")
-
-        def post_process_grounded_object_detection(
-            self,
-            outputs: Any,
-            *,
-            text_labels: list[str],
-            threshold: float,
-            nms_threshold: float,
-            target_sizes: list[tuple[int, int]],
-            max_num_det: int | None,
-        ) -> list[dict[str, Any]]:
-            assert outputs == {"fake": "outputs"}
-            assert text_labels == ["a dish", "a book", "a toy"]
-            assert threshold == 0.2
-            assert nms_threshold == 0.4
-            assert target_sizes == [(10, 10)]
-            assert max_num_det == 6
-            return [
-                {
-                    "boxes": [[1, 2, 7, 6]],
-                    "scores": [0.73],
-                    "text_labels": ["a dish"],
-                }
-            ]
-
-    class FakeModel:
-        def __call__(self, **inputs: Any) -> dict[str, str]:
-            assert inputs == {"pixel_values": "fake"}
-            return {"fake": "outputs"}
-
-    class FakeTorch:
-        class _NoGrad:
-            def __enter__(self) -> None:
-                return None
-
-            def __exit__(self, *_args: Any) -> None:
-                return None
-
-        def no_grad(self) -> "FakeTorch._NoGrad":
-            return self._NoGrad()
-
-    def fake_load_omdet(
-        model_id: str,
-        requested_device: str,
-        requested_dtype: str,
-    ) -> tuple[FakeProcessor, FakeModel, FakeTorch, dict[str, Any]]:
-        seen["model_id"] = model_id
-        seen["requested_device"] = requested_device
-        seen["requested_dtype"] = requested_dtype
-        return (
-            FakeProcessor(),
-            FakeModel(),
-            FakeTorch(),
-            {"device": "cpu", "dtype": "auto", "model_id": model_id},
-        )
-
-    monkeypatch.setattr(adapters, "_load_omdet_turbo", fake_load_omdet)
-    request = _request("omdet-turbo", image=_jpeg_image_payload())
-    request["pipeline_request"]["proposer"]["runtime_parameters"] = {
-        "confidence_threshold": 0.2,
-        "nms_threshold": 0.4,
-        "max_detections": 6,
-        "device": "cpu",
-        "torch_dtype": "auto",
-    }
-
-    response = adapters.visual_grounding_service_response(
-        payload=request,
-        configured_pipeline_id="omdet-turbo",
-        adapter_mode="real",
-        latency_ms=1,
-    )
-
-    assert response["status"] == "ok"
-    assert seen["model_id"] == "omlab/omdet-turbo-swin-tiny-hf"
-    assert seen["requested_device"] == "cpu"
-    assert response["pipeline"]["stages"][0]["producer_id"] == "omdet-turbo"
-    assert response["pipeline"]["stages"][0]["runtime_parameters"]["confidence_threshold"] == 0.2
-    assert response["candidates"][0]["category"] == "dish"
-    assert response["diagnostics"]["diagnostic_mode"] == "real_omdet-turbo"
-
-
-def test_real_mode_qwen_direct_is_retired_without_fake_success() -> None:
-    response = adapters.visual_grounding_service_response(
-        payload=_request("qwen3-vl-direct", image=_jpeg_image_payload()),
-        configured_pipeline_id="qwen3-vl-direct",
-        adapter_mode="real",
-        latency_ms=1,
-    )
-
-    assert response["status"] == "failed"
-    assert response["error"]["reason"] == "adapter_unavailable"
-    assert response["candidates"] == []
-    assert response["pipeline"]["stages"][0]["stage"] == "proposer"
-    assert response["pipeline"]["stages"][0]["producer_id"] == "qwen3-vl-direct"
-    assert response["diagnostics"]["required_adapters"][0]["producer_id"] == "qwen3-vl-direct"
-
-
-def test_real_adapter_bbox_normalization_and_destination_hint() -> None:
-    request = _request("grounding-dino")
-    candidate = adapters._candidate_from_xyxy(  # noqa: SLF001
-        payload=request,
-        image=_tiny_image(),
-        category="dish",
-        xyxy=[1, 2, 7, 6],
-        confidence=1.2,
-        evidence_note="unit probe",
-    )
-
-    assert candidate is not None
-    assert candidate["image_region"] == {"type": "bbox", "value": [0.1, 0.2, 0.6, 0.4]}
-    assert candidate["confidence"] == 1.0
-    assert candidate["destination_hint"]["candidate_fixture_id"] == "sink_01"
-
-
-def test_configurable_service_rejects_pipeline_mismatch() -> None:
-    server = _start_service(pipeline_id="grounding-dino", adapter_mode="auto")
-    try:
-        response = _client("yoloe", server).request_candidates(_request("yoloe"))
-    finally:
-        server.shutdown()
-        server.server_close()
-
-    assert response["status"] == "failed"
-    assert response["error"]["reason"] == "pipeline_mismatch"
-    assert response["candidates"] == []
-
-
-def test_configurable_service_rejects_non_object_request_before_dispatch() -> None:
-    server = _start_service(pipeline_id="grounding-dino", adapter_mode="auto")
-    try:
-        request = urllib.request.Request(
-            f"http://127.0.0.1:{server.server_port}/v1/visual-grounding/candidates",
-            data=b"[]",
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(request, timeout=2) as response:
-            payload = response.read()
-    except urllib.error.HTTPError as exc:
-        assert exc.code == 400
-        payload = exc.read()
-    finally:
-        server.shutdown()
-        server.server_close()
-
-    response = json.loads(payload.decode("utf-8"))
-    assert response["status"] == "failed"
-    assert response["error"]["reason"] == "bad_request"
-    assert response["candidates"] == []
-    assert (
-        response["error"]["message"]
-        == "visual grounding HTTP request source must contain a JSON object: "
-        "POST /v1/visual-grounding/candidates"
-    )
-
-
-def test_adapter_catalog_lists_real_adapter_slots_without_private_truth() -> None:
-    catalog = visual_grounding_adapter_catalog()
-
-    assert catalog["schema"] == "visual_grounding_adapter_catalog_v1"
-    assert "real" in catalog["adapter_modes"]
-    assert catalog["private_truth_included"] is False
-    by_id = {item["producer_id"]: item for item in catalog["adapters"]}
-    assert "yolo-custom" not in by_id
-    assert "fake-http" not in by_id
-    assert "contract-fake" not in by_id
-    assert by_id["grounding-dino"]["optional_extra"] == "visual-grounding-dino"
-    assert by_id["grounding-dino"]["runtime"]["status"] in {
-        "missing_dependency",
-        "dependency_ready_model_unverified",
-    }
-    assert {item["name"] for item in by_id["grounding-dino"]["runtime"]["checks"]} == {
-        "torch",
-        "transformers",
-    }
-    assert by_id["yoloe"]["optional_extra"] == "visual-grounding-yoloe"
-    assert {item["name"] for item in by_id["yoloe"]["runtime"]["checks"]} == {"ultralytics"}
-    assert by_id["yolo-world"]["optional_extra"] == "visual-grounding-yolo-world"
-    assert {item["name"] for item in by_id["yolo-world"]["runtime"]["checks"]} == {"ultralytics"}
-    assert by_id["omdet-turbo"]["optional_extra"] == "visual-grounding-omdet"
-    assert {item["name"] for item in by_id["omdet-turbo"]["runtime"]["checks"]} == {
-        "torch",
-        "transformers",
-    }
-    for retired in {
-        "retired-vlm",
-        "qwen3-vl",
-        "retired-vlm-qualified",
-        "vertex_ai/gemini-3.1-flash-lite-preview",
-        "vertex_ai/gemini-3-flash-preview",
-        "tongyi/qwen3-vl-flash",
-        "tongyi/qwen3-vl-plus",
-        "siliconflow/Qwen/Qwen3-VL-8B-Instruct",
-    }:
-        assert retired not in by_id
-    assert "authorization" not in json.dumps(catalog).lower()
-    assert "secret-provider-key" not in json.dumps(catalog)
-
-
-def test_dependency_metadata_does_not_expose_retired_qwen_vlm_extra() -> None:
-    root_pyproject = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
-    sidecar_pyproject = (REPO_ROOT / "sidecars" / "visual-grounding" / "pyproject.toml").read_text(
-        encoding="utf-8"
-    )
-
-    for text in (root_pyproject, sidecar_pyproject):
-        assert "qwen3vl" not in text.lower()
-        assert "qwen-vl-utils" not in text
-
-
-def test_configurable_service_lists_adapter_catalog_cli() -> None:
-    result = subprocess.run(
-        [sys.executable, str(SERVICE_SCRIPT), "--list-adapters"],
-        cwd=REPO_ROOT,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-    catalog = json.loads(result.stdout)
-    assert catalog["schema"] == "visual_grounding_adapter_catalog_v1"
-    assert {item["producer_id"] for item in catalog["adapters"]} == {
-        "grounding-dino",
-        "yoloe",
-        "yolo-world",
-        "omdet-turbo",
-    }
-    assert "yolo-custom" not in {item["producer_id"] for item in catalog["adapters"]}
-    by_id = {item["producer_id"]: item for item in catalog["adapters"]}
-    assert "runtime" in by_id["grounding-dino"]
-    assert "retired-vlm" not in by_id
-    assert "qwen3-vl" not in by_id
-    assert "authorization" not in result.stdout.lower()
-    assert "secret-provider-key" not in result.stdout
 
 
 def _start_service(*, pipeline_id: str, adapter_mode: str) -> ThreadingHTTPServer:

@@ -11,7 +11,7 @@ import pytest
 from PIL import Image
 
 from roboclaws.backends.isaaclab.b1_base_metric_augmentation import augment_base_metric_map_bundle
-from roboclaws.backends.isaaclab.b1_readiness import (
+from roboclaws.backends.isaaclab.b1_readiness_validation import (
     DEFAULT_B1_VISUAL_ROUTE_SCENE_USD,
     NAVIGATION_PROVENANCE,
 )

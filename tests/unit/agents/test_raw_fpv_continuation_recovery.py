@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from roboclaws.agents.household_live_runner import (
+from roboclaws.agents.household_live_continuation import (
     IncompleteTurnRecoveryPolicy,
     _compact_continuation_prompt,
     _compact_continuation_state,

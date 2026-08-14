@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.household.household_world_episode import _load_runtime_map_prior
+from roboclaws.household.household_episode_prior_policy import _load_runtime_map_prior
 
 
 def test_runtime_map_prior_loader_rejects_missing_source(tmp_path: Path) -> None:

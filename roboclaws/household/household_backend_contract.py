@@ -16,7 +16,7 @@ from roboclaws.household.isaac_lab_backend import (
     IsaacLabSubprocessBackend,
 )
 from roboclaws.household.scenario import build_cleanup_scenario
-from roboclaws.household.semantic_timeline import (
+from roboclaws.household.semantic_camera_timeline import (
     record_robot_view_step as _record_robot_view_step,
 )
 from roboclaws.household.subprocess_backend import (

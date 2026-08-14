@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.isaac_lab_cleanup import prepare_molmospaces_flattened_semantic_usd as prepare
+from roboclaws.backends.isaaclab import molmospaces_semantic_labels as prepare
 
 
 def test_flattened_semantic_usd_scene_metadata_loader_returns_objects(

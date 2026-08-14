@@ -120,7 +120,7 @@ just molmo::status
 just molmo::status output/household/household-world/open-ended/openai-agents-live-world-public-labels/seed-7
 ```
 
-The probe summarizes elapsed time, MCP tool progress, and
+The package-owned SDK status probe summarizes elapsed time, MCP tool progress, and
 `run_result.json` / `report.html` readiness when those artifacts exist. Each
 visual run owns its requested MCP port and backend slot; if the port is already
 accepting connections, the launcher fails instead of choosing another port.

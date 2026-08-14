@@ -54,6 +54,11 @@ source/frame/digest validation now have direct map owners. The 186 focused
 planner/proof/runtime-prior contracts and static ratchets pass at 389 modules /
 1,165 edges with zero SCCs or forbidden edges, and oversized Python modules
 decrease to 52.
+Nineteen oversized retained test owners are now split by behavior with exact
+998-test identity; all moved tests pass, no test module remains at or above
+1,000 lines, and oversized Python modules decrease to 38. Current Just, eval,
+and marker node IDs use the new owners. Real Chromium proves scene-preview
+loading and server-owned Agibot context readiness without console errors.
 The migration preserves public launch, artifact, privacy, provider, simulator,
 and operator behavior while removing dependency cycles, retiring completed
 investigation surfaces, moving product subsystems out of scripts, and splitting
@@ -138,8 +143,8 @@ providers.
 
 ## Next Action
 
-Continue Wave 6 with retained test/support cleanup and wave-level product and
-partition verification. The
+Complete Wave 6 product and partition verification, then execute Wave 7
+telemetry, status, and final cleanup. The
 refreshed immutable candidate remains unmodified; publication remains
 unauthorized and separate from this campaign.
 

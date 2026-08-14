@@ -48,11 +48,11 @@ from roboclaws.household.profiles import (
 )
 from roboclaws.household.report import render_cleanup_report
 from roboclaws.household.report_snapshots import write_trace_jsonl
+from roboclaws.household.semantic_camera_timeline import robot_view_camera_control_summary
 from roboclaws.household.semantic_timeline import (
     ROBOT_VIEW_VARIANT,
     SEMANTIC_LOOP_VARIANT,
     primitive_provenance_counts,
-    robot_view_camera_control_summary,
     semantic_substeps,
 )
 from roboclaws.household.types import CleanupScenario

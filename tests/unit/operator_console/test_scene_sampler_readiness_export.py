@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 
+from roboclaws.worlds.molmospaces import readiness as scene_sampler_readiness
 from roboclaws.worlds.molmospaces import sampling as scene_sampler
 from scripts.operator_console.export_scene_sampler_readiness import (
     _candidate_indices,
@@ -28,7 +29,7 @@ def isolate_scanner_output(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> N
         scanner_root / "product-smoke",
     )
     monkeypatch.setattr(
-        scene_sampler,
+        scene_sampler_readiness,
         "_molmospaces_module_status",
         lambda: (False, "module_not_importable:molmo_spaces", ""),
     )

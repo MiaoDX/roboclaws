@@ -13,13 +13,14 @@ LOCAL_ASSET_MODULES = {
     "test_b1_map12_correspondence_review_cli.py",
     "test_b1_map12_label_tool.py",
     "test_b1_map12_manual_alignment_overlay_cli.py",
-    "test_b1_map12_verified_alignment.py",
     "test_b1_scene_topdown_diagnostic.py",
     "test_molmospaces_source_pin.py",
 }
 
+LOCAL_ASSET_MODULE_PREFIXES = ("test_b1_map12_verified_alignment_",)
+
 LOCAL_ASSET_TESTS = {
-    "test_agibot_map_context_scripts.py": {
+    "test_agibot_map_context_scripts_misc.py": {
         "test_agibot_nav_json_artifact_source_rejects_invalid_payloads",
         "test_agibot_nav_raw_map_source_rejects_malformed_gzip_json",
         "test_agibot_nav_raw_map_source_rejects_non_object_gzip_json",
@@ -48,11 +49,14 @@ LOCAL_ASSET_TESTS = {
 
 SLOW_MODULES = {
     # CI-safe but too expensive for commit-time scoped hooks.
-    "test_isaac_lab_backend.py",
     "test_molmospaces_realworld_cleanup.py",
-    "test_household_runtime_contract.py",
-    "test_household_mcp_server.py",
 }
+
+SLOW_MODULE_PREFIXES = (
+    "test_household_mcp_server_",
+    "test_isaac_lab_backend_",
+    "test_household_runtime_contract_",
+)
 
 SLOW_TESTS = {
     "test_molmo_mcp_smoke_shared_semantic_loop.py": {
@@ -103,7 +107,7 @@ def _layer_for_item(item: pytest.Item) -> str:
     filename = path.name
     stem = filename.removeprefix("test_").removesuffix(".py")
 
-    if filename in LOCAL_ASSET_MODULES:
+    if filename in LOCAL_ASSET_MODULES or filename.startswith(LOCAL_ASSET_MODULE_PREFIXES):
         return "local"
     if item.name.split("[", 1)[0] in LOCAL_ASSET_TESTS.get(filename, set()):
         return "local"
@@ -127,6 +131,6 @@ def _directory_layer(item: pytest.Item, path: Path) -> str:
 
 def _is_slow_item(item: pytest.Item) -> bool:
     filename = Path(str(item.path)).name
-    if filename in SLOW_MODULES:
+    if filename in SLOW_MODULES or filename.startswith(SLOW_MODULE_PREFIXES):
         return True
     return item.name.split("[", 1)[0] in SLOW_TESTS.get(filename, set())

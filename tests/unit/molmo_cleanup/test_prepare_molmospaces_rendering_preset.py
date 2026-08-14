@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from scripts.isaac_lab_cleanup.prepare_molmospaces_flattened_semantic_usd import (
+from roboclaws.backends.isaaclab.molmospaces_rendering_parity import (
     COMBINED_MATERIAL_LIGHT_ROTATE_X_DEG,
     _default_rendering_path_status,
     _rendering_parity_preset,
