@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import os
 import sys
 from collections.abc import Sequence
 
 from roboclaws.cli.agent_common import _die, _exec_or_trace, _strip_prefixes
-from roboclaws.cli.agent_run import agent_run
 
 VERIFY_TARGETS = {
     "static",
@@ -46,10 +44,8 @@ HARNESS_TARGETS = {
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     if not args:
-        _die("expected agent subcommand: run | verify | harness | mcp | gateway")
+        _die("expected agent subcommand: verify | harness | mcp | gateway")
     command, rest = args[0], args[1:]
-    if command == "run":
-        return agent_run(rest)
     if command == "verify":
         return _dispatch_named_target(
             rest,
@@ -70,9 +66,6 @@ def main(argv: list[str] | None = None) -> int:
         return _mcp(rest)
     if command == "gateway":
         return _gateway(rest)
-    if command == "eval":
-        python_bin = os.environ.get("ROBOCLAWS_DEVTOOLS_PYTHON") or ".venv/bin/python"
-        return _exec_or_trace([python_bin, "-m", "roboclaws.cli.main", "eval", *rest])
     _die(f"unsupported agent subcommand {command!r}")
 
 

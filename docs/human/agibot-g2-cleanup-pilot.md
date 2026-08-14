@@ -86,7 +86,7 @@ PNC、真实相机或 DINO。
 ```bash
 OPEN_EVIDENCE_REFRESH_PROMPT='基于当前已有 Runtime Metric Map，自主选择 3 个最值得复核的 public semantic anchor 或 inspection waypoint，依次导航过去观察。优先选择 actionability=actionable、needs_review、costmap_disagrees 或缺少当前画面证据的目标；如果目标不可达或证据不清楚，跳过并记录原因。最后调用 done，总结你选择了哪里、为什么选择、每个点看到什么、哪些点被跳过。'
 
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=map-build agent_engine=direct-runner evidence_lane=camera-grounded-labels \
+just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=map-build agent_engine=direct-runner evidence_lane=camera-grounded-labels \
   runtime=fixture \
   rehearsal_mode=contract \
   camera_labeler=grounding-dino \
@@ -337,7 +337,7 @@ output/agibot/map-build-hardware/<stamp>/seed-7/
 ## HTML control console
 
 可以和 HTML control console 结合。console 仍然走同一个 public selection：
-`surface=household-world world=agibot-g2/map-12 backend=agibot-gdk preset=map-build agent_engine=openai-agents-sdk evidence_lane=camera-grounded-labels`。
+`surface=household-world world=agibot-g2/map-12 backend=agibot-gdk preset=map-build agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=camera-grounded-labels`。
 
 启动 console：
 

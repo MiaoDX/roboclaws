@@ -48,8 +48,8 @@ Current public examples:
 
 ```bash
 just run::surface surface=household-world agent_engine=direct-runner preset=map-build evidence_lane=camera-grounded-labels camera_labeler=grounding-dino
-just run::surface surface=household-world agent_engine=openai-agents-sdk preset=cleanup evidence_lane=world-public-labels
-just run::surface surface=household-world agent_engine=openai-agents-sdk prompt="find something useful to drink"
+just run::surface surface=household-world agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat preset=cleanup evidence_lane=world-public-labels
+just run::surface surface=household-world agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat prompt="find something useful to drink"
 just agent::verify ci-required
 ```
 

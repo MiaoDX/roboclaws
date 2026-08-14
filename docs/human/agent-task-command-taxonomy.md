@@ -31,7 +31,7 @@ Current household backend ids are world-scoped, not a cross product:
 - `agibot-gdk` for `world=agibot-g2/map-12`
 
 MolmoSpaces + Isaac is retired from active command support.
-The default household world remains `molmospaces/val_0`; additional
+The default household world remains `molmospaces/procthor-10k-val/0`; additional
 source-aware MolmoSpaces world ids can be catalog/admission rows rather than
 new public surfaces.
 
@@ -53,7 +53,6 @@ user-scoped cleanup request.
 `agent::*` is the compact maintainer facade:
 
 ```bash
-just agent::run <dispatch-target> <agent-engine> [evidence-lane|mode] [key=value ...]
 just agent::verify <target> [args ...]
 just agent::harness <target> [args ...]
 just agent::eval recommend|execute|suite=<suite>|promote-regression ...

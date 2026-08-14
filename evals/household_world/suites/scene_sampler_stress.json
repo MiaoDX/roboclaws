@@ -20,7 +20,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-0-fpv.png",
@@ -59,7 +58,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-1-fpv.png",
@@ -98,7 +96,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-2-fpv.png",
@@ -137,7 +134,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-3-fpv.png",
@@ -176,7 +172,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-4-fpv.png",
@@ -215,7 +210,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-5-fpv.png",
@@ -254,7 +248,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-6-fpv.png",
@@ -293,7 +286,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-7-fpv.png",
@@ -332,7 +324,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-8-fpv.png",
@@ -371,7 +362,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-9-fpv.png",
@@ -410,7 +400,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-10-fpv.png",
@@ -449,7 +438,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-11-fpv.png",
@@ -488,7 +476,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-12-fpv.png",
@@ -527,7 +514,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-13-fpv.png",
@@ -566,7 +552,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-14-fpv.png",
@@ -605,7 +590,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-15-fpv.png",
@@ -644,7 +628,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-16-fpv.png",
@@ -683,7 +666,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-17-fpv.png",
@@ -722,7 +704,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-18-fpv.png",
@@ -761,7 +742,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-19-fpv.png",
@@ -800,7 +780,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-22-fpv.png",
@@ -839,7 +818,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-25-fpv.png",
@@ -878,7 +856,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-26-fpv.png",
@@ -917,7 +894,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-27-fpv.png",
@@ -956,7 +932,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-29-fpv.png",
@@ -995,7 +970,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-30-fpv.png",
@@ -1034,7 +1008,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-33-fpv.png",
@@ -1073,7 +1046,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-36-fpv.png",
@@ -1112,7 +1084,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-38-fpv.png",
@@ -1151,7 +1122,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-39-fpv.png",
@@ -1190,7 +1160,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-44-fpv.png",
@@ -1229,7 +1198,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-47-fpv.png",
@@ -1268,7 +1236,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-48-fpv.png",
@@ -1307,7 +1274,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-52-fpv.png",
@@ -1346,7 +1312,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-53-fpv.png",
@@ -1385,7 +1350,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-62-fpv.png",
@@ -1424,7 +1388,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-63-fpv.png",
@@ -1463,7 +1426,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-67-fpv.png",
@@ -1502,7 +1464,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-71-fpv.png",
@@ -1541,7 +1502,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-76-fpv.png",
@@ -1580,7 +1540,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-77-fpv.png",
@@ -1619,7 +1578,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-81-fpv.png",
@@ -1658,7 +1616,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-87-fpv.png",
@@ -1697,7 +1654,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-94-fpv.png",
@@ -1736,7 +1692,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-95-fpv.png",
@@ -1775,7 +1730,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-99-fpv.png",
@@ -1814,7 +1768,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-101-fpv.png",
@@ -1853,7 +1806,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-106-fpv.png",
@@ -1892,7 +1844,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-107-fpv.png",
@@ -1931,7 +1882,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-108-fpv.png",
@@ -1970,7 +1920,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-110-fpv.png",
@@ -2009,7 +1958,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-111-fpv.png",
@@ -2048,7 +1996,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-113-fpv.png",
@@ -2087,7 +2034,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-114-fpv.png",
@@ -2126,7 +2072,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-115-fpv.png",
@@ -2165,7 +2110,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-116-fpv.png",
@@ -2204,7 +2148,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-124-fpv.png",
@@ -2243,7 +2186,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-127-fpv.png",
@@ -2282,7 +2224,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-132-fpv.png",
@@ -2321,7 +2262,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-138-fpv.png",
@@ -2360,7 +2300,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-139-fpv.png",
@@ -2399,7 +2338,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-143-fpv.png",
@@ -2438,7 +2376,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-145-fpv.png",
@@ -2477,7 +2414,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-146-fpv.png",
@@ -2516,7 +2452,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-148-fpv.png",
@@ -2555,7 +2490,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-150-fpv.png",
@@ -2594,7 +2528,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-151-fpv.png",
@@ -2633,7 +2566,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-157-fpv.png",
@@ -2672,7 +2604,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-162-fpv.png",
@@ -2711,7 +2642,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-167-fpv.png",
@@ -2750,7 +2680,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-170-fpv.png",
@@ -2789,7 +2718,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-171-fpv.png",
@@ -2828,7 +2756,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-173-fpv.png",
@@ -2867,7 +2794,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-175-fpv.png",
@@ -2906,7 +2832,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-176-fpv.png",
@@ -2945,7 +2870,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-179-fpv.png",
@@ -2984,7 +2908,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-180-fpv.png",
@@ -3023,7 +2946,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-181-fpv.png",
@@ -3062,7 +2984,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-182-fpv.png",
@@ -3101,7 +3022,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-183-fpv.png",
@@ -3140,7 +3060,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-186-fpv.png",
@@ -3179,7 +3098,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-188-fpv.png",
@@ -3218,7 +3136,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-191-fpv.png",
@@ -3257,7 +3174,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-195-fpv.png",
@@ -3296,7 +3212,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-197-fpv.png",
@@ -3335,7 +3250,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-198-fpv.png",
@@ -3374,7 +3288,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-199-fpv.png",
@@ -3413,7 +3326,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-201-fpv.png",
@@ -3452,7 +3364,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-207-fpv.png",
@@ -3491,7 +3402,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-209-fpv.png",
@@ -3530,7 +3440,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-212-fpv.png",
@@ -3569,7 +3478,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-215-fpv.png",
@@ -3608,7 +3516,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-216-fpv.png",
@@ -3647,7 +3554,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-221-fpv.png",
@@ -3686,7 +3592,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-225-fpv.png",
@@ -3725,7 +3630,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-228-fpv.png",
@@ -3764,7 +3668,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-230-fpv.png",
@@ -3803,7 +3706,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-231-fpv.png",
@@ -3842,7 +3744,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-237-fpv.png",
@@ -3881,7 +3782,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-238-fpv.png",
@@ -3920,7 +3820,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-243-fpv.png",
@@ -3959,7 +3858,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-246-fpv.png",
@@ -3998,7 +3896,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-247-fpv.png",
@@ -4037,7 +3934,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-248-fpv.png",
@@ -4076,7 +3972,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-253-fpv.png",
@@ -4115,7 +4010,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-256-fpv.png",
@@ -4154,7 +4048,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-258-fpv.png",
@@ -4193,7 +4086,6 @@
               "failure_class": "environment_blocked",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-261-fpv.png",
@@ -4232,7 +4124,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-263-fpv.png",
@@ -4271,7 +4162,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-266-fpv.png",
@@ -4310,7 +4200,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-268-fpv.png",
@@ -4349,7 +4238,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-272-fpv.png",
@@ -4388,7 +4276,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-273-fpv.png",
@@ -4427,7 +4314,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-274-fpv.png",
@@ -4466,7 +4352,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-275-fpv.png",
@@ -4505,7 +4390,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-279-fpv.png",
@@ -4544,7 +4428,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-280-fpv.png",
@@ -4583,7 +4466,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-285-fpv.png",
@@ -4622,7 +4504,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-290-fpv.png",
@@ -4661,7 +4542,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-291-fpv.png",
@@ -4700,7 +4580,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-292-fpv.png",
@@ -4739,7 +4618,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-296-fpv.png",
@@ -4778,7 +4656,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-299-fpv.png",
@@ -4817,7 +4694,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-300-fpv.png",
@@ -4856,7 +4732,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-301-fpv.png",
@@ -4895,7 +4770,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-302-fpv.png",
@@ -4934,7 +4808,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-305-fpv.png",
@@ -4973,7 +4846,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-307-fpv.png",
@@ -5012,7 +4884,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-313-fpv.png",
@@ -5051,7 +4922,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-314-fpv.png",
@@ -5090,7 +4960,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-317-fpv.png",
@@ -5129,7 +4998,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-318-fpv.png",
@@ -5168,7 +5036,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-322-fpv.png",
@@ -5207,7 +5074,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-323-fpv.png",
@@ -5246,7 +5112,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-325-fpv.png",
@@ -5285,7 +5150,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-330-fpv.png",
@@ -5324,7 +5188,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-333-fpv.png",
@@ -5363,7 +5226,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-335-fpv.png",
@@ -5402,7 +5264,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-337-fpv.png",
@@ -5441,7 +5302,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-338-fpv.png",
@@ -5480,7 +5340,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-340-fpv.png",
@@ -5519,7 +5378,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-344-fpv.png",
@@ -5558,7 +5416,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-345-fpv.png",
@@ -5597,7 +5454,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-349-fpv.png",
@@ -5636,7 +5492,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-350-fpv.png",
@@ -5675,7 +5530,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-354-fpv.png",
@@ -5714,7 +5568,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-356-fpv.png",
@@ -5753,7 +5606,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-358-fpv.png",
@@ -5792,7 +5644,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-360-fpv.png",
@@ -5831,7 +5682,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-362-fpv.png",
@@ -5870,7 +5720,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-363-fpv.png",
@@ -5909,7 +5758,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-365-fpv.png",
@@ -5948,7 +5796,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-367-fpv.png",
@@ -5987,7 +5834,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-371-fpv.png",
@@ -6026,7 +5872,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-374-fpv.png",
@@ -6065,7 +5910,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-377-fpv.png",
@@ -6104,7 +5948,6 @@
               "failure_class": "environment_blocked",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-381-fpv.png",
@@ -6143,7 +5986,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-385-fpv.png",
@@ -6182,7 +6024,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-386-fpv.png",
@@ -6221,7 +6062,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-387-fpv.png",
@@ -6260,7 +6100,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-390-fpv.png",
@@ -6299,7 +6138,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-391-fpv.png",
@@ -6338,7 +6176,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-395-fpv.png",
@@ -6377,7 +6214,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-396-fpv.png",
@@ -6416,7 +6252,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-397-fpv.png",
@@ -6455,7 +6290,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-398-fpv.png",
@@ -6494,7 +6328,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-399-fpv.png",
@@ -6533,7 +6366,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-400-fpv.png",
@@ -6572,7 +6404,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-401-fpv.png",
@@ -6611,7 +6442,6 @@
               "failure_class": "environment_blocked",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-403-fpv.png",
@@ -6650,7 +6480,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-406-fpv.png",
@@ -6689,7 +6518,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-418-fpv.png",
@@ -6728,7 +6556,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-421-fpv.png",
@@ -6767,7 +6594,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-422-fpv.png",
@@ -6806,7 +6632,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-424-fpv.png",
@@ -6845,7 +6670,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-425-fpv.png",
@@ -6884,7 +6708,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-428-fpv.png",
@@ -6923,7 +6746,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-431-fpv.png",
@@ -6962,7 +6784,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-436-fpv.png",
@@ -7001,7 +6822,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-438-fpv.png",
@@ -7040,7 +6860,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-440-fpv.png",
@@ -7079,7 +6898,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-442-fpv.png",
@@ -7118,7 +6936,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-443-fpv.png",
@@ -7157,7 +6974,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-444-fpv.png",
@@ -7196,7 +7012,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-447-fpv.png",
@@ -7235,7 +7050,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-449-fpv.png",
@@ -7274,7 +7088,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-450-fpv.png",
@@ -7313,7 +7126,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-451-fpv.png",
@@ -7352,7 +7164,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-452-fpv.png",
@@ -7391,7 +7202,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-456-fpv.png",
@@ -7430,7 +7240,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-459-fpv.png",
@@ -7469,7 +7278,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-460-fpv.png",
@@ -7508,7 +7316,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-464-fpv.png",
@@ -7547,7 +7354,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-466-fpv.png",
@@ -7586,7 +7392,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-468-fpv.png",
@@ -7625,7 +7430,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-474-fpv.png",
@@ -7664,7 +7468,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-476-fpv.png",
@@ -7703,7 +7506,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-477-fpv.png",
@@ -7742,7 +7544,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-483-fpv.png",
@@ -7781,7 +7582,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-486-fpv.png",
@@ -7820,7 +7620,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-holodeck-objaverse-val-489-fpv.png",
@@ -7873,7 +7672,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-1-fpv.png",
@@ -7912,7 +7710,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-2-fpv.png",
@@ -7951,7 +7748,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-3-fpv.png",
@@ -7990,7 +7786,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-4-fpv.png",
@@ -8029,7 +7824,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-5-fpv.png",
@@ -8068,7 +7862,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-6-fpv.png",
@@ -8107,7 +7900,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-7-fpv.png",
@@ -8146,7 +7938,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-8-fpv.png",
@@ -8185,7 +7976,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-9-fpv.png",
@@ -8224,7 +8014,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-10-fpv.png",
@@ -8263,7 +8052,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-11-fpv.png",
@@ -8302,7 +8090,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-12-fpv.png",
@@ -8341,7 +8128,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-201-fpv.png",
@@ -8380,7 +8166,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-202-fpv.png",
@@ -8419,7 +8204,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-203-fpv.png",
@@ -8458,7 +8242,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-204-fpv.png",
@@ -8497,7 +8280,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-205-fpv.png",
@@ -8536,7 +8318,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-206-fpv.png",
@@ -8575,7 +8356,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-207-fpv.png",
@@ -8614,7 +8394,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-208-fpv.png",
@@ -8653,7 +8432,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-209-fpv.png",
@@ -8692,7 +8470,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-210-fpv.png",
@@ -8731,7 +8508,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-211-fpv.png",
@@ -8770,7 +8546,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-212-fpv.png",
@@ -8809,7 +8584,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-301-fpv.png",
@@ -8848,7 +8622,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-302-fpv.png",
@@ -8887,7 +8660,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-303-fpv.png",
@@ -8926,7 +8698,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-304-fpv.png",
@@ -8965,7 +8736,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-305-fpv.png",
@@ -9004,7 +8774,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-306-fpv.png",
@@ -9043,7 +8812,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-307-fpv.png",
@@ -9082,7 +8850,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-308-fpv.png",
@@ -9121,7 +8888,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-309-fpv.png",
@@ -9160,7 +8926,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-310-fpv.png",
@@ -9199,7 +8964,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-311-fpv.png",
@@ -9238,7 +9002,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-312-fpv.png",
@@ -9277,7 +9040,6 @@
               "failure_class": "environment_blocked",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-401-fpv.png",
@@ -9316,7 +9078,6 @@
               "failure_class": "environment_blocked",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-402-fpv.png",
@@ -9355,7 +9116,6 @@
               "failure_class": "environment_blocked",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-403-fpv.png",
@@ -9394,7 +9154,6 @@
               "failure_class": "environment_blocked",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-404-fpv.png",
@@ -9433,7 +9192,6 @@
               "failure_class": "environment_blocked",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-405-fpv.png",
@@ -9472,7 +9230,6 @@
               "failure_class": "environment_blocked",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-406-fpv.png",
@@ -9511,7 +9268,6 @@
               "failure_class": "environment_blocked",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-407-fpv.png",
@@ -9550,7 +9306,6 @@
               "failure_class": "environment_blocked",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-408-fpv.png",
@@ -9589,7 +9344,6 @@
               "failure_class": "environment_blocked",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-409-fpv.png",
@@ -9628,7 +9382,6 @@
               "failure_class": "environment_blocked",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-410-fpv.png",
@@ -9667,7 +9420,6 @@
               "failure_class": "environment_blocked",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-411-fpv.png",
@@ -9706,7 +9458,6 @@
               "failure_class": "environment_blocked",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-ithor-412-fpv.png",
@@ -9759,7 +9510,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "molmospaces/val_1",
               "preview_assets": [
                 {
                   "path": "/previews/molmospaces-val_1-fpv.png",
@@ -9787,7 +9537,7 @@
               "scene_split": "val",
               "selected_reason": "fewer_than_three_public_navigation_areas",
               "waypoint_count": 0,
-              "world_id": "molmospaces/val_1"
+              "world_id": "molmospaces/procthor-10k-val/1"
             },
             {
               "backend": "mujoco",
@@ -9798,7 +9548,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "molmospaces/val_2",
               "preview_assets": [
                 {
                   "path": "/previews/molmospaces-val_2-fpv.png",
@@ -9826,7 +9575,7 @@
               "scene_split": "val",
               "selected_reason": "fewer_than_three_public_navigation_areas",
               "waypoint_count": 0,
-              "world_id": "molmospaces/val_2"
+              "world_id": "molmospaces/procthor-10k-val/2"
             },
             {
               "backend": "mujoco",
@@ -9837,7 +9586,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "molmospaces/val_3",
               "preview_assets": [
                 {
                   "path": "/previews/molmospaces-val_3-fpv.png",
@@ -9865,7 +9613,7 @@
               "scene_split": "val",
               "selected_reason": "fewer_than_three_public_navigation_areas",
               "waypoint_count": 0,
-              "world_id": "molmospaces/val_3"
+              "world_id": "molmospaces/procthor-10k-val/3"
             },
             {
               "backend": "mujoco",
@@ -9876,7 +9624,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "molmospaces/val_4",
               "preview_assets": [
                 {
                   "path": "/previews/molmospaces-val_4-fpv.png",
@@ -9904,7 +9651,7 @@
               "scene_split": "val",
               "selected_reason": "fewer_than_three_public_navigation_areas",
               "waypoint_count": 0,
-              "world_id": "molmospaces/val_4"
+              "world_id": "molmospaces/procthor-10k-val/4"
             },
             {
               "backend": "mujoco",
@@ -9915,7 +9662,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "molmospaces/val_5",
               "preview_assets": [
                 {
                   "path": "/previews/molmospaces-val_5-fpv.png",
@@ -9943,7 +9689,7 @@
               "scene_split": "val",
               "selected_reason": "fewer_than_three_public_navigation_areas",
               "waypoint_count": 0,
-              "world_id": "molmospaces/val_5"
+              "world_id": "molmospaces/procthor-10k-val/5"
             },
             {
               "backend": "mujoco",
@@ -9954,7 +9700,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "molmospaces/val_7",
               "preview_assets": [
                 {
                   "path": "/previews/molmospaces-val_7-fpv.png",
@@ -9982,7 +9727,7 @@
               "scene_split": "val",
               "selected_reason": "fewer_than_three_public_navigation_areas",
               "waypoint_count": 0,
-              "world_id": "molmospaces/val_7"
+              "world_id": "molmospaces/procthor-10k-val/7"
             },
             {
               "backend": "mujoco",
@@ -9993,7 +9738,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "molmospaces/val_9",
               "preview_assets": [
                 {
                   "path": "/previews/molmospaces-val_9-fpv.png",
@@ -10021,7 +9765,7 @@
               "scene_split": "val",
               "selected_reason": "fewer_than_three_public_navigation_areas",
               "waypoint_count": 0,
-              "world_id": "molmospaces/val_9"
+              "world_id": "molmospaces/procthor-10k-val/9"
             }
           ],
           "needed_count": 4,
@@ -10053,7 +9797,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-procthor-objaverse-val-2-fpv.png",
@@ -10092,7 +9835,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-procthor-objaverse-val-3-fpv.png",
@@ -10131,7 +9873,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-procthor-objaverse-val-6-fpv.png",
@@ -10170,7 +9911,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-procthor-objaverse-val-8-fpv.png",
@@ -10209,7 +9949,6 @@
               "failure_class": "map_actionability_failure",
               "generator_version": "2026-06-15.preview-readiness-v1",
               "lanes": [],
-              "legacy_world_id": "",
               "preview_assets": [
                 {
                   "path": "output/scene-sampler-scanner/previews/molmospaces-procthor-objaverse-val-9-fpv.png",

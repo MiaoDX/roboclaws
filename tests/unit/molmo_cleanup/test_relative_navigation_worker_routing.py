@@ -54,6 +54,35 @@ def test_molmospaces_worker_protocol_rejects_non_object_stdin_request() -> None:
     )
 
 
+def test_molmospaces_worker_protocol_resolves_home_relative_command_paths() -> None:
+    stdout = io.StringIO()
+    captured: dict[str, object] = {}
+
+    def run_state_command(_path: Path, command: str, kwargs: dict[str, object]):
+        captured.update({"command": command, "kwargs": kwargs})
+        return {"ok": True}
+
+    request = json.dumps(
+        {
+            "id": "request-1",
+            "command": "robot_views",
+            "kwargs": {"output_dir": "~/operator-console/robot_views"},
+        }
+    )
+    molmospaces_worker_protocol.serve_worker(
+        Path("state.json"),
+        run_state_command=run_state_command,
+        ok=lambda tool: {"ok": True, "tool": tool},
+        stdin=io.StringIO(request + "\n"),
+        stdout=stdout,
+    )
+
+    assert captured == {
+        "command": "robot_views",
+        "kwargs": {"output_dir": str(Path.home() / "operator-console" / "robot_views")},
+    }
+
+
 def test_molmospaces_worker_protocol_rejects_non_object_inline_waypoint_json() -> None:
     with pytest.raises(
         ValueError,

@@ -40,10 +40,12 @@ from roboclaws.evals.models import (
 )
 from roboclaws.household.household_backend_contract import SYNTHETIC_BACKEND
 from roboclaws.launch.backends import BACKEND_SPECS
-from roboclaws.launch.catalog import SURFACE_SPECS
+from roboclaws.launch.catalog import SURFACE_SPECS, resolve_surface_launch
+from roboclaws.launch.executor import LaunchProcess, spawn_launch_plan
 from roboclaws.launch.goals import normalize_goal_contract
 from roboclaws.launch.intents import TASK_INTENT_SPECS
 from roboclaws.launch.map_bundles import molmospaces_nav2_map_bundle_path
+from roboclaws.launch.plans import LaunchPlan
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ProductRun = Callable[..., dict[str, Any]]
@@ -55,8 +57,6 @@ LIVE_PROCESS_POLL_S = 1.0
 
 @dataclass(frozen=True)
 class LiveSurfaceProcessResult:
-    """Foreground process result plus live eval budget diagnostics."""
-
     returncode: int | str
     stdout: str
     stderr: str
@@ -168,6 +168,7 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
     sample_run_root.mkdir(parents=True, exist_ok=True)
     sample_run_dir = live_surface_run_dir(kwargs, output_dir=sample_run_root)
     command = live_surface_command(kwargs, output_dir=sample_run_root)
+    plan = resolve_surface_launch(command[5:])
     env = live_surface_env(kwargs, base_env=os.environ)
     wall_clock_budget_s = live_wall_clock_budget_s(kwargs)
     stall_timeout_s = live_stall_timeout_s(kwargs)
@@ -183,7 +184,7 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
         "stall_timeout_s": stall_timeout_s,
     }
     completed = _run_live_surface_foreground_process(
-        command,
+        plan=plan,
         env=env,
         kwargs=kwargs,
         output_dir=sample_run_root,
@@ -313,8 +314,8 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
 
 
 def _run_live_surface_foreground_process(
-    command: list[str],
     *,
+    plan: LaunchPlan,
     env: dict[str, str],
     kwargs: dict[str, Any],
     output_dir: Path,
@@ -328,14 +329,12 @@ def _run_live_surface_foreground_process(
     last_progress_signature: tuple[Any, ...] | None = None
     with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as stdout_file:
         with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as stderr_file:
-            process = subprocess.Popen(  # noqa: S603 - command is repo-local public route.
-                command,
+            process = spawn_launch_plan(
+                plan,
                 cwd=REPO_ROOT,
                 env=env,
                 stdout=stdout_file,
                 stderr=stderr_file,
-                text=True,
-                start_new_session=True,
             )
             while True:
                 now = time.monotonic()
@@ -481,7 +480,7 @@ def _glob_progress_signature(run_dir: Path, pattern: str) -> tuple[tuple[str, bo
     )
 
 
-def _terminate_live_surface_process(process: subprocess.Popen[Any]) -> None:
+def _terminate_live_surface_process(process: LaunchProcess) -> None:
     if process.poll() is not None:
         return
     process_group_id = process.pid
@@ -541,7 +540,7 @@ def live_surface_command(kwargs: dict[str, Any], *, output_dir: Path) -> list[st
         "run",
         "surface",
         "surface=household-world",
-        f"world={sample.world if sample else 'molmospaces/val_0'}",
+        f"world={sample.world if sample else 'molmospaces/procthor-10k-val/0'}",
         f"backend={_public_backend_from_implementation(str(kwargs.get('backend') or ''))}",
         f"agent_engine={kwargs['agent_engine']}",
         f"provider_profile={kwargs['provider_profile']}",

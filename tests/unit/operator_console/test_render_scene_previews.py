@@ -86,7 +86,7 @@ def test_preview_metadata_marks_topdown_as_rendered_scene_not_map_fallback(
     }
 
     metadata = _preview_metadata(
-        world_id="molmospaces/val_9",
+        world_id="molmospaces/procthor-10k-val/9",
         scene_source="procthor-10k-val",
         scene_index=9,
         seed=7,
@@ -173,8 +173,8 @@ def test_preview_metadata_marks_topdown_as_rendered_scene_not_map_fallback(
     assert metadata["views"]["topdown"]["image_diagnostics"]["visual_status"] == "low_detail"
 
 
-def test_molmospaces_preview_scene_ref_preserves_legacy_alias_source() -> None:
-    assert _molmospaces_scene_ref("molmospaces/val_9") == MolmoSpacesSceneRef(
+def test_molmospaces_preview_scene_ref_accepts_procthor_source_aware_world_id() -> None:
+    assert _molmospaces_scene_ref("molmospaces/procthor-10k-val/9") == MolmoSpacesSceneRef(
         scene_source="procthor-10k-val",
         scene_index=9,
     )

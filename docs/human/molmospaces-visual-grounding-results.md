@@ -23,7 +23,7 @@ lanes until benchmark and cleanup evidence justify changing the default.
 ## Current Command Shapes
 
 ```bash
-just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=grounding-dino
+just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=cleanup agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=grounding-dino
 just agent::harness molmo-visual-grounding-benchmark pipeline=grounding-dino
 ```
 

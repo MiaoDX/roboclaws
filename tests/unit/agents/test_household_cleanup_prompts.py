@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from roboclaws.agents.prompts.household_cleanup import (
     render_kickoff_prompt,
     render_map_build_prompt,
 )
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 def test_kickoff_prompt_requires_operator_message_checkpoints() -> None:
@@ -16,6 +19,20 @@ def test_kickoff_prompt_requires_operator_message_checkpoints() -> None:
     assert "after each observe" in prompt
     assert "before done" in prompt
     assert "operator_message_pending" in prompt
+
+
+def test_skill_owns_generic_strategy_while_kickoff_owns_run_context() -> None:
+    skill = (REPO_ROOT / "skills" / "household-world" / "SKILL.md").read_text(encoding="utf-8")
+    prompt = render_kickoff_prompt("world-public-labels")
+
+    assert "canonical owner of generic search, sweep, manipulation" in skill
+    assert "Build an exact checklist" in skill
+    assert "navigate_to_object(object_id)" in skill
+    assert "pending_cleanup_candidates" in skill
+    assert "Evidence lane=world-public-labels" in prompt
+    assert "Required closeout artifacts" in prompt
+    assert "navigate_to_object" not in prompt
+    assert "pending_cleanup_candidates" not in prompt
 
 
 def test_kickoff_prompt_appends_sanitized_operator_session_context() -> None:
@@ -60,13 +77,12 @@ def test_map_build_camera_grounded_prompt_uses_composite_cadence_when_enabled() 
     )
 
     assert "observe_camera_grounded_candidates" in prompt
-    assert "after navigating to each public inspection waypoint" in prompt
+    assert "Waypoint observation tool=observe_camera_grounded_candidates" in prompt
     assert "Prefer one observe_camera_grounded_candidates response per waypoint_id" in prompt
     assert "One bounded re-observation is allowed" in prompt
     assert "skip routine multi-heading scanning" in prompt
     assert "successful camera or pose change" in prompt
     assert "move to the next public waypoint instead of adjusting pose" not in prompt
-    assert "Do not resume the older observe plus declare_visual_candidates cadence" in prompt
     assert "declare_visual_candidates for each raw FPV observation" not in prompt
     assert "Manipulation tools are not entitled for this run" in prompt
     assert "blocked_capability" not in prompt
@@ -79,8 +95,8 @@ def test_map_build_camera_grounded_baseline_prompt_keeps_two_step_cadence() -> N
         camera_grounded_composite_tools=False,
     )
 
-    assert "navigate_to_waypoint then observe" in prompt
-    assert "declare_visual_candidates for each raw FPV observation" in prompt
+    assert "Waypoint observation tool=observe" in prompt
+    assert "configured camera labeler labels the frame" in prompt
     assert (
         "after navigating to each public inspection waypoint call "
         "observe_camera_grounded_candidates" not in prompt

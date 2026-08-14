@@ -8,6 +8,7 @@ from typing import Any, Callable
 import mujoco
 from PIL import Image
 
+from roboclaws.household.artifact_paths import resolve_home_relative_path
 from roboclaws.household.camera_control import (
     CAMERA_CONTROL_API_NAME,
     CANONICAL_CAMERA_MODEL,
@@ -215,7 +216,9 @@ def write_robot_views(
         width=width,
         height=height,
     )
-    topdown_source = Path(str(topdown_result.get("images", {}).get("topdown_scene") or ""))
+    topdown_source = Path(
+        resolve_home_relative_path(str(topdown_result.get("images", {}).get("topdown_scene") or ""))
+    )
     if not topdown_source.is_file():
         return hooks.error(
             "robot_views",

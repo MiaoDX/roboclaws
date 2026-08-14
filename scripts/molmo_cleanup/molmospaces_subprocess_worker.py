@@ -16,6 +16,7 @@ import mujoco
 from PIL import Image
 
 from roboclaws.core.json_sources import read_json_value
+from roboclaws.household.artifact_paths import resolve_home_relative_path as _resolve_artifact_path
 from roboclaws.household.camera_control import (
     load_camera_control_request,
     normalize_camera_control_request,
@@ -515,24 +516,23 @@ def write_robot_views(
         hooks=_molmo_worker_output_hooks(),
     )
     if result.get("ok") and state.get("objects"):
-        fpv_path = Path(str((result.get("views") or {}).get("fpv") or ""))
-        if fpv_path:
-            bindings_path = fpv_path.with_suffix(".bindings.private.json")
-            bindings_path.write_text(
-                json.dumps(
-                    _raw_fpv_private_bindings(
-                        state,
-                        camera_yaw_offset_deg=camera_yaw_offset_deg,
-                        camera_pitch_offset_deg=camera_pitch_offset_deg,
-                        width=width,
-                        height=height,
-                    ),
-                    indent=2,
-                    sort_keys=True,
-                )
-                + "\n",
-                encoding="utf-8",
+        fpv_path = Path(_resolve_artifact_path(str((result.get("views") or {}).get("fpv") or "")))
+        bindings_path = fpv_path.with_suffix(".bindings.private.json")
+        bindings_path.write_text(
+            json.dumps(
+                _raw_fpv_private_bindings(
+                    state,
+                    camera_yaw_offset_deg=camera_yaw_offset_deg,
+                    camera_pitch_offset_deg=camera_pitch_offset_deg,
+                    width=width,
+                    height=height,
+                ),
+                indent=2,
+                sort_keys=True,
             )
+            + "\n",
+            encoding="utf-8",
+        )
     return result
 
 

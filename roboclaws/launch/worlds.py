@@ -11,7 +11,6 @@ from typing import Any
 from roboclaws.launch.map_bundles import molmospaces_nav2_map_bundle_arg
 from roboclaws.launch.scene_sampler import (
     READINESS_READY,
-    legacy_molmospaces_world_ids,
     parse_molmospaces_world_id,
     sampler_rows,
     ui_molmospaces_world_ids,
@@ -38,10 +37,6 @@ class WorldSpec:
 
 
 MOLMOSPACES_CONSOLE_WORLD_IDS: tuple[str, ...] = ui_molmospaces_world_ids()
-MOLMOSPACES_LAUNCH_ALIAS_WORLD_IDS: tuple[str, ...] = legacy_molmospaces_world_ids()
-MOLMOSPACES_LAUNCH_ALIAS_SCENE_INDICES: tuple[int, ...] = tuple(
-    int(world_id.rsplit("_", 1)[1]) for world_id in MOLMOSPACES_LAUNCH_ALIAS_WORLD_IDS
-)
 
 
 def _molmospaces_world_spec(row) -> WorldSpec:
@@ -52,7 +47,7 @@ def _molmospaces_world_spec(row) -> WorldSpec:
         "household",
         "molmospaces",
         "source-aware-sampler",
-        "sampler-ui" if row.ui_ready else "sampler-alias",
+        "sampler-ui" if row.ui_ready else "sampler-candidate",
         "curated-default" if scene_index == 0 else "curated-source",
     )
     return WorldSpec(
@@ -87,11 +82,7 @@ WORLD_SPECS: dict[str, WorldSpec] = {
     **{
         row.world_id: _molmospaces_world_spec(row)
         for row in sampler_rows()
-        if row.scene_index is not None
-        and (
-            row.readiness_status == READINESS_READY
-            or row.world_id in MOLMOSPACES_LAUNCH_ALIAS_WORLD_IDS
-        )
+        if row.scene_index is not None and row.readiness_status == READINESS_READY
     },
     "agibot-g2/map-12": WorldSpec(
         id="agibot-g2/map-12",
@@ -133,7 +124,7 @@ WORLD_SPECS: dict[str, WorldSpec] = {
 
 
 DEFAULT_WORLD_BY_SURFACE: dict[str, str] = {
-    "household-world": "molmospaces/val_0",
+    "household-world": "molmospaces/procthor-10k-val/0",
     "planner-proof": "planner-proof/default",
 }
 

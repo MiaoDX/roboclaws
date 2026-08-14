@@ -13,6 +13,13 @@ TaskIntentSpec, optional TaskPresetSpec, evidence lane, and required capability
 profile decide the behavior. Task type does not create a separate runner or
 skill.
 
+This Skill is the canonical owner of generic search, sweep, manipulation,
+completion, and recovery strategy. Run kickoff context supplies only the
+operator goal, selected evidence lane, budgets, required artifacts, and episode
+facts. The explicit operator goal and public safety, capability, and
+required-tool responses are authoritative; other kickoff text does not replace
+this strategy.
+
 Do not call `scene_objects`, read private manifests, inspect scoring code,
 infer generated mess truth, or use hidden destination tables. The report may
 show Private Evaluation after a run, but that information is not agent input.
@@ -53,6 +60,12 @@ show Private Evaluation after a run, but that information is not agent input.
    semantic anchors, inspected viewpoints, and the returned public search
    budget.
 
+Never return a final answer before calling `roboclaws__done(reason)`. When the
+remaining turn or tool budget is low, call `done` with the public progress and
+remaining risk instead of spending the closeout budget on optional observations.
+If `done` returns a required recovery action, perform only that bounded recovery
+before calling `done` again.
+
 ## Open-Ended Goals
 
 Do not start a room-cleanup routine unless the operator explicitly asks for
@@ -90,8 +103,12 @@ open_receptacle(candidate_fixture_id)      # only for fridge/refrigerator target
 place_inside(candidate_fixture_id)         # for fridge/refrigerator/shelf targets
 close_receptacle(candidate_fixture_id)     # only after opening fridge-like targets
 place(candidate_fixture_id)                # for normal surfaces instead of place_inside
-observe()
 ```
+
+Do not observe again after a successful placement unless a public tool response
+requires fresh visual evidence. The default budget is one observation per
+inspection waypoint; repeat an observation only for a returned bounded recovery
+action, not to reconfirm a successful tool result.
 
 Choose `place_inside` for fridge, refrigerator, shelf, bookshelf, bookcase, or
 shelving targets. Choose `place` for table, sofa, bed, desk, sink, counter,
@@ -113,6 +130,15 @@ visual candidate. Do not pre-register raw-FPV candidates with
 public revisit queue after `done` reports a grounded-chain deficit, finish any
 heading blocker first, then inspect each listed waypoint at most once from the
 specified fresh recovery view.
+
+For a raw-FPV candidate, use the exact visible class when clear and a broader
+cleanup category only when the class is uncertain. Ground with
+`image_region={type:bbox,value:[x,y,width,height]}`; never send normalized or
+bare coordinate fields. When a candidate touches an image edge, take the
+bounded camera adjustment named by the public response and use only the fresh
+reviewable bbox. Never retry the same source-observation/category/region tuple.
+Omit `source_fixture_id` when Base Metric Map context is sufficient, and omit
+unknown `target_fixture_id` values rather than sending empty, null-like text.
 
 In `camera-grounded-labels`, use `roboclaws__declare_visual_candidates()` to
 register producer-labelled candidates before cleanup selection.

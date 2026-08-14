@@ -6,13 +6,14 @@ from types import SimpleNamespace
 from typing import Any
 
 from roboclaws.household import (
-    realworld_contract_projection,
+    realworld_contract_fixture_projection as fixture_projection,
+)
+from roboclaws.household import (
     realworld_runtime_map_targets,
     realworld_visual_candidates,
     visual_scan_guidance,
 )
 
-MODEL_DECLARED_OBSERVATION_SCHEMA = "model_declared_observation_v1"
 MODEL_DECLARED_OBSERVATION_SOURCE = "model_declared_observation"
 CANDIDATE_STATE_NAVIGATION_AUTHORIZED = (
     realworld_visual_candidates.CANDIDATE_STATE_NAVIGATION_AUTHORIZED
@@ -20,7 +21,6 @@ CANDIDATE_STATE_NAVIGATION_AUTHORIZED = (
 CANDIDATE_STATE_VISUAL_SCAN_REQUIRED = (
     realworld_visual_candidates.CANDIDATE_STATE_VISUAL_SCAN_REQUIRED
 )
-CANDIDATE_STATE_VISUALLY_CONFIRMED = realworld_visual_candidates.CANDIDATE_STATE_VISUALLY_CONFIRMED
 VISUAL_EVIDENCE_REQUIRED_ACTIONABILITY = (
     realworld_visual_candidates.VISUAL_EVIDENCE_REQUIRED_ACTIONABILITY
 )
@@ -28,8 +28,6 @@ VISUAL_CANDIDATE_ALREADY_HANDLED_REASON = (
     realworld_visual_candidates.VISUAL_CANDIDATE_ALREADY_HANDLED_REASON
 )
 _NON_ACTIONABLE_HANDLE_STATES = frozenset({"placed", "placed_closed", "skipped", "stale"})
-_recommended_place_tool = realworld_contract_projection._recommended_place_tool
-_room_id = realworld_contract_projection._room_id
 
 
 def register_model_declared_candidate(
@@ -536,7 +534,7 @@ def declaration_from_resolution(
         target_fixture_id=target_fixture_id,
     )
     declaration = {
-        "schema": MODEL_DECLARED_OBSERVATION_SCHEMA,
+        "schema": "model_declared_observation_v1",
         "declaration_id": f"declared_{len(contract._model_declared_observations) + 1:03d}",
         "object_id": handle,
         "source_observation_id": str(candidate["source_observation_id"]),
@@ -567,7 +565,7 @@ def declaration_from_resolution(
                 "grounding_status": grounding_status,
                 "actionability_status": actionability_status,
                 "candidate_fixture_id": target_fixture_id,
-                "recommended_tool": _recommended_place_tool(
+                "recommended_tool": fixture_projection._recommended_place_tool(
                     internal_target_fixture_id,
                     contract._fixtures,
                 )
@@ -648,7 +646,7 @@ def detection_for_object_at_location(
     assert_no_forbidden_agent_view_keys: Callable[[Any], None],
 ) -> dict[str, Any]:
     fixture = contract._fixtures.get(location_id, {})
-    room_id = _room_id(str(fixture.get("room_area", waypoint["room_id"])))
+    room_id = fixture_projection._room_id(str(fixture.get("room_area", waypoint["room_id"])))
     detection = {
         "object_id": handle,
         "category": obj.category,
@@ -805,7 +803,9 @@ def camera_model_candidates_for_waypoint(
             "object_id": handle,
             "category": obj.category,
             "name": obj.name,
-            "current_room_id": _room_id(str(fixture.get("room_area", "unknown"))),
+            "current_room_id": fixture_projection._room_id(
+                str(fixture.get("room_area", "unknown"))
+            ),
             "visibility_confidence": visibility_confidence(handle),
             "image_bbox": image_bbox(handle),
             "image_region": {"type": "bbox", "value": image_bbox(handle)},
@@ -1136,7 +1136,7 @@ def _visible_detection_payload(
     visual_confirmation: bool,
     visual_scan_payload: Callable[[bool], dict[str, Any]],
 ) -> dict[str, Any]:
-    room_id = _room_id(str(fixture.get("room_area", "unknown")))
+    room_id = fixture_projection._room_id(str(fixture.get("room_area", "unknown")))
     image_region = (
         {"type": "bbox", "value": image_bbox(handle)}
         if visual_confirmation
@@ -1284,7 +1284,7 @@ def visual_evidence_actionability_error(
             recommended_tool="",
             **recovery,
             actionability_status="not_recommended",
-            candidate_state=CANDIDATE_STATE_VISUALLY_CONFIRMED,
+            candidate_state=realworld_visual_candidates.CANDIDATE_STATE_VISUALLY_CONFIRMED,
             visual_grounding_evidence=evidence,
             grounding_status=detection.get("grounding_status")
             or declaration.get("grounding_status")

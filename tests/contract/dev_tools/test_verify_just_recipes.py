@@ -177,17 +177,15 @@ def test_harness_exposes_named_execution_rigs() -> None:
         assert re.search(header, text, re.MULTILINE), f"missing recipe header: {header}"
 
 
-def test_molmo_operator_surface_exposes_axis_runner_and_aliases() -> None:
+def test_molmo_operator_surface_exposes_typed_runner_and_current_reports() -> None:
     text = MOLMO_JUST.read_text(encoding="utf-8")
 
     expected_headers = (
-        r"^household-world-impl driver=\"mcp-smoke\" profile=\"smoke\"",
+        r"^household-world-impl:",
         r"^quick-check driver=\"mcp-smoke\" profile=\"smoke\"",
         r"^review-report seeds=\"1 2 3\"",
         r"^mcp-smoke-report seed=\"7\"",
         r"^camera-raw-fpv-report seed=\"7\"",
-        r"^openclaw-smoke-report seed=\"7\"",
-        r"^openclaw-report seed=\"7\"",
     )
     for header in expected_headers:
         assert re.search(header, text, re.MULTILINE), f"missing recipe header: {header}"
@@ -195,18 +193,12 @@ def test_molmo_operator_surface_exposes_axis_runner_and_aliases() -> None:
     assert "claude-report" not in text
 
 
-def test_molmo_operator_aliases_map_to_truthful_axes() -> None:
+def test_molmo_operator_reports_use_public_named_axes() -> None:
     text = MOLMO_JUST.read_text(encoding="utf-8")
 
-    expected_calls = (
-        'just molmo::household-world-impl "{{driver}}" "{{profile}}"',
-        "just molmo::household-world-impl direct world-public-labels",
-        "just molmo::household-world-impl mcp-smoke world-public-labels",
-        "just molmo::household-world-impl direct camera-raw-fpv",
-        'just molmo::household-world-impl openclaw-live "{{profile}}"',
-    )
-    for call in expected_calls:
-        assert call in text
+    assert text.count("just run::surface surface=household-world") >= 4
+    assert "agent_engine=direct-runner" in text
+    assert "evidence_lane=camera-raw-fpv" in text
 
     assert "just molmo::cleanup" not in text
     assert "agent-report" not in text
@@ -220,15 +212,12 @@ def test_molmo_axis_runner_distinguishes_smoke_from_current_live_agents() -> Non
     text = MOLMO_JUST.read_text(encoding="utf-8")
 
     for expected in (
-        'driver="${driver#driver=}"',
-        'profile="${profile#profile=}"',
+        'driver="${ROBOCLAWS_EXEC_DRIVER:',
+        'profile="${ROBOCLAWS_EXEC_PROFILE:',
         "unsupported cleanup lane",
         "--evidence-lane",
         "--expect-profile",
-        "mcp-smoke/openclaw-smoke for deterministic substitutes",
         'SKILLS_DIR="$PWD/skills/household-world"',
-        "just chat::run",
-        'bash scripts/dev/network_status.sh --assert-off-work "OpenClaw Molmo cleanup live report"',
         ("roboclaws_assert_openai_agents_provider_allowed"),
     ):
         assert expected in text

@@ -132,18 +132,17 @@ just run::surface surface=<surface> agent_engine=<engine> [world=<world>] [backe
 Examples:
 
 - Map build:
-  `just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=map-build agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=grounding-dino`
+  `just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=map-build agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=grounding-dino`
 - SDK cleanup:
-  `just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco preset=cleanup agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=world-public-labels`
+  `just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=cleanup agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=world-public-labels`
 - Open household goal:
-  `just run::surface surface=household-world world=molmospaces/val_0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat prompt="我渴了，帮我找些解渴的东西"`
+  `just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat prompt="我渴了，帮我找些解渴的东西"`
 - Planner proof:
   `just run::surface surface=planner-proof world=planner-proof/default backend=mujoco intent=planner-proof agent_engine=direct-runner mode=dry-run`
 
 Use `agent::*` for deeper maintainer control:
 
 ```bash
-just agent::run <task> <driver> [report] [key=value ...]
 just agent::verify <target> [args ...]
 just agent::harness <target> [args ...]
 just agent::mcp up|down

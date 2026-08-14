@@ -75,11 +75,11 @@ def test_eval_harness_mcp_port_env_becomes_surface_default_port() -> None:
     assert trace[:5] == [
         "just",
         "molmo::household-world-impl",
-        "openai-agents-live",
-        "world-public-labels",
-        "7",
+        "driver=openai-agents-live",
+        "profile=world-public-labels",
+        "seeds=7",
     ]
-    assert trace[9] == "19421"
+    assert "port=19421" in trace
     assert "18788" not in trace
 
 
@@ -94,7 +94,7 @@ def _trace_run_surface_with_env(port: str) -> list[str]:
             binary,
             "run::surface",
             "surface=household-world",
-            "world=molmospaces/val_0",
+            "world=molmospaces/procthor-10k-val/0",
             "backend=mujoco",
             "preset=cleanup",
             "agent_engine=openai-agents-sdk",

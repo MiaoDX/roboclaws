@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-import roboclaws.cli.agent_run as agent_run_module
+import roboclaws.launch.executor as executor_module
 from roboclaws.launch.backends import (
     cleanup_implementation_backend_ids,
     map_build_codex_implementation_backend_ids,
@@ -69,7 +69,7 @@ def test_molmospaces_worlds_expose_only_mujoco_while_b1_exposes_isaac() -> None:
     molmo = resolve_surface_launch(
         [
             "surface=household-world",
-            "world=molmospaces/val_0",
+            "world=molmospaces/procthor-10k-val/0",
             "backend=mujoco",
             "intent=map-build",
             "agent_engine=direct-runner",
@@ -92,7 +92,7 @@ def test_molmospaces_worlds_expose_only_mujoco_while_b1_exposes_isaac() -> None:
         ]
     )
 
-    assert molmo.world == "molmospaces/val_0"
+    assert molmo.world == "molmospaces/procthor-10k-val/0"
     assert molmo.backend == "mujoco"
     assert molmo.implementation_backend == "molmospaces_subprocess"
     assert b1.world == "b1-map12"
@@ -103,10 +103,10 @@ def test_molmospaces_worlds_expose_only_mujoco_while_b1_exposes_isaac() -> None:
     assert "b1_alignment_artifact=injected/alignment.json" in b1.overrides
     assert "b1_navigation_artifact=injected/navigation.json" in b1.overrides
     assert not any(item.startswith("b1_semantic_projection_artifact=") for item in b1.overrides)
-    assert "world=b1-map12" in b1.argv
-    assert "backend=isaaclab_subprocess" in b1.argv
-    assert "b1_alignment_artifact=injected/alignment.json" in b1.argv
-    assert "b1_navigation_artifact=injected/navigation.json" in b1.argv
+    assert "world=b1-map12" in b1.overrides
+    assert b1.implementation_backend == "isaaclab_subprocess"
+    assert "b1_alignment_artifact=injected/alignment.json" in b1.overrides
+    assert "b1_navigation_artifact=injected/navigation.json" in b1.overrides
 
 
 def test_b1_launch_accepts_explicit_robot_consumption_proof_artifacts() -> None:
@@ -133,10 +133,12 @@ def test_b1_launch_accepts_explicit_robot_consumption_proof_artifacts() -> None:
         "b1_navigation_artifact=output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json"
         in b1.overrides
     )
-    assert "b1_alignment_artifact=output/b1-map12/alignment/alignment_residuals.json" in b1.argv
+    assert (
+        "b1_alignment_artifact=output/b1-map12/alignment/alignment_residuals.json" in b1.overrides
+    )
     assert (
         "b1_navigation_artifact=output/b1-map12/navigation-smoke/residual-overlay/navigation_smoke.json"
-        in b1.argv
+        in b1.overrides
     )
 
 
@@ -159,12 +161,12 @@ def test_b1_launch_rejects_stale_semantic_projection_artifact_axis() -> None:
 def test_molmospaces_world_rejects_public_isaac_backend() -> None:
     with pytest.raises(
         LaunchError,
-        match="backend 'isaaclab' cannot run world 'molmospaces/val_0'",
+        match="backend 'isaaclab' cannot run world 'molmospaces/procthor-10k-val/0'",
     ) as exc:
         resolve_surface_launch(
             [
                 "surface=household-world",
-                "world=molmospaces/val_0",
+                "world=molmospaces/procthor-10k-val/0",
                 "backend=isaaclab",
                 "intent=map-build",
                 "agent_engine=direct-runner",
@@ -179,7 +181,7 @@ def test_cleanup_surface_exposes_setup_overrides_but_dispatches_private_count() 
     plan = resolve_surface_launch(
         [
             "surface=household-world",
-            "world=molmospaces/val_0",
+            "world=molmospaces/procthor-10k-val/0",
             "backend=mujoco",
             "intent=cleanup",
             "agent_engine=openai-agents-sdk",
@@ -193,10 +195,7 @@ def test_cleanup_surface_exposes_setup_overrides_but_dispatches_private_count() 
 
     assert "scenario_setup=relocate-cleanup-related-objects" in plan.overrides
     assert "relocation_count=3" in plan.overrides
-    assert not any(item.startswith("generated_mess_count=") for item in plan.overrides)
-    assert "generated_mess_count=3" in plan.argv
-    assert "scenario_setup=relocate-cleanup-related-objects" not in plan.argv
-    assert "relocation_count=3" not in plan.argv
+    assert "generated_mess_count=3" in plan.overrides
     exported = export_env_from_overrides(plan.overrides)
     assert exported[ENVIRONMENT_SETUP_METADATA_ENV] == (
         '{"feeds_cleanup_scoring":true,"mode":"relocate-cleanup-related-objects",'
@@ -209,7 +208,7 @@ def test_household_non_cleanup_intents_default_to_baseline_setup() -> None:
     map_build = resolve_surface_launch(
         [
             "surface=household-world",
-            "world=molmospaces/val_0",
+            "world=molmospaces/procthor-10k-val/0",
             "backend=mujoco",
             "intent=map-build",
             "agent_engine=openai-agents-sdk",
@@ -220,7 +219,7 @@ def test_household_non_cleanup_intents_default_to_baseline_setup() -> None:
     open_ended = resolve_surface_launch(
         [
             "surface=household-world",
-            "world=molmospaces/val_0",
+            "world=molmospaces/procthor-10k-val/0",
             "backend=mujoco",
             "intent=open-ended",
             "agent_engine=openai-agents-sdk",
@@ -233,8 +232,7 @@ def test_household_non_cleanup_intents_default_to_baseline_setup() -> None:
     for plan in (map_build, open_ended):
         assert "scenario_setup=baseline" in plan.overrides
         assert not any(item.startswith("relocation_count=") for item in plan.overrides)
-        assert not any(item.startswith("generated_mess_count=") for item in plan.overrides)
-        assert "generated_mess_count=0" in plan.argv
+        assert "generated_mess_count=0" in plan.overrides
         assert (
             '"mode":"baseline"'
             in export_env_from_overrides(plan.overrides)[ENVIRONMENT_SETUP_METADATA_ENV]
@@ -248,7 +246,7 @@ def test_household_non_cleanup_intents_default_to_baseline_setup() -> None:
     )
     assert map_build.goal_contract.required_capabilities == map_build.required_capabilities
     assert open_ended.goal_contract.required_capabilities == open_ended.required_capabilities
-    assert "required_capability_profiles=household_world,household_episode" in map_build.argv
+    assert "required_capability_profiles=household_world,household_episode" in map_build.overrides
 
 
 def test_household_runner_exports_resolved_capability_profiles(
@@ -256,23 +254,29 @@ def test_household_runner_exports_resolved_capability_profiles(
 ) -> None:
     captured: dict[str, Any] = {}
 
-    def fake_exec(argv: list[str], *, env: dict[str, str] | None = None) -> int:
+    def fake_exec(
+        argv: list[str],
+        *,
+        env: dict[str, str] | None = None,
+        trace_args: list[str] | None = None,
+    ) -> int:
         captured["argv"] = argv
         captured["env"] = env
+        captured["trace_args"] = trace_args
         return 0
 
-    monkeypatch.setattr(agent_run_module, "_exec_or_trace", fake_exec)
-
-    result = agent_run_module.agent_run(
+    monkeypatch.setattr(executor_module, "_exec_or_trace", fake_exec)
+    plan = resolve_surface_launch(
         [
-            "household-world",
-            "openai-agents-sdk",
-            "world-public-labels",
-            "backend=molmospaces_subprocess",
-            "task_intent=open-ended",
-            "required_capability_profiles=household_world,household_manipulation,household_episode",
+            "surface=household-world",
+            "agent_engine=openai-agents-sdk",
+            "provider_profile=kimi-openai-chat",
+            "intent=open-ended",
+            "prompt=find something useful",
+            "evidence_lane=world-public-labels",
         ]
     )
+    result = executor_module.execute_launch_plan(plan)
 
     assert result == 0
     assert captured["env"]["ROBOCLAWS_REQUIRED_CAPABILITY_PROFILES"] == (
@@ -300,7 +304,7 @@ def test_surface_rejects_old_public_generated_mess_count() -> None:
         resolve_surface_launch(
             [
                 "surface=household-world",
-                "world=molmospaces/val_0",
+                "world=molmospaces/procthor-10k-val/0",
                 "backend=mujoco",
                 "intent=cleanup",
                 "agent_engine=openai-agents-sdk",
@@ -315,7 +319,7 @@ def test_openai_agents_sdk_accepts_chat_provider_profiles() -> None:
     plan = resolve_surface_launch(
         [
             "surface=household-world",
-            "world=molmospaces/val_0",
+            "world=molmospaces/procthor-10k-val/0",
             "backend=mujoco",
             "intent=cleanup",
             "agent_engine=openai-agents-sdk",
@@ -344,7 +348,7 @@ def test_openai_agents_sdk_accepts_chat_provider_profiles() -> None:
 def test_launch_rejects_explicit_blank_optional_axes(axis: str, hint: str) -> None:
     args = [
         "surface=household-world",
-        "world=molmospaces/val_0",
+        "world=molmospaces/procthor-10k-val/0",
         "backend=mujoco",
         "intent=cleanup",
         "agent_engine=openai-agents-sdk",
@@ -372,7 +376,7 @@ def test_provider_profile_env_export_uses_agent_engine_catalog(
     plan = resolve_surface_launch(
         [
             "surface=household-world",
-            "world=molmospaces/val_0",
+            "world=molmospaces/procthor-10k-val/0",
             "backend=mujoco",
             "intent=cleanup",
             f"agent_engine={agent_engine}",
@@ -390,7 +394,7 @@ def test_openai_agents_sdk_accepts_minimax_provider_profile() -> None:
     plan = resolve_surface_launch(
         [
             "surface=household-world",
-            "world=molmospaces/val_0",
+            "world=molmospaces/procthor-10k-val/0",
             "backend=mujoco",
             "intent=cleanup",
             "agent_engine=openai-agents-sdk",
@@ -408,7 +412,7 @@ def test_raw_fpv_rejects_routes_without_verified_image_transport() -> None:
         resolve_surface_launch(
             [
                 "surface=household-world",
-                "world=molmospaces/val_0",
+                "world=molmospaces/procthor-10k-val/0",
                 "backend=mujoco",
                 "intent=cleanup",
                 "agent_engine=openai-agents-sdk",
@@ -423,7 +427,7 @@ def test_retired_engines_are_rejected_before_provider_profile_validation() -> No
         resolve_surface_launch(
             [
                 "surface=household-world",
-                "world=molmospaces/val_0",
+                "world=molmospaces/procthor-10k-val/0",
                 "backend=mujoco",
                 "intent=cleanup",
                 "agent_engine=codex-cli",
@@ -435,7 +439,7 @@ def test_retired_engines_are_rejected_before_provider_profile_validation() -> No
         resolve_surface_launch(
             [
                 "surface=household-world",
-                "world=molmospaces/val_0",
+                "world=molmospaces/procthor-10k-val/0",
                 "backend=mujoco",
                 "intent=cleanup",
                 "agent_engine=claude-code",
@@ -459,7 +463,7 @@ def test_surface_rejects_old_public_driver_and_environment_setup() -> None:
         resolve_surface_launch(
             [
                 "surface=household-world",
-                "world=molmospaces/val_0",
+                "world=molmospaces/procthor-10k-val/0",
                 "backend=mujoco",
                 "intent=cleanup",
                 "agent_engine=openai-agents-sdk",
@@ -474,7 +478,7 @@ def test_baseline_rejects_active_relocation_count() -> None:
         resolve_surface_launch(
             [
                 "surface=household-world",
-                "world=molmospaces/val_0",
+                "world=molmospaces/procthor-10k-val/0",
                 "backend=mujoco",
                 "intent=cleanup",
                 "agent_engine=openai-agents-sdk",
@@ -491,7 +495,7 @@ def test_invalid_relocation_count_is_rejected() -> None:
         resolve_surface_launch(
             [
                 "surface=household-world",
-                "world=molmospaces/val_0",
+                "world=molmospaces/procthor-10k-val/0",
                 "backend=mujoco",
                 "intent=cleanup",
                 "agent_engine=openai-agents-sdk",
@@ -508,7 +512,7 @@ def test_loose_object_relocation_setup_is_not_publicly_supported() -> None:
         resolve_surface_launch(
             [
                 "surface=household-world",
-                "world=molmospaces/val_0",
+                "world=molmospaces/procthor-10k-val/0",
                 "backend=mujoco",
                 "intent=cleanup",
                 "agent_engine=openai-agents-sdk",

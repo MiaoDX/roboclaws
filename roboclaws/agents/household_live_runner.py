@@ -25,9 +25,56 @@ from roboclaws.agents.drivers.household_live import (
 from roboclaws.agents.drivers.openai_agents_budget import (
     context_budget_failure as _shared_context_budget_failure,
 )
+from roboclaws.agents.drivers.openai_agents_continuation_state import (
+    candidate_attempt_counts_by_waypoint,
+    candidate_outcomes_by_waypoint,
+    latest_done_completion_blockers,
+    raw_fpv_revisit_waypoints,
+    reconcile_remaining_observes_with_heading_blocker,
+    remaining_observes_by_waypoint,
+    waypoints_by_observation_recency,
+)
+from roboclaws.agents.drivers.openai_agents_household_budget import (
+    raw_fpv_budget_failure as _raw_fpv_budget_failure,
+)
+from roboclaws.agents.drivers.openai_agents_household_budget import (
+    raw_fpv_budget_metrics as _raw_fpv_budget_metrics,
+)
 from roboclaws.agents.drivers.openai_agents_live import OpenAIAgentsLiveRuntime
+from roboclaws.agents.drivers.openai_agents_metrics import (
+    model_input_filter_metrics as _model_input_filter_metrics,
+)
+from roboclaws.agents.drivers.openai_agents_metrics import (
+    model_racing_observability_metrics as _model_racing_observability_metrics,
+)
+from roboclaws.agents.drivers.openai_agents_metrics import (
+    model_service_fallback_metrics as _model_service_fallback_metrics,
+)
+from roboclaws.agents.drivers.openai_agents_metrics import (
+    openai_agents_cache_metrics as _cache_metrics,
+)
+from roboclaws.agents.drivers.openai_agents_metrics import (
+    openai_agents_context_growth_metrics as _context_growth_metrics,
+)
+from roboclaws.agents.drivers.openai_agents_metrics import (
+    openai_agents_context_metrics as _context_metrics,
+)
+from roboclaws.agents.drivers.openai_agents_metrics import (
+    openai_agents_event_metrics as _openai_agents_event_metrics,
+)
+from roboclaws.agents.drivers.openai_agents_metrics import (
+    openai_agents_span_metrics as _openai_agents_span_metrics,
+)
+from roboclaws.agents.drivers.openai_agents_perf_profile import (
+    MODEL_THINKING_MODE_ENV,
+    camera_grounded_composite_tools_enabled_for_run,
+)
+from roboclaws.agents.drivers.openai_agents_perf_profile import (
+    resolve_agent_sdk_perf_profile as _resolve_agent_sdk_perf_profile,
+)
 from roboclaws.agents.live_runtime import LiveAgentMCPServer, LiveAgentRequest
 from roboclaws.agents.live_status import LiveAgentFailure
+from roboclaws.agents.live_status_writer import LiveRunStatusWriter
 from roboclaws.agents.live_timing import compact_metric_group as _compact_metric_group
 from roboclaws.agents.live_timing import (
     live_timing_timeline as _live_timing_timeline,
@@ -67,53 +114,6 @@ from roboclaws.operator_console.interactions import consume_resume_request_for_r
 from roboclaws.reports.live_performance import (
     extract_model_call_metrics,
     write_model_call_metrics_jsonl,
-)
-from scripts.molmo_cleanup.live_status_writer import LiveRunStatusWriter
-from scripts.molmo_cleanup.openai_agents_budget import (
-    raw_fpv_budget_failure as _raw_fpv_budget_failure,
-)
-from scripts.molmo_cleanup.openai_agents_budget import (
-    raw_fpv_budget_metrics as _raw_fpv_budget_metrics,
-)
-from scripts.molmo_cleanup.openai_agents_continuation_state import (
-    candidate_attempt_counts_by_waypoint,
-    candidate_outcomes_by_waypoint,
-    latest_done_completion_blockers,
-    raw_fpv_revisit_waypoints,
-    reconcile_remaining_observes_with_heading_blocker,
-    remaining_observes_by_waypoint,
-    waypoints_by_observation_recency,
-)
-from scripts.molmo_cleanup.openai_agents_metrics import (
-    model_input_filter_metrics as _model_input_filter_metrics,
-)
-from scripts.molmo_cleanup.openai_agents_metrics import (
-    model_racing_observability_metrics as _model_racing_observability_metrics,
-)
-from scripts.molmo_cleanup.openai_agents_metrics import (
-    model_service_fallback_metrics as _model_service_fallback_metrics,
-)
-from scripts.molmo_cleanup.openai_agents_metrics import (
-    openai_agents_cache_metrics as _cache_metrics,
-)
-from scripts.molmo_cleanup.openai_agents_metrics import (
-    openai_agents_context_growth_metrics as _context_growth_metrics,
-)
-from scripts.molmo_cleanup.openai_agents_metrics import (
-    openai_agents_context_metrics as _context_metrics,
-)
-from scripts.molmo_cleanup.openai_agents_metrics import (
-    openai_agents_event_metrics as _openai_agents_event_metrics,
-)
-from scripts.molmo_cleanup.openai_agents_metrics import (
-    openai_agents_span_metrics as _openai_agents_span_metrics,
-)
-from scripts.molmo_cleanup.openai_agents_perf_profile import (
-    MODEL_THINKING_MODE_ENV,
-    camera_grounded_composite_tools_enabled_for_run,
-)
-from scripts.molmo_cleanup.openai_agents_perf_profile import (
-    resolve_agent_sdk_perf_profile as _resolve_agent_sdk_perf_profile,
 )
 
 CHECKER_SCRIPT = "scripts/molmo_cleanup/check_molmo_realworld_cleanup_result.py"

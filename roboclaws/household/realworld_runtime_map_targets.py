@@ -5,10 +5,18 @@ from collections.abc import Collection, Iterable, Mapping, Sequence
 from typing import Any, Protocol
 
 from roboclaws.household import (
-    realworld_contract_projection,
     realworld_runtime_map_contract,
     realworld_visual_candidates,
 )
+from roboclaws.household.realworld_contract_fixture_projection import (
+    _OBJECT_CATEGORY_TARGETS,
+    _anchor_affordances_for_fixture,
+    _first_matching_fixture,
+    _fixture_requires_open,
+    _is_place_anchor,
+    _semantic_anchor_type_for_fixture,
+)
+from roboclaws.household.realworld_contract_projection import _room_category_from_label
 from roboclaws.household.target_query import resolve_target_query
 
 RAW_FPV_ONLY_MODE = "raw_fpv_only"
@@ -27,13 +35,6 @@ CANDIDATE_STATE_VISUAL_SCAN_REQUIRED = (
     realworld_visual_candidates.CANDIDATE_STATE_VISUAL_SCAN_REQUIRED
 )
 
-_OBJECT_CATEGORY_TARGETS = realworld_contract_projection._OBJECT_CATEGORY_TARGETS
-_anchor_affordances_for_fixture = realworld_contract_projection._anchor_affordances_for_fixture
-_first_matching_fixture = realworld_contract_projection._first_matching_fixture
-_fixture_requires_open = realworld_contract_projection._fixture_requires_open
-_is_place_anchor = realworld_contract_projection._is_place_anchor
-_room_category_from_label = realworld_contract_projection._room_category_from_label
-_semantic_anchor_type_for_fixture = realworld_contract_projection._semantic_anchor_type_for_fixture
 _float_or_zero = realworld_visual_candidates._float_or_zero
 
 
@@ -75,7 +76,6 @@ def runtime_target_candidates(
     assert_no_forbidden = assert_no_forbidden_agent_view_keys or (lambda _payload: None)
     candidates: list[dict[str, Any]] = []
     seen: set[str] = set()
-
     for waypoint in contract._public_navigation_waypoints():
         candidate = target_candidate_from_waypoint(contract, waypoint)
         _append_unique_candidate(candidates, seen, candidate)

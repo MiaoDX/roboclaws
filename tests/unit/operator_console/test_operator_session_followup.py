@@ -125,7 +125,7 @@ def test_launcher_sanitizes_followup_context_for_child_prompt(tmp_path: Path) ->
     class FakeProcess:
         pid = 12345
 
-    with patch("roboclaws.operator_console.launcher.subprocess.Popen", return_value=FakeProcess()):
+    with patch("roboclaws.operator_console.launcher.spawn_launch_plan", return_value=FakeProcess()):
         state = start_console_run(
             tmp_path,
             LaunchRequest(
@@ -356,7 +356,7 @@ def test_next_goal_autostart_releases_parent_lock_during_live_status_wind_down(
         patch.dict(os.environ, KIMI_ENV),
         patch("roboclaws.operator_console.readiness.DEFAULT_MCP_PORT", mcp_port),
         patch("roboclaws.operator_console.runtime_inventory.DEFAULT_MCP_PORT", mcp_port),
-        patch("roboclaws.operator_console.launcher.subprocess.Popen", return_value=FakeProcess()),
+        patch("roboclaws.operator_console.launcher.spawn_launch_plan", return_value=FakeProcess()),
         _console_server(tmp_path) as (host, port),
     ):
         payload = _post_next_goal(str(host), int(port), run_id)

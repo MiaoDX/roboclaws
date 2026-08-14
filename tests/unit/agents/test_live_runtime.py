@@ -27,24 +27,11 @@ from roboclaws.agents.drivers.openai_agents_model_input import (
     _compact_model_input_items,
     _model_input_shape_summary,
 )
-from roboclaws.agents.drivers.openai_agents_spans import RoboclawsSpanRecorder
-from roboclaws.agents.live_runtime import (
-    LiveAgentMCPServer,
-    LiveAgentRequest,
-    LiveAgentResult,
-    live_agent_result_from_artifacts,
-)
-from roboclaws.agents.live_status import LiveAgentFailure
-from roboclaws.agents.live_timing import live_timing_timeline as _live_timing_timeline
-from roboclaws.agents.live_timing import mcp_control_plane_metrics as _mcp_control_plane_metrics
-from roboclaws.agents.prompts.household_cleanup import (
-    render_kickoff_prompt,
-    render_map_build_prompt,
-)
-from scripts.molmo_cleanup.openai_agents_perf_profile import (
+from roboclaws.agents.drivers.openai_agents_perf_profile import (
     resolve_agent_sdk_perf_profile as _resolve_agent_sdk_perf_profile,
 )
-from scripts.molmo_cleanup.run_live_openai_agents_household import (
+from roboclaws.agents.drivers.openai_agents_spans import RoboclawsSpanRecorder
+from roboclaws.agents.household_live_runner import (
     IncompleteTurnRecoveryPolicy,
     LiveOpenAIAgentsHouseholdRunner,
     _budget_failure_from_run_state,
@@ -62,8 +49,21 @@ from scripts.molmo_cleanup.run_live_openai_agents_household import (
     _openai_agents_span_metrics,
     _profiled_kickoff_prompt,
 )
-from scripts.molmo_cleanup.run_live_openai_agents_household import (
+from roboclaws.agents.household_live_runner import (
     parse_args as _parse_live_openai_agents_args,
+)
+from roboclaws.agents.live_runtime import (
+    LiveAgentMCPServer,
+    LiveAgentRequest,
+    LiveAgentResult,
+    live_agent_result_from_artifacts,
+)
+from roboclaws.agents.live_status import LiveAgentFailure
+from roboclaws.agents.live_timing import live_timing_timeline as _live_timing_timeline
+from roboclaws.agents.live_timing import mcp_control_plane_metrics as _mcp_control_plane_metrics
+from roboclaws.agents.prompts.household_cleanup import (
+    render_kickoff_prompt,
+    render_map_build_prompt,
 )
 
 
@@ -1106,10 +1106,8 @@ def test_openai_agents_runtime_includes_skill_context_without_persisting_body(
     )
     instructions = str(captured["agent_kwargs"]["instructions"])
     assert "Canonical skill context" in instructions
-    assert (
-        "Run-specific kickoff instructions override any conflicting generic skill-context "
-        "guidance for this run"
-    ) in instructions
+    assert "otherwise the canonical Skill owns task strategy" in instructions
+    assert "override any conflicting generic skill-context" not in instructions
     assert skill_text in instructions
     assert instructions.endswith("clean the room")
     artifact = json.loads(
@@ -3163,16 +3161,16 @@ def test_openai_agents_cleanup_runner_invokes_sdk_then_checker(tmp_path: Path, m
             )
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household.subprocess.Popen",
+        "roboclaws.agents.household_live_runner.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household._port_accepting",
+        "roboclaws.agents.household_live_runner._port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household.OpenAIAgentsLiveRuntime",
+        "roboclaws.agents.household_live_runner.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
 
@@ -3182,7 +3180,7 @@ def test_openai_agents_cleanup_runner_invokes_sdk_then_checker(tmp_path: Path, m
         return 0
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household._run_and_tee",
+        "roboclaws.agents.household_live_runner._run_and_tee",
         fake_run_and_tee,
     )
     lock_path = tmp_path / "live.lock"
@@ -3423,16 +3421,16 @@ def test_openai_agents_camera_grounded_composite_profile_adds_private_server_fla
             return LiveAgentResult(phase="finished", exit_status=0, run_result_present=True)
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household.subprocess.Popen",
+        "roboclaws.agents.household_live_runner.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household._port_accepting",
+        "roboclaws.agents.household_live_runner._port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household.OpenAIAgentsLiveRuntime",
+        "roboclaws.agents.household_live_runner.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
 
@@ -3441,7 +3439,7 @@ def test_openai_agents_camera_grounded_composite_profile_adds_private_server_fla
         return 0
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household._run_and_tee",
+        "roboclaws.agents.household_live_runner._run_and_tee",
         fake_run_and_tee,
     )
     args = Namespace(
@@ -3542,20 +3540,20 @@ def test_openai_agents_robot_view_capture_policy_adds_private_server_flag(
             return LiveAgentResult(phase="finished", exit_status=0, run_result_present=True)
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household.subprocess.Popen",
+        "roboclaws.agents.household_live_runner.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household._port_accepting",
+        "roboclaws.agents.household_live_runner._port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household.OpenAIAgentsLiveRuntime",
+        "roboclaws.agents.household_live_runner.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household._run_and_tee",
+        "roboclaws.agents.household_live_runner._run_and_tee",
         lambda *_args, **_kwargs: 0,
     )
     args = Namespace(
@@ -3661,12 +3659,11 @@ def test_openai_agents_camera_grounded_composite_rerenders_map_build_prompt() ->
 
     prompt = _profiled_kickoff_prompt(args, profile=profile)
 
-    assert "declare_visual_candidates for each raw FPV observation" in stale_prompt
+    assert "Waypoint observation tool=observe" in stale_prompt
     assert "observe_camera_grounded_candidates" in prompt
-    assert "after navigating to each public inspection waypoint" in prompt
+    assert "Waypoint observation tool=observe_camera_grounded_candidates" in prompt
     assert "Prefer one observe_camera_grounded_candidates response per waypoint_id" in prompt
     assert "One bounded re-observation is allowed" in prompt
-    assert "Do not resume the older observe plus declare_visual_candidates cadence" in prompt
     assert "declare_visual_candidates for each raw FPV observation" not in prompt
     assert "Manipulation tools are not entitled for this run" in prompt
 
@@ -3715,16 +3712,16 @@ def test_openai_agents_camera_grounded_composite_runner_rerenders_stale_two_step
             return LiveAgentResult(phase="finished", exit_status=0, run_result_present=True)
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household.subprocess.Popen",
+        "roboclaws.agents.household_live_runner.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household._port_accepting",
+        "roboclaws.agents.household_live_runner._port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household.OpenAIAgentsLiveRuntime",
+        "roboclaws.agents.household_live_runner.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
 
@@ -3733,7 +3730,7 @@ def test_openai_agents_camera_grounded_composite_runner_rerenders_stale_two_step
         return 0
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household._run_and_tee",
+        "roboclaws.agents.household_live_runner._run_and_tee",
         fake_run_and_tee,
     )
     stale_prompt = render_kickoff_prompt("camera-grounded-labels")
@@ -3853,16 +3850,16 @@ def test_openai_agents_cleanup_runner_loads_canonical_skill_context(
             )
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household.subprocess.Popen",
+        "roboclaws.agents.household_live_runner.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household._port_accepting",
+        "roboclaws.agents.household_live_runner._port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household.OpenAIAgentsLiveRuntime",
+        "roboclaws.agents.household_live_runner.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
 
@@ -3871,7 +3868,7 @@ def test_openai_agents_cleanup_runner_loads_canonical_skill_context(
         return 0
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household._run_and_tee",
+        "roboclaws.agents.household_live_runner._run_and_tee",
         fake_run_and_tee,
     )
     args = Namespace(
@@ -3998,16 +3995,16 @@ def test_openai_agents_cleanup_runner_continues_incomplete_sdk_turn(
             )
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household.subprocess.Popen",
+        "roboclaws.agents.household_live_runner.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household._port_accepting",
+        "roboclaws.agents.household_live_runner._port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household.OpenAIAgentsLiveRuntime",
+        "roboclaws.agents.household_live_runner.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
 
@@ -4017,7 +4014,7 @@ def test_openai_agents_cleanup_runner_continues_incomplete_sdk_turn(
         return 0
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household._run_and_tee",
+        "roboclaws.agents.household_live_runner._run_and_tee",
         fake_run_and_tee,
     )
     args = Namespace(
@@ -4155,16 +4152,16 @@ def test_openai_agents_cleanup_runner_compact_continuation_excludes_full_prompt(
             return LiveAgentResult(phase="finished", exit_status=0, run_result_present=True)
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household.subprocess.Popen",
+        "roboclaws.agents.household_live_runner.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household._port_accepting",
+        "roboclaws.agents.household_live_runner._port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household.OpenAIAgentsLiveRuntime",
+        "roboclaws.agents.household_live_runner.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
 
@@ -4173,7 +4170,7 @@ def test_openai_agents_cleanup_runner_compact_continuation_excludes_full_prompt(
         return 0
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household._run_and_tee",
+        "roboclaws.agents.household_live_runner._run_and_tee",
         fake_run_and_tee,
     )
     full_prompt = "FULL ORIGINAL PROMPT THAT SHOULD NOT REPEAT"
@@ -4684,20 +4681,20 @@ def test_openai_agents_cleanup_runner_compact_continuation_preserves_composite_c
             return LiveAgentResult(phase="finished", exit_status=0, run_result_present=True)
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household.subprocess.Popen",
+        "roboclaws.agents.household_live_runner.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household._port_accepting",
+        "roboclaws.agents.household_live_runner._port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household.OpenAIAgentsLiveRuntime",
+        "roboclaws.agents.household_live_runner.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household._run_and_tee",
+        "roboclaws.agents.household_live_runner._run_and_tee",
         lambda command, *, cwd, stdout_path, stderr_path, env: 0,
     )
     full_prompt = "FULL ORIGINAL PROMPT THAT SHOULD NOT REPEAT"
@@ -4797,20 +4794,20 @@ def test_openai_agents_cleanup_runner_uses_profiled_compact_kickoff_prompt(
             return LiveAgentResult(phase="finished", exit_status=0, run_result_present=True)
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household.subprocess.Popen",
+        "roboclaws.agents.household_live_runner.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household._port_accepting",
+        "roboclaws.agents.household_live_runner._port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household.OpenAIAgentsLiveRuntime",
+        "roboclaws.agents.household_live_runner.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household._run_and_tee",
+        "roboclaws.agents.household_live_runner._run_and_tee",
         lambda command, *, cwd, stdout_path, stderr_path, env: 0,
     )
     args = Namespace(
@@ -4852,8 +4849,8 @@ def test_openai_agents_cleanup_runner_uses_profiled_compact_kickoff_prompt(
     assert status == 0
     assert len(prompts) == 1
     assert "FULL PROMPT THAT SHOULD BE REPLACED" not in prompts[0]
-    assert "Compact action cadence for world-public-labels" in prompts[0]
-    assert "pending_cleanup_candidates" in prompts[0]
+    assert "Evidence lane=world-public-labels" in prompts[0]
+    assert "pending_cleanup_candidates" not in prompts[0]
     timing = json.loads((run_dir / "live_timing.json").read_text(encoding="utf-8"))
     assert timing["kickoff_prompt_source"] == "profile-rendered-lane-default"
 
@@ -5423,16 +5420,16 @@ def test_openai_agents_cleanup_runner_fails_after_bounded_continuation(
             )
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household.subprocess.Popen",
+        "roboclaws.agents.household_live_runner.subprocess.Popen",
         FakeProcess,
     )
     port_checks = iter([False, True])
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household._port_accepting",
+        "roboclaws.agents.household_live_runner._port_accepting",
         lambda *_args, **_kwargs: next(port_checks),
     )
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household.OpenAIAgentsLiveRuntime",
+        "roboclaws.agents.household_live_runner.OpenAIAgentsLiveRuntime",
         lambda: FakeRuntime(),
     )
 
@@ -5442,7 +5439,7 @@ def test_openai_agents_cleanup_runner_fails_after_bounded_continuation(
         return 0
 
     monkeypatch.setattr(
-        "scripts.molmo_cleanup.run_live_openai_agents_household._run_and_tee",
+        "roboclaws.agents.household_live_runner._run_and_tee",
         fake_run_and_tee,
     )
     args = Namespace(

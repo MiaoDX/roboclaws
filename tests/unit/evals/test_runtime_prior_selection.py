@@ -7,17 +7,19 @@ import pytest
 
 from roboclaws.evals.map_build_reports import map_build_matrix_summary_from_bundles
 from roboclaws.evals.runtime_prior_selection import (
-    ADVISORY_REGRADE,
-    BLOCKING_STALE,
-    COMPATIBLE,
-    RUNTIME_PRIOR_CATALOG_SCHEMA,
     RUNTIME_PRIOR_SELECTION_MANIFEST_SCHEMA,
-    STALE,
-    classify_runtime_prior_compatibility,
     load_runtime_prior_selection_manifest,
     runtime_prior_catalog_from_reports,
     select_recommended_runtime_prior,
     write_runtime_prior_selection,
+)
+from roboclaws.maps.runtime_prior_catalog import (
+    ADVISORY_REGRADE,
+    BLOCKING_STALE,
+    COMPATIBLE,
+    RUNTIME_PRIOR_CATALOG_SCHEMA,
+    STALE,
+    classify_runtime_prior_compatibility,
 )
 
 

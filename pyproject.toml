@@ -12,8 +12,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-anthropic = ["anthropic>=0.40", "instructor>=1.5"]
-openai = ["openai>=1.50", "instructor>=1.5"]
 openclaw = ["mcp[cli]>=1.27", "tyro>=0.9.0"]
 molmospaces = [
     "molmo-spaces[mujoco] @ git+https://github.com/allenai/molmospaces.git@3c50ae6093f7e4a4ef32529f8a773715da410a2f",
@@ -30,10 +28,8 @@ visual-grounding-yoloe = [
 ]
 dev = [
     "aiohttp>=3.13",
-    "anthropic>=0.40",
     "openai>=1.50",
     "openai-agents==0.17.4",
-    "instructor>=1.5",
     "pydantic>=2.0",
     "Pillow>=10.0",
     "numpy>=1.24",
@@ -62,6 +58,9 @@ exclude = [
     "/dist",
     "/output",
     "/vendors",
+    "/evals",
+    "/roboclaws/evals",
+    "/skills/eval-harness",
 ]
 
 [tool.hatch.metadata]
@@ -91,7 +90,6 @@ markers = [
     "unit: fast isolated behavior tests through public module APIs.",
     "contract: public schema, CLI, MCP tool, replay, report, and artifact compatibility tests.",
     "integration: requires Docker (pinned Gateway image) or real model-provider API calls. The pre-commit hook excludes these; run them post-merge via `just dev::test-integration` or plain `pytest` to run everything.",
-    "regression: known-bug or high-level artifact regression coverage.",
     "local: requires local GPU, paid API key, real simulator, or real Gateway.",
     "slow: CI-safe but expensive enough to exclude from tight feedback loops.",
 ]

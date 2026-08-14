@@ -554,7 +554,7 @@ def _result() -> EvalResult:
                 "surface": "household-world",
                 "intent": "map-build",
                 "preset": "map-build",
-                "world": "molmospaces/val_0",
+                "world": "molmospaces/procthor-10k-val/0",
                 "backend": "mujoco",
                 "evidence_lane": "camera-grounded-labels",
                 "camera_labeler": "grounding-dino",
