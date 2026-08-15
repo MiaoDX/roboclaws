@@ -186,12 +186,13 @@ class _NetworkDisabledDockerClient:
 
 
 def sandbox_run_config() -> Any:
-    import docker
     from agents.sandbox import SandboxRunConfig
     from agents.sandbox.sandboxes.docker import (
         DockerSandboxClient,
         DockerSandboxClientOptions,
     )
+
+    import docker
 
     docker_client = _NetworkDisabledDockerClient(docker.from_env())
     return SandboxRunConfig(
@@ -210,10 +211,11 @@ class SandboxIsolationProbe:
 
 
 async def run_sandbox_isolation_probe(*, skill_name: str, content: str) -> SandboxIsolationProbe:
-    import docker
     from agents.sandbox import Manifest
     from agents.sandbox.capabilities import Skill, Skills
     from agents.sandbox.sandboxes.docker import DockerSandboxClientOptions
+
+    import docker
 
     digest = hashlib.sha256(content.encode("utf-8")).hexdigest()
     skills = Skills(
