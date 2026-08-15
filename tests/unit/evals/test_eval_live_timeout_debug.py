@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 
 import roboclaws.evals.live_execution as live_execution
+from roboclaws.core.environment_setup_metadata import ENVIRONMENT_SETUP_METADATA_ENV
 from roboclaws.evals.live_timeout import LiveEvalTimeoutError
 from roboclaws.evals.runner import run_eval_suite
 
@@ -86,13 +87,18 @@ def test_live_surface_product_records_timeout_debug_snapshot(
     monkeypatch.setattr(live_execution.time, "monotonic", fake_monotonic)
     monkeypatch.setattr(live_execution.time, "sleep", fake_sleep)
 
+    kwargs = _live_surface_kwargs(
+        tmp_path / "trial-0000",
+        live_timeout_s=50.0,
+        live_stall_timeout_s=5.0,
+    )
+    kwargs.update(
+        generated_mess_count=3,
+    )
+
     with pytest.raises(LiveEvalTimeoutError) as exc_info:
         live_execution.run_live_surface_product(
-            **_live_surface_kwargs(
-                tmp_path / "trial-0000",
-                live_timeout_s=50.0,
-                live_stall_timeout_s=5.0,
-            )
+            **kwargs,
         )
 
     assert str(exc_info.value) == "live eval trial stalled after 5s without progress"
@@ -104,6 +110,9 @@ def test_live_surface_product_records_timeout_debug_snapshot(
     assert sleeps == [1.0, 1.0, 1.0, 1.0, 1.0]
     assert timeout_run_dir is not None
     assert popen_kwargs["cwd"] == live_execution.REPO_ROOT
+    setup = json.loads(popen_kwargs["env"][ENVIRONMENT_SETUP_METADATA_ENV])
+    assert setup["mode"] == "relocate-cleanup-related-objects"
+    assert setup["relocation_count"] == 3
     record = json.loads((tmp_path / "trial-0000" / "live_eval_command.json").read_text())
     assert record["returncode"] == "stall_timeout"
     assert record["timeout_kind"] == "stall_timeout"
