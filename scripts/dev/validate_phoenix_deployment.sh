@@ -42,7 +42,7 @@ assert set(config["services"]) == {"phoenix"}
 assert set(config["volumes"]) == {"phoenix-data"}
 PY
 
-export PHOENIX_LAN_BIND_HOST=10.169.12.60
+export PHOENIX_LAN_BIND_HOST=192.0.2.60
 export PHOENIX_LAN_HTTP_PORT=6006
 lan_config_json="$(
     docker compose -f "${compose_file}" -f "${lan_compose_file}" config --format json
@@ -59,7 +59,7 @@ assert {
 } == {
     ("127.0.0.1", "6006", 6006),
     ("127.0.0.1", "4317", 4317),
-    ("10.169.12.60", "6006", 6006),
+    ("192.0.2.60", "6006", 6006),
 }
 assert service["restart"] == "no"
 assert service["deploy"]["resources"]["limits"] == {

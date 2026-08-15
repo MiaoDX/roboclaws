@@ -52,7 +52,7 @@ def test_local_phoenix_adapter_rejects_remote_or_non_otlp_endpoint() -> None:
     [
         "https://phoenix.example/v1/traces",
         "http://0.0.0.0:6006/v1/traces",
-        "http://192.168.1.10:6006/v1/traces",
+        "http://192.0.2.10:6006/v1/traces",
     ],
 )
 def test_phoenix_config_rejects_non_loopback_endpoint(endpoint: str) -> None:

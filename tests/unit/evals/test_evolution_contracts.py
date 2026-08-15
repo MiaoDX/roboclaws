@@ -105,7 +105,7 @@ def test_campaign_rejects_unauthorized_mutable_paths(mutable_path: str) -> None:
     ("payload", "match"),
     [
         ({"private_goal_reference": "hidden"}, "forbidden key"),
-        ({"note": "read /home/maintainer/repo/evals/private.json"}, "host path"),
+        ({"note": "read /home/example/repo/evals/private.json"}, "host path"),
         ({"note": "probe /proc/self/environ"}, "proc path"),
         ({"api_key": "secret"}, "forbidden key"),
         ({"holdout": {"scene": "secret"}}, "forbidden key"),
