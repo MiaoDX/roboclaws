@@ -12,9 +12,16 @@ LOCAL_ASSET_MODULES = {
     "test_b1_map12_base_metric_sidecar.py",
     "test_b1_map12_correspondence_review_cli.py",
     "test_b1_map12_label_tool.py",
+    "test_b1_map12_label_tool_rendering.py",
     "test_b1_map12_manual_alignment_overlay_cli.py",
     "test_b1_scene_topdown_diagnostic.py",
     "test_molmospaces_source_pin.py",
+    # These exercise private B1 camera/map exports or generated eval evidence.
+    "test_evolution_control.py",
+    "test_render_scene_previews_b1.py",
+    "test_render_scene_previews_camera_promotion.py",
+    "test_render_scene_previews_molmospaces.py",
+    "test_render_scene_previews_sources.py",
 }
 
 LOCAL_ASSET_MODULE_PREFIXES = ("test_b1_map12_verified_alignment_",)
@@ -41,6 +48,7 @@ LOCAL_ASSET_TESTS = {
     "test_nav2_map_bundle_contract.py": {
         "test_base_metric_map_v1_validation_accepts_b1_bundle",
         "test_base_metric_map_v1_validation_rejects_contract_violations",
+        "test_realworld_contract_routes_across_b1_bundle_occupancy_grid",
     },
     "test_scene_room_semantic_overlay.py": {
         "test_b1_base_metric_map_materializes_review_labels_without_retargeting_map",

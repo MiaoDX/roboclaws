@@ -20,6 +20,8 @@ fi
 PYTEST_BIN_DIR="$(cd "$(dirname "$PYTEST_BIN")" && pwd)"
 JUST_BIN="$(command -v just 2>/dev/null || true)"
 JUST_BIN_DIR="${JUST_BIN:+$(dirname "$JUST_BIN")}"
+UV_BIN="$(command -v uv 2>/dev/null || true)"
+UV_BIN_DIR="${UV_BIN:+$(dirname "$UV_BIN")}"
 ROBOCLAWS_PYTHON="${ROBOCLAWS_PYTHON:-$REPO_ROOT/.venv/bin/python}"
 if [[ ! -x "$ROBOCLAWS_PYTHON" ]]; then
     echo "run_pytest_standalone: missing repo Python at $ROBOCLAWS_PYTHON" >&2
@@ -43,7 +45,7 @@ if [[ "${ROBOCLAWS_PYTEST_CLEAR_PROVIDER_ENV:-}" == "1" ]]; then
 fi
 
 env -i \
-  PATH="$PYTEST_BIN_DIR:$REPO_ROOT/.venv/bin${JUST_BIN_DIR:+:$JUST_BIN_DIR}:/usr/bin:/bin" \
+  PATH="$PYTEST_BIN_DIR:$REPO_ROOT/.venv/bin${JUST_BIN_DIR:+:$JUST_BIN_DIR}${UV_BIN_DIR:+:$UV_BIN_DIR}:/usr/bin:/bin" \
   HOME="${HOME:-$REPO_ROOT}" \
   ROBOCLAWS_PYTHON="${ROBOCLAWS_PYTHON-}" \
   KIMI_API_KEY="${KIMI_API_KEY-}" \
