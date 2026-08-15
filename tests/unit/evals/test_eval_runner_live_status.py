@@ -71,6 +71,34 @@ def test_eval_runner_records_live_agent_blocked_identity(tmp_path: Path) -> None
     assert "live_agent_eval_execution_not_requested" in result["limitations"]
 
 
+def test_eval_runner_redacts_opaque_provider_request_model_identity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("CODEX_RESPONSES_MODEL", "gpt-5.5")
+
+    run = run_eval_suite(
+        "cleanup_capability",
+        output_root=tmp_path,
+        stamp="resolved-model",
+        agent_engine="openai-agents-sdk",
+        provider_profile="codex-responses",
+    )
+
+    assert {result["identity"]["model"] for result in run.bundle["results"]} == {"codex"}
+
+
+def test_eval_runner_keeps_public_provider_model_identity(tmp_path: Path) -> None:
+    run = run_eval_suite(
+        "cleanup_capability",
+        output_root=tmp_path,
+        stamp="public-model",
+        agent_engine="openai-agents-sdk",
+        provider_profile="kimi-openai-chat",
+    )
+
+    assert {result["identity"]["model"] for result in run.bundle["results"]} == {"kimi-k2.7-code"}
+
+
 def test_eval_runner_classifies_live_provider_failures_as_blocked(tmp_path: Path) -> None:
     def live_product_runner(**_kwargs: Any) -> dict[str, Any]:
         raise RuntimeError(
@@ -194,6 +222,8 @@ def test_live_surface_env_sets_provider_and_model_keys(tmp_path: Path) -> None:
         "agent_engine": "openai-agents-sdk",
         "provider_profile": "kimi-openai-chat",
         "model": "kimi-k2.7-code",
+        "live_token_budget": 12000,
+        "live_cost_budget_usd": 0.25,
         "telemetry_identity": {
             "observability_context": "eval",
             "suite_id": "suite-1",
@@ -207,6 +237,8 @@ def test_live_surface_env_sets_provider_and_model_keys(tmp_path: Path) -> None:
     assert env["PATH"] == "/bin"
     assert env["ROBOCLAWS_PROVIDER_PROFILE"] == "kimi-openai-chat"
     assert env["ROBOCLAWS_OPENAI_AGENTS_MODEL"] == "kimi-k2.7-code"
+    assert env["ROBOCLAWS_EVAL_PROVIDER_TOKEN_BUDGET"] == "12000.0"
+    assert env["ROBOCLAWS_EVAL_PROVIDER_COST_BUDGET_USD"] == "0.25"
     assert json.loads(env["ROBOCLAWS_EVAL_TELEMETRY_IDENTITY"]) == {
         "observability_context": "eval",
         "repetition": 0,

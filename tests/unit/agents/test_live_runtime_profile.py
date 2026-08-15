@@ -78,6 +78,17 @@ def test_openai_agents_perf_profile_resolves_context_managed_defaults(monkeypatc
     }
 
 
+def test_eval_provider_budget_reaches_sdk_model_settings(monkeypatch) -> None:
+    monkeypatch.setenv("ROBOCLAWS_EVAL_PROVIDER_TOKEN_BUDGET", "128000")
+    monkeypatch.setenv("ROBOCLAWS_EVAL_PROVIDER_COST_BUDGET_USD", "0.384")
+
+    profile = _resolve_agent_sdk_perf_profile(_openai_agents_perf_profile_base_args())
+
+    assert profile["provider_token_budget"] == 128000.0
+    assert profile["provider_cost_budget_usd"] == 0.384
+    assert profile["sdk_model_settings"]["max_tokens"] == 1000
+
+
 def test_openai_agents_perf_profile_resolves_explicit_baseline_defaults(monkeypatch) -> None:
     monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", raising=False)
     baseline = _resolve_agent_sdk_perf_profile(

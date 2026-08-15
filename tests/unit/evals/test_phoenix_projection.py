@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -430,6 +431,78 @@ def test_malformed_local_results_fail_before_network_or_mapping(tmp_path: Path) 
     assert FakePhoenix.calls == []
 
 
+@pytest.mark.parametrize("mismatch", ("suite_version", "sample_version", "prompt"))
+def test_results_must_match_exact_suite_and_sample_release(tmp_path: Path, mismatch: str) -> None:
+    results = _write_results(tmp_path / "eval_results.json")
+    payload = json.loads(results.read_text())
+    if mismatch == "suite_version":
+        payload["suite"]["version"] = "stale-suite"
+    elif mismatch == "sample_version":
+        payload["results"][0]["identity"]["sample_version"] = "stale-sample"
+    else:
+        payload["results"][0]["identity"]["prompt"] = "stale prompt"
+    results.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="exact projected"):
+        phoenix_projection.project_eval_to_phoenix(
+            {
+                "suite": "smoke_regression",
+                "eval_results": str(results),
+                "endpoint": "http://127.0.0.1:6006",
+                "output": str(tmp_path / "mapping.json"),
+            }
+        )
+
+    assert FakePhoenix.calls == []
+
+
+def test_unrelated_configuration_does_not_change_partition_projection_digest(
+    tmp_path: Path,
+) -> None:
+    results = _write_results(tmp_path / "eval_results.json")
+    payload = json.loads(results.read_text())
+    second = deepcopy(payload["results"][0])
+    second["identity"].update(
+        {
+            "trial_id": "trial-2",
+            "provider_profile": "second-provider",
+            "model": "gpt-4o",
+        }
+    )
+    payload["results"].append(second)
+    results.write_text(json.dumps(payload), encoding="utf-8")
+    overrides = {
+        "suite": "smoke_regression",
+        "eval_results": str(results),
+        "endpoint": "http://127.0.0.1:6006",
+    }
+
+    phoenix_projection.project_eval_to_phoenix(overrides | {"output": str(tmp_path / "first.json")})
+    first = json.loads((tmp_path / "first.json").read_text())
+    first_by_provider = {
+        row["configuration"]["provider_profile"]: row for row in first["experiments"]
+    }
+    payload["results"][1]["grader_outputs"]["privacy"]["status"] = "failed"
+    results.write_text(json.dumps(payload), encoding="utf-8")
+
+    phoenix_projection.project_eval_to_phoenix(
+        overrides | {"output": str(tmp_path / "second.json")}
+    )
+    projected = json.loads((tmp_path / "second.json").read_text())
+    second_by_provider = {
+        row["configuration"]["provider_profile"]: row for row in projected["experiments"]
+    }
+
+    assert (
+        second_by_provider["not_applicable"]["phoenix_id"]
+        == first_by_provider["not_applicable"]["phoenix_id"]
+    )
+    assert (
+        second_by_provider["second-provider"]["phoenix_id"]
+        != first_by_provider["second-provider"]["phoenix_id"]
+    )
+
+
 def test_dispatcher_never_invokes_suite_execution(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -473,7 +546,7 @@ def _write_results(path: Path) -> Path:
         metrics={"unexpected_private_metric": 42},
     )
     identity = dict(result.identity)
-    identity["prompt"] = "top secret prompt"
+    identity["private_prompt_note"] = "top secret prompt"
     run_dir = path.parent / "run"
     run_dir.mkdir()
     (run_dir / "prompt-identity.json").write_text(

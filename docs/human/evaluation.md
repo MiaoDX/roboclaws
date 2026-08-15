@@ -31,6 +31,13 @@ sealed confirmation, and promotion always requires a digest-bound human
 approval. A failed authoritative training status rejects that candidate as
 ineligible for selection; it does not mean the optimizer or training
 infrastructure failed unless the attempt classification says so.
+Frozen campaigns carry both campaign-wide token/cost ceilings and explicit
+per-optimizer-run and per-robot-attempt reservations. The orchestrator must fit
+the complete reservation before a provider starts, then passes the reserved
+limit into the Agents SDK output cap; a positive but insufficient remainder is
+terminal `inconclusive` evidence rather than permission to overspend. Providers
+without catalog output pricing are blocked before execution because their cost
+cap cannot be derived safely.
 
 MCP behavior candidates use a separate candidate worker boundary. The trusted
 runtime first projects an atomic baseline-public response, validates forbidden
@@ -286,6 +293,11 @@ just agent::eval suite=map_build_consumer budget=focused \
   agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat \
   regrade_source=output/evals/<suite>/<stamp>
 ```
+
+Regrade requires the exact source suite and sample release, preserves the
+source trial's engine, provider, model, Skill, delivery cell, runtime, and
+budget identity, and rejects any explicitly supplied execution override that
+conflicts with that source evidence.
 
 Cross-run MapBuild reports are artifact-only:
 

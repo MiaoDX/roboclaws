@@ -28,6 +28,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_LIVE_WALL_CLOCK_BUDGET_S = 1500.0
 DEFAULT_LIVE_STALL_TIMEOUT_S = 180.0
 LIVE_PROCESS_POLL_S = 1.0
+EVAL_PROVIDER_TOKEN_BUDGET_ENV = "ROBOCLAWS_EVAL_PROVIDER_TOKEN_BUDGET"
+EVAL_PROVIDER_COST_BUDGET_ENV = "ROBOCLAWS_EVAL_PROVIDER_COST_BUDGET_USD"
 
 
 def live_surface_command(kwargs: dict[str, Any], *, output_dir: Path) -> list[str]:
@@ -159,9 +161,12 @@ def live_product_run_kwargs(
     model: str | None,
     live_timeout_s: float | None,
     live_stall_timeout_s: float | None,
+    live_token_budget: float | None = None,
+    live_cost_budget_usd: float | None = None,
     skill_delivery_cell: str = "static-full",
     model_visible_tool_surface: tuple[str, ...] | list[str] = (),
     skill_source_root: Path | None = None,
+    skill_name: str | None = None,
 ) -> dict[str, Any]:
     """Return product-run kwargs plus live-agent routing metadata."""
 
@@ -180,9 +185,12 @@ def live_product_run_kwargs(
             "model": model,
             "live_timeout_s": live_timeout_s,
             "live_stall_timeout_s": live_stall_timeout_s,
+            "live_token_budget": live_token_budget,
+            "live_cost_budget_usd": live_cost_budget_usd,
             "skill_delivery_cell": skill_delivery_cell,
             "model_visible_tool_surface": list(model_visible_tool_surface),
             "skill_source_root": str(skill_source_root) if skill_source_root is not None else "",
+            "skill_name": skill_name or "",
         }
     )
     return kwargs
@@ -350,6 +358,9 @@ def live_surface_env(kwargs: dict[str, Any], *, base_env: Any) -> dict[str, str]
     skill_source_root = str(kwargs.get("skill_source_root") or "")
     if skill_source_root:
         env["ROBOCLAWS_EVAL_SKILL_SOURCE_ROOT"] = skill_source_root
+    skill_name = str(kwargs.get("skill_name") or "")
+    if skill_name:
+        env["ROBOCLAWS_EVAL_SKILL_NAME"] = skill_name
     provider_profile = str(kwargs.get("provider_profile") or "")
     if provider_profile:
         if kwargs["agent_engine"] == "openai-agents-sdk":
@@ -358,6 +369,16 @@ def live_surface_env(kwargs: dict[str, Any], *, base_env: Any) -> dict[str, str]
     if model:
         if kwargs["agent_engine"] == "openai-agents-sdk":
             env["ROBOCLAWS_OPENAI_AGENTS_MODEL"] = model
+    token_budget = kwargs.get("live_token_budget")
+    if token_budget is not None:
+        env[EVAL_PROVIDER_TOKEN_BUDGET_ENV] = str(float(token_budget))
+    else:
+        env.pop(EVAL_PROVIDER_TOKEN_BUDGET_ENV, None)
+    cost_budget = kwargs.get("live_cost_budget_usd")
+    if cost_budget is not None:
+        env[EVAL_PROVIDER_COST_BUDGET_ENV] = str(float(cost_budget))
+    else:
+        env.pop(EVAL_PROVIDER_COST_BUDGET_ENV, None)
     return env
 
 

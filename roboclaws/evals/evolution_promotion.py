@@ -37,11 +37,6 @@ def apply_evolution_promotion(
     head = _git_text(Path(repo_root), "rev-parse", "HEAD")
     if head != baseline.get("commit"):
         raise ValueError("promotion baseline commit is stale")
-    target_path = _single_mutable_path(bindings)
-    target = Path(repo_root) / target_path
-    if _file_digest(target) != baseline.get("target_sha256"):
-        raise ValueError("promotion target digest changed after evaluation")
-    _require_clean_target(Path(repo_root), target_path)
     candidate_root = (
         Path(report_path).parent
         / "candidates"
@@ -54,6 +49,16 @@ def apply_evolution_promotion(
     patch = str(record.get("patch") or "")
     if sha256(patch.encode("utf-8")).hexdigest() != report.payload["digests"]["patch_sha256"]:
         raise ValueError("promotion patch digest mismatch")
+    target_path = _single_mutable_path(bindings)
+    candidate_paths = record.get("mutable_paths")
+    if candidate_paths != [target_path]:
+        raise ValueError("promotion mutable paths do not match the evaluated candidate")
+    if _patch_changed_paths(Path(repo_root), patch) != (target_path,):
+        raise ValueError("promotion patch paths do not match the evaluated candidate")
+    target = Path(repo_root) / target_path
+    if _file_digest(target) != baseline.get("target_sha256"):
+        raise ValueError("promotion target digest changed after evaluation")
+    _require_clean_target(Path(repo_root), target_path)
     subprocess.run(
         ["git", "apply", "--check", "--whitespace=error-all"],
         cwd=repo_root,
@@ -102,6 +107,27 @@ def _require_clean_target(repo_root: Path, target_path: str) -> None:
     )
     if result.stdout.strip():
         raise ValueError("promotion target file is dirty or mixed")
+
+
+def _patch_changed_paths(repo_root: Path, patch: str) -> tuple[str, ...]:
+    result = subprocess.run(
+        ["git", "apply", "--numstat", "-z", "--whitespace=error-all"],
+        cwd=repo_root,
+        input=patch.encode("utf-8"),
+        check=True,
+        capture_output=True,
+    )
+    paths: list[str] = []
+    for field in result.stdout.split(b"\x00"):
+        if not field:
+            continue
+        columns = field.decode("utf-8").split("\t", 2)
+        if len(columns) != 3 or columns[0] == "-" or columns[1] == "-":
+            raise ValueError("promotion patch produced invalid changed-path evidence")
+        paths.append(columns[2])
+    if not paths:
+        raise ValueError("promotion patch does not change an evaluated path")
+    return tuple(paths)
 
 
 def _git_text(repo_root: Path, *args: str) -> str:

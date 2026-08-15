@@ -58,6 +58,8 @@ CAMERA_GROUNDED_HISTORY_RETAIN_ENV = "ROBOCLAWS_OPENAI_AGENTS_CAMERA_GROUNDED_HI
 CAMERA_GROUNDED_COMPOSITE_TOOLS_ENV = "ROBOCLAWS_OPENAI_AGENTS_CAMERA_GROUNDED_COMPOSITE_TOOLS"
 ROBOT_VIEW_CAPTURE_POLICY_ENV = "ROBOCLAWS_OPENAI_AGENTS_ROBOT_VIEW_CAPTURE_POLICY"
 MODEL_THINKING_MODE_ENV = "ROBOCLAWS_OPENAI_AGENTS_THINKING_MODE"
+PROVIDER_TOKEN_BUDGET_ENV = "ROBOCLAWS_EVAL_PROVIDER_TOKEN_BUDGET"
+PROVIDER_COST_BUDGET_ENV = "ROBOCLAWS_EVAL_PROVIDER_COST_BUDGET_USD"
 MAX_OBSERVE_PER_WAYPOINT_ENV = "ROBOCLAWS_OPENAI_AGENTS_MAX_OBSERVE_PER_WAYPOINT"
 RAW_FPV_CANDIDATE_BUDGET_ENV = "ROBOCLAWS_OPENAI_AGENTS_RAW_FPV_CANDIDATE_BUDGET"
 RAW_FPV_REPEATED_FAILURE_LIMIT_ENV = "ROBOCLAWS_OPENAI_AGENTS_RAW_FPV_REPEATED_FAILURE_LIMIT"
@@ -104,6 +106,7 @@ def resolve_agent_sdk_perf_profile(args: argparse.Namespace) -> dict[str, Any]:
         "profile_id": profile_id,
         "source": profile_source,
         "provider_profile": provider_profile,
+        "model": model or route.default_model_id,
         "wire_api": route.wire_api,
         "wire_source": route.wire_source,
         "route_status": route.status_for_engine("openai-agents-sdk"),
@@ -128,6 +131,18 @@ def resolve_agent_sdk_perf_profile(args: argparse.Namespace) -> dict[str, Any]:
             "max_turns",
             "ROBOCLAWS_OPENAI_AGENTS_MAX_TURNS",
             default=defaults["max_turns"],
+        ),
+        "provider_token_budget": _float_setting(
+            args,
+            "provider_token_budget",
+            PROVIDER_TOKEN_BUDGET_ENV,
+            default=0.0,
+        ),
+        "provider_cost_budget_usd": _float_setting(
+            args,
+            "provider_cost_budget_usd",
+            PROVIDER_COST_BUDGET_ENV,
+            default=0.0,
         ),
         "max_continuations": _int_setting(
             args,

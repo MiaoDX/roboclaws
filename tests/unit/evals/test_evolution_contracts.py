@@ -52,6 +52,10 @@ def _campaign_payload() -> dict[str, object]:
             "provider_concurrency": 1,
             "tokens": 10000,
             "cost_usd": 5.0,
+            "optimizer_call_tokens": 2000,
+            "optimizer_call_cost_usd": 1.0,
+            "robot_attempt_tokens": 1000,
+            "robot_attempt_cost_usd": 0.5,
             "wall_time_s": 1800,
             "timeout_s": 600,
             "retries": 0,
@@ -79,6 +83,17 @@ def test_campaign_requires_agents_sdk_for_both_roles(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="optimizer.agent_engine must be openai-agents-sdk"):
         load_campaign(path)
+
+
+def test_campaign_requires_distinct_optimizer_and_robot_identity() -> None:
+    payload = _campaign_payload()
+    optimizer = dict(payload["optimizer"])  # type: ignore[arg-type]
+    payload["robot"] = {
+        field: optimizer[field] for field in ("agent_engine", "provider_profile", "model")
+    }
+
+    with pytest.raises(ValueError, match="identities must be distinct"):
+        Campaign.from_mapping(payload)
 
 
 def test_campaign_is_strict_and_freezes_required_policy() -> None:

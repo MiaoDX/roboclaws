@@ -73,6 +73,9 @@ def _summarize_sdk_result(result: Any) -> dict[str, Any]:
 
 def _usage_summary(result: Any) -> dict[str, Any]:
     raw_usage = getattr(result, "usage", None)
+    if raw_usage is None:
+        context_wrapper = getattr(result, "context_wrapper", None)
+        raw_usage = getattr(context_wrapper, "usage", None)
     usage = _to_jsonable(raw_usage) if raw_usage is not None else {}
     if not isinstance(usage, dict) or not usage:
         return {"usage_available": False}

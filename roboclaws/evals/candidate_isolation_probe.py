@@ -28,6 +28,7 @@ _EXPECTED_PROVIDER_ENV = (
     "OPENAI_API_KEY",
 )
 _PLACEMENTS = frozenset({"local-docker", "cloudml-native-container"})
+_NETWORK_ISOLATION_METHOD = "linux_loopback_only_no_routes_v1"
 _RESULT_CHECKS = frozenset(
     {
         "approved_output_write",
@@ -201,6 +202,32 @@ def _validate_child_result(child: Any) -> None:
         raise ValueError("candidate child received sensitive environment")
     if child.get("forbidden_path_count") != 8:
         raise ValueError("candidate isolation forbidden target count mismatch")
+    _validate_network_denial_evidence(child)
+
+
+def _validate_network_denial_evidence(child: dict[str, Any]) -> None:
+    network_attempts = child.get("network_attempts")
+    if (
+        not isinstance(network_attempts, dict)
+        or not network_attempts
+        or any(value is not False for value in network_attempts.values())
+    ):
+        raise ValueError("candidate isolation network attempts did not prove denial")
+    network_isolation = child.get("network_isolation")
+    if not isinstance(network_isolation, dict):
+        raise ValueError("candidate isolation network namespace evidence is missing")
+    if network_isolation.get("method") != _NETWORK_ISOLATION_METHOD:
+        raise ValueError("candidate isolation network namespace method mismatch")
+    if network_isolation.get("isolated") is not True:
+        raise ValueError("candidate isolation network namespace is not isolated")
+    if network_isolation.get("evidence_available") is not True:
+        raise ValueError("candidate isolation network namespace evidence is unavailable")
+    if network_isolation.get("interface_count") != 1:
+        raise ValueError("candidate isolation network interface count mismatch")
+    if network_isolation.get("non_loopback_interface_count") != 0:
+        raise ValueError("candidate isolation has a non-loopback network interface")
+    if network_isolation.get("non_loopback_route_count") != 0:
+        raise ValueError("candidate isolation has a non-loopback network route")
 
 
 def _require_sha256(value: str, name: str, *, allow_prefix: bool = False, length: int = 64) -> None:
@@ -226,8 +253,8 @@ def _absolute_paths(payload: dict[str, Any], name: str) -> tuple[Path, ...]:
 
 
 def _network_targets(values: Any) -> tuple[tuple[str, int], ...]:
-    if not isinstance(values, list):
-        raise ValueError("network_targets must be a list")
+    if not isinstance(values, list) or not values:
+        raise ValueError("network_targets must be a non-empty list")
     targets: list[tuple[str, int]] = []
     for target in values:
         if not isinstance(target, dict) or set(target) != {"host", "port"}:
@@ -237,6 +264,45 @@ def _network_targets(values: Any) -> tuple[tuple[str, int], ...]:
             raise ValueError("network target must contain a valid host and port")
         targets.append((host, port))
     return tuple(targets)
+
+
+def _network_namespace_evidence() -> dict[str, Any]:
+    """Return sanitized proof that this Linux namespace exposes loopback only."""
+    try:
+        interfaces = sorted(path.name for path in Path("/sys/class/net").iterdir())
+        non_loopback_interfaces = [name for name in interfaces if name != "lo"]
+        non_loopback_route_count = _non_loopback_route_count()
+    except OSError:
+        return {
+            "method": _NETWORK_ISOLATION_METHOD,
+            "isolated": False,
+            "interface_count": 0,
+            "non_loopback_interface_count": 0,
+            "non_loopback_route_count": 0,
+            "evidence_available": False,
+        }
+    return {
+        "method": _NETWORK_ISOLATION_METHOD,
+        "isolated": interfaces == ["lo"] and non_loopback_route_count == 0,
+        "interface_count": len(interfaces),
+        "non_loopback_interface_count": len(non_loopback_interfaces),
+        "non_loopback_route_count": non_loopback_route_count,
+        "evidence_available": True,
+    }
+
+
+def _non_loopback_route_count() -> int:
+    count = 0
+    for path in (Path("/proc/net/route"), Path("/proc/net/ipv6_route")):
+        rows = path.read_text(encoding="utf-8").splitlines()
+        for row in rows:
+            fields = row.split()
+            if not fields or fields[0] == "Iface":
+                continue
+            interface = fields[0] if path.name == "route" else fields[-1]
+            if interface != "lo":
+                count += 1
+    return count
 
 
 def _digest_file(path: Path) -> str | None:
@@ -331,6 +397,7 @@ def run_probe(manifest: ProbeManifest) -> dict[str, Any]:
                 network[key] = True
         except (OSError, ValueError):
             network[key] = False
+    network_isolation = _network_namespace_evidence()
 
     manifest.output_root.mkdir(parents=True, exist_ok=True)
     marker = manifest.output_root / ".candidate-isolation-probe-write"
@@ -349,7 +416,9 @@ def run_probe(manifest: ProbeManifest) -> dict[str, Any]:
         "symlink_denied": not any(symlink_read.values()),
         "subprocess_private_read_denied": not any(subprocess_read.values()),
         "forbidden_writes_denied": not any(forbidden_write.values()),
-        "network_denied": not any(network.values()),
+        "network_denied": bool(network)
+        and not any(network.values())
+        and network_isolation["isolated"] is True,
         "approved_output_write": output_write,
     }
     return {
@@ -365,6 +434,7 @@ def run_probe(manifest: ProbeManifest) -> dict[str, Any]:
         "subprocess_read_attempts": subprocess_read,
         "forbidden_write_attempts": forbidden_write,
         "network_attempts": network,
+        "network_isolation": network_isolation,
         "approved_read_root_count": len(manifest.approved_read_roots),
         "output_root_sha256": hashlib.sha256(str(manifest.output_root).encode("utf-8")).hexdigest(),
         "forbidden_path_count": len(manifest.forbidden_paths),

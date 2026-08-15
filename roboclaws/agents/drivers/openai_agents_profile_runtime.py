@@ -5,7 +5,10 @@ from __future__ import annotations
 from typing import Any
 
 from roboclaws.agents.drivers.openai_agents_run_config import KIMI_CODING_USER_AGENT
-from roboclaws.agents.provider_transport import compatible_model_settings
+from roboclaws.agents.provider_transport import (
+    bounded_output_tokens,
+    compatible_model_settings,
+)
 from roboclaws.core.provider_catalog import (
     PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
     WIRE_CHAT_COMPLETIONS,
@@ -21,6 +24,17 @@ def _sdk_model_settings_for_profile(profile: dict[str, Any]) -> dict[str, Any]:
         "parallel_tool_calls": False,
         "model_thinking_mode": str(profile.get("model_thinking_mode") or "default"),
     }
+    token_budget = float(profile.get("provider_token_budget") or 0.0)
+    cost_budget_usd = float(profile.get("provider_cost_budget_usd") or 0.0)
+    if bool(token_budget) != bool(cost_budget_usd):
+        raise ValueError("provider token and cost budgets must be configured together")
+    if token_budget:
+        settings["max_tokens"] = bounded_output_tokens(
+            model=str(profile.get("model") or ""),
+            token_budget=token_budget,
+            cost_budget_usd=cost_budget_usd,
+            max_model_calls=int(profile.get("max_turns") or 0),
+        )
     if wire_api == WIRE_RESPONSES:
         settings["store"] = False
         settings["truncation"] = "auto"

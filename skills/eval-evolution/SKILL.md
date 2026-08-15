@@ -18,6 +18,10 @@ mutable paths, optimizer and robot provider/model identities, paired training
 suites, the orchestrator-only sealed confirmation reference, quality and
 minimum-improvement policy, runtime identity, and explicit turn/trial/token/
 cost/time/retry ceilings.
+The budget block also declares positive `optimizer_call_tokens`,
+`optimizer_call_cost_usd`, `robot_attempt_tokens`, and
+`robot_attempt_cost_usd` reservations. Each reservation is a frozen maximum for
+one optimizer run or one robot attempt, not a post-hoc usage target.
 
 Skill campaigns target exactly one `skills/<name>/SKILL.md`. Keep
 `static-full` as the baseline. `no-skill` is a non-promotable negative control.
@@ -51,7 +55,12 @@ rewrites, and `no-skill`. Efficiency ranks only candidates that meet the frozen
 quality and minimum-improvement rule. At most one training winner reaches one
 sealed confirmation. Its evidence never returns to the optimizer.
 
-Budget exhaustion is `inconclusive`. Behavior/provider failures do not retry.
+The orchestrator reserves the full optimizer-run or robot-attempt token and cost
+maximum before provider execution and passes that limit into the Agents SDK
+model settings. Insufficient remaining campaign capacity is `inconclusive`
+without starting the provider. A model without catalog output pricing is also
+blocked before execution because its cost ceiling cannot be derived safely.
+Behavior/provider failures do not retry.
 A separately recorded classified infrastructure attempt is allowed only when
 the frozen campaign permits one retry.
 

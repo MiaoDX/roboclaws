@@ -19,8 +19,12 @@ def _accepted_report(tmp_path: Path) -> tuple[Path, object, str]:
         return OptimizerOutcome(
             "Clarify order.",
             patch,
-            {"agent_engine": "openai-agents-sdk", "role": "optimizer"},
-            {},
+            {
+                "agent_engine": "openai-agents-sdk",
+                "role": "optimizer",
+                "model": "gpt-5.5",
+            },
+            {"tokens": 10, "cost_usd": 0.01},
             "trace-1",
         )
 
@@ -37,7 +41,13 @@ def _accepted_report(tmp_path: Path) -> tuple[Path, object, str]:
     return repo, report, patch
 
 
-def _manifest(tmp_path: Path, report: dict[str, object], *, approved: bool = True) -> Path:
+def _manifest(
+    tmp_path: Path,
+    report: dict[str, object],
+    *,
+    approved: bool = True,
+    mutable_path: str = "skills/example/SKILL.md",
+) -> Path:
     report_path = Path(str(report["report_path"]))
     path = tmp_path / "promotion.json"
     path.write_text(
@@ -51,7 +61,7 @@ def _manifest(tmp_path: Path, report: dict[str, object], *, approved: bool = Tru
                     "selection_report_sha256": sha256(report_path.read_bytes()).hexdigest(),
                     "patch_sha256": report["digests"]["patch_sha256"],  # type: ignore[index]
                     "materialized_sha256": report["digests"]["materialized_sha256"],  # type: ignore[index]
-                    "mutable_paths": ["skills/example/SKILL.md"],
+                    "mutable_paths": [mutable_path],
                 },
                 "reviewer": {
                     "identity": "maintainer",
@@ -93,5 +103,47 @@ def test_promotion_fails_closed_without_approval_or_with_dirty_target(tmp_path: 
         apply_evolution_promotion(
             report_path=Path(report["report_path"]),  # type: ignore[index]
             manifest_path=_manifest(tmp_path, report),  # type: ignore[arg-type]
+            repo_root=repo,  # type: ignore[arg-type]
+        )
+
+
+def test_promotion_rejects_clean_same_digest_path_not_changed_by_candidate(
+    tmp_path: Path,
+) -> None:
+    repo, report, _patch = _accepted_report(tmp_path)
+
+    with pytest.raises(ValueError, match="mutable paths do not match"):
+        apply_evolution_promotion(
+            report_path=Path(report["report_path"]),  # type: ignore[index]
+            manifest_path=_manifest(
+                tmp_path,
+                report,  # type: ignore[arg-type]
+                mutable_path="skills/other/SKILL.md",
+            ),
+            repo_root=repo,  # type: ignore[arg-type]
+        )
+
+
+def test_promotion_rejects_candidate_record_path_not_changed_by_patch(tmp_path: Path) -> None:
+    repo, report, _patch = _accepted_report(tmp_path)
+    candidate_path = (
+        Path(report["report_path"]).parent  # type: ignore[index]
+        / "candidates"
+        / "by-sha256"
+        / str(report["digests"]["patch_sha256"])  # type: ignore[index]
+        / "candidate.json"
+    )
+    candidate = json.loads(candidate_path.read_text(encoding="utf-8"))
+    candidate["mutable_paths"] = ["skills/other/SKILL.md"]
+    candidate_path.write_text(json.dumps(candidate), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="patch paths do not match"):
+        apply_evolution_promotion(
+            report_path=Path(report["report_path"]),  # type: ignore[index]
+            manifest_path=_manifest(
+                tmp_path,
+                report,  # type: ignore[arg-type]
+                mutable_path="skills/other/SKILL.md",
+            ),
             repo_root=repo,  # type: ignore[arg-type]
         )

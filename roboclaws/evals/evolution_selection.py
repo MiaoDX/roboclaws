@@ -9,6 +9,22 @@ from roboclaws.evals.evolution_contracts import Campaign
 
 Trial = dict[str, Any]
 
+_COMPARABLE_BEHAVIOR_FAILURE_CLASSES = frozenset(
+    {
+        "agent_no_completion_claim",
+        "manipulation_failure",
+        "map_actionability_failure",
+        "partial_progress_only",
+        "perception_miss",
+        "planner_proof_missing_or_failed",
+        "private_goal_not_satisfied",
+        "private_truth_leak",
+        "tool_argument_invalid",
+        "tool_noop_or_repeated_failure",
+        "trajectory_policy_violation",
+    }
+)
+
 
 def select_training_winner(
     campaign: Campaign,
@@ -17,6 +33,20 @@ def select_training_winner(
     candidate_trials: dict[str, Iterable[Trial]],
 ) -> dict[str, Any]:
     baseline = _trials_by_pair(baseline_trials, label="baseline")
+    baseline_reason = _baseline_inconclusive_reason(campaign, baseline)
+    if baseline_reason:
+        return {
+            "schema": "eval_evolution_training_selection_v1",
+            "campaign_id": campaign.campaign_id,
+            "status": "inconclusive",
+            "reason": baseline_reason,
+            "winner": None,
+            "eligible": [],
+            "rejected": {
+                candidate_id: baseline_reason for candidate_id in sorted(candidate_trials)
+            },
+            "holdout_allowed": False,
+        }
     eligible: list[dict[str, Any]] = []
     rejected: dict[str, str] = {}
     for candidate_id, raw_trials in candidate_trials.items():
@@ -99,6 +129,27 @@ def _candidate_rejection_reason(
     threshold = _minimum_improvement(campaign)
     if improvement < threshold:
         return "minimum_improvement_not_met"
+    return ""
+
+
+def _baseline_inconclusive_reason(campaign: Campaign, baseline: dict[str, Trial]) -> str:
+    statuses = {str(trial.get("status") or "") for trial in baseline.values()}
+    if statuses - {"passed", "failed"}:
+        return "baseline_execution_inconclusive"
+    for trial in baseline.values():
+        if trial.get("status") != "failed":
+            continue
+        failure_class = str(trial.get("failure_class") or "")
+        if failure_class not in _COMPARABLE_BEHAVIOR_FAILURE_CLASSES:
+            return "baseline_execution_inconclusive"
+    objective = str(campaign.selection.get("primary_objective") or "")
+    if not objective:
+        raise ValueError("selection.primary_objective is required")
+    for trial in baseline.values():
+        metrics = trial.get("metrics")
+        value = metrics.get(objective) if isinstance(metrics, dict) else None
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            return "baseline_primary_objective_unavailable"
     return ""
 
 
