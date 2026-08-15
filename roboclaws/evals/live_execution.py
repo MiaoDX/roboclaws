@@ -52,6 +52,7 @@ from roboclaws.household.household_mcp_endpoint import (
 from roboclaws.launch.catalog import resolve_surface_launch
 from roboclaws.launch.executor import LaunchProcess, spawn_launch_plan
 from roboclaws.launch.plans import LaunchPlan
+from roboclaws.launch.runners import export_env_from_plan
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ProductRun = Callable[..., dict[str, Any]]
@@ -218,6 +219,7 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
     port = str(kwargs.get("port") or env.get(EVAL_HARNESS_MCP_PORT_ENV) or free_mcp_port())
     command = live_surface_command({**kwargs, "port": port}, output_dir=sample_run_root)
     plan = resolve_surface_launch(command[5:])
+    env.update(export_env_from_plan(plan))
     wall_clock_budget_s = live_wall_clock_budget_s(kwargs)
     stall_timeout_s = resolved_live_stall_timeout_s(kwargs)
     started_wall_time_s = time.time()

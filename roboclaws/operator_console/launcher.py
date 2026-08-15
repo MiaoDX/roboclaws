@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -19,6 +20,7 @@ from roboclaws.household.evidence_lane_policy import evidence_lane_compatibility
 from roboclaws.launch.catalog import LaunchError, resolve_surface_launch
 from roboclaws.launch.executor import LaunchProcess, spawn_launch_plan
 from roboclaws.launch.plans import LaunchPlan
+from roboclaws.launch.runners import export_env_from_plan
 from roboclaws.launch.worlds import optional_world_dependency_status
 from roboclaws.operator_console import context_packets
 from roboclaws.operator_console.interactions import (
@@ -45,7 +47,7 @@ from roboclaws.operator_console.launch_support import (
     provider_env_overrides_for_route,
     public_env_overrides,
 )
-from roboclaws.operator_console.locks import ResourceLock
+from roboclaws.operator_console.locks import LockState, ResourceLock
 from roboclaws.operator_console.paths import console_output_root
 from roboclaws.operator_console.prompt_preview import (
     PromptPreviewRequest,
@@ -191,6 +193,42 @@ def _resolve_console_launch_plan(launch_args: list[str]) -> LaunchPlan:
         raise ConsoleLaunchError(str(exc)) from exc
 
 
+def _reap_console_child(pid: int) -> None:
+    while True:
+        try:
+            os.waitpid(pid, 0)
+            return
+        except InterruptedError:
+            continue
+        except ChildProcessError:
+            return
+
+
+def _start_console_child_reaper(process: LaunchProcess) -> None:
+    threading.Thread(
+        target=_reap_console_child,
+        args=(process.pid,),
+        name=f"roboclaws-console-reaper-{process.pid}",
+        daemon=True,
+    ).start()
+
+
+def _terminate_and_reap_console_child(process: LaunchProcess) -> None:
+    process.terminate()
+    _start_console_child_reaper(process)
+
+
+def _register_console_process(
+    lock: ResourceLock,
+    *,
+    run_id: str,
+    process: LaunchProcess,
+) -> LockState:
+    lock_state = lock.update_pid(run_id=run_id, pid=process.pid)
+    _start_console_child_reaper(process)
+    return lock_state
+
+
 def start_console_run(
     root: Path,
     request: LaunchRequest,
@@ -257,14 +295,14 @@ def start_console_run(
             process = spawn_launch_plan(
                 plan,
                 cwd=root,
-                env=run_env,
+                env={**run_env, **export_env_from_plan(plan)},
                 stdout=log_stream,
                 stderr=log_stream,
             )
-        lock_state = lock.update_pid(run_id=run_id, pid=process.pid)
+        lock_state = _register_console_process(lock, run_id=run_id, process=process)
     except Exception:
         if process is not None:
-            process.terminate()
+            _terminate_and_reap_console_child(process)
         lock.release(run_id=run_id, force=True)
         _remove_empty_reserved_run_dir(run_dir)
         raise

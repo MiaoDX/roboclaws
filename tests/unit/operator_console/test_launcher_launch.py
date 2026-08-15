@@ -6,11 +6,13 @@ from unittest.mock import patch
 
 import pytest
 
+from roboclaws.core.environment_setup_metadata import ENVIRONMENT_SETUP_METADATA_ENV
 from roboclaws.operator_console import workflows as console_workflows
 from roboclaws.operator_console.launch_contract import ConsoleLaunchError
 from roboclaws.operator_console.launch_lifecycle import _safe_run_id_suffix
 from roboclaws.operator_console.launcher import (
     LaunchRequest,
+    _reap_console_child,
     build_launch_args,
     build_workflow_launch_args,
     start_console_run,
@@ -30,6 +32,24 @@ from tests.unit.operator_console.launcher_support import (
     _free_port,
 )
 from tests.unit.operator_console.test_routes import _write_prior_catalog
+
+
+def test_console_child_reaper_retries_interrupted_wait(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[int, int]] = []
+
+    def fake_waitpid(pid: int, options: int) -> tuple[int, int]:
+        calls.append((pid, options))
+        if len(calls) == 1:
+            raise InterruptedError
+        return pid, 0
+
+    monkeypatch.setattr("roboclaws.operator_console.launcher.os.waitpid", fake_waitpid)
+
+    _reap_console_child(12345)
+
+    assert calls == [(12345, 0), (12345, 0)]
 
 
 def test_launcher_builds_route_specific_overrides(tmp_path: Path) -> None:
@@ -298,15 +318,20 @@ def test_launcher_holds_lock_before_spawning_process(tmp_path: Path) -> None:
     class FakeProcess:
         pid = 12345
 
+    process = FakeProcess()
+
     def fake_popen(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
         del args
         state = ResourceLock(tmp_path, route.lock_name).read()
         nonlocal seen_lock_owner
         seen_lock_owner = state.owner_run_id
         seen_env.update(kwargs["env"])
-        return FakeProcess()
+        return process
 
-    with patch("roboclaws.operator_console.launcher.spawn_launch_plan", side_effect=fake_popen):
+    with (
+        patch("roboclaws.operator_console.launcher.spawn_launch_plan", side_effect=fake_popen),
+        patch("roboclaws.operator_console.launcher._start_console_child_reaper") as reaper,
+    ):
         state = start_console_run(
             tmp_path,
             LaunchRequest(
@@ -318,13 +343,21 @@ def test_launcher_holds_lock_before_spawning_process(tmp_path: Path) -> None:
                 env_overrides={
                     "ROBOCLAWS_PROVIDER_PROFILE": "minimax-responses",
                 },
-                overrides={"port": _free_port()},
+                overrides={
+                    "port": _free_port(),
+                    "scenario_setup": "relocate-cleanup-related-objects",
+                    "relocation_count": "2",
+                },
             ),
             env={"MM_BASE_URL": "https://minimax.example/v1", "MM_API_KEY": "key"},
         )
 
     assert seen_lock_owner == state["run_id"]
     assert seen_env["ROBOCLAWS_PROVIDER_PROFILE"] == "minimax-responses"
+    setup = json.loads(seen_env[ENVIRONMENT_SETUP_METADATA_ENV])
+    assert setup["mode"] == "relocate-cleanup-related-objects"
+    assert setup["relocation_count"] == 2
+    reaper.assert_called_once_with(process)
     assert state["env_overrides"] == {
         "ROBOCLAWS_PROVIDER_PROFILE": "minimax-responses",
     }
