@@ -113,7 +113,7 @@ def test_experiment_telemetry_is_a_facade_over_canonical_local_owner() -> None:
         ("span", {"event": "span_end", "private_truth": {"mess": "hidden"}}),
         ("span", {"event": "span_end", "tool_arguments": {"target": "private"}}),
         ("span", {"event": "span_end", "tool_result": {"image": "base64"}}),
-        ("span", {"event": "span_end", "span_name": "/home/operator/private.json"}),
+        ("span", {"event": "span_end", "span_name": "/home/example/private.json"}),
         ("span", {"event": "span_end", "raw_image": "x" * 200_000}),
         ("span", {"event": "span_end", "map_data": [[0] * 1000] * 1000}),
         ("span", {"event": "span_end", "span_name": "x" * 10_000}),
