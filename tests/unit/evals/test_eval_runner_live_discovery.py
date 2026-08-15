@@ -20,6 +20,7 @@ from tests.unit.evals.eval_runner_support import (
 
 def test_eval_runner_regrades_existing_live_artifacts_without_provider_call(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def live_product_runner(**kwargs: Any) -> dict[str, Any]:
         surface_run_dir = Path(kwargs["output_dir"]) / "surface-run" / f"seed-{kwargs['seed']}"
@@ -35,12 +36,23 @@ def test_eval_runner_regrades_existing_live_artifacts_without_provider_call(
         stamp="live-source",
         agent_engine="openai-agents-sdk",
         provider_profile="kimi-openai-chat",
+        model="kimi-k2.7-code",
         live_execution="run",
+        skill_name="source-skill",
+        skill_delivery_cell="dynamic-routed",
         live_product_runner=live_product_runner,
     )
 
     def forbidden_live_product_runner(**_kwargs: Any) -> dict[str, Any]:
         raise AssertionError("regrade_source must not call the live provider route")
+
+    def forbidden_model_resolution(**_kwargs: Any) -> str:
+        raise AssertionError("regrade_source must not resolve the current model default")
+
+    monkeypatch.setattr(
+        "roboclaws.evals.runner.eval_model_identity",
+        forbidden_model_resolution,
+    )
 
     regrade = run_eval_suite(
         "cleanup_capability",
@@ -55,11 +67,136 @@ def test_eval_runner_regrades_existing_live_artifacts_without_provider_call(
     payload = json.loads(regrade.results_path.read_text())
     assert payload["aggregate"]["passed"] == 3
     result = payload["results"][0]
+    source_identity = source_run.bundle["results"][0]["identity"]
     assert result["status"] == "passed"
     assert "live_eval_regraded_from_existing_artifacts" in result["limitations"]
+    for field in (
+        "agent_engine",
+        "runner_class",
+        "provider_profile",
+        "model",
+        "skill_name",
+        "tool_surface",
+        "budgets",
+        "runtime",
+    ):
+        assert result["identity"][field] == source_identity[field]
     assert result["artifacts"]["run_result"].endswith(
         "live-source/runs/cleanup_repeated_seed7/trial-0000/surface-run/seed-7/run_result.json"
     )
+
+
+@pytest.mark.parametrize(
+    ("override", "message"),
+    (
+        ({"provider_profile": "codex-responses"}, "provider_profile"),
+        ({"skill_name": "other-skill"}, "skill_name"),
+        ({"skill_delivery_cell": "no-skill"}, "skill_delivery_cell"),
+    ),
+)
+def test_eval_runner_rejects_regrade_execution_identity_override(
+    tmp_path: Path,
+    override: dict[str, str],
+    message: str,
+) -> None:
+    def live_product_runner(**kwargs: Any) -> dict[str, Any]:
+        surface_run_dir = Path(kwargs["output_dir"]) / "surface-run" / f"seed-{kwargs['seed']}"
+        _write_product_artifacts(surface_run_dir, completion_status="success")
+        result = _run_result(surface_run_dir, completion_status="success")
+        (surface_run_dir / "run_result.json").write_text(json.dumps(result) + "\n")
+        result["eval_effective_run_dir"] = str(surface_run_dir)
+        return result
+
+    source_run = run_eval_suite(
+        "cleanup_capability",
+        output_root=tmp_path,
+        stamp=f"identity-source-{message}",
+        agent_engine="openai-agents-sdk",
+        provider_profile="kimi-openai-chat",
+        live_execution="run",
+        skill_name="source-skill",
+        skill_delivery_cell="dynamic-routed",
+        live_product_runner=live_product_runner,
+    )
+
+    with pytest.raises(ValueError, match=message):
+        run_eval_suite(
+            "cleanup_capability",
+            output_root=tmp_path,
+            stamp=f"identity-regrade-{message}",
+            agent_engine="openai-agents-sdk",
+            regrade_source=source_run.output_dir,
+            **override,
+        )
+
+
+def test_eval_runner_rejects_regrade_model_override(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def live_product_runner(**kwargs: Any) -> dict[str, Any]:
+        surface_run_dir = Path(kwargs["output_dir"]) / "surface-run" / f"seed-{kwargs['seed']}"
+        _write_product_artifacts(surface_run_dir, completion_status="success")
+        result = _run_result(surface_run_dir, completion_status="success")
+        (surface_run_dir / "run_result.json").write_text(json.dumps(result) + "\n")
+        result["eval_effective_run_dir"] = str(surface_run_dir)
+        return result
+
+    source_run = run_eval_suite(
+        "cleanup_capability",
+        output_root=tmp_path,
+        stamp="model-source",
+        agent_engine="openai-agents-sdk",
+        provider_profile="kimi-openai-chat",
+        live_execution="run",
+        live_product_runner=live_product_runner,
+    )
+    monkeypatch.setattr(
+        "roboclaws.evals.runner.eval_model_identity",
+        lambda **_kwargs: "different-public-model",
+    )
+
+    with pytest.raises(ValueError, match="model does not match source execution identity"):
+        run_eval_suite(
+            "cleanup_capability",
+            output_root=tmp_path,
+            stamp="model-regrade",
+            agent_engine="openai-agents-sdk",
+            model="requested-model",
+            regrade_source=source_run.output_dir,
+        )
+
+
+def test_eval_runner_rejects_regrade_source_suite_version_mismatch(tmp_path: Path) -> None:
+    def live_product_runner(**kwargs: Any) -> dict[str, Any]:
+        surface_run_dir = Path(kwargs["output_dir"]) / "surface-run" / f"seed-{kwargs['seed']}"
+        _write_product_artifacts(surface_run_dir, completion_status="success")
+        result = _run_result(surface_run_dir, completion_status="success")
+        (surface_run_dir / "run_result.json").write_text(json.dumps(result) + "\n")
+        result["eval_effective_run_dir"] = str(surface_run_dir)
+        return result
+
+    source_run = run_eval_suite(
+        "cleanup_capability",
+        output_root=tmp_path,
+        stamp="suite-version-source",
+        agent_engine="openai-agents-sdk",
+        provider_profile="kimi-openai-chat",
+        live_execution="run",
+        live_product_runner=live_product_runner,
+    )
+    source_payload = json.loads(source_run.results_path.read_text(encoding="utf-8"))
+    source_payload["suite"]["version"] = "stale-suite-release"
+    source_run.results_path.write_text(json.dumps(source_payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="exact suite release"):
+        run_eval_suite(
+            "cleanup_capability",
+            output_root=tmp_path,
+            stamp="suite-version-regrade",
+            agent_engine="openai-agents-sdk",
+            regrade_source=source_run.output_dir,
+        )
 
 
 def test_eval_runner_rejects_live_result_without_effective_run_dir(tmp_path: Path) -> None:

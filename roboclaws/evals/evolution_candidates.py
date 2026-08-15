@@ -7,6 +7,7 @@ import json
 import os
 import subprocess
 import tarfile
+import tempfile
 from hashlib import sha256
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -67,10 +68,12 @@ def _materialize_patch_candidate(
     patch_bytes = patch.encode("utf-8")
     limits = campaign.candidate_limits
     max_bytes = limits.get("max_patch_bytes")
-    if not isinstance(max_bytes, int) or len(patch_bytes) > max_bytes:
-        raise ValueError("candidate patch exceeds max_patch_bytes")
+    if not isinstance(max_bytes, int) or isinstance(max_bytes, bool) or max_bytes < 1:
+        raise ValueError("candidate_limits.max_patch_bytes must be a positive integer")
+    if len(patch_bytes) > max_bytes:
+        raise CandidateValidationError("candidate patch exceeds max_patch_bytes")
     if b"\x00" in patch_bytes:
-        raise ValueError("candidate patch must not contain binary data")
+        raise CandidateValidationError("candidate patch must not contain binary data")
     _verify_baseline_target(campaign, repo_root=Path(repo_root))
     patch_digest = sha256(patch_bytes).hexdigest()
     workspace = (
@@ -81,7 +84,16 @@ def _materialize_patch_candidate(
         / patch_digest
     )
     if workspace.exists():
-        return _load_existing_candidate(workspace, patch_digest=patch_digest)
+        try:
+            return _load_existing_candidate(
+                workspace,
+                campaign=campaign,
+                patch=patch,
+                patch_digest=patch_digest,
+                repo_root=Path(repo_root),
+            )
+        except (OSError, ValueError, subprocess.CalledProcessError) as exc:
+            raise CandidateValidationError(_validation_error_detail(exc)) from exc
     workspace.mkdir(parents=True)
     _extract_baseline_snapshot(
         repo_root=Path(repo_root),
@@ -103,7 +115,28 @@ def _materialize_patch_candidate(
         detail = _validation_error_detail(exc)
         raise CandidateValidationError(detail) from exc
     materialized_digest = _tree_digest(workspace)
-    record = {
+    record = _patch_candidate_record(
+        campaign,
+        patch=patch,
+        patch_digest=patch_digest,
+        changed_paths=changed_paths,
+        workspace=workspace,
+        materialized_digest=materialized_digest,
+    )
+    _write_json(workspace / "candidate.json", record)
+    return record
+
+
+def _patch_candidate_record(
+    campaign: Campaign,
+    *,
+    patch: str,
+    patch_digest: str,
+    changed_paths: tuple[str, ...],
+    workspace: Path,
+    materialized_digest: str,
+) -> dict[str, Any]:
+    return {
         "schema": "eval_evolution_materialized_candidate_v1",
         "campaign_id": campaign.campaign_id,
         "target_kind": campaign.target["kind"],
@@ -117,8 +150,6 @@ def _materialize_patch_candidate(
         "identity_frozen": True,
         "terminal_status": "gated",
     }
-    _write_json(workspace / "candidate.json", record)
-    return record
 
 
 def materialize_mcp_description_candidate(
@@ -258,16 +289,58 @@ def _tree_digest(workspace: Path) -> str:
     return digest.hexdigest()
 
 
-def _load_existing_candidate(workspace: Path, *, patch_digest: str) -> dict[str, Any]:
+def _load_existing_candidate(
+    workspace: Path,
+    *,
+    campaign: Campaign,
+    patch: str,
+    patch_digest: str,
+    repo_root: Path,
+) -> dict[str, Any]:
+    if workspace.is_symlink() or not workspace.is_dir():
+        raise ValueError(f"existing candidate workspace is not a real directory: {workspace}")
     record_path = workspace / "candidate.json"
     if not record_path.is_file():
         raise ValueError(f"candidate workspace already exists without frozen identity: {workspace}")
     payload = json.loads(record_path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict) or payload.get("patch_sha256") != patch_digest:
-        raise ValueError("existing candidate identity does not match requested patch")
-    if payload.get("materialized_sha256") != _tree_digest(workspace):
-        raise ValueError("existing candidate workspace changed after identity freeze")
-    return payload
+    if not isinstance(payload, dict):
+        raise ValueError("existing candidate identity must be a JSON object")
+
+    patch_bytes = patch.encode("utf-8")
+    with tempfile.TemporaryDirectory(prefix="roboclaws-candidate-verify-") as temp_root:
+        expected_workspace = Path(temp_root) / "workspace"
+        expected_workspace.mkdir()
+        _extract_baseline_snapshot(
+            repo_root=repo_root,
+            commit=str(campaign.target["baseline_commit"]),
+            workspace=expected_workspace,
+        )
+        changed_paths = _patch_changed_paths(patch_bytes, workspace=expected_workspace)
+        validate_candidate_authority(
+            expected_workspace,
+            changed_paths,
+            tuple(str(path) for path in campaign.target["mutable_paths"]),
+        )
+        max_paths = campaign.candidate_limits.get("max_changed_paths")
+        if not isinstance(max_paths, int) or len(changed_paths) > max_paths:
+            raise ValueError("candidate paths exceed max_changed_paths")
+        _apply_patch(patch_bytes, workspace=expected_workspace)
+        expected_materialized_digest = _tree_digest(expected_workspace)
+
+    if _tree_digest(workspace) != expected_materialized_digest:
+        raise ValueError("existing candidate workspace does not match requested campaign and patch")
+
+    expected = _patch_candidate_record(
+        campaign,
+        patch=patch,
+        patch_digest=patch_digest,
+        changed_paths=changed_paths,
+        workspace=workspace.resolve(),
+        materialized_digest=expected_materialized_digest,
+    )
+    if payload != expected:
+        raise ValueError("existing candidate identity does not match requested campaign and patch")
+    return expected
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:

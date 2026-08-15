@@ -213,7 +213,10 @@ def _validate_agent_roles(optimizer: dict[str, Any], robot: dict[str, Any]) -> N
         raise ValueError("optimizer.agent_engine must be openai-agents-sdk")
     if robot.get("agent_engine") != "openai-agents-sdk":
         raise ValueError("robot.agent_engine must be openai-agents-sdk")
-    if optimizer == robot:
+    identity_fields = ("agent_engine", "provider_profile", "model")
+    if tuple(optimizer.get(field) for field in identity_fields) == tuple(
+        robot.get(field) for field in identity_fields
+    ):
         raise ValueError("optimizer and robot identities must be distinct")
 
 
@@ -244,6 +247,10 @@ def _validate_budgets(budgets: dict[str, Any]) -> None:
         "provider_concurrency",
         "tokens",
         "cost_usd",
+        "optimizer_call_tokens",
+        "optimizer_call_cost_usd",
+        "robot_attempt_tokens",
+        "robot_attempt_cost_usd",
         "wall_time_s",
         "timeout_s",
         "retries",
@@ -251,6 +258,14 @@ def _validate_budgets(budgets: dict[str, Any]) -> None:
         value = budgets.get(key)
         if not isinstance(value, (int, float)) or isinstance(value, bool) or value < 0:
             raise ValueError(f"budgets.{key} must be a non-negative number")
+    for key in (
+        "optimizer_call_tokens",
+        "optimizer_call_cost_usd",
+        "robot_attempt_tokens",
+        "robot_attempt_cost_usd",
+    ):
+        if budgets[key] <= 0:
+            raise ValueError(f"budgets.{key} must be positive")
 
 
 def _validate_candidate_patch(candidate: dict[str, Any], candidate_limits: dict[str, Any]) -> None:

@@ -26,11 +26,13 @@ from roboclaws.evals.live_runtime import (
     _subprocess_text_output,
     _write_live_eval_command_record,
     live_product_run_kwargs,
-    live_stall_timeout_s,
     live_surface_command,
     live_surface_env,
     live_surface_run_dir,
     live_wall_clock_budget_s,
+)
+from roboclaws.evals.live_runtime import (
+    live_stall_timeout_s as resolved_live_stall_timeout_s,
 )
 from roboclaws.evals.live_timeout import (
     LiveEvalTimeoutError,
@@ -94,6 +96,8 @@ def run_live_eval_trial(
     model: str | None,
     live_timeout_s: float | None,
     live_stall_timeout_s: float | None,
+    live_token_budget: float | None = None,
+    live_cost_budget_usd: float | None = None,
     skill_delivery_cell: str = "static-full",
     live_product_runner: ProductRun,
     hooks: LiveTrialHooks,
@@ -113,7 +117,25 @@ def run_live_eval_trial(
         if failure is not None:
             return hooks.failed_result_from_dependency(trial, run_dir, failure)
 
+        trial_wall_clock_budget_s = live_wall_clock_budget_s({"live_timeout_s": live_timeout_s})
+        trial_stall_budget_s = resolved_live_stall_timeout_s(
+            {"live_stall_timeout_s": live_stall_timeout_s}
+        )
+        trial_deadline: float | None = None
+
         def run_attempt(attempt_run_dir: Path) -> tuple[dict[str, Any], Path]:
+            nonlocal trial_deadline
+            if trial_deadline is None:
+                trial_deadline = time.monotonic() + trial_wall_clock_budget_s
+                attempt_timeout_s = trial_wall_clock_budget_s
+            else:
+                attempt_timeout_s = trial_deadline - time.monotonic()
+                if attempt_timeout_s <= 0:
+                    raise _live_trial_deadline_exhausted(
+                        attempt_run_dir,
+                        wall_clock_budget_s=trial_wall_clock_budget_s,
+                        stall_timeout_s=trial_stall_budget_s,
+                    )
             run_kwargs = live_product_run_kwargs(
                 sample,
                 run_dir=attempt_run_dir,
@@ -122,11 +144,14 @@ def run_live_eval_trial(
                 agent_engine=agent_engine,
                 provider_profile=provider_profile,
                 model=model,
-                live_timeout_s=live_timeout_s,
-                live_stall_timeout_s=live_stall_timeout_s,
+                live_timeout_s=attempt_timeout_s,
+                live_stall_timeout_s=min(trial_stall_budget_s, attempt_timeout_s),
+                live_token_budget=live_token_budget,
+                live_cost_budget_usd=live_cost_budget_usd,
                 skill_delivery_cell=skill_delivery_cell,
                 model_visible_tool_surface=trial.tool_surface,
                 skill_source_root=skill_source_root,
+                skill_name=trial.skill_name,
             )
             run_kwargs["telemetry_identity"] = {
                 "observability_context": "eval",
@@ -194,7 +219,7 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
     command = live_surface_command({**kwargs, "port": port}, output_dir=sample_run_root)
     plan = resolve_surface_launch(command[5:])
     wall_clock_budget_s = live_wall_clock_budget_s(kwargs)
-    stall_timeout_s = live_stall_timeout_s(kwargs)
+    stall_timeout_s = resolved_live_stall_timeout_s(kwargs)
     started_wall_time_s = time.time()
     record: dict[str, Any] = {
         "command": command,
@@ -507,6 +532,28 @@ def _temporary_file_text(file_obj: Any) -> str:
     except OSError:
         return ""
     return _subprocess_text_output(text)
+
+
+def _live_trial_deadline_exhausted(
+    run_dir: Path,
+    *,
+    wall_clock_budget_s: float,
+    stall_timeout_s: float,
+) -> LiveEvalTimeoutError:
+    return LiveEvalTimeoutError(
+        _live_timeout_message(
+            timeout_kind="wall_clock_budget_exhausted",
+            wall_clock_budget_s=wall_clock_budget_s,
+            stall_timeout_s=stall_timeout_s,
+        ),
+        timeout_kind="wall_clock_budget_exhausted",
+        wall_clock_budget_s=wall_clock_budget_s,
+        stall_timeout_s=stall_timeout_s,
+        effective_run_dir=run_dir,
+        live_status={},
+        timeout_debug_snapshot={"timeout_signal": "trial_retry_deadline_exhausted"},
+        command_record={},
+    )
 
 
 def _live_timeout_message(

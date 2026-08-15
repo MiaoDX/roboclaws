@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import json
 import subprocess
 from hashlib import sha256
 from pathlib import Path
 
 import pytest
 
-from roboclaws.evals.evolution_candidates import materialize_skill_candidate
+from roboclaws.evals import evolution_candidates
+from roboclaws.evals.evolution_candidates import (
+    CandidateValidationError,
+    materialize_skill_candidate,
+)
 from roboclaws.evals.evolution_contracts import Campaign
 
 
@@ -51,6 +56,10 @@ def _campaign(repo: Path, skill: Path) -> Campaign:
                 "provider_concurrency": 1,
                 "tokens": 100,
                 "cost_usd": 1,
+                "optimizer_call_tokens": 10,
+                "optimizer_call_cost_usd": 0.1,
+                "robot_attempt_tokens": 10,
+                "robot_attempt_cost_usd": 0.1,
                 "wall_time_s": 60,
                 "timeout_s": 30,
                 "retries": 0,
@@ -120,6 +129,81 @@ def test_materializes_when_output_root_is_inside_source_repo(
 
     materialized = Path(record["workspace"]) / "skills/example/SKILL.md"
     assert materialized.read_text(encoding="utf-8").endswith("Improved in nested output.\n")
+
+
+@pytest.mark.parametrize(
+    ("field", "tampered_value"),
+    (
+        ("schema", "tampered_schema"),
+        ("campaign_id", "other-campaign"),
+        ("target_kind", "mcp-behavior"),
+        ("parent_commit", "0" * 40),
+        ("parent_target_sha256", "1" * 64),
+        ("patch", "tampered patch"),
+        ("patch_sha256", "2" * 64),
+        ("mutable_paths", ["skills/other/SKILL.md"]),
+        ("workspace", "/tmp/redirected-candidate"),
+        ("materialized_sha256", "3" * 64),
+        ("identity_frozen", False),
+        ("terminal_status", "accepted"),
+    ),
+)
+def test_rejects_tampered_cached_candidate_identity(
+    baseline_repo: tuple[Path, Path],
+    tmp_path: Path,
+    field: str,
+    tampered_value: object,
+) -> None:
+    repo, skill = baseline_repo
+    campaign = _campaign(repo, skill)
+    skill.write_text("# Example\n\nImproved.\n", encoding="utf-8")
+    patch = _git(repo, "diff", "--", "skills/example/SKILL.md") + "\n"
+    skill.write_text("# Example\n\nOriginal.\n", encoding="utf-8")
+    record = materialize_skill_candidate(
+        campaign, patch=patch, output_root=tmp_path / "output", repo_root=repo
+    )
+    record_path = Path(record["workspace"]) / "candidate.json"
+    payload = json.loads(record_path.read_text(encoding="utf-8"))
+    payload[field] = tampered_value
+    record_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        CandidateValidationError,
+        match="existing candidate identity does not match requested campaign and patch",
+    ):
+        materialize_skill_candidate(
+            campaign, patch=patch, output_root=tmp_path / "output", repo_root=repo
+        )
+
+
+def test_rejects_tampered_cached_workspace_even_when_record_digest_matches(
+    baseline_repo: tuple[Path, Path],
+    tmp_path: Path,
+) -> None:
+    repo, skill = baseline_repo
+    campaign = _campaign(repo, skill)
+    skill.write_text("# Example\n\nImproved.\n", encoding="utf-8")
+    patch = _git(repo, "diff", "--", "skills/example/SKILL.md") + "\n"
+    skill.write_text("# Example\n\nOriginal.\n", encoding="utf-8")
+    record = materialize_skill_candidate(
+        campaign, patch=patch, output_root=tmp_path / "output", repo_root=repo
+    )
+    workspace = Path(record["workspace"])
+    (workspace / "skills/example/SKILL.md").write_text(
+        "# Example\n\nForged workspace.\n", encoding="utf-8"
+    )
+    record_path = workspace / "candidate.json"
+    payload = json.loads(record_path.read_text(encoding="utf-8"))
+    payload["materialized_sha256"] = evolution_candidates._tree_digest(workspace)
+    record_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        CandidateValidationError,
+        match="existing candidate workspace does not match requested campaign and patch",
+    ):
+        materialize_skill_candidate(
+            campaign, patch=patch, output_root=tmp_path / "output", repo_root=repo
+        )
 
 
 def test_rejects_patch_outside_allowlist(baseline_repo: tuple[Path, Path], tmp_path: Path) -> None:

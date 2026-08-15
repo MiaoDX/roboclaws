@@ -56,6 +56,7 @@ def _trial_from_sample(
     runner_class: str,
     provider_profile: str,
     model: str | None,
+    skill_name: str | None = None,
     skill_delivery_cell: str = "static-full",
 ) -> EvalTrial:
     limitations: list[str] = []
@@ -74,7 +75,7 @@ def _trial_from_sample(
         runner_class=runner_class,
         provider_profile=provider_profile,
         model=model or MISSING_NOT_APPLICABLE,
-        skill_name=_skill_name(sample),
+        skill_name=_skill_name(sample, override=skill_name),
         prompt_source=MISSING_NOT_APPLICABLE
         if sample.prompt == MISSING_NOT_APPLICABLE
         else "sample",
@@ -114,6 +115,8 @@ def _run_trial(
     skill_delivery_cell: str = "static-full",
     live_timeout_s: float | None,
     live_stall_timeout_s: float | None,
+    live_token_budget: float | None,
+    live_cost_budget_usd: float | None,
     regrade_source_dir: Path | None,
     product_runner: ProductRun,
     live_product_runner: ProductRun | None,
@@ -122,13 +125,6 @@ def _run_trial(
 ) -> EvalResult:
     run_dir.mkdir(parents=True, exist_ok=True)
     if agent_engine != "direct-runner":
-        if skill_delivery_cell == "sandbox-skills":
-            posture = sandbox_readiness()
-            if posture["status"] != "ready":
-                return blocked_result_from_exception(
-                    trial,
-                    RuntimeError(f"sandbox-skills unavailable: {posture['reason']}"),
-                )
         if regrade_source_dir is not None:
             return _regrade_live_eval_trial(
                 sample=sample,
@@ -139,6 +135,13 @@ def _run_trial(
                 runtime_map_prior=runtime_map_prior,
                 regrade_source_dir=regrade_source_dir,
             )
+        if skill_delivery_cell == "sandbox-skills":
+            posture = sandbox_readiness()
+            if posture["status"] != "ready":
+                return blocked_result_from_exception(
+                    trial,
+                    RuntimeError(f"sandbox-skills unavailable: {posture['reason']}"),
+                )
         if live_execution == "run":
             return run_live_eval_trial(
                 sample=sample,
@@ -153,6 +156,8 @@ def _run_trial(
                 model=model,
                 live_timeout_s=live_timeout_s,
                 live_stall_timeout_s=live_stall_timeout_s,
+                live_token_budget=live_token_budget,
+                live_cost_budget_usd=live_cost_budget_usd,
                 skill_delivery_cell=skill_delivery_cell,
                 skill_source_root=skill_source_root,
                 live_retry_limit=live_retry_limit,
@@ -352,7 +357,11 @@ def _sample_artifact_record(result: EvalResult, *, run_dir: Path) -> dict[str, A
     }
 
 
-def _skill_name(sample: EvalSample) -> str:
+def _skill_name(sample: EvalSample, *, override: str | None = None) -> str:
+    if override:
+        if override in {".", ".."} or "/" in override or "\\" in override:
+            raise ValueError("eval skill_name must be one normalized path segment")
+        return override
     if sample.surface == "household-world":
         return "household-world"
     return MISSING_UNAVAILABLE

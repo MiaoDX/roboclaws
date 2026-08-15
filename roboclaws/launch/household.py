@@ -12,6 +12,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import roboclaws.launch.household_execution as household_execution
+from roboclaws.agents.household_live_config import EVAL_SKILL_NAME_ENV
 from roboclaws.agents.prompts.household_cleanup import (
     render_kickoff_prompt,
     render_map_build_prompt,
@@ -316,7 +317,7 @@ def _live_command(
         "--intent",
         execution.plan.intent,
         "--skill-name",
-        execution.plan.skill_name,
+        os.environ.get(EVAL_SKILL_NAME_ENV) or execution.plan.skill_name,
         "--policy",
         "openai_agents_agent",
         "--task",

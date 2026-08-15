@@ -12,7 +12,7 @@ from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
 from roboclaws.core.json_sources import read_json_object
-from roboclaws.evals.models import EvalResult
+from roboclaws.evals.models import EvalResult, EvalSample, EvalSuite
 from roboclaws.evals.suite_loading import REPO_ROOT, load_suite, path_token
 
 MAPPING_SCHEMA = "roboclaws_phoenix_eval_projection_v3"
@@ -92,7 +92,7 @@ def project_eval_to_phoenix(overrides: dict[str, str]) -> dict[str, object]:
 
     _validate_loopback_endpoint(endpoint)
     results, projection_time = (
-        _load_results(Path(results_ref), suite.suite_id) if results_ref else ([], "")
+        _load_results(Path(results_ref), suite=suite, samples=samples) if results_ref else ([], "")
     )
     public_results = [(result, _public_result_identity(result)) for result in results]
     try:
@@ -196,7 +196,6 @@ def _project(
     }
     if not results:
         return projection
-    source_bundle_digest = _source_bundle_digest(results, required_graders)
     existing_experiments = _list_of_mappings(
         _data(http.json("GET", f"/v1/datasets/{dataset_id}/experiments")),
         "experiments",
@@ -205,6 +204,7 @@ def _project(
     evaluations: list[dict[str, str | None]] = []
     run_mappings: list[dict[str, str]] = []
     for configuration, partition in _partition_results(results):
+        source_bundle_digest = _source_bundle_digest(partition, required_graders)
         experiment_digest = _experiment_projection_digest(
             dataset_version_id=dataset_version_id,
             source_bundle_digest=source_bundle_digest,
@@ -601,17 +601,53 @@ def _grader_status(result: EvalResult, grader: str) -> str | None:
     return status if isinstance(status, str) and status else None
 
 
-def _load_results(path: Path, suite_id: str) -> tuple[list[EvalResult], str]:
+def _load_results(
+    path: Path, *, suite: EvalSuite, samples: list[EvalSample]
+) -> tuple[list[EvalResult], str]:
     resolved = path if path.is_absolute() else REPO_ROOT / path
     payload = read_json_object(resolved, label="eval results")
-    suite = _mapping(payload.get("suite"))
-    if suite.get("suite_id") != suite_id:
+    result_suite = _mapping(payload.get("suite"))
+    if result_suite.get("suite_id") != suite.suite_id:
         raise ValueError("eval_results suite_id does not match the projected suite")
+    if result_suite != suite.to_dict():
+        raise ValueError("eval_results suite does not match the exact projected suite release")
     rows = payload.get("results")
     if not isinstance(rows, list):
         raise ValueError("eval_results must contain a results list")
+    results = [EvalResult.from_mapping(_mapping(row)) for row in rows]
+    sample_by_id = {sample.sample_id: sample for sample in samples}
+    for result in results:
+        _validate_result_identity(result, suite=suite, sample_by_id=sample_by_id)
     projection_time = datetime.fromtimestamp(resolved.stat().st_mtime, timezone.utc).isoformat()
-    return [EvalResult.from_mapping(_mapping(row)) for row in rows], projection_time
+    return results, projection_time
+
+
+def _validate_result_identity(
+    result: EvalResult, *, suite: EvalSuite, sample_by_id: dict[str, EvalSample]
+) -> None:
+    identity = result.identity
+    if identity.get("suite_id") != suite.suite_id or identity.get("suite_version") != suite.version:
+        raise ValueError("eval result does not match the exact projected suite release")
+    sample_id = str(identity.get("sample_id") or "")
+    sample = sample_by_id.get(sample_id)
+    if sample is None:
+        raise ValueError("eval result sample_id is not part of the projected suite")
+    expected = {
+        "sample_version": sample.version,
+        "surface": sample.surface,
+        "intent": sample.intent,
+        "preset": sample.preset,
+        "world": sample.world,
+        "backend": sample.backend,
+        "evidence_lane": sample.evidence_lane,
+        "camera_labeler": sample.camera_labeler,
+        "scenario_setup": sample.scenario_setup,
+        "seed": sample.seed,
+        "prompt": sample.prompt,
+        "goal_contract_hash": sample.goal_contract_hash,
+    }
+    if any(identity.get(key) != value for key, value in expected.items()):
+        raise ValueError("eval result does not match the exact projected sample release")
 
 
 def _validate_loopback_endpoint(endpoint: str) -> None:

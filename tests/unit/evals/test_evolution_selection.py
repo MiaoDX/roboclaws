@@ -60,6 +60,79 @@ def test_no_skill_negative_control_cannot_win() -> None:
     assert selection["holdout_allowed"] is False
 
 
+@pytest.mark.parametrize(
+    ("baseline", "reason"),
+    [
+        (
+            _trial(
+                "scene-1",
+                0.0,
+                status="blocked",
+                metrics={"pass": 0.0},
+                quality_gates={"runner": False},
+            ),
+            "baseline_execution_inconclusive",
+        ),
+        (
+            _trial("scene-1", 0.0, metrics={"pass": 1.0}),
+            "baseline_primary_objective_unavailable",
+        ),
+    ],
+)
+def test_inconclusive_baseline_writes_terminal_selection_packet(
+    baseline: dict[str, object], reason: str
+) -> None:
+    selection = select_training_winner(
+        _campaign(),
+        baseline_trials=[baseline],
+        candidate_trials={"candidate": [_trial("scene-1", 1.0)]},
+    )
+
+    assert selection["status"] == "inconclusive"
+    assert selection["reason"] == reason
+    assert selection["winner"] is None
+    assert selection["holdout_allowed"] is False
+
+
+def test_failed_behavior_baseline_remains_eligible_for_improvement() -> None:
+    selection = select_training_winner(
+        _campaign(),
+        baseline_trials=[
+            _trial(
+                "scene-1",
+                0.2,
+                status="failed",
+                failure_class="private_goal_not_satisfied",
+                quality_gates={"checker": False},
+            )
+        ],
+        candidate_trials={"candidate": [_trial("scene-1", 0.8)]},
+    )
+
+    assert selection["status"] == "winner_selected"
+    assert selection["winner"]["candidate_id"] == "candidate"
+
+
+def test_infrastructure_failed_baseline_is_inconclusive() -> None:
+    selection = select_training_winner(
+        _campaign(),
+        baseline_trials=[
+            _trial(
+                "scene-1",
+                0.2,
+                status="failed",
+                failure_class="artifact_missing",
+                quality_gates={"artifacts": False},
+            )
+        ],
+        candidate_trials={"candidate": [_trial("scene-1", 0.8)]},
+    )
+
+    assert selection["status"] == "inconclusive"
+    assert selection["reason"] == "baseline_execution_inconclusive"
+    assert selection["holdout_allowed"] is False
+
+
 def test_holdout_runs_once_and_never_returns_feedback() -> None:
     calls: list[tuple[str, str]] = []
 

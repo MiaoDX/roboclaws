@@ -25,6 +25,17 @@ def _scrub_sensitive_environment(monkeypatch) -> None:
             monkeypatch.delenv(key, raising=False)
 
 
+def _isolated_network_evidence() -> dict[str, object]:
+    return {
+        "method": "linux_loopback_only_no_routes_v1",
+        "isolated": True,
+        "interface_count": 1,
+        "non_loopback_interface_count": 0,
+        "non_loopback_route_count": 0,
+        "evidence_available": True,
+    }
+
+
 def _manifest(tmp_path: Path) -> ProbeManifest:
     approved = tmp_path / "approved"
     approved.mkdir()
@@ -51,6 +62,10 @@ def test_probe_fails_when_private_path_is_visible(tmp_path: Path) -> None:
 
 def test_probe_passes_when_private_paths_are_not_mounted(tmp_path: Path, monkeypatch) -> None:
     _scrub_sensitive_environment(monkeypatch)
+    monkeypatch.setattr(
+        "roboclaws.evals.candidate_isolation_probe._network_namespace_evidence",
+        _isolated_network_evidence,
+    )
     manifest = ProbeManifest(
         approved_read_roots=(tmp_path / "approved",),
         output_root=tmp_path / "output",
@@ -80,6 +95,42 @@ def test_manifest_rejects_relative_or_output_forbidden_paths(tmp_path: Path) -> 
         assert "absolute" in str(exc)
     else:
         raise AssertionError("relative path was accepted")
+
+
+def test_manifest_rejects_empty_network_targets(tmp_path: Path) -> None:
+    payload = {
+        "schema": "candidate_isolation_probe_manifest_v1",
+        "approved_read_roots": [str(tmp_path / "approved")],
+        "output_root": str(tmp_path / "output"),
+        "forbidden_paths": [],
+        "network_targets": [],
+        "expected_env_absent": [],
+    }
+    with pytest.raises(ValueError, match="non-empty"):
+        ProbeManifest.from_mapping(payload)
+
+
+def test_probe_requires_network_namespace_isolation(tmp_path: Path, monkeypatch) -> None:
+    _scrub_sensitive_environment(monkeypatch)
+    manifest = ProbeManifest(
+        approved_read_roots=(tmp_path / "approved",),
+        output_root=tmp_path / "output",
+        forbidden_paths=(tmp_path / "missing" / "truth.json",),
+        network_targets=(("127.0.0.1", 9),),
+        expected_env_absent=(),
+    )
+    manifest.approved_read_roots[0].mkdir()
+    monkeypatch.setattr(
+        "roboclaws.evals.candidate_isolation_probe._network_namespace_evidence",
+        lambda: (
+            _isolated_network_evidence() | {"isolated": False, "non_loopback_interface_count": 1}
+        ),
+    )
+
+    result = run_probe(manifest)
+
+    assert result["checks"]["network_denied"] is False
+    assert result["ok"] is False
 
 
 def test_cloudml_probe_image_is_pinned_and_minimal() -> None:
@@ -120,6 +171,10 @@ def test_supervisor_rejects_unknown_placement(tmp_path: Path, monkeypatch) -> No
 
 def test_cli_result_is_json_without_private_content(tmp_path: Path, monkeypatch) -> None:
     _scrub_sensitive_environment(monkeypatch)
+    monkeypatch.setattr(
+        "roboclaws.evals.candidate_isolation_probe._network_namespace_evidence",
+        _isolated_network_evidence,
+    )
     manifest = ProbeManifest(
         approved_read_roots=(tmp_path / "approved",),
         output_root=tmp_path / "output",
@@ -204,6 +259,10 @@ def _write_attestation(tmp_path: Path, child_result: dict) -> tuple[Path, str]:
 
 def test_attestation_binds_result_identity(tmp_path: Path, monkeypatch) -> None:
     _scrub_sensitive_environment(monkeypatch)
+    monkeypatch.setattr(
+        "roboclaws.evals.candidate_isolation_probe._network_namespace_evidence",
+        _isolated_network_evidence,
+    )
     manifest = ProbeManifest(
         approved_read_roots=(tmp_path / "approved",),
         output_root=tmp_path / "scratch",
@@ -225,6 +284,10 @@ def test_attestation_binds_result_identity(tmp_path: Path, monkeypatch) -> None:
 
 def test_attestation_rejects_tampered_result(tmp_path: Path, monkeypatch) -> None:
     _scrub_sensitive_environment(monkeypatch)
+    monkeypatch.setattr(
+        "roboclaws.evals.candidate_isolation_probe._network_namespace_evidence",
+        _isolated_network_evidence,
+    )
     manifest = ProbeManifest(
         approved_read_roots=(tmp_path / "approved",),
         output_root=tmp_path / "scratch",

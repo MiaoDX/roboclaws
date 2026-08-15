@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from roboclaws.agents.household_live_config import EVAL_SKILL_NAME_ENV
 from roboclaws.evals.harness.rows import candidate_rows
 from roboclaws.evals.harness.runner import _row_blockers
 from roboclaws.evals.live_runtime import live_surface_env
@@ -15,11 +16,13 @@ def test_eval_environment_carries_private_delivery_identity() -> None:
             "provider_profile": "profile",
             "skill_delivery_cell": "dynamic-routed",
             "model_visible_tool_surface": ["metric_map", "done"],
+            "skill_name": "example",
         },
         base_env={},
     )
     assert env["ROBOCLAWS_EVAL_SKILL_DELIVERY_CELL"] == "dynamic-routed"
     assert env["ROBOCLAWS_EVAL_MODEL_VISIBLE_TOOL_SURFACE"] == '["metric_map","done"]'
+    assert env[EVAL_SKILL_NAME_ENV] == "example"
 
 
 def test_sandbox_eval_records_blocked_without_product_launch(tmp_path: Path, monkeypatch) -> None:

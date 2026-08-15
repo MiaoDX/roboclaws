@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -12,6 +13,7 @@ from roboclaws.evals.live_retry import (
     run_with_model_call_stall_retry,
 )
 from roboclaws.evals.live_timeout import LiveEvalTimeoutError
+from tests.unit.evals.eval_runner_support import _run_result, _write_product_artifacts
 
 
 @pytest.mark.parametrize(
@@ -156,6 +158,53 @@ def test_non_model_stall_is_not_retried_or_audited(tmp_path: Path) -> None:
 
     assert call_count == 1
     assert not (run_dir / LIVE_TRIAL_ATTEMPTS_FILENAME).exists()
+
+
+def test_retry_attempts_share_one_live_wall_clock_deadline(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    clock = {"value": 0.0}
+    seen_budgets: list[tuple[float, float]] = []
+    attempt_count = 0
+    monkeypatch.setattr(
+        "roboclaws.evals.live_execution.time.monotonic",
+        lambda: clock["value"],
+    )
+
+    def live_product_runner(**kwargs: Any) -> dict[str, Any]:
+        nonlocal attempt_count
+        attempt_count += 1
+        seen_budgets.append(
+            (float(kwargs["live_timeout_s"]), float(kwargs["live_stall_timeout_s"]))
+        )
+        if attempt_count == 1:
+            clock["value"] = 6.0
+            raise _timeout(
+                Path(kwargs["output_dir"]) / "surface-run" / "seed-7",
+                timeout_kind="stall_timeout",
+                timeout_signal="model_call_in_flight",
+            )
+        surface_run_dir = Path(kwargs["output_dir"]) / "surface-run" / f"seed-{kwargs['seed']}"
+        _write_product_artifacts(surface_run_dir, completion_status="success")
+        result = _run_result(surface_run_dir, completion_status="success")
+        result["eval_effective_run_dir"] = str(surface_run_dir)
+        return result
+
+    run = runner.run_eval_suite(
+        "cleanup_capability",
+        output_root=tmp_path,
+        stamp="shared-retry-deadline",
+        agent_engine="openai-agents-sdk",
+        provider_profile="kimi-openai-chat",
+        live_execution="run",
+        live_timeout_s=10.0,
+        live_stall_timeout_s=8.0,
+        live_retry_limit=1,
+        live_product_runner=live_product_runner,
+    )
+
+    assert run.bundle["aggregate"]["passed"] == 3
+    assert seen_budgets[:2] == [(10.0, 8.0), (4.0, 4.0)]
 
 
 def _timeout(

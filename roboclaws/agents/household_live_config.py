@@ -14,6 +14,7 @@ from roboclaws.agents.skill_delivery import build_skill_delivery, validate_skill
 
 MAX_AGENT_SDK_SKILL_CONTEXT_BYTES = 24_000
 EVAL_SKILL_SOURCE_ROOT_ENV = "ROBOCLAWS_EVAL_SKILL_SOURCE_ROOT"
+EVAL_SKILL_NAME_ENV = "ROBOCLAWS_EVAL_SKILL_NAME"
 
 
 def build_household_prompt_identity(

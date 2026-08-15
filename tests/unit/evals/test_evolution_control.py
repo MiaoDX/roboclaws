@@ -7,10 +7,26 @@ from types import SimpleNamespace
 from roboclaws.evals.evolution_control import run_evolution_command
 
 
-def test_mcp_behavior_live_evolution_is_blocked_by_isolation(tmp_path: Path) -> None:
+def _campaign_payload() -> dict[str, object]:
     payload = json.loads(
         Path("output/eval-evolution/20260805-skill-smoke-v4-input.json").read_text()
     )
+    budgets = payload.get("budgets")
+    if not isinstance(budgets, dict):
+        raise TypeError("campaign fixture budgets must be an object")
+    budgets.update(
+        {
+            "optimizer_call_tokens": 20_000,
+            "optimizer_call_cost_usd": 1.0,
+            "robot_attempt_tokens": 10_000,
+            "robot_attempt_cost_usd": 0.5,
+        }
+    )
+    return payload
+
+
+def test_mcp_behavior_live_evolution_is_blocked_by_isolation(tmp_path: Path) -> None:
+    payload = _campaign_payload()
     payload["campaign_id"] = "behavior-isolation-test"
     payload["target"] = {
         **payload["target"],
@@ -32,9 +48,7 @@ def test_mcp_behavior_live_evolution_is_blocked_by_isolation(tmp_path: Path) -> 
 def test_mcp_behavior_accepts_campaign_bound_isolation_attestation(
     tmp_path: Path, monkeypatch
 ) -> None:
-    payload = json.loads(
-        Path("output/eval-evolution/20260805-skill-smoke-v4-input.json").read_text()
-    )
+    payload = _campaign_payload()
     payload["campaign_id"] = "behavior-isolation-passed"
     payload["target"] = {
         **payload["target"],
@@ -74,9 +88,7 @@ def test_mcp_behavior_accepts_campaign_bound_isolation_attestation(
 
 
 def test_mcp_behavior_routes_candidate_to_static_gate(tmp_path: Path, monkeypatch) -> None:
-    payload = json.loads(
-        Path("output/eval-evolution/20260805-skill-smoke-v4-input.json").read_text()
-    )
+    payload = _campaign_payload()
     payload["campaign_id"] = "behavior-candidate-gated"
     payload["target"] = {
         **payload["target"],

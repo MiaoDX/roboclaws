@@ -176,6 +176,18 @@ def run_optimizer_agent(
     configured_settings = provider_transport.compatible_model_settings(
         settings["provider_profile"], dict(optimizer.get("settings") or {})
     )
+    reserved_output_tokens = provider_transport.bounded_output_tokens(
+        model=settings["model"],
+        token_budget=float(campaign.budgets["tokens"]),
+        cost_budget_usd=float(campaign.budgets["cost_usd"]),
+        max_model_calls=_sdk_turn_budget(campaign),
+    )
+    configured_max_tokens = configured_settings.get("max_tokens")
+    if configured_max_tokens is not None:
+        if not isinstance(configured_max_tokens, int) or isinstance(configured_max_tokens, bool):
+            raise ValueError("optimizer settings.max_tokens must be an integer")
+        reserved_output_tokens = min(reserved_output_tokens, configured_max_tokens)
+    configured_settings["max_tokens"] = reserved_output_tokens
     configured_settings.update(tool_choice="auto", parallel_tool_calls=False)
     model_settings = ModelSettings(**configured_settings)
     agent = Agent(
@@ -201,6 +213,8 @@ def run_optimizer_agent(
             "campaign_id": campaign.campaign_id,
             "role": "optimizer",
             "provider_profile": settings["provider_profile"],
+            "provider_token_budget": campaign.budgets["tokens"],
+            "provider_cost_budget_usd": campaign.budgets["cost_usd"],
         },
     )
 
@@ -230,7 +244,8 @@ def run_optimizer_agent(
             "role": "optimizer",
             "agent_engine": "openai-agents-sdk",
             "provider_profile": settings["provider_profile"],
-            "model": settings["request_model"],
+            # Keep provider-specific request model ids out of durable artifacts.
+            "model": settings["model"],
             "agents_sdk_version": _sdk_version(),
             "tool_surface_sha256": optimizer_tool_surface_digest(),
         },

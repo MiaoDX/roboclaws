@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import os
 from importlib.util import find_spec
 from pathlib import Path
 from typing import Any
 
-from roboclaws.agents.provider_registry import provider_readiness
+from roboclaws.agents.provider_registry import (
+    openai_agents_runtime_settings,
+    provider_readiness,
+)
 from roboclaws.core.agent_engines import unsupported_agent_engine_message
 from roboclaws.core.provider_catalog import normalize_provider_route
 from roboclaws.evals.models import (
@@ -45,6 +49,31 @@ def eval_provider_profile(*, agent_engine: str, provider_profile: str | None) ->
             f"expected {expected}"
         )
     return selected
+
+
+def eval_model_identity(*, agent_engine: str, provider_profile: str, model: str | None) -> str:
+    """Resolve the model identity that the selected live runtime will use."""
+    engine = AGENT_ENGINE_SPECS[agent_engine]
+    if not engine.supported_provider_profiles:
+        return MISSING_NOT_APPLICABLE
+    if agent_engine != "openai-agents-sdk":
+        return model or MISSING_UNAVAILABLE
+    runtime_env = dict(os.environ)
+    runtime_env["ROBOCLAWS_PROVIDER_PROFILE"] = provider_profile
+    if model:
+        runtime_env["ROBOCLAWS_OPENAI_AGENTS_MODEL"] = model
+    settings = openai_agents_runtime_settings(
+        provider_profile=provider_profile,
+        request_provider_profile=None,
+        model=model,
+        request_model=None,
+        base_url=None,
+        api_key=None,
+        env=runtime_env,
+    )
+    # Opaque routes deliberately keep the provider request model private.  The
+    # public model label is the stable identity used by eval bundles/Phoenix.
+    return settings["model"] or MISSING_UNAVAILABLE
 
 
 def validate_sample_agent(sample: EvalSample, *, agent_engine: str) -> None:
