@@ -56,6 +56,12 @@ The backfill advanced Phoenix to eight Datasets, 42 Experiments, 110 Runs, and
 value scan found no leaks. Evidence is under
 `output/eval-harness/phoenix-historical-backfill-20260817T105951Z/`.
 
+The live Phoenix 11.20 database now uses the repo-local bind mount
+`output/phoenix/` instead of a hidden Docker named volume. Migration preserved
+all eight Datasets, 42 Experiments, 110 Runs, 435 Evaluations, and three
+Projects; the previous `phoenix_phoenix-data` volume remains as a point-in-time
+rollback copy.
+
 ## Previous Focus
 
 The reviewed multi-scene Skill-delivery comparison remains inconclusive and did

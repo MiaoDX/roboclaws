@@ -12,13 +12,17 @@ Normal users configure keys only; command shape controls behavior.
 Phoenix is an opt-in observability service for the developer workstation. It is
 not started by Roboclaws and is not part of a robot runtime process. The
 supported deployment is pinned to Phoenix 11.20.0, uses at most 2 CPU and 4 GiB
-of memory, and persists data in a named local volume. Its default deployment
-binds only to loopback.
+of memory, and bind-mounts its persistent database under the gitignored repo
+path `output/phoenix/`. Its default deployment binds only to loopback.
 
 ```bash
 ./scripts/dev/validate_phoenix_deployment.sh
 docker compose -f deploy/phoenix/compose.yaml up -d
 ```
+
+Container recreation preserves `output/phoenix/`, but broad cleanup of the
+repo's `output/` directory does not. Back up or explicitly exclude this
+subdirectory before removing generated output trees.
 
 To expose only the Phoenix web UI/API on one trusted private-LAN interface,
 create the gitignored `deploy/phoenix/.env` from `.env.example`, set

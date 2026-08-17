@@ -12,7 +12,8 @@ image="$(docker compose -f "${compose_file}" config --images)"
 [[ "${image}" == "arizephoenix/phoenix:11.20.0" ]]
 [[ "$(docker compose -f "${compose_file}" config --services)" == "phoenix" ]]
 config_json="$(docker compose -f "${compose_file}" config --format json)"
-PHOENIX_COMPOSE_CONFIG="${config_json}" "${repo_root}/.venv/bin/python" - <<'PY'
+PHOENIX_COMPOSE_CONFIG="${config_json}" PHOENIX_REPO_ROOT="${repo_root}" \
+    "${repo_root}/.venv/bin/python" - <<'PY'
 import json
 import os
 
@@ -32,14 +33,13 @@ assert {
 }
 assert service["volumes"] == [
     {
-        "type": "volume",
-        "source": "phoenix-data",
+        "type": "bind",
+        "source": f"{os.environ['PHOENIX_REPO_ROOT']}/output/phoenix",
         "target": "/root/.phoenix",
-        "volume": {},
     }
 ]
 assert set(config["services"]) == {"phoenix"}
-assert set(config["volumes"]) == {"phoenix-data"}
+assert not config.get("volumes")
 PY
 
 export PHOENIX_LAN_BIND_HOST=192.0.2.60
@@ -67,6 +67,6 @@ assert service["deploy"]["resources"]["limits"] == {
     "memory": "4294967296",
 }
 assert set(config["services"]) == {"phoenix"}
-assert set(config["volumes"]) == {"phoenix-data"}
+assert not config.get("volumes")
 PY
-echo "phoenix deployment config: valid localhost service with opt-in LAN web binding (${image})"
+echo "phoenix deployment config: valid localhost service with repo-local data and opt-in LAN web binding (${image})"
