@@ -45,6 +45,17 @@ blocked dynamic-full bundle, while `operator_session_live` remains Trace-only
 under its specialist schema. A second complete finalization kept all four
 Phoenix counts unchanged, proving immutable projection reuse.
 
+Historical Phoenix backfill is complete for nine prior terminal full baseline
+and candidate roots from 2026-07-28 through `20260817T015316Z`. Of 125 canonical
+bundles, 105 repo-suite bundles are `ready`, eight specialist session bundles
+are explicitly `not_applicable`, and 12 bundles from the oldest 2026-07-28 run
+are `unavailable` because their recorded sample release does not match the
+current suite release. Archive copies and ad-hoc smoke/debug runs were excluded.
+The backfill advanced Phoenix to eight Datasets, 42 Experiments, 110 Runs, and
+435 Evaluations; a second pass reused the same identities and the credential-
+value scan found no leaks. Evidence is under
+`output/eval-harness/phoenix-historical-backfill-20260817T105951Z/`.
+
 ## Previous Focus
 
 The reviewed multi-scene Skill-delivery comparison remains inconclusive and did
