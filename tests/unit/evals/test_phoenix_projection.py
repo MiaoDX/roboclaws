@@ -116,6 +116,116 @@ def test_disabled_projection_writes_complete_mapping_without_network(tmp_path: P
     assert FakePhoenix.calls == []
 
 
+def test_completed_eval_writes_disabled_receipt_when_phoenix_is_not_configured(
+    tmp_path: Path,
+) -> None:
+    results = _write_results(tmp_path / "eval_results.json")
+
+    summary = phoenix_projection.project_completed_eval_to_phoenix(
+        suite_ref="smoke_regression",
+        eval_results_path=results,
+        environ={},
+    )
+
+    receipt = tmp_path / "phoenix_projection.json"
+    assert summary == {
+        "mapping": str(receipt),
+        "state": "disabled",
+        "reason": "endpoint_not_configured",
+    }
+    assert receipt.is_file()
+    assert FakePhoenix.calls == []
+
+
+def test_completed_eval_derives_api_origin_and_repeats_idempotently(tmp_path: Path) -> None:
+    results = _write_results(tmp_path / "eval_results.json")
+    environ = {
+        "ROBOCLAWS_PHOENIX_OTLP_ENDPOINT": "http://127.0.0.1:6006/v1/traces",
+    }
+
+    first = phoenix_projection.project_completed_eval_to_phoenix(
+        suite_ref="smoke_regression",
+        eval_results_path=results,
+        environ=environ,
+    )
+    creates_after_first = [
+        call
+        for call in FakePhoenix.calls
+        if call[0] == "POST" and call[1] != "/v1/experiment_evaluations"
+    ]
+    second = phoenix_projection.project_completed_eval_to_phoenix(
+        suite_ref="smoke_regression",
+        eval_results_path=results,
+        environ=environ,
+    )
+    all_creates = [
+        call
+        for call in FakePhoenix.calls
+        if call[0] == "POST" and call[1] != "/v1/experiment_evaluations"
+    ]
+
+    assert first["state"] == "ready"
+    assert second["state"] == "ready"
+    assert len(all_creates) == len(creates_after_first)
+    receipt = json.loads((tmp_path / "phoenix_projection.json").read_text())
+    assert receipt["dataset"]["url"].startswith("http://127.0.0.1:6006/")
+
+
+@pytest.mark.parametrize(
+    "otlp_endpoint",
+    (
+        "http://phoenix.example:6006/v1/traces",
+        "http://127.0.0.1:6006/",
+    ),
+)
+def test_completed_eval_keeps_invalid_configuration_fail_open(
+    tmp_path: Path,
+    otlp_endpoint: str,
+) -> None:
+    results = _write_results(tmp_path / "eval_results.json")
+
+    summary = phoenix_projection.project_completed_eval_to_phoenix(
+        suite_ref="smoke_regression",
+        eval_results_path=results,
+        environ={"ROBOCLAWS_PHOENIX_OTLP_ENDPOINT": otlp_endpoint},
+    )
+
+    assert summary["state"] == "unavailable"
+    assert summary["reason"] == "invalid_projection_configuration"
+    assert FakePhoenix.calls == []
+
+
+@pytest.mark.parametrize(
+    ("status", "failure_class"),
+    (
+        ("failed", "checker_validation_failed"),
+        ("blocked", "environment_blocked"),
+    ),
+)
+def test_completed_eval_projects_failed_and_blocked_results(
+    tmp_path: Path,
+    status: str,
+    failure_class: str,
+) -> None:
+    results = _write_results(tmp_path / "eval_results.json")
+    payload = json.loads(results.read_text())
+    payload["results"][0]["status"] = status
+    payload["results"][0]["failure_class"] = failure_class
+    results.write_text(json.dumps(payload), encoding="utf-8")
+
+    summary = phoenix_projection.project_completed_eval_to_phoenix(
+        suite_ref="smoke_regression",
+        eval_results_path=results,
+        environ={
+            "ROBOCLAWS_PHOENIX_OTLP_ENDPOINT": "http://localhost:6006/v1/traces",
+        },
+    )
+
+    assert summary["state"] == "ready"
+    receipt = json.loads((tmp_path / "phoenix_projection.json").read_text())
+    assert len(receipt["runs"]) == 1
+
+
 def test_phoenix_http_upload_uses_documented_json_contract(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -46,7 +46,16 @@ def main(argv: list[str] | None = None) -> int:
         run = runner.run_eval_from_overrides(_parse_key_value_args(args.overrides))
     except ValueError as exc:
         parser.exit(2, f"error: {exc}\n")
-    print(json.dumps({"results": str(run.results_path), "report": str(run.report_path)}))
+    print(
+        json.dumps(
+            {
+                "results": str(run.results_path),
+                "report": str(run.report_path),
+                "phoenix_projection": run.phoenix_projection,
+            },
+            sort_keys=True,
+        )
+    )
     return 0
 
 

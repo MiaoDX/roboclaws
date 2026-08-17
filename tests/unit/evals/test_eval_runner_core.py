@@ -23,6 +23,8 @@ def test_eval_runner_writes_result_bundle_and_report(tmp_path: Path) -> None:
 
     assert run.results_path.exists()
     assert run.report_path.exists()
+    assert run.phoenix_projection["state"] == "disabled"
+    assert (run.output_dir / "phoenix_projection.json").is_file()
     payload = json.loads(run.results_path.read_text())
     assert payload["schema"] == "roboclaws_eval_results_bundle_v1"
     assert payload["suite"]["suite_id"] == "household_world.smoke_regression"

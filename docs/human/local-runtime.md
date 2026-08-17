@@ -36,7 +36,8 @@ The override adds `<PHOENIX_LAN_BIND_HOST>:6006`; it does not expose OTLP port
 authentication or TLS in this mode, so use it only on an explicitly trusted
 private network and do not bind `0.0.0.0`.
 
-To project sanitized live OpenAI Agents SDK traces into that service, set:
+To project sanitized live OpenAI Agents SDK traces and completed eval suite
+results into that service, set:
 
 ```bash
 export ROBOCLAWS_PHOENIX_OTLP_ENDPOINT=http://127.0.0.1:6006/v1/traces
@@ -48,13 +49,15 @@ Robot Runs executed as EvalTrials. Provider, model, task, suite, sample, and
 trial remain searchable trace attributes; they do not create Projects. Project
 selection is not configurable.
 
-Tracing remains disabled when the endpoint is unset and fails open when the
-local service is unavailable. A missing, partial, malformed, or contradictory
-runtime/eval telemetry identity disables Phoenix export for that run and leaves
-an actionable local limitation without changing product execution. Non-loopback
-OTLP endpoints are rejected. Shared Phoenix ownership, cross-machine collectors,
-authentication/TLS gateways, backups, larger resource envelopes, and onboard
-robot deployment are not supported by this topology.
+Tracing and automatic eval result projection remain disabled when the endpoint
+is unset and fail open when the local service is unavailable. Eval runs write
+an adjacent `phoenix_projection.json` receipt, and the manual `phoenix-project`
+command remains available for repair/backfill. A missing, partial, malformed,
+or contradictory runtime/eval telemetry identity disables Phoenix export for
+that run and leaves an actionable local limitation without changing product
+execution. Non-loopback OTLP endpoints are rejected. Shared Phoenix ownership,
+cross-machine collectors, authentication/TLS gateways, backups, larger resource
+envelopes, and onboard robot deployment are not supported by this topology.
 
 ## Provider Keys
 

@@ -32,6 +32,7 @@ from roboclaws.evals.models import (
     EvalSuite,
     EvalTrial,
 )
+from roboclaws.evals.phoenix_projection import project_completed_eval_to_phoenix
 from roboclaws.evals.regression import promote_regression_from_cli_overrides
 from roboclaws.evals.result_persistence import persist_results
 from roboclaws.evals.runtime_prior_selection import (
@@ -88,6 +89,7 @@ class EvalSuiteRun:
     results_path: Path
     report_path: Path
     bundle: dict[str, Any]
+    phoenix_projection: dict[str, object]
 
 
 def run_cli_tool(mode: str, overrides: dict[str, str]) -> dict[str, object]:
@@ -379,12 +381,17 @@ def run_eval_suite(
     bundle, results_path, report_path = persist_results(
         suite=suite, results=results, output_dir=output_dir, budget=result_budget
     )
+    phoenix_projection = project_completed_eval_to_phoenix(
+        suite_ref=suite_ref,
+        eval_results_path=results_path,
+    )
     return EvalSuiteRun(
         suite=suite,
         output_dir=output_dir,
         results_path=results_path,
         report_path=report_path,
         bundle=bundle,
+        phoenix_projection=phoenix_projection,
     )
 
 
