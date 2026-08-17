@@ -1,11 +1,39 @@
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
+from types import SimpleNamespace
 
 import pytest
 
 import roboclaws.evals.cli as cli
+
+
+def test_eval_cli_prints_phoenix_projection_summary(
+    tmp_path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from roboclaws.evals import runner
+
+    monkeypatch.setattr(
+        runner,
+        "run_eval_from_overrides",
+        lambda _overrides: SimpleNamespace(
+            results_path=tmp_path / "eval_results.json",
+            report_path=tmp_path / "eval_report.html",
+            phoenix_projection={
+                "mapping": str(tmp_path / "phoenix_projection.json"),
+                "state": "unavailable",
+                "reason": "phoenix_connection_failed",
+            },
+        ),
+    )
+
+    assert cli.main(["suite=smoke_regression"]) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["phoenix_projection"]["state"] == "unavailable"
+    assert payload["phoenix_projection"]["reason"] == "phoenix_connection_failed"
 
 
 def test_eval_cli_import_does_not_require_session_live_dependencies() -> None:

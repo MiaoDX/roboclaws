@@ -107,8 +107,23 @@ just agent::eval suite=scene_sampler_stress budget=smoke
 just agent::eval suite=long_horizon_tasks budget=smoke
 ```
 
-An existing suite and optional completed result bundle can be projected to the
-local Phoenix service without executing an eval:
+When `ROBOCLAWS_PHOENIX_OTLP_ENDPOINT` is configured, every completed local
+repo-native suite (`roboclaws_eval_suite_v1`) automatically projects its
+persisted `eval_results.json` to the same local Phoenix service. The runner
+writes `phoenix_projection.json` beside the result bundle and includes its
+`ready`, `disabled`, or `unavailable` summary in CLI and Eval Harness evidence.
+Projection is fail-open: Phoenix availability never changes the eval outcome.
+Valid failed and blocked trials are included; rows without an eval result
+bundle are not. Specialist eval schemas such as `operator_session_live` keep
+their Trace telemetry but are not coerced into repo-suite Datasets.
+
+CloudML workers may not share the operator's loopback Phoenix service. During
+collection, each accepted result bundle is therefore projected locally before
+the final harness reports and credential scan are regenerated. This is a local
+result projection, not provider rerun or Trace replay.
+
+For repair, backfill, or dataset-only projection, an existing suite and optional
+completed result bundle can still be projected without executing an eval:
 
 ```bash
 just agent::eval phoenix-project \
@@ -125,14 +140,15 @@ and omitting `output` selects a digest-bound path under
 Unreachable or failing Phoenix services produce a sanitized `unavailable`
 mapping rather than changing local results.
 
-`phoenix-project` is a read-only projection command. It does not launch an eval,
-provider, simulator, CloudML task, or hardware operation. Local suite and result
-artifacts remain canonical. Phoenix receives public sample and trial identity,
-digests, closed launch identity, and allowlisted grader status; it does not
-receive prompt bodies, private references, generated-mess truth, acceptable
-destinations, grader configuration, or sealed holdout identity. When results
-are supplied, annotation timestamps use the existing `eval_results.json` file
-modification time because the result bundle has no grader timestamps.
+`phoenix-project` is the read-only repair/backfill command. It does not launch
+an eval, provider, simulator, CloudML task, or hardware operation. Local suite
+and result artifacts remain canonical. Phoenix receives public sample and trial
+identity, digests, closed launch identity, and allowlisted grader status; it
+does not receive prompt bodies, private references, generated-mess truth,
+acceptable destinations, grader configuration, or sealed holdout identity.
+When results are supplied, annotation timestamps use the existing
+`eval_results.json` file modification time because the result bundle has no
+grader timestamps.
 
 Phoenix uses three distinct navigation levels:
 

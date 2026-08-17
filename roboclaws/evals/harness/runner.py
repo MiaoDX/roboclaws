@@ -402,10 +402,33 @@ def _attach_eval_outputs(row: dict[str, Any]) -> None:
             matches = sorted(output_root.glob(f"*/{stamp}"))
             if matches:
                 artifacts = list(row.get("output_artifacts") or [])
-                for path in (matches[-1] / "eval_results.json", matches[-1] / "eval_report.html"):
+                for path in (
+                    matches[-1] / "eval_results.json",
+                    matches[-1] / "eval_report.html",
+                    matches[-1] / "phoenix_projection.json",
+                ):
                     if path.exists():
                         artifacts.append(_display_path(path))
                 row["output_artifacts"] = artifacts
+                _attach_phoenix_projection_summary(row, matches[-1])
+
+
+def _attach_phoenix_projection_summary(row: dict[str, Any], output_dir: Path) -> None:
+    path = output_dir / "phoenix_projection.json"
+    if not path.is_file():
+        return
+    try:
+        payload = _load_required_json_object(path, label="Phoenix projection receipt")
+        state = str(payload.get("state") or "unavailable")
+        reason = str(payload.get("reason") or "invalid_projection_receipt")
+    except ValueError:
+        state = "unavailable"
+        reason = "invalid_projection_receipt"
+    row["phoenix_projection"] = {
+        "state": state,
+        "reason": reason,
+        "mapping": _display_path(path),
+    }
 
 
 def _classify_eval_result_row(row: dict[str, Any]) -> None:
@@ -649,6 +672,7 @@ def _render_markdown(manifest: dict[str, Any]) -> str:
             lines.append(f"- Outcome: `{row['outcome']}`")
         if row.get("failure_class"):
             lines.append(f"- Failure class: `{row['failure_class']}`")
+        lines.extend(_phoenix_projection_markdown(row))
         lines.append(f"- Selection: `{selected}`")
         if row.get("blocker_category"):
             lines.append(f"- Blocker: `{row['blocker_category']}`")
@@ -675,6 +699,7 @@ def _render_html(manifest: dict[str, Any]) -> str:
             f"<td>{html.escape(str(row.get('outcome') or ''))}</td>"
             f"<td>{html.escape(str(row.get('failure_class') or ''))}</td>"
             f"<td>{html.escape(str(row.get('blocker_category') or ''))}</td>"
+            f"<td>{html.escape(_phoenix_projection_display(row))}</td>"
             f"<td><code>{html.escape(row['command_display'])}</code></td>"
             "</tr>"
         )
@@ -690,9 +715,25 @@ def _render_html(manifest: dict[str, Any]) -> str:
         f"Budget: <code>{html.escape(manifest['budget'])}</code> "
         f"Profile: <code>{html.escape(str(manifest.get('profile', 'adaptive')))}</code></p>"
         "<table><thead><tr><th>Row</th><th>Kind</th><th>Status</th>"
-        "<th>Outcome</th><th>Failure class</th><th>Blocker</th>"
+        "<th>Outcome</th><th>Failure class</th><th>Blocker</th><th>Phoenix</th>"
         "<th>Command</th></tr></thead><tbody>" + "".join(rows) + "</tbody></table></body></html>\n"
     )
+
+
+def _phoenix_projection_display(row: dict[str, Any]) -> str:
+    projection = row.get("phoenix_projection")
+    if not isinstance(projection, dict):
+        return ""
+    state = str(projection.get("state") or "")
+    reason = str(projection.get("reason") or "")
+    return f"{state} ({reason})" if reason else state
+
+
+def _phoenix_projection_markdown(row: dict[str, Any]) -> list[str]:
+    projection = row.get("phoenix_projection")
+    if not isinstance(projection, dict):
+        return []
+    return [f"- Phoenix projection: `{projection['state']}` ({projection['reason']})"]
 
 
 def _exit_status(manifest: dict[str, Any], *, row_ids: list[str] | tuple[str, ...] = ()) -> int:

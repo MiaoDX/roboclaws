@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-11
+Last updated: 2026-08-17
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -9,6 +9,17 @@ orientation, move it to plans, ADRs, retrospectives, or `docs/human/**` and
 leave a link.
 
 ## Current Focus
+
+The automatic-Phoenix full eval baseline candidate is complete at
+`output/eval-harness/20260817T072338Z/`. Of 29 selected rows, 27 passed, one
+failed, and one was blocked; 20 ran on CloudML and nine ran locally. The
+`openai-agents-sdk-session-live-eval` row regressed after
+`stopped_by_operator` and was classified `harness_bug_unclassified`. The
+`openai-agents-sdk-cleanup-dynamic-full-eval` bundle retained two passing trials
+and one `environment_blocked` trial after a 180-second model-call stall. One
+CloudML infrastructure retry repaired an eval-unit-tests Git ownership mismatch.
+The credential-value scan found no leaks. This candidate is terminal evidence,
+not an accepted baseline, and publication remains unauthorized.
 
 Phoenix information architecture simplification is implemented under
 `docs/plans/2026-08-10-phoenix-information-architecture-simplification.md`.
@@ -21,71 +32,48 @@ because Phoenix 11.20 cannot modify or remove snapshot examples. Heterogeneous
 bundles split into readable homogeneous Experiments, and unchanged Experiments,
 runs, and evaluations reuse full immutable identity.
 
-Focused tests, the full repo verification gate, and two consecutive projections
-against a fresh task-owned Phoenix 11.20 service pass. Live Kimi evidence
-exported a normal runtime trace and three serial EvalTrial traces with ready
-telemetry and no drops or failures; Phoenix's built-in `default` Project has
-zero spans. The standalone product attempt reached `agent_done` but failed an
-existing cleanup checker on post-place observation coverage. The eval bundle
-completed `2/3`. The permanent local Phoenix store has now been rebuilt and the
-existing baseline artifacts reprojected without rerunning providers: its API
-contains six task-only Datasets, eight Experiments, and 32 Runs; eight ready v3
-mappings record 151 Evaluations.
+Repo-native suite completion now automatically projects its persisted results
+when the loopback Phoenix OTLP endpoint is configured. CLI and Eval Harness
+evidence include the adjacent fail-open receipt; accepted CloudML bundles use
+the same projector during local collection. Manual `phoenix-project` remains
+only for repair, backfill, and dataset-only projection. During the new baseline,
+local suite completion visibly advanced the permanent Phoenix 11.20 store from
+17 Experiments, 55 Runs, and 249 Evaluations to 23 Experiments, 68 Runs, and 302
+Evaluations while retaining seven Datasets. Final collection replaced worker-
+local disabled receipts: all 16 repo-suite bundles are `ready`, including the
+blocked dynamic-full bundle, while `operator_session_live` remains Trace-only
+under its specialist schema. A second complete finalization kept all four
+Phoenix counts unchanged, proving immutable projection reuse.
+
+Historical Phoenix backfill is complete for nine prior terminal full baseline
+and candidate roots from 2026-07-28 through `20260817T015316Z`. Of 125 canonical
+bundles, 105 repo-suite bundles are `ready`, eight specialist session bundles
+are explicitly `not_applicable`, and 12 bundles from the oldest 2026-07-28 run
+were removed because their recorded sample release does not match the current
+suite release. Archive copies and ad-hoc smoke/debug runs were excluded.
+The backfill advanced Phoenix to eight Datasets, 42 Experiments, 110 Runs, and
+435 Evaluations; a second pass reused the same identities and the credential-
+value scan found no leaks. Evidence is under
+`output/eval-harness/phoenix-historical-backfill-20260817T105951Z/`.
+
+The live Phoenix 11.20 database now uses the repo-local bind mount
+`output/phoenix/` instead of a hidden Docker named volume. Migration preserved
+all eight Datasets, 42 Experiments, 110 Runs, 435 Evaluations, and three
+Projects; the previous `phoenix_phoenix-data` volume remains as a point-in-time
+rollback copy.
 
 ## Previous Focus
 
-The reviewed multi-scene Skill-delivery probe is complete at
-`output/eval-probes/20260805-skill-delivery-multiscene/`. It paired
-`static-full` and `no-skill` on MolmoSpaces scenes 0, 10, and 12 with
-`kimi-k2.7-code`, identical runtime/tool identity, local serial execution, and
-zero automatic retries. Both cells are authoritative eval `0/3`; each has one
-behaviorally successful `run_result` at 0.8 restoration, but the checker rejects
-the semantic evidence. All six trials reached the product checker without
-provider, network, runtime, or privacy failures. The result is inconclusive;
-the product default remains unchanged and no baseline/catalog was published.
-
-See `docs/status/active/skill-delivery-multiscene-probe.md` for the paired table
-and evidence paths.
+The reviewed multi-scene Skill-delivery comparison remains inconclusive and did
+not change the product default or publish a baseline. See
+`docs/status/active/skill-delivery-multiscene-probe.md` and
+`docs/plans/2026-08-03-agent-skill-delivery-eval.md` for the paired evidence.
 
 Eval Evolution Phases 0-4 are complete under
-`docs/plans/2026-08-04-eval-evolution-agent-sdk.md`. Optimizer and robot roles
-use OpenAI Agents SDK, feedback is sanitized, campaign/candidate identity is
-frozen, holdout is sealed, and promotion is human-only. Skill, MCP-description,
-and isolated existing-tool response-projection candidates are available through
-the blocked-by-default `just agent::eval evolve|evolve-promote` facade. Codex
-CLI remains outside the implementation.
-
-Final proof includes local and CloudML candidate-isolation denial, an equivalent
-paired baseline/candidate product smoke, and the diff-selected live matrix at
-`output/eval-harness/20260805T101810Z/`. The live session row passed. Across the
-five cleanup delivery rows, `static-full`, `no-skill`, `dynamic-routed`, and
-`sandbox-skills` each passed 1/3 while `dynamic-full` passed 0/3. Every failed
-trial reached the product checker; none was a provider, network, or harness
-failure. No candidate was promoted and no default or durable baseline changed.
-
-The post-refactor Skill delivery comparison is terminal at
-`output/eval-harness/20260804T121407Z/`. It tested five cells with the kickoff
-goal only in user input, using `kimi-openai-chat` / `kimi-k2.7-code`, cleanup
-seed 7, and three serial repetitions per cell. `no-skill` passed 3/3;
-`static-full` passed 2/3; `dynamic-full` and restricted `sandbox-skills` each
-passed 1/3; `dynamic-routed` passed 0/3. The failed trials were checker/behavior
-failures, not provider or infrastructure failures.
-
-This one-scene matrix challenges `static-full`, but it is insufficient to
-remove the Skill globally. The product default remains unchanged pending a
-reviewed multi-scene `no-skill` versus `static-full` confirmation. Dynamic and
-Sandbox delivery have no promotion case. The Sandbox runtime passed its local
-Docker isolation contract with network disabled, no mounts or sensitive
-environment, and only the selected Skill reader exposed. No durable
-baseline/catalog artifact was published. See
-`docs/plans/2026-08-03-agent-skill-delivery-eval.md`.
-
-Phase 1 Eval Evolution Skill smoke completed at
-`output/eval-evolution/20260805-skill-smoke-v4/`. The Agents SDK optimizer
-materialized a content-addressed candidate and the paired robot training
-matrix ran with frozen identity and zero retries. Deterministic gates passed,
-but authoritative training status failed, so selection returned
-`no_improving_candidate`; sealed holdout and promotion were correctly skipped.
+`docs/plans/2026-08-04-eval-evolution-agent-sdk.md`. Candidate identity,
+isolation, sealed holdout, and human-only promotion are enforced; no candidate
+was promoted. The blocked-by-default public facade remains
+`just agent::eval evolve|evolve-promote`.
 
 The invalid hybrid candidate at `output/eval-harness/20260803T023049Z/` remains
 retained as evidence and unpublished. Its checker/eval ownership regression is
@@ -125,14 +113,16 @@ providers.
 
 ## Next Action
 
-Keep the product Skill-delivery default unchanged; its separate multi-scene
-confirmation requirement still applies. Phoenix information architecture has
-no remaining implementation or verification action.
+Investigate the session-live behavior regression and the dynamic-full model-call
+stall before rerunning or accepting a durable baseline. Keep the product
+Skill-delivery default unchanged; its separate multi-scene confirmation
+requirement still applies. Automatic Phoenix projection has no remaining
+implementation or verification action.
 
 ## Current Blockers
 
-- Eval baseline publication remains blocked until a new full candidate replaces
-  the invalid `20260803T023049Z` evidence and receives human confirmation.
+- The `20260817T072338Z` eval candidate is not publishable because it contains
+  one behavior failure and one blocked trial bundle.
 - Agibot and B1 injected dependency readiness passes with the existing local SDK, Map 12 bundle,
   B1 scene, and alignment/navigation proofs. Real-robot movement remains unauthorized and requires
   a present operator plus the existing localization, run-enablement, and E-stop gates.
