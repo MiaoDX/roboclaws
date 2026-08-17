@@ -78,9 +78,11 @@ just agent::verify
 `output/eval-harness/`. Live execution remains explicit through
 `live_execution=run`.
 
-`phoenix-project` is a read-only maintainer projection of a repo suite and an
-optional existing `eval_results.json`. Without `endpoint` it writes a disabled
-local mapping; an endpoint must be a loopback Phoenix HTTP origin.
+Completed suite runs automatically write an adjacent `phoenix_projection.json`
+and project to Phoenix when `ROBOCLAWS_PHOENIX_OTLP_ENDPOINT` is configured.
+`phoenix-project` remains the read-only repair/backfill projection for a repo
+suite and an optional existing `eval_results.json`. Without `endpoint` it writes
+a disabled local mapping; an endpoint must be a loopback Phoenix HTTP origin.
 
 ## Specialist Package CLIs
 

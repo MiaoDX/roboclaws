@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -40,6 +42,38 @@ class TaskDatasetHistoryMismatch(ValueError):
     """A task Dataset has unsupported append history in Phoenix 11.20."""
 
 
+def project_completed_eval_to_phoenix(
+    *,
+    suite_ref: str,
+    eval_results_path: Path,
+    environ: Mapping[str, str] | None = None,
+) -> dict[str, object]:
+    """Fail-open projection for one completed local or collected eval bundle."""
+    output_path = eval_results_path.with_name("phoenix_projection.json")
+    values = os.environ if environ is None else environ
+    try:
+        endpoint = _phoenix_api_origin(values.get("ROBOCLAWS_PHOENIX_OTLP_ENDPOINT", ""))
+        return project_eval_to_phoenix(
+            {
+                "suite": suite_ref,
+                "eval_results": str(eval_results_path),
+                "endpoint": endpoint,
+                "output": str(output_path),
+            }
+        )
+    except Exception as exc:  # noqa: BLE001 - projection must not change the eval outcome
+        suite, _samples, _public_samples, dataset_digest = _projection_inputs(suite_ref)
+        mapping = _empty_mapping(suite, dataset_digest)
+        mapping["state"] = "unavailable"
+        mapping["reason"] = (
+            "invalid_projection_configuration"
+            if isinstance(exc, ValueError) and "endpoint" in str(exc).lower()
+            else _failure_reason(exc)
+        )
+        _write_mapping(output_path, mapping)
+        return _summary(output_path, mapping)
+
+
 def project_eval_to_phoenix(overrides: dict[str, str]) -> dict[str, object]:
     """Project a suite and optional existing results without executing any eval work."""
     values = dict(overrides)
@@ -50,42 +84,13 @@ def project_eval_to_phoenix(overrides: dict[str, str]) -> dict[str, object]:
     if values:
         raise ValueError(f"unsupported phoenix-project override(s): {', '.join(sorted(values))}")
 
-    suite, samples = load_suite(suite_ref)
-    public_samples = [
-        {
-            "sample_id": sample.sample_id,
-            "sample_version": sample.version,
-            "prompt_digest": _digest_text(sample.prompt),
-        }
-        for sample in samples
-    ]
-    dataset_digest = _digest_json(
-        {
-            "suite_id": suite.suite_id,
-            "suite_version": suite.version,
-            "samples": public_samples,
-        }
-    )
+    suite, samples, public_samples, dataset_digest = _projection_inputs(suite_ref)
     output_path = (
         Path(output_ref)
         if output_ref
         else DEFAULT_OUTPUT_ROOT / f"{path_token(suite.suite_id)}-{dataset_digest[:12]}.json"
     )
-    mapping: dict[str, Any] = {
-        "schema": MAPPING_SCHEMA,
-        "state": "disabled" if not endpoint else "unavailable",
-        "reason": "endpoint_not_configured" if not endpoint else "projection_not_completed",
-        "suite": {
-            "suite_id": suite.suite_id,
-            "suite_version": suite.version,
-            "dataset_digest": dataset_digest,
-        },
-        "dataset": None,
-        "experiments": [],
-        "examples": [],
-        "runs": [],
-        "evaluations": [],
-    }
+    mapping = _empty_mapping(suite, dataset_digest, endpoint_configured=bool(endpoint))
     if not endpoint:
         _write_mapping(output_path, mapping)
         return _summary(output_path, mapping)
@@ -662,6 +667,63 @@ def _validate_loopback_endpoint(endpoint: str) -> None:
         or parsed.path not in {"", "/"}
     ):
         raise ValueError("Phoenix endpoint must contain only loopback origin and optional port")
+
+
+def _phoenix_api_origin(otlp_endpoint: str) -> str:
+    endpoint = str(otlp_endpoint or "").strip()
+    if not endpoint:
+        return ""
+    parsed = urlparse(endpoint)
+    if parsed.path != "/v1/traces" or parsed.query or parsed.fragment:
+        raise ValueError("Phoenix OTLP endpoint must use the exact /v1/traces path")
+    origin = f"{parsed.scheme}://{parsed.netloc}"
+    _validate_loopback_endpoint(origin)
+    return origin
+
+
+def _projection_inputs(
+    suite_ref: str,
+) -> tuple[EvalSuite, list[EvalSample], list[dict[str, str]], str]:
+    suite, samples = load_suite(suite_ref)
+    public_samples = [
+        {
+            "sample_id": sample.sample_id,
+            "sample_version": sample.version,
+            "prompt_digest": _digest_text(sample.prompt),
+        }
+        for sample in samples
+    ]
+    dataset_digest = _digest_json(
+        {
+            "suite_id": suite.suite_id,
+            "suite_version": suite.version,
+            "samples": public_samples,
+        }
+    )
+    return suite, samples, public_samples, dataset_digest
+
+
+def _empty_mapping(
+    suite: EvalSuite,
+    dataset_digest: str,
+    *,
+    endpoint_configured: bool = False,
+) -> dict[str, Any]:
+    return {
+        "schema": MAPPING_SCHEMA,
+        "state": "unavailable" if endpoint_configured else "disabled",
+        "reason": "projection_not_completed" if endpoint_configured else "endpoint_not_configured",
+        "suite": {
+            "suite_id": suite.suite_id,
+            "suite_version": suite.version,
+            "dataset_digest": dataset_digest,
+        },
+        "dataset": None,
+        "experiments": [],
+        "examples": [],
+        "runs": [],
+        "evaluations": [],
+    }
 
 
 def _failure_reason(exc: Exception) -> str:

@@ -87,6 +87,58 @@ def test_eval_harness_row_reflects_failed_eval_aggregate(tmp_path: Path) -> None
     }
 
 
+def test_eval_harness_attaches_and_reports_phoenix_projection(tmp_path: Path) -> None:
+    output_root = tmp_path / "evals"
+    output_dir = output_root / "household_world_smoke_regression" / "unit"
+    output_dir.mkdir(parents=True)
+    (output_dir / "eval_results.json").write_text("{}\n", encoding="utf-8")
+    (output_dir / "eval_report.html").write_text("<html></html>\n", encoding="utf-8")
+    (output_dir / "phoenix_projection.json").write_text(
+        json.dumps(
+            {
+                "schema": "roboclaws_phoenix_eval_projection_v3",
+                "state": "unavailable",
+                "reason": "phoenix_connection_failed",
+            }
+        ),
+        encoding="utf-8",
+    )
+    row = {
+        "row_id": "smoke",
+        "row_kind": "eval_suite",
+        "selected": True,
+        "status": "ran",
+        "command": [f"output_dir={output_root}", "stamp=unit"],
+        "command_display": "eval smoke",
+    }
+
+    runner._attach_eval_outputs(row)
+
+    assert row["phoenix_projection"] == {
+        "state": "unavailable",
+        "reason": "phoenix_connection_failed",
+        "mapping": str(output_dir / "phoenix_projection.json"),
+    }
+    assert any(path.endswith("phoenix_projection.json") for path in row["output_artifacts"])
+    manifest = {
+        "schema": "roboclaws_eval_harness_manifest_v1",
+        "mode": "execute",
+        "budget": "smoke",
+        "signals": [],
+        "summary": {"selected_row_count": 1},
+        "rows": [row],
+    }
+    harness_dir = tmp_path / "harness"
+    harness_dir.mkdir()
+    runner._write_outputs(manifest, harness_dir)
+    assert "Phoenix projection: `unavailable`" in (
+        tmp_path / "harness" / "eval_harness.md"
+    ).read_text(encoding="utf-8")
+    assert "unavailable (phoenix_connection_failed)" in (
+        tmp_path / "harness" / "eval_harness.html"
+    ).read_text(encoding="utf-8")
+
+
 def test_eval_harness_row_fails_aloud_for_malformed_eval_results_json(
     tmp_path: Path,
 ) -> None:

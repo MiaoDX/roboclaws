@@ -135,16 +135,26 @@ Package proof CLIs
   only the Phoenix web port on one named private-LAN interface. Prompt content
   is represented only by immutable Git, Skill, and
   rendered-prompt digests. Phoenix cannot schedule, authorize, or gate product
-  or eval execution. The maintainer-only `phoenix-project` command reads an eval
-  suite and optional existing result bundle to project immutable
+  or eval execution. After canonical suite result persistence, the eval runner
+  automatically uses the configured loopback OTLP endpoint to project immutable
   task-named Datasets, exact Dataset versions, homogeneous tested-configuration
-  Experiments, and annotations. A task Dataset has exactly one immutable
+  Experiments, runs, and annotations. The adjacent `phoenix_projection.json`
+  receipt is attached to harness evidence; `disabled` or `unavailable` remains
+  fail-open and cannot change the eval outcome. Accepted CloudML result bundles
+  receive the same local projection during collection before final report
+  regeneration. A task Dataset has exactly one immutable
   Phoenix version in a deployed local store. Public sample changes require a
   suite-version bump followed by an explicit local Phoenix rebuild and
   reprojection because Phoenix 11.20 cannot modify or remove snapshot examples.
+  The projection includes valid failed and blocked trials and excludes rows
+  without an eval result bundle. The maintainer-only `phoenix-project` command
+  remains the repair/backfill path for existing artifacts and dataset-only
+  projection.
   Trace routing is closed to exactly `roboclaws-runtime` and `roboclaws-eval`;
-  arbitrary Project selection is not a runtime setting. The projector never
-  launches providers, simulators, CloudML, or hardware work.
+  arbitrary Project selection is not a runtime setting. Automatic projection
+  derives the API origin from `ROBOCLAWS_PHOENIX_OTLP_ENDPOINT`; there is no
+  second endpoint setting, watcher, or background sync service. The projector
+  never launches providers, simulators, CloudML, or hardware work.
 
 Runtime Map Prior evaluation separates artifact production from consumption:
 
