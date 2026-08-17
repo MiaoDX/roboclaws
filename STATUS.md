@@ -10,13 +10,16 @@ leave a link.
 
 ## Current Focus
 
-The full eval baseline candidate is complete at
-`output/eval-harness/20260817T015316Z/`. All 29 selected rows passed: 20 ran on
-CloudML and nine ran locally. The matrix has no missing, duplicate, mismatched,
-unknown, failed, or blocked rows; it has no outcome regressions against the
-previous 25-row durable baseline. Three infrastructure-only retries completed
-successfully, and the credential-value scan found no leaks. Publication remains
-unauthorized pending human confirmation.
+The automatic-Phoenix full eval baseline candidate is complete at
+`output/eval-harness/20260817T072338Z/`. Of 29 selected rows, 27 passed, one
+failed, and one was blocked; 20 ran on CloudML and nine ran locally. The
+`openai-agents-sdk-session-live-eval` row regressed after
+`stopped_by_operator` and was classified `harness_bug_unclassified`. The
+`openai-agents-sdk-cleanup-dynamic-full-eval` bundle retained two passing trials
+and one `environment_blocked` trial after a 180-second model-call stall. One
+CloudML infrastructure retry repaired an eval-unit-tests Git ownership mismatch.
+The credential-value scan found no leaks. This candidate is terminal evidence,
+not an accepted baseline, and publication remains unauthorized.
 
 Phoenix information architecture simplification is implemented under
 `docs/plans/2026-08-10-phoenix-information-architecture-simplification.md`.
@@ -33,13 +36,14 @@ Repo-native suite completion now automatically projects its persisted results
 when the loopback Phoenix OTLP endpoint is configured. CLI and Eval Harness
 evidence include the adjacent fail-open receipt; accepted CloudML bundles use
 the same projector during local collection. Manual `phoenix-project` remains
-only for repair, backfill, and dataset-only projection. The full verification
-gate passes, two automatic smoke runs reused identical Phoenix identity, and
-the completed 29-row candidate was projected without rerunning providers. Its
-16 repo-suite bundles are `ready`; `operator_session_live` remains Trace-only
-under its specialist schema. Repeated projection kept the permanent Phoenix
-11.20 store stable at seven Datasets, 17 Experiments, 55 Runs, and 249
-Evaluations, with no credential values in the new receipts.
+only for repair, backfill, and dataset-only projection. During the new baseline,
+local suite completion visibly advanced the permanent Phoenix 11.20 store from
+17 Experiments, 55 Runs, and 249 Evaluations to 23 Experiments, 68 Runs, and 302
+Evaluations while retaining seven Datasets. Final collection replaced worker-
+local disabled receipts: all 16 repo-suite bundles are `ready`, including the
+blocked dynamic-full bundle, while `operator_session_live` remains Trace-only
+under its specialist schema. A second complete finalization kept all four
+Phoenix counts unchanged, proving immutable projection reuse.
 
 ## Previous Focus
 
@@ -92,16 +96,16 @@ providers.
 
 ## Next Action
 
-Review the 29-row candidate at `output/eval-harness/20260817T015316Z/` and
-confirm or reject durable baseline publication. Keep the product Skill-delivery
-default unchanged; its separate multi-scene confirmation requirement still
-applies. Phoenix information architecture has no remaining implementation or
-verification action.
+Investigate the session-live behavior regression and the dynamic-full model-call
+stall before rerunning or accepting a durable baseline. Keep the product
+Skill-delivery default unchanged; its separate multi-scene confirmation
+requirement still applies. Automatic Phoenix projection has no remaining
+implementation or verification action.
 
 ## Current Blockers
 
-- Eval baseline publication is awaiting human confirmation of the complete
-  `20260817T015316Z` candidate.
+- The `20260817T072338Z` eval candidate is not publishable because it contains
+  one behavior failure and one blocked trial bundle.
 - Agibot and B1 injected dependency readiness passes with the existing local SDK, Map 12 bundle,
   B1 scene, and alignment/navigation proofs. Real-robot movement remains unauthorized and requires
   a present operator plus the existing localization, run-enablement, and E-stop gates.
