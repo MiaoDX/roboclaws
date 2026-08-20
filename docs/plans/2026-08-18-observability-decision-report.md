@@ -1,10 +1,10 @@
 ---
 plan_scope: observability-decision-report
-status: PREFLIGHT_DRAFT
+status: COMPLETE
 created: 2026-08-18
 last_reviewed: 2026-08-19
-implementation_allowed: false
-current_phase: awaiting-preflight-approval
+implementation_allowed: true
+current_phase: complete
 source:
   - user request to predefine recurring observability views for model comparison and troubleshooting
   - user request to run agent-planning-loop before implementation
@@ -20,20 +20,22 @@ related_context:
 approval:
   plan_approved_on: 2026-08-19
   plan_approval_source: user said "LGTM, go ahead for the preflight"
-  preflight_status: DRAFT
+  preflight_status: APPROVED
+  preflight_approval_source: user objective "execute docs/plans/2026-08-18-observability-decision-report.md with intuitive-flow"
 ---
 
 # Eval Harness Observability Decision Report
 
 ## Plan Ledger
 
-- Plan status: PREFLIGHT_DRAFT; the complete plan is approved and the execution contract awaits
-  human approval. Implementation has not started.
+- Plan status: COMPLETE; implementation, requirement-by-requirement acceptance audit, artifact
+  regeneration, product/live proof, browser review, and repository gates pass.
 - Session scope: predefined recurring comparison and troubleshooting views derived from terminal
   Eval Harness evidence.
-- Current slice: human review of the whole-plan preflight contract below.
-- Next action: after preflight approval, execute the whole plan through `intuitive-flow`.
-- Blocked on: preflight approval only.
+- Current slice: complete.
+- Next action: use the generated decision section for future terminal candidates; baseline
+  publication remains a separate human decision.
+- Blocked on: nothing.
 - Do not touch from this planning session: product/runtime behavior, provider routes, eval samples
   or graders, Phoenix storage or information architecture, accepted baselines, promotion policy,
   private-evaluation boundaries, CloudML placement, simulator behavior, or hardware.
@@ -521,6 +523,27 @@ risk around concurrency, missing Kimi telemetry, and Phoenix zero-duration Exper
 - Trusted-LAN Phoenix-link origin rewriting or a second endpoint setting.
 - Bulk historical backfill or directory-wide artifact discovery.
 
+## Completion Evidence
+
+- Focused contract gate: 67 tests passed across observability projection, harness manifest/report,
+  live performance, and Phoenix projection coverage, including expanded cohort invariants and
+  bundle/model-call/Phoenix identity contradiction checks.
+- Repository gate: `just agent::verify` passed lint, format, quality ratchet, architecture graph,
+  broad tests, and contract checks.
+- Acceptance replay: `output/eval-harness/20260817T072338Z/` regenerated artifact-only with exact
+  27 passed / one failed / one blocked harness health, the existing session failure owner, the
+  180-second environment-owned model-call stall, concurrency-eight latency rejection, and model
+  duration coverage Codex 77/77, MiMo 74/74, MiniMax 62/62, Kimi 0/19.
+- Product gate: `output/eval-harness/20260819T114325Z/` passed the scoped smoke-regression suite and
+  generated a terminal `ready` decision section.
+- Plan-aware selector: `output/eval-harness/20260819T113047Z/` passed 17 of 21 required rows,
+  including six live-agent rows, Grounding DINO, and local simulator products. Four provider
+  treatment rows recorded the actionable missing-prior blocker.
+- Provider repair attempt: `output/eval-harness/20260819T135540Z/` reran exactly those four rows
+  serially against the existing immutable prior; all four providers and all eight EvalTrials passed.
+- Static HTML review: the acceptance report rendered at 1440x900 and 375x812 with no console
+  errors, page overflow, overlap, forbidden private fields, or stale CloudML worker paths.
+
 ## Planning Loop Ledger
 
 ### Charter
@@ -594,7 +617,7 @@ Planning-loop status: complete; the whole plan was approved on 2026-08-19.
 
 ## Preflight Contract
 
-Preflight status: DRAFT
+Preflight status: APPROVED
 
 Task source: approved `agent-planning-loop` plan plus the user's 2026-08-19 preflight request
 

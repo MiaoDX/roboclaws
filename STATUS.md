@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-17
+Last updated: 2026-08-19
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -9,6 +9,16 @@ orientation, move it to plans, ADRs, retrospectives, or `docs/human/**` and
 leave a link.
 
 ## Current Focus
+
+The terminal Eval Harness now derives a quality-first observability decision section in the
+existing `eval_harness.json`, `eval_harness.md`, and `eval_harness.html`. It separates capability
+health, provider-treatment comparison, failure/stall triage, and telemetry coverage; quality,
+model-work, and latency eligibility are independent, missing telemetry stays unavailable, and
+Phoenix remains trial-linked drilldown only. The persisted `20260817T072338Z` candidate replayed
+exact 27/1/1 health, provider coverage, concurrency rejection, and the existing session/stall
+owners. The final selector proof passed 17 rows directly and all four fixed-prior provider rows in
+a separate explicit-prior attempt. See
+`docs/plans/2026-08-18-observability-decision-report.md`.
 
 The automatic-Phoenix full eval baseline candidate is complete at
 `output/eval-harness/20260817T072338Z/`. Of 29 selected rows, 27 passed, one
@@ -113,11 +123,10 @@ providers.
 
 ## Next Action
 
-Investigate the session-live behavior regression and the dynamic-full model-call
-stall before rerunning or accepting a durable baseline. Keep the product
-Skill-delivery default unchanged; its separate multi-scene confirmation
-requirement still applies. Automatic Phoenix projection has no remaining
-implementation or verification action.
+Use the generated decision section when investigating future terminal candidates. The new required
+live proof passed the prior session-live and dynamic-full rows, but it does not publish or accept a
+baseline. Keep the product Skill-delivery default unchanged; its separate multi-scene confirmation
+requirement still applies.
 
 ## Current Blockers
 

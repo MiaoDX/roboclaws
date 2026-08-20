@@ -15,6 +15,14 @@ from typing import Any
 from roboclaws.agents.skill_delivery import sandbox_readiness
 from roboclaws.core.json_sources import read_json_object
 from roboclaws.evals.harness import local_execution, selector
+from roboclaws.evals.observability_decision_rendering import (
+    render_harness_row_markdown,
+    render_observability_html,
+    render_observability_markdown,
+)
+from roboclaws.evals.observability_decision_report import (
+    build_observability_decision_report,
+)
 from roboclaws.evals.suite_loading import REPO_ROOT
 from roboclaws.household.household_mcp_endpoint import (
     EVAL_HARNESS_MCP_PORT_ENV,
@@ -594,6 +602,9 @@ def _display_path(path: Path) -> str:
 
 
 def _write_outputs(manifest: dict[str, Any], output_dir: Path) -> None:
+    manifest["observability_decision_report"] = build_observability_decision_report(
+        manifest, manifest_path=output_dir / "eval_harness.json"
+    )
     json_path = output_dir / "eval_harness.json"
     md_path = output_dir / "eval_harness.md"
     html_path = output_dir / "eval_harness.html"
@@ -603,6 +614,14 @@ def _write_outputs(manifest: dict[str, Any], output_dir: Path) -> None:
     )
     md_path.write_text(_render_markdown(manifest), encoding="utf-8")
     html_path.write_text(_render_html(manifest), encoding="utf-8")
+
+
+def regenerate_observability_report(manifest_path: Path) -> dict[str, Any]:
+    """Rebuild the three existing report files for one explicit terminal manifest."""
+    manifest = _load_frozen_manifest(manifest_path)
+    manifest["output_dir"] = str(manifest_path.parent)
+    _write_outputs(manifest, manifest_path.parent)
+    return manifest["observability_decision_report"]
 
 
 def _write_row_result(row: dict[str, Any]) -> None:
@@ -637,7 +656,11 @@ def _redacted_manifest(value: Any) -> Any:
             if str(key) not in private_keys
         }
     if isinstance(value, list):
-        return [_redacted_manifest(item) for item in value]
+        return [
+            _redacted_manifest(item)
+            for item in value
+            if not (isinstance(item, str) and "/tmp/roboclaws-cloudml/" in item)
+        ]
     return value
 
 
@@ -661,30 +684,10 @@ def _render_markdown(manifest: dict[str, Any]) -> str:
             lines.append(f"- `{signal['id']}`: {detail}")
     else:
         lines.append("- none")
+    lines.extend(render_observability_markdown(manifest.get("observability_decision_report")))
     lines.extend(["", "## Rows", ""])
     for row in manifest["rows"]:
-        selected = "selected" if row.get("selected") else "skipped"
-        lines.append(f"### {row['row_id']}")
-        lines.append("")
-        lines.append(f"- Kind: `{row['row_kind']}`")
-        lines.append(f"- Status: `{row['status']}`")
-        if row.get("outcome"):
-            lines.append(f"- Outcome: `{row['outcome']}`")
-        if row.get("failure_class"):
-            lines.append(f"- Failure class: `{row['failure_class']}`")
-        lines.extend(_phoenix_projection_markdown(row))
-        lines.append(f"- Selection: `{selected}`")
-        if row.get("blocker_category"):
-            lines.append(f"- Blocker: `{row['blocker_category']}`")
-        if row.get("reason_selected"):
-            lines.append(f"- Rationale: {row['reason_selected']}")
-        if row.get("skip_reason"):
-            lines.append(f"- Skip reason: {row['skip_reason']}")
-        if row.get("output_artifacts"):
-            artifacts = ", ".join(str(item) for item in row["output_artifacts"])
-            lines.append(f"- Artifacts: {artifacts}")
-        lines.append(f"- Command: `{row['command_display']}`")
-        lines.append("")
+        lines.extend(render_harness_row_markdown(row))
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -706,17 +709,25 @@ def _render_html(manifest: dict[str, Any]) -> str:
     return (
         '<!doctype html><html><head><meta charset="utf-8">'
         "<title>Eval Harness</title>"
-        "<style>body{font-family:sans-serif;margin:24px;}"
-        "table{border-collapse:collapse;width:100%;}"
+        "<style>body{font-family:system-ui,sans-serif;margin:24px;color:#18212b;}"
+        "main{max-width:1440px;margin:auto}.summary{display:flex;gap:18px;flex-wrap:wrap}"
+        ".banner{border-left:4px solid #b7791f;padding:8px 12px;background:#fffaf0}"
+        ".table-wrap{overflow-x:auto;margin:12px 0 24px}"
+        "table{border-collapse:collapse;width:100%;min-width:720px;}"
         "td,th{border:1px solid #ccc;padding:6px;vertical-align:top;}"
-        "code{white-space:pre-wrap;}</style></head><body>"
+        "th{background:#f3f5f7}code{white-space:pre-wrap;}"
+        "@media(max-width:640px){body{margin:12px}h1{font-size:1.6rem}h2{font-size:1.25rem}}"
+        "</style></head><body><main>"
         "<h1>Eval Harness</h1>"
         f"<p>Mode: <code>{html.escape(manifest['mode'])}</code> "
         f"Budget: <code>{html.escape(manifest['budget'])}</code> "
         f"Profile: <code>{html.escape(str(manifest.get('profile', 'adaptive')))}</code></p>"
-        "<table><thead><tr><th>Row</th><th>Kind</th><th>Status</th>"
+        + render_observability_html(manifest.get("observability_decision_report"))
+        + '<div class="table-wrap"><table><thead><tr><th>Row</th><th>Kind</th><th>Status</th>'
         "<th>Outcome</th><th>Failure class</th><th>Blocker</th><th>Phoenix</th>"
-        "<th>Command</th></tr></thead><tbody>" + "".join(rows) + "</tbody></table></body></html>\n"
+        "<th>Command</th></tr></thead><tbody>"
+        + "".join(rows)
+        + "</tbody></table></div></main></body></html>\n"
     )
 
 
