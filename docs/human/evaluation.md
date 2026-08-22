@@ -323,6 +323,53 @@ just agent::eval map-build-report \
   output_dir=output/evals/map-build-matrix-review
 ```
 
+## Observability Decision Report
+
+Every authoritative terminal Eval Harness run adds a decision section to its
+existing `eval_harness.json`, `eval_harness.md`, and `eval_harness.html` files.
+Recommendation, nonterminal, and worker-shard manifests explicitly report the
+section as not applicable. The report server below is only a thin companion
+viewer over these artifacts; it is not a second metric or evaluation service.
+
+The existing report server can expose completed harness runs as a small local
+companion view without recomputing any metrics:
+
+```bash
+python scripts/reports/serve_reports.py output/eval-harness \
+  --host 127.0.0.1 --port 6100 --title "Roboclaws Eval Observability"
+```
+
+Open `/` for terminal history, `/latest` for the most recently finalized run,
+or `/runs/<run-id>/` for one report. A run is listed only after its JSON,
+Markdown, and HTML artifacts have matching hashes in
+`eval_harness.completed.json`; Phoenix remains the linked trace and Experiment
+drilldown at its own origin.
+
+Read the views in order:
+
+1. Capability health and regression leads with selected-row outcomes and
+   EvalTrial/sample quality. This is the gate for any performance claim.
+2. Fair provider comparison groups only matching dataset, sample, prompt/Skill,
+   runtime, scenario, and execution evidence while varying provider profile,
+   model, and wire API. Quality, model work, and latency have independent
+   eligibility. A single run is diagnostic; concurrent or different execution
+   environments make latency incomparable rather than producing a ranking.
+3. Failure and stall triage preserves the recorded harness, environment,
+   provider, operator, and behavior ownership and links to local evidence plus
+   the matching Phoenix EvalTrial run when its projection receipt is ready.
+
+Every metric records availability, source, coverage, claim eligibility, and
+limitations. Missing model duration or token usage remains null/unavailable,
+never zero. Cost is absent because v1 has no versioned price contract. Runtime
+timing comes only from local canonical artifacts; Phoenix Experiment duration
+is not runtime evidence.
+
+Review the report after every terminal candidate and before baseline or
+promotion decisions. During an eval campaign, use triage and telemetry coverage
+for active debugging and review provider/trajectory detail weekly. Phoenix is
+the generic trace and Experiment browser; it does not own cohorts, quality
+policy, private evidence, or promotion.
+
 ## Regression Promotion
 
 Failed, blocked, or inconclusive results can become durable regression

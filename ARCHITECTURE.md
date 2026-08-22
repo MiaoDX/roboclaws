@@ -38,7 +38,10 @@ Eval harness
   just agent::eval recommend|execute ...
   Selects and runs deterministic gates, product rows, eval suites, live-agent
   evals, blocked evidence, and regression-promotion guidance for a plan, diff,
-  or explicit request.
+  or explicit request. Authoritative terminal manifests also derive one
+  quality-first observability decision section in the existing JSON, Markdown,
+  and HTML reports. Local canonical artifacts own its metrics; Phoenix is
+  trial-linked drilldown only.
 
 Eval suite
   Versioned capability benchmark artifact under the facade: samples, trials,
@@ -121,6 +124,14 @@ Package proof CLIs
   through versioned samples, deterministic graders, optional advisory graders,
   aggregate metrics such as `pass@k` / `pass^k`, and failure replay. Their first
   maintainer facade is `just agent::eval ...`.
+- **Eval Harness Decision Reports** are pure, read-only projections of one
+  authoritative terminal harness manifest and its explicitly attached eval,
+  run-performance, baseline, and Phoenix-receipt artifacts. They keep harness
+  health, EvalTrial capability health, provider-treatment cohorts, and triage
+  at distinct grains. Quality, model-work, and latency eligibility are
+  independent; missing telemetry is unavailable rather than zero, concurrent
+  execution suppresses latency ranking, and the report cannot change outcomes,
+  provider placement, promotion, or publication.
 - **Eval Evolution** is the bounded candidate-improvement control plane inside
   `roboclaws.evals`. Optimizer and robot live roles use OpenAI Agents SDK with
   distinct identities. MCP behavior candidates receive only trusted

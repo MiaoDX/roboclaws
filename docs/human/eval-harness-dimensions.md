@@ -4,6 +4,11 @@ This page summarizes the maintained eval axes. Exact rows and profile
 membership belong to machine-readable sources, so this page does not duplicate
 counts that drift when the catalog changes.
 
+Terminal reports project these axes into the quality-first observability
+decision views documented in [evaluation.md](evaluation.md#observability-decision-report).
+The dimension catalog remains the membership owner; the report does not define
+a second catalog.
+
 Sources of truth:
 
 - Rows and profile membership: `skills/eval-harness/catalog/rows.json`
