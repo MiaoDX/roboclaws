@@ -280,8 +280,12 @@ agent behavior failure as infrastructure.
    eval outcome. Repeated collection must reuse immutable Phoenix identity.
 5. Merge results into the frozen manifest without changing row selection,
    command, case, or private-evaluation boundaries. Attach each accepted
-   `phoenix_projection.json` and its state/reason summary, then regenerate the
-   normal JSON, Markdown, and HTML reports locally.
+   `phoenix_projection.json` and its state/reason summary, write the authoritative
+   combined manifest locally, then call
+   `roboclaws.evals.harness.runner.regenerate_observability_report` with that one
+   explicit manifest path. This package owner rebuilds the normal JSON, Markdown,
+   and HTML reports plus the nested decision section after all paths are relocated;
+   collection must not implement a second renderer or scan other run roots.
 6. Scan YAML, argv displays, logs, receipts, collected outputs, projection
    receipts, and reports for current credential values before accepting the run.
 
