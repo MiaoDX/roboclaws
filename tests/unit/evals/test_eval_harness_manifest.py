@@ -1,9 +1,15 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
 from roboclaws.evals.harness import runner
+from roboclaws.evals.harness.publication import (
+    COMPLETION_MARKER_NAME,
+    COMPLETION_MARKER_SCHEMA,
+    REPORT_FILENAMES,
+)
 
 
 def test_eval_harness_manifest_redacts_private_truth(tmp_path: Path) -> None:
@@ -48,6 +54,58 @@ def test_eval_harness_manifest_redacts_private_truth(tmp_path: Path) -> None:
         encoding="utf-8"
     )
     assert (tmp_path / "eval_harness.html").exists()
+    assert not (tmp_path / COMPLETION_MARKER_NAME).exists()
+
+
+def test_terminal_eval_harness_publishes_completion_marker_last(tmp_path: Path) -> None:
+    manifest = {
+        "schema": "roboclaws_eval_harness_manifest_v1",
+        "mode": "execute",
+        "budget": "focused",
+        "profile": "baseline-refresh",
+        "signals": [],
+        "summary": {"selected_row_count": 1},
+        "rows": [
+            {
+                "schema": "roboclaws_eval_harness_row_v1",
+                "row_id": "terminal",
+                "row_kind": "test_gate",
+                "selected": True,
+                "status": "ran",
+                "outcome": "passed",
+                "command_display": "true",
+                "reason_selected": "unit test",
+                "skip_reason": "",
+                "blocker_category": "",
+            }
+        ],
+    }
+
+    runner._write_outputs(manifest, tmp_path)
+
+    marker = json.loads((tmp_path / COMPLETION_MARKER_NAME).read_text())
+    assert marker["schema"] == COMPLETION_MARKER_SCHEMA
+    assert marker["run_id"] == tmp_path.name
+    assert marker["finalized_at"].endswith("Z")
+    assert set(marker["artifacts"]) == set(REPORT_FILENAMES)
+    for filename, digest in marker["artifacts"].items():
+        assert hashlib.sha256((tmp_path / filename).read_bytes()).hexdigest() == digest
+
+
+def test_rewriting_nonterminal_harness_removes_stale_completion_marker(tmp_path: Path) -> None:
+    (tmp_path / COMPLETION_MARKER_NAME).write_text("{}\n", encoding="utf-8")
+    manifest = {
+        "schema": "roboclaws_eval_harness_manifest_v1",
+        "mode": "recommend",
+        "budget": "focused",
+        "signals": [],
+        "summary": {"selected_row_count": 0},
+        "rows": [],
+    }
+
+    runner._write_outputs(manifest, tmp_path)
+
+    assert not (tmp_path / COMPLETION_MARKER_NAME).exists()
 
 
 def test_eval_harness_row_reflects_failed_eval_aggregate(tmp_path: Path) -> None:

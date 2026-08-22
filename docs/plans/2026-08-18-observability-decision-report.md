@@ -68,7 +68,7 @@ Terminal Eval Harness manifest
                          v
   eval_harness.json + eval_harness.md + eval_harness.html
                          |
-             local artifact / Phoenix drilldown
+             thin local companion viewer / Phoenix drilldown
 ```
 
 Phoenix remains the generic Agent/LLM/Tool trace and Experiment browser. It is not the metric,
@@ -108,7 +108,8 @@ canonical artifacts.
 ### One Existing Report Surface
 
 Extend the existing `eval_harness.json`, `eval_harness.md`, and `eval_harness.html`. Do not add a
-new public command, standalone dashboard artifact, web service, database, or scheduler.
+new metric owner, database, or scheduler. The existing report server may serve a
+thin local companion viewer over finalized Eval Harness artifacts.
 
 `eval_harness.json` retains `schema=roboclaws_eval_harness_manifest_v1` and gains one nested object:
 
@@ -386,8 +387,9 @@ passes or records a concrete required-live/preflight blocker.
 
 ## Acceptance Criteria
 
-- Existing `eval_harness.{json,md,html}` is the only report surface; no new public command,
-  standalone dashboard artifact, service, database, or scheduler exists.
+- Existing `eval_harness.{json,md,html}` remains the only metric/report surface; the existing
+  stdlib report server may expose finalized runs through a thin local companion view, without
+  re-aggregating metrics or adding a database/scheduler.
 - Terminal authoritative manifests contain `roboclaws_observability_decision_report_v1`; recommend,
   nonterminal, and shard manifests are explicitly `not_applicable`.
 - The current fixture reports harness health as 27 passed, one failed, and one blocked without
@@ -643,7 +645,7 @@ Scope:
 - Update the current architecture/evaluation docs and the CloudML eval-ops skill only where the
   implemented finalization contract requires it.
 
-Non-goals: no new public command, report lifecycle, dashboard service, database, scheduler, alert
+Non-goals: no new Phoenix frontend or same-origin gateway, new metric owner, database, scheduler, alert
 channel, time-series store, pricing/cost model, automatic baseline selection or promotion, broad
 historical scan/backfill, Phoenix query or data mutation, provider/runtime behavior change, eval
 sample/grader change, CloudML placement change, simulator change, or hardware action.

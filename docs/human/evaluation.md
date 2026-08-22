@@ -328,7 +328,22 @@ just agent::eval map-build-report \
 Every authoritative terminal Eval Harness run adds a decision section to its
 existing `eval_harness.json`, `eval_harness.md`, and `eval_harness.html` files.
 Recommendation, nonterminal, and worker-shard manifests explicitly report the
-section as not applicable. No separate dashboard command or service exists.
+section as not applicable. The report server below is only a thin companion
+viewer over these artifacts; it is not a second metric or evaluation service.
+
+The existing report server can expose completed harness runs as a small local
+companion view without recomputing any metrics:
+
+```bash
+python scripts/reports/serve_reports.py output/eval-harness \
+  --host 127.0.0.1 --port 6100 --title "Roboclaws Eval Observability"
+```
+
+Open `/` for terminal history, `/latest` for the most recently finalized run,
+or `/runs/<run-id>/` for one report. A run is listed only after its JSON,
+Markdown, and HTML artifacts have matching hashes in
+`eval_harness.completed.json`; Phoenix remains the linked trace and Experiment
+drilldown at its own origin.
 
 Read the views in order:
 

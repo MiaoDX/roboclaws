@@ -15,6 +15,7 @@ from typing import Any
 from roboclaws.agents.skill_delivery import sandbox_readiness
 from roboclaws.core.json_sources import read_json_object
 from roboclaws.evals.harness import local_execution, selector
+from roboclaws.evals.harness.publication import publish_reports
 from roboclaws.evals.observability_decision_rendering import (
     render_harness_row_markdown,
     render_observability_html,
@@ -608,12 +609,12 @@ def _write_outputs(manifest: dict[str, Any], output_dir: Path) -> None:
     json_path = output_dir / "eval_harness.json"
     md_path = output_dir / "eval_harness.md"
     html_path = output_dir / "eval_harness.html"
-    json_path.write_text(
-        json.dumps(_redacted_manifest(manifest), indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-    md_path.write_text(_render_markdown(manifest), encoding="utf-8")
-    html_path.write_text(_render_html(manifest), encoding="utf-8")
+    rendered = {
+        json_path: json.dumps(_redacted_manifest(manifest), indent=2, sort_keys=True) + "\n",
+        md_path: _render_markdown(manifest),
+        html_path: _render_html(manifest),
+    }
+    publish_reports(manifest, output_dir, rendered)
 
 
 def regenerate_observability_report(manifest_path: Path) -> dict[str, Any]:
