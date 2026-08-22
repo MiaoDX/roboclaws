@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-19
+Last updated: 2026-08-23
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -9,6 +9,16 @@ orientation, move it to plans, ADRs, retrospectives, or `docs/human/**` and
 leave a link.
 
 ## Current Focus
+
+Completed Eval Harness decision reports now have a persistent local companion
+view through the existing report server. Terminal runs publish
+`eval_harness.completed.json` only after the JSON, Markdown, and HTML artifacts
+are atomically written and hashed; the server lists only valid completed runs
+at `http://127.0.0.1:6100/`, redirects `/latest`, and serves stable run-id
+routes while retaining Phoenix Experiment/Run drilldown links. Phoenix remains
+the trace and Experiment browser rather than a second metric owner. See
+`docs/human/evaluation.md` and
+`docs/plans/2026-08-18-observability-decision-report.md`.
 
 The terminal Eval Harness now derives a quality-first observability decision section in the
 existing `eval_harness.json`, `eval_harness.md`, and `eval_harness.html`. It separates capability
