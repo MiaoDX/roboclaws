@@ -1,10 +1,10 @@
 ---
 plan_scope: opik-self-host-eval-observability-pilot
-status: IN_PROGRESS
+status: DONE
 created: 2026-08-24
 last_reviewed: 2026-08-24
 implementation_allowed: true
-current_phase: stage-3-thin-maintainer-client
+current_phase: complete
 source:
   - user request to try Opik self-host after observability platform research
   - user request to run agent-planning-loop before implementation
@@ -24,10 +24,11 @@ approval:
 
 ## Plan Ledger
 
-- Plan status: IN_PROGRESS; execution is approved by the user request.
-- Current slice: Stage 3, dependency-free loopback Opik REST client and two-pass receipt proof
-  candidate at `output/eval-harness/20260817T072338Z/eval_harness.json`.
-- Next action: project the proven offline snapshot through the thin maintainer client and compare two passes.
+- Plan status: DONE; implementation, live projection, browser review, operational proof, and the
+  migration decision are complete.
+- Current slice: Complete.
+- Next action: None. Reopen only if a later Opik release materially changes Dataset discovery,
+  dashboard provisioning, or the self-host footprint.
 - Blocked on: none.
 - Stop condition: the pilot produces enough browser and operational evidence to choose `retain
   Phoenix`, `migrate to Opik`, or `reject Opik`. It does not perform that migration.
@@ -311,6 +312,60 @@ Re-approval is required before any live instrumentation, new eval/provider call,
 dependency, LAN/public exposure, accepted-baseline publication, automatic projection, durable
 `roboclaws.evals` adapter, Phoenix/companion deletion or mutation, migration, or destructive cleanup.
 
+## Closeout
+
+Recommendation: **retain Phoenix plus companion**.
+
+Opik 2.2.36 proved a capable trace and Experiment browser, but it did not provide enough recurring
+eval value to replace the existing arrangement. The Experiment result table exposes provider,
+failure, outcome, and trace-fidelity dimensions, and a Mimo result drilled into its matching trace
+with 265 faithful spans. However, the project Datasets navigation hides the required
+`evaluation_suite` Dataset even though its direct page contains all 65 rows, including the 40
+`experiment_only` rows. Persistent dashboard provisioning also has no documented REST surface in
+this release. Those discovery and repeatability gaps matter more than the improved trace UI, given
+the seven-service self-host footprint. Do not keep Opik as a second production observability
+system and do not migrate in this plan.
+
+Evidence:
+
+- Source manifest SHA-256:
+  `7c44b49f2d2a4af3c61a5db61e3af89d738cf80ce6bd80274d797291795dff75`;
+  the source stayed an unaccepted historical candidate and its bytes were unchanged.
+- Receipt:
+  `output/opik-poc/7c44b49f2d2a4af3c61a5db61e3af89d738cf80ce6bd80274d797291795dff75/projection_receipt.json`.
+  Both recorded replay passes created zero new logical objects, retained identity digest
+  `c9ff5bc4067bdd1880a4f646ecad1bab383a103803dbd55c99ec2c0738e2a504`, and matched server counts:
+  65 Dataset items, 25 Experiment items/traces, 4,994 spans, and 56 scores. Privacy scanning found
+  zero denied fields; trace coverage remained 25 native and 40 experiment-only rows.
+- Browser evidence under the adjacent `browser/` directory covers project logs, Experiments,
+  Experiment results, direct Dataset items, and trace detail at desktop, tablet, and mobile widths.
+  Logs showed 25 traces and the three canonical copied scores. The direct Dataset page made
+  `experiment_only` explicit and did not invent traces. Desktop trace inspection was clear; the
+  mobile trace panel compressed and horizontally clipped the three-column layout rather than
+  reflowing it. The only persistent browser error was Opik's own
+  `/api/v1/private/workspaces/configurations/` 404.
+- Retained-data restart completed in 20.389 seconds after Compose teardown; the full down/up cycle
+  took 38.477 seconds, and the live integration contract passed afterward. Only
+  `127.0.0.1:5174` was published by the isolated `roboclaws-opik-poc` project.
+- The pinned image set occupied approximately 1.12 GB. A post-replay stable sample used about
+  2.0 GiB RAM across frontend, backend, ClickHouse, Redis, ZooKeeper, MySQL, and MinIO; backend and
+  ClickHouse replay samples peaked near 89% and 91% CPU. The retained pilot tree was approximately
+  386 MB after replay. Backend/frontend image digests were
+  `sha256:59eedaaca97b42a69014e37975c797468330af2719568062a70b405d223a1ad9` and
+  `sha256:2ec9a8514ca39cbc0f2107735fd4a558e9440bc9ff816d5f15a77946ba356e38`;
+  the remaining pinned digests are rendered by the validated Compose file.
+- Git and live checks found no changes to Phoenix, its data/projector, the companion server,
+  canonical eval artifacts, or public launch grammar. Phoenix remained healthy through Opik
+  stop/restart. The companion was already not running, so rollback proof is configuration and
+  process isolation rather than a live companion response.
+
+Verification passed: deployment validator; rendered Compose; focused Ruff and format checks;
+seven focused unit tests; live integration after retained-data restart; exact projection replay;
+browser desktop/mobile review; and the repository-selected pre-commit static/contract gate.
+
+Parked work remains out of scope: production Opik dependency, automatic projection, migration,
+accepted-baseline publication, LAN exposure, and deletion of retained pilot data.
+
 ## Agent Planning Loop Judgment
 
 One bounded planning round ran with an entropy scout and a documentation-grill scout. No second
@@ -334,7 +389,7 @@ choice.
 
 ## Preflight Contract
 
-Preflight status: DRAFT
+Preflight status: APPROVED
 
 Task source: user request plus this plan
 
