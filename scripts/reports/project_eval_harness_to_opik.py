@@ -384,9 +384,12 @@ def main(argv: list[str] | None = None) -> int:
     args = _parse_args(sys.argv[1:] if argv is None else argv)
     snapshot = build_projection_snapshot(args.manifest)
     if args.endpoint:
-        raise ProjectionError(
-            "network projection client is not implemented yet; use --snapshot-output"
-        )
+        from opik_pilot_client import OpikHttp, project_snapshot, write_receipt
+
+        result = project_snapshot(snapshot, OpikHttp(args.endpoint))
+        receipt = write_receipt(snapshot, result, args.endpoint, Path("output/opik-poc"))
+        print(receipt)
+        return 0
     output = args.snapshot_output
     if output:
         output.parent.mkdir(parents=True, exist_ok=True)
