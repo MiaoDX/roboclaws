@@ -299,11 +299,12 @@ def _read_server_counts(client: Transport, result: dict[str, Any]) -> dict[str, 
         "GET",
         f"/v1/private/datasets/{result['dataset_id']}/items?" + urlencode({"size": 1000}),
     )
-    _, experiment_items, _ = client.request(
-        "GET",
-        f"/v1/private/datasets/{result['dataset_id']}/items/experiments/items?"
-        + urlencode({"size": 1000, "experiment_ids": result["experiment_id"]}),
-    )
+    experiment_items = []
+    for experiment_item_id in result["experiment_item_ids"]:
+        _, experiment_item, _ = client.request(
+            "GET", f"/v1/private/experiments/items/{experiment_item_id}"
+        )
+        experiment_items.append(experiment_item)
     _, traces, _ = client.request(
         "GET",
         "/v1/private/traces?"
@@ -330,7 +331,7 @@ def _read_server_counts(client: Transport, result: dict[str, Any]) -> dict[str, 
     )
     return {
         "dataset_items": dataset_items["total"],
-        "experiment_items": experiment_items["total"],
+        "experiment_items": len(experiment_items),
         "traces": traces["total"],
         "spans": spans["total"],
         "scores": sum(len(trace.get("feedback_scores") or []) for trace in traces["content"]),
