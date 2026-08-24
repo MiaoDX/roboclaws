@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-23
+Last updated: 2026-08-24
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -9,6 +9,15 @@ orientation, move it to plans, ADRs, retrospectives, or `docs/human/**` and
 leave a link.
 
 ## Current Focus
+
+The isolated Opik 2.2.36 eval-observability pilot is complete. Its trace and
+Experiment drilldown were strong, but hidden `evaluation_suite` discovery,
+missing documented persistent-dashboard provisioning, and a seven-service
+self-host footprint did not justify replacing the current stack. The decision
+is to retain Phoenix plus the companion report and not keep Opik as a second
+production observability system. The reproducible pilot deployment and
+projector remain diagnostic evidence only; see
+`docs/plans/2026-08-24-opik-self-host-eval-observability-pilot.md`.
 
 Completed Eval Harness decision reports now have a persistent local companion
 view through the existing report server. Terminal runs publish

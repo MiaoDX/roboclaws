@@ -1,0 +1,3 @@
+<clickhouse>
+    <profiles><default><enable_time_time64_type>1</enable_time_time64_type></default></profiles>
+</clickhouse>
