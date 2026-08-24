@@ -1,0 +1,18 @@
+<clickhouse>
+    <listen_host>0.0.0.0</listen_host>
+    <custom_settings_prefixes>SQL_</custom_settings_prefixes>
+    <macros>
+        <shard>1</shard>
+        <replica>clickhouse</replica>
+        <cluster>cluster</cluster>
+    </macros>
+    <zookeeper>
+        <node><host>zookeeper</host><port>2181</port></node>
+    </zookeeper>
+    <zookeeper_path>/clickhouse</zookeeper_path>
+    <remote_servers>
+        <cluster><shard><internal_replication>true</internal_replication><replica>
+            <host>clickhouse</host><port>9000</port>
+        </replica></shard></cluster>
+    </remote_servers>
+</clickhouse>

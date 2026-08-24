@@ -1,0 +1,220 @@
+name: roboclaws-opik-poc
+
+services:
+  mysql:
+    image: mysql:8.4.2
+    restart: "no"
+    environment:
+      MYSQL_ROOT_PASSWORD: opik
+      MYSQL_DATABASE: opik
+      MYSQL_USER: opik
+      MYSQL_PASSWORD: opik
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 2s
+      timeout: 2s
+      retries: 150
+    volumes:
+      - type: bind
+        source: ../../output/opik-poc/data/mysql
+        target: /var/lib/mysql
+    deploy:
+      resources:
+        limits: {cpus: "1", memory: 2G}
+
+  redis:
+    image: redis:7.2.4-alpine3.19
+    restart: "no"
+    command: redis-server --requirepass opik
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "opik", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    volumes:
+      - type: bind
+        source: ../../output/opik-poc/data/redis
+        target: /data
+    deploy:
+      resources:
+        limits: {cpus: "0.5", memory: 512M}
+
+  zookeeper:
+    image: zookeeper:3.9.4
+    restart: "no"
+    environment:
+      JVMFLAGS: -Xmx512m
+      ZOO_4LW_COMMANDS_WHITELIST: ruok
+      ZOO_DATA_DIR: /data
+      ZOO_DATA_LOG_DIR: /data
+    healthcheck:
+      test: ["CMD-SHELL", "echo ruok | nc localhost 2181 | grep -q imok"]
+      interval: 2s
+      timeout: 2s
+      retries: 150
+    volumes:
+      - type: bind
+        source: ../../output/opik-poc/data/zookeeper
+        target: /data
+      - type: bind
+        source: ../../output/opik-poc/data/zookeeper-datalog
+        target: /datalog
+      - type: bind
+        source: ../../output/opik-poc/data/zookeeper-logs
+        target: /logs
+    deploy:
+      resources:
+        limits: {cpus: "0.5", memory: 768M}
+
+  clickhouse-init:
+    image: alpine:3.22.1
+    restart: "no"
+    command: ["sh", "-c", "cp /source/additional_config.xml /config/additional_config.xml && chmod 644 /config/additional_config.xml"]
+    volumes:
+      - type: bind
+        source: ./clickhouse_config
+        target: /source
+        read_only: true
+      - type: bind
+        source: ../../output/opik-poc/data/clickhouse-config
+        target: /config
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:26.3.16.16-alpine
+    restart: "no"
+    environment:
+      CLICKHOUSE_DB: opik
+      CLICKHOUSE_USER: opik
+      CLICKHOUSE_PASSWORD: opik
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8123/ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 150
+    depends_on:
+      zookeeper: {condition: service_healthy}
+      clickhouse-init: {condition: service_completed_successfully}
+    volumes:
+      - type: bind
+        source: ../../output/opik-poc/data/clickhouse
+        target: /var/lib/clickhouse
+      - type: bind
+        source: ../../output/opik-poc/data/clickhouse-logs
+        target: /var/log/clickhouse-server
+      - type: bind
+        source: ../../output/opik-poc/data/clickhouse-config
+        target: /etc/clickhouse-server/config.d
+      - type: bind
+        source: ./clickhouse_config/enable_time_type.xml
+        target: /etc/clickhouse-server/users.d/enable_time_type.xml
+        read_only: true
+    deploy:
+      resources:
+        limits: {cpus: "2", memory: 4G}
+
+  minio:
+    image: minio/minio:RELEASE.2025-03-12T18-04-18Z
+    restart: "no"
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${OPIK_MINIO_ROOT_USER:-opik-poc}
+      MINIO_ROOT_PASSWORD: ${OPIK_MINIO_ROOT_PASSWORD:-opik-poc-local-only}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - type: bind
+        source: ../../output/opik-poc/data/minio
+        target: /data
+    deploy:
+      resources:
+        limits: {cpus: "0.5", memory: 1G}
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-03-12T17-29-24Z
+    restart: "no"
+    depends_on:
+      minio: {condition: service_healthy}
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["mc alias set s3 http://minio:9000 $$OPIK_MINIO_ROOT_USER $$OPIK_MINIO_ROOT_PASSWORD --api S3v4 && mc mb --ignore-existing s3/public"]
+    environment:
+      OPIK_MINIO_ROOT_USER: ${OPIK_MINIO_ROOT_USER:-opik-poc}
+      OPIK_MINIO_ROOT_PASSWORD: ${OPIK_MINIO_ROOT_PASSWORD:-opik-poc-local-only}
+
+  backend:
+    image: ghcr.io/comet-ml/opik/opik-backend:2.2.36
+    restart: "no"
+    command: ["bash", "-c", "./run_db_migrations.sh && ./provision_agent_insights_readonly_user.sh && ./entrypoint.sh"]
+    environment:
+      OPIK_ANONYMOUS_ID: roboclaws-local-pilot
+      OPIK_USAGE_REPORT_ENABLED: "false"
+      STATE_DB_PROTOCOL: jdbc:mysql://
+      STATE_DB_URL: mysql:3306/opik?createDatabaseIfNotExist=true&rewriteBatchedStatements=true&connectionTimeZone=UTC
+      STATE_DB_DATABASE_NAME: opik
+      STATE_DB_USER: opik
+      STATE_DB_PASS: opik
+      ANALYTICS_DB_MIGRATIONS_URL: jdbc:clickhouse://clickhouse:8123
+      ANALYTICS_DB_MIGRATIONS_USER: opik
+      ANALYTICS_DB_MIGRATIONS_PASS: opik
+      ANALYTICS_DB_PROTOCOL: HTTP
+      ANALYTICS_DB_HOST: clickhouse
+      ANALYTICS_DB_PORT: "8123"
+      ANALYTICS_DB_DATABASE_NAME: opik
+      ANALYTICS_DB_USERNAME: opik
+      ANALYTICS_DB_PASS: opik
+      REDIS_URL: redis://:opik@redis:6379/
+      AWS_ACCESS_KEY_ID: ${OPIK_MINIO_ROOT_USER:-opik-poc}
+      AWS_SECRET_ACCESS_KEY: ${OPIK_MINIO_ROOT_PASSWORD:-opik-poc-local-only}
+      IS_MINIO: "true"
+      S3_URL: http://minio:9000
+      TOGGLE_OPIK_AI_ENABLED: "false"
+      TOGGLE_GUARDRAILS_ENABLED: "false"
+      TOGGLE_WELCOME_WIZARD_ENABLED: "false"
+      LLM_MODEL_REGISTRY_REMOTE_ENABLED: "false"
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=80.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health-check"]
+      interval: 2s
+      timeout: 10s
+      retries: 150
+    depends_on:
+      mysql: {condition: service_healthy}
+      clickhouse: {condition: service_healthy}
+      minio: {condition: service_healthy}
+      minio-init: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+    deploy:
+      resources:
+        limits: {cpus: "2", memory: 4G}
+
+  frontend:
+    image: ghcr.io/comet-ml/opik/opik-frontend:2.2.36
+    restart: "no"
+    ports:
+      - 127.0.0.1:${OPIK_HTTP_PORT:-5174}:5173
+    environment:
+      OPIK_VERSION: 2.2.36
+      NGINX_PORT: "5173"
+      OTEL_TRACE: "off"
+    volumes:
+      - type: bind
+        source: ./nginx.conf
+        target: /etc/nginx/templates/default.conf.template
+        read_only: true
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:5173/health"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    depends_on:
+      backend: {condition: service_healthy}
+    deploy:
+      resources:
+        limits: {cpus: "1", memory: 1G}
+
+networks:
+  default:
+    name: roboclaws-opik-poc
