@@ -1,10 +1,10 @@
 ---
 plan_scope: opik-self-host-eval-observability-pilot
-status: DRAFT
+status: IN_PROGRESS
 created: 2026-08-24
 last_reviewed: 2026-08-24
-implementation_allowed: false
-current_phase: awaiting-plan-approval
+implementation_allowed: true
+current_phase: stage-3-thin-maintainer-client
 source:
   - user request to try Opik self-host after observability platform research
   - user request to run agent-planning-loop before implementation
@@ -15,21 +15,20 @@ related_context:
   - docs/plans/2026-08-06-self-hosted-agent-observability-platform.md
   - docs/plans/2026-08-18-observability-decision-report.md
 approval:
-  plan_approved_on: null
-  plan_approval_source: null
-  preflight_status: DRAFT
+  plan_approved_on: 2026-08-24
+  plan_approval_source: user-execute-request
+  preflight_status: APPROVED
 ---
 
 # Opik Self-Hosted Eval Observability Pilot
 
 ## Plan Ledger
 
-- Plan status: DRAFT; agent planning loop and preflight shaping are complete, implementation is
-  not approved.
-- Current slice: one isolated, artifact-only Opik self-host pilot over the historical terminal
+- Plan status: IN_PROGRESS; execution is approved by the user request.
+- Current slice: Stage 3, dependency-free loopback Opik REST client and two-pass receipt proof
   candidate at `output/eval-harness/20260817T072338Z/eval_harness.json`.
-- Next action: human reviews this plan, then approves or revises the preflight contract.
-- Blocked on: plan approval only.
+- Next action: project the proven offline snapshot through the thin maintainer client and compare two passes.
+- Blocked on: none.
 - Stop condition: the pilot produces enough browser and operational evidence to choose `retain
   Phoenix`, `migrate to Opik`, or `reject Opik`. It does not perform that migration.
 
