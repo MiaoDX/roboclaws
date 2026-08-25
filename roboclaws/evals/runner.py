@@ -32,7 +32,7 @@ from roboclaws.evals.models import (
     EvalSuite,
     EvalTrial,
 )
-from roboclaws.evals.phoenix_projection import project_completed_eval_to_phoenix
+from roboclaws.evals.opik_projection.suite import project_completed_eval_to_opik
 from roboclaws.evals.regression import promote_regression_from_cli_overrides
 from roboclaws.evals.result_persistence import persist_results
 from roboclaws.evals.runtime_prior_selection import (
@@ -89,7 +89,7 @@ class EvalSuiteRun:
     results_path: Path
     report_path: Path
     bundle: dict[str, Any]
-    phoenix_projection: dict[str, object]
+    opik_projection: dict[str, object]
 
 
 def run_cli_tool(mode: str, overrides: dict[str, str]) -> dict[str, object]:
@@ -98,10 +98,10 @@ def run_cli_tool(mode: str, overrides: dict[str, str]) -> dict[str, object]:
         from roboclaws.evals.evolution_control import run_evolution_command
 
         return run_evolution_command(mode, overrides, suite_runner=run_eval_suite)
-    if mode == "phoenix-project":
-        from roboclaws.evals.phoenix_projection import project_eval_to_phoenix
+    if mode == "opik-project":
+        from roboclaws.evals.opik_projection.suite import project_eval_to_opik
 
-        return project_eval_to_phoenix(overrides)
+        return project_eval_to_opik(overrides)
     if mode == "promote-regression":
         return promote_regression_from_cli_overrides(overrides)
     if mode == "map-build-report":
@@ -381,7 +381,7 @@ def run_eval_suite(
     bundle, results_path, report_path = persist_results(
         suite=suite, results=results, output_dir=output_dir, budget=result_budget
     )
-    phoenix_projection = project_completed_eval_to_phoenix(
+    opik_projection = project_completed_eval_to_opik(
         suite_ref=suite_ref,
         eval_results_path=results_path,
     )
@@ -391,7 +391,7 @@ def run_eval_suite(
         results_path=results_path,
         report_path=report_path,
         bundle=bundle,
-        phoenix_projection=phoenix_projection,
+        opik_projection=opik_projection,
     )
 
 

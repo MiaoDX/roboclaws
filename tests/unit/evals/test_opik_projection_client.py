@@ -158,6 +158,8 @@ def test_receipt_preserves_first_and_second_pass_proof(tmp_path: Path) -> None:
     MODULE.write_receipt(snapshot, result, "http://127.0.0.1:5174", tmp_path)
     receipt = json.loads(path.read_text())
 
+    assert path == tmp_path / "opik_projection.json"
+    assert receipt["state"] == "ready"
     assert receipt["passes"]["first"]["created"]["traces"] == 1
     assert receipt["passes"]["second"]["created"] == result["created"]
     assert (

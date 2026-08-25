@@ -11,7 +11,7 @@ _TOOL_MODES = {
     "evolve",
     "evolve-promote",
     "map-build-report",
-    "phoenix-project",
+    "opik-project",
     "promote-regression",
     "runtime-prior-promote",
     "runtime-prior-select",
@@ -51,7 +51,7 @@ def main(argv: list[str] | None = None) -> int:
             {
                 "results": str(run.results_path),
                 "report": str(run.report_path),
-                "phoenix_projection": run.phoenix_projection,
+                "opik_projection": run.opik_projection,
             },
             sort_keys=True,
         )
