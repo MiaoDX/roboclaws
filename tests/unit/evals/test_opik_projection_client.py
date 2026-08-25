@@ -115,6 +115,46 @@ def test_partial_bundle_replay_only_writes_missing_resources() -> None:
     assert transport.writes[-1][2]["name"] == "roboclaws.tool_call_count"
 
 
+def test_trace_bundle_accepts_suite_sample_identity() -> None:
+    trace, item = _bundle()
+    item["metadata"] = {"sample_id": "sample-1", "trial_id": "trial-1"}
+    trace_id = MODULE.stable_uuid_at(trace["projection_key"], trace["spans"][0]["started_at"])
+    span_ids, _ = MODULE._span_payloads(trace, trace_id, "roboclaws-eval")
+    experiment_item_id = MODULE.stable_uuid("experiment-item:" + item["projection_key"])
+
+    class CreateTransport(PartialBundleTransport):
+        created = False
+
+        def request(
+            self,
+            method: str,
+            path: str,
+            payload: Any | None = None,
+            *,
+            expected: frozenset[int] = frozenset({200}),
+        ) -> tuple[int, Any, dict[str, str]]:
+            if method == "GET" and path == f"/v1/private/traces/{trace_id}":
+                return (
+                    (200, {"id": trace_id, "feedback_scores": []}, {})
+                    if self.created
+                    else (404, {}, {})
+                )
+            if method == "POST" and path == "/v1/private/traces":
+                self.created = True
+                self.writes.append((method, path, payload))
+                return 201, None, {"Location": f"/traces/{trace_id}"}
+            return super().request(method, path, payload, expected=expected)
+
+    transport = CreateTransport(trace_id, span_ids[0], experiment_item_id)
+
+    MODULE._create_trace_bundle(transport, trace, item, "roboclaws-eval", "experiment-id")
+
+    trace_write = next(
+        payload for method, path, payload in transport.writes if path == "/v1/private/traces"
+    )
+    assert trace_write["name"] == "sample-1 / trial-1"
+
+
 def test_receipt_preserves_first_and_second_pass_proof(tmp_path: Path) -> None:
     snapshot = {
         "schema": "projection-v1",
@@ -166,3 +206,48 @@ def test_receipt_preserves_first_and_second_pass_proof(tmp_path: Path) -> None:
         receipt["passes"]["first"]["identity_sha256"]
         == receipt["passes"]["second"]["identity_sha256"]
     )
+
+
+def test_ready_receipt_replaces_matching_unavailable_stub(tmp_path: Path) -> None:
+    snapshot = {
+        "schema": "projection-v2",
+        "projection_purpose": "repo_native_eval_projection",
+        "candidate_status": "canonical_local_evidence",
+        "source_manifest_sha256": "source-digest",
+        "snapshot_sha256": "snapshot-digest",
+        "trace_coverage": {"native_span_trace": 0, "experiment_only": 0},
+        "privacy_scan": {"state": "passed", "finding_count": 0},
+        "source_files": [],
+    }
+    result = {
+        "project_id": "project-id",
+        "dataset_id": "dataset-id",
+        "experiment_id": "experiment-id",
+        "dataset_item_ids": [],
+        "experiment_item_ids": [],
+        "trace_ids": [],
+        "span_ids": [],
+        "score_count": 0,
+        "server_counts": {
+            key: 0
+            for key in (
+                "dataset_items",
+                "experiment_items",
+                "traces",
+                "spans",
+                "scores",
+                "dashboards",
+            )
+        },
+        "created": {
+            key: 0 for key in ("experiment", "traces", "spans", "experiment_items", "scores")
+        },
+        "limitations": [],
+    }
+    (tmp_path / "opik_projection.json").write_text(
+        json.dumps({"state": "unavailable", "source_manifest_sha256": "source-digest"})
+    )
+
+    path = MODULE.write_receipt(snapshot, result, "http://127.0.0.1:5174", tmp_path)
+
+    assert json.loads(path.read_text())["state"] == "ready"

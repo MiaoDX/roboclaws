@@ -341,36 +341,31 @@ def _read_server_counts(client: Transport, result: dict[str, Any]) -> dict[str, 
             "GET", f"/v1/private/experiments/items/{experiment_item_id}"
         )
         experiment_items.append(experiment_item)
-    _, traces, _ = client.request(
-        "GET",
-        "/v1/private/traces?"
-        + urlencode(
-            {
-                "project_id": result["project_id"],
-                "size": 1000,
-                "truncate": "true",
-                "strip_attachments": "true",
-            }
-        ),
-    )
-    _, spans, _ = client.request(
-        "GET",
-        "/v1/private/spans?"
-        + urlencode(
-            {
-                "project_id": result["project_id"],
-                "size": 10000,
-                "truncate": "true",
-                "strip_attachments": "true",
-            }
-        ),
-    )
+    traces = []
+    span_count = 0
+    for trace_id in result["trace_ids"]:
+        _, trace, _ = client.request("GET", f"/v1/private/traces/{trace_id}")
+        traces.append(trace)
+        _, spans, _ = client.request(
+            "GET",
+            "/v1/private/spans?"
+            + urlencode(
+                {
+                    "project_id": result["project_id"],
+                    "trace_id": trace_id,
+                    "size": 10000,
+                    "truncate": "true",
+                    "strip_attachments": "true",
+                }
+            ),
+        )
+        span_count += spans["total"]
     return {
         "dataset_items": dataset_items["total"],
         "experiment_items": len(experiment_items),
-        "traces": traces["total"],
-        "spans": spans["total"],
-        "scores": sum(len(trace.get("feedback_scores") or []) for trace in traces["content"]),
+        "traces": len(traces),
+        "spans": span_count,
+        "scores": sum(len(trace.get("feedback_scores") or []) for trace in traces),
         "dashboards": 0,
     }
 
@@ -405,6 +400,10 @@ def _create_trace_bundle(
     )
     created = {"traces": 0, "spans": 0, "experiment_items": 0, "scores": 0}
     if status == 404:
+        row_name = item["metadata"].get("row_id") or item["metadata"].get("sample_id")
+        trial_name = item["metadata"].get("trial_id")
+        if not isinstance(row_name, str) or not isinstance(trial_name, str):
+            raise OpikClientError("trace item lacks closed sample/row and trial identity")
         starts = [span["started_at"] for span in trace["spans"]]
         ends = [span.get("ended_at", span["started_at"]) for span in trace["spans"]]
         client.request(
@@ -413,11 +412,11 @@ def _create_trace_bundle(
             {
                 "id": trace_id,
                 "project_name": project_name,
-                "name": f"{item['metadata']['row_id']} / {item['metadata']['trial_id']}",
+                "name": f"{row_name} / {trial_name}",
                 "start_time": min(starts),
                 "end_time": max(ends),
                 "metadata": item["metadata"],
-                "tags": ["native-span-trace", "historical-candidate"],
+                "tags": ["native-span-trace", "roboclaws"],
                 "source": "sdk",
                 "environment": "roboclaws-opik",
             },
@@ -552,13 +551,18 @@ def write_receipt(
     passes = {"first": pass_record}
     if path.is_file():
         previous = json.loads(path.read_text())
-        if previous.get("snapshot_sha256") != snapshot["snapshot_sha256"] or previous.get(
-            "endpoint_origin"
-        ) != endpoint.rstrip("/"):
-            raise OpikClientError("existing receipt belongs to a different snapshot or endpoint")
-        passes = {"first": previous["passes"]["first"], "second": pass_record}
-        if passes["first"]["identity_sha256"] != identity_digest:
-            raise OpikClientError("Opik identities changed between projection passes")
+        if previous.get("state") == "ready":
+            if previous.get("snapshot_sha256") != snapshot["snapshot_sha256"] or previous.get(
+                "endpoint_origin"
+            ) != endpoint.rstrip("/"):
+                raise OpikClientError(
+                    "existing receipt belongs to a different snapshot or endpoint"
+                )
+            passes = {"first": previous["passes"]["first"], "second": pass_record}
+            if passes["first"]["identity_sha256"] != identity_digest:
+                raise OpikClientError("Opik identities changed between projection passes")
+        elif previous.get("source_manifest_sha256") != snapshot["source_manifest_sha256"]:
+            raise OpikClientError("unavailable receipt belongs to different source evidence")
 
     receipt = {
         "schema": snapshot["schema"],
