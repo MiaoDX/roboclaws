@@ -1,4 +1,4 @@
-"""Fail-open Phoenix projection plus a deterministic telemetry test fixture."""
+"""Fail-open Opik projection plus a deterministic telemetry test fixture."""
 
 from __future__ import annotations
 
@@ -40,8 +40,8 @@ class ProjectionProcessorConfig:
 
 
 @dataclass(frozen=True)
-class PhoenixTelemetryConfig:
-    endpoint: str = "http://127.0.0.1:6006/v1/traces"
+class OpikTelemetryConfig:
+    endpoint: str = "http://127.0.0.1:5174/api/v1/private/otel/v1/traces"
     queue_capacity: int = 512
     max_export_batch_size: int = 64
     schedule_delay_ms: int = 200
@@ -62,24 +62,43 @@ class PhoenixTelemetryConfig:
             raise ValueError("terminal_timeout_s must be between zero and two seconds")
 
 
-def create_local_phoenix_telemetry_adapter(
+def create_local_opik_telemetry_adapter(
     *,
     identity: Mapping[str, Any],
     environ: Mapping[str, str] | None = None,
-) -> PhoenixTelemetryAdapter | None:
+) -> OpikTelemetryAdapter | None:
     """Create the explicitly enabled localhost adapter, or return disabled."""
     values = os.environ if environ is None else environ
-    endpoint = values.get("ROBOCLAWS_PHOENIX_OTLP_ENDPOINT", "").strip()
-    if not endpoint:
+    origin = values.get("ROBOCLAWS_OPIK_ENDPOINT", "").strip()
+    if not origin:
         return None
-    return create_phoenix_telemetry_adapter(
+    return create_opik_telemetry_adapter(
         identity=identity,
-        config=PhoenixTelemetryConfig(
-            endpoint=endpoint,
+        config=OpikTelemetryConfig(
+            endpoint=_opik_otlp_endpoint(origin),
             export_timeout_s=0.5,
             terminal_timeout_s=0.9,
         ),
     )
+
+
+def _validate_loopback_origin(origin: str) -> str:
+    parsed = urlsplit(origin)
+    if parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost", "::1"}:
+        raise ValueError("ROBOCLAWS_OPIK_ENDPOINT must target a loopback HTTP origin")
+    if parsed.username or parsed.password:
+        raise ValueError("ROBOCLAWS_OPIK_ENDPOINT must not contain user information")
+    try:
+        parsed.port
+    except ValueError as exc:
+        raise ValueError("ROBOCLAWS_OPIK_ENDPOINT must contain a valid port") from exc
+    if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
+        raise ValueError("ROBOCLAWS_OPIK_ENDPOINT must be a base origin without path or query")
+    return origin.rstrip("/")
+
+
+def _opik_otlp_endpoint(origin: str) -> str:
+    return _validate_loopback_origin(origin) + "/api/v1/private/otel/v1/traces"
 
 
 def _validate_local_otlp_endpoint(endpoint: str, *, name: str) -> None:
@@ -96,17 +115,17 @@ def _validate_local_otlp_endpoint(endpoint: str, *, name: str) -> None:
         parsed.port
     except ValueError as exc:
         raise ValueError(f"{name} must contain a valid port") from exc
-    if parsed.path != "/v1/traces" or parsed.query or parsed.fragment:
-        raise ValueError(f"{name} must use the exact /v1/traces OTLP path")
+    if parsed.path != "/api/v1/private/otel/v1/traces" or parsed.query or parsed.fragment:
+        raise ValueError(f"{name} must use the pinned Opik OTLP trace path")
 
 
-def phoenix_privacy_config() -> Any:
+def opik_privacy_config() -> Any:
     """Return the fail-closed OpenInference configuration used for every adapter."""
     try:
         from openinference.instrumentation import TraceConfig
     except ImportError as exc:
         raise RuntimeError(
-            "Phoenix telemetry requires openinference-instrumentation-openai-agents==1.3.0"
+            "Opik telemetry requires openinference-instrumentation-openai-agents==1.3.0"
         ) from exc
     return TraceConfig(
         hide_llm_invocation_parameters=True,
@@ -138,14 +157,14 @@ def _new_openinference_processor(tracer: Any) -> Any:
         )
     except (ImportError, PackageNotFoundError) as exc:
         raise RuntimeError(
-            "Phoenix telemetry requires openinference-instrumentation-openai-agents==1.3.0; "
+            "Opik telemetry requires openinference-instrumentation-openai-agents==1.3.0; "
             "run `uv sync --extra dev`"
         ) from exc
     return OpenInferenceTracingProcessor(tracer)
 
 
 class _CountingExporter:
-    def __init__(self, exporter: Any, adapter: PhoenixTelemetryAdapter) -> None:
+    def __init__(self, exporter: Any, adapter: OpikTelemetryAdapter) -> None:
         self._exporter = exporter
         self._adapter = adapter
 
@@ -199,7 +218,7 @@ class _IdentitySpanProcessor:
         return True
 
 
-class PhoenixTelemetryAdapter:
+class OpikTelemetryAdapter:
     """Fail-open SDK processor backed by one bounded OpenTelemetry batch worker."""
 
     def __init__(self, processor: Any, batch_processor: Any, *, terminal_timeout_s: float) -> None:
@@ -289,7 +308,7 @@ class PhoenixTelemetryAdapter:
             finally:
                 done.set()
 
-        threading.Thread(target=invoke, daemon=True, name="phoenix-telemetry-lifecycle").start()
+        threading.Thread(target=invoke, daemon=True, name="opik-telemetry-lifecycle").start()
         return done.wait(timeout_s) and result
 
     def _status(self, *, force_degraded: bool = False) -> TelemetryStatus:
@@ -311,33 +330,33 @@ class PhoenixTelemetryAdapter:
         )
 
 
-def create_phoenix_telemetry_adapter(
+def create_opik_telemetry_adapter(
     *,
     identity: Mapping[str, Any],
-    config: PhoenixTelemetryConfig | None = None,
+    config: OpikTelemetryConfig | None = None,
     span_exporter: Any | None = None,
-) -> PhoenixTelemetryAdapter:
-    """Build an opt-in Phoenix adapter without registering global SDK state."""
+) -> OpikTelemetryAdapter:
+    """Build an opt-in Opik adapter without registering global SDK state."""
     from openinference.instrumentation import OITracer
     from opentelemetry.sdk.resources import Resource
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-    settings = config or PhoenixTelemetryConfig()
+    settings = config or OpikTelemetryConfig()
     closed_identity = closed_export_record("identity", identity)
-    project_name = _phoenix_project_name(closed_identity)
+    project_name = _opik_project_name(closed_identity)
     identity_attributes = {f"roboclaws.{key}": value for key, value in closed_identity.items()}
     if operator_session_id := closed_identity.get("operator_session_id"):
         identity_attributes["session.id"] = operator_session_id
     resource = Resource.create({**identity_attributes, "openinference.project.name": project_name})
     provider = TracerProvider(resource=resource, shutdown_on_exit=False)
-    tracer = OITracer(provider.get_tracer("roboclaws.phoenix"), phoenix_privacy_config())
+    tracer = OITracer(provider.get_tracer("roboclaws.opik"), opik_privacy_config())
     processor = _new_openinference_processor(tracer)
 
     # Initialize counters and locking before constructing BatchSpanProcessor;
     # its worker may export immediately after startup.
-    adapter = PhoenixTelemetryAdapter.__new__(PhoenixTelemetryAdapter)
-    PhoenixTelemetryAdapter.__init__(
+    adapter = OpikTelemetryAdapter.__new__(OpikTelemetryAdapter)
+    OpikTelemetryAdapter.__init__(
         adapter,
         processor,
         None,
@@ -364,7 +383,7 @@ def create_phoenix_telemetry_adapter(
     return adapter
 
 
-def _phoenix_project_name(identity: Mapping[str, Any]) -> str:
+def _opik_project_name(identity: Mapping[str, Any]) -> str:
     context = identity.get("observability_context")
     eval_fields = ("suite_id", "suite_version", "sample_id", "trial_id", "repetition")
     present_eval_fields = {field for field in eval_fields if identity.get(field) not in {None, ""}}

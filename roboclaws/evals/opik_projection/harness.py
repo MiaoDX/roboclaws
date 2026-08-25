@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Project one terminal Eval Harness decision report into an isolated Opik pilot."""
+"""Map one terminal Eval Harness decision report to closed Opik objects."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, NamedTuple
 
 PROJECTION_SCHEMA = "roboclaws_opik_eval_projection_v1"
-PROJECT_NAME = "roboclaws-opik-eval-observability-pilot"
+PROJECT_NAME = "roboclaws-eval"
 FORBIDDEN_KEYS = {
     "command",
     "command_display",
@@ -194,7 +194,7 @@ def _validate_source(manifest: dict[str, Any]) -> dict[str, Any]:
     if manifest.get("candidate_status") not in {"terminal", "terminal_with_failures"}:
         raise ProjectionError("source candidate is not terminal")
     if manifest.get("publication_authorized") is not False:
-        raise ProjectionError("pilot source must be an unaccepted candidate")
+        raise ProjectionError("source must be an unaccepted terminal candidate")
     report = manifest.get("observability_decision_report")
     if (
         not isinstance(report, dict)
@@ -337,7 +337,7 @@ def build_projection_snapshot(manifest_path: Path) -> dict[str, Any]:
             "projection_key": _projection_key("project", source_digest),
         },
         "dataset": {
-            "name": "roboclaws-opik-pilot-20260817T072338Z",
+            "name": f"roboclaws-eval-harness-{source_digest[:16]}",
             "projection_key": _projection_key("dataset", source_digest),
         },
         "experiment": {
@@ -384,10 +384,10 @@ def main(argv: list[str] | None = None) -> int:
     args = _parse_args(sys.argv[1:] if argv is None else argv)
     snapshot = build_projection_snapshot(args.manifest)
     if args.endpoint:
-        from opik_pilot_client import OpikHttp, project_snapshot, write_receipt
+        from roboclaws.evals.opik_projection.client import OpikHttp, project_snapshot, write_receipt
 
         result = project_snapshot(snapshot, OpikHttp(args.endpoint))
-        receipt = write_receipt(snapshot, result, args.endpoint, Path("output/opik-poc"))
+        receipt = write_receipt(snapshot, result, args.endpoint, args.manifest.resolve().parent)
         print(receipt)
         return 0
     output = args.snapshot_output

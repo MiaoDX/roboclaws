@@ -1,16 +1,11 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 from pathlib import Path
 
 import pytest
 
-SCRIPT = Path(__file__).parents[3] / "scripts/reports/project_eval_harness_to_opik.py"
-SPEC = importlib.util.spec_from_file_location("project_eval_harness_to_opik", SCRIPT)
-assert SPEC and SPEC.loader
-MODULE = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(MODULE)
+from roboclaws.evals.opik_projection import harness as MODULE
 
 
 def _manifest(tmp_path: Path, *, with_spans: bool = True) -> Path:

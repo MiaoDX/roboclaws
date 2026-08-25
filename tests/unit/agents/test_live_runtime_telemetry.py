@@ -20,7 +20,7 @@ from roboclaws.agents.household_live_runner import (
 from roboclaws.agents.live_runtime import live_agent_result_from_artifacts
 from roboclaws.agents.live_timing import live_timing_timeline as _live_timing_timeline
 from roboclaws.agents.live_timing import mcp_control_plane_metrics as _mcp_control_plane_metrics
-from roboclaws.agents.phoenix_telemetry import (
+from roboclaws.agents.opik_telemetry import (
     DeterministicProjectionProcessor,
     ProjectionProcessorConfig,
 )
