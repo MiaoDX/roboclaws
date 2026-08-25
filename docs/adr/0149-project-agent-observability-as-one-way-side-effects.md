@@ -24,7 +24,8 @@ One process-level runtime calls the OpenAI Agents SDK
 `set_trace_processors(...)` exactly once, replacing the default remote exporter.
 Its stable local router binds traces to run-owned sinks and closes those sinks
 without changing the global processor list. External backends remain absent
-from this Phase 0 decision and contract fixture.
+from this Phase 0 decision and contract fixture. ADR-0150 applies this contract
+to Opik as the sole supported external observability backend.
 
 ## Consequences
 

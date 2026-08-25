@@ -105,7 +105,6 @@ Each run writes:
 output/eval-harness/<stamp>/
   eval_harness.json
   eval_harness.md
-  eval_harness.html
   rows/<row-id>/
   evals/<suite-id>/<stamp>/
 ```

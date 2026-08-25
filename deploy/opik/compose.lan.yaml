@@ -1,0 +1,4 @@
+services:
+  frontend:
+    ports:
+      - "${OPIK_LAN_BIND_HOST:?set OPIK_LAN_BIND_HOST}:${OPIK_LAN_HTTP_PORT:-5174}:5173"

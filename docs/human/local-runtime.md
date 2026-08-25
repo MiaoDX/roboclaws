@@ -1,67 +1,42 @@
 # Local Runtime Reference
 
-This page holds the small amount of local runtime setup that normal demo users
-need. The rule is:
+Normal users configure provider keys; observability is optional and fail-open.
 
-```text
-Normal users configure keys only; command shape controls behavior.
-```
+## Optional Local Opik
 
-## Optional Local Phoenix
-
-Phoenix is an opt-in observability service for the developer workstation. It is
-not started by Roboclaws and is not part of a robot runtime process. The
-supported deployment is pinned to Phoenix 11.20.0, uses at most 2 CPU and 4 GiB
-of memory, and bind-mounts its persistent database under the gitignored repo
-path `output/phoenix/`. Its default deployment binds only to loopback.
+Opik 2.2.36 is the supported local observability backend. It never gates a
+product run, eval outcome, collection, or promotion. The base deployment is
+loopback-only and stores retained data under `output/opik/`.
 
 ```bash
-./scripts/dev/validate_phoenix_deployment.sh
-docker compose -f deploy/phoenix/compose.yaml up -d
+bash scripts/dev/validate_opik_deployment.sh
+docker compose -p roboclaws-opik -f deploy/opik/compose.yaml up -d --wait
 ```
 
-Container recreation preserves `output/phoenix/`, but broad cleanup of the
-repo's `output/` directory does not. Back up or explicitly exclude this
-subdirectory before removing generated output trees.
-
-To expose only the Phoenix web UI/API on one trusted private-LAN interface,
-create the gitignored `deploy/phoenix/.env` from `.env.example`, set
-`PHOENIX_LAN_BIND_HOST` to that interface's address, and start the LAN override:
+The explicit LAN overlay exposes only the web frontend for human review:
 
 ```bash
-docker compose \
-  -f deploy/phoenix/compose.yaml \
-  -f deploy/phoenix/compose.lan.yaml \
-  up -d
+OPIK_LAN_BIND_HOST=10.169.12.60 \
+OPIK_LAN_HTTP_PORT=5174 \
+docker compose -p roboclaws-opik -f deploy/opik/compose.yaml \
+  -f deploy/opik/compose.lan.yaml up -d
 ```
 
-The override adds `<PHOENIX_LAN_BIND_HOST>:6006`; it does not expose OTLP port
-4317. Local trace export continues through `127.0.0.1:6006`. Phoenix has no
-authentication or TLS in this mode, so use it only on an explicitly trusted
-private network and do not bind `0.0.0.0`.
-
-To project sanitized live OpenAI Agents SDK traces and completed eval suite
-results into that service, set:
+Set one loopback base origin for automatic runtime and eval projection:
 
 ```bash
-export ROBOCLAWS_PHOENIX_OTLP_ENDPOINT=http://127.0.0.1:6006/v1/traces
+export ROBOCLAWS_OPIK_ENDPOINT=http://127.0.0.1:5174
 ```
 
-Roboclaws routes traces to exactly two Projects. `roboclaws-runtime` contains
-normal product, operator, ad-hoc, and demo Robot Runs. `roboclaws-eval` contains
-Robot Runs executed as EvalTrials. Provider, model, task, suite, sample, and
-trial remain searchable trace attributes; they do not create Projects. Project
-selection is not configurable.
+Roboclaws routes traces to exactly `roboclaws-runtime` and `roboclaws-eval`.
+Eval projection writes adjacent `opik_projection.json` receipts and is bounded,
+atomic, idempotent, and fail-open. `opik-project` repairs one named result;
+`opik-dashboard` is the explicit Dashboard reconciliation command.
 
-Tracing and automatic eval result projection remain disabled when the endpoint
-is unset and fail open when the local service is unavailable. Eval runs write
-an adjacent `phoenix_projection.json` receipt, and the manual `phoenix-project`
-command remains available for repair/backfill. A missing, partial, malformed,
-or contradictory runtime/eval telemetry identity disables Phoenix export for
-that run and leaves an actionable local limitation without changing product
-execution. Non-loopback OTLP endpoints are rejected. Shared Phoenix ownership,
-cross-machine collectors, authentication/TLS gateways, backups, larger resource
-envelopes, and onboard robot deployment are not supported by this topology.
+Opik receives only sanitized public identity, allowlisted metrics, and span
+metadata. It never receives prompts, tool bodies, images, maps, secrets,
+private evaluator truth, or provider endpoints. Local JSON, Markdown, run
+artifacts, graders, and promotion decisions remain canonical.
 
 ## Provider Keys
 
@@ -80,33 +55,11 @@ MIMO_RESPONSES_API_KEY=
 MIMO_RESPONSES_MODEL=
 ```
 
-Every OpenAI Agents SDK launch selects `codex-responses`, `mimo-responses`,
-`minimax-responses`, or `kimi-openai-chat` explicitly. Environment presence
-never selects a route, and the runtime does not fall back between Responses and
-Chat Completions.
-
-Run `scripts/dev/network_status.sh` before system-provider Claude Code debugging.
-Repo-local OpenAI Agents SDK provider routes are allowed; provider-specific
-transport compatibility is internal to each adapter. Agent-facing work-network
-restrictions and examples are documented in
-[`docs/agents/operating-runbook.md`](../agents/operating-runbook.md).
-
-For the current model/provider compatibility table, see
-[`model-matrix.md`](model-matrix.md).
+Every OpenAI Agents SDK launch selects a provider profile explicitly.
 
 ## Local Report Artifacts
 
-Most demo commands write under `output/` and print the exact run directory.
-Common examples:
-
-| Run type | Typical output |
-| --- | --- |
-| Product household run | `output/molmo/<recipe-or-run>/<stamp>/seed-7/` or the explicit `output_dir=...` passed to `just run::surface` |
-| Eval harness | `output/eval-harness/<stamp>/` |
-| Eval suite | `output/evals/<suite>/<stamp>/` with eval results plus links to product run artifacts |
-| Planner proof bundle | `output/molmo/planner-proof*/` |
-| Historical semantic-map/cleanup roots | `output/household/semantic-map-build/<driver>-*/`, `output/household/household-cleanup/<driver>-*/` |
-
-Each report directory is meant to be reviewable without re-running the model.
-Historical roots may appear in old reports and tests, but new eval evidence
-should be found through the eval-suite output and its linked product artifacts.
+Eval Harness terminal publication contains only `eval_harness.json`,
+`eval_harness.md`, `eval_harness.completed.json`, and adjacent Opik receipts.
+Domain-specific HTML reports remain available where their owning surface needs
+them; the retired Eval Harness HTML companion and report server are gone.

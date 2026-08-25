@@ -69,13 +69,13 @@ def _collect_eval_rows(
         bundle = _read_object(bundle_path, "eval results bundle")
         if bundle.get("schema") not in {None, "roboclaws_eval_results_bundle_v1"}:
             raise ValueError(f"{bundle_path}: unsupported eval results schema")
-        phoenix_runs = _phoenix_runs(row, bundle_path=bundle_path, root=root)
+        opik_runs = _opik_runs(row, bundle_path=bundle_path, root=root)
         trial_ids: set[str] = set()
         for result in bundle.get("results") or []:
             if not isinstance(result, dict):
                 raise ValueError(f"{bundle_path}: eval results must contain objects")
             normalized = _normalize_trial(
-                row, result, bundle_path=bundle_path, root=root, phoenix_runs=phoenix_runs
+                row, result, bundle_path=bundle_path, root=root, opik_runs=opik_runs
             )
             trial_id = normalized["triage"]["trial_id"]
             if not trial_id or trial_id in trial_ids:
@@ -92,7 +92,7 @@ def _report_limitations(coverage: dict[str, Any]) -> list[str]:
         ("eval_bundle", "some_selected_rows_have_no_eval_bundle"),
         ("model_duration", "model_duration_coverage_incomplete"),
         ("token_usage", "token_usage_coverage_incomplete"),
-        ("phoenix_mapping", "phoenix_drilldown_coverage_incomplete"),
+        ("opik_mapping", "opik_drilldown_coverage_incomplete"),
     )
     return [
         limitation
@@ -129,20 +129,29 @@ def _attached_file(row: dict[str, Any], filename: str, *, root: Path) -> Path | 
         value = str(raw)
         if not value.endswith(filename) or any(part in value for part in FORBIDDEN_PATH_PARTS):
             continue
-        path = Path(value)
-        if not path.is_absolute():
-            path = Path.cwd() / path
-        resolved = path.resolve()
-        if resolved.is_relative_to(root) and resolved.is_file():
+        if resolved := _existing_artifact(value, root=root):
             candidates.append(resolved)
     if not candidates and filename == "eval_results.json":
-        projection = _attached_file(row, "phoenix_projection.json", root=root)
-        adjacent = projection.with_name(filename) if projection else None
-        if adjacent is not None and adjacent.is_file():
-            candidates.append(adjacent)
+        for raw in row.get("output_artifacts") or []:
+            value = str(raw)
+            if any(part in value for part in FORBIDDEN_PATH_PARTS):
+                continue
+            artifact = _existing_artifact(value, root=root)
+            adjacent = artifact.with_name(filename) if artifact else None
+            if adjacent is not None and adjacent.is_file():
+                candidates.append(adjacent)
+        candidates = list(dict.fromkeys(candidates))
     if len(candidates) > 1:
         raise ValueError(f"row {row.get('row_id')!r} declares multiple canonical {filename} files")
     return candidates[0] if candidates else None
+
+
+def _existing_artifact(value: str, *, root: Path) -> Path | None:
+    path = Path(value)
+    if not path.is_absolute():
+        path = Path.cwd() / path
+    resolved = path.resolve()
+    return resolved if resolved.is_relative_to(root) and resolved.is_file() else None
 
 
 def _read_object(path: Path, label: str) -> dict[str, Any]:
@@ -161,7 +170,7 @@ def _normalize_trial(
     *,
     bundle_path: Path,
     root: Path,
-    phoenix_runs: dict[str, str],
+    opik_runs: dict[str, str],
 ) -> dict[str, Any]:
     identity = result.get("identity") if isinstance(result.get("identity"), dict) else {}
     metrics = result.get("metrics") if isinstance(result.get("metrics"), dict) else {}
@@ -238,7 +247,7 @@ def _normalize_trial(
         "first_relevant_evidence": metrics.get("first_relevant_evidence") or {},
         "first_actionable_object_discovery": metrics.get("first_actionable_object_discovery") or {},
         "local_artifacts": local_links,
-        "phoenix_run": phoenix_runs.get(trial_id),
+        "opik_run": opik_runs.get(trial_id),
     }
     return {
         "row_id": triage["row_id"],
@@ -341,14 +350,14 @@ def _validate_bundle_identity(
             raise ValueError(f"{bundle_path}: bundle {bundle_field} contradicts EvalTrial identity")
 
 
-def _phoenix_runs(row: dict[str, Any], *, bundle_path: Path, root: Path) -> dict[str, str]:
-    path = _attached_file(row, "phoenix_projection.json", root=root)
+def _opik_runs(row: dict[str, Any], *, bundle_path: Path, root: Path) -> dict[str, str]:
+    path = _attached_file(row, "opik_projection.json", root=root)
     if path is None:
-        adjacent = bundle_path.with_name("phoenix_projection.json")
+        adjacent = bundle_path.with_name("opik_projection.json")
         path = adjacent if adjacent.is_file() else None
     if path is None:
         return {}
-    receipt = _read_object(path, "Phoenix projection receipt")
+    receipt = _read_object(path, "Opik projection receipt")
     if receipt.get("state") != "ready":
         return {}
     bundle = _read_object(bundle_path, "eval results bundle")
@@ -358,15 +367,15 @@ def _phoenix_runs(row: dict[str, Any], *, bundle_path: Path, root: Path) -> dict
         declared = str(receipt_suite.get(field) or "")
         actual = str(bundle_suite.get(bundle_field) or "")
         if declared and actual and declared != actual:
-            raise ValueError(f"{path}: Phoenix receipt {field} contradicts eval bundle")
+            raise ValueError(f"{path}: Opik receipt {field} contradicts eval bundle")
     runs: dict[str, str] = {}
-    for item in receipt.get("runs") or []:
-        if not isinstance(item, dict) or not item.get("trial_id") or not item.get("url"):
-            continue
-        trial_id = str(item["trial_id"])
-        if trial_id in runs:
-            raise ValueError(f"{path}: duplicate Phoenix run mapping for {trial_id!r}")
-        runs[trial_id] = str(item["url"])
+    urls = receipt.get("urls") if isinstance(receipt.get("urls"), dict) else {}
+    experiment_url = str(urls.get("experiments") or "")
+    for triage in bundle.get("results") or []:
+        identity = triage.get("identity") if isinstance(triage, dict) else {}
+        trial_id = identity.get("trial_id") if isinstance(identity, dict) else None
+        if trial_id and experiment_url:
+            runs[str(trial_id)] = experiment_url
     return runs
 
 
@@ -613,8 +622,8 @@ def _coverage(rows: list[dict[str, Any]], selected: list[dict[str, Any]]) -> dic
         ),
         "model_duration": _coverage_cell(duration, calls),
         "token_usage": _coverage_cell(token, calls),
-        "phoenix_mapping": _coverage_cell(
-            sum(bool(row["triage"].get("phoenix_run")) for row in rows), len(rows)
+        "opik_mapping": _coverage_cell(
+            sum(bool(row["triage"].get("opik_run")) for row in rows), len(rows)
         ),
         "trace_linkage": _coverage_cell(
             sum(bool(row["triage"]["local_artifacts"].get("trace")) for row in rows), len(rows)
@@ -700,7 +709,7 @@ def _row_only_triage(row: dict[str, Any], *, root: Path) -> dict[str, Any]:
             (row.get("execution") or {}).get("execution_target") or "unavailable"
         ),
         "local_artifacts": artifacts,
-        "phoenix_run": None,
+        "opik_run": None,
     }
 
 

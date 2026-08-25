@@ -72,7 +72,7 @@ def eval_model_identity(*, agent_engine: str, provider_profile: str, model: str 
         env=runtime_env,
     )
     # Opaque routes deliberately keep the provider request model private.  The
-    # public model label is the stable identity used by eval bundles/Phoenix.
+    # public model label is the stable identity used by eval bundles/Opik.
     return settings["model"] or MISSING_UNAVAILABLE
 
 

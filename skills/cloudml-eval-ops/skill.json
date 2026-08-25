@@ -23,8 +23,7 @@
     "cloudml-ops/plan.json",
     "cloudml-ops/task-receipts.jsonl",
     "cloudml-ops/collection.json",
-    "eval_harness.md",
-    "eval_harness.html"
+    "eval_harness.md"
   ],
   "lifecycle": {
     "refactor_signals": [

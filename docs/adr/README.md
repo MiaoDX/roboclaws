@@ -39,6 +39,8 @@ guidance:
 | [0144](0144-use-relative-pose-navigation-as-public-mcp-capability.md) | Use Relative Pose Navigation As Public MCP Capability | Distinguishes robot-local movement from waypoint navigation and preserves operator attribution. |
 | [0146](0146-reuse-canonical-map-priors-for-agent-matrices.md) | Reuse Canonical Map Priors For Agent Matrices | Separates MapBuild quality, fixed-prior Agent comparison, and explicit end-to-end evaluation. |
 | [0148](0148-retire-openclaw-and-local-docker-runtime.md) | Retire OpenClaw And Local Docker Runtime | Keeps active agent execution host-based while preserving CloudML image contracts. |
+| [0149](0149-project-agent-observability-as-one-way-side-effects.md) | Project Agent Observability As One-Way Side Effects | Canonical privacy, ownership, and fail-open boundary for external observability. |
+| [0150](0150-use-opik-as-the-sole-external-observability-backend.md) | Use Opik As The Sole External Observability Backend | Selects the one supported browser/deployment while keeping local evidence canonical. |
 
 ## Archived Superseded ADRs
 

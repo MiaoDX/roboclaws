@@ -107,17 +107,17 @@ just agent::eval suite=scene_sampler_stress budget=smoke
 just agent::eval suite=long_horizon_tasks budget=smoke
 ```
 
-When `ROBOCLAWS_PHOENIX_OTLP_ENDPOINT` is configured, every completed local
-repo-native suite (`roboclaws_eval_suite_v1`) automatically projects its
-persisted `eval_results.json` to the same local Phoenix service. The runner
-writes `phoenix_projection.json` beside the result bundle and includes its
-`ready`, `disabled`, or `unavailable` summary in CLI and Eval Harness evidence.
-Projection is fail-open: Phoenix availability never changes the eval outcome.
+When `ROBOCLAWS_OPIK_ENDPOINT` is configured, every completed local repo-native
+suite (`roboclaws_eval_suite_v1`) automatically projects its persisted
+`eval_results.json` to the local Opik service. The runner writes
+`opik_projection.json` beside the result bundle and includes its `ready`,
+`disabled`, or `unavailable` summary in CLI and Eval Harness evidence.
+Projection is fail-open: Opik availability never changes the eval outcome.
 Valid failed and blocked trials are included; rows without an eval result
 bundle are not. Specialist eval schemas such as `operator_session_live` keep
 their Trace telemetry but are not coerced into repo-suite Datasets.
 
-CloudML workers may not share the operator's loopback Phoenix service. During
+CloudML workers may not share the operator's loopback Opik service. During
 collection, each accepted result bundle is therefore projected locally before
 the final harness reports and credential scan are regenerated. This is a local
 result projection, not provider rerun or Trace replay.
@@ -126,23 +126,22 @@ For repair, backfill, or dataset-only projection, an existing suite and optional
 completed result bundle can still be projected without executing an eval:
 
 ```bash
-just agent::eval phoenix-project \
+just agent::eval opik-project \
   suite=smoke_regression \
   eval_results=output/evals/smoke_regression/<stamp>/eval_results.json \
-  endpoint=http://127.0.0.1:6006 \
-  output=output/evals/phoenix-projection/smoke.json
+  endpoint=http://127.0.0.1:5174 \
+  deadline_s=60
 ```
 
-Only `suite` is required. Omitting `endpoint` writes a disabled mapping artifact
-without contacting Phoenix; omitting `eval_results` projects the dataset only;
-and omitting `output` selects a digest-bound path under
-`output/evals/phoenix-projection/`. The endpoint must use loopback HTTP.
-Unreachable or failing Phoenix services produce a sanitized `unavailable`
-mapping rather than changing local results.
+`suite` and `eval_results` are required. The endpoint defaults to
+`ROBOCLAWS_OPIK_ENDPOINT`, must be a loopback HTTP base origin, and the bounded
+deadline is capped at 300 seconds. Automatic projection uses a 60-second global
+deadline. Unreachable or failing Opik services produce a sanitized
+`unavailable` receipt rather than changing local results.
 
-`phoenix-project` is the read-only repair/backfill command. It does not launch
+`opik-project` is the read-only repair/backfill command. It does not launch
 an eval, provider, simulator, CloudML task, or hardware operation. Local suite
-and result artifacts remain canonical. Phoenix receives public sample and trial
+and result artifacts remain canonical. Opik receives public sample and trial
 identity, digests, closed launch identity, and allowlisted grader status; it
 does not receive prompt bodies, private references, generated-mess truth,
 acceptable destinations, grader configuration, or sealed holdout identity.
@@ -150,30 +149,21 @@ When results are supplied, annotation timestamps use the existing
 `eval_results.json` file modification time because the result bundle has no
 grader timestamps.
 
-Phoenix uses three distinct navigation levels:
+Opik uses four review levels:
 
+- Dashboard summarizes canonical capability health, provider comparison,
+  failures, and native-trace coverage without owning those calculations.
 - Project answers where the trace ran: EvalTrial traces use `roboclaws-eval`.
-- Dataset answers which eval task is being tested, for example
-  `roboclaws-household_world_smoke_regression`. It contains one exact immutable
-  public sample release in a deployed local Phoenix store. Add, modify, or
-  remove changes require a suite-version bump followed by an explicit Phoenix
-  data rebuild and reprojection; projection fails if task content drifts or the
-  Dataset has append history. The suite version remains in local identity,
-  projection metadata, and the exact `dataset_version_id` binding rather than
-  the Dataset display name.
-- Experiment is one tested configuration against one exact Dataset version. A
-  comparison bundle is split by agent engine, provider profile, model, Skill,
-  source Git SHA, and Skill digest. Repetitions remain runs inside the matching
-  Experiment.
+- Dataset contains the complete public review population under immutable,
+  content-addressed identity.
+- Experiment and trace detail cover only rows backed by native sanitized spans.
+  Experiment-only rows remain Dataset-only; no trace is invented.
 
-Experiment labels put suite version and readable configuration first, for
-example
-`roboclaws-household_world_smoke_regression-2026-06-15-direct-runner-not_applicable-not_applicable-household-world-8ee9960e`.
-The short suffix is only for scanning uniqueness. Exact Dataset version,
-configuration, source-bundle, Experiment, run, and evaluation identity remains
-in metadata and the local projection mapping; names are never parsed for
-correctness. Reprojecting unchanged evidence reuses those identities, while a
-corrected or regraded bundle creates a new immutable Experiment.
+Names are for review only. Exact Dataset, item, Experiment, trace, span, score,
+source-bundle, and evaluated-configuration identity remains in metadata and the
+local receipt. Reprojecting unchanged evidence reuses those identities, while
+changed canonical content creates a new content-addressed object or fails on a
+closed-content mismatch.
 
 `baseline-core` is the normal broad local refresh without live providers.
 `baseline-live-default` adds the normal Kimi live rows. `baseline-refresh` adds
@@ -326,24 +316,12 @@ just agent::eval map-build-report \
 ## Observability Decision Report
 
 Every authoritative terminal Eval Harness run adds a decision section to its
-existing `eval_harness.json`, `eval_harness.md`, and `eval_harness.html` files.
-Recommendation, nonterminal, and worker-shard manifests explicitly report the
-section as not applicable. The report server below is only a thin companion
-viewer over these artifacts; it is not a second metric or evaluation service.
-
-The existing report server can expose completed harness runs as a small local
-companion view without recomputing any metrics:
-
-```bash
-python scripts/reports/serve_reports.py output/eval-harness \
-  --host 127.0.0.1 --port 6100 --title "Roboclaws Eval Observability"
-```
-
-Open `/` for terminal history, `/latest` for the most recently finalized run,
-or `/runs/<run-id>/` for one report. A run is listed only after its JSON,
-Markdown, and HTML artifacts have matching hashes in
-`eval_harness.completed.json`; Phoenix remains the linked trace and Experiment
-drilldown at its own origin.
+existing `eval_harness.json` and `eval_harness.md` files, publishes a v2
+completion marker that hashes those two canonical reports, and then performs a
+bounded fail-open Opik projection. Recommendation, nonterminal, and worker-shard
+manifests explicitly report the section as not applicable. The Opik Dashboard
+is the maintained browser review surface; it is a one-way projection rather
+than a second metric or evaluation owner.
 
 Read the views in order:
 
@@ -356,19 +334,18 @@ Read the views in order:
    environments make latency incomparable rather than producing a ranking.
 3. Failure and stall triage preserves the recorded harness, environment,
    provider, operator, and behavior ownership and links to local evidence plus
-   the matching Phoenix EvalTrial run when its projection receipt is ready.
+   Opik Experiment and trace detail when native span projection is ready.
 
 Every metric records availability, source, coverage, claim eligibility, and
 limitations. Missing model duration or token usage remains null/unavailable,
 never zero. Cost is absent because v1 has no versioned price contract. Runtime
-timing comes only from local canonical artifacts; Phoenix Experiment duration
+timing comes only from local canonical artifacts; Opik Experiment duration
 is not runtime evidence.
 
 Review the report after every terminal candidate and before baseline or
 promotion decisions. During an eval campaign, use triage and telemetry coverage
-for active debugging and review provider/trajectory detail weekly. Phoenix is
-the generic trace and Experiment browser; it does not own cohorts, quality
-policy, private evidence, or promotion.
+for active debugging and review provider/trajectory detail weekly. Opik does not
+own cohorts, quality policy, private evidence, or promotion.
 
 ## Regression Promotion
 
