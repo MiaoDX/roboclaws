@@ -92,19 +92,21 @@ def build_suite_projection_snapshot(suite_ref: str, eval_results_path: Path) -> 
     results = [EvalResult.from_mapping(_mapping(row)) for row in rows]
     sample_by_id = {sample.sample_id: sample for sample in samples}
     public_samples = [_public_sample(sample) for sample in samples]
-    dataset_digest = _digest_json(
+    item_identity_digest = _digest_json(
         {"suite_id": suite.suite_id, "suite_version": suite.version, "samples": public_samples}
     )
     source_files: dict[str, Any] = {}
     items: list[dict[str, Any]] = []
     traces: list[dict[str, Any]] = []
     configurations: set[str] = set()
+    public_result_identities: list[dict[str, Any]] = []
     for result in results:
         identity = _public_result_identity(result, suite, sample_by_id)
+        public_result_identities.append(identity)
         result_digest = _digest_json(
             {"identity": identity, "status": result.status, "failure_class": result.failure_class}
         )
-        item_key = _projection_key("item", dataset_digest, result_digest)
+        item_key = _projection_key("item", item_identity_digest, result_digest)
         spans = _result_spans(result, path.parent, source_files)
         fidelity = "native_span_trace" if spans else "experiment_only"
         metadata = {
@@ -133,6 +135,14 @@ def build_suite_projection_snapshot(suite_ref: str, eval_results_path: Path) -> 
                     "spans": spans,
                 }
             )
+    dataset_digest = _digest_json(
+        {
+            "suite_id": suite.suite_id,
+            "suite_version": suite.version,
+            "samples": public_samples,
+            "projected_result_identities": public_result_identities,
+        }
+    )
     experiment_digest = _digest_json(
         {
             "dataset_digest": dataset_digest,

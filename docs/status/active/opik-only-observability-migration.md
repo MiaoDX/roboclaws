@@ -5,7 +5,7 @@
 - Control plane: root Codex session for the active host goal
 - Project-status writer: root Codex session
 - Latest user intent: execute the approved plan with `intuitive-flow`
-- Current slice: Stage 1 fail-open and retained-data restart proof
+- Current slice: complete; execute gate and Opik projection closeout passed
 - Last proven evidence: automatic local suite projection is `ready`; reviewed candidate projection
   is `ready` with 65 Dataset items, 25 native traces/Experiments, 40 Dataset-only rows, 56 scores,
   zero privacy findings, and a second replay with zero creations and unchanged identity digest.
@@ -21,9 +21,9 @@
   route; candidate fidelity/idempotency proof; stable Dashboard reconciliation; live runtime
   hierarchy and closed-project routing.
   hierarchy and closed-project routing; live EvalTrial routing and automatic/repair projection.
-- Next slice: run disabled/unavailable unchanged-outcome proofs and retained-data restart/loopback
-  ingestion checks, then decide the Stage 1 parity gate.
-- Next proof: disabled/unavailable unchanged outcomes and restart/loopback ingestion checks.
+- Next slice: none; remove this terminal capsule after committing canonical closeout.
+- Next proof: final status, process, and stale-reference audit.
+- Blocker: none.
 - Stop condition: all plan acceptance and verification gates pass, or a named circuit breaker
   requires user re-approval.
 - No-touch scope: provider/evaluator/promotion/simulator/robot behavior; private artifact upload;

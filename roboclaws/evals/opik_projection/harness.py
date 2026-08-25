@@ -192,12 +192,13 @@ def _privacy_scan(value: Any, path: str = "$") -> list[str]:
     return findings
 
 
-def _validate_source(manifest: dict[str, Any]) -> dict[str, Any]:
+def _validate_source(manifest: dict[str, Any], *, terminal_marker: bool = False) -> dict[str, Any]:
     if manifest.get("schema") != "roboclaws_eval_harness_manifest_v1":
         raise ProjectionError("source is not an Eval Harness v1 manifest")
-    if manifest.get("candidate_status") not in {"terminal", "terminal_with_failures"}:
+    candidate_status = manifest.get("candidate_status")
+    if candidate_status not in {"terminal", "terminal_with_failures"} and not terminal_marker:
         raise ProjectionError("source candidate is not terminal")
-    if manifest.get("publication_authorized") is not False:
+    if manifest.get("publication_authorized") is not False and not terminal_marker:
         raise ProjectionError("source must be an unaccepted terminal candidate")
     report = manifest.get("observability_decision_report")
     if (
@@ -321,7 +322,8 @@ def build_projection_snapshot(manifest_path: Path) -> dict[str, Any]:
     manifest_path = manifest_path.resolve()
     manifest, raw = _read_json(manifest_path)
     source_digest = _digest_bytes(raw)
-    report = _validate_source(manifest)
+    marker = manifest_path.with_name("eval_harness.completed.json")
+    report = _validate_source(manifest, terminal_marker=marker.is_file())
     source_files = {manifest_path.name: SourceFile(manifest_path.name, source_digest)}
     items, traces = _project_triage(
         report,
