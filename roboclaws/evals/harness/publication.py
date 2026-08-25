@@ -10,16 +10,19 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-COMPLETION_MARKER_SCHEMA = "roboclaws_eval_harness_completion_v1"
+COMPLETION_MARKER_SCHEMA = "roboclaws_eval_harness_completion_v2"
 COMPLETION_MARKER_NAME = "eval_harness.completed.json"
-REPORT_FILENAMES = ("eval_harness.json", "eval_harness.md", "eval_harness.html")
+REPORT_FILENAMES = ("eval_harness.json", "eval_harness.md")
 
 
 def publish_reports(manifest: dict[str, Any], output_dir: Path, rendered: dict[Path, str]) -> None:
     """Publish report files and expose a marker only after all are complete."""
     marker_path = output_dir / COMPLETION_MARKER_NAME
     marker_path.unlink(missing_ok=True)
-    for path, content in rendered.items():
+    canonical_rendered = {
+        path: content for path, content in rendered.items() if path.name in REPORT_FILENAMES
+    }
+    for path, content in canonical_rendered.items():
         _atomic_write_text(path, content)
     report = manifest.get("observability_decision_report")
     if not isinstance(report, dict) or report.get("state") not in {
@@ -36,7 +39,7 @@ def publish_reports(manifest: dict[str, Any], output_dir: Path, rendered: dict[P
         .replace("+00:00", "Z"),
         "artifacts": {
             path.name: hashlib.sha256(content.encode("utf-8")).hexdigest()
-            for path, content in rendered.items()
+            for path, content in canonical_rendered.items()
         },
     }
     _atomic_write_text(marker_path, json.dumps(marker, indent=2, sort_keys=True) + "\n")

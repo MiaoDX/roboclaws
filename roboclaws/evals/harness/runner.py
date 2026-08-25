@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import html
 import json
 import os
 import re
@@ -15,10 +14,9 @@ from typing import Any
 from roboclaws.agents.skill_delivery import sandbox_readiness
 from roboclaws.core.json_sources import read_json_object
 from roboclaws.evals.harness import local_execution, selector
-from roboclaws.evals.harness.publication import publish_reports
+from roboclaws.evals.harness.publication import COMPLETION_MARKER_NAME, publish_reports
 from roboclaws.evals.observability_decision_rendering import (
     render_harness_row_markdown,
-    render_observability_html,
     render_observability_markdown,
 )
 from roboclaws.evals.observability_decision_report import (
@@ -124,7 +122,7 @@ def _run_from_args(args: argparse.Namespace) -> int:
         )
     _write_outputs(manifest, output_dir)
     print(f"eval harness manifest: {output_dir / 'eval_harness.json'}")
-    print(f"eval harness report: {output_dir / 'eval_harness.html'}")
+    print(f"eval harness report: {output_dir / 'eval_harness.md'}")
     return _exit_status(manifest, row_ids=row_ids)
 
 
@@ -414,26 +412,26 @@ def _attach_eval_outputs(row: dict[str, Any]) -> None:
                 for path in (
                     matches[-1] / "eval_results.json",
                     matches[-1] / "eval_report.html",
-                    matches[-1] / "phoenix_projection.json",
+                    matches[-1] / "opik_projection.json",
                 ):
                     if path.exists():
                         artifacts.append(_display_path(path))
                 row["output_artifacts"] = artifacts
-                _attach_phoenix_projection_summary(row, matches[-1])
+                _attach_opik_projection_summary(row, matches[-1])
 
 
-def _attach_phoenix_projection_summary(row: dict[str, Any], output_dir: Path) -> None:
-    path = output_dir / "phoenix_projection.json"
+def _attach_opik_projection_summary(row: dict[str, Any], output_dir: Path) -> None:
+    path = output_dir / "opik_projection.json"
     if not path.is_file():
         return
     try:
-        payload = _load_required_json_object(path, label="Phoenix projection receipt")
+        payload = _load_required_json_object(path, label="Opik projection receipt")
         state = str(payload.get("state") or "unavailable")
         reason = str(payload.get("reason") or "invalid_projection_receipt")
     except ValueError:
         state = "unavailable"
         reason = "invalid_projection_receipt"
-    row["phoenix_projection"] = {
+    row["opik_projection"] = {
         "state": state,
         "reason": reason,
         "mapping": _display_path(path),
@@ -608,17 +606,19 @@ def _write_outputs(manifest: dict[str, Any], output_dir: Path) -> None:
     )
     json_path = output_dir / "eval_harness.json"
     md_path = output_dir / "eval_harness.md"
-    html_path = output_dir / "eval_harness.html"
     rendered = {
         json_path: json.dumps(_redacted_manifest(manifest), indent=2, sort_keys=True) + "\n",
         md_path: _render_markdown(manifest),
-        html_path: _render_html(manifest),
     }
     publish_reports(manifest, output_dir, rendered)
+    if (output_dir / COMPLETION_MARKER_NAME).is_file():
+        from roboclaws.evals.opik_projection import project_completed_harness_to_opik
+
+        project_completed_harness_to_opik(json_path)
 
 
 def regenerate_observability_report(manifest_path: Path) -> dict[str, Any]:
-    """Rebuild the three existing report files for one explicit terminal manifest."""
+    """Rebuild the canonical JSON and Markdown for one explicit terminal manifest."""
     manifest = _load_frozen_manifest(manifest_path)
     manifest["output_dir"] = str(manifest_path.parent)
     _write_outputs(manifest, manifest_path.parent)
@@ -690,62 +690,6 @@ def _render_markdown(manifest: dict[str, Any]) -> str:
     for row in manifest["rows"]:
         lines.extend(render_harness_row_markdown(row))
     return "\n".join(lines).rstrip() + "\n"
-
-
-def _render_html(manifest: dict[str, Any]) -> str:
-    rows = []
-    for row in manifest["rows"]:
-        rows.append(
-            "<tr>"
-            f"<td>{html.escape(row['row_id'])}</td>"
-            f"<td>{html.escape(row['row_kind'])}</td>"
-            f"<td>{html.escape(str(row['status']))}</td>"
-            f"<td>{html.escape(str(row.get('outcome') or ''))}</td>"
-            f"<td>{html.escape(str(row.get('failure_class') or ''))}</td>"
-            f"<td>{html.escape(str(row.get('blocker_category') or ''))}</td>"
-            f"<td>{html.escape(_phoenix_projection_display(row))}</td>"
-            f"<td><code>{html.escape(row['command_display'])}</code></td>"
-            "</tr>"
-        )
-    return (
-        '<!doctype html><html><head><meta charset="utf-8">'
-        "<title>Eval Harness</title>"
-        "<style>body{font-family:system-ui,sans-serif;margin:24px;color:#18212b;}"
-        "main{max-width:1440px;margin:auto}.summary{display:flex;gap:18px;flex-wrap:wrap}"
-        ".banner{border-left:4px solid #b7791f;padding:8px 12px;background:#fffaf0}"
-        ".table-wrap{overflow-x:auto;margin:12px 0 24px}"
-        "table{border-collapse:collapse;width:100%;min-width:720px;}"
-        "td,th{border:1px solid #ccc;padding:6px;vertical-align:top;}"
-        "th{background:#f3f5f7}code{white-space:pre-wrap;}"
-        "@media(max-width:640px){body{margin:12px}h1{font-size:1.6rem}h2{font-size:1.25rem}}"
-        "</style></head><body><main>"
-        "<h1>Eval Harness</h1>"
-        f"<p>Mode: <code>{html.escape(manifest['mode'])}</code> "
-        f"Budget: <code>{html.escape(manifest['budget'])}</code> "
-        f"Profile: <code>{html.escape(str(manifest.get('profile', 'adaptive')))}</code></p>"
-        + render_observability_html(manifest.get("observability_decision_report"))
-        + '<div class="table-wrap"><table><thead><tr><th>Row</th><th>Kind</th><th>Status</th>'
-        "<th>Outcome</th><th>Failure class</th><th>Blocker</th><th>Phoenix</th>"
-        "<th>Command</th></tr></thead><tbody>"
-        + "".join(rows)
-        + "</tbody></table></div></main></body></html>\n"
-    )
-
-
-def _phoenix_projection_display(row: dict[str, Any]) -> str:
-    projection = row.get("phoenix_projection")
-    if not isinstance(projection, dict):
-        return ""
-    state = str(projection.get("state") or "")
-    reason = str(projection.get("reason") or "")
-    return f"{state} ({reason})" if reason else state
-
-
-def _phoenix_projection_markdown(row: dict[str, Any]) -> list[str]:
-    projection = row.get("phoenix_projection")
-    if not isinstance(projection, dict):
-        return []
-    return [f"- Phoenix projection: `{projection['state']}` ({projection['reason']})"]
 
 
 def _exit_status(manifest: dict[str, Any], *, row_ids: list[str] | tuple[str, ...] = ()) -> int:

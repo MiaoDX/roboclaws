@@ -3,22 +3,23 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 compose_file="${repo_root}/deploy/opik/compose.yaml"
+lan_compose_file="${repo_root}/deploy/opik/compose.lan.yaml"
 export OPIK_HTTP_PORT=5174
 
 mkdir -p \
-    "${repo_root}/output/opik-poc/data/clickhouse" \
-    "${repo_root}/output/opik-poc/data/clickhouse-config" \
-    "${repo_root}/output/opik-poc/data/clickhouse-logs" \
-    "${repo_root}/output/opik-poc/data/minio" \
-    "${repo_root}/output/opik-poc/data/mysql" \
-    "${repo_root}/output/opik-poc/data/redis" \
-    "${repo_root}/output/opik-poc/data/zookeeper" \
-    "${repo_root}/output/opik-poc/data/zookeeper-datalog" \
-    "${repo_root}/output/opik-poc/data/zookeeper-logs"
-[[ -w "${repo_root}/output/opik-poc" ]]
+    "${repo_root}/output/opik/data/clickhouse" \
+    "${repo_root}/output/opik/data/clickhouse-config" \
+    "${repo_root}/output/opik/data/clickhouse-logs" \
+    "${repo_root}/output/opik/data/minio" \
+    "${repo_root}/output/opik/data/mysql" \
+    "${repo_root}/output/opik/data/redis" \
+    "${repo_root}/output/opik/data/zookeeper" \
+    "${repo_root}/output/opik/data/zookeeper-datalog" \
+    "${repo_root}/output/opik/data/zookeeper-logs"
+[[ -w "${repo_root}/output/opik" ]]
 
-docker compose -p roboclaws-opik-poc -f "${compose_file}" config --quiet
-config_json="$(docker compose -p roboclaws-opik-poc -f "${compose_file}" config --format json)"
+docker compose -p roboclaws-opik -f "${compose_file}" config --quiet
+config_json="$(docker compose -p roboclaws-opik -f "${compose_file}" config --format json)"
 OPIK_COMPOSE_CONFIG="${config_json}" OPIK_REPO_ROOT="${repo_root}" \
     "${repo_root}/.venv/bin/python" - <<'PY'
 import json
@@ -33,7 +34,7 @@ expected = {
 }
 assert set(services) == expected
 assert set(config["networks"]) == {"default"}
-assert config["networks"]["default"]["name"] == "roboclaws-opik-poc"
+assert config["networks"]["default"]["name"] == "roboclaws-opik"
 
 images = {name: service["image"] for name, service in services.items()}
 assert images == {
@@ -57,7 +58,7 @@ name, port = published[0]
 assert name == "frontend"
 assert (port["host_ip"], port["published"], port["target"]) == ("127.0.0.1", "5174", 5173)
 
-data_root = Path(os.environ["OPIK_REPO_ROOT"]) / "output" / "opik-poc" / "data"
+data_root = Path(os.environ["OPIK_REPO_ROOT"]) / "output" / "opik" / "data"
 for name, service in services.items():
     for volume in service.get("volumes", []):
         assert volume["type"] == "bind", (name, volume)
@@ -76,4 +77,26 @@ clickhouse_config = Path(os.environ["OPIK_REPO_ROOT"]) / "deploy/opik/clickhouse
 assert "<listen_host>0.0.0.0</listen_host>" in clickhouse_config.read_text()
 PY
 
-echo "opik deployment config: valid pinned 2.2.36 loopback-only isolated pilot"
+export OPIK_LAN_BIND_HOST=192.0.2.60
+export OPIK_LAN_HTTP_PORT=5174
+lan_config_json="$(docker compose -p roboclaws-opik -f "${compose_file}" -f "${lan_compose_file}" config --format json)"
+OPIK_COMPOSE_CONFIG="${lan_config_json}" "${repo_root}/.venv/bin/python" - <<'PY'
+import json
+import os
+
+config = json.loads(os.environ["OPIK_COMPOSE_CONFIG"])
+service = config["services"]["frontend"]
+assert {
+    (port["host_ip"], port["published"], port["target"])
+    for port in service["ports"]
+} == {
+    ("127.0.0.1", "5174", 5173),
+    ("192.0.2.60", "5174", 5173),
+}
+assert set(config["services"]) == {
+    "backend", "clickhouse", "clickhouse-init", "frontend", "minio",
+    "minio-init", "mysql", "redis", "zookeeper",
+}
+PY
+
+echo "opik deployment config: valid pinned 2.2.36 loopback-only base with opt-in LAN web binding"

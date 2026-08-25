@@ -24,7 +24,6 @@
   "evidence_outputs": [
     "eval_harness.json",
     "eval_harness.md",
-    "eval_harness.html",
     "rows/<row-id>/stdout.log",
     "rows/<row-id>/stderr.log",
     "evals/<suite-id>/<stamp>/eval_results.json",

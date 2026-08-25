@@ -1,4 +1,4 @@
-name: roboclaws-opik-poc
+name: roboclaws-opik
 
 services:
   mysql:
@@ -16,7 +16,7 @@ services:
       retries: 150
     volumes:
       - type: bind
-        source: ../../output/opik-poc/data/mysql
+        source: ../../output/opik/data/mysql
         target: /var/lib/mysql
     deploy:
       resources:
@@ -33,7 +33,7 @@ services:
       retries: 30
     volumes:
       - type: bind
-        source: ../../output/opik-poc/data/redis
+        source: ../../output/opik/data/redis
         target: /data
     deploy:
       resources:
@@ -54,13 +54,13 @@ services:
       retries: 150
     volumes:
       - type: bind
-        source: ../../output/opik-poc/data/zookeeper
+        source: ../../output/opik/data/zookeeper
         target: /data
       - type: bind
-        source: ../../output/opik-poc/data/zookeeper-datalog
+        source: ../../output/opik/data/zookeeper-datalog
         target: /datalog
       - type: bind
-        source: ../../output/opik-poc/data/zookeeper-logs
+        source: ../../output/opik/data/zookeeper-logs
         target: /logs
     deploy:
       resources:
@@ -76,7 +76,7 @@ services:
         target: /source
         read_only: true
       - type: bind
-        source: ../../output/opik-poc/data/clickhouse-config
+        source: ../../output/opik/data/clickhouse-config
         target: /config
 
   clickhouse:
@@ -97,13 +97,13 @@ services:
       clickhouse-init: {condition: service_completed_successfully}
     volumes:
       - type: bind
-        source: ../../output/opik-poc/data/clickhouse
+        source: ../../output/opik/data/clickhouse
         target: /var/lib/clickhouse
       - type: bind
-        source: ../../output/opik-poc/data/clickhouse-logs
+        source: ../../output/opik/data/clickhouse-logs
         target: /var/log/clickhouse-server
       - type: bind
-        source: ../../output/opik-poc/data/clickhouse-config
+        source: ../../output/opik/data/clickhouse-config
         target: /etc/clickhouse-server/config.d
       - type: bind
         source: ./clickhouse_config/enable_time_type.xml
@@ -118,8 +118,8 @@ services:
     restart: "no"
     command: server /data
     environment:
-      MINIO_ROOT_USER: ${OPIK_MINIO_ROOT_USER:-opik-poc}
-      MINIO_ROOT_PASSWORD: ${OPIK_MINIO_ROOT_PASSWORD:-opik-poc-local-only}
+      MINIO_ROOT_USER: ${OPIK_MINIO_ROOT_USER:-opik}
+      MINIO_ROOT_PASSWORD: ${OPIK_MINIO_ROOT_PASSWORD:-opik-local-only}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 2s
@@ -127,7 +127,7 @@ services:
       retries: 30
     volumes:
       - type: bind
-        source: ../../output/opik-poc/data/minio
+        source: ../../output/opik/data/minio
         target: /data
     deploy:
       resources:
@@ -141,15 +141,15 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command: ["mc alias set s3 http://minio:9000 $$OPIK_MINIO_ROOT_USER $$OPIK_MINIO_ROOT_PASSWORD --api S3v4 && mc mb --ignore-existing s3/public"]
     environment:
-      OPIK_MINIO_ROOT_USER: ${OPIK_MINIO_ROOT_USER:-opik-poc}
-      OPIK_MINIO_ROOT_PASSWORD: ${OPIK_MINIO_ROOT_PASSWORD:-opik-poc-local-only}
+      OPIK_MINIO_ROOT_USER: ${OPIK_MINIO_ROOT_USER:-opik}
+      OPIK_MINIO_ROOT_PASSWORD: ${OPIK_MINIO_ROOT_PASSWORD:-opik-local-only}
 
   backend:
     image: ghcr.io/comet-ml/opik/opik-backend:2.2.36
     restart: "no"
     command: ["bash", "-c", "./run_db_migrations.sh && ./provision_agent_insights_readonly_user.sh && ./entrypoint.sh"]
     environment:
-      OPIK_ANONYMOUS_ID: roboclaws-local-pilot
+      OPIK_ANONYMOUS_ID: roboclaws-local
       OPIK_USAGE_REPORT_ENABLED: "false"
       STATE_DB_PROTOCOL: jdbc:mysql://
       STATE_DB_URL: mysql:3306/opik?createDatabaseIfNotExist=true&rewriteBatchedStatements=true&connectionTimeZone=UTC
@@ -166,8 +166,8 @@ services:
       ANALYTICS_DB_USERNAME: opik
       ANALYTICS_DB_PASS: opik
       REDIS_URL: redis://:opik@redis:6379/
-      AWS_ACCESS_KEY_ID: ${OPIK_MINIO_ROOT_USER:-opik-poc}
-      AWS_SECRET_ACCESS_KEY: ${OPIK_MINIO_ROOT_PASSWORD:-opik-poc-local-only}
+      AWS_ACCESS_KEY_ID: ${OPIK_MINIO_ROOT_USER:-opik}
+      AWS_SECRET_ACCESS_KEY: ${OPIK_MINIO_ROOT_PASSWORD:-opik-local-only}
       IS_MINIO: "true"
       S3_URL: http://minio:9000
       TOGGLE_OPIK_AI_ENABLED: "false"
@@ -217,4 +217,4 @@ services:
 
 networks:
   default:
-    name: roboclaws-opik-poc
+    name: roboclaws-opik
