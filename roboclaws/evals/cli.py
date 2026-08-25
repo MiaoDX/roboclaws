@@ -12,6 +12,7 @@ _TOOL_MODES = {
     "evolve-promote",
     "map-build-report",
     "opik-project",
+    "opik-dashboard",
     "promote-regression",
     "runtime-prior-promote",
     "runtime-prior-select",

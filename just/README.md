@@ -71,6 +71,7 @@ just agent::eval recommend plan=docs/plans/example.md budget=focused
 just agent::eval execute since=origin/main budget=focused
 just agent::eval suite=smoke_regression budget=smoke
 just agent::eval opik-project suite=smoke_regression eval_results=<path> [endpoint=http://127.0.0.1:5174] [deadline_s=60]
+just agent::eval opik-dashboard dataset_url=<url> [endpoint=http://127.0.0.1:5174]
 just agent::verify
 ```
 

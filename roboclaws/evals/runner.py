@@ -102,6 +102,17 @@ def run_cli_tool(mode: str, overrides: dict[str, str]) -> dict[str, object]:
         from roboclaws.evals.opik_projection.suite import project_eval_to_opik
 
         return project_eval_to_opik(overrides)
+    if mode == "opik-dashboard":
+        from roboclaws.evals.opik_projection.client import OpikHttp
+        from roboclaws.evals.opik_projection.dashboard import reconcile_dashboard
+
+        values = dict(overrides)
+        endpoint = values.pop("endpoint", os.environ.get("ROBOCLAWS_OPIK_ENDPOINT", ""))
+        dataset_url = values.pop("dataset_url", "")
+        _reject_overrides(values, "opik-dashboard")
+        if not dataset_url:
+            raise ValueError("opik-dashboard requires dataset_url=<url>")
+        return reconcile_dashboard(OpikHttp(endpoint), dataset_url=dataset_url)
     if mode == "promote-regression":
         return promote_regression_from_cli_overrides(overrides)
     if mode == "map-build-report":
