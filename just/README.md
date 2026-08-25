@@ -70,7 +70,8 @@ python -m roboclaws.agents.live_status_cli [run-dir]
 just agent::eval recommend plan=docs/plans/example.md budget=focused
 just agent::eval execute since=origin/main budget=focused
 just agent::eval suite=smoke_regression budget=smoke
-just agent::eval phoenix-project suite=smoke_regression [eval_results=<path>] [endpoint=http://127.0.0.1:6006] [output=<path>]
+just agent::eval opik-project suite=smoke_regression eval_results=<path> [endpoint=http://127.0.0.1:5174] [deadline_s=60]
+just agent::eval opik-dashboard dataset_url=<url> [endpoint=http://127.0.0.1:5174]
 just agent::verify
 ```
 
@@ -78,11 +79,11 @@ just agent::verify
 `output/eval-harness/`. Live execution remains explicit through
 `live_execution=run`.
 
-Completed suite runs automatically write an adjacent `phoenix_projection.json`
-and project to Phoenix when `ROBOCLAWS_PHOENIX_OTLP_ENDPOINT` is configured.
-`phoenix-project` remains the read-only repair/backfill projection for a repo
-suite and an optional existing `eval_results.json`. Without `endpoint` it writes
-a disabled local mapping; an endpoint must be a loopback Phoenix HTTP origin.
+Completed suite runs automatically write an adjacent `opik_projection.json`
+and project to Opik when `ROBOCLAWS_OPIK_ENDPOINT` is configured.
+`opik-project` is the read-only repair projection for one explicitly named repo
+suite and its existing `eval_results.json`. The endpoint comes from the explicit
+argument or `ROBOCLAWS_OPIK_ENDPOINT` and must be a loopback Opik HTTP origin.
 
 ## Specialist Package CLIs
 
