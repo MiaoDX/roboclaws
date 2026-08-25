@@ -1,9 +1,11 @@
-"""Dependency-free REST client for the isolated Opik observability pilot."""
+"""Bounded dependency-free REST client for the pinned Opik projection contract."""
 
 from __future__ import annotations
 
 import hashlib
 import json
+import os
+import tempfile
 import time
 import uuid
 from datetime import datetime
@@ -15,7 +17,7 @@ from urllib.request import Request, urlopen
 
 
 class OpikClientError(ValueError):
-    """Raised when Opik cannot satisfy the closed pilot contract."""
+    """Raised when Opik cannot satisfy the closed projection contract."""
 
 
 class Transport(Protocol):
@@ -32,11 +34,24 @@ class Transport(Protocol):
 
 
 class OpikHttp:
-    def __init__(self, endpoint: str) -> None:
+    def __init__(self, endpoint: str, *, deadline_s: float = 15.0) -> None:
         parsed = urlparse(endpoint)
         if parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost", "::1"}:
             raise OpikClientError("Opik endpoint must be loopback HTTP")
+        if parsed.username or parsed.password or parsed.path not in {"", "/"}:
+            raise OpikClientError("Opik endpoint must be a base origin without credentials")
+        if parsed.query or parsed.fragment:
+            raise OpikClientError("Opik endpoint must not contain a query or fragment")
+        if deadline_s <= 0:
+            raise OpikClientError("Opik projection deadline must be positive")
         self.endpoint = endpoint.rstrip("/")
+        self._deadline = time.monotonic() + deadline_s
+
+    def remaining_s(self) -> float:
+        remaining = self._deadline - time.monotonic()
+        if remaining <= 0:
+            raise OpikClientError("Opik projection deadline expired")
+        return remaining
 
     def request(
         self,
@@ -54,7 +69,7 @@ class OpikHttp:
             headers={"Content-Type": "application/json"},
         )
         try:
-            with urlopen(request, timeout=30) as response:
+            with urlopen(request, timeout=min(5.0, self.remaining_s())) as response:
                 raw = response.read()
                 status = response.status
                 headers = dict(response.headers.items())
@@ -127,7 +142,7 @@ def _ensure_dataset(client: Transport, snapshot: dict[str, Any], project_id: str
     existing = _find_exact(client, "datasets", name)
     if existing:
         if existing.get("project_id") != project_id:
-            raise OpikClientError("existing pilot Dataset belongs to a different Project")
+            raise OpikClientError("existing Dataset belongs to a different Project")
         return existing["id"]
     dataset_id = stable_uuid(snapshot["dataset"]["projection_key"])
     _, _, headers = client.request(
@@ -241,7 +256,7 @@ def _span_payloads(
                 "model": span.get("model"),
                 "provider": span.get("provider_profile"),
                 "source": "sdk",
-                "environment": "roboclaws-opik-pilot",
+                "environment": "roboclaws-opik",
             }
         )
     return list(id_map.values()), payloads
@@ -271,7 +286,7 @@ def _existing_span_ids(client: Transport, project_name: str, trace_id: str) -> s
         ),
     )
     if page["size"] != len(page["content"]) or page["total"] != page["size"]:
-        raise OpikClientError("pilot trace exceeds the single-page span reconciliation bound")
+        raise OpikClientError("trace exceeds the single-page span reconciliation bound")
     return {span["id"] for span in page["content"]}
 
 
@@ -383,7 +398,7 @@ def _create_trace_bundle(
                 "metadata": item["metadata"],
                 "tags": ["native-span-trace", "historical-candidate"],
                 "source": "sdk",
-                "environment": "roboclaws-opik-pilot",
+                "environment": "roboclaws-opik",
             },
             expected=frozenset({201}),
         )
@@ -482,8 +497,8 @@ def project_snapshot(snapshot: dict[str, Any], client: Transport) -> dict[str, A
         "limitations": [
             "Opik 2.2.36 requires Experiment items to reference traces; "
             "40 experiment_only rows remain Dataset items to avoid invented traces.",
-            "No documented REST API was found for persistent dashboard provisioning; "
-            "target views use documented table filters.",
+            "Experiment and trace drilldown cover native-span rows only; Dataset rows retain "
+            "the complete review population.",
         ],
     }
     result["server_counts"] = _wait_for_server_counts(client, result)
@@ -552,5 +567,22 @@ def write_receipt(
             "dataset": endpoint.rstrip("/") + "/datasets/" + result["dataset_id"],
         },
     }
-    path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
+    _atomic_write_json(path, receipt)
     return path
+
+
+def _atomic_write_json(path: Path, value: dict[str, Any]) -> None:
+    encoded = json.dumps(value, indent=2, sort_keys=True) + "\n"
+    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            stream.write(encoded)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    except BaseException:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+        raise

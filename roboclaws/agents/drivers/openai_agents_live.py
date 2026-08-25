@@ -52,7 +52,7 @@ from roboclaws.agents.experiment_telemetry import (
 )
 from roboclaws.agents.live_runtime import LiveAgentRequest, LiveAgentResult
 from roboclaws.agents.live_status import LiveAgentFailure
-from roboclaws.agents.phoenix_telemetry import create_local_phoenix_telemetry_adapter
+from roboclaws.agents.opik_telemetry import create_local_opik_telemetry_adapter
 
 
 class OpenAIAgentsLiveRuntime:
@@ -255,12 +255,12 @@ def _run_openai_agents(
         )
         span_processor = None
 
-    phoenix_processor = None
+    opik_processor = None
     try:
         telemetry_identity = request.metadata.get("telemetry_identity")
         if not isinstance(telemetry_identity, dict):
             telemetry_identity = {}
-        phoenix_processor = create_local_phoenix_telemetry_adapter(
+        opik_processor = create_local_opik_telemetry_adapter(
             identity={
                 **telemetry_identity,
                 "run_id": request.run_id,
@@ -272,11 +272,11 @@ def _run_openai_agents(
         append_span_limitation(
             spans_path,
             runtime_config=parts.runtime_config,
-            reason="phoenix_telemetry_initialization_failed",
+            reason="opik_telemetry_initialization_failed",
             exc=exc,
         )
 
-    sinks = tuple(sink for sink in (span_processor, phoenix_processor) if sink is not None)
+    sinks = tuple(sink for sink in (span_processor, opik_processor) if sink is not None)
     trace_sink = CompositeTraceSink(*sinks) if len(sinks) > 1 else (sinks[0] if sinks else None)
     bound_sink = BoundTraceSink(SDK_TELEMETRY_RUNTIME, trace_sink) if trace_sink else None
     try:
@@ -304,8 +304,8 @@ def _run_openai_agents(
     finally:
         if bound_sink is not None:
             _record_trace_lifecycle_status(events_path, bound_sink)
-        if phoenix_processor is not None:
-            _record_phoenix_status(events_path, phoenix_processor.shutdown())
+        if opik_processor is not None:
+            _record_opik_status(events_path, opik_processor.shutdown())
 
 
 def _record_trace_lifecycle_status(events_path: Path, binding: BoundTraceSink) -> None:
@@ -332,12 +332,12 @@ def _record_trace_lifecycle_status(events_path: Path, binding: BoundTraceSink) -
             pass
 
 
-def _record_phoenix_status(events_path: Path, status: Any) -> None:
+def _record_opik_status(events_path: Path, status: Any) -> None:
     try:
         _append_event(
             events_path,
             {
-                "event": "phoenix_telemetry_status",
+                "event": "opik_telemetry_status",
                 "ts_epoch": time.time(),
                 "state": status.state.value,
                 "exported": status.exported,

@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-import importlib.util
 import json
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-SCRIPT = Path(__file__).parents[3] / "scripts/reports/opik_pilot_client.py"
-SPEC = importlib.util.spec_from_file_location("opik_pilot_client", SCRIPT)
-assert SPEC and SPEC.loader
-MODULE = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(MODULE)
+import pytest
+
+from roboclaws.evals.opik_projection import client as MODULE
 
 
 class PartialBundleTransport:
@@ -90,6 +88,13 @@ def test_timestamped_stable_uuid_is_deterministic_uuid7() -> None:
         datetime.fromisoformat(timestamp).astimezone(timezone.utc).timestamp() * 1000
     )
     assert MODULE.stable_uuid_at("other-key", timestamp) != first
+
+
+def test_http_client_enforces_one_invocation_deadline() -> None:
+    client = MODULE.OpikHttp("http://127.0.0.1:5174", deadline_s=0.001)
+    time.sleep(0.002)
+    with pytest.raises(MODULE.OpikClientError, match="deadline expired"):
+        client.remaining_s()
 
 
 def test_partial_bundle_replay_only_writes_missing_resources() -> None:

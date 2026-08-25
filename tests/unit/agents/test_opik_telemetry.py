@@ -18,59 +18,63 @@ from roboclaws.agents.experiment_telemetry import (
     TelemetryRuntime,
     TelemetryState,
 )
-from roboclaws.agents.phoenix_telemetry import (
+from roboclaws.agents.opik_telemetry import (
     DeterministicProjectionProcessor,
-    PhoenixTelemetryAdapter,
-    PhoenixTelemetryConfig,
+    OpikTelemetryAdapter,
+    OpikTelemetryConfig,
     ProjectionProcessorConfig,
     _new_openinference_processor,
-    create_local_phoenix_telemetry_adapter,
-    create_phoenix_telemetry_adapter,
-    phoenix_privacy_config,
+    _opik_otlp_endpoint,
+    create_local_opik_telemetry_adapter,
+    create_opik_telemetry_adapter,
+    opik_privacy_config,
 )
 
 
-def test_local_phoenix_adapter_is_disabled_without_explicit_endpoint() -> None:
+def test_local_opik_adapter_is_disabled_without_explicit_endpoint() -> None:
     assert (
-        create_local_phoenix_telemetry_adapter(
+        create_local_opik_telemetry_adapter(
             identity={"run_id": "run-1", "observability_context": "runtime"}, environ={}
         )
         is None
     )
 
 
-def test_local_phoenix_adapter_rejects_remote_or_non_otlp_endpoint() -> None:
+def test_local_opik_adapter_rejects_remote_or_non_otlp_endpoint() -> None:
     with pytest.raises(ValueError, match="must target a loopback"):
-        create_local_phoenix_telemetry_adapter(
+        create_local_opik_telemetry_adapter(
             identity={"run_id": "run-1", "observability_context": "runtime"},
-            environ={"ROBOCLAWS_PHOENIX_OTLP_ENDPOINT": "https://phoenix.example/v1/traces"},
+            environ={"ROBOCLAWS_OPIK_ENDPOINT": "https://opik.example"},
         )
 
 
 @pytest.mark.parametrize(
     "endpoint",
     [
-        "https://phoenix.example/v1/traces",
+        "https://opik.example/v1/traces",
         "http://0.0.0.0:6006/v1/traces",
         "http://192.0.2.10:6006/v1/traces",
     ],
 )
-def test_phoenix_config_rejects_non_loopback_endpoint(endpoint: str) -> None:
+def test_opik_config_rejects_non_loopback_endpoint(endpoint: str) -> None:
     with pytest.raises(ValueError, match="must target a loopback"):
-        PhoenixTelemetryConfig(endpoint=endpoint)
+        OpikTelemetryConfig(endpoint=endpoint)
 
 
-def test_phoenix_config_accepts_loopback_otlp_endpoints() -> None:
+def test_opik_config_accepts_loopback_otlp_endpoints() -> None:
     for endpoint in (
-        "http://127.0.0.1:6006/v1/traces",
-        "http://localhost:6006/v1/traces",
-        "http://[::1]:6006/v1/traces",
+        "http://127.0.0.1:5174/api/v1/private/otel/v1/traces",
+        "http://localhost:5174/api/v1/private/otel/v1/traces",
+        "http://[::1]:5174/api/v1/private/otel/v1/traces",
     ):
-        assert PhoenixTelemetryConfig(endpoint=endpoint).endpoint == endpoint
-    with pytest.raises(ValueError, match="exact /v1/traces"):
-        create_local_phoenix_telemetry_adapter(
+        assert OpikTelemetryConfig(endpoint=endpoint).endpoint == endpoint
+    assert _opik_otlp_endpoint("http://127.0.0.1:5174/") == (
+        "http://127.0.0.1:5174/api/v1/private/otel/v1/traces"
+    )
+    with pytest.raises(ValueError, match="base origin"):
+        create_local_opik_telemetry_adapter(
             identity={"run_id": "run-1", "observability_context": "runtime"},
-            environ={"ROBOCLAWS_PHOENIX_OTLP_ENDPOINT": "http://127.0.0.1:6006/"},
+            environ={"ROBOCLAWS_OPIK_ENDPOINT": "http://127.0.0.1:5174/path"},
         )
 
 
@@ -201,8 +205,8 @@ def test_runtime_composes_local_router_and_external_processor_once() -> None:
     adapter.shutdown()
 
 
-def test_runtime_composes_real_phoenix_adapter_once() -> None:
-    adapter = create_phoenix_telemetry_adapter(
+def test_runtime_composes_real_opik_adapter_once() -> None:
+    adapter = create_opik_telemetry_adapter(
         identity={"run_id": "run-1", "observability_context": "runtime"},
         span_exporter=InMemorySpanExporter(),
     )
@@ -295,8 +299,8 @@ def test_terminal_flush_is_bounded_to_two_seconds() -> None:
     assert not adapter._worker.is_alive()
 
 
-def test_phoenix_privacy_config_is_fail_closed() -> None:
-    config = phoenix_privacy_config()
+def test_opik_privacy_config_is_fail_closed() -> None:
+    config = opik_privacy_config()
     assert config.hide_llm_invocation_parameters is True
     assert config.hide_llm_tools is True
     assert config.hide_inputs is True
@@ -317,14 +321,14 @@ def test_phoenix_privacy_config_is_fail_closed() -> None:
 
 
 def test_private_processor_import_is_pinned_and_actionable(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("roboclaws.agents.phoenix_telemetry.version", lambda package: "1.3.1")
+    monkeypatch.setattr("roboclaws.agents.opik_telemetry.version", lambda package: "1.3.1")
     with pytest.raises(RuntimeError, match="1.3.0 is required; found 1.3.1"):
         _new_openinference_processor(object())
 
 
 def test_real_openinference_hierarchy_is_sanitized_and_resource_is_closed() -> None:
     exporter = InMemorySpanExporter()
-    adapter = create_phoenix_telemetry_adapter(
+    adapter = create_opik_telemetry_adapter(
         identity={
             "run_id": "run-1",
             "observability_context": "eval",
@@ -341,7 +345,7 @@ def test_real_openinference_hierarchy_is_sanitized_and_resource_is_closed() -> N
             "prompt_skill_sha256": "b" * 64,
             "prompt_rendered_sha256": "c" * 64,
         },
-        config=PhoenixTelemetryConfig(schedule_delay_ms=10),
+        config=OpikTelemetryConfig(schedule_delay_ms=10),
         span_exporter=exporter,
     )
     trace = _Item("trace-1", name="robot-run")
@@ -412,17 +416,17 @@ def test_real_openinference_hierarchy_is_sanitized_and_resource_is_closed() -> N
         assert forbidden not in serialized
 
 
-def test_phoenix_identity_explicitly_denies_prompt_body_content() -> None:
+def test_opik_identity_explicitly_denies_prompt_body_content() -> None:
     with pytest.raises(Exception, match="not allowlisted"):
-        create_phoenix_telemetry_adapter(
+        create_opik_telemetry_adapter(
             identity={"run_id": "run-1", "prompt_body": "PRIVATE KICKOFF BODY"},
             span_exporter=InMemorySpanExporter(),
         )
 
 
-def test_phoenix_factory_rejects_nonclosed_resource_identity() -> None:
+def test_opik_factory_rejects_nonclosed_resource_identity() -> None:
     with pytest.raises(Exception, match="not allowlisted"):
-        create_phoenix_telemetry_adapter(
+        create_opik_telemetry_adapter(
             identity={"run_id": "run-1", "api_key": "sk-private-value"},
             span_exporter=InMemorySpanExporter(),
         )
@@ -447,11 +451,11 @@ def test_phoenix_factory_rejects_nonclosed_resource_identity() -> None:
         ),
     ],
 )
-def test_phoenix_project_routing_rejects_invalid_context(
+def test_opik_project_routing_rejects_invalid_context(
     identity: dict[str, object], message: str
 ) -> None:
     with pytest.raises(TelemetryContractError, match=message):
-        create_phoenix_telemetry_adapter(identity=identity, span_exporter=InMemorySpanExporter())
+        create_opik_telemetry_adapter(identity=identity, span_exporter=InMemorySpanExporter())
 
 
 @pytest.mark.parametrize(
@@ -471,9 +475,9 @@ def test_export_failures_are_fail_open_and_credibly_counted(failure: object) -> 
                 raise failure
             return failure  # type: ignore[return-value]
 
-    adapter = create_phoenix_telemetry_adapter(
+    adapter = create_opik_telemetry_adapter(
         identity={"run_id": "run-1", "observability_context": "runtime"},
-        config=PhoenixTelemetryConfig(schedule_delay_ms=10),
+        config=OpikTelemetryConfig(schedule_delay_ms=10),
         span_exporter=FailingExporter(),
     )
     trace = _Item("trace-1", name="robot-run")
@@ -498,16 +502,16 @@ def test_callback_and_lifecycle_exceptions_are_fail_open() -> None:
         def shutdown(self) -> None:
             raise RuntimeError("private shutdown detail")
 
-    adapter = PhoenixTelemetryAdapter(BrokenProcessor(), BrokenBatch(), terminal_timeout_s=0.1)
+    adapter = OpikTelemetryAdapter(BrokenProcessor(), BrokenBatch(), terminal_timeout_s=0.1)
     adapter.on_span_end(object())
     status = adapter.shutdown()
     assert status.state is TelemetryState.DEGRADED
     assert status.failed == 3
 
 
-def test_callbacks_after_phoenix_shutdown_are_ignored() -> None:
+def test_callbacks_after_opik_shutdown_are_ignored() -> None:
     exporter = InMemorySpanExporter()
-    adapter = create_phoenix_telemetry_adapter(
+    adapter = create_opik_telemetry_adapter(
         identity={"run_id": "run-1", "observability_context": "runtime"},
         span_exporter=exporter,
     )
@@ -518,7 +522,7 @@ def test_callbacks_after_phoenix_shutdown_are_ignored() -> None:
     assert exporter.get_finished_spans() == ()
 
 
-def test_phoenix_shutdown_is_bounded_when_exporter_blocks() -> None:
+def test_opik_shutdown_is_bounded_when_exporter_blocks() -> None:
     release = threading.Event()
 
     class BlockingExporter(InMemorySpanExporter):
@@ -526,9 +530,9 @@ def test_phoenix_shutdown_is_bounded_when_exporter_blocks() -> None:
             release.wait()
             return super().export(spans)
 
-    adapter = create_phoenix_telemetry_adapter(
+    adapter = create_opik_telemetry_adapter(
         identity={"run_id": "run-1", "observability_context": "runtime"},
-        config=PhoenixTelemetryConfig(
+        config=OpikTelemetryConfig(
             schedule_delay_ms=10,
             export_timeout_s=0.01,
             terminal_timeout_s=0.02,
@@ -546,7 +550,7 @@ def test_phoenix_shutdown_is_bounded_when_exporter_blocks() -> None:
     release.set()
 
 
-def test_real_phoenix_queue_pressure_reports_dropped_spans() -> None:
+def test_real_opik_queue_pressure_reports_dropped_spans() -> None:
     release = threading.Event()
 
     class BlockingExporter(InMemorySpanExporter):
@@ -554,9 +558,9 @@ def test_real_phoenix_queue_pressure_reports_dropped_spans() -> None:
             release.wait()
             return super().export(spans)
 
-    adapter = create_phoenix_telemetry_adapter(
+    adapter = create_opik_telemetry_adapter(
         identity={"run_id": "run-1", "observability_context": "runtime"},
-        config=PhoenixTelemetryConfig(
+        config=OpikTelemetryConfig(
             queue_capacity=1,
             max_export_batch_size=1,
             schedule_delay_ms=1,
