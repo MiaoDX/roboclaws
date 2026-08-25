@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 from typing import Any, NamedTuple
 
-PROJECTION_SCHEMA = "roboclaws_opik_eval_projection_v1"
+PROJECTION_SCHEMA = "roboclaws_opik_eval_projection_v2"
 PROJECT_NAME = "roboclaws-eval"
 FORBIDDEN_KEYS = {
     "command",
@@ -376,6 +376,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--manifest", required=True, type=Path)
     parser.add_argument("--endpoint")
+    parser.add_argument("--deadline-s", type=float, default=60.0)
     parser.add_argument("--snapshot-output", type=Path)
     return parser.parse_args(argv)
 
@@ -386,7 +387,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.endpoint:
         from roboclaws.evals.opik_projection.client import OpikHttp, project_snapshot, write_receipt
 
-        result = project_snapshot(snapshot, OpikHttp(args.endpoint))
+        result = project_snapshot(snapshot, OpikHttp(args.endpoint, deadline_s=args.deadline_s))
         receipt = write_receipt(snapshot, result, args.endpoint, args.manifest.resolve().parent)
         print(receipt)
         return 0

@@ -10,7 +10,7 @@ import pytest
 import roboclaws.evals.cli as cli
 
 
-def test_eval_cli_prints_phoenix_projection_summary(
+def test_eval_cli_prints_opik_projection_summary(
     tmp_path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     from roboclaws.evals import runner
@@ -21,10 +21,10 @@ def test_eval_cli_prints_phoenix_projection_summary(
         lambda _overrides: SimpleNamespace(
             results_path=tmp_path / "eval_results.json",
             report_path=tmp_path / "eval_report.html",
-            phoenix_projection={
-                "mapping": str(tmp_path / "phoenix_projection.json"),
+            opik_projection={
+                "receipt": str(tmp_path / "opik_projection.json"),
                 "state": "unavailable",
-                "reason": "phoenix_connection_failed",
+                "reason": "opik_unavailable",
             },
         ),
     )
@@ -32,8 +32,8 @@ def test_eval_cli_prints_phoenix_projection_summary(
     assert cli.main(["suite=smoke_regression"]) == 0
 
     payload = json.loads(capsys.readouterr().out)
-    assert payload["phoenix_projection"]["state"] == "unavailable"
-    assert payload["phoenix_projection"]["reason"] == "phoenix_connection_failed"
+    assert payload["opik_projection"]["state"] == "unavailable"
+    assert payload["opik_projection"]["reason"] == "opik_unavailable"
 
 
 def test_eval_cli_import_does_not_require_session_live_dependencies() -> None:

@@ -368,6 +368,7 @@ def create_opik_telemetry_adapter(
         span_exporter = OTLPSpanExporter(
             endpoint=settings.endpoint,
             timeout=settings.export_timeout_s,
+            headers={"projectName": project_name},
         )
     counting_exporter = _CountingExporter(span_exporter, adapter)
     batch = BatchSpanProcessor(

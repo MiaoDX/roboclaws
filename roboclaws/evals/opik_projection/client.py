@@ -33,8 +33,18 @@ class Transport(Protocol):
     ) -> tuple[int, Any, dict[str, str]]: ...
 
 
+def _remaining_s(client: Transport) -> float | None:
+    remaining = getattr(client, "remaining_s", None)
+    return float(remaining()) if callable(remaining) else None
+
+
+def _bounded_sleep(client: Transport, seconds: float) -> None:
+    remaining = _remaining_s(client)
+    time.sleep(seconds if remaining is None else min(seconds, remaining))
+
+
 class OpikHttp:
-    def __init__(self, endpoint: str, *, deadline_s: float = 15.0) -> None:
+    def __init__(self, endpoint: str, *, deadline_s: float = 60.0) -> None:
         parsed = urlparse(endpoint)
         if parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost", "::1"}:
             raise OpikClientError("Opik endpoint must be loopback HTTP")
@@ -42,8 +52,8 @@ class OpikHttp:
             raise OpikClientError("Opik endpoint must be a base origin without credentials")
         if parsed.query or parsed.fragment:
             raise OpikClientError("Opik endpoint must not contain a query or fragment")
-        if deadline_s <= 0:
-            raise OpikClientError("Opik projection deadline must be positive")
+        if not 0 < deadline_s <= 300:
+            raise OpikClientError("Opik projection deadline must be between 0 and 300 seconds")
         self.endpoint = endpoint.rstrip("/")
         self._deadline = time.monotonic() + deadline_s
 
@@ -130,7 +140,7 @@ def _ensure_project(client: Transport, snapshot: dict[str, Any]) -> str:
         {
             "name": name,
             "visibility": "private",
-            "description": "Diagnostic only; canonical policy remains in eval_harness.json.",
+            "description": "One-way projection only; canonical evidence remains local.",
         },
         expected=frozenset({201}),
     )
@@ -139,12 +149,23 @@ def _ensure_project(client: Transport, snapshot: dict[str, Any]) -> str:
 
 def _ensure_dataset(client: Transport, snapshot: dict[str, Any], project_id: str) -> str:
     name = snapshot["dataset"]["name"]
+    dataset_id = stable_uuid(snapshot["dataset"]["projection_key"])
+    status, by_id, _ = client.request(
+        "GET",
+        f"/v1/private/datasets/{dataset_id}",
+        expected=frozenset({200, 404}),
+    )
+    if status == 200:
+        if by_id.get("name") != name or by_id.get("project_id") != project_id:
+            raise OpikClientError(
+                "existing deterministic Dataset identity has different closed name or Project"
+            )
+        return dataset_id
     existing = _find_exact(client, "datasets", name)
     if existing:
-        if existing.get("project_id") != project_id:
-            raise OpikClientError("existing Dataset belongs to a different Project")
-        return existing["id"]
-    dataset_id = stable_uuid(snapshot["dataset"]["projection_key"])
+        if existing.get("id") != dataset_id or existing.get("project_id") != project_id:
+            raise OpikClientError("existing Dataset name has different closed identity or Project")
+        return dataset_id
     _, _, headers = client.request(
         "POST",
         "/v1/private/datasets",
@@ -154,8 +175,8 @@ def _ensure_dataset(client: Transport, snapshot: dict[str, Any], project_id: str
             "project_id": project_id,
             "type": "evaluation_suite",
             "visibility": "private",
-            "tags": ["historical-candidate", "unaccepted", "diagnostic-only"],
-            "description": "Canonical triage rows; experiment-only means no trace was invented.",
+            "tags": ["roboclaws", "canonical-local-evidence"],
+            "description": "Canonical public rows; experiment-only means no trace was invented.",
         },
         expected=frozenset({201}),
     )
@@ -207,11 +228,11 @@ def _ensure_experiment(
             "project_id": project_id,
             "name": snapshot["experiment"]["name"],
             "metadata": {
-                "candidate_status": "unaccepted",
-                "policy_owner": "roboclaws_observability_decision_report_v1",
+                "candidate_status": snapshot["candidate_status"],
+                "policy_owner": snapshot["schema"],
                 "trace_limitation": "experiment_only rows remain dataset-only",
             },
-            "tags": ["historical-candidate", "diagnostic-only"],
+            "tags": ["roboclaws", "canonical-local-evidence"],
         },
         expected=frozenset({201}),
     )
@@ -267,7 +288,7 @@ def _wait_for_resource(client: Transport, path: str, description: str) -> dict[s
         status, resource, _ = client.request("GET", path, expected=frozenset({200, 404}))
         if status == 200:
             return resource
-        time.sleep(0.25)
+        _bounded_sleep(client, 0.25)
     raise OpikClientError(f"created {description} did not become readable")
 
 
@@ -320,36 +341,31 @@ def _read_server_counts(client: Transport, result: dict[str, Any]) -> dict[str, 
             "GET", f"/v1/private/experiments/items/{experiment_item_id}"
         )
         experiment_items.append(experiment_item)
-    _, traces, _ = client.request(
-        "GET",
-        "/v1/private/traces?"
-        + urlencode(
-            {
-                "project_id": result["project_id"],
-                "size": 1000,
-                "truncate": "true",
-                "strip_attachments": "true",
-            }
-        ),
-    )
-    _, spans, _ = client.request(
-        "GET",
-        "/v1/private/spans?"
-        + urlencode(
-            {
-                "project_id": result["project_id"],
-                "size": 10000,
-                "truncate": "true",
-                "strip_attachments": "true",
-            }
-        ),
-    )
+    traces = []
+    span_count = 0
+    for trace_id in result["trace_ids"]:
+        _, trace, _ = client.request("GET", f"/v1/private/traces/{trace_id}")
+        traces.append(trace)
+        _, spans, _ = client.request(
+            "GET",
+            "/v1/private/spans?"
+            + urlencode(
+                {
+                    "project_id": result["project_id"],
+                    "trace_id": trace_id,
+                    "size": 10000,
+                    "truncate": "true",
+                    "strip_attachments": "true",
+                }
+            ),
+        )
+        span_count += spans["total"]
     return {
         "dataset_items": dataset_items["total"],
         "experiment_items": len(experiment_items),
-        "traces": traces["total"],
-        "spans": spans["total"],
-        "scores": sum(len(trace.get("feedback_scores") or []) for trace in traces["content"]),
+        "traces": len(traces),
+        "spans": span_count,
+        "scores": sum(len(trace.get("feedback_scores") or []) for trace in traces),
         "dashboards": 0,
     }
 
@@ -361,7 +377,7 @@ def _wait_for_server_counts(client: Transport, result: dict[str, Any]) -> dict[s
         observed = _read_server_counts(client, result)
         if observed == expected:
             return observed
-        time.sleep(0.25)
+        _bounded_sleep(client, 0.25)
     raise OpikClientError(
         f"Opik projection counts did not converge: expected {expected}, observed {observed}"
     )
@@ -384,6 +400,10 @@ def _create_trace_bundle(
     )
     created = {"traces": 0, "spans": 0, "experiment_items": 0, "scores": 0}
     if status == 404:
+        row_name = item["metadata"].get("row_id") or item["metadata"].get("sample_id")
+        trial_name = item["metadata"].get("trial_id")
+        if not isinstance(row_name, str) or not isinstance(trial_name, str):
+            raise OpikClientError("trace item lacks closed sample/row and trial identity")
         starts = [span["started_at"] for span in trace["spans"]]
         ends = [span.get("ended_at", span["started_at"]) for span in trace["spans"]]
         client.request(
@@ -392,11 +412,11 @@ def _create_trace_bundle(
             {
                 "id": trace_id,
                 "project_name": project_name,
-                "name": f"{item['metadata']['row_id']} / {item['metadata']['trial_id']}",
+                "name": f"{row_name} / {trial_name}",
                 "start_time": min(starts),
                 "end_time": max(ends),
                 "metadata": item["metadata"],
-                "tags": ["native-span-trace", "historical-candidate"],
+                "tags": ["native-span-trace", "roboclaws"],
                 "source": "sdk",
                 "environment": "roboclaws-opik",
             },
@@ -508,9 +528,8 @@ def project_snapshot(snapshot: dict[str, Any], client: Transport) -> dict[str, A
 def write_receipt(
     snapshot: dict[str, Any], result: dict[str, Any], endpoint: str, output_root: Path
 ) -> Path:
-    receipt_dir = output_root / snapshot["source_manifest_sha256"]
-    receipt_dir.mkdir(parents=True, exist_ok=True)
-    path = receipt_dir / "projection_receipt.json"
+    output_root.mkdir(parents=True, exist_ok=True)
+    path = output_root / "opik_projection.json"
     counts = _expected_counts(result)
     identity_digest = hashlib.sha256(
         json.dumps(
@@ -532,16 +551,23 @@ def write_receipt(
     passes = {"first": pass_record}
     if path.is_file():
         previous = json.loads(path.read_text())
-        if previous.get("snapshot_sha256") != snapshot["snapshot_sha256"] or previous.get(
-            "endpoint_origin"
-        ) != endpoint.rstrip("/"):
-            raise OpikClientError("existing receipt belongs to a different snapshot or endpoint")
-        passes = {"first": previous["passes"]["first"], "second": pass_record}
-        if passes["first"]["identity_sha256"] != identity_digest:
-            raise OpikClientError("Opik identities changed between projection passes")
+        if previous.get("state") == "ready":
+            if previous.get("snapshot_sha256") != snapshot["snapshot_sha256"] or previous.get(
+                "endpoint_origin"
+            ) != endpoint.rstrip("/"):
+                raise OpikClientError(
+                    "existing receipt belongs to a different snapshot or endpoint"
+                )
+            passes = {"first": previous["passes"]["first"], "second": pass_record}
+            if passes["first"]["identity_sha256"] != identity_digest:
+                raise OpikClientError("Opik identities changed between projection passes")
+        elif previous.get("source_manifest_sha256") != snapshot["source_manifest_sha256"]:
+            raise OpikClientError("unavailable receipt belongs to different source evidence")
 
     receipt = {
         "schema": snapshot["schema"],
+        "state": "ready",
+        "reason": "projected",
         "projection_purpose": snapshot["projection_purpose"],
         "candidate_status": snapshot["candidate_status"],
         "source_manifest_sha256": snapshot["source_manifest_sha256"],

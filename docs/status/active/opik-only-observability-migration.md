@@ -5,18 +5,25 @@
 - Control plane: root Codex session for the active host goal
 - Project-status writer: root Codex session
 - Latest user intent: execute the approved plan with `intuitive-flow`
-- Current slice: Stage 1 suite-result mapping and automatic fail-open receipt integration
-- Last proven evidence: the pinned Opik OTLP route exists at
-  `/api/v1/private/otel/v1/traces`; 47 runtime/telemetry tests and eight Opik projection tests pass
-  with Ruff. The runtime sink derives that route from one loopback `ROBOCLAWS_OPIK_ENDPOINT`, and
-  the package-owned REST client proves deterministic replay, privacy denial, atomic receipts, and
-  one invocation deadline.
+- Current slice: Stage 1 fail-open and retained-data restart proof
+- Last proven evidence: automatic local suite projection is `ready`; reviewed candidate projection
+  is `ready` with 65 Dataset items, 25 native traces/Experiments, 40 Dataset-only rows, 56 scores,
+  zero privacy findings, and a second replay with zero creations and unchanged identity digest.
+  The 60-second invocation deadline recovered a partial timeout without changing source evidence.
+  Dashboard reconciliation preserved stable ID `01a03341-1292-74dd-9699-ff57164bf346` across two
+  passes. Live product attempt 2 created one `roboclaws-runtime` trace with 255 spans, one root and
+  254 parented spans; exporter status was ready with 255 exported, zero failed, and zero dropped.
+  The live cleanup EvalTrial bundle produced three ready exporters with zero failures/drops and a
+  ready projection containing 3 Dataset items, 3 Experiment items/traces, 686 spans, and 15 scores.
 - Completed slices: execution approval/state; replacement-seam inventory; production-shaped Opik
-  runtime sink; pilot client/harness mapper promotion into `roboclaws.evals.opik_projection`.
-- Next slice: add canonical suite-result mapping, automatic `opik_projection.json` fail-open
-  receipts, and wire suite finalization plus accepted CloudML collection without changing results.
-- Next proof: focused suite projection tests, disabled/unavailable/deadline receipt tests, and
-  unchanged eval outcome tests.
+  runtime sink; package-owned projection; automatic suite finalization and `opik-project` repair
+  route; candidate fidelity/idempotency proof.
+  route; candidate fidelity/idempotency proof; stable Dashboard reconciliation; live runtime
+  hierarchy and closed-project routing.
+  hierarchy and closed-project routing; live EvalTrial routing and automatic/repair projection.
+- Next slice: run disabled/unavailable unchanged-outcome proofs and retained-data restart/loopback
+  ingestion checks, then decide the Stage 1 parity gate.
+- Next proof: disabled/unavailable unchanged outcomes and restart/loopback ingestion checks.
 - Stop condition: all plan acceptance and verification gates pass, or a named circuit breaker
   requires user re-approval.
 - No-touch scope: provider/evaluator/promotion/simulator/robot behavior; private artifact upload;

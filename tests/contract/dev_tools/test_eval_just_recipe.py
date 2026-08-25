@@ -48,11 +48,12 @@ def test_agent_eval_routes_evolution_commands_without_a_second_facade() -> None:
     ]
 
 
-def test_agent_eval_routes_phoenix_projection_without_suite_execution() -> None:
+def test_agent_eval_routes_opik_projection_without_suite_execution() -> None:
     args = (
-        "phoenix-project",
+        "opik-project",
         "suite=smoke_regression",
-        "output=/tmp/phoenix-mapping.json",
+        "eval_results=/tmp/eval_results.json",
+        "endpoint=http://127.0.0.1:5174",
     )
 
     assert _trace_agent_eval(*args) == [

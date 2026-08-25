@@ -78,6 +78,36 @@ def test_opik_config_accepts_loopback_otlp_endpoints() -> None:
         )
 
 
+def test_opik_exporter_routes_closed_project_name(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, Any] = {}
+
+    class _Exporter:
+        def __init__(self, **kwargs: Any) -> None:
+            captured.update(kwargs)
+
+        def export(self, _spans: Any) -> Any:
+            return SpanExportResult.SUCCESS
+
+        def force_flush(self, _timeout: int) -> bool:
+            return True
+
+        def shutdown(self) -> None:
+            return None
+
+    monkeypatch.setattr(
+        "opentelemetry.exporter.otlp.proto.http.trace_exporter.OTLPSpanExporter", _Exporter
+    )
+    monkeypatch.setattr(
+        "roboclaws.agents.opik_telemetry._new_openinference_processor", lambda _tracer: object()
+    )
+    adapter = create_opik_telemetry_adapter(
+        identity={"observability_context": "runtime", "run_id": "run-1"},
+        span_exporter=None,
+    )
+    adapter.shutdown()
+    assert captured["headers"] == {"projectName": "roboclaws-runtime"}
+
+
 @dataclass
 class _Data:
     type: str
