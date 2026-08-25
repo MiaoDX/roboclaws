@@ -7,13 +7,17 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import re
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, NamedTuple
 
 PROJECTION_SCHEMA = "roboclaws_opik_eval_projection_v2"
 PROJECT_NAME = "roboclaws-eval"
+AUTOMATIC_DEADLINE_S = 60.0
+RECEIPT_NAME = "opik_projection.json"
 FORBIDDEN_KEYS = {
     "command",
     "command_display",
@@ -188,12 +192,13 @@ def _privacy_scan(value: Any, path: str = "$") -> list[str]:
     return findings
 
 
-def _validate_source(manifest: dict[str, Any]) -> dict[str, Any]:
+def _validate_source(manifest: dict[str, Any], *, terminal_marker: bool = False) -> dict[str, Any]:
     if manifest.get("schema") != "roboclaws_eval_harness_manifest_v1":
         raise ProjectionError("source is not an Eval Harness v1 manifest")
-    if manifest.get("candidate_status") not in {"terminal", "terminal_with_failures"}:
+    candidate_status = manifest.get("candidate_status")
+    if candidate_status not in {"terminal", "terminal_with_failures"} and not terminal_marker:
         raise ProjectionError("source candidate is not terminal")
-    if manifest.get("publication_authorized") is not False:
+    if manifest.get("publication_authorized") is not False and not terminal_marker:
         raise ProjectionError("source must be an unaccepted terminal candidate")
     report = manifest.get("observability_decision_report")
     if (
@@ -317,7 +322,8 @@ def build_projection_snapshot(manifest_path: Path) -> dict[str, Any]:
     manifest_path = manifest_path.resolve()
     manifest, raw = _read_json(manifest_path)
     source_digest = _digest_bytes(raw)
-    report = _validate_source(manifest)
+    marker = manifest_path.with_name("eval_harness.completed.json")
+    report = _validate_source(manifest, terminal_marker=marker.is_file())
     source_files = {manifest_path.name: SourceFile(manifest_path.name, source_digest)}
     items, traces = _project_triage(
         report,
@@ -370,6 +376,62 @@ def build_projection_snapshot(manifest_path: Path) -> dict[str, Any]:
     snapshot["privacy_scan"] = {"state": "passed", "finding_count": 0}
     snapshot["snapshot_sha256"] = _digest_json(snapshot)
     return snapshot
+
+
+def project_completed_harness_to_opik(
+    manifest_path: Path,
+    *,
+    environ: Mapping[str, str] | None = None,
+) -> dict[str, object]:
+    """Fail-open automatic projection after authoritative terminal publication."""
+    from roboclaws.evals.opik_projection.client import (
+        OpikHttp,
+        _atomic_write_json,
+        project_snapshot,
+        write_receipt,
+    )
+
+    values = os.environ if environ is None else environ
+    endpoint = values.get("ROBOCLAWS_OPIK_ENDPOINT", "").strip()
+    receipt_path = manifest_path.with_name(RECEIPT_NAME)
+    source_digest = _digest_bytes(manifest_path.read_bytes())
+    if not endpoint:
+        receipt = _automatic_receipt("disabled", "endpoint_not_configured", source_digest)
+        _atomic_write_json(receipt_path, receipt)
+        return _automatic_summary(receipt_path, receipt)
+    try:
+        snapshot = build_projection_snapshot(manifest_path)
+        result = project_snapshot(snapshot, OpikHttp(endpoint, deadline_s=AUTOMATIC_DEADLINE_S))
+        write_receipt(snapshot, result, endpoint, manifest_path.parent)
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    except Exception as exc:  # noqa: BLE001 - observability cannot change publication
+        reason = (
+            "opik_unavailable"
+            if exc.__class__.__name__ == "OpikClientError"
+            else "opik_projection_failed"
+        )
+        receipt = _automatic_receipt("unavailable", reason, source_digest)
+        _atomic_write_json(receipt_path, receipt)
+    return _automatic_summary(receipt_path, receipt)
+
+
+def _automatic_receipt(state: str, reason: str, source_digest: str) -> dict[str, object]:
+    return {
+        "schema": PROJECTION_SCHEMA,
+        "state": state,
+        "reason": reason,
+        "projection_purpose": "historical_candidate_projection",
+        "candidate_status": "unaccepted",
+        "source_manifest_sha256": source_digest,
+    }
+
+
+def _automatic_summary(path: Path, receipt: dict[str, Any]) -> dict[str, object]:
+    return {
+        "receipt": str(path),
+        "state": str(receipt["state"]),
+        "reason": str(receipt["reason"]),
+    }
 
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:

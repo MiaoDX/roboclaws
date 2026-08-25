@@ -39,9 +39,9 @@ Eval harness
   Selects and runs deterministic gates, product rows, eval suites, live-agent
   evals, blocked evidence, and regression-promotion guidance for a plan, diff,
   or explicit request. Authoritative terminal manifests also derive one
-  quality-first observability decision section in the existing JSON, Markdown,
-  and HTML reports. Local canonical artifacts own its metrics; Phoenix is
-  trial-linked drilldown only.
+  quality-first observability decision section in the existing JSON and
+  Markdown reports. Local canonical artifacts own its metrics; Opik is the
+  fail-open review and trace-drilldown projection.
 
 Eval suite
   Versioned capability benchmark artifact under the facade: samples, trials,
@@ -126,7 +126,7 @@ Package proof CLIs
   maintainer facade is `just agent::eval ...`.
 - **Eval Harness Decision Reports** are pure, read-only projections of one
   authoritative terminal harness manifest and its explicitly attached eval,
-  run-performance, baseline, and Phoenix-receipt artifacts. They keep harness
+  run-performance, baseline, and Opik-receipt artifacts. They keep harness
   health, EvalTrial capability health, provider-treatment cohorts, and triage
   at distinct grains. Quality, model-work, and latency eligibility are
   independent; missing telemetry is unavailable rather than zero, concurrent
@@ -140,32 +140,27 @@ Package proof CLIs
   process. Promotion is digest-bound and human-only.
 - **Experiment Telemetry** is the dependency-free, closed-schema boundary owned
   by `roboclaws.agents.experiment_telemetry`. Local run artifacts remain the
-  canonical evidence. The optional `PhoenixTelemetryAdapter` exports sanitized
-  OpenInference spans asynchronously and fail-open to a local Phoenix service.
-  OTLP ingestion stays loopback-only; an explicit Compose override may expose
-  only the Phoenix web port on one named private-LAN interface. Prompt content
-  is represented only by immutable Git, Skill, and
-  rendered-prompt digests. Phoenix cannot schedule, authorize, or gate product
-  or eval execution. After canonical suite result persistence, the eval runner
-  automatically uses the configured loopback OTLP endpoint to project immutable
-  task-named Datasets, exact Dataset versions, homogeneous tested-configuration
-  Experiments, runs, and annotations. The adjacent `phoenix_projection.json`
-  receipt is attached to harness evidence; `disabled` or `unavailable` remains
-  fail-open and cannot change the eval outcome. Accepted CloudML result bundles
-  receive the same local projection during collection before final report
-  regeneration. A task Dataset has exactly one immutable
-  Phoenix version in a deployed local store. Public sample changes require a
-  suite-version bump followed by an explicit local Phoenix rebuild and
-  reprojection because Phoenix 11.20 cannot modify or remove snapshot examples.
-  The projection includes valid failed and blocked trials and excludes rows
-  without an eval result bundle. The maintainer-only `phoenix-project` command
-  remains the repair/backfill path for existing artifacts and dataset-only
-  projection.
+  canonical evidence. `OpikTelemetryAdapter` exports sanitized OpenInference
+  spans asynchronously and fail-open to the local Opik 2.2.36 deployment.
+  Ingestion stays loopback-only; an explicit Compose override may expose only
+  the Opik web frontend on one named trusted-LAN interface. Prompt content is
+  represented only by immutable Git, Skill, and rendered-prompt digests. Opik
+  cannot schedule, authorize, grade, promote, or gate product or eval execution.
+  After canonical suite persistence, accepted CloudML collection, and terminal
+  Eval Harness publication, the corresponding package owner automatically
+  projects immutable Datasets, Experiments, traces, spans, and scores. The
+  adjacent `opik_projection.json` receipt records `ready`, `disabled`, or
+  `unavailable`; projection failure cannot change source evidence or outcomes.
+  The object-by-fidelity boundary never invents traces: rows with native spans
+  become Experiment items, while experiment-only rows remain Dataset-only.
+  `opik-project` is the bounded maintainer repair path for one explicitly named
+  result bundle, and `opik-dashboard` idempotently reconciles the pinned review
+  Dashboard during explicit maintenance.
   Trace routing is closed to exactly `roboclaws-runtime` and `roboclaws-eval`;
-  arbitrary Project selection is not a runtime setting. Automatic projection
-  derives the API origin from `ROBOCLAWS_PHOENIX_OTLP_ENDPOINT`; there is no
-  second endpoint setting, watcher, or background sync service. The projector
-  never launches providers, simulators, CloudML, or hardware work.
+  arbitrary Project selection is not a runtime setting. Runtime ingestion and
+  projection derive from the single loopback base origin
+  `ROBOCLAWS_OPIK_ENDPOINT`; LAN review settings never enable ingestion. There
+  is no watcher, background sync, backend registry, or dual-write path.
 
 Runtime Map Prior evaluation separates artifact production from consumption:
 
@@ -573,12 +568,11 @@ Every serious run should produce reviewable evidence:
   `eval_results.json` and an eval report that links back to underlying product
   run artifacts.
 
-Phoenix is the supported generic trace and experiment browser, but it does not
-replace these local artifacts. The Phase 5 parity review retained local span
-JSONL for budgets, continuation, usage fidelity, and offline audit; local
-performance projection for provider-neutral metrics; same-or-better comparison
-for product-quality policy; and domain eval reports for regrade and selection.
-No standalone generic operator-console trace browser existed to delete.
+Opik is the supported generic Dashboard, Dataset, Experiment, and trace browser,
+but it does not replace these local artifacts. Local span JSONL remains the
+source for budgets, continuation, usage fidelity, and offline audit; local
+performance projection owns provider-neutral metrics; same-or-better comparison
+owns product-quality policy; and domain eval reports own regrade and selection.
 
 The artifact boundary matters: public agent evidence and private scoring truth
 must remain separate. Reports may display both, but agent inputs and MCP

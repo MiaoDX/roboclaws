@@ -2,7 +2,7 @@
 plan_scope: opik-self-host-eval-observability-pilot
 status: DONE
 created: 2026-08-24
-last_reviewed: 2026-08-24
+last_reviewed: 2026-08-25
 implementation_allowed: true
 current_phase: complete
 source:
@@ -14,6 +14,8 @@ related_context:
   - docs/adr/0149-project-agent-observability-as-one-way-side-effects.md
   - docs/plans/2026-08-06-self-hosted-agent-observability-platform.md
   - docs/plans/2026-08-18-observability-decision-report.md
+superseded_by:
+  - docs/plans/2026-08-25-opik-only-observability-migration.md
 approval:
   plan_approved_on: 2026-08-24
   plan_approval_source: user-execute-request
@@ -27,8 +29,8 @@ approval:
 - Plan status: DONE; implementation, live projection, browser review, operational proof, and the
   migration decision are complete.
 - Current slice: Complete.
-- Next action: None. Reopen only if a later Opik release materially changes Dataset discovery,
-  dashboard provisioning, or the self-host footprint.
+- Next action: Execute the separately approved Opik-only migration plan; this pilot remains the
+  evidence source and does not authorize migration work itself.
 - Blocked on: none.
 - Stop condition: the pilot produces enough browser and operational evidence to choose `retain
   Phoenix`, `migrate to Opik`, or `reject Opik`. It does not perform that migration.
@@ -314,7 +316,32 @@ dependency, LAN/public exposure, accepted-baseline publication, automatic projec
 
 ## Closeout
 
-Recommendation: **retain Phoenix plus companion**.
+### Review state
+
+The earlier closeout recommendation was recorded before the custom Dashboard
+was shown to the human reviewer. Human review selected Opik as the target sole
+external observability backend; the forward migration contract now lives in
+`docs/plans/2026-08-25-opik-only-observability-migration.md`. The review
+Dashboard remains available through the explicit LAN overlay:
+
+```bash
+OPIK_LAN_BIND_HOST=10.169.12.60 \
+OPIK_LAN_HTTP_PORT=5174 \
+docker compose -p roboclaws-opik-poc \
+  -f deploy/opik/compose.yaml \
+  -f deploy/opik/compose.lan.yaml up -d --wait
+```
+
+Open:
+`http://10.169.12.60:5174/default/projects/01a032b2-85c0-71cc-9908-34730c027503/dashboards?dashboardId=01a03341-1292-74dd-9699-ff57164bf346&dashboard_time_range=past30days`
+
+The LAN overlay binds only the explicitly supplied host address. The base
+Compose file continues to publish the frontend on `127.0.0.1` only.
+
+Superseded provisional recommendation: **retain Phoenix plus companion**. It
+must not be treated as the final adoption decision.
+
+### Historical pre-Dashboard conclusion
 
 Opik 2.2.36 proved a capable trace and Experiment browser, but it did not provide enough recurring
 eval value to replace the existing arrangement. The Experiment result table exposes provider,
@@ -345,8 +372,9 @@ Evidence:
   reflowing it. The only persistent browser error was Opik's own
   `/api/v1/private/workspaces/configurations/` 404.
 - Retained-data restart completed in 20.389 seconds after Compose teardown; the full down/up cycle
-  took 38.477 seconds, and the live integration contract passed afterward. Only
-  `127.0.0.1:5174` was published by the isolated `roboclaws-opik-poc` project.
+  took 38.477 seconds, and the live integration contract passed afterward. The base isolated
+  `roboclaws-opik-poc` project remains loopback-only; the explicit review overlay additionally
+  publishes `10.169.12.60:5174`.
 - The pinned image set occupied approximately 1.12 GB. A post-replay stable sample used about
   2.0 GiB RAM across frontend, backend, ClickHouse, Redis, ZooKeeper, MySQL, and MinIO; backend and
   ClickHouse replay samples peaked near 89% and 91% CPU. The retained pilot tree was approximately
@@ -364,7 +392,8 @@ seven focused unit tests; live integration after retained-data restart; exact pr
 browser desktop/mobile review; and the repository-selected pre-commit static/contract gate.
 
 Parked work remains out of scope: production Opik dependency, automatic projection, migration,
-accepted-baseline publication, LAN exposure, and deletion of retained pilot data.
+accepted-baseline publication, and deletion of retained pilot data. LAN exposure is now an
+explicit, opt-in review overlay only; it does not authorize production exposure or migration.
 
 ## Agent Planning Loop Judgment
 
@@ -385,7 +414,7 @@ choice.
 | Measure the multi-service footprint | accept | Resource and persistence evidence is a completion gate. |
 | Add a durable Opik module or shared adapter now | reject | Reconsider only after a migration decision. |
 | Delete Phoenix or the companion during the pilot | reject | Both remain unchanged until a later migration plan. |
-| Add LAN exposure for review | park | Requires explicit later scope and security review. |
+| Add LAN exposure for review | accept | Explicit opt-in overlay binds only the supplied LAN host for human review; it is not production exposure. |
 
 ## Preflight Contract
 

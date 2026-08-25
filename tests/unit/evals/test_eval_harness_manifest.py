@@ -4,6 +4,8 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
+
 from roboclaws.evals.harness import runner
 from roboclaws.evals.harness.publication import (
     COMPLETION_MARKER_NAME,
@@ -53,7 +55,7 @@ def test_eval_harness_manifest_redacts_private_truth(tmp_path: Path) -> None:
     assert "cleanup-capability-eval-suite" in (tmp_path / "eval_harness.md").read_text(
         encoding="utf-8"
     )
-    assert (tmp_path / "eval_harness.html").exists()
+    assert (tmp_path / "eval_harness.md").exists()
     assert not (tmp_path / COMPLETION_MARKER_NAME).exists()
 
 
@@ -90,6 +92,50 @@ def test_terminal_eval_harness_publishes_completion_marker_last(tmp_path: Path) 
     assert set(marker["artifacts"]) == set(REPORT_FILENAMES)
     for filename, digest in marker["artifacts"].items():
         assert hashlib.sha256((tmp_path / filename).read_bytes()).hexdigest() == digest
+    receipt = json.loads((tmp_path / "opik_projection.json").read_text())
+    assert receipt["state"] == "disabled"
+    assert receipt["reason"] == "endpoint_not_configured"
+
+
+def test_terminal_opik_failure_does_not_change_canonical_publication(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest = {
+        "schema": "roboclaws_eval_harness_manifest_v1",
+        "mode": "execute",
+        "budget": "focused",
+        "profile": "baseline-refresh",
+        "signals": [],
+        "summary": {"selected_row_count": 1},
+        "rows": [
+            {
+                "schema": "roboclaws_eval_harness_row_v1",
+                "row_id": "terminal",
+                "row_kind": "test_gate",
+                "selected": True,
+                "status": "ran",
+                "outcome": "passed",
+                "command_display": "true",
+                "reason_selected": "unit test",
+                "skip_reason": "",
+                "blocker_category": "",
+            }
+        ],
+    }
+    monkeypatch.setenv("ROBOCLAWS_OPIK_ENDPOINT", "http://127.0.0.1:5174")
+    monkeypatch.setattr(
+        "roboclaws.evals.opik_projection.harness.build_projection_snapshot",
+        lambda _path: (_ for _ in ()).throw(ValueError("projection failed")),
+    )
+
+    runner._write_outputs(manifest, tmp_path)
+
+    marker = json.loads((tmp_path / COMPLETION_MARKER_NAME).read_text())
+    for filename, digest in marker["artifacts"].items():
+        assert hashlib.sha256((tmp_path / filename).read_bytes()).hexdigest() == digest
+    receipt = json.loads((tmp_path / "opik_projection.json").read_text())
+    assert receipt["state"] == "unavailable"
+    assert receipt["reason"] == "opik_projection_failed"
 
 
 def test_rewriting_nonterminal_harness_removes_stale_completion_marker(tmp_path: Path) -> None:
@@ -145,18 +191,18 @@ def test_eval_harness_row_reflects_failed_eval_aggregate(tmp_path: Path) -> None
     }
 
 
-def test_eval_harness_attaches_and_reports_phoenix_projection(tmp_path: Path) -> None:
+def test_eval_harness_attaches_and_reports_opik_projection(tmp_path: Path) -> None:
     output_root = tmp_path / "evals"
     output_dir = output_root / "household_world_smoke_regression" / "unit"
     output_dir.mkdir(parents=True)
     (output_dir / "eval_results.json").write_text("{}\n", encoding="utf-8")
     (output_dir / "eval_report.html").write_text("<html></html>\n", encoding="utf-8")
-    (output_dir / "phoenix_projection.json").write_text(
+    (output_dir / "opik_projection.json").write_text(
         json.dumps(
             {
-                "schema": "roboclaws_phoenix_eval_projection_v3",
+                "schema": "roboclaws_opik_eval_projection_v2",
                 "state": "unavailable",
-                "reason": "phoenix_connection_failed",
+                "reason": "opik_unavailable",
             }
         ),
         encoding="utf-8",
@@ -172,12 +218,12 @@ def test_eval_harness_attaches_and_reports_phoenix_projection(tmp_path: Path) ->
 
     runner._attach_eval_outputs(row)
 
-    assert row["phoenix_projection"] == {
+    assert row["opik_projection"] == {
         "state": "unavailable",
-        "reason": "phoenix_connection_failed",
-        "mapping": str(output_dir / "phoenix_projection.json"),
+        "reason": "opik_unavailable",
+        "mapping": str(output_dir / "opik_projection.json"),
     }
-    assert any(path.endswith("phoenix_projection.json") for path in row["output_artifacts"])
+    assert any(path.endswith("opik_projection.json") for path in row["output_artifacts"])
     manifest = {
         "schema": "roboclaws_eval_harness_manifest_v1",
         "mode": "execute",
@@ -189,12 +235,12 @@ def test_eval_harness_attaches_and_reports_phoenix_projection(tmp_path: Path) ->
     harness_dir = tmp_path / "harness"
     harness_dir.mkdir()
     runner._write_outputs(manifest, harness_dir)
-    assert "Phoenix projection: `unavailable`" in (
-        tmp_path / "harness" / "eval_harness.md"
-    ).read_text(encoding="utf-8")
-    assert "unavailable (phoenix_connection_failed)" in (
-        tmp_path / "harness" / "eval_harness.html"
-    ).read_text(encoding="utf-8")
+    assert "Opik projection: `unavailable`" in (tmp_path / "harness" / "eval_harness.md").read_text(
+        encoding="utf-8"
+    )
+    assert "opik_projection.json" in (tmp_path / "harness" / "eval_harness.md").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_eval_harness_row_fails_aloud_for_malformed_eval_results_json(
@@ -280,8 +326,6 @@ def test_eval_harness_reports_show_outcome_and_failure_class(tmp_path: Path) -> 
     runner._write_outputs(manifest, tmp_path)
 
     markdown = (tmp_path / "eval_harness.md").read_text(encoding="utf-8")
-    html = (tmp_path / "eval_harness.html").read_text(encoding="utf-8")
     assert "- Outcome: `failed`" in markdown
     assert "- Failure class: `harness_bug_unclassified`" in markdown
-    assert "<th>Outcome</th>" in html
-    assert "harness_bug_unclassified" in html
+    assert "harness_bug_unclassified" in markdown

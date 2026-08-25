@@ -103,13 +103,11 @@ def test_explicit_regeneration_is_byte_stable(tmp_path: Path) -> None:
 
     runner.regenerate_observability_report(manifest_path)
     first = {
-        suffix: (tmp_path / f"eval_harness.{suffix}").read_bytes()
-        for suffix in ("json", "md", "html")
+        suffix: (tmp_path / f"eval_harness.{suffix}").read_bytes() for suffix in ("json", "md")
     }
     runner.regenerate_observability_report(manifest_path)
     second = {
-        suffix: (tmp_path / f"eval_harness.{suffix}").read_bytes()
-        for suffix in ("json", "md", "html")
+        suffix: (tmp_path / f"eval_harness.{suffix}").read_bytes() for suffix in ("json", "md")
     }
     assert second == first
 
@@ -128,7 +126,7 @@ def test_report_outputs_deny_stale_worker_paths(tmp_path: Path) -> None:
         ],
     )
     runner._write_outputs(manifest, tmp_path)
-    for suffix in ("json", "md", "html"):
+    for suffix in ("json", "md"):
         rendered = (tmp_path / f"eval_harness.{suffix}").read_text()
         assert "/tmp/roboclaws-cloudml" not in rendered
 
@@ -157,13 +155,13 @@ def test_attached_baseline_regressions_are_projected(tmp_path: Path) -> None:
     ]
 
 
-def test_phoenix_disabled_retains_local_drilldown(tmp_path: Path) -> None:
+def test_opik_disabled_retains_local_drilldown(tmp_path: Path) -> None:
     bundle = tmp_path / "provider" / "eval_results.json"
     run_dir = bundle.parent / "runs" / "sample" / "trial-0000"
     run_dir.mkdir(parents=True)
     bundle.write_text(json.dumps(_bundle("alpha", run_dir)), encoding="utf-8")
     (run_dir / "model_call_metrics.jsonl").write_text(json.dumps(_call("alpha", 1.0)) + "\n")
-    receipt = bundle.with_name("phoenix_projection.json")
+    receipt = bundle.with_name("opik_projection.json")
     receipt.write_text(json.dumps({"state": "disabled", "reason": "endpoint_not_configured"}))
     manifest = _manifest(
         tmp_path,
@@ -173,7 +171,7 @@ def test_phoenix_disabled_retains_local_drilldown(tmp_path: Path) -> None:
     triage = report["triage"]["rows"][0]
     assert report["state"] == "ready_with_limitations"
     assert triage["local_artifacts"]["run_dir"] == "provider/runs/sample/trial-0000"
-    assert triage["phoenix_run"] is None
+    assert triage["opik_run"] is None
 
 
 def test_acceptance_candidate_projection() -> None:

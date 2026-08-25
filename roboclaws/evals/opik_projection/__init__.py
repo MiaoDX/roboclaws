@@ -10,6 +10,7 @@ from roboclaws.evals.opik_projection.dashboard import reconcile_dashboard
 from roboclaws.evals.opik_projection.harness import (
     ProjectionError,
     build_projection_snapshot,
+    project_completed_harness_to_opik,
 )
 from roboclaws.evals.opik_projection.suite import (
     build_suite_projection_snapshot,
@@ -24,6 +25,7 @@ __all__ = [
     "build_projection_snapshot",
     "build_suite_projection_snapshot",
     "project_completed_eval_to_opik",
+    "project_completed_harness_to_opik",
     "project_eval_to_opik",
     "reconcile_dashboard",
     "project_snapshot",

@@ -54,7 +54,6 @@ cloudml-ops/yaml/<shard-id>.yaml
 cloudml-ops/manifests/<shard-id>.json
 cloudml-ops/collected/<shard-id>/
 eval_harness.md
-eval_harness.html
 ```
 
 Use these schemas in run-local files:
@@ -267,24 +266,24 @@ agent behavior failure as infrastructure.
    collection idempotent.
 4. For every accepted collected `eval_results.json` whose suite uses
    `roboclaws_eval_suite_v1`, call
-   `roboclaws.evals.phoenix_projection.project_completed_eval_to_phoenix`
+   `roboclaws.evals.opik_projection.suite.project_completed_eval_to_opik`
    locally with the frozen row's suite reference and accepted result path. This
-   reads the existing `ROBOCLAWS_PHOENIX_OTLP_ENDPOINT` configuration and
-   writes or replaces the adjacent `phoenix_projection.json`; do not carry a
+   reads the existing `ROBOCLAWS_OPIK_ENDPOINT` configuration and
+   writes or replaces the adjacent `opik_projection.json`; do not carry a
    worker-local disabled receipt forward as final evidence. Project valid
    failed and blocked result bundles, exclude rows without `eval_results.json`,
    and preserve `ready`, `disabled`, or `unavailable` in the row evidence. Mark
    other suite schemas explicitly `not_applicable`; their Trace telemetry keeps
    its own contract and must not be coerced into a repo suite Dataset.
    Projection is fail-open and must not change collection acceptance or the
-   eval outcome. Repeated collection must reuse immutable Phoenix identity.
+   eval outcome. Repeated collection must reuse immutable Opik identity.
 5. Merge results into the frozen manifest without changing row selection,
    command, case, or private-evaluation boundaries. Attach each accepted
-   `phoenix_projection.json` and its state/reason summary, write the authoritative
+   `opik_projection.json` and its state/reason summary, write the authoritative
    combined manifest locally, then call
    `roboclaws.evals.harness.runner.regenerate_observability_report` with that one
-   explicit manifest path. This package owner rebuilds the normal JSON, Markdown,
-   and HTML reports plus the nested decision section after all paths are relocated;
+   explicit manifest path. This package owner rebuilds the normal JSON and Markdown
+   reports plus the nested decision section after all paths are relocated;
    collection must not implement a second renderer or scan other run roots.
 6. Scan YAML, argv displays, logs, receipts, collected outputs, projection
    receipts, and reports for current credential values before accepting the run.
@@ -295,9 +294,9 @@ Do not call the run complete until all selected rows are executed, locally
 assigned, or explicitly blocked; every submitted shard is terminal; collection
 has zero unknown, duplicate, mismatched, or missing results; and the normal
 grader/report exit semantics are preserved. The final evidence must also name
-the Phoenix projection state for every accepted repo suite result bundle and
+the Opik projection state for every accepted repo suite result bundle and
 the explicit `not_applicable` reason for other suite schemas; a disabled or
-unavailable local Phoenix service remains an observability limitation, not an
+unavailable local Opik service remains an observability limitation, not an
 eval failure.
 
 Distinguish a terminal report from an accepted complete baseline. A report may
