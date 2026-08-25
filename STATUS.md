@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-24
+Last updated: 2026-08-25
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -10,86 +10,25 @@ leave a link.
 
 ## Current Focus
 
-The isolated Opik 2.2.36 eval-observability pilot is complete. Its trace and
-Experiment drilldown were strong, but hidden `evaluation_suite` discovery,
-missing documented persistent-dashboard provisioning, and a seven-service
-self-host footprint did not justify replacing the current stack. The decision
-is to retain Phoenix plus the companion report and not keep Opik as a second
-production observability system. The reproducible pilot deployment and
-projector remain diagnostic evidence only; see
-`docs/plans/2026-08-24-opik-self-host-eval-observability-pilot.md`.
+The Opik-only observability migration is complete. Opik 2.2.36 is the sole
+supported external backend for the `roboclaws-runtime` and `roboclaws-eval`
+Projects; local JSON, Markdown, run artifacts, graders, and human promotion
+remain canonical. Runtime and eval projection are bounded, loopback-only,
+idempotent, privacy-denying, and fail-open. See ADR-0150 and
+`docs/plans/2026-08-25-opik-only-observability-migration.md`.
 
-Completed Eval Harness decision reports now have a persistent local companion
-view through the existing report server. Terminal runs publish
-`eval_harness.completed.json` only after the JSON, Markdown, and HTML artifacts
-are atomically written and hashed; the server lists only valid completed runs
-at `http://127.0.0.1:6100/`, redirects `/latest`, and serves stable run-id
-routes while retaining Phoenix Experiment/Run drilldown links. Phoenix remains
-the trace and Experiment browser rather than a second metric owner. See
-`docs/human/evaluation.md` and
-`docs/plans/2026-08-18-observability-decision-report.md`.
+The production Dashboard is available at `http://127.0.0.1:5174/` and through
+the explicit trusted-LAN review bind at `http://10.169.12.60:5174/`. It links
+the full reviewed 65-row Dataset and states the fidelity boundary: 25 rows have
+native Experiment/trace drilldown and 40 remain Dataset-only. Opik 2.2.36 keeps
+a desktop-width Dashboard canvas on mobile, so narrow screens require
+horizontal navigation.
 
-The terminal Eval Harness now derives a quality-first observability decision section in the
-existing `eval_harness.json`, `eval_harness.md`, and `eval_harness.html`. It separates capability
-health, provider-treatment comparison, failure/stall triage, and telemetry coverage; quality,
-model-work, and latency eligibility are independent, missing telemetry stays unavailable, and
-Phoenix remains trial-linked drilldown only. The persisted `20260817T072338Z` candidate replayed
-exact 27/1/1 health, provider coverage, concurrency rejection, and the existing session/stall
-owners. The final selector proof passed 17 rows directly and all four fixed-prior provider rows in
-a separate explicit-prior attempt. See
-`docs/plans/2026-08-18-observability-decision-report.md`.
-
-The automatic-Phoenix full eval baseline candidate is complete at
-`output/eval-harness/20260817T072338Z/`. Of 29 selected rows, 27 passed, one
-failed, and one was blocked; 20 ran on CloudML and nine ran locally. The
-`openai-agents-sdk-session-live-eval` row regressed after
-`stopped_by_operator` and was classified `harness_bug_unclassified`. The
-`openai-agents-sdk-cleanup-dynamic-full-eval` bundle retained two passing trials
-and one `environment_blocked` trial after a 180-second model-call stall. One
-CloudML infrastructure retry repaired an eval-unit-tests Git ownership mismatch.
-The credential-value scan found no leaks. This candidate is terminal evidence,
-not an accepted baseline, and publication remains unauthorized.
-
-Phoenix information architecture simplification is implemented under
-`docs/plans/2026-08-10-phoenix-information-architecture-simplification.md`.
-Future traces route only to `roboclaws-runtime` or `roboclaws-eval`; arbitrary
-Project selection is removed. Eval projection names Datasets by stable suite
-task, keeps suite version and content identity in metadata, and binds every
-Experiment to one exact immutable Dataset version. Public sample changes require
-a suite-version bump plus an explicit local Phoenix rebuild and reprojection
-because Phoenix 11.20 cannot modify or remove snapshot examples. Heterogeneous
-bundles split into readable homogeneous Experiments, and unchanged Experiments,
-runs, and evaluations reuse full immutable identity.
-
-Repo-native suite completion now automatically projects its persisted results
-when the loopback Phoenix OTLP endpoint is configured. CLI and Eval Harness
-evidence include the adjacent fail-open receipt; accepted CloudML bundles use
-the same projector during local collection. Manual `phoenix-project` remains
-only for repair, backfill, and dataset-only projection. During the new baseline,
-local suite completion visibly advanced the permanent Phoenix 11.20 store from
-17 Experiments, 55 Runs, and 249 Evaluations to 23 Experiments, 68 Runs, and 302
-Evaluations while retaining seven Datasets. Final collection replaced worker-
-local disabled receipts: all 16 repo-suite bundles are `ready`, including the
-blocked dynamic-full bundle, while `operator_session_live` remains Trace-only
-under its specialist schema. A second complete finalization kept all four
-Phoenix counts unchanged, proving immutable projection reuse.
-
-Historical Phoenix backfill is complete for nine prior terminal full baseline
-and candidate roots from 2026-07-28 through `20260817T015316Z`. Of 125 canonical
-bundles, 105 repo-suite bundles are `ready`, eight specialist session bundles
-are explicitly `not_applicable`, and 12 bundles from the oldest 2026-07-28 run
-were removed because their recorded sample release does not match the current
-suite release. Archive copies and ad-hoc smoke/debug runs were excluded.
-The backfill advanced Phoenix to eight Datasets, 42 Experiments, 110 Runs, and
-435 Evaluations; a second pass reused the same identities and the credential-
-value scan found no leaks. Evidence is under
-`output/eval-harness/phoenix-historical-backfill-20260817T105951Z/`.
-
-The live Phoenix 11.20 database now uses the repo-local bind mount
-`output/phoenix/` instead of a hidden Docker named volume. Migration preserved
-all eight Datasets, 42 Experiments, 110 Runs, 435 Evaluations, and three
-Projects; the previous `phoenix_phoenix-data` volume remains as a point-in-time
-rollback copy.
+Phoenix and the Eval Harness HTML companion are retired from active code,
+deployment, tests, commands, and docs. New terminal harness runs atomically
+publish only `eval_harness.json` and `eval_harness.md`, then write completion v2
+and a fail-open `opik_projection.json`. Retained `output/phoenix/` and
+`output/opik-poc/` remain inactive historical evidence and were not deleted.
 
 ## Previous Focus
 
@@ -142,10 +81,9 @@ providers.
 
 ## Next Action
 
-Use the generated decision section when investigating future terminal candidates. The new required
-live proof passed the prior session-live and dynamic-full rows, but it does not publish or accept a
-baseline. Keep the product Skill-delivery default unchanged; its separate multi-scene confirmation
-requirement still applies.
+Use the Opik Dashboard for current external review and local JSON/Markdown for
+canonical decisions. The Eval Harness candidate and Skill-delivery baseline
+decisions remain unchanged.
 
 ## Current Blockers
 
