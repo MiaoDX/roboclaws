@@ -82,7 +82,8 @@ household capability shape:
 
 1. `household_world.smoke_regression` as the deterministic contract baseline.
 2. `household_world.map_build_quality` as the map-build capability sample.
-3. `household_world.open_ended_goals` only when the explicit live showcase
+3. `household_world.cleanup_capability` as the repeated cleanup effect sample.
+4. `household_world.open_ended_goals` only when the explicit live showcase
    input enables a supported provider; otherwise record a blocked row without
    attempting a provider call.
 
@@ -103,7 +104,7 @@ HTML and Markdown are pure projections and never recompute pass/fail or metrics.
 The first publication contains one `latest` page with:
 
 - last attempt and last successful evidence timestamps;
-- the three capability rows and their status/reason;
+- the four capability rows and their status/reason;
 - exact commit and Actions run links;
 - links to retained GitHub artifacts and domain-owned reports;
 - an explicit statement that this is advisory showcase evidence, not a merge

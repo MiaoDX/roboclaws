@@ -2,8 +2,9 @@
   "schema": "roboclaws_showcase_manifest_v1",
   "version": "1",
   "rows": [
-    {"id": "household_world.smoke_regression", "suite": "smoke_regression", "version": "1", "seed": 7, "budget": "smoke", "timeout_s": 300, "execution_mode": "deterministic"},
-    {"id": "household_world.map_build_quality", "suite": "map_build_quality", "version": "1", "seed": 7, "budget": "smoke", "timeout_s": 600, "execution_mode": "deterministic"},
-    {"id": "household_world.open_ended_goals", "suite": "open_ended_goals", "version": "1", "seed": 7, "budget": "smoke", "timeout_s": 900, "execution_mode": "manual_live_only"}
+    {"id": "household_world.smoke_regression", "suite": "smoke_regression", "version": "2026-06-15", "sample_ids": ["cleanup.smoke_seed7"], "agent_engine": "direct-runner", "provider_profile": null, "seed": 7, "evidence_lane": "world-public-labels", "budget": "smoke", "timeout_s": 300, "execution_mode": "deterministic"},
+    {"id": "household_world.map_build_quality", "suite": "map_build_quality", "version": "2026-07-23", "sample_ids": ["map_build.fixture_focused_seed7"], "agent_engine": "direct-runner", "provider_profile": null, "live_agent_engine": "openai-agents-sdk", "live_provider_profile": "kimi-openai-chat", "seed": 7, "evidence_lane": "camera-grounded-labels", "budget": "smoke", "timeout_s": 600, "execution_mode": "deterministic_and_manual_live"},
+    {"id": "household_world.cleanup_capability", "suite": "cleanup_capability", "version": "2026-06-15", "sample_ids": ["cleanup.repeated_seed7"], "agent_engine": "direct-runner", "provider_profile": null, "live_agent_engine": "openai-agents-sdk", "live_provider_profile": "kimi-openai-chat", "seed": 7, "evidence_lane": "world-public-labels", "budget": "smoke", "timeout_s": 600, "execution_mode": "deterministic_and_manual_live"},
+    {"id": "household_world.open_ended_goals", "suite": "open_ended_goals", "version": "2026-06-15", "sample_ids": ["open_ended.drink_seed7", "open_ended.room4_anchor_seed7", "open_ended.living_waypoint_seed7"], "agent_engine": null, "provider_profile": null, "live_agent_engine": "openai-agents-sdk", "live_provider_profile": "kimi-openai-chat", "seed": 7, "evidence_lane": "world-public-labels", "budget": "smoke", "timeout_s": 900, "execution_mode": "manual_live_only"}
   ]
 }

@@ -74,7 +74,7 @@ the first place a local-only claim is exercised.
 | Job | Trigger | Purpose |
 | --- | --- | --- |
 | `lint-and-mock` | every push and PR | `just agent::verify`: ruff, format check, deterministic pytest, and active household report contracts. |
-| `Capability showcase` | weekly or manual | Advisory manifest-driven eval evidence and a sanitized latest Pages projection. |
+| `Capability showcase` | weekly or manual | Advisory Smoke, Map Build, Cleanup, and optional open-ended eval evidence with a sanitized latest Pages projection. |
 
 Required CI must stay deterministic and secret-light. Real provider, GPU,
 Isaac, Agibot, and robot-backed runs belong in advisory, manual, scheduled,
