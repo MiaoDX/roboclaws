@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       live_execution:
-        description: "Set run to execute the provider-backed showcase rows on main"
+        description: "Set run to execute provider-backed showcase rows on this branch"
         required: false
         default: "blocked"
 
@@ -33,7 +33,7 @@ jobs:
           python-version: "3.12"
       - run: uv sync --extra dev
       - name: Run model-backed showcase manifest
-        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.live_execution == 'run')
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.live_execution == 'run')
         continue-on-error: true
         env:
           KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
@@ -50,7 +50,7 @@ jobs:
           PAGES_URL: ${{ steps.pages.outputs.base_url }}/showcase-summary-v1.json
         run: curl --fail --silent --show-error "$PAGES_URL" -o output/showcase/previous.json
       - name: Record showcase without live provider request
-        if: github.event_name == 'workflow_dispatch' && (inputs.live_execution != 'run' || github.ref != 'refs/heads/main')
+        if: github.event_name == 'workflow_dispatch' && inputs.live_execution != 'run'
         continue-on-error: true
         run: |
           mkdir -p output/showcase
@@ -85,7 +85,7 @@ jobs:
           name: showcase-summary-${{ github.sha }}
           path: output/showcase/site/**
       - name: Require model-backed showcase success
-        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.live_execution == 'run')
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.live_execution == 'run')
         run: |
           .venv/bin/python - <<'PY'
           import json

@@ -10,7 +10,9 @@ def test_showcase_workflow_is_advisory_bounded_and_secret_guarded() -> None:
     assert "cancel-in-progress: false" in workflow
     assert "timeout-minutes: 45" in workflow
     assert "continue-on-error: true" in workflow
-    assert "github.ref == 'refs/heads/main'" in workflow
+    assert (
+        "if: github.event_name == 'workflow_dispatch' && inputs.live_execution != 'run'" in workflow
+    )
     assert "inputs.live_execution == 'run'" in workflow
     assert "KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}" in workflow
     assert "Require model-backed showcase success" in workflow
