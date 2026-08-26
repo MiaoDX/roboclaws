@@ -75,10 +75,16 @@ def execute_manifest(
     results: dict[str, str] = {}
     attempts: list[dict[str, Any]] = []
     for row in manifest["rows"]:
+        execution_identity = _row_execution_identity(row, live_execution=live_execution)
         command = _row_command(row, live_execution=live_execution, output_dir=output_dir)
         if command is None:
             attempts.append(
-                {"id": row["id"], "state": "blocked", "reason": "live_execution_not_requested"}
+                {
+                    "id": row["id"],
+                    "state": "blocked",
+                    "reason": "live_execution_not_requested",
+                    **execution_identity,
+                }
             )
             continue
         try:
@@ -90,22 +96,52 @@ def execute_manifest(
                 timeout=int(row["timeout_s"]),
             )
         except subprocess.TimeoutExpired:
-            attempts.append({"id": row["id"], "state": "blocked", "reason": "showcase_row_timeout"})
+            attempts.append(
+                {
+                    "id": row["id"],
+                    "state": "blocked",
+                    "reason": "showcase_row_timeout",
+                    **execution_identity,
+                }
+            )
             continue
         if completed.returncode != 0:
-            attempts.append({"id": row["id"], "state": "blocked", "reason": "suite_command_failed"})
+            attempts.append(
+                {
+                    "id": row["id"],
+                    "state": "blocked",
+                    "reason": "suite_command_failed",
+                    **execution_identity,
+                }
+            )
             continue
         try:
             payload = json.loads(completed.stdout)
             results_path = Path(payload["results"])
         except (KeyError, TypeError, json.JSONDecodeError):
-            attempts.append({"id": row["id"], "state": "blocked", "reason": "suite_output_invalid"})
+            attempts.append(
+                {
+                    "id": row["id"],
+                    "state": "blocked",
+                    "reason": "suite_output_invalid",
+                    **execution_identity,
+                }
+            )
             continue
         if not results_path.is_file():
-            attempts.append({"id": row["id"], "state": "blocked", "reason": "results_unavailable"})
+            attempts.append(
+                {
+                    "id": row["id"],
+                    "state": "blocked",
+                    "reason": "results_unavailable",
+                    **execution_identity,
+                }
+            )
             continue
         results[row["id"]] = str(results_path)
-        attempts.append({"id": row["id"], "state": "completed", "reason": None})
+        attempts.append(
+            {"id": row["id"], "state": "completed", "reason": None, **execution_identity}
+        )
     index = {"schema": "roboclaws_showcase_execution_v1", "results": results, "attempts": attempts}
     write_atomic(output_dir / "execution.json", index)
     return index
@@ -141,12 +177,29 @@ def _row_command(row: dict[str, Any], *, live_execution: str, output_dir: Path) 
     return command
 
 
+def _row_execution_identity(row: dict[str, Any], *, live_execution: str) -> dict[str, Any]:
+    use_live = live_execution == "run" and row["execution_mode"] in {
+        "manual_live_only",
+        "deterministic_and_manual_live",
+    }
+    engine_key = "live_agent_engine" if use_live else "agent_engine"
+    profile_key = "live_provider_profile" if use_live else "provider_profile"
+    if row["execution_mode"] == "manual_live_only" and live_execution == "blocked":
+        engine_key = "live_agent_engine"
+        profile_key = "live_provider_profile"
+    return {
+        "agent_engine": row.get(engine_key),
+        "provider_profile": row.get(profile_key),
+    }
+
+
 def derive_row(
     row: dict[str, Any],
     results: dict[str, Any] | None,
     *,
     source: str | None = None,
     missing_reason: str = "results_unavailable",
+    execution_identity: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     aggregate = results.get("aggregate", {}) if isinstance(results, dict) else {}
     if not isinstance(aggregate, dict):
@@ -173,14 +226,23 @@ def derive_row(
         for key in ALLOWED_METRICS
         if key in aggregate and isinstance(aggregate[key], (int, float))
     }
+    identities = results.get("results", []) if isinstance(results, dict) else []
+    canonical_identity = (
+        identities[0].get("identity", {})
+        if isinstance(identities, list) and identities and isinstance(identities[0], dict)
+        else {}
+    )
+    selected_identity = execution_identity or {}
     result = {
         "id": row["id"],
         "suite": row["suite"],
         "version": row["version"],
         "sample_ids": list(row.get("sample_ids") or []),
-        "agent_engine": row.get("agent_engine") or row.get("live_agent_engine"),
-        "provider_profile": row.get("provider_profile") or row.get("live_provider_profile"),
-        "evidence_lane": row.get("evidence_lane"),
+        "agent_engine": canonical_identity.get("agent_engine")
+        or selected_identity.get("agent_engine"),
+        "provider_profile": canonical_identity.get("provider_profile")
+        or selected_identity.get("provider_profile"),
+        "evidence_lane": canonical_identity.get("evidence_lane") or row.get("evidence_lane"),
         "status": status,
         "reason": reason,
         "metrics": metrics,
@@ -324,6 +386,14 @@ def main(argv: list[str] | None = None) -> int:
         for item in execution.get("attempts", [])
         if isinstance(item, dict) and isinstance(item.get("id"), str)
     }
+    attempt_identities = {
+        item["id"]: {
+            "agent_engine": item.get("agent_engine"),
+            "provider_profile": item.get("provider_profile"),
+        }
+        for item in execution.get("attempts", [])
+        if isinstance(item, dict) and isinstance(item.get("id"), str)
+    }
     rows = []
     for row in manifest["rows"]:
         path_value = result_paths.get(row["id"])
@@ -340,6 +410,7 @@ def main(argv: list[str] | None = None) -> int:
                 payload,
                 source=path_value,
                 missing_reason=attempt_reasons.get(row["id"], "results_unavailable"),
+                execution_identity=attempt_identities.get(row["id"]),
             )
         )
     previous = None

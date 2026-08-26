@@ -81,5 +81,31 @@ def test_execute_manifest_blocks_live_rows_without_provider_call(tmp_path):
             "id": "household_world.open_ended_goals",
             "state": "blocked",
             "reason": "live_execution_not_requested",
+            "agent_engine": "openai-agents-sdk",
+            "provider_profile": "kimi-openai-chat",
         }
     ]
+
+
+def test_row_identity_comes_from_canonical_result_not_available_live_profile():
+    row = json.loads(
+        (Path(__file__).resolve().parents[3] / "config/showcase-manifest.json").read_text()
+    )["rows"][1]
+    result = derive_row(
+        row,
+        {
+            "aggregate": {"total": 1, "passed": 1},
+            "results": [
+                {
+                    "identity": {
+                        "agent_engine": "direct-runner",
+                        "provider_profile": "not_applicable",
+                        "evidence_lane": "world-public-labels",
+                    }
+                }
+            ],
+        },
+    )
+    assert result["agent_engine"] == "direct-runner"
+    assert result["provider_profile"] == "not_applicable"
+    assert result["evidence_lane"] == "world-public-labels"
