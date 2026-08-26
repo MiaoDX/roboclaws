@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from roboclaws.evals.showcase import (
+    _row_command,
     build_summary,
     derive_row,
     execute_manifest,
@@ -65,26 +66,52 @@ def test_empty_attempt_is_blocked_not_passed():
     assert row["reason"] == "incomplete_attempt"
 
 
+def test_unrequested_live_attempt_is_not_run():
+    m = manifest()
+    row = derive_row(m["rows"][0], None, missing_reason="live_execution_not_requested")
+    assert row["status"] == "not_run"
+    assert row["reason"] == "live_execution_not_requested"
+
+
 def test_manifest_matches_canonical_suite_fixtures():
     root = Path(__file__).resolve().parents[3]
     validate_manifest(json.loads((root / "config/showcase-manifest.json").read_text()))
 
 
-def test_execute_manifest_runs_open_ended_deterministically_without_provider(tmp_path):
+def test_execute_manifest_does_not_run_model_lane_without_live_request(tmp_path):
     root = Path(__file__).resolve().parents[3]
     m = json.loads((root / "config/showcase-manifest.json").read_text())
     m["rows"] = [m["rows"][-1]]
     result = execute_manifest(m, output_dir=tmp_path, live_execution="blocked")
-    assert "household_world.open_ended_goals" in result["results"]
+    assert result["results"] == {}
     assert result["attempts"] == [
         {
             "id": "household_world.open_ended_goals",
-            "state": "completed",
-            "reason": None,
-            "agent_engine": "direct-runner",
-            "provider_profile": None,
+            "state": "blocked",
+            "reason": "live_execution_not_requested",
+            "agent_engine": "openai-agents-sdk",
+            "provider_profile": "kimi-openai-chat",
         }
     ]
+
+
+def test_model_lane_live_command_uses_canonical_provider_identity(tmp_path):
+    root = Path(__file__).resolve().parents[3]
+    m = json.loads((root / "config/showcase-manifest.json").read_text())
+    command = _row_command(m["rows"][-1], live_execution="run", output_dir=tmp_path)
+    assert command is not None
+    assert "agent_engine=openai-agents-sdk" in command
+    assert "provider_profile=kimi-openai-chat" in command
+    assert "live_execution=run" in command
+
+
+def test_execute_manifest_keeps_contract_smoke_deterministic(tmp_path):
+    root = Path(__file__).resolve().parents[3]
+    m = json.loads((root / "config/showcase-manifest.json").read_text())
+    m["rows"] = [m["rows"][0]]
+    result = execute_manifest(m, output_dir=tmp_path, live_execution="blocked")
+    assert "household_world.smoke_regression" in result["results"]
+    assert result["attempts"][0]["agent_engine"] == "direct-runner"
 
 
 def test_row_identity_comes_from_canonical_result_not_available_live_profile():

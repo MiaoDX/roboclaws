@@ -8,11 +8,13 @@ def test_showcase_workflow_is_advisory_bounded_and_secret_guarded() -> None:
     assert "pull_request:" not in workflow
     assert "push:" not in workflow
     assert "cancel-in-progress: false" in workflow
-    assert "timeout-minutes: 30" in workflow
+    assert "timeout-minutes: 45" in workflow
     assert "continue-on-error: true" in workflow
     assert "github.ref == 'refs/heads/main'" in workflow
     assert "inputs.live_execution == 'run'" in workflow
     assert "KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}" in workflow
+    assert "Require model-backed showcase success" in workflow
+    assert 'row["status"] != "passed"' in workflow
     assert "actions/deploy-pages@v4" in workflow
     assert "actions/configure-pages@v5" in workflow
     assert "environment:\n      name: github-pages" in workflow

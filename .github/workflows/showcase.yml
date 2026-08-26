@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       live_execution:
-        description: "Set run to permit the manual provider-backed row"
+        description: "Set run to execute the provider-backed showcase rows on main"
         required: false
         default: "blocked"
 
@@ -21,7 +21,7 @@ jobs:
   showcase:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - name: Configure Pages
@@ -32,33 +32,25 @@ jobs:
         with:
           python-version: "3.12"
       - run: uv sync --extra dev
-      - name: Run deterministic showcase manifest
-        if: github.event_name == 'schedule' || inputs.live_execution != 'run'
-        continue-on-error: true
-        run: |
-          mkdir -p output/showcase
-          .venv/bin/python -m roboclaws.evals.showcase \
-            --manifest config/showcase-manifest.json \
-            --output output/showcase \
-            --execute --live-execution blocked
-      - name: Restore durable last-success pointers
-        continue-on-error: true
-        env:
-          PAGES_URL: ${{ steps.pages.outputs.base_url }}/showcase-summary-v1.json
-        run: curl --fail --silent --show-error "$PAGES_URL" -o output/showcase/previous.json
-      - name: Run trusted manual open-ended sample
-        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.live_execution == 'run'
+      - name: Run model-backed showcase manifest
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.live_execution == 'run')
         continue-on-error: true
         env:
           KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
           KIMI_OPENAI_BASE_URL: ${{ secrets.KIMI_OPENAI_BASE_URL }}
         run: |
+          mkdir -p output/showcase
           .venv/bin/python -m roboclaws.evals.showcase \
             --manifest config/showcase-manifest.json \
             --output output/showcase \
             --execute --live-execution run
-      - name: Record blocked manual request outside trusted main
-        if: github.event_name == 'workflow_dispatch' && inputs.live_execution == 'run' && github.ref != 'refs/heads/main'
+      - name: Restore durable last-success pointers
+        continue-on-error: true
+        env:
+          PAGES_URL: ${{ steps.pages.outputs.base_url }}/showcase-summary-v1.json
+        run: curl --fail --silent --show-error "$PAGES_URL" -o output/showcase/previous.json
+      - name: Record showcase without live provider request
+        if: github.event_name == 'workflow_dispatch' && (inputs.live_execution != 'run' || github.ref != 'refs/heads/main')
         continue-on-error: true
         run: |
           mkdir -p output/showcase
@@ -92,6 +84,20 @@ jobs:
         with:
           name: showcase-summary-${{ github.sha }}
           path: output/showcase/site/**
+      - name: Require model-backed showcase success
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.live_execution == 'run')
+        run: |
+          .venv/bin/python - <<'PY'
+          import json
+          from pathlib import Path
+
+          summary = json.loads(
+              Path("output/showcase/site/showcase-summary-v1.json").read_text(encoding="utf-8")
+          )
+          unsuccessful = [row["id"] for row in summary["rows"] if row["status"] != "passed"]
+          if unsuccessful:
+              raise SystemExit(f"showcase rows did not pass: {', '.join(unsuccessful)}")
+          PY
 
   deploy-pages:
     if: always() && github.ref == 'refs/heads/main'

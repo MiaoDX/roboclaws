@@ -80,12 +80,12 @@ Required CI must stay deterministic and secret-light. Real provider, GPU,
 Isaac, Agibot, and robot-backed runs belong in advisory, manual, scheduled,
 or local-only gates unless explicitly promoted.
 
-The weekly showcase never receives provider secrets and runs the deterministic
-open-ended contract. A trusted manual run may explicitly set
-`live_execution=run` for the provider-backed variant; this is separate from push
-and pull-request CI. Showcase
-failures never change merge status, and a failed or blocked row preserves its
-previous successful evidence pointer.
+The weekly showcase runs the Kimi-backed Map Build, Cleanup, and Open-ended
+capability rows. A trusted `main` manual run may explicitly set
+`live_execution=run` for the same provider-backed variant; push and pull-request
+CI remain deterministic and secret-free. Showcase failures never change merge
+status, and a failed or unrequested row preserves its previous successful
+evidence pointer.
 
 ## Secrets
 

@@ -16,7 +16,7 @@ from typing import Any
 
 SCHEMA = "roboclaws_showcase_summary_v1"
 MANIFEST_SCHEMA = "roboclaws_showcase_manifest_v1"
-STATUSES = {"passed", "failed", "blocked"}
+STATUSES = {"passed", "failed", "blocked", "not_run"}
 ALLOWED_METRICS = {"total", "passed", "failed", "blocked", "pass_at_1"}
 PRIVATE_KEYS = {"prompt", "goal", "tool_body", "image", "map", "endpoint", "secret"}
 EXECUTION_MODES = {"deterministic", "deterministic_and_manual_live", "manual_live_only"}
@@ -157,7 +157,7 @@ def _row_command(row: dict[str, Any], *, live_execution: str, output_dir: Path) 
     }
     engine_key = "live_agent_engine" if use_live else "agent_engine"
     profile_key = "live_provider_profile" if use_live else "provider_profile"
-    engine = row.get(engine_key)
+    engine = row.get(engine_key) or (row.get("agent_engine") if use_live else None)
     if not isinstance(engine, str) or not engine:
         return None
     command = [
@@ -169,7 +169,7 @@ def _row_command(row: dict[str, Any], *, live_execution: str, output_dir: Path) 
         f"agent_engine={engine}",
         f"output_dir={output_dir / 'evals'}",
     ]
-    profile = row.get(profile_key)
+    profile = row.get(profile_key) or (row.get("provider_profile") if use_live else None)
     if isinstance(profile, str) and profile:
         command.append(f"provider_profile={profile}")
     if use_live:
@@ -185,11 +185,16 @@ def _row_execution_identity(row: dict[str, Any], *, live_execution: str) -> dict
     engine_key = "live_agent_engine" if use_live else "agent_engine"
     profile_key = "live_provider_profile" if use_live else "provider_profile"
     if row["execution_mode"] == "manual_live_only" and live_execution == "blocked":
-        engine_key = "live_agent_engine"
-        profile_key = "live_provider_profile"
+        # Manual-live rows keep their canonical provider identity in the main
+        # fields; older manifests may still carry the live_* aliases.
+        engine_key = "live_agent_engine" if row.get("live_agent_engine") else "agent_engine"
+        profile_key = (
+            "live_provider_profile" if row.get("live_provider_profile") else "provider_profile"
+        )
     return {
-        "agent_engine": row.get(engine_key),
-        "provider_profile": row.get(profile_key),
+        "agent_engine": row.get(engine_key) or (row.get("agent_engine") if use_live else None),
+        "provider_profile": row.get(profile_key)
+        or (row.get("provider_profile") if use_live else None),
     }
 
 
@@ -205,7 +210,8 @@ def derive_row(
     if not isinstance(aggregate, dict):
         aggregate = {}
     if results is None:
-        status, reason = "blocked", missing_reason
+        status = "not_run" if missing_reason == "live_execution_not_requested" else "blocked"
+        reason = missing_reason
     elif (
         aggregate.get("blocked", 0)
         and not aggregate.get("failed", 0)
