@@ -1,0 +1,100 @@
+name: Capability showcase
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      live_execution:
+        description: "Set run to permit the manual provider-backed row"
+        required: false
+        default: "blocked"
+      provider_profile:
+        description: "Supported provider profile for an explicitly enabled live row"
+        required: false
+        default: "kimi-openai-chat"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: capability-showcase
+  cancel-in-progress: false
+
+jobs:
+  showcase:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync --extra dev
+      - name: Run deterministic showcase suites
+        id: suites
+        continue-on-error: true
+        run: |
+          mkdir -p output/showcase
+          .venv/bin/python -m roboclaws.evals.cli suite=smoke_regression budget=smoke seed=7 > output/showcase/smoke.json
+          jq -r .results output/showcase/smoke.json > output/showcase/smoke.path
+          .venv/bin/python -m roboclaws.evals.cli suite=map_build_quality budget=smoke seed=7 > output/showcase/map.json
+          jq -r .results output/showcase/map.json > output/showcase/map.path
+      - name: Restore durable last-success pointers
+        continue-on-error: true
+        env:
+          PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/showcase-summary-v1.json
+        run: curl --fail --silent --show-error "$PAGES_URL" -o output/showcase/previous.json
+      - name: Run trusted manual open-ended sample
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.live_execution == 'run'
+        continue-on-error: true
+        env:
+          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
+          KIMI_OPENAI_BASE_URL: ${{ secrets.KIMI_OPENAI_BASE_URL }}
+        run: |
+          .venv/bin/python -m roboclaws.evals.cli \
+            suite=open_ended_goals budget=smoke seed=7 \
+            live_execution=run agent_engine=openai-agents-sdk \
+            provider_profile="${{ inputs.provider_profile }}" > output/showcase/open.json
+          jq -r .results output/showcase/open.json > output/showcase/open.path
+      - name: Build sanitized summary and latest projection
+        if: always()
+        env:
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          args=()
+          test ! -s output/showcase/smoke.path || args+=(--result "household_world.smoke_regression=$(cat output/showcase/smoke.path)")
+          test ! -s output/showcase/map.path || args+=(--result "household_world.map_build_quality=$(cat output/showcase/map.path)")
+          test ! -s output/showcase/open.path || args+=(--result "household_world.open_ended_goals=$(cat output/showcase/open.path)")
+          .venv/bin/python -m roboclaws.evals.showcase \
+            --manifest config/showcase-manifest.json \
+            --output output/showcase/site \
+            --commit "${{ github.sha }}" \
+            --run-url "$RUN_URL" \
+            --previous output/showcase/previous.json \
+            "${args[@]}"
+      - name: Upload canonical evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capability-showcase-${{ github.sha }}
+          path: output/evals/**
+          if-no-files-found: warn
+      - name: Upload showcase summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: showcase-summary-${{ github.sha }}
+          path: output/showcase/site/**
+      - name: Upload Pages artifact
+        if: always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: output/showcase/site
+      - name: Deploy latest advisory showcase
+        if: always()
+        uses: actions/deploy-pages@v4

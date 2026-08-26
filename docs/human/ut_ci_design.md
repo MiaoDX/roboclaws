@@ -17,8 +17,8 @@ for real services and real simulator/backend evidence.
 4. Real model, external-service, GPU, simulator, and robot-backed runs are
    evidence gates. They should be `main`-only, advisory, opt-in, nightly, or
    local-only unless they are stable and cheap enough to block ordinary PRs.
-5. The retired GitHub Pages site is a frozen historical archive. Current CI
-   must not imply that it assembles or publishes that site.
+5. The retired report site is a frozen historical archive. The active Pages
+   surface is only the advisory, sanitized capability-showcase latest view.
 
 ## Why CI Still Runs Lint And Format
 
@@ -43,6 +43,7 @@ CI. Removing them saves little and makes `main` depend on local discipline.
 | Opt-in expensive gate | manual dispatch or commit tag | no by default | live model matrices, open-ended household tasks, broad backend comparisons |
 | Local-only proof | developer workstation | no hosted CI | GPU, real robot, Isaac, Agibot GDK, full MolmoSpaces visual proof |
 | Eval suite | scheduled, manual, or release gate | no by default until accepted | versioned samples, repeated trials, graders, aggregate metrics, and regression replay |
+| Capability showcase | weekly deterministic or trusted manual | no | Three manifest-owned capability rows, canonical bundles, sanitized latest projection, and per-row last-success pointers. |
 
 ## Command Surface Policy
 
@@ -138,3 +139,10 @@ For changes whose claim depends on real simulator, model, GPU, or
 robot behavior, run the matching local task or harness and record the command
 and artifact path. CI does not publish these results to the frozen Pages
 archive; it is not the first validation for local-only claims.
+
+The active showcase is owned by `config/showcase-manifest.json` and
+`.github/workflows/showcase.yml`. Workflow YAML owns scheduling and permissions;
+the manifest owns suite identity, seed, budget, timeout, and execution mode.
+`showcase-summary-v1.json` is derived from canonical `eval_results.json`; HTML
+and Markdown are projections and contain no grading logic. Opik remains an
+optional local post-processing destination and is not contacted by hosted CI.

@@ -74,10 +74,17 @@ the first place a local-only claim is exercised.
 | Job | Trigger | Purpose |
 | --- | --- | --- |
 | `lint-and-mock` | every push and PR | `just agent::verify`: ruff, format check, deterministic pytest, and active household report contracts. |
+| `Capability showcase` | weekly or manual | Advisory manifest-driven eval evidence and a sanitized latest Pages projection. |
 
 Required CI must stay deterministic and secret-light. Real provider, GPU,
 Isaac, Agibot, and robot-backed runs belong in advisory, manual, scheduled,
 or local-only gates unless explicitly promoted.
+
+The weekly showcase never receives provider secrets. Its open-ended row is
+`blocked` with an unavailable reason. A trusted manual run may explicitly set
+`live_execution=run`; this is separate from push and pull-request CI. Showcase
+failures never change merge status, and a failed or blocked row preserves its
+previous successful evidence pointer.
 
 ## Secrets
 

@@ -1,0 +1,9 @@
+{
+  "schema": "roboclaws_showcase_manifest_v1",
+  "version": "1",
+  "rows": [
+    {"id": "household_world.smoke_regression", "suite": "smoke_regression", "version": "1", "seed": 7, "budget": "smoke", "timeout_s": 300, "execution_mode": "deterministic"},
+    {"id": "household_world.map_build_quality", "suite": "map_build_quality", "version": "1", "seed": 7, "budget": "smoke", "timeout_s": 600, "execution_mode": "deterministic"},
+    {"id": "household_world.open_ended_goals", "suite": "open_ended_goals", "version": "1", "seed": 7, "budget": "smoke", "timeout_s": 900, "execution_mode": "manual_live_only"}
+  ]
+}

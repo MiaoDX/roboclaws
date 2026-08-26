@@ -1,10 +1,10 @@
 ---
 plan_scope: ci-capability-showcase
-status: Proposed
+status: Implementing
 created: 2026-08-26
 last_reviewed: 2026-08-26
-implementation_allowed: false
-current_phase: planning-loop
+implementation_allowed: true
+current_phase: verification
 related_context:
   - STATUS.md
   - README.md
