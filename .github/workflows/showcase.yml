@@ -24,6 +24,9 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - name: Configure Pages
@@ -80,8 +83,7 @@ jobs:
             --run-url "$RUN_URL" \
             --artifact-url "$RUN_URL#artifacts" \
             --execution-index output/showcase/execution.json \
-            --previous output/showcase/previous.json \
-            
+            --previous output/showcase/previous.json
       - name: Upload canonical evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -104,6 +106,3 @@ jobs:
         if: always()
         id: deployment
         uses: actions/deploy-pages@v4
-        environment:
-          name: github-pages
-          url: ${{ steps.deployment.outputs.page_url }}

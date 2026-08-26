@@ -15,6 +15,7 @@ def test_showcase_workflow_is_advisory_bounded_and_secret_guarded() -> None:
     assert "KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}" in workflow
     assert "actions/deploy-pages@v4" in workflow
     assert "actions/configure-pages@v5" in workflow
+    assert "environment:\n      name: github-pages" in workflow
     assert "cleanup_capability" in (ROOT / "config/showcase-manifest.json").read_text()
     assert "seed=7" not in workflow
 
