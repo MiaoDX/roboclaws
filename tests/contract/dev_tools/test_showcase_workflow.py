@@ -16,6 +16,8 @@ def test_showcase_workflow_is_advisory_bounded_and_secret_guarded() -> None:
     assert "actions/deploy-pages@v4" in workflow
     assert "actions/configure-pages@v5" in workflow
     assert "environment:\n      name: github-pages" in workflow
+    assert "if: always() && github.ref == 'refs/heads/main'" in workflow
+    assert "needs: showcase" in workflow
     assert "cleanup_capability" in (ROOT / "config/showcase-manifest.json").read_text()
     assert "seed=7" not in workflow
 

@@ -12,8 +12,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: capability-showcase
@@ -24,9 +22,6 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - name: Configure Pages
@@ -97,12 +92,29 @@ jobs:
         with:
           name: showcase-summary-${{ github.sha }}
           path: output/showcase/site/**
+
+  deploy-pages:
+    if: always() && github.ref == 'refs/heads/main'
+    needs: showcase
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download showcase projection
+        uses: actions/download-artifact@v4
+        with:
+          name: showcase-summary-${{ github.sha }}
+          path: site
       - name: Upload Pages artifact
-        if: always()
         uses: actions/upload-pages-artifact@v3
         with:
-          path: output/showcase/site
+          path: site
       - name: Deploy latest advisory showcase
-        if: always()
         id: deployment
         uses: actions/deploy-pages@v4
