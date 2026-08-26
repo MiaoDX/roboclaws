@@ -46,6 +46,31 @@ def test_dashboard_reconciliation_is_idempotent_and_honest() -> None:
     content = transport.calls[1][2]["config"]["sections"][1]["widgets"][0]["config"]["content"]
     assert "25 native Experiment/trace rows; 40 Dataset-only rows" in content
 
+    sections = transport.calls[1][2]["config"]["sections"]
+    assert [section["id"] for section in sections] == [
+        "roboclaws_scope",
+        "roboclaws_coverage",
+        "roboclaws_provider",
+        "roboclaws_failure",
+    ]
+    assert [section["title"] for section in sections] == [
+        "Review scope",
+        "Trace fidelity coverage",
+        "Native trace volume by provider",
+        "Native failure trace volume by failure class",
+    ]
+    metrics = {section["id"]: section["widgets"][0] for section in sections[2:]}
+    assert metrics["roboclaws_provider"]["title"] == "Native trace volume by provider"
+    assert metrics["roboclaws_provider"]["config"]["breakdown"]["metadataKey"] == "provider_profile"
+    assert metrics["roboclaws_failure"]["title"] == "Native failure trace volume by failure class"
+    assert metrics["roboclaws_failure"]["config"]["breakdown"]["metadataKey"] == "failure_class"
+    assert "roboclaws_trace" not in {section["id"] for section in sections}
+    assert all(
+        widget["config"].get("breakdown", {}).get("metadataKey") != "trace_fidelity"
+        for section in sections
+        for widget in section["widgets"]
+    )
+
 
 def test_dashboard_duplicate_closed_name_fails() -> None:
     transport = _DashboardTransport(
