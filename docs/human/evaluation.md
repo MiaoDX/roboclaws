@@ -323,16 +323,25 @@ manifests explicitly report the section as not applicable. The Opik Dashboard
 is the maintained browser review surface; it is a one-way projection rather
 than a second metric or evaluation owner.
 
-Read the views in order:
+Read the canonical report views in order:
 
 1. Capability health and regression leads with selected-row outcomes and
    EvalTrial/sample quality. This is the gate for any performance claim.
-2. Fair provider comparison groups only matching dataset, sample, prompt/Skill,
+2. Sample stability reports trial counts, passed/failed/blocked counts, pass
+   rate, and explicit coverage for each sample. It intentionally does not
+   treat repetition index as an analysis dimension.
+3. Execution health groups diagnostic outcomes by execution target and failure
+   class. It must not be used to compare quality or latency between local and
+   CloudML execution.
+4. Baseline regression summaries retain comparison row IDs and counts while
+   also grouping regressions by stable capability dimensions such as suite and
+   intent.
+5. Fair provider comparison groups only matching dataset, sample, prompt/Skill,
    runtime, scenario, and execution evidence while varying provider profile,
    model, and wire API. Quality, model work, and latency have independent
    eligibility. A single run is diagnostic; concurrent or different execution
    environments make latency incomparable rather than producing a ranking.
-3. Failure and stall triage preserves the recorded harness, environment,
+6. Failure and stall triage preserves the recorded harness, environment,
    provider, operator, and behavior ownership and links to local evidence plus
    Opik Experiment and trace detail when native span projection is ready.
 
@@ -344,8 +353,11 @@ is not runtime evidence.
 
 Review the report after every terminal candidate and before baseline or
 promotion decisions. During an eval campaign, use triage and telemetry coverage
-for active debugging and review provider/trajectory detail weekly. Opik does not
-own cohorts, quality policy, private evidence, or promotion.
+for active debugging and review provider/trajectory detail weekly. Opik's
+Dashboard contains only native trace-volume navigation by provider and recorded
+outcome plus the reviewed Dataset link and fidelity note; failure class remains
+available in trace drilldown. Opik does not own cohorts,
+sample or capability analysis, quality policy, private evidence, or promotion.
 
 ## Regression Promotion
 

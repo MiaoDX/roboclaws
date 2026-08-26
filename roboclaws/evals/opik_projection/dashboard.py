@@ -104,11 +104,14 @@ def _dashboard_payload(*, dataset_url: str, project_name: str) -> dict[str, Any]
                         }
                     ],
                 },
-                _metrics_section("roboclaws_provider", "Provider comparison", "provider_profile"),
                 _metrics_section(
-                    "roboclaws_failure", "Failure and outcome coverage", "failure_class"
+                    "roboclaws_provider", "Native trace volume by provider", "provider_profile"
                 ),
-                _metrics_section("roboclaws_trace", "Native trace coverage", "trace_fidelity"),
+                _metrics_section(
+                    "roboclaws_outcome",
+                    "Native trace volume by recorded outcome",
+                    "outcome",
+                ),
             ],
         },
     }

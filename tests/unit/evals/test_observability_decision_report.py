@@ -132,7 +132,19 @@ def test_report_outputs_deny_stale_worker_paths(tmp_path: Path) -> None:
 
 
 def test_attached_baseline_regressions_are_projected(tmp_path: Path) -> None:
-    manifest = _manifest(tmp_path, rows=[_row("current")])
+    rows = []
+    for row_id, suite, intent in (
+        ("current", "cleanup", "tidy"),
+        ("other", "map-build", "inspect"),
+    ):
+        bundle = tmp_path / row_id / "eval_results.json"
+        run_dir = bundle.parent / "runs" / "sample" / "trial-0000"
+        run_dir.mkdir(parents=True)
+        payload = _bundle("alpha", run_dir)
+        payload["results"][0]["identity"].update({"suite_id": suite, "intent": intent})
+        bundle.write_text(json.dumps(payload), encoding="utf-8")
+        rows.append(_row(row_id, artifacts=[str(bundle)]))
+    manifest = _manifest(tmp_path, rows=rows)
     manifest["comparisons"] = [
         {
             "label": "accepted-baseline",
@@ -140,7 +152,7 @@ def test_attached_baseline_regressions_are_projected(tmp_path: Path) -> None:
             "common_row_count": 3,
             "common_passed_row_count": 2,
             "behavior_regression_row_ids": ["current"],
-            "outcome_regression_row_ids": ["current"],
+            "outcome_regression_row_ids": ["current", "other"],
         }
     ]
     report = build_observability_decision_report(manifest)
@@ -150,8 +162,82 @@ def test_attached_baseline_regressions_are_projected(tmp_path: Path) -> None:
             "manifest_sha256": "a" * 64,
             "common_row_count": 3,
             "common_passed_row_count": 2,
-            "regressed_row_ids": ["current"],
+            "regressed_row_ids": ["current", "other"],
+            "regressed_by_dimension": {
+                "suite": {"cleanup": 1, "map-build": 1},
+                "intent": {"inspect": 1, "tidy": 1},
+            },
         }
+    ]
+
+
+def test_sample_stability_counts_mixed_terminal_outcomes(tmp_path: Path) -> None:
+    bundle = tmp_path / "mixed" / "eval_results.json"
+    bundle.parent.mkdir()
+    payload = _bundle("alpha", bundle.parent / "runs" / "sample" / "trial-0000")
+    template = payload["results"][0]
+    payload["results"] = []
+    for index, status in enumerate(("passed", "failed", "blocked")):
+        result = json.loads(json.dumps(template))
+        result["status"] = status
+        result["failure_class"] = "not_applicable" if status == "passed" else "product_failure"
+        result["identity"]["trial_id"] = f"alpha-{index:04d}"
+        result["artifacts"] = {}
+        payload["results"].append(result)
+    bundle.write_text(json.dumps(payload), encoding="utf-8")
+
+    report = build_observability_decision_report(
+        _manifest(tmp_path, rows=[_row("mixed", artifacts=[str(bundle)])])
+    )
+    assert report["capability_health"]["samples"]["sample"] == {
+        "trial_count": 3,
+        "passed_count": 1,
+        "failed_count": 1,
+        "blocked_count": 1,
+        "pass_rate": 1 / 3,
+        "coverage": {"numerator": 3, "denominator": 3},
+        "pass_at_k": True,
+        "pass_caret_k": False,
+    }
+
+
+def test_execution_health_is_diagnostic_by_target_and_failure_class(tmp_path: Path) -> None:
+    rows = []
+    for row_id, target, status, failure_class in (
+        ("local", "local", "failed", "product_failure"),
+        ("remote", "cloudml", "blocked", "environment_blocked"),
+    ):
+        bundle = tmp_path / row_id / "eval_results.json"
+        bundle.parent.mkdir()
+        payload = _bundle("alpha", bundle.parent / "runs" / "sample" / "trial-0000")
+        payload["results"][0]["status"] = status
+        payload["results"][0]["failure_class"] = failure_class
+        payload["results"][0]["identity"]["trial_id"] = row_id
+        payload["results"][0]["identity"]["runtime"] = {"hardware": target}
+        payload["results"][0]["artifacts"] = {}
+        bundle.write_text(json.dumps(payload), encoding="utf-8")
+        rows.append(_row(row_id, artifacts=[str(bundle)]))
+
+    health = build_observability_decision_report(_manifest(tmp_path, rows=rows))["execution_health"]
+    assert health["claim_eligibility"] == "diagnostic_only"
+    assert health["comparability"] == ("no_quality_or_latency_comparison_between_execution_targets")
+    assert health["groups"] == [
+        {
+            "execution_target": "cloudml",
+            "failure_class": "environment_blocked",
+            "total": 1,
+            "passed": 0,
+            "failed": 0,
+            "blocked": 1,
+        },
+        {
+            "execution_target": "local",
+            "failure_class": "product_failure",
+            "total": 1,
+            "passed": 0,
+            "failed": 1,
+            "blocked": 0,
+        },
     ]
 
 

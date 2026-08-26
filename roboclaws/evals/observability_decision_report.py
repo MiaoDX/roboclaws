@@ -44,6 +44,7 @@ def build_observability_decision_report(
             "candidate_status": manifest.get("candidate_status", "not_applicable"),
         },
         "capability_health": _capability_health(eval_rows, manifest=manifest),
+        "execution_health": _execution_health(triage),
         "provider_comparison": {"grain": "provider_treatment_cohort", "cohorts": cohorts},
         "triage": {"grain": "row_suite_sample_trial", "rows": triage},
         "telemetry_coverage": coverage,
@@ -533,6 +534,11 @@ def _capability_health(rows: list[dict[str, Any]], *, manifest: dict[str, Any]) 
         "samples": {
             key: {
                 "trial_count": len(values),
+                "passed_count": values.count("passed"),
+                "failed_count": values.count("failed"),
+                "blocked_count": values.count("blocked"),
+                "pass_rate": values.count("passed") / len(values) if values else None,
+                "coverage": _coverage_cell(len(values), len(values)),
                 "pass_at_k": any(v == "passed" for v in values),
                 "pass_caret_k": all(v == "passed" for v in values),
             }
@@ -540,7 +546,33 @@ def _capability_health(rows: list[dict[str, Any]], *, manifest: dict[str, Any]) 
         },
         "failure_classes": dict(sorted(failure_classes.items())),
         "slices": _capability_slices(rows),
-        "baseline_regressions": _baseline_regressions(manifest),
+        "baseline_regressions": _baseline_regressions(manifest, rows),
+    }
+
+
+def _execution_health(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    grouped: dict[tuple[str, str], Counter[str]] = defaultdict(Counter)
+    for row in rows:
+        target = str(row.get("execution_target") or "unavailable")
+        failure_class = str(row.get("failure_class") or "not_applicable")
+        grouped[(target, failure_class)][str(row.get("outcome") or "unknown")] += 1
+    groups = []
+    for (target, failure_class), counts in sorted(grouped.items()):
+        groups.append(
+            {
+                "execution_target": target,
+                "failure_class": failure_class,
+                "total": sum(counts.values()),
+                "passed": counts["passed"],
+                "failed": counts["failed"],
+                "blocked": counts["blocked"],
+            }
+        )
+    return {
+        "grain": "execution_target_and_failure_class",
+        "claim_eligibility": "diagnostic_only",
+        "comparability": "no_quality_or_latency_comparison_between_execution_targets",
+        "groups": groups,
     }
 
 
@@ -587,8 +619,16 @@ def _capability_slices(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _baseline_regressions(manifest: dict[str, Any]) -> list[dict[str, Any]]:
+def _baseline_regressions(
+    manifest: dict[str, Any], rows: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     regressions = []
+    slice_values_by_id = {
+        str(row.get("row_id") or ""): _slice_values(row, {})
+        for row in manifest.get("rows") or []
+        if isinstance(row, dict)
+    }
+    slice_values_by_id.update({row["row_id"]: row["slice_values"] for row in rows})
     for comparison in manifest.get("comparisons") or []:
         if not isinstance(comparison, dict):
             continue
@@ -599,6 +639,14 @@ def _baseline_regressions(manifest: dict[str, Any]) -> list[dict[str, Any]]:
                 for value in comparison.get(key) or []
             }
         )
+        dimensions = {}
+        for dimension in ("suite", "intent"):
+            counts: Counter[str] = Counter()
+            for row_id in row_ids:
+                slice_values = slice_values_by_id.get(row_id)
+                if slice_values:
+                    counts[slice_values.get(dimension, "not_applicable")] += 1
+            dimensions[dimension] = dict(sorted(counts.items()))
         regressions.append(
             {
                 "label": str(comparison.get("label") or "prior_baseline"),
@@ -606,6 +654,7 @@ def _baseline_regressions(manifest: dict[str, Any]) -> list[dict[str, Any]]:
                 "common_row_count": int(comparison.get("common_row_count") or 0),
                 "common_passed_row_count": int(comparison.get("common_passed_row_count") or 0),
                 "regressed_row_ids": row_ids,
+                "regressed_by_dimension": dimensions,
             }
         )
     return regressions
