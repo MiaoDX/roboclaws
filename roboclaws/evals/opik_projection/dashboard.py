@@ -108,9 +108,9 @@ def _dashboard_payload(*, dataset_url: str, project_name: str) -> dict[str, Any]
                     "roboclaws_provider", "Native trace volume by provider", "provider_profile"
                 ),
                 _metrics_section(
-                    "roboclaws_failure",
-                    "Native failure trace volume by failure class",
-                    "failure_class",
+                    "roboclaws_outcome",
+                    "Native trace volume by recorded outcome",
+                    "outcome",
                 ),
             ],
         },

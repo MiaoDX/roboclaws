@@ -354,8 +354,9 @@ is not runtime evidence.
 Review the report after every terminal candidate and before baseline or
 promotion decisions. During an eval campaign, use triage and telemetry coverage
 for active debugging and review provider/trajectory detail weekly. Opik's
-Dashboard contains only native trace-volume navigation by provider and failure
-class plus the reviewed Dataset link and fidelity note; it does not own cohorts,
+Dashboard contains only native trace-volume navigation by provider and recorded
+outcome plus the reviewed Dataset link and fidelity note; failure class remains
+available in trace drilldown. Opik does not own cohorts,
 sample or capability analysis, quality policy, private evidence, or promotion.
 
 ## Regression Promotion

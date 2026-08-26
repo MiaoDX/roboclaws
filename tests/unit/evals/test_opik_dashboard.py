@@ -51,22 +51,23 @@ def test_dashboard_reconciliation_is_idempotent_and_honest() -> None:
         "roboclaws_scope",
         "roboclaws_coverage",
         "roboclaws_provider",
-        "roboclaws_failure",
+        "roboclaws_outcome",
     ]
     assert [section["title"] for section in sections] == [
         "Review scope",
         "Trace fidelity coverage",
         "Native trace volume by provider",
-        "Native failure trace volume by failure class",
+        "Native trace volume by recorded outcome",
     ]
     metrics = {section["id"]: section["widgets"][0] for section in sections[2:]}
     assert metrics["roboclaws_provider"]["title"] == "Native trace volume by provider"
     assert metrics["roboclaws_provider"]["config"]["breakdown"]["metadataKey"] == "provider_profile"
-    assert metrics["roboclaws_failure"]["title"] == "Native failure trace volume by failure class"
-    assert metrics["roboclaws_failure"]["config"]["breakdown"]["metadataKey"] == "failure_class"
+    assert metrics["roboclaws_outcome"]["title"] == "Native trace volume by recorded outcome"
+    assert metrics["roboclaws_outcome"]["config"]["breakdown"]["metadataKey"] == "outcome"
     assert "roboclaws_trace" not in {section["id"] for section in sections}
     assert all(
-        widget["config"].get("breakdown", {}).get("metadataKey") != "trace_fidelity"
+        widget["config"].get("breakdown", {}).get("metadataKey")
+        not in {"failure_class", "trace_fidelity"}
         for section in sections
         for widget in section["widgets"]
     )
