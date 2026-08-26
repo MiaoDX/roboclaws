@@ -52,7 +52,8 @@ def project_completed_eval_to_opik(
         receipt = read_json_object(output_path, label="Opik projection receipt")
     except Exception as exc:  # noqa: BLE001 - projection cannot change the eval outcome
         reason = _failure_reason(exc)
-        receipt = _base_receipt("unavailable", reason, eval_results_path)
+        privacy_state = "failed" if "privacy denial scan failed" in str(exc) else "unavailable"
+        receipt = _base_receipt("unavailable", reason, eval_results_path, privacy_state)
         _atomic_write_json(output_path, receipt)
     return _summary(output_path, receipt)
 
@@ -106,7 +107,9 @@ def build_suite_projection_snapshot(suite_ref: str, eval_results_path: Path) -> 
         result_digest = _digest_json(
             {"identity": identity, "status": result.status, "failure_class": result.failure_class}
         )
-        item_key = _projection_key("item", item_identity_digest, result_digest)
+        # A Dataset row represents one trial. Regrading that trial updates the
+        # row through the deterministic PUT instead of appending a stale row.
+        item_key = _projection_key("item", item_identity_digest, _digest_json(identity))
         spans = _result_spans(result, path.parent, source_files)
         fidelity = "native_span_trace" if spans else "experiment_only"
         metadata = {
@@ -137,6 +140,7 @@ def build_suite_projection_snapshot(suite_ref: str, eval_results_path: Path) -> 
             )
     dataset_digest = _digest_json(
         {
+            "item_identity_schema": "trial-identity-v2",
             "suite_id": suite.suite_id,
             "suite_version": suite.version,
             "samples": public_samples,
@@ -259,14 +263,16 @@ def _public_scores(result: EvalResult) -> dict[str, int | float]:
     return scores
 
 
-def _base_receipt(state: str, reason: str, source: Path) -> dict[str, Any]:
+def _base_receipt(
+    state: str, reason: str, source: Path, privacy_state: str = "unavailable"
+) -> dict[str, Any]:
     digest = hashlib.sha256(source.read_bytes()).hexdigest() if source.is_file() else "unavailable"
     return {
         "schema": PROJECTION_SCHEMA,
         "state": state,
         "reason": reason,
         "source_manifest_sha256": digest,
-        "privacy_scan": {"state": "passed", "finding_count": 0},
+        "privacy_scan": {"state": privacy_state, "finding_count": 0},
     }
 
 

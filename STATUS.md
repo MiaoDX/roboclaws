@@ -18,7 +18,8 @@ idempotent, privacy-denying, and fail-open. See ADR-0150 and
 `docs/plans/2026-08-25-opik-only-observability-migration.md`.
 
 The production Dashboard is available at `http://127.0.0.1:5174/` and through
-the explicit trusted-LAN review bind at `http://10.169.12.60:5174/`. It links
+the explicit trusted-LAN review bind configured by the operator. The example
+configuration uses the documentation-only address `192.0.2.60`. It links
 the full reviewed 65-row Dataset and states the fidelity boundary: 25 rows have
 native Experiment/trace drilldown and 40 remain Dataset-only. Opik 2.2.36 keeps
 a desktop-width Dashboard canvas on mobile, so narrow screens require

@@ -5,10 +5,10 @@ services:
     image: mysql:8.4.2
     restart: "no"
     environment:
-      MYSQL_ROOT_PASSWORD: opik
+      MYSQL_ROOT_PASSWORD: example-opik
       MYSQL_DATABASE: opik
       MYSQL_USER: opik
-      MYSQL_PASSWORD: opik
+      MYSQL_PASSWORD: example-opik
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
       interval: 2s
@@ -25,9 +25,9 @@ services:
   redis:
     image: redis:7.2.4-alpine3.19
     restart: "no"
-    command: redis-server --requirepass opik
+    command: redis-server --requirepass example-opik
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "opik", "ping"]
+      test: ["CMD", "redis-cli", "-a", "example-opik", "ping"]
       interval: 2s
       timeout: 2s
       retries: 30
@@ -85,7 +85,7 @@ services:
     environment:
       CLICKHOUSE_DB: opik
       CLICKHOUSE_USER: opik
-      CLICKHOUSE_PASSWORD: opik
+      CLICKHOUSE_PASSWORD: example-opik
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8123/ping"]
@@ -155,17 +155,17 @@ services:
       STATE_DB_URL: mysql:3306/opik?createDatabaseIfNotExist=true&rewriteBatchedStatements=true&connectionTimeZone=UTC
       STATE_DB_DATABASE_NAME: opik
       STATE_DB_USER: opik
-      STATE_DB_PASS: opik
+      STATE_DB_PASS: example-opik
       ANALYTICS_DB_MIGRATIONS_URL: jdbc:clickhouse://clickhouse:8123
       ANALYTICS_DB_MIGRATIONS_USER: opik
-      ANALYTICS_DB_MIGRATIONS_PASS: opik
+      ANALYTICS_DB_MIGRATIONS_PASS: example-opik
       ANALYTICS_DB_PROTOCOL: HTTP
       ANALYTICS_DB_HOST: clickhouse
       ANALYTICS_DB_PORT: "8123"
       ANALYTICS_DB_DATABASE_NAME: opik
       ANALYTICS_DB_USERNAME: opik
-      ANALYTICS_DB_PASS: opik
-      REDIS_URL: redis://:opik@redis:6379/
+      ANALYTICS_DB_PASS: example-opik
+      REDIS_URL: redis://:example-opik@redis:6379/
       AWS_ACCESS_KEY_ID: ${OPIK_MINIO_ROOT_USER:-opik}
       AWS_SECRET_ACCESS_KEY: ${OPIK_MINIO_ROOT_PASSWORD:-opik-local-only}
       IS_MINIO: "true"

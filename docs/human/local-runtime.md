@@ -16,7 +16,7 @@ docker compose -p roboclaws-opik -f deploy/opik/compose.yaml up -d --wait
 The explicit LAN overlay exposes only the web frontend for human review:
 
 ```bash
-OPIK_LAN_BIND_HOST=10.169.12.60 \
+OPIK_LAN_BIND_HOST=192.0.2.60 \
 OPIK_LAN_HTTP_PORT=5174 \
 docker compose -p roboclaws-opik -f deploy/opik/compose.yaml \
   -f deploy/opik/compose.lan.yaml up -d

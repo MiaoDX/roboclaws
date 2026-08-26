@@ -37,7 +37,9 @@ def test_suite_snapshot_exports_closed_identity_without_prompt_or_artifact_bodie
     assert "run_result.json" not in encoded
 
 
-def test_changed_result_content_creates_new_item_and_experiment_identity(tmp_path: Path) -> None:
+def test_changed_result_content_updates_item_and_creates_new_experiment_identity(
+    tmp_path: Path,
+) -> None:
     results_path = _persisted_suite(tmp_path)
     first = opik_suite.build_suite_projection_snapshot("smoke_regression", results_path)
     payload = json.loads(results_path.read_text())
@@ -48,7 +50,8 @@ def test_changed_result_content_creates_new_item_and_experiment_identity(tmp_pat
     changed = opik_suite.build_suite_projection_snapshot("smoke_regression", results_path)
 
     assert changed["dataset"] == first["dataset"]
-    assert changed["items"][0]["projection_key"] != first["items"][0]["projection_key"]
+    assert changed["items"][0]["projection_key"] == first["items"][0]["projection_key"]
+    assert changed["items"][0]["metadata"]["outcome"] == "failed"
     assert changed["experiment"]["projection_key"] != first["experiment"]["projection_key"]
 
 
@@ -74,3 +77,25 @@ def test_automatic_projection_failure_is_atomic_and_does_not_change_source(
     receipt = json.loads(results_path.with_name("opik_projection.json").read_text())
     assert receipt["state"] == "unavailable"
     assert receipt["source_manifest_sha256"] != "unavailable"
+    assert receipt["privacy_scan"] == {"state": "unavailable", "finding_count": 0}
+
+
+def test_automatic_projection_records_privacy_denial_as_failed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    results_path = _persisted_suite(tmp_path)
+    monkeypatch.setattr(opik_suite, "_privacy_scan", lambda _snapshot: ["$.items[0].secret"])
+
+    summary = opik_suite.project_completed_eval_to_opik(
+        suite_ref="smoke_regression",
+        eval_results_path=results_path,
+        environ={"ROBOCLAWS_OPIK_ENDPOINT": "http://127.0.0.1:5174"},
+    )
+
+    assert summary == {
+        "receipt": str(results_path.with_name("opik_projection.json")),
+        "state": "unavailable",
+        "reason": "opik_projection_failed",
+    }
+    receipt = json.loads(results_path.with_name("opik_projection.json").read_text())
+    assert receipt["privacy_scan"] == {"state": "failed", "finding_count": 0}
