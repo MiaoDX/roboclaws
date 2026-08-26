@@ -70,19 +70,19 @@ def test_manifest_matches_canonical_suite_fixtures():
     validate_manifest(json.loads((root / "config/showcase-manifest.json").read_text()))
 
 
-def test_execute_manifest_blocks_live_rows_without_provider_call(tmp_path):
+def test_execute_manifest_runs_open_ended_deterministically_without_provider(tmp_path):
     root = Path(__file__).resolve().parents[3]
     m = json.loads((root / "config/showcase-manifest.json").read_text())
     m["rows"] = [m["rows"][-1]]
     result = execute_manifest(m, output_dir=tmp_path, live_execution="blocked")
-    assert result["results"] == {}
+    assert "household_world.open_ended_goals" in result["results"]
     assert result["attempts"] == [
         {
             "id": "household_world.open_ended_goals",
-            "state": "blocked",
-            "reason": "live_execution_not_requested",
-            "agent_engine": "openai-agents-sdk",
-            "provider_profile": "kimi-openai-chat",
+            "state": "completed",
+            "reason": None,
+            "agent_engine": "direct-runner",
+            "provider_profile": None,
         }
     ]
 

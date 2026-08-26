@@ -148,4 +148,4 @@ and Markdown are projections and contain no grading logic. Opik remains an
 optional local post-processing destination and is not contacted by hosted CI.
 The weekly run executes deterministic Smoke, Map Build, and repeated Cleanup
 fixtures, so their visible effect is the canonical eval report and metrics;
-the open-ended row is explicitly blocked until a trusted manual provider run.
+the optional provider-backed open-ended variant remains trusted-manual only.

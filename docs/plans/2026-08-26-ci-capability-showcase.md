@@ -83,9 +83,9 @@ household capability shape:
 1. `household_world.smoke_regression` as the deterministic contract baseline.
 2. `household_world.map_build_quality` as the map-build capability sample.
 3. `household_world.cleanup_capability` as the repeated cleanup effect sample.
-4. `household_world.open_ended_goals` only when the explicit live showcase
-   input enables a supported provider; otherwise record a blocked row without
-   attempting a provider call.
+4. `household_world.open_ended_goals` as a deterministic three-sample public
+   contract, with an optional provider-backed variant only when the explicit
+   live showcase input enables a supported provider.
 
 The manifest owns suite id/version, sample ids, agent engine, provider profile,
 seed, evidence lane, budget, timeout, and execution mode. Workflow YAML owns
@@ -212,7 +212,8 @@ public status contract, recurring spend, or durable publication ownership:
 2. **Schedule cost (recommended):** weekly runs are deterministic-only;
    provider-backed execution is manual dispatch only with an explicit
    `live_execution=run` input and supported provider profile. The scheduled
-   open-ended row is recorded as `blocked` without provider access.
+   open-ended row runs deterministically without provider access; its live
+   provider variant remains manual-only.
 3. **Durable pointer owner (recommended):** Pages stores the sanitized summary
    and the public projection needed for the last-success view. Actions artifacts
    are temporary drilldown only, and expired links must be shown as unavailable
@@ -246,8 +247,8 @@ The four-lane manifest and advisory workflow are implemented and committed in
 `acb29775`, `d0c18d15`, `fcc9d839`, `6e11791f`, and `101030aa`. A real GitHub
 Actions manual run on the pushed branch succeeded at
 `https://github.com/MiaoDX/roboclaws/actions/runs/32961459062`:
-Smoke 1/1, Map Build 1/1, Cleanup 3/3, and Open-ended blocked with
-`live_execution_not_requested`. The run uploaded canonical eval bundles,
+Smoke 1/1, Map Build 1/1, Cleanup 3/3, and Open-ended 3/3 deterministic
+samples. The run uploaded canonical eval bundles,
 sanitized summary, HTML, Markdown, and fail-open Opik receipts. Pages deploy
 was correctly skipped on the feature branch because the `github-pages`
 environment is protected to `main`.
