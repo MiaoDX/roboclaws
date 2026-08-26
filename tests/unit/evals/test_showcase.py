@@ -37,6 +37,7 @@ def test_summary_preserves_last_success_per_row_and_is_sanitized():
     assert second["rows"][0]["status"] == "blocked"
     assert second["last_success"]["household_world.smoke_regression"]["commit"] == "abc"
     assert second["manifest_digest"] == manifest_digest(m)
+    assert passed["sample_ids"] == ["cleanup.smoke_seed7"]
 
 
 def test_private_fields_are_rejected_recursively():

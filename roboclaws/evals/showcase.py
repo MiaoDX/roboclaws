@@ -177,6 +177,10 @@ def derive_row(
         "id": row["id"],
         "suite": row["suite"],
         "version": row["version"],
+        "sample_ids": list(row.get("sample_ids") or []),
+        "agent_engine": row.get("agent_engine") or row.get("live_agent_engine"),
+        "provider_profile": row.get("provider_profile") or row.get("live_provider_profile"),
+        "evidence_lane": row.get("evidence_lane"),
         "status": status,
         "reason": reason,
         "metrics": metrics,
@@ -258,8 +262,14 @@ def render_markdown(summary: dict[str, Any]) -> str:
         success = successes.get(row["id"], {})
         last = success.get("attempted_at", "none")
         report = row.get("report_artifact") or "unavailable"
+        report_link = (
+            f"[{report}]({summary['artifact_url']})"
+            if report != "unavailable" and summary.get("artifact_url")
+            else report
+        )
         lines.append(
-            f"| {row['id']} | {row['status']} | {row.get('reason') or '-'} | `{report}` | {last} |"
+            f"| {row['id']} | {row['status']} | {row.get('reason') or '-'} | "
+            f"{report_link} | {last} |"
         )
     lines.extend(("", f"[Actions run]({summary['run_url']})", ""))
     if summary.get("artifact_url"):
