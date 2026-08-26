@@ -1,10 +1,10 @@
 ---
 plan_scope: ci-capability-showcase
-status: Implementing
+status: Complete
 created: 2026-08-26
 last_reviewed: 2026-08-26
 implementation_allowed: true
-current_phase: verification
+current_phase: shipped
 related_context:
   - STATUS.md
   - README.md
@@ -240,8 +240,14 @@ product, trust-boundary, cost, public-contract, or phase-order question. The
 remaining items are implementation defaults or focused proof cases and belong
 in preflight.
 
-## Next Action
+## Completion Evidence
 
-Route this approved plan to `$intuitive-preflight`, then execute the whole plan
-through `$intuitive-flow`. Preflight must choose only the listed implementation
-defaults and preserve the accepted boundaries.
+The four-lane manifest and advisory workflow are implemented and committed in
+`acb29775`, `d0c18d15`, `fcc9d839`, `6e11791f`, and `101030aa`. A real GitHub
+Actions manual run on the pushed branch succeeded at
+`https://github.com/MiaoDX/roboclaws/actions/runs/32961459062`:
+Smoke 1/1, Map Build 1/1, Cleanup 3/3, and Open-ended blocked with
+`live_execution_not_requested`. The run uploaded canonical eval bundles,
+sanitized summary, HTML, Markdown, and fail-open Opik receipts. Pages deploy
+was correctly skipped on the feature branch because the `github-pages`
+environment is protected to `main`.
