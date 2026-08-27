@@ -36,6 +36,8 @@ roboclaws_provider_registry() {
   MIMO_RESPONSES_BASE_URL="${MIMO_RESPONSES_BASE_URL:-}" \
   MIMO_RESPONSES_API_KEY="${MIMO_RESPONSES_API_KEY:-}" \
   MIMO_RESPONSES_MODEL="${MIMO_RESPONSES_MODEL:-}" \
+  MIMO_OPENAI_BASE_URL="${MIMO_OPENAI_BASE_URL:-}" \
+  MIMO_TP_KEY="${MIMO_TP_KEY:-}" \
   MM_BASE_URL="${MM_BASE_URL:-}" \
   MM_API_KEY="${MM_API_KEY:-}" \
   KIMI_OPENAI_BASE_URL="${KIMI_OPENAI_BASE_URL:-}" \
@@ -147,10 +149,10 @@ roboclaws_assert_openai_agents_provider_allowed() {
   local provider
   provider="$(roboclaws_code_agent_provider ROBOCLAWS_PROVIDER_PROFILE)" || return
   case "$provider" in
-    codex-responses|mimo-responses|minimax-responses|kimi-openai-chat)
+    codex-responses|mimo-responses|mimo-tp-openai-chat|minimax-responses|kimi-openai-chat)
       ;;
     *)
-      echo "error: unsupported OpenAI Agents SDK provider '${provider}'; expected codex-responses, mimo-responses, minimax-responses, or kimi-openai-chat" >&2
+      echo "error: unsupported OpenAI Agents SDK provider '${provider}'; expected codex-responses, mimo-responses, mimo-tp-openai-chat, minimax-responses, or kimi-openai-chat" >&2
       return 2
       ;;
   esac

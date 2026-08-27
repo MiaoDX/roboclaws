@@ -73,6 +73,7 @@ Current live product route:
   `CODEX_RESPONSES_API_KEY`, and `CODEX_RESPONSES_MODEL`.
 - `mimo-responses` requires `MIMO_RESPONSES_BASE_URL`,
   `MIMO_RESPONSES_API_KEY`, and `MIMO_RESPONSES_MODEL`.
+- `mimo-tp-openai-chat` requires `MIMO_OPENAI_BASE_URL` and `MIMO_TP_KEY`.
 - `minimax-responses` requires `MM_BASE_URL` and `MM_API_KEY`.
 - `kimi-openai-chat` requires `KIMI_OPENAI_BASE_URL` and `KIMI_API_KEY`.
 
@@ -83,10 +84,9 @@ Provider eval placement is fixed by the harness manifest, not inferred from a
 one-off connectivity probe:
 
 - `codex-responses` is an internal route allowed on the local workstation and
-  CloudML. `mimo-responses` is also eligible for the trusted GitHub Actions
-  showcase when its environment-configured endpoint is reachable from the
-  hosted runner; readiness must be proven by the live row.
-- `kimi-openai-chat` and `minimax-responses` are external routes allowed on the
+  CloudML. `mimo-responses` may run from GitHub Actions only when its configured
+  endpoint is reachable from that runner.
+- `mimo-tp-openai-chat`, `kimi-openai-chat`, and `minimax-responses` are external routes allowed on the
   local workstation and in the trusted GitHub Actions capability showcase.
   CloudML has no supported public-internet route for them; never submit those
   rows to CloudML even if an incidental probe succeeds.

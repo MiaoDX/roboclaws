@@ -16,7 +16,9 @@ def test_showcase_workflow_is_advisory_bounded_and_secret_guarded() -> None:
     )
     assert "inputs.live_execution == 'run'" in workflow
     assert "secrets.KIMI_API_KEY" in workflow
-    assert "secrets.MIMO_RESPONSES_API_KEY" in workflow
+    assert "secrets.MIMO_TP_KEY" in workflow
+    assert "secrets.MIMO_OPENAI_BASE_URL" in workflow
+    assert "secrets.MIMO_RESPONSES_API_KEY" not in workflow
     assert "secrets.MM_API_KEY" in workflow
     assert "max-parallel: 3" in workflow
     assert "needs: provider-showcase" in workflow

@@ -1,12 +1,13 @@
 # Model And Provider Matrix
 
 OpenAI Agents SDK launches require an explicit `provider_profile`. Roboclaws
-supports four profiles and never retries one wire API through another.
+supports five profiles and never retries one wire API through another.
 
 | Profile | Network scope | Allowed eval targets | Wire API | Model identity | Required environment |
 | --- | --- | --- | --- | --- | --- |
 | `codex-responses` | Internal | Local, CloudML | Responses | Public label `codex`; opaque request model from environment | `CODEX_RESPONSES_BASE_URL`, `CODEX_RESPONSES_API_KEY`, `CODEX_RESPONSES_MODEL` |
 | `mimo-responses` | Environment-configured | Local, CloudML, trusted GitHub Actions showcase when reachable | Responses | Public label `mimo`; opaque request model from environment | `MIMO_RESPONSES_BASE_URL`, `MIMO_RESPONSES_API_KEY`, `MIMO_RESPONSES_MODEL` |
+| `mimo-tp-openai-chat` | External | Local, trusted GitHub Actions showcase | Chat Completions | `mimo-v2.5` | `MIMO_OPENAI_BASE_URL`, `MIMO_TP_KEY` |
 | `minimax-responses` | External | Local, trusted GitHub Actions showcase | Responses | Public MiniMax catalog model | `MM_BASE_URL`, `MM_API_KEY` |
 | `kimi-openai-chat` | External | Local, trusted GitHub Actions showcase | Chat Completions | `kimi-k2.7-code` | `KIMI_OPENAI_BASE_URL`, `KIMI_API_KEY` |
 
@@ -15,14 +16,18 @@ provider-native reasoning and structured response items; Chat Completions uses
 message/delta semantics. The runtime selects the matching SDK model class from
 the profile and does not perform automatic fallback.
 
-Kimi is the only Chat Completions profile. Its thinking-only and public
-provider User-Agent compatibility rules remain explicit. Codex and MiMo are
+Kimi's thinking-only and public provider User-Agent compatibility rules remain
+explicit. Codex and the environment-configured MiMo Responses route are
 conservative, independent cells with text-only catalog capability, unknown
 image transport, and no alias, pricing, or endpoint default. Codex uses a thin
 transport adapter for ephemeral request metadata and omits the unsupported
 default `truncation` setting; those details never enter artifacts.
 
-All four profiles pass provider health and the same two-sample fixed-prior
+The hosted showcase uses the public MiMo Chat route because the configured
+MiMo Responses endpoint resolves only inside the trusted network. Provider
+placement is explicit and never falls back between these two MiMo routes.
+
+The established profiles pass provider health and the same two-sample fixed-prior
 consumer suite. The representative Kimi open-task and cleanup smoke rows also
 pass. The accepted matrix recorded no provider failures, privacy leaks, or
 trajectory violations; provider-reported dollar cost was unavailable, while
