@@ -139,6 +139,21 @@ jobs:
             --execution-index output/showcase/minimax/execution.json \
             --execution-index output/showcase/preview/execution.json \
             --previous output/showcase/previous.json
+      - name: Publish report drilldowns
+        if: always()
+        run: |
+          .venv/bin/python - <<'PY'
+          from pathlib import Path
+          import shutil
+
+          for shard in ("smoke", "kimi", "mimo", "minimax"):
+              source = Path("output/showcase") / shard / "evals"
+              for report in source.glob("*/*/eval_report.html"):
+                  relative = report.relative_to(Path("output/showcase") / shard)
+                  destination = Path("output/showcase/site/reports") / shard / relative
+                  destination.parent.mkdir(parents=True, exist_ok=True)
+                  shutil.copy2(report, destination)
+          PY
       - name: Upload canonical evidence
         if: always()
         uses: actions/upload-artifact@v4

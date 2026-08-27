@@ -236,6 +236,7 @@ def derive_row(
     results: dict[str, Any] | None,
     *,
     source: str | None = None,
+    report_href: str | None = None,
     missing_reason: str = "results_unavailable",
     execution_identity: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -291,6 +292,8 @@ def derive_row(
     artifacts = results.get("artifacts", {}) if isinstance(results, dict) else {}
     if isinstance(artifacts, dict) and isinstance(artifacts.get("eval_report"), str):
         result["report_artifact"] = Path(artifacts["eval_report"]).name
+        if report_href:
+            result["report_href"] = report_href
     return result
 
 
@@ -363,11 +366,7 @@ def render_markdown(summary: dict[str, Any]) -> str:
         success = successes.get(row["id"], {})
         last = success.get("attempted_at", "none")
         report = row.get("report_artifact") or "unavailable"
-        report_link = (
-            f"[{report}]({summary['artifact_url']})"
-            if report != "unavailable" and summary.get("artifact_url")
-            else report
-        )
+        report_link = f"[{report}]({row['report_href']})" if row.get("report_href") else report
         lines.append(
             f"| {row['id']} | {row['status']} | {row.get('reason') or '-'} | "
             f"{report_link} | {last} |"
@@ -505,10 +504,9 @@ def _render_html_row(summary: dict[str, Any], row: dict[str, Any]) -> str:
     provider = html.escape(str(row.get("provider_profile") or "deterministic"))
     reason = html.escape(str(row.get("reason") or "-"))
     report = row.get("report_artifact")
-    artifact_url = summary.get("artifact_url")
     evidence = "Unavailable"
-    if report and artifact_url:
-        safe_url = html.escape(str(artifact_url), quote=True)
+    if report and row.get("report_href"):
+        safe_url = html.escape(str(row["report_href"]), quote=True)
         evidence = f'<a href="{safe_url}">{html.escape(str(report))}</a>'
     last_success = summary.get("last_success", {}).get(row["id"], {}).get("attempted_at", "None")
     status_label = html.escape(status.replace("_", " ").title())
@@ -519,6 +517,39 @@ def _render_html_row(summary: dict[str, Any], row: dict[str, Any]) -> str:
         f'<td data-label="Reason">{reason}</td><td data-label="Evidence">{evidence}</td>'
         f'<td data-label="Last success">{html.escape(str(last_success))}</td></tr>'
     )
+
+
+def _published_report_href(execution_path: Path, result_path: str) -> str | None:
+    try:
+        relative_result = Path(result_path).relative_to(execution_path.parent)
+    except (TypeError, ValueError):
+        return None
+    if not relative_result.parts or relative_result.parts[0] != "evals":
+        return None
+    return (
+        Path("reports") / execution_path.parent.name / relative_result.with_name("eval_report.html")
+    ).as_posix()
+
+
+def _load_execution_indexes(
+    paths: list[Path],
+) -> tuple[list[dict[str, Any]], dict[str, str], dict[str, str]]:
+    sources = [
+        (path, json.loads(path.read_text(encoding="utf-8"))) for path in paths if path.is_file()
+    ]
+    executions = [execution for _, execution in sources]
+    result_paths: dict[str, str] = {}
+    report_hrefs: dict[str, str] = {}
+    for execution_path, execution in sources:
+        indexed_results = execution.get("results", {})
+        if not isinstance(indexed_results, dict):
+            continue
+        result_paths.update(indexed_results)
+        for row_id, result_path in indexed_results.items():
+            report_href = _published_report_href(execution_path, result_path)
+            if report_href:
+                report_hrefs[row_id] = report_href
+    return executions, result_paths, report_hrefs
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -552,16 +583,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if not args.commit or not args.run_url:
         parser.error("--commit and --run-url are required when building a summary")
-    executions = [
-        json.loads(path.read_text(encoding="utf-8"))
-        for path in args.execution_index
-        if path.is_file()
-    ]
-    result_paths: dict[str, str] = {}
-    for execution in executions:
-        indexed_results = execution.get("results", {})
-        if isinstance(indexed_results, dict):
-            result_paths.update(indexed_results)
+    executions, result_paths, report_hrefs = _load_execution_indexes(args.execution_index)
     result_paths.update(dict(item.split("=", 1) for item in args.result))
     attempt_reasons = {
         item["id"]: item.get("reason") or "results_unavailable"
@@ -593,6 +615,7 @@ def main(argv: list[str] | None = None) -> int:
                 row,
                 payload,
                 source=path_value,
+                report_href=report_hrefs.get(row["id"]),
                 missing_reason=attempt_reasons.get(row["id"], "results_unavailable"),
                 execution_identity=attempt_identities.get(row["id"]),
             )
