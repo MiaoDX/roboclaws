@@ -6,7 +6,7 @@ supports four profiles and never retries one wire API through another.
 | Profile | Network scope | Allowed eval targets | Wire API | Model identity | Required environment |
 | --- | --- | --- | --- | --- | --- |
 | `codex-responses` | Internal | Local, CloudML | Responses | Public label `codex`; opaque request model from environment | `CODEX_RESPONSES_BASE_URL`, `CODEX_RESPONSES_API_KEY`, `CODEX_RESPONSES_MODEL` |
-| `mimo-responses` | Internal | Local, CloudML | Responses | Public label `mimo`; opaque request model from environment | `MIMO_RESPONSES_BASE_URL`, `MIMO_RESPONSES_API_KEY`, `MIMO_RESPONSES_MODEL` |
+| `mimo-responses` | Environment-configured | Local, CloudML, trusted GitHub Actions showcase when reachable | Responses | Public label `mimo`; opaque request model from environment | `MIMO_RESPONSES_BASE_URL`, `MIMO_RESPONSES_API_KEY`, `MIMO_RESPONSES_MODEL` |
 | `minimax-responses` | External | Local, trusted GitHub Actions showcase | Responses | Public MiniMax catalog model | `MM_BASE_URL`, `MM_API_KEY` |
 | `kimi-openai-chat` | External | Local, trusted GitHub Actions showcase | Chat Completions | `kimi-k2.7-code` | `KIMI_OPENAI_BASE_URL`, `KIMI_API_KEY` |
 

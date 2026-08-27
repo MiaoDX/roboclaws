@@ -57,15 +57,42 @@ def validate_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
         if row["execution_mode"] not in EXECUTION_MODES:
             raise ValueError(f"showcase row {row['id']} has invalid execution_mode")
         suite, samples = load_suite(row["suite"])
-        if suite.suite_id != row["id"] or suite.version != row["version"]:
+        canonical_suite_id = row.get("canonical_suite_id", row["id"])
+        if suite.suite_id != canonical_suite_id or suite.version != row["version"]:
             raise ValueError(f"showcase row {row['id']} does not match canonical suite identity")
-        if [sample.sample_id for sample in samples] != row["sample_ids"]:
-            raise ValueError(f"showcase row {row['id']} does not match canonical sample ids")
+        _validate_manifest_row_selection(row, samples)
     return manifest
 
 
+def _validate_manifest_row_selection(row: dict[str, Any], samples: list[Any]) -> None:
+    selected_sample_id = row.get("sample_id")
+    expected_sample_ids = (
+        [selected_sample_id]
+        if isinstance(selected_sample_id, str) and selected_sample_id
+        else [sample.sample_id for sample in samples]
+    )
+    if expected_sample_ids != row["sample_ids"]:
+        raise ValueError(f"showcase row {row['id']} does not match canonical sample ids")
+    if not selected_sample_id:
+        return
+    sample = next((sample for sample in samples if sample.sample_id == selected_sample_id), None)
+    if sample is None:
+        raise ValueError(f"showcase row {row['id']} selects an unknown sample")
+    repetition_index = row.get("repetition_index")
+    if repetition_index is not None and (
+        not isinstance(repetition_index, int)
+        or repetition_index < 0
+        or repetition_index >= sample.trial_count
+    ):
+        raise ValueError(f"showcase row {row['id']} has invalid repetition_index")
+
+
 def execute_manifest(
-    manifest: dict[str, Any], *, output_dir: Path, live_execution: str
+    manifest: dict[str, Any],
+    *,
+    output_dir: Path,
+    live_execution: str,
+    row_ids: set[str] | None = None,
 ) -> dict[str, Any]:
     """Run manifest rows serially through the canonical eval CLI without retries."""
     validate_manifest(manifest)
@@ -75,6 +102,8 @@ def execute_manifest(
     results: dict[str, str] = {}
     attempts: list[dict[str, Any]] = []
     for row in manifest["rows"]:
+        if row_ids is not None and row["id"] not in row_ids:
+            continue
         execution_identity = _row_execution_identity(row, live_execution=live_execution)
         command = _row_command(row, live_execution=live_execution, output_dir=output_dir)
         if command is None:
@@ -174,6 +203,10 @@ def _row_command(row: dict[str, Any], *, live_execution: str, output_dir: Path) 
         command.append(f"provider_profile={profile}")
     if use_live:
         command.extend(("live_execution=run", f"live_timeout_s={row['timeout_s']}"))
+    if isinstance(row.get("sample_id"), str) and row["sample_id"]:
+        command.append(f"sample_id={row['sample_id']}")
+    if isinstance(row.get("repetition_index"), int):
+        command.append(f"repetition_index={row['repetition_index']}")
     return command
 
 
@@ -370,25 +403,43 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--run-url")
     parser.add_argument("--artifact-url")
     parser.add_argument("--result", action="append", default=[], metavar="ROW_ID=PATH")
-    parser.add_argument("--execution-index", type=Path)
+    parser.add_argument("--execution-index", type=Path, action="append", default=[])
+    parser.add_argument("--row-id", action="append", default=[])
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--live-execution", choices=("blocked", "run"), default="blocked")
     parser.add_argument("--previous", type=Path)
     args = parser.parse_args(argv)
     manifest = validate_manifest(json.loads(args.manifest.read_text(encoding="utf-8")))
     if args.execute:
-        execute_manifest(manifest, output_dir=args.output, live_execution=args.live_execution)
+        requested_rows = set(args.row_id) if args.row_id else None
+        if requested_rows is not None:
+            known_rows = {row["id"] for row in manifest["rows"]}
+            unknown_rows = requested_rows - known_rows
+            if unknown_rows:
+                parser.error(f"unknown --row-id values: {', '.join(sorted(unknown_rows))}")
+        execute_manifest(
+            manifest,
+            output_dir=args.output,
+            live_execution=args.live_execution,
+            row_ids=requested_rows,
+        )
         return 0
     if not args.commit or not args.run_url:
         parser.error("--commit and --run-url are required when building a summary")
-    execution: dict[str, Any] = {}
-    if args.execution_index and args.execution_index.is_file():
-        execution = json.loads(args.execution_index.read_text(encoding="utf-8"))
-    indexed_results = execution.get("results", {})
-    result_paths = dict(indexed_results) if isinstance(indexed_results, dict) else {}
+    executions = [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in args.execution_index
+        if path.is_file()
+    ]
+    result_paths: dict[str, str] = {}
+    for execution in executions:
+        indexed_results = execution.get("results", {})
+        if isinstance(indexed_results, dict):
+            result_paths.update(indexed_results)
     result_paths.update(dict(item.split("=", 1) for item in args.result))
     attempt_reasons = {
         item["id"]: item.get("reason") or "results_unavailable"
+        for execution in executions
         for item in execution.get("attempts", [])
         if isinstance(item, dict) and isinstance(item.get("id"), str)
     }
@@ -397,6 +448,7 @@ def main(argv: list[str] | None = None) -> int:
             "agent_engine": item.get("agent_engine"),
             "provider_profile": item.get("provider_profile"),
         }
+        for execution in executions
         for item in execution.get("attempts", [])
         if isinstance(item, dict) and isinstance(item.get("id"), str)
     }
