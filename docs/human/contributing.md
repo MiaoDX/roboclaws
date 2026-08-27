@@ -74,10 +74,19 @@ the first place a local-only claim is exercised.
 | Job | Trigger | Purpose |
 | --- | --- | --- |
 | `lint-and-mock` | every push and PR | `just agent::verify`: ruff, format check, deterministic pytest, and active household report contracts. |
+| `Capability showcase` | weekly or manual | Advisory Smoke, Map Build, Cleanup, and optional open-ended eval evidence with a sanitized latest Pages projection. |
 
 Required CI must stay deterministic and secret-light. Real provider, GPU,
 Isaac, Agibot, and robot-backed runs belong in advisory, manual, scheduled,
 or local-only gates unless explicitly promoted.
+
+The weekly showcase runs the Kimi-backed Map Build, Cleanup, and Open-ended
+capability rows. A manual run on any repository branch may explicitly set
+`live_execution=run` for the same provider-backed variant, so changes can be
+verified before merging to `main`. Push and pull-request CI remain deterministic
+and secret-free; Pages deployment remains restricted to `main`. Showcase
+failures never change merge status, and a failed or unrequested row preserves
+its previous successful evidence pointer.
 
 ## Secrets
 

@@ -1,0 +1,126 @@
+name: Capability showcase
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      live_execution:
+        description: "Set run to execute provider-backed showcase rows on this branch"
+        required: false
+        default: "blocked"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: capability-showcase
+  cancel-in-progress: false
+
+jobs:
+  showcase:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync --extra dev
+      - name: Run model-backed showcase manifest
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.live_execution == 'run')
+        continue-on-error: true
+        env:
+          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
+          KIMI_OPENAI_BASE_URL: ${{ secrets.KIMI_OPENAI_BASE_URL }}
+        run: |
+          mkdir -p output/showcase
+          .venv/bin/python -m roboclaws.evals.showcase \
+            --manifest config/showcase-manifest.json \
+            --output output/showcase \
+            --execute --live-execution run
+      - name: Restore durable last-success pointers
+        continue-on-error: true
+        env:
+          PAGES_URL: ${{ steps.pages.outputs.base_url }}/showcase-summary-v1.json
+        run: curl --fail --silent --show-error "$PAGES_URL" -o output/showcase/previous.json
+      - name: Record showcase without live provider request
+        if: github.event_name == 'workflow_dispatch' && inputs.live_execution != 'run'
+        continue-on-error: true
+        run: |
+          mkdir -p output/showcase
+          .venv/bin/python -m roboclaws.evals.showcase \
+            --manifest config/showcase-manifest.json \
+            --output output/showcase \
+            --execute --live-execution blocked
+      - name: Build sanitized summary and latest projection
+        if: always()
+        env:
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          .venv/bin/python -m roboclaws.evals.showcase \
+            --manifest config/showcase-manifest.json \
+            --output output/showcase/site \
+            --commit "${{ github.sha }}" \
+            --run-url "$RUN_URL" \
+            --artifact-url "$RUN_URL#artifacts" \
+            --execution-index output/showcase/execution.json \
+            --previous output/showcase/previous.json
+      - name: Upload canonical evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capability-showcase-${{ github.sha }}
+          path: output/showcase/evals/**
+          if-no-files-found: warn
+      - name: Upload showcase summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: showcase-summary-${{ github.sha }}
+          path: output/showcase/site/**
+      - name: Require model-backed showcase success
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.live_execution == 'run')
+        run: |
+          .venv/bin/python - <<'PY'
+          import json
+          from pathlib import Path
+
+          summary = json.loads(
+              Path("output/showcase/site/showcase-summary-v1.json").read_text(encoding="utf-8")
+          )
+          unsuccessful = [row["id"] for row in summary["rows"] if row["status"] != "passed"]
+          if unsuccessful:
+              raise SystemExit(f"showcase rows did not pass: {', '.join(unsuccessful)}")
+          PY
+
+  deploy-pages:
+    if: always() && github.ref == 'refs/heads/main'
+    needs: showcase
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download showcase projection
+        uses: actions/download-artifact@v4
+        with:
+          name: showcase-summary-${{ github.sha }}
+          path: site
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Deploy latest advisory showcase
+        id: deployment
+        uses: actions/deploy-pages@v4

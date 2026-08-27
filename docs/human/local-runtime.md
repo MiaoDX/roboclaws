@@ -63,3 +63,8 @@ Eval Harness terminal publication contains only `eval_harness.json`,
 `eval_harness.md`, `eval_harness.completed.json`, and adjacent Opik receipts.
 Domain-specific HTML reports remain available where their owning surface needs
 them; the retired Eval Harness HTML companion and report server are gone.
+
+The hosted capability showcase uploads any adjacent `opik_projection.json`
+receipt with its canonical suite bundle, but never sends it to Opik. A trusted
+maintainer may later project a retained result with `just agent::eval
+opik-project suite=<suite> eval_results=<path>` from a loopback-capable host.
