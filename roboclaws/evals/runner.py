@@ -153,6 +153,8 @@ def run_eval_from_overrides(overrides: dict[str, str]) -> EvalSuiteRun:
     live_stall_timeout_s = _optional_float(values.pop("live_stall_timeout_s", None))
     regrade_source = _optional_path(values.pop("regrade_source", None))
     runtime_map_prior = _optional_path(values.pop("runtime_map_prior", None))
+    sample_id = values.pop("sample_id", None)
+    repetition_index = _optional_int(values.pop("repetition_index", None))
     if values:
         keys = ", ".join(sorted(values))
         raise ValueError(f"unsupported eval override(s): {keys}")
@@ -172,6 +174,8 @@ def run_eval_from_overrides(overrides: dict[str, str]) -> EvalSuiteRun:
         live_stall_timeout_s=live_stall_timeout_s,
         regrade_source=regrade_source,
         runtime_map_prior=runtime_map_prior,
+        sample_id=sample_id,
+        repetition_index=repetition_index,
     )
 
 
@@ -254,6 +258,10 @@ def _optional_path(value: str | None) -> Path | None:
     return None if value in {None, ""} else Path(str(value))
 
 
+def _optional_int(value: str | None) -> int | None:
+    return None if value in {None, ""} else int(value)
+
+
 def run_eval_suite(
     suite_ref: str,
     *,
@@ -277,6 +285,8 @@ def run_eval_suite(
     product_runner: ProductRun = run_household_world_episode,
     live_product_runner: ProductRun | None = None,
     result_observer: ResultObserver | None = None,
+    sample_id: str | None = None,
+    repetition_index: int | None = None,
 ) -> EvalSuiteRun:
     """Run a repo-native deterministic eval suite."""
 
@@ -287,6 +297,12 @@ def run_eval_suite(
         raise ValueError("regrade_source is only supported for live-agent eval runs")
 
     suite, samples = load_suite(suite_ref)
+    selected_repetition_index = repetition_index
+    samples, selected_repetitions = _select_eval_shard(
+        samples,
+        sample_id=sample_id,
+        repetition_index=repetition_index,
+    )
     validate_suite_runtime_map_prior(suite, runtime_map_prior)
     engine = agent_engine_spec(agent_engine)
     regrade_source_dir = resolved_regrade_source(regrade_source, suite=suite)
@@ -316,7 +332,8 @@ def run_eval_suite(
     sample_artifacts: dict[str, dict[str, Any]] = {}
     for sample in samples:
         validate_sample_agent(sample, agent_engine=engine.id)
-        for repetition_index in range(sample.trial_count):
+        repetitions = selected_repetitions.get(sample.sample_id, range(sample.trial_count))
+        for repetition_index in repetitions:
             if regrade_source_dir is not None:
                 trial = regrade_trials[(sample.sample_id, repetition_index)]
                 _validate_regrade_trial(
@@ -390,7 +407,15 @@ def run_eval_suite(
                 )
 
     bundle, results_path, report_path = persist_results(
-        suite=suite, results=results, output_dir=output_dir, budget=result_budget
+        suite=suite,
+        results=results,
+        output_dir=output_dir,
+        budget=result_budget,
+        selection=(
+            {"sample_id": sample_id, "repetition_index": selected_repetition_index}
+            if sample_id is not None
+            else None
+        ),
     )
     opik_projection = project_completed_eval_to_opik(
         suite_ref=suite_ref,
@@ -404,6 +429,29 @@ def run_eval_suite(
         bundle=bundle,
         opik_projection=opik_projection,
     )
+
+
+def _select_eval_shard(
+    samples: list[EvalSample],
+    *,
+    sample_id: str | None,
+    repetition_index: int | None,
+) -> tuple[list[EvalSample], dict[str, range]]:
+    if repetition_index is not None and sample_id is None:
+        raise ValueError("repetition_index requires sample_id")
+    if sample_id is None:
+        return samples, {}
+    selected = [sample for sample in samples if sample.sample_id == sample_id]
+    if not selected:
+        raise ValueError(f"sample_id {sample_id!r} is not part of the selected suite")
+    if repetition_index is None:
+        return selected, {}
+    if repetition_index < 0 or repetition_index >= selected[0].trial_count:
+        raise ValueError(
+            f"repetition_index must be between 0 and {selected[0].trial_count - 1} "
+            f"for sample {sample_id!r}"
+        )
+    return selected, {sample_id: range(repetition_index, repetition_index + 1)}
 
 
 def _default_run_stamp() -> str:

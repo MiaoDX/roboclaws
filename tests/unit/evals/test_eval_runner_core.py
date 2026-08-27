@@ -68,6 +68,42 @@ def test_eval_runner_default_stamp_is_unique_for_quick_repeated_runs(tmp_path: P
     assert second.results_path.exists()
 
 
+def test_eval_runner_selects_one_cleanup_repetition(tmp_path: Path) -> None:
+    run = run_eval_suite(
+        "cleanup_capability",
+        output_root=tmp_path,
+        stamp="shard",
+        sample_id="cleanup.repeated_seed7",
+        repetition_index=1,
+        product_runner=_passing_product_runner,
+    )
+
+    payload = json.loads(run.results_path.read_text())
+    assert payload["selection"] == {
+        "sample_id": "cleanup.repeated_seed7",
+        "repetition_index": 1,
+    }
+    assert payload["aggregate"]["total"] == 1
+    assert payload["results"][0]["identity"]["repetition_index"] == 1
+
+
+def test_eval_runner_sample_selection_keeps_all_repetitions(tmp_path: Path) -> None:
+    run = run_eval_suite(
+        "cleanup_capability",
+        output_root=tmp_path,
+        stamp="sample-shard",
+        sample_id="cleanup.repeated_seed7",
+        product_runner=_passing_product_runner,
+    )
+
+    payload = json.loads(run.results_path.read_text())
+    assert payload["selection"] == {
+        "sample_id": "cleanup.repeated_seed7",
+        "repetition_index": None,
+    }
+    assert payload["aggregate"]["total"] == 3
+
+
 def test_cleanup_outcome_accepts_semantic_success_when_exact_private_goal_is_partial(
     tmp_path: Path,
 ) -> None:

@@ -82,8 +82,10 @@ runtime never falls back between Responses and Chat Completions transports.
 Provider eval placement is fixed by the harness manifest, not inferred from a
 one-off connectivity probe:
 
-- `codex-responses` and `mimo-responses` are internal routes allowed on the
-  local workstation and CloudML, subject to route readiness.
+- `codex-responses` is an internal route allowed on the local workstation and
+  CloudML. `mimo-responses` is also eligible for the trusted GitHub Actions
+  showcase when its environment-configured endpoint is reachable from the
+  hosted runner; readiness must be proven by the live row.
 - `kimi-openai-chat` and `minimax-responses` are external routes allowed on the
   local workstation and in the trusted GitHub Actions capability showcase.
   CloudML has no supported public-internet route for them; never submit those

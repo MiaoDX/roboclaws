@@ -18,10 +18,57 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  showcase:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+  provider-showcase:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.live_execution == 'run')
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        include:
+          - provider: kimi
+            row_args: --row-id household_world.map_build_quality --row-id household_world.cleanup_capability.kimi --row-id household_world.open_ended_goals.kimi
+          - provider: mimo
+            row_args: --row-id household_world.cleanup_capability.mimo --row-id household_world.open_ended_goals.mimo
+          - provider: minimax
+            row_args: --row-id household_world.cleanup_capability.minimax --row-id household_world.open_ended_goals.minimax
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync --extra dev
+      - name: Run ${{ matrix.provider }} showcase shard
+        env:
+          KIMI_API_KEY: ${{ matrix.provider == 'kimi' && secrets.KIMI_API_KEY || '' }}
+          KIMI_OPENAI_BASE_URL: ${{ matrix.provider == 'kimi' && secrets.KIMI_OPENAI_BASE_URL || '' }}
+          MIMO_RESPONSES_API_KEY: ${{ matrix.provider == 'mimo' && secrets.MIMO_RESPONSES_API_KEY || '' }}
+          MIMO_RESPONSES_BASE_URL: ${{ matrix.provider == 'mimo' && secrets.MIMO_RESPONSES_BASE_URL || '' }}
+          MIMO_RESPONSES_MODEL: ${{ matrix.provider == 'mimo' && secrets.MIMO_RESPONSES_MODEL || '' }}
+          MM_API_KEY: ${{ matrix.provider == 'minimax' && secrets.MM_API_KEY || '' }}
+          MM_BASE_URL: ${{ matrix.provider == 'minimax' && secrets.MM_BASE_URL || '' }}
+        run: |
+          mkdir -p "output/showcase/${{ matrix.provider }}"
+          .venv/bin/python -m roboclaws.evals.showcase \
+            --manifest config/showcase-manifest.json \
+            --output "output/showcase/${{ matrix.provider }}" \
+            --execute --live-execution run \
+            ${{ matrix.row_args }}
+      - name: Upload ${{ matrix.provider }} evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: showcase-${{ matrix.provider }}-${{ github.sha }}
+          path: output/showcase/${{ matrix.provider }}/**
+          if-no-files-found: warn
+
+  showcase:
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    needs: provider-showcase
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Configure Pages
@@ -32,18 +79,36 @@ jobs:
         with:
           python-version: "3.12"
       - run: uv sync --extra dev
-      - name: Run model-backed showcase manifest
-        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.live_execution == 'run')
+      - name: Download Kimi evidence
+        if: github.event_name == 'schedule' || inputs.live_execution == 'run'
         continue-on-error: true
-        env:
-          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
-          KIMI_OPENAI_BASE_URL: ${{ secrets.KIMI_OPENAI_BASE_URL }}
+        uses: actions/download-artifact@v4
+        with:
+          name: showcase-kimi-${{ github.sha }}
+          path: output/showcase/kimi
+      - name: Download MiMo evidence
+        if: github.event_name == 'schedule' || inputs.live_execution == 'run'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: showcase-mimo-${{ github.sha }}
+          path: output/showcase/mimo
+      - name: Download MiniMax evidence
+        if: github.event_name == 'schedule' || inputs.live_execution == 'run'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: showcase-minimax-${{ github.sha }}
+          path: output/showcase/minimax
+      - name: Run deterministic smoke baseline
+        if: github.event_name == 'schedule' || inputs.live_execution == 'run'
         run: |
-          mkdir -p output/showcase
+          mkdir -p output/showcase/smoke
           .venv/bin/python -m roboclaws.evals.showcase \
             --manifest config/showcase-manifest.json \
-            --output output/showcase \
-            --execute --live-execution run
+            --output output/showcase/smoke \
+            --execute --live-execution blocked \
+            --row-id household_world.smoke_regression
       - name: Restore durable last-success pointers
         continue-on-error: true
         env:
@@ -53,10 +118,10 @@ jobs:
         if: github.event_name == 'workflow_dispatch' && inputs.live_execution != 'run'
         continue-on-error: true
         run: |
-          mkdir -p output/showcase
+          mkdir -p output/showcase/preview
           .venv/bin/python -m roboclaws.evals.showcase \
             --manifest config/showcase-manifest.json \
-            --output output/showcase \
+            --output output/showcase/preview \
             --execute --live-execution blocked
       - name: Build sanitized summary and latest projection
         if: always()
@@ -69,14 +134,18 @@ jobs:
             --commit "${{ github.sha }}" \
             --run-url "$RUN_URL" \
             --artifact-url "$RUN_URL#artifacts" \
-            --execution-index output/showcase/execution.json \
+            --execution-index output/showcase/smoke/execution.json \
+            --execution-index output/showcase/kimi/execution.json \
+            --execution-index output/showcase/mimo/execution.json \
+            --execution-index output/showcase/minimax/execution.json \
+            --execution-index output/showcase/preview/execution.json \
             --previous output/showcase/previous.json
       - name: Upload canonical evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: capability-showcase-${{ github.sha }}
-          path: output/showcase/evals/**
+          path: output/showcase/*/evals/**
           if-no-files-found: warn
       - name: Upload showcase summary
         if: always()
