@@ -8,6 +8,7 @@ MODEL_CAP_IMAGE_INPUT = "image_input"
 
 PROVIDER_PROFILE_CODEX_RESPONSES = "codex-responses"
 PROVIDER_PROFILE_MIMO_RESPONSES = "mimo-responses"
+PROVIDER_PROFILE_MIMO_TP_OPENAI_CHAT = "mimo-tp-openai-chat"
 PROVIDER_PROFILE_MINIMAX_RESPONSES = "minimax-responses"
 PROVIDER_PROFILE_KIMI_OPENAI_CHAT = "kimi-openai-chat"
 
@@ -158,6 +159,14 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         cost_per_m={"input": 0.25, "output": 1.25},
     ),
     ModelSpec(
+        "mimo-v2.5",
+        ("mimo-v2.5",),
+        "mimo",
+        _caps(MODEL_CAP_TEXT),
+        default_use_note="Public MiMo token-plan Chat Completions model for hosted CI.",
+        cost_per_m={"input": 0.0, "output": 0.0},
+    ),
+    ModelSpec(
         "MiniMax-M3",
         ("minimax", "minimax-m3", "MiniMax-M3"),
         "minimax",
@@ -170,6 +179,28 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
 _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
     _opaque_responses_route(PROVIDER_PROFILE_CODEX_RESPONSES, "Codex", "CODEX_RESPONSES"),
     _opaque_responses_route(PROVIDER_PROFILE_MIMO_RESPONSES, "MiMo", "MIMO_RESPONSES"),
+    ProviderRouteSpec(
+        route_id=PROVIDER_PROFILE_MIMO_TP_OPENAI_CHAT,
+        public_profile=PROVIDER_PROFILE_MIMO_TP_OPENAI_CHAT,
+        label="MiMo TP v2.5",
+        supported_engines=("openai-agents-sdk",),
+        default_model_id="mimo-v2.5",
+        required_env_keys=("MIMO_OPENAI_BASE_URL", "MIMO_TP_KEY"),
+        api_key_env="MIMO_TP_KEY",
+        base_url_env="MIMO_OPENAI_BASE_URL",
+        base_url_default="",
+        wire_api=WIRE_CHAT_COMPLETIONS,
+        wire_source=WIRE_SOURCE_NATIVE,
+        default_use=False,
+        default_use_note="Public-network MiMo route for trusted hosted CI.",
+        compatible_model_ids=("mimo-v2.5",),
+        per_engine_status={"openai-agents-sdk": ROUTE_HEALTHY},
+        route_capabilities={
+            "image_transport": ROUTE_CAP_UNSUPPORTED,
+            "tool_call_transport": ROUTE_CAP_SUPPORTED,
+        },
+        status_note="Text and tool calling are live-proven on the public Chat endpoint.",
+    ),
     ProviderRouteSpec(
         route_id=PROVIDER_PROFILE_MINIMAX_RESPONSES,
         public_profile=PROVIDER_PROFILE_MINIMAX_RESPONSES,

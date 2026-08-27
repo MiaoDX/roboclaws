@@ -33,6 +33,7 @@ def test_provider_probe_defaults_cover_kimi_and_payload() -> None:
     assert set(probes) == {
         "provider:codex-responses",
         "provider:mimo-responses",
+        "provider:mimo-tp-openai-chat",
         "provider:minimax-responses-m3",
         "provider:kimi-coding-chat",
     }
@@ -222,6 +223,7 @@ def test_agents_sdk_probe_defaults_use_larger_responses_budget() -> None:
     assert probes["agents-sdk:minimax-responses"].max_tokens >= 256
     assert probes["agents-sdk:codex-responses"].max_tokens >= 256
     assert probes["agents-sdk:mimo-responses"].max_tokens >= 256
+    assert probes["agents-sdk:mimo-tp-openai-chat"].model == "mimo-v2.5"
     assert probes["agents-sdk:kimi-openai-chat"].model == "kimi-k2.7-code"
     assert not probes["agents-sdk:kimi-openai-chat"].unsupported_reason
 
@@ -394,12 +396,14 @@ def test_agents_sdk_public_profile_excludes_internal_routes() -> None:
     assert {probe.probe_id for probe in selected} == {
         "agents-sdk:codex-responses",
         "agents-sdk:mimo-responses",
+        "agents-sdk:mimo-tp-openai-chat",
         "agents-sdk:minimax-responses",
         "agents-sdk:kimi-openai-chat",
     }
     public_routes = {
         "codex-responses",
         "mimo-responses",
+        "mimo-tp-openai-chat",
         "minimax-responses",
         "kimi-openai-chat",
     }

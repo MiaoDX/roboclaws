@@ -234,6 +234,7 @@ def test_openai_agents_route_payload_lists_provider_profiles() -> None:
     assert payload["supported_provider_profiles"] == [
         "codex-responses",
         "mimo-responses",
+        "mimo-tp-openai-chat",
         "minimax-responses",
         "kimi-openai-chat",
     ]
