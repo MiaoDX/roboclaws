@@ -15,6 +15,11 @@ def test_showcase_workflow_is_advisory_bounded_and_secret_guarded() -> None:
     )
     assert "inputs.live_execution == 'run'" in workflow
     assert "KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}" in workflow
+    assert "MIMO_RESPONSES_API_KEY: ${{ secrets.MIMO_RESPONSES_API_KEY }}" in workflow
+    assert "MM_API_KEY: ${{ secrets.MM_API_KEY }}" in workflow
+    assert "kimi_pid=$!" in workflow
+    assert "mimo_pid=$!" in workflow
+    assert "minimax_pid=$!" in workflow
     assert "Require model-backed showcase success" in workflow
     assert 'row["status"] != "passed"' in workflow
     assert "actions/deploy-pages@v4" in workflow

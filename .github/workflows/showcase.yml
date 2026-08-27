@@ -32,18 +32,61 @@ jobs:
         with:
           python-version: "3.12"
       - run: uv sync --extra dev
-      - name: Run model-backed showcase manifest
+      - name: Run deterministic smoke baseline
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.live_execution == 'run')
+        run: |
+          mkdir -p output/showcase/smoke
+          .venv/bin/python -m roboclaws.evals.showcase \
+            --manifest config/showcase-manifest.json \
+            --output output/showcase/smoke \
+            --execute --live-execution blocked \
+            --row-id household_world.smoke_regression
+      - name: Run provider-sharded showcase
         if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.live_execution == 'run')
         continue-on-error: true
         env:
           KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
           KIMI_OPENAI_BASE_URL: ${{ secrets.KIMI_OPENAI_BASE_URL }}
+          MIMO_RESPONSES_API_KEY: ${{ secrets.MIMO_RESPONSES_API_KEY }}
+          MIMO_RESPONSES_BASE_URL: ${{ secrets.MIMO_RESPONSES_BASE_URL }}
+          MIMO_RESPONSES_MODEL: ${{ secrets.MIMO_RESPONSES_MODEL }}
+          MM_API_KEY: ${{ secrets.MM_API_KEY }}
+          MM_BASE_URL: ${{ secrets.MM_BASE_URL }}
         run: |
-          mkdir -p output/showcase
+          mkdir -p output/showcase/kimi output/showcase/mimo output/showcase/minimax
           .venv/bin/python -m roboclaws.evals.showcase \
             --manifest config/showcase-manifest.json \
-            --output output/showcase \
-            --execute --live-execution run
+            --output output/showcase/kimi \
+            --execute --live-execution run \
+            --row-id household_world.map_build_quality \
+            --row-id household_world.cleanup_capability.kimi \
+            --row-id household_world.open_ended_goals.kimi &
+          kimi_pid=$!
+          .venv/bin/python -m roboclaws.evals.showcase \
+            --manifest config/showcase-manifest.json \
+            --output output/showcase/mimo \
+            --execute --live-execution run \
+            --row-id household_world.cleanup_capability.mimo \
+            --row-id household_world.open_ended_goals.mimo &
+          mimo_pid=$!
+          .venv/bin/python -m roboclaws.evals.showcase \
+            --manifest config/showcase-manifest.json \
+            --output output/showcase/minimax \
+            --execute --live-execution run \
+            --row-id household_world.cleanup_capability.minimax \
+            --row-id household_world.open_ended_goals.minimax &
+          minimax_pid=$!
+          set +e
+          wait "$kimi_pid"
+          kimi_status=$?
+          wait "$mimo_pid"
+          mimo_status=$?
+          wait "$minimax_pid"
+          minimax_status=$?
+          set -e
+          test "$kimi_status" -eq 0
+          test "$mimo_status" -eq 0
+          test "$minimax_status" -eq 0
       - name: Restore durable last-success pointers
         continue-on-error: true
         env:
@@ -53,10 +96,10 @@ jobs:
         if: github.event_name == 'workflow_dispatch' && inputs.live_execution != 'run'
         continue-on-error: true
         run: |
-          mkdir -p output/showcase
+          mkdir -p output/showcase/preview
           .venv/bin/python -m roboclaws.evals.showcase \
             --manifest config/showcase-manifest.json \
-            --output output/showcase \
+            --output output/showcase/preview \
             --execute --live-execution blocked
       - name: Build sanitized summary and latest projection
         if: always()
@@ -69,14 +112,18 @@ jobs:
             --commit "${{ github.sha }}" \
             --run-url "$RUN_URL" \
             --artifact-url "$RUN_URL#artifacts" \
-            --execution-index output/showcase/execution.json \
+            --execution-index output/showcase/smoke/execution.json \
+            --execution-index output/showcase/kimi/execution.json \
+            --execution-index output/showcase/mimo/execution.json \
+            --execution-index output/showcase/minimax/execution.json \
+            --execution-index output/showcase/preview/execution.json \
             --previous output/showcase/previous.json
       - name: Upload canonical evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: capability-showcase-${{ github.sha }}
-          path: output/showcase/evals/**
+          path: output/showcase/*/evals/**
           if-no-files-found: warn
       - name: Upload showcase summary
         if: always()

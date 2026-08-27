@@ -11,9 +11,16 @@ from roboclaws.evals.reports import render_eval_report, results_bundle
 
 
 def persist_results(
-    *, suite: EvalSuite, results: list[EvalResult], output_dir: Path, budget: str
+    *,
+    suite: EvalSuite,
+    results: list[EvalResult],
+    output_dir: Path,
+    budget: str,
+    selection: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], Path, Path]:
     bundle = results_bundle(suite=suite, results=results, output_dir=output_dir, budget=budget)
+    if selection:
+        bundle["selection"] = selection
     results_path = output_dir / "eval_results.json"
     report_path = output_dir / "eval_report.html"
     write_json(results_path, bundle)

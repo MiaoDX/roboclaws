@@ -80,13 +80,18 @@ Required CI must stay deterministic and secret-light. Real provider, GPU,
 Isaac, Agibot, and robot-backed runs belong in advisory, manual, scheduled,
 or local-only gates unless explicitly promoted.
 
-The weekly showcase runs the Kimi-backed Map Build, Cleanup, and Open-ended
-capability rows. A manual run on any repository branch may explicitly set
-`live_execution=run` for the same provider-backed variant, so changes can be
-verified before merging to `main`. Push and pull-request CI remain deterministic
-and secret-free; Pages deployment remains restricted to `main`. Showcase
-failures never change merge status, and a failed or unrequested row preserves
-its previous successful evidence pointer.
+The weekly showcase runs Map Build with Kimi and shards the three Cleanup trials
+and three Open-ended samples across Kimi, MiMo, and MiniMax. The three provider
+workers run in parallel, while each worker runs its assigned tasks serially so
+one workflow never sends concurrent requests to the same provider. Workflow
+concurrency also permits only one showcase run at a time.
+
+A manual run on any repository branch may explicitly set `live_execution=run`
+for the same provider-backed matrix, so changes can be verified before merging
+to `main`. Push and pull-request CI remain deterministic and secret-free; Pages
+deployment remains restricted to `main`. Showcase failures never change merge
+status, and a failed or unrequested row preserves its previous successful
+evidence pointer. Providers never fall back to another profile.
 
 ## Secrets
 

@@ -86,11 +86,11 @@ def test_execute_manifest_does_not_run_model_lane_without_live_request(tmp_path)
     assert result["results"] == {}
     assert result["attempts"] == [
         {
-            "id": "household_world.open_ended_goals",
+            "id": "household_world.open_ended_goals.minimax",
             "state": "blocked",
             "reason": "live_execution_not_requested",
             "agent_engine": "openai-agents-sdk",
-            "provider_profile": "kimi-openai-chat",
+            "provider_profile": "minimax-responses",
         }
     ]
 
@@ -98,11 +98,14 @@ def test_execute_manifest_does_not_run_model_lane_without_live_request(tmp_path)
 def test_model_lane_live_command_uses_canonical_provider_identity(tmp_path):
     root = Path(__file__).resolve().parents[3]
     m = json.loads((root / "config/showcase-manifest.json").read_text())
-    command = _row_command(m["rows"][-1], live_execution="run", output_dir=tmp_path)
+    row = next(row for row in m["rows"] if row["id"] == "household_world.open_ended_goals.kimi")
+    command = _row_command(row, live_execution="run", output_dir=tmp_path)
     assert command is not None
     assert "agent_engine=openai-agents-sdk" in command
     assert "provider_profile=kimi-openai-chat" in command
     assert "live_execution=run" in command
+    assert "sample_id=open_ended.drink_seed7" in command
+    assert "repetition_index=0" in command
 
 
 def test_execute_manifest_keeps_contract_smoke_deterministic(tmp_path):
