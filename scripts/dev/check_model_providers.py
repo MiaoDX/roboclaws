@@ -39,6 +39,7 @@ ProbeMode = Literal["agents-sdk", "provider"]
 PUBLIC_AGENT_SDK_ROUTE_IDS = (
     "codex-responses",
     "mimo-responses",
+    "mimo-tp-openai-chat",
     "minimax-responses",
     "kimi-openai-chat",
 )
@@ -119,6 +120,7 @@ def build_provider_probes(
 ) -> list[ProbeSpec]:
     codex_route = provider_route_spec("codex-responses")
     mimo_route = provider_route_spec("mimo-responses")
+    mimo_tp_route = provider_route_spec("mimo-tp-openai-chat")
     minimax_route = provider_route_spec("minimax-responses")
     kimi_route = provider_route_spec("kimi-openai-chat")
 
@@ -135,6 +137,7 @@ def build_provider_probes(
             max_tokens=responses_max_tokens,
             request_model=os.environ.get(mimo_route.request_model_env or "", ""),
         ),
+        _provider_from_route("mimo-tp-openai-chat", mimo_tp_route, max_tokens=chat_max_tokens),
         _provider_from_route(
             "minimax-responses-m3", minimax_route, max_tokens=responses_max_tokens
         ),

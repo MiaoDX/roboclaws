@@ -27,6 +27,7 @@ from roboclaws.core.provider_catalog import (
 EXPECTED_PROFILES = (
     "codex-responses",
     "mimo-responses",
+    "mimo-tp-openai-chat",
     "minimax-responses",
     "kimi-openai-chat",
 )
@@ -75,12 +76,34 @@ def test_deleted_model_aliases_are_absent() -> None:
         assert deleted not in aliases
 
 
-def test_kimi_is_only_chat_profile() -> None:
+def test_named_chat_profiles_have_catalog_models() -> None:
     chat_routes = [
         route for route in provider_route_specs() if route.wire_api == "chat-completions"
     ]
-    assert [route.public_profile for route in chat_routes] == ["kimi-openai-chat"]
-    assert resolve_model(chat_routes[0].default_model_id).family == "kimi"
+    assert [route.public_profile for route in chat_routes] == [
+        "mimo-tp-openai-chat",
+        "kimi-openai-chat",
+    ]
+    assert [resolve_model(route.default_model_id).family for route in chat_routes] == [
+        "mimo",
+        "kimi",
+    ]
+
+
+def test_mimo_tp_chat_readiness_uses_public_endpoint_credentials() -> None:
+    route = provider_route_spec("mimo-tp-openai-chat")
+    assert route.required_env_keys == ("MIMO_OPENAI_BASE_URL", "MIMO_TP_KEY")
+    readiness = provider_readiness(
+        agent_engine="openai-agents-sdk",
+        provider_profile=route.route_id,
+        env={
+            "MIMO_OPENAI_BASE_URL": "https://mimo.example/v1",
+            "MIMO_TP_KEY": "secret",
+        },
+    )
+    assert readiness["ok"] is True
+    assert readiness["model"] == "mimo-v2.5"
+    assert readiness["wire_api"] == "chat-completions"
 
 
 @pytest.mark.parametrize(

@@ -434,7 +434,8 @@ def test_openai_agents_sdk_accepts_chat_provider_profiles() -> None:
         ("preset", "omit preset= to use the default"),
         (
             "provider_profile",
-            "select one of codex-responses|mimo-responses|minimax-responses|kimi-openai-chat",
+            "select one of codex-responses|mimo-responses|mimo-tp-openai-chat|"
+            "minimax-responses|kimi-openai-chat",
         ),
     ),
 )
