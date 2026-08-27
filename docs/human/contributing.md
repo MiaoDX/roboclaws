@@ -81,10 +81,11 @@ Isaac, Agibot, and robot-backed runs belong in advisory, manual, scheduled,
 or local-only gates unless explicitly promoted.
 
 The weekly showcase runs Map Build with Kimi and shards the three Cleanup trials
-and three Open-ended samples across Kimi, MiMo, and MiniMax. The three provider
-workers run in parallel, while each worker runs its assigned tasks serially so
-one workflow never sends concurrent requests to the same provider. Workflow
-concurrency also permits only one showcase run at a time.
+and three Open-ended samples across Kimi, MiMo, and MiniMax. Each provider runs
+in an isolated GitHub job, so their synthetic household runtime locks do not
+conflict. Tasks within one provider job remain serial, keeping provider
+concurrency at one; the matrix permits at most three provider jobs. Workflow
+concurrency permits only one showcase run at a time.
 
 A manual run on any repository branch may explicitly set `live_execution=run`
 for the same provider-backed matrix, so changes can be verified before merging

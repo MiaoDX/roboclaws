@@ -23,3 +23,11 @@ def test_grading_classifies_checker_validation_failure_separately_from_outcome()
     )
 
     assert failure_class == "checker_validation_failed"
+
+
+def test_grading_classifies_live_runtime_lock_as_environment_blocked() -> None:
+    failure_class = failure_class_from_exception(
+        RuntimeError("another live Molmo cleanup run holds output/molmo/live-locks/runtime.lock")
+    )
+
+    assert failure_class == "environment_blocked"

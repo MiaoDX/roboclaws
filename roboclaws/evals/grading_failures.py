@@ -46,7 +46,13 @@ def failure_class_from_exception(exc: Exception) -> str:
     if "checker_validation_failed" in message:
         return "checker_validation_failed"
     environment_tokens = ("no module named", "not installed", "unavailable", "timed out", "mcp")
-    if "another interactive codex molmo cleanup session appears to be active" in message:
+    if any(
+        token in message
+        for token in (
+            "another interactive codex molmo cleanup session appears to be active",
+            "another live molmo cleanup run holds",
+        )
+    ):
         return "environment_blocked"
     if any(token in message for token in environment_tokens):
         return "environment_blocked"
