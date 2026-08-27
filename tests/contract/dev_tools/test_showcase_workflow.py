@@ -29,6 +29,7 @@ def test_showcase_workflow_is_advisory_bounded_and_secret_guarded() -> None:
     assert "Require model-backed showcase success" in workflow
     assert 'row["status"] != "passed"' in workflow
     assert "actions/deploy-pages@v4" in workflow
+    assert workflow.count("github-pages-${{ github.run_attempt }}") == 2
     assert "actions/configure-pages@v5" in workflow
     assert "environment:\n      name: github-pages" in workflow
     assert "if: always() && github.ref == 'refs/heads/main'" in workflow
