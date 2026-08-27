@@ -502,26 +502,28 @@ def _glob_progress_signature(run_dir: Path, pattern: str) -> tuple[tuple[str, bo
 
 
 def _terminate_live_surface_process(process: LaunchProcess) -> None:
-    if process.poll() is not None:
-        return
+    # The launch wrapper may exit while its runtime child keeps the same
+    # process group alive. Always signal the group using the stable pid.
     process_group_id = process.pid
     try:
         os.killpg(process_group_id, signal.SIGTERM)
     except OSError:
         return
-    try:
-        process.wait(timeout=5.0)
-    except subprocess.TimeoutExpired:
-        pass
+    if process.poll() is None:
+        try:
+            process.wait(timeout=5.0)
+        except subprocess.TimeoutExpired:
+            pass
     # The `just` wrapper can exit before its product child; finish the whole group.
     try:
         os.killpg(process_group_id, signal.SIGKILL)
     except OSError:
         return
-    try:
-        process.wait(timeout=5.0)
-    except subprocess.TimeoutExpired:
-        return
+    if process.poll() is None:
+        try:
+            process.wait(timeout=5.0)
+        except subprocess.TimeoutExpired:
+            return
 
 
 def _temporary_file_text(file_obj: Any) -> str:
