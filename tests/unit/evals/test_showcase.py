@@ -9,6 +9,7 @@ from roboclaws.evals.showcase import (
     derive_row,
     execute_manifest,
     manifest_digest,
+    render_html,
     validate_manifest,
 )
 
@@ -139,3 +140,39 @@ def test_row_identity_comes_from_canonical_result_not_available_live_profile():
     assert result["agent_engine"] == "direct-runner"
     assert result["provider_profile"] == "not_applicable"
     assert result["evidence_lane"] == "world-public-labels"
+
+
+def test_showcase_html_renders_dashboard_instead_of_escaped_markdown():
+    summary = {
+        "attempted_at": "2026-08-27T09:51:43Z",
+        "commit": "abc123",
+        "run_url": "https://example.test/run",
+        "artifact_url": "https://example.test/artifacts",
+        "rows": [
+            {
+                "id": "household_world.cleanup_capability.kimi",
+                "provider_profile": "kimi-openai-chat",
+                "status": "blocked",
+                "reason": "showcase_row_timeout",
+                "report_artifact": None,
+            },
+            {
+                "id": "household_world.cleanup_capability.mimo",
+                "provider_profile": "mimo-tp-openai-chat",
+                "status": "passed",
+                "reason": None,
+                "report_artifact": "eval_report.html",
+            },
+        ],
+        "last_success": {
+            "household_world.cleanup_capability.mimo": {"attempted_at": "2026-08-27T09:51:43Z"}
+        },
+    }
+
+    rendered = render_html(summary)
+
+    assert "<table>" in rendered
+    assert "<pre>" not in rendered
+    assert "showcase_row_timeout" in rendered
+    assert "kimi-openai-chat" in rendered
+    assert 'href="https://example.test/artifacts"' in rendered

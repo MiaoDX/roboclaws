@@ -386,12 +386,138 @@ def render_markdown(summary: dict[str, Any]) -> str:
 
 
 def render_html(summary: dict[str, Any]) -> str:
-    markdown = render_markdown(summary)
+    rows = summary["rows"]
+    status_counts = {
+        status: sum(row["status"] == status for row in rows)
+        for status in ("passed", "failed", "blocked", "not_run")
+    }
+    table_rows = "".join(_render_html_row(summary, row) for row in rows)
+    attempted_at = html.escape(str(summary["attempted_at"]))
+    commit = html.escape(str(summary["commit"]))
+    run_url = html.escape(str(summary["run_url"]), quote=True)
+    artifact_url = html.escape(str(summary.get("artifact_url") or ""), quote=True)
+    artifact_link = (
+        f'<a class="button secondary" href="{artifact_url}">Canonical artifacts</a>'
+        if artifact_url
+        else ""
+    )
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Roboclaws capability showcase</title>
+  <style>
+    :root {{ color-scheme: light; --ink:#18212b; --muted:#5f6b76; --line:#d8dee4;
+      --surface:#fff; --canvas:#f4f6f8; --green:#157347; --green-bg:#e8f5ee;
+      --red:#b42318; --red-bg:#fcebea; --amber:#8a5700; --amber-bg:#fff4d6;
+      --gray:#56616c; --gray-bg:#edf0f2; --accent:#075985; }}
+    * {{ box-sizing:border-box; }}
+    body {{ margin:0; background:var(--canvas); color:var(--ink);
+      font:15px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }}
+    main {{ width:min(1120px,calc(100% - 32px)); margin:40px auto 64px; }}
+    header {{ display:flex; justify-content:space-between; gap:24px; align-items:flex-end;
+      padding-bottom:24px; border-bottom:1px solid var(--line); }}
+    h1 {{ margin:0 0 6px; font-size:30px; line-height:1.2; letter-spacing:0; }}
+    p {{ margin:0; color:var(--muted); }}
+    .actions {{ display:flex; gap:8px; flex-wrap:wrap; }}
+    .button {{ display:inline-flex; align-items:center; min-height:36px; padding:7px 12px;
+      border:1px solid var(--accent); border-radius:6px; background:var(--accent); color:#fff;
+      text-decoration:none; font-weight:600; white-space:nowrap; }}
+    .button.secondary {{ background:var(--surface); color:var(--accent); }}
+    .summary {{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px;
+      margin:24px 0; }}
+    .metric {{ padding:14px 16px; border:1px solid var(--line); border-radius:6px;
+      background:var(--surface); }}
+    .metric strong {{ display:block; font-size:24px; line-height:1.1; }}
+    .metric span {{ color:var(--muted); }}
+    .panel {{ overflow:hidden; border:1px solid var(--line); border-radius:6px;
+      background:var(--surface); }}
+    table {{ width:100%; min-width:1040px; border-collapse:collapse; }}
+    th,td {{ padding:13px 14px; border-bottom:1px solid var(--line); text-align:left;
+      vertical-align:top; }}
+    th {{ background:#f8f9fa; color:var(--muted); font-size:12px; text-transform:uppercase; }}
+    tr:last-child td {{ border-bottom:0; }}
+    code {{ font:13px ui-monospace,SFMono-Regular,Consolas,monospace; overflow-wrap:anywhere; }}
+    td code {{ white-space:nowrap; }}
+    td:last-child {{ white-space:nowrap; }}
+    .status {{ display:inline-block; min-width:72px; padding:3px 8px; border-radius:999px;
+      text-align:center; font-size:12px; font-weight:700; }}
+    .passed {{ color:var(--green); background:var(--green-bg); }}
+    .failed {{ color:var(--red); background:var(--red-bg); }}
+    .blocked {{ color:var(--amber); background:var(--amber-bg); }}
+    .not_run {{ color:var(--gray); background:var(--gray-bg); }}
+    td a {{ color:var(--accent); }}
+    footer {{ display:flex; justify-content:space-between; gap:16px; margin-top:16px;
+      color:var(--muted); font-size:13px; }}
+    @media (max-width:760px) {{
+      main {{ width:min(100% - 20px,1120px); margin-top:24px; }}
+      header {{ display:block; }} .actions {{ margin-top:16px; }}
+      .summary {{ grid-template-columns:repeat(2,minmax(0,1fr)); }}
+      .panel {{ overflow:visible; border:0; background:transparent; }}
+      table,tbody,tr,td {{ display:block; width:100%; min-width:0; }}
+      thead {{ display:none; }}
+      tr {{ margin-bottom:10px; border:1px solid var(--line); border-radius:6px;
+        background:var(--surface); overflow:hidden; }}
+      td {{ display:grid; grid-template-columns:92px minmax(0,1fr); gap:10px; padding:9px 12px;
+        border-bottom:1px solid var(--line); }}
+      td::before {{ content:attr(data-label); color:var(--muted); font-size:11px;
+        font-weight:700; text-transform:uppercase; }}
+      td code,td:last-child {{ white-space:normal; overflow-wrap:anywhere; }}
+      td .status {{ justify-self:start; }}
+      footer {{ display:block; }} footer span {{ display:block; margin-top:4px; }}
+    }}
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div><h1>Roboclaws capability showcase</h1>
+        <p>Latest advisory evidence from model-backed and deterministic household runs.</p></div>
+      <div class="actions">
+        <a class="button" href="{run_url}">View Actions run</a>{artifact_link}
+      </div>
+    </header>
+    <section class="summary" aria-label="Status summary">
+      <div class="metric"><strong>{status_counts["passed"]}</strong><span>Passed</span></div>
+      <div class="metric"><strong>{status_counts["failed"]}</strong><span>Failed</span></div>
+      <div class="metric"><strong>{status_counts["blocked"]}</strong><span>Blocked</span></div>
+      <div class="metric"><strong>{status_counts["not_run"]}</strong><span>Not run</span></div>
+    </section>
+    <section class="panel">
+      <table>
+        <thead><tr><th>Capability</th><th>Provider</th><th>Status</th><th>Reason</th>
+          <th>Evidence</th><th>Last success</th></tr></thead>
+        <tbody>{table_rows}</tbody>
+      </table>
+    </section>
+    <footer><span>Advisory evidence only; this showcase is not a merge gate.</span>
+      <span>Attempted {attempted_at} at <code>{commit}</code></span></footer>
+  </main>
+</body>
+</html>
+"""
+
+
+def _render_html_row(summary: dict[str, Any], row: dict[str, Any]) -> str:
+    status = str(row["status"])
+    capability = html.escape(str(row["id"]))
+    provider = html.escape(str(row.get("provider_profile") or "deterministic"))
+    reason = html.escape(str(row.get("reason") or "-"))
+    report = row.get("report_artifact")
+    artifact_url = summary.get("artifact_url")
+    evidence = "Unavailable"
+    if report and artifact_url:
+        safe_url = html.escape(str(artifact_url), quote=True)
+        evidence = f'<a href="{safe_url}">{html.escape(str(report))}</a>'
+    last_success = summary.get("last_success", {}).get(row["id"], {}).get("attempted_at", "None")
+    status_label = html.escape(status.replace("_", " ").title())
     return (
-        "<!doctype html><meta charset=utf-8><title>Roboclaws capability showcase</title>"
-        "<style>body{font:16px system-ui;max-width:960px;margin:3rem auto;padding:0 1rem}"
-        "pre{white-space:pre-wrap}a{color:#075985}</style>"
-        f"<pre>{html.escape(markdown)}</pre>"
+        f'<tr><td data-label="Capability"><code>{capability}</code></td>'
+        f'<td data-label="Provider"><code>{provider}</code></td>'
+        f'<td data-label="Status"><span class="status {status}">{status_label}</span></td>'
+        f'<td data-label="Reason">{reason}</td><td data-label="Evidence">{evidence}</td>'
+        f'<td data-label="Last success">{html.escape(str(last_success))}</td></tr>'
     )
 
 
