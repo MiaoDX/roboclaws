@@ -82,21 +82,31 @@ arbitrary shell commands.
 
 ## Demo Matrix
 
-The report site at [miaodx.com/roboclaws](https://miaodx.com/roboclaws/) is a
-frozen historical archive. GitHub Actions no longer assembles or publishes it,
-so current runs do not update archive links. The advisory
-[capability showcase](https://github.com/MiaoDX/roboclaws/actions/workflows/showcase.yml)
-runs deterministic samples weekly or by manual dispatch and publishes a
-sanitized latest view; canonical bundles remain Actions artifacts.
+The advisory [live report](https://miaodx.com/roboclaws/) is rebuilt from the
+latest GitHub Actions showcase. It reports each row independently, so a
+provider timeout remains visible instead of hiding successful evidence from
+the other providers. Canonical report bundles remain Actions artifacts.
 
-| Demo | Run it locally | Report |
-| --- | --- | --- |
-| Map build | `just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=map-build agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=camera-grounded-labels camera_labeler=grounding-dino seed=7 scenario_setup=baseline` | Local artifact today. Use `agent_engine=direct-runner` only for deterministic contract baselines. |
-| Household cleanup | `just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=cleanup agent_engine=direct-runner evidence_lane=world-public-labels seed=7 scenario_setup=relocate-cleanup-related-objects relocation_count=5` | [Frozen historical Molmo live index](https://miaodx.com/roboclaws/molmo/live/) |
-| Open household goal | `just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat prompt="find something useful to drink"` | Local artifact today. |
-| Planner proof | `just run::surface surface=planner-proof world=planner-proof/default backend=mujoco intent=planner-proof agent_engine=direct-runner mode=dry-run` | Local artifact today. |
-| Operator console | `just console::run` | Local-only operator surface. |
-| Maintainer gate | `just agent::verify` | CI status: [workflow](https://github.com/MiaoDX/roboclaws/actions/workflows/ci.yml) |
+| Capability | Agent route | Showcase coverage | Evidence |
+| --- | --- | --- | --- |
+| Deterministic smoke | `direct-runner` | Cleanup contract baseline | [Latest status](https://miaodx.com/roboclaws/) |
+| Map build | `openai-agents-sdk` + `kimi-openai-chat` | Camera-grounded map-build sample | [Latest status](https://miaodx.com/roboclaws/) |
+| Household cleanup | `openai-agents-sdk` | Kimi, MiMo, and MiniMax samples | [Latest status](https://miaodx.com/roboclaws/) |
+| Open household goal | `openai-agents-sdk` | Kimi, MiMo, and MiniMax samples | [Latest status](https://miaodx.com/roboclaws/) |
+| Operator console | Local SDK routes | Interactive Build Map, Open Task, and Cleanup workflows | Local-only operator surface |
+| Maintainer gate | `just agent::verify` | Lint, architecture, contract, and mock tests | [CI workflow](https://github.com/MiaoDX/roboclaws/actions/workflows/ci.yml) |
+
+Run a model-backed household task by selecting one of the public provider
+profiles:
+
+```bash
+just run::surface surface=household-world agent_engine=openai-agents-sdk preset=cleanup provider_profile=kimi-openai-chat evidence_lane=world-public-labels
+just run::surface surface=household-world agent_engine=openai-agents-sdk preset=cleanup provider_profile=mimo-tp-openai-chat evidence_lane=world-public-labels
+just run::surface surface=household-world agent_engine=openai-agents-sdk preset=cleanup provider_profile=minimax-responses evidence_lane=world-public-labels
+```
+
+The [capability showcase workflow](https://github.com/MiaoDX/roboclaws/actions/workflows/showcase.yml)
+runs weekly or by manual dispatch. It is advisory evidence, not a merge gate.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the code map and the full operating
 mode contract.
