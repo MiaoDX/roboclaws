@@ -62,7 +62,13 @@ def live_surface_command(kwargs: dict[str, Any], *, output_dir: Path) -> list[st
         command.append(f"preset={sample.preset}")
     elif sample is not None and sample.intent == "map-build":
         command.append("preset=map-build")
-    if _is_smoke_budget(kwargs):
+    # Model-backed showcase rows use the visual MolmoSpaces contract. Make the
+    # profile's visual-report policy explicit at the subprocess boundary.
+    if evidence_lane != "smoke":
+        command.append("robot_views=on")
+    # ``budget=smoke`` controls eval sampling/cost; it must not select the
+    # product's semantic smoke profile for provider-backed showcase runs.
+    if _is_smoke_budget(kwargs) and kwargs.get("agent_engine") == "direct-runner":
         command.append("run_preset=smoke")
     command += live_long_horizon.relocation_args(
         kwargs,

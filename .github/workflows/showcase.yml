@@ -32,16 +32,21 @@ jobs:
           - provider: minimax
             row_args: --row-id household_world.cleanup_capability.minimax --row-id household_world.open_ended_goals.minimax
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install headless MuJoCo rendering runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libegl1 libgl1 libgles2 libegl-mesa0
       - run: uv sync --extra dev
       - name: Run ${{ matrix.provider }} showcase shard
         env:
+          ROBOCLAWS_OPENAI_AGENTS_ROBOT_VIEW_CAPTURE_POLICY: action_timeline
           KIMI_API_KEY: ${{ matrix.provider == 'kimi' && secrets.KIMI_API_KEY || '' }}
           KIMI_OPENAI_BASE_URL: ${{ matrix.provider == 'kimi' && secrets.KIMI_OPENAI_BASE_URL || '' }}
           MIMO_TP_KEY: ${{ matrix.provider == 'mimo' && secrets.MIMO_TP_KEY || '' }}
@@ -139,6 +144,19 @@ jobs:
             --execution-index output/showcase/minimax/execution.json \
             --execution-index output/showcase/preview/execution.json \
             --previous output/showcase/previous.json
+      - name: Publish report drilldowns
+        if: always()
+        run: |
+          .venv/bin/python - <<'PY'
+          from pathlib import Path
+          from roboclaws.evals.public_reports import publish_report_bundle
+
+          for shard in ("smoke", "kimi", "mimo", "minimax"):
+              source = Path("output/showcase") / shard / "evals"
+              destination = Path("output/showcase/site/reports") / shard / "evals"
+              if source.is_dir():
+                  publish_report_bundle(source, destination)
+          PY
       - name: Upload canonical evidence
         if: always()
         uses: actions/upload-artifact@v4

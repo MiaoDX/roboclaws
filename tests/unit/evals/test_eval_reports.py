@@ -37,6 +37,22 @@ def test_eval_report_links_existing_artifacts_under_output_dir(tmp_path: Path) -
     assert "unavailable" not in html
 
 
+def test_eval_report_links_repo_relative_artifact_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    output_dir = Path("output/eval")
+    run_dir = output_dir / "runs/sample/trial-0000"
+    run_dir.mkdir(parents=True)
+    (run_dir / "report.html").write_text("<html></html>\n", encoding="utf-8")
+
+    rendered = render_eval_report(
+        _bundle(output_dir=output_dir, artifacts={"report": str(run_dir / "report.html")})
+    )
+
+    assert 'href="runs/sample/trial-0000/report.html"' in rendered
+
+
 def test_eval_report_marks_missing_or_escaping_artifacts_unavailable(tmp_path: Path) -> None:
     output_dir = tmp_path / "eval"
     output_dir.mkdir()
