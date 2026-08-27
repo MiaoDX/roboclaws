@@ -157,6 +157,31 @@ def test_live_surface_timeout_terminates_the_entire_process_group(
     ]
 
 
+def test_live_surface_timeout_kills_group_when_wrapper_already_exited(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    signals: list[tuple[int, signal.Signals]] = []
+
+    class ExitedWrapper:
+        pid = 4321
+
+        def poll(self) -> int:
+            return 0
+
+    monkeypatch.setattr(
+        live_execution.os,
+        "killpg",
+        lambda process_group_id, sig: signals.append((process_group_id, sig)),
+    )
+
+    live_execution._terminate_live_surface_process(ExitedWrapper())  # type: ignore[arg-type]
+
+    assert signals == [
+        (4321, signal.SIGTERM),
+        (4321, signal.SIGKILL),
+    ]
+
+
 def test_live_eval_wall_clock_budget_timeout_reaches_failed_result(
     tmp_path: Path,
 ) -> None:
