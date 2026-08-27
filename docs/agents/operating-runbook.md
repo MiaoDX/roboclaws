@@ -84,9 +84,10 @@ one-off connectivity probe:
 
 - `codex-responses` and `mimo-responses` are internal routes allowed on the
   local workstation and CloudML, subject to route readiness.
-- `kimi-openai-chat` and `minimax-responses` are external routes allowed only
-  on the local workstation. CloudML has no supported public-internet route for
-  them; never submit those rows to CloudML even if an incidental probe succeeds.
+- `kimi-openai-chat` and `minimax-responses` are external routes allowed on the
+  local workstation and in the trusted GitHub Actions capability showcase.
+  CloudML has no supported public-internet route for them; never submit those
+  rows to CloudML even if an incidental probe succeeds.
 
 Before system-provider Claude Code workflows:
 

@@ -84,7 +84,10 @@ arbitrary shell commands.
 
 The report site at [miaodx.com/roboclaws](https://miaodx.com/roboclaws/) is a
 frozen historical archive. GitHub Actions no longer assembles or publishes it,
-so current runs produce local artifacts and do not update archive links.
+so current runs do not update archive links. The advisory
+[capability showcase](https://github.com/MiaoDX/roboclaws/actions/workflows/showcase.yml)
+runs deterministic samples weekly or by manual dispatch and publishes a
+sanitized latest view; canonical bundles remain Actions artifacts.
 
 | Demo | Run it locally | Report |
 | --- | --- | --- |

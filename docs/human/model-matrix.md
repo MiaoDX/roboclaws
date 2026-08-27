@@ -7,8 +7,8 @@ supports four profiles and never retries one wire API through another.
 | --- | --- | --- | --- | --- | --- |
 | `codex-responses` | Internal | Local, CloudML | Responses | Public label `codex`; opaque request model from environment | `CODEX_RESPONSES_BASE_URL`, `CODEX_RESPONSES_API_KEY`, `CODEX_RESPONSES_MODEL` |
 | `mimo-responses` | Internal | Local, CloudML | Responses | Public label `mimo`; opaque request model from environment | `MIMO_RESPONSES_BASE_URL`, `MIMO_RESPONSES_API_KEY`, `MIMO_RESPONSES_MODEL` |
-| `minimax-responses` | External | Local only | Responses | Public MiniMax catalog model | `MM_BASE_URL`, `MM_API_KEY` |
-| `kimi-openai-chat` | External | Local only | Chat Completions | `kimi-k2.7-code` | `KIMI_OPENAI_BASE_URL`, `KIMI_API_KEY` |
+| `minimax-responses` | External | Local, trusted GitHub Actions showcase | Responses | Public MiniMax catalog model | `MM_BASE_URL`, `MM_API_KEY` |
+| `kimi-openai-chat` | External | Local, trusted GitHub Actions showcase | Chat Completions | `kimi-k2.7-code` | `KIMI_OPENAI_BASE_URL`, `KIMI_API_KEY` |
 
 Responses and Chat Completions are different transports. Responses can expose
 provider-native reasoning and structured response items; Chat Completions uses
