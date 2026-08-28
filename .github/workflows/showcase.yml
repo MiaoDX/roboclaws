@@ -144,15 +144,13 @@ jobs:
         run: |
           .venv/bin/python - <<'PY'
           from pathlib import Path
-          import shutil
+          from roboclaws.evals.public_reports import publish_report_bundle
 
           for shard in ("smoke", "kimi", "mimo", "minimax"):
               source = Path("output/showcase") / shard / "evals"
-              for report in source.glob("*/*/eval_report.html"):
-                  relative = report.relative_to(Path("output/showcase") / shard)
-                  destination = Path("output/showcase/site/reports") / shard / relative
-                  destination.parent.mkdir(parents=True, exist_ok=True)
-                  shutil.copy2(report, destination)
+              destination = Path("output/showcase/site/reports") / shard / "evals"
+              if source.is_dir():
+                  publish_report_bundle(source, destination)
           PY
       - name: Upload canonical evidence
         if: always()

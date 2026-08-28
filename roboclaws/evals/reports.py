@@ -520,9 +520,10 @@ def _report_row(result: dict[str, Any], *, output_dir: Path) -> str:
     identity = result.get("identity") if isinstance(result.get("identity"), dict) else {}
     artifacts = result.get("artifacts") if isinstance(result.get("artifacts"), dict) else {}
     links = []
-    for key, label in (("run_result", "run_result"), ("report", "report")):
-        if key in artifacts:
-            links.append(_artifact_link_or_status(label, artifacts.get(key), output_dir))
+    # The public report links to the human-readable run report only. JSON
+    # artifacts may contain private evaluator truth and remain Actions-only.
+    if "report" in artifacts:
+        links.append(_artifact_link_or_status("report", artifacts.get("report"), output_dir))
     status = str(result.get("status") or "")
     metrics = result.get("metrics") if isinstance(result.get("metrics"), dict) else {}
     attempts = (
