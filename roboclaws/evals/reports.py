@@ -567,7 +567,14 @@ def _artifact_link_or_status(label: str, raw_path: Any, output_dir: Path) -> str
         resolved_candidate = candidate.resolve()
         relative_path = resolved_candidate.relative_to(resolved_output_dir)
     except (OSError, ValueError):
-        return _artifact_unavailable(label, "outside eval output", path_text)
+        # Eval bundles can be rendered after being downloaded from CI, where
+        # absolute runner paths no longer exist. Preserve the public runs/
+        # suffix so the Pages bundle can still resolve the report link.
+        parts = artifact_path.parts
+        if "runs" in parts:
+            relative_path = Path(*parts[parts.index("runs") :])
+        else:
+            return _artifact_unavailable(label, "outside eval output", path_text)
     if not resolved_candidate.is_file():
         return _artifact_unavailable(label, "missing artifact", relative_path.as_posix())
     href = html.escape(relative_path.as_posix())
