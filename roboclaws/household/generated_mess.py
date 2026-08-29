@@ -50,7 +50,13 @@ def select_generated_mess_targets(
         receptacles,
         rng=random.Random(seed) if seed is not None else None,
     )
-    return _select_targets_from_rules(eligible_rules, target_count=target_count)
+    selected = _select_targets_from_rules(eligible_rules, target_count=target_count)
+    for target in selected:
+        target["valid_receptacle_ids"] = [
+            str(item["receptacle_id"])
+            for item in acceptable_receptacles_for_object(target, receptacles)
+        ] or [str(target["target_receptacle_id"])]
+    return selected
 
 
 def _eligible_generated_mess_rules(
