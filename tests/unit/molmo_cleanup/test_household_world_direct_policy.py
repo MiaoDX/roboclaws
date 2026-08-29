@@ -5,7 +5,6 @@ from types import SimpleNamespace
 from roboclaws.household import (
     household_direct_cleanup_selection,
     household_world_direct_policy,
-    realworld_done_readiness,
 )
 
 
@@ -141,30 +140,6 @@ def test_already_satisfied_direct_candidate_stays_handled_after_reobservation() 
     assert lifecycle["observed_box"]["state"] == "placed"
     assert scratchpad["notes"] == [
         {"object_id": "observed_box", "reason": "already_on_inferred_fixture"}
-    ]
-
-
-def test_destination_options_prioritize_run_local_public_anchor(monkeypatch) -> None:
-    monkeypatch.setattr(
-        realworld_done_readiness.realworld_runtime_map_targets,
-        "public_runtime_fixture_candidates",
-        lambda contract: [
-            {"fixture_id": "anchor_fixture_sofa", "category": "Sofa"},
-            {"fixture_id": "anchor_fixture_bed", "category": "Bed"},
-        ],
-    )
-
-    options = realworld_done_readiness.destination_options_for_policy(
-        SimpleNamespace(),
-        {
-            "preferred_fixture_categories": ["bed", "sofa"],
-            "preferred_public_anchor_id": "anchor_fixture_bed",
-        },
-    )
-
-    assert [item["candidate_fixture_id"] for item in options] == [
-        "anchor_fixture_bed",
-        "anchor_fixture_sofa",
     ]
 
 

@@ -195,22 +195,6 @@ class HouseholdRuntimeManipulationMixin:
     def _destination_policy_context(self, handle: str) -> dict[str, Any]:
         detection = self._detections_by_handle.get(handle) or {}
         policy = _public_destination_policy_for_category(detection.get("category"))
-        internal_object_id = self._internal_object_id(handle)
-        target = next(
-            (
-                item
-                for item in self.scenario.private_manifest.targets
-                if str(item.object_id) == str(internal_object_id or "")
-            ),
-            None,
-        )
-        if target is not None:
-            public_anchor_id = self._public_anchor_ids_by_private_fixture_id.get(
-                str(target.valid_receptacle_ids[0]),
-                "",
-            )
-            if public_anchor_id:
-                policy["preferred_public_anchor_id"] = public_anchor_id
         return {
             "destination_policy": policy,
             "destination_options": realworld_done_readiness.destination_options_for_policy(
