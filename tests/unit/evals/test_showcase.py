@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from roboclaws.evals.showcase import (
+    _published_report_href,
     _row_command,
     build_summary,
     derive_row,
@@ -12,6 +13,16 @@ from roboclaws.evals.showcase import (
     render_html,
     validate_manifest,
 )
+
+
+def test_published_report_href_matches_pages_allowlist() -> None:
+    execution = Path("output/showcase/kimi/execution.json")
+    result = "output/showcase/kimi/evals/household_world_cleanup/run-1/eval_results.json"
+
+    assert _published_report_href(execution, result) == (
+        "reports/kimi/evals/household_world_cleanup/run-1/eval_report.html"
+    )
+    assert _published_report_href(execution, "output/private/eval_results.json") is None
 
 
 def manifest():
@@ -105,6 +116,7 @@ def test_model_lane_live_command_uses_canonical_provider_identity(tmp_path):
     assert "agent_engine=openai-agents-sdk" in command
     assert "provider_profile=kimi-openai-chat" in command
     assert "live_execution=run" in command
+    assert "live_stall_timeout_s=600" in command
     assert "sample_id=open_ended.drink_seed7" in command
     assert "repetition_index=0" in command
 
@@ -162,6 +174,7 @@ def test_showcase_html_renders_dashboard_instead_of_escaped_markdown():
                 "status": "passed",
                 "reason": None,
                 "report_artifact": "eval_report.html",
+                "report_href": "reports/mimo/evals/cleanup/run/eval_report.html",
             },
         ],
         "last_success": {
@@ -175,4 +188,5 @@ def test_showcase_html_renders_dashboard_instead_of_escaped_markdown():
     assert "<pre>" not in rendered
     assert "showcase_row_timeout" in rendered
     assert "kimi-openai-chat" in rendered
-    assert 'href="https://example.test/artifacts"' in rendered
+    assert 'href="reports/mimo/evals/cleanup/run/eval_report.html"' in rendered
+    assert rendered.count('href="https://example.test/artifacts"') == 1

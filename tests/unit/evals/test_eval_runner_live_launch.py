@@ -78,14 +78,15 @@ def test_live_surface_command_uses_current_public_launch_axes(tmp_path: Path) ->
     assert "agent_engine=openai-agents-sdk" in command
     assert "provider_profile=kimi-openai-chat" in command
     assert "evidence_lane=world-public-labels" in command
-    assert "run_preset=smoke" in command
+    assert "robot_views=on" in command
+    assert "run_preset=smoke" not in command
     assert "preset=cleanup" in command
     assert not any(item.startswith("generated_mess_count=") for item in command)
     plan = resolve_surface_launch(command[5:])
     assert plan.agent_engine == "openai-agents-sdk"
     assert plan.dispatch_runner == "openai-agents-live"
     assert plan.backend == "mujoco"
-    assert plan.evidence_mode == "smoke"
+    assert plan.evidence_mode == "world-public-labels"
 
 
 def test_live_surface_command_uses_explicit_mcp_port(tmp_path: Path) -> None:
@@ -124,6 +125,7 @@ def test_live_surface_command_passes_map_build_camera_labeler(tmp_path: Path) ->
     assert "preset=map-build" in command
     assert "evidence_lane=camera-grounded-labels" in command
     assert "camera_labeler=grounding-dino" in command
+    assert "robot_views=on" in command
     assert "agent_engine=openai-agents-sdk" in command
     plan = resolve_surface_launch(command[5:])
     assert plan.intent == "map-build"
@@ -163,7 +165,7 @@ def test_live_surface_command_uses_no_preset_public_open_task_route(tmp_path: Pa
     assert "surface=household-world" in command
     assert "agent_engine=openai-agents-sdk" in command
     assert "provider_profile=kimi-openai-chat" in command
-    assert "run_preset=smoke" in command
+    assert "run_preset=smoke" not in command
     assert not any(item.startswith("preset=") for item in command)
     assert any(item.startswith("prompt=") for item in command)
     plan = resolve_surface_launch(command[5:])

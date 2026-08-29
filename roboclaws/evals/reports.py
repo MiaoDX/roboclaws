@@ -560,17 +560,26 @@ def _artifact_link_or_status(label: str, raw_path: Any, output_dir: Path) -> str
     if not path_text:
         return _artifact_unavailable(label, "empty artifact path", "")
     artifact_path = Path(path_text)
-    candidate = artifact_path if artifact_path.is_absolute() else output_dir / artifact_path
-    try:
-        resolved_output_dir = output_dir.resolve()
-        resolved_candidate = candidate.resolve()
-        relative_path = resolved_candidate.relative_to(resolved_output_dir)
-    except (OSError, ValueError):
-        return _artifact_unavailable(label, "outside eval output", path_text)
-    if not resolved_candidate.is_file():
-        return _artifact_unavailable(label, "missing artifact", relative_path.as_posix())
-    href = html.escape(relative_path.as_posix())
-    return f'<a href="{href}">{html.escape(label)}</a>'
+    resolved_output_dir = output_dir.resolve()
+    candidates = (
+        [artifact_path]
+        if artifact_path.is_absolute()
+        else [artifact_path, output_dir / artifact_path]
+    )
+    missing_relative_path: Path | None = None
+    for candidate in candidates:
+        try:
+            resolved_candidate = candidate.resolve()
+            relative_path = resolved_candidate.relative_to(resolved_output_dir)
+        except (OSError, ValueError):
+            continue
+        missing_relative_path = relative_path
+        if resolved_candidate.is_file():
+            href = html.escape(relative_path.as_posix())
+            return f'<a href="{href}">{html.escape(label)}</a>'
+    if missing_relative_path is not None:
+        return _artifact_unavailable(label, "missing artifact", missing_relative_path.as_posix())
+    return _artifact_unavailable(label, "outside eval output", path_text)
 
 
 def _artifact_unavailable(label: str, reason: str, path: str) -> str:
