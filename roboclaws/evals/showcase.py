@@ -56,12 +56,20 @@ def validate_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
                 raise ValueError(f"showcase row {row['id']} missing {key}")
         if row["execution_mode"] not in EXECUTION_MODES:
             raise ValueError(f"showcase row {row['id']} has invalid execution_mode")
+        _validate_manifest_row_budgets(row)
         suite, samples = load_suite(row["suite"])
         canonical_suite_id = row.get("canonical_suite_id", row["id"])
         if suite.suite_id != canonical_suite_id or suite.version != row["version"]:
             raise ValueError(f"showcase row {row['id']} does not match canonical suite identity")
         _validate_manifest_row_selection(row, samples)
     return manifest
+
+
+def _validate_manifest_row_budgets(row: dict[str, Any]) -> None:
+    for budget_key in ("timeout_s", "stall_timeout_s"):
+        value = row.get(budget_key)
+        if value is not None and (not isinstance(value, (int, float)) or value <= 0):
+            raise ValueError(f"showcase row {row['id']} has invalid {budget_key}")
 
 
 def _validate_manifest_row_selection(row: dict[str, Any], samples: list[Any]) -> None:
@@ -122,7 +130,7 @@ def execute_manifest(
                 check=False,
                 capture_output=True,
                 text=True,
-                timeout=int(row["timeout_s"]) + 300,
+                timeout=int(row["timeout_s"]) + 30,
             )
         except subprocess.TimeoutExpired:
             attempts.append(
@@ -206,7 +214,7 @@ def _row_command(row: dict[str, Any], *, live_execution: str, output_dir: Path) 
             (
                 "live_execution=run",
                 f"live_timeout_s={row['timeout_s']}",
-                "live_stall_timeout_s=600",
+                f"live_stall_timeout_s={row.get('stall_timeout_s', row['timeout_s'])}",
             )
         )
     if isinstance(row.get("sample_id"), str) and row["sample_id"]:

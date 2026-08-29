@@ -71,6 +71,14 @@ def test_manifest_rejects_duplicate_ids():
         validate_manifest(m)
 
 
+@pytest.mark.parametrize("key,value", [("timeout_s", 0), ("stall_timeout_s", -1)])
+def test_manifest_rejects_non_positive_budgets(key, value):
+    m = manifest()
+    m["rows"][0][key] = value
+    with pytest.raises(ValueError, match=f"invalid {key}"):
+        validate_manifest(m)
+
+
 def test_empty_attempt_is_blocked_not_passed():
     m = manifest()
     row = derive_row(m["rows"][0], {"aggregate": {}})
@@ -116,7 +124,8 @@ def test_model_lane_live_command_uses_canonical_provider_identity(tmp_path):
     assert "agent_engine=openai-agents-sdk" in command
     assert "provider_profile=kimi-openai-chat" in command
     assert "live_execution=run" in command
-    assert "live_stall_timeout_s=600" in command
+    assert "live_timeout_s=900" in command
+    assert "live_stall_timeout_s=120" in command
     assert "sample_id=open_ended.drink_seed7" in command
     assert "repetition_index=0" in command
 
