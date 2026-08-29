@@ -221,10 +221,14 @@ def _write_product_artifacts(
         )
         target_search_summary = {
             "viewpoint_budget": {
+                "total_public_waypoints": 2,
+                "visited_waypoint_count": 2,
+                "unvisited_waypoint_count": 0,
                 "observed_waypoint_ids": [
                     "generated_exploration_003",
                     "room_6_inspection",
                 ],
+                "unvisited_waypoint_ids": [],
             },
             "inspection_observations": [
                 {"room_id": "kitchen", "waypoint_id": "generated_exploration_003"},
@@ -266,6 +270,12 @@ def _write_product_artifacts(
             [
                 '{"event": "request", "tool": "metric_map"}',
                 '{"event": "response", "tool": "metric_map"}',
+                '{"event": "request", "tool": "resolve_target_query"}',
+                (
+                    '{"event": "response", "tool": "resolve_target_query", '
+                    '"response": {"status": "not_found", "match_count": 0, '
+                    '"matches": [], "exhausted_public_search_budget": true}}'
+                ),
                 (
                     '{"event": "request", "tool": "navigate_to_waypoint", '
                     '"request": {"waypoint_id": "room_6_inspection"}}'
@@ -397,6 +407,7 @@ def _run_result(
         "score": {
             "completion_status": completion_status,
             "mess_restoration_rate": 1.0,
+            "sweep_coverage_rate": 1.0,
             "disturbance_count": 0,
             "failed_or_noop_tool_count": 0,
         },

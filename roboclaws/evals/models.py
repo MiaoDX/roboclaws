@@ -41,6 +41,7 @@ FAILURE_CLASSES = frozenset(
 )
 
 RESULT_STATUSES = frozenset({"passed", "failed", "blocked", "inconclusive"})
+DIAGNOSTIC_STATUSES = frozenset({"ready", "incomplete", "blocked"})
 
 
 @dataclass(frozen=True)
@@ -361,6 +362,8 @@ class EvalResult:
     schema: str
     identity: dict[str, Any]
     status: str
+    capability_status: str
+    diagnostic_status: str
     failure_class: str
     grader_outputs: dict[str, Any]
     artifacts: dict[str, Any]
@@ -374,6 +377,8 @@ class EvalResult:
         trial: EvalTrial,
         *,
         status: str,
+        capability_status: str | None = None,
+        diagnostic_status: str | None = None,
         failure_class: str = MISSING_NOT_APPLICABLE,
         grader_outputs: dict[str, Any],
         artifacts: dict[str, Any] | None = None,
@@ -382,11 +387,20 @@ class EvalResult:
         limitations: tuple[str, ...] | list[str] = (),
     ) -> "EvalResult":
         _validate_result_status(status)
+        resolved_capability_status = capability_status or status
+        _validate_result_status(resolved_capability_status)
+        resolved_diagnostic_status = diagnostic_status or (
+            "blocked" if status == "blocked" else "incomplete"
+        )
+        if resolved_diagnostic_status not in DIAGNOSTIC_STATUSES:
+            raise ValueError(f"diagnostic_status must be one of {sorted(DIAGNOSTIC_STATUSES)!r}")
         _validate_failure_class(status=status, failure_class=failure_class)
         return cls(
             schema=EVAL_RESULT_SCHEMA,
             identity=trial.to_dict() | {"schema": "roboclaws_eval_identity_v1"},
             status=status,
+            capability_status=resolved_capability_status,
+            diagnostic_status=resolved_diagnostic_status,
             failure_class=failure_class,
             grader_outputs=dict(grader_outputs),
             artifacts=dict(artifacts or {}),
@@ -402,8 +416,13 @@ class EvalResult:
     def from_mapping(cls, payload: dict[str, Any]) -> "EvalResult":
         _require_schema(payload, EVAL_RESULT_SCHEMA)
         status = _required_string(payload, "status")
+        capability_status = _required_string(payload, "capability_status")
+        diagnostic_status = _required_string(payload, "diagnostic_status")
         failure_class = _required_string(payload, "failure_class")
         _validate_result_status(status)
+        _validate_result_status(capability_status)
+        if diagnostic_status not in DIAGNOSTIC_STATUSES:
+            raise ValueError(f"diagnostic_status must be one of {sorted(DIAGNOSTIC_STATUSES)!r}")
         _validate_failure_class(status=status, failure_class=failure_class)
         identity = _required_mapping(payload, "identity")
         for key in _RESULT_IDENTITY_FIELDS:
@@ -413,6 +432,8 @@ class EvalResult:
             schema=str(payload["schema"]),
             identity=identity,
             status=status,
+            capability_status=capability_status,
+            diagnostic_status=diagnostic_status,
             failure_class=failure_class,
             grader_outputs=_required_mapping(payload, "grader_outputs"),
             artifacts=artifacts,
@@ -429,6 +450,8 @@ class EvalResult:
             "schema": self.schema,
             "identity": dict(self.identity),
             "status": self.status,
+            "capability_status": self.capability_status,
+            "diagnostic_status": self.diagnostic_status,
             "failure_class": self.failure_class,
             "grader_outputs": dict(self.grader_outputs),
             "artifacts": dict(self.artifacts),

@@ -37,6 +37,12 @@
     "generated_mess_count": 5,
     "acceptable_destinations": "private"
   },
+  "grader_config": {
+    "min_restoration_rate": 0.7,
+    "min_sweep_coverage_rate": 0.9,
+    "max_disturbance_count": 2,
+    "require_authoritative_done": true
+  },
   "launch_overrides": {
     "agent_engine": "direct-runner",
     "evidence_lane": "world-public-labels",

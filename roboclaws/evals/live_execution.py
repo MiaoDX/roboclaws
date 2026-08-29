@@ -199,6 +199,13 @@ def run_live_eval_trial(
     return EvalResult.from_trial(
         trial,
         status=status,
+        capability_status=status,
+        diagnostic_status=(
+            "ready"
+            if isinstance(grader_outputs.get("artifacts"), dict)
+            and grader_outputs["artifacts"].get("status") == "passed"
+            else "incomplete"
+        ),
         failure_class=failure_class,
         grader_outputs=grader_outputs,
         artifacts=artifacts,

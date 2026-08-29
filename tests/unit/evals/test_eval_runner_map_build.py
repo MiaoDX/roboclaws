@@ -96,6 +96,8 @@ def test_map_build_consumer_suite_passes_runtime_map_prior_between_samples(
     }
     results = {result["identity"]["sample_id"]: result for result in payload["results"]}
     map_result = results["map_build.fixture_focused_seed7"]
+    assert map_result["capability_status"] == "passed"
+    assert map_result["diagnostic_status"] == "ready"
     assert map_result["grader_outputs"]["outcome"]["runtime_metric_map_schema"] == (
         "runtime_metric_map_v1"
     )
@@ -240,6 +242,8 @@ def test_map_build_eval_catches_unusable_runtime_metric_map(tmp_path: Path) -> N
 
     payload = json.loads(run.results_path.read_text())
     result = payload["results"][0]
+    assert result["capability_status"] == "failed"
+    assert result["diagnostic_status"] == "ready"
     assert result["identity"]["sample_id"] == "map_build.fixture_focused_seed7"
     assert result["status"] == "failed"
     assert result["failure_class"] == "map_actionability_failure"

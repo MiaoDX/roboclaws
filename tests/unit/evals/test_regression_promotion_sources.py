@@ -178,6 +178,8 @@ def _failed_result() -> dict[str, object]:
         "schema": EVAL_RESULT_SCHEMA,
         "identity": _identity(),
         "status": "failed",
+        "capability_status": "failed",
+        "diagnostic_status": "incomplete",
         "failure_class": "artifact_missing",
         "grader_outputs": {"artifacts": {"report_present": False}},
         "artifacts": {"run_result": "run_result.json"},

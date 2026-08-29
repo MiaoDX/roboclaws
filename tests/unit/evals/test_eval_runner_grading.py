@@ -46,6 +46,20 @@ def test_open_ended_positive_predicates_pass_with_public_runtime_evidence(
     assert payload["aggregate"]["open_ended"]["by_category"]["positive_observable"]["passed"] == 1
     assert payload["aggregate"]["open_ended"]["telemetry"]["tool_call_count"] == 3
     results = {result["identity"]["sample_id"]: result for result in payload["results"]}
+    drink_result = results["open_ended.drink_seed7"]
+    assert drink_result["capability_status"] == "passed"
+    assert drink_result["diagnostic_status"] == "ready"
+    drink_predicate = drink_result["grader_outputs"]["open_ended"]["success_predicate"]
+    assert drink_predicate["predicate_id"] == "public_search_exhausted"
+    assert drink_predicate["evidence"] == {
+        "final_resolution_status": "not_found",
+        "exhausted_public_search_budget": True,
+        "public_match_count": 0,
+        "total_public_waypoints": 2,
+        "observed_public_waypoint_count": 2,
+        "every_public_waypoint_observed": True,
+        "done_after_final_resolution": True,
+    }
     room_predicate = results["open_ended.room4_anchor_seed7"]["grader_outputs"]["open_ended"][
         "success_predicate"
     ]
@@ -95,11 +109,13 @@ def test_open_ended_authoritative_predicate_failure_is_behavior_failure(
     )
 
     payload = json.loads(run.results_path.read_text())
-    assert payload["aggregate"]["passed"] == 1
-    assert payload["aggregate"]["failed"] == 2
-    assert payload["aggregate"]["failure_classes"] == {"private_goal_not_satisfied": 2}
+    assert payload["aggregate"]["passed"] == 0
+    assert payload["aggregate"]["failed"] == 3
+    assert payload["aggregate"]["failure_classes"] == {"private_goal_not_satisfied": 3}
     results = {result["identity"]["sample_id"]: result for result in payload["results"]}
-    assert results["open_ended.drink_seed7"]["status"] == "passed"
+    assert results["open_ended.drink_seed7"]["status"] == "failed"
+    assert results["open_ended.drink_seed7"]["capability_status"] == "failed"
+    assert results["open_ended.drink_seed7"]["diagnostic_status"] == "ready"
     assert results["open_ended.room4_anchor_seed7"]["status"] == "failed"
     assert results["open_ended.room4_anchor_seed7"]["failure_class"] == (
         "private_goal_not_satisfied"

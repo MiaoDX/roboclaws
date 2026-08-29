@@ -41,10 +41,10 @@
   "grader_config": {
     "open_ended_category": "negative_search",
     "expected_goal_outcome": "not_found_clean_finish",
-    "semantic_satisfaction_authoritative": false,
+    "semantic_satisfaction_authoritative": true,
     "success_predicate": {
-      "predicate_id": "completion_claim",
-      "authoritative": false
+      "predicate_id": "public_search_exhausted",
+      "authoritative": true
     },
     "tags": [
       "open-ended",
