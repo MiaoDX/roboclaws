@@ -20,6 +20,11 @@ asset-link, and privacy tests pass
 capability honestly (`partial_success`, 3/5 restored, 1,559.268s, 116 tool
 calls). Evidence/privacy status is ready; capability/time gate is not met.
 
+The first cleanup-only retry was blocked before task execution because the
+MolmoSpaces visual-backend slot was still legitimately held by an active
+open-ended runner. It produced no run artifacts and is retained as a blocked
+attempt; no process or slot was forcibly terminated.
+
 Focused cleanup contract, eval classification, and runner tests pass (44 tests);
 Ruff check and format checks pass. No public candidate-resolution regression was
 identified, so no speculative strategy change or repeat paid run was started.
