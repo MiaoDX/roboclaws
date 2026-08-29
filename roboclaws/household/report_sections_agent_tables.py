@@ -18,6 +18,21 @@ def runtime_metric_map_table(runtime_metric_map: dict[str, Any]) -> str:
     target_search = runtime_metric_map.get("target_search_summary") or {}
     candidates = runtime_metric_map.get("map_update_candidates") or []
     generated = runtime_metric_map.get("generated_exploration_candidates") or []
+    producer_summary = runtime_metric_map.get("producer_summary") or {}
+    producer_types = producer_summary.get("public_semantic_anchor_producer_types") or {}
+    provenance = ", ".join(sorted(str(item) for item in producer_types)) or "unavailable"
+    coverage = target_search.get("viewpoint_budget") or runtime_metric_map.get(
+        "coverage_summary", {}
+    )
+    if isinstance(coverage, dict):
+        visited = coverage.get("visited_waypoint_count", coverage.get("visited", "unavailable"))
+        total = coverage.get(
+            "total_public_waypoints",
+            coverage.get("total_waypoint_count", coverage.get("total", "unavailable")),
+        )
+        coverage_text = f"{visited}/{total} public waypoints"
+    else:
+        coverage_text = str(coverage or "unavailable")
     summary = (
         f"schema={runtime_metric_map.get('schema', '')}, "
         f"static fixtures={len(static_map.get('fixtures') or [])}, "
@@ -25,6 +40,7 @@ def runtime_metric_map_table(runtime_metric_map: dict[str, Any]) -> str:
         f"observed objects={len(observed)}, target candidates={len(target_candidates)}, "
         f"update candidates={len(candidates)}, "
         f"generated exploration candidates={len(generated)}, "
+        f"coverage={coverage_text}, public provenance={provenance}, "
         f"source map mutated={runtime_metric_map.get('source_map_mutated')}"
     )
     candidate_note = (

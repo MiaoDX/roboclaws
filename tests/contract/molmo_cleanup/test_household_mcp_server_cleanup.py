@@ -265,3 +265,43 @@ def test_realworld_mcp_action_timeline_policy_skips_report_only_observe_capture(
         and item.get("policy") == ROBOT_VIEW_CAPTURE_POLICY_ACTION_TIMELINE
         for item in trace_events
     )
+
+
+def test_realworld_mcp_full_capture_deduplicates_unchanged_observe_assets(
+    tmp_path: Path,
+) -> None:
+    scenario = build_cleanup_scenario(seed=7)
+    backend = _FakeVisualBackend(scenario)
+    server = make_household_world_mcp(
+        run_dir=tmp_path,
+        scenario=scenario,
+        base_contract=HouseholdBackendSession(scenario, backend=backend),
+        port=0,
+        record_robot_views=True,
+    )
+    try:
+        response = {"ok": True, "room_id": "room_1", "waypoint_id": "room_1_scan_1"}
+        server._record_tool_robot_view("observe", {}, response)
+        server._record_tool_robot_view("observe", {}, response)
+        steps = list(server.robot_view_steps)
+    finally:
+        server.close()
+
+    first, repeated = steps[-2:]
+    assert first["action"] == repeated["action"] == "observe"
+    assert repeated["capture_status"] == "deduplicated"
+    assert repeated["deduplicated_from"] == first["label"]
+    assert repeated["label"] != first["label"]
+    assert repeated["views"] == first["views"]
+    assert all(not Path(path).is_absolute() for path in repeated["views"].values())
+
+    trace_events = [
+        json.loads(line)
+        for line in (tmp_path / "trace.jsonl").read_text(encoding="utf-8").splitlines()
+        if line
+    ]
+    assert any(
+        item.get("event") == "robot_view_capture_deduplicated"
+        and item.get("deduplicated_from") == first["label"]
+        for item in trace_events
+    )
