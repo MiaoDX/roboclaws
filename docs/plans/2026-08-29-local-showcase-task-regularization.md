@@ -1,6 +1,6 @@
 # Local Showcase Task Regularization
 
-**Status:** ACTIVE - deterministic implementation slices shipped; local live acceptance pending  
+**Status:** COMPLETE - deterministic implementation and local live acceptance shipped  
 **Owner:** Roboclaws eval/runtime maintainers  
 **Scope:** local OpenAI Agents SDK runs for the three household showcase groups
 
@@ -239,6 +239,11 @@ evidence gate and their sample-specific capability/time gate, cleanup then
 passes its three local repetitions, and a separate follow-up decision can be
 made about the provider matrix and CI without using `main` as the debugging
 surface.
+
+Acceptance result: map-build and open-ended Kimi rows passed their capability
+and evidence gates; cleanup passed the repaired single-row confirmation plus
+three serial repetitions. Cloud promotion and provider-matrix expansion remain
+explicitly parked follow-up decisions.
 
 ## Planning-loop Decisions
 

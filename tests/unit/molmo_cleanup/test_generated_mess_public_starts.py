@@ -47,6 +47,29 @@ def test_generated_mess_manifest_uses_public_cleanup_required_starts() -> None:
     assert starts_by_category["RemoteControl"] not in {"Desk", "Sofa", "CoffeeTable"}
 
 
+def test_generated_mess_accepts_every_public_semantic_destination() -> None:
+    receptacles = [
+        {"receptacle_id": "bed_01", "category": "Bed"},
+        {"receptacle_id": "bed_02", "category": "Bed"},
+        {"receptacle_id": "sofa_01", "category": "Sofa"},
+        {"receptacle_id": "table_01", "category": "DiningTable"},
+    ]
+
+    manifest = build_generated_mess_manifest(
+        [{"object_id": "pillow_01", "category": "Pillow"}],
+        receptacles,
+        target_count=1,
+        seed=7,
+    )
+
+    assert manifest["targets"][0]["target_receptacle_id"] == "bed_01"
+    assert manifest["targets"][0]["valid_receptacle_ids"] == [
+        "bed_01",
+        "bed_02",
+        "sofa_01",
+    ]
+
+
 def test_generated_mess_manifest_rejects_missing_public_cleanup_start() -> None:
     with pytest.raises(ValueError, match="no public cleanup-required start receptacle"):
         build_generated_mess_manifest(

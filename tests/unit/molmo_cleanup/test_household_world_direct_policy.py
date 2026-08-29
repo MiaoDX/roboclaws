@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from roboclaws.household import household_direct_cleanup_selection, household_world_direct_policy
+from roboclaws.household import (
+    household_direct_cleanup_selection,
+    household_world_direct_policy,
+)
 
 
 def test_direct_policy_uses_same_waypoint_public_destination_for_unknown_category(

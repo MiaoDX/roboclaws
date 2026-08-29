@@ -98,6 +98,17 @@ def test_manifest_matches_canonical_suite_fixtures():
     validate_manifest(json.loads((root / "config/showcase-manifest.json").read_text()))
 
 
+def test_manifest_rejects_evidence_identity_that_disagrees_with_selected_sample():
+    root = Path(__file__).resolve().parents[3]
+    m = json.loads((root / "config/showcase-manifest.json").read_text())
+    row = next(row for row in m["rows"] if row["id"] == "household_world.map_build_quality")
+    row["evidence_lane"] = "camera-grounded-labels"
+    row["camera_labeler"] = "grounding-dino"
+
+    with pytest.raises(ValueError, match="does not match selected sample"):
+        validate_manifest(m)
+
+
 def test_execute_manifest_does_not_run_model_lane_without_live_request(tmp_path):
     root = Path(__file__).resolve().parents[3]
     m = json.loads((root / "config/showcase-manifest.json").read_text())
@@ -161,6 +172,28 @@ def test_row_identity_comes_from_canonical_result_not_available_live_profile():
     assert result["agent_engine"] == "direct-runner"
     assert result["provider_profile"] == "not_applicable"
     assert result["evidence_lane"] == "world-public-labels"
+    assert result["camera_labeler"] == "not_applicable"
+
+
+def test_row_fails_when_runtime_identity_disagrees_with_manifest():
+    row = manifest()["rows"][0]
+    result = derive_row(
+        row,
+        {
+            "aggregate": {"total": 1, "passed": 1},
+            "results": [
+                {
+                    "identity": {
+                        "evidence_lane": "camera-grounded-labels",
+                        "camera_labeler": "grounding-dino",
+                    }
+                }
+            ],
+        },
+    )
+
+    assert result["status"] == "failed"
+    assert result["reason"] == "showcase_identity_mismatch"
 
 
 def test_showcase_html_renders_dashboard_instead_of_escaped_markdown():

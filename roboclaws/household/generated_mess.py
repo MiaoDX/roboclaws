@@ -50,7 +50,13 @@ def select_generated_mess_targets(
         receptacles,
         rng=random.Random(seed) if seed is not None else None,
     )
-    return _select_targets_from_rules(eligible_rules, target_count=target_count)
+    selected = _select_targets_from_rules(eligible_rules, target_count=target_count)
+    for target in selected:
+        target["valid_receptacle_ids"] = [
+            str(item["receptacle_id"])
+            for item in acceptable_receptacles_for_object(target, receptacles)
+        ] or [str(target["target_receptacle_id"])]
+    return selected
 
 
 def _eligible_generated_mess_rules(
@@ -166,6 +172,12 @@ def generated_mess_manifest_from_targets(
     manifest_targets: list[dict[str, Any]] = []
     for index, target in enumerate(targets):
         target_receptacle_id = str(target.get("target_receptacle_id") or "")
+        valid_receptacle_ids = [
+            str(item["receptacle_id"])
+            for item in acceptable_receptacles_for_object(target, receptacles)
+        ]
+        if target_receptacle_id and target_receptacle_id not in valid_receptacle_ids:
+            valid_receptacle_ids.insert(0, target_receptacle_id)
         start_pool = generated_mess_public_cleanup_start_pool(
             target,
             receptacles,
@@ -181,7 +193,7 @@ def generated_mess_manifest_from_targets(
                 "object_id": str(target["object_id"]),
                 "category": str(target.get("category") or ""),
                 "target_receptacle_id": target_receptacle_id,
-                "valid_receptacle_ids": [target_receptacle_id],
+                "valid_receptacle_ids": valid_receptacle_ids,
                 "start_receptacle_id": start_receptacle_id,
                 "relation": relation,
                 "placement_index": index,
@@ -550,6 +562,23 @@ def target_receptacle_for_object(
             continue
         return first_receptacle_for_categories(receptacles, receptacle_categories)
     return None
+
+
+def acceptable_receptacles_for_object(
+    obj: dict[str, Any],
+    receptacles: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    category = str(obj.get("category") or "")
+    for object_categories, receptacle_categories in TARGET_RULES:
+        if category not in object_categories:
+            continue
+        return [
+            receptacle
+            for receptacle_category in receptacle_categories
+            for receptacle in receptacles
+            if receptacle["category"] == receptacle_category
+        ]
+    return []
 
 
 def first_receptacle_for_categories(
