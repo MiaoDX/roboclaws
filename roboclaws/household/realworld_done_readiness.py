@@ -138,6 +138,7 @@ def destination_options_for_policy(
     if not preferred:
         return []
     options = []
+    preferred_anchor_id = str(policy.get("preferred_public_anchor_id") or "")
     for fixture in realworld_runtime_map_targets.public_runtime_fixture_candidates(contract):
         category = _normalize_fixture_category_label(fixture.get("category"))
         if category not in preferred:
@@ -159,6 +160,10 @@ def destination_options_for_policy(
                 "candidate_source": "runtime_public_semantic_anchor",
                 "waypoint_id": str(fixture.get("preferred_manipulation_waypoint_id") or ""),
             }
+        )
+    if preferred_anchor_id:
+        options.sort(
+            key=lambda item: str(item.get("candidate_fixture_id") or "") != preferred_anchor_id
         )
     return options
 
