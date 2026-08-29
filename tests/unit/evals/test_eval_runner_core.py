@@ -104,7 +104,7 @@ def test_eval_runner_sample_selection_keeps_all_repetitions(tmp_path: Path) -> N
     assert payload["aggregate"]["total"] == 3
 
 
-def test_cleanup_outcome_accepts_semantic_success_when_exact_private_goal_is_partial(
+def test_cleanup_outcome_keeps_semantic_partial_success_diagnostic_only(
     tmp_path: Path,
 ) -> None:
     def product_runner(**kwargs: Any) -> dict[str, Any]:
@@ -139,8 +139,10 @@ def test_cleanup_outcome_accepts_semantic_success_when_exact_private_goal_is_par
 
     payload = json.loads(run.results_path.read_text())
     result = payload["results"][0]
-    assert result["status"] == "passed"
-    assert result["failure_class"] == "not_applicable"
+    assert result["status"] == "failed"
+    assert result["capability_status"] == "failed"
+    assert result["diagnostic_status"] == "ready"
+    assert result["failure_class"] == "private_goal_not_satisfied"
     outcome = result["grader_outputs"]["outcome"]
     assert outcome["completion_status"] == "partial_success"
     assert outcome["semantic_completion_status"] == "success"

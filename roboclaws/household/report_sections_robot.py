@@ -119,6 +119,7 @@ def _robot_step_card(
         f"<h3>{index}. {html.escape(str(step.get('action', step.get('label', 'step'))))}</h3>"
         f'<p class="pose">{html.escape(pose_text)}</p>'
         f"{_semantic_phase_summary(semantic_phase)}"
+        f"{_deduplicated_capture_summary(step)}"
         f"{_observation_role_summary(step, previous_action)}"
         f"{action_evidence_summary(step)}"
         f"{_focus_summary(step, focus)}"
@@ -132,6 +133,16 @@ def _robot_step_card(
         "</div>"
         f"{sim_only_views}"
         "</article>"
+    )
+
+
+def _deduplicated_capture_summary(step: dict[str, Any]) -> str:
+    if step.get("capture_status") != "deduplicated":
+        return ""
+    source = str(step.get("deduplicated_from") or "prior capture")
+    return (
+        '<p class="note robot-view-deduplicated">Repeated observation event; '
+        f"public pose/state unchanged, so image assets reuse {html.escape(source)}.</p>"
     )
 
 

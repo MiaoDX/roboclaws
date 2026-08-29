@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import signal
 import subprocess
 import sys
 import threading
@@ -68,6 +69,10 @@ from roboclaws.agents.household_live_continuation import (
 )
 from roboclaws.agents.household_live_errors import CheckerValidationError, LiveAgentRunFailure
 from roboclaws.agents.household_live_handoff import HouseholdLiveHandoffMixin
+from roboclaws.agents.household_live_timeout_artifacts import (
+    finalize_terminal_incomplete_bundle,
+    is_timeout_reason,
+)
 from roboclaws.agents.live_status_writer import LiveRunStatusWriter
 from roboclaws.agents.live_timing import (
     live_timing_timeline as _live_timing_timeline,
@@ -100,6 +105,10 @@ from roboclaws.core.task_intents import (
 
 CHECKER_MODULE = "roboclaws.household.cleanup_validation_cli"
 REPORT_RERUN_COMMAND_ENV = "ROBOCLAWS_REPORT_RERUN_COMMAND"
+
+
+class _LiveRunTerminationSignal(RuntimeError):
+    pass
 
 
 class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
@@ -192,6 +201,14 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
         }
 
     def run(self) -> int:
+        previous_sigterm = signal.getsignal(signal.SIGTERM)
+        signal.signal(signal.SIGTERM, self._handle_sigterm)
+        try:
+            return self._run_with_sigterm_handler()
+        finally:
+            signal.signal(signal.SIGTERM, previous_sigterm)
+
+    def _run_with_sigterm_handler(self) -> int:
         self.run_dir.mkdir(parents=True, exist_ok=True)
         try:
             self._acquire_lock()
@@ -215,12 +232,16 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
             return 130
         except LiveAgentRunFailure as exc:
             print(f"error: {exc}", file=sys.stderr)
+            self._finalize_live_failure(exc)
             self._write_status("failed", 1, **exc.failure.status_fields())
             self._write_live_timing("failed", 1, **exc.failure.status_fields())
             self._cleanup_server()
             self._release_visual_slot()
             self.status_writer.stop_heartbeat()
             return 1
+        except _LiveRunTerminationSignal:
+            reason = "external_timeout_or_termination_signal"
+            return self._finalize_termination(reason)
         except CheckerValidationError as exc:
             print(f"error: {exc}", file=sys.stderr)
             self._write_status(
@@ -248,6 +269,22 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
         self._release_visual_slot()
         self.status_writer.stop_heartbeat()
         return 0
+
+    def _handle_sigterm(self, _signum: int, _frame: object) -> None:
+        raise _LiveRunTerminationSignal
+
+    def _finalize_live_failure(self, exc: LiveAgentRunFailure) -> None:
+        if is_timeout_reason(exc.failure.reason, exc.failure.provider_reason):
+            finalize_terminal_incomplete_bundle(self.run_dir, reason=exc.failure.reason)
+
+    def _finalize_termination(self, reason: str) -> int:
+        finalize_terminal_incomplete_bundle(self.run_dir, reason=reason)
+        self._write_status("failed", 124, reason=reason)
+        self._write_live_timing("failed", 124, reason=reason)
+        self._cleanup_server()
+        self._release_visual_slot()
+        self.status_writer.stop_heartbeat()
+        return 124
 
     def _acquire_lock(self) -> None:
         self.run_lease = acquire_household_live_run_lease(

@@ -192,17 +192,61 @@ def _outcome_grader(
         else {}
     )
     semantic_completion_status = str(semantic_acceptability.get("status") or "")
-    passed = completion_status in {"passed", "success", "complete", "completed"} or (
-        sample.intent == "cleanup" and semantic_completion_status == "success"
-    )
+    if sample.intent == "cleanup":
+        restoration_rate = _float_or_none(score.get("mess_restoration_rate"))
+        sweep_coverage_rate = _float_or_none(score.get("sweep_coverage_rate"))
+        disturbance_count = _int_or_none(score.get("disturbance_count"))
+        done_present = _done_response_present(run_dir)
+        passed = bool(
+            completion_status in {"passed", "success", "complete", "completed"}
+            and done_present
+            and restoration_rate is not None
+            and restoration_rate
+            >= float((sample.grader_config or {}).get("min_restoration_rate", 0.7))
+            and sweep_coverage_rate is not None
+            and sweep_coverage_rate
+            >= float((sample.grader_config or {}).get("min_sweep_coverage_rate", 0.9))
+            and disturbance_count is not None
+            and disturbance_count
+            <= int((sample.grader_config or {}).get("max_disturbance_count", 2))
+        )
+    else:
+        restoration_rate = _float_or_none(score.get("mess_restoration_rate"))
+        sweep_coverage_rate = _float_or_none(score.get("sweep_coverage_rate"))
+        disturbance_count = _int_or_none(score.get("disturbance_count"))
+        done_present = _done_response_present(run_dir)
+        passed = completion_status in {"passed", "success", "complete", "completed"}
     return {
         "status": "passed" if passed else "failed",
         "completion_status": completion_status,
         "semantic_completion_status": semantic_completion_status or MISSING_UNAVAILABLE,
         "semantic_acceptability": semantic_acceptability or MISSING_UNAVAILABLE,
         "mess_restoration_rate": score.get("mess_restoration_rate", MISSING_UNAVAILABLE),
+        "sweep_coverage_rate": score.get("sweep_coverage_rate", MISSING_UNAVAILABLE),
         "disturbance_count": score.get("disturbance_count", MISSING_UNAVAILABLE),
+        "authoritative_done_present": done_present,
     }
+
+
+def _done_response_present(run_dir: Path) -> bool:
+    events, _errors = grading_sources.read_trace_events_with_errors(run_dir / "trace.jsonl")
+    return any(event.get("event") == "response" and event.get("tool") == "done" for event in events)
+
+
+def _float_or_none(value: Any) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _int_or_none(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _map_build_private_goal_reference(
@@ -575,6 +619,13 @@ def _status_from_graders(grader_outputs: dict[str, Any]) -> tuple[str, str]:
     if long_horizon.get("status") == "inconclusive":
         return "inconclusive", str(long_horizon.get("failure_class") or "grader_inconclusive")
     return "passed", MISSING_NOT_APPLICABLE
+
+
+def _diagnostic_status_from_graders(grader_outputs: dict[str, Any]) -> str:
+    artifacts = grader_outputs.get("artifacts")
+    if not isinstance(artifacts, dict):
+        return "incomplete"
+    return "ready" if artifacts.get("status") == "passed" else "incomplete"
 
 
 def _metrics_from_graders(

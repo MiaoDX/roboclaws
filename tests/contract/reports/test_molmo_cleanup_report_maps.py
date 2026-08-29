@@ -12,9 +12,48 @@ from roboclaws.household.manipulation_contract import API_SEMANTIC_PROVENANCE
 from roboclaws.household.report import (
     render_cleanup_report,
 )
+from roboclaws.household.report_sections_agent_tables import runtime_metric_map_table
 from roboclaws.household.report_snapshots import write_state_snapshot
 from roboclaws.household.scenario import build_cleanup_scenario
 from roboclaws.household.scoring import score_cleanup
+
+
+def test_runtime_metric_map_public_summary_has_coverage_counts_and_provenance() -> None:
+    rendered = runtime_metric_map_table(
+        {
+            "schema": "runtime_metric_map_v1",
+            "public_semantic_anchors": [{"anchor_id": "a1"}],
+            "observed_objects": [{"object_id": "o1"}],
+            "target_candidates": [{"candidate_id": "c1"}],
+            "generated_exploration_candidates": [{"candidate_id": "e1"}],
+            "target_search_summary": {
+                "viewpoint_budget": {
+                    "visited_waypoint_count": 6,
+                    "total_public_waypoints": 7,
+                }
+            },
+            "producer_summary": {
+                "public_semantic_anchor_producer_types": {
+                    "public_observations<&>": 1,
+                    "generated_exploration_candidate": 1,
+                }
+            },
+            "private_fixture_truth": {"target": "never render"},
+            "grader_score": 0.99,
+        }
+    )
+
+    assert "schema=runtime_metric_map_v1" in rendered
+    assert "public semantic anchors=1" in rendered
+    assert "target candidates=1" in rendered
+    assert "coverage=6/7 public waypoints" in rendered
+    provenance = (
+        "public provenance=generated_exploration_candidate, public_observations&lt;&amp;&gt;"
+    )
+    assert provenance in rendered
+    assert "private_fixture_truth" not in rendered
+    assert "never render" not in rendered
+    assert "grader_score" not in rendered
 
 
 def test_state_snapshot_keeps_bottom_row_objects_visible(tmp_path: Path) -> None:

@@ -435,8 +435,7 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
         "minimax-responses",
         "kimi-openai-chat",
     )
-    assert open_ended_sample.grader_config["semantic_satisfaction_authoritative"] is False
-    assert open_ended_sample.grader_config["open_ended_category"] == "negative_search"
+    _assert_negative_search_contract(open_ended_sample)
     assert room_sample.grader_config["open_ended_category"] == "area_inspection"
     assert room_sample.grader_config["success_predicate"] == {
         "predicate_id": "waypoint_or_area_visited",
@@ -474,6 +473,16 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
         "map_actionability_failure"
     )
     assert projection["scene_sources"]["ithor"]["support_status"] == "rejected"
+
+
+def _assert_negative_search_contract(sample: EvalSample) -> None:
+    assert sample.grader_config is not None
+    assert sample.grader_config["semantic_satisfaction_authoritative"] is True
+    assert sample.grader_config["open_ended_category"] == "negative_search"
+    assert sample.grader_config["success_predicate"] == {
+        "predicate_id": "public_search_exhausted",
+        "authoritative": True,
+    }
 
 
 def _minimal_suite_payload(sample_id: str) -> dict:
