@@ -21,6 +21,8 @@ def test_showcase_workflow_is_advisory_bounded_and_secret_guarded() -> None:
     assert "secrets.MIMO_RESPONSES_API_KEY" not in workflow
     assert "secrets.MM_API_KEY" in workflow
     assert "max-parallel: 3" in workflow
+    assert "Install headless MuJoCo rendering runtime" in workflow
+    assert "libegl1 libgl1 libgles2 libegl-mesa0" in workflow
     assert "needs: provider-showcase" in workflow
     assert "showcase-kimi-${{ github.sha }}" in workflow
     assert "kimi_pid=$!" not in workflow
