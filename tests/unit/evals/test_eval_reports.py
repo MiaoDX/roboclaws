@@ -590,6 +590,8 @@ def _result() -> EvalResult:
                 "runtime": {},
             },
             "status": "passed",
+            "capability_status": "passed",
+            "diagnostic_status": "ready",
             "failure_class": "not_applicable",
             "grader_outputs": {},
             "artifacts": {},

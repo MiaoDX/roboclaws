@@ -10,6 +10,7 @@ from roboclaws.evals import long_horizon_contract
 from roboclaws.evals.agent_identity import blocked_result_from_live_agent_request
 from roboclaws.evals.dependencies import dependency_failure, resolve_artifact_dependencies
 from roboclaws.evals.grading import (
+    _diagnostic_status_from_graders,
     _grade_trial,
     _metrics_from_graders,
     _status_from_graders,
@@ -211,6 +212,8 @@ def _run_trial(
     return EvalResult.from_trial(
         trial,
         status=status,
+        capability_status=status,
+        diagnostic_status=_diagnostic_status_from_graders(grader_outputs),
         failure_class=failure_class,
         grader_outputs=grader_outputs,
         artifacts=artifacts,
@@ -261,6 +264,8 @@ def _regrade_live_eval_trial(
     return EvalResult.from_trial(
         trial,
         status=status,
+        capability_status=status,
+        diagnostic_status=_diagnostic_status_from_graders(grader_outputs),
         failure_class=failure_class,
         grader_outputs=grader_outputs,
         artifacts=artifacts,

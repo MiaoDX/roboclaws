@@ -261,6 +261,7 @@ class HouseholdWorldMCPServer(HouseholdMCPArtifactLifecycle, HouseholdMCPTraceLi
         self.done_event = threading.Event()
         self.robot_view_steps: list[dict[str, Any]] = []
         self._robot_view_index = 0
+        self._robot_view_observe_assets: dict[str, dict[str, Any]] = {}
         self._started_at = time.time()
         self._trace_fp = self.trace_path.open("a", encoding="utf-8", buffering=1)
         self._trace_lock = threading.Lock()

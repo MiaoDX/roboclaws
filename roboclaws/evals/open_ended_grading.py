@@ -156,6 +156,12 @@ def _success_predicate(config: dict[str, Any], *, run_dir: Path) -> dict[str, An
         )
     if predicate_id == "observed_category_present":
         return _category_predicate(config, runtime_map=runtime_map, authoritative=authoritative)
+    if predicate_id == "public_search_exhausted":
+        return _public_search_exhausted_predicate(
+            runtime_map=runtime_map,
+            trace_events=trace_events,
+            authoritative=authoritative,
+        )
     return {
         "predicate_id": predicate_id,
         "authoritative": authoritative,
@@ -262,6 +268,88 @@ def _category_predicate(
     }
 
 
+def _public_search_exhausted_predicate(
+    *,
+    runtime_map: dict[str, Any],
+    trace_events: list[dict[str, Any]],
+    authoritative: bool,
+) -> dict[str, Any]:
+    summary = runtime_map.get("target_search_summary")
+    viewpoint_budget = summary.get("viewpoint_budget") if isinstance(summary, dict) else {}
+    if not isinstance(viewpoint_budget, dict):
+        viewpoint_budget = {}
+    observed_waypoint_ids = {
+        str(item) for item in viewpoint_budget.get("observed_waypoint_ids") or [] if str(item)
+    }
+    total_public_waypoints = _nonnegative_int(viewpoint_budget.get("total_public_waypoints"))
+    visited_waypoint_count = _nonnegative_int(viewpoint_budget.get("visited_waypoint_count"))
+    unvisited_waypoint_count = _nonnegative_int(viewpoint_budget.get("unvisited_waypoint_count"))
+    unvisited_waypoint_ids = [
+        str(item) for item in viewpoint_budget.get("unvisited_waypoint_ids") or [] if str(item)
+    ]
+    resolver_events = [
+        (index, event)
+        for index, event in enumerate(trace_events)
+        if event.get("event") == "response" and event.get("tool") == "resolve_target_query"
+    ]
+    final_index, final_event = resolver_events[-1] if resolver_events else (-1, {})
+    resolution = (
+        final_event.get("response")
+        if isinstance(final_event.get("response"), dict)
+        else final_event
+    )
+    done_after_resolution = any(
+        index > final_index and event.get("event") == "response" and event.get("tool") == "done"
+        for index, event in enumerate(trace_events)
+    )
+    every_waypoint_observed = (
+        total_public_waypoints is not None
+        and visited_waypoint_count == total_public_waypoints
+        and len(observed_waypoint_ids) == total_public_waypoints
+        and unvisited_waypoint_count == 0
+        and not unvisited_waypoint_ids
+    )
+    no_public_match = resolution.get("match_count") == 0 and not resolution.get("matches")
+    final_not_found = (
+        resolution.get("status") == "not_found"
+        and resolution.get("exhausted_public_search_budget") is True
+    )
+    passed = bool(
+        final_not_found and every_waypoint_observed and no_public_match and done_after_resolution
+    )
+    return {
+        "predicate_id": "public_search_exhausted",
+        "authoritative": authoritative,
+        "passed": passed,
+        "failure": "" if passed else "public_search_not_authoritatively_exhausted",
+        "evidence": {
+            "final_resolution_status": resolution.get("status", MISSING_UNAVAILABLE),
+            "exhausted_public_search_budget": resolution.get(
+                "exhausted_public_search_budget", False
+            ),
+            "public_match_count": resolution.get("match_count", MISSING_UNAVAILABLE),
+            "total_public_waypoints": (
+                total_public_waypoints
+                if total_public_waypoints is not None
+                else MISSING_UNAVAILABLE
+            ),
+            "observed_public_waypoint_count": len(observed_waypoint_ids),
+            "every_public_waypoint_observed": every_waypoint_observed,
+            "done_after_final_resolution": done_after_resolution,
+        },
+    }
+
+
+def _nonnegative_int(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    try:
+        result = int(value)
+    except (TypeError, ValueError):
+        return None
+    return result if result >= 0 else None
+
+
 def _visited_waypoint_ids(
     *, runtime_map: dict[str, Any], trace_events: list[dict[str, Any]]
 ) -> set[str]:
@@ -318,7 +406,11 @@ def _runtime_map_source_errors(
     predicate_id: str, *, runtime_map: dict[str, Any], runtime_map_path: Path
 ) -> list[dict[str, str]]:
     reasons: list[str] = []
-    if predicate_id in {"public_anchor_observed", "waypoint_or_area_visited"}:
+    if predicate_id in {
+        "public_anchor_observed",
+        "waypoint_or_area_visited",
+        "public_search_exhausted",
+    }:
         reasons.extend(
             _runtime_map_list_field_errors(
                 runtime_map,
@@ -356,7 +448,10 @@ def _target_search_summary_source_errors(runtime_map: dict[str, Any]) -> list[st
             errors.append("target_search_summary.viewpoint_budget:invalid_json_object")
         else:
             errors.extend(
-                _runtime_map_list_field_errors(viewpoint_budget, ("observed_waypoint_ids",))
+                _runtime_map_list_field_errors(
+                    viewpoint_budget,
+                    ("observed_waypoint_ids", "unvisited_waypoint_ids"),
+                )
             )
     return errors
 

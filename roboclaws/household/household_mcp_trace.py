@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import time
+from copy import deepcopy
+from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
@@ -72,7 +74,41 @@ class HouseholdMCPTraceLifecycle:
         )
         if capture is None:
             return
+        if tool == "observe":
+            fingerprint = self._public_observe_fingerprint()
+            prior = self._robot_view_observe_assets.get(fingerprint)
+            if prior is not None:
+                label = f"{self._robot_view_index:04d}_{capture['label_suffix']}"
+                self._robot_view_index += 1
+                step = {
+                    **deepcopy(prior),
+                    "label": label,
+                    "action": capture["action"],
+                    "semantic_phase": capture.get("semantic_phase"),
+                    "capture_status": "deduplicated",
+                    "deduplicated_from": prior.get("label"),
+                    "capture_elapsed_s": 0.0,
+                }
+                self.robot_view_steps.append(step)
+                self.write_runtime_event(
+                    "robot_view_capture_deduplicated",
+                    action=step["action"],
+                    label=label,
+                    deduplicated_from=step["deduplicated_from"],
+                    policy=self.robot_view_capture_policy,
+                )
+                return
         self._record_robot_view(**capture)
+        if tool == "observe" and self.robot_view_steps:
+            self._robot_view_observe_assets[self._public_observe_fingerprint()] = deepcopy(
+                self.robot_view_steps[-1]
+            )
+
+    def _public_observe_fingerprint(self) -> str:
+        """Identify an unchanged public observation state without private scenario truth."""
+        payload = self._agent_view_payload()
+        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+        return sha256(encoded.encode("utf-8")).hexdigest()
 
     def _should_record_tool_robot_view(self, tool: str) -> bool:
         if self.robot_view_capture_policy == ROBOT_VIEW_CAPTURE_POLICY_FULL:
