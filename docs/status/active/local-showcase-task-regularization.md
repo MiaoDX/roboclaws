@@ -1,15 +1,15 @@
 # Local Showcase Task Regularization
 
-**Status:** ACTIVE
+**Status:** COMPLETE
 **Source plan:** `docs/plans/2026-08-29-local-showcase-task-regularization.md`
 **Control plane:** root Codex intuitive-flow session
 **Latest intent:** implement the accepted plan
-**Current slice:** local Kimi acceptance audit; cleanup destination contract repaired, live confirmation pending
+**Current slice:** local Kimi acceptance complete; all required cleanup repetitions passed
 **Last proven evidence:** focused implementation proofs; canonical deterministic
 suite gates pass for smoke, map-build, and map-consumer-no-prior; open-ended is
 2/3 because the synthetic drink sample correctly fails public exhaustion.
-**Next proof:** rerun the single Kimi cleanup row with the repaired semantic
-destination alternatives, then run the required cleanup repetitions if it passes
+**Next proof:** none for this plan; cloud/provider promotion remains a separate
+human decision
 **Stop condition:** do not run Kimi until deterministic terminal, timeout, report,
 asset-link, and privacy tests pass
 **No-touch scope:** cloud concurrency/provider matrix, private-data boundary, public MCP surface
@@ -27,10 +27,14 @@ attempt; no process or slot was forcibly terminated.
 
 On resume, the same slot remains active and its server log continues receiving
 requests, so this is a live external-resource blocker rather than a stale lock.
-The cleanup retry and three-repetition gate remain pending until the repaired
-contract is confirmed by a fresh live attempt.
+The repaired contract was confirmed by three independent serial Kimi cleanup
+attempts, each with complete evidence and successful capability outcome.
 
 Focused cleanup contract, eval classification, and runner tests pass; Ruff check
 and format checks pass. The source contract now carries all category-compatible
 destination IDs in the private scorer while keeping public agent inputs
-semantic-only. Fresh live confirmation is still required.
+semantic-only. Fresh live evidence:
+`output/local-showcase-kimi-final`, `output/local-showcase-kimi-repetitions`,
+`output/local-showcase-kimi-repetition2`, and
+`output/local-showcase-kimi-repetition3`; all report `success`, restoration
+`1.0`, sweep `1.142857`, and disturbance count `0`.
