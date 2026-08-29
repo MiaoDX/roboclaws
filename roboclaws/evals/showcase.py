@@ -122,7 +122,7 @@ def execute_manifest(
                 check=False,
                 capture_output=True,
                 text=True,
-                timeout=int(row["timeout_s"]),
+                timeout=int(row["timeout_s"]) + 300,
             )
         except subprocess.TimeoutExpired:
             attempts.append(
@@ -202,7 +202,13 @@ def _row_command(row: dict[str, Any], *, live_execution: str, output_dir: Path) 
     if isinstance(profile, str) and profile:
         command.append(f"provider_profile={profile}")
     if use_live:
-        command.extend(("live_execution=run", f"live_timeout_s={row['timeout_s']}"))
+        command.extend(
+            (
+                "live_execution=run",
+                f"live_timeout_s={row['timeout_s']}",
+                "live_stall_timeout_s=600",
+            )
+        )
     if isinstance(row.get("sample_id"), str) and row["sample_id"]:
         command.append(f"sample_id={row['sample_id']}")
     if isinstance(row.get("repetition_index"), int):

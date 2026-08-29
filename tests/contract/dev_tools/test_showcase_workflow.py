@@ -8,7 +8,7 @@ def test_showcase_workflow_is_advisory_bounded_and_secret_guarded() -> None:
     assert "pull_request:" not in workflow
     assert "push:" not in workflow
     assert "cancel-in-progress: false" in workflow
-    assert "timeout-minutes: 30" in workflow
+    assert "timeout-minutes: 45" in workflow
     assert "timeout-minutes: 10" in workflow
     assert "continue-on-error: true" in workflow
     assert (
@@ -23,6 +23,7 @@ def test_showcase_workflow_is_advisory_bounded_and_secret_guarded() -> None:
     assert "max-parallel: 3" in workflow
     assert "Install headless MuJoCo rendering runtime" in workflow
     assert "libegl1 libgl1 libgles2 libegl-mesa0" in workflow
+    assert "ROBOCLAWS_OPENAI_AGENTS_ROBOT_VIEW_CAPTURE_POLICY: action_timeline" in workflow
     assert "needs: provider-showcase" in workflow
     assert "showcase-kimi-${{ github.sha }}" in workflow
     assert "kimi_pid=$!" not in workflow

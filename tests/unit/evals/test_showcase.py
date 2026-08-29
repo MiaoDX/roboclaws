@@ -116,6 +116,7 @@ def test_model_lane_live_command_uses_canonical_provider_identity(tmp_path):
     assert "agent_engine=openai-agents-sdk" in command
     assert "provider_profile=kimi-openai-chat" in command
     assert "live_execution=run" in command
+    assert "live_stall_timeout_s=600" in command
     assert "sample_id=open_ended.drink_seed7" in command
     assert "repetition_index=0" in command
 
