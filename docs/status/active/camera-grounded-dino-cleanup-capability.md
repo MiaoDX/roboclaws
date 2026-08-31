@@ -7,8 +7,9 @@
 
 ## Current Slice
 
-Rerun the Kimi seed-7 SDK proof after fixing completion-action priority exposed
-by the first Kimi attempt. Do not run physical robot motion.
+Kimi v2 proof was rerun after fixing completion-action priority. The code and
+deterministic gates pass; the remaining live acceptance is blocked by the Kimi
+provider billing quota. Do not run physical robot motion.
 
 ## Last Proven Evidence
 
@@ -22,6 +23,10 @@ by the first Kimi attempt. Do not run physical robot motion.
 - `output/dino-cleanup-capability-codex-heading-v4-20260831/0831_1801/seed-7`
   restored 4/5 with 100% coverage, zero disturbances, authoritative `done`,
   complete artifacts, and real CUDA Grounding DINO provenance.
+- `output/dino-cleanup-capability-kimi-heading-v2-20260831/0831_1939/seed-7`
+  reached 3 grounded chains and 6/7 sweep waypoints with 30 successful model
+  calls, then terminated on one non-retryable `provider_quota_failure` with
+  provider reason `billing_limit`; no `done` or terminal report was produced.
 
 ## Latest Failure Fingerprint
 
@@ -36,9 +41,17 @@ after 73 minutes with complete diagnostic trace and no provider failures.
 
 ## Next Proof
 
-Commit the single-action completion projection plus aligned skill/continuation
-guidance, then rerun only the remaining `kimi-openai-chat` seed-7 proof and
-audit its terminal artifacts.
+The single-action completion projection plus aligned skill/continuation guidance
+is committed as `cef6b467`. Resume only the remaining `kimi-openai-chat`
+seed-7 proof after the provider billing limit is restored, then audit its
+terminal artifacts.
+
+## External Blocker
+
+The Kimi provider readiness probe passes, but the live route's billing limit was
+exhausted during v2 at model call 30. A new Kimi proof requires the provider
+quota/account state to change; do not expand provider scope or alter detector
+configuration to work around it.
 
 ## Stop Condition
 

@@ -82,6 +82,14 @@ existing cleanup threshold before terminal `done`.
   absent book and remote control.
 - The deterministic stop gate is satisfied. Remaining acceptance is the serial
   Codex and Kimi SDK proof and artifact audit.
+- The first Kimi SDK proof reached only 3 grounded chains because the model
+  followed conflicting completion actions and retried stale handles. Commit
+  `cef6b467` now publishes one prioritized executable action and aligns the
+  composite DINO recovery guidance.
+- Kimi v2 then reached 3 grounded chains and 6/7 sweep waypoints before a
+  non-retryable provider `billing_limit` quota failure at model call 30. The
+  remaining Kimi acceptance is external-provider blocked; no terminal report
+  or `done` was produced.
 
 ## Stop Gates
 
