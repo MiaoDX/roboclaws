@@ -48,6 +48,7 @@ def validate_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
             "provider_profile",
             "seed",
             "evidence_lane",
+            "camera_labeler",
             "budget",
             "timeout_s",
             "execution_mode",
@@ -81,11 +82,20 @@ def _validate_manifest_row_selection(row: dict[str, Any], samples: list[Any]) ->
     )
     if expected_sample_ids != row["sample_ids"]:
         raise ValueError(f"showcase row {row['id']} does not match canonical sample ids")
-    if not selected_sample_id:
-        return
-    sample = next((sample for sample in samples if sample.sample_id == selected_sample_id), None)
-    if sample is None:
+    selected_samples = (
+        [sample for sample in samples if sample.sample_id == selected_sample_id]
+        if selected_sample_id
+        else samples
+    )
+    if selected_sample_id and not selected_samples:
         raise ValueError(f"showcase row {row['id']} selects an unknown sample")
+    for sample in selected_samples:
+        for field in ("evidence_lane", "camera_labeler"):
+            if row[field] != getattr(sample, field):
+                raise ValueError(
+                    f"showcase row {row['id']} {field}={row[field]!r} does not match "
+                    f"selected sample {sample.sample_id} {field}={getattr(sample, field)!r}"
+                )
     repetition_index = row.get("repetition_index")
     if repetition_index is not None and (
         not isinstance(repetition_index, int)
@@ -287,6 +297,9 @@ def derive_row(
         else {}
     )
     selected_identity = execution_identity or {}
+    identity_mismatch = _result_identity_mismatch(row, canonical_identity)
+    if results is not None and identity_mismatch:
+        status, reason = "failed", "showcase_identity_mismatch"
     result = {
         "id": row["id"],
         "suite": row["suite"],
@@ -297,6 +310,7 @@ def derive_row(
         "provider_profile": canonical_identity.get("provider_profile")
         or selected_identity.get("provider_profile"),
         "evidence_lane": canonical_identity.get("evidence_lane") or row.get("evidence_lane"),
+        "camera_labeler": canonical_identity.get("camera_labeler") or row.get("camera_labeler"),
         "status": status,
         "reason": reason,
         "metrics": metrics,
@@ -309,6 +323,14 @@ def derive_row(
         if report_href:
             result["report_href"] = report_href
     return result
+
+
+def _result_identity_mismatch(row: dict[str, Any], identity: dict[str, Any]) -> bool:
+    if not identity:
+        return False
+    return any(
+        identity.get(field) != row.get(field) for field in ("evidence_lane", "camera_labeler")
+    )
 
 
 def build_summary(

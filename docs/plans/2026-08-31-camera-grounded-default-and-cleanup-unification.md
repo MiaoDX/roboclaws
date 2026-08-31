@@ -1,6 +1,6 @@
 # Camera-Grounded Default And Cleanup Strategy Unification
 
-**Status:** PROPOSED - agent planning loop complete; awaiting human approval  
+**Status:** IN PROGRESS - approved for implementation; Phase 0 underway
 **Created:** 2026-08-31  
 **Last reviewed:** 2026-08-31  
 **Owner:** Household World maintainers  
