@@ -12,6 +12,7 @@ from roboclaws.household.realworld_mcp_atomic_tools import (
 )
 from roboclaws.household.realworld_mcp_semantic_tools import (
     agent_sdk_camera_grounded_composite_handlers,
+    register_agent_sdk_camera_grounded_composite_tools,
     register_semantic_cleanup_tools,
     semantic_cleanup_handlers,
 )
@@ -42,7 +43,16 @@ def register_household_mcp_tools(server: Any) -> None:
         for profile_id in server.required_capability_profiles
         for name in registrars[profile_id](server)
     )
-    if registered != router.public_tool_names():
+    composite_enabled = (
+        bool(getattr(server, "agent_sdk_camera_grounded_composite_tools", False))
+        and str(getattr(server, "evidence_lane", "") or "") == "camera-grounded-labels"
+    )
+    if composite_enabled:
+        register_agent_sdk_camera_grounded_composite_tools(server)
+        registered += ("observe_camera_grounded_candidates",)
+    if registered != router.public_tool_names() + (
+        ("observe_camera_grounded_candidates",) if composite_enabled else ()
+    ):
         raise AssertionError("household MCP registration drifted from composed profile tools")
     server.registered_public_tool_names = registered
 
