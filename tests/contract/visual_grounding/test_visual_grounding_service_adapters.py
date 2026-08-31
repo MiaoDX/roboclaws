@@ -218,6 +218,31 @@ def test_real_adapter_bbox_normalization_and_destination_hint() -> None:
     assert candidate["destination_hint"]["candidate_fixture_id"] == "sink_01"
 
 
+def test_adapter_candidate_limit_removes_overlapping_duplicate_boxes(monkeypatch) -> None:
+    monkeypatch.setenv("VISUAL_GROUNDING_MAX_CANDIDATES", "8")
+    candidates = [
+        {
+            "category": "food",
+            "confidence": 0.7,
+            "image_region": {"type": "bbox", "value": [0.1, 0.1, 0.2, 0.2]},
+        },
+        {
+            "category": "potato",
+            "confidence": 0.9,
+            "image_region": {"type": "bbox", "value": [0.11, 0.11, 0.18, 0.18]},
+        },
+        {
+            "category": "book",
+            "confidence": 0.8,
+            "image_region": {"type": "bbox", "value": [0.6, 0.6, 0.2, 0.2]},
+        },
+    ]
+
+    selected = adapter_candidates._top_candidates(candidates)  # noqa: SLF001
+
+    assert [candidate["category"] for candidate in selected] == ["potato", "book"]
+
+
 def test_configurable_service_rejects_pipeline_mismatch() -> None:
     server = _start_service(pipeline_id="grounding-dino", adapter_mode="auto")
     try:

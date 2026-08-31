@@ -405,9 +405,11 @@ class _StaticVisualGroundingClient:
     def __init__(self, response: dict) -> None:
         self.response = response
         self.last_request: dict | None = None
+        self.requests: list[dict] = []
 
     def request_candidates(self, request: dict) -> dict:
         self.last_request = request
+        self.requests.append(request)
         return self.response
 
 
