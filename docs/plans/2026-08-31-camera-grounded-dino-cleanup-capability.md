@@ -1,6 +1,6 @@
 # Camera-Grounded DINO Cleanup Capability
 
-**Status:** ACTIVE
+**Status:** DONE
 **Created:** 2026-08-31
 **Owner:** Household World maintainers
 **Parent:** `docs/plans/2026-08-31-fix-camera-grounded-sdk-dino-acquisition.md`
@@ -80,18 +80,26 @@ existing cleanup threshold before terminal `done`.
 - Public-taxonomy grouped queries plus canonical and three bounded 90-degree
   body headings recovered all five target classes, including the previously
   absent book and remote control.
-- The deterministic stop gate is satisfied. Remaining acceptance is the serial
-  Codex and Kimi SDK proof and artifact audit.
-- The first Kimi SDK proof reached only 3 grounded chains because the model
-  followed conflicting completion actions and retried stale handles. Commit
-  `cef6b467` now publishes one prioritized executable action and aligns the
-  composite DINO recovery guidance.
-- Kimi v2 then reached 3 grounded chains and 6/7 sweep waypoints before a
-  non-retryable provider `billing_limit` quota failure at model call 30. The
-  remaining Kimi acceptance is external-provider blocked; no terminal report
-  or `done` was produced.
-- A follow-up readiness probe reproduces the same blocker as HTTP 403 and says
-  the five-hour usage window must reset before another Kimi run can start.
+- The Codex proof at
+  `output/dino-cleanup-capability-codex-heading-v4-20260831/0831_1801/seed-7`
+  restored 4/5 targets with 100% sweep coverage, zero disturbances, one
+  authoritative `done`, complete artifacts, and real CUDA Grounding DINO
+  provenance.
+- Commit `cef6b467` publishes one prioritized executable completion action,
+  rejects stale/non-recommended handles, and aligns the composite DINO recovery
+  guidance used by SDK continuations.
+- After the Kimi quota window reset, the Kimi proof at
+  `output/dino-cleanup-capability-kimi-heading-v3-20260831/0831_2116/seed-7`
+  restored 4/5 targets with 100% sweep coverage, zero disturbances, and one
+  authoritative `done`. All 73 Kimi model-service attempts succeeded; the SDK
+  compacted once and completed through its supported continuation path.
+- The Kimi proof retained the required report, trace, timing, agent-view,
+  runtime-map, and private-evaluation artifacts. Its 19 composite observations
+  each produced exactly one camera-grounded declaration, and the run records
+  `policy_uses_private_truth=false` and `planner_uses_private_manifest=false`.
+- Both SDK providers therefore meet the accepted 4/5 restoration, 90% sweep,
+  disturbance, completion, provenance, and privacy gates. No MiniMax/MiMo run
+  is required for this capability decision.
 
 ## Stop Gates
 
