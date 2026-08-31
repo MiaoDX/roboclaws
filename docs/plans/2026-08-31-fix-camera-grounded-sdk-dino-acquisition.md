@@ -1,6 +1,6 @@
 # Fix Camera-Grounded SDK DINO Acquisition
 
-**Status:** DRAFT - planning-loop recommendation
+**Status:** IMPLEMENTED - acquisition pass; cleanup threshold blocked
 **Created:** 2026-08-31
 **Owner:** Household World maintainers
 
@@ -29,6 +29,13 @@ has passed until the existing 4/5 cleanup proof is rerun.
   Historical dogfood evidence records a Codex DINO camera-label run with 4/5
   restored and semantic 5/5, so this is a wiring regression candidate rather
   than evidence that DINO has always failed cleanup.
+
+Implementation and live proof evidence (2026-08-31):
+
+- `0cca4e6d` wires the existing composite registrar into shared household MCP registration.
+- Codex proof: `output/agent-sdk-camera-grounded-dino-20260831/codex/0831_1502/seed-7/`.
+- Kimi proof: `output/agent-sdk-camera-grounded-dino-20260831/kimi/0831_1509/seed-7/`.
+- Both proofs achieved 7/7 composite observations, 7/7 declaration events, real CUDA-backed Grounding DINO, 33 candidates, and full sweep coverage. Both restored 1/5 objects, so the 4/5 cleanup threshold remains unmet; destination/actionability is a separate follow-up.
 
 ## Scope
 
