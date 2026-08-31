@@ -241,6 +241,7 @@ def evaluate_done_readiness(
         not open_ended_task
         and not map_build_task
         and contract.perception_mode == "camera_model_policy"
+        and grounded_chain_blocker is not None
     ):
         camera_heading_blocker = camera_grounded_heading_coverage_blocker(contract)
         if camera_heading_blocker is not None:

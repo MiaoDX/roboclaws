@@ -261,6 +261,30 @@ def test_camera_grounded_requested_run_size_requires_four_cleanup_chains() -> No
     _assert_no_forbidden_keys(done)
 
 
+def test_camera_grounded_heading_recovery_stops_after_chain_gate_is_met(monkeypatch) -> None:
+    contract = _contract(
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
+        perception_mode=CAMERA_MODEL_POLICY_MODE,
+        public_acceptance_config={"requested_run_size": 5},
+    )
+    for waypoint in contract.metric_map()["inspection_waypoints"]:
+        contract.navigate_to_waypoint(str(waypoint["waypoint_id"]))
+        contract.observe()
+
+    monkeypatch.setattr(
+        "roboclaws.household.realworld_done_readiness.grounded_cleanup_chain_blocker",
+        lambda *_args, **_kwargs: None,
+    )
+
+    readiness = contract.evaluate_done_readiness(semantic_cleanup_evidence={})
+
+    assert readiness["status"] == "ready"
+    assert all(
+        blocker["type"] != "insufficient_camera_grounded_heading_coverage"
+        for blocker in readiness["blockers"]
+    )
+
+
 def test_camera_grounded_merge_keeps_overlapping_candidates_from_different_families() -> None:
     candidates = [
         {
