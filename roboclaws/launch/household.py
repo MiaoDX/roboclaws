@@ -233,7 +233,13 @@ def _live_command(
         if execution.profile == "camera-raw-fpv"
         else execution.generated_mess_count
     )
-    composite = _env_true("ROBOCLAWS_OPENAI_AGENTS_CAMERA_GROUNDED_COMPOSITE_TOOLS")
+    # Camera-grounded cleanup owns the composite cadence whenever its public
+    # evidence lane is selected; an explicit environment override can still
+    # disable it for diagnostic launches.
+    composite_override = os.environ.get("ROBOCLAWS_OPENAI_AGENTS_CAMERA_GROUNDED_COMPOSITE_TOOLS")
+    composite = execution.profile == "camera-grounded-labels" and (
+        _bool_value(composite_override) if composite_override is not None else True
+    )
     max_observe = int(
         os.environ.get(
             "ROBOCLAWS_OPENAI_AGENTS_MAX_OBSERVE_PER_WAYPOINT",

@@ -181,6 +181,60 @@ def test_live_smoke_uses_smoke_profile_for_server_and_checker(
     assert "--server-arg=--evidence-lane" not in command
 
 
+def test_camera_grounded_live_command_uses_composite_prompt_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    execution = _execution(dispatch_runner="openai-agents-live")
+    execution.profile = "camera-grounded-labels"
+    execution.plan.goal_contract = SimpleNamespace(
+        surface="household-world",
+        intent="cleanup",
+        normalized_goal="clean the room",
+        goal_scope="whole-room",
+        raw_prompt="clean the room",
+        to_json=lambda: '{"schema":"goal"}',
+    )
+    monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_CAMERA_GROUNDED_COMPOSITE_TOOLS", raising=False)
+
+    command = household._live_command(
+        execution,
+        run_dir=tmp_path / "seed-7",
+        map_bundle=tmp_path / "map",
+    )
+
+    prompt = command[command.index("--kickoff-prompt") + 1]
+    assert "observe_camera_grounded_candidates" in prompt
+    assert "three bounded 90-degree body turns" in prompt
+
+
+def test_camera_grounded_live_command_honors_explicit_composite_disable(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    execution = _execution(dispatch_runner="openai-agents-live")
+    execution.profile = "camera-grounded-labels"
+    execution.plan.goal_contract = SimpleNamespace(
+        surface="household-world",
+        intent="cleanup",
+        normalized_goal="clean the room",
+        goal_scope="whole-room",
+        raw_prompt="clean the room",
+        to_json=lambda: '{"schema":"goal"}',
+    )
+    monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_CAMERA_GROUNDED_COMPOSITE_TOOLS", "false")
+
+    command = household._live_command(
+        execution,
+        run_dir=tmp_path / "seed-7",
+        map_bundle=tmp_path / "map",
+    )
+
+    prompt = command[command.index("--kickoff-prompt") + 1]
+    assert "observe plus declare_visual_candidates" in prompt
+    assert "three bounded 90-degree body turns" not in prompt
+
+
 def test_external_python_and_isaac_keep_process_boundaries(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
