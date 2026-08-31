@@ -48,10 +48,11 @@ terminal artifacts.
 
 ## External Blocker
 
-The Kimi provider readiness probe passes, but the live route's billing limit was
-exhausted during v2 at model call 30. A new Kimi proof requires the provider
-quota/account state to change; do not expand provider scope or alter detector
-configuration to work around it.
+The Kimi live route exhausted its billing limit during v2 at model call 30. A
+follow-up readiness probe now fails with HTTP 403 `PermissionDeniedError` and
+states that the five-hour usage limit will reset when the current window ends.
+A new Kimi proof requires that provider window to reset; do not expand provider
+scope, purchase service, or alter detector configuration to work around it.
 
 ## Stop Condition
 

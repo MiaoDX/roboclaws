@@ -90,6 +90,8 @@ existing cleanup threshold before terminal `done`.
   non-retryable provider `billing_limit` quota failure at model call 30. The
   remaining Kimi acceptance is external-provider blocked; no terminal report
   or `done` was produced.
+- A follow-up readiness probe reproduces the same blocker as HTTP 403 and says
+  the five-hour usage window must reset before another Kimi run can start.
 
 ## Stop Gates
 
