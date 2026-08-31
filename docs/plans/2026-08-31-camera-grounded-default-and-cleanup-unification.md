@@ -1,6 +1,6 @@
 # Camera-Grounded Default And Cleanup Strategy Unification
 
-**Status:** IN PROGRESS - approved for implementation; Phase 0 underway
+**Status:** BLOCKED - Phase 3 real Grounding DINO cleanup proof failed
 **Created:** 2026-08-31  
 **Last reviewed:** 2026-08-31  
 **Owner:** Household World maintainers  
@@ -225,6 +225,14 @@ Permit only a small, documented DINO threshold adjustment within existing
 configuration. Stop if success requires detector-specific destination logic,
 cleanup scheduling, broad prompt exceptions, model training, or a larger
 threshold search.
+
+Phase gate:
+
+- **FAILED (2026-08-31):** The required real direct-runner Grounding DINO
+  cleanup proof completed with authentic external CUDA evidence and full sweep
+  coverage, but restored only 1/5 targets (20%). The authoritative score was
+  `partial_success`, below the required >=4/5 threshold. Evidence:
+  `output/camera-grounded-default-direct-proof/0831_1148/seed-7/`.
 
 ### Phase 4: Prove camera-contract portability without robot motion
 
