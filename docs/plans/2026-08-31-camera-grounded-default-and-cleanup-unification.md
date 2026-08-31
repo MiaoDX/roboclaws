@@ -233,6 +233,12 @@ Phase gate:
   coverage, but restored only 1/5 targets (20%). The authoritative score was
   `partial_success`, below the required >=4/5 threshold. Evidence:
   `output/camera-grounded-default-direct-proof/0831_1148/seed-7/`.
+- **FAILED diagnostic (2026-08-31):** A same-scene Codex Responses SDK run also
+  restored 1/5 with full sweep and zero disturbances. It called `observe` eight
+  times but `declare_visual_candidates` only once, so only one waypoint's six
+  DINO candidates entered registration. This isolates an SDK grounded-acquisition
+  orchestration gap in addition to candidate actionability quality. Evidence:
+  `output/camera-grounded-default-codex-proof/0831_1258/seed-7/`.
 
 ### Phase 4: Prove camera-contract portability without robot motion
 

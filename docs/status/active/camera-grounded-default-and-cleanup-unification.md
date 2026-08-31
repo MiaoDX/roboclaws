@@ -10,17 +10,22 @@
 - Latest intent: execute the approved plan through `intuitive-flow`.
 - Current blocker: the required real direct-runner Grounding DINO cleanup proof
   restored only 1/5 targets, below the plan's >=4/5 capability threshold.
-- Blocker fingerprint: `phase3_direct_dino_cleanup_capability_1_of_5`.
+- Blocker fingerprint: `phase3_dino_acquisition_and_actionability_1_of_5`.
 - Last proven evidence: the managed real sidecar ran Grounding DINO on CUDA,
   produced 33 external candidates over seven events, registered observed
   handles, covered 100% of the public sweep, and caused zero disturbances; the
   authoritative cleanup score remained `partial_success` at 20% restoration.
+- A same-scene Codex Responses diagnostic also restored 1/5. It observed eight
+  times but declared DINO candidates only once, registering six candidates from
+  one waypoint; this proves the SDK route currently fails to acquire grounded
+  candidates across the sweep independently of provider reasoning quality.
 - Completed slices: showcase identity repair; shared lane-neutral local-drain
   strategy and honest policy-trace semantics; fail-closed grounded provenance.
 - Next slice: human decision or a newly approved repair plan for detector
   candidate actionability/destination selection; do not run Kimi or migrate
   defaults while the direct gate is failed.
-- Evidence: `output/camera-grounded-default-direct-proof/0831_1148/seed-7/`.
+- Evidence: `output/camera-grounded-default-direct-proof/0831_1148/seed-7/`
+  and `output/camera-grounded-default-codex-proof/0831_1258/seed-7/`.
 
 ## Stop Condition
 
