@@ -386,6 +386,8 @@ def _assert_camera_model_policy(
             pipeline_id,
         )
     if set(pipeline_ids) == {"sim"}:
+        if expect_pipeline_id not in {None, "sim"}:
+            raise AssertionError("grounded evidence cannot use simulator pipeline")
         assert evidence.get("model_provenance") == SIMULATED_CAMERA_MODEL_PROVENANCE, evidence
     else:
         assert evidence.get("model_provenance") == "external_visual_grounding_service", evidence
@@ -394,10 +396,16 @@ def _assert_camera_model_policy(
     failure_count = int(evidence.get("visual_grounding_failure_count") or 0)
     if require_failure:
         assert failure_count >= 1, evidence
-    elif map_build and (data.get("runtime_metric_map") or {}).get("target_candidates"):
+    elif (
+        map_build
+        and pipeline_id not in {"sim", "manual"}
+        and (data.get("runtime_metric_map") or {}).get("target_candidates")
+    ):
         assert int(evidence.get("event_count") or 0) >= 1, evidence
-    else:
         assert int(evidence.get("candidate_count") or 0) >= 1, evidence
+    else:
+        if pipeline_id not in {"sim", "manual"}:
+            assert int(evidence.get("candidate_count") or 0) >= 1, evidence
     assert evidence.get("events"), evidence
     _assert_visual_grounding_event_pipelines(evidence["events"], pipeline_ids=pipeline_ids)
     assert data.get("raw_fpv_observations"), data

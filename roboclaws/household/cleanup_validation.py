@@ -540,3 +540,11 @@ def _assert_evidence_lane(
         assert "image reasoning" not in report_text.lower(), report_text[:500]
         model_input_note = str(metadata.get("model_input_note") or "")
         assert "withheld" in model_input_note.lower(), metadata
+    if profile.evidence_lane == "camera-grounded-labels":
+        expected_labeler = str(metadata.get("camera_labeler") or "")
+        assert expected_labeler, metadata
+        pipeline = str(
+            (data.get("camera_model_policy_evidence") or {}).get("visual_grounding_pipeline_id")
+            or ""
+        )
+        assert pipeline == expected_labeler, (expected_labeler, pipeline, data)
