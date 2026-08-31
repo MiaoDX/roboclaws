@@ -385,10 +385,42 @@ def _top_candidates(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
         8,
         minimum=1,
     )
-    return sorted(
-        candidates,
-        key=lambda item: -float(item.get("confidence") or 0.0),
-    )[:max_candidates]
+    ranked = sorted(candidates, key=lambda item: -float(item.get("confidence") or 0.0))
+    selected: list[dict[str, Any]] = []
+    for candidate in ranked:
+        if any(_candidate_boxes_overlap(candidate, existing) >= 0.85 for existing in selected):
+            continue
+        selected.append(candidate)
+        if len(selected) >= max_candidates:
+            break
+    return selected
+
+
+def _candidate_boxes_overlap(first: dict[str, Any], second: dict[str, Any]) -> float:
+    first_region = first.get("image_region") or {}
+    second_region = second.get("image_region") or {}
+    if first_region.get("type") != "bbox" or second_region.get("type") != "bbox":
+        return 0.0
+    first_box = _xywh(first_region.get("value"))
+    second_box = _xywh(second_region.get("value"))
+    if first_box is None or second_box is None:
+        return 0.0
+    ax, ay, aw, ah = first_box
+    bx, by, bw, bh = second_box
+    left, top = max(ax, bx), max(ay, by)
+    right, bottom = min(ax + aw, bx + bw), min(ay + ah, by + bh)
+    intersection = max(0.0, right - left) * max(0.0, bottom - top)
+    first_area = max(0.0, aw) * max(0.0, ah)
+    second_area = max(0.0, bw) * max(0.0, bh)
+    smaller_area = min(first_area, second_area)
+    return intersection / smaller_area if smaller_area > 0.0 else 0.0
+
+
+def _xywh(value: Any) -> tuple[float, float, float, float] | None:
+    numbers = [_float_or_none(item) for item in _as_list(value)[:4]]
+    if len(numbers) != 4 or any(item is None for item in numbers):
+        return None
+    return tuple(float(item) for item in numbers)  # type: ignore[return-value]
 
 
 def _rows(value: Any) -> list[list[Any]]:

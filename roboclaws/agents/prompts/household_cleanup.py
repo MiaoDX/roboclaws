@@ -141,7 +141,14 @@ COMPOSITE_CAMERA_GROUNDED_RUN_FACT = (
 )
 
 CAMERA_LABELS_COMPOSITE_RUN_CONTEXT = (
-    "Evidence lane=camera-grounded-labels. " + COMPOSITE_CAMERA_GROUNDED_RUN_FACT
+    "Evidence lane=camera-grounded-labels. "
+    + COMPOSITE_CAMERA_GROUNDED_RUN_FACT
+    + " At every public inspection waypoint, call the composite tool once at the canonical "
+    "pose before moving to the next waypoint. If done returns a public "
+    "insufficient_camera_grounded_heading_coverage blocker, return to its specified waypoint "
+    "and perform the requested bounded 90-degree turns, calling the composite tool after each "
+    "turn. Prioritize completing the public waypoint sweep and cleanup chains before optional "
+    "heading recovery. "
 )
 
 

@@ -28,15 +28,78 @@ CANDIDATE_STATE_VISUALLY_CONFIRMED = "visually_confirmed"
 CANDIDATE_STATE_NAVIGATION_AUTHORIZED = "navigation_authorized"
 NON_ACTIONABLE_HANDLE_STATES = frozenset({"placed", "placed_closed", "skipped", "stale"})
 CLEANUP_ACTIONABLE_HANDLE_STATES = frozenset({"pending", "navigating_to_object", "held"})
-VISUAL_GROUNDING_CATEGORY_HINTS = [
-    "food",
-    "dish",
-    "book",
-    "linen",
-    "toy",
-    "electronics",
-    "pillow",
+_VISUAL_GROUNDING_PROMPT_ALIASES = {
+    "alarmclock": "alarm clock",
+    "cellphone": "cell phone",
+    "mobilephone": "mobile phone",
+    "remotecontrol": "remote control",
+    "teddybear": "teddy bear",
+    "toycar": "toy car",
+}
+
+
+# Query each public cleanup family independently so broad/open-vocabulary
+# classes do not consume another family's bounded detector result budget.
+VISUAL_GROUNDING_CATEGORY_HINT_GROUPS = [
+    list(dict.fromkeys(_VISUAL_GROUNDING_PROMPT_ALIASES.get(alias, alias) for alias in aliases))
+    for aliases, _targets in _OBJECT_CATEGORY_TARGETS
 ]
+VISUAL_GROUNDING_CATEGORY_HINTS = list(
+    dict.fromkeys(alias for aliases in VISUAL_GROUNDING_CATEGORY_HINT_GROUPS for alias in aliases)
+)
+
+
+def merge_visual_grounding_candidates(
+    candidates: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Keep the highest-confidence public candidate for each overlapping box."""
+
+    ranked = sorted(candidates, key=lambda item: float(item.get("confidence") or 0.0), reverse=True)
+    selected: list[dict[str, Any]] = []
+    for candidate in ranked:
+        if any(
+            _same_cleanup_family(candidate, existing)
+            and _candidate_bbox_overlap(candidate, existing) >= 0.85
+            for existing in selected
+        ):
+            continue
+        selected.append(candidate)
+    return selected
+
+
+def _same_cleanup_family(first: dict[str, Any], second: dict[str, Any]) -> bool:
+    first_families = _category_alias_families(_norm(first.get("category")))
+    second_families = _category_alias_families(_norm(second.get("category")))
+    return bool(first_families.intersection(second_families))
+
+
+def _candidate_bbox_overlap(first: dict[str, Any], second: dict[str, Any]) -> float:
+    first_box = _normalized_candidate_bbox(first)
+    second_box = _normalized_candidate_bbox(second)
+    if first_box is None or second_box is None:
+        return 0.0
+    ax, ay, aw, ah = first_box
+    bx, by, bw, bh = second_box
+    intersection = max(0.0, min(ax + aw, bx + bw) - max(ax, bx)) * max(
+        0.0, min(ay + ah, by + bh) - max(ay, by)
+    )
+    smaller_area = min(aw * ah, bw * bh)
+    return intersection / smaller_area if smaller_area > 0.0 else 0.0
+
+
+def _normalized_candidate_bbox(
+    candidate: dict[str, Any],
+) -> tuple[float, float, float, float] | None:
+    region = candidate.get("image_region") or {}
+    value = region.get("value") if region.get("type") == "bbox" else None
+    if not isinstance(value, (list, tuple)) or len(value) != 4:
+        return None
+    try:
+        x, y, width, height = (float(item) for item in value)
+    except (TypeError, ValueError):
+        return None
+    return x, y, width, height
+
 
 _EXACT_VISUAL_CATEGORY_ALIASES = frozenset(
     {"cup", "mug", "plate", "bowl", "utensil", "fork", "knife", "spoon", "ladle"}
