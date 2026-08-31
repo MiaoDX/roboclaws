@@ -8,14 +8,16 @@
 ## Current State
 
 - Latest intent: execute the approved plan through `intuitive-flow`.
-- Current slice: propagate requested/effective identity through launch and run
-  artifacts and add fail-closed grounded provenance checks.
-- Last proven evidence: 18 focused showcase and workflow tests pass; manifest
-  rows now assert sample-owned lane and labeler identity, result mismatch fails,
-  and the prior Kimi map-build row is honestly world-label evidence.
-- Completed slices: showcase manifest/sample/runtime identity repair.
-- Next slice: extend typed launch and run-result identity, then verify grounded
-  runs cannot pass with simulator provenance or zero detector events.
+- Current slice: extend typed launch and run-result identity and enforce
+  fail-closed grounded provenance.
+- Last proven evidence: focused and broad cleanup-policy tests prove the direct
+  runner drains actionable candidates per waypoint; trace evidence distinguishes
+  same-waypoint recovery, delayed cleanup, coverage observes, and immediate
+  post-place verification.
+- Completed slices: showcase identity repair; shared lane-neutral local-drain
+  strategy and honest policy-trace semantics.
+- Next slice: verify grounded runs cannot pass with simulator provenance, a
+  mismatched pipeline, or zero detector/registration events.
 - Next proof: focused showcase, launch-catalog, and evidence-identity tests via
   `./scripts/dev/run_pytest_standalone.sh`.
 

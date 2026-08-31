@@ -28,10 +28,11 @@ class _PolicyTraceAccumulator:
     previous_success_tool: str = ""
     first_cleanup_index: int | None = None
     first_actionable_observation_index: int | None = None
+    last_coverage_observation_index: int | None = None
+    actionable_observation_indexes: dict[str, int] = field(default_factory=dict)
     observed_waypoints_at_first_cleanup: int = 0
     scan_observe_count: int = 0
     post_place_observe_count: int = 0
-    pending_post_place_observes: int = 0
     cleanup_action_count: int = 0
     placed_object_count: int = 0
 
@@ -43,7 +44,6 @@ class _PolicyTraceAccumulator:
         role = _policy_event_role(
             tool,
             self.previous_success_tool,
-            pending_post_place_observe=self.pending_post_place_observes > 0,
         )
         waypoint_id = str(response.get("waypoint_id") or "")
         self._record_waypoint(waypoint_id)
@@ -60,21 +60,22 @@ class _PolicyTraceAccumulator:
     def _record_role(self, role: str, tool: str, response: dict[str, Any]) -> None:
         if role == "coverage_scan_observe":
             self.scan_observe_count += 1
-            if self.first_actionable_observation_index is None and _has_actionable_detection(
-                response
-            ):
-                self.first_actionable_observation_index = len(self.events)
+            self.last_coverage_observation_index = len(self.events)
+            for handle in _actionable_handles(response):
+                self.actionable_observation_indexes.setdefault(handle, len(self.events))
         if role == "post_place_observe":
             self.post_place_observe_count += 1
-            self.pending_post_place_observes = max(0, self.pending_post_place_observes - 1)
         if role != "cleanup_action":
             return
         self.cleanup_action_count += 1
         if tool in {PLACE_PHASE, PLACE_INSIDE_PHASE}:
             self.placed_object_count += 1
-            self.pending_post_place_observes += 1
         if self.first_cleanup_index is None:
             self.first_cleanup_index = len(self.events)
+            handle = str(response.get("object_id") or "")
+            self.first_actionable_observation_index = self.actionable_observation_indexes.get(
+                handle, self.last_coverage_observation_index
+            )
             self.observed_waypoints_at_first_cleanup = len(self.visited_waypoints)
 
     def first_cleanup_before_full_survey(self) -> bool:
@@ -89,14 +90,13 @@ class _PolicyTraceAccumulator:
             return "scan_only"
         if not first_cleanup_before_full_survey:
             return "survey_first_cleanup_loop"
-        if first_cleanup_before_full_survey:
-            return "interleaved_cleanup_loop"
         if _cleanup_started_after_first_actionable_observation(
             first_cleanup_index=self.first_cleanup_index,
             first_actionable_observation_index=self.first_actionable_observation_index,
+            events=self.events,
         ):
             return "interleaved_cleanup_loop"
-        return "survey_first_cleanup_loop"
+        return "delayed_cleanup_loop"
 
 
 def cleanup_policy_trace_from_events(
@@ -193,16 +193,13 @@ def _policy_trace_event(
 def _policy_event_role(
     tool: str,
     previous_success_tool: str,
-    *,
-    pending_post_place_observe: bool = False,
 ) -> str:
     if tool == "navigate_to_waypoint":
         return "coverage_scan_navigation"
     if tool == "observe":
         return (
             "post_place_observe"
-            if pending_post_place_observe
-            or previous_success_tool in {PLACE_PHASE, PLACE_INSIDE_PHASE, CLOSE_RECEPTACLE_PHASE}
+            if previous_success_tool in {PLACE_PHASE, PLACE_INSIDE_PHASE, CLOSE_RECEPTACLE_PHASE}
             else "coverage_scan_observe"
         )
     if tool in _CLEANUP_ACTION_TOOLS:
@@ -210,24 +207,51 @@ def _policy_event_role(
     return "setup_or_completion"
 
 
-def _has_actionable_detection(response: dict[str, Any]) -> bool:
+def _actionable_handles(response: dict[str, Any]) -> set[str]:
+    blockers = (response.get("completion") or {}).get("blockers") or []
+    worklist_candidates = [
+        candidate
+        for blocker in blockers
+        if isinstance(blocker, dict)
+        for candidate in (blocker.get("pending_cleanup_candidates") or [])
+    ]
     detections = [
         *(response.get("visible_object_detections") or []),
         *(response.get("camera_model_candidates") or []),
+        *worklist_candidates,
     ]
-    return any(
-        isinstance(item, dict) and bool(item.get("cleanup_recommended")) for item in detections
-    )
+    return {
+        str(item.get("object_id") or "")
+        for item in detections
+        if isinstance(item, dict)
+        and (
+            item.get("candidate_state") == "navigation_authorized"
+            or item.get("actionability_status") == "actionable"
+            or (
+                "candidate_state" not in item
+                and "actionability_status" not in item
+                and bool(item.get("cleanup_recommended"))
+            )
+        )
+        and item.get("object_id")
+    }
 
 
 def _cleanup_started_after_first_actionable_observation(
     *,
     first_cleanup_index: int | None,
     first_actionable_observation_index: int | None,
+    events: list[dict[str, Any]],
 ) -> bool:
     if first_cleanup_index is None or first_actionable_observation_index is None:
         return False
-    return first_cleanup_index == first_actionable_observation_index + 1
+    source_waypoint_id = str(events[first_actionable_observation_index].get("waypoint_id") or "")
+    between = events[first_actionable_observation_index + 1 : first_cleanup_index]
+    return not any(
+        event.get("role") in {"coverage_scan_navigation", "coverage_scan_observe"}
+        and str(event.get("waypoint_id") or "") != source_waypoint_id
+        for event in between
+    )
 
 
 def _public_index(index: int | None) -> int | None:

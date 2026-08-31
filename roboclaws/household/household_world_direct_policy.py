@@ -447,6 +447,25 @@ def _handle_direct_cleanup_detections(
 ) -> int:
     for detection in detections:
         pending_detections[str(detection["object_id"])] = dict(detection)
+    view_index = _clean_direct_cleanup_detections(
+        trace_events=trace_events,
+        started_at=started_at,
+        contract=contract,
+        base_contract=base_contract,
+        detections=detections,
+        static_fixture_projection=static_fixture_projection,
+        robot_view_steps=robot_view_steps,
+        output_dir=output_dir,
+        view_index=view_index,
+        record_robot_views=record_robot_views,
+        planner_proof_evidence=planner_proof_evidence,
+        agent_scratchpad=agent_scratchpad,
+        handled_handles=handled_handles,
+        perception_mode=perception_mode,
+        hooks=hooks,
+    )
+    for handle in handled_handles:
+        pending_detections.pop(handle, None)
     return view_index
 
 

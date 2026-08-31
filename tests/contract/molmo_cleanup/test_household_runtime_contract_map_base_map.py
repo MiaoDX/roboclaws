@@ -304,7 +304,7 @@ def test_scene_index_backend_room_outline_waypoints_avoid_fixture_occupied_goals
         assert navigation["ok"] is True, navigation
 
 
-def test_cleanup_policy_trace_records_optional_post_place_observe() -> None:
+def test_cleanup_policy_trace_does_not_mislabel_later_coverage_as_post_place() -> None:
     trace = cleanup_policy_trace_from_events(
         [
             _trace_response("navigate_to_waypoint", {"ok": True, "waypoint_id": "room_1_scan_1"}),
@@ -334,8 +334,21 @@ def test_cleanup_policy_trace_records_optional_post_place_observe() -> None:
     )
 
     assert trace["placed_object_count"] == 1
-    assert trace["post_place_observe_count"] == 1
+    assert trace["post_place_observe_count"] == 0
     assert "post_place_observe_complete" not in trace
+    assert trace["events"][-1]["role"] == "coverage_scan_observe"
+
+
+def test_cleanup_policy_trace_records_immediate_post_place_verification() -> None:
+    trace = cleanup_policy_trace_from_events(
+        [
+            _trace_response("place", {"ok": True, "object_id": "observed_001"}),
+            _trace_response("observe", {"ok": True, "waypoint_id": "room_1_scan_1"}),
+        ],
+        _policy_trace_agent_view([{"waypoint_id": "room_1_scan_1"}]),
+    )
+
+    assert trace["post_place_observe_count"] == 1
     assert trace["events"][-1]["role"] == "post_place_observe"
 
 

@@ -428,7 +428,7 @@ def test_checker_rejects_base_metric_map_waypoint_honesty_for_cleanup_scan_only(
         )
 
 
-def test_checker_allows_base_metric_map_waypoint_honesty_for_survey_first_cleanup(
+def test_checker_requires_base_metric_map_cleanup_to_drain_local_candidates(
     tmp_path: Path,
 ) -> None:
     demo = _load_module(DEMO_PATH, "molmospaces_realworld_cleanup")
@@ -452,8 +452,8 @@ def test_checker_allows_base_metric_map_waypoint_honesty_for_survey_first_cleanu
     )
     trace = result["cleanup_policy_trace"]
     assert trace["waypoint_source"] == "generated_exploration_candidate"
-    assert trace["loop_style"] == "survey_first_cleanup_loop"
-    assert trace["first_cleanup_before_full_survey"] is False
+    assert trace["loop_style"] == "interleaved_cleanup_loop"
+    assert trace["first_cleanup_before_full_survey"] is True
     assert trace["placed_object_count"] == 5
 
 
