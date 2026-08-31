@@ -237,6 +237,14 @@ def evaluate_done_readiness(
                 require_overlap_probe=grounded_chain_blocker is not None,
             )
         )
+    if (
+        not open_ended_task
+        and not map_build_task
+        and contract.perception_mode == "camera_model_policy"
+    ):
+        camera_heading_blocker = camera_grounded_heading_coverage_blocker(contract)
+        if camera_heading_blocker is not None:
+            blockers.insert(0, camera_heading_blocker)
     if grounded_chain_blocker is not None:
         blockers.append(grounded_chain_blocker)
 
@@ -560,6 +568,48 @@ def raw_fpv_heading_coverage_blocker(contract: HouseholdRuntimeContract) -> dict
     }
 
 
+def camera_grounded_heading_coverage_blocker(
+    contract: HouseholdRuntimeContract,
+) -> dict[str, Any] | None:
+    """Require the bounded body-heading sweep for camera-grounded cleanup."""
+
+    profile = map_build_scan_profile()
+    required_count = min(4, max(1, profile.observe_count_per_waypoint))
+    heading_buckets = _raw_fpv_heading_buckets_by_waypoint(
+        contract._raw_fpv_observations,
+        turn_degrees=abs(float(profile.body_turn_yaw_delta_deg or 90.0)),
+    )
+    waypoint_ids = [str(item.get("waypoint_id") or "") for item in contract._public_waypoints]
+    counts = {
+        waypoint_id: len(heading_buckets.get(waypoint_id, set())) for waypoint_id in waypoint_ids
+    }
+    incomplete = [
+        waypoint_id for waypoint_id in waypoint_ids if counts[waypoint_id] < required_count
+    ]
+    if not incomplete:
+        return None
+    next_waypoint_id = incomplete[0]
+    observe_tool = "observe_camera_grounded_candidates"
+    return {
+        "type": "insufficient_camera_grounded_heading_coverage",
+        "policy_id": "camera_grounded_bounded_body_turn_scan_v1",
+        "required_tool": "navigate_to_waypoint",
+        "followup_tool": observe_tool,
+        "next_waypoint_id": next_waypoint_id,
+        "required_distinct_heading_count": required_count,
+        "current_distinct_heading_count": counts[next_waypoint_id],
+        "distinct_heading_counts_by_waypoint": counts,
+        "incomplete_waypoint_ids": incomplete,
+        "recovery_hint": (
+            f"Return to {next_waypoint_id}, use {observe_tool} at the canonical pose, then "
+            f"call navigate_to_relative_pose(forward_m=0, lateral_m=0, "
+            f"yaw_delta_deg={profile.body_turn_yaw_delta_deg:g}) followed by "
+            f"{observe_tool} three times. Complete the bounded camera-grounded sweep before "
+            "calling done; do not use the older observe plus declaration cadence."
+        ),
+    }
+
+
 def _raw_fpv_heading_buckets_by_waypoint(
     observations: Sequence[dict[str, Any]],
     *,
@@ -616,10 +666,12 @@ def grounded_cleanup_chain_requirement(
             contract.public_acceptance_config.get("done_readiness_policy")
             or DONE_READINESS_POLICY_EXPLICIT
         )
-    if contract.perception_mode != raw_fpv_only_mode:
-        return 0, ""
     requested = positive_int(contract.public_acceptance_config.get("requested_run_size"))
     if requested is None:
+        return 0, ""
+    if contract.perception_mode == "camera_model_policy":
+        return public_success_threshold(requested), "camera_model_grounded_cleanup_chains"
+    if contract.perception_mode != raw_fpv_only_mode:
         return 0, ""
     return public_success_threshold(requested), DONE_READINESS_POLICY_RAW_FPV
 

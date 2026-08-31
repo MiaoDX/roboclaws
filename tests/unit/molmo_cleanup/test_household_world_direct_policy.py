@@ -1,11 +1,81 @@
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
+from roboclaws.core.map_build_scan_profile import map_build_scan_profile
 from roboclaws.household import (
     household_direct_cleanup_selection,
     household_world_direct_policy,
 )
+from roboclaws.household.household_runtime_contract import CAMERA_MODEL_POLICY_MODE
+
+
+@pytest.mark.parametrize(
+    ("perception_mode", "expected_observes", "expected_turns"),
+    [(CAMERA_MODEL_POLICY_MODE, 4, 3), ("world_public_labels", 1, 0)],
+)
+def test_direct_cleanup_scan_uses_bounded_turns_only_for_camera_grounded_mode(
+    perception_mode: str,
+    expected_observes: int,
+    expected_turns: int,
+) -> None:
+    calls: list[str] = []
+    observation_index = 0
+
+    def observe():
+        nonlocal observation_index
+        observation_index += 1
+        return {
+            "ok": True,
+            "raw_fpv_observation": {
+                "observation_id": f"obs-{observation_index}",
+                "camera_control_contract": {"robot_pose": {"theta": 0.0}},
+            },
+        }
+
+    def call_tool(_events, _started_at, tool, _request, callback, postprocess=None):
+        calls.append(tool)
+        response = callback()
+        return postprocess(response) if postprocess is not None else response
+
+    contract = SimpleNamespace(
+        observe=observe,
+        navigate_to_relative_pose=lambda **kwargs: {
+            "ok": True,
+            "applied_delta": {"yaw_delta_deg": kwargs["yaw_delta_deg"]},
+        },
+    )
+    hooks = SimpleNamespace(
+        call_tool=call_tool,
+        attach_raw_fpv_robot_view=lambda **kwargs: kwargs["response"],
+        view_index_after_raw_fpv=lambda _steps, index: index,
+        detections_for_policy=lambda **_kwargs: [],
+    )
+
+    household_world_direct_policy._observe_direct_cleanup_waypoint(
+        trace_events=[],
+        started_at=0.0,
+        contract=contract,
+        base_contract=SimpleNamespace(),
+        robot_view_steps=[],
+        output_dir=Path("unused"),
+        view_index=0,
+        record_robot_views=False,
+        episode_policy=household_world_direct_policy.DirectHouseholdEpisodePolicy(
+            policy_name="test",
+            artifact_kind="household_episode",
+            cleanup_actions_enabled=True,
+        ),
+        perception_mode=perception_mode,
+        hooks=hooks,
+        map_build_scan_profile=map_build_scan_profile(),
+    )
+
+    assert calls.count("observe") == expected_observes
+    assert calls.count("navigate_to_relative_pose") == expected_turns
 
 
 def test_direct_policy_uses_same_waypoint_public_destination_for_unknown_category(

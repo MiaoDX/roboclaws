@@ -24,6 +24,7 @@ from roboclaws.household.visual_grounding import (
     image_payload_for_raw_observation,
     pipeline_summary_from_response,
     sim_visual_grounding_pipeline,
+    validate_visual_grounding_response,
     visual_grounding_failure_response,
     visual_grounding_request,
 )
@@ -490,23 +491,25 @@ def camera_label_producer_candidates(
                 auth_mode=auth_mode,
             ),
         }
-    request = visual_grounding_request(
-        run_id=contract.visual_grounding_run_id or contract.scenario.scenario_id,
-        raw_observation=raw_observation,
-        category_hints=list(realworld_visual_candidates.VISUAL_GROUNDING_CATEGORY_HINTS),
-        public_map_hints=realworld_visual_candidates._public_map_hints_for_visual_grounding_request(
-            contract.static_fixture_projection()
-        ),
-        pipeline_id=contract.visual_grounding_pipeline_id,
-        image=image,
-        proposer={
-            "producer_id": str(getattr(client_config, "proposer_id", "") or ""),
-            "model_id": str(getattr(client_config, "proposer_model_id", "") or ""),
-        },
+    public_map_hints = realworld_visual_candidates._public_map_hints_for_visual_grounding_request(
+        contract.static_fixture_projection()
     )
+    responses = []
     try:
-        response = contract.visual_grounding_client.request_candidates(request)
-        pipeline = pipeline_summary_from_response(response, auth_mode=auth_mode)
+        for category_hints in realworld_visual_candidates.VISUAL_GROUNDING_CATEGORY_HINT_GROUPS:
+            request = visual_grounding_request(
+                run_id=contract.visual_grounding_run_id or contract.scenario.scenario_id,
+                raw_observation=raw_observation,
+                category_hints=list(category_hints),
+                public_map_hints=public_map_hints,
+                pipeline_id=contract.visual_grounding_pipeline_id,
+                image=image,
+                proposer={
+                    "producer_id": str(getattr(client_config, "proposer_id", "") or ""),
+                    "model_id": str(getattr(client_config, "proposer_model_id", "") or ""),
+                },
+            )
+            responses.append(contract.visual_grounding_client.request_candidates(request))
     except VisualGroundingContractError as exc:
         return {
             "ok": False,
@@ -526,6 +529,11 @@ def camera_label_producer_candidates(
                 "auth_mode": "none",
             },
         }
+    response = _merge_visual_grounding_responses(
+        responses,
+        pipeline_id=contract.visual_grounding_pipeline_id,
+    )
+    pipeline = pipeline_summary_from_response(response, auth_mode=auth_mode)
     if pipeline.get("status") == "failed":
         return {
             "ok": True,
@@ -547,6 +555,38 @@ def camera_label_producer_candidates(
             )
         ),
         "visual_grounding_pipeline": pipeline,
+    }
+
+
+def _merge_visual_grounding_responses(
+    responses: list[dict[str, Any]],
+    *,
+    pipeline_id: str,
+) -> dict[str, Any]:
+    valid = [validate_visual_grounding_response(response) for response in responses]
+    successful = [response for response in valid if response.get("status") == "ok"]
+    if not successful:
+        return valid[0]
+    candidates = realworld_visual_candidates.merge_visual_grounding_candidates(
+        [
+            dict(candidate)
+            for response in successful
+            for candidate in response.get("candidates") or []
+            if isinstance(candidate, dict)
+        ]
+    )
+    return {
+        "schema": "visual_grounding_response_v1",
+        "status": "ok",
+        "pipeline": {
+            "pipeline_id": pipeline_id,
+            "stages": [
+                dict(stage)
+                for response in successful
+                for stage in (response.get("pipeline") or {}).get("stages") or []
+            ],
+        },
+        "candidates": candidates,
     }
 
 

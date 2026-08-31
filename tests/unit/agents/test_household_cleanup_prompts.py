@@ -148,3 +148,15 @@ def test_map_build_camera_grounded_baseline_prompt_keeps_two_step_cadence() -> N
     assert "max_observe_per_waypoint override=false" in prompt
     assert "profile body-turn cadence overridden=false" in prompt
     assert "Waypoint observation tool=observe_camera_grounded_candidates" not in prompt
+
+
+def test_cleanup_camera_grounded_composite_prompt_requires_bounded_heading_sweep() -> None:
+    prompt = render_kickoff_prompt(
+        "camera-grounded-labels",
+        intent="cleanup",
+        camera_grounded_composite_tools=True,
+    )
+
+    assert "At every public inspection waypoint" in prompt
+    assert "three bounded 90-degree body turns" in prompt
+    assert "calling the composite tool after each turn" in prompt

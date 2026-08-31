@@ -480,7 +480,11 @@ def _compact_continuation_profile_guidance(profile: dict[str, Any]) -> str:
         "Do not resume the older observe plus declare_visual_candidates cadence, and "
         "do not call declare_visual_candidates again for a source_observation_id "
         "already handled by observe_camera_grounded_candidates unless a public tool "
-        "explicitly asks for it."
+        "explicitly asks for it. If latest_done_blockers contains "
+        "insufficient_camera_grounded_heading_coverage, navigate to its next_waypoint_id, "
+        "call the composite tool at the canonical pose, then perform three consecutive "
+        "navigate_to_relative_pose(yaw_delta_deg=90) plus composite observations before "
+        "leaving that waypoint. Keep the bounded heading sweep ahead of calling done."
     )
 
 

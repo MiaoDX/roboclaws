@@ -141,7 +141,11 @@ COMPOSITE_CAMERA_GROUNDED_RUN_FACT = (
 )
 
 CAMERA_LABELS_COMPOSITE_RUN_CONTEXT = (
-    "Evidence lane=camera-grounded-labels. " + COMPOSITE_CAMERA_GROUNDED_RUN_FACT
+    "Evidence lane=camera-grounded-labels. "
+    + COMPOSITE_CAMERA_GROUNDED_RUN_FACT
+    + " At every public inspection waypoint, call the composite tool at the canonical pose, "
+    "then perform three bounded 90-degree body turns, calling the composite tool after each "
+    "turn before moving to another waypoint. "
 )
 
 

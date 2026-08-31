@@ -7,6 +7,7 @@ import pytest
 
 from roboclaws.agents.household_live_continuation import (
     IncompleteTurnRecoveryPolicy,
+    _compact_continuation_profile_guidance,
     _compact_continuation_prompt,
     _compact_continuation_state,
 )
@@ -125,3 +126,19 @@ def test_every_sdk_continuation_uses_snapshot_state(tmp_path: Path) -> None:
     assert prompt is not None
     assert "compact_continuation_state" in prompt
     assert "ORIGINAL FULL PROMPT" not in prompt
+
+
+def test_camera_grounded_continuation_preserves_composite_heading_recovery() -> None:
+    guidance = _compact_continuation_profile_guidance(
+        {
+            "camera_grounded_composite_tools": {
+                "enabled": True,
+                "tool_names": ["observe_camera_grounded_candidates"],
+            }
+        }
+    )
+
+    assert "insufficient_camera_grounded_heading_coverage" in guidance
+    assert "three consecutive" in guidance
+    assert "navigate_to_relative_pose(yaw_delta_deg=90)" in guidance
+    assert "observe plus declare_visual_candidates" in guidance

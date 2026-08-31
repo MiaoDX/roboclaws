@@ -7,6 +7,10 @@ from roboclaws.household.household_runtime_contract import (
     CAMERA_MODEL_POLICY_MODE,
     VISUAL_GROUNDING_CATEGORY_HINTS,
 )
+from roboclaws.household.realworld_visual_candidates import (
+    VISUAL_GROUNDING_CATEGORY_HINT_GROUPS,
+    merge_visual_grounding_candidates,
+)
 from roboclaws.household.scenario import build_cleanup_scenario
 from roboclaws.household.visual_grounding import VISUAL_GROUNDING_RESPONSE_SCHEMA
 from tests.contract.molmo_cleanup.household_runtime_contract_support import (
@@ -14,6 +18,7 @@ from tests.contract.molmo_cleanup.household_runtime_contract_support import (
     _attach_raw_fpv_test_image,
     _contract,
     _observe_raw_fpv_category,
+    _observe_raw_fpv_heading_sweep,
     _StaticVisualGroundingClient,
 )
 
@@ -175,7 +180,15 @@ def test_realworld_camera_labels_http_success_uses_destination_resolver(
     declaration = response["model_declared_observations"][0]
 
     assert client.last_request is not None
-    assert client.last_request["category_hints"] == VISUAL_GROUNDING_CATEGORY_HINTS
+    assert [request["category_hints"] for request in client.requests] == (
+        VISUAL_GROUNDING_CATEGORY_HINT_GROUPS
+    )
+    assert (
+        list(
+            dict.fromkeys(hint for request in client.requests for hint in request["category_hints"])
+        )
+        == VISUAL_GROUNDING_CATEGORY_HINTS
+    )
     assert "static_fixture_projection" not in client.last_request
     assert client.last_request["public_map_hints"]["source"] == "public_agent_view_map_evidence"
     assert isinstance(client.last_request["public_map_hints"]["fixture_hints"], list)
@@ -212,6 +225,64 @@ def test_realworld_camera_labels_http_success_uses_destination_resolver(
     assert runtime_observed["visual_grounding_evidence"]["reviewability_status"] == "reviewable"
     assert runtime_observed["actionability"] == "pending"
     _assert_no_forbidden_keys(response)
+
+
+def test_camera_grounded_requested_run_size_requires_four_cleanup_chains() -> None:
+    contract = _contract(
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
+        perception_mode=CAMERA_MODEL_POLICY_MODE,
+        public_acceptance_config={"requested_run_size": 5},
+    )
+
+    contract.navigate_to_waypoint(
+        str(contract.metric_map()["inspection_waypoints"][0]["waypoint_id"])
+    )
+    contract.observe()
+
+    heading_blocked = contract.done("camera-grounded run attempted without heading sweep")
+
+    assert heading_blocked["ok"] is False
+    assert heading_blocked["error_reason"] == "insufficient_camera_grounded_heading_coverage"
+    assert heading_blocked["followup_tool"] == "observe_camera_grounded_candidates"
+    assert heading_blocked["required_distinct_heading_count"] == 4
+    assert "three times" in heading_blocked["recovery_hint"]
+
+    _observe_raw_fpv_heading_sweep(contract)
+
+    done = contract.done("camera-grounded run attempted early completion")
+
+    assert done["ok"] is False
+    assert done["error_reason"] == "insufficient_grounded_cleanup_chains"
+    assert done["required_tool"] == "navigate_to_object"
+    blocker = done["completion"]["blockers"][0]
+    assert blocker["policy_id"] == "camera_model_grounded_cleanup_chains"
+    assert blocker["current"] == 0
+    assert blocker["required"] == 4
+    _assert_no_forbidden_keys(done)
+
+
+def test_camera_grounded_merge_keeps_overlapping_candidates_from_different_families() -> None:
+    candidates = [
+        {
+            "category": "potato",
+            "confidence": 0.52,
+            "image_region": {"type": "bbox", "value": [0.2, 0.2, 0.1, 0.1]},
+        },
+        {
+            "category": "teddy bear",
+            "confidence": 0.6,
+            "image_region": {"type": "bbox", "value": [0.2, 0.2, 0.1, 0.1]},
+        },
+        {
+            "category": "food",
+            "confidence": 0.3,
+            "image_region": {"type": "bbox", "value": [0.2, 0.2, 0.1, 0.1]},
+        },
+    ]
+
+    selected = merge_visual_grounding_candidates(candidates)
+
+    assert [candidate["category"] for candidate in selected] == ["teddy bear", "potato"]
 
 
 def test_realworld_camera_labels_http_destination_hint_is_evidence_only(

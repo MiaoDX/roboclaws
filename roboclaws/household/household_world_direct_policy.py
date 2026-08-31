@@ -310,11 +310,14 @@ def _observe_direct_cleanup_waypoint(
             )
         )
     uses_body_turn_scan = episode_policy.requires_map_artifacts or (
-        perception_mode == RAW_FPV_ONLY_MODE
+        perception_mode in {RAW_FPV_ONLY_MODE, CAMERA_MODEL_POLICY_MODE}
     )
     if uses_body_turn_scan and map_build_scan_profile.uses_robot_body_turns:
         turn_count = map_build_scan_profile.body_turn_count_per_waypoint
-        if perception_mode == RAW_FPV_ONLY_MODE and not episode_policy.requires_map_artifacts:
+        if (
+            perception_mode in {RAW_FPV_ONLY_MODE, CAMERA_MODEL_POLICY_MODE}
+            and not episode_policy.requires_map_artifacts
+        ):
             turn_count = min(3, turn_count)
         for turn_index in range(turn_count):
             turn_response = hooks.call_tool(
