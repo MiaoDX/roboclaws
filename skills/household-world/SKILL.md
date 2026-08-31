@@ -145,8 +145,25 @@ reviewable bbox. Never retry the same source-observation/category/region tuple.
 Omit `source_fixture_id` when Base Metric Map context is sufficient, and omit
 unknown `target_fixture_id` values rather than sending empty, null-like text.
 
-In `camera-grounded-labels`, use `roboclaws__declare_visual_candidates()` to
-register producer-labelled candidates before cleanup selection.
+In `camera-grounded-labels`, when
+`roboclaws__observe_camera_grounded_candidates()` is exposed, use it as the
+waypoint observation tool. Its response already contains the server-side DINO
+declaration; do not call `declare_visual_candidates` again for that source
+observation. Otherwise use `observe`, then `declare_visual_candidates` with the
+returned observation id.
+
+Complete one canonical composite observation at every public inspection
+waypoint before heading recovery. Drain any current
+`pending_cleanup_candidates` worklist first. When the latest completion
+snapshot has `insufficient_camera_grounded_heading_coverage` and no pending
+worklist, follow only its first `next_actions` entry: navigate to its exact
+`next_waypoint_id`, take the canonical composite observation, then perform the
+three consecutive 90-degree body turns and composite observations before
+leaving that waypoint. During this bounded recovery, do not manipulate any old
+observed handle. A handle becomes actionable only when the latest completion
+snapshot lists it in `pending_cleanup_candidates`. Never retry a handle after a
+public tool reports that it is not cleanup-recommended or explicitly says not
+to retry it.
 
 After the local cleanup loop, inspect the latest response's `completion` snapshot.
 Call `done` exactly once after its status is `ready`, every public inspection

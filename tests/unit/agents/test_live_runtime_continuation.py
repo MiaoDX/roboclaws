@@ -142,3 +142,6 @@ def test_camera_grounded_continuation_preserves_composite_heading_recovery() -> 
     assert "three consecutive" in guidance
     assert "navigate_to_relative_pose(yaw_delta_deg=90)" in guidance
     assert "observe plus declare_visual_candidates" in guidance
+    assert "ignore all previously seen object handles" in guidance
+    assert "latest completion snapshot returns that handle" in guidance
+    assert "Never retry a handle" in guidance

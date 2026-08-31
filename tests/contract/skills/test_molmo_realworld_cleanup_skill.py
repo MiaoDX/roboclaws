@@ -93,6 +93,9 @@ def test_cleanup_skill_prioritizes_done_over_optional_reclean_loops() -> None:
     assert "before the first pick" not in compact
     assert "`already_handled`" in compact
     assert "same stale area" in compact
+    assert "observe_camera_grounded_candidates" in compact
+    assert "latest completion snapshot lists it in `pending_cleanup_candidates`" in compact
+    assert "Never retry a handle" in compact
 
 
 def test_trace_preserving_skill_routine_uses_atomic_public_mcp_tools(tmp_path: Path) -> None:

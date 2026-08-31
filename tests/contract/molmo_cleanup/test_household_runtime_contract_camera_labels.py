@@ -7,6 +7,7 @@ from roboclaws.household.household_runtime_contract import (
     CAMERA_MODEL_POLICY_MODE,
     VISUAL_GROUNDING_CATEGORY_HINTS,
 )
+from roboclaws.household.realworld_done_readiness import _prioritized_next_actions
 from roboclaws.household.realworld_visual_candidates import (
     VISUAL_GROUNDING_CATEGORY_HINT_GROUPS,
     merge_visual_grounding_candidates,
@@ -259,6 +260,30 @@ def test_camera_grounded_requested_run_size_requires_four_cleanup_chains() -> No
     assert blocker["current"] == 0
     assert blocker["required"] == 4
     _assert_no_forbidden_keys(done)
+
+
+def test_camera_grounded_completion_actions_do_not_invite_stale_handle_retries() -> None:
+    heading = {
+        "type": "insufficient_camera_grounded_heading_coverage",
+        "required_tool": "navigate_to_waypoint",
+        "next_waypoint_id": "room_3_inspection",
+        "incomplete_waypoint_ids": ["room_3_inspection"],
+    }
+    chain = {
+        "type": "insufficient_grounded_cleanup_chains",
+        "required_tool": "navigate_to_object",
+        "current": 3,
+        "required": 4,
+    }
+
+    assert _prioritized_next_actions([heading, chain]) == [
+        {
+            "required_tool": "navigate_to_waypoint",
+            "next_waypoint_id": "room_3_inspection",
+            "incomplete_waypoint_ids": ["room_3_inspection"],
+        }
+    ]
+    assert _prioritized_next_actions([chain]) == []
 
 
 def test_camera_grounded_heading_recovery_stops_after_chain_gate_is_met(monkeypatch) -> None:

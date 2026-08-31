@@ -275,20 +275,7 @@ def completion_snapshot(
         semantic_cleanup_evidence=server.done_readiness_evidence(),
     )
     blockers = [dict(item) for item in readiness.get("blockers") or []]
-    next_actions = [
-        {
-            key: blocker[key]
-            for key in (
-                "required_tool",
-                "next_waypoint_id",
-                "pending_observed_handles",
-                "pending_cleanup_candidates",
-                "incomplete_waypoint_ids",
-            )
-            if key in blocker
-        }
-        for blocker in blockers
-    ]
+    next_actions = _prioritized_next_actions(blockers)
     task_intent = str(readiness.get("task_intent") or "cleanup")
     if not blockers and not household_intent_is_open_ended(task_intent):
         next_actions = [{"required_tool": "done"}]
@@ -304,6 +291,57 @@ def completion_snapshot(
     }
     snapshot["digest"] = completion_snapshot_digest(snapshot)
     return snapshot
+
+
+def _prioritized_next_actions(blockers: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """Publish only the first executable public recovery action.
+
+    A grounded-chain shortfall describes the completion gate but does not name
+    an object to manipulate. The pending-candidate blocker owns that concrete
+    action. Publishing both it and a heading/sweep action invites agents to
+    guess stale handles instead of following the bounded discovery path.
+    """
+
+    priority = (
+        "pending_cleanup_candidates",
+        "insufficient_sweep_coverage",
+        "insufficient_camera_grounded_heading_coverage",
+        "insufficient_raw_fpv_heading_coverage",
+        "insufficient_raw_fpv_overlap_probe_coverage",
+    )
+    selected = next(
+        (
+            blocker
+            for blocker_type in priority
+            for blocker in blockers
+            if blocker.get("type") == blocker_type
+        ),
+        None,
+    )
+    if selected is None:
+        selected = next(
+            (
+                blocker
+                for blocker in blockers
+                if blocker.get("type") != "insufficient_grounded_cleanup_chains"
+            ),
+            None,
+        )
+    if selected is None:
+        return []
+    return [
+        {
+            key: selected[key]
+            for key in (
+                "required_tool",
+                "next_waypoint_id",
+                "pending_observed_handles",
+                "pending_cleanup_candidates",
+                "incomplete_waypoint_ids",
+            )
+            if key in selected
+        }
+    ]
 
 
 def attach_completion_snapshot(

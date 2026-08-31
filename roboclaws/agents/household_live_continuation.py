@@ -481,11 +481,16 @@ def _compact_continuation_profile_guidance(profile: dict[str, Any]) -> str:
         "do not call declare_visual_candidates again for a source_observation_id "
         "already handled by observe_camera_grounded_candidates unless a public tool "
         "explicitly asks for it. If latest_done_blockers contains "
-        "insufficient_camera_grounded_heading_coverage, navigate to its next_waypoint_id, "
-        "call the composite tool at the canonical pose, then perform three consecutive "
-        "navigate_to_relative_pose(yaw_delta_deg=90) plus composite observations before "
-        "leaving that waypoint. Keep the bounded heading recovery ahead of calling done, but "
-        "do not perform it speculatively at every waypoint."
+        "insufficient_camera_grounded_heading_coverage and no "
+        "pending_cleanup_candidates blocker exists, ignore all previously seen object handles. "
+        "Navigate to that blocker's next_waypoint_id, call the composite tool at the canonical "
+        "pose, then perform three consecutive navigate_to_relative_pose(yaw_delta_deg=90) plus "
+        "composite observations before leaving that waypoint. Do not call navigate_to_object, "
+        "pick, navigate_to_receptacle, or place for an old handle during this recovery; act only "
+        "when the latest completion snapshot returns that handle in pending_cleanup_candidates. "
+        "Never retry a handle after a public tool says it is not cleanup-recommended or says not "
+        "to retry it. Keep bounded heading recovery ahead of calling done, but do not perform it "
+        "speculatively at every waypoint."
     )
 
 
