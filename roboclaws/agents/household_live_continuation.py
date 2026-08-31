@@ -484,7 +484,8 @@ def _compact_continuation_profile_guidance(profile: dict[str, Any]) -> str:
         "insufficient_camera_grounded_heading_coverage, navigate to its next_waypoint_id, "
         "call the composite tool at the canonical pose, then perform three consecutive "
         "navigate_to_relative_pose(yaw_delta_deg=90) plus composite observations before "
-        "leaving that waypoint. Keep the bounded heading sweep ahead of calling done."
+        "leaving that waypoint. Keep the bounded heading recovery ahead of calling done, but "
+        "do not perform it speculatively at every waypoint."
     )
 
 

@@ -205,7 +205,7 @@ def test_camera_grounded_live_command_uses_composite_prompt_by_default(
 
     prompt = command[command.index("--kickoff-prompt") + 1]
     assert "observe_camera_grounded_candidates" in prompt
-    assert "three bounded 90-degree body turns" in prompt
+    assert "call the composite tool once at the canonical pose" in prompt
 
 
 def test_camera_grounded_live_command_honors_explicit_composite_disable(

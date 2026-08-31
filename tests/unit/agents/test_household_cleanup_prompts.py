@@ -158,5 +158,6 @@ def test_cleanup_camera_grounded_composite_prompt_requires_bounded_heading_sweep
     )
 
     assert "At every public inspection waypoint" in prompt
-    assert "three bounded 90-degree body turns" in prompt
-    assert "calling the composite tool after each turn" in prompt
+    assert "call the composite tool once at the canonical pose" in prompt
+    assert "insufficient_camera_grounded_heading_coverage" in prompt
+    assert "do not perform it speculatively" not in prompt
