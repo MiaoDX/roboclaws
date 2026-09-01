@@ -93,6 +93,7 @@ def test_named_chat_profiles_have_catalog_models() -> None:
 def test_mimo_tp_chat_readiness_uses_public_endpoint_credentials() -> None:
     route = provider_route_spec("mimo-tp-openai-chat")
     assert route.required_env_keys == ("MIMO_OPENAI_BASE_URL", "MIMO_TP_KEY")
+    assert route.compatible_model_ids == ("mimo-v2.5", "mimo-v2.5-pro")
     readiness = provider_readiness(
         agent_engine="openai-agents-sdk",
         provider_profile=route.route_id,
@@ -104,6 +105,24 @@ def test_mimo_tp_chat_readiness_uses_public_endpoint_credentials() -> None:
     assert readiness["ok"] is True
     assert readiness["model"] == "mimo-v2.5"
     assert readiness["wire_api"] == "chat-completions"
+
+
+def test_mimo_tp_chat_accepts_explicit_pro_model() -> None:
+    settings = openai_agents_runtime_settings(
+        provider_profile="mimo-tp-openai-chat",
+        request_provider_profile=None,
+        model="mimo-v2.5-pro",
+        request_model="mimo-v2.5-pro",
+        base_url=None,
+        api_key=None,
+        env={
+            "MIMO_OPENAI_BASE_URL": "https://mimo.example/v1",
+            "MIMO_TP_KEY": "secret",
+        },
+    )
+
+    assert settings["model"] == "mimo-v2.5-pro"
+    assert settings["request_model"] == "mimo-v2.5-pro"
 
 
 @pytest.mark.parametrize(

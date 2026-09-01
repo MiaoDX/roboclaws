@@ -167,6 +167,13 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         cost_per_m={"input": 0.0, "output": 0.0},
     ),
     ModelSpec(
+        "mimo-v2.5-pro",
+        ("mimo-v2.5-pro",),
+        "mimo",
+        _caps(MODEL_CAP_TEXT),
+        cost_per_m={"input": 0.0, "output": 0.0},
+    ),
+    ModelSpec(
         "MiniMax-M3",
         ("minimax", "minimax-m3", "MiniMax-M3"),
         "minimax",
@@ -193,7 +200,7 @@ _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
         wire_source=WIRE_SOURCE_NATIVE,
         default_use=False,
         default_use_note="Public-network MiMo route for trusted hosted CI.",
-        compatible_model_ids=("mimo-v2.5",),
+        compatible_model_ids=("mimo-v2.5", "mimo-v2.5-pro"),
         per_engine_status={"openai-agents-sdk": ROUTE_HEALTHY},
         route_capabilities={
             "image_transport": ROUTE_CAP_UNSUPPORTED,
