@@ -6,9 +6,24 @@ import json
 from pathlib import Path
 from typing import Any
 
+from roboclaws.agents.drivers.openai_agents_context_assembler import ContextBudgetPolicy
 from roboclaws.agents.live_status import LiveAgentFailure
 from roboclaws.core.json_sources import read_jsonl_objects
 from roboclaws.core.raw_fpv_recovery import raw_fpv_recovery_exhaustion
+
+
+def context_budget_policy(
+    profile: dict[str, Any], *, evidence_lane: str = ""
+) -> ContextBudgetPolicy | None:
+    hard = _int_or_none(profile.get("context_hard_limit_tokens"))
+    if hard is None:
+        return None
+    return ContextBudgetPolicy(
+        hard_limit_tokens=hard,
+        soft_limit_tokens=_int_or_none(profile.get("context_soft_limit_tokens")),
+        expected_output_tokens=_int_or_none(profile.get("expected_output_tokens")) or 1024,
+        safety_reserve_tokens=_int_or_none(profile.get("context_safety_reserve_tokens")) or 256,
+    )
 
 
 class OpenAIAgentsBudgetExceededError(RuntimeError):

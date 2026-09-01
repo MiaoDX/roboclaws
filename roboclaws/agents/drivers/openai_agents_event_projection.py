@@ -4,7 +4,17 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any
+from pathlib import Path
+from typing import Any, Callable
+
+from roboclaws.agents.task_state import (
+    Checkpoint,
+    EvidenceRef,
+    Observation,
+    TaskSnapshot,
+    atomic_write_checkpoint,
+    digest_payload,
+)
 
 
 def _drop_empty(payload: dict[str, Any]) -> dict[str, Any]:
@@ -40,6 +50,91 @@ def _to_jsonable(value: Any) -> Any:
     if hasattr(value, "__dict__"):
         return _to_jsonable(vars(value))
     return str(value)
+
+
+_PUBLIC_KEYS = {
+    "pose": ("pose", "robot_pose", "position"),
+    "waypoint": ("waypoint", "current_waypoint"),
+    "safety": ("safety", "safety_status"),
+    "completion": ("completion", "done", "completed"),
+}
+
+
+def project_tool_event(snapshot: TaskSnapshot, event: Any) -> TaskSnapshot:
+    """Apply one successful normalized public tool event to a new snapshot."""
+    if not isinstance(event, dict) or event.get("success") is False or event.get("error"):
+        return snapshot
+    name = str(event.get("tool") or event.get("tool_name") or event.get("event") or "").lower()
+    payload = event.get("result", event.get("output", event.get("data", event)))
+    if not isinstance(payload, dict):
+        payload = {"value": payload}
+    updated = TaskSnapshot.from_dict(snapshot.to_dict())
+    changed = _project_fields(updated, payload)
+    provenance = str(event.get("event_id") or event.get("call_id") or name or "mcp")[:256]
+    observed_at = str(event.get("observed_at") or event.get("ts") or "")[:128]
+    if any(term in name for term in ("observe", "look", "inspect")):
+        for key, value in (
+            payload.get("objects", {}).items() if isinstance(payload.get("objects"), dict) else ()
+        ):
+            object_key = str(key)[:256]
+            previous = updated.objects.get(object_key)
+            if previous is not None and observed_at and previous.observed_at > observed_at:
+                continue
+            updated.objects[str(key)] = Observation(
+                value if isinstance(value, (str, int, float, bool)) else None,
+                observed_at,
+                provenance,
+                bool(event.get("stale", False)),
+            )
+            changed = True
+    if any(term in name for term in ("pick", "place", "move", "navigate", "grasp")):
+        updated.action_outcomes = [
+            *updated.action_outcomes[-31:],
+            {"action": name, "ok": True, "provenance": provenance},
+        ]
+        changed = True
+    ref = payload.get("evidence_ref") or payload.get("artifact_ref")
+    if isinstance(ref, str) and 0 < len(ref) <= 1024:
+        updated.evidence.append(EvidenceRef(ref, digest_payload(payload)))
+        updated.evidence = updated.evidence[-32:]
+        changed = True
+    if not changed:
+        return snapshot
+    updated.revision = snapshot.revision + 1
+    return updated
+
+
+def _project_fields(snapshot: TaskSnapshot, payload: dict[str, Any]) -> bool:
+    changed = False
+    for field, keys in _PUBLIC_KEYS.items():
+        value = next((payload[key] for key in keys if key in payload), None)
+        if value is not None and _json_size_bytes(value) <= 4096:
+            setattr(snapshot, field, _to_jsonable(value))
+            changed = True
+    return changed
+
+
+def persist_projected_tool_event(
+    path: str | Path, snapshot: TaskSnapshot, event: Any
+) -> TaskSnapshot:
+    updated = project_tool_event(snapshot, event)
+    if updated.revision != snapshot.revision:
+        atomic_write_checkpoint(path, Checkpoint(updated))
+    return updated
+
+
+def checkpointing_tool_result_callback(
+    path: str | Path, snapshot: TaskSnapshot
+) -> Callable[[Any], TaskSnapshot]:
+    """Return a callback that persists one monotonic snapshot per accepted event."""
+    current = snapshot
+
+    def _project(event: Any) -> TaskSnapshot:
+        nonlocal current
+        current = persist_projected_tool_event(path, current, event)
+        return current
+
+    return _project
 
 
 def _summarize_sdk_result(result: Any) -> dict[str, Any]:
