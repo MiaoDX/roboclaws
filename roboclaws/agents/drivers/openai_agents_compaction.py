@@ -10,8 +10,13 @@ from typing import Any
 
 from roboclaws.agents.drivers.openai_agents_budget import (
     OpenAIAgentsBudgetExceededError,
+    context_budget_policy,
     openai_agents_budget_failure,
     openai_agents_observe_budget_advisory,
+)
+from roboclaws.agents.drivers.openai_agents_context_assembler import (
+    assemble_context,
+    load_checkpoint,
 )
 from roboclaws.agents.drivers.openai_agents_event_log import (
     _append_model_input_budget_advisory_event,
@@ -42,6 +47,7 @@ from roboclaws.agents.drivers.openai_agents_image_memory import (
 from roboclaws.agents.drivers.openai_agents_input_config import (
     DEFAULT_MODEL_INPUT_COMPACTION_MIN_CHARS,
 )
+from roboclaws.agents.live_status import LiveAgentFailure
 
 MAX_RETAINED_METRIC_MAP_CHARS = 128_000
 
@@ -61,6 +67,38 @@ def _model_input_compaction_filter(
         instructions = getattr(model_data, "instructions", None)
         if not isinstance(original_items, list):
             return model_data
+        assembled_items = original_items
+        checkpoint_path = run_dir / "checkpoint.json"
+        policy = context_budget_policy(
+            budget_profile or {},
+            evidence_lane=str((budget_timing or {}).get("evidence_lane") or ""),
+        )
+        if policy is not None and checkpoint_path.exists():
+            assembled = assemble_context(
+                load_checkpoint(checkpoint_path),
+                fixed_instructions=instructions,
+                recent_raw=original_items,
+                policy=policy,
+            )
+            if not assembled.admitted:
+                raise OpenAIAgentsBudgetExceededError(
+                    LiveAgentFailure(
+                        "provider_context_budget_exceeded",
+                        retryable=False,
+                        resume_available=False,
+                        detail=json.dumps(
+                            {
+                                "schema": "agent_sdk_context_budget_terminal_v1",
+                                "estimated_input_tokens": assembled.estimated_input_tokens,
+                                "expected_output_tokens": assembled.expected_output_tokens,
+                                "safety_reserve_tokens": assembled.safety_reserve_tokens,
+                                "context_hard_limit_tokens": assembled.hard_limit_tokens,
+                            },
+                            sort_keys=True,
+                        ),
+                    )
+                )
+            assembled_items = assembled.items
         _raise_budget_failure_before_model_call(
             run_dir,
             events_path=events_path,
@@ -81,11 +119,11 @@ def _model_input_compaction_filter(
                 return model_data
             return _model_input_data_like(
                 model_data,
-                input_items=original_items,
+                input_items=assembled_items,
                 instructions=instructions,
             )
         filtered_items, metrics = _compact_model_input_items(
-            original_items,
+            assembled_items,
             min_chars=int(config.get("min_chars") or DEFAULT_MODEL_INPUT_COMPACTION_MIN_CHARS),
             public_tool_output_summary="public_tool_result_summary_v1"
             in str(config.get("mode") or ""),

@@ -10,8 +10,12 @@ from roboclaws.agents.household_live_continuation import (
     _compact_continuation_profile_guidance,
     _compact_continuation_prompt,
     _compact_continuation_state,
+    classify_checkpoint_resumability,
+    continuation_projection,
+    continuation_repair_guidance,
 )
 from roboclaws.agents.live_runtime import LiveAgentResult
+from roboclaws.agents.task_state import Checkpoint, TaskSnapshot, atomic_write_checkpoint
 from roboclaws.household.realworld_done_readiness import (
     COMPLETION_SNAPSHOT_SCHEMA,
     completion_snapshot_digest,
@@ -128,6 +132,59 @@ def test_every_sdk_continuation_uses_snapshot_state(tmp_path: Path) -> None:
     assert "ORIGINAL FULL PROMPT" not in prompt
 
 
+@pytest.mark.parametrize(
+    ("setup", "expected"),
+    [
+        ("missing", "checkpoint_missing"),
+        ("invalid", "checkpoint_invalid"),
+        ("terminal", "terminal_completion_present"),
+    ],
+)
+def test_context_overflow_classification_fails_closed(
+    tmp_path: Path, setup: str, expected: str
+) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    result = LiveAgentResult(
+        phase="agent-turn-complete", exit_status=0, reason="provider_context_budget_exceeded"
+    )
+    if setup == "invalid":
+        (run_dir / "checkpoint.json").write_text("{}", encoding="utf-8")
+    elif setup == "terminal":
+        (run_dir / "run_result.json").write_text("{}", encoding="utf-8")
+    decision = classify_checkpoint_resumability(
+        run_dir, result=result, attempt_index=0, max_attempts=1
+    )
+    assert decision == type(decision)(False, expected)
+
+
+def test_context_overflow_with_checkpoint_is_resumable(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    atomic_write_checkpoint(
+        run_dir / "checkpoint.json", Checkpoint(TaskSnapshot("task", "cleanup"))
+    )
+    (run_dir / "trace.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "response",
+                "tool": "observe",
+                "response": {"ok": True, "completion": _snapshot()},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    result = LiveAgentResult(
+        phase="agent-turn-complete", exit_status=0, reason="provider_context_budget_exceeded"
+    )
+    decision = classify_checkpoint_resumability(
+        run_dir, result=result, attempt_index=0, max_attempts=1
+    )
+    assert decision.resumable
+    assert decision.reason_code == "context_budget_overflow_resumable"
+
+
 def test_camera_grounded_continuation_preserves_composite_heading_recovery() -> None:
     guidance = _compact_continuation_profile_guidance(
         {
@@ -145,3 +202,34 @@ def test_camera_grounded_continuation_preserves_composite_heading_recovery() -> 
     assert "ignore all previously seen object handles" in guidance
     assert "latest completion snapshot returns that handle" in guidance
     assert "Never retry a handle" in guidance
+
+
+@pytest.mark.parametrize(
+    ("attempts", "status"),
+    [
+        ([{"run_result_present": True}], "terminal"),
+        (
+            [
+                {
+                    "continuation_resumability": "context_budget_overflow_resumable",
+                    "recovery_action": "continue",
+                }
+            ],
+            "recoverable",
+        ),
+        ([{"continuation_resumability": "continuation_exhausted"}], "exhausted"),
+        ([{"continuation_resumability": "checkpoint_invalid"}], "invalid_checkpoint"),
+        ([{"continuation_resumability": "non_context_provider_failure"}], "unrecoverable"),
+    ],
+)
+def test_continuation_projection_distinguishes_terminal_and_failure_states(
+    attempts, status
+) -> None:
+    projection = continuation_projection(attempts)
+    assert projection["status"] == status
+    assert "prompt" not in json.dumps(projection)
+    assert "payload" not in json.dumps(projection)
+
+
+def test_invalid_checkpoint_has_actionable_repair_guidance() -> None:
+    assert "checkpoint.json" in continuation_repair_guidance("checkpoint_invalid")

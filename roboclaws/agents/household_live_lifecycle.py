@@ -66,6 +66,10 @@ from roboclaws.agents.household_live_continuation import (
     _profiled_kickoff_prompt,
     _sdk_attempt_summary,
     _task_aware_continuation_suffix,
+    classify_checkpoint_resumability,
+    continuation_projection,
+    continuation_repair_guidance,
+    raise_for_unrecoverable_continuation,
 )
 from roboclaws.agents.household_live_errors import CheckerValidationError, LiveAgentRunFailure
 from roboclaws.agents.household_live_handoff import HouseholdLiveHandoffMixin
@@ -89,6 +93,7 @@ from roboclaws.agents.live_timing import (
     runner_timing_breakdown as _runner_timing_breakdown,
 )
 from roboclaws.agents.skill_delivery import SKILL_DELIVERY_ENV, validate_skill_delivery_cell
+from roboclaws.agents.task_state import Checkpoint, TaskSnapshot, atomic_write_checkpoint
 from roboclaws.core.evaluation import checker_flags_for_household_intent
 from roboclaws.core.live_performance import (
     extract_model_call_metrics,
@@ -124,6 +129,11 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
         self.server_log_file: BinaryIO | None = None
         self.server_log_thread: threading.Thread | None = None
         self.run_lease = HouseholdLiveRunLease()
+        self.checkpoint_path = self.run_dir / "checkpoint.json"
+        self.task_snapshot = TaskSnapshot(
+            task=self.skill_name,
+            intent=str(getattr(args, "intent", "") or _household_intent(args)),
+        )
         self.status_writer = LiveRunStatusWriter(
             run_dir=self.run_dir,
             status_path=self.status_path,
@@ -381,6 +391,8 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
             context_budget_recovery = _is_context_budget_result(result)
             turn_budget_recovery = _is_turn_budget_result(result)
             budget_recovery = context_budget_recovery or turn_budget_recovery
+            if context_budget_recovery:
+                self._persist_checkpoint()
             if result.exit_status not in {0, None} and not budget_recovery:
                 break
             if (self.run_dir / "run_result.json").is_file():
@@ -400,7 +412,18 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
                 profile=self.agent_sdk_perf_profile,
                 context_metrics=_context_metrics(self.run_dir, self.live_timing),
             )
+            decision = classify_checkpoint_resumability(
+                self.run_dir,
+                result=result,
+                attempt_index=attempt_index,
+                max_attempts=recovery_policy.max_attempts,
+            )
+            attempt_summary["continuation_resumability"] = decision.reason_code
+            attempt_summary["continuation_repair_guidance"] = continuation_repair_guidance(
+                decision.reason_code
+            )
             if continuation_prompt is None:
+                raise_for_unrecoverable_continuation(decision)
                 break
             attempt_summary["recovery_action"] = "continue"
             attempt_summary["recovery_reason"] = _continuation_recovery_reason(
@@ -428,6 +451,7 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
             "trace_id": result.trace_id,
             "provider_session_id": result.provider_session_id,
         }
+        self.live_timing["continuation_projection"] = continuation_projection(attempts)
         self._raise_sdk_result_failure(result)
         if self.operator_handoff_active:
             return
@@ -436,6 +460,10 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
                 "OpenAI Agents SDK turn ended without done after "
                 f"{len(attempts)} OpenAI Agents SDK invocation(s)"
             )
+
+    def _persist_checkpoint(self) -> None:
+        """Persist the latest privacy-bounded snapshot before interruption diagnostics."""
+        atomic_write_checkpoint(self.checkpoint_path, Checkpoint(self.task_snapshot))
 
     def _check_result(self) -> None:
         self._write_status("checking-result")

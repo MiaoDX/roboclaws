@@ -29,6 +29,7 @@ from roboclaws.agents.prompts.household_cleanup import (
     render_kickoff_prompt,
     render_map_build_prompt,
 )
+from roboclaws.agents.task_state import Checkpoint, SnapshotError
 from roboclaws.core.completion_snapshot import (
     COMPLETION_SNAPSHOT_SCHEMA,
     completion_snapshot_digest,
@@ -105,11 +106,10 @@ class IncompleteTurnRecoveryPolicy:
         profile: dict[str, Any] | None = None,
         context_metrics: dict[str, Any] | None = None,
     ) -> str | None:
-        if self.max_attempts <= 0:
-            return None
-        if attempt_index >= self.max_attempts:
-            return None
-        if (run_dir / "run_result.json").is_file():
+        decision = classify_checkpoint_resumability(
+            run_dir, result=result, attempt_index=attempt_index, max_attempts=self.max_attempts
+        )
+        if not decision.resumable:
             return None
         context_budget_recovery = _is_context_budget_result(result)
         turn_budget_recovery = _is_turn_budget_result(result)
@@ -125,6 +125,93 @@ class IncompleteTurnRecoveryPolicy:
             profile=profile,
             context_metrics=context_metrics,
         )
+
+
+@dataclass(frozen=True)
+class ContinuationDecision:
+    resumable: bool
+    reason_code: str
+
+
+def continuation_projection(attempts: list[dict[str, Any]]) -> dict[str, Any]:
+    """Return aggregate, privacy-bounded continuation evidence."""
+    decisions = [str(item.get("continuation_resumability") or "") for item in attempts]
+    terminal = any(item.get("run_result_present") for item in attempts)
+    resumed = any(item.get("recovery_action") == "continue" for item in attempts)
+    if terminal:
+        status = "terminal"
+    elif resumed:
+        status = "recoverable"
+    elif decisions and decisions[-1] == "continuation_exhausted":
+        status = "exhausted"
+    elif decisions and decisions[-1] in {
+        "checkpoint_missing",
+        "checkpoint_invalid",
+        "completion_state_invalid",
+    }:
+        status = "invalid_checkpoint"
+    elif decisions:
+        status = "unrecoverable"
+    else:
+        status = "not_started"
+    return {
+        "schema": "household_continuation_projection_v1",
+        "status": status,
+        "attempt_count": len(attempts),
+        "resumed": resumed,
+        "terminal_completion": terminal,
+        "reason_codes": decisions,
+    }
+
+
+def continuation_repair_guidance(reason_code: str) -> str:
+    guidance = {
+        "checkpoint_missing": "Checkpoint is missing; rerun from a fresh managed run.",
+        "checkpoint_invalid": (
+            "Checkpoint is invalid; repair or remove checkpoint.json before retrying."
+        ),
+        "completion_state_invalid": (
+            "Completion state is invalid; inspect trace.jsonl and rerun without resuming."
+        ),
+    }
+    return guidance.get(reason_code, "No continuation is permitted for this terminal outcome.")
+
+
+def raise_for_unrecoverable_continuation(decision: ContinuationDecision) -> None:
+    if decision.reason_code == "completion_state_invalid":
+        raise RuntimeError("terminal-incomplete: missing completion continuation state")
+
+
+def classify_checkpoint_resumability(
+    run_dir: Path, *, result: Any, attempt_index: int, max_attempts: int
+) -> ContinuationDecision:
+    """Classify whether an interrupted SDK result may resume from a checkpoint."""
+    if max_attempts <= 0 or attempt_index >= max_attempts:
+        return ContinuationDecision(False, "continuation_exhausted")
+    if (run_dir / "run_result.json").is_file():
+        return ContinuationDecision(False, "terminal_completion_present")
+    reason = str(getattr(result, "reason", "") or "")
+    context = reason == "provider_context_budget_exceeded"
+    turn = reason == "agent_sdk_turn_budget_exceeded"
+    if getattr(result, "exit_status", None) not in {0, None} and not (context or turn):
+        return ContinuationDecision(False, "non_context_provider_failure")
+    if getattr(result, "phase", "") != "agent-turn-complete" and not (context or turn):
+        return ContinuationDecision(False, "non_context_provider_failure")
+    if context:
+        checkpoint = run_dir / "checkpoint.json"
+        if not checkpoint.is_file():
+            return ContinuationDecision(False, "checkpoint_missing")
+        try:
+            Checkpoint.from_json(checkpoint.read_text(encoding="utf-8"))
+        except (OSError, SnapshotError):
+            return ContinuationDecision(False, "checkpoint_invalid")
+    try:
+        _latest_canonical_completion_snapshot(run_dir)
+    except RuntimeError:
+        return ContinuationDecision(False, "completion_state_invalid")
+    if context:
+        return ContinuationDecision(True, "context_budget_overflow_resumable")
+    return ContinuationDecision(True, "turn_budget_resumable")
 
 
 def _is_context_budget_result(result: Any) -> bool:
