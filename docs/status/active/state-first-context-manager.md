@@ -10,6 +10,11 @@
   and checkpoint continuation semantics are implemented and verified.
 - Phase 4 local proof complete: real Grounding DINO MapBuild and automated
   desktop/mobile operator-console QA pass.
+- Latest DINO input recheck passes on both direct and SDK routes. The SDK run
+  used `openai-agents-sdk` with `kimi-openai-chat`, made 22 successful model
+  calls, and fed 7 camera-grounded histories through `model_input_filter`; the
+  run's `completion_status=failed` is the no-target MapBuild checker result,
+  not a DINO/provider/input failure.
 - Phase 4 focused eval remains partial because of two pre-existing out-of-scope
   failures: a missing historical fixture and one direct-runner behavior row.
 
@@ -21,6 +26,7 @@
   historical eval-evolution fixture named below.
 - DINO and browser proof: `.planning/phases/04-route-proof-and-rollout/04-LIVE-PROOF.md`.
 - Eval packet: `output/eval-harness/20260902T053524Z/`.
+- Latest input recheck: `output/state-first-context-manager/dino-sdk-input-recheck/0902_1641/seed-11/`.
 
 ## Next Action
 No state-first implementation repair is indicated. Separately prioritize or
