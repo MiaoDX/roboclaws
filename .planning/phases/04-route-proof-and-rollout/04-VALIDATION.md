@@ -25,15 +25,15 @@ contract, or durable baseline publication is authorized by this ledger.
 |---|---|---|
 | Ruff | PASS | `ruff check .` |
 | Format | PASS | `ruff format --check .` (`1007 files already formatted`) |
-| Route/context deterministic selection | FAIL | Two continuation-contract failures named in `04-01-SUMMARY.md` |
+| Route/context deterministic selection | PASS | Continuation regressions fixed in `b3199b6d`; broad selector passed on rerun |
 | Privacy/digest/artifact selection | PASS | Focused standalone pytest exited 0 |
 | Camera/DINO/operator/Agibot selection | PASS | Focused standalone pytest exited 0 |
 | Operator-console manual flow | NOT RUN | Blocking human inspection remains unproven |
 | Focused eval recommendation | PASS | `output/eval-harness/20260902T045438Z/`; JSON digest `3bb18c5706d6c3f98ef0839761932cf31deec13be60074cc55b3fedd59899678` |
-| Focused eval execution | FAIL | Stalled ten minutes in local row executor; stopped once, no retry |
+| Focused eval execution | PARTIAL | Frozen-manifest bounded shards completed normally. Contract rows passed except `eval-unit-tests`, blocked by missing historical fixture `output/eval-evolution/20260805-skill-smoke-v4-input.json`. Smoke, MapBuild, and cleanup suites passed; open-ended goals retained one existing direct-runner `private_goal_not_satisfied` failure. |
 | Network readiness | PASS | Repo-local provider routes allowed |
 | Camera-grounded live proof | BLOCKED_NEEDS_LOCAL_VALIDATION | `04-LIVE-BLOCKER.md`; Grounding DINO loopback connection refused |
 
-`REQ-route-proof-and-rollout` is not satisfied. Explicit managed-versus-baseline
-results, the operator-console checkpoint, and the required available live proof
-were not completed. No durable baseline was published.
+`REQ-route-proof-and-rollout` is not satisfied. Provider/live managed-versus-baseline
+results, the operator-console checkpoint, and the DINO live proof were not completed.
+No durable baseline was published.
