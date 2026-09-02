@@ -22,7 +22,7 @@ from roboclaws.agents.live_runtime import (
     live_agent_result_from_artifacts,
 )
 from roboclaws.agents.live_status import LiveAgentFailure
-from roboclaws.agents.task_state import Checkpoint, TaskSnapshot
+from roboclaws.agents.task_state import Checkpoint, TaskSnapshot, atomic_write_checkpoint
 from roboclaws.household.realworld_done_readiness import (
     COMPLETION_SNAPSHOT_SCHEMA,
     completion_snapshot_digest,
@@ -366,6 +366,10 @@ def test_agent_sdk_skill_context_records_digest_of_truncated_delivery(tmp_path: 
 def test_context_budget_result_recovers_with_compact_continuation(tmp_path: Path) -> None:
     run_dir = tmp_path / "run"
     run_dir.mkdir()
+    atomic_write_checkpoint(
+        run_dir / "checkpoint.json",
+        Checkpoint(TaskSnapshot(task="household-world", intent="cleanup", revision=1)),
+    )
     snapshot = {
         "schema": COMPLETION_SNAPSHOT_SCHEMA,
         "source_tool": "observe",

@@ -177,6 +177,11 @@ def continuation_repair_guidance(reason_code: str) -> str:
     return guidance.get(reason_code, "No continuation is permitted for this terminal outcome.")
 
 
+def raise_for_unrecoverable_continuation(decision: ContinuationDecision) -> None:
+    if decision.reason_code == "completion_state_invalid":
+        raise RuntimeError("terminal-incomplete: missing completion continuation state")
+
+
 def classify_checkpoint_resumability(
     run_dir: Path, *, result: Any, attempt_index: int, max_attempts: int
 ) -> ContinuationDecision:

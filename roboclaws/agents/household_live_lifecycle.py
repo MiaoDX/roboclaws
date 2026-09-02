@@ -69,6 +69,7 @@ from roboclaws.agents.household_live_continuation import (
     classify_checkpoint_resumability,
     continuation_projection,
     continuation_repair_guidance,
+    raise_for_unrecoverable_continuation,
 )
 from roboclaws.agents.household_live_errors import CheckerValidationError, LiveAgentRunFailure
 from roboclaws.agents.household_live_handoff import HouseholdLiveHandoffMixin
@@ -422,6 +423,7 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
                 decision.reason_code
             )
             if continuation_prompt is None:
+                raise_for_unrecoverable_continuation(decision)
                 break
             attempt_summary["recovery_action"] = "continue"
             attempt_summary["recovery_reason"] = _continuation_recovery_reason(
