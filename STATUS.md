@@ -13,9 +13,13 @@ leave a link.
 The State-First Context Manager implementation is complete for typed
 snapshots/checkpoints, pre-call bounded reconstruction, and checkpointed
 continuation. Real Grounding DINO MapBuild proof and automated desktop/mobile
-operator-console QA now pass; the earlier DINO blocker was only an unstarted
-loopback sidecar. Milestone `v1.99` remains at Phase 4 partial because the
-canonical focused eval packet is not all-passing. See
+operator-console QA now pass; fresh SDK rechecks with MiniMax, Kimi, and MiMo
+all completed DINO-as-input successfully. The earlier DINO blocker was only an
+unstarted loopback sidecar. MiMo reached 96,350 provider-reported input tokens
+against the configured 96,000-token hard limit on an accepted final call, so it
+has a residual accounting/headroom caveat but no reproduced context overflow.
+Milestone `v1.99` remains at Phase 4 partial because the canonical focused eval
+packet is not all-passing. See
 `docs/status/active/state-first-context-manager.md` and
 `.planning/phases/04-route-proof-and-rollout/04-LIVE-PROOF.md`.
 
