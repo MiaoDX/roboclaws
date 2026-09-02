@@ -1,0 +1,30 @@
+{
+  "source_path": "/home/mi/ws/gogo/roboclaws/docs/plans/2026-09-01-state-first-context-manager.md",
+  "type": "PRD",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "State-First Context Manager",
+  "summary": "Defines a state-first context manager that bounds model context, preserves artifacts, and supports resumable checkpointed household runs.",
+  "scope": [
+    "state snapshot",
+    "checkpoint schema",
+    "context assembler",
+    "budget estimator",
+    "MCP/tool events",
+    "run artifacts",
+    "household lifecycle",
+    "OpenAI Agents SDK",
+    "camera-grounded/DINO inputs",
+    "operator console",
+    "Agibot resolver metadata"
+  ],
+  "cross_refs": [
+    ".planning/research/context-management/report.md",
+    "docs/plans/2026-07-02-openai-agents-context-management-optimization.md",
+    "docs/adr/0126-bridge-camera-evidence-to-cleanup-handles-with-model-declared-observations.md",
+    "docs/adr/0132-keep-cleanup-memory-skill-first-and-remove-promoted-composite.md"
+  ],
+  "locked": false,
+  "precedence": 2,
+  "notes": ""
+}
