@@ -1,13 +1,13 @@
 # Plan 04-01 Summary
 
-Status: PARTIAL
+Status: COMPLETE
 
-The privacy, digest, artifact, trace, and report focused suite passed. Ruff and
-format checks also passed. The broader route/context selection completed with
-two failures in existing continuation semantics:
+The privacy, digest, artifact, trace, report, route, and context suites pass.
+Ruff and format checks also pass. The two continuation regressions found during
+the first run were fixed in `b3199b6d`:
 
 - `test_context_budget_result_recovers_with_compact_continuation`
 - `test_openai_agents_cleanup_runner_fails_after_bounded_continuation`
 
-No product code was changed. Because these failures prevent the deterministic
-gate from passing, this plan is not complete.
+The rerun passed, including bounded continuation and terminal-classification
+coverage.

@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-25
+Last updated: 2026-09-02
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -9,6 +9,15 @@ orientation, move it to plans, ADRs, retrospectives, or `docs/human/**` and
 leave a link.
 
 ## Current Focus
+
+The State-First Context Manager implementation is complete for typed
+snapshots/checkpoints, pre-call bounded reconstruction, and checkpointed
+continuation. Real Grounding DINO MapBuild proof and automated desktop/mobile
+operator-console QA now pass; the earlier DINO blocker was only an unstarted
+loopback sidecar. Milestone `v1.99` remains at Phase 4 partial because the
+canonical focused eval packet is not all-passing. See
+`docs/status/active/state-first-context-manager.md` and
+`.planning/phases/04-route-proof-and-rollout/04-LIVE-PROOF.md`.
 
 The Opik-only observability migration is complete. Opik 2.2.36 is the sole
 supported external backend for the `roboclaws-runtime` and `roboclaws-eval`
@@ -82,12 +91,22 @@ providers.
 
 ## Next Action
 
+Separately prioritize or waive the missing historical eval-evolution fixture
+and the existing unmanaged direct-runner behavior failure before closing
+State-First Phase 4. No additional state-first implementation repair is
+currently indicated.
+
 Use the Opik Dashboard for current external review and local JSON/Markdown for
 canonical decisions. The Eval Harness candidate and Skill-delivery baseline
 decisions remain unchanged.
 
 ## Current Blockers
 
+- State-First Phase 4's focused eval gate is partial: three full-suite tests
+  require the absent historical
+  `output/eval-evolution/20260805-skill-smoke-v4-input.json`, and one unmanaged
+  open-ended direct-runner row reports `private_goal_not_satisfied`. Grounding
+  DINO and operator-console validation are no longer blocked.
 - The `20260817T072338Z` eval candidate is not publishable because it contains
   one behavior failure and one blocked trial bundle.
 - Agibot and B1 injected dependency readiness passes with the existing local SDK, Map 12 bundle,

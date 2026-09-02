@@ -40,8 +40,8 @@ traces, reports, and DINO artifacts.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | REQ-state-and-checkpoint-schema | Phase 1 | Complete |
-| REQ-pre-call-context-assembler | Phase 2 | Pending |
-| REQ-resume-and-failure-semantics | Phase 3 | Pending |
+| REQ-pre-call-context-assembler | Phase 2 | Complete |
+| REQ-resume-and-failure-semantics | Phase 3 | Complete |
 | REQ-route-proof-and-rollout | Phase 4 | Pending |
 
 Coverage: 4/4 v1 requirements mapped exactly once.

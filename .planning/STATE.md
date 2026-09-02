@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.99
 milestone_name: State-First Context Manager
 status: active
-last_updated: "2026-09-02T03:43:37.324Z"
+last_updated: "2026-09-02T06:30:00Z"
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
-  percent: 25
+  completed_phases: 3
+  total_plans: 10
+  completed_plans: 9
+  percent: 75
 ---
 
 # GSD State
@@ -21,17 +21,17 @@ See `.planning/ROADMAP.md` for the active phase sequence and criteria.
 
 ## Current Position
 
-Phase 1 of 4 is ready for planning: State And Checkpoint Schema.
+Phase 4 of 4 is partial: Route Proof And Rollout.
 
-Progress: [██████████] 100%
+Progress: [████████░░] 75%
 
 ## Performance Metrics
 
 | Metric | Value |
 |--------|-------|
-| Phases complete | 0/4 |
-| Plans complete | 0/TBD |
-| Requirements complete | 0/4 |
+| Phases complete | 3/4 |
+| Plans complete | 9/10 |
+| Requirements complete | 3/4 |
 
 ## Accumulated Context
 
@@ -39,6 +39,11 @@ Progress: [██████████] 100%
 - Conflict report is clear: `.planning/INGEST-CONFLICTS.md`.
 - No ADR-locked decisions were included in this ingest.
 - Historical `v1.98` milestone and phase artifacts are preserved.
+- The earlier DINO blocker was a stopped loopback sidecar. Real-adapter
+  readiness and the camera-grounded MapBuild product proof now pass; see
+  `.planning/phases/04-route-proof-and-rollout/04-LIVE-PROOF.md`.
+- Automated desktop/mobile browser QA replaces the display-oriented operator
+  checkpoint without authorizing physical movement.
 
 ## Verification Gates
 
@@ -50,4 +55,7 @@ Progress: [██████████] 100%
 
 ## Session Continuity
 
-Next action: run `$gsd-plan-phase 1` against the active roadmap.
+Next action: decide separately whether to repair the missing historical eval
+fixture and the existing direct-runner behavior failure. Both are outside the
+state-first implementation scope, but the canonical focused eval gate cannot be
+called passing while they remain.

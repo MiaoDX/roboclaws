@@ -1,6 +1,6 @@
-**Status:** Proposed
+**Status:** Active
 **Created:** 2026-09-01
-**Last reviewed:** 2026-09-01
+**Last reviewed:** 2026-09-02
 **Current implementation contract:** Delta to the implemented 2026-07-02 context-management contract. This plan adds a Roboclaws-specific state-first context assembler and checkpoint/resume boundary; it does not reopen the already accepted profile/default migration.
 **Research source:** `.planning/research/context-management/report.md`
 **Related plan:** `docs/plans/2026-07-02-openai-agents-context-management-optimization.md`
@@ -15,6 +15,8 @@
 - **Delta boundary:** The July plan's profile, prompt, item compaction, and provider-native-compaction decisions remain shipped/current. This plan covers the missing canonical task snapshot, pre-call budget reconstruction, and resumable checkpoint semantics.
 - **No new ADR yet:** This is execution-shaped. Create an ADR only if the snapshot becomes a durable public/MCP contract, changes private-data boundaries, or provider-native compaction is accepted.
 - **Open decision gate:** None for this plan. Typed snapshot fields and adapter implementation are local defaults; public contract changes are an explicit stop gate.
+- **Implementation:** Phases 1-3 are complete. Phase 4 local proof is recorded in `.planning/phases/04-route-proof-and-rollout/04-VALIDATION.md` and `04-LIVE-PROOF.md`; its focused eval gate remains partial.
+- **Residual eval findings:** One missing historical fixture and one existing unmanaged direct-runner behavior failure remain out of scope; no durable baseline was published.
 
 ## Goal
 
@@ -115,7 +117,10 @@ Live proof is conditional on the existing network/provider/runtime gates. If una
 - Stop if behavior tests show that compaction loses action-critical state; retain more typed state or narrow the slice before implementation.
 - Provider token estimation may be approximate. Keep a conservative reserve and prove the residual hard-limit path rather than claiming exact accounting.
 
-## Recommended Next Action
+## Current Status
 
-Run `just agent::eval recommend plan=docs/plans/2026-09-01-state-first-context-manager.md budget=focused`, then hand the approved plan to `$intuitive-flow` for full execution.
-
+The implementation is complete and its scoped deterministic, real Grounding
+DINO MapBuild, and automated operator-console proofs pass. Phase 4 is not marked
+complete because the focused eval packet retains one missing historical fixture
+and one unmanaged direct-runner behavior failure. Addressing either requires
+separate prioritization; neither belongs to the state-first implementation.
