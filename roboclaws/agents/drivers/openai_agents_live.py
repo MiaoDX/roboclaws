@@ -18,7 +18,7 @@ from roboclaws.agents.drivers.openai_agents_event_log import (
 )
 from roboclaws.agents.drivers.openai_agents_event_projection import (
     _summarize_sdk_result,
-    persist_projected_tool_event,
+    checkpointing_tool_result_callback,
 )
 from roboclaws.agents.drivers.openai_agents_provider_runtime import (
     close_async_resource as _close_async_resource,
@@ -225,8 +225,8 @@ def _run_openai_agents(
     checkpoint_path = request.metadata.get("checkpoint_path")
     checkpoint_snapshot = request.metadata.get("task_snapshot")
     if checkpoint_path and checkpoint_snapshot is not None:
-        request.metadata["tool_result_callback"] = lambda event: persist_projected_tool_event(
-            str(checkpoint_path), checkpoint_snapshot, event
+        request.metadata["tool_result_callback"] = checkpointing_tool_result_callback(
+            str(checkpoint_path), checkpoint_snapshot
         )
 
     agent_cls = Agent

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any
+from pathlib import Path
+from typing import Any, Callable
 
 from roboclaws.agents.task_state import (
     Checkpoint,
@@ -69,23 +70,32 @@ def project_tool_event(snapshot: TaskSnapshot, event: Any) -> TaskSnapshot:
         payload = {"value": payload}
     updated = TaskSnapshot.from_dict(snapshot.to_dict())
     changed = _project_fields(updated, payload)
+    provenance = str(event.get("event_id") or event.get("call_id") or name or "mcp")[:256]
+    observed_at = str(event.get("observed_at") or event.get("ts") or "")[:128]
     if any(term in name for term in ("observe", "look", "inspect")):
         for key, value in (
             payload.get("objects", {}).items() if isinstance(payload.get("objects"), dict) else ()
         ):
+            object_key = str(key)[:256]
+            previous = updated.objects.get(object_key)
+            if previous is not None and observed_at and previous.observed_at > observed_at:
+                continue
             updated.objects[str(key)] = Observation(
                 value if isinstance(value, (str, int, float, bool)) else None,
-                str(event.get("ts") or ""),
-                "mcp",
-                False,
+                observed_at,
+                provenance,
+                bool(event.get("stale", False)),
             )
-        changed = True
+            changed = True
     if any(term in name for term in ("pick", "place", "move", "navigate", "grasp")):
-        updated.action_outcomes = [*updated.action_outcomes[-31:], {"action": name, "ok": True}]
+        updated.action_outcomes = [
+            *updated.action_outcomes[-31:],
+            {"action": name, "ok": True, "provenance": provenance},
+        ]
         changed = True
-    if any(key in payload for key in ("evidence_ref", "artifact_ref", "evidence")):
-        ref = payload.get("evidence_ref") or payload.get("artifact_ref") or payload.get("evidence")
-        updated.evidence.append(EvidenceRef(str(ref), digest_payload(payload)))
+    ref = payload.get("evidence_ref") or payload.get("artifact_ref")
+    if isinstance(ref, str) and 0 < len(ref) <= 1024:
+        updated.evidence.append(EvidenceRef(ref, digest_payload(payload)))
         updated.evidence = updated.evidence[-32:]
         changed = True
     if not changed:
@@ -104,11 +114,27 @@ def _project_fields(snapshot: TaskSnapshot, payload: dict[str, Any]) -> bool:
     return changed
 
 
-def persist_projected_tool_event(path: str, snapshot: TaskSnapshot, event: Any) -> TaskSnapshot:
+def persist_projected_tool_event(
+    path: str | Path, snapshot: TaskSnapshot, event: Any
+) -> TaskSnapshot:
     updated = project_tool_event(snapshot, event)
     if updated.revision != snapshot.revision:
         atomic_write_checkpoint(path, Checkpoint(updated))
     return updated
+
+
+def checkpointing_tool_result_callback(
+    path: str | Path, snapshot: TaskSnapshot
+) -> Callable[[Any], TaskSnapshot]:
+    """Return a callback that persists one monotonic snapshot per accepted event."""
+    current = snapshot
+
+    def _project(event: Any) -> TaskSnapshot:
+        nonlocal current
+        current = persist_projected_tool_event(path, current, event)
+        return current
+
+    return _project
 
 
 def _summarize_sdk_result(result: Any) -> dict[str, Any]:
