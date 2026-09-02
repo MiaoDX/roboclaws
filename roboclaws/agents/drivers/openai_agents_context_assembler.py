@@ -97,6 +97,7 @@ def assemble_context(
     retrieval_count = len(optional_retrieval or [])
     items.extend(optional_retrieval or [])
     raw_count = len(recent_raw or [])
+    raw_start = len(items)
     items.extend(recent_raw or [])
     estimator = policy.estimator or estimate_tokens
     total = sum(estimator(item) for item in items)
@@ -105,10 +106,11 @@ def assemble_context(
     while total + reserve > policy.hard_limit_tokens and retrieval_count:
         items.pop(retrieval_start + retrieval_count - 1)
         retrieval_count -= 1
+        raw_start -= 1
         evicted.append("optional_retrieval")
         total = sum(estimator(item) for item in items)
     while total + reserve > policy.hard_limit_tokens and raw_count:
-        items.pop(retrieval_start)
+        items.pop(raw_start)
         evicted.append("oldest_raw_overlap")
         raw_count -= 1
         total = sum(estimator(item) for item in items)

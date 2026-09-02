@@ -24,3 +24,14 @@ def test_estimator_is_conservative_and_reserve_is_admitted() -> None:
     )
     assert result.admitted
     assert result.estimated_input_tokens + 15 <= 100
+
+
+def test_raw_eviction_does_not_remove_subgoal_evidence_without_retrieval() -> None:
+    result = assemble_context(
+        Checkpoint(TaskSnapshot("t", "clean")),
+        subgoal_evidence=["critical-subgoal"],
+        recent_raw=["old", "new"],
+        policy=ContextBudgetPolicy(30, expected_output_tokens=1, safety_reserve_tokens=1),
+    )
+    assert "critical-subgoal" in result.items
+    assert "old" not in result.items
