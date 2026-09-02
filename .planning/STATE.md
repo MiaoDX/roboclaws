@@ -1,33 +1,53 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.98
-milestone_name: Planning Archive
-status: inactive
-stopped_at: "No active GSD execution phase; use STATUS.md for current repo focus."
-last_updated: "2026-06-27T00:00:00+08:00"
-last_activity: 2026-06-27
+milestone: v1.99
+milestone_name: State-First Context Manager
+status: active
+last_updated: "2026-09-02T03:43:37.324Z"
+progress:
+  total_phases: 4
+  completed_phases: 1
+  total_plans: 3
+  completed_plans: 3
+  percent: 25
 ---
 
 # GSD State
 
-There is no active GSD execution phase.
+## Project Reference
 
-Use root `STATUS.md` for the current project focus, next action, blockers, and
-source links. Use `docs/plans/` for pre-GSD plans and `docs/status/active/` for
-parallel standalone work.
+See `.planning/PROJECT.md` for the core value, constraints, and success metric.
+See `.planning/ROADMAP.md` for the active phase sequence and criteria.
 
-## Preserved GSD History
+## Current Position
 
-- Completed and historical phase artifacts remain under
-  `.planning/milestones/v1.98-phases/`.
-- Historical pre-GSD plans remain under `docs/retrospectives/plans/`.
-- The compact archive marker is `.planning/milestones/v1.98-ARCHIVE.md`.
+Phase 1 of 4 is ready for planning: State And Checkpoint Schema.
 
-## Live Phase Directory
+Progress: [██████████] 100%
 
-`.planning/phases/02.7-openclaw-intermediate-message-capture/` is retained as
-the only planned/phase directory. It is complete and no longer the repo-level
-current focus.
+## Performance Metrics
 
-Do not treat other `.planning/` history as startup reading unless a current
-task explicitly names it.
+| Metric | Value |
+|--------|-------|
+| Phases complete | 0/4 |
+| Plans complete | 0/TBD |
+| Requirements complete | 0/4 |
+
+## Accumulated Context
+
+- Ingest source: `docs/plans/2026-09-01-state-first-context-manager.md`.
+- Conflict report is clear: `.planning/INGEST-CONFLICTS.md`.
+- No ADR-locked decisions were included in this ingest.
+- Historical `v1.98` milestone and phase artifacts are preserved.
+
+## Verification Gates
+
+- `ruff check .`
+- `ruff format --check .`
+- `./scripts/dev/run_pytest_standalone.sh -q`
+- Focused `just agent::eval recommend|execute` for the source plan.
+- Conditional camera-grounded live proof with guarded blocker recording.
+
+## Session Continuity
+
+Next action: run `$gsd-plan-phase 1` against the active roadmap.
