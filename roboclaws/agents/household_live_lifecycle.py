@@ -66,6 +66,7 @@ from roboclaws.agents.household_live_continuation import (
     _profiled_kickoff_prompt,
     _sdk_attempt_summary,
     _task_aware_continuation_suffix,
+    classify_checkpoint_resumability,
 )
 from roboclaws.agents.household_live_errors import CheckerValidationError, LiveAgentRunFailure
 from roboclaws.agents.household_live_handoff import HouseholdLiveHandoffMixin
@@ -408,6 +409,13 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
                 profile=self.agent_sdk_perf_profile,
                 context_metrics=_context_metrics(self.run_dir, self.live_timing),
             )
+            decision = classify_checkpoint_resumability(
+                self.run_dir,
+                result=result,
+                attempt_index=attempt_index,
+                max_attempts=recovery_policy.max_attempts,
+            )
+            attempt_summary["continuation_resumability"] = decision.reason_code
             if continuation_prompt is None:
                 break
             attempt_summary["recovery_action"] = "continue"
