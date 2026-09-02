@@ -14,6 +14,7 @@ from roboclaws.agents.household_live_config import (
 )
 from roboclaws.agents.household_live_continuation import IncompleteTurnRecoveryPolicy
 from roboclaws.agents.household_live_handoff import _eval_telemetry_identity
+from roboclaws.agents.household_live_lifecycle import LiveOpenAIAgentsHouseholdRunner
 from roboclaws.agents.live_runtime import (
     LiveAgentMCPServer,
     LiveAgentRequest,
@@ -21,6 +22,7 @@ from roboclaws.agents.live_runtime import (
     live_agent_result_from_artifacts,
 )
 from roboclaws.agents.live_status import LiveAgentFailure
+from roboclaws.agents.task_state import Checkpoint, TaskSnapshot
 from roboclaws.household.realworld_done_readiness import (
     COMPLETION_SNAPSHOT_SCHEMA,
     completion_snapshot_digest,
@@ -409,6 +411,27 @@ def test_context_budget_result_recovers_with_compact_continuation(tmp_path: Path
     assert "compact_continuation_state" in prompt
     assert "RAW-FPV continuation" in prompt
     assert "ORIGINAL FULL PROMPT" not in prompt
+
+
+def test_context_budget_checkpoint_is_persisted_before_terminal_diagnostics(tmp_path: Path) -> None:
+    runner = object.__new__(LiveOpenAIAgentsHouseholdRunner)
+    runner.run_dir = tmp_path / "run"
+    runner.checkpoint_path = runner.run_dir / "checkpoint.json"
+    runner.task_snapshot = TaskSnapshot(task="household-world", intent="cleanup", revision=3)
+    runner.run_dir.mkdir()
+    (runner.run_dir / "run_result.json").write_text('{"cleanup_success":false}\n', encoding="utf-8")
+
+    runner._persist_checkpoint()
+
+    checkpoint = Checkpoint.from_json(
+        (runner.run_dir / "checkpoint.json").read_text(encoding="utf-8")
+    )
+    assert checkpoint.snapshot.revision == 3
+    assert checkpoint.snapshot.task == "household-world"
+    assert "private" not in checkpoint.to_json()
+    assert json.loads((runner.run_dir / "run_result.json").read_text()) == {
+        "cleanup_success": False
+    }
 
 
 def test_eval_telemetry_identity_is_closed_and_fail_disabled(

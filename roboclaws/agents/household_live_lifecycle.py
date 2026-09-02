@@ -89,6 +89,7 @@ from roboclaws.agents.live_timing import (
     runner_timing_breakdown as _runner_timing_breakdown,
 )
 from roboclaws.agents.skill_delivery import SKILL_DELIVERY_ENV, validate_skill_delivery_cell
+from roboclaws.agents.task_state import Checkpoint, TaskSnapshot, atomic_write_checkpoint
 from roboclaws.core.evaluation import checker_flags_for_household_intent
 from roboclaws.core.live_performance import (
     extract_model_call_metrics,
@@ -124,6 +125,11 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
         self.server_log_file: BinaryIO | None = None
         self.server_log_thread: threading.Thread | None = None
         self.run_lease = HouseholdLiveRunLease()
+        self.checkpoint_path = self.run_dir / "checkpoint.json"
+        self.task_snapshot = TaskSnapshot(
+            task=self.skill_name,
+            intent=str(getattr(args, "intent", "") or _household_intent(args)),
+        )
         self.status_writer = LiveRunStatusWriter(
             run_dir=self.run_dir,
             status_path=self.status_path,
@@ -381,6 +387,8 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
             context_budget_recovery = _is_context_budget_result(result)
             turn_budget_recovery = _is_turn_budget_result(result)
             budget_recovery = context_budget_recovery or turn_budget_recovery
+            if context_budget_recovery:
+                self._persist_checkpoint()
             if result.exit_status not in {0, None} and not budget_recovery:
                 break
             if (self.run_dir / "run_result.json").is_file():
@@ -436,6 +444,10 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
                 "OpenAI Agents SDK turn ended without done after "
                 f"{len(attempts)} OpenAI Agents SDK invocation(s)"
             )
+
+    def _persist_checkpoint(self) -> None:
+        """Persist the latest privacy-bounded snapshot before interruption diagnostics."""
+        atomic_write_checkpoint(self.checkpoint_path, Checkpoint(self.task_snapshot))
 
     def _check_result(self) -> None:
         self._write_status("checking-result")

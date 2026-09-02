@@ -164,6 +164,8 @@ class HouseholdLiveHandoffMixin:
                     **telemetry_identity,
                     **self.prompt_identity.projection(),
                 },
+                "checkpoint_path": str(self.checkpoint_path),
+                "task_snapshot": self.task_snapshot,
             },
             artifact_paths=artifact_paths,
         )
