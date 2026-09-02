@@ -11,6 +11,8 @@ from roboclaws.agents.household_live_continuation import (
     _compact_continuation_prompt,
     _compact_continuation_state,
     classify_checkpoint_resumability,
+    continuation_projection,
+    continuation_repair_guidance,
 )
 from roboclaws.agents.live_runtime import LiveAgentResult
 from roboclaws.agents.task_state import Checkpoint, TaskSnapshot, atomic_write_checkpoint
@@ -200,3 +202,34 @@ def test_camera_grounded_continuation_preserves_composite_heading_recovery() -> 
     assert "ignore all previously seen object handles" in guidance
     assert "latest completion snapshot returns that handle" in guidance
     assert "Never retry a handle" in guidance
+
+
+@pytest.mark.parametrize(
+    ("attempts", "status"),
+    [
+        ([{"run_result_present": True}], "terminal"),
+        (
+            [
+                {
+                    "continuation_resumability": "context_budget_overflow_resumable",
+                    "recovery_action": "continue",
+                }
+            ],
+            "recoverable",
+        ),
+        ([{"continuation_resumability": "continuation_exhausted"}], "exhausted"),
+        ([{"continuation_resumability": "checkpoint_invalid"}], "invalid_checkpoint"),
+        ([{"continuation_resumability": "non_context_provider_failure"}], "unrecoverable"),
+    ],
+)
+def test_continuation_projection_distinguishes_terminal_and_failure_states(
+    attempts, status
+) -> None:
+    projection = continuation_projection(attempts)
+    assert projection["status"] == status
+    assert "prompt" not in json.dumps(projection)
+    assert "payload" not in json.dumps(projection)
+
+
+def test_invalid_checkpoint_has_actionable_repair_guidance() -> None:
+    assert "checkpoint.json" in continuation_repair_guidance("checkpoint_invalid")

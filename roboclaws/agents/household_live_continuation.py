@@ -133,6 +133,50 @@ class ContinuationDecision:
     reason_code: str
 
 
+def continuation_projection(attempts: list[dict[str, Any]]) -> dict[str, Any]:
+    """Return aggregate, privacy-bounded continuation evidence."""
+    decisions = [str(item.get("continuation_resumability") or "") for item in attempts]
+    terminal = any(item.get("run_result_present") for item in attempts)
+    resumed = any(item.get("recovery_action") == "continue" for item in attempts)
+    if terminal:
+        status = "terminal"
+    elif resumed:
+        status = "recoverable"
+    elif decisions and decisions[-1] == "continuation_exhausted":
+        status = "exhausted"
+    elif decisions and decisions[-1] in {
+        "checkpoint_missing",
+        "checkpoint_invalid",
+        "completion_state_invalid",
+    }:
+        status = "invalid_checkpoint"
+    elif decisions:
+        status = "unrecoverable"
+    else:
+        status = "not_started"
+    return {
+        "schema": "household_continuation_projection_v1",
+        "status": status,
+        "attempt_count": len(attempts),
+        "resumed": resumed,
+        "terminal_completion": terminal,
+        "reason_codes": decisions,
+    }
+
+
+def continuation_repair_guidance(reason_code: str) -> str:
+    guidance = {
+        "checkpoint_missing": "Checkpoint is missing; rerun from a fresh managed run.",
+        "checkpoint_invalid": (
+            "Checkpoint is invalid; repair or remove checkpoint.json before retrying."
+        ),
+        "completion_state_invalid": (
+            "Completion state is invalid; inspect trace.jsonl and rerun without resuming."
+        ),
+    }
+    return guidance.get(reason_code, "No continuation is permitted for this terminal outcome.")
+
+
 def classify_checkpoint_resumability(
     run_dir: Path, *, result: Any, attempt_index: int, max_attempts: int
 ) -> ContinuationDecision:
