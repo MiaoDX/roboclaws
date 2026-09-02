@@ -48,6 +48,7 @@ from roboclaws.agents.drivers.openai_agents_input_config import (
     DEFAULT_MODEL_INPUT_COMPACTION_MIN_CHARS,
 )
 from roboclaws.agents.live_status import LiveAgentFailure
+from roboclaws.agents.task_state import atomic_write_checkpoint
 
 MAX_RETAINED_METRIC_MAP_CHARS = 128_000
 
@@ -81,23 +82,34 @@ def _model_input_compaction_filter(
                 policy=policy,
             )
             if not assembled.admitted:
-                raise OpenAIAgentsBudgetExceededError(
-                    LiveAgentFailure(
-                        "provider_context_budget_exceeded",
-                        retryable=False,
-                        resume_available=False,
-                        detail=json.dumps(
-                            {
-                                "schema": "agent_sdk_context_budget_terminal_v1",
-                                "estimated_input_tokens": assembled.estimated_input_tokens,
-                                "expected_output_tokens": assembled.expected_output_tokens,
-                                "safety_reserve_tokens": assembled.safety_reserve_tokens,
-                                "context_hard_limit_tokens": assembled.hard_limit_tokens,
-                            },
-                            sort_keys=True,
-                        ),
-                    )
+                failure = LiveAgentFailure(
+                    "provider_context_budget_exceeded",
+                    retryable=False,
+                    resume_available=False,
+                    detail=json.dumps(
+                        {
+                            "schema": "agent_sdk_context_budget_terminal_v1",
+                            "estimated_input_tokens": assembled.estimated_input_tokens,
+                            "expected_output_tokens": assembled.expected_output_tokens,
+                            "safety_reserve_tokens": assembled.safety_reserve_tokens,
+                            "context_hard_limit_tokens": assembled.hard_limit_tokens,
+                        },
+                        sort_keys=True,
+                    ),
                 )
+                if not (run_dir / "context_budget_overflow.recorded").exists():
+                    atomic_write_checkpoint(checkpoint_path, load_checkpoint(checkpoint_path))
+                    (run_dir / "context_budget_overflow.recorded").write_text(
+                        "1\n", encoding="utf-8"
+                    )
+                    _append_model_input_budget_event(
+                        events_path,
+                        runtime_config=runtime_config,
+                        profile=budget_profile or {},
+                        timing=budget_timing or {},
+                        failure=failure,
+                    )
+                raise OpenAIAgentsBudgetExceededError(failure)
             assembled_items = assembled.items
         _raise_budget_failure_before_model_call(
             run_dir,
