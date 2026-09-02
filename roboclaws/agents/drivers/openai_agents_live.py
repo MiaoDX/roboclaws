@@ -16,7 +16,10 @@ from roboclaws.agents.drivers.openai_agents_event_log import (
     _recording_tool_error_function,
     _write_json,
 )
-from roboclaws.agents.drivers.openai_agents_event_projection import _summarize_sdk_result
+from roboclaws.agents.drivers.openai_agents_event_projection import (
+    _summarize_sdk_result,
+    persist_projected_tool_event,
+)
 from roboclaws.agents.drivers.openai_agents_provider_runtime import (
     close_async_resource as _close_async_resource,
 )
@@ -215,6 +218,16 @@ def _run_openai_agents(
         from agents.mcp import MCPServerStreamableHttp  # type: ignore[import-not-found]
     except ImportError:
         raise
+
+    # The MCP adapter may provide normalized tool results through metadata. Keep
+    # projection optional so SDK/runtime behavior and existing trace artifacts
+    # remain unchanged when no checkpoint is configured.
+    checkpoint_path = request.metadata.get("checkpoint_path")
+    checkpoint_snapshot = request.metadata.get("task_snapshot")
+    if checkpoint_path and checkpoint_snapshot is not None:
+        request.metadata["tool_result_callback"] = lambda event: persist_projected_tool_event(
+            str(checkpoint_path), checkpoint_snapshot, event
+        )
 
     agent_cls = Agent
     if _is_sandbox_skills_request(request):

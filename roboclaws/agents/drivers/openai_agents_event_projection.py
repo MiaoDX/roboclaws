@@ -6,6 +6,15 @@ import hashlib
 import json
 from typing import Any
 
+from roboclaws.agents.task_state import (
+    Checkpoint,
+    EvidenceRef,
+    Observation,
+    TaskSnapshot,
+    atomic_write_checkpoint,
+    digest_payload,
+)
+
 
 def _drop_empty(payload: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in payload.items() if not _is_empty_json_value(value)}
@@ -40,6 +49,66 @@ def _to_jsonable(value: Any) -> Any:
     if hasattr(value, "__dict__"):
         return _to_jsonable(vars(value))
     return str(value)
+
+
+_PUBLIC_KEYS = {
+    "pose": ("pose", "robot_pose", "position"),
+    "waypoint": ("waypoint", "current_waypoint"),
+    "safety": ("safety", "safety_status"),
+    "completion": ("completion", "done", "completed"),
+}
+
+
+def project_tool_event(snapshot: TaskSnapshot, event: Any) -> TaskSnapshot:
+    """Apply one successful normalized public tool event to a new snapshot."""
+    if not isinstance(event, dict) or event.get("success") is False or event.get("error"):
+        return snapshot
+    name = str(event.get("tool") or event.get("tool_name") or event.get("event") or "").lower()
+    payload = event.get("result", event.get("output", event.get("data", event)))
+    if not isinstance(payload, dict):
+        payload = {"value": payload}
+    updated = TaskSnapshot.from_dict(snapshot.to_dict())
+    changed = _project_fields(updated, payload)
+    if any(term in name for term in ("observe", "look", "inspect")):
+        for key, value in (
+            payload.get("objects", {}).items() if isinstance(payload.get("objects"), dict) else ()
+        ):
+            updated.objects[str(key)] = Observation(
+                value if isinstance(value, (str, int, float, bool)) else None,
+                str(event.get("ts") or ""),
+                "mcp",
+                False,
+            )
+        changed = True
+    if any(term in name for term in ("pick", "place", "move", "navigate", "grasp")):
+        updated.action_outcomes = [*updated.action_outcomes[-31:], {"action": name, "ok": True}]
+        changed = True
+    if any(key in payload for key in ("evidence_ref", "artifact_ref", "evidence")):
+        ref = payload.get("evidence_ref") or payload.get("artifact_ref") or payload.get("evidence")
+        updated.evidence.append(EvidenceRef(str(ref), digest_payload(payload)))
+        updated.evidence = updated.evidence[-32:]
+        changed = True
+    if not changed:
+        return snapshot
+    updated.revision = snapshot.revision + 1
+    return updated
+
+
+def _project_fields(snapshot: TaskSnapshot, payload: dict[str, Any]) -> bool:
+    changed = False
+    for field, keys in _PUBLIC_KEYS.items():
+        value = next((payload[key] for key in keys if key in payload), None)
+        if value is not None and _json_size_bytes(value) <= 4096:
+            setattr(snapshot, field, _to_jsonable(value))
+            changed = True
+    return changed
+
+
+def persist_projected_tool_event(path: str, snapshot: TaskSnapshot, event: Any) -> TaskSnapshot:
+    updated = project_tool_event(snapshot, event)
+    if updated.revision != snapshot.revision:
+        atomic_write_checkpoint(path, Checkpoint(updated))
+    return updated
 
 
 def _summarize_sdk_result(result: Any) -> dict[str, Any]:
