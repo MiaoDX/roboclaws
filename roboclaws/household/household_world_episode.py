@@ -242,6 +242,7 @@ def run_household_world_episode(
     goal_contract_json: str | None = None,
     goal_contract_path: str | Path | None = None,
     run_metadata_overrides: dict[str, Any] | None = None,
+    task_kind: str = "",
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     validate_cleanup_run_options(
@@ -432,6 +433,7 @@ def run_household_world_episode(
             goal_contract=goal_contract,
             agent_scratchpad=agent_scratchpad,
             map_build=episode_policy.requires_map_artifacts,
+            task_kind=task_kind or str((run_metadata_overrides or {}).get("task_kind") or ""),
             runtime_map_prior=runtime_map_prior,
             runtime_map_prior_path=runtime_map_prior_path,
             evidence_lane=evidence_lane,

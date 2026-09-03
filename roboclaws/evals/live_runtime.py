@@ -225,6 +225,7 @@ def product_run_kwargs(
         "backend": implementation_backend(sample, budget=budget),
         "evidence_lane": evidence_lane(sample, budget=budget),
         "intent": sample.intent,
+        "task_kind": "long-horizon" if is_long_horizon_sample(sample) else "",
         "generated_mess_count": generated_mess_count(sample),
         "generated_mess_object_ids": generated_mess_object_ids(sample),
         "scene_source": scene_source(sample),

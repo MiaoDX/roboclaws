@@ -242,14 +242,14 @@ def test_open_ended_report_ignores_advisory_cleanup_failure(tmp_path: Path) -> N
     assert "Score &amp; Proof" not in html
 
 
-def test_long_horizon_keeps_terminal_cleanup_status_and_report_sections() -> None:
+def test_long_horizon_uses_terminal_task_status() -> None:
     run_result = {
         "task_intent": "open-ended",
         "task_kind": "long-horizon",
         "cleanup_status": "failed",
     }
 
-    assert _is_open_ended_result(run_result) is False
+    assert _is_open_ended_result(run_result) is True
     assert terminal_status_payload("open-ended", "failed", task_kind="long-horizon") == {
         "intent_status": "failed",
         "goal_status": "failed",

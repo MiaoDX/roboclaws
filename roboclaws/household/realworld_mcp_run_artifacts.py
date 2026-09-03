@@ -146,6 +146,7 @@ def finalize_realworld_mcp_done(
         goal_contract=inputs.goal_contract,
         render_runtime_map_preview=False,
         write_agent_scratchpad=False,
+        include_cleanup_evaluation=payloads.task_intent == "cleanup",
     )
     run_result = _base_run_result(inputs, paths, payloads)
     run_result = _attach_run_result_sections(inputs, run_result)
@@ -175,12 +176,12 @@ def _build_payloads(
         inputs.trace_events,
         inputs.contract.public_receptacles_by_id(),
     )
-    private_evaluation = _private_evaluation(inputs)
     goal_contract_payload, completion_claim = goal_result_payload(
         inputs.goal_contract,
         done_reason=inputs.reason,
     )
     task_intent = _task_intent(inputs, goal_contract_payload)
+    private_evaluation = _private_evaluation(inputs) if task_intent == "cleanup" else {}
     intent_status = (
         "terminal_incomplete"
         if inputs.done_response.get("ok") is not True
@@ -194,7 +195,7 @@ def _build_payloads(
         run_dir=inputs.run_dir,
         note=(
             "No live agent_scratchpad.json was present when the MCP server finalized; "
-            "cleanup_worklist remains authoritative."
+            "public runtime readiness remains authoritative."
         ),
     )
     runtime_metric_map = agent_view_module.runtime_metric_map(inputs.agent_view)
@@ -203,21 +204,33 @@ def _build_payloads(
         intent_status=intent_status,
         runtime_timing=runtime_timing_from_trace(inputs.trace_events, inputs.robot_view_steps),
         substeps=substeps,
-        cleanup_primitive_evidence=cleanup_primitive_evidence_from_substeps(substeps),
-        cleanup_plan=cleanup_plan_from_semantic_substeps(substeps),
-        planner_proof_requests=write_planner_proof_requests(
-            output_path=paths.planner_proof_requests,
-            contract=inputs.contract,
-            substeps=substeps,
+        cleanup_primitive_evidence=(
+            cleanup_primitive_evidence_from_substeps(substeps) if task_intent == "cleanup" else {}
         ),
-        diagnostics=_diagnostics(inputs, substeps),
+        cleanup_plan=(
+            cleanup_plan_from_semantic_substeps(substeps) if task_intent == "cleanup" else {}
+        ),
+        planner_proof_requests=(
+            {}
+            if task_intent != "cleanup"
+            else write_planner_proof_requests(
+                output_path=paths.planner_proof_requests,
+                contract=inputs.contract,
+                substeps=substeps,
+            )
+        ),
+        diagnostics=_diagnostics(inputs, substeps) if task_intent == "cleanup" else {},
         primitive_counts=primitive_provenance_counts(inputs.trace_events),
         cleanup_policy_trace=inputs.cleanup_policy_trace,
         real_robot_readiness=inputs.real_robot_readiness,
         private_evaluation=private_evaluation,
-        advisory_evaluation=build_advisory_evaluation(
-            score=inputs.done_response["score"],
-            scenario_id=inputs.scenario.scenario_id,
+        advisory_evaluation=(
+            build_advisory_evaluation(
+                score=inputs.done_response["score"],
+                scenario_id=inputs.scenario.scenario_id,
+            )
+            if task_intent == "cleanup"
+            else {}
         ),
         goal_contract_payload=goal_contract_payload,
         completion_claim=completion_claim,
@@ -262,10 +275,10 @@ def _base_run_result(
             "runtime_metric_map_prior": _runtime_map_prior_payload(inputs, payloads),
             "camera_labeler": _camera_labeler(inputs),
             "visual_grounding_pipeline_id": inputs.contract.visual_grounding_pipeline_id,
-            "requested_generated_mess_count": payloads.private_evaluation[
-                "requested_generated_mess_count"
-            ],
-            "generated_mess_count": payloads.private_evaluation["generated_mess_count"],
+            "requested_generated_mess_count": payloads.private_evaluation.get(
+                "requested_generated_mess_count", 0
+            ),
+            "generated_mess_count": payloads.private_evaluation.get("generated_mess_count", 0),
             "mcp_server": inputs.mcp_server_name,
             "semantic_substeps": payloads.substeps,
             "cleanup_primitive_evidence": payloads.cleanup_primitive_evidence,
@@ -292,6 +305,8 @@ def _base_run_result(
                 after_snapshot=inputs.after_snapshot,
                 goal_contract=inputs.goal_contract,
                 include_runtime_map_preview=False,
+                include_cleanup_evaluation=payloads.task_intent == "cleanup",
+                include_planner_proof_requests=payloads.task_intent == "cleanup",
             ),
         }
     )

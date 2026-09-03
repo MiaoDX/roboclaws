@@ -59,7 +59,7 @@ def runtime_metric_map_payload(
         if static_fixture_projection is not None
         else contract.static_fixture_projection()
     )
-    include_cleanup_worklist = str(getattr(contract, "task_intent", "")) != "map-build"
+    include_cleanup_worklist = str(getattr(contract, "task_intent", "")) == "cleanup"
     public_worklist = (
         (cleanup_worklist if cleanup_worklist is not None else contract.cleanup_worklist_payload())
         if include_cleanup_worklist
@@ -222,7 +222,7 @@ def agent_view_payload(
     ]
     metric_map = contract.metric_map()
     static_fixture_projection = contract.static_fixture_projection()
-    include_cleanup_worklist = str(getattr(contract, "task_intent", "")) != "map-build"
+    include_cleanup_worklist = str(getattr(contract, "task_intent", "")) == "cleanup"
     cleanup_worklist = contract.cleanup_worklist_payload() if include_cleanup_worklist else {}
     model_declared = contract.model_declared_observations_payload()
     runtime_metric_map = dict(metric_map.get("runtime_metric_map") or {})

@@ -232,7 +232,7 @@ def test_realworld_mcp_open_ended_intent_is_recorded_in_run_result(
     assert run_result["intent_status"] == "success"
     assert run_result["goal_status"] == "success"
     assert run_result["final_status"] == "success"
-    assert run_result["cleanup_status_role"] == "advisory"
+    assert "cleanup_status_role" not in run_result
     for cleanup_only in (
         "cleanup_status",
         "completion_status",
@@ -359,7 +359,7 @@ def test_realworld_mcp_can_record_robot_view_timeline(tmp_path: Path) -> None:
     report_text = (tmp_path / "report.html").read_text(encoding="utf-8")
 
     assert "cleanup_status" not in done
-    assert run_result["cleanup_status_role"] == "advisory"
+    assert "cleanup_status_role" not in run_result
     assert run_result["view_variant"] == "molmospaces-rby1m-fpv-topdown-chase-verify"
     assert run_result["robot_view_camera_control"]["schema"] == (
         "robot_view_camera_control_summary_v1"
