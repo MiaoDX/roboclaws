@@ -59,8 +59,11 @@ def runtime_metric_map_payload(
         if static_fixture_projection is not None
         else contract.static_fixture_projection()
     )
+    include_cleanup_worklist = str(getattr(contract, "task_intent", "")) == "cleanup"
     public_worklist = (
-        cleanup_worklist if cleanup_worklist is not None else contract.cleanup_worklist_payload()
+        (cleanup_worklist if cleanup_worklist is not None else contract.cleanup_worklist_payload())
+        if include_cleanup_worklist
+        else {}
     )
     worklist_by_handle = {
         str(item.get("object_id") or ""): dict(item)
@@ -146,15 +149,6 @@ def runtime_metric_map_payload(
             map_update_candidates=map_update_candidates,
             target_candidates=target_candidates,
         ),
-        "cleanup_worklist_summary": {
-            "schema": cleanup_worklist_schema,
-            "object_count": len(public_worklist.get("objects") or []),
-            "pending_count": sum(
-                1 for item in public_worklist.get("objects") or [] if item.get("state") == "pending"
-            ),
-            "held_object_id": public_worklist.get("held_object_id"),
-            "prior_count": len(contract._runtime_map_priors),
-        },
         "public_contract_note": (
             "Runtime Metric Map enriches the current run with public observed "
             "handles, public semantic anchors, and map-update candidates. It "
@@ -200,6 +194,16 @@ def runtime_metric_map_payload(
         "with public observations and run-local semantic anchors without "
         "mutating source-map semantics."
     )
+    if include_cleanup_worklist:
+        payload["cleanup_worklist_summary"] = {
+            "schema": cleanup_worklist_schema,
+            "object_count": len(public_worklist.get("objects") or []),
+            "pending_count": sum(
+                1 for item in public_worklist.get("objects") or [] if item.get("state") == "pending"
+            ),
+            "held_object_id": public_worklist.get("held_object_id"),
+            "prior_count": len(contract._runtime_map_priors),
+        }
     assert_no_forbidden_agent_view_keys(payload)
     return payload
 
@@ -218,7 +222,8 @@ def agent_view_payload(
     ]
     metric_map = contract.metric_map()
     static_fixture_projection = contract.static_fixture_projection()
-    cleanup_worklist = contract.cleanup_worklist_payload()
+    include_cleanup_worklist = str(getattr(contract, "task_intent", "")) == "cleanup"
+    cleanup_worklist = contract.cleanup_worklist_payload() if include_cleanup_worklist else {}
     model_declared = contract.model_declared_observations_payload()
     runtime_metric_map = dict(metric_map.get("runtime_metric_map") or {})
     if not runtime_metric_map:
@@ -244,10 +249,15 @@ def agent_view_payload(
         observed_waypoint_ids=contract._observed_waypoint_ids,
         public_tool_names=contract.public_tool_names(),
         capability_profiles=(
-            HOUSEHOLD_WORLD_PROFILE,
-            HOUSEHOLD_MANIPULATION_PROFILE,
-            HOUSEHOLD_EPISODE_PROFILE,
+            (HOUSEHOLD_WORLD_PROFILE, HOUSEHOLD_EPISODE_PROFILE)
+            if not include_cleanup_worklist
+            else (
+                HOUSEHOLD_WORLD_PROFILE,
+                HOUSEHOLD_MANIPULATION_PROFILE,
+                HOUSEHOLD_EPISODE_PROFILE,
+            )
         ),
+        include_cleanup_worklist=include_cleanup_worklist,
         public_acceptance_config=dict(getattr(contract, "public_acceptance_config", {}) or {}),
         forbidden_keys=forbidden_keys,
     )

@@ -25,6 +25,14 @@ def test_eval_environment_carries_private_delivery_identity() -> None:
     assert env[EVAL_SKILL_NAME_ENV] == "example"
 
 
+def test_live_surface_env_carries_task_kind() -> None:
+    env = live_surface_env(
+        {"task_kind": "long-horizon"},
+        base_env={},
+    )
+    assert env["ROBOCLAWS_EVAL_TASK_KIND"] == "long-horizon"
+
+
 def test_sandbox_eval_records_blocked_without_product_launch(tmp_path: Path, monkeypatch) -> None:
     called = False
     monkeypatch.setattr(

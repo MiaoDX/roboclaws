@@ -106,6 +106,7 @@ def make_household_world_mcp(
     robot_view_capture_policy: str = ROBOT_VIEW_CAPTURE_POLICY_FULL,
     rerun_command: str | None = None,
     required_capability_profiles: tuple[str, ...] | None = None,
+    task_kind: str = "",
 ) -> "HouseholdWorldMCPServer":
     return HouseholdWorldMCPServer(
         run_dir=run_dir,
@@ -136,6 +137,7 @@ def make_household_world_mcp(
         robot_view_capture_policy=robot_view_capture_policy,
         rerun_command=rerun_command,
         required_capability_profiles=required_capability_profiles,
+        task_kind=task_kind,
     )
 
 
@@ -173,6 +175,7 @@ class HouseholdWorldMCPServer(HouseholdMCPArtifactLifecycle, HouseholdMCPTraceLi
         robot_view_capture_policy: str = ROBOT_VIEW_CAPTURE_POLICY_FULL,
         rerun_command: str | None = None,
         required_capability_profiles: tuple[str, ...] | None = None,
+        task_kind: str = "",
     ) -> None:
         self.run_dir = Path(run_dir)
         self.run_dir.mkdir(parents=True, exist_ok=True)
@@ -186,6 +189,7 @@ class HouseholdWorldMCPServer(HouseholdMCPArtifactLifecycle, HouseholdMCPTraceLi
             else agent_driven
         )
         self.policy_uses_private_truth = False
+        self.task_kind = str(task_kind or os.environ.get("ROBOCLAWS_EVAL_TASK_KIND", ""))
         self.goal_contract = goal_contract or _goal_contract_from_env()
         self.required_capability_profiles = tuple(
             required_capability_profiles

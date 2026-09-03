@@ -16,15 +16,15 @@ from roboclaws.core.task_intents import (
 )
 
 TOOL_PROTOCOL_PREFIX = (
-    "Use the cleanup MCP tool entries exactly as exposed by Codex; in text, "
+    "Use the household MCP tool entries exactly as exposed by Codex; in text, "
     "refer to unprefixed tool names, and if the tool protocol requires a namespace "
-    "use namespace cleanup, never mcp__cleanup__ or roboclaws__. "
+    "use namespace household, never mcp__household__ or roboclaws__. "
 )
 
 OPEN_TASK_TOOL_PROTOCOL_PREFIX = (
     "Use the household MCP tool entries exactly as exposed by Codex; in text, "
     "refer to unprefixed tool names, and if the tool protocol requires a namespace "
-    "use namespace cleanup, never mcp__cleanup__ or roboclaws__. "
+    "use namespace household, never mcp__household__ or roboclaws__. "
 )
 
 COMMON_PREFIX = "Use the bundled household-world skill instructions. " + TOOL_PROTOCOL_PREFIX

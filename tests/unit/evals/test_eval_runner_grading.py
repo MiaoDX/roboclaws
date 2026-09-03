@@ -63,13 +63,13 @@ def test_open_ended_positive_predicates_pass_with_public_runtime_evidence(
     room_predicate = results["open_ended.room4_anchor_seed7"]["grader_outputs"]["open_ended"][
         "success_predicate"
     ]
-    living_predicate = results["open_ended.living_waypoint_seed7"]["grader_outputs"]["open_ended"][
+    book_predicate = results["open_ended.bread_seed7"]["grader_outputs"]["open_ended"][
         "success_predicate"
     ]
     assert room_predicate["passed"] is True
     assert room_predicate["evidence"]["anchor_id"] == "anchor_waypoint_room_6_inspection"
-    assert living_predicate["passed"] is True
-    assert "room_6_inspection" in living_predicate["evidence"]["visited_waypoint_ids"]
+    assert book_predicate["passed"] is True
+    assert book_predicate["evidence"]["matching_observed_count"] >= 1
 
 
 def test_open_ended_authoritative_predicate_failure_is_behavior_failure(
@@ -109,9 +109,9 @@ def test_open_ended_authoritative_predicate_failure_is_behavior_failure(
     )
 
     payload = json.loads(run.results_path.read_text())
-    assert payload["aggregate"]["passed"] == 0
-    assert payload["aggregate"]["failed"] == 3
-    assert payload["aggregate"]["failure_classes"] == {"private_goal_not_satisfied": 3}
+    assert payload["aggregate"]["passed"] == 1
+    assert payload["aggregate"]["failed"] == 2
+    assert payload["aggregate"]["failure_classes"] == {"private_goal_not_satisfied": 2}
     results = {result["identity"]["sample_id"]: result for result in payload["results"]}
     assert results["open_ended.drink_seed7"]["status"] == "failed"
     assert results["open_ended.drink_seed7"]["capability_status"] == "failed"
@@ -120,6 +120,7 @@ def test_open_ended_authoritative_predicate_failure_is_behavior_failure(
     assert results["open_ended.room4_anchor_seed7"]["failure_class"] == (
         "private_goal_not_satisfied"
     )
+    assert results["open_ended.bread_seed7"]["status"] == "passed"
 
 
 @pytest.mark.parametrize(
@@ -131,14 +132,9 @@ def test_open_ended_authoritative_predicate_failure_is_behavior_failure(
             "public_semantic_anchors:invalid_json_array",
         ),
         (
-            "open_ended.living_waypoint_seed7",
-            "generated_exploration_candidates",
-            "generated_exploration_candidates:invalid_json_array",
-        ),
-        (
-            "open_ended.living_waypoint_seed7",
-            "target_search_summary",
-            "target_search_summary:invalid_json_object",
+            "open_ended.bread_seed7",
+            "observed_objects",
+            "observed_objects:invalid_json_array",
         ),
     ],
 )
@@ -212,7 +208,7 @@ def test_open_ended_waypoint_predicate_accepts_trace_visit_without_runtime_ancho
             run_dir,
             completion_status="success",
             include_goal_contract=True,
-            include_open_ended_public_evidence=sample_id != "open_ended.living_waypoint_seed7",
+            include_open_ended_public_evidence=True,
         )
         if sample_id == "open_ended.room4_anchor_seed7":
             (run_dir / "trace.jsonl").write_text(
@@ -227,23 +223,6 @@ def test_open_ended_waypoint_predicate_accepts_trace_visit_without_runtime_ancho
                         '{"event": "response", "tool": "navigate_to_waypoint"}',
                         '{"event": "request", "tool": "observe"}',
                         '{"event": "response", "tool": "observe"}',
-                        '{"event": "request", "tool": "done"}',
-                        '{"event": "response", "tool": "done"}',
-                    ]
-                )
-                + "\n"
-            )
-        if sample_id == "open_ended.living_waypoint_seed7":
-            (run_dir / "trace.jsonl").write_text(
-                "\n".join(
-                    [
-                        '{"event": "request", "tool": "metric_map"}',
-                        '{"event": "response", "tool": "metric_map"}',
-                        (
-                            '{"event": "request", "tool": "navigate_to_waypoint", '
-                            '"request": {"waypoint_id": "room_6_inspection"}}'
-                        ),
-                        '{"event": "response", "tool": "navigate_to_waypoint"}',
                         '{"event": "request", "tool": "done"}',
                         '{"event": "response", "tool": "done"}',
                     ]
@@ -271,9 +250,9 @@ def test_open_ended_waypoint_predicate_accepts_trace_visit_without_runtime_ancho
         "passed"
     )
     assert (
-        results["open_ended.living_waypoint_seed7"]["grader_outputs"]["open_ended"][
-            "success_predicate"
-        ]["passed"]
+        results["open_ended.bread_seed7"]["grader_outputs"]["open_ended"]["success_predicate"][
+            "passed"
+        ]
         is True
     )
 

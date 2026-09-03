@@ -61,7 +61,7 @@ launches serialize the selected profile explicitly.
 | Camera labeler | `grounding-dino` and other cataloged comparison labelers for camera-grounded rows |
 | Public backend | `mujoco` for the default MolmoSpaces simulation route |
 | Optional validation backends | Agibot GDK and Isaac Lab, selected explicitly and omitted from default discovery |
-| Scenario setup | `baseline`, `relocate-cleanup-related-objects` |
+| Scenario setup | `baseline`, `relocate-cleanup-related-objects`, `relocate-eval-target-objects` |
 | Runtime prior | no prior or one explicit read-only Runtime Map Prior Snapshot |
 
 RAW-FPV direct-runner evaluation remains available. No final SDK provider has

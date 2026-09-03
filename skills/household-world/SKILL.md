@@ -71,6 +71,17 @@ cleanup. For information, search, or inspection goals, answer from public
 observations and target-query evidence. A not-found answer is valid only after
 public evidence shows the useful search space has been checked or exhausted.
 
+For a negative search, resolve the user's semantic target once (reasonable
+aliases such as water, bottle, or beverage are one search, not separate
+searches). If the result is `not_found` and
+`exhausted_public_search_budget` is false, do not retry equivalent synonyms.
+Follow the returned `public_search_budget.viewpoint_budget.unvisited_waypoint_ids`
+in order: navigate to the next public waypoint, observe once, then resolve the
+original target again. After the budget reports no unvisited waypoint and the
+final resolution is `not_found`, call `done` immediately with the public
+not-found evidence. Never turn a negative search into cleanup or an unbounded
+camera sweep.
+
 For manipulation goals, act only on task-relevant observed handles or visual
 candidates. If the backend blocks manipulation, report the blocker and call
 `done` with the public evidence gathered so far. Do not require every
@@ -175,6 +186,16 @@ reported as `already_handled` and avoid repeating work in the same stale area.
 When a `pending_cleanup_candidates` blocker is present, act only on those public
 candidate entries and preserve their returned waypoint identities.
 
+## Long-Horizon Eval
+
+Long-horizon eval goals are multi-step open tasks, not whole-room cleanup sweeps.
+Use the operator goal to choose the source rooms and target objects. Reuse the
+public `metric_map`, `observe`, navigation, manipulation, and `done` tools only
+when the goal requires them. Confirm each object placement from public tool
+responses and finish with an empty hand when the goal requires transport.
+The private long-horizon grader may inspect authoritative final state, but that
+state and its target lists are never agent input.
+
 ## Map-Build Preset
 
 Use the same public map, observation, camera, and target-query tools, but do not
@@ -203,6 +224,6 @@ review of a saved public `runtime_metric_map.json`. It reads only public target
 candidates.
 
 Use `skills/household-world/scripts/scratchpad.py` when you need local memory
-for strategy, retries, or current intent. The scratchpad is non-authoritative;
-when scratchpad notes disagree with `cleanup_worklist`, trust
-`cleanup_worklist`.
+for strategy, retries, or current intent. The scratchpad is non-authoritative.
+For cleanup runs, the contract-derived `cleanup_worklist` remains authoritative;
+other intents do not receive a cleanup worklist.

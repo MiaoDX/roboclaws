@@ -154,6 +154,7 @@ def validate_run_result(
 
 
 def _assert_core_run_result(data: dict[str, Any], opts: _ResultOptions) -> tuple[bool, bool]:
+    map_build = _is_map_build(data)
     assert data.get("adr_0003_satisfied") is True, data
     if opts["require_map_build"] and opts["expect_policy"] == "deterministic_sweep_baseline":
         opts["expect_policy"] = "map_build_baseline"
@@ -163,7 +164,8 @@ def _assert_core_run_result(data: dict[str, Any], opts: _ResultOptions) -> tuple
     assert data.get("policy_uses_private_truth") is False, data
     assert data.get("planner_uses_private_manifest") is False, data
     assert data.get("static_fixture_projection_mode") == "room_only", data
-    assert data.get("generated_mess_count", 0) >= opts["min_generated_mess_count"], data
+    if not map_build:
+        assert data.get("generated_mess_count", 0) >= opts["min_generated_mess_count"], data
     if opts["require_agent_driven"]:
         _assert_agent_driven_public_tool_use(data)
     raw_contract_only = (
@@ -305,6 +307,8 @@ def _assert_private_evaluation_and_semantic_success(
     enforce_success: bool,
     semantic_success_gate: bool,
 ) -> None:
+    if _is_map_build(data):
+        return
     private = data.get("private_evaluation") or {}
     assert private.get("generated_mess_count") == data.get("generated_mess_count"), data
     assert private.get("generated_mess_count", 0) >= opts["min_generated_mess_count"], data
@@ -325,15 +329,10 @@ def _assert_artifacts_and_report_core(
     *,
     enforce_success: bool,
 ) -> str:
+    map_build = _is_map_build(data)
     artifacts = data.get("artifacts") or {}
-    for key in (
-        "agent_view",
-        "private_evaluation",
-        "trace",
-        "before_snapshot",
-        "after_snapshot",
-        "report",
-    ):
+    artifact_keys = _required_artifact_keys(map_build)
+    for key in artifact_keys:
         path = _resolve_path(base, artifacts.get(key, ""))
         assert path.is_file(), path
         assert path.stat().st_size > 0, path
@@ -345,8 +344,9 @@ def _assert_artifacts_and_report_core(
     if opts["expect_profile"] is not None:
         _assert_evidence_lane(data, report_text, opts["expect_profile"])
     assert "Agent View" in report_text, report_text[:500]
-    assert "Private Evaluation" in report_text, report_text[:500]
-    assert "Score" in report_text, report_text[:500]
+    if not map_build:
+        assert "Private Evaluation" in report_text, report_text[:500]
+        assert "Score" in report_text, report_text[:500]
     if enforce_success or data.get("semantic_substeps"):
         assert "Semantic Substeps" in report_text, report_text[:500]
     assert "ADR-0003 real-world-style cleanup run" not in report_text, report_text[:500]
@@ -362,11 +362,21 @@ def _assert_artifacts_and_report_core(
         require_semantic_subphases=enforce_success or bool(data.get("semantic_substeps")),
         require_robot_timeline=opts["require_robot_views"],
         require_agent_view=True,
-        require_private_evaluation=True,
-        require_planner_proof_requests=_has_planner_proof_requests(data),
+        require_object_moves=not map_build,
+        require_score=not map_build,
+        require_private_evaluation=not map_build,
+        require_planner_proof_requests=(not map_build and _has_planner_proof_requests(data)),
     )
-    _assert_planner_proof_requests(data, base, report_text)
+    if not map_build:
+        _assert_planner_proof_requests(data, base, report_text)
     return report_text
+
+
+def _required_artifact_keys(map_build: bool) -> list[str]:
+    keys = ["agent_view", "trace", "before_snapshot", "after_snapshot", "report"]
+    if not map_build:
+        keys.append("private_evaluation")
+    return keys
 
 
 def _assert_optional_result_gates(

@@ -20,6 +20,13 @@ asset-link, and privacy tests pass
 capability honestly (`partial_success`, 3/5 restored, 1,559.268s, 116 tool
 calls). Evidence/privacy status is ready; capability/time gate is not met.
 
+Known-issue refactor is now covered by deterministic proofs: MCP `done` terminal
+publication cancels a still-running SDK continuation, and negative open-ended
+search is bounded to the stable base exploration sweep. The drink sample has no
+public water/beverage candidate by design; generated object-inspection standoffs
+are excluded from its negative-search budget, so a provider cannot extend the
+search indefinitely through unrelated target recovery points.
+
 The first cleanup-only retry was blocked before task execution because the
 MolmoSpaces visual-backend slot was still legitimately held by an active
 open-ended runner. It produced no run artifacts and is retained as a blocked

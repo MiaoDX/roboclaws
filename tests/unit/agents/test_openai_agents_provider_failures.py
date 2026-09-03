@@ -125,6 +125,54 @@ def test_async_mcp_runner_closes_model_before_event_loop_exits(
     assert lifecycle == ["server-enter", "runner", "server-exit", "model-close"]
 
 
+def test_async_mcp_runner_cancels_sdk_continuation_after_done(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    lifecycle = []
+
+    class FakeServer:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args) -> None:
+            lifecycle.append("server-exit")
+
+    async def hanging_runner(*_args, **_kwargs):
+        lifecycle.append("runner-start")
+        (tmp_path / "run_result.json").write_text("{}\n", encoding="utf-8")
+        try:
+            await asyncio.sleep(60)
+        except asyncio.CancelledError:
+            lifecycle.append("runner-cancelled")
+            raise
+
+    monkeypatch.setitem(
+        sys.modules,
+        "agents",
+        SimpleNamespace(Runner=SimpleNamespace(run=hanging_runner)),
+    )
+    events_path = tmp_path / "events.jsonl"
+    request = LiveAgentRequest(
+        run_id="run",
+        skill_name="household-world",
+        kickoff_prompt="find a drink",
+        mcp_server=LiveAgentMCPServer(name="test", url="http://localhost/mcp"),
+        run_dir=tmp_path,
+    )
+
+    result = _run_with_async_mcp_server(
+        FakeServer(),
+        SimpleNamespace(model=SimpleNamespace()),
+        request,
+        events_path,
+        run_config=object(),
+    )
+
+    assert result is not None
+    assert lifecycle == ["runner-start", "runner-cancelled", "server-exit"]
+    assert "terminal_result_observed" in events_path.read_text(encoding="utf-8")
+
+
 def test_kimi_missing_choices_is_observable_and_retried_once(tmp_path: Path) -> None:
     message = "ChatCompletion response has no choices (possible provider error payload)"
     should_retry, failure = _should_retry_model_service_failure(

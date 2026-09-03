@@ -503,7 +503,11 @@ def _compact_continuation_task_guidance(intent: str) -> str:
         return (
             "Preserve goal_summary and continue only the missing search, inspection, or "
             "task-relevant action. Do not switch into whole-room cleanup unless the goal asks "
-            "for cleanup."
+            "for cleanup. For a negative search, treat equivalent aliases as one query: when "
+            "resolve_target_query returns not_found with exhausted_public_search_budget=false, "
+            "stop retrying synonyms and visit the next unvisited public waypoint from its "
+            "viewpoint budget, observe once, then retry the original query. When the public "
+            "waypoint budget is exhausted and the query remains not_found, call done immediately."
         )
     return (
         "Continue missing cleanup work in this order: first finish held entries in "

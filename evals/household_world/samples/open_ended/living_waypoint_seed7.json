@@ -13,57 +13,23 @@
   "seed": 7,
   "prompt": "请找到 Generated exploration candidate 5，并报告你到达的位置。",
   "goal_contract_hash": "unavailable",
-  "allowed_agent_engines": [
-    "direct-runner",
-    "openai-agents-sdk"
-  ],
-  "provider_profiles": [
-    "not_applicable",
-    "codex-responses",
-    "mimo-responses",
-    "minimax-responses",
-    "kimi-openai-chat"
-  ],
+  "allowed_agent_engines": ["direct-runner", "openai-agents-sdk"],
+  "provider_profiles": ["not_applicable", "codex-responses", "mimo-responses", "minimax-responses", "kimi-openai-chat"],
   "trial_count": 1,
-  "required_graders": [
-    "artifacts",
-    "privacy",
-    "trajectory",
-    "open_ended"
-  ],
+  "required_graders": ["artifacts", "privacy", "trajectory", "open_ended"],
   "private_goal_reference": {
     "schema": "household_eval_private_goal_reference_v1",
     "private_truth_scope": "grader_only",
     "open_ended_category": "positive_observable",
     "expected_goal_outcome": "public_target_observed",
-    "public_evidence_basis": {
-      "anchor_id": "anchor_waypoint_room_6_inspection",
-      "waypoint_id": "room_6_inspection",
-      "source": "runtime_metric_map.public_semantic_anchors"
-    }
+    "public_evidence_basis": {"anchor_id": "anchor_waypoint_room_6_inspection", "waypoint_id": "room_6_inspection", "source": "runtime_metric_map.public_semantic_anchors"}
   },
   "grader_config": {
     "open_ended_category": "positive_observable",
     "expected_goal_outcome": "public_target_observed",
     "semantic_satisfaction_authoritative": false,
-    "success_predicate": {
-      "predicate_id": "waypoint_or_area_visited",
-      "authoritative": true,
-      "anchor_id": "anchor_waypoint_room_6_inspection",
-      "waypoint_id": "room_6_inspection"
-    },
-    "tags": [
-      "open-ended",
-      "positive-observable",
-      "public-waypoint",
-      "coding-agent",
-      "agent-sdk"
-    ]
+    "success_predicate": {"predicate_id": "waypoint_or_area_visited", "authoritative": true, "anchor_id": "anchor_waypoint_room_6_inspection", "waypoint_id": "room_6_inspection"},
+    "tags": ["open-ended", "positive-observable", "public-waypoint", "coding-agent", "agent-sdk"]
   },
-  "launch_overrides": {
-    "agent_engine": "direct-runner",
-    "evidence_lane": "world-public-labels",
-    "seed": 7,
-    "scenario_setup": "baseline"
-  }
+  "launch_overrides": {"agent_engine": "direct-runner", "evidence_lane": "world-public-labels", "seed": 7, "scenario_setup": "baseline"}
 }

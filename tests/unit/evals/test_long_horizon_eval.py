@@ -108,6 +108,7 @@ def test_long_horizon_suite_records_manipulation_tool_surface_and_passes(
     assert result["identity"]["skill_name"] == "household-world"
     assert "pick" in result["identity"]["tool_surface"]
     assert captured_kwargs["evidence_lane"] == "world-public-labels"
+    assert captured_kwargs["task_kind"] == "long-horizon"
     assert captured_kwargs["generated_mess_object_ids"] == (
         TARGET_A,
         TARGET_B,

@@ -23,7 +23,11 @@ def _grade_trial(
     dependency_artifacts: dict[str, Any] | None,
 ) -> dict[str, Any]:
     return {
-        "artifacts": _artifact_grader(run_dir, dependency_artifacts=dependency_artifacts),
+        "artifacts": _artifact_grader(
+            run_dir,
+            sample=sample,
+            dependency_artifacts=dependency_artifacts,
+        ),
         "privacy": _privacy_grader(run_result),
         "trajectory": _trajectory_grader(sample=sample, run_dir=run_dir, run_result=run_result),
         "outcome": _outcome_grader(sample=sample, run_dir=run_dir, run_result=run_result),
@@ -39,6 +43,7 @@ def _grade_trial(
 def _artifact_grader(
     run_dir: Path,
     *,
+    sample: EvalSample,
     dependency_artifacts: dict[str, Any] | None,
 ) -> dict[str, Any]:
     required = {
@@ -47,8 +52,9 @@ def _artifact_grader(
         "trace": run_dir / "trace.jsonl",
         "agent_view": run_dir / "agent_view.json",
         "runtime_metric_map": run_dir / "runtime_metric_map.json",
-        "private_evaluation": run_dir / "private_evaluation.json",
     }
+    if sample.intent == "cleanup":
+        required["private_evaluation"] = run_dir / "private_evaluation.json"
     missing = [name for name, path in required.items() if not path.exists()]
     source_errors = grading_sources.required_json_artifact_source_errors(
         {
@@ -57,7 +63,7 @@ def _artifact_grader(
                 "run_result",
                 "agent_view",
                 "runtime_metric_map",
-                "private_evaluation",
+                *(() if sample.intent != "cleanup" else ("private_evaluation",)),
             )
         }
     )

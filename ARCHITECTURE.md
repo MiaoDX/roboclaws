@@ -353,6 +353,10 @@ The clean-slate direction is:
 - `household_world` is the reusable world-understanding capability profile.
 - Manipulation capability should be composed as a separate requirement when a
   skill needs `pick`, `place`, `open_receptacle`, or `close_receptacle`.
+- Long-horizon evals remain under the public open-task route, but carry an
+  eval-only task kind so skill delivery, manipulation entitlement, private
+  final-state grading, and target-object setup stay aligned without changing
+  the public intent taxonomy.
 
 ## Public Command Surface
 

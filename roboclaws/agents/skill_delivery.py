@@ -162,6 +162,37 @@ def _routed_content(full_content: str, *, intent: str, evidence_lane: str) -> st
     return "\n\n".join([*selected, lane_note]).rstrip() + "\n"
 
 
+def _routed_content_for_task(
+    full_content: str,
+    *,
+    intent: str,
+    evidence_lane: str,
+    task_kind: str,
+) -> str:
+    """Route eval skill context without conflating long-horizon with search-only work."""
+
+    if task_kind != "long-horizon":
+        return _routed_content(full_content, intent=intent, evidence_lane=evidence_lane)
+    sections = _markdown_sections(full_content)
+    selected = [
+        sections[name]
+        for name in (
+            "Household World",
+            "Intent Routing",
+            "Shared Loop",
+            "Open-Ended Goals",
+            "Long-Horizon Eval",
+        )
+        if name in sections
+    ]
+    lane_note = (
+        "Frozen evidence-lane selection: "
+        f"{evidence_lane}. This is a long-horizon eval task: use the operator goal "
+        "for scope and the public manipulation chain when the goal requires moving objects."
+    )
+    return "\n\n".join([*selected, lane_note]).rstrip() + "\n"
+
+
 def _markdown_sections(content: str) -> dict[str, str]:
     lines = content.splitlines(keepends=True)
     sections: dict[str, str] = {}
@@ -238,13 +269,21 @@ def build_skill_delivery(
     full_content: str,
     intent: str,
     evidence_lane: str,
+    task_kind: str = "",
 ) -> SkillDelivery:
+    if task_kind not in {"", "long-horizon"}:
+        raise ValueError("task_kind must be empty or long-horizon")
     cell = validate_skill_delivery_cell(cell)
     posture = sandbox_readiness(probe_runtime=cell == "sandbox-skills")
     if cell == "no-skill":
         return SkillDelivery(cell, "", "", False, [], posture)
     content = (
-        _routed_content(full_content, intent=intent, evidence_lane=evidence_lane)
+        _routed_content_for_task(
+            full_content,
+            intent=intent,
+            evidence_lane=evidence_lane,
+            task_kind=task_kind,
+        )
         if cell == "dynamic-routed"
         else full_content
     )

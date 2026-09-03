@@ -176,7 +176,7 @@ def test_realworld_cleanup_demo_writes_open_ended_goal_status(
     assert goal_artifact["normalized_goal"] == prompt
     assert result["agent_completion_claim"]["completion_summary"]
     assert result["intent_status"] == result["goal_status"] == result["final_status"] == "success"
-    assert result["cleanup_status_role"] == "advisory"
+    assert "cleanup_status_role" not in result
 
 
 def test_realworld_cleanup_product_gate_rejects_legacy_agibot_robot_map_9_bundle(

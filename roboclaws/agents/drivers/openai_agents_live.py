@@ -5,9 +5,10 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-from contextlib import nullcontext
+from contextlib import nullcontext, suppress
 from dataclasses import dataclass
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 from roboclaws.agents import provider_transport as pt
@@ -499,7 +500,37 @@ def _run_with_async_mcp_server(
                     "max_turns": _max_turns(request),
                     "run_config": run_config,
                 }
-                result = await Runner.run(agent, request.kickoff_prompt, **runner_kwargs)
+                runner_task = asyncio.create_task(
+                    Runner.run(agent, request.kickoff_prompt, **runner_kwargs)
+                )
+                terminal_task = asyncio.create_task(
+                    _wait_for_terminal_run_result(request.run_dir / "run_result.json")
+                )
+                completed, _pending = await asyncio.wait(
+                    (runner_task, terminal_task),
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+                if terminal_task in completed and not runner_task.done():
+                    runner_task.cancel()
+                    with suppress(asyncio.CancelledError):
+                        await runner_task
+                    _append_event(
+                        events_path,
+                        {
+                            "event": "terminal_result_observed",
+                            "ts_epoch": time.time(),
+                            "message": (
+                                "MCP done produced run_result.json; cancelled the SDK "
+                                "continuation before another model call."
+                            ),
+                        },
+                    )
+                    result = SimpleNamespace()
+                else:
+                    terminal_task.cancel()
+                    with suppress(asyncio.CancelledError):
+                        await terminal_task
+                    result = await runner_task
             _append_event(
                 events_path,
                 {
@@ -513,6 +544,13 @@ def _run_with_async_mcp_server(
             await _close_async_resource(getattr(agent, "model", None))
 
     return asyncio.run(_run())
+
+
+async def _wait_for_terminal_run_result(path: Path) -> None:
+    """Wait until the MCP ``done`` tool has published its terminal artifact."""
+
+    while not path.is_file():
+        await asyncio.sleep(0.05)
 
 
 def _model_for_request(request: LiveAgentRequest) -> Any:

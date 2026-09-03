@@ -176,6 +176,7 @@ class HouseholdMCPArtifactLifecycle:
                     self.robot_view_steps,
                     agent_view,
                 ),
+                task_kind=self.task_kind,
             )
         )
         terminal_complete = done_response.get("ok") is True
@@ -195,6 +196,9 @@ class HouseholdMCPArtifactLifecycle:
         if not terminal_complete:
             self._done_result["error_reason"] = "terminal_incomplete"
             self._done_result["completion"] = done_response.get("completion") or {}
+        if str(self.task_intent or "") == "open-ended":
+            for key in ("cleanup_status", "score"):
+                self._done_result.pop(key, None)
         self.done_event.set()
         self.write_runtime_event(
             "molmo_realworld_cleanup_mcp_done",

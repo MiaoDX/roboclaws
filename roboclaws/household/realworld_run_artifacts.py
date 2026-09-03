@@ -72,13 +72,19 @@ def goal_result_payload(
     )
 
 
-def terminal_status_payload(task_intent: str, cleanup_status: str) -> dict[str, str]:
-    status = "success" if task_intent == "open-ended" else cleanup_status
+def terminal_status_payload(
+    task_intent: str,
+    cleanup_status: str,
+    *,
+    task_kind: str = "",
+) -> dict[str, str]:
+    open_ended = task_intent == "open-ended" and task_kind != "long-horizon"
+    status = "success" if open_ended else cleanup_status
     return {
         "intent_status": status,
         "goal_status": status,
         "final_status": status,
-        "cleanup_status_role": "advisory" if task_intent == "open-ended" else "terminal",
+        "cleanup_status_role": "advisory" if open_ended else "terminal",
     }
 
 
@@ -102,7 +108,11 @@ def compose_household_run_result(payload: dict[str, Any]) -> dict[str, Any]:
         **payload,
         "contract": REALWORLD_CONTRACT,
         "adr_0003_satisfied": True,
-        **terminal_status_payload(task_intent, cleanup_status),
+        **terminal_status_payload(
+            task_intent,
+            cleanup_status,
+            task_kind=str(payload.get("task_kind") or ""),
+        ),
         "completion_status": score["completion_status"],
         "mess_restoration_rate": score["mess_restoration_rate"],
         "sweep_coverage_rate": score["sweep_coverage_rate"],
@@ -110,6 +120,55 @@ def compose_household_run_result(payload: dict[str, Any]) -> dict[str, Any]:
         "semantic_loop_variant": SEMANTIC_LOOP_VARIANT,
         **public_agent_view_result_payload(agent_view),
     }
+
+
+def project_run_result_for_task(
+    run_result: dict[str, Any],
+    *,
+    task_kind: str = "",
+) -> dict[str, Any]:
+    """Remove task-private cleanup projections from non-cleanup results."""
+
+    intent = str(run_result.get("task_intent") or "").strip()
+    is_long_horizon = task_kind == "long-horizon"
+    is_map_build = task_kind == "map-build" or intent == "map-build"
+    if intent != "open-ended" and not is_map_build:
+        return run_result
+    cleanup_only = {
+        "cleanup_status",
+        "completion_status",
+        "mess_restoration_rate",
+        "sweep_coverage_rate",
+        "disturbance_count",
+        "requested_generated_mess_count",
+        "generated_mess_count",
+        "score",
+        "final_locations",
+        "final_containment",
+        "semantic_substeps",
+        "cleanup_primitive_evidence",
+        "planner_proof_requests",
+        "cleanup_plan",
+        "cleanup_policy_trace",
+        "private_evaluation",
+        "advisory_evaluation",
+        "agent_diagnostics",
+        "mess_placement_diagnostics",
+        "placement_diagnostics",
+        "cleanup_backend_evidence",
+        "manipulation_evidence",
+        "cleanup_status_role",
+    }
+    if is_map_build:
+        cleanup_only -= {"cleanup_policy_trace", "sweep_coverage_rate"}
+    if is_long_horizon:
+        cleanup_only -= {
+            "final_locations",
+            "final_containment",
+            "semantic_substeps",
+            "manipulation_evidence",
+        }
+    return {key: value for key, value in run_result.items() if key not in cleanup_only}
 
 
 def runtime_map_prior_summary(
@@ -209,6 +268,7 @@ class RealWorldRunArtifactInputs:
     use_planner_proof_for_cleanup_primitives: bool
     map_build_scan_profile: MapBuildScanProfile
     run_metadata_overrides: dict[str, Any] | None = None
+    task_kind: str = ""
 
 
 @dataclass(frozen=True)
@@ -264,10 +324,15 @@ def finalize_realworld_cleanup_run(inputs: RealWorldRunArtifactInputs) -> dict[s
         goal_contract=inputs.goal_contract,
         render_runtime_map_preview=True,
         write_agent_scratchpad=True,
+        include_cleanup_evaluation=not inputs.map_build,
     )
     run_result = _base_run_result(inputs, artifacts, payloads)
     _attach_run_result_sections(inputs, run_result, payloads)
     run_result = _with_run_metadata(run_result, inputs.run_metadata_overrides)
+    run_result = project_run_result_for_task(
+        run_result,
+        task_kind=inputs.task_kind or ("map-build" if inputs.map_build else ""),
+    )
     persist_household_run_result(
         artifacts,
         run_dir=inputs.output_dir,
@@ -313,8 +378,11 @@ def _build_payloads(
         trace_events=inputs.trace_events,
         robot_view_steps=inputs.robot_view_steps,
     )
-    private_evaluation = inputs.contract.private_evaluation_payload(inputs.done["score"])
-    private_evaluation["requested_generated_mess_count"] = inputs.generated_mess_count
+    private_evaluation = (
+        {} if inputs.map_build else inputs.contract.private_evaluation_payload(inputs.done["score"])
+    )
+    if private_evaluation:
+        private_evaluation["requested_generated_mess_count"] = inputs.generated_mess_count
     substeps = semantic_substeps(
         inputs.trace_events,
         inputs.contract.public_receptacles_by_id(),
@@ -330,18 +398,26 @@ def _build_payloads(
         cleanup_policy_trace=cleanup_policy_trace,
         real_robot_readiness=real_robot_readiness,
         private_evaluation=private_evaluation,
-        advisory_evaluation=build_advisory_evaluation(
-            score=inputs.done["score"],
-            scenario_id=inputs.scenario.scenario_id,
+        advisory_evaluation=(
+            {}
+            if inputs.map_build
+            else build_advisory_evaluation(
+                score=inputs.done["score"],
+                scenario_id=inputs.scenario.scenario_id,
+            )
         ),
         goal_contract_payload=goal_contract_payload,
         agent_completion_claim=agent_completion_claim,
         substeps=substeps,
         cleanup_primitive_evidence=cleanup_primitive_evidence,
-        planner_proof_requests=write_planner_proof_requests(
-            output_path=artifacts.planner_proof_requests,
-            contract=inputs.contract,
-            substeps=substeps,
+        planner_proof_requests=(
+            {}
+            if inputs.map_build
+            else write_planner_proof_requests(
+                output_path=artifacts.planner_proof_requests,
+                contract=inputs.contract,
+                substeps=substeps,
+            )
         ),
         primitive=_primitive_evidence(inputs, cleanup_primitive_evidence),
         public_tool_counts=_tool_event_counts(inputs.trace_events),
@@ -360,6 +436,7 @@ def write_household_run_public_artifacts(
     goal_contract: GoalContract | None,
     render_runtime_map_preview: bool,
     write_agent_scratchpad: bool,
+    include_cleanup_evaluation: bool = True,
 ) -> None:
     _write_json(artifacts.agent_view, agent_view)
     _write_json(artifacts.runtime_metric_map, runtime_metric_map)
@@ -368,8 +445,9 @@ def write_household_run_public_artifacts(
             output_dir=artifacts.runtime_metric_map.parent,
             runtime_metric_map=runtime_metric_map,
         )
-    _write_json(artifacts.private_evaluation, private_evaluation)
-    _write_json(artifacts.advisory_evaluation, advisory_evaluation)
+    if include_cleanup_evaluation:
+        _write_json(artifacts.private_evaluation, private_evaluation)
+        _write_json(artifacts.advisory_evaluation, advisory_evaluation)
     if write_agent_scratchpad:
         _write_json(artifacts.agent_scratchpad, agent_scratchpad)
     if goal_contract is not None:
@@ -419,6 +497,7 @@ def _base_run_result(
             "task_prompt": inputs.task_prompt,
             "task_surface": payloads.goal_contract_payload.get("surface", "household-world"),
             "task_intent": task_intent,
+            "task_kind": "map-build" if inputs.map_build else "",
             "goal_contract": payloads.goal_contract_payload,
             "agent_completion_claim": payloads.agent_completion_claim,
             "terminate_reason": f"{inputs.policy_name} complete",
@@ -442,7 +521,7 @@ def _base_run_result(
             "camera_labeler": _camera_labeler(inputs),
             "visual_grounding_pipeline_id": inputs.contract.visual_grounding_pipeline_id,
             "requested_generated_mess_count": inputs.generated_mess_count,
-            "generated_mess_count": payloads.private_evaluation["generated_mess_count"],
+            "generated_mess_count": payloads.private_evaluation.get("generated_mess_count", 0),
             "semantic_substeps": payloads.substeps,
             "cleanup_primitive_evidence": payloads.cleanup_primitive_evidence,
             "planner_proof_requests": payloads.planner_proof_requests,
@@ -466,6 +545,8 @@ def _base_run_result(
                 after_snapshot=inputs.after_snapshot,
                 goal_contract=inputs.goal_contract,
                 include_runtime_map_preview=True,
+                include_cleanup_evaluation=not inputs.map_build,
+                include_planner_proof_requests=not inputs.map_build,
             ),
         }
     )
@@ -611,18 +692,26 @@ def household_run_artifact_payload(
     after_snapshot: Path,
     goal_contract: GoalContract | None,
     include_runtime_map_preview: bool,
+    include_cleanup_evaluation: bool = True,
+    include_planner_proof_requests: bool = True,
 ) -> dict[str, str]:
     payload = {
         "agent_view": str(artifacts.agent_view),
         "runtime_metric_map": str(artifacts.runtime_metric_map),
-        "private_evaluation": str(artifacts.private_evaluation),
-        "advisory_evaluation": str(artifacts.advisory_evaluation),
         "agent_scratchpad": str(artifacts.agent_scratchpad),
-        "planner_proof_requests": str(artifacts.planner_proof_requests),
         "trace": str(artifacts.trace),
         "before_snapshot": str(before_snapshot),
         "after_snapshot": str(after_snapshot),
     }
+    if include_cleanup_evaluation:
+        payload.update(
+            {
+                "private_evaluation": str(artifacts.private_evaluation),
+                "advisory_evaluation": str(artifacts.advisory_evaluation),
+            }
+        )
+    if include_planner_proof_requests:
+        payload["planner_proof_requests"] = str(artifacts.planner_proof_requests)
     if include_runtime_map_preview:
         payload["runtime_metric_map_preview"] = str(artifacts.runtime_metric_map_preview)
     if goal_contract is not None:

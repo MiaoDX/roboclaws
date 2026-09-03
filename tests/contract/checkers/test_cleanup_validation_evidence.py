@@ -22,11 +22,6 @@ def test_checker_accepts_live_raw_fpv_map_build_shape(tmp_path: Path) -> None:
     result["cleanup_actions_disabled"] = None
     result["generated_mess_count"] = 0
     result["semantic_substeps"] = []
-    result["private_evaluation"]["generated_mess_count"] = 0
-    result["private_evaluation"]["acceptable_destination_sets"] = {}
-    result["score"]["total_targets"] = 0
-    result["score"]["sweep_coverage_rate"] = 1.0
-    result["sweep_coverage_rate"] = 1.0
     trace = result["cleanup_policy_trace"]
     trace["loop_style"] = "scan_only"
     trace["cleanup_action_count"] = 0

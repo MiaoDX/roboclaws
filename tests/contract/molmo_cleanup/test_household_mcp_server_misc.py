@@ -232,8 +232,48 @@ def test_realworld_mcp_open_ended_intent_is_recorded_in_run_result(
     assert run_result["intent_status"] == "success"
     assert run_result["goal_status"] == "success"
     assert run_result["final_status"] == "success"
-    assert run_result["cleanup_status_role"] == "advisory"
-    assert run_result["cleanup_status"] == "failed"
+    assert "cleanup_status_role" not in run_result
+    for cleanup_only in (
+        "cleanup_status",
+        "completion_status",
+        "score",
+        "final_locations",
+        "final_containment",
+        "private_evaluation",
+        "advisory_evaluation",
+        "cleanup_plan",
+        "cleanup_primitive_evidence",
+        "cleanup_policy_trace",
+        "agent_diagnostics",
+        "cleanup_backend_evidence",
+    ):
+        assert cleanup_only not in run_result
+
+
+def test_realworld_mcp_long_horizon_keeps_final_state_for_private_grader(
+    tmp_path: Path,
+) -> None:
+    prompt = "把看到的面包放回厨房置物架"
+    server = make_household_world_mcp(
+        run_dir=tmp_path,
+        scenario=build_cleanup_scenario(seed=7),
+        port=0,
+        policy="codex_agent",
+        agent_driven=True,
+        task_prompt=prompt,
+        task_kind="long-horizon",
+        goal_contract=_open_ended_goal_contract(prompt),
+    )
+    try:
+        server.call_tool("metric_map")
+        done = server.call_tool("done", reason="long-horizon task complete")
+        run_result = json.loads(Path(done["run_result"]).read_text(encoding="utf-8"))
+    finally:
+        server.close()
+
+    assert run_result["task_kind"] == "long-horizon"
+    assert "final_locations" in run_result
+    assert "final_containment" in run_result
 
 
 def test_realworld_mcp_camera_grounded_isaac_closeout_writes_run_result(
@@ -318,8 +358,8 @@ def test_realworld_mcp_can_record_robot_view_timeline(tmp_path: Path) -> None:
     run_result = json.loads((tmp_path / "run_result.json").read_text(encoding="utf-8"))
     report_text = (tmp_path / "report.html").read_text(encoding="utf-8")
 
-    assert done["cleanup_status"] == "failed"
-    assert run_result["cleanup_status_role"] == "advisory"
+    assert "cleanup_status" not in done
+    assert "cleanup_status_role" not in run_result
     assert run_result["view_variant"] == "molmospaces-rby1m-fpv-topdown-chase-verify"
     assert run_result["robot_view_camera_control"]["schema"] == (
         "robot_view_camera_control_summary_v1"
