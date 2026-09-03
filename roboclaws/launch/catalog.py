@@ -572,7 +572,7 @@ def _normalize_scenario_setup_overrides(
     elif relocation_count not in {None, "", "0"}:
         raise LaunchError(
             "relocation_count is only valid when scenario_setup relocates objects",
-            "use scenario_setup=relocate-cleanup-related-objects",
+            "use a relocation scenario_setup such as relocate-cleanup-related-objects",
         )
     merged = _without_override(
         _without_override(overrides, "scenario_setup"),

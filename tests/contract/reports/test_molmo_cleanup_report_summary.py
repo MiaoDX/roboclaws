@@ -10,7 +10,9 @@ from roboclaws.household.manipulation_contract import API_SEMANTIC_PROVENANCE
 from roboclaws.household.manipulation_provenance import (
     api_semantic_manipulation_evidence,
 )
+from roboclaws.household.realworld_run_artifacts import terminal_status_payload
 from roboclaws.household.report import (
+    _is_open_ended_result,
     render_cleanup_report,
 )
 from roboclaws.household.report_snapshots import write_state_snapshot
@@ -238,3 +240,19 @@ def test_open_ended_report_ignores_advisory_cleanup_failure(tmp_path: Path) -> N
     assert "Generated mess" not in html
     assert "Advisory Review" not in html
     assert "Score &amp; Proof" not in html
+
+
+def test_long_horizon_keeps_terminal_cleanup_status_and_report_sections() -> None:
+    run_result = {
+        "task_intent": "open-ended",
+        "task_kind": "long-horizon",
+        "cleanup_status": "failed",
+    }
+
+    assert _is_open_ended_result(run_result) is False
+    assert terminal_status_payload("open-ended", "failed", task_kind="long-horizon") == {
+        "intent_status": "failed",
+        "goal_status": "failed",
+        "final_status": "failed",
+        "cleanup_status_role": "terminal",
+    }

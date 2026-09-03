@@ -32,6 +32,7 @@ from roboclaws.household.realworld_run_artifacts import (
     goal_result_payload,
     household_run_artifact_payload,
     persist_household_run_result,
+    project_run_result_for_task,
     runtime_map_prior_summary,
     terminal_status_payload,
     write_household_run_public_artifacts,
@@ -94,6 +95,7 @@ class RealWorldMCPDoneArtifactInputs:
     run_metadata_overrides: dict[str, Any]
     cleanup_policy_trace: dict[str, Any]
     real_robot_readiness: dict[str, Any]
+    task_kind: str = ""
 
 
 @dataclass(frozen=True)
@@ -147,7 +149,7 @@ def finalize_realworld_mcp_done(
     )
     run_result = _base_run_result(inputs, paths, payloads)
     run_result = _attach_run_result_sections(inputs, run_result)
-    run_result = _project_run_result_for_intent(run_result)
+    run_result = project_run_result_for_task(run_result, task_kind=inputs.task_kind)
     report_path = persist_household_run_result(
         paths,
         run_dir=inputs.run_dir,
@@ -185,6 +187,7 @@ def _build_payloads(
         else terminal_status_payload(
             task_intent,
             inputs.done_response["cleanup_status"],
+            task_kind=inputs.task_kind,
         )["final_status"]
     )
     agent_scratchpad, _ = read_or_create_skill_scratchpad(
@@ -238,6 +241,7 @@ def _base_run_result(
             "task_prompt": inputs.task_prompt,
             "task_surface": payloads.goal_contract_payload.get("surface", "household-world"),
             "task_intent": payloads.task_intent,
+            "task_kind": inputs.task_kind,
             "goal_contract": payloads.goal_contract_payload,
             "agent_completion_claim": payloads.completion_claim,
             "terminate_reason": inputs.reason,
@@ -297,38 +301,7 @@ def _base_run_result(
             goal_status="terminal_incomplete",
             final_status="terminal_incomplete",
         )
-    return _project_run_result_for_intent(run_result)
-
-
-def _project_run_result_for_intent(run_result: dict[str, Any]) -> dict[str, Any]:
-    """Keep cleanup scoring out of the persisted result for open-ended goals."""
-
-    if str(run_result.get("task_intent") or "") != "open-ended":
-        return run_result
-    cleanup_only = {
-        "cleanup_status",
-        "completion_status",
-        "mess_restoration_rate",
-        "sweep_coverage_rate",
-        "disturbance_count",
-        "requested_generated_mess_count",
-        "generated_mess_count",
-        "score",
-        "final_locations",
-        "final_containment",
-        "semantic_substeps",
-        "cleanup_primitive_evidence",
-        "planner_proof_requests",
-        "cleanup_plan",
-        "cleanup_policy_trace",
-        "private_evaluation",
-        "advisory_evaluation",
-        "agent_diagnostics",
-        "mess_placement_diagnostics",
-        "placement_diagnostics",
-        "cleanup_backend_evidence",
-    }
-    return {key: value for key, value in run_result.items() if key not in cleanup_only}
+    return project_run_result_for_task(run_result, task_kind=inputs.task_kind)
 
 
 def _attach_run_result_sections(

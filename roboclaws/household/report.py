@@ -110,8 +110,9 @@ def _cleanup_report_sections(
     moves = extract_moves(trace_events)
     score = run_result.get("score") if isinstance(run_result.get("score"), dict) else {}
     open_ended = _is_open_ended_result(run_result)
+    map_build = _is_map_build_result(run_result)
     sections = [
-        _cleanup_report_tabs(open_ended=open_ended),
+        _cleanup_report_tabs(open_ended=open_ended, map_build=map_build),
         _cleanup_summary_section(scenario=scenario, run_result=run_result, score=score),
         _report_tab_panel(
             "overview",
@@ -125,7 +126,7 @@ def _cleanup_report_sections(
                     run_result=run_result,
                     robot_view_steps=robot_view_steps,
                 ),
-                "" if open_ended else _object_moves_section(moves),
+                "" if open_ended or map_build else _object_moves_section(moves),
             ],
         ),
         _report_tab_panel(
@@ -151,7 +152,7 @@ def _cleanup_report_sections(
         _report_tab_panel(
             "robot",
             []
-            if open_ended
+            if open_ended or map_build
             else [
                 agibot_sdk_runner_section(
                     run_dir,
@@ -180,7 +181,7 @@ def _cleanup_report_sections(
         _report_tab_panel(
             "proof",
             []
-            if open_ended
+            if open_ended or map_build
             else [
                 _score_section(score),
                 manipulation_provenance_section(run_result),
@@ -197,15 +198,15 @@ def _cleanup_report_sections(
                 raw_fpv_observations_section(run_result, view_figure=_view_figure),
                 model_declared_observations_section(run_result),
                 camera_model_policy_section(run_result),
-                "" if open_ended else advisory_review_section(run_result),
-                "" if open_ended else private_evaluation_section(run_result),
+                "" if open_ended or map_build else advisory_review_section(run_result),
+                "" if open_ended or map_build else private_evaluation_section(run_result),
             ],
         ),
     ]
     return present_sections(sections)
 
 
-def _cleanup_report_tabs(*, open_ended: bool = False) -> str:
+def _cleanup_report_tabs(*, open_ended: bool = False, map_build: bool = False) -> str:
     tabs = [
         ("overview", "Overview"),
         ("timeline", "Robot Timeline"),
@@ -213,7 +214,7 @@ def _cleanup_report_tabs(*, open_ended: bool = False) -> str:
         ("actions", "Actions"),
         ("agent", "Agent & Eval"),
     ]
-    if not open_ended:
+    if not open_ended and not map_build:
         tabs[4:4] = [("robot", "Robot & Map"), ("proof", "Score & Proof")]
     buttons = "".join(
         '<button type="button" class="report-tab" '
@@ -247,10 +248,14 @@ def _cleanup_summary_section(
     score: dict[str, Any],
 ) -> str:
     open_ended = _is_open_ended_result(run_result)
+    map_build = _is_map_build_result(run_result)
     restored_summary = f"{score.get('restored_count', 0)}/{score.get('total_targets', 0)}"
     if open_ended:
         default_eyebrow = "Open-ended artifact"
         default_title = "MolmoSpaces Open-ended Pilot"
+    elif map_build:
+        default_eyebrow = "Map-build artifact"
+        default_title = "MolmoSpaces Map Build"
     else:
         default_eyebrow = "Cleanup artifact"
         default_title = "MolmoSpaces Cleanup Pilot"
@@ -271,8 +276,12 @@ def _cleanup_summary_section(
           {badge("Backend", run_result.get("backend", "unknown"))}
           {badge("Contract", run_result.get("contract", "legacy"))}
           {badge("Status", _summary_status_label(_summary_status(run_result)))}
-          {"" if open_ended else badge("Restored", restored_summary)}
-          {"" if open_ended else badge("Generated mess", _generated_mess_summary(run_result))}
+          {"" if open_ended or map_build else badge("Restored", restored_summary)}
+          {
+        ""
+        if open_ended or map_build
+        else badge("Generated mess", _generated_mess_summary(run_result))
+    }
           {badge("Policy", run_result.get("policy", run_result.get("planner", "unknown")))}
           {evidence_lane_badges(run_result, badge)}
           {badge("Agent driven", run_result.get("agent_driven", False))}
@@ -441,6 +450,13 @@ def _object_moves_section(moves: list[dict[str, Any]]) -> str:
 
 
 def _score_section(score: dict[str, Any]) -> str:
+    if "object_results" not in score:
+        return """
+    <section class="panel">
+      <h2>Score</h2>
+      <p>No cleanup score was recorded for this run.</p>
+    </section>
+    """
     return f"""
     <section class="panel">
       <h2>Score</h2>
@@ -450,7 +466,7 @@ def _score_section(score: dict[str, Any]) -> str:
 
 
 def _summary_metrics(run_result: dict[str, Any], score: dict[str, Any]) -> str:
-    if _is_open_ended_result(run_result):
+    if _is_open_ended_result(run_result) or _is_map_build_result(run_result):
         return (
             '<div class="metric-grid">'
             f"{metric('Status', _summary_status_label(_summary_status(run_result)))}"
@@ -497,7 +513,7 @@ def _is_failure_status(run_result: dict[str, Any]) -> bool:
             run_result.get("final_status"),
             run_result.get("status"),
         ]
-        if _is_open_ended_result(run_result)
+        if _is_open_ended_result(run_result) or _is_map_build_result(run_result)
         else [
             run_result.get("cleanup_status"),
             run_result.get("completion_status"),
@@ -517,8 +533,8 @@ def _is_failure_status(run_result: dict[str, Any]) -> bool:
 def _summary_status(run_result: dict[str, Any]) -> Any:
     keys = (
         ("intent_status", "goal_status", "final_status", "status", "cleanup_status")
-        if _is_open_ended_result(run_result)
-        else ("cleanup_status", "status")
+        if _is_open_ended_result(run_result) or _is_map_build_result(run_result)
+        else ("cleanup_status", "completion_status", "final_status", "status")
     )
     for key in keys:
         value = run_result.get(key)
@@ -533,7 +549,14 @@ def _is_open_ended_result(run_result: dict[str, Any]) -> bool:
     return (
         str(run_result.get("task_intent") or goal_contract.get("intent") or "").strip()
         == "open-ended"
+        and str(run_result.get("task_kind") or "").strip() != "long-horizon"
     )
+
+
+def _is_map_build_result(run_result: dict[str, Any]) -> bool:
+    goal_contract = run_result.get("goal_contract")
+    goal_contract = goal_contract if isinstance(goal_contract, dict) else {}
+    return str(run_result.get("task_kind") or "").strip() == "map-build"
 
 
 def _failure_reason_text(run_result: dict[str, Any]) -> str:

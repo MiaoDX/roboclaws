@@ -250,6 +250,32 @@ def test_realworld_mcp_open_ended_intent_is_recorded_in_run_result(
         assert cleanup_only not in run_result
 
 
+def test_realworld_mcp_long_horizon_keeps_final_state_for_private_grader(
+    tmp_path: Path,
+) -> None:
+    prompt = "把看到的面包放回厨房置物架"
+    server = make_household_world_mcp(
+        run_dir=tmp_path,
+        scenario=build_cleanup_scenario(seed=7),
+        port=0,
+        policy="codex_agent",
+        agent_driven=True,
+        task_prompt=prompt,
+        task_kind="long-horizon",
+        goal_contract=_open_ended_goal_contract(prompt),
+    )
+    try:
+        server.call_tool("metric_map")
+        done = server.call_tool("done", reason="long-horizon task complete")
+        run_result = json.loads(Path(done["run_result"]).read_text(encoding="utf-8"))
+    finally:
+        server.close()
+
+    assert run_result["task_kind"] == "long-horizon"
+    assert "final_locations" in run_result
+    assert "final_containment" in run_result
+
+
 def test_realworld_mcp_camera_grounded_isaac_closeout_writes_run_result(
     tmp_path: Path,
 ) -> None:

@@ -176,6 +176,7 @@ class HouseholdMCPArtifactLifecycle:
                     self.robot_view_steps,
                     agent_view,
                 ),
+                task_kind=self.task_kind,
             )
         )
         terminal_complete = done_response.get("ok") is True

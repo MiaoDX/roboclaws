@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from roboclaws.evals.live_runtime import generated_mess_count, live_surface_command
+from roboclaws.evals.live_runtime import generated_mess_count, live_surface_command, task_prompt
 from roboclaws.evals.models import load_eval_sample
 from roboclaws.evals.runner import run_eval_suite
 from roboclaws.launch.catalog import resolve_surface_launch
@@ -89,6 +89,31 @@ def test_live_surface_command_uses_current_public_launch_axes(tmp_path: Path) ->
     assert plan.evidence_mode == "world-public-labels"
 
 
+def test_long_horizon_live_command_uses_eval_target_setup(tmp_path: Path) -> None:
+    sample = load_eval_sample(
+        Path(__file__).resolve().parents[3]
+        / "evals"
+        / "household_world"
+        / "samples"
+        / "long_horizon"
+        / "snack_restock_val0_seed7.json"
+    )
+    kwargs = {
+        "eval_sample": sample,
+        "agent_engine": "openai-agents-sdk",
+        "provider_profile": "kimi-openai-chat",
+        "backend": "mujoco",
+        "evidence_lane": "world-public-labels",
+        "seed": sample.seed,
+        "generated_mess_count": 2,
+        "task_prompt": sample.prompt,
+        "scene_source": "procthor-10k-val",
+        "scene_index": 0,
+    }
+    command = live_surface_command(kwargs, output_dir=tmp_path)
+    assert "scenario_setup=relocate-eval-target-objects" in command
+
+
 def test_open_ended_samples_do_not_generate_cleanup_relocation_targets() -> None:
     sample = load_eval_sample(
         Path(__file__).resolve().parents[3]
@@ -100,6 +125,19 @@ def test_open_ended_samples_do_not_generate_cleanup_relocation_targets() -> None
     )
 
     assert generated_mess_count(sample) == 0
+
+
+def test_open_ended_missing_prompt_uses_neutral_task_prompt() -> None:
+    sample = load_eval_sample(
+        Path(__file__).resolve().parents[3]
+        / "evals"
+        / "household_world"
+        / "samples"
+        / "open_ended"
+        / "bread_seed7.json"
+    )
+    sample = sample.__class__(**{**sample.__dict__, "prompt": "unavailable"})
+    assert "收拾" not in task_prompt(sample)
 
 
 def test_live_surface_command_uses_explicit_mcp_port(tmp_path: Path) -> None:

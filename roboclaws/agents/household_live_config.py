@@ -140,6 +140,7 @@ def _load_agent_sdk_skill_context(
     delivery_cell: str = "static-full",
     intent: str = "cleanup",
     evidence_lane: str = "world-public-labels",
+    task_kind: str = "",
 ) -> dict[str, Any]:
     delivery_cell = validate_skill_delivery_cell(delivery_cell)
     relative_path = Path("skills") / skill_name / "SKILL.md"
@@ -167,6 +168,7 @@ def _load_agent_sdk_skill_context(
         full_content=text,
         intent=intent,
         evidence_lane=evidence_lane,
+        task_kind=task_kind,
     )
     return {
         **base_payload,

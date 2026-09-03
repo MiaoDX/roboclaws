@@ -31,6 +31,9 @@ loop
 ## Cleanup Preset
 cleanup
 
+## Long-Horizon Eval
+long horizon
+
 ## Map-Build Preset
 map
 
@@ -146,6 +149,31 @@ def test_routed_content_contains_only_frozen_selected_sections() -> None:
     assert "camera-grounded-labels" in routed.content
     assert "Map-Build Preset" not in routed.content
     assert "private helper" not in routed.content
+
+
+def test_long_horizon_routing_includes_manipulation_strategy() -> None:
+    routed = build_skill_delivery(
+        "dynamic-routed",
+        full_content=SKILL,
+        intent="open-ended",
+        evidence_lane="world-public-labels",
+        task_kind="long-horizon",
+    )
+    assert "## Open-Ended Goals" not in routed.content
+    assert "## Long-Horizon Eval" in routed.content
+    assert "## Cleanup Preset" not in routed.content
+    assert "long-horizon eval task" in routed.content
+
+
+def test_skill_delivery_rejects_unknown_task_kind() -> None:
+    with pytest.raises(ValueError, match="task_kind"):
+        build_skill_delivery(
+            "dynamic-routed",
+            full_content=SKILL,
+            intent="open-ended",
+            evidence_lane="world-public-labels",
+            task_kind="cleanup",
+        )
 
 
 def test_delivery_artifact_records_identity_events_tools_and_sandbox(tmp_path: Path) -> None:

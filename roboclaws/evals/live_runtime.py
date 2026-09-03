@@ -13,7 +13,7 @@ from roboclaws.core.goals import normalize_goal_contract
 from roboclaws.core.task_intents import TASK_INTENT_SPECS
 from roboclaws.evals import live_long_horizon
 from roboclaws.evals.live_artifacts import load_live_eval_json
-from roboclaws.evals.long_horizon_contract import generated_mess_object_ids
+from roboclaws.evals.long_horizon_contract import generated_mess_object_ids, is_long_horizon_sample
 from roboclaws.evals.models import (
     MISSING_NOT_APPLICABLE,
     MISSING_SENTINELS,
@@ -70,10 +70,7 @@ def live_surface_command(kwargs: dict[str, Any], *, output_dir: Path) -> list[st
     # product's semantic smoke profile for provider-backed showcase runs.
     if _is_smoke_budget(kwargs) and kwargs.get("agent_engine") == "direct-runner":
         command.append("run_preset=smoke")
-    command += live_long_horizon.relocation_args(
-        kwargs,
-        relocation_count=_generated_mess_count(kwargs),
-    )
+    command += _relocation_args_for_sample(kwargs, sample)
     port = str(kwargs.get("port") or "")
     if port:
         command.append(f"port={port}")
@@ -84,6 +81,15 @@ def live_surface_command(kwargs: dict[str, Any], *, output_dir: Path) -> list[st
     if task_prompt and (sample is None or sample.prompt not in {"", MISSING_NOT_APPLICABLE}):
         command.append(f"prompt={task_prompt}")
     return command
+
+
+def _relocation_args_for_sample(kwargs: dict[str, Any], sample: EvalSample | None) -> list[str]:
+    if sample is not None and sample.intent not in {"cleanup", "open-ended"}:
+        return []
+    return live_long_horizon.relocation_args(
+        kwargs,
+        relocation_count=_generated_mess_count(kwargs),
+    )
 
 
 def live_surface_run_dir(kwargs: dict[str, Any], *, output_dir: Path) -> Path:
@@ -197,6 +203,7 @@ def live_product_run_kwargs(
             "model_visible_tool_surface": list(model_visible_tool_surface),
             "skill_source_root": str(skill_source_root) if skill_source_root is not None else "",
             "skill_name": skill_name or "",
+            "task_kind": "long-horizon" if is_long_horizon_sample(sample) else "",
         }
     )
     return kwargs
@@ -226,6 +233,7 @@ def product_run_kwargs(
             "eval_sample_id": sample.sample_id,
             "eval_sample_version": sample.version,
             "eval_suite_runner": "roboclaws.evals.runner",
+            "task_kind": "long-horizon" if is_long_horizon_sample(sample) else "",
         },
         "goal_contract_json": _goal_contract_json(sample),
     }
@@ -306,11 +314,13 @@ def camera_labeler(sample: EvalSample) -> str:
 def task_prompt(sample: EvalSample) -> str:
     if sample.prompt not in {"", MISSING_NOT_APPLICABLE, MISSING_UNAVAILABLE}:
         return sample.prompt
-    return (
-        "帮我建立这个房间的 Runtime Metric Map"
-        if sample.intent == "map-build"
-        else "帮我收拾这个房间"
-    )
+    if sample.intent == "map-build":
+        return "帮我建立这个房间的 Runtime Metric Map"
+    if sample.intent == "cleanup":
+        return "帮我收拾这个房间"
+    if sample.intent == "open-ended":
+        return "请根据用户目标检查这个家庭场景并完成公开可验证的任务"
+    raise ValueError(f"unsupported household eval intent {sample.intent!r}")
 
 
 def generated_mess_count(sample: EvalSample) -> int:
@@ -353,6 +363,7 @@ def live_surface_env(kwargs: dict[str, Any], *, base_env: Any) -> dict[str, str]
     env["ROBOCLAWS_EVAL_SKILL_DELIVERY_CELL"] = str(
         kwargs.get("skill_delivery_cell") or "static-full"
     )
+    env["ROBOCLAWS_EVAL_TASK_KIND"] = str(kwargs.get("task_kind") or "")
     env["ROBOCLAWS_EVAL_MODEL_VISIBLE_TOOL_SURFACE"] = json.dumps(
         list(kwargs.get("model_visible_tool_surface") or ()), separators=(",", ":")
     )

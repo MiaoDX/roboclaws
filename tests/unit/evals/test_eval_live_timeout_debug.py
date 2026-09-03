@@ -111,7 +111,7 @@ def test_live_surface_product_records_timeout_debug_snapshot(
     assert timeout_run_dir is not None
     assert popen_kwargs["cwd"] == live_execution.REPO_ROOT
     setup = json.loads(popen_kwargs["env"][ENVIRONMENT_SETUP_METADATA_ENV])
-    assert setup["mode"] == "relocate-cleanup-related-objects"
+    assert setup["mode"] == "relocate-eval-target-objects"
     assert setup["relocation_count"] == 3
     record = json.loads((tmp_path / "trial-0000" / "live_eval_command.json").read_text())
     assert record["returncode"] == "stall_timeout"

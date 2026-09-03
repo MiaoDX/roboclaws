@@ -7,6 +7,7 @@ from roboclaws.core.raw_fpv_guidance import (
     RAW_FPV_DECLARATION_STRATEGY,
     raw_fpv_inline_candidate_instruction,
 )
+from roboclaws.core.task_intents import normalize_household_intent
 from roboclaws.household import (
     realworld_contract_projection,
     realworld_runtime_map_targets,
@@ -76,7 +77,7 @@ class HouseholdRuntimeNavigationMixin:
             )
 
     def public_tool_names(self) -> list[str]:
-        return [
+        tools = [
             "metric_map",
             "navigate_to_room",
             "navigate_to_waypoint",
@@ -95,6 +96,25 @@ class HouseholdRuntimeNavigationMixin:
             "close_receptacle",
             "done",
         ]
+        if normalize_household_intent(getattr(self, "task_intent", "")) == "map-build":
+            tools = [
+                name
+                for name in tools
+                if name
+                not in {
+                    "navigate_to_visual_candidate",
+                    "inspect_visible_object",
+                    "resolve_target_query",
+                    "navigate_to_object",
+                    "pick",
+                    "navigate_to_receptacle",
+                    "open_receptacle",
+                    "place",
+                    "place_inside",
+                    "close_receptacle",
+                }
+            ]
+        return tools
 
     def public_receptacles_by_id(self) -> dict[str, dict[str, Any]]:
         return {

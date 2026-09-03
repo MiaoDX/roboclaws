@@ -92,6 +92,11 @@ capabilities; it should not define a cleanup profile that duplicates the whole
 world profile. The selected skill is where composite behavior such as
 `navigate_to_object -> pick -> navigate_to_receptacle -> open? -> place` lives.
 
+Long-horizon evaluations use the public open-task route and the existing MCP
+capability profiles. An eval-only task kind keeps multi-step skill guidance,
+private final-state grading, and target-scene setup aligned without creating a
+new public task axis or reusing the cleanup preset.
+
 Real-robot deployment should use the same public layers. A physical run should
 change backend variant, provenance, safety gate, and blocked-capability status;
 it should not need a separate robot-only task taxonomy when the public task,

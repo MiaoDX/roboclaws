@@ -156,6 +156,7 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
             delivery_cell=self.skill_delivery_cell,
             intent=_household_intent(args),
             evidence_lane=getattr(args, "profile", ""),
+            task_kind=os.environ.get("ROBOCLAWS_EVAL_TASK_KIND", ""),
         )
         self.initial_kickoff_prompt = _profiled_kickoff_prompt(
             args,

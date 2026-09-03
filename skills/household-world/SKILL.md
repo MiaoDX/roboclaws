@@ -186,6 +186,16 @@ reported as `already_handled` and avoid repeating work in the same stale area.
 When a `pending_cleanup_candidates` blocker is present, act only on those public
 candidate entries and preserve their returned waypoint identities.
 
+## Long-Horizon Eval
+
+Long-horizon eval goals are multi-step open tasks, not whole-room cleanup sweeps.
+Use the operator goal to choose the source rooms and target objects. Reuse the
+public `metric_map`, `observe`, navigation, manipulation, and `done` tools only
+when the goal requires them. Confirm each object placement from public tool
+responses and finish with an empty hand when the goal requires transport.
+The private long-horizon grader may inspect authoritative final state, but that
+state and its target lists are never agent input.
+
 ## Map-Build Preset
 
 Use the same public map, observation, camera, and target-query tools, but do not

@@ -184,6 +184,7 @@ def _skill_delivery_identity(cell: str, *, axes: dict[str, str]) -> dict[str, An
         full_content=skill_path.read_text(encoding="utf-8"),
         intent=str(axes.get("intent") or "cleanup"),
         evidence_lane=str(axes.get("evidence_lane") or "world-public-labels"),
+        task_kind=("long-horizon" if axes.get("suite") == "long_horizon_tasks" else ""),
     )
     tool_surface = tuple(
         name

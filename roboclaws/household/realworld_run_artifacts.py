@@ -72,13 +72,19 @@ def goal_result_payload(
     )
 
 
-def terminal_status_payload(task_intent: str, cleanup_status: str) -> dict[str, str]:
-    status = "success" if task_intent == "open-ended" else cleanup_status
+def terminal_status_payload(
+    task_intent: str,
+    cleanup_status: str,
+    *,
+    task_kind: str = "",
+) -> dict[str, str]:
+    open_ended = task_intent == "open-ended" and task_kind != "long-horizon"
+    status = "success" if open_ended else cleanup_status
     return {
         "intent_status": status,
         "goal_status": status,
         "final_status": status,
-        "cleanup_status_role": "advisory" if task_intent == "open-ended" else "terminal",
+        "cleanup_status_role": "advisory" if open_ended else "terminal",
     }
 
 
@@ -102,7 +108,11 @@ def compose_household_run_result(payload: dict[str, Any]) -> dict[str, Any]:
         **payload,
         "contract": REALWORLD_CONTRACT,
         "adr_0003_satisfied": True,
-        **terminal_status_payload(task_intent, cleanup_status),
+        **terminal_status_payload(
+            task_intent,
+            cleanup_status,
+            task_kind=str(payload.get("task_kind") or ""),
+        ),
         "completion_status": score["completion_status"],
         "mess_restoration_rate": score["mess_restoration_rate"],
         "sweep_coverage_rate": score["sweep_coverage_rate"],
@@ -110,6 +120,48 @@ def compose_household_run_result(payload: dict[str, Any]) -> dict[str, Any]:
         "semantic_loop_variant": SEMANTIC_LOOP_VARIANT,
         **public_agent_view_result_payload(agent_view),
     }
+
+
+def project_run_result_for_task(
+    run_result: dict[str, Any],
+    *,
+    task_kind: str = "",
+) -> dict[str, Any]:
+    """Remove task-private cleanup projections from non-cleanup results."""
+
+    intent = str(run_result.get("task_intent") or "").strip()
+    is_long_horizon = task_kind == "long-horizon"
+    is_map_build = task_kind == "map-build" or intent == "map-build"
+    if intent != "open-ended" and not is_map_build:
+        return run_result
+    if intent == "open-ended" and is_long_horizon:
+        return run_result
+    cleanup_only = {
+        "cleanup_status",
+        "completion_status",
+        "mess_restoration_rate",
+        "disturbance_count",
+        "requested_generated_mess_count",
+        "generated_mess_count",
+        "score",
+        "final_locations",
+        "final_containment",
+        "semantic_substeps",
+        "cleanup_primitive_evidence",
+        "planner_proof_requests",
+        "cleanup_plan",
+        "cleanup_policy_trace",
+        "private_evaluation",
+        "advisory_evaluation",
+        "agent_diagnostics",
+        "mess_placement_diagnostics",
+        "placement_diagnostics",
+        "cleanup_backend_evidence",
+        "manipulation_evidence",
+    }
+    if is_map_build:
+        cleanup_only -= {"cleanup_policy_trace"}
+    return {key: value for key, value in run_result.items() if key not in cleanup_only}
 
 
 def runtime_map_prior_summary(
