@@ -5,6 +5,7 @@ from roboclaws.household.household_backend_contract import HouseholdBackendSessi
 from roboclaws.household.household_runtime_contract import (
     RAW_FPV_ONLY_MODE,
 )
+from roboclaws.household.realworld_runtime_target_selection import target_search_summary
 from roboclaws.household.scenario import build_cleanup_scenario
 from tests.contract.molmo_cleanup.household_runtime_contract_support import (
     _assert_no_forbidden_keys,
@@ -136,6 +137,21 @@ def test_target_query_recovery_not_found_includes_public_search_budget() -> None
         metric_map["inspection_waypoints"]
     )
     _assert_no_forbidden_keys(resolution)
+
+
+def test_negative_search_budget_excludes_object_specific_generated_waypoints() -> None:
+    contract = _contract(
+        HouseholdBackendSession(build_cleanup_scenario(seed=7)),
+    )
+    _observe_all_public_waypoints(contract)
+    contract._generated_inspection_waypoints["generated_inspection_001"] = {
+        "waypoint_id": "generated_inspection_001",
+        "waypoint_source": "generated_target_inspection_candidate",
+    }
+
+    budget = target_search_summary(contract, [])["viewpoint_budget"]
+    assert budget["total_public_waypoints"] == len(contract._public_waypoints)
+    assert "generated_inspection_001" not in budget["unvisited_waypoint_ids"]
 
 
 def test_realworld_detected_handle_can_be_cleaned_without_private_manifest() -> None:

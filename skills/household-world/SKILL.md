@@ -71,6 +71,17 @@ cleanup. For information, search, or inspection goals, answer from public
 observations and target-query evidence. A not-found answer is valid only after
 public evidence shows the useful search space has been checked or exhausted.
 
+For a negative search, resolve the user's semantic target once (reasonable
+aliases such as water, bottle, or beverage are one search, not separate
+searches). If the result is `not_found` and
+`exhausted_public_search_budget` is false, do not retry equivalent synonyms.
+Follow the returned `public_search_budget.viewpoint_budget.unvisited_waypoint_ids`
+in order: navigate to the next public waypoint, observe once, then resolve the
+original target again. After the budget reports no unvisited waypoint and the
+final resolution is `not_found`, call `done` immediately with the public
+not-found evidence. Never turn a negative search into cleanup or an unbounded
+camera sweep.
+
 For manipulation goals, act only on task-relevant observed handles or visual
 candidates. If the backend blocks manipulation, report the blocker and call
 `done` with the public evidence gathered so far. Do not require every
