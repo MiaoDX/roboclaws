@@ -234,3 +234,7 @@ def test_open_ended_report_ignores_advisory_cleanup_failure(tmp_path: Path) -> N
     assert "Open-ended artifact" in html
     assert "Failure Reason" not in html
     assert "<span>Status</span><strong>Success</strong>" in html
+    assert "Restored" not in html
+    assert "Generated mess" not in html
+    assert "Advisory Review" not in html
+    assert "Score &amp; Proof" not in html

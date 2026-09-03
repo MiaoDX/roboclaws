@@ -327,7 +327,7 @@ def generated_mess_count(sample: EvalSample) -> int:
         value = launch_overrides.get(key)
         if value is not None:
             return _non_negative_int_value(value, f"launch_overrides.{key}")
-    if sample.intent == "map-build":
+    if sample.intent in {"map-build", "open-ended"}:
         return 0
     return 10
 

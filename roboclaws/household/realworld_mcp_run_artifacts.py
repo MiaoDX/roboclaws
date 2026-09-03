@@ -147,6 +147,7 @@ def finalize_realworld_mcp_done(
     )
     run_result = _base_run_result(inputs, paths, payloads)
     run_result = _attach_run_result_sections(inputs, run_result)
+    run_result = _project_run_result_for_intent(run_result)
     report_path = persist_household_run_result(
         paths,
         run_dir=inputs.run_dir,
@@ -296,7 +297,38 @@ def _base_run_result(
             goal_status="terminal_incomplete",
             final_status="terminal_incomplete",
         )
-    return run_result
+    return _project_run_result_for_intent(run_result)
+
+
+def _project_run_result_for_intent(run_result: dict[str, Any]) -> dict[str, Any]:
+    """Keep cleanup scoring out of the persisted result for open-ended goals."""
+
+    if str(run_result.get("task_intent") or "") != "open-ended":
+        return run_result
+    cleanup_only = {
+        "cleanup_status",
+        "completion_status",
+        "mess_restoration_rate",
+        "sweep_coverage_rate",
+        "disturbance_count",
+        "requested_generated_mess_count",
+        "generated_mess_count",
+        "score",
+        "final_locations",
+        "final_containment",
+        "semantic_substeps",
+        "cleanup_primitive_evidence",
+        "planner_proof_requests",
+        "cleanup_plan",
+        "cleanup_policy_trace",
+        "private_evaluation",
+        "advisory_evaluation",
+        "agent_diagnostics",
+        "mess_placement_diagnostics",
+        "placement_diagnostics",
+        "cleanup_backend_evidence",
+    }
+    return {key: value for key, value in run_result.items() if key not in cleanup_only}
 
 
 def _attach_run_result_sections(

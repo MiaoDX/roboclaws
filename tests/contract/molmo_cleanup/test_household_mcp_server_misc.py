@@ -233,7 +233,21 @@ def test_realworld_mcp_open_ended_intent_is_recorded_in_run_result(
     assert run_result["goal_status"] == "success"
     assert run_result["final_status"] == "success"
     assert run_result["cleanup_status_role"] == "advisory"
-    assert run_result["cleanup_status"] == "failed"
+    for cleanup_only in (
+        "cleanup_status",
+        "completion_status",
+        "score",
+        "final_locations",
+        "final_containment",
+        "private_evaluation",
+        "advisory_evaluation",
+        "cleanup_plan",
+        "cleanup_primitive_evidence",
+        "cleanup_policy_trace",
+        "agent_diagnostics",
+        "cleanup_backend_evidence",
+    ):
+        assert cleanup_only not in run_result
 
 
 def test_realworld_mcp_camera_grounded_isaac_closeout_writes_run_result(
@@ -318,7 +332,7 @@ def test_realworld_mcp_can_record_robot_view_timeline(tmp_path: Path) -> None:
     run_result = json.loads((tmp_path / "run_result.json").read_text(encoding="utf-8"))
     report_text = (tmp_path / "report.html").read_text(encoding="utf-8")
 
-    assert done["cleanup_status"] == "failed"
+    assert "cleanup_status" not in done
     assert run_result["cleanup_status_role"] == "advisory"
     assert run_result["view_variant"] == "molmospaces-rby1m-fpv-topdown-chase-verify"
     assert run_result["robot_view_camera_control"]["schema"] == (

@@ -108,109 +108,113 @@ def _cleanup_report_sections(
 ) -> list[str]:
     """Return the canonical Cleanup Artifact Report section sequence."""
     moves = extract_moves(trace_events)
-    score = run_result["score"]
-    return present_sections(
-        [
-            _cleanup_report_tabs(),
-            _cleanup_summary_section(scenario=scenario, run_result=run_result, score=score),
-            _report_tab_panel(
-                "overview",
-                [
-                    _confidence_layer_note(run_result),
-                    map_evidence_refresh_summary_section(run_result),
-                    runtime_metric_map_preview_section(run_dir, run_result),
-                    _before_after_section(
-                        before_snapshot=before_snapshot,
-                        after_snapshot=after_snapshot,
-                        run_result=run_result,
-                        robot_view_steps=robot_view_steps,
-                    ),
-                    _object_moves_section(moves),
-                ],
-            ),
-            _report_tab_panel(
-                "timeline",
-                [
-                    robot_timeline_section(
-                        run_dir,
-                        visual_core_robot_view_steps(run_result, robot_view_steps),
-                        empty_state_block=empty_state_block,
-                        view_figure=_view_figure,
-                        report_asset_src=_report_asset_src,
-                    )
-                ],
-            ),
-            _report_tab_panel(
-                "timing",
-                [runtime_timing_section(run_dir, run_result, trace_events, robot_view_steps)],
-            ),
-            _report_tab_panel(
-                "actions",
-                [semantic_steps_table(run_result.get("semantic_substeps") or [])],
-            ),
-            _report_tab_panel(
-                "robot",
-                [
-                    agibot_sdk_runner_section(
-                        run_dir,
-                        run_result,
-                        metric=metric,
-                        artifact_link=_artifact_link,
-                    ),
-                    isaac_runtime_section(
-                        run_dir,
-                        run_result,
-                        metric=metric,
-                        artifact_link=_artifact_link,
-                        yes_no=_yes_no,
-                    ),
-                    nav2_map_bundle_section(
-                        run_dir,
-                        run_result,
-                        metric=metric,
-                        review_image=review_image,
-                        report_asset_src=_report_asset_src,
-                    ),
-                    real_robot_readiness_section(run_result),
-                    cleanup_policy_trace_section(run_result),
-                ],
-            ),
-            _report_tab_panel(
-                "proof",
-                [
-                    _score_section(score),
-                    manipulation_provenance_section(run_result),
-                    attached_planner_proof_section(run_result, view_figure=_view_figure),
-                    cleanup_primitive_gate_section(run_result),
-                    planner_cleanup_bridge_section(run_result),
-                    planner_proof_requests_section(run_result),
-                ],
-            ),
-            _report_tab_panel(
-                "agent",
-                [
-                    agent_view_section(run_result),
-                    raw_fpv_observations_section(run_result, view_figure=_view_figure),
-                    model_declared_observations_section(run_result),
-                    camera_model_policy_section(run_result),
-                    advisory_review_section(run_result),
-                    private_evaluation_section(run_result),
-                ],
-            ),
-        ]
-    )
+    score = run_result.get("score") if isinstance(run_result.get("score"), dict) else {}
+    open_ended = _is_open_ended_result(run_result)
+    sections = [
+        _cleanup_report_tabs(open_ended=open_ended),
+        _cleanup_summary_section(scenario=scenario, run_result=run_result, score=score),
+        _report_tab_panel(
+            "overview",
+            [
+                _confidence_layer_note(run_result),
+                map_evidence_refresh_summary_section(run_result),
+                runtime_metric_map_preview_section(run_dir, run_result),
+                _before_after_section(
+                    before_snapshot=before_snapshot,
+                    after_snapshot=after_snapshot,
+                    run_result=run_result,
+                    robot_view_steps=robot_view_steps,
+                ),
+                "" if open_ended else _object_moves_section(moves),
+            ],
+        ),
+        _report_tab_panel(
+            "timeline",
+            [
+                robot_timeline_section(
+                    run_dir,
+                    visual_core_robot_view_steps(run_result, robot_view_steps),
+                    empty_state_block=empty_state_block,
+                    view_figure=_view_figure,
+                    report_asset_src=_report_asset_src,
+                )
+            ],
+        ),
+        _report_tab_panel(
+            "timing",
+            [runtime_timing_section(run_dir, run_result, trace_events, robot_view_steps)],
+        ),
+        _report_tab_panel(
+            "actions",
+            [semantic_steps_table(run_result.get("semantic_substeps") or [])],
+        ),
+        _report_tab_panel(
+            "robot",
+            []
+            if open_ended
+            else [
+                agibot_sdk_runner_section(
+                    run_dir,
+                    run_result,
+                    metric=metric,
+                    artifact_link=_artifact_link,
+                ),
+                isaac_runtime_section(
+                    run_dir,
+                    run_result,
+                    metric=metric,
+                    artifact_link=_artifact_link,
+                    yes_no=_yes_no,
+                ),
+                nav2_map_bundle_section(
+                    run_dir,
+                    run_result,
+                    metric=metric,
+                    review_image=review_image,
+                    report_asset_src=_report_asset_src,
+                ),
+                real_robot_readiness_section(run_result),
+                cleanup_policy_trace_section(run_result),
+            ],
+        ),
+        _report_tab_panel(
+            "proof",
+            []
+            if open_ended
+            else [
+                _score_section(score),
+                manipulation_provenance_section(run_result),
+                attached_planner_proof_section(run_result, view_figure=_view_figure),
+                cleanup_primitive_gate_section(run_result),
+                planner_cleanup_bridge_section(run_result),
+                planner_proof_requests_section(run_result),
+            ],
+        ),
+        _report_tab_panel(
+            "agent",
+            [
+                agent_view_section(run_result),
+                raw_fpv_observations_section(run_result, view_figure=_view_figure),
+                model_declared_observations_section(run_result),
+                camera_model_policy_section(run_result),
+                "" if open_ended else advisory_review_section(run_result),
+                "" if open_ended else private_evaluation_section(run_result),
+            ],
+        ),
+    ]
+    return present_sections(sections)
 
 
-def _cleanup_report_tabs() -> str:
+def _cleanup_report_tabs(*, open_ended: bool = False) -> str:
     tabs = [
         ("overview", "Overview"),
         ("timeline", "Robot Timeline"),
         ("timing", "Timing"),
         ("actions", "Actions"),
-        ("robot", "Robot & Map"),
-        ("proof", "Score & Proof"),
         ("agent", "Agent & Eval"),
     ]
+    if not open_ended:
+        tabs[4:4] = [("robot", "Robot & Map"), ("proof", "Score & Proof")]
     buttons = "".join(
         '<button type="button" class="report-tab" '
         f'id="report-tab-button-{tab_id}" data-report-tab-button="{tab_id}" '
@@ -242,8 +246,9 @@ def _cleanup_summary_section(
     run_result: dict[str, Any],
     score: dict[str, Any],
 ) -> str:
-    restored_summary = f"{score['restored_count']}/{score['total_targets']}"
-    if _is_open_ended_result(run_result):
+    open_ended = _is_open_ended_result(run_result)
+    restored_summary = f"{score.get('restored_count', 0)}/{score.get('total_targets', 0)}"
+    if open_ended:
         default_eyebrow = "Open-ended artifact"
         default_title = "MolmoSpaces Open-ended Pilot"
     else:
@@ -266,8 +271,8 @@ def _cleanup_summary_section(
           {badge("Backend", run_result.get("backend", "unknown"))}
           {badge("Contract", run_result.get("contract", "legacy"))}
           {badge("Status", _summary_status_label(_summary_status(run_result)))}
-          {badge("Restored", restored_summary)}
-          {badge("Generated mess", _generated_mess_summary(run_result))}
+          {"" if open_ended else badge("Restored", restored_summary)}
+          {"" if open_ended else badge("Generated mess", _generated_mess_summary(run_result))}
           {badge("Policy", run_result.get("policy", run_result.get("planner", "unknown")))}
           {evidence_lane_badges(run_result, badge)}
           {badge("Agent driven", run_result.get("agent_driven", False))}
@@ -445,6 +450,14 @@ def _score_section(score: dict[str, Any]) -> str:
 
 
 def _summary_metrics(run_result: dict[str, Any], score: dict[str, Any]) -> str:
+    if _is_open_ended_result(run_result):
+        return (
+            '<div class="metric-grid">'
+            f"{metric('Status', _summary_status_label(_summary_status(run_result)))}"
+            f"{metric('Goal', run_result.get('task_intent', 'open-ended'))}"
+            f"{metric('Evidence', 'public observations')}"
+            "</div>"
+        )
     semantic = score.get("semantic_acceptability")
     semantic_count = ""
     if isinstance(semantic, dict):
