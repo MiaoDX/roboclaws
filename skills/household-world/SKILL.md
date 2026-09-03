@@ -224,6 +224,6 @@ review of a saved public `runtime_metric_map.json`. It reads only public target
 candidates.
 
 Use `skills/household-world/scripts/scratchpad.py` when you need local memory
-for strategy, retries, or current intent. The scratchpad is non-authoritative;
-when scratchpad notes disagree with `cleanup_worklist`, trust
-`cleanup_worklist`.
+for strategy, retries, or current intent. The scratchpad is non-authoritative.
+For cleanup runs, the contract-derived `cleanup_worklist` remains authoritative;
+other intents do not receive a cleanup worklist.

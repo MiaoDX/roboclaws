@@ -233,8 +233,11 @@ It excludes manipulation and task-completion tools such as `pick`, `place`,
 `open_receptacle`,
 `close_receptacle`, and `done`.
 
-The artifact boundary is task-neutral: `preset=map-build` may emit a raw
-`runtime_metric_map.json`, and map-conversion skills may turn Agibot
+The shared artifact transport is task-neutral, but each result projection is
+task-specific: map-build omits cleanup score/private-evaluation artifacts,
+open tasks omit cleanup worklists and diagnostics, and long-horizon tasks keep
+only the final-state/manipulation evidence needed by their private grader.
+`preset=map-build` may emit a raw `runtime_metric_map.json`, and map-conversion skills may turn Agibot
 `navigation_memory.json` into `runtime_map_prior_snapshot_v1`. Cleanup
 and open household tasks consume the canonical snapshot or its runtime-map
 payload through `runtime_map_prior=...`; they should not add an Agibot-specific
