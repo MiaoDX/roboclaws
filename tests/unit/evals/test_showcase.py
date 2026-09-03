@@ -137,7 +137,7 @@ def test_model_lane_live_command_uses_canonical_provider_identity(tmp_path):
     assert "live_execution=run" in command
     assert "live_timeout_s=900" in command
     assert "live_stall_timeout_s=120" in command
-    assert "sample_id=open_ended.drink_seed7" in command
+    assert "sample_id=open_ended.book_seed7" in command
     assert "repetition_index=0" in command
 
 
