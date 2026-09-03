@@ -6,12 +6,12 @@
   "sample_ids": [
     "open_ended.drink_seed7",
     "open_ended.room4_anchor_seed7",
-    "open_ended.book_seed7"
+    "open_ended.bread_seed7"
   ],
   "sample_refs": [
     "evals/household_world/samples/open_ended/drink_seed7.json",
     "evals/household_world/samples/open_ended/room4_anchor_seed7.json",
-    "evals/household_world/samples/open_ended/book_seed7.json"
+    "evals/household_world/samples/open_ended/bread_seed7.json"
   ],
   "required_graders": [
     "artifacts",

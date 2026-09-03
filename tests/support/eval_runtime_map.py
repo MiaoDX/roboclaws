@@ -73,7 +73,7 @@ def quality_observed_objects() -> list[dict[str, Any]]:
     return [
         {
             "object_id": "observed_001",
-            "category": "book",
+            "category": "bread",
             "waypoint_id": "room_8_inspection",
             "localization_status": "viewpoint_only",
         }

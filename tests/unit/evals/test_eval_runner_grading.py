@@ -63,7 +63,7 @@ def test_open_ended_positive_predicates_pass_with_public_runtime_evidence(
     room_predicate = results["open_ended.room4_anchor_seed7"]["grader_outputs"]["open_ended"][
         "success_predicate"
     ]
-    book_predicate = results["open_ended.book_seed7"]["grader_outputs"]["open_ended"][
+    book_predicate = results["open_ended.bread_seed7"]["grader_outputs"]["open_ended"][
         "success_predicate"
     ]
     assert room_predicate["passed"] is True
@@ -120,7 +120,7 @@ def test_open_ended_authoritative_predicate_failure_is_behavior_failure(
     assert results["open_ended.room4_anchor_seed7"]["failure_class"] == (
         "private_goal_not_satisfied"
     )
-    assert results["open_ended.book_seed7"]["status"] == "passed"
+    assert results["open_ended.bread_seed7"]["status"] == "passed"
 
 
 @pytest.mark.parametrize(
@@ -132,7 +132,7 @@ def test_open_ended_authoritative_predicate_failure_is_behavior_failure(
             "public_semantic_anchors:invalid_json_array",
         ),
         (
-            "open_ended.book_seed7",
+            "open_ended.bread_seed7",
             "observed_objects",
             "observed_objects:invalid_json_array",
         ),
@@ -250,7 +250,7 @@ def test_open_ended_waypoint_predicate_accepts_trace_visit_without_runtime_ancho
         "passed"
     )
     assert (
-        results["open_ended.book_seed7"]["grader_outputs"]["open_ended"]["success_predicate"][
+        results["open_ended.bread_seed7"]["grader_outputs"]["open_ended"]["success_predicate"][
             "passed"
         ]
         is True

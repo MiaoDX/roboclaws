@@ -331,7 +331,7 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
         "map_build.baseline_seed7",
         "map_build.fixture_focused_seed7",
         "open_ended.drink_seed7",
-        "open_ended.book_seed7",
+        "open_ended.bread_seed7",
         "open_ended.living_waypoint_seed7",
         "open_ended.room4_anchor_seed7",
         "open_ended.stable_anchor_fixture_focused_prior_seed7",
@@ -417,14 +417,14 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
     assert open_ended_suite.sample_ids == (
         "open_ended.drink_seed7",
         "open_ended.room4_anchor_seed7",
-        "open_ended.book_seed7",
+        "open_ended.bread_seed7",
     )
     open_ended_samples = {
         sample.sample_id: sample for sample in loaded if sample.sample_id.startswith("open_ended.")
     }
     open_ended_sample = open_ended_samples["open_ended.drink_seed7"]
     room_sample = open_ended_samples["open_ended.room4_anchor_seed7"]
-    book_sample = open_ended_samples["open_ended.book_seed7"]
+    book_sample = open_ended_samples["open_ended.bread_seed7"]
     assert open_ended_sample.preset == MISSING_NOT_APPLICABLE
     assert open_ended_sample.allowed_agent_engines == (
         "direct-runner",
@@ -449,7 +449,7 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
     assert book_sample.grader_config["success_predicate"] == {
         "predicate_id": "observed_category_present",
         "authoritative": True,
-        "category": "book",
+        "category": "bread",
     }
 
     scene_suite = next(

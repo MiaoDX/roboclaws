@@ -96,7 +96,7 @@ def test_open_ended_samples_do_not_generate_cleanup_relocation_targets() -> None
         / "household_world"
         / "samples"
         / "open_ended"
-        / "book_seed7.json"
+        / "bread_seed7.json"
     )
 
     assert generated_mess_count(sample) == 0
