@@ -52,6 +52,7 @@ def build_agent_view(
     public_acceptance_config: dict[str, Any] | None = None,
     blocked_capabilities: Iterable[str] = (),
     capability_profiles: Iterable[str] = (),
+    include_cleanup_worklist: bool = True,
 ) -> dict[str, Any]:
     active_perception_payload = _active_perception_payload(
         perception_mode=perception_mode,
@@ -68,6 +69,11 @@ def build_agent_view(
         capability_profiles=capability_profiles,
         blocked_capabilities=blocked_capabilities,
     )
+    readiness = {
+        "observed_waypoint_ids": sorted(str(item) for item in observed_waypoint_ids),
+    }
+    if include_cleanup_worklist:
+        readiness["cleanup_worklist"] = copy.deepcopy(cleanup_worklist)
     payload = {
         "schema": AGENT_VIEW_SCHEMA,
         "contract": contract,
@@ -84,10 +90,7 @@ def build_agent_view(
         SECTION_RUNTIME_METRIC_MAP: copy.deepcopy(runtime_metric_map),
         SECTION_ACTIVE_PERCEPTION: active_perception_payload,
         SECTION_POLICY_VIEW: copy.deepcopy(policy_view),
-        SECTION_READINESS: {
-            "cleanup_worklist": copy.deepcopy(cleanup_worklist),
-            "observed_waypoint_ids": sorted(str(item) for item in observed_waypoint_ids),
-        },
+        SECTION_READINESS: readiness,
         SECTION_PRIVACY: {
             "schema": PRIVACY_SCHEMA,
             "forbidden_private_fields_absent": True,

@@ -9,6 +9,7 @@ from typing import Any
 from roboclaws.core.environment_setup import (
     ENVIRONMENT_SETUP_BASELINE,
     ENVIRONMENT_SETUP_OPTIONS,
+    ENVIRONMENT_SETUP_RELOCATE_CLEANUP_RELATED_OBJECTS,
     RELOCATION_SETUP_OPTIONS,
 )
 from roboclaws.core.json_sources import parse_json_object_text
@@ -34,7 +35,7 @@ def environment_setup_metadata(
         "relocation_policy": policy,
         "relocation_count": count,
         "relocated_objects": [],
-        "feeds_cleanup_scoring": setup in RELOCATION_SETUP_OPTIONS,
+        "feeds_cleanup_scoring": setup == ENVIRONMENT_SETUP_RELOCATE_CLEANUP_RELATED_OBJECTS,
     }
 
 

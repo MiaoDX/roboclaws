@@ -8,6 +8,7 @@ import pytest
 import roboclaws.evals.cleanup_result_grader as checker_module
 from roboclaws.core.environment_setup_metadata import (
     ENVIRONMENT_SETUP_METADATA_ENV,
+    environment_setup_metadata,
     environment_setup_run_metadata_from_env,
 )
 from roboclaws.household.household_runtime_contract import (
@@ -128,6 +129,16 @@ def test_setup_provenance_env_builds_private_report_metadata() -> None:
 def test_setup_provenance_env_missing_stays_empty() -> None:
     assert environment_setup_run_metadata_from_env({}) == {}
     assert environment_setup_run_metadata_from_env({ENVIRONMENT_SETUP_METADATA_ENV: "  "}) == {}
+
+
+def test_eval_target_setup_does_not_claim_cleanup_scoring() -> None:
+    metadata = environment_setup_metadata(
+        setup="relocate-eval-target-objects",
+        seed=7,
+        relocation_count=2,
+    )
+    assert metadata["relocation_policy"] == "eval-target-objects"
+    assert metadata["feeds_cleanup_scoring"] is False
 
 
 @pytest.mark.parametrize(

@@ -31,7 +31,7 @@ def relocation_args(kwargs: dict[str, Any], *, relocation_count: int) -> list[st
     if not relocation_count:
         return []
     args = [
-        "scenario_setup=relocate-cleanup-related-objects",
+        "scenario_setup=relocate-eval-target-objects",
         f"relocation_count={relocation_count}",
     ]
     if generated_object_ids := kwargs.get("generated_mess_object_ids"):

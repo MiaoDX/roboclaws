@@ -7,6 +7,7 @@ from roboclaws.household import cleanup_validation as result_checker
 from roboclaws.household.cleanup_validation_base_map import (
     assert_base_metric_map,
 )
+from roboclaws.household.realworld_run_artifacts import project_run_result_for_task
 from roboclaws.maps.base_waypoints import (
     BASE_WAYPOINT_GENERATION_POLICY,
     BASE_WAYPOINT_PURPOSE,
@@ -66,6 +67,28 @@ def test_semantic_success_gate_uses_score_acceptability_not_substep_count() -> N
         enforce_success=True,
         semantic_success_gate=True,
     )
+
+
+def test_map_build_projection_drops_cleanup_scoring_fields() -> None:
+    projected = project_run_result_for_task(
+        {
+            "task_intent": "map-build",
+            "cleanup_status": "map_build_complete",
+            "completion_status": "failed",
+            "score": {"status": "failed"},
+            "private_evaluation": {"generated_mess_count": 12},
+            "manipulation_evidence": {"pick": 2},
+            "cleanup_policy_trace": {"loop_style": "scan_only"},
+            "runtime_metric_map": {"mode": "map_build"},
+        },
+        task_kind="map-build",
+    )
+
+    assert "cleanup_status" not in projected
+    assert "score" not in projected
+    assert "private_evaluation" not in projected
+    assert "manipulation_evidence" not in projected
+    assert projected["cleanup_policy_trace"] == {"loop_style": "scan_only"}
 
 
 def _canonical_base_waypoint() -> dict[str, object]:

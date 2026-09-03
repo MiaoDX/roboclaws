@@ -22,14 +22,17 @@ def assert_waypoint_honesty(
     _assert_metric_map(metric_map)
     _assert_waypoints(metric_map)
 
-    worklist = agent_view_module.cleanup_worklist(agent_view)
     trace = data.get("cleanup_policy_trace") or {}
-    _assert_worklist(
-        worklist,
-        trace,
-        open_ended_intent=open_ended_intent,
-        map_build=map_build,
-    )
+    # Map-build runs intentionally omit cleanup-only worklist data. They still
+    # need the public waypoint and scan-trace checks below.
+    if not map_build:
+        worklist = agent_view_module.cleanup_worklist(agent_view)
+        _assert_worklist(
+            worklist,
+            trace,
+            open_ended_intent=open_ended_intent,
+            map_build=map_build,
+        )
     assert trace.get("schema") == CLEANUP_POLICY_TRACE_SCHEMA, trace
 
     if _is_base_metric_map(metric_map):

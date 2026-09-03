@@ -248,7 +248,14 @@ def target_search_summary(
         actionability = str(candidate.get("target_actionability_status") or "")
         actionability_counts[actionability] = actionability_counts.get(actionability, 0) + 1
     visited_waypoints = sorted(contract._observed_waypoint_ids)
-    public_waypoints = contract._public_navigation_waypoints()
+    # Generic target search is bounded by the stable base exploration sweep.
+    # Generated target-inspection standoffs belong to a specific observed object
+    # recovery flow and must not expand a negative search budget indefinitely.
+    public_waypoints = [
+        waypoint
+        for waypoint in contract._public_navigation_waypoints()
+        if waypoint.get("waypoint_source") != "generated_target_inspection_candidate"
+    ]
     summary = {
         "schema": schema,
         "candidate_count": len(target_candidates),
