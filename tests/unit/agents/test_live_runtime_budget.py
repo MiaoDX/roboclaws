@@ -607,7 +607,7 @@ def test_openai_agents_live_timing_compact_metrics_extracts_valid_budget_detail(
             "runtime": "openai-agents-live",
             "provider_profile": "kimi-openai-chat",
             "wire_api": "responses",
-            "model": "kimi-k2.7-code",
+            "model": "k3",
             "runner_timing": {},
             "agent_sdk_budget_terminal": {
                 "available": True,

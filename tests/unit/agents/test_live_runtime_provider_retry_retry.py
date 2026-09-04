@@ -91,7 +91,7 @@ def test_openai_agents_retrying_model_retries_transient_once(tmp_path: Path) -> 
             "runtime": "openai-agents-live",
             "provider_profile": "kimi-openai-chat",
             "wire_api": "responses",
-            "model": "kimi-k2.7-code",
+            "model": "k3",
         },
     )
 

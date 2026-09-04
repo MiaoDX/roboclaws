@@ -103,7 +103,7 @@ def _open_ended_runner_args(tmp_path: Path, run_dir: Path) -> SimpleNamespace:
         server_arg=[],
         checker_visual_arg=["--require-clean-agent-run"],
         provider_profile="kimi-openai-chat",
-        model="kimi-k2.7-code",
+        model="k3",
         max_turns=128,
         incomplete_turn_continuation_attempts=0,
         cache_tools_list=True,

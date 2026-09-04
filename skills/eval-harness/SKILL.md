@@ -81,6 +81,10 @@ just agent::eval promote-regression \
   direct product rows, DINO rows, all default live rows, and the explicit
   alternate-provider matrix when `runtime_map_prior=<path>` is supplied. This
   is the release/nightly full refresh.
+- `profile=baseline-ci`: select only deterministic rows inherited from
+  `baseline-core`; provider-backed rows and internal/external provider egress
+  are rejected at selection time. Ordinary dependency downloads remain valid
+  workflow network access.
 - All named baseline profiles run selected rows or record explicit blocked
   evidence; their rows are not converted to `skipped_by_budget`.
 - Live trials do not retry by default. Set `live_retry_limit=<N>` only when the

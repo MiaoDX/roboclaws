@@ -23,7 +23,8 @@ Sources of truth:
 | --- | --- |
 | `baseline-core` | Normal local refresh: deterministic gates, suites, direct product rows, and selected detector rows. |
 | `baseline-live-default` | Core plus the normal explicit Kimi live-agent rows. |
-| `baseline-refresh` | Release or nightly refresh including the explicit four-profile provider comparison. |
+| `baseline-refresh` | Release or nightly refresh including the explicit five-cell provider comparison. |
+| `baseline-ci` | Deterministic PR subset generated from baseline-core; no provider execution or egress. |
 
 Provider-backed rows run only when their preflight is ready. Otherwise they
 record blocked evidence; they are never silently replaced by a different
@@ -45,7 +46,7 @@ preserved as compatibility aliases.
 | `codex-responses` | Environment-supplied opaque model, public label `codex` | Responses | Independent Codex cell with passing fixed-prior live proof. |
 | `mimo-responses` | Environment-supplied opaque model, public label `mimo` | Responses | Independent MiMo cell with passing fixed-prior live proof. |
 | `minimax-responses` | `MiniMax-M3` | Responses | Named public comparison route. |
-| `kimi-openai-chat` | `kimi-k2.7-code` | Chat Completions | Only Chat Completions route and normal live default selection. |
+| `kimi-openai-chat` | `k3` (`k3-256k` diagnostic) | Chat Completions | Only Chat Completions route and normal live default selection. |
 
 No endpoint/model default or transport fallback exists. Codex's thin HTTP
 compatibility adapter is profile-scoped; commands, packets, and console

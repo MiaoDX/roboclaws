@@ -345,12 +345,12 @@ def test_openai_agents_perf_profile_rejects_route_incompatible_model(monkeypatch
 
     with pytest.raises(
         ValueError,
-        match=("model 'kimi-k2.7-code' is incompatible with provider_profile 'minimax-responses'"),
+        match=("model 'k3' is incompatible with provider_profile 'minimax-responses'"),
     ):
         _resolve_agent_sdk_perf_profile(
             _openai_agents_perf_profile_base_args(
                 provider_profile="minimax-responses",
-                model="kimi-k2.7-code",
+                model="k3",
             )
         )
 

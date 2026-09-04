@@ -128,7 +128,7 @@ def test_provider_gate_allows_final_openai_agents_profiles(tmp_path: Path) -> No
     assert kimi["can_start"] is True
     assert kimi["provider"]["provider"] == "kimi-openai-chat"
     assert kimi["provider"]["driver"] == "openai-agents-sdk"
-    assert kimi["provider"]["model"] == "kimi-k2.7-code"
+    assert kimi["provider"]["model"] == "k3"
 
 
 def test_provider_gate_ignores_code_agent_model_alias_for_openai_agents(
@@ -142,14 +142,14 @@ def test_provider_gate_ignores_code_agent_model_alias_for_openai_agents(
         env={
             "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
             "KIMI_API_KEY": "key",
-            "ROBOCLAWS_CODE_AGENT_MODEL": "kimi-k2.7-code",
+            "ROBOCLAWS_CODE_AGENT_MODEL": "k3",
         },
         overrides={"port": _free_port()},
     )
 
     assert readiness["can_start"] is True
     assert readiness["provider"]["provider"] == "kimi-openai-chat"
-    assert readiness["provider"]["model"] == "kimi-k2.7-code"
+    assert readiness["provider"]["model"] == "k3"
 
 
 def test_provider_gate_requires_kimi_base_url_and_key(tmp_path: Path) -> None:

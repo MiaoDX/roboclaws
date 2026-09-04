@@ -422,7 +422,7 @@ def test_provider_gate_blocks_incompatible_openai_agents_model_env(tmp_path: Pat
         env={
             "MM_BASE_URL": "https://minimax.example.test/v1",
             "MM_API_KEY": "key",
-            "ROBOCLAWS_OPENAI_AGENTS_MODEL": "kimi-k2.7-code",
+            "ROBOCLAWS_OPENAI_AGENTS_MODEL": "k3",
         },
         overrides={"port": _free_port(), "provider_profile": "minimax-responses"},
         env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "minimax-responses"},

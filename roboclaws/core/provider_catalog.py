@@ -125,21 +125,23 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         cost_per_m={"input": 1.00, "output": 3.00},
     ),
     ModelSpec(
-        "kimi-k2.7-code",
-        ("kimi", "kimi-k2.7-code", "k2.7-code", "kimi-code"),
+        "kimi-for-coding",
+        ("kimi-coding", "kimi-for-coding"),
         "kimi",
         _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
-        default_use=True,
-        default_use_note=(
-            "Default Kimi coding model. Kimi K2.7 Code is a thinking-only route. "
-            "The provider accepts arbitrary K2.7 suffixes and echoes them, so the "
-            "catalog keeps the canonical model id only."
-        ),
         cost_per_m={"input": 1.00, "output": 3.00},
     ),
     ModelSpec(
-        "kimi-for-coding",
-        ("kimi-coding", "kimi-for-coding"),
+        "k3",
+        ("k3",),
+        "kimi",
+        _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
+        default_use=True,
+        cost_per_m={"input": 1.00, "output": 3.00},
+    ),
+    ModelSpec(
+        "k3-256k",
+        ("k3-256k",),
         "kimi",
         _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
         cost_per_m={"input": 1.00, "output": 3.00},
@@ -191,7 +193,7 @@ _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
         public_profile=PROVIDER_PROFILE_MIMO_TP_OPENAI_CHAT,
         label="MiMo TP v2.5",
         supported_engines=("openai-agents-sdk",),
-        default_model_id="mimo-v2.5",
+        default_model_id="mimo-v2.5-pro",
         required_env_keys=("MIMO_OPENAI_BASE_URL", "MIMO_TP_KEY"),
         api_key_env="MIMO_TP_KEY",
         base_url_env="MIMO_OPENAI_BASE_URL",
@@ -200,7 +202,7 @@ _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
         wire_source=WIRE_SOURCE_NATIVE,
         default_use=False,
         default_use_note="Public-network MiMo route for trusted hosted CI.",
-        compatible_model_ids=("mimo-v2.5", "mimo-v2.5-pro"),
+        compatible_model_ids=("mimo-v2.5-pro",),
         per_engine_status={"openai-agents-sdk": ROUTE_HEALTHY},
         route_capabilities={
             "image_transport": ROUTE_CAP_UNSUPPORTED,
@@ -233,9 +235,9 @@ _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
     ProviderRouteSpec(
         route_id=PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
         public_profile=PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
-        label="Kimi K2.7",
+        label="Kimi K3",
         supported_engines=("openai-agents-sdk",),
-        default_model_id="kimi-k2.7-code",
+        default_model_id="k3",
         required_env_keys=("KIMI_OPENAI_BASE_URL", "KIMI_API_KEY"),
         api_key_env="KIMI_API_KEY",
         base_url_env="KIMI_OPENAI_BASE_URL",
@@ -244,11 +246,10 @@ _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
         wire_source=WIRE_SOURCE_NATIVE,
         default_use=True,
         default_use_note=(
-            "Default-enabled Kimi coding route. K2.7 Code is thinking-only; keep "
-            "the canonical kimi-k2.7-code id because the provider accepts and "
-            "echoes arbitrary suffixes."
+            "Default-enabled Kimi coding route. K3 is thinking-only; k3-256k "
+            "remains an explicit context-tier variant."
         ),
-        compatible_model_ids=("kimi-k2.7-code",),
+        compatible_model_ids=("k3", "k3-256k"),
         per_engine_status={"openai-agents-sdk": ROUTE_EXPERIMENTAL},
         route_capabilities={
             "image_transport": ROUTE_CAP_UNSUPPORTED,
@@ -373,6 +374,16 @@ def resolve_route_model(route_id: str, model_id: str | None) -> ModelSpec:
         selected = str(model_id or "").strip()
         if not selected:
             raise ValueError(f"{route.public_profile} requires {route.request_model_env}")
+        if route.public_profile == PROVIDER_PROFILE_MIMO_RESPONSES and selected not in {
+            route.default_model_id,
+            "mimo-v2.5-pro",
+            "xiaomi/mimo-v2.5-pro",
+        }:
+            raise ValueError(
+                f"{route.public_profile} requires {route.request_model_env} to be one of "
+                "mimo, mimo-v2.5-pro or xiaomi/mimo-v2.5-pro; "
+                f"got {selected!r}"
+            )
         return _opaque_model_spec(route)
     selected = resolve_model(model_id or route.default_model_id)
     compatible_ids = route.compatible_model_ids or (route.default_model_id,)

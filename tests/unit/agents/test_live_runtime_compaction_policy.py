@@ -490,7 +490,7 @@ def test_openai_agents_compaction_filter_metrics_are_aggregate_only(tmp_path: Pa
                         "event": "model_input_filter",
                         "provider_profile": "kimi-openai-chat",
                         "wire_api": "responses",
-                        "model": "kimi-k2.7-code",
+                        "model": "k3",
                         "config": {
                             "enabled": True,
                             "mode": "public_tool_result_summary_v1",
@@ -526,7 +526,7 @@ def test_openai_agents_compaction_filter_metrics_are_aggregate_only(tmp_path: Pa
                         "event": "model_input_filter",
                         "provider_profile": "kimi-openai-chat",
                         "wire_api": "responses",
-                        "model": "kimi-k2.7-code",
+                        "model": "k3",
                         "config": {
                             "enabled": True,
                             "mode": "public_tool_result_summary_v1",
