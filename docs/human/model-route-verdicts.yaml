@@ -40,14 +40,14 @@ verdicts:
   - agent_engine: openai-agents-sdk
     provider_route: kimi-openai-chat
     provider_profile: kimi-openai-chat
-    model_id: kimi-k2.7-code
+    model_id: k3
     route_status: experimental
     lane_verdicts:
       structured_labels: experimental
       camera_grounded_labels: experimental
       camera_raw_fpv: blocked
     evidence: Prior Kimi SDK and provider probes; current live proof remains route-readiness dependent.
-    notes: Only Chat Completions profile. Kimi K2.7 Code is thinking-only and uses the canonical model id.
+    notes: Only Chat Completions profile. K3 is the production default; k3-256k remains an explicit diagnostic tier.
 retired_agent_engines:
   - codex-cli
   - claude-code

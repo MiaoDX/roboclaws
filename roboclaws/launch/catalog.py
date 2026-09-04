@@ -420,8 +420,9 @@ def _default_household_evidence_mode(
         return evidence_lane, overrides
     if (
         surface.surface_id == "household-world"
-        and intent.intent_id == "map-build"
-        and (preset is None or preset.preset_id == "map-build")
+        and intent.intent_id in {"cleanup", "open-ended", "map-build"}
+        and backend.id in {"mujoco", "isaaclab", "agibot-gdk"}
+        and (preset is None or preset.preset_id in {"cleanup", "map-build"})
     ):
         if _override_value(overrides, "camera_labeler") is None:
             overrides = (*overrides, "camera_labeler=grounding-dino")
