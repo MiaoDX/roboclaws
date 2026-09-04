@@ -304,7 +304,7 @@ def run_household_world_episode(
         visual_grounding_run_id=f"seed-{seed}",
         runtime_map_prior=runtime_map_prior,
         evidence_lane=evidence_lane,
-        public_acceptance_config=(goal_contract and {"task_intent": goal_contract.intent}),
+        public_acceptance_config={"task_intent": task_intent},
     )
     planner_proof_evidence: dict[str, Any] | None = None
     if len(planner_proof_paths) == 1:

@@ -224,6 +224,7 @@ def _intent_validation_options(
             drop_sweep=plan.intent == "open-ended",
         )
     if plan.intent == "map-build":
+        options.pop("require_real_robot_alignment", None)
         key = (
             "require_runtime_metric_map"
             if plan.dispatch_runner == "openai-agents-live"

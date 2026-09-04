@@ -358,6 +358,26 @@ def test_household_execution_normalizes_explicit_auto_minimum() -> None:
     assert execution.min_generated_mess_count == 3
 
 
+def test_map_build_execution_does_not_require_cleanup_only_alignment_report() -> None:
+    plan = resolve_surface_launch(
+        [
+            "surface=household-world",
+            "world=molmospaces/procthor-10k-val/0",
+            "backend=mujoco",
+            "preset=map-build",
+            "agent_engine=openai-agents-sdk",
+            "provider_profile=kimi-openai-chat",
+            "evidence_lane=world-public-labels",
+        ]
+    )
+
+    execution = household_execution_module.resolve_household_execution(plan, kv={})
+
+    assert execution.validation_options["require_waypoint_honesty"] is True
+    assert execution.validation_options["require_runtime_metric_map"] is True
+    assert "require_real_robot_alignment" not in execution.validation_options
+
+
 def test_household_goal_contract_tool_plans_do_not_advertise_static_fixture_projection() -> None:
     surface = SURFACE_SPECS["household-world"]
 

@@ -36,6 +36,7 @@ def test_checker_can_require_base_metric_map_map_build(tmp_path: Path) -> None:
         seed=7,
         intent="map-build",
     )
+    assert "cleanup_worklist" not in result["agent_view"]["readiness"]
 
     checker.validate_run_result(
         result,
