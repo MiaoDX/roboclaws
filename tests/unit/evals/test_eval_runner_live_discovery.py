@@ -36,7 +36,7 @@ def test_eval_runner_regrades_existing_live_artifacts_without_provider_call(
         stamp="live-source",
         agent_engine="openai-agents-sdk",
         provider_profile="kimi-openai-chat",
-        model="kimi-k2.7-code",
+        model="k3",
         live_execution="run",
         skill_name="source-skill",
         skill_delivery_cell="dynamic-routed",

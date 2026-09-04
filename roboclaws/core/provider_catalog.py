@@ -377,9 +377,14 @@ def resolve_route_model(route_id: str, model_id: str | None) -> ModelSpec:
         selected = str(model_id or "").strip()
         if not selected:
             raise ValueError(f"{route.public_profile} requires {route.request_model_env}")
-        if route.public_profile == PROVIDER_PROFILE_MIMO_RESPONSES and selected != "mimo-v2.5-pro":
+        if route.public_profile == PROVIDER_PROFILE_MIMO_RESPONSES and selected not in {
+            route.default_model_id,
+            "mimo-v2.5-pro",
+            "xiaomi/mimo-v2.5-pro",
+        }:
             raise ValueError(
-                f"{route.public_profile} requires {route.request_model_env}=mimo-v2.5-pro; "
+                f"{route.public_profile} requires {route.request_model_env} to be one of "
+                "mimo, mimo-v2.5-pro or xiaomi/mimo-v2.5-pro; "
                 f"got {selected!r}"
             )
         return _opaque_model_spec(route)

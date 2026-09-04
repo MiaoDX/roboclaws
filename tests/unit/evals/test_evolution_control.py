@@ -8,21 +8,57 @@ from roboclaws.evals.evolution_control import run_evolution_command
 
 
 def _campaign_payload() -> dict[str, object]:
-    payload = json.loads(
-        Path("output/eval-evolution/20260805-skill-smoke-v4-input.json").read_text()
-    )
-    budgets = payload.get("budgets")
-    if not isinstance(budgets, dict):
-        raise TypeError("campaign fixture budgets must be an object")
-    budgets.update(
-        {
+    return {
+        "schema": "eval_evolution_campaign_v1",
+        "campaign_id": "behavior-test",
+        "target": {
+            "kind": "skill",
+            "id": "household-cleanup",
+            "mutable_paths": ["skills/household-cleanup/SKILL.md"],
+            "baseline_commit": "a" * 40,
+            "target_sha256": "b" * 64,
+        },
+        "optimizer": {
+            "agent_engine": "openai-agents-sdk",
+            "provider_profile": "codex-responses",
+            "model": "codex-model",
+            "settings": {},
+        },
+        "robot": {
+            "agent_engine": "openai-agents-sdk",
+            "provider_profile": "kimi-openai-chat",
+            "model": "k3",
+        },
+        "training": {"suites": ["cleanup"], "scenes": ["scene-1"]},
+        "sealed_holdout_ref": "maintainer-reference-1",
+        "gates": {"deterministic": ["unit"], "quality": ["checker"]},
+        "selection": {"primary_objective": "quality", "minimum_improvement": 0.1},
+        "budgets": {
+            "optimizer_turns": 2,
+            "candidates": 1,
+            "live_trials": 2,
+            "provider_concurrency": 1,
+            "tokens": 30_000,
+            "cost_usd": 5.0,
             "optimizer_call_tokens": 20_000,
             "optimizer_call_cost_usd": 1.0,
             "robot_attempt_tokens": 10_000,
             "robot_attempt_cost_usd": 0.5,
-        }
-    )
-    return payload
+            "wall_time_s": 1800,
+            "timeout_s": 600,
+            "retries": 0,
+        },
+        "identity": {
+            "agents_sdk_version": "1.0",
+            "tool_surface_sha256": "c" * 64,
+            "grader_versions": {"checker": "1"},
+            "execution_placement": "local",
+            "runtime": "repo-venv",
+        },
+        "feedback_schema": "eval_evolution_feedback_v1",
+        "candidate_limits": {"max_patch_bytes": 4096, "max_changed_paths": 1},
+        "promotion_policy": "human-only-v1",
+    }
 
 
 def test_mcp_behavior_live_evolution_is_blocked_by_isolation(tmp_path: Path) -> None:

@@ -130,6 +130,12 @@ def test_mimo_responses_rejects_non_pro_model() -> None:
         resolve_route_model("mimo-responses", "mimo-v2.5")
 
 
+@pytest.mark.parametrize("model", ("mimo-v2.5-pro", "xiaomi/mimo-v2.5-pro"))
+def test_mimo_responses_accepts_provider_qualified_wire_model(model: str) -> None:
+    resolved = resolve_route_model("mimo-responses", model)
+    assert resolved.model_id == "mimo"
+
+
 @pytest.mark.parametrize(
     ("profile", "env_prefix", "public_model"),
     [

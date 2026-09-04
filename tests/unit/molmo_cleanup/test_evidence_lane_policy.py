@@ -23,7 +23,7 @@ def test_raw_fpv_still_reports_image_transport_for_route_compatible_model() -> N
         evidence_lane="camera-raw-fpv",
         agent_engine="openai-agents-sdk",
         provider_profile="kimi-openai-chat",
-        model_id="kimi-k2.7-code",
+        model_id="k3",
     )
 
     assert compatibility.allowed is False

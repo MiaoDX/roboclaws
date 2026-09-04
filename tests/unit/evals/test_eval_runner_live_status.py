@@ -96,7 +96,7 @@ def test_eval_runner_keeps_public_provider_model_identity(tmp_path: Path) -> Non
         provider_profile="kimi-openai-chat",
     )
 
-    assert {result["identity"]["model"] for result in run.bundle["results"]} == {"kimi-k2.7-code"}
+    assert {result["identity"]["model"] for result in run.bundle["results"]} == {"k3"}
 
 
 def test_eval_runner_classifies_live_provider_failures_as_blocked(tmp_path: Path) -> None:
