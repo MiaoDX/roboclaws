@@ -145,6 +145,10 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         cost_per_m={"input": 1.00, "output": 3.00},
     ),
     ModelSpec(
+        "k3", ("k3",), "kimi", _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT), default_use=True
+    ),
+    ModelSpec("k3-256k", ("k3-256k",), "kimi", _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT)),
+    ModelSpec(
         "claude-3-5-sonnet-20241022",
         ("anthropic", "claude-3-5-sonnet-20241022"),
         "anthropic",
@@ -191,7 +195,7 @@ _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
         public_profile=PROVIDER_PROFILE_MIMO_TP_OPENAI_CHAT,
         label="MiMo TP v2.5",
         supported_engines=("openai-agents-sdk",),
-        default_model_id="mimo-v2.5",
+        default_model_id="mimo-v2.5-pro",
         required_env_keys=("MIMO_OPENAI_BASE_URL", "MIMO_TP_KEY"),
         api_key_env="MIMO_TP_KEY",
         base_url_env="MIMO_OPENAI_BASE_URL",
@@ -200,7 +204,7 @@ _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
         wire_source=WIRE_SOURCE_NATIVE,
         default_use=False,
         default_use_note="Public-network MiMo route for trusted hosted CI.",
-        compatible_model_ids=("mimo-v2.5", "mimo-v2.5-pro"),
+        compatible_model_ids=("mimo-v2.5-pro",),
         per_engine_status={"openai-agents-sdk": ROUTE_HEALTHY},
         route_capabilities={
             "image_transport": ROUTE_CAP_UNSUPPORTED,
@@ -233,9 +237,9 @@ _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
     ProviderRouteSpec(
         route_id=PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
         public_profile=PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
-        label="Kimi K2.7",
+        label="Kimi K3",
         supported_engines=("openai-agents-sdk",),
-        default_model_id="kimi-k2.7-code",
+        default_model_id="k3",
         required_env_keys=("KIMI_OPENAI_BASE_URL", "KIMI_API_KEY"),
         api_key_env="KIMI_API_KEY",
         base_url_env="KIMI_OPENAI_BASE_URL",
@@ -248,7 +252,7 @@ _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
             "the canonical kimi-k2.7-code id because the provider accepts and "
             "echoes arbitrary suffixes."
         ),
-        compatible_model_ids=("kimi-k2.7-code",),
+        compatible_model_ids=("k3", "k3-256k"),
         per_engine_status={"openai-agents-sdk": ROUTE_EXPERIMENTAL},
         route_capabilities={
             "image_transport": ROUTE_CAP_UNSUPPORTED,
@@ -373,6 +377,11 @@ def resolve_route_model(route_id: str, model_id: str | None) -> ModelSpec:
         selected = str(model_id or "").strip()
         if not selected:
             raise ValueError(f"{route.public_profile} requires {route.request_model_env}")
+        if route.public_profile == PROVIDER_PROFILE_MIMO_RESPONSES and selected != "mimo-v2.5-pro":
+            raise ValueError(
+                f"{route.public_profile} requires {route.request_model_env}=mimo-v2.5-pro; "
+                f"got {selected!r}"
+            )
         return _opaque_model_spec(route)
     selected = resolve_model(model_id or route.default_model_id)
     compatible_ids = route.compatible_model_ids or (route.default_model_id,)

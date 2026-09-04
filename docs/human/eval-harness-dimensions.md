@@ -24,6 +24,7 @@ Sources of truth:
 | `baseline-core` | Normal local refresh: deterministic gates, suites, direct product rows, and selected detector rows. |
 | `baseline-live-default` | Core plus the normal explicit Kimi live-agent rows. |
 | `baseline-refresh` | Release or nightly refresh including the explicit four-profile provider comparison. |
+| `baseline-ci` | Deterministic PR subset generated from baseline-core; no provider execution or egress. |
 
 Provider-backed rows run only when their preflight is ready. Otherwise they
 record blocked evidence; they are never silently replaced by a different

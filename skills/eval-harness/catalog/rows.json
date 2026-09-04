@@ -64,6 +64,11 @@
         "network:configured-endpoint"
       ]
     },
+    "mimo-tp-openai-chat": {
+      "provider_network_scope": "external",
+      "allowed_execution_targets": ["local"],
+      "execution_requirements": ["network:external-egress"]
+    },
     "kimi-openai-chat": {
       "provider_network_scope": "external",
       "allowed_execution_targets": [
@@ -84,6 +89,17 @@
     }
   },
   "rows": [
+    {
+      "row_id": "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
+      "row_kind": "live_agent_eval",
+      "command": [".venv/bin/python", "-m", "roboclaws.evals.cli", "suite=map_consumer_fixed_prior", "runtime_map_prior={runtime_map_prior}", "budget=focused", "output_dir={eval_output_root}", "stamp=map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat", "agent_engine=openai-agents-sdk", "provider_profile=mimo-tp-openai-chat", "live_execution=run"],
+      "axes": {"agent_engine": "openai-agents-sdk", "provider_profile": "mimo-tp-openai-chat", "intent": "map-build-consumer", "suite": "map_consumer_fixed_prior", "evidence_lane": "world-public-labels", "backend": "{default_backend}", "world": "{default_world}"},
+      "reason_selected": "MapBuild consumer proof keeps MiMo TP Chat as an explicit fixed-prior provider cell.",
+      "expense": "live-agent",
+      "selection_rule_ids": ["map_build"],
+      "requires": ["python_env", "openai_agents_package", "provider_profile", "runtime_map_prior"],
+      "profiles": ["baseline-refresh"]
+    },
     {
       "row_id": "route-trace-contract-tests",
       "row_kind": "deterministic_gate",

@@ -93,7 +93,7 @@ def test_named_chat_profiles_have_catalog_models() -> None:
 def test_mimo_tp_chat_readiness_uses_public_endpoint_credentials() -> None:
     route = provider_route_spec("mimo-tp-openai-chat")
     assert route.required_env_keys == ("MIMO_OPENAI_BASE_URL", "MIMO_TP_KEY")
-    assert route.compatible_model_ids == ("mimo-v2.5", "mimo-v2.5-pro")
+    assert route.compatible_model_ids == ("mimo-v2.5-pro",)
     readiness = provider_readiness(
         agent_engine="openai-agents-sdk",
         provider_profile=route.route_id,
@@ -103,7 +103,7 @@ def test_mimo_tp_chat_readiness_uses_public_endpoint_credentials() -> None:
         },
     )
     assert readiness["ok"] is True
-    assert readiness["model"] == "mimo-v2.5"
+    assert readiness["model"] == "mimo-v2.5-pro"
     assert readiness["wire_api"] == "chat-completions"
 
 
@@ -125,6 +125,11 @@ def test_mimo_tp_chat_accepts_explicit_pro_model() -> None:
     assert settings["request_model"] == "mimo-v2.5-pro"
 
 
+def test_mimo_responses_rejects_non_pro_model() -> None:
+    with pytest.raises(ValueError, match="mimo-v2.5-pro"):
+        resolve_route_model("mimo-responses", "mimo-v2.5")
+
+
 @pytest.mark.parametrize(
     ("profile", "env_prefix", "public_model"),
     [
@@ -143,7 +148,10 @@ def test_opaque_responses_routes_use_required_environment_and_public_model(
         f"{env_prefix}_API_KEY",
         f"{env_prefix}_MODEL",
     )
-    model = resolve_route_model(route.route_id, "opaque-deployment-model-2026-07")
+    model = resolve_route_model(
+        route.route_id,
+        "mimo-v2.5-pro" if profile == "mimo-responses" else "opaque-deployment-model-2026-07",
+    )
     assert model.model_id == public_model
     assert model.family == public_model
     assert model.model_capabilities == frozenset({MODEL_CAP_TEXT})
@@ -181,7 +189,9 @@ def test_opaque_readiness_requires_url_key_and_model(
         env={
             f"{env_prefix}_BASE_URL": "https://provider.example/v1",
             f"{env_prefix}_API_KEY": "secret",
-            f"{env_prefix}_MODEL": "opaque-model",
+            f"{env_prefix}_MODEL": "mimo-v2.5-pro"
+            if profile == "mimo-responses"
+            else "opaque-model",
         },
     )
     assert ready["ok"] is True
