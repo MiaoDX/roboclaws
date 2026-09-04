@@ -23,8 +23,8 @@
   usage was available in the raw event artifact but not aggregated into
   `context_metrics` (`span_usage_missing`), with its observed generation spans
   staying below 77,299 tokens.
-- Phase 4 focused eval remains partial because of two pre-existing out-of-scope
-  failures: a missing historical fixture and one direct-runner behavior row.
+- Phase 4 focused eval remains partial because of the missing historical fixture
+  and a current Kimi quota block in the cleanup comparison rows.
 
 ## Proven Evidence
 - Implementation commits: `5f5727a8`, `47e55fc6`, `45bae24e`, `9212dad2`,
@@ -41,10 +41,11 @@
 
 ## Next Action
 No state-first implementation repair is indicated. The old MiMo context
-failure did not reproduce. Keep the MiMo accounting/headroom caveat visible
-and separately prioritize or explicitly waive the historical fixture and
-unmanaged direct-runner failures before calling the canonical focused eval gate
-passing.
+failure did not reproduce, and the open-ended bread row now passes on a real
+MolmoSpaces scene. Keep the MiMo accounting/headroom caveat visible and
+separately prioritize or explicitly waive the historical fixture and rerun the
+Kimi cleanup comparison after its provider quota resets before calling the
+canonical focused eval gate passing.
 
 ## No-Touch Scope
 Do not publish a durable baseline, substitute providers/lanes, alter public

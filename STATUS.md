@@ -19,7 +19,7 @@ unstarted loopback sidecar. MiMo reached 96,350 provider-reported input tokens
 against the configured 96,000-token hard limit on an accepted final call, so it
 has a residual accounting/headroom caveat but no reproduced context overflow.
 Milestone `v1.99` remains at Phase 4 partial because the canonical focused eval
-packet is not all-passing. See
+packet still has an environment/provider-blocked comparison slice. See
 `docs/status/active/state-first-context-manager.md` and
 `.planning/phases/04-route-proof-and-rollout/04-LIVE-PROOF.md`.
 
@@ -96,9 +96,9 @@ providers.
 ## Next Action
 
 Separately prioritize or waive the missing historical eval-evolution fixture
-and the existing unmanaged direct-runner behavior failure before closing
-State-First Phase 4. No additional state-first implementation repair is
-currently indicated.
+and the Kimi quota-blocked cleanup comparison slice before closing State-First
+Phase 4. No additional state-first implementation repair is currently
+indicated.
 
 Use the Opik Dashboard for current external review and local JSON/Markdown for
 canonical decisions. The Eval Harness candidate and Skill-delivery baseline
@@ -108,9 +108,10 @@ decisions remain unchanged.
 
 - State-First Phase 4's focused eval gate is partial: three full-suite tests
   require the absent historical
-  `output/eval-evolution/20260805-skill-smoke-v4-input.json`, and one unmanaged
-  open-ended direct-runner row reports `private_goal_not_satisfied`. Grounding
-  DINO and operator-console validation are no longer blocked.
+  `output/eval-evolution/20260805-skill-smoke-v4-input.json`, and the latest
+  `baseline-refresh` has five Kimi cleanup comparison trials blocked by the
+  provider's 5-hour quota. Grounding DINO, open-ended bread, and
+  operator-console validation are no longer blocked.
 - The `20260817T072338Z` eval candidate is not publishable because it contains
   one behavior failure and one blocked trial bundle.
 - Agibot and B1 injected dependency readiness passes with the existing local SDK, Map 12 bundle,

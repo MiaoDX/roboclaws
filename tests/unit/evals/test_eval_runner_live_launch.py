@@ -6,7 +6,13 @@ from typing import Any
 
 import pytest
 
-from roboclaws.evals.live_runtime import generated_mess_count, live_surface_command, task_prompt
+from roboclaws.evals.live_runtime import (
+    evidence_lane,
+    generated_mess_count,
+    implementation_backend,
+    live_surface_command,
+    task_prompt,
+)
 from roboclaws.evals.models import load_eval_sample
 from roboclaws.evals.runner import run_eval_suite
 from roboclaws.launch.catalog import resolve_surface_launch
@@ -125,6 +131,20 @@ def test_open_ended_samples_do_not_generate_cleanup_relocation_targets() -> None
     )
 
     assert generated_mess_count(sample) == 0
+
+
+def test_bread_open_ended_sample_uses_real_scene_for_deterministic_smoke() -> None:
+    sample = load_eval_sample(
+        Path(__file__).resolve().parents[3]
+        / "evals"
+        / "household_world"
+        / "samples"
+        / "open_ended"
+        / "bread_seed7.json"
+    )
+
+    assert implementation_backend(sample, budget="smoke") == "molmospaces_subprocess"
+    assert evidence_lane(sample, budget="smoke") == "world-public-labels"
 
 
 def test_open_ended_missing_prompt_uses_neutral_task_prompt() -> None:
