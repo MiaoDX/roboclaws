@@ -7,6 +7,7 @@ from roboclaws.evals.harness import selector
 LIVE_AGENT_ROW_IDS = {
     "map-build-consumer-openai-agents-sdk-codex-responses",
     "map-build-consumer-openai-agents-sdk-mimo-responses",
+    "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
     "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
     "map-build-consumer-openai-agents-sdk-minimax-responses",
     "openai-agents-sdk-open-task-live-eval",
