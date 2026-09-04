@@ -206,7 +206,7 @@ def test_compare_treats_different_wire_api_as_different_identity(tmp_path: Path)
         elapsed_s=100,
         gap_s=50,
         provider_profile="kimi-openai-chat",
-        model="kimi-k2.7-code",
+        model="k3",
         wire_api="chat-completions",
     )
 

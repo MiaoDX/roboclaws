@@ -142,7 +142,7 @@ def test_provider_gate_ignores_code_agent_model_alias_for_openai_agents(
         env={
             "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
             "KIMI_API_KEY": "key",
-            "ROBOCLAWS_CODE_AGENT_MODEL": "kimi-k2.7-code",
+            "ROBOCLAWS_CODE_AGENT_MODEL": "k3",
         },
         overrides={"port": _free_port()},
     )

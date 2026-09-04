@@ -33,7 +33,7 @@ def test_sdk_model_helper_rejects_route_incompatible_model_override() -> None:
         set -euo pipefail
         source "$ROBOCLAWS_HELPER"
         ROBOCLAWS_PROVIDER_PROFILE=minimax-responses
-        ROBOCLAWS_OPENAI_AGENTS_MODEL=kimi-k2.7-code
+        ROBOCLAWS_OPENAI_AGENTS_MODEL=k3
         MM_BASE_URL=https://minimax.example.test/v1
         MM_API_KEY=fake-mm-key
         roboclaws_code_agent_model \
@@ -42,9 +42,7 @@ def test_sdk_model_helper_rejects_route_incompatible_model_override() -> None:
     )
 
     assert result.returncode == 2
-    expected = (
-        "coding-agent model 'kimi-k2.7-code' is incompatible with provider 'minimax-responses'"
-    )
+    expected = "coding-agent model 'k3' is incompatible with provider 'minimax-responses'"
     assert expected in result.stderr
     assert "incompatible with provider_profile 'minimax-responses'" in result.stderr
 

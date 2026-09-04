@@ -88,7 +88,7 @@ def test_openai_agents_robot_view_capture_policy_adds_private_server_flag(
         port=18788,
         lock_path=tmp_path / "live.lock",
         provider_profile="kimi-openai-chat",
-        model="kimi-k2.7-code",
+        model="k3",
         max_turns=128,
         mcp_client_session_timeout_s=30.0,
         agent_sdk_perf_profile="context_managed_v1",

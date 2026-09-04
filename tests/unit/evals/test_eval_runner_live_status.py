@@ -221,7 +221,7 @@ def test_live_surface_env_sets_provider_and_model_keys(tmp_path: Path) -> None:
     kwargs: dict[str, Any] = {
         "agent_engine": "openai-agents-sdk",
         "provider_profile": "kimi-openai-chat",
-        "model": "kimi-k2.7-code",
+        "model": "k3",
         "live_token_budget": 12000,
         "live_cost_budget_usd": 0.25,
         "telemetry_identity": {
@@ -236,7 +236,7 @@ def test_live_surface_env_sets_provider_and_model_keys(tmp_path: Path) -> None:
 
     assert env["PATH"] == "/bin"
     assert env["ROBOCLAWS_PROVIDER_PROFILE"] == "kimi-openai-chat"
-    assert env["ROBOCLAWS_OPENAI_AGENTS_MODEL"] == "kimi-k2.7-code"
+    assert env["ROBOCLAWS_OPENAI_AGENTS_MODEL"] == "k3"
     assert env["ROBOCLAWS_EVAL_PROVIDER_TOKEN_BUDGET"] == "12000.0"
     assert env["ROBOCLAWS_EVAL_PROVIDER_COST_BUDGET_USD"] == "0.25"
     assert json.loads(env["ROBOCLAWS_EVAL_TELEMETRY_IDENTITY"]) == {

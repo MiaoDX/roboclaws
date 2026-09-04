@@ -143,7 +143,7 @@ def _openai_agents_perf_profile_base_args(**overrides) -> Namespace:
     )
     values.update(
         provider_profile="kimi-openai-chat",
-        model="kimi-k2.7-code",
+        model="k3",
         agent_sdk_perf_profile="",
         continuation_mode="",
         model_thinking_mode="default",

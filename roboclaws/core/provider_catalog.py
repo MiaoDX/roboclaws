@@ -145,9 +145,20 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         cost_per_m={"input": 1.00, "output": 3.00},
     ),
     ModelSpec(
-        "k3", ("k3",), "kimi", _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT), default_use=True
+        "k3",
+        ("k3",),
+        "kimi",
+        _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
+        default_use=True,
+        cost_per_m={"input": 1.00, "output": 3.00},
     ),
-    ModelSpec("k3-256k", ("k3-256k",), "kimi", _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT)),
+    ModelSpec(
+        "k3-256k",
+        ("k3-256k",),
+        "kimi",
+        _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
+        cost_per_m={"input": 1.00, "output": 3.00},
+    ),
     ModelSpec(
         "claude-3-5-sonnet-20241022",
         ("anthropic", "claude-3-5-sonnet-20241022"),
@@ -248,9 +259,8 @@ _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
         wire_source=WIRE_SOURCE_NATIVE,
         default_use=True,
         default_use_note=(
-            "Default-enabled Kimi coding route. K2.7 Code is thinking-only; keep "
-            "the canonical kimi-k2.7-code id because the provider accepts and "
-            "echoes arbitrary suffixes."
+            "Default-enabled Kimi coding route. K3 is thinking-only; k3-256k "
+            "remains an explicit context-tier variant."
         ),
         compatible_model_ids=("k3", "k3-256k"),
         per_engine_status={"openai-agents-sdk": ROUTE_EXPERIMENTAL},
