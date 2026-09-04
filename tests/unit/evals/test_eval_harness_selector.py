@@ -24,6 +24,7 @@ EXPECTED_ROW_IDS = {
     "map-build-consumer-eval-suite",
     "map-build-consumer-openai-agents-sdk-codex-responses",
     "map-build-consumer-openai-agents-sdk-mimo-responses",
+    "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
     "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
     "map-build-consumer-openai-agents-sdk-minimax-responses",
     "open-ended-goals-eval-suite",
@@ -102,7 +103,7 @@ def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
     assert manifest["summary"]["selected_row_count"] == len(EXPECTED_ROW_IDS)
     assert manifest["summary"]["budget_skipped_count"] == 0
     assert manifest["summary"]["eval_suite_row_count"] == 6
-    assert manifest["summary"]["live_agent_eval_row_count"] == 11
+    assert manifest["summary"]["live_agent_eval_row_count"] == 12
     assert rows["openai-agents-sdk-open-task-live-eval"]["status"] == "not_run"
     assert rows["openai-agents-sdk-cleanup-live-eval"]["status"] == "not_run"
     assert not any(
@@ -114,7 +115,7 @@ def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
         for row_id, row in rows.items()
         if row_id.startswith("map-build-consumer-openai-agents-sdk-")
     ]
-    assert len(provider_rows) == 4
+    assert len(provider_rows) == 5
     assert all(
         not any(
             item.startswith(("live_timeout_s=", "live_stall_timeout_s=")) for item in row["command"]
@@ -447,7 +448,7 @@ def test_explicit_axes_select_first_class_engine_and_provider_profile(
     assert manifest["summary"]["optional_row_count"] == 0
 
 
-def test_map_build_consumer_change_selects_four_profile_model_matrix(
+def test_map_build_consumer_change_selects_five_profile_model_matrix(
     tmp_path: Path,
 ) -> None:
     prior = tmp_path / "canonical-prior.json"
@@ -468,12 +469,14 @@ def test_map_build_consumer_change_selects_four_profile_model_matrix(
     assert set(matrix_rows) == {
         "map-build-consumer-openai-agents-sdk-codex-responses",
         "map-build-consumer-openai-agents-sdk-mimo-responses",
+        "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
         "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
         "map-build-consumer-openai-agents-sdk-minimax-responses",
     }
     assert {row["axes"]["provider_profile"] for row in matrix_rows.values()} == {
         "codex-responses",
         "mimo-responses",
+        "mimo-tp-openai-chat",
         "kimi-openai-chat",
         "minimax-responses",
     }
@@ -484,7 +487,7 @@ def test_map_build_consumer_change_selects_four_profile_model_matrix(
         assert "agent_engine=openai-agents-sdk" in row["command"]
         assert not any(item.startswith("live_timeout_s=") for item in row["command"])
         assert "live_execution=run" in row["command"]
-        assert row["axes"]["provider_cell_count"] == "4"
+        assert row["axes"]["provider_cell_count"] == "5"
         assert row["axes"]["default_local_concurrency_width"] == "1"
         assert row["axes"]["concurrency_policy"] == (
             "serial_by_default_for_single_molmospaces_visual_backend_slot"
