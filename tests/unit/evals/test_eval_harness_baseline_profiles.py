@@ -7,6 +7,7 @@ from roboclaws.evals.harness import selector
 LIVE_AGENT_ROW_IDS = {
     "map-build-consumer-openai-agents-sdk-codex-responses",
     "map-build-consumer-openai-agents-sdk-mimo-responses",
+    "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
     "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
     "map-build-consumer-openai-agents-sdk-minimax-responses",
     "openai-agents-sdk-open-task-live-eval",
@@ -83,6 +84,17 @@ def test_baseline_live_default_profile_excludes_fixed_prior_provider_sweep(
         row["axes"].get("provider_profile") in {None, "kimi-openai-chat"} for row in rows.values()
     )
     assert {signal["id"] for signal in manifest["signals"]} == {"baseline_live_default_profile"}
+
+
+def test_baseline_ci_is_deterministic_subset_without_provider_rows(tmp_path: Path) -> None:
+    core = selector.build_eval_harness(profile="baseline-core", output_dir=tmp_path / "core")
+    ci = selector.build_eval_harness(profile="baseline-ci", output_dir=tmp_path / "ci")
+    core_ids = set(_selected_rows(core))
+    ci_rows = _selected_rows(ci)
+    assert set(ci_rows) <= core_ids
+    assert ci_rows
+    assert all(row["expense"] == "deterministic" for row in ci_rows.values())
+    assert all(not row["axes"].get("provider_profile") for row in ci_rows.values())
 
 
 def test_baseline_refresh_selects_fixed_prior_matrix_only_with_explicit_prior(

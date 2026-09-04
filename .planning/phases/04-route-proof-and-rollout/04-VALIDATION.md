@@ -25,13 +25,13 @@ contract, or durable baseline publication is authorized by this ledger.
 |---|---|---|
 | Ruff | PASS | `ruff check .` |
 | Format | PASS | `ruff format --check .` (`1007 files already formatted`) |
-| Full standalone pytest | PARTIAL | All failures are the three `tests/unit/evals/test_evolution_control.py` cases that require the absent historical `output/eval-evolution/20260805-skill-smoke-v4-input.json`; no state-first, DINO, operator, or route test failed |
+| Full standalone pytest | PASS | Full standalone pytest passes after aligning active Kimi fixtures and the model-matrix route with canonical `k3`; only existing deprecation warnings remain |
 | Route/context deterministic selection | PASS | Continuation regressions fixed in `b3199b6d`; broad selector passed on rerun |
 | Privacy/digest/artifact selection | PASS | Focused standalone pytest exited 0 |
 | Camera/DINO/operator/Agibot selection | PASS | Focused standalone pytest exited 0 |
 | Operator-console product flow | PASS | Automated browser QA selected Build Map, verified canonical route/readiness/safety metadata, loaded all assets, found no console/network errors or horizontal overflow, and captured desktop/mobile screenshots in `output/state-first-context-manager/` |
 | Focused eval recommendation | PASS | `output/eval-harness/20260902T045438Z/`; JSON digest `3bb18c5706d6c3f98ef0839761932cf31deec13be60074cc55b3fedd59899678` |
-| Focused eval execution | PARTIAL | Frozen-manifest bounded shards completed normally. Contract rows passed except `eval-unit-tests`, blocked by missing historical fixture `output/eval-evolution/20260805-skill-smoke-v4-input.json`. Smoke, MapBuild, and cleanup suites passed; open-ended goals retained one existing direct-runner `private_goal_not_satisfied` failure. |
+| Focused eval execution | PARTIAL | The current 30-row `baseline-refresh` completed with 25 passed rows and 5 Kimi cleanup comparison rows blocked by the provider's 5-hour quota; no rows failed and no provider substitution occurred. |
 | Network readiness | PASS | Repo-local provider routes allowed |
 | Camera-grounded live proof | PASS | `04-LIVE-PROOF.md`; real Grounding DINO sidecar readiness passed and the camera-grounded MapBuild product route completed with 35 detector events, 238 candidates, zero failures, and privacy-bounded artifacts |
 

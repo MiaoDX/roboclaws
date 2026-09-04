@@ -167,7 +167,8 @@ closed-content mismatch.
 
 `baseline-core` is the normal broad local refresh without live providers.
 `baseline-live-default` adds the normal Kimi live rows. `baseline-refresh` adds
-the explicit four-profile comparison. Rows whose live preflight is not ready
+the explicit five-cell fixed-prior comparison. `baseline-ci` is the deterministic
+PR subset and never executes providers or provider egress. Rows whose live preflight is not ready
 record blocked evidence instead of being silently skipped.
 
 The built-in `just agent::eval execute` worker runs locally. The harness itself

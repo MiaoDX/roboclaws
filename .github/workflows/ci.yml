@@ -42,6 +42,13 @@ jobs:
       - name: Run required PR gate
         run: just agent::verify
 
+      - name: Run deterministic eval baseline subset
+        env:
+          MIMO_RESPONSES_MODEL: ignored-in-ci
+          KIMI_API_KEY: ignored-in-ci
+          MM_API_KEY: ignored-in-ci
+        run: just agent::eval recommend profile=baseline-ci budget=focused
+
       - name: Check public release candidate
         run: | # pragma: allowlist secret
           candidate_root="$(mktemp -d)"

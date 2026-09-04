@@ -229,7 +229,7 @@ def test_openai_agents_runtime_applies_kimi_coding_user_agent(tmp_path: Path, mo
     OpenAIAgentsLiveRuntime().run(request)
 
     model_settings = captured["agent_kwargs"]["model_settings"]
-    assert captured["model"] == "kimi-k2.7-code"
+    assert captured["model"] == "k3"
     assert captured["base_url"] == "https://kimi.example.test/v1"
     assert captured["api_key"] == "fake-kimi-key"
     assert model_settings.include_usage is True
@@ -268,7 +268,7 @@ def test_openai_agents_runtime_preserves_zero_mcp_client_timeout_disable(
         ),
         (
             {"model": "kimi-k2-5"},
-            {"ROBOCLAWS_OPENAI_AGENTS_MODEL": "kimi-k2.7-code"},
+            {"ROBOCLAWS_OPENAI_AGENTS_MODEL": "k3"},
             "conflicting OpenAI Agents SDK setting model",
         ),
         (
@@ -344,7 +344,7 @@ def test_openai_agents_runtime_rejects_route_incompatible_model_env(
 ) -> None:
     monkeypatch.setenv("MM_API_KEY", "fake-mm-key")
     monkeypatch.setenv("ROBOCLAWS_PROVIDER_PROFILE", "minimax-responses")
-    monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_MODEL", "kimi-k2.7-code")
+    monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_MODEL", "k3")
     request = LiveAgentRequest(
         run_id="household-world",
         skill_name="household-world",
@@ -361,7 +361,7 @@ def test_openai_agents_runtime_rejects_route_incompatible_model_env(
     assert payload["reason"] == "provider_config_failure"
     assert "OpenAI Agents SDK setting model is incompatible" in payload["detail"]
     assert (
-        "model 'kimi-k2.7-code' is incompatible with provider_profile 'minimax-responses'"
+        "model 'k3' is incompatible with provider_profile 'minimax-responses'"
         in (payload["detail"])
     )
 
@@ -505,7 +505,7 @@ def test_openai_agents_runtime_can_use_kimi_openai_chat_profile(
 
     OpenAIAgentsLiveRuntime().run(request)
 
-    assert captured["model"] == "kimi-k2.7-code"
+    assert captured["model"] == "k3"
     assert captured["base_url"] == "https://kimi.example.test/v1"
     assert captured["api_key"] == "fake-kimi-key"
     assert captured["agent_kwargs"]["model_settings"].extra_headers == {
@@ -660,7 +660,7 @@ def test_openai_agents_perf_profile_resolves_minimax_and_kimi_defaults(monkeypat
     chat = _resolve_agent_sdk_perf_profile(
         _openai_agents_perf_profile_base_args(
             provider_profile="kimi-openai-chat",
-            model="kimi-k2.7-code",
+            model="k3",
         )
     )
     assert chat["provider_profile"] == "kimi-openai-chat"
@@ -677,7 +677,7 @@ def test_openai_agents_perf_profile_resolves_minimax_and_kimi_defaults(monkeypat
     kimi = _resolve_agent_sdk_perf_profile(
         _openai_agents_perf_profile_base_args(
             provider_profile="kimi-openai-chat",
-            model="kimi-k2.7-code",
+            model="k3",
         )
     )
     assert kimi["provider_profile"] == "kimi-openai-chat"

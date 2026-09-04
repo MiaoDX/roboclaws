@@ -198,7 +198,7 @@ def test_openai_agents_cleanup_runner_fails_after_bounded_continuation(
         port=18788,
         lock_path=tmp_path / "live.lock",
         provider_profile="kimi-openai-chat",
-        model="kimi-k2.7-code",
+        model="k3",
         max_turns=128,
         incomplete_turn_continuation_attempts=1,
         mcp_client_session_timeout_s=30.0,

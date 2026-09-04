@@ -141,7 +141,7 @@ def test_openai_agents_live_timing_fails_aloud_on_malformed_mcp_timing_source(
             "--provider-profile",
             "kimi-openai-chat",
             "--model",
-            "kimi-k2.7-code",
+            "k3",
             "--client-url",
             "http://127.0.0.1:18788/mcp",
             "--host",
@@ -285,7 +285,7 @@ def test_openai_agents_span_recorder_writes_sanitized_span_events(tmp_path: Path
         runtime_config={
             "runtime": "openai-agents-live",
             "provider_profile": "kimi-openai-chat",
-            "model": "kimi-k2.7-code",
+            "model": "k3",
         },
     )
 
@@ -396,7 +396,7 @@ def test_openai_agents_live_timing_timeline_partitions_runner_and_attribution() 
         "runtime": "openai-agents-live",
         "provider_profile": "kimi-openai-chat",
         "wire_api": "responses",
-        "model": "kimi-k2.7-code",
+        "model": "k3",
         "evidence_lane": "world-public-labels",
         "started_at_epoch": 100.0,
         "openai_agents_start_epoch": 105.0,
@@ -439,7 +439,7 @@ def test_openai_agents_live_timing_timeline_partitions_runner_and_attribution() 
             "success_event_count": 1,
             "failure_classes": {"provider_transient_failure": 1},
             "provider_reasons": {"upstream_unavailable": 1},
-            "attempted_models": ["kimi-k2.7-code"],
+            "attempted_models": ["k3"],
             "attempted_provider_profiles": ["kimi-openai-chat"],
             "attempted_wire_apis": ["responses"],
             "retry_delay_s_total": 1.0,
@@ -454,7 +454,7 @@ def test_openai_agents_live_timing_timeline_partitions_runner_and_attribution() 
             "event_count": 2,
             "enabled": True,
             "modes": ["public_tool_result_summary_v1"],
-            "attempted_models": ["kimi-k2.7-code"],
+            "attempted_models": ["k3"],
             "attempted_provider_profiles": ["kimi-openai-chat"],
             "attempted_wire_apis": ["responses"],
             "compacted_item_count": 2,
@@ -566,7 +566,7 @@ def test_openai_agents_live_timing_timeline_partitions_runner_and_attribution() 
     assert timeline["runtime"] == "openai-agents-live"
     assert timeline["provider_profile"] == "kimi-openai-chat"
     assert timeline["wire_api"] == "responses"
-    assert timeline["model"] == "kimi-k2.7-code"
+    assert timeline["model"] == "k3"
     assert timeline["evidence_lane"] == "world-public-labels"
     assert [segment["duration_s"] for segment in timeline["runner_segments"]] == [
         5.0,
@@ -599,7 +599,7 @@ def test_openai_agents_live_timing_timeline_partitions_runner_and_attribution() 
         "success_event_count": 1,
         "failure_classes": {"provider_transient_failure": 1},
         "provider_reasons": {"upstream_unavailable": 1},
-        "attempted_models": ["kimi-k2.7-code"],
+        "attempted_models": ["k3"],
         "attempted_provider_profiles": ["kimi-openai-chat"],
         "attempted_wire_apis": ["responses"],
         "retry_delay_s_total": 1.0,
@@ -614,7 +614,7 @@ def test_openai_agents_live_timing_timeline_partitions_runner_and_attribution() 
         "event_count": 2,
         "enabled": True,
         "modes": ["public_tool_result_summary_v1"],
-        "attempted_models": ["kimi-k2.7-code"],
+        "attempted_models": ["k3"],
         "attempted_provider_profiles": ["kimi-openai-chat"],
         "attempted_wire_apis": ["responses"],
         "compacted_item_count": 2,
@@ -721,7 +721,7 @@ def test_openai_agents_live_timing_compact_metrics_surface_structured_detail_err
             "runtime": "openai-agents-live",
             "provider_profile": "kimi-openai-chat",
             "wire_api": "responses",
-            "model": "kimi-k2.7-code",
+            "model": "k3",
             "runner_timing": {},
             "agent_sdk_budget_terminal": {
                 "available": True,
@@ -746,7 +746,7 @@ def test_openai_agents_live_timing_compact_metrics_tolerates_plaintext_detail() 
             "runtime": "openai-agents-live",
             "provider_profile": "kimi-openai-chat",
             "wire_api": "responses",
-            "model": "kimi-k2.7-code",
+            "model": "k3",
             "runner_timing": {},
             "agent_sdk_budget_terminal": {
                 "available": True,

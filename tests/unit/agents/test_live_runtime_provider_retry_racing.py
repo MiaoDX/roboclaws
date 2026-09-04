@@ -94,7 +94,7 @@ def test_openai_agents_runtime_applies_kimi_chat_transport_contract(
 
     OpenAIAgentsLiveRuntime().run(request)
 
-    assert captured["model"] == "kimi-k2.7-code"
+    assert captured["model"] == "k3"
     assert captured["base_url"] == "https://kimi.example.test/v1"
     assert captured["api_key"] == "fake-kimi-key"
     wrapped_model = captured["agent_kwargs"]["model"]

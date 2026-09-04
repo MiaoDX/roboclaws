@@ -397,6 +397,7 @@ def run_household_world_episode(
         base_contract=base_contract,
         episode_policy=episode_policy,
         hooks=direct_loop_hooks,
+        target_query=task_prompt if task_intent == "open-ended" else "",
     )
 
     after_snapshot = _write_snapshot(

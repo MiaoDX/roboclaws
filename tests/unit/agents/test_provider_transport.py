@@ -61,7 +61,7 @@ def test_codex_product_profile_omits_unsupported_truncation() -> None:
 def test_provider_budget_caps_each_model_call_by_tokens_and_cost() -> None:
     assert (
         bounded_output_tokens(
-            model="kimi-k2.7-code",
+            model="k3",
             token_budget=4_000,
             cost_budget_usd=0.006,
             max_model_calls=4,
@@ -73,7 +73,7 @@ def test_provider_budget_caps_each_model_call_by_tokens_and_cost() -> None:
         {
             "provider_profile": "kimi-openai-chat",
             "wire_api": "chat-completions",
-            "model": "kimi-k2.7-code",
+            "model": "k3",
             "model_thinking_mode": "default",
             "max_turns": 4,
             "provider_token_budget": 4_000,

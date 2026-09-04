@@ -12,6 +12,7 @@ from roboclaws.core.map_build_scan_profile import (
 from roboclaws.core.map_build_scan_profile import (
     map_build_scan_profile as build_map_build_scan_profile,
 )
+from roboclaws.core.task_intents import household_intent_is_open_ended
 from roboclaws.household.household_backend_contract import HouseholdBackendSession
 from roboclaws.household.household_runtime_contract import (
     CAMERA_MODEL_POLICY_MODE,
@@ -603,8 +604,18 @@ def complete_direct_household_episode(
     base_contract: HouseholdBackendSession,
     episode_policy: DirectHouseholdEpisodePolicy,
     hooks: DirectHouseholdEpisodePolicyHooks,
+    target_query: str = "",
 ) -> dict[str, Any]:
     reason = f"{episode_policy.policy_name} complete"
+    if household_intent_is_open_ended(contract.task_intent) and target_query.strip():
+        # Record final public resolution before done for authoritative negative-search evidence.
+        hooks.call_tool(
+            trace_events,
+            started_at,
+            "resolve_target_query",
+            {"query": target_query, "operation": "inspect"},
+            lambda: contract.resolve_target_query(target_query, operation="inspect"),
+        )
     done = hooks.call_tool(
         trace_events,
         started_at,

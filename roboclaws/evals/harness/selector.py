@@ -19,6 +19,7 @@ HARNESS_PROFILES = (
     "baseline-core",
     "baseline-live-default",
     "baseline-refresh",
+    "baseline-ci",
 )
 SIGNAL_RULES: tuple[dict[str, Any], ...] = (
     {
@@ -404,7 +405,7 @@ def _apply_selection_rules(
                 and not runtime_map_prior
             ):
                 continue
-            if profile not in row.get("profiles", []):
+            if not _profile_row_allowed(row, profile):
                 continue
             profile_signal_id = f"{profile.replace('-', '_')}_profile"
             matching = [profile_signal_id]
@@ -443,6 +444,18 @@ def _apply_selection_rules(
             row["skip_reason"] = "budget=smoke runs deterministic confidence only"
         else:
             row["status"] = "not_run"
+
+
+def _profile_row_allowed(row: dict[str, Any], profile: str) -> bool:
+    if profile != "baseline-ci":
+        return profile in row.get("profiles", [])
+    return (
+        "baseline-core" in row.get("profiles", [])
+        and row.get("expense") == "deterministic"
+        and not row.get("axes", {}).get("provider_profile")
+        and not row.get("provider_network_scope")
+        and not any(str(req).startswith("provider:") for req in row.get("requires", []))
+    )
 
 
 def _explicitly_matches(row: dict[str, Any], explicit_axes: dict[str, list[str]]) -> bool:
