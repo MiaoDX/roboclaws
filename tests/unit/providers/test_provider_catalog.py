@@ -72,8 +72,14 @@ def test_deleted_model_aliases_are_absent() -> None:
     for deleted in (
         "nvidia",
         "nvidia-nano-vl",
+        "kimi",
+        "kimi-k2.7-code",
+        "k2.7-code",
+        "kimi-code",
     ):
         assert deleted not in aliases
+        with pytest.raises(KeyError):
+            resolve_model(deleted)
 
 
 def test_named_chat_profiles_have_catalog_models() -> None:

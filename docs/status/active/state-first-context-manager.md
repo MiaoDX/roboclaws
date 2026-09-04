@@ -10,9 +10,10 @@
   and checkpoint continuation semantics are implemented and verified.
 - Phase 4 local proof complete: real Grounding DINO MapBuild and automated
   desktop/mobile operator-console QA pass.
-- Latest DINO input recheck passes on both direct and SDK routes. Three fresh
-  SDK MapBuild runs using `minimax-responses` (`MiniMax-M3`),
-  `kimi-openai-chat` (`kimi-k2.7-code`), and `mimo-responses` (`mimo`) all
+- The September 2 DINO input recheck passed on both direct and SDK routes. Three
+  historical SDK MapBuild runs using `minimax-responses` (`MiniMax-M3`),
+  `kimi-openai-chat` (the then-configured `kimi-k2.7-code`), and
+  `mimo-responses` (the then-configured `mimo`) all
   completed with exit status 0, zero model-service failures/retries, seven
   successful Grounding DINO events, and `private_truth_included=false`. Their
   `completion_status=failed` values are the no-target MapBuild checker result,

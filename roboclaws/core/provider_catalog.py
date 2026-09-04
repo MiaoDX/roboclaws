@@ -125,19 +125,6 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         cost_per_m={"input": 1.00, "output": 3.00},
     ),
     ModelSpec(
-        "kimi-k2.7-code",
-        ("kimi", "kimi-k2.7-code", "k2.7-code", "kimi-code"),
-        "kimi",
-        _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
-        default_use=True,
-        default_use_note=(
-            "Default Kimi coding model. Kimi K2.7 Code is a thinking-only route. "
-            "The provider accepts arbitrary K2.7 suffixes and echoes them, so the "
-            "catalog keeps the canonical model id only."
-        ),
-        cost_per_m={"input": 1.00, "output": 3.00},
-    ),
-    ModelSpec(
         "kimi-for-coding",
         ("kimi-coding", "kimi-for-coding"),
         "kimi",
