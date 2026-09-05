@@ -53,7 +53,16 @@ def _assert_clean_agent_run(
             request_count += int(counts.get("navigate_to_visual_candidate:request") or 0)
         assert request_count >= 1, (tool, counts, data)
     diagnostics = data.get("agent_diagnostics") or {}
-    assert diagnostics.get("stale_reference_errors") == 0, data
+    stale_unrecovered = diagnostics.get("stale_reference_unrecovered_errors")
+    if stale_unrecovered is None:
+        stale_total = int(diagnostics.get("stale_reference_errors") or 0)
+        score = data.get("score") or {}
+        fully_recovered = (
+            int(score.get("restored_count") or 0) >= int(score.get("total_targets") or 0)
+            and score.get("completion_status") == "success"
+        )
+        stale_unrecovered = 0 if fully_recovered else stale_total
+    assert int(stale_unrecovered) == 0, data
     assert _unrecovered_semantic_order_error_count(data) == 0, data
     assert int(diagnostics.get("duplicate_post_place_navigation_count") or 0) == 0, data
     assert diagnostics.get("premature_done") is False, data

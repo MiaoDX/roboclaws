@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -9,10 +10,12 @@ from roboclaws.agents.provider_registry import (
     openai_agents_runtime_settings,
     provider_readiness,
 )
+from roboclaws.core.dotenv import load_dotenv_file
 from roboclaws.core.provider_catalog import (
     MODEL_CAP_TEXT,
     PROVIDER_PROFILE_CODEX_RESPONSES,
     PROVIDER_PROFILE_MIMO_RESPONSES,
+    ROUTE_CAP_SUPPORTED,
     ROUTE_CAP_UNKNOWN,
     default_provider_profile,
     model_aliases,
@@ -24,12 +27,15 @@ from roboclaws.core.provider_catalog import (
     supported_provider_profiles,
 )
 
+REPO_ROOT = Path(__file__).resolve().parents[3]
+
 EXPECTED_PROFILES = (
     "codex-responses",
     "mimo-responses",
     "mimo-tp-openai-chat",
     "minimax-responses",
     "kimi-openai-chat",
+    "qwen-tp-responses",
 )
 
 
@@ -37,6 +43,29 @@ def test_openai_agents_registry_has_exact_public_profile_set() -> None:
     assert supported_provider_profiles("openai-agents-sdk") == EXPECTED_PROFILES
     assert tuple(route.route_id for route in provider_route_specs()) == EXPECTED_PROFILES
     assert default_provider_profile("openai-agents-sdk") is None
+
+
+def test_env_example_tracks_active_provider_environment_contract() -> None:
+    env_example = load_dotenv_file(REPO_ROOT / ".env.example", {})
+    required_keys = {key for route in provider_route_specs() for key in route.required_env_keys}
+    template_provider_keys = {
+        key
+        for key in env_example
+        if key.endswith(("_API_KEY", "_BASE_URL", "_MODEL"))
+        or key in {"MIMO_TP_KEY", "QWEN_TP_KEY"}
+    }
+
+    assert template_provider_keys == required_keys
+    assert all(env_example[key] == "" for key in required_keys)
+    assert (
+        not {
+            "MIMO_ANTHROPIC_BASE_URL",
+            "NVIDIA_BASE_URL",
+            "NV_API_KEY",
+            "XM_LLM_ANTHROPIC_BASE_URL",
+        }
+        & env_example.keys()
+    )
 
 
 @pytest.mark.parametrize("agent_engine", ("codex-cli", "claude-code", "future-engine"))
@@ -129,6 +158,36 @@ def test_mimo_tp_chat_accepts_explicit_pro_model() -> None:
 
     assert settings["model"] == "mimo-v2.5-pro"
     assert settings["request_model"] == "mimo-v2.5-pro"
+
+
+def test_qwen_tp_responses_readiness_uses_public_endpoint_credentials() -> None:
+    route = provider_route_spec("qwen-tp-responses")
+    assert route.required_env_keys == ("QWEN_TP_BASE_URL", "QWEN_TP_KEY")
+    assert route.compatible_model_ids == ("qwen3.8-max", "qwen3.8-flash")
+    readiness = provider_readiness(
+        agent_engine="openai-agents-sdk",
+        provider_profile=route.route_id,
+        env={
+            "QWEN_TP_BASE_URL": "https://qwen.example/compatible-mode/v1",
+            "QWEN_TP_KEY": "secret",
+        },
+    )
+    assert readiness["ok"] is True
+    assert readiness["model"] == "qwen3.8-max"
+    assert readiness["wire_api"] == "responses"
+    assert readiness["route_capabilities"] == {
+        "image_transport": ROUTE_CAP_SUPPORTED,
+        "tool_call_transport": ROUTE_CAP_SUPPORTED,
+    }
+
+
+def test_qwen_tp_responses_accepts_flash_and_rejects_foreign_model() -> None:
+    resolved = resolve_route_model("qwen-tp-responses", "qwen3.8-flash")
+    assert resolved.model_id == "qwen3.8-flash"
+    assert resolved.family == "qwen"
+    assert resolved.supports_image_input is True
+    with pytest.raises(ValueError, match="incompatible"):
+        resolve_route_model("qwen-tp-responses", "k3")
 
 
 def test_mimo_responses_rejects_non_pro_model() -> None:

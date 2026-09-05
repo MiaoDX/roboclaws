@@ -96,20 +96,10 @@ evidence pointer. Providers never fall back to another profile.
 
 ## Secrets
 
-Repo-local `.env` is the normal local route and is ignored by git. Common keys:
-
-```bash
-KIMI_API_KEY=
-KIMI_OPENAI_BASE_URL=
-MM_API_KEY=
-MM_BASE_URL=
-CODEX_RESPONSES_API_KEY=
-CODEX_RESPONSES_BASE_URL=
-CODEX_RESPONSES_MODEL=
-MIMO_RESPONSES_API_KEY=
-MIMO_RESPONSES_BASE_URL=
-MIMO_RESPONSES_MODEL=
-```
+Repo-local `.env` is the normal local route and is ignored by git. Start from
+[`.env.example`](../../.env.example), and use the
+[model and provider matrix](model-matrix.md) to identify the keys required by
+the selected profile.
 
 GitHub secrets are needed only for workflows that run live provider profiles.
 Do not paste secrets into logs, PR descriptions, reports, or planning files.

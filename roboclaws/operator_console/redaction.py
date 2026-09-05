@@ -6,19 +6,13 @@ import os
 import re
 from collections.abc import Iterable, Mapping
 
-SECRET_ENV_KEYS = (
-    "CODEX_RESPONSES_API_KEY",
-    "CODEX_RESPONSES_BASE_URL",
-    "CODEX_RESPONSES_MODEL",
-    "MIMO_RESPONSES_API_KEY",
-    "MIMO_RESPONSES_BASE_URL",
-    "MIMO_RESPONSES_MODEL",
+from roboclaws.core.provider_catalog import provider_route_specs
+
+SECRET_ENV_KEYS = tuple(
+    key for route in provider_route_specs() for key in route.required_env_keys
+) + (
     "OPENAI_API_KEY",
     "ANTHROPIC_API_KEY",
-    "KIMI_API_KEY",
-    "KIMI_OPENAI_BASE_URL",
-    "MM_API_KEY",
-    "MM_BASE_URL",
 )
 
 SECRET_PATTERNS: tuple[re.Pattern[str], ...] = (
