@@ -64,6 +64,8 @@ def _configuration_or_auth_failure(lowered: str, detail: str) -> LiveAgentFailur
         "requires kimi_api_key",
         "requires mm_base_url",
         "requires mm_api_key",
+        "requires qwen_tp_base_url",
+        "requires qwen_tp_key",
         "supports responses provider",
     )
     if any(item in lowered for item in config_markers):

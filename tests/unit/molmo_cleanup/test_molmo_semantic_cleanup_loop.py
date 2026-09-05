@@ -429,6 +429,28 @@ def test_semantic_diagnostics_tracks_recovered_semantic_order_errors() -> None:
     assert diagnostics["semantic_order_unrecovered_errors"] == 0
 
 
+def test_semantic_diagnostics_tracks_recovered_stale_reference() -> None:
+    diagnostics = semantic_diagnostics(
+        [
+            _trace_response(
+                "navigate_to_object",
+                {
+                    "ok": False,
+                    "tool": "navigate_to_object",
+                    "error_reason": "stale_reference",
+                    "object_id": "household_object:6:6:4",
+                },
+            )
+        ],
+        [],
+        {"score": {"completion_status": "success", "restored_count": 5, "total_targets": 5}},
+    )
+
+    assert diagnostics["stale_reference_errors"] == 1
+    assert diagnostics["stale_reference_recovered_errors"] == 1
+    assert diagnostics["stale_reference_unrecovered_errors"] == 0
+
+
 def test_visual_grounding_only_hides_closed_container_contents() -> None:
     visibility = {"status": "ok", "object_pixels": 0}
 

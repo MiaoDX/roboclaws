@@ -42,6 +42,8 @@ roboclaws_provider_registry() {
   MM_API_KEY="${MM_API_KEY:-}" \
   KIMI_OPENAI_BASE_URL="${KIMI_OPENAI_BASE_URL:-}" \
   KIMI_API_KEY="${KIMI_API_KEY:-}" \
+  QWEN_TP_BASE_URL="${QWEN_TP_BASE_URL:-}" \
+  QWEN_TP_KEY="${QWEN_TP_KEY:-}" \
   $python_cmd -m roboclaws.agents.provider_registry "$@"
 }
 
@@ -149,10 +151,10 @@ roboclaws_assert_openai_agents_provider_allowed() {
   local provider
   provider="$(roboclaws_code_agent_provider ROBOCLAWS_PROVIDER_PROFILE)" || return
   case "$provider" in
-    codex-responses|mimo-responses|mimo-tp-openai-chat|minimax-responses|kimi-openai-chat)
+    codex-responses|mimo-responses|mimo-tp-openai-chat|minimax-responses|kimi-openai-chat|qwen-tp-responses)
       ;;
     *)
-      echo "error: unsupported OpenAI Agents SDK provider '${provider}'; expected codex-responses, mimo-responses, mimo-tp-openai-chat, minimax-responses, or kimi-openai-chat" >&2
+      echo "error: unsupported OpenAI Agents SDK provider '${provider}'; expected codex-responses, mimo-responses, mimo-tp-openai-chat, minimax-responses, kimi-openai-chat, or qwen-tp-responses" >&2
       return 2
       ;;
   esac

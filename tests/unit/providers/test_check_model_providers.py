@@ -36,6 +36,7 @@ def test_provider_probe_defaults_cover_kimi_and_payload() -> None:
         "provider:mimo-tp-openai-chat",
         "provider:minimax-responses-m3",
         "provider:kimi-coding-chat",
+        "provider:qwen-tp-responses",
     }
     kimi = probes["provider:kimi-coding-chat"]
     payload = script.kimi_coding_payload(
@@ -399,6 +400,7 @@ def test_agents_sdk_public_profile_excludes_internal_routes() -> None:
         "agents-sdk:mimo-tp-openai-chat",
         "agents-sdk:minimax-responses",
         "agents-sdk:kimi-openai-chat",
+        "agents-sdk:qwen-tp-responses",
     }
     public_routes = {
         "codex-responses",
@@ -406,6 +408,7 @@ def test_agents_sdk_public_profile_excludes_internal_routes() -> None:
         "mimo-tp-openai-chat",
         "minimax-responses",
         "kimi-openai-chat",
+        "qwen-tp-responses",
     }
     assert all(probe.route_id in public_routes for probe in selected)
 

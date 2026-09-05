@@ -103,11 +103,14 @@ handles. The contract-derived `cleanup_worklist` and versioned
 `readiness.completion` snapshot in Agent View are authoritative.
 
 The lane-neutral strategy invariant is: observe one waypoint, drain every
-currently actionable local worklist candidate, continue bounded discovery only
-when evidence or a public destination is missing, then resume the next
-unvisited waypoint. After the local worklist is drained, call `done` exactly
-once when completion readiness is `ready`. Evidence lanes may differ only in
-candidate acquisition and registration before an observed handle exists.
+currently actionable local worklist candidate **before leaving that waypoint**,
+continue bounded discovery only when evidence or a public destination is
+missing, then resume the next unvisited waypoint. When an observation produces
+an actionable cleanup handle, complete its entire manipulation chain immediately
+at the current waypoint; do not continue surveying other waypoints first.
+After the local worklist is drained, call `done` exactly once when completion
+readiness is `ready`. Evidence lanes may differ only in candidate acquisition
+and registration before an observed handle exists.
 
 For each observed cleanup handle, run this public tool chain:
 

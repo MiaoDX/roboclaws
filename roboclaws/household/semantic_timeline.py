@@ -284,10 +284,24 @@ def semantic_diagnostics(
     recovered_semantic_order_errors, unrecovered_semantic_order_errors = (
         _semantic_order_recovery_counts(substeps, total_errors=semantic_order_errors)
     )
-    duplicate_navigation = duplicate_post_place_navigations(trace_events)
+    # A model may briefly try an expired/hallucinated handle and then recover by
+    # re-observing the scene. Keep the raw count for diagnostics, but only treat
+    # stale references as blocking when the final authoritative score is partial.
     score = done_response.get("score", {})
+    stale_reference_recovered = (
+        stale_reference_errors > 0
+        and int(score.get("restored_count", 0)) >= int(score.get("total_targets", 0))
+        and score.get("completion_status") == "success"
+    )
+    duplicate_navigation = duplicate_post_place_navigations(trace_events)
     return {
         "stale_reference_errors": stale_reference_errors,
+        "stale_reference_recovered_errors": (
+            stale_reference_errors if stale_reference_recovered else 0
+        ),
+        "stale_reference_unrecovered_errors": (
+            0 if stale_reference_recovered else stale_reference_errors
+        ),
         "semantic_order_errors": semantic_order_errors,
         "semantic_order_recovered_errors": recovered_semantic_order_errors,
         "semantic_order_unrecovered_errors": unrecovered_semantic_order_errors,
