@@ -11,6 +11,10 @@ supports five profiles and never retries one wire API through another.
 | `minimax-responses` | External | Local, trusted GitHub Actions showcase | Responses | Public MiniMax catalog model | `MM_BASE_URL`, `MM_API_KEY` |
 | `kimi-openai-chat` | External | Local, trusted GitHub Actions showcase | Chat Completions | `k3` (diagnostic `k3-256k`) | `KIMI_OPENAI_BASE_URL`, `KIMI_API_KEY` |
 
+Token-plan describes provider access, not the wire protocol. The MiMo and Kimi
+token-plan routes use Chat Completions, while the MiniMax token-plan route uses
+Responses.
+
 Responses and Chat Completions are different transports. Responses can expose
 provider-native reasoning and structured response items; Chat Completions uses
 message/delta semantics. The runtime selects the matching SDK model class from

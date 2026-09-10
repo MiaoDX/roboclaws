@@ -40,22 +40,9 @@ artifacts, graders, and promotion decisions remain canonical.
 
 ## Provider Keys
 
-Copy `.env.example` to `.env`, then fill only the keys you have:
-
-```bash
-KIMI_OPENAI_BASE_URL=
-KIMI_API_KEY=
-MM_BASE_URL=
-MM_API_KEY=
-CODEX_RESPONSES_BASE_URL=
-CODEX_RESPONSES_API_KEY=
-CODEX_RESPONSES_MODEL=
-MIMO_RESPONSES_BASE_URL=
-MIMO_RESPONSES_API_KEY=
-MIMO_RESPONSES_MODEL=
-MIMO_OPENAI_BASE_URL=
-MIMO_TP_KEY=
-```
+Start from [`.env.example`](../../.env.example), then fill only the keys for
+the selected profile. The [model and provider matrix](model-matrix.md) maps
+each profile to its wire API and required environment.
 
 Every OpenAI Agents SDK launch selects a provider profile explicitly.
 

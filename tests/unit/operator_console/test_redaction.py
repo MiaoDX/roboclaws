@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from roboclaws.core.provider_catalog import provider_route_specs
 from roboclaws.operator_console.redaction import redact_text
 
 
@@ -38,3 +39,16 @@ def test_redacts_env_values_authorization_and_api_key_patterns() -> None:
     assert "mimo-private-model" not in redacted
     assert "sk-abcdefghijklmnopqrstuvwxyz" not in redacted
     assert redacted.count("[REDACTED]") >= 4
+
+
+def test_redacts_every_catalog_provider_environment_value() -> None:
+    env = {
+        key: f"provider-secret-{index}-{key.lower()}"
+        for index, key in enumerate(
+            key for route in provider_route_specs() for key in route.required_env_keys
+        )
+    }
+
+    redacted = redact_text(" ".join(env.values()), env=env)
+
+    assert all(value not in redacted for value in env.values())
