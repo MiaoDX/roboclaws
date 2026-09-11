@@ -1,7 +1,7 @@
 # Model And Provider Matrix
 
 OpenAI Agents SDK launches require an explicit `provider_profile`. Roboclaws
-supports five profiles and never retries one wire API through another.
+supports six profiles and never retries one wire API through another.
 
 | Profile | Network scope | Allowed eval targets | Wire API | Model identity | Required environment |
 | --- | --- | --- | --- | --- | --- |
@@ -10,10 +10,11 @@ supports five profiles and never retries one wire API through another.
 | `mimo-tp-openai-chat` | External | Local, trusted GitHub Actions showcase | Chat Completions | `mimo-v2.5-pro` | `MIMO_OPENAI_BASE_URL`, `MIMO_TP_KEY` |
 | `minimax-responses` | External | Local, trusted GitHub Actions showcase | Responses | Public MiniMax catalog model | `MM_BASE_URL`, `MM_API_KEY` |
 | `kimi-openai-chat` | External | Local, trusted GitHub Actions showcase | Chat Completions | `k3` (diagnostic `k3-256k`) | `KIMI_OPENAI_BASE_URL`, `KIMI_API_KEY` |
+| `qwen-tp-responses` | External | Local, trusted GitHub Actions showcase | Responses | `qwen3.8-max` (variant `qwen3.8-flash`) | `QWEN_TP_BASE_URL`, `QWEN_TP_KEY` |
 
 Token-plan describes provider access, not the wire protocol. The MiMo and Kimi
-token-plan routes use Chat Completions, while the MiniMax token-plan route uses
-Responses.
+token-plan routes use Chat Completions, while the MiniMax and Qwen token-plan
+routes use Responses.
 
 Responses and Chat Completions are different transports. Responses can expose
 provider-native reasoning and structured response items; Chat Completions uses
@@ -26,6 +27,15 @@ conservative, independent cells with text-only catalog capability, unknown
 image transport, and no alias, pricing, or endpoint default. Codex uses a thin
 transport adapter for ephemeral request metadata and omits the unsupported
 default `truncation` setting; those details never enter artifacts.
+
+The Qwen token-plan route is experimental pending the standard two-sample
+fixed-prior consumer suite. Direct endpoint probes have live-proven text,
+native tool calling, image input (provider enforces a 10px minimum edge), and
+`reasoning.effort` control including a real `none` disable, so both transports
+capabilities are declared supported; streaming and `previous_response_id`
+continuation are not yet proven. Billing is subscription Credits with a 7-day
+quota window and tier-dependent agent concurrency, not per-token dollars, so
+catalog pricing stays 0.0 and eval batches must watch the tier limit.
 
 The hosted showcase uses the public MiMo Chat route because the configured
 MiMo Responses endpoint resolves only inside the trusted network. Provider

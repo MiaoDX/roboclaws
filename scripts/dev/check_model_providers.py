@@ -42,6 +42,7 @@ PUBLIC_AGENT_SDK_ROUTE_IDS = (
     "mimo-tp-openai-chat",
     "minimax-responses",
     "kimi-openai-chat",
+    "qwen-tp-responses",
 )
 
 
@@ -123,6 +124,7 @@ def build_provider_probes(
     mimo_tp_route = provider_route_spec("mimo-tp-openai-chat")
     minimax_route = provider_route_spec("minimax-responses")
     kimi_route = provider_route_spec("kimi-openai-chat")
+    qwen_route = provider_route_spec("qwen-tp-responses")
 
     return [
         _provider_from_route(
@@ -141,6 +143,7 @@ def build_provider_probes(
         _provider_from_route(
             "minimax-responses-m3", minimax_route, max_tokens=responses_max_tokens
         ),
+        _provider_from_route("qwen-tp-responses", qwen_route, max_tokens=responses_max_tokens),
         ProbeSpec(
             probe_id="provider:kimi-coding-chat",
             mode="provider",

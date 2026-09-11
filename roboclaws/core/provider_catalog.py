@@ -11,6 +11,7 @@ PROVIDER_PROFILE_MIMO_RESPONSES = "mimo-responses"
 PROVIDER_PROFILE_MIMO_TP_OPENAI_CHAT = "mimo-tp-openai-chat"
 PROVIDER_PROFILE_MINIMAX_RESPONSES = "minimax-responses"
 PROVIDER_PROFILE_KIMI_OPENAI_CHAT = "kimi-openai-chat"
+PROVIDER_PROFILE_QWEN_TP_RESPONSES = "qwen-tp-responses"
 
 ROUTE_CAP_SUPPORTED = "supported"
 ROUTE_CAP_UNSUPPORTED = "unsupported"
@@ -183,6 +184,21 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         default_use=True,
         default_use_note="Default MiniMax model for current cleanup evidence.",
     ),
+    ModelSpec(
+        "qwen3.8-max",
+        ("qwen", "qwen3.8-max"),
+        "qwen",
+        _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
+        default_use_note="Public Qwen token-plan Responses model; reasoning on by default.",
+        cost_per_m={"input": 0.0, "output": 0.0},
+    ),
+    ModelSpec(
+        "qwen3.8-flash",
+        ("qwen3.8-flash",),
+        "qwen",
+        _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
+        cost_per_m={"input": 0.0, "output": 0.0},
+    ),
 )
 
 _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
@@ -255,6 +271,35 @@ _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
             "image_transport": ROUTE_CAP_UNSUPPORTED,
             "tool_call_transport": ROUTE_CAP_SUPPORTED,
         },
+    ),
+    ProviderRouteSpec(
+        route_id=PROVIDER_PROFILE_QWEN_TP_RESPONSES,
+        public_profile=PROVIDER_PROFILE_QWEN_TP_RESPONSES,
+        label="Qwen TP 3.8",
+        supported_engines=("openai-agents-sdk",),
+        default_model_id="qwen3.8-max",
+        required_env_keys=("QWEN_TP_BASE_URL", "QWEN_TP_KEY"),
+        api_key_env="QWEN_TP_KEY",
+        base_url_env="QWEN_TP_BASE_URL",
+        base_url_default="",
+        wire_api=WIRE_RESPONSES,
+        wire_source=WIRE_SOURCE_NATIVE,
+        default_use=False,
+        default_use_note=(
+            "Qwen token-plan Responses route; subscription Credits billing with a "
+            "7-day quota window, so eval batches must watch the tier limit."
+        ),
+        compatible_model_ids=("qwen3.8-max", "qwen3.8-flash"),
+        per_engine_status={"openai-agents-sdk": ROUTE_EXPERIMENTAL},
+        route_capabilities={
+            "image_transport": ROUTE_CAP_SUPPORTED,
+            "tool_call_transport": ROUTE_CAP_SUPPORTED,
+        },
+        status_note=(
+            "Text, tool calling, image input (min 10px), and reasoning effort "
+            "medium/none are live-proven on the Responses endpoint; streaming and "
+            "previous_response_id continuation remain unproven."
+        ),
     ),
 )
 

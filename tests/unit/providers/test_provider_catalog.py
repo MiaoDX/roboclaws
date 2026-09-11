@@ -15,6 +15,7 @@ from roboclaws.core.provider_catalog import (
     MODEL_CAP_TEXT,
     PROVIDER_PROFILE_CODEX_RESPONSES,
     PROVIDER_PROFILE_MIMO_RESPONSES,
+    ROUTE_CAP_SUPPORTED,
     ROUTE_CAP_UNKNOWN,
     default_provider_profile,
     model_aliases,
@@ -34,6 +35,7 @@ EXPECTED_PROFILES = (
     "mimo-tp-openai-chat",
     "minimax-responses",
     "kimi-openai-chat",
+    "qwen-tp-responses",
 )
 
 
@@ -49,7 +51,8 @@ def test_env_example_tracks_active_provider_environment_contract() -> None:
     template_provider_keys = {
         key
         for key in env_example
-        if key.endswith(("_API_KEY", "_BASE_URL", "_MODEL")) or key == "MIMO_TP_KEY"
+        if key.endswith(("_API_KEY", "_BASE_URL", "_MODEL"))
+        or key in {"MIMO_TP_KEY", "QWEN_TP_KEY"}
     }
 
     assert template_provider_keys == required_keys
@@ -155,6 +158,36 @@ def test_mimo_tp_chat_accepts_explicit_pro_model() -> None:
 
     assert settings["model"] == "mimo-v2.5-pro"
     assert settings["request_model"] == "mimo-v2.5-pro"
+
+
+def test_qwen_tp_responses_readiness_uses_public_endpoint_credentials() -> None:
+    route = provider_route_spec("qwen-tp-responses")
+    assert route.required_env_keys == ("QWEN_TP_BASE_URL", "QWEN_TP_KEY")
+    assert route.compatible_model_ids == ("qwen3.8-max", "qwen3.8-flash")
+    readiness = provider_readiness(
+        agent_engine="openai-agents-sdk",
+        provider_profile=route.route_id,
+        env={
+            "QWEN_TP_BASE_URL": "https://qwen.example/compatible-mode/v1",
+            "QWEN_TP_KEY": "secret",
+        },
+    )
+    assert readiness["ok"] is True
+    assert readiness["model"] == "qwen3.8-max"
+    assert readiness["wire_api"] == "responses"
+    assert readiness["route_capabilities"] == {
+        "image_transport": ROUTE_CAP_SUPPORTED,
+        "tool_call_transport": ROUTE_CAP_SUPPORTED,
+    }
+
+
+def test_qwen_tp_responses_accepts_flash_and_rejects_foreign_model() -> None:
+    resolved = resolve_route_model("qwen-tp-responses", "qwen3.8-flash")
+    assert resolved.model_id == "qwen3.8-flash"
+    assert resolved.family == "qwen"
+    assert resolved.supports_image_input is True
+    with pytest.raises(ValueError, match="incompatible"):
+        resolve_route_model("qwen-tp-responses", "k3")
 
 
 def test_mimo_responses_rejects_non_pro_model() -> None:
