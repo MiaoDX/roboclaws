@@ -11,7 +11,6 @@ from typing import Any
 from roboclaws.agents.drivers.openai_agents_budget import (
     OpenAIAgentsBudgetExceededError,
     context_budget_policy,
-    openai_agents_budget_failure,
     openai_agents_observe_budget_advisory,
 )
 from roboclaws.agents.drivers.openai_agents_context_assembler import (
@@ -111,13 +110,6 @@ def _model_input_compaction_filter(
                     )
                 raise OpenAIAgentsBudgetExceededError(failure)
             assembled_items = assembled.items
-        _raise_budget_failure_before_model_call(
-            run_dir,
-            events_path=events_path,
-            runtime_config=runtime_config,
-            profile=budget_profile or {},
-            timing=budget_timing or {},
-        )
         budget_advisory = _observe_budget_advisory_before_model_call(
             run_dir,
             events_path=events_path,
@@ -173,33 +165,6 @@ def _model_input_compaction_enabled(config: dict[str, Any]) -> bool:
         if isinstance(nested, dict) and nested.get("enabled"):
             return True
     return False
-
-
-def _raise_budget_failure_before_model_call(
-    run_dir: Path,
-    *,
-    events_path: Path,
-    runtime_config: dict[str, Any],
-    profile: dict[str, Any],
-    timing: dict[str, Any],
-) -> None:
-    spans_path = events_path.with_name(events_path.name.replace("events", "spans", 1))
-    failure = openai_agents_budget_failure(
-        run_dir,
-        timing,
-        profile,
-        context_spans_path=spans_path,
-    )
-    if failure is None:
-        return
-    _append_model_input_budget_event(
-        events_path,
-        runtime_config=runtime_config,
-        profile=profile,
-        timing=timing,
-        failure=failure,
-    )
-    raise OpenAIAgentsBudgetExceededError(failure)
 
 
 def _observe_budget_advisory_before_model_call(

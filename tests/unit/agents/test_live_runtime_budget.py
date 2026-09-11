@@ -11,6 +11,9 @@ from roboclaws.agents.drivers.openai_agents_budget import (
     openai_agents_observe_budget_advisory,
     raw_fpv_budget_metrics,
 )
+from roboclaws.agents.drivers.openai_agents_budget import (
+    raw_fpv_budget_failure as _budget_failure_from_run_state,
+)
 from roboclaws.agents.drivers.openai_agents_metrics import (
     openai_agents_cache_metrics as _cache_metrics,
 )
@@ -23,7 +26,6 @@ from roboclaws.agents.drivers.openai_agents_metrics import (
 from roboclaws.agents.drivers.openai_agents_provider_runtime import (
     failure_from_exception as _failure_from_exception,
 )
-from roboclaws.agents.household_live_continuation import _budget_failure_from_run_state
 from roboclaws.agents.live_status import LiveAgentFailure
 from roboclaws.agents.live_timing import live_timing_timeline as _live_timing_timeline
 
@@ -81,41 +83,6 @@ def test_openai_agents_budget_exception_preserves_failure_classification() -> No
     assert failure.reason == "provider_context_budget_exceeded"
     assert failure.retryable is False
     assert failure.detail == '{"schema":"agent_sdk_context_budget_terminal_v1"}'
-
-
-def test_openai_agents_budget_guard_classifies_context_hard_limit(tmp_path: Path) -> None:
-    run_dir = tmp_path / "run"
-    run_dir.mkdir()
-    (run_dir / "openai-agents-spans.jsonl").write_text(
-        json.dumps(
-            {
-                "event": "span_end",
-                "span_type": "response",
-                "usage": {"input_tokens": 150, "input_tokens_details": {"cached_tokens": 50}},
-            }
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    failure = _budget_failure_from_run_state(
-        run_dir,
-        {"evidence_lane": "world-public-labels", "cache_tools_list": True},
-        {
-            "profile_id": "custom",
-            "context_hard_limit_tokens": 100,
-            "raw_fpv_candidate_budget": None,
-            "max_observe_per_waypoint": None,
-        },
-    )
-
-    assert failure is not None
-    assert failure.reason == "provider_context_budget_exceeded"
-    assert failure.retryable is False
-    detail = json.loads(failure.detail)
-    assert detail["current_input_tokens"] == 150
-    assert detail["total_input_tokens"] == 150
-    assert detail["context_hard_limit_tokens"] == 100
 
 
 def test_context_budget_guard_is_scoped_to_current_attempt_spans(tmp_path: Path) -> None:
