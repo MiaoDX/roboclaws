@@ -33,7 +33,7 @@ def _perf_profile_args(**overrides: object) -> Namespace:
     values = dict.fromkeys(
         """
         max_turns incomplete_turn_continuation_attempts context_soft_limit_tokens
-        context_hard_limit_tokens max_observe_per_waypoint raw_fpv_candidate_budget
+        context_hard_limit_tokens raw_fpv_candidate_budget
         done_retry_budget model_input_compaction model_input_compaction_min_chars model_racing
         model_racing_arm_count raw_fpv_repeated_failure_limit raw_fpv_image_memory
         raw_fpv_image_memory_retain camera_grounded_history_compaction

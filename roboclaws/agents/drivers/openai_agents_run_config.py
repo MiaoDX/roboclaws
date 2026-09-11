@@ -235,7 +235,6 @@ def _model_input_budget_guard_configured(profile: dict[str, Any]) -> bool:
         profile.get(key) is not None
         for key in (
             "context_hard_limit_tokens",
-            "max_observe_per_waypoint",
             "raw_fpv_candidate_budget",
             "raw_fpv_repeated_failure_limit",
         )

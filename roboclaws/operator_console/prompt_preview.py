@@ -20,13 +20,11 @@ AGIBOT_MAP_BUILD_WRAPPER_SUMMARY = (
 PROMPT_PREVIEW_ENV_KEYS = (
     "ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE",
     "ROBOCLAWS_OPENAI_AGENTS_RAW_FPV_CANDIDATE_BUDGET",
-    "ROBOCLAWS_OPENAI_AGENTS_MAX_OBSERVE_PER_WAYPOINT",
     "ROBOCLAWS_OPENAI_AGENTS_DONE_RETRY_BUDGET",
     "ROBOCLAWS_OPENAI_AGENTS_CAMERA_GROUNDED_COMPOSITE_TOOLS",
 )
 PROMPT_PREVIEW_INT_ENV_KEYS = {
     "ROBOCLAWS_OPENAI_AGENTS_RAW_FPV_CANDIDATE_BUDGET": "raw_fpv_candidate_budget",
-    "ROBOCLAWS_OPENAI_AGENTS_MAX_OBSERVE_PER_WAYPOINT": "max_observe_per_waypoint",
     "ROBOCLAWS_OPENAI_AGENTS_DONE_RETRY_BUDGET": "done_retry_budget",
 }
 
@@ -65,11 +63,6 @@ def build_prompt_preview(
         "ROBOCLAWS_OPENAI_AGENTS_RAW_FPV_CANDIDATE_BUDGET",
         default=24,
     )
-    max_observe = _nonnegative_int_env(
-        env_overrides.get("ROBOCLAWS_OPENAI_AGENTS_MAX_OBSERVE_PER_WAYPOINT"),
-        "ROBOCLAWS_OPENAI_AGENTS_MAX_OBSERVE_PER_WAYPOINT",
-        default=1,
-    )
     done_retry_budget = _nonnegative_int_env(
         env_overrides.get("ROBOCLAWS_OPENAI_AGENTS_DONE_RETRY_BUDGET"),
         "ROBOCLAWS_OPENAI_AGENTS_DONE_RETRY_BUDGET",
@@ -97,7 +90,6 @@ def build_prompt_preview(
                 intent=selected_intent,
                 goal_contract=_goal_contract(route, selected_intent, raw_prompt, overrides),
                 raw_fpv_candidate_budget=raw_budget,
-                max_observe_per_waypoint=max_observe,
                 done_retry_budget=done_retry_budget,
                 camera_grounded_composite_tools=composite_tools,
                 operator_session_context_json=overrides.get("operator_session_context_json", ""),

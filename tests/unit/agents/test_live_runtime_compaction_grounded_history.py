@@ -430,7 +430,6 @@ def test_openai_agents_camera_grounded_composite_profile_adds_private_server_fla
         camera_grounded_composite_tools=True,
         context_soft_limit_tokens=None,
         context_hard_limit_tokens=None,
-        max_observe_per_waypoint=None,
         raw_fpv_candidate_budget=None,
         done_retry_budget=None,
         model_service_retry_attempts=None,
@@ -474,7 +473,6 @@ def test_openai_agents_camera_grounded_composite_rerenders_stale_two_step_prompt
     )
     profile = {
         "raw_fpv_candidate_budget": 24,
-        "max_observe_per_waypoint": 1,
         "done_retry_budget": 1,
         "camera_grounded_composite_tools": {
             "enabled": True,
@@ -507,7 +505,6 @@ def test_openai_agents_camera_grounded_composite_rerenders_map_build_prompt() ->
     )
     profile = {
         "raw_fpv_candidate_budget": 24,
-        "max_observe_per_waypoint": 1,
         "done_retry_budget": 1,
         "camera_grounded_composite_tools": {
             "enabled": True,
@@ -520,12 +517,10 @@ def test_openai_agents_camera_grounded_composite_rerenders_map_build_prompt() ->
     assert "Waypoint observation tool=observe" in stale_prompt
     assert "observe_camera_grounded_candidates" in prompt
     assert "Waypoint observation tool=observe_camera_grounded_candidates" in prompt
-    assert "Per-waypoint observation budget=1" in prompt
+    assert "Per-waypoint observation budget=5" in prompt
     assert "bounded re-observation" not in prompt
     assert "profile observe cadence=5 per waypoint" in prompt
-    assert "effective observe cadence=1 per waypoint" in prompt
-    assert "max_observe_per_waypoint override=true" in prompt
-    assert "profile body-turn cadence overridden=true" in prompt
+    assert "profile body-turn cadence overridden=false" in prompt
     assert "do not call declare_visual_candidates again" in prompt
     assert "Manipulation tools are not entitled for this run" in prompt
 
@@ -615,7 +610,6 @@ def test_openai_agents_camera_grounded_composite_runner_rerenders_stale_two_step
         camera_grounded_composite_tools=True,
         context_soft_limit_tokens=None,
         context_hard_limit_tokens=None,
-        max_observe_per_waypoint=None,
         raw_fpv_candidate_budget=None,
         done_retry_budget=None,
         model_service_retry_attempts=None,

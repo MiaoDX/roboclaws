@@ -160,7 +160,6 @@ def render_kickoff_prompt(
     intent: str = "",
     goal_contract: GoalContract | None = None,
     raw_fpv_candidate_budget: int = 24,
-    max_observe_per_waypoint: int = 4,
     done_retry_budget: int = 1,
     camera_grounded_composite_tools: bool = False,
     operator_session_context: dict[str, Any] | None = None,
@@ -183,7 +182,6 @@ def render_kickoff_prompt(
     elif profile == "camera-raw-fpv":
         prompt = (
             "Evidence lane=camera-raw-fpv; structured labels are absent. "
-            f"Per-waypoint observation budget={max(1, int(max_observe_per_waypoint))}. "
             f"Raw-FPV candidate-attempt budget={max(1, int(raw_fpv_candidate_budget))}. "
             f"Cleanup target cap={max(1, int(target_cleanup_count))}. "
             "Raw image payload persistence=disabled. "
@@ -215,7 +213,6 @@ def render_map_build_prompt(
     task: str,
     *,
     camera_grounded_composite_tools: bool = False,
-    max_observe_per_waypoint: int | None = None,
     operator_session_context: dict[str, Any] | None = None,
     operator_session_context_json: str = "",
 ) -> str:
@@ -225,15 +222,10 @@ def render_map_build_prompt(
     composite = profile == "camera-grounded-labels" and camera_grounded_composite_tools
     observe_tool = "observe_camera_grounded_candidates" if composite else "observe"
     profile_observe_count = scan_profile.observe_count_per_waypoint
-    effective_observe_count = (
-        profile_observe_count
-        if max_observe_per_waypoint is None
-        else max(1, int(max_observe_per_waypoint))
-    )
     body_turn_cadence_overridden = scan_profile.uses_robot_body_turns and (
-        effective_observe_count == 1
+        profile_observe_count == 1
     )
-    observe_budget = f"Per-waypoint observation budget={effective_observe_count}. "
+    observe_budget = f"Per-waypoint observation budget={profile_observe_count}. "
     camera_grounded_mode = ""
     if profile == "camera-grounded-labels":
         camera_grounded_mode = (
@@ -253,9 +245,6 @@ def render_map_build_prompt(
         f"body-turn count per waypoint={scan_profile.body_turn_count_per_waypoint}; "
         f"body-turn yaw delta deg={scan_profile.body_turn_yaw_delta_deg:g}; "
         f"profile observe cadence={profile_observe_count} per waypoint; "
-        f"effective observe cadence={effective_observe_count} per waypoint; "
-        "max_observe_per_waypoint override="
-        f"{str(max_observe_per_waypoint is not None).lower()}; "
         "profile body-turn cadence overridden="
         f"{str(body_turn_cadence_overridden).lower()}; "
         f"stable-anchor priority={str(scan_profile.stable_anchor_priority).lower()}; "
@@ -371,7 +360,6 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--goal-contract-json", default="")
     parser.add_argument("--target-cleanup-count", type=int, default=7)
     parser.add_argument("--raw-fpv-candidate-budget", type=int, default=24)
-    parser.add_argument("--max-observe-per-waypoint", type=int, default=1)
     parser.add_argument("--done-retry-budget", type=int, default=1)
     parser.add_argument("--camera-grounded-composite-tools", action="store_true")
     parser.add_argument("--operator-session-context-json", default="")
@@ -397,7 +385,6 @@ def main(argv: list[str] | None = None) -> int:
                 intent=intent,
                 goal_contract=goal_contract,
                 raw_fpv_candidate_budget=args.raw_fpv_candidate_budget,
-                max_observe_per_waypoint=args.max_observe_per_waypoint,
                 done_retry_budget=args.done_retry_budget,
                 camera_grounded_composite_tools=args.camera_grounded_composite_tools,
                 operator_session_context_json=args.operator_session_context_json,

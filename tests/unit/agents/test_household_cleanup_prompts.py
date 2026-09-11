@@ -109,24 +109,19 @@ def test_open_ended_prompt_identity_is_not_labeled_as_cleanup(monkeypatch) -> No
 
 def test_map_build_camera_grounded_prompt_uses_composite_cadence_when_enabled() -> None:
     prompt = render_map_build_prompt(
-        "camera-grounded-labels",
-        "build a Runtime Metric Map",
-        camera_grounded_composite_tools=True,
-        max_observe_per_waypoint=1,
+        "camera-grounded-labels", "build a Runtime Metric Map", camera_grounded_composite_tools=True
     )
 
     assert "observe_camera_grounded_candidates" in prompt
     assert "Waypoint observation tool=observe_camera_grounded_candidates" in prompt
-    assert "Per-waypoint observation budget=1" in prompt
+    assert "Per-waypoint observation budget=5" in prompt
     assert "Camera-grounded observation mode=composite" in prompt
     assert "response already includes the server-side declaration" in prompt
     assert (
         "do not call declare_visual_candidates again for the same source_observation_id" in prompt
     )
     assert "profile observe cadence=5 per waypoint" in prompt
-    assert "effective observe cadence=1 per waypoint" in prompt
-    assert "max_observe_per_waypoint override=true" in prompt
-    assert "profile body-turn cadence overridden=true" in prompt
+    assert "profile body-turn cadence overridden=false" in prompt
     assert "bounded re-observation" not in prompt
     assert "multi-heading scanning" not in prompt
     assert "Manipulation tools are not entitled for this run" in prompt
@@ -144,8 +139,6 @@ def test_map_build_camera_grounded_baseline_prompt_keeps_two_step_cadence() -> N
     assert "Camera-grounded observation mode=observe plus declare_visual_candidates" in prompt
     assert "Per-waypoint observation budget=5" in prompt
     assert "profile observe cadence=5 per waypoint" in prompt
-    assert "effective observe cadence=5 per waypoint" in prompt
-    assert "max_observe_per_waypoint override=false" in prompt
     assert "profile body-turn cadence overridden=false" in prompt
     assert "Waypoint observation tool=observe_camera_grounded_candidates" not in prompt
 

@@ -251,7 +251,6 @@ def _profiled_kickoff_prompt(args: argparse.Namespace, *, profile: dict[str, Any
                 lane,
                 str(getattr(args, "task", "") or "build a Runtime Metric Map of this room"),
                 camera_grounded_composite_tools=composite_tools,
-                max_observe_per_waypoint=_int_or_none(profile.get("max_observe_per_waypoint")),
             )
         except ValueError:
             return original
@@ -266,7 +265,6 @@ def _profiled_kickoff_prompt(args: argparse.Namespace, *, profile: dict[str, Any
             intent=intent,
             goal_contract=None,
             raw_fpv_candidate_budget=int(profile.get("raw_fpv_candidate_budget") or 24),
-            max_observe_per_waypoint=int(profile.get("max_observe_per_waypoint") or 1),
             done_retry_budget=int(profile.get("done_retry_budget") or 1),
             camera_grounded_composite_tools=composite_tools,
         )

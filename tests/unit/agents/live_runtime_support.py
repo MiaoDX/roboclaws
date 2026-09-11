@@ -64,7 +64,6 @@ def _assert_context_managed_openai_agents_timing(timing: dict[str, object]) -> N
     assert timing["agent_sdk_perf_profile"]["source"] == "default"
     assert timing["agent_sdk_perf_profile"]["continuation_mode"] == "state_summary_only"
     assert timing["agent_sdk_perf_profile"]["max_turns"] == 128
-    assert timing["agent_sdk_perf_profile"]["max_observe_per_waypoint"] == 1
     # k3 declares 200K native window; derived hard limit = 150_000.
     assert timing["agent_sdk_perf_profile"]["context_hard_limit_tokens"] == 150_000
     assert timing["agent_sdk_perf_profile"]["model_input_compaction"]["enabled"] is True
@@ -128,7 +127,7 @@ def _openai_agents_perf_profile_base_args(**overrides) -> Namespace:
     values = dict.fromkeys(
         """
         max_turns incomplete_turn_continuation_attempts
-        context_hard_limit_tokens max_observe_per_waypoint raw_fpv_candidate_budget
+        context_hard_limit_tokens raw_fpv_candidate_budget
         done_retry_budget model_input_compaction model_input_compaction_min_chars model_racing
         model_racing_arm_count raw_fpv_repeated_failure_limit raw_fpv_image_memory
         raw_fpv_image_memory_retain camera_grounded_history_compaction

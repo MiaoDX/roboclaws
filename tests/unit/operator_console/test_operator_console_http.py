@@ -137,10 +137,6 @@ def test_operator_console_prompt_preview_endpoint_rejects_invalid_numeric_inputs
     ("env_overrides", "expected_error"),
     [
         (
-            {"ROBOCLAWS_OPENAI_AGENTS_MAX_OBSERVE_PER_WAYPOINT": "-1"},
-            "max_observe_per_waypoint must be non-negative",
-        ),
-        (
             {"ROBOCLAWS_OPENAI_AGENTS_DONE_RETRY_BUDGET": "-1"},
             "done_retry_budget must be non-negative",
         ),
@@ -202,14 +198,12 @@ def test_prompt_preview_uses_valid_openai_agents_numeric_env_overrides() -> None
             overrides={"relocation_count": "4"},
             env_overrides={
                 "ROBOCLAWS_OPENAI_AGENTS_RAW_FPV_CANDIDATE_BUDGET": "3",
-                "ROBOCLAWS_OPENAI_AGENTS_MAX_OBSERVE_PER_WAYPOINT": "2",
                 "ROBOCLAWS_OPENAI_AGENTS_DONE_RETRY_BUDGET": "0",
             },
         ),
     )
 
     assert "Raw-FPV candidate-attempt budget=3" in payload["agent_kickoff_prompt"]
-    assert "Per-waypoint observation budget=2" in payload["agent_kickoff_prompt"]
     assert "Done retry budget" not in payload["agent_kickoff_prompt"]
 
 
@@ -224,13 +218,11 @@ def test_prompt_preview_keeps_existing_prompt_minimums_for_zero_budget_env() -> 
             prompt="收拾杯子",
             env_overrides={
                 "ROBOCLAWS_OPENAI_AGENTS_RAW_FPV_CANDIDATE_BUDGET": "0",
-                "ROBOCLAWS_OPENAI_AGENTS_MAX_OBSERVE_PER_WAYPOINT": "0",
             },
         ),
     )
 
     assert "Raw-FPV candidate-attempt budget=1" in payload["agent_kickoff_prompt"]
-    assert "Per-waypoint observation budget=1" in payload["agent_kickoff_prompt"]
 
 
 def test_operator_state_derives_public_fields_and_artifact_links(tmp_path: Path) -> None:

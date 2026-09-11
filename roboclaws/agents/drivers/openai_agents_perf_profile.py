@@ -59,7 +59,6 @@ ROBOT_VIEW_CAPTURE_POLICY_ENV = "ROBOCLAWS_OPENAI_AGENTS_ROBOT_VIEW_CAPTURE_POLI
 MODEL_THINKING_MODE_ENV = "ROBOCLAWS_OPENAI_AGENTS_THINKING_MODE"
 PROVIDER_TOKEN_BUDGET_ENV = "ROBOCLAWS_EVAL_PROVIDER_TOKEN_BUDGET"
 PROVIDER_COST_BUDGET_ENV = "ROBOCLAWS_EVAL_PROVIDER_COST_BUDGET_USD"
-MAX_OBSERVE_PER_WAYPOINT_ENV = "ROBOCLAWS_OPENAI_AGENTS_MAX_OBSERVE_PER_WAYPOINT"
 RAW_FPV_CANDIDATE_BUDGET_ENV = "ROBOCLAWS_OPENAI_AGENTS_RAW_FPV_CANDIDATE_BUDGET"
 RAW_FPV_REPEATED_FAILURE_LIMIT_ENV = "ROBOCLAWS_OPENAI_AGENTS_RAW_FPV_REPEATED_FAILURE_LIMIT"
 DONE_RETRY_BUDGET_ENV = "ROBOCLAWS_OPENAI_AGENTS_DONE_RETRY_BUDGET"
@@ -183,13 +182,6 @@ def resolve_agent_sdk_perf_profile(args: argparse.Namespace) -> dict[str, Any]:
             default=defaults["done_retry_budget"],
             allow_none=True,
         ),
-        "max_observe_per_waypoint": _int_setting(
-            args,
-            "max_observe_per_waypoint",
-            MAX_OBSERVE_PER_WAYPOINT_ENV,
-            default=defaults["max_observe_per_waypoint"],
-            allow_none=True,
-        ),
         "context_hard_limit_tokens": _int_setting(
             args,
             "context_hard_limit_tokens",
@@ -279,7 +271,6 @@ def _profile_defaults(
         "raw_fpv_candidate_budget": None,
         "raw_fpv_repeated_failure_limit": None,
         "done_retry_budget": None,
-        "max_observe_per_waypoint": None,
         "context_hard_limit_tokens": None,
         "robot_view_capture_policy": {
             "schema": "agent_sdk_robot_view_capture_policy_v1",
@@ -323,7 +314,6 @@ def _profile_defaults(
             "continuation_mode": "state_summary_only",
             "max_continuations": 2 if raw_fpv_enabled else 1,
             "done_retry_budget": 1,
-            "max_observe_per_waypoint": 4 if raw_fpv_enabled else 1,
             "context_hard_limit_tokens": hard_limit,
             "raw_fpv_candidate_budget": 24 if raw_fpv_enabled else None,
             "raw_fpv_repeated_failure_limit": 3 if raw_fpv_enabled else None,

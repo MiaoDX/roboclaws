@@ -227,7 +227,6 @@ def _budget_detail_summary(detail: dict[str, Any]) -> dict[str, Any]:
         "response_span_count",
         "raw_fpv_candidate_budget",
         "raw_fpv_repeated_failure_limit",
-        "max_observe_per_waypoint",
         "candidate_attempt_count",
         "observe_over_budget_by_waypoint",
         "reasons",

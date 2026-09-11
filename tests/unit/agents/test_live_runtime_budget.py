@@ -8,7 +8,6 @@ import pytest
 from roboclaws.agents.drivers.openai_agents_budget import (
     OpenAIAgentsBudgetExceededError,
     openai_agents_budget_failure,
-    openai_agents_observe_budget_advisory,
     raw_fpv_budget_metrics,
 )
 from roboclaws.agents.drivers.openai_agents_budget import (
@@ -164,7 +163,6 @@ def test_openai_agents_budget_guard_uses_current_context_not_cumulative_tokens(
             "profile_id": "context_managed_v1",
             "context_hard_limit_tokens": 96_000,
             "raw_fpv_candidate_budget": None,
-            "max_observe_per_waypoint": None,
         },
     )
 
@@ -218,7 +216,6 @@ def test_openai_agents_budget_guard_classifies_raw_fpv_candidate_exhaustion(
             "profile_id": "context_managed_v1",
             "context_hard_limit_tokens": None,
             "raw_fpv_candidate_budget": 2,
-            "max_observe_per_waypoint": None,
         },
     )
 
@@ -272,7 +269,6 @@ def test_openai_agents_budget_guard_classifies_repeated_raw_fpv_failures(
             "context_hard_limit_tokens": None,
             "raw_fpv_candidate_budget": 24,
             "raw_fpv_repeated_failure_limit": 3,
-            "max_observe_per_waypoint": None,
         },
     )
 
@@ -351,68 +347,6 @@ def test_raw_fpv_budget_pairs_mixed_embedded_and_fifo_responses() -> None:
         "cup",
         "book",
     ]
-
-
-def test_openai_agents_budget_guard_reports_label_lane_observe_budget_as_advisory(
-    tmp_path: Path,
-) -> None:
-    run_dir = tmp_path / "run"
-    run_dir.mkdir()
-    events = [
-        {
-            "event": "response",
-            "tool": "observe",
-            "response": {
-                "ok": False,
-                "waypoint_id": "generated_exploration_001",
-                "error_reason": "capture_failed",
-            },
-        },
-        {
-            "event": "response",
-            "tool": "observe",
-            "response": {"ok": True},
-        },
-        {
-            "event": "response",
-            "tool": "observe",
-            "response": {"ok": True, "waypoint_id": "generated_exploration_001"},
-        },
-        {
-            "event": "response",
-            "tool": "observe",
-            "response": {"ok": True, "waypoint_id": "generated_exploration_001"},
-        },
-    ]
-    (run_dir / "trace.jsonl").write_text(
-        "\n".join(json.dumps(item) for item in events) + "\n",
-        encoding="utf-8",
-    )
-
-    timing = {"evidence_lane": "camera-grounded-labels", "cache_tools_list": True}
-    profile = {
-        "profile_id": "context_managed_v1",
-        "context_hard_limit_tokens": None,
-        "raw_fpv_candidate_budget": None,
-        "raw_fpv_repeated_failure_limit": None,
-        "max_observe_per_waypoint": 1,
-    }
-
-    failure = _budget_failure_from_run_state(
-        run_dir,
-        timing,
-        profile,
-    )
-    advisory = openai_agents_observe_budget_advisory(run_dir, timing, profile)
-
-    assert failure is None
-    assert advisory is not None
-    assert advisory["schema"] == "agent_sdk_observe_budget_advisory_v1"
-    assert advisory["reason"] == "observe_budget_exceeded"
-    assert advisory["evidence_lane"] == "camera-grounded-labels"
-    assert advisory["max_observe_per_waypoint"] == 1
-    assert advisory["observe_count_by_waypoint"] == {"generated_exploration_001": 2}
-    assert advisory["observe_over_budget_by_waypoint"] == {"generated_exploration_001": 2}
 
 
 def test_openai_agents_context_metrics_parse_response_span_usage(tmp_path: Path) -> None:
@@ -584,7 +518,6 @@ def test_openai_agents_live_timing_compact_metrics_extracts_valid_budget_detail(
                         "schema": "openai_agents_raw_fpv_budget_failure_v1",
                         "raw_fpv_candidate_budget": 2,
                         "raw_fpv_repeated_failure_limit": 3,
-                        "max_observe_per_waypoint": 1,
                         "candidate_attempt_count": 2,
                         "repeated_failure_fingerprints": ["a", "b"],
                         "repeated_failure_limit_hits": ["a"],
@@ -602,7 +535,6 @@ def test_openai_agents_live_timing_compact_metrics_extracts_valid_budget_detail(
         "detail_schema": "openai_agents_raw_fpv_budget_failure_v1",
         "raw_fpv_candidate_budget": 2,
         "raw_fpv_repeated_failure_limit": 3,
-        "max_observe_per_waypoint": 1,
         "candidate_attempt_count": 2,
         "repeated_failure_count": 2,
         "repeated_failure_limit_hit_count": 1,
