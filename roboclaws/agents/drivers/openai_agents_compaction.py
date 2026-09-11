@@ -49,8 +49,6 @@ from roboclaws.agents.drivers.openai_agents_input_config import (
 from roboclaws.agents.live_status import LiveAgentFailure
 from roboclaws.agents.task_state import atomic_write_checkpoint
 
-MAX_RETAINED_METRIC_MAP_CHARS = 128_000
-
 
 def _model_input_compaction_filter(
     events_path: Path,
@@ -264,7 +262,6 @@ def _compact_model_input_items(
     metric_map_output_count = 0
     repeated_metric_map_output_count = 0
     metric_map_delta_compacted_count = 0
-    oversized_metric_map_compacted_count = 0
     metric_map_bytes_before = 0
     metric_map_bytes_after = 0
     input_bytes_before = original_input_bytes
@@ -306,8 +303,6 @@ def _compact_model_input_items(
             compacted_count += 1
             if candidate_kind == "repeated_metric_map_delta":
                 metric_map_delta_compacted_count += 1
-            elif candidate_kind == "oversized_metric_map_snapshot":
-                oversized_metric_map_compacted_count += 1
         filtered.append(filtered_item)
         filtered_item_bytes = _json_size_bytes(filtered_item)
         input_bytes_after += filtered_item_bytes
@@ -325,7 +320,6 @@ def _compact_model_input_items(
         "metric_map_output_count": metric_map_output_count,
         "repeated_metric_map_output_count": repeated_metric_map_output_count,
         "metric_map_delta_compacted_count": metric_map_delta_compacted_count,
-        "oversized_metric_map_compacted_count": oversized_metric_map_compacted_count,
         "metric_map_bytes_before": metric_map_bytes_before,
         "metric_map_bytes_after": metric_map_bytes_after,
         "metric_map_bytes_reduced": max(0, metric_map_bytes_before - metric_map_bytes_after),
@@ -416,111 +410,6 @@ def _repeated_metric_map_delta_summary(output_text: str, *, item_type: str) -> d
     }
 
 
-def _oversized_metric_map_snapshot_summary(
-    output_text: str,
-    *,
-    item_type: str,
-) -> dict[str, Any]:
-    decoded = _decode_tool_output_payload(output_text)
-    metric_map = decoded.get("metric_map") if isinstance(decoded, dict) else None
-    if not isinstance(metric_map, dict) and isinstance(decoded, dict):
-        metric_map = decoded
-    metric_map = metric_map if isinstance(metric_map, dict) else {}
-    runtime_map = (
-        metric_map.get("runtime_metric_map")
-        if isinstance(metric_map.get("runtime_metric_map"), dict)
-        else {}
-    )
-    return {
-        "schema": "roboclaws_oversized_metric_map_snapshot_v1",
-        "item_type": item_type,
-        "original_chars": len(output_text),
-        "original_sha256": hashlib.sha256(output_text.encode("utf-8")).hexdigest(),
-        "map_id": str(metric_map.get("map_id") or ""),
-        "map_version": str(metric_map.get("map_version") or ""),
-        "mode": str(metric_map.get("mode") or ""),
-        "inspection_waypoints": _compact_public_rows(
-            metric_map.get("inspection_waypoints"),
-            keys=(
-                "waypoint_id",
-                "room_id",
-                "room_label",
-                "label",
-                "category",
-                "actionability",
-                "target_actionability_status",
-                "verified_navigation",
-            ),
-            limit=64,
-        ),
-        "public_semantic_anchors": _compact_public_rows(
-            runtime_map.get("public_semantic_anchors") or metric_map.get("public_semantic_anchors"),
-            keys=(
-                "anchor_id",
-                "anchor_type",
-                "category",
-                "label",
-                "waypoint_id",
-                "room_id",
-                "actionability",
-                "recommended_tool",
-            ),
-            limit=64,
-        ),
-        "observed_objects": _compact_public_rows(
-            runtime_map.get("observed_objects"),
-            keys=(
-                "candidate_id",
-                "object_id",
-                "category",
-                "waypoint_id",
-                "room_id",
-                "candidate_state",
-                "actionability",
-                "actionability_status",
-                "target_actionability_status",
-                "localization_status",
-                "required_tool",
-                "source_observation_id",
-            ),
-            limit=64,
-        ),
-        "target_candidates": _compact_public_rows(
-            runtime_map.get("target_candidates"),
-            keys=(
-                "candidate_id",
-                "object_id",
-                "category",
-                "waypoint_id",
-                "room_id",
-                "candidate_state",
-                "actionability",
-                "actionability_status",
-                "target_actionability_status",
-                "localization_status",
-                "source_observation_id",
-                "required_tool",
-                "candidate_fixture_id",
-                "candidate_fixture_category",
-                "recommended_tool",
-                "destination_options",
-            ),
-            limit=64,
-        ),
-        "cleanup_worklist_summary": runtime_map.get("cleanup_worklist_summary")
-        or metric_map.get("cleanup_worklist_summary")
-        or {},
-        "summary": (
-            "Oversized current metric_map projected to actionable public fields before this "
-            "SDK model call. Use metric_map again only when a missing public field is required; "
-            "Roboclaws trace/report artifacts retain the complete response."
-        ),
-        "private_artifact_policy": (
-            "model-facing public metric-map projection only; no private scorer truth is added"
-        ),
-    }
-
-
 def _compact_public_rows(
     value: Any,
     *,
@@ -590,16 +479,7 @@ def _compaction_candidate(
         tool_names_by_call_id=tool_names_by_call_id,
     )
     if repeated_metric_map_delta and is_metric_map_output and not metric_map_seen:
-        if len(output_text) <= MAX_RETAINED_METRIC_MAP_CHARS:
-            return None, ""
-        compacted = copy.deepcopy(payload)
-        summary = json.dumps(
-            _oversized_metric_map_snapshot_summary(output_text, item_type=item_type),
-            sort_keys=True,
-        )
-        if len(summary) < len(output_text):
-            compacted[output_key] = summary
-            return compacted, "oversized_metric_map_snapshot"
+        return None, ""
     if repeated_metric_map_delta and metric_map_seen and is_metric_map_output:
         compacted = copy.deepcopy(payload)
         summary = json.dumps(
