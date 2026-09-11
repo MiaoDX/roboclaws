@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from roboclaws.agents.task_state import Checkpoint
 
@@ -15,7 +15,6 @@ class ContextBudgetPolicy:
     hard_limit_tokens: int
     expected_output_tokens: int = 1024
     safety_reserve_tokens: int = 256
-    estimator: Callable[[Any], int] | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -54,8 +53,6 @@ def assemble_context(
     checkpoint: Checkpoint,
     *,
     fixed_instructions: Any = None,
-    subgoal_evidence: list[Any] | None = None,
-    optional_retrieval: list[Any] | None = None,
     recent_raw: list[Any] | None = None,
     policy: ContextBudgetPolicy,
 ) -> ContextAssemblyResult:
@@ -79,28 +76,15 @@ def assemble_context(
     if fixed_instructions is not None:
         items.append({"role": "system", "content": fixed_instructions})
     items.append({"role": "state", "content": critical})
-    items.extend(subgoal_evidence or [])
-    retrieval_start = len(items)
-    retrieval_count = len(optional_retrieval or [])
-    items.extend(optional_retrieval or [])
     raw_count = len(recent_raw or [])
     raw_start = len(items)
     items.extend(recent_raw or [])
-    estimator = policy.estimator or estimate_tokens
-    total = sum(estimator(item) for item in items)
-    evicted: list[str] = []
+    total = sum(estimate_tokens(item) for item in items)
     reserve = policy.expected_output_tokens + policy.safety_reserve_tokens
-    while total + reserve > policy.hard_limit_tokens and retrieval_count:
-        items.pop(retrieval_start + retrieval_count - 1)
-        retrieval_count -= 1
-        raw_start -= 1
-        evicted.append("optional_retrieval")
-        total = sum(estimator(item) for item in items)
     while total + reserve > policy.hard_limit_tokens and raw_count:
         items.pop(raw_start)
-        evicted.append("oldest_raw_overlap")
         raw_count -= 1
-        total = sum(estimator(item) for item in items)
+        total = sum(estimate_tokens(item) for item in items)
     return ContextAssemblyResult(
         items,
         total,
