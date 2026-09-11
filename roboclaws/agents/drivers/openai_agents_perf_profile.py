@@ -331,10 +331,11 @@ def _profile_defaults(
                 "schema": "agent_sdk_model_input_compaction_v1",
                 "enabled": True,
                 "mode": (
-                    "public_tool_result_summary_v1+repeated_metric_map_delta_v1+"
-                    "camera_grounded_history_v1"
-                    + ("+raw_fpv_image_memory_v1" if raw_fpv_enabled else "")
-                ),
+                    ["raw_fpv_image_memory_v1", "camera_grounded_history_v1"]
+                    if raw_fpv_enabled
+                    else ["camera_grounded_history_v1"]
+                )
+                + ["public_tool_result_summary_v1", "repeated_metric_map_delta_v1"],
                 "min_chars": 1200,
                 "completed_tool_history_limit": 24 if raw_fpv_enabled else 0,
                 "raw_fpv_image_memory": {
@@ -428,20 +429,13 @@ def _model_input_compaction_profile(
     raw_fpv_image_memory = _raw_fpv_image_memory_profile(args, default_config)
     camera_grounded_history = _camera_grounded_history_profile(args, default_config)
     completed_tool_history_limit = int(default_config.get("completed_tool_history_limit") or 0)
-    mode_parts = []
-    candidate_ids = []
-    if enabled:
-        mode_parts.extend(["public_tool_result_summary_v1", "repeated_metric_map_delta_v1"])
-        candidate_ids.extend(["I", "N"])
-    if raw_fpv_image_memory["enabled"]:
-        mode_parts.append("raw_fpv_image_memory_v1")
-        candidate_ids.append("AA")
-    if camera_grounded_history["enabled"]:
-        mode_parts.append("camera_grounded_history_v1")
-        candidate_ids.append("AC")
-    if completed_tool_history_limit > 0:
-        mode_parts.append("completed_tool_history_window_v1")
-        candidate_ids.append("AH")
+    mode = list(default_config.get("mode") or [])
+    if enabled and not mode:
+        mode = ["public_tool_result_summary_v1", "repeated_metric_map_delta_v1"]
+    if raw_fpv_image_memory["enabled"] and "raw_fpv_image_memory_v1" not in mode:
+        mode.insert(0, "raw_fpv_image_memory_v1")
+    if camera_grounded_history["enabled"] and "camera_grounded_history_v1" not in mode:
+        mode.insert(0 if "raw_fpv_image_memory_v1" in mode else 0, "camera_grounded_history_v1")
     hook_enabled = (
         enabled
         or bool(raw_fpv_image_memory["enabled"])
@@ -451,10 +445,9 @@ def _model_input_compaction_profile(
     return {
         "schema": "agent_sdk_model_input_compaction_v1",
         "enabled": hook_enabled,
-        "mode": "+".join(mode_parts) if mode_parts else "off",
+        "mode": mode,
         "min_chars": min_chars,
         "completed_tool_history_limit": completed_tool_history_limit,
-        "candidate_ids": candidate_ids,
         "hook": "RunConfig.call_model_input_filter",
         "raw_fpv_image_memory": raw_fpv_image_memory,
         "camera_grounded_history": camera_grounded_history,

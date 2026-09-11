@@ -296,7 +296,11 @@ def test_model_input_compaction_reduces_oversized_public_tool_outputs() -> None:
         },
     ]
 
-    filtered, metrics = _compact_model_input_items(items, min_chars=80)
+    filtered, metrics = _compact_model_input_items(
+        items,
+        min_chars=80,
+        enabled_strategies=["public_tool_result_summary_v1"],
+    )
 
     assert metrics["input_item_count"] == 4
     assert metrics["compacted_item_count"] == 1
@@ -440,15 +444,17 @@ def test_openai_agents_perf_profile_resolves_custom_compaction(monkeypatch) -> N
     model_input = compaction["model_input_compaction"]
     assert model_input["schema"] == "agent_sdk_model_input_compaction_v1"
     assert model_input["enabled"] is True
-    assert model_input["mode"] == (
-        "public_tool_result_summary_v1+repeated_metric_map_delta_v1+raw_fpv_image_memory_v1+"
-        "camera_grounded_history_v1"
-    )
+    assert model_input["mode"] == [
+        "raw_fpv_image_memory_v1",
+        "camera_grounded_history_v1",
+        "public_tool_result_summary_v1",
+        "repeated_metric_map_delta_v1",
+    ]
     assert model_input["min_chars"] == 80
-    assert model_input["candidate_ids"] == ["I", "N", "AA", "AC"]
+    assert "mode" in model_input  # candidate_ids removed in Task 14; mode is the source of truth
     assert model_input["completed_tool_history_limit"] == 0
     assert model_input["hook"] == "RunConfig.call_model_input_filter"
-    assert model_input["mode"].startswith("public_tool_result_summary_v1+")
+    assert "public_tool_result_summary_v1" in model_input["mode"]
     assert model_input["raw_fpv_image_memory"] == _expected_raw_fpv_image_memory_policy(2)
     assert model_input["camera_grounded_history"] == {
         "schema": "agent_sdk_camera_grounded_history_policy_v1",

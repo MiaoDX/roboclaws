@@ -63,8 +63,7 @@ def test_model_input_compaction_summarizes_old_camera_grounded_history() -> None
     filtered, metrics = _compact_model_input_items(
         items,
         min_chars=999_999,
-        public_tool_output_summary=False,
-        repeated_metric_map_delta=False,
+        enabled_strategies=[],
         camera_grounded_history={
             "enabled": True,
             "mode": "retain_latest_actionable_outputs",
@@ -139,8 +138,7 @@ def test_model_input_compaction_summarizes_prefixed_mcp_camera_grounded_history(
     filtered, metrics = _compact_model_input_items(
         items,
         min_chars=999_999,
-        public_tool_output_summary=False,
-        repeated_metric_map_delta=False,
+        enabled_strategies=[],
         camera_grounded_history={
             "enabled": True,
             "mode": "retain_latest_actionable_outputs",
@@ -208,8 +206,7 @@ def test_model_input_compaction_summarizes_wrapped_mcp_camera_grounded_history()
     filtered, metrics = _compact_model_input_items(
         items,
         min_chars=999_999,
-        public_tool_output_summary=False,
-        repeated_metric_map_delta=False,
+        enabled_strategies=[],
         camera_grounded_history={
             "enabled": True,
             "mode": "retain_latest_actionable_outputs",
@@ -255,8 +252,7 @@ def test_model_input_compaction_summarizes_named_mcp_camera_history_without_json
     filtered, metrics = _compact_model_input_items(
         items,
         min_chars=999_999,
-        public_tool_output_summary=False,
-        repeated_metric_map_delta=False,
+        enabled_strategies=[],
         camera_grounded_history={
             "enabled": True,
             "mode": "retain_latest_actionable_outputs",
@@ -317,8 +313,7 @@ def test_model_input_compaction_summarizes_function_call_camera_history_by_call_
     filtered, metrics = _compact_model_input_items(
         items,
         min_chars=999_999,
-        public_tool_output_summary=False,
-        repeated_metric_map_delta=False,
+        enabled_strategies=[],
         camera_grounded_history={
             "enabled": True,
             "mode": "retain_latest_actionable_outputs",

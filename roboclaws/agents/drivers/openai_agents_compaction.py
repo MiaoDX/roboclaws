@@ -129,10 +129,7 @@ def _model_input_compaction_filter(
         filtered_items, metrics = _compact_model_input_items(
             assembled_items,
             min_chars=int(config.get("min_chars") or DEFAULT_MODEL_INPUT_COMPACTION_MIN_CHARS),
-            public_tool_output_summary="public_tool_result_summary_v1"
-            in str(config.get("mode") or ""),
-            repeated_metric_map_delta="repeated_metric_map_delta_v1"
-            in str(config.get("mode") or ""),
+            enabled_strategies=list(config.get("mode") or []),
             raw_fpv_image_memory=config.get("raw_fpv_image_memory")
             if isinstance(config.get("raw_fpv_image_memory"), dict)
             else None,
@@ -233,12 +230,14 @@ def _compact_model_input_items(
     items: list[Any],
     *,
     min_chars: int,
-    public_tool_output_summary: bool = True,
-    repeated_metric_map_delta: bool = True,
+    enabled_strategies: list[str] | None = None,
     raw_fpv_image_memory: dict[str, Any] | None = None,
     camera_grounded_history: dict[str, Any] | None = None,
     completed_tool_history_limit: int = 0,
-) -> tuple[list[Any], dict[str, Any]]:
+) -> tuple[list[Any], dict[str, Any]]:  # noqa: PLR0915 - per-strategy branch density is intrinsic
+    strategies = set(enabled_strategies or [])
+    public_tool_output_summary = "public_tool_result_summary_v1" in strategies
+    repeated_metric_map_delta = "repeated_metric_map_delta_v1" in strategies
     items, history_metrics, original_item_count, original_input_bytes = (
         _prepare_model_input_history(
             items,
@@ -272,33 +271,27 @@ def _compact_model_input_items(
     input_bytes_after = 0
     compacted_count = 0
     for index, item in enumerate(items):
+        candidate, candidate_kind = _resolve_compaction_candidate(
+            index,
+            item,
+            image_plan=image_plan,
+            image_policy=image_policy,
+            image_metrics=image_metrics,
+            camera_plan=camera_plan,
+            camera_policy=camera_policy,
+            camera_metrics=camera_metrics,
+            tool_names_by_call_id=tool_names_by_call_id,
+            latest_tool_output_index=latest_tool_output_index,
+            min_chars=min_chars,
+            public_tool_output_summary=public_tool_output_summary,
+            repeated_metric_map_delta=repeated_metric_map_delta,
+            metric_map_seen=metric_map_seen,
+        )
         item_bytes = _json_size_bytes(item)
-        image_info = image_plan.get(index)
-        if image_info is not None:
-            candidate, candidate_kind = _raw_fpv_image_memory_candidate(
-                item,
-                image_info=image_info,
-                policy=image_policy,
-                metrics=image_metrics,
-            )
-        elif (camera_info := camera_plan.get(index)) is not None:
-            candidate, candidate_kind = _camera_grounded_history_candidate(
-                item,
-                camera_info=camera_info,
-                policy=camera_policy,
-                metrics=camera_metrics,
-            )
-        else:
-            candidate, candidate_kind = _compaction_candidate(
-                item,
-                min_chars=min_chars,
-                metric_map_seen=metric_map_seen,
-                preserve_generic_output=index == latest_tool_output_index,
-                public_tool_output_summary=public_tool_output_summary,
-                repeated_metric_map_delta=repeated_metric_map_delta,
-                tool_names_by_call_id=tool_names_by_call_id,
-            )
-        if _is_metric_map_tool_output(item, tool_names_by_call_id=tool_names_by_call_id):
+        is_metric_map = _is_metric_map_tool_output(
+            item, tool_names_by_call_id=tool_names_by_call_id
+        )
+        if is_metric_map:
             metric_map_output_count += 1
             metric_map_bytes_before += item_bytes
             if metric_map_seen:
@@ -318,7 +311,7 @@ def _compact_model_input_items(
         filtered.append(filtered_item)
         filtered_item_bytes = _json_size_bytes(filtered_item)
         input_bytes_after += filtered_item_bytes
-        if _is_metric_map_tool_output(item, tool_names_by_call_id=tool_names_by_call_id):
+        if is_metric_map:
             metric_map_bytes_after += filtered_item_bytes
     return filtered, {
         "schema": "agent_sdk_model_input_compaction_metrics_v1",
@@ -340,6 +333,50 @@ def _compact_model_input_items(
         **camera_metrics,
         **history_metrics,
     }
+
+
+def _resolve_compaction_candidate(
+    index: int,
+    item: Any,
+    *,
+    image_plan: dict[int, dict[str, Any]],
+    image_policy: dict[str, Any],
+    image_metrics: dict[str, int],
+    camera_plan: dict[int, dict[str, Any]],
+    camera_policy: dict[str, Any],
+    camera_metrics: dict[str, Any],
+    tool_names_by_call_id: dict[str, str],
+    latest_tool_output_index: int | None,
+    min_chars: int,
+    public_tool_output_summary: bool,
+    repeated_metric_map_delta: bool,
+    metric_map_seen: bool,
+) -> tuple[Any | None, str]:
+    image_info = image_plan.get(index)
+    if image_info is not None:
+        return _raw_fpv_image_memory_candidate(
+            item,
+            image_info=image_info,
+            policy=image_policy,
+            metrics=image_metrics,
+        )
+    camera_info = camera_plan.get(index)
+    if camera_info is not None:
+        return _camera_grounded_history_candidate(
+            item,
+            camera_info=camera_info,
+            policy=camera_policy,
+            metrics=camera_metrics,
+        )
+    return _compaction_candidate(
+        item,
+        min_chars=min_chars,
+        metric_map_seen=metric_map_seen,
+        preserve_generic_output=index == latest_tool_output_index,
+        public_tool_output_summary=public_tool_output_summary,
+        repeated_metric_map_delta=repeated_metric_map_delta,
+        tool_names_by_call_id=tool_names_by_call_id,
+    )
 
 
 def _repeated_metric_map_delta_summary(output_text: str, *, item_type: str) -> dict[str, Any]:

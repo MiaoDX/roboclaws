@@ -211,8 +211,7 @@ def test_model_input_camera_history_fails_aloud_on_malformed_mcp_text_content() 
         _compact_model_input_items(
             items,
             min_chars=999_999,
-            public_tool_output_summary=False,
-            repeated_metric_map_delta=False,
+            enabled_strategies=[],
             camera_grounded_history={
                 "enabled": True,
                 "mode": "retain_latest_actionable_outputs",
@@ -239,8 +238,7 @@ def test_model_input_camera_history_ignores_non_camera_function_output() -> None
     compacted, metrics = _compact_model_input_items(
         items,
         min_chars=999_999,
-        public_tool_output_summary=False,
-        repeated_metric_map_delta=False,
+        enabled_strategies=[],
         camera_grounded_history={
             "enabled": True,
             "mode": "retain_latest_actionable_outputs",
@@ -274,8 +272,7 @@ def test_model_input_camera_history_fails_aloud_on_non_object_json_mcp_output() 
         _compact_model_input_items(
             items,
             min_chars=999_999,
-            public_tool_output_summary=False,
-            repeated_metric_map_delta=False,
+            enabled_strategies=[],
             camera_grounded_history={
                 "enabled": True,
                 "mode": "retain_latest_actionable_outputs",
@@ -306,8 +303,7 @@ def test_model_input_camera_history_fails_aloud_on_double_encoded_non_object_out
         _compact_model_input_items(
             items,
             min_chars=999_999,
-            public_tool_output_summary=False,
-            repeated_metric_map_delta=False,
+            enabled_strategies=[],
             camera_grounded_history={
                 "enabled": True,
                 "mode": "retain_latest_actionable_outputs",
@@ -356,8 +352,7 @@ def test_model_input_camera_history_accepts_double_encoded_mcp_text_wrapper() ->
     filtered, metrics = _compact_model_input_items(
         items,
         min_chars=999_999,
-        public_tool_output_summary=False,
-        repeated_metric_map_delta=False,
+        enabled_strategies=[],
         camera_grounded_history={
             "enabled": True,
             "mode": "retain_latest_actionable_outputs",
@@ -391,8 +386,7 @@ def test_model_input_camera_history_still_tolerates_plaintext_mcp_output() -> No
     filtered, metrics = _compact_model_input_items(
         items,
         min_chars=999_999,
-        public_tool_output_summary=False,
-        repeated_metric_map_delta=False,
+        enabled_strategies=[],
         camera_grounded_history={
             "enabled": True,
             "mode": "retain_latest_actionable_outputs",

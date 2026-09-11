@@ -87,7 +87,11 @@ def test_model_input_compaction_summarizes_repeated_metric_map_outputs() -> None
         },
     ]
 
-    filtered, metrics = _compact_model_input_items(items, min_chars=999_999)
+    filtered, metrics = _compact_model_input_items(
+        items,
+        min_chars=999_999,
+        enabled_strategies=["repeated_metric_map_delta_v1"],
+    )
 
     assert filtered[0] == items[0]
     replacement = json.loads(filtered[1]["output"])
@@ -138,7 +142,11 @@ def test_model_input_compaction_keeps_first_metric_map_output_with_opaque_call_i
         },
     ]
 
-    filtered, metrics = _compact_model_input_items(items, min_chars=1200)
+    filtered, metrics = _compact_model_input_items(
+        items,
+        min_chars=1200,
+        enabled_strategies=["repeated_metric_map_delta_v1"],
+    )
 
     assert filtered[1] == items[1]
     replacement = json.loads(filtered[3]["output"])
@@ -193,7 +201,11 @@ def test_model_input_compaction_projects_oversized_first_metric_map() -> None:
         }
     ]
 
-    filtered, metrics = _compact_model_input_items(items, min_chars=1200)
+    filtered, metrics = _compact_model_input_items(
+        items,
+        min_chars=1200,
+        enabled_strategies=["repeated_metric_map_delta_v1"],
+    )
 
     projection = json.loads(filtered[0]["output"])
     assert projection["schema"] == "roboclaws_oversized_metric_map_snapshot_v1"

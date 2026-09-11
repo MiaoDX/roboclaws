@@ -44,8 +44,7 @@ def test_model_input_compaction_evicted_raw_fpv_images_keep_latest_frame() -> No
     filtered, metrics = _compact_model_input_items(
         items,
         min_chars=999_999,
-        public_tool_output_summary=False,
-        repeated_metric_map_delta=False,
+        enabled_strategies=[],
         raw_fpv_image_memory={
             "enabled": True,
             "mode": "retain_latest_full_frame",
@@ -138,7 +137,7 @@ def test_model_input_compaction_does_not_summarize_latest_sdk_raw_fpv_image() ->
     filtered, metrics = _compact_model_input_items(
         [item],
         min_chars=1200,
-        public_tool_output_summary=True,
+        enabled_strategies=["public_tool_result_summary_v1"],
         raw_fpv_image_memory={
             "enabled": True,
             "mode": "retain_latest_full_frame",
