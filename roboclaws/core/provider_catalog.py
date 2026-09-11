@@ -32,6 +32,7 @@ class ModelSpec:
     aliases: tuple[str, ...]
     family: str
     model_capabilities: frozenset[str]
+    context_window_tokens: int | None = None
     default_use: bool = False
     default_use_note: str = ""
     cost_per_m: dict[str, float] = field(default_factory=dict)
@@ -105,24 +106,20 @@ def _opaque_responses_route(profile: str, label: str, env: str) -> ProviderRoute
 _MODEL_SPECS: tuple[ModelSpec, ...] = (
     ModelSpec("mock", ("mock",), "mock", _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT)),
     ModelSpec(
-        "gpt-4o",
-        ("gpt-4o",),
+        "gpt-5.6",
+        ("gpt", "gpt-5.6"),
         "gpt",
         _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
+        context_window_tokens=256_000,
+        default_use_note="Current production GPT model on Responses wire.",
         cost_per_m={"input": 5.00, "output": 15.00},
-    ),
-    ModelSpec(
-        "gpt-4o-mini",
-        ("gpt-4o-mini",),
-        "gpt",
-        _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
-        cost_per_m={"input": 0.15, "output": 0.60},
     ),
     ModelSpec(
         "kimi-k2-5",
         ("kimi-k2-5", "k2p5"),
         "kimi",
         _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
+        context_window_tokens=200_000,
         cost_per_m={"input": 1.00, "output": 3.00},
     ),
     ModelSpec(
@@ -130,6 +127,7 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         ("kimi-coding", "kimi-for-coding"),
         "kimi",
         _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
+        context_window_tokens=200_000,
         cost_per_m={"input": 1.00, "output": 3.00},
     ),
     ModelSpec(
@@ -137,6 +135,7 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         ("k3",),
         "kimi",
         _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
+        context_window_tokens=200_000,
         default_use=True,
         cost_per_m={"input": 1.00, "output": 3.00},
     ),
@@ -145,6 +144,7 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         ("k3-256k",),
         "kimi",
         _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
+        context_window_tokens=256_000,
         cost_per_m={"input": 1.00, "output": 3.00},
     ),
     ModelSpec(
@@ -152,6 +152,7 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         ("anthropic", "claude-3-5-sonnet-20241022"),
         "anthropic",
         _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
+        context_window_tokens=200_000,
         cost_per_m={"input": 3.00, "output": 15.00},
     ),
     ModelSpec(
@@ -159,6 +160,7 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         ("claude-3-haiku-20240307",),
         "anthropic",
         _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
+        context_window_tokens=200_000,
         cost_per_m={"input": 0.25, "output": 1.25},
     ),
     ModelSpec(
@@ -166,6 +168,7 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         ("mimo-v2.5",),
         "mimo",
         _caps(MODEL_CAP_TEXT),
+        context_window_tokens=128_000,
         default_use_note="Public MiMo token-plan Chat Completions model for hosted CI.",
         cost_per_m={"input": 0.0, "output": 0.0},
     ),
@@ -174,6 +177,7 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         ("mimo-v2.5-pro",),
         "mimo",
         _caps(MODEL_CAP_TEXT),
+        context_window_tokens=200_000,
         cost_per_m={"input": 0.0, "output": 0.0},
     ),
     ModelSpec(
@@ -181,6 +185,7 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         ("minimax", "minimax-m3", "MiniMax-M3"),
         "minimax",
         _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
+        context_window_tokens=1_000_000,
         default_use=True,
         default_use_note="Default MiniMax model for current cleanup evidence.",
     ),
@@ -189,6 +194,7 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         ("qwen", "qwen3.8-max"),
         "qwen",
         _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
+        context_window_tokens=1_000_000,
         default_use_note="Public Qwen token-plan Responses model; reasoning on by default.",
         cost_per_m={"input": 0.0, "output": 0.0},
     ),
@@ -197,6 +203,7 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
         ("qwen3.8-flash",),
         "qwen",
         _caps(MODEL_CAP_TEXT, MODEL_CAP_IMAGE_INPUT),
+        context_window_tokens=1_000_000,
         cost_per_m={"input": 0.0, "output": 0.0},
     ),
 )
