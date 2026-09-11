@@ -161,10 +161,3 @@ def _raise_enabled_count_error(attr: str, enabled_attr: str) -> None:
     raise ValueError(
         f"OpenAI Agents SDK setting {attr} must be positive when {enabled_attr} is enabled"
     )
-
-
-def _validate_context_limits(profile: dict[str, Any]) -> None:
-    soft = profile.get("context_soft_limit_tokens")
-    hard = profile.get("context_hard_limit_tokens")
-    if soft is not None and hard is not None and int(soft) > int(hard):
-        raise ValueError("context_soft_limit_tokens must be <= context_hard_limit_tokens")

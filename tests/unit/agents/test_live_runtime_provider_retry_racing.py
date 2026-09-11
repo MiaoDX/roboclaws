@@ -216,8 +216,8 @@ def test_openai_agents_perf_profile_resolves_managed_and_racing_defaults(monkeyp
     assert kimi_managed["continuation_mode"] == "state_summary_only"
     assert kimi_managed["max_turns"] == 128
     assert kimi_managed["max_continuations"] == 1
-    assert kimi_managed["context_soft_limit_tokens"] == 64_000
-    assert kimi_managed["context_hard_limit_tokens"] == 96_000
+    # k3 declares 200K native window; derived hard limit = 200000 * 0.75 = 150_000.
+    assert kimi_managed["context_hard_limit_tokens"] == 150_000
     assert kimi_managed["done_retry_budget"] == 1
     assert "truncation" not in kimi_managed["sdk_model_settings"]
     assert kimi_managed["sdk_model_settings"]["extra_headers"] == {

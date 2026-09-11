@@ -19,7 +19,6 @@ from roboclaws.agents.drivers.openai_agents_profile_settings import (
     _positive_int_setting,
     _raise_enabled_count_error,
     _string_setting,
-    _validate_context_limits,
 )
 from roboclaws.agents.drivers.openai_agents_run_config import (
     DEFAULT_OPENAI_AGENTS_MAX_TURNS,
@@ -28,10 +27,11 @@ from roboclaws.agents.drivers.openai_agents_run_config import (
 from roboclaws.agents.thinking_policy import normalize_thinking_mode
 from roboclaws.core.provider_catalog import (
     ROUTE_CAP_SUPPORTED,
-    WIRE_RESPONSES,
+    ModelSpec,
     model_family_for_route_model,
     normalize_provider_route,
     provider_route_spec,
+    resolve_model,
     route_capabilities_for_engine,
 )
 from roboclaws.core.robot_view_capture import (
@@ -43,7 +43,6 @@ AGENT_SDK_PERF_PROFILE_BASELINE = "baseline"
 AGENT_SDK_PERF_PROFILE_CONTEXT_MANAGED_V1 = "context_managed_v1"
 AGENT_SDK_PERF_PROFILE_ENV = "ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE"
 CONTINUATION_MODE_ENV = "ROBOCLAWS_OPENAI_AGENTS_CONTINUATION_MODE"
-CONTEXT_SOFT_LIMIT_ENV = "ROBOCLAWS_OPENAI_AGENTS_CONTEXT_SOFT_LIMIT_TOKENS"
 CONTEXT_HARD_LIMIT_ENV = "ROBOCLAWS_OPENAI_AGENTS_CONTEXT_HARD_LIMIT_TOKENS"
 MODEL_INPUT_COMPACTION_ENV = "ROBOCLAWS_OPENAI_AGENTS_INPUT_COMPACTION"
 MODEL_INPUT_COMPACTION_MIN_CHARS_ENV = "ROBOCLAWS_OPENAI_AGENTS_INPUT_COMPACTION_MIN_CHARS"
@@ -99,6 +98,7 @@ def resolve_agent_sdk_perf_profile(args: argparse.Namespace) -> dict[str, Any]:
         profile_id,
         route=route,
         model_family=model_family,
+        model_id=model,
         evidence_lane=evidence_lane,
     )
     payload = {
@@ -190,13 +190,6 @@ def resolve_agent_sdk_perf_profile(args: argparse.Namespace) -> dict[str, Any]:
             default=defaults["max_observe_per_waypoint"],
             allow_none=True,
         ),
-        "context_soft_limit_tokens": _int_setting(
-            args,
-            "context_soft_limit_tokens",
-            CONTEXT_SOFT_LIMIT_ENV,
-            default=defaults["context_soft_limit_tokens"],
-            allow_none=True,
-        ),
         "context_hard_limit_tokens": _int_setting(
             args,
             "context_hard_limit_tokens",
@@ -226,7 +219,6 @@ def resolve_agent_sdk_perf_profile(args: argparse.Namespace) -> dict[str, Any]:
     }
     payload["sdk_model_settings"] = _sdk_model_settings_for_profile(payload)
     payload["sdk_run_config"] = _sdk_run_config_for_profile(payload)
-    _validate_context_limits(payload)
     return payload
 
 
@@ -275,6 +267,7 @@ def _profile_defaults(
     *,
     route: Any,
     model_family: str,
+    model_id: str = "",
     evidence_lane: str,
 ) -> dict[str, Any]:
     baseline = {
@@ -290,7 +283,6 @@ def _profile_defaults(
         "raw_fpv_repeated_failure_limit": None,
         "done_retry_budget": None,
         "max_observe_per_waypoint": None,
-        "context_soft_limit_tokens": None,
         "context_hard_limit_tokens": None,
         "model_input_compaction": {
             "schema": "agent_sdk_model_input_compaction_v1",
@@ -351,7 +343,12 @@ def _profile_defaults(
     if profile_id == AGENT_SDK_PERF_PROFILE_BASELINE:
         return baseline
     if profile_id == AGENT_SDK_PERF_PROFILE_CONTEXT_MANAGED_V1:
-        soft_limit, hard_limit = _provider_context_limits(route=route, model_family=model_family)
+        selected_model = model_id or route.default_model_id
+        try:
+            selected_spec = resolve_model(selected_model)
+        except KeyError:
+            selected_spec = None
+        hard_limit = _provider_hard_limit(model_spec=selected_spec)
         raw_fpv_enabled = _raw_fpv_context_management_enabled(
             route=route,
             evidence_lane=evidence_lane,
@@ -366,7 +363,6 @@ def _profile_defaults(
             "max_continuations": 2 if raw_fpv_enabled else 1,
             "done_retry_budget": 1,
             "max_observe_per_waypoint": 4 if raw_fpv_enabled else 1,
-            "context_soft_limit_tokens": soft_limit,
             "context_hard_limit_tokens": hard_limit,
             "raw_fpv_candidate_budget": 24 if raw_fpv_enabled else None,
             "raw_fpv_repeated_failure_limit": 3 if raw_fpv_enabled else None,
@@ -429,10 +425,16 @@ def _context_policy(
     }
 
 
-def _provider_context_limits(*, route: Any, model_family: str) -> tuple[int, int]:
-    if route.wire_api == WIRE_RESPONSES and model_family == "gpt":
-        return 96_000, 128_000
-    return 64_000, 96_000
+def _provider_hard_limit(*, model_spec: ModelSpec | None) -> int:
+    """Derive a context hard limit from the model's declared native window.
+
+    Rule: hard_limit = min(int(window * 0.75), 256_000) — leave 25% margin for
+    estimator drift (chars/4 vs provider count), then clamp at 256K for cost
+    determinism. Window unknown / model_spec absent → 96K conservative default.
+    """
+    if model_spec is None or model_spec.context_window_tokens is None:
+        return 96_000
+    return min(int(model_spec.context_window_tokens * 0.75), 256_000)
 
 
 def _raw_fpv_context_management_enabled(*, route: Any, evidence_lane: str) -> bool:

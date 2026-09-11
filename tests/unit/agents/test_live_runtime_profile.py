@@ -30,8 +30,7 @@ def test_openai_agents_perf_profile_resolves_context_managed_defaults(monkeypatc
     assert profile["max_continuations"] == 1
     assert profile["cache_tools_list"] is True
     assert profile["mcp_client_session_timeout_s"] == 30.0
-    assert profile["context_soft_limit_tokens"] == 64_000
-    assert profile["context_hard_limit_tokens"] == 96_000
+    assert profile["context_hard_limit_tokens"] == 150_000
     assert profile["max_observe_per_waypoint"] == 1
     assert profile["raw_fpv_candidate_budget"] is None
     assert profile["context_policy"] == {
@@ -99,7 +98,6 @@ def test_openai_agents_perf_profile_resolves_explicit_baseline_defaults(monkeypa
     assert baseline["source"] == "cli"
     assert baseline["continuation_mode"] == "repeat_full_prompt"
     assert baseline["max_continuations"] == 2
-    assert baseline["context_soft_limit_tokens"] is None
     assert baseline["context_hard_limit_tokens"] is None
     assert baseline["model_input_compaction"]["enabled"] is False
     assert baseline["camera_grounded_composite_tools"]["enabled"] is False
@@ -409,7 +407,6 @@ def test_openai_agents_perf_profile_resolves_direct_overrides(monkeypatch) -> No
             continuation_mode="state_summary_only",
             max_turns=9,
             incomplete_turn_continuation_attempts=3,
-            context_soft_limit_tokens=12,
             context_hard_limit_tokens=34,
             max_observe_per_waypoint=2,
             raw_fpv_candidate_budget=3,
@@ -424,7 +421,6 @@ def test_openai_agents_perf_profile_resolves_direct_overrides(monkeypatch) -> No
     assert profile["profile_id"] == "context_managed_v1"
     assert profile["max_turns"] == 9
     assert profile["max_continuations"] == 3
-    assert profile["context_soft_limit_tokens"] == 12
     assert profile["context_hard_limit_tokens"] == 34
     assert profile["max_observe_per_waypoint"] == 2
     assert profile["raw_fpv_repeated_failure_limit"] == 2

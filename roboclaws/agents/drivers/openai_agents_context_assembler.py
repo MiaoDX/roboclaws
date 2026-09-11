@@ -13,7 +13,6 @@ from roboclaws.agents.task_state import Checkpoint
 @dataclass(frozen=True)
 class ContextBudgetPolicy:
     hard_limit_tokens: int
-    soft_limit_tokens: int | None = None
     expected_output_tokens: int = 1024
     safety_reserve_tokens: int = 256
     estimator: Callable[[Any], int] | None = None
@@ -25,15 +24,6 @@ class ContextBudgetPolicy:
             or self.safety_reserve_tokens < 0
         ):
             raise ValueError("budget limits must be positive and reserves non-negative")
-        soft = (
-            self.soft_limit_tokens if self.soft_limit_tokens is not None else self.hard_limit_tokens
-        )
-        if soft <= 0 or soft > self.hard_limit_tokens:
-            raise ValueError("context_soft_limit_tokens must be <= context_hard_limit_tokens")
-
-    @property
-    def soft_limit(self) -> int:
-        return self.soft_limit_tokens or self.hard_limit_tokens
 
 
 @dataclass(frozen=True)
@@ -43,10 +33,7 @@ class ContextAssemblyResult:
     expected_output_tokens: int
     safety_reserve_tokens: int
     hard_limit_tokens: int
-    reconstruction_requested: bool
-    eviction_occurred: bool
     admitted: bool
-    evicted: tuple[str, ...] = ()
 
 
 def estimate_tokens(value: Any) -> int:
@@ -120,8 +107,5 @@ def assemble_context(
         policy.expected_output_tokens,
         policy.safety_reserve_tokens,
         policy.hard_limit_tokens,
-        total > policy.soft_limit,
-        bool(evicted),
         total + reserve <= policy.hard_limit_tokens,
-        tuple(evicted),
     )

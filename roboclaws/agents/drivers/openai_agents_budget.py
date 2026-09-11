@@ -20,7 +20,6 @@ def context_budget_policy(
         return None
     return ContextBudgetPolicy(
         hard_limit_tokens=hard,
-        soft_limit_tokens=_int_or_none(profile.get("context_soft_limit_tokens")),
         expected_output_tokens=_int_or_none(profile.get("expected_output_tokens")) or 1024,
         safety_reserve_tokens=_int_or_none(profile.get("context_safety_reserve_tokens")) or 256,
     )
