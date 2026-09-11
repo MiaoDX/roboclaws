@@ -33,7 +33,7 @@ def _perf_profile_args(**overrides: object) -> Namespace:
     values = dict.fromkeys(
         """
         max_turns incomplete_turn_continuation_attempts context_soft_limit_tokens
-        context_hard_limit_tokens max_observe_per_waypoint raw_fpv_candidate_budget
+        context_hard_limit_tokens raw_fpv_candidate_budget
         done_retry_budget model_input_compaction model_input_compaction_min_chars model_racing
         model_racing_arm_count raw_fpv_repeated_failure_limit raw_fpv_image_memory
         raw_fpv_image_memory_retain camera_grounded_history_compaction
@@ -211,8 +211,7 @@ def test_model_input_camera_history_fails_aloud_on_malformed_mcp_text_content() 
         _compact_model_input_items(
             items,
             min_chars=999_999,
-            public_tool_output_summary=False,
-            repeated_metric_map_delta=False,
+            enabled_strategies=[],
             camera_grounded_history={
                 "enabled": True,
                 "mode": "retain_latest_actionable_outputs",
@@ -239,8 +238,7 @@ def test_model_input_camera_history_ignores_non_camera_function_output() -> None
     compacted, metrics = _compact_model_input_items(
         items,
         min_chars=999_999,
-        public_tool_output_summary=False,
-        repeated_metric_map_delta=False,
+        enabled_strategies=[],
         camera_grounded_history={
             "enabled": True,
             "mode": "retain_latest_actionable_outputs",
@@ -274,8 +272,7 @@ def test_model_input_camera_history_fails_aloud_on_non_object_json_mcp_output() 
         _compact_model_input_items(
             items,
             min_chars=999_999,
-            public_tool_output_summary=False,
-            repeated_metric_map_delta=False,
+            enabled_strategies=[],
             camera_grounded_history={
                 "enabled": True,
                 "mode": "retain_latest_actionable_outputs",
@@ -306,8 +303,7 @@ def test_model_input_camera_history_fails_aloud_on_double_encoded_non_object_out
         _compact_model_input_items(
             items,
             min_chars=999_999,
-            public_tool_output_summary=False,
-            repeated_metric_map_delta=False,
+            enabled_strategies=[],
             camera_grounded_history={
                 "enabled": True,
                 "mode": "retain_latest_actionable_outputs",
@@ -356,8 +352,7 @@ def test_model_input_camera_history_accepts_double_encoded_mcp_text_wrapper() ->
     filtered, metrics = _compact_model_input_items(
         items,
         min_chars=999_999,
-        public_tool_output_summary=False,
-        repeated_metric_map_delta=False,
+        enabled_strategies=[],
         camera_grounded_history={
             "enabled": True,
             "mode": "retain_latest_actionable_outputs",
@@ -391,8 +386,7 @@ def test_model_input_camera_history_still_tolerates_plaintext_mcp_output() -> No
     filtered, metrics = _compact_model_input_items(
         items,
         min_chars=999_999,
-        public_tool_output_summary=False,
-        repeated_metric_map_delta=False,
+        enabled_strategies=[],
         camera_grounded_history={
             "enabled": True,
             "mode": "retain_latest_actionable_outputs",

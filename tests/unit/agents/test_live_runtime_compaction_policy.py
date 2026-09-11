@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -127,7 +126,6 @@ def test_openai_agents_runtime_configures_model_input_compaction_filter(
         "enabled": True,
         "mode": "retain_latest_actionable_outputs",
         "retained_recent_outputs": 2,
-        "summary_kind": "roboclaws_camera_grounded_history_summary_v1",
         "candidate_ids": ["AC"],
         "private_artifact_policy": (
             "model-facing camera-grounded history compaction only; MCP traces, reports, "
@@ -135,136 +133,6 @@ def test_openai_agents_runtime_configures_model_input_compaction_filter(
         ),
     }
     assert "call_model_input_filter" not in events[0]["sdk_run_config"]
-
-
-def test_openai_agents_compaction_filter_warns_before_model_call_on_observe_budget(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    captured: dict[str, object] = {}
-
-    class FakeOpenAIResponsesModel:
-        def __init__(self, model: str, *, openai_client: object) -> None:
-            captured["model"] = model
-
-    class FakeAsyncOpenAI:
-        def __init__(
-            self,
-            *,
-            api_key: str,
-            base_url: str,
-            default_headers: dict[str, str] | None = None,
-        ) -> None:
-            pass
-
-    def fake_run_with_async_mcp_server(_server, _agent, request, _events_path, *, run_config):
-        data = SimpleNamespace(
-            model_data=SimpleNamespace(
-                input=[{"role": "user", "content": "continue map build"}],
-                instructions="inspect the next waypoint",
-            )
-        )
-        (request.run_dir / "trace.jsonl").write_text(
-            "\n".join(
-                json.dumps(item)
-                for item in [
-                    {
-                        "event": "response",
-                        "tool": "observe",
-                        "response": {"ok": True, "waypoint_id": "generated_exploration_001"},
-                    },
-                    {
-                        "event": "response",
-                        "tool": "observe",
-                        "response": {"ok": True, "waypoint_id": "generated_exploration_001"},
-                    },
-                ]
-            )
-            + "\n",
-            encoding="utf-8",
-        )
-        captured["filtered_model_data"] = asyncio.run(run_config.call_model_input_filter(data))
-        return SimpleNamespace(final_output="continued after observation advisory")
-
-    monkeypatch.setenv("MM_BASE_URL", "https://minimax.example.test/v1")
-    monkeypatch.setenv("MM_API_KEY", "fake-minimax-key")
-    monkeypatch.setattr(
-        "roboclaws.agents.drivers.openai_agents_live._run_with_async_mcp_server",
-        fake_run_with_async_mcp_server,
-    )
-    monkeypatch.setitem(
-        __import__("sys").modules,
-        "agents",
-        SimpleNamespace(
-            Agent=lambda **kwargs: captured.setdefault("agent_kwargs", kwargs),
-            Runner=SimpleNamespace(
-                run_sync=lambda *_args, **kwargs: captured.setdefault("runner_kwargs", kwargs)
-            ),
-            ModelSettings=FakeModelSettings,
-            RunConfig=FakeRunConfig,
-            OpenAIResponsesModel=FakeOpenAIResponsesModel,
-        ),
-    )
-    monkeypatch.setitem(
-        __import__("sys").modules,
-        "agents.mcp",
-        SimpleNamespace(
-            MCPServerStreamableHttp=lambda **kwargs: SimpleNamespace(
-                __aenter__=lambda: None,
-                kwargs=kwargs,
-            )
-        ),
-    )
-    monkeypatch.setitem(
-        __import__("sys").modules,
-        "openai",
-        SimpleNamespace(AsyncOpenAI=FakeAsyncOpenAI),
-    )
-    request = LiveAgentRequest(
-        run_id="household-world",
-        skill_name="household-map-build",
-        kickoff_prompt="build a map",
-        mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
-        run_dir=tmp_path / "run",
-        provider_profile="minimax-responses",
-        metadata={
-            "provider_profile": "minimax-responses",
-            "evidence_lane": "camera-grounded-labels",
-            "agent_sdk_perf_profile": {
-                "profile_id": "context_managed_v1",
-                "provider_profile": "minimax-responses",
-                "wire_api": "responses",
-                "context_hard_limit_tokens": None,
-                "max_observe_per_waypoint": 1,
-                "raw_fpv_candidate_budget": None,
-                "raw_fpv_repeated_failure_limit": None,
-                "model_input_compaction": {"enabled": False, "mode": "off"},
-            },
-        },
-    )
-
-    result = OpenAIAgentsLiveRuntime().run(request)
-
-    assert result.exit_status == 0
-    assert result.phase == "agent-turn-complete"
-    filtered_model_data = captured["filtered_model_data"]
-    assert "Observation cadence advisory" in filtered_model_data.instructions
-    assert "generated_exploration_001" in filtered_model_data.instructions
-    assert "preferred limit of 1" in filtered_model_data.instructions
-    events = [
-        json.loads(line)
-        for line in (tmp_path / "run" / "openai-agents-events.jsonl").read_text().splitlines()
-    ]
-    assert events[0]["model_input_compaction"]["enabled"] is False
-    assert not any(item.get("event") == "model_input_budget_guard" for item in events)
-    advisory_event = next(
-        item for item in events if item.get("event") == "model_input_budget_advisory"
-    )
-    assert advisory_event["reason"] == "observe_budget_exceeded"
-    assert advisory_event["detail_schema"] == "agent_sdk_observe_budget_advisory_v1"
-    assert advisory_event["detail_summary"]["observe_over_budget_by_waypoint"] == {
-        "generated_exploration_001": 2
-    }
 
 
 def test_model_input_compaction_reduces_oversized_public_tool_outputs() -> None:
@@ -297,7 +165,11 @@ def test_model_input_compaction_reduces_oversized_public_tool_outputs() -> None:
         },
     ]
 
-    filtered, metrics = _compact_model_input_items(items, min_chars=80)
+    filtered, metrics = _compact_model_input_items(
+        items,
+        min_chars=80,
+        enabled_strategies=["public_tool_result_summary_v1"],
+    )
 
     assert metrics["input_item_count"] == 4
     assert metrics["compacted_item_count"] == 1
@@ -441,15 +313,17 @@ def test_openai_agents_perf_profile_resolves_custom_compaction(monkeypatch) -> N
     model_input = compaction["model_input_compaction"]
     assert model_input["schema"] == "agent_sdk_model_input_compaction_v1"
     assert model_input["enabled"] is True
-    assert model_input["mode"] == (
-        "public_tool_result_summary_v1+repeated_metric_map_delta_v1+raw_fpv_image_memory_v1+"
-        "camera_grounded_history_v1"
-    )
+    assert model_input["mode"] == [
+        "raw_fpv_image_memory_v1",
+        "camera_grounded_history_v1",
+        "public_tool_result_summary_v1",
+        "repeated_metric_map_delta_v1",
+    ]
     assert model_input["min_chars"] == 80
-    assert model_input["candidate_ids"] == ["I", "N", "AA", "AC"]
+    assert "mode" in model_input  # candidate_ids removed in Task 14; mode is the source of truth
     assert model_input["completed_tool_history_limit"] == 0
     assert model_input["hook"] == "RunConfig.call_model_input_filter"
-    assert model_input["repeated_metric_map_delta"] is True
+    assert "public_tool_result_summary_v1" in model_input["mode"]
     assert model_input["raw_fpv_image_memory"] == _expected_raw_fpv_image_memory_policy(2)
     assert model_input["camera_grounded_history"] == {
         "schema": "agent_sdk_camera_grounded_history_policy_v1",

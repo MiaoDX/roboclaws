@@ -19,7 +19,6 @@ from roboclaws.agents.drivers.openai_agents_profile_settings import (
     _positive_int_setting,
     _raise_enabled_count_error,
     _string_setting,
-    _validate_context_limits,
 )
 from roboclaws.agents.drivers.openai_agents_run_config import (
     DEFAULT_OPENAI_AGENTS_MAX_TURNS,
@@ -28,10 +27,11 @@ from roboclaws.agents.drivers.openai_agents_run_config import (
 from roboclaws.agents.thinking_policy import normalize_thinking_mode
 from roboclaws.core.provider_catalog import (
     ROUTE_CAP_SUPPORTED,
-    WIRE_RESPONSES,
+    ModelSpec,
     model_family_for_route_model,
     normalize_provider_route,
     provider_route_spec,
+    resolve_model,
     route_capabilities_for_engine,
 )
 from roboclaws.core.robot_view_capture import (
@@ -43,7 +43,6 @@ AGENT_SDK_PERF_PROFILE_BASELINE = "baseline"
 AGENT_SDK_PERF_PROFILE_CONTEXT_MANAGED_V1 = "context_managed_v1"
 AGENT_SDK_PERF_PROFILE_ENV = "ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE"
 CONTINUATION_MODE_ENV = "ROBOCLAWS_OPENAI_AGENTS_CONTINUATION_MODE"
-CONTEXT_SOFT_LIMIT_ENV = "ROBOCLAWS_OPENAI_AGENTS_CONTEXT_SOFT_LIMIT_TOKENS"
 CONTEXT_HARD_LIMIT_ENV = "ROBOCLAWS_OPENAI_AGENTS_CONTEXT_HARD_LIMIT_TOKENS"
 MODEL_INPUT_COMPACTION_ENV = "ROBOCLAWS_OPENAI_AGENTS_INPUT_COMPACTION"
 MODEL_INPUT_COMPACTION_MIN_CHARS_ENV = "ROBOCLAWS_OPENAI_AGENTS_INPUT_COMPACTION_MIN_CHARS"
@@ -60,7 +59,6 @@ ROBOT_VIEW_CAPTURE_POLICY_ENV = "ROBOCLAWS_OPENAI_AGENTS_ROBOT_VIEW_CAPTURE_POLI
 MODEL_THINKING_MODE_ENV = "ROBOCLAWS_OPENAI_AGENTS_THINKING_MODE"
 PROVIDER_TOKEN_BUDGET_ENV = "ROBOCLAWS_EVAL_PROVIDER_TOKEN_BUDGET"
 PROVIDER_COST_BUDGET_ENV = "ROBOCLAWS_EVAL_PROVIDER_COST_BUDGET_USD"
-MAX_OBSERVE_PER_WAYPOINT_ENV = "ROBOCLAWS_OPENAI_AGENTS_MAX_OBSERVE_PER_WAYPOINT"
 RAW_FPV_CANDIDATE_BUDGET_ENV = "ROBOCLAWS_OPENAI_AGENTS_RAW_FPV_CANDIDATE_BUDGET"
 RAW_FPV_REPEATED_FAILURE_LIMIT_ENV = "ROBOCLAWS_OPENAI_AGENTS_RAW_FPV_REPEATED_FAILURE_LIMIT"
 DONE_RETRY_BUDGET_ENV = "ROBOCLAWS_OPENAI_AGENTS_DONE_RETRY_BUDGET"
@@ -99,6 +97,7 @@ def resolve_agent_sdk_perf_profile(args: argparse.Namespace) -> dict[str, Any]:
         profile_id,
         route=route,
         model_family=model_family,
+        model_id=model,
         evidence_lane=evidence_lane,
     )
     payload = {
@@ -183,20 +182,6 @@ def resolve_agent_sdk_perf_profile(args: argparse.Namespace) -> dict[str, Any]:
             default=defaults["done_retry_budget"],
             allow_none=True,
         ),
-        "max_observe_per_waypoint": _int_setting(
-            args,
-            "max_observe_per_waypoint",
-            MAX_OBSERVE_PER_WAYPOINT_ENV,
-            default=defaults["max_observe_per_waypoint"],
-            allow_none=True,
-        ),
-        "context_soft_limit_tokens": _int_setting(
-            args,
-            "context_soft_limit_tokens",
-            CONTEXT_SOFT_LIMIT_ENV,
-            default=defaults["context_soft_limit_tokens"],
-            allow_none=True,
-        ),
         "context_hard_limit_tokens": _int_setting(
             args,
             "context_hard_limit_tokens",
@@ -226,7 +211,6 @@ def resolve_agent_sdk_perf_profile(args: argparse.Namespace) -> dict[str, Any]:
     }
     payload["sdk_model_settings"] = _sdk_model_settings_for_profile(payload)
     payload["sdk_run_config"] = _sdk_run_config_for_profile(payload)
-    _validate_context_limits(payload)
     return payload
 
 
@@ -275,13 +259,11 @@ def _profile_defaults(
     *,
     route: Any,
     model_family: str,
+    model_id: str = "",
     evidence_lane: str,
 ) -> dict[str, Any]:
     baseline = {
-        "context_policy": _context_policy(
-            source_level_tool_output_reduction=False,
-            deterministic_model_input_compaction=False,
-        ),
+        "context_policy": _context_policy(),
         "continuation_mode": "repeat_full_prompt",
         "max_turns": DEFAULT_OPENAI_AGENTS_MAX_TURNS,
         "max_continuations": DEFAULT_INCOMPLETE_TURN_CONTINUATION_ATTEMPTS,
@@ -289,42 +271,7 @@ def _profile_defaults(
         "raw_fpv_candidate_budget": None,
         "raw_fpv_repeated_failure_limit": None,
         "done_retry_budget": None,
-        "max_observe_per_waypoint": None,
-        "context_soft_limit_tokens": None,
         "context_hard_limit_tokens": None,
-        "model_input_compaction": {
-            "schema": "agent_sdk_model_input_compaction_v1",
-            "enabled": False,
-            "mode": "off",
-            "min_chars": 1200,
-            "completed_tool_history_limit": 0,
-            "raw_fpv_image_memory": {
-                "schema": "agent_sdk_raw_fpv_image_memory_policy_v1",
-                "enabled": False,
-                "mode": "off",
-                "retained_full_frame_limit": 0,
-                "candidate_ids": [],
-                "private_artifact_policy": RAW_FPV_IMAGE_MEMORY_POLICY,
-            },
-            "camera_grounded_history": {
-                "schema": "agent_sdk_camera_grounded_history_policy_v1",
-                "enabled": False,
-                "mode": "off",
-                "retained_recent_outputs": 0,
-                "candidate_ids": [],
-                "private_artifact_policy": CAMERA_GROUNDED_HISTORY_POLICY,
-            },
-        },
-        "camera_grounded_composite_tools": {
-            "schema": "agent_sdk_camera_grounded_composite_tools_v1",
-            "enabled": False,
-            "tool_names": [],
-            "candidate_ids": ["O"],
-            "private_artifact_policy": (
-                "SDK-private MCP tool addition only; default public MCP/profile tools remain "
-                "unchanged"
-            ),
-        },
         "robot_view_capture_policy": {
             "schema": "agent_sdk_robot_view_capture_policy_v1",
             "policy": ROBOT_VIEW_CAPTURE_POLICY_FULL,
@@ -351,22 +298,22 @@ def _profile_defaults(
     if profile_id == AGENT_SDK_PERF_PROFILE_BASELINE:
         return baseline
     if profile_id == AGENT_SDK_PERF_PROFILE_CONTEXT_MANAGED_V1:
-        soft_limit, hard_limit = _provider_context_limits(route=route, model_family=model_family)
+        selected_model = model_id or route.default_model_id
+        try:
+            selected_spec = resolve_model(selected_model)
+        except KeyError:
+            selected_spec = None
+        hard_limit = _provider_hard_limit(model_spec=selected_spec)
         raw_fpv_enabled = _raw_fpv_context_management_enabled(
             route=route,
             evidence_lane=evidence_lane,
         )
         return {
             **baseline,
-            "context_policy": _context_policy(
-                source_level_tool_output_reduction=True,
-                deterministic_model_input_compaction=True,
-            ),
+            "context_policy": _context_policy(),
             "continuation_mode": "state_summary_only",
             "max_continuations": 2 if raw_fpv_enabled else 1,
             "done_retry_budget": 1,
-            "max_observe_per_waypoint": 4 if raw_fpv_enabled else 1,
-            "context_soft_limit_tokens": soft_limit,
             "context_hard_limit_tokens": hard_limit,
             "raw_fpv_candidate_budget": 24 if raw_fpv_enabled else None,
             "raw_fpv_repeated_failure_limit": 3 if raw_fpv_enabled else None,
@@ -374,10 +321,11 @@ def _profile_defaults(
                 "schema": "agent_sdk_model_input_compaction_v1",
                 "enabled": True,
                 "mode": (
-                    "public_tool_result_summary_v1+repeated_metric_map_delta_v1+"
-                    "camera_grounded_history_v1"
-                    + ("+raw_fpv_image_memory_v1" if raw_fpv_enabled else "")
-                ),
+                    ["raw_fpv_image_memory_v1", "camera_grounded_history_v1"]
+                    if raw_fpv_enabled
+                    else ["camera_grounded_history_v1"]
+                )
+                + ["public_tool_result_summary_v1", "repeated_metric_map_delta_v1"],
                 "min_chars": 1200,
                 "completed_tool_history_limit": 24 if raw_fpv_enabled else 0,
                 "raw_fpv_image_memory": {
@@ -411,28 +359,22 @@ def _profile_defaults(
     raise ValueError(f"unsupported OpenAI Agents SDK performance profile '{profile_id}'")
 
 
-def _context_policy(
-    *,
-    source_level_tool_output_reduction: bool,
-    deterministic_model_input_compaction: bool,
-) -> dict[str, Any]:
+def _context_policy() -> dict[str, Any]:
     return {
         "schema": "agent_sdk_context_policy_v1",
-        "source_level_tool_output_reduction": source_level_tool_output_reduction,
-        "deterministic_model_input_compaction": deterministic_model_input_compaction,
-        "provider_native_compaction": {
-            "mode": "off",
-            "threshold_tokens": None,
-            "provider_capability": "",
-            "proof_artifact": "",
-        },
     }
 
 
-def _provider_context_limits(*, route: Any, model_family: str) -> tuple[int, int]:
-    if route.wire_api == WIRE_RESPONSES and model_family == "gpt":
-        return 96_000, 128_000
-    return 64_000, 96_000
+def _provider_hard_limit(*, model_spec: ModelSpec | None) -> int:
+    """Derive a context hard limit from the model's declared native window.
+
+    Rule: hard_limit = min(int(window * 0.75), 256_000) — leave 25% margin for
+    estimator drift (chars/4 vs provider count), then clamp at 256K for cost
+    determinism. Window unknown / model_spec absent → 96K conservative default.
+    """
+    if model_spec is None or model_spec.context_window_tokens is None:
+        return 96_000
+    return min(int(model_spec.context_window_tokens * 0.75), 256_000)
 
 
 def _raw_fpv_context_management_enabled(*, route: Any, evidence_lane: str) -> bool:
@@ -477,20 +419,13 @@ def _model_input_compaction_profile(
     raw_fpv_image_memory = _raw_fpv_image_memory_profile(args, default_config)
     camera_grounded_history = _camera_grounded_history_profile(args, default_config)
     completed_tool_history_limit = int(default_config.get("completed_tool_history_limit") or 0)
-    mode_parts = []
-    candidate_ids = []
-    if enabled:
-        mode_parts.extend(["public_tool_result_summary_v1", "repeated_metric_map_delta_v1"])
-        candidate_ids.extend(["I", "N"])
-    if raw_fpv_image_memory["enabled"]:
-        mode_parts.append("raw_fpv_image_memory_v1")
-        candidate_ids.append("AA")
-    if camera_grounded_history["enabled"]:
-        mode_parts.append("camera_grounded_history_v1")
-        candidate_ids.append("AC")
-    if completed_tool_history_limit > 0:
-        mode_parts.append("completed_tool_history_window_v1")
-        candidate_ids.append("AH")
+    mode = list(default_config.get("mode") or [])
+    if enabled and not mode:
+        mode = ["public_tool_result_summary_v1", "repeated_metric_map_delta_v1"]
+    if raw_fpv_image_memory["enabled"] and "raw_fpv_image_memory_v1" not in mode:
+        mode.insert(0, "raw_fpv_image_memory_v1")
+    if camera_grounded_history["enabled"] and "camera_grounded_history_v1" not in mode:
+        mode.insert(0 if "raw_fpv_image_memory_v1" in mode else 0, "camera_grounded_history_v1")
     hook_enabled = (
         enabled
         or bool(raw_fpv_image_memory["enabled"])
@@ -500,12 +435,10 @@ def _model_input_compaction_profile(
     return {
         "schema": "agent_sdk_model_input_compaction_v1",
         "enabled": hook_enabled,
-        "mode": "+".join(mode_parts) if mode_parts else "off",
+        "mode": mode,
         "min_chars": min_chars,
         "completed_tool_history_limit": completed_tool_history_limit,
-        "candidate_ids": candidate_ids,
         "hook": "RunConfig.call_model_input_filter",
-        "repeated_metric_map_delta": enabled,
         "raw_fpv_image_memory": raw_fpv_image_memory,
         "camera_grounded_history": camera_grounded_history,
         "private_artifact_policy": (

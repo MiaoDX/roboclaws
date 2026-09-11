@@ -34,7 +34,6 @@ def _camera_grounded_history_policy(config: dict[str, Any] | None) -> dict[str, 
             config.get("mode") or ("retain_latest_actionable_outputs" if enabled else "off")
         ),
         "retained_recent_outputs": retained,
-        "summary_kind": "roboclaws_camera_grounded_history_summary_v1",
         "candidate_ids": ["AC"] if enabled else [],
         "private_artifact_policy": (
             "model-facing camera-grounded history compaction only; MCP traces, reports, "

@@ -20,7 +20,6 @@ def context_budget_policy(
         return None
     return ContextBudgetPolicy(
         hard_limit_tokens=hard,
-        soft_limit_tokens=_int_or_none(profile.get("context_soft_limit_tokens")),
         expected_output_tokens=_int_or_none(profile.get("expected_output_tokens")) or 1024,
         safety_reserve_tokens=_int_or_none(profile.get("context_safety_reserve_tokens")) or 256,
     )
@@ -50,35 +49,6 @@ def openai_agents_budget_failure(
     if context_failure is not None:
         return context_failure
     return raw_fpv_budget_failure(run_dir, timing, profile)
-
-
-def openai_agents_observe_budget_advisory(
-    run_dir: Path,
-    timing: dict[str, Any],
-    profile: dict[str, Any],
-) -> dict[str, Any] | None:
-    observe_budget = _int_or_none(profile.get("max_observe_per_waypoint"))
-    if observe_budget is None:
-        return None
-    trace_events = _read_jsonl_path(run_dir / "trace.jsonl")
-    if not trace_events:
-        return None
-    metrics = raw_fpv_budget_metrics(trace_events)
-    over_budget = _observe_over_budget(
-        metrics.get("observe_count_by_waypoint") or {},
-        observe_budget=observe_budget,
-    )
-    if not over_budget:
-        return None
-    return {
-        "schema": "agent_sdk_observe_budget_advisory_v1",
-        "reason": "observe_budget_exceeded",
-        "profile_id": profile.get("profile_id") or "baseline",
-        "evidence_lane": timing.get("evidence_lane") or timing.get("profile") or "",
-        "max_observe_per_waypoint": observe_budget,
-        "observe_count_by_waypoint": metrics["observe_count_by_waypoint"],
-        "observe_over_budget_by_waypoint": over_budget,
-    }
 
 
 def context_budget_failure(
@@ -168,7 +138,6 @@ def raw_fpv_budget_failure(
             "reasons": reasons,
             "raw_fpv_candidate_budget": limits["candidate_budget"],
             "raw_fpv_repeated_failure_limit": limits["repeated_failure_limit"],
-            "max_observe_per_waypoint": limits["observe_budget"],
             **metrics,
         },
         sort_keys=True,
@@ -363,7 +332,6 @@ def _raw_fpv_budget_limits(profile: dict[str, Any]) -> dict[str, int | None]:
     limits = {
         "candidate_budget": _int_or_none(profile.get("raw_fpv_candidate_budget")),
         "repeated_failure_limit": _int_or_none(profile.get("raw_fpv_repeated_failure_limit")),
-        "observe_budget": _int_or_none(profile.get("max_observe_per_waypoint")),
     }
     return {} if all(value is None for value in limits.values()) else limits
 
@@ -464,18 +432,6 @@ def _observation_view_scope(waypoint_id: str, raw: dict[str, Any]) -> str:
         except (TypeError, ValueError):
             normalized.append("")
     return "|".join([waypoint_id, *normalized]) if any(normalized) else waypoint_id
-
-
-def _observe_over_budget(
-    observe_count_by_waypoint: dict[str, Any],
-    *,
-    observe_budget: int,
-) -> dict[str, int]:
-    return {
-        str(waypoint_id): int(count)
-        for waypoint_id, count in sorted(observe_count_by_waypoint.items())
-        if waypoint_id and int(count) > observe_budget
-    }
 
 
 def _raw_fpv_candidate_event(

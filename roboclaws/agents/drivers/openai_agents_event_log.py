@@ -297,35 +297,3 @@ def _append_model_input_budget_event(
             }
         ),
     )
-
-
-def _append_model_input_budget_advisory_event(
-    events_path: Path,
-    *,
-    runtime_config: dict[str, Any],
-    advisory: dict[str, Any],
-) -> None:
-    _append_event(
-        events_path,
-        _drop_empty(
-            {
-                "schema": "openai_agents_model_input_budget_advisory_v1",
-                "event": "model_input_budget_advisory",
-                "ts_epoch": time.time(),
-                "runtime": runtime_config.get("runtime"),
-                "provider_profile": runtime_config.get("provider_profile"),
-                "wire_api": runtime_config.get("wire_api"),
-                "model": runtime_config.get("model"),
-                "profile_id": advisory.get("profile_id"),
-                "evidence_lane": advisory.get("evidence_lane"),
-                "reason": advisory.get("reason"),
-                "detail_schema": advisory.get("schema"),
-                "detail_summary": _budget_detail_summary(advisory),
-                "privacy_note": (
-                    "Public waypoint ids and aggregate observation counts only. Raw prompts, "
-                    "model text, tool payload bodies, image payloads, credentials, and private "
-                    "truth are not stored by this event."
-                ),
-            }
-        ),
-    )

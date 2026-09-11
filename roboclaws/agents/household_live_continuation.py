@@ -10,12 +10,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from roboclaws.agents.drivers.openai_agents_budget import (
-    context_budget_failure as _shared_context_budget_failure,
-)
-from roboclaws.agents.drivers.openai_agents_budget import (
-    raw_fpv_budget_failure as _raw_fpv_budget_failure,
-)
 from roboclaws.agents.drivers.openai_agents_metrics import (
     openai_agents_context_metrics as _context_metrics,
 )
@@ -257,7 +251,6 @@ def _profiled_kickoff_prompt(args: argparse.Namespace, *, profile: dict[str, Any
                 lane,
                 str(getattr(args, "task", "") or "build a Runtime Metric Map of this room"),
                 camera_grounded_composite_tools=composite_tools,
-                max_observe_per_waypoint=_int_or_none(profile.get("max_observe_per_waypoint")),
             )
         except ValueError:
             return original
@@ -272,7 +265,6 @@ def _profiled_kickoff_prompt(args: argparse.Namespace, *, profile: dict[str, Any
             intent=intent,
             goal_contract=None,
             raw_fpv_candidate_budget=int(profile.get("raw_fpv_candidate_budget") or 24),
-            max_observe_per_waypoint=int(profile.get("max_observe_per_waypoint") or 1),
             done_retry_budget=int(profile.get("done_retry_budget") or 1),
             camera_grounded_composite_tools=composite_tools,
         )
@@ -319,17 +311,6 @@ def _prompt_already_matches_profile(
         or "Compact action cadence for camera-grounded-labels" in prompt
         or "Compact action cadence for camera-raw-fpv" in prompt
     )
-
-
-def _budget_failure_from_run_state(
-    run_dir: Path,
-    timing: dict[str, Any],
-    profile: dict[str, Any],
-) -> LiveAgentFailure | None:
-    context_failure = _context_budget_failure(run_dir, timing, profile)
-    if context_failure is not None:
-        return context_failure
-    return _raw_fpv_budget_failure(run_dir, timing, profile)
 
 
 def _failure_from_sdk_result(
@@ -455,14 +436,6 @@ def _phase_from_status(status_path: Path) -> str:
             f"OpenAI Agents live status must contain a JSON object, got {type(payload).__name__}"
         )
     return str(payload.get("phase") or "").strip().lower()
-
-
-def _context_budget_failure(
-    run_dir: Path,
-    timing: dict[str, Any],
-    profile: dict[str, Any],
-) -> LiveAgentFailure | None:
-    return _shared_context_budget_failure(run_dir, timing, profile)
 
 
 def _compact_continuation_prompt(

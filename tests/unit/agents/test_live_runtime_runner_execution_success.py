@@ -92,7 +92,6 @@ def test_openai_agents_cleanup_runner_uses_profiled_compact_kickoff_prompt(
         continuation_mode="",
         context_soft_limit_tokens=None,
         context_hard_limit_tokens=None,
-        max_observe_per_waypoint=None,
         raw_fpv_candidate_budget=None,
         done_retry_budget=None,
         model_service_retry_attempts=None,

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from roboclaws.agents.household_live_continuation import _budget_failure_from_run_state
+from roboclaws.agents.drivers.openai_agents_budget import raw_fpv_budget_failure
 
 
 def test_openai_agents_budget_guard_fails_aloud_on_malformed_trace_source(
@@ -23,14 +23,13 @@ def test_openai_agents_budget_guard_fails_aloud_on_malformed_trace_source(
         match=r"OpenAI Agents budget trace source row must contain valid JSON object: "
         r".*trace\.jsonl:2",
     ):
-        _budget_failure_from_run_state(
+        raw_fpv_budget_failure(
             run_dir,
             {"evidence_lane": "camera-raw-fpv", "cache_tools_list": True},
             {
                 "profile_id": "context_managed_v1",
                 "context_hard_limit_tokens": None,
                 "raw_fpv_candidate_budget": 1,
-                "max_observe_per_waypoint": None,
             },
         )
 
@@ -50,14 +49,13 @@ def test_openai_agents_budget_guard_fails_aloud_on_non_object_trace_source(
         match=r"OpenAI Agents budget trace source row must contain a JSON object: "
         r".*trace\.jsonl:1",
     ):
-        _budget_failure_from_run_state(
+        raw_fpv_budget_failure(
             run_dir,
             {"evidence_lane": "camera-raw-fpv", "cache_tools_list": True},
             {
                 "profile_id": "context_managed_v1",
                 "context_hard_limit_tokens": None,
                 "raw_fpv_candidate_budget": 1,
-                "max_observe_per_waypoint": None,
             },
         )
 
@@ -68,14 +66,13 @@ def test_openai_agents_budget_guard_treats_missing_trace_as_no_budget_evidence(
     run_dir = tmp_path / "run"
     run_dir.mkdir()
 
-    failure = _budget_failure_from_run_state(
+    failure = raw_fpv_budget_failure(
         run_dir,
         {"evidence_lane": "camera-raw-fpv", "cache_tools_list": True},
         {
             "profile_id": "context_managed_v1",
             "context_hard_limit_tokens": None,
             "raw_fpv_candidate_budget": 1,
-            "max_observe_per_waypoint": None,
         },
     )
 

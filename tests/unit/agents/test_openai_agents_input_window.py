@@ -106,8 +106,7 @@ def test_completed_tool_history_window_keeps_pairs_and_recent_state() -> None:
     filtered, metrics = _compact_model_input_items(
         items,
         min_chars=999_999,
-        public_tool_output_summary=False,
-        repeated_metric_map_delta=False,
+        enabled_strategies=[],
         completed_tool_history_limit=8,
     )
 

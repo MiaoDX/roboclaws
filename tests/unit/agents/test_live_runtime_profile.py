@@ -30,25 +30,17 @@ def test_openai_agents_perf_profile_resolves_context_managed_defaults(monkeypatc
     assert profile["max_continuations"] == 1
     assert profile["cache_tools_list"] is True
     assert profile["mcp_client_session_timeout_s"] == 30.0
-    assert profile["context_soft_limit_tokens"] == 64_000
-    assert profile["context_hard_limit_tokens"] == 96_000
-    assert profile["max_observe_per_waypoint"] == 1
+    assert profile["context_hard_limit_tokens"] == 150_000
     assert profile["raw_fpv_candidate_budget"] is None
     assert profile["context_policy"] == {
         "schema": "agent_sdk_context_policy_v1",
-        "source_level_tool_output_reduction": True,
-        "deterministic_model_input_compaction": True,
-        "provider_native_compaction": {
-            "mode": "off",
-            "threshold_tokens": None,
-            "provider_capability": "",
-            "proof_artifact": "",
-        },
     }
     assert profile["model_input_compaction"]["enabled"] is True
-    assert profile["model_input_compaction"]["mode"] == (
-        "public_tool_result_summary_v1+repeated_metric_map_delta_v1+camera_grounded_history_v1"
-    )
+    assert profile["model_input_compaction"]["mode"] == [
+        "camera_grounded_history_v1",
+        "public_tool_result_summary_v1",
+        "repeated_metric_map_delta_v1",
+    ]
     assert profile["model_input_compaction"]["camera_grounded_history"]["enabled"] is True
     assert profile["camera_grounded_composite_tools"]["enabled"] is True
     assert profile["camera_grounded_composite_tools"]["tool_names"] == [
@@ -99,12 +91,7 @@ def test_openai_agents_perf_profile_resolves_explicit_baseline_defaults(monkeypa
     assert baseline["source"] == "cli"
     assert baseline["continuation_mode"] == "repeat_full_prompt"
     assert baseline["max_continuations"] == 2
-    assert baseline["context_soft_limit_tokens"] is None
     assert baseline["context_hard_limit_tokens"] is None
-    assert baseline["model_input_compaction"]["enabled"] is False
-    assert baseline["camera_grounded_composite_tools"]["enabled"] is False
-    assert baseline["context_policy"]["source_level_tool_output_reduction"] is False
-    assert baseline["context_policy"]["deterministic_model_input_compaction"] is False
 
 
 def test_openai_agents_perf_profile_rejects_conflicting_cli_and_env(monkeypatch) -> None:
@@ -393,7 +380,6 @@ def test_openai_agents_perf_profile_does_not_infer_raw_fpv_support(monkeypatch) 
     assert raw["max_continuations"] == 1
     assert raw["raw_fpv_candidate_budget"] is None
     assert raw["raw_fpv_repeated_failure_limit"] is None
-    assert raw["max_observe_per_waypoint"] == 1
     assert raw["model_input_compaction"]["enabled"] is True
     assert raw["model_input_compaction"]["raw_fpv_image_memory"]["enabled"] is False
     assert raw["model_input_compaction"]["completed_tool_history_limit"] == 0
@@ -409,9 +395,7 @@ def test_openai_agents_perf_profile_resolves_direct_overrides(monkeypatch) -> No
             continuation_mode="state_summary_only",
             max_turns=9,
             incomplete_turn_continuation_attempts=3,
-            context_soft_limit_tokens=12,
             context_hard_limit_tokens=34,
-            max_observe_per_waypoint=2,
             raw_fpv_candidate_budget=3,
             raw_fpv_repeated_failure_limit=2,
             raw_fpv_image_memory=True,
@@ -424,15 +408,14 @@ def test_openai_agents_perf_profile_resolves_direct_overrides(monkeypatch) -> No
     assert profile["profile_id"] == "context_managed_v1"
     assert profile["max_turns"] == 9
     assert profile["max_continuations"] == 3
-    assert profile["context_soft_limit_tokens"] == 12
     assert profile["context_hard_limit_tokens"] == 34
-    assert profile["max_observe_per_waypoint"] == 2
     assert profile["raw_fpv_repeated_failure_limit"] == 2
-    assert profile["model_input_compaction"]["candidate_ids"] == ["I", "N", "AA", "AC"]
-    assert profile["model_input_compaction"]["mode"] == (
-        "public_tool_result_summary_v1+repeated_metric_map_delta_v1+raw_fpv_image_memory_v1+"
-        "camera_grounded_history_v1"
-    )
+    assert profile["model_input_compaction"]["mode"] == [
+        "raw_fpv_image_memory_v1",
+        "camera_grounded_history_v1",
+        "public_tool_result_summary_v1",
+        "repeated_metric_map_delta_v1",
+    ]
     assert profile["model_input_compaction"]["enabled"] is True
     assert (
         profile["model_input_compaction"]["raw_fpv_image_memory"]["retained_full_frame_limit"] == 2

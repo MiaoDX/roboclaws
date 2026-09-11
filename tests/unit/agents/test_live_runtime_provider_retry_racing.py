@@ -216,15 +216,20 @@ def test_openai_agents_perf_profile_resolves_managed_and_racing_defaults(monkeyp
     assert kimi_managed["continuation_mode"] == "state_summary_only"
     assert kimi_managed["max_turns"] == 128
     assert kimi_managed["max_continuations"] == 1
-    assert kimi_managed["context_soft_limit_tokens"] == 64_000
-    assert kimi_managed["context_hard_limit_tokens"] == 96_000
+    # k3 declares 200K native window; derived hard limit = 200000 * 0.75 = 150_000.
+    assert kimi_managed["context_hard_limit_tokens"] == 150_000
     assert kimi_managed["done_retry_budget"] == 1
     assert "truncation" not in kimi_managed["sdk_model_settings"]
     assert kimi_managed["sdk_model_settings"]["extra_headers"] == {
         "User-Agent": "claude-code/1.0.0"
     }
-    assert kimi_managed["model_input_compaction"]["candidate_ids"] == ["I", "N", "AC"]
-    assert kimi_managed["model_input_compaction"]["repeated_metric_map_delta"] is True
+    # candidate_ids removed in Task 14 (informational; mode list is now the source of truth)
+    assert "mode" in kimi_managed["model_input_compaction"]
+    assert kimi_managed["model_input_compaction"]["mode"] == [
+        "camera_grounded_history_v1",
+        "public_tool_result_summary_v1",
+        "repeated_metric_map_delta_v1",
+    ]
     assert kimi_managed["model_input_compaction"]["camera_grounded_history"] == {
         "schema": "agent_sdk_camera_grounded_history_policy_v1",
         "enabled": True,
