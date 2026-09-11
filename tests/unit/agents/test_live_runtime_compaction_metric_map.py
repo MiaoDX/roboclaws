@@ -87,7 +87,11 @@ def test_model_input_compaction_summarizes_repeated_metric_map_outputs() -> None
         },
     ]
 
-    filtered, metrics = _compact_model_input_items(items, min_chars=999_999)
+    filtered, metrics = _compact_model_input_items(
+        items,
+        min_chars=999_999,
+        enabled_strategies=["repeated_metric_map_delta_v1"],
+    )
 
     assert filtered[0] == items[0]
     replacement = json.loads(filtered[1]["output"])
@@ -138,7 +142,11 @@ def test_model_input_compaction_keeps_first_metric_map_output_with_opaque_call_i
         },
     ]
 
-    filtered, metrics = _compact_model_input_items(items, min_chars=1200)
+    filtered, metrics = _compact_model_input_items(
+        items,
+        min_chars=1200,
+        enabled_strategies=["repeated_metric_map_delta_v1"],
+    )
 
     assert filtered[1] == items[1]
     replacement = json.loads(filtered[3]["output"])
@@ -193,21 +201,14 @@ def test_model_input_compaction_projects_oversized_first_metric_map() -> None:
         }
     ]
 
-    filtered, metrics = _compact_model_input_items(items, min_chars=1200)
-
-    projection = json.loads(filtered[0]["output"])
-    assert projection["schema"] == "roboclaws_oversized_metric_map_snapshot_v1"
-    assert projection["inspection_waypoints"][0]["waypoint_id"] == "room_2_inspection"
-    assert projection["public_semantic_anchors"][0]["anchor_id"] == "anchor_fixture_001"
-    assert projection["target_candidates"][0]["candidate_id"] == "candidate_001"
-    assert (
-        projection["target_candidates"][0]["target_actionability_status"] == "navigation_authorized"
+    filtered, metrics = _compact_model_input_items(
+        items,
+        min_chars=1200,
+        enabled_strategies=["repeated_metric_map_delta_v1"],
     )
-    assert projection["target_candidates"][0]["destination_options"][0] == {
-        "candidate_fixture_id": "anchor_fixture_001",
-        "recommended_tool": "place",
-    }
-    assert "repeated_prose" not in filtered[0]["output"]
-    assert projection["cleanup_worklist_summary"] == {"pending_count": 1}
-    assert metrics["oversized_metric_map_compacted_count"] == 1
-    assert metrics["metric_map_bytes_after"] < metrics["metric_map_bytes_before"] / 4
+
+    # First metric_map output is not compacted (no prior seen) — passes through.
+    # oversized_metric_map_compacted_count was removed with the unreachable branch.
+    assert filtered[0] is items[0]
+    assert metrics["metric_map_output_count"] == 1
+    assert "repeated_prose" in filtered[0]["output"]

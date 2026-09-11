@@ -99,7 +99,6 @@ def test_openai_agents_robot_view_capture_policy_adds_private_server_flag(
         robot_view_capture_policy="action_timeline",
         context_soft_limit_tokens=None,
         context_hard_limit_tokens=None,
-        max_observe_per_waypoint=None,
         raw_fpv_candidate_budget=None,
         raw_fpv_repeated_failure_limit=None,
         done_retry_budget=None,

@@ -365,7 +365,6 @@ def compact_metric_group(metrics: dict[str, Any]) -> dict[str, Any]:
         "detail_schema",
         "raw_fpv_candidate_budget",
         "raw_fpv_repeated_failure_limit",
-        "max_observe_per_waypoint",
         "candidate_attempt_count",
         "repeated_failure_count",
         "repeated_failure_limit_hit_count",
@@ -388,7 +387,6 @@ def compact_metric_group(metrics: dict[str, Any]) -> dict[str, Any]:
             for key in (
                 "raw_fpv_candidate_budget",
                 "raw_fpv_repeated_failure_limit",
-                "max_observe_per_waypoint",
                 "candidate_attempt_count",
             ):
                 if key in parsed:

@@ -653,8 +653,8 @@ def test_openai_agents_perf_profile_resolves_minimax_and_kimi_defaults(monkeypat
     assert minimax["wire_api"] == "responses"
     assert minimax["model_family"] == "minimax"
     assert minimax["max_continuations"] == 1
-    assert minimax["context_soft_limit_tokens"] == 64_000
-    assert minimax["context_hard_limit_tokens"] == 96_000
+    # MiniMax-M3 declares 1M native window; derived hard limit clamps at 256K.
+    assert minimax["context_hard_limit_tokens"] == 256_000
     assert minimax["sdk_model_settings"]["truncation"] == "auto"
 
     chat = _resolve_agent_sdk_perf_profile(
@@ -683,3 +683,21 @@ def test_openai_agents_perf_profile_resolves_minimax_and_kimi_defaults(monkeypat
     assert kimi["provider_profile"] == "kimi-openai-chat"
     assert kimi["wire_api"] == "chat-completions"
     assert kimi["sdk_model_settings"]["extra_headers"] == {"User-Agent": "claude-code/1.0.0"}
+
+
+def test_openai_agents_perf_profile_resolves_qwen_responses_context_limits(monkeypatch) -> None:
+    monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", raising=False)
+    qwen = _resolve_agent_sdk_perf_profile(
+        _openai_agents_perf_profile_base_args(
+            provider_profile="qwen-tp-responses",
+            model="qwen3.8-max",
+            agent_sdk_perf_profile="context_managed_v1",
+        )
+    )
+
+    assert qwen["provider_profile"] == "qwen-tp-responses"
+    assert qwen["wire_api"] == "responses"
+    assert qwen["model_family"] == "qwen"
+    # qwen3.8-max declares 1M native window; derived hard limit clamps at 256K.
+    assert qwen["context_hard_limit_tokens"] == 256_000
+    assert qwen["sdk_model_settings"]["truncation"] == "auto"

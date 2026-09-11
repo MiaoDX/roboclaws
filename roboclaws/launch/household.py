@@ -240,18 +240,11 @@ def _live_command(
     composite = execution.profile == "camera-grounded-labels" and (
         _bool_value(composite_override) if composite_override is not None else True
     )
-    max_observe = int(
-        os.environ.get(
-            "ROBOCLAWS_OPENAI_AGENTS_MAX_OBSERVE_PER_WAYPOINT",
-            "4" if execution.profile == "camera-raw-fpv" else "1",
-        )
-    )
     if execution.map_build:
         kickoff = render_map_build_prompt(
             execution.profile,
             execution.task,
             camera_grounded_composite_tools=composite,
-            max_observe_per_waypoint=max_observe,
             operator_session_context_json=_get(execution.kv, "operator_session_context_json", ""),
         )
     else:
@@ -264,7 +257,6 @@ def _live_command(
             raw_fpv_candidate_budget=int(
                 os.environ.get("ROBOCLAWS_OPENAI_AGENTS_RAW_FPV_CANDIDATE_BUDGET", "24")
             ),
-            max_observe_per_waypoint=max_observe,
             done_retry_budget=int(os.environ.get("ROBOCLAWS_OPENAI_AGENTS_DONE_RETRY_BUDGET", "1")),
             camera_grounded_composite_tools=composite,
             operator_session_context_json=_get(execution.kv, "operator_session_context_json", ""),
@@ -594,7 +586,6 @@ def _append_live_env_options(command: list[str]) -> None:
         ROBOCLAWS_OPENAI_AGENTS_CONTEXT_SOFT_LIMIT_TOKENS="--context-soft-limit-tokens",
         ROBOCLAWS_OPENAI_AGENTS_CONTEXT_HARD_LIMIT_TOKENS="--context-hard-limit-tokens",
         ROBOCLAWS_OPENAI_AGENTS_MODEL_RACING_ARM_COUNT="--model-racing-arm-count",
-        ROBOCLAWS_OPENAI_AGENTS_MAX_OBSERVE_PER_WAYPOINT="--max-observe-per-waypoint",
         ROBOCLAWS_OPENAI_AGENTS_RAW_FPV_CANDIDATE_BUDGET="--raw-fpv-candidate-budget",
         ROBOCLAWS_OPENAI_AGENTS_RAW_FPV_REPEATED_FAILURE_LIMIT=("--raw-fpv-repeated-failure-limit"),
         ROBOCLAWS_OPENAI_AGENTS_ROBOT_VIEW_CAPTURE_POLICY="--robot-view-capture-policy",

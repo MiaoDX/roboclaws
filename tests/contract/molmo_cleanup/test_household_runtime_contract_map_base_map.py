@@ -118,7 +118,7 @@ def test_scene_index_backend_public_map_uses_usd_room_outline_scale() -> None:
                 TargetRule(
                     object_id="bowl_847a24bfa9d8b1a1f26661ebbb850f56_1_0_2",
                     valid_receptacle_ids=("sink_07e796f32d0d3efce9acf4be00f3bc53_1_0_3",),
-                ),
+                )
             ),
             success_threshold=1,
         ),
@@ -227,7 +227,7 @@ def test_scene_index_backend_room_outline_waypoints_avoid_fixture_occupied_goals
                 TargetRule(
                     object_id="bowl_847a24bfa9d8b1a1f26661ebbb850f56_1_0_2",
                     valid_receptacle_ids=("sink_07e796f32d0d3efce9acf4be00f3bc53_1_0_3",),
-                ),
+                )
             ),
             success_threshold=1,
         ),
