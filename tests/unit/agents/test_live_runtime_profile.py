@@ -35,14 +35,6 @@ def test_openai_agents_perf_profile_resolves_context_managed_defaults(monkeypatc
     assert profile["raw_fpv_candidate_budget"] is None
     assert profile["context_policy"] == {
         "schema": "agent_sdk_context_policy_v1",
-        "source_level_tool_output_reduction": True,
-        "deterministic_model_input_compaction": True,
-        "provider_native_compaction": {
-            "mode": "off",
-            "threshold_tokens": None,
-            "provider_capability": "",
-            "proof_artifact": "",
-        },
     }
     assert profile["model_input_compaction"]["enabled"] is True
     assert profile["model_input_compaction"]["mode"] == (
@@ -99,10 +91,6 @@ def test_openai_agents_perf_profile_resolves_explicit_baseline_defaults(monkeypa
     assert baseline["continuation_mode"] == "repeat_full_prompt"
     assert baseline["max_continuations"] == 2
     assert baseline["context_hard_limit_tokens"] is None
-    assert baseline["model_input_compaction"]["enabled"] is False
-    assert baseline["camera_grounded_composite_tools"]["enabled"] is False
-    assert baseline["context_policy"]["source_level_tool_output_reduction"] is False
-    assert baseline["context_policy"]["deterministic_model_input_compaction"] is False
 
 
 def test_openai_agents_perf_profile_rejects_conflicting_cli_and_env(monkeypatch) -> None:

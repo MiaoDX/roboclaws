@@ -127,7 +127,6 @@ def test_openai_agents_runtime_configures_model_input_compaction_filter(
         "enabled": True,
         "mode": "retain_latest_actionable_outputs",
         "retained_recent_outputs": 2,
-        "summary_kind": "roboclaws_camera_grounded_history_summary_v1",
         "candidate_ids": ["AC"],
         "private_artifact_policy": (
             "model-facing camera-grounded history compaction only; MCP traces, reports, "
@@ -449,7 +448,7 @@ def test_openai_agents_perf_profile_resolves_custom_compaction(monkeypatch) -> N
     assert model_input["candidate_ids"] == ["I", "N", "AA", "AC"]
     assert model_input["completed_tool_history_limit"] == 0
     assert model_input["hook"] == "RunConfig.call_model_input_filter"
-    assert model_input["repeated_metric_map_delta"] is True
+    assert model_input["mode"].startswith("public_tool_result_summary_v1+")
     assert model_input["raw_fpv_image_memory"] == _expected_raw_fpv_image_memory_policy(2)
     assert model_input["camera_grounded_history"] == {
         "schema": "agent_sdk_camera_grounded_history_policy_v1",

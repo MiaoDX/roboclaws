@@ -68,10 +68,6 @@ def _assert_context_managed_openai_agents_timing(timing: dict[str, object]) -> N
     # k3 declares 200K native window; derived hard limit = 150_000.
     assert timing["agent_sdk_perf_profile"]["context_hard_limit_tokens"] == 150_000
     assert timing["agent_sdk_perf_profile"]["model_input_compaction"]["enabled"] is True
-    assert (
-        timing["agent_sdk_perf_profile"]["context_policy"]["provider_native_compaction"]["mode"]
-        == "off"
-    )
     assert timing["agent_sdk_perf_profile"]["model_service_retry_attempts"] == 1
     assert timing["agent_sdk_perf_profile"]["model_service_retry_sleep_s"] == 1.0
     assert timing["agent_sdk_perf_profile"]["model_racing_observability"] == (

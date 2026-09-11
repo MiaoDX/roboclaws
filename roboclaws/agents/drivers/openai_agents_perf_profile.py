@@ -271,10 +271,7 @@ def _profile_defaults(
     evidence_lane: str,
 ) -> dict[str, Any]:
     baseline = {
-        "context_policy": _context_policy(
-            source_level_tool_output_reduction=False,
-            deterministic_model_input_compaction=False,
-        ),
+        "context_policy": _context_policy(),
         "continuation_mode": "repeat_full_prompt",
         "max_turns": DEFAULT_OPENAI_AGENTS_MAX_TURNS,
         "max_continuations": DEFAULT_INCOMPLETE_TURN_CONTINUATION_ATTEMPTS,
@@ -284,39 +281,6 @@ def _profile_defaults(
         "done_retry_budget": None,
         "max_observe_per_waypoint": None,
         "context_hard_limit_tokens": None,
-        "model_input_compaction": {
-            "schema": "agent_sdk_model_input_compaction_v1",
-            "enabled": False,
-            "mode": "off",
-            "min_chars": 1200,
-            "completed_tool_history_limit": 0,
-            "raw_fpv_image_memory": {
-                "schema": "agent_sdk_raw_fpv_image_memory_policy_v1",
-                "enabled": False,
-                "mode": "off",
-                "retained_full_frame_limit": 0,
-                "candidate_ids": [],
-                "private_artifact_policy": RAW_FPV_IMAGE_MEMORY_POLICY,
-            },
-            "camera_grounded_history": {
-                "schema": "agent_sdk_camera_grounded_history_policy_v1",
-                "enabled": False,
-                "mode": "off",
-                "retained_recent_outputs": 0,
-                "candidate_ids": [],
-                "private_artifact_policy": CAMERA_GROUNDED_HISTORY_POLICY,
-            },
-        },
-        "camera_grounded_composite_tools": {
-            "schema": "agent_sdk_camera_grounded_composite_tools_v1",
-            "enabled": False,
-            "tool_names": [],
-            "candidate_ids": ["O"],
-            "private_artifact_policy": (
-                "SDK-private MCP tool addition only; default public MCP/profile tools remain "
-                "unchanged"
-            ),
-        },
         "robot_view_capture_policy": {
             "schema": "agent_sdk_robot_view_capture_policy_v1",
             "policy": ROBOT_VIEW_CAPTURE_POLICY_FULL,
@@ -355,10 +319,7 @@ def _profile_defaults(
         )
         return {
             **baseline,
-            "context_policy": _context_policy(
-                source_level_tool_output_reduction=True,
-                deterministic_model_input_compaction=True,
-            ),
+            "context_policy": _context_policy(),
             "continuation_mode": "state_summary_only",
             "max_continuations": 2 if raw_fpv_enabled else 1,
             "done_retry_budget": 1,
@@ -407,21 +368,9 @@ def _profile_defaults(
     raise ValueError(f"unsupported OpenAI Agents SDK performance profile '{profile_id}'")
 
 
-def _context_policy(
-    *,
-    source_level_tool_output_reduction: bool,
-    deterministic_model_input_compaction: bool,
-) -> dict[str, Any]:
+def _context_policy() -> dict[str, Any]:
     return {
         "schema": "agent_sdk_context_policy_v1",
-        "source_level_tool_output_reduction": source_level_tool_output_reduction,
-        "deterministic_model_input_compaction": deterministic_model_input_compaction,
-        "provider_native_compaction": {
-            "mode": "off",
-            "threshold_tokens": None,
-            "provider_capability": "",
-            "proof_artifact": "",
-        },
     }
 
 
@@ -507,7 +456,6 @@ def _model_input_compaction_profile(
         "completed_tool_history_limit": completed_tool_history_limit,
         "candidate_ids": candidate_ids,
         "hook": "RunConfig.call_model_input_filter",
-        "repeated_metric_map_delta": enabled,
         "raw_fpv_image_memory": raw_fpv_image_memory,
         "camera_grounded_history": camera_grounded_history,
         "private_artifact_policy": (

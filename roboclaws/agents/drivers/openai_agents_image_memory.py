@@ -33,7 +33,6 @@ def _raw_fpv_image_memory_policy(config: dict[str, Any] | None) -> dict[str, Any
         "enabled": enabled,
         "mode": str(config.get("mode") or ("retain_latest_full_frame" if enabled else "off")),
         "retained_full_frame_limit": retained,
-        "summary_kind": "raw_fpv_evicted_image_frame_summary_v1",
         "candidate_ids": ["AA"] if enabled else [],
         "private_artifact_policy": (
             "model-facing raw-FPV image memory only; MCP traces, reports, and image artifacts "

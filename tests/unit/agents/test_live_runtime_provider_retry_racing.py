@@ -224,7 +224,9 @@ def test_openai_agents_perf_profile_resolves_managed_and_racing_defaults(monkeyp
         "User-Agent": "claude-code/1.0.0"
     }
     assert kimi_managed["model_input_compaction"]["candidate_ids"] == ["I", "N", "AC"]
-    assert kimi_managed["model_input_compaction"]["repeated_metric_map_delta"] is True
+    assert kimi_managed["model_input_compaction"]["mode"].startswith(
+        "public_tool_result_summary_v1+"
+    )
     assert kimi_managed["model_input_compaction"]["camera_grounded_history"] == {
         "schema": "agent_sdk_camera_grounded_history_policy_v1",
         "enabled": True,
