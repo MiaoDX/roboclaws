@@ -63,8 +63,8 @@ def test_sandbox_eval_records_blocked_without_product_launch(tmp_path: Path, mon
 
 
 def test_harness_freezes_exactly_five_delivery_cells(tmp_path: Path, monkeypatch) -> None:
-    monkeypatch.setenv("KIMI_OPENAI_BASE_URL", "https://kimi.example.test/v1")
-    monkeypatch.setenv("KIMI_API_KEY", "fake-key")
+    monkeypatch.setenv("MM_BASE_URL", "https://minimax.example.test/v1")
+    monkeypatch.setenv("MM_API_KEY", "fake-key")
     monkeypatch.setattr(
         "roboclaws.evals.harness.runner.sandbox_readiness",
         lambda: {"status": "blocked", "reason": "sandbox_image_unavailable"},

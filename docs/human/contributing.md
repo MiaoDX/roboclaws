@@ -80,7 +80,8 @@ Required CI must stay deterministic and secret-light. Real provider, GPU,
 Isaac, Agibot, and robot-backed runs belong in advisory, manual, scheduled,
 or local-only gates unless explicitly promoted.
 
-The weekly showcase runs Map Build with Kimi and shards the three Cleanup trials
+The weekly showcase puts MiniMax first and MiMo token-plan second in the public
+primary lane. It runs Map Build with MiniMax and shards the three Cleanup trials
 and three Open-ended samples across Kimi, MiMo, and MiniMax. Each provider runs
 in an isolated GitHub job, so their synthetic household runtime locks do not
 conflict. Tasks within one provider job remain serial, keeping provider

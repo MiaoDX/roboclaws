@@ -81,7 +81,7 @@ def test_baseline_live_default_profile_excludes_fixed_prior_provider_sweep(
     assert manifest["summary"]["live_agent_eval_row_count"] == 3
     assert manifest["summary"]["budget_skipped_count"] == 0
     assert all(
-        row["axes"].get("provider_profile") in {None, "kimi-openai-chat"} for row in rows.values()
+        row["axes"].get("provider_profile") in {None, "minimax-responses"} for row in rows.values()
     )
     assert {signal["id"] for signal in manifest["signals"]} == {"baseline_live_default_profile"}
 

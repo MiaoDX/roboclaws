@@ -74,7 +74,7 @@ just agent::eval promote-regression \
   direct local-simulator product rows, and DINO product rows. It excludes all
   live-provider rows and is the normal broad local refresh.
 - `profile=baseline-live-default`: select `baseline-core` plus the current
-  Kimi live-agent capability rows and the direct same-run map-build-to-consumer
+  MiniMax live-agent capability rows and the direct same-run map-build-to-consumer
   proof. It excludes the fixed-prior provider matrix.
 - `profile=baseline-refresh`: select the catalog baseline set directly:
   deterministic gates, all current eval suites including long-horizon tasks,
