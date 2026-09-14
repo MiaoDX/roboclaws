@@ -35,6 +35,8 @@ def test_showcase_workflow_is_advisory_bounded_and_secret_guarded() -> None:
     assert "Publish report drilldowns" in workflow
     assert "publish_report_bundle" in workflow
     assert 'Path("output/showcase/site/reports") / shard / "evals"' in workflow
+    assert "Verify published report drilldowns" in workflow
+    assert "published report links are missing" in workflow
     assert "shutil.copytree" not in workflow
     assert workflow.count("github-pages-${{ github.run_attempt }}") == 2
     assert "actions/configure-pages@v5" in workflow

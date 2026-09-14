@@ -37,9 +37,9 @@ remain Actions artifacts.
 | Demo | View the effect | CI definition |
 | --- | --- | --- |
 | Deterministic smoke | [Latest report](https://miaodx.com/roboclaws/) | [Smoke row](.github/workflows/showcase.yml) |
-| Map build | [Latest report](https://miaodx.com/roboclaws/) | [Kimi row](.github/workflows/showcase.yml) |
-| Household cleanup | [Latest report](https://miaodx.com/roboclaws/) | [Kimi / MiMo / MiniMax rows](.github/workflows/showcase.yml) |
-| Open household goal | [Latest report](https://miaodx.com/roboclaws/) | [Kimi / MiMo / MiniMax rows](.github/workflows/showcase.yml) |
+| Map build | [Latest report](https://miaodx.com/roboclaws/) | [MiniMax row](.github/workflows/showcase.yml) |
+| Household cleanup | [Latest report](https://miaodx.com/roboclaws/) | [MiniMax / MiMo primary, Kimi compatibility](.github/workflows/showcase.yml) |
+| Open household goal | [Latest report](https://miaodx.com/roboclaws/) | [MiniMax / MiMo primary, Kimi compatibility](.github/workflows/showcase.yml) |
 
 The local [operator console](just/README.md) and maintainer gate
 (`just agent::verify`) are documented separately.

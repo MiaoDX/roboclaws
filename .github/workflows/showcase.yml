@@ -26,11 +26,11 @@ jobs:
       matrix:
         include:
           - provider: kimi
-            row_args: --row-id household_world.map_build_quality --row-id household_world.cleanup_capability.kimi --row-id household_world.open_ended_goals.kimi
+            row_args: --row-id household_world.cleanup_capability.kimi --row-id household_world.open_ended_goals.kimi
           - provider: mimo
             row_args: --row-id household_world.cleanup_capability.mimo --row-id household_world.open_ended_goals.mimo
           - provider: minimax
-            row_args: --row-id household_world.cleanup_capability.minimax --row-id household_world.open_ended_goals.minimax
+            row_args: --row-id household_world.map_build_quality --row-id household_world.cleanup_capability.minimax --row-id household_world.open_ended_goals.minimax
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -156,6 +156,26 @@ jobs:
               destination = Path("output/showcase/site/reports") / shard / "evals"
               if source.is_dir():
                   publish_report_bundle(source, destination)
+          PY
+      - name: Verify published report drilldowns
+        if: always()
+        run: |
+          .venv/bin/python - <<'PY'
+          import json
+          from pathlib import Path
+
+          site = Path("output/showcase/site")
+          summary = json.loads((site / "showcase-summary-v1.json").read_text(encoding="utf-8"))
+          missing = []
+          for row in summary["rows"]:
+              href = row.get("report_href")
+              if not href:
+                  continue
+              report = site / href
+              if not report.is_file():
+                  missing.append(f"{row['id']} -> {href}")
+          if missing:
+              raise SystemExit("published report links are missing: " + ", ".join(missing))
           PY
       - name: Upload canonical evidence
         if: always()
