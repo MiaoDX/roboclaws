@@ -50,3 +50,19 @@ usage data remains available where each provider exposes it.
 Provider secrets and endpoint/request-model values remain in the gitignored
 `.env`; readiness, benchmark, console, and run artifacts expose only public
 profile/model labels.
+
+## Showcase Capacity Lanes
+
+The public showcase is organized by usable quota, not by a single global model
+ranking:
+
+| Lane | Routes | Display role |
+| --- | --- | --- |
+| Public primary, rank 1 | `minimax-responses` / `MiniMax-M3` | Default public live proof and first Map Build row. |
+| Public primary, rank 2 | `mimo-tp-openai-chat` / `mimo-v2.5-pro` | Second public high-volume route with the same cleanup and open-ended proof shapes. |
+| Public compatibility | `kimi-openai-chat` / `k3`; future `qwen-tp-responses` | Compatibility and transport coverage; not a quota or quality ranking. Qwen stays out of the maintained row set until its fixed-prior proof is complete. |
+| Internal high-volume | `codex-responses`, `mimo-responses` | Local or CloudML status and capacity proof. These routes are not dispatched by the public GitHub showcase. |
+
+The Pages report labels each row with its lane and capacity rank. Results across
+lanes must not be read as a direct quality leaderboard: they have different
+network placement, quota, and transport contracts.

@@ -105,6 +105,15 @@ def test_public_map_build_showcase_uses_default_minimax_route():
     assert row["provider_profile"] == "minimax-responses"
 
 
+def test_showcase_provider_lanes_follow_capacity_policy():
+    from roboclaws.evals.showcase import showcase_lane
+
+    assert showcase_lane("minimax-responses") == ("public-primary", 1)
+    assert showcase_lane("mimo-tp-openai-chat") == ("public-primary", 2)
+    assert showcase_lane("kimi-openai-chat") == ("public-compatibility", 3)
+    assert showcase_lane("qwen-tp-responses") == ("public-compatibility", 3)
+
+
 def test_manifest_rejects_evidence_identity_that_disagrees_with_selected_sample():
     root = Path(__file__).resolve().parents[3]
     m = json.loads((root / "config/showcase-manifest.json").read_text())
@@ -237,5 +246,7 @@ def test_showcase_html_renders_dashboard_instead_of_escaped_markdown():
     assert "<pre>" not in rendered
     assert "showcase_row_timeout" in rendered
     assert "kimi-openai-chat" in rendered
+    assert "public-compatibility" in rendered
+    assert "#3" in rendered
     assert 'href="reports/mimo/evals/cleanup/run/eval_report.html"' in rendered
     assert rendered.count('href="https://example.test/artifacts"') == 1

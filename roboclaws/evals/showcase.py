@@ -20,6 +20,25 @@ STATUSES = {"passed", "failed", "blocked", "not_run"}
 ALLOWED_METRICS = {"total", "passed", "failed", "blocked", "pass_at_1"}
 PRIVATE_KEYS = {"prompt", "goal", "tool_body", "image", "map", "endpoint", "secret"}
 EXECUTION_MODES = {"deterministic", "deterministic_and_manual_live", "manual_live_only"}
+SHOWCASE_LANE_BY_PROVIDER = {
+    "minimax-responses": ("public-primary", 1),
+    "mimo-tp-openai-chat": ("public-primary", 2),
+    "kimi-openai-chat": ("public-compatibility", 3),
+    "qwen-tp-responses": ("public-compatibility", 3),
+}
+
+
+def showcase_lane(provider_profile: str | None) -> tuple[str, int]:
+    if not provider_profile:
+        return "deterministic-control", 0
+    return SHOWCASE_LANE_BY_PROVIDER.get(provider_profile, ("unclassified", 99))
+
+
+def showcase_capacity_rank(row: dict[str, Any]) -> int:
+    rank = row.get("capacity_rank")
+    if isinstance(rank, int):
+        return rank
+    return showcase_lane(row.get("provider_profile"))[1]
 
 
 def manifest_digest(manifest: dict[str, Any]) -> str:
@@ -315,6 +334,9 @@ def derive_row(
         "reason": reason,
         "metrics": metrics,
     }
+    lane, capacity_rank = showcase_lane(result["provider_profile"])
+    result["showcase_lane"] = lane
+    result["capacity_rank"] = capacity_rank
     if source:
         result["source_artifact"] = Path(source).name
     artifacts = results.get("artifacts", {}) if isinstance(results, dict) else {}
@@ -394,8 +416,9 @@ def render_markdown(summary: dict[str, Any]) -> str:
         "",
         f"Latest attempt: `{summary['attempted_at']}` at `{summary['commit']}`",
         "",
-        "| Capability | Status | Reason | Report | Last successful evidence |",
-        "| --- | --- | --- | --- | --- |",
+        "| Capability | Lane | Capacity | Provider | Status | Reason | Report | "
+        "Last successful evidence |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     successes = summary.get("last_success", {})
     for row in summary["rows"]:
@@ -403,8 +426,14 @@ def render_markdown(summary: dict[str, Any]) -> str:
         last = success.get("attempted_at", "none")
         report = row.get("report_artifact") or "unavailable"
         report_link = f"[{report}]({row['report_href']})" if row.get("report_href") else report
+        provider = row.get("provider_profile")
+        lane = row.get("showcase_lane") or showcase_lane(provider)[0]
+        rank = showcase_capacity_rank(row)
+        capacity = f"#{rank}" if rank else "control"
         lines.append(
-            f"| {row['id']} | {row['status']} | {row.get('reason') or '-'} | "
+            f"| {row['id']} | {lane} | {capacity} | "
+            f"{provider or 'deterministic'} | {row['status']} | "
+            f"{row.get('reason') or '-'} | "
             f"{report_link} | {last} |"
         )
     lines.extend(("", f"[Actions run]({summary['run_url']})", ""))
@@ -521,7 +550,7 @@ def render_html(summary: dict[str, Any]) -> str:
     </section>
     <section class="panel">
       <table>
-        <thead><tr><th>Capability</th><th>Provider</th><th>Status</th><th>Reason</th>
+        <thead><tr><th>Capability</th><th>Lane</th><th>Capacity</th><th>Provider</th><th>Status</th><th>Reason</th>
           <th>Evidence</th><th>Last success</th></tr></thead>
         <tbody>{table_rows}</tbody>
       </table>
@@ -537,7 +566,11 @@ def render_html(summary: dict[str, Any]) -> str:
 def _render_html_row(summary: dict[str, Any], row: dict[str, Any]) -> str:
     status = str(row["status"])
     capability = html.escape(str(row["id"]))
-    provider = html.escape(str(row.get("provider_profile") or "deterministic"))
+    provider_value = row.get("provider_profile")
+    lane = html.escape(str(row.get("showcase_lane") or showcase_lane(provider_value)[0]))
+    rank = showcase_capacity_rank(row)
+    capacity = html.escape(f"#{rank}" if rank else "control")
+    provider = html.escape(str(provider_value or "deterministic"))
     reason = html.escape(str(row.get("reason") or "-"))
     report = row.get("report_artifact")
     evidence = "Unavailable"
@@ -548,6 +581,8 @@ def _render_html_row(summary: dict[str, Any], row: dict[str, Any]) -> str:
     status_label = html.escape(status.replace("_", " ").title())
     return (
         f'<tr><td data-label="Capability"><code>{capability}</code></td>'
+        f'<td data-label="Lane"><code>{lane}</code></td>'
+        f'<td data-label="Capacity"><code>{capacity}</code></td>'
         f'<td data-label="Provider"><code>{provider}</code></td>'
         f'<td data-label="Status"><span class="status {status}">{status_label}</span></td>'
         f'<td data-label="Reason">{reason}</td><td data-label="Evidence">{evidence}</td>'
