@@ -157,6 +157,26 @@ jobs:
               if source.is_dir():
                   publish_report_bundle(source, destination)
           PY
+      - name: Verify published report drilldowns
+        if: always()
+        run: |
+          .venv/bin/python - <<'PY'
+          import json
+          from pathlib import Path
+
+          site = Path("output/showcase/site")
+          summary = json.loads((site / "showcase-summary-v1.json").read_text(encoding="utf-8"))
+          missing = []
+          for row in summary["rows"]:
+              href = row.get("report_href")
+              if not href:
+                  continue
+              report = site / href
+              if not report.is_file():
+                  missing.append(f"{row['id']} -> {href}")
+          if missing:
+              raise SystemExit("published report links are missing: " + ", ".join(missing))
+          PY
       - name: Upload canonical evidence
         if: always()
         uses: actions/upload-artifact@v4
