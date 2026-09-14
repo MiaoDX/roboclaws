@@ -514,8 +514,8 @@ def test_execute_marks_live_row_blocked_when_provider_is_missing(
     tmp_path: Path,
     monkeypatch: MonkeyPatch,
 ) -> None:
-    monkeypatch.delenv("KIMI_OPENAI_BASE_URL", raising=False)
-    monkeypatch.delenv("KIMI_API_KEY", raising=False)
+    monkeypatch.delenv("MM_BASE_URL", raising=False)
+    monkeypatch.delenv("MM_API_KEY", raising=False)
     manifest = selector.build_eval_harness(
         mode="execute",
         budget="focused",

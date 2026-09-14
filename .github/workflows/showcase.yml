@@ -26,11 +26,11 @@ jobs:
       matrix:
         include:
           - provider: kimi
-            row_args: --row-id household_world.map_build_quality --row-id household_world.cleanup_capability.kimi --row-id household_world.open_ended_goals.kimi
+            row_args: --row-id household_world.cleanup_capability.kimi --row-id household_world.open_ended_goals.kimi
           - provider: mimo
             row_args: --row-id household_world.cleanup_capability.mimo --row-id household_world.open_ended_goals.mimo
           - provider: minimax
-            row_args: --row-id household_world.cleanup_capability.minimax --row-id household_world.open_ended_goals.minimax
+            row_args: --row-id household_world.map_build_quality --row-id household_world.cleanup_capability.minimax --row-id household_world.open_ended_goals.minimax
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:

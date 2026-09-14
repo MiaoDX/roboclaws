@@ -98,6 +98,13 @@ def test_manifest_matches_canonical_suite_fixtures():
     validate_manifest(json.loads((root / "config/showcase-manifest.json").read_text()))
 
 
+def test_public_map_build_showcase_uses_default_minimax_route():
+    root = Path(__file__).resolve().parents[3]
+    manifest = json.loads((root / "config/showcase-manifest.json").read_text())
+    row = next(row for row in manifest["rows"] if row["id"] == "household_world.map_build_quality")
+    assert row["provider_profile"] == "minimax-responses"
+
+
 def test_manifest_rejects_evidence_identity_that_disagrees_with_selected_sample():
     root = Path(__file__).resolve().parents[3]
     m = json.loads((root / "config/showcase-manifest.json").read_text())
