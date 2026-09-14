@@ -249,4 +249,7 @@ def test_showcase_html_renders_dashboard_instead_of_escaped_markdown():
     assert "public-compatibility" in rendered
     assert "#3" in rendered
     assert 'href="reports/mimo/evals/cleanup/run/eval_report.html"' in rendered
+    assert rendered.count(">HTML report</a>") == 1
+    assert rendered.count('href="https://example.test/run"') == 3
+    assert rendered.count(">Actions</a>") == 2
     assert rendered.count('href="https://example.test/artifacts"') == 1

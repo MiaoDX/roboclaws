@@ -416,16 +416,19 @@ def render_markdown(summary: dict[str, Any]) -> str:
         "",
         f"Latest attempt: `{summary['attempted_at']}` at `{summary['commit']}`",
         "",
-        "| Capability | Lane | Capacity | Provider | Status | Reason | Report | "
-        "Last successful evidence |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- |",
+        "| Capability | Lane | Capacity | Provider | Status | Reason | HTML report | "
+        "Actions | Last successful evidence |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     successes = summary.get("last_success", {})
     for row in summary["rows"]:
         success = successes.get(row["id"], {})
         last = success.get("attempted_at", "none")
-        report = row.get("report_artifact") or "unavailable"
-        report_link = f"[{report}]({row['report_href']})" if row.get("report_href") else report
+        report = row.get("report_artifact") or "Unavailable"
+        report_link = f"[HTML report]({row['report_href']})" if row.get("report_href") else report
+        actions_link = (
+            f"[Actions]({summary['run_url']})" if summary.get("run_url") else "Unavailable"
+        )
         provider = row.get("provider_profile")
         lane = row.get("showcase_lane") or showcase_lane(provider)[0]
         rank = showcase_capacity_rank(row)
@@ -434,7 +437,7 @@ def render_markdown(summary: dict[str, Any]) -> str:
             f"| {row['id']} | {lane} | {capacity} | "
             f"{provider or 'deterministic'} | {row['status']} | "
             f"{row.get('reason') or '-'} | "
-            f"{report_link} | {last} |"
+            f"{report_link} | {actions_link} | {last} |"
         )
     lines.extend(("", f"[Actions run]({summary['run_url']})", ""))
     if summary.get("artifact_url"):
@@ -551,7 +554,7 @@ def render_html(summary: dict[str, Any]) -> str:
     <section class="panel">
       <table>
         <thead><tr><th>Capability</th><th>Lane</th><th>Capacity</th><th>Provider</th><th>Status</th><th>Reason</th>
-          <th>Evidence</th><th>Last success</th></tr></thead>
+          <th>HTML report</th><th>Actions</th><th>Last success</th></tr></thead>
         <tbody>{table_rows}</tbody>
       </table>
     </section>
@@ -573,10 +576,15 @@ def _render_html_row(summary: dict[str, Any], row: dict[str, Any]) -> str:
     provider = html.escape(str(provider_value or "deterministic"))
     reason = html.escape(str(row.get("reason") or "-"))
     report = row.get("report_artifact")
-    evidence = "Unavailable"
+    report_link = "Unavailable"
     if report and row.get("report_href"):
         safe_url = html.escape(str(row["report_href"]), quote=True)
-        evidence = f'<a href="{safe_url}">{html.escape(str(report))}</a>'
+        report_link = f'<a href="{safe_url}">HTML report</a>'
+    run_url = summary.get("run_url")
+    actions_link = "Unavailable"
+    if run_url:
+        safe_run_url = html.escape(str(run_url), quote=True)
+        actions_link = f'<a href="{safe_run_url}">Actions</a>'
     last_success = summary.get("last_success", {}).get(row["id"], {}).get("attempted_at", "None")
     status_label = html.escape(status.replace("_", " ").title())
     return (
@@ -585,7 +593,8 @@ def _render_html_row(summary: dict[str, Any], row: dict[str, Any]) -> str:
         f'<td data-label="Capacity"><code>{capacity}</code></td>'
         f'<td data-label="Provider"><code>{provider}</code></td>'
         f'<td data-label="Status"><span class="status {status}">{status_label}</span></td>'
-        f'<td data-label="Reason">{reason}</td><td data-label="Evidence">{evidence}</td>'
+        f'<td data-label="Reason">{reason}</td><td data-label="HTML report">{report_link}</td>'
+        f'<td data-label="Actions">{actions_link}</td>'
         f'<td data-label="Last success">{html.escape(str(last_success))}</td></tr>'
     )
 
