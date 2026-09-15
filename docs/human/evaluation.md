@@ -281,17 +281,23 @@ fixed-prior provider matrix is not part of that default. Run
 provider must consume one identical immutable prior.
 
 After maintainer approval, promote an accepted selector report to the
-content-addressed catalog:
+content-addressed catalog. Keep selector output under `output/` while it is
+being reviewed; publish only the small approved catalog and prior snapshot to
+the Git LFS-backed `assets/eval-priors/` namespace:
 
 ```bash
 just agent::eval runtime-prior-promote report=<selection-report.json> \
   manifest=<promotion-manifest.json> \
-  output_dir=output/evals/canonical-runtime-map-priors
+  output_dir=assets/eval-priors
 ```
 
 The promotion manifest records approval, scene/source-map, backend, builder
 provider/model, prompt or skill version, evidence lane, camera labeler, seed,
 and map schema identity. Any identity change produces a different digest.
+The generated catalog paths must be repository-relative before they are
+committed; do not commit absolute paths from a local staging checkout. See
+[`assets/eval-priors/README.md`](../../assets/eval-priors/README.md) for the
+update cadence, LFS checkout behavior, and artifact retention boundary.
 
 Completed provider artifacts can be regraded without another live call:
 
