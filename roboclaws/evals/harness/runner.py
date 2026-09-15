@@ -231,7 +231,9 @@ def _requirement_blocker(
                 "runtime_map_prior=<path>"
             )
         return _environment_blocker(
-            "map-build prior artifact is required before cleanup consumer row"
+            "required canonical runtime map prior is unavailable; publish "
+            "assets/eval-priors/runtime_map_prior_catalog.json or pass "
+            "runtime_map_prior=<path>"
         )
     return None
 

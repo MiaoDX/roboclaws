@@ -11,6 +11,11 @@ candidate sets in `output/` or the relevant Actions artifact instead. Large
 historical candidate collections belong in the project artifact/object store,
 not in Git LFS.
 
+The first catalog entry may be a maintainer-approved bootstrap from a passing
+MapBuild quality run. Bootstrap provenance must state that downstream
+prior-vs-no-prior comparison is pending; later baseline refreshes should add
+that comparison before selecting a replacement.
+
 ## Layout
 
 Promoted artifacts use the digest directory produced by

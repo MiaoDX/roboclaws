@@ -410,6 +410,7 @@ def test_fixed_prior_provider_does_not_use_current_map_build_row(
         profile="baseline-live-default",
         output_dir=tmp_path / "harness",
     )
+    manifest["runtime_map_prior"] = ""
     rows = {row["row_id"]: row for row in manifest["rows"]}
     map_row = rows["direct-map-build-world-public"]
     prior = Path(map_row["row_dir"]) / "run" / "seed-7" / "runtime_metric_map.json"

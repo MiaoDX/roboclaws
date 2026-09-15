@@ -128,6 +128,7 @@ def test_baseline_refresh_keeps_fixed_prior_matrix_visible_without_prior(
     without_prior = selector.build_eval_harness(
         budget="smoke",
         profile="baseline-refresh",
+        runtime_map_prior="",
         output_dir=tmp_path / "without-prior",
     )
     prior = tmp_path / "canonical-prior.json"
@@ -141,7 +142,7 @@ def test_baseline_refresh_keeps_fixed_prior_matrix_visible_without_prior(
 
     without_rows = _selected_rows(without_prior)
     assert set(without_rows) & FIXED_PRIOR_PROVIDER_ROW_IDS == FIXED_PRIOR_PROVIDER_ROW_IDS
-    assert without_prior["runtime_map_prior"] == ""
+    assert without_prior["runtime_map_prior"].endswith("runtime_map_prior_snapshot.json")
     assert all(
         without_rows[row_id]["prior_policy"] == "required"
         for row_id in FIXED_PRIOR_PROVIDER_ROW_IDS
