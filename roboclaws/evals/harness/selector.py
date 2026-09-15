@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.evals.harness import rows as eval_harness_rows
+from roboclaws.evals.harness.prior import resolve_baseline_prior
 from roboclaws.evals.suite_loading import REPO_ROOT
 
 HARNESS_SCHEMA = "roboclaws_eval_harness_manifest_v1"
@@ -245,11 +246,14 @@ def build_eval_harness(
         signals = _merge_signals([*signals, _profile_signal(profile)])
     output_dir = output_dir or _default_output_dir()
     scene_refs = eval_harness_rows.parse_scene_refs(list(scenes))
+    resolved_runtime_map_prior = (
+        resolve_baseline_prior(runtime_map_prior) if profile != "adaptive" else runtime_map_prior
+    )
     rows = eval_harness_rows.candidate_rows(
         output_dir=output_dir,
         explicit_axes=explicit_axes,
         scenes=list(scenes),
-        runtime_map_prior=runtime_map_prior,
+        runtime_map_prior=resolved_runtime_map_prior,
     )
     _apply_selection_rules(
         rows,
@@ -257,7 +261,7 @@ def build_eval_harness(
         budget=budget,
         profile=profile,
         explicit_axes=explicit_axes,
-        runtime_map_prior=runtime_map_prior,
+        runtime_map_prior=resolved_runtime_map_prior,
     )
     selected = [row for row in rows if row["selected"]]
     return {
@@ -271,7 +275,8 @@ def build_eval_harness(
         "changed_files": all_changed_files,
         "explicit_axes": explicit_axes,
         "scenes": scene_refs,
-        "runtime_map_prior": runtime_map_prior,
+        "runtime_map_prior": resolved_runtime_map_prior,
+        "prior_policy": "required" if profile != "adaptive" else "unspecified",
         "signals": signals,
         "summary": {
             "row_count": len(rows),
@@ -400,11 +405,6 @@ def _apply_selection_rules(
     signal_by_id = {signal["id"]: signal for signal in signals}
     for row in rows:
         if profile != "adaptive":
-            if (
-                row.get("axes", {}).get("suite") == "map_consumer_fixed_prior"
-                and not runtime_map_prior
-            ):
-                continue
             if not _profile_row_allowed(row, profile):
                 continue
             profile_signal_id = f"{profile.replace('-', '_')}_profile"

@@ -166,9 +166,13 @@ changed canonical content creates a new content-addressed object or fails on a
 closed-content mismatch.
 
 `baseline-core` is the normal broad local refresh without live providers.
-`baseline-live-default` adds the normal MiniMax live rows. `baseline-refresh` adds
-the explicit five-cell fixed-prior comparison. `baseline-ci` is the deterministic
-PR subset and never executes providers or provider egress. Rows whose live preflight is not ready
+`baseline-live-default` adds the normal MiniMax live rows, with prior required
+for its open-task and cleanup consumers. `baseline-refresh` includes the
+five-cell fixed-prior comparison. Prior-consuming baseline rows
+resolve the canonical prior from `assets/eval-priors/` by default, or accept an
+explicit prior for a controlled refresh; missing priors stay selected and are
+reported as blocked. `baseline-ci` is the deterministic PR subset and never
+executes providers or provider egress. Rows whose live preflight is not ready
 record blocked evidence instead of being silently skipped.
 
 The built-in `just agent::eval execute` worker runs locally. The harness itself
@@ -268,7 +272,8 @@ just agent::eval session-live budget=smoke \
 ## Map Evaluation
 
 `map_build_quality` compares builders and produces candidate artifacts.
-`map_consumer_no_prior` runs controls from the Base Metric Map.
+`map_consumer_no_prior` runs controls from the Base Metric Map and is kept out
+of baseline consumer results.
 `map_consumer_fixed_prior` consumes one explicit read-only canonical prior.
 The legacy `map_build_consumer` suite is an explicit same-provider end-to-end
 research profile, not the normal comparison baseline.

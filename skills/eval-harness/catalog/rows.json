@@ -539,6 +539,8 @@
         "-m",
         "roboclaws.evals.cli",
         "suite=open_ended_goals",
+        "runtime_map_prior={runtime_map_prior}",
+        "runtime_map_prior={runtime_map_prior}",
         "budget=smoke",
         "output_dir={eval_output_root}",
         "stamp=open-ended-goals-eval-suite",
@@ -666,6 +668,7 @@
         "-m",
         "roboclaws.evals.cli",
         "suite=open_ended_goals",
+        "runtime_map_prior={runtime_map_prior}",
         "budget=smoke",
         "output_dir={eval_output_root}",
         "stamp=openai-agents-sdk-open-task-live-eval",
@@ -691,7 +694,8 @@
       "requires": [
         "python_env",
         "openai_agents_package",
-        "provider_profile"
+        "provider_profile",
+        "runtime_map_prior"
       ],
       "profiles": [
         "baseline-live-default",
@@ -749,6 +753,7 @@
         "-m",
         "roboclaws.evals.cli",
         "suite=cleanup_capability",
+        "runtime_map_prior={runtime_map_prior}",
         "budget=smoke",
         "output_dir={eval_output_root}",
         "stamp=openai-agents-sdk-cleanup-live-eval",
@@ -775,7 +780,8 @@
       "requires": [
         "python_env",
         "openai_agents_package",
-        "provider_profile"
+        "provider_profile",
+        "runtime_map_prior"
       ],
       "profiles": [
         "baseline-live-default",
