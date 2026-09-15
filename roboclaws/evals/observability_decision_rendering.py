@@ -12,6 +12,7 @@ def render_harness_row_markdown(row: dict[str, Any]) -> list[str]:
         "",
         f"- Kind: `{row['row_kind']}`",
         f"- Status: `{row['status']}`",
+        f"- Prior policy: `{row.get('prior_policy', 'unspecified')}`",
     ]
     for key, label in (
         ("outcome", "Outcome"),

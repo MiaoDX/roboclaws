@@ -378,6 +378,25 @@ def test_runtime_prior_blocker_uses_current_map_build_row(
     assert blockers == []
 
 
+def test_direct_prior_consumer_prefers_canonical_manifest_prior(
+    tmp_path: Path,
+) -> None:
+    canonical = tmp_path / "canonical-prior.json"
+    canonical.write_text('{"schema":"runtime_map_prior_snapshot_v1"}\n', encoding="utf-8")
+    manifest = selector.build_eval_harness(
+        budget="focused",
+        profile="baseline-refresh",
+        runtime_map_prior=str(canonical),
+        output_dir=tmp_path / "harness",
+    )
+    rows = _selected_rows(manifest)
+
+    command = runner._resolve_row_command(rows["direct-cleanup-runtime-prior-consumer"], manifest)
+
+    assert f"runtime_map_prior={canonical}" in command
+    assert not any("${direct-map-build-world-public:" in item for item in command)
+
+
 def test_fixed_prior_provider_does_not_use_current_map_build_row(
     tmp_path: Path,
     monkeypatch: MonkeyPatch,
@@ -391,6 +410,7 @@ def test_fixed_prior_provider_does_not_use_current_map_build_row(
         profile="baseline-live-default",
         output_dir=tmp_path / "harness",
     )
+    manifest["runtime_map_prior"] = ""
     rows = {row["row_id"]: row for row in manifest["rows"]}
     map_row = rows["direct-map-build-world-public"]
     prior = Path(map_row["row_dir"]) / "run" / "seed-7" / "runtime_metric_map.json"
@@ -403,10 +423,10 @@ def test_fixed_prior_provider_does_not_use_current_map_build_row(
     fixed_prior_row["selected"] = True
     blockers = runner._row_blockers(fixed_prior_row, manifest)
 
-    assert {
-        "category": "environment_blocked",
-        "detail": "fixed-prior consumer row requires explicit runtime_map_prior=<path>",
-    } in blockers
+    assert any(
+        blocker["detail"].startswith("baseline fixed-prior consumer requires a valid canonical")
+        for blocker in blockers
+    )
 
 
 def test_smoke_budget_records_relevant_expensive_rows_as_user_budget_skipped(

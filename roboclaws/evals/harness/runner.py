@@ -226,10 +226,14 @@ def _requirement_blocker(
     if requirement == "runtime_map_prior" and not _runtime_prior_available(row, manifest):
         if row.get("axes", {}).get("suite") == "map_consumer_fixed_prior":
             return _environment_blocker(
-                "fixed-prior consumer row requires explicit runtime_map_prior=<path>"
+                "baseline fixed-prior consumer requires a valid canonical runtime_map_prior; "
+                "publish assets/eval-priors/runtime_map_prior_catalog.json or pass "
+                "runtime_map_prior=<path>"
             )
         return _environment_blocker(
-            "map-build prior artifact is required before cleanup consumer row"
+            "required canonical runtime map prior is unavailable; publish "
+            "assets/eval-priors/runtime_map_prior_catalog.json or pass "
+            "runtime_map_prior=<path>"
         )
     return None
 
@@ -320,6 +324,8 @@ def _command_uses_surface_run(row: dict[str, Any], command: list[str]) -> bool:
 
 
 def _resolve_row_argument(argument: str, manifest: dict[str, Any]) -> str:
+    if argument.startswith("runtime_map_prior=${") and manifest.get("runtime_map_prior"):
+        return f"runtime_map_prior={manifest['runtime_map_prior']}"
     return re.sub(
         r"\$\{([^}:]+):([^}]+)\}",
         lambda match: str(_row_artifact_path(manifest, match.group(1), match.group(2))),
@@ -582,6 +588,11 @@ def _runtime_prior_available(row: dict[str, Any], manifest: dict[str, Any]) -> b
     if str(explicit) != "." and explicit.is_file():
         return True
     if row.get("axes", {}).get("suite") == "map_consumer_fixed_prior":
+        return False
+    if row.get("prior_policy") == "required" and row.get("row_id") not in {
+        RUNTIME_MAP_PRIOR_SOURCE_ROW_ID,
+        "direct-cleanup-runtime-prior-consumer",
+    }:
         return False
     for row in manifest.get("rows") or []:
         if row.get("row_id") != RUNTIME_MAP_PRIOR_SOURCE_ROW_ID:

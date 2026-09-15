@@ -57,3 +57,22 @@ The hosted capability showcase uploads any adjacent `opik_projection.json`
 receipt with its canonical suite bundle, but never sends it to Opik. A trusted
 maintainer may later project a retained result with `just agent::eval
 opik-project suite=<suite> eval_results=<path>` from a loopback-capable host.
+
+## Runtime Map Prior Storage
+
+Maintainer-approved Runtime Map Prior Snapshot files live under
+[`assets/eval-priors/`](../../assets/eval-priors/). JSON files in that directory
+are managed by Git LFS; Git stores small pointers and the LFS store retains the
+content for each promoted digest. Eval outputs, traces, images, and candidate
+collections remain under `output/` or remote Actions/object-storage artifacts
+and are not added to LFS.
+
+Promote a reviewed selector result explicitly with
+`runtime-prior-promote ... output_dir=assets/eval-priors`. Promotion creates a
+new content-addressed directory; existing priors are immutable. Updates are
+normally checked monthly and only published after a material source-map,
+schema, runtime-contract, evidence-lane, camera-labeler, or quality change.
+Provider churn and weekly Showcase runs do not rewrite priors. CI consumers
+must check out LFS content (`actions/checkout@v4` with `lfs: true`) or run a
+path-scoped `git lfs pull --include="assets/eval-priors/**"`; do not use
+`git lfs fetch --all` in routine jobs.
