@@ -143,6 +143,7 @@ def _row(
         "command": command,
         "command_display": shlex.join(command),
         "axes": axes,
+        "prior_policy": _prior_policy(raw=raw, axes=axes),
         "skill_delivery_cell": delivery_cell,
         "skill_delivery_identity": _skill_delivery_identity(delivery_cell, axes=axes),
         "base_row_id": row_id,
@@ -173,6 +174,21 @@ def _row(
         "output_artifacts": [],
         "row_dir": str(row_dir / row_id),
     }
+
+
+def _prior_policy(*, raw: dict[str, Any], axes: dict[str, str]) -> str:
+    """Classify whether a harness row requires, forbids, or ignores a prior."""
+
+    declared = str(raw.get("prior_policy") or "").strip()
+    if declared in {"required", "forbidden", "not_applicable"}:
+        return declared
+    if axes.get("suite") == "map_consumer_no_prior":
+        return "forbidden"
+    if axes.get("suite") == "map_consumer_fixed_prior" or "runtime_map_prior" in raw.get(
+        "requires", []
+    ):
+        return "required"
+    return "not_applicable"
 
 
 def _skill_delivery_identity(cell: str, *, axes: dict[str, str]) -> dict[str, Any]:

@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from roboclaws.evals.harness import selector
+from roboclaws.evals.harness.prior import resolve_baseline_prior
 
 LIVE_AGENT_ROW_IDS = {
     "map-build-consumer-openai-agents-sdk-codex-responses",
@@ -32,6 +33,30 @@ EXPERIMENTAL_SKILL_DELIVERY_ROW_IDS = {
     "openai-agents-sdk-cleanup-dynamic-routed-eval",
     "openai-agents-sdk-cleanup-sandbox-skills-eval",
 }
+
+
+def test_baseline_prior_resolves_relative_catalog_entry(tmp_path: Path) -> None:
+    prior = tmp_path / "by-sha256" / "digest" / "runtime_map_prior_snapshot.json"
+    prior.parent.mkdir(parents=True)
+    prior.write_text('{"schema":"runtime_map_prior_snapshot_v1"}\n', encoding="utf-8")
+    catalog = tmp_path / "runtime_map_prior_catalog.json"
+    catalog.write_text(
+        "{\n"
+        '  "schema": "runtime_map_prior_catalog_v1",\n'
+        '  "entries": [{\n'
+        '    "id": "world::mujoco",\n'
+        '    "world_id": "molmospaces/procthor-10k-val/0",\n'
+        '    "backend_id": "mujoco",\n'
+        '    "path": "by-sha256/digest/runtime_map_prior_snapshot.json",\n'
+        '    "status": "accepted",\n'
+        '    "source": "runtime_prior_selector",\n'
+        '    "staleness": "compatible"\n'
+        "  }]\n"
+        "}\n",
+        encoding="utf-8",
+    )
+
+    assert resolve_baseline_prior(catalog_path=catalog) == str(prior.resolve())
 
 
 def _selected_rows(manifest: dict) -> dict[str, dict]:
@@ -97,12 +122,13 @@ def test_baseline_ci_is_deterministic_subset_without_provider_rows(tmp_path: Pat
     assert all(not row["axes"].get("provider_profile") for row in ci_rows.values())
 
 
-def test_baseline_refresh_selects_fixed_prior_matrix_only_with_explicit_prior(
+def test_baseline_refresh_keeps_fixed_prior_matrix_visible_without_prior(
     tmp_path: Path,
 ) -> None:
     without_prior = selector.build_eval_harness(
         budget="smoke",
         profile="baseline-refresh",
+        runtime_map_prior="",
         output_dir=tmp_path / "without-prior",
     )
     prior = tmp_path / "canonical-prior.json"
@@ -114,7 +140,13 @@ def test_baseline_refresh_selects_fixed_prior_matrix_only_with_explicit_prior(
         output_dir=tmp_path / "with-prior",
     )
 
-    assert not (set(_selected_rows(without_prior)) & FIXED_PRIOR_PROVIDER_ROW_IDS)
+    without_rows = _selected_rows(without_prior)
+    assert set(without_rows) & FIXED_PRIOR_PROVIDER_ROW_IDS == FIXED_PRIOR_PROVIDER_ROW_IDS
+    assert without_prior["runtime_map_prior"].endswith("runtime_map_prior_snapshot.json")
+    assert all(
+        without_rows[row_id]["prior_policy"] == "required"
+        for row_id in FIXED_PRIOR_PROVIDER_ROW_IDS
+    )
     assert set(_selected_rows(with_prior)) & FIXED_PRIOR_PROVIDER_ROW_IDS == (
         FIXED_PRIOR_PROVIDER_ROW_IDS
     )

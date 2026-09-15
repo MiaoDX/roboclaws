@@ -75,18 +75,28 @@ just agent::eval promote-regression \
   live-provider rows and is the normal broad local refresh.
 - `profile=baseline-live-default`: select `baseline-core` plus the current
   MiniMax live-agent capability rows and the direct same-run map-build-to-consumer
-  proof. It excludes the fixed-prior provider matrix.
+  proof. Its open-task and cleanup consumers require the canonical prior; it
+  excludes the alternate-provider fixed-prior matrix.
 - `profile=baseline-refresh`: select the catalog baseline set directly:
   deterministic gates, all current eval suites including long-horizon tasks,
   direct product rows, DINO rows, all default live rows, and the explicit
-  alternate-provider matrix when `runtime_map_prior=<path>` is supplied. This
-  is the release/nightly full refresh.
+  alternate-provider matrix. Prior-consuming rows resolve the canonical prior
+  from `assets/eval-priors/runtime_map_prior_catalog.json` by default; an
+  explicit `runtime_map_prior=<path>` is allowed for a controlled refresh. A
+  missing prior remains selected and records an explicit blocker instead of
+  silently removing the row. This is the release/nightly full refresh.
 - `profile=baseline-ci`: select only deterministic rows inherited from
   `baseline-core`; provider-backed rows and internal/external provider egress
   are rejected at selection time. Ordinary dependency downloads remain valid
   workflow network access.
 - All named baseline profiles run selected rows or record explicit blocked
   evidence; their rows are not converted to `skipped_by_budget`.
+
+Baseline prior policy is explicit per row. Prior consumers use
+`prior_policy=required` and must consume a valid canonical or explicitly bound
+prior. Map-build producers and unrelated contract rows use
+`prior_policy=not_applicable`. No-prior controls are separate suites and are
+never a baseline consumer result.
 - Live trials do not retry by default. Set `live_retry_limit=<N>` only when the
   evaluation contract explicitly calls for audited fresh-directory retries.
 - `execute budget=smoke`: deterministic confidence only; selected expensive or

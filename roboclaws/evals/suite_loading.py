@@ -66,10 +66,8 @@ def validate_suite_runtime_map_prior(suite: EvalSuite, runtime_map_prior: Path |
     mode = str((suite.metadata or {}).get("execution_mode") or "")
     if mode == "task_matrix_on_fixed_map" and runtime_map_prior is None:
         raise ValueError(f"eval suite {suite.suite_id!r} requires runtime_map_prior=<path>")
-    if mode != "task_matrix_on_fixed_map" and runtime_map_prior is not None:
-        raise ValueError(
-            "runtime_map_prior suite override is only valid for task_matrix_on_fixed_map suites"
-        )
+    if mode == "no_prior_control" and runtime_map_prior is not None:
+        raise ValueError(f"eval suite {suite.suite_id!r} forbids runtime_map_prior=<path>")
 
 
 def load_suite(suite_ref: str) -> tuple[EvalSuite, list[EvalSample]]:

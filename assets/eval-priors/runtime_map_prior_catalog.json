@@ -1,0 +1,62 @@
+{
+  "entries": [
+    {
+      "artifact_sha256": "65cfc3b8a603bfd9135657dc598fe39de6346eda3f276d0f7f680683073ac188",
+      "backend_id": "mujoco",
+      "canonical_digest": "2cc758d39064a62f981e15dc8fa8ae09487e430a2548b52cd1ebc1fcd7f9f958",
+      "canonical_provenance": "by-sha256/2cc758d39064a62f981e15dc8fa8ae09487e430a2548b52cd1ebc1fcd7f9f958/provenance.json",
+      "catalog_key": {
+        "backend": "mujoco",
+        "scene_identity": "molmospaces/procthor-10k-val/0",
+        "source_map_identity": "base-metric-map-v1:molmospaces-procthor-10k-val-0:3e6b08c39b7f71fb60f2af4ea92d46c156df27ccab870436442d169c728c0ce5",
+        "world": "molmospaces/procthor-10k-val/0"
+      },
+      "current_contract": {
+        "backend": "mujoco",
+        "grader_version": "map-build-grader-v1",
+        "public_map_contract_version": "2026-07-23",
+        "runtime_map_prior_schema": "runtime_map_prior_snapshot_v1",
+        "source_map_identity": "base-metric-map-v1:molmospaces-procthor-10k-val-0:3e6b08c39b7f71fb60f2af4ea92d46c156df27ccab870436442d169c728c0ce5",
+        "world": "molmospaces/procthor-10k-val/0"
+      },
+      "evidence": [
+        "bootstrap_quality_gates_passed",
+        "private_boundary_verified",
+        "source_map_not_mutated",
+        "downstream_comparison_pending_baseline_refresh",
+        "compatibility:compatible"
+      ],
+      "id": "molmospaces/procthor-10k-val/0::mujoco",
+      "path": "by-sha256/2cc758d39064a62f981e15dc8fa8ae09487e430a2548b52cd1ebc1fcd7f9f958/runtime_map_prior_snapshot.json",
+      "producer": {
+        "builder_model": "not_applicable",
+        "builder_provider": "direct-runner",
+        "camera_labeler": "not_applicable",
+        "evidence_lane": "world-public-labels",
+        "prompt_or_skill_version": "household-world@2026-07-23",
+        "seed": 7,
+        "type": "deterministic_bootstrap"
+      },
+      "product_route": {
+        "agent_engine": "direct-runner",
+        "model": "not_applicable",
+        "provider_profile": "not_applicable"
+      },
+      "run_id": "20260915T032629Z",
+      "selected_candidate_id": "direct-map-build-world-public",
+      "source": "bootstrap_quality_gates",
+      "source_map_contract": {
+        "backend": "mujoco",
+        "grader_version": "map-build-grader-v1",
+        "public_map_contract_version": "2026-07-23",
+        "runtime_map_prior_schema": "runtime_map_prior_snapshot_v1",
+        "source_map_identity": "base-metric-map-v1:molmospaces-procthor-10k-val-0:3e6b08c39b7f71fb60f2af4ea92d46c156df27ccab870436442d169c728c0ce5",
+        "world": "molmospaces/procthor-10k-val/0"
+      },
+      "staleness": "compatible",
+      "status": "accepted",
+      "world_id": "molmospaces/procthor-10k-val/0"
+    }
+  ],
+  "schema": "runtime_map_prior_catalog_v1"
+}

@@ -1,0 +1,33 @@
+{
+  "artifact_sha256": "65cfc3b8a603bfd9135657dc598fe39de6346eda3f276d0f7f680683073ac188",
+  "bootstrap": true,
+  "canonical_digest": "2cc758d39064a62f981e15dc8fa8ae09487e430a2548b52cd1ebc1fcd7f9f958",
+  "downstream_comparison": "pending_baseline_refresh",
+  "identity": {
+    "backend": "mujoco",
+    "builder_model": "not_applicable",
+    "builder_provider": "direct-runner",
+    "camera_labeler": "not_applicable",
+    "evidence_lane": "world-public-labels",
+    "map_schema_version": "runtime_map_prior_snapshot_v1",
+    "prompt_or_skill_version": "household-world@2026-07-23",
+    "scene_identity": "molmospaces/procthor-10k-val/0",
+    "seed": 7,
+    "source_map_identity": "base-metric-map-v1:molmospaces-procthor-10k-val-0:3e6b08c39b7f71fb60f2af4ea92d46c156df27ccab870436442d169c728c0ce5",
+    "world": "molmospaces/procthor-10k-val/0"
+  },
+  "quality_evidence": {
+    "private_truth_absent": true,
+    "public_semantic_anchor_count": 24,
+    "rgb_only_object_pose_claim_count": 0,
+    "sim_truth_best_view_waypoint_accuracy": 1.0,
+    "sim_truth_fixture_category_precision": 1.0,
+    "sim_truth_fixture_category_recall": 1.0,
+    "source_eval_results": "output/eval-harness/20260915T032629Z/evals/household_world_map_build_quality/map-build-quality-eval-suite/eval_results.json",
+    "source_map_not_mutated": true,
+    "stable_semantic_anchor_category_count": 10
+  },
+  "schema": "canonical_runtime_map_prior_provenance_v1",
+  "selected_candidate_id": "direct-map-build-world-public",
+  "selection_report": "bootstrap:20260915T032629Z map_build_quality passed hard quality/privacy gates"
+}

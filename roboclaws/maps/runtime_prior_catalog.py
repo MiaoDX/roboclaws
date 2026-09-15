@@ -117,14 +117,18 @@ def load_runtime_prior_catalog(path: Path) -> tuple[RuntimeMapPriorCatalogEntry,
             else {}
         )
         prior_path = _required_string(entry, "path")
+        resolved_prior_path = Path(prior_path)
+        if not resolved_prior_path.is_absolute():
+            resolved_prior_path = path.parent / resolved_prior_path
+        resolved_prior_path = resolved_prior_path.resolve()
         staleness = _required_string(entry, "staleness")
-        if staleness != BLOCKING_STALE and not Path(prior_path).is_file():
+        if staleness != BLOCKING_STALE and not resolved_prior_path.is_file():
             staleness = BLOCKING_STALE
         loaded.append(
             RuntimeMapPriorCatalogEntry(
                 world_id=_required_string(entry, "world_id"),
                 backend_id=_required_string(entry, "backend_id"),
-                path=prior_path,
+                path=str(resolved_prior_path),
                 status=_required_string(entry, "status"),
                 source=_required_string(entry, "source"),
                 staleness=staleness,
