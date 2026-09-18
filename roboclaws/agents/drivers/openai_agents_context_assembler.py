@@ -49,6 +49,16 @@ def load_checkpoint(path: str | Path) -> Checkpoint:
     return Checkpoint.from_json(Path(path).read_text(encoding="utf-8"))
 
 
+def _serialized_state(critical: dict[str, Any]) -> str:
+    """Serialize snapshot state as model-message text.
+
+    Model inputs accept only supported roles carrying text content, so the
+    snapshot travels as compact JSON under the system role instead of as a raw
+    mapping under a ``state`` role the SDK and provider reject.
+    """
+    return json.dumps(critical, sort_keys=True, separators=(",", ":"), default=str)
+
+
 def assemble_context(
     checkpoint: Checkpoint,
     *,
@@ -75,7 +85,7 @@ def assemble_context(
     items: list[Any] = []
     if fixed_instructions is not None:
         items.append({"role": "system", "content": fixed_instructions})
-    items.append({"role": "state", "content": critical})
+    items.append({"role": "system", "content": _serialized_state(critical)})
     raw_count = len(recent_raw or [])
     raw_start = len(items)
     items.extend(recent_raw or [])
