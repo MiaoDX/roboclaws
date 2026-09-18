@@ -117,10 +117,10 @@ def test_openai_agents_runtime_configures_model_input_compaction_filter(
         for line in (tmp_path / "run" / "openai-agents-events.jsonl").read_text().splitlines()
     ]
     assert events[0]["model_input_compaction"]["enabled"] is True
-    assert (
-        events[0]["model_input_compaction"]["mode"]
-        == "public_tool_result_summary_v1+camera_grounded_history_v1"
-    )
+    assert events[0]["model_input_compaction"]["mode"] == [
+        "public_tool_result_summary_v1",
+        "camera_grounded_history_v1",
+    ]
     assert events[0]["model_input_compaction"]["camera_grounded_history"] == {
         "schema": "agent_sdk_camera_grounded_history_policy_v1",
         "enabled": True,
