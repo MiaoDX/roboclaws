@@ -148,7 +148,7 @@ def test_openai_agents_runtime_uses_explicit_codex_responses_profile(
     assert events[0]["agent_sdk_responses_features"]["available"] is True
     assert events[0]["agent_sdk_responses_features"]["server_managed_continuation_default"] is False
     assert events[0]["model_input_compaction"]["enabled"] is False
-    assert events[0]["model_input_compaction"]["mode"] == "off"
+    assert events[0]["model_input_compaction"]["mode"] == []
     assert events[0]["model_racing_observability"]["enabled"] is False
     assert events[0]["model_racing_observability"]["winner_selection"] == "single_arm_no_racing"
 

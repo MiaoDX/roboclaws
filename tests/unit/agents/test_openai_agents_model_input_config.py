@@ -400,3 +400,35 @@ def test_model_input_camera_history_still_tolerates_plaintext_mcp_output() -> No
     assert metrics["camera_grounded_history_item_count"] == 2
     assert metrics["camera_grounded_history_retained_count"] == 1
     assert metrics["camera_grounded_history_compacted_count"] == 1
+
+
+def test_input_compaction_mode_normalizes_to_strategy_identifiers(tmp_path: Path) -> None:
+    """A ``"+"``-joined mode must not reach the filter as one string.
+
+    The model-input filter tests whole strategy identifiers, so a string-shaped
+    mode consumed via ``list(...)`` matched individual characters and silently
+    disabled every reduction.
+    """
+    request = LiveAgentRequest(
+        run_id="household-world",
+        skill_name="household-world",
+        kickoff_prompt="inspect the room",
+        mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
+        run_dir=tmp_path / "run",
+        metadata={
+            "model_input_compaction": {
+                "enabled": True,
+                "mode": "public_tool_result_summary_v1+repeated_metric_map_delta_v1",
+            }
+        },
+    )
+
+    config = _input_compaction_config(request)
+
+    assert config["mode"] == [
+        "public_tool_result_summary_v1",
+        "repeated_metric_map_delta_v1",
+    ]
+    strategies = set(config["mode"])
+    assert "public_tool_result_summary_v1" in strategies
+    assert "repeated_metric_map_delta_v1" in strategies

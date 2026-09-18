@@ -17,6 +17,26 @@ DEFAULT_MODEL_INPUT_COMPACTION_MIN_CHARS = 1200
 MODEL_INPUT_COMPACTION_MIN_CHARS_ENV = "ROBOCLAWS_OPENAI_AGENTS_INPUT_COMPACTION_MIN_CHARS"
 
 
+def _compaction_strategies(value: Any, *, enabled: bool) -> list[str]:
+    """Normalize a configured compaction mode into ordered strategy identifiers.
+
+    The perf profile emits an explicit list, while older configurations use a
+    ``"+"``-joined string. Both must resolve to whole identifiers: the model-input
+    filter tests membership against strategy names, so a character-split value
+    silently disables every reduction.
+    """
+    if isinstance(value, str):
+        raw = value.split("+")
+    elif isinstance(value, (list, tuple)):
+        raw = [str(item) for item in value]
+    else:
+        raw = []
+    strategies = [item.strip() for item in raw if item.strip()]
+    if strategies:
+        return strategies
+    return ["public_tool_result_summary_v1"] if enabled else []
+
+
 def _input_compaction_config(request: LiveAgentRequest) -> dict[str, Any]:
     metadata = dict(request.metadata)
     profile = metadata.get("agent_sdk_perf_profile")
@@ -26,7 +46,7 @@ def _input_compaction_config(request: LiveAgentRequest) -> dict[str, Any]:
     if not isinstance(config, dict):
         config = {}
     enabled = _bool_setting(config.get("enabled"), "model_input_compaction.enabled", default=False)
-    mode = str(config.get("mode") or ("public_tool_result_summary_v1" if enabled else "off"))
+    mode = _compaction_strategies(config.get("mode"), enabled=enabled)
     min_chars = _positive_int_from_value_or_env(
         config.get("min_chars"),
         env_name=MODEL_INPUT_COMPACTION_MIN_CHARS_ENV,
