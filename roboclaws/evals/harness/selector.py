@@ -22,6 +22,11 @@ HARNESS_PROFILES = (
     "baseline-refresh",
     "baseline-ci",
 )
+# Profiles whose consumer rows must take the manifest-level canonical prior
+# instead of their own same-run artifact reference. The remaining baseline
+# profiles keep the same-run chain documented in docs/human/evaluation.md, so
+# the gate still exercises the map it just built.
+FIXED_PRIOR_PROFILES = frozenset({"baseline-refresh"})
 SIGNAL_RULES: tuple[dict[str, Any], ...] = (
     {
         "id": "eval_harness",

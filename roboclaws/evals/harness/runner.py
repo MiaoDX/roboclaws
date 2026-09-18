@@ -324,7 +324,11 @@ def _command_uses_surface_run(row: dict[str, Any], command: list[str]) -> bool:
 
 
 def _resolve_row_argument(argument: str, manifest: dict[str, Any]) -> str:
-    if argument.startswith("runtime_map_prior=${") and manifest.get("runtime_map_prior"):
+    if (
+        argument.startswith("runtime_map_prior=${")
+        and manifest.get("runtime_map_prior")
+        and manifest.get("profile") in selector.FIXED_PRIOR_PROFILES
+    ):
         return f"runtime_map_prior={manifest['runtime_map_prior']}"
     return re.sub(
         r"\$\{([^}:]+):([^}]+)\}",
