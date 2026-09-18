@@ -32,7 +32,7 @@ jobs:
           - provider: minimax
             row_args: --row-id household_world.map_build_quality --row-id household_world.cleanup_capability.minimax --row-id household_world.open_ended_goals.minimax
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
