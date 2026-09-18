@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from roboclaws.evals.harness import selector
+from roboclaws.evals.harness import runner, selector
 from roboclaws.evals.harness.prior import resolve_baseline_prior
 
 LIVE_AGENT_ROW_IDS = {
@@ -150,3 +150,29 @@ def test_baseline_refresh_keeps_fixed_prior_matrix_visible_without_prior(
     assert set(_selected_rows(with_prior)) & FIXED_PRIOR_PROVIDER_ROW_IDS == (
         FIXED_PRIOR_PROVIDER_ROW_IDS
     )
+
+
+def test_fixed_prior_substitution_is_limited_to_fixed_prior_profiles(tmp_path: Path) -> None:
+    """Only fixed-prior profiles replace a row's own same-run prior reference.
+
+    The other baseline profiles keep the same-run chain: their consumer resolves
+    the artifact its own map-build row just produced, so a live-default gate
+    cannot pass by consuming an unrelated catalog prior.
+    """
+    row_dir = tmp_path / "map-build"
+    artifact = row_dir / "run" / "direct-map-build-world-public" / "runtime_metric_map.json"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_text("{}\n", encoding="utf-8")
+    row_argument = "runtime_map_prior=${direct-map-build-world-public:runtime_metric_map.json}"
+    catalog_prior = "assets/eval-priors/by-sha256/digest/runtime_map_prior_snapshot.json"
+
+    def resolve(profile: str) -> str:
+        manifest = {
+            "profile": profile,
+            "runtime_map_prior": catalog_prior,
+            "rows": [{"row_id": "direct-map-build-world-public", "row_dir": str(row_dir)}],
+        }
+        return runner._resolve_row_argument(row_argument, manifest)
+
+    assert resolve("baseline-refresh") == f"runtime_map_prior={catalog_prior}"
+    assert resolve("baseline-live-default") == f"runtime_map_prior={artifact}"
