@@ -137,6 +137,36 @@ def checkpointing_tool_result_callback(
     return _project
 
 
+def normalized_mcp_tool_event(tool_name: str, result: Any) -> dict[str, Any]:
+    """Normalize one MCP ``CallToolResult`` into the projector's public event shape.
+
+    Projection only advances when it can see a structured payload, so prefer
+    ``structuredContent`` and fall back to the first JSON text content block.
+    """
+    return {
+        "tool": str(tool_name),
+        "success": not bool(getattr(result, "isError", False)),
+        "result": _structured_tool_payload(result),
+    }
+
+
+def _structured_tool_payload(result: Any) -> dict[str, Any]:
+    for attribute in ("structuredContent", "structured_content"):
+        structured = getattr(result, attribute, None)
+        if isinstance(structured, dict):
+            return structured
+    for block in getattr(result, "content", None) or ():
+        text = getattr(block, "text", None)
+        if not isinstance(text, str):
+            continue
+        try:
+            decoded = json.loads(text)
+        except ValueError:
+            return {}
+        return decoded if isinstance(decoded, dict) else {}
+    return {}
+
+
 def _summarize_sdk_result(result: Any) -> dict[str, Any]:
     payload: dict[str, Any] = {}
     final_output = getattr(result, "final_output", None)

@@ -20,6 +20,7 @@ from roboclaws.agents.drivers.openai_agents_event_log import (
 from roboclaws.agents.drivers.openai_agents_event_projection import (
     _summarize_sdk_result,
     checkpointing_tool_result_callback,
+    normalized_mcp_tool_event,
 )
 from roboclaws.agents.drivers.openai_agents_provider_runtime import (
     close_async_resource as _close_async_resource,
@@ -220,15 +221,11 @@ def _run_openai_agents(
     except ImportError:
         raise
 
-    # The MCP adapter may provide normalized tool results through metadata. Keep
-    # projection optional so SDK/runtime behavior and existing trace artifacts
-    # remain unchanged when no checkpoint is configured.
-    checkpoint_path = request.metadata.get("checkpoint_path")
-    checkpoint_snapshot = request.metadata.get("task_snapshot")
-    if checkpoint_path and checkpoint_snapshot is not None:
-        request.metadata["tool_result_callback"] = checkpointing_tool_result_callback(
-            str(checkpoint_path), checkpoint_snapshot
-        )
+    # A successful tool call must advance the run checkpoint, otherwise pre-call
+    # context assembly reads stale state and an interrupted run resumes from the
+    # empty snapshot written on failure. The MCP adapter seam carries the
+    # normalized tool result; without launcher resume state the seam stays inert.
+    tool_result_callback = _checkpoint_callback(request)
 
     agent_cls = Agent
     if _is_sandbox_skills_request(request):
@@ -243,6 +240,7 @@ def _run_openai_agents(
         mcp_server_cls=MCPServerStreamableHttp,
         events_path=events_path,
         skill_context_path=skill_context_path,
+        tool_result_callback=tool_result_callback,
     )
     events_path.parent.mkdir(parents=True, exist_ok=True)
     events_path.write_text("", encoding="utf-8")
@@ -372,6 +370,41 @@ class _OpenAIAgentsRunParts:
     skill_context_summary: dict[str, Any]
 
 
+def _checkpoint_callback(request: LiveAgentRequest) -> Any:
+    """Return the checkpoint callback for the launcher's resume state, if any."""
+    checkpoint_path = request.metadata.get("checkpoint_path")
+    checkpoint_snapshot = request.metadata.get("task_snapshot")
+    if not checkpoint_path or checkpoint_snapshot is None:
+        return None
+    return checkpointing_tool_result_callback(str(checkpoint_path), checkpoint_snapshot)
+
+
+def _checkpointing_mcp_server_cls(mcp_server_cls: Any, tool_result_callback: Any) -> Any:
+    """Return the injected MCP server class with checkpointing tool results.
+
+    The MCP server class is injected by the caller, so the seam is a dynamic
+    subclass of it: ``call_tool`` projects the normalized result into the run
+    checkpoint and returns the SDK result unmodified.
+    """
+    if tool_result_callback is None:
+        return mcp_server_cls
+    if not isinstance(mcp_server_cls, type):
+        raise TypeError("checkpointing a tool result requires an MCP server class")
+
+    class _CheckpointingMCPServer(mcp_server_cls):  # type: ignore[misc, valid-type]
+        async def call_tool(
+            self,
+            tool_name: str,
+            arguments: dict[str, Any] | None,
+            meta: dict[str, Any] | None = None,
+        ) -> Any:
+            result = await super().call_tool(tool_name, arguments, meta)
+            tool_result_callback(normalized_mcp_tool_event(tool_name, result))
+            return result
+
+    return _CheckpointingMCPServer
+
+
 def _openai_agents_run_parts(
     request: LiveAgentRequest,
     *,
@@ -381,6 +414,7 @@ def _openai_agents_run_parts(
     mcp_server_cls: Any,
     events_path: Path,
     skill_context_path: Path,
+    tool_result_callback: Any = None,
 ) -> _OpenAIAgentsRunParts:
     timeout_configured, timeout_s = _mcp_client_session_timeout_seconds(request)
     runtime_config = _runtime_config(
@@ -400,7 +434,7 @@ def _openai_agents_run_parts(
     run_config = run_config_cls(
         **run_config_kwargs,
     )
-    server = mcp_server_cls(
+    server = _checkpointing_mcp_server_cls(mcp_server_cls, tool_result_callback)(
         **_mcp_server_kwargs(
             request,
             timeout_configured=timeout_configured,
