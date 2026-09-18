@@ -32,7 +32,7 @@ jobs:
           - provider: minimax
             row_args: --row-id household_world.map_build_quality --row-id household_world.cleanup_capability.minimax --row-id household_world.open_ended_goals.minimax
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -44,6 +44,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes libegl1 libgl1 libgles2 libegl-mesa0
       - run: uv sync --extra dev
+      - name: Restore MolmoSpaces resource cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/molmospaces
+            ~/.cache/molmo-spaces-resources
+          key: ${{ runner.os }}-molmospaces-${{ hashFiles('uv.lock', 'config/showcase-manifest.json') }}
       - name: Run ${{ matrix.provider }} showcase shard
         env:
           ROBOCLAWS_OPENAI_AGENTS_ROBOT_VIEW_CAPTURE_POLICY: action_timeline
