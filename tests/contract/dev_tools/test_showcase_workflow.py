@@ -8,7 +8,7 @@ def test_showcase_workflow_is_advisory_bounded_and_secret_guarded() -> None:
     assert "pull_request:" not in workflow
     assert "push:" not in workflow
     assert "cancel-in-progress: false" in workflow
-    assert "timeout-minutes: 45" in workflow
+    assert "timeout-minutes: 60" in workflow
     assert "timeout-minutes: 10" in workflow
     assert "continue-on-error: true" in workflow
     assert (
