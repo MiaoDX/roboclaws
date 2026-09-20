@@ -14,6 +14,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from roboclaws.evals.public_reports import published_visual_report_href
+
 SCHEMA = "roboclaws_showcase_summary_v1"
 MANIFEST_SCHEMA = "roboclaws_showcase_manifest_v1"
 STATUSES = {"passed", "failed", "blocked", "not_run"}
@@ -280,6 +282,7 @@ def derive_row(
     *,
     source: str | None = None,
     report_href: str | None = None,
+    visual_report_href: str | None = None,
     missing_reason: str = "results_unavailable",
     execution_identity: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -344,6 +347,7 @@ def derive_row(
         result["report_artifact"] = Path(artifacts["eval_report"]).name
         if report_href:
             result["report_href"] = report_href
+    result["visual_report_href"] = visual_report_href
     return result
 
 
@@ -426,6 +430,8 @@ def render_markdown(summary: dict[str, Any]) -> str:
         last = success.get("attempted_at", "none")
         report = row.get("report_artifact") or "Unavailable"
         report_link = f"[HTML report]({row['report_href']})" if row.get("report_href") else report
+        if row.get("visual_report_href"):
+            report_link = f"[Visual HTML report]({row['visual_report_href']}) · {report_link}"
         actions_link = (
             f"[Actions]({summary['run_url']})" if summary.get("run_url") else "Unavailable"
         )
@@ -482,7 +488,7 @@ def render_html(summary: dict[str, Any]) -> str:
     * {{ box-sizing:border-box; }}
     body {{ margin:0; background:var(--canvas); color:var(--ink);
       font:15px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }}
-    main {{ width:min(1120px,calc(100% - 32px)); margin:40px auto 64px; }}
+    main {{ width:min(1440px,calc(100% - 32px)); margin:40px auto 64px; }}
     header {{ display:flex; justify-content:space-between; gap:24px; align-items:flex-end;
       padding-bottom:24px; border-bottom:1px solid var(--line); }}
     h1 {{ margin:0 0 6px; font-size:30px; line-height:1.2; letter-spacing:0; }}
@@ -498,26 +504,34 @@ def render_html(summary: dict[str, Any]) -> str:
       background:var(--surface); }}
     .metric strong {{ display:block; font-size:24px; line-height:1.1; }}
     .metric span {{ color:var(--muted); }}
-    .panel {{ overflow:hidden; border:1px solid var(--line); border-radius:6px;
+    .panel {{ overflow-x:auto; overflow-y:hidden; border:1px solid var(--line); border-radius:6px;
       background:var(--surface); }}
-    table {{ width:100%; min-width:1040px; border-collapse:collapse; }}
-    th,td {{ padding:13px 14px; border-bottom:1px solid var(--line); text-align:left;
-      vertical-align:top; }}
+    table {{ width:100%; min-width:0; table-layout:fixed; border-collapse:collapse; }}
+    th,td {{ padding:13px 10px; border-bottom:1px solid var(--line); text-align:left;
+      vertical-align:top; overflow-wrap:anywhere; }}
     th {{ background:#f8f9fa; color:var(--muted); font-size:12px; text-transform:uppercase; }}
     tr:last-child td {{ border-bottom:0; }}
     code {{ font:13px ui-monospace,SFMono-Regular,Consolas,monospace; overflow-wrap:anywhere; }}
-    td code {{ white-space:nowrap; }}
-    td:last-child {{ white-space:nowrap; }}
+    td code {{ white-space:normal; }}
+    th:nth-child(1) {{ width:22%; }}
+    th:nth-child(2) {{ width:10%; }}
+    th:nth-child(3) {{ width:7%; }}
+    th:nth-child(4) {{ width:12%; }}
+    th:nth-child(5) {{ width:8%; }}
+    th:nth-child(6) {{ width:12%; }}
+    th:nth-child(7) {{ width:12%; }}
+    th:nth-child(8) {{ width:7%; }}
+    th:nth-child(9) {{ width:10%; }}
     .status {{ display:inline-block; min-width:72px; padding:3px 8px; border-radius:999px;
       text-align:center; font-size:12px; font-weight:700; }}
     .passed {{ color:var(--green); background:var(--green-bg); }}
     .failed {{ color:var(--red); background:var(--red-bg); }}
     .blocked {{ color:var(--amber); background:var(--amber-bg); }}
     .not_run {{ color:var(--gray); background:var(--gray-bg); }}
-    td a {{ color:var(--accent); }}
+    td a {{ display:block; color:var(--accent); }}
     footer {{ display:flex; justify-content:space-between; gap:16px; margin-top:16px;
       color:var(--muted); font-size:13px; }}
-    @media (max-width:760px) {{
+    @media (max-width:1200px) {{
       main {{ width:min(100% - 20px,1120px); margin-top:24px; }}
       header {{ display:block; }} .actions {{ margin-top:16px; }}
       .summary {{ grid-template-columns:repeat(2,minmax(0,1fr)); }}
@@ -577,9 +591,18 @@ def _render_html_row(summary: dict[str, Any], row: dict[str, Any]) -> str:
     reason = html.escape(str(row.get("reason") or "-"))
     report = row.get("report_artifact")
     report_link = "Unavailable"
-    if report and row.get("report_href"):
-        safe_url = html.escape(str(row["report_href"]), quote=True)
-        report_link = f'<a href="{safe_url}">HTML report</a>'
+    report_href = row.get("visual_report_href") or row.get("report_href")
+    if report and report_href:
+        safe_url = html.escape(str(report_href), quote=True)
+        if row.get("visual_report_href") and row.get("report_href"):
+            safe_summary_url = html.escape(str(row["report_href"]), quote=True)
+            report_link = (
+                f'<a href="{safe_url}">Visual HTML report</a> '
+                f'<a href="{safe_summary_url}">Eval summary</a>'
+            )
+        else:
+            label = "Visual HTML report" if row.get("visual_report_href") else "Eval summary"
+            report_link = f'<a href="{safe_url}">{label}</a>'
     run_url = summary.get("run_url")
     actions_link = "Unavailable"
     if run_url:
@@ -613,13 +636,14 @@ def _published_report_href(execution_path: Path, result_path: str) -> str | None
 
 def _load_execution_indexes(
     paths: list[Path],
-) -> tuple[list[dict[str, Any]], dict[str, str], dict[str, str]]:
+) -> tuple[list[dict[str, Any]], dict[str, str], dict[str, str], dict[str, str]]:
     sources = [
         (path, json.loads(path.read_text(encoding="utf-8"))) for path in paths if path.is_file()
     ]
     executions = [execution for _, execution in sources]
     result_paths: dict[str, str] = {}
     report_hrefs: dict[str, str] = {}
+    visual_report_hrefs: dict[str, str] = {}
     for execution_path, execution in sources:
         indexed_results = execution.get("results", {})
         if not isinstance(indexed_results, dict):
@@ -629,7 +653,14 @@ def _load_execution_indexes(
             report_href = _published_report_href(execution_path, result_path)
             if report_href:
                 report_hrefs[row_id] = report_href
-    return executions, result_paths, report_hrefs
+            try:
+                payload = json.loads(Path(result_path).read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                payload = None
+            visual_href = published_visual_report_href(execution_path, payload)
+            if visual_href:
+                visual_report_hrefs[row_id] = visual_href
+    return executions, result_paths, report_hrefs, visual_report_hrefs
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -663,7 +694,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if not args.commit or not args.run_url:
         parser.error("--commit and --run-url are required when building a summary")
-    executions, result_paths, report_hrefs = _load_execution_indexes(args.execution_index)
+    executions, result_paths, report_hrefs, visual_report_hrefs = _load_execution_indexes(
+        args.execution_index
+    )
     result_paths.update(dict(item.split("=", 1) for item in args.result))
     attempt_reasons = {
         item["id"]: item.get("reason") or "results_unavailable"
@@ -696,6 +729,7 @@ def main(argv: list[str] | None = None) -> int:
                 payload,
                 source=path_value,
                 report_href=report_hrefs.get(row["id"]),
+                visual_report_href=visual_report_hrefs.get(row["id"]),
                 missing_reason=attempt_reasons.get(row["id"], "results_unavailable"),
                 execution_identity=attempt_identities.get(row["id"]),
             )
