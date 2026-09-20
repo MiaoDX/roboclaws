@@ -3,7 +3,9 @@ from pathlib import Path
 
 import pytest
 
+from roboclaws.evals.public_reports import _published_visual_report_href
 from roboclaws.evals.showcase import (
+    _load_execution_indexes,
     _published_report_href,
     _row_command,
     build_summary,
@@ -23,6 +25,54 @@ def test_published_report_href_matches_pages_allowlist() -> None:
         "reports/kimi/evals/household_world_cleanup/run-1/eval_report.html"
     )
     assert _published_report_href(execution, "output/private/eval_results.json") is None
+
+
+def test_published_visual_report_href_matches_nested_run_report() -> None:
+    execution = Path("output/showcase/kimi/execution.json")
+    result = (
+        "output/showcase/kimi/evals/household_world_open_ended_goals/run-1/"
+        "runs/sample/trial-0000/surface-run/seed-7/report.html"
+    )
+
+    assert _published_visual_report_href(execution, result) == (
+        "reports/kimi/evals/household_world_open_ended_goals/run-1/"
+        "runs/sample/trial-0000/surface-run/seed-7/report.html"
+    )
+    assert _published_visual_report_href(execution, "output/private/report.html") is None
+    assert (
+        _published_visual_report_href(execution, "output/showcase/kimi/evals/../report.html")
+        is None
+    )
+
+
+@pytest.mark.parametrize("trial_count,report_exists", [(1, True), (1, False), (2, True)])
+def test_showcase_links_existing_single_run_report(tmp_path, trial_count, report_exists):
+    from roboclaws.evals.public_reports import publish_report_bundle
+
+    shard = tmp_path / "kimi"
+    result_path = shard / "evals" / "cleanup" / "run-1" / "eval_results.json"
+    report_path = result_path.parent / "runs" / "trial-0000" / "report.html"
+    report_path.parent.mkdir(parents=True)
+    if report_exists:
+        report_path.write_text('<html><body><img src="before.png"></body></html>')
+    result_path.write_text(
+        json.dumps({"results": [{"artifacts": {"report": str(report_path)}}] * trial_count})
+    )
+    execution = shard / "execution.json"
+    execution.write_text(json.dumps({"results": {"cleanup": str(result_path)}}))
+
+    _, _, summaries, visuals = _load_execution_indexes([execution])
+
+    assert summaries["cleanup"] == "reports/kimi/evals/cleanup/run-1/eval_report.html"
+    if trial_count == 1 and report_exists:
+        assert visuals["cleanup"] == (
+            "reports/kimi/evals/cleanup/run-1/runs/trial-0000/report.html"
+        )
+        site = tmp_path / "site"
+        publish_report_bundle(shard / "evals", site / "reports" / "kimi" / "evals")
+        assert (site / visuals["cleanup"]).is_file()
+    else:
+        assert visuals == {}
 
 
 def manifest():
@@ -233,6 +283,7 @@ def test_showcase_html_renders_dashboard_instead_of_escaped_markdown():
                 "reason": None,
                 "report_artifact": "eval_report.html",
                 "report_href": "reports/mimo/evals/cleanup/run/eval_report.html",
+                "visual_report_href": "reports/mimo/evals/cleanup/run/runs/sample/report.html",
             },
         ],
         "last_success": {
@@ -249,7 +300,10 @@ def test_showcase_html_renders_dashboard_instead_of_escaped_markdown():
     assert "public-compatibility" in rendered
     assert "#3" in rendered
     assert 'href="reports/mimo/evals/cleanup/run/eval_report.html"' in rendered
-    assert rendered.count(">HTML report</a>") == 1
+    assert 'href="reports/mimo/evals/cleanup/run/runs/sample/report.html"' in rendered
+    assert "Visual HTML report" in rendered
+    assert rendered.count(">HTML report</a>") == 0
+    assert rendered.count(">Eval summary</a>") == 1
     assert rendered.count('href="https://example.test/run"') == 3
     assert rendered.count(">Actions</a>") == 2
     assert rendered.count('href="https://example.test/artifacts"') == 1

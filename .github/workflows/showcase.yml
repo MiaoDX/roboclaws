@@ -168,12 +168,13 @@ jobs:
           summary = json.loads((site / "showcase-summary-v1.json").read_text(encoding="utf-8"))
           missing = []
           for row in summary["rows"]:
-              href = row.get("report_href")
-              if not href:
-                  continue
-              report = site / href
-              if not report.is_file():
-                  missing.append(f"{row['id']} -> {href}")
+              for field in ("report_href", "visual_report_href"):
+                  href = row.get(field)
+                  if not href:
+                      continue
+                  report = site / href
+                  if not report.is_file():
+                      missing.append(f"{row['id']} -> {href}")
           if missing:
               raise SystemExit("published report links are missing: " + ", ".join(missing))
           PY

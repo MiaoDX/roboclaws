@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import shutil
 from pathlib import Path
+from typing import Any
 
 PUBLIC_SUFFIXES = {".html", ".png", ".jpg", ".jpeg", ".webp", ".gif"}
 PRIVATE_NAMES = {
@@ -17,6 +18,38 @@ PRIVATE_NAMES = {
     "model_call_metrics.jsonl",
     "openai-agents-server.log",
 }
+
+
+def published_visual_report_href(execution_path: Path, bundle: Any) -> str | None:
+    """Link a single trial's existing run report; keep multi-trial entry at the summary."""
+    if not isinstance(bundle, dict):
+        return None
+    results = bundle.get("results")
+    if not isinstance(results, list) or len(results) != 1 or not isinstance(results[0], dict):
+        return None
+    artifacts = results[0].get("artifacts")
+    if not isinstance(artifacts, dict):
+        return None
+    report_path = str(artifacts.get("report") or "")
+    if not Path(report_path).is_file():
+        return None
+    return _published_visual_report_href(execution_path, report_path)
+
+
+def _published_visual_report_href(execution_path: Path, report_path: str) -> str | None:
+    try:
+        relative_report = Path(report_path).relative_to(execution_path.parent)
+    except (TypeError, ValueError):
+        return None
+    if (
+        not relative_report.parts
+        or relative_report.parts[0] != "evals"
+        or ".." in relative_report.parts
+    ):
+        return None
+    if relative_report.name != "report.html":
+        return None
+    return (Path("reports") / execution_path.parent.name / relative_report).as_posix()
 
 
 def sanitize_report_html(source: str) -> str:
