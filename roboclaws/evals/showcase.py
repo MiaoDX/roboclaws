@@ -8,13 +8,13 @@ import hashlib
 import html
 import json
 import os
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
 from typing import Any
 
 from roboclaws.evals.public_reports import published_visual_report_href
+from roboclaws.evals.showcase_process import run_showcase_command
 
 SCHEMA = "roboclaws_showcase_summary_v1"
 MANIFEST_SCHEMA = "roboclaws_showcase_manifest_v1"
@@ -155,15 +155,11 @@ def execute_manifest(
                 }
             )
             continue
-        try:
-            completed = subprocess.run(
-                command,
-                check=False,
-                capture_output=True,
-                text=True,
-                timeout=int(row["timeout_s"]) + 30,
-            )
-        except subprocess.TimeoutExpired:
+        completed, timed_out = run_showcase_command(
+            command,
+            timeout_s=int(row["timeout_s"]) + 30,
+        )
+        if timed_out:
             attempts.append(
                 {
                     "id": row["id"],

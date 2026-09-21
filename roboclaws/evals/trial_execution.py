@@ -325,7 +325,11 @@ def _failed_result_from_dependency(
     dependency_failure: dict[str, Any],
 ) -> EvalResult:
     failure_class = str(dependency_failure.get("failure_class") or "artifact_missing")
-    blocked = failure_class in {"environment_blocked", "model_or_provider_unavailable"}
+    blocked = failure_class in {
+        "environment_blocked",
+        "model_or_provider_unavailable",
+        "server_startup_timeout",
+    }
     artifacts = artifact_paths(run_dir)
     return EvalResult.from_trial(
         trial,

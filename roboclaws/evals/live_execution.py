@@ -263,8 +263,6 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
                 "stdout": completed.stdout,
                 "stderr": completed.stderr,
                 "timeout_kind": completed.timeout_kind,
-                "wall_clock_budget_s": wall_clock_budget_s,
-                "stall_timeout_s": stall_timeout_s,
                 "timeout_elapsed_s": completed.elapsed_s,
                 "timeout_last_progress_elapsed_s": completed.last_progress_elapsed_s,
                 "effective_run_dir": str(sample_run_dir),
@@ -278,6 +276,7 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
             wall_clock_budget_s=wall_clock_budget_s,
             stall_timeout_s=stall_timeout_s,
         )
+        _classify_startup_stall(record)
         run_result_path = sample_run_dir / "run_result.json"
         run_result = _load_json(run_result_path)
         if run_result and _live_surface_already_complete(
@@ -290,14 +289,13 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
             return run_result
         record["timeout_child_cleanup"] = cleanup_timed_out_live_children(sample_run_dir)
         _write_live_eval_command_record(run_dir / "live_eval_command.json", record)
-        message = _live_timeout_message(
-            timeout_kind=completed.timeout_kind,
-            wall_clock_budget_s=wall_clock_budget_s,
-            stall_timeout_s=stall_timeout_s,
-        )
         raise LiveEvalTimeoutError(
-            message,
-            timeout_kind=completed.timeout_kind,
+            _live_timeout_message(
+                timeout_kind=record["timeout_kind"],
+                wall_clock_budget_s=wall_clock_budget_s,
+                stall_timeout_s=stall_timeout_s,
+            ),
+            timeout_kind=record["timeout_kind"],
             wall_clock_budget_s=wall_clock_budget_s,
             stall_timeout_s=stall_timeout_s,
             effective_run_dir=sample_run_dir,
@@ -324,6 +322,19 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
     )
     if completed.returncode != 0:
         _write_live_eval_command_record(run_dir / "live_eval_command.json", record)
+        live_status = record["live_status"]
+        if completed.returncode == 124 and (
+            live_status.get("reason") == "external_timeout_or_termination_signal"
+            or live_status.get("exit_status") == 124
+        ):
+            raise _external_timeout_error(
+                run_dir=run_dir,
+                sample_run_dir=sample_run_dir,
+                live_status=live_status,
+                record=record,
+                wall_clock_budget_s=wall_clock_budget_s,
+                stall_timeout_s=stall_timeout_s,
+            )
         status_failure_class = str(record["live_status"].get("failure_class") or "")
         message = completed.stderr.strip() or completed.stdout.strip()
         if status_failure_class:
@@ -339,6 +350,60 @@ def run_live_surface_product(**kwargs: Any) -> dict[str, Any]:
         raise RuntimeError(f"live surface run finished without {run_result_path}")
     run_result["eval_effective_run_dir"] = str(sample_run_dir)
     return run_result
+
+
+def _external_timeout_error(
+    *,
+    run_dir: Path,
+    sample_run_dir: Path,
+    live_status: dict[str, Any],
+    record: dict[str, Any],
+    wall_clock_budget_s: float,
+    stall_timeout_s: float,
+) -> LiveEvalTimeoutError:
+    """Classify and record a timeout reported by the live surface process."""
+
+    timeout_kind = (
+        "server_startup_stall" if _server_startup_stalled(live_status) else "external_termination"
+    )
+    snapshot = live_timeout_snapshot(
+        sample_run_dir,
+        live_status=live_status,
+        timeout_kind=timeout_kind,
+        wall_clock_budget_s=wall_clock_budget_s,
+        stall_timeout_s=stall_timeout_s,
+    )
+    record["timeout_kind"] = timeout_kind
+    record["timeout_debug_snapshot"] = snapshot
+    record["timeout_child_cleanup"] = cleanup_timed_out_live_children(sample_run_dir)
+    _write_live_eval_command_record(run_dir / "live_eval_command.json", record)
+    return LiveEvalTimeoutError(
+        "live surface was externally terminated during "
+        + ("server startup" if timeout_kind == "server_startup_stall" else "execution"),
+        timeout_kind=timeout_kind,
+        wall_clock_budget_s=wall_clock_budget_s,
+        stall_timeout_s=stall_timeout_s,
+        effective_run_dir=sample_run_dir,
+        live_status=live_status,
+        timeout_debug_snapshot=snapshot,
+        command_record=record,
+    )
+
+
+def _server_startup_stalled(live_status: dict[str, Any]) -> bool:
+    if live_status.get("phase") == "starting-server":
+        return True
+    snapshot = live_status.get("debug_snapshot")
+    return isinstance(snapshot, dict) and all(
+        snapshot.get(key) == 0
+        for key in ("trace_event_count", "openai_agents_event_count", "model_service_attempt_count")
+    )
+
+
+def _classify_startup_stall(record: dict[str, Any]) -> None:
+    if record["timeout_kind"] == "stall_timeout" and _server_startup_stalled(record["live_status"]):
+        record["timeout_kind"] = "server_startup_stall"
+        record["timeout_debug_snapshot"]["timeout_kind"] = "server_startup_stall"
 
 
 def _run_live_surface_foreground_process(
@@ -575,6 +640,8 @@ def _live_timeout_message(
 ) -> str:
     if timeout_kind == "stall_timeout":
         return f"live eval trial stalled after {stall_timeout_s:g}s without progress"
+    if timeout_kind == "server_startup_stall":
+        return f"live eval server startup stalled after {stall_timeout_s:g}s without progress"
     if timeout_kind == "wall_clock_budget_exhausted":
         return f"live eval trial exceeded wall-clock budget after {wall_clock_budget_s:g}s"
     return f"live eval trial timed out after {wall_clock_budget_s:g}s"

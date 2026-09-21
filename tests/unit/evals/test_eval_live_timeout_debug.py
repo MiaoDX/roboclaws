@@ -188,6 +188,9 @@ def test_live_eval_wall_clock_budget_timeout_reaches_failed_result(
     def live_product_runner(**kwargs: Any) -> dict[str, Any]:
         run_dir = Path(kwargs["output_dir"]) / "surface-run" / "seed-7"
         run_dir.mkdir(parents=True, exist_ok=True)
+        (run_dir / "report.html").write_text(
+            "<html><body><h1>terminal diagnostic</h1></body></html>", encoding="utf-8"
+        )
         snapshot = {
             "schema": "molmo_live_timeout_debug_snapshot_v1",
             "elapsed_s": 300.0,
@@ -232,6 +235,7 @@ def test_live_eval_wall_clock_budget_timeout_reaches_failed_result(
     assert runner["stall_timeout_s"] == 120.0
     assert runner["effective_run_dir"].endswith("surface-run/seed-7")
     assert runner["timeout_debug_snapshot"]["last_trace_event"] == "metric_map:response"
+    assert result["artifacts"]["report"].endswith("surface-run/seed-7/report.html")
 
 
 def test_live_surface_product_records_wall_clock_budget_timeout(
