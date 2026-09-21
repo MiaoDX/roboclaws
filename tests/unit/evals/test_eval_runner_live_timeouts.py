@@ -6,6 +6,8 @@ from typing import Any
 
 import pytest
 
+from roboclaws.evals.grading_failures import failure_class_from_exception
+from roboclaws.evals.live_timeout import LiveEvalTimeoutError
 from roboclaws.evals.runner import run_eval_suite
 from tests.unit.evals.eval_runner_support import (
     _completed_process,
@@ -14,6 +16,100 @@ from tests.unit.evals.eval_runner_support import (
     _run_result,
     _write_product_artifacts,
 )
+
+
+def test_server_startup_stall_is_classified_separately(tmp_path: Path) -> None:
+    error = LiveEvalTimeoutError(
+        "live eval server startup stalled",
+        timeout_kind="server_startup_stall",
+        effective_run_dir=tmp_path,
+        live_status={"phase": "failed"},
+        timeout_debug_snapshot={},
+        command_record={},
+    )
+    assert failure_class_from_exception(error) == "server_startup_timeout"
+
+
+@pytest.mark.parametrize(
+    ("snapshot", "expected_kind"),
+    [
+        (
+            {
+                "trace_event_count": 0,
+                "openai_agents_event_count": 0,
+                "model_service_attempt_count": 0,
+            },
+            "server_startup_stall",
+        ),
+        ({"model_service_attempt_count": 1}, "external_termination"),
+        ({}, "external_termination"),
+    ],
+)
+def test_external_124_preserves_startup_and_execution_distinction(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    snapshot: dict[str, int],
+    expected_kind: str,
+) -> None:
+    import roboclaws.evals.live_execution as live_exec
+
+    def fake_run(command: list[str], **_kwargs: Any) -> Any:
+        output_dir = Path(
+            next(item for item in command if item.startswith("output_dir=")).split("=", 1)[1]
+        )
+        run_dir = output_dir / "seed-7"
+        run_dir.mkdir(parents=True, exist_ok=True)
+        (run_dir / "live_status.json").write_text(
+            json.dumps(
+                {
+                    "phase": "failed",
+                    "exit_status": 124,
+                    "reason": "external_timeout_or_termination_signal",
+                    "debug_snapshot": snapshot,
+                }
+            )
+        )
+        return _completed_process(returncode=124)
+
+    _patch_live_surface_popen(monkeypatch, live_exec, fake_run)
+    with pytest.raises(LiveEvalTimeoutError) as exc_info:
+        live_exec.run_live_surface_product(
+            **_live_surface_kwargs(
+                tmp_path / "trial-0000", live_timeout_s=900, live_stall_timeout_s=120
+            )
+        )
+    assert exc_info.value.timeout_kind == expected_kind
+    record = json.loads((tmp_path / "trial-0000/live_eval_command.json").read_text())
+    assert record["timeout_kind"] == expected_kind
+    assert "after 120s" not in str(exc_info.value)
+
+
+@pytest.mark.parametrize(
+    ("kind", "expected"),
+    [
+        ("stall_timeout", "server_startup_stall"),
+        ("wall_clock_budget_exhausted", "wall_clock_budget_exhausted"),
+    ],
+)
+def test_watchdog_preserves_wall_budget_and_classifies_startup_stall(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, kind: str, expected: str
+) -> None:
+    import roboclaws.evals.live_execution as live_exec
+
+    run_dir = tmp_path / "surface-run/seed-7"
+    run_dir.mkdir(parents=True)
+    (run_dir / "live_status.json").write_text(json.dumps({"phase": "starting-server"}))
+    monkeypatch.setattr(live_exec, "discover_live_surface_run_dir", lambda *a, **kw: run_dir)
+    monkeypatch.setattr(
+        live_exec,
+        "_run_live_surface_foreground_process",
+        lambda **kw: live_exec.LiveSurfaceProcessResult(
+            returncode=kind, stdout="", stderr="", timeout_kind=kind
+        ),
+    )
+    with pytest.raises(LiveEvalTimeoutError) as exc_info:
+        live_exec.run_live_surface_product(**_live_surface_kwargs(tmp_path))
+    assert exc_info.value.timeout_kind == expected
 
 
 def test_live_surface_product_uses_default_live_budgets(

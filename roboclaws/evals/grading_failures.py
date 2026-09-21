@@ -2,30 +2,54 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
+from roboclaws.evals.grading_sources import artifact_paths
 from roboclaws.evals.live_timeout import LiveEvalTimeoutError, live_exception_debug_fields
-from roboclaws.evals.models import EvalResult, EvalTrial
+from roboclaws.evals.models import MISSING_UNAVAILABLE, EvalResult, EvalTrial
 
 
 def blocked_result_from_exception(trial: EvalTrial, exc: Exception) -> EvalResult:
     failure_class = failure_class_from_exception(exc)
-    blocked = failure_class in {"environment_blocked", "model_or_provider_unavailable"}
+    blocked = failure_class in {
+        "environment_blocked",
+        "model_or_provider_unavailable",
+        "server_startup_timeout",
+    }
     runner_output: dict[str, Any] = {
         "status": "blocked" if blocked else "failed",
         "error_type": type(exc).__name__,
         "message": str(exc),
     }
     runner_output.update(live_exception_debug_fields(exc))
+    artifacts = _exception_artifacts(exc)
     return EvalResult.from_trial(
         trial,
         status="blocked" if blocked else "failed",
         failure_class=failure_class,
         grader_outputs={"runner": runner_output},
-        artifacts={},
+        artifacts=artifacts,
+        artifact_schema_versions={key: MISSING_UNAVAILABLE for key in artifacts},
         metrics={"pass": 0.0},
         limitations=(*trial.limitations, "product_run_failed_before_grading"),
     )
+
+
+def _exception_artifacts(exc: Exception) -> dict[str, str]:
+    """Expose terminal run artifacts when a product runner failed after creating them."""
+
+    effective_run_dir = str(getattr(exc, "effective_run_dir", "") or "").strip()
+    if not effective_run_dir:
+        return {}
+    run_dir = Path(effective_run_dir)
+    if not run_dir.is_dir():
+        return {}
+    artifacts = artifact_paths(run_dir)
+    attempts_path = str(getattr(exc, "live_trial_attempts_path", "") or "").strip()
+    if attempts_path and Path(attempts_path).is_file():
+        artifacts["live_trial_attempts"] = attempts_path
+    return artifacts
 
 
 def failure_class_from_exception(exc: Exception) -> str:
@@ -102,8 +126,12 @@ def failure_class_from_exception(exc: Exception) -> str:
 
 
 def _typed_failure_class(exc: Exception) -> str | None:
+    if "mcp server did not become ready" in str(exc).lower():
+        return "server_startup_timeout"
     if isinstance(exc, LiveEvalTimeoutError) and exc.timeout_kind == "wall_clock_budget_exhausted":
         return "budget_exhausted"
+    if isinstance(exc, LiveEvalTimeoutError) and exc.timeout_kind == "server_startup_stall":
+        return "server_startup_timeout"
     if isinstance(exc, (ImportError, ModuleNotFoundError, TimeoutError)):
         return "environment_blocked"
     return None

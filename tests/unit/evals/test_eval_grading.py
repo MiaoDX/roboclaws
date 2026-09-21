@@ -1,6 +1,15 @@
 from roboclaws.evals.grading_failures import failure_class_from_exception
 
 
+def test_grading_classifies_server_readiness_deadline() -> None:
+    assert (
+        failure_class_from_exception(
+            RuntimeError("cleanup MCP server did not become ready at localhost:8765 within 300s")
+        )
+        == "server_startup_timeout"
+    )
+
+
 def test_grading_classifies_agent_turn_without_done() -> None:
     failure_class = failure_class_from_exception(
         RuntimeError("OpenAI Agents SDK turn ended without done after 2 invocation(s)")

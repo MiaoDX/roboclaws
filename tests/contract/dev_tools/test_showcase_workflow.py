@@ -24,6 +24,13 @@ def test_showcase_workflow_is_advisory_bounded_and_secret_guarded() -> None:
     assert "Install headless MuJoCo rendering runtime" in workflow
     assert "libegl1 libgl1 libgles2 libegl-mesa0" in workflow
     assert "ROBOCLAWS_OPENAI_AGENTS_ROBOT_VIEW_CAPTURE_POLICY: action_timeline" in workflow
+    assert 'ROBOCLAWS_MOLMO_LIVE_SERVER_STARTUP_TIMEOUT_S: "300"' in workflow
+    assert "repair_molmospaces_resource_cache.py" in workflow
+    assert (
+        workflow.index("repair_molmospaces_resource_cache.py")
+        < workflow.index("python -m molmo_spaces.molmo_spaces_constants")
+        < workflow.index("Run ${{ matrix.provider }} showcase shard")
+    )
     assert "needs: provider-showcase" in workflow
     assert "showcase-kimi-${{ github.sha }}" in workflow
     assert "kimi_pid=$!" not in workflow
@@ -59,3 +66,10 @@ def test_showcase_manifest_routes_canonical_suites() -> None:
         assert f'"suite": "{suite}"' in manifest
     assert "python -m roboclaws.evals.showcase" in workflow
     assert "--execute" in workflow
+
+
+def test_showcase_manifest_has_separate_startup_and_completion_budgets() -> None:
+    manifest = (ROOT / "config/showcase-manifest.json").read_text(encoding="utf-8")
+    assert '"timeout_s": 1200' in manifest
+    assert '"timeout_s": 900, "stall_timeout_s": 600' in manifest
+    assert '"timeout_s": 1800, "stall_timeout_s": 600' in manifest
