@@ -29,7 +29,7 @@ def test_default_cases_cover_routes_and_wire_formats() -> None:
         "codex-responses:codex:responses",
         "mimo-responses:mimo:responses",
         "minimax-responses:MiniMax-M3:responses",
-        "kimi:k3:chat",
+        "kimi:kimi-for-coding:chat",
     }
     assert {case.wire_api for case in cases.values()} == {"openai-chat", "openai-responses"}
 
@@ -64,7 +64,7 @@ def test_kimi_case_reads_registry_env(monkeypatch) -> None:
 
     cases = {case.case_id: case for case in script.default_cases()}
 
-    case = cases["kimi:k3:chat"]
+    case = cases["kimi:kimi-for-coding:chat"]
     assert case.base_url == "https://kimi.example/v1"
     assert case.api_key_env == "KIMI_API_KEY"
 
@@ -107,7 +107,7 @@ def test_payloads_match_wire_format(monkeypatch) -> None:
     cases = {case.case_id: case for case in script.default_cases()}
 
     chat_payload = script.payload_for_case(
-        cases["kimi:k3:chat"],
+        cases["kimi:kimi-for-coding:chat"],
         prompt="ping",
         max_tokens=8,
     )
@@ -117,7 +117,7 @@ def test_payloads_match_wire_format(monkeypatch) -> None:
         max_tokens=8,
     )
     kimi_payload = script.payload_for_case(
-        cases["kimi:k3:chat"],
+        cases["kimi:kimi-for-coding:chat"],
         prompt="ping",
         max_tokens=8,
     )
@@ -202,7 +202,7 @@ def test_headers_include_kimi_coding_user_agent() -> None:
     script = _load_script_module()
     cases = {case.case_id: case for case in script.default_cases()}
 
-    headers = script.headers_for_case(cases["kimi:k3:chat"], api_key="secret")
+    headers = script.headers_for_case(cases["kimi:kimi-for-coding:chat"], api_key="secret")
 
     assert headers["Authorization"] == "Bearer secret"
     assert "x-api-key" not in headers
@@ -320,7 +320,7 @@ def test_result_payload_counts_statuses() -> None:
 
 def test_usage_tokens_and_tps_prefer_provider_usage() -> None:
     script = _load_script_module()
-    case = {case.case_id: case for case in script.default_cases()}["kimi:k3:chat"]
+    case = {case.case_id: case for case in script.default_cases()}["kimi:kimi-for-coding:chat"]
 
     result = script.summarize_case(
         case,
@@ -695,7 +695,7 @@ def test_agent_cases_are_selectable_and_do_not_store_full_prompt() -> None:
 
 def test_agent_case_summary_carries_case_metadata() -> None:
     script = _load_script_module()
-    case = {case.case_id: case for case in script.default_cases()}["kimi:k3:chat"]
+    case = {case.case_id: case for case in script.default_cases()}["kimi:kimi-for-coding:chat"]
     agent_case = script.selected_agent_cases(case_ids={"cleanup-worklist-plan"})[0]
 
     result = script.summarize_case(

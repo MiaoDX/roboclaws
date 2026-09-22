@@ -92,6 +92,13 @@ def _validate_manifest_row_budgets(row: dict[str, Any]) -> None:
         value = row.get(budget_key)
         if value is not None and (not isinstance(value, (int, float)) or value <= 0):
             raise ValueError(f"showcase row {row['id']} has invalid {budget_key}")
+    decision_call_budget = row.get("decision_call_budget")
+    if row["execution_mode"] != "deterministic" and (
+        not isinstance(decision_call_budget, int)
+        or isinstance(decision_call_budget, bool)
+        or decision_call_budget <= 0
+    ):
+        raise ValueError(f"showcase row {row['id']} has invalid decision_call_budget")
 
 
 def _validate_manifest_row_selection(row: dict[str, Any], samples: list[Any]) -> None:
@@ -242,6 +249,7 @@ def _row_command(row: dict[str, Any], *, live_execution: str, output_dir: Path) 
                 "live_execution=run",
                 f"live_timeout_s={row['timeout_s']}",
                 f"live_stall_timeout_s={row.get('stall_timeout_s', row['timeout_s'])}",
+                f"decision_call_budget={row['decision_call_budget']}",
             )
         )
     if isinstance(row.get("sample_id"), str) and row["sample_id"]:
@@ -269,6 +277,7 @@ def _row_execution_identity(row: dict[str, Any], *, live_execution: str) -> dict
         "agent_engine": row.get(engine_key) or (row.get("agent_engine") if use_live else None),
         "provider_profile": row.get(profile_key)
         or (row.get("provider_profile") if use_live else None),
+        "decision_call_budget": row.get("decision_call_budget"),
     }
 
 

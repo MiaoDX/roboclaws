@@ -369,8 +369,10 @@ def _runtime_config(
         "runtime": "openai-agents-live",
         "provider_profile": model_settings.get("provider_profile") or request.provider_profile,
         "model": model_settings.get("model") or request.model,
+        "profile_id": _profile_id(request),
         "wire_api": model_settings.get("wire_api") or "",
         "max_turns": _max_turns(request),
+        "decision_call_budget": _decision_call_budget(request),
         "cache_tools_list": _cache_tools_list(request),
         "mcp_server": {
             "name": request.mcp_server.name,
@@ -389,6 +391,24 @@ def _runtime_config(
         "prompt_cache_retention": sdk_model_settings.get("prompt_cache_retention") or "",
         "trace_include_sensitive_data": sdk_run_config.get("trace_include_sensitive_data"),
     }
+
+
+def _decision_call_budget(request: LiveAgentRequest) -> int | None:
+    metadata = dict(request.metadata)
+    profile = metadata.get("agent_sdk_perf_profile")
+    value = profile.get("decision_call_budget") if isinstance(profile, dict) else None
+    if value is None:
+        value = metadata.get("decision_call_budget")
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise ValueError(f"decision_call_budget must be a positive integer, got {value!r}")
+    return value
+
+
+def _profile_id(request: LiveAgentRequest) -> str:
+    profile = dict(request.metadata).get("agent_sdk_perf_profile")
+    return str(profile.get("profile_id") or "") if isinstance(profile, dict) else ""
 
 
 def _responses_feature_surface(model_settings: dict[str, Any]) -> dict[str, Any]:

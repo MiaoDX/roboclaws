@@ -27,6 +27,7 @@ def test_openai_agents_perf_profile_resolves_context_managed_defaults(monkeypatc
     assert profile["model_thinking_mode"] == "default"
     assert profile["continuation_mode"] == "state_summary_only"
     assert profile["max_turns"] == 128
+    assert profile["decision_call_budget"] is None
     assert profile["max_continuations"] == 1
     assert profile["cache_tools_list"] is True
     assert profile["mcp_client_session_timeout_s"] == 30.0
@@ -172,6 +173,7 @@ def test_openai_agents_perf_profile_accepts_matching_cli_and_env_settings(
     monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_MCP_CLIENT_SESSION_TIMEOUT_S", "45")
     monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_MODEL_SERVICE_RETRY_SLEEP_S", "1.5")
     monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_MODEL_RACING", "yes")
+    monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_DECISION_CALL_BUDGET", "7")
 
     profile = _resolve_agent_sdk_perf_profile(
         _openai_agents_perf_profile_base_args(
@@ -180,6 +182,7 @@ def test_openai_agents_perf_profile_accepts_matching_cli_and_env_settings(
             mcp_client_session_timeout_s=45.0,
             model_service_retry_sleep_s=1.5,
             model_racing=True,
+            decision_call_budget=7,
         )
     )
 
@@ -187,6 +190,7 @@ def test_openai_agents_perf_profile_accepts_matching_cli_and_env_settings(
     assert profile["max_turns"] == 9
     assert profile["mcp_client_session_timeout_s"] == 45.0
     assert profile["model_service_retry_sleep_s"] == 1.5
+    assert profile["decision_call_budget"] == 7
     assert profile["model_racing_observability"]["enabled"] is True
 
 
@@ -292,6 +296,18 @@ def test_openai_agents_perf_profile_rejects_non_positive_max_turns(monkeypatch) 
         match="OpenAI Agents SDK setting max_turns must be positive",
     ):
         _resolve_agent_sdk_perf_profile(_openai_agents_perf_profile_base_args(max_turns=0))
+
+
+def test_openai_agents_perf_profile_rejects_non_positive_decision_call_budget(monkeypatch) -> None:
+    monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_DECISION_CALL_BUDGET", raising=False)
+
+    with pytest.raises(
+        ValueError,
+        match="OpenAI Agents SDK setting decision_call_budget must be positive",
+    ):
+        _resolve_agent_sdk_perf_profile(
+            _openai_agents_perf_profile_base_args(decision_call_budget=0)
+        )
 
 
 @pytest.mark.parametrize(

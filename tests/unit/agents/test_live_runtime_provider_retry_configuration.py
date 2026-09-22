@@ -229,7 +229,7 @@ def test_openai_agents_runtime_applies_kimi_coding_user_agent(tmp_path: Path, mo
     OpenAIAgentsLiveRuntime().run(request)
 
     model_settings = captured["agent_kwargs"]["model_settings"]
-    assert captured["model"] == "k3"
+    assert captured["model"] == "kimi-for-coding"
     assert captured["base_url"] == "https://kimi.example.test/v1"
     assert captured["api_key"] == "fake-kimi-key"
     assert model_settings.include_usage is True
@@ -505,7 +505,7 @@ def test_openai_agents_runtime_can_use_kimi_openai_chat_profile(
 
     OpenAIAgentsLiveRuntime().run(request)
 
-    assert captured["model"] == "k3"
+    assert captured["model"] == "kimi-for-coding"
     assert captured["base_url"] == "https://kimi.example.test/v1"
     assert captured["api_key"] == "fake-kimi-key"
     assert captured["agent_kwargs"]["model_settings"].extra_headers == {

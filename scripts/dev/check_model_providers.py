@@ -155,8 +155,8 @@ def build_provider_probes(
             max_tokens=chat_max_tokens,
             provider_note=(
                 "Kimi coding requires a Claude-Code-compatible User-Agent header. "
-                "Kimi K2.7 Code "
-                "is thinking-only; this probe omits the old explicit thinking body "
+                "The coding model is thinking-only; this probe omits the old explicit "
+                "thinking body "
                 "and omits temperature because the provider pins model-specific values."
             ),
         ),

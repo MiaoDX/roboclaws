@@ -39,6 +39,7 @@ def _perf_profile_args(**overrides: object) -> Namespace:
         raw_fpv_image_memory_retain camera_grounded_history_compaction
         camera_grounded_history_retain camera_grounded_composite_tools
         model_service_retry_attempts model_service_retry_sleep_s
+        decision_call_budget
         model_thinking_mode
         """.split(),
         None,

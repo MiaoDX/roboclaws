@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 import math
 import os
 import time
 from pathlib import Path
 from typing import Any
 
+from roboclaws.agents.drivers.openai_agents_budget import OpenAIAgentsBudgetExceededError
 from roboclaws.agents.drivers.openai_agents_event_log import (
     _append_model_racing_event,
     _append_model_service_event,
@@ -100,6 +102,7 @@ class _RetryingModel(_AgentsModel):
         self.spans_path = spans_path
         self.runtime_config = dict(runtime_config)
         self._model_call_index = 0
+        self.runtime_config.setdefault("decision_calls_used", 0)
 
     async def close(self) -> None:
         try:
@@ -129,10 +132,10 @@ class _RetryingModel(_AgentsModel):
         conversation_id: str | None,
         prompt: Any,
     ) -> Any:
+        call_index = self._reserve_decision_call()
         attempt_index = 0
         while True:
             started = time.time()
-            call_index = self._next_model_call_index()
             racing_enabled = _get_response_racing_enabled(self.runtime_config)
             _append_model_service_event(
                 self.events_path,
@@ -295,11 +298,11 @@ class _RetryingModel(_AgentsModel):
         conversation_id: str | None,
         prompt: Any,
     ) -> Any:
+        call_index = self._reserve_decision_call()
         attempt_index = 0
         while True:
             started = time.time()
             yielded_event = False
-            call_index = self._next_model_call_index()
             arm_id = _model_racing_arm_id(call_index=call_index, attempt_index=attempt_index)
             _append_model_racing_event(
                 self.events_path,
@@ -438,6 +441,42 @@ class _RetryingModel(_AgentsModel):
     def _next_model_call_index(self) -> int:
         value = self._model_call_index
         self._model_call_index += 1
+        return value
+
+    def _reserve_decision_call(self) -> int:
+        budget = self.runtime_config.get("decision_call_budget")
+        if budget is not None:
+            if isinstance(budget, bool) or not isinstance(budget, int) or budget < 1:
+                raise ValueError(f"decision_call_budget must be a positive integer, got {budget!r}")
+            if self._model_call_index >= budget:
+                detail = json.dumps(
+                    {
+                        "schema": "agent_sdk_decision_call_budget_terminal_v1",
+                        "decision_call_budget": budget,
+                        "decision_calls_used": self._model_call_index,
+                        "provider_profile": self.runtime_config.get("provider_profile", ""),
+                        "model": self.runtime_config.get("model", ""),
+                        "profile_id": self.runtime_config.get("profile_id")
+                        or (
+                            self.runtime_config.get("agent_sdk_perf_profile", {}).get(
+                                "profile_id", ""
+                            )
+                            if isinstance(self.runtime_config.get("agent_sdk_perf_profile"), dict)
+                            else ""
+                        ),
+                    },
+                    sort_keys=True,
+                )
+                raise OpenAIAgentsBudgetExceededError(
+                    LiveAgentFailure(
+                        "decision_call_budget_exhausted",
+                        retryable=False,
+                        resume_available=False,
+                        detail=detail,
+                    )
+                )
+        value = self._next_model_call_index()
+        self.runtime_config["decision_calls_used"] = self._model_call_index
         return value
 
 

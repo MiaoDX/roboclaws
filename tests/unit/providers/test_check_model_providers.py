@@ -224,8 +224,8 @@ def test_agents_sdk_probe_defaults_use_larger_responses_budget() -> None:
     assert probes["agents-sdk:minimax-responses"].max_tokens >= 256
     assert probes["agents-sdk:codex-responses"].max_tokens >= 256
     assert probes["agents-sdk:mimo-responses"].max_tokens >= 256
-    assert probes["agents-sdk:mimo-tp-openai-chat"].model == "mimo-v2.5-pro"
-    assert probes["agents-sdk:kimi-openai-chat"].model == "k3"
+    assert probes["agents-sdk:mimo-tp-openai-chat"].model == "mimo-v2.6-pro"
+    assert probes["agents-sdk:kimi-openai-chat"].model == "kimi-for-coding"
     assert not probes["agents-sdk:kimi-openai-chat"].unsupported_reason
 
 
@@ -291,7 +291,7 @@ def test_kimi_agents_sdk_probe_uses_coding_agent_user_agent_header(
 
     assert result.status == "PASS"
     assert result.ok is True
-    assert captured["model"] == "k3"
+    assert captured["model"] == "kimi-for-coding"
     assert captured["model_settings"]["extra_headers"] == {"User-Agent": "claude-code/1.0.0"}
     assert "extra_body" not in captured["model_settings"]
 

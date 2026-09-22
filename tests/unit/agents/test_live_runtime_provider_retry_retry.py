@@ -208,10 +208,74 @@ def test_openai_agents_retrying_model_reports_retry_exhaustion(tmp_path: Path) -
     assert metrics["attempted_wire_apis"] == ["responses"]
     racing_metrics = _model_racing_observability_metrics(tmp_path)
     assert racing_metrics["available"] is True
-    assert racing_metrics["call_count"] == 2
+    assert racing_metrics["call_count"] == 1
     assert racing_metrics["arm_count"] == 2
     assert racing_metrics["winner_count"] == 0
     assert racing_metrics["final_outcomes"] == {"failure": 1, "retry_scheduled": 1}
+
+
+def test_openai_agents_retrying_model_enforces_logical_decision_call_budget(
+    tmp_path: Path,
+) -> None:
+    class FakeModel:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def get_response(self, *_args, **_kwargs):
+            self.calls += 1
+            if self.calls == 1:
+                raise RuntimeError("model unavailable")
+            return SimpleNamespace(output="ok")
+
+        async def close(self) -> None:
+            return None
+
+        def stream_response(self, *_args, **_kwargs):
+            raise AssertionError("not used")
+
+    model = _RetryingModel(
+        FakeModel(),
+        retry_attempts=1,
+        retry_sleep_s=0,
+        events_path=tmp_path / "events.jsonl",
+        spans_path=tmp_path / "spans.jsonl",
+        runtime_config={
+            "runtime": "openai-agents-live",
+            "provider_profile": "minimax-responses",
+            "model": "MiniMax-M3",
+            "decision_call_budget": 1,
+        },
+    )
+    asyncio.run(
+        model.get_response(
+            None,
+            "clean",
+            object(),
+            [],
+            None,
+            [],
+            object(),
+            previous_response_id=None,
+            conversation_id=None,
+            prompt=None,
+        )
+    )
+    with pytest.raises(RuntimeError, match="decision_call_budget_exhausted"):
+        asyncio.run(
+            model.get_response(
+                None,
+                "clean",
+                object(),
+                [],
+                None,
+                [],
+                object(),
+                previous_response_id=None,
+                conversation_id=None,
+                prompt=None,
+            )
+        )
+    assert model.base_model.calls == 2
 
 
 def test_openai_agents_retrying_model_satisfies_sdk_model_contract(tmp_path: Path) -> None:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from roboclaws.household import agent_view as agent_view_module
 from roboclaws.household.household_backend_contract import HouseholdBackendSession
 from roboclaws.household.household_runtime_contract import (
@@ -61,6 +63,92 @@ def test_cleanup_policy_trace_rejects_cached_cleanup_after_later_map_query() -> 
     assert trace["loop_style"] == "survey_first_cleanup_loop"
     assert trace["first_actionable_observation_index"] == 2
     assert trace["first_cleanup_index"] == 5
+
+
+@pytest.mark.parametrize(
+    ("first_candidate_state", "expected_index", "expected_style"),
+    [
+        (None, 4, "interleaved_cleanup_loop"),
+        ("visual_scan_required", 4, "interleaved_cleanup_loop"),
+        ("navigation_authorized", 2, "delayed_cleanup_loop"),
+    ],
+)
+def test_cleanup_policy_trace_uses_public_worklist_as_actionability_boundary(
+    first_candidate_state: str | None, expected_index: int, expected_style: str
+) -> None:
+    first_completion = {"blockers": []}
+    if first_candidate_state:
+        first_completion["blockers"].append(
+            {
+                "pending_cleanup_candidates": [
+                    {"object_id": "observed_001", "candidate_state": first_candidate_state}
+                ]
+            }
+        )
+    trace = cleanup_policy_trace_from_events(
+        [
+            _trace_response("navigate_to_waypoint", {"ok": True, "waypoint_id": "room_1_scan_1"}),
+            _trace_response(
+                "observe",
+                {
+                    "ok": True,
+                    "waypoint_id": "room_1_scan_1",
+                    "completion": first_completion,
+                    "visible_object_detections": [
+                        {
+                            "object_id": "observed_001",
+                            "candidate_state": "navigation_authorized",
+                            "actionability_status": "actionable",
+                        }
+                    ],
+                },
+            ),
+            _trace_response("navigate_to_waypoint", {"ok": True, "waypoint_id": "room_1_scan_2"}),
+            _trace_response(
+                "observe",
+                {
+                    "ok": True,
+                    "waypoint_id": "room_1_scan_2",
+                    "completion": {
+                        "blockers": [
+                            {
+                                "pending_cleanup_candidates": [
+                                    {
+                                        "object_id": "observed_001",
+                                        "candidate_state": "navigation_authorized",
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                },
+            ),
+            _trace_response("navigate_to_object", {"ok": True, "object_id": "observed_001"}),
+        ],
+        _policy_trace_agent_view(
+            [
+                {
+                    "waypoint_id": "room_1_scan_1",
+                    "waypoint_source": "generated_exploration_candidate",
+                },
+                {
+                    "waypoint_id": "room_1_scan_2",
+                    "waypoint_source": "generated_exploration_candidate",
+                },
+                {
+                    "waypoint_id": "room_1_scan_3",
+                    "waypoint_source": "generated_exploration_candidate",
+                },
+                {
+                    "waypoint_id": "room_1_scan_4",
+                    "waypoint_source": "generated_exploration_candidate",
+                },
+            ]
+        ),
+    )
+
+    assert trace["first_actionable_observation_index"] == expected_index
+    assert trace["loop_style"] == expected_style
 
 
 def test_world_labels_sanitized_runtime_map_keeps_detection_fields_without_destination() -> None:

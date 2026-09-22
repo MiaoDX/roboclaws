@@ -94,7 +94,7 @@ def test_openai_agents_runtime_applies_kimi_chat_transport_contract(
 
     OpenAIAgentsLiveRuntime().run(request)
 
-    assert captured["model"] == "k3"
+    assert captured["model"] == "kimi-for-coding"
     assert captured["base_url"] == "https://kimi.example.test/v1"
     assert captured["api_key"] == "fake-kimi-key"
     wrapped_model = captured["agent_kwargs"]["model"]
@@ -216,7 +216,7 @@ def test_openai_agents_perf_profile_resolves_managed_and_racing_defaults(monkeyp
     assert kimi_managed["continuation_mode"] == "state_summary_only"
     assert kimi_managed["max_turns"] == 128
     assert kimi_managed["max_continuations"] == 1
-    # k3 declares 200K native window; derived hard limit = 200000 * 0.75 = 150_000.
+    # Kimi Code declares 200K native window; hard limit = 200000 * 0.75 = 150_000.
     assert kimi_managed["context_hard_limit_tokens"] == 150_000
     assert kimi_managed["done_retry_budget"] == 1
     assert "truncation" not in kimi_managed["sdk_model_settings"]

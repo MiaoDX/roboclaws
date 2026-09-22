@@ -46,7 +46,7 @@ preserved as compatibility aliases.
 | `codex-responses` | Environment-supplied opaque model, public label `codex` | Responses | Independent Codex cell with passing fixed-prior live proof. |
 | `mimo-responses` | Environment-supplied opaque model, public label `mimo` | Responses | Independent MiMo cell with passing fixed-prior live proof. |
 | `minimax-responses` | `MiniMax-M3` | Responses | Named public comparison route. |
-| `kimi-openai-chat` | `k3` (`k3-256k` diagnostic) | Chat Completions | External compatibility and comparison route. |
+| `kimi-openai-chat` | `kimi-for-coding` (`k3`, `k3-256k` diagnostics) | Chat Completions | External compatibility and comparison route. |
 
 No endpoint/model default or transport fallback exists. Codex's thin HTTP
 compatibility adapter is profile-scoped; commands, packets, and console
