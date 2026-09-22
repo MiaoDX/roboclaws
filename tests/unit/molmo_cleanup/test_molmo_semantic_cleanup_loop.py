@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
+
 from roboclaws.household.manipulation_contract import API_SEMANTIC_PROVENANCE
 from roboclaws.household.semantic_camera_timeline import robot_view_capture_for_tool
 from roboclaws.household.semantic_cleanup_loop import run_semantic_cleanup_loop
@@ -429,7 +431,35 @@ def test_semantic_diagnostics_tracks_recovered_semantic_order_errors() -> None:
     assert diagnostics["semantic_order_unrecovered_errors"] == 0
 
 
-def test_semantic_diagnostics_tracks_recovered_stale_reference() -> None:
+@pytest.mark.parametrize(
+    ("score", "recovered"),
+    [
+        ({"completion_status": "success", "restored_count": 5, "total_targets": 5}, True),
+        (
+            {
+                "completion_status": "success",
+                "restored_count": 4,
+                "total_targets": 5,
+                "semantic_acceptability": {"status": "success", "accepted_count": 5},
+            },
+            True,
+        ),
+        (
+            {
+                "completion_status": "success",
+                "restored_count": 4,
+                "total_targets": 5,
+                "semantic_acceptability": {"status": "success", "accepted_count": 4},
+            },
+            False,
+        ),
+        ({"completion_status": "success", "restored_count": 4, "total_targets": 5}, False),
+        ({}, False),
+    ],
+)
+def test_semantic_diagnostics_tracks_recovered_stale_reference(
+    score: dict[str, Any], recovered: bool
+) -> None:
     diagnostics = semantic_diagnostics(
         [
             _trace_response(
@@ -443,12 +473,12 @@ def test_semantic_diagnostics_tracks_recovered_stale_reference() -> None:
             )
         ],
         [],
-        {"score": {"completion_status": "success", "restored_count": 5, "total_targets": 5}},
+        {"score": score},
     )
 
     assert diagnostics["stale_reference_errors"] == 1
-    assert diagnostics["stale_reference_recovered_errors"] == 1
-    assert diagnostics["stale_reference_unrecovered_errors"] == 0
+    assert diagnostics["stale_reference_recovered_errors"] == int(recovered)
+    assert diagnostics["stale_reference_unrecovered_errors"] == int(not recovered)
 
 
 def test_visual_grounding_only_hides_closed_container_contents() -> None:

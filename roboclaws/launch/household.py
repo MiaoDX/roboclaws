@@ -592,6 +592,7 @@ def _append_live_env_options(command: list[str]) -> None:
         ROBOCLAWS_OPENAI_AGENTS_RAW_FPV_IMAGE_MEMORY_RETAIN="--raw-fpv-image-memory-retain",
         ROBOCLAWS_OPENAI_AGENTS_CAMERA_GROUNDED_HISTORY_RETAIN=("--camera-grounded-history-retain"),
         ROBOCLAWS_OPENAI_AGENTS_DONE_RETRY_BUDGET="--done-retry-budget",
+        ROBOCLAWS_OPENAI_AGENTS_DECISION_CALL_BUDGET="--decision-call-budget",
     )
     for env_name, flag in value_options.items():
         if value := os.environ.get(env_name):

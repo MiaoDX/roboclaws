@@ -128,7 +128,7 @@ def test_profile_summary_uses_final_kimi_contract() -> None:
     )
 
     assert result.returncode == 0
-    assert "kimi-openai-chat model=k3" in result.stdout
+    assert "kimi-openai-chat model=kimi-for-coding" in result.stdout
     assert "protocol=chat-completions" in result.stdout
 
 

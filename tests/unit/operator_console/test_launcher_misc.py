@@ -128,7 +128,7 @@ def test_provider_gate_allows_final_openai_agents_profiles(tmp_path: Path) -> No
     assert kimi["can_start"] is True
     assert kimi["provider"]["provider"] == "kimi-openai-chat"
     assert kimi["provider"]["driver"] == "openai-agents-sdk"
-    assert kimi["provider"]["model"] == "k3"
+    assert kimi["provider"]["model"] == "kimi-for-coding"
 
 
 def test_provider_gate_ignores_code_agent_model_alias_for_openai_agents(
@@ -149,7 +149,7 @@ def test_provider_gate_ignores_code_agent_model_alias_for_openai_agents(
 
     assert readiness["can_start"] is True
     assert readiness["provider"]["provider"] == "kimi-openai-chat"
-    assert readiness["provider"]["model"] == "k3"
+    assert readiness["provider"]["model"] == "kimi-for-coding"
 
 
 def test_provider_gate_requires_kimi_base_url_and_key(tmp_path: Path) -> None:

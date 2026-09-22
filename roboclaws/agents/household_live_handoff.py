@@ -136,6 +136,7 @@ class HouseholdLiveHandoffMixin:
             metadata={
                 "provider_profile": self.args.provider_profile,
                 "max_turns": int(self.agent_sdk_perf_profile["max_turns"]),
+                "decision_call_budget": self.agent_sdk_perf_profile["decision_call_budget"],
                 "attempt_index": attempt_index,
                 "attempt_role": "continuation" if attempt_index else "initial",
                 "cache_tools_list": bool(self.agent_sdk_perf_profile["cache_tools_list"]),

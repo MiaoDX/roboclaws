@@ -215,11 +215,18 @@ def _actionable_handles(response: dict[str, Any]) -> set[str]:
         if isinstance(blocker, dict)
         for candidate in (blocker.get("pending_cleanup_candidates") or [])
     ]
-    detections = [
-        *(response.get("visible_object_detections") or []),
-        *(response.get("camera_model_candidates") or []),
-        *worklist_candidates,
-    ]
+    # Live MCP completion owns destination readiness. Visual navigation
+    # authorization alone does not mean a cleanup destination is known.
+    # Direct-runner observations have no completion snapshot and expose their
+    # actionability in detections instead.
+    detections = (
+        worklist_candidates
+        if isinstance(response.get("completion"), dict)
+        else [
+            *(response.get("visible_object_detections") or []),
+            *(response.get("camera_model_candidates") or []),
+        ]
+    )
     return {
         str(item.get("object_id") or "")
         for item in detections

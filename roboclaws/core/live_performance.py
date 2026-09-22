@@ -260,8 +260,18 @@ def _call_counts(
     else:
         agent_attempt_count = _int_or_none(live_timing.get("openai_agents_attempt_count")) or 1
     continuation_count = max(0, agent_attempt_count - 1)
+    racing_metrics = live_timing.get("model_racing_observability_metrics")
+    decision_call_count = None
+    if isinstance(racing_metrics, dict) and racing_metrics.get("available") is True:
+        decision_call_count = _int_or_none(racing_metrics.get("call_count"))
+    profile = live_timing.get("agent_sdk_perf_profile")
+    decision_call_budget = (
+        _int_or_none(profile.get("decision_call_budget")) if isinstance(profile, dict) else None
+    )
     return {
         "model_call_count": len([row for row in model_calls if row.get("status") != "unavailable"]),
+        "decision_call_count": decision_call_count,
+        "decision_call_budget": decision_call_budget,
         "agent_attempt_count": agent_attempt_count,
         "continuation_count": continuation_count,
         "mcp_tool_call_count": sum(mcp_tool_counts.values()),

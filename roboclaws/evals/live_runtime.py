@@ -173,6 +173,7 @@ def live_product_run_kwargs(
     model: str | None,
     live_timeout_s: float | None,
     live_stall_timeout_s: float | None,
+    decision_call_budget: int | None = None,
     live_token_budget: float | None = None,
     live_cost_budget_usd: float | None = None,
     skill_delivery_cell: str = "static-full",
@@ -197,6 +198,7 @@ def live_product_run_kwargs(
             "model": model,
             "live_timeout_s": live_timeout_s,
             "live_stall_timeout_s": live_stall_timeout_s,
+            "decision_call_budget": decision_call_budget,
             "live_token_budget": live_token_budget,
             "live_cost_budget_usd": live_cost_budget_usd,
             "skill_delivery_cell": skill_delivery_cell,
@@ -397,7 +399,15 @@ def live_surface_env(kwargs: dict[str, Any], *, base_env: Any) -> dict[str, str]
         env[EVAL_PROVIDER_COST_BUDGET_ENV] = str(float(cost_budget))
     else:
         env.pop(EVAL_PROVIDER_COST_BUDGET_ENV, None)
+    _apply_decision_call_budget_env(env, kwargs.get("decision_call_budget"))
     return env
+
+
+def _apply_decision_call_budget_env(env: dict[str, str], value: Any) -> None:
+    if value is None:
+        env.pop("ROBOCLAWS_OPENAI_AGENTS_DECISION_CALL_BUDGET", None)
+    else:
+        env["ROBOCLAWS_OPENAI_AGENTS_DECISION_CALL_BUDGET"] = str(int(value))
 
 
 def live_evidence_lane(kwargs: dict[str, Any]) -> str:

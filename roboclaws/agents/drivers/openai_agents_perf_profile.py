@@ -62,6 +62,7 @@ PROVIDER_COST_BUDGET_ENV = "ROBOCLAWS_EVAL_PROVIDER_COST_BUDGET_USD"
 RAW_FPV_CANDIDATE_BUDGET_ENV = "ROBOCLAWS_OPENAI_AGENTS_RAW_FPV_CANDIDATE_BUDGET"
 RAW_FPV_REPEATED_FAILURE_LIMIT_ENV = "ROBOCLAWS_OPENAI_AGENTS_RAW_FPV_REPEATED_FAILURE_LIMIT"
 DONE_RETRY_BUDGET_ENV = "ROBOCLAWS_OPENAI_AGENTS_DONE_RETRY_BUDGET"
+DECISION_CALL_BUDGET_ENV = "ROBOCLAWS_OPENAI_AGENTS_DECISION_CALL_BUDGET"
 DEFAULT_MCP_CLIENT_SESSION_TIMEOUT_S = 30.0
 RAW_FPV_IMAGE_MEMORY_POLICY = (
     "model-facing raw-FPV image memory only; MCP traces, reports, and image artifacts remain "
@@ -182,6 +183,7 @@ def resolve_agent_sdk_perf_profile(args: argparse.Namespace) -> dict[str, Any]:
             default=defaults["done_retry_budget"],
             allow_none=True,
         ),
+        "decision_call_budget": _decision_call_budget_setting(args, defaults),
         "context_hard_limit_tokens": _int_setting(
             args,
             "context_hard_limit_tokens",
@@ -271,6 +273,7 @@ def _profile_defaults(
         "raw_fpv_candidate_budget": None,
         "raw_fpv_repeated_failure_limit": None,
         "done_retry_budget": None,
+        "decision_call_budget": None,
         "context_hard_limit_tokens": None,
         "robot_view_capture_policy": {
             "schema": "agent_sdk_robot_view_capture_policy_v1",
@@ -357,6 +360,21 @@ def _profile_defaults(
             },
         }
     raise ValueError(f"unsupported OpenAI Agents SDK performance profile '{profile_id}'")
+
+
+def _decision_call_budget_setting(args: argparse.Namespace, defaults: dict[str, Any]) -> int | None:
+    value = _int_setting(
+        args,
+        "decision_call_budget",
+        DECISION_CALL_BUDGET_ENV,
+        default=defaults["decision_call_budget"],
+        allow_none=True,
+    )
+    if value is not None and value < 1:
+        raise ValueError(
+            f"OpenAI Agents SDK setting decision_call_budget must be positive, got {value!r}"
+        )
+    return value
 
 
 def _context_policy() -> dict[str, Any]:

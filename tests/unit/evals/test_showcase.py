@@ -121,9 +121,20 @@ def test_manifest_rejects_duplicate_ids():
         validate_manifest(m)
 
 
-@pytest.mark.parametrize("key,value", [("timeout_s", 0), ("stall_timeout_s", -1)])
+@pytest.mark.parametrize(
+    "key,value",
+    [("timeout_s", 0), ("stall_timeout_s", -1), ("decision_call_budget", 0)],
+)
 def test_manifest_rejects_non_positive_budgets(key, value):
     m = manifest()
+    if key == "decision_call_budget":
+        m["rows"] = [
+            row
+            for row in json.loads(
+                (Path(__file__).resolve().parents[3] / "config/showcase-manifest.json").read_text()
+            )["rows"]
+            if row["execution_mode"] != "deterministic"
+        ][:1]
     m["rows"][0][key] = value
     with pytest.raises(ValueError, match=f"invalid {key}"):
         validate_manifest(m)
@@ -188,6 +199,7 @@ def test_execute_manifest_does_not_run_model_lane_without_live_request(tmp_path)
             "reason": "live_execution_not_requested",
             "agent_engine": "openai-agents-sdk",
             "provider_profile": "minimax-responses",
+            "decision_call_budget": 16,
         }
     ]
 
@@ -201,8 +213,9 @@ def test_model_lane_live_command_uses_canonical_provider_identity(tmp_path):
     assert "agent_engine=openai-agents-sdk" in command
     assert "provider_profile=kimi-openai-chat" in command
     assert "live_execution=run" in command
-    assert "live_timeout_s=900" in command
+    assert "live_timeout_s=1800" in command
     assert "live_stall_timeout_s=120" in command
+    assert "decision_call_budget=16" in command
     assert "sample_id=open_ended.bread_seed7" in command
     assert "repetition_index=0" in command
 

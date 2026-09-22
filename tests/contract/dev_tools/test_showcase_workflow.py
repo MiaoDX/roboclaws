@@ -70,6 +70,6 @@ def test_showcase_manifest_routes_canonical_suites() -> None:
 
 def test_showcase_manifest_has_separate_startup_and_completion_budgets() -> None:
     manifest = (ROOT / "config/showcase-manifest.json").read_text(encoding="utf-8")
-    assert '"timeout_s": 1200' in manifest
-    assert '"timeout_s": 900, "stall_timeout_s": 600' in manifest
-    assert '"timeout_s": 1800, "stall_timeout_s": 600' in manifest
+    assert '"timeout_s": 1800, "decision_call_budget": 100, "stall_timeout_s": 600' in manifest
+    assert '"timeout_s": 1800, "decision_call_budget": 16, "stall_timeout_s": 120' in manifest
+    assert '"timeout_s": 3600, "decision_call_budget": 100' in manifest

@@ -287,11 +287,23 @@ def semantic_diagnostics(
     # A model may briefly try an expired/hallucinated handle and then recover by
     # re-observing the scene. Keep the raw count for diagnostics, but only treat
     # stale references as blocking when the final authoritative score is partial.
+    # Semantically accepted alternatives count as completion, even when they do
+    # not restore the private exact location. Threshold-only success is not enough.
     score = done_response.get("score", {})
-    stale_reference_recovered = (
-        stale_reference_errors > 0
-        and int(score.get("restored_count", 0)) >= int(score.get("total_targets", 0))
-        and score.get("completion_status") == "success"
+    total_targets = int(score.get("total_targets") or 0)
+    semantic = score.get("semantic_acceptability") or {}
+    all_semantically_accepted = (
+        total_targets > 0
+        and semantic.get("status") == "success"
+        and int(semantic.get("accepted_count") or 0) >= total_targets
+    )
+    stale_reference_recovered = stale_reference_errors > 0 and (
+        all_semantically_accepted
+        or (
+            total_targets > 0
+            and int(score.get("restored_count") or 0) >= total_targets
+            and score.get("completion_status") == "success"
+        )
     )
     duplicate_navigation = duplicate_post_place_navigations(trace_events)
     return {

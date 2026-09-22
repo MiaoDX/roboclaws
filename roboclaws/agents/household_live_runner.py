@@ -34,6 +34,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--decision-call-budget",
+        type=int,
+        default=None,
+        help="Maximum logical model decision calls; provider retries share one call budget slot.",
+    )
+    parser.add_argument(
         "--incomplete-turn-continuation-attempts",
         type=int,
         default=None,
