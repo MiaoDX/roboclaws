@@ -300,10 +300,14 @@ def test_scene_sampler_selection_gap_report_prioritizes_missing_samples(
     assert holodeck["rejected_candidate_indices"] == sorted(HOLODECK_REJECTED_INDICES)
 
 
-def test_scene_sampler_selection_gap_marks_ithor_rejected_when_assets_are_visible() -> None:
-    report = selection_gap_report(candidate_indices=tuple(range(13)))
+def test_scene_sampler_selection_gap_marks_ithor_rejected_when_assets_are_visible(
+    visible_sampler_assets,
+) -> None:
+    candidate_indices = tuple(range(1, 13))
+    report = selection_gap_report(candidate_indices=candidate_indices)
 
     ithor = report["sources"]["ithor"]
+    assert ithor["source_availability_status"] == "available"
     assert ithor["selection_capacity_status"] == "rejected_exhausted"
     assert ithor["next_action"] == "do_not_scan_without_new_human_curation"
     assert ithor["next_ui_scan_world_ids"] == []
@@ -313,12 +317,19 @@ def test_scene_sampler_selection_gap_marks_ithor_rejected_when_assets_are_visibl
     assert {209, 210, 211, 303, 305}.issubset(rejected_ithor)
     assert {404, 406, 408, 411}.issubset(rejected_ithor)
 
-    prep = source_prep_report(candidate_indices=tuple(range(13)))
+    prep = source_prep_report(candidate_indices=candidate_indices)
     assert prep["sources"]["ithor"]["prep_status"] == "rejected_exhausted"
     assert prep["sources"]["ithor"]["install_candidates"] == []
 
 
-def test_scene_sampler_candidate_profile_does_not_reoffer_failed_preview_candidates() -> None:
+def test_scene_sampler_candidate_profile_does_not_reoffer_failed_preview_candidates(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        scene_sampler_readiness,
+        "_molmospaces_module_status",
+        lambda: (False, "module_not_importable:molmo_spaces", ""),
+    )
     report = candidate_profile_report(candidate_indices=(404, 406, 408, 411))
 
     ithor = report["sources"]["ithor"]

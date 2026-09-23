@@ -11,9 +11,13 @@ permissions:
   contents: read
 
 jobs:
-  lint-and-mock:
-    name: Lint & mock tests
+  verify:
+    name: Verify (${{ matrix.shard }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [core, molmospaces]
 
     steps:
       - uses: actions/checkout@v4
@@ -42,9 +46,10 @@ jobs:
         run: uv sync --extra dev
 
       - name: Run required PR gate
-        run: just agent::verify
+        run: just agent::verify "${{ matrix.shard }}"
 
       - name: Run deterministic eval baseline subset
+        if: matrix.shard == 'core'
         env:
           MIMO_RESPONSES_MODEL: ignored-in-ci
           KIMI_API_KEY: placeholder
@@ -52,6 +57,7 @@ jobs:
         run: just agent::eval recommend profile=baseline-ci budget=focused
 
       - name: Check public release candidate
+        if: matrix.shard == 'core'
         run: | # pragma: allowlist secret
           candidate_root="$(mktemp -d)"
           trap 'rm -rf "$candidate_root"' EXIT
@@ -70,8 +76,19 @@ jobs:
 
       - name: Upload required-gate output
         uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && matrix.shard == 'core'
         with:
           name: report-required
           path: output/demo/**
           if-no-files-found: warn
+
+  lint-and-mock:
+    name: Lint & mock tests
+    if: always()
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every verification shard to pass
+        env:
+          VERIFY_RESULT: ${{ needs.verify.result }}
+        run: test "$VERIFY_RESULT" = success

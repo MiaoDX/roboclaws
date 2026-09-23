@@ -76,6 +76,31 @@ def test_scene_sampler_source_prep_report_lists_manual_prep_steps(monkeypatch) -
     assert holodeck["missing_resources"] == []
 
 
+def test_source_prep_reuses_reports_but_refreshes_between_calls(monkeypatch) -> None:
+    from unittest.mock import Mock
+
+    monkeypatch.setattr(
+        scene_sampler_readiness,
+        "_molmospaces_module_status",
+        lambda: (False, "module_not_importable:molmo_spaces", ""),
+    )
+    profile = Mock(wraps=scene_sampler_readiness.candidate_profile_report)
+    rows = Mock(wraps=scene_sampler_readiness.sampler_rows)
+    monkeypatch.setattr(scene_sampler_readiness, "candidate_profile_report", profile)
+    monkeypatch.setattr(scene_sampler_worklists, "candidate_profile_report", profile)
+    monkeypatch.setattr(scene_sampler_readiness, "sampler_rows", rows)
+
+    first = source_prep_report(candidate_indices=(0, 2))
+    assert profile.call_count == 1
+    # One read for requested candidates and one for the expanded profile pool.
+    assert rows.call_count == 2
+    first["sources"]["ithor"]["prep_status"] = "mutated_by_caller"
+    second = source_prep_report(candidate_indices=(0, 2))
+    assert profile.call_count == 2
+    assert rows.call_count == 4
+    assert second["sources"]["ithor"]["prep_status"] != "mutated_by_caller"
+
+
 def test_scene_sampler_source_prep_promotes_metadata_worklist_when_assets_exist(
     monkeypatch,
     tmp_path,
@@ -133,7 +158,7 @@ def test_scene_sampler_source_prep_promotes_metadata_worklist_when_assets_exist(
     monkeypatch.setattr(
         scene_sampler_worklists,
         "selection_gap_report",
-        lambda *, candidate_indices: {
+        lambda *, candidate_indices, candidates: {
             "sources": {
                 source: {
                     "scene_source": source,
@@ -150,9 +175,9 @@ def test_scene_sampler_source_prep_promotes_metadata_worklist_when_assets_exist(
         },
     )
     monkeypatch.setattr(
-        scene_sampler_readiness,
+        scene_sampler_worklists,
         "candidate_profile_report",
-        lambda *, candidate_indices: {
+        lambda *, candidate_indices, selection: {
             "sources": {
                 source: {
                     "profile_status": (

@@ -17,7 +17,11 @@ console::run
 
 - `run::surface` launches a product surface through the typed launch catalog.
 - `agent::eval` selects or runs eval-harness and eval-suite work.
-- `agent::verify` runs the one required local/CI gate.
+- `agent::verify` runs the complete required local gate. CI runs the disjoint
+  `just agent::verify core` and `just agent::verify molmospaces` shards in parallel;
+  the required `Lint & mock tests` check passes only when both succeed. The
+  MolmoSpaces shard includes sampler readiness exports and runs serially within
+  its own runner to avoid shared resource/cache contention.
 - `console::run` starts the local operator console.
 
 There are no compatibility aliases or lower private command registries. A

@@ -239,7 +239,9 @@ def test_scene_sampler_readiness_report_is_per_source() -> None:
     } == HOLODECK_PREFILTER_GATE_MISMATCH_INDICES
 
 
-def test_scene_sampler_candidate_profile_lists_metadata_first_worklists() -> None:
+def test_scene_sampler_candidate_profile_lists_metadata_first_worklists(
+    visible_sampler_assets,
+) -> None:
     report = candidate_profile_report(candidate_indices=tuple(range(10)))
 
     assert report["schema"] == "molmospaces_scene_sampler_candidate_profile_v1"
