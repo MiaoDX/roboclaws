@@ -232,14 +232,15 @@ def source_availability_report(
 def candidate_readiness_report(
     *,
     candidate_indices: tuple[int, ...] = tuple(range(10)),
+    availability: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return no-download candidate packets for the next scanner/admission step."""
 
-    availability = source_availability_report(candidate_indices=candidate_indices)
+    if availability is None:
+        availability = source_availability_report(candidate_indices=candidate_indices)
+    rows = sampler_rows()
     rows_by_source_index = {
-        (row.scene_source, row.scene_index): row
-        for row in sampler_rows()
-        if row.scene_index is not None
+        (row.scene_source, row.scene_index): row for row in rows if row.scene_index is not None
     }
     sources: dict[str, dict[str, Any]] = {}
     for source in SUPPORTED_SCENE_SOURCES:
@@ -250,7 +251,7 @@ def candidate_readiness_report(
                 *candidate_indices,
                 *(
                     int(row.scene_index)
-                    for row in sampler_rows()
+                    for row in rows
                     if row.scene_source == source and row.scene_index is not None
                 ),
             }
@@ -312,10 +313,12 @@ def candidate_readiness_report(
 def selection_gap_report(
     *,
     candidate_indices: tuple[int, ...] = tuple(range(10)),
+    candidates: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return deterministic scanner worklist gaps toward UI/eval source targets."""
 
-    candidates = candidate_readiness_report(candidate_indices=candidate_indices)
+    if candidates is None:
+        candidates = candidate_readiness_report(candidate_indices=candidate_indices)
     sources: dict[str, dict[str, Any]] = {}
     for source in SUPPORTED_SCENE_SOURCES:
         source_payload = candidates["sources"][source]
@@ -396,6 +399,7 @@ def selection_gap_report(
 def candidate_profile_report(
     *,
     candidate_indices: tuple[int, ...] = tuple(range(10)),
+    selection: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return a metadata-first source-scoped candidate profile.
 
@@ -404,7 +408,8 @@ def candidate_profile_report(
     make any candidate UI- or eval-ready.
     """
 
-    selection = selection_gap_report(candidate_indices=candidate_indices)
+    if selection is None:
+        selection = selection_gap_report(candidate_indices=candidate_indices)
     expanded_candidate_indices = _candidate_profile_expanded_indices(
         selection=selection,
         supported_sources=SUPPORTED_SCENE_SOURCES,
@@ -429,6 +434,7 @@ def candidate_profile_report(
 def scene_only_prefilter_report(
     *,
     candidate_indices: tuple[int, ...] = tuple(range(10)),
+    candidate_profile: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return no-download scene-only ranking before expensive source prep.
 
@@ -436,7 +442,8 @@ def scene_only_prefilter_report(
     capped subset that is worth object/grasp installation plus scanner proof.
     """
 
-    candidate_profile = candidate_profile_report(candidate_indices=candidate_indices)
+    if candidate_profile is None:
+        candidate_profile = candidate_profile_report(candidate_indices=candidate_indices)
     return _scene_only_prefilter_report(
         candidate_profile=candidate_profile,
         supported_sources=SUPPORTED_SCENE_SOURCES,

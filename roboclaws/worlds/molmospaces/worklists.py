@@ -55,9 +55,16 @@ def source_prep_report(
     """Return a no-download source-preparation plan for scanner admission work."""
 
     availability = source_availability_report(candidate_indices=candidate_indices)
-    selection = selection_gap_report(candidate_indices=candidate_indices)
-    candidate_profile = candidate_profile_report(candidate_indices=candidate_indices)
-    scene_prefilter = scene_only_prefilter_report(candidate_indices=candidate_indices)
+    candidates = candidate_readiness_report(
+        candidate_indices=candidate_indices, availability=availability
+    )
+    selection = selection_gap_report(candidate_indices=candidate_indices, candidates=candidates)
+    candidate_profile = candidate_profile_report(
+        candidate_indices=candidate_indices, selection=selection
+    )
+    scene_prefilter = scene_only_prefilter_report(
+        candidate_indices=candidate_indices, candidate_profile=candidate_profile
+    )
     return _source_prep_report(
         availability=availability,
         selection=selection,
