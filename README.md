@@ -16,7 +16,7 @@ It answers three practical questions:
 - What context and tools does the agent need?
 - What did the agent actually do in the simulated or robot-backed world?
 
-![Surface, intent, skill, and capability profile architecture](docs/human/mcp-skills-and-semantic-profiles.svg)
+![Roboclaws architecture](docs/architecture/roboclaws-overview.svg)
 
 ## Quick Start
 
