@@ -1,0 +1,115 @@
+direction: down
+classes: {
+  plane: {
+    style: {
+      border-radius: 18
+      stroke-width: 1
+      shadow: true
+      font-color: "#0f172a"
+      fill: "#ffffff"
+      stroke: "#cbd5e1"
+    }
+  }
+  layer: {
+    style: {
+      border-radius: 14
+      stroke-width: 1
+      shadow: true
+      font-color: "#0f172a"
+      font-size: 14
+    }
+  }
+  note: {
+    style: {
+      fill: "#ffffff"
+      stroke: "#cbd5e1"
+      border-radius: 9
+      font-color: "#475569"
+      font-size: 12
+    }
+  }
+}
+title: RoboClaws {
+  shape: text
+  style.font-size: 32
+  style.bold: true
+}
+subtitle: "From open-ended intent to measurable robot impact" {
+  shape: text
+  style.font-size: 16
+  style.font-color: "#64748b"
+}
+human: "Human / Task\nOpen-ended goal · natural language · high-level intent" {
+  class: layer
+  style.fill: "#f8fafc"
+  style.stroke: "#cbd5e1"
+}
+control: "CONTROL PLANE · decide what to do" {
+  class: plane
+  grid-columns: 3
+  skill: "Agent Skill\nReason · Plan · Act · Reflect\nTask decomposition · recovery" {
+    class: layer
+    style.fill: "#f5f3ff"
+    style.stroke: "#a78bfa"
+  }
+  engine: "Agent Engine / Provider Profile\nRuntime loop · model route · budgets" {
+    class: layer
+    style.fill: "#fdf4ff"
+    style.stroke: "#e879f9"
+  }
+  profile: "Capability Profile\nSemantic contract\nCapabilities · constraints · examples" {
+    class: layer
+    style.fill: "#eff6ff"
+    style.stroke: "#60a5fa"
+  }
+  skill -> engine: "runs on"
+  engine -> profile: "uses"
+}
+execution: "EXECUTION PLANE · make the change" {
+  class: plane
+  grid-columns: 3
+  mcp: "MCP Tools\nStandardized robot interface" {
+    class: layer
+    style.fill: "#ecfdf5"
+    style.stroke: "#6ee7b7"
+    grid-columns: 6
+    observe: "observe" { class: note }
+    map: "map" { class: note }
+    navigate: "navigate" { class: note }
+    pick: "pick" { class: note }
+    place: "place" { class: note }
+    done: "done" { class: note }
+  }
+  runtime: "Thin Runtime / Server Adapter\nTransport · lifecycle · readiness" {
+    class: layer
+    style.fill: "#f1f5f9"
+    style.stroke: "#94a3b8"
+  }
+  backends: "Robot Backends\nSimulators / physical platforms" {
+    class: layer
+    style.fill: "#fffbeb"
+    style.stroke: "#fbbf24"
+    grid-columns: 3
+    mujoco: "MuJoCo\nMolmoSpaces" { class: note }
+    isaac: "Isaac Lab\nGPU simulation" { class: note }
+    agibot: "Agibot GDK\nPhysical robot" { class: note }
+  }
+  mcp -> runtime: "binds"
+  runtime -> backends: "dispatches"
+}
+evidence: "Evidence & Evaluation\nMake progress measurable" {
+  class: layer
+  style.fill: "#fff1f2"
+  style.stroke: "#fda4af"
+  grid-columns: 3
+  traces: "Traces" { class: note }
+  artifacts: "Maps / artifacts" { class: note }
+  reports: "Reports / metrics" { class: note }
+}
+human -> control: "goal"
+control -> execution: "exposes tools"
+execution -> evidence: "produces"
+evidence -> human: "feedback & iteration" {
+  style.stroke-dash: 6
+  style.stroke: "#64748b"
+}
