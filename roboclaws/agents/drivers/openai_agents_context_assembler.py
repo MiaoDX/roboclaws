@@ -92,8 +92,7 @@ def assemble_context(
     total = sum(estimate_tokens(item) for item in items)
     reserve = policy.expected_output_tokens + policy.safety_reserve_tokens
     while total + reserve > policy.hard_limit_tokens and raw_count:
-        items.pop(raw_start)
-        raw_count -= 1
+        raw_count -= _evict_oldest_raw_bundle(items, raw_start)
         total = sum(estimate_tokens(item) for item in items)
     return ContextAssemblyResult(
         items,
@@ -103,3 +102,22 @@ def assemble_context(
         policy.hard_limit_tokens,
         total + reserve <= policy.hard_limit_tokens,
     )
+
+
+def _evict_oldest_raw_bundle(items: list[Any], raw_start: int) -> int:
+    """Evict one oldest context unit without orphaning a tool response."""
+    candidate = items[raw_start]
+    if isinstance(candidate, dict):
+        call_id = str(candidate.get("call_id") or "")
+        if call_id:
+            indexes = [
+                index
+                for index in range(raw_start, len(items))
+                if isinstance(items[index], dict)
+                and str(items[index].get("call_id") or "") == call_id
+            ]
+            for index in reversed(indexes):
+                items.pop(index)
+            return len(indexes)
+    items.pop(raw_start)
+    return 1
