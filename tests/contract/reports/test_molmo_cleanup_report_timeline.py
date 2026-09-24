@@ -106,6 +106,7 @@ def test_cleanup_report_renders_runtime_timing_breakdown(tmp_path: Path) -> None
     assert 'class="report-tabs"' in html
     assert "scrollIntoView" in html
     assert 'block: "start"' in html
+    assert 'image.loading = "eager"' in html
     assert "Runtime Timing" in html
     assert "Run wall clock" in html
     assert "MCP trace attribution" in html
