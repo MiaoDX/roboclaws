@@ -44,3 +44,48 @@ def test_recent_raw_eviction_drops_oldest_first() -> None:
     assert result.admitted
     assert "new" in result.items
     assert "old" not in result.items
+
+
+def test_recent_raw_eviction_keeps_function_call_bundles_intact() -> None:
+    recent_raw: list[dict[str, object]] = [{"role": "user", "content": "continue"}]
+    for index in range(60):
+        call_id = f"call_{index:02d}"
+        recent_raw.extend(
+            [
+                {
+                    "type": "message",
+                    "role": "assistant",
+                    "content": [{"type": "output_text", "text": f"step {index}"}],
+                    "id": f"message_{index:02d}",
+                },
+                {
+                    "type": "function_call",
+                    "call_id": call_id,
+                    "name": "observe",
+                    "arguments": "{}",
+                },
+                {
+                    "type": "function_call_output",
+                    "call_id": call_id,
+                    "output": "{}",
+                },
+            ]
+        )
+
+    result = assemble_context(
+        Checkpoint(TaskSnapshot("t", "clean")),
+        recent_raw=recent_raw,
+        policy=ContextBudgetPolicy(1018, expected_output_tokens=1, safety_reserve_tokens=1),
+    )
+
+    calls = {
+        str(item["call_id"])
+        for item in result.items
+        if isinstance(item, dict) and item.get("type") == "function_call"
+    }
+    outputs = {
+        str(item["call_id"])
+        for item in result.items
+        if isinstance(item, dict) and item.get("type") == "function_call_output"
+    }
+    assert calls == outputs
