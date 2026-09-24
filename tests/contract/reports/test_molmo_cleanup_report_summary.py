@@ -256,3 +256,12 @@ def test_long_horizon_uses_terminal_task_status() -> None:
         "final_status": "failed",
         "cleanup_status_role": "terminal",
     }
+
+
+def test_map_build_uses_map_build_terminal_status() -> None:
+    assert terminal_status_payload("map-build", "failed", task_kind="map-build") == {
+        "intent_status": "map_build_complete",
+        "goal_status": "map_build_complete",
+        "final_status": "map_build_complete",
+        "cleanup_status_role": "terminal",
+    }

@@ -53,7 +53,15 @@ def wrap_report_html(
     for (const panel of panels) {{
       const selected = panel.dataset.reportTab === tab;
       panel.hidden = !selected;
-      if (selected) selectedPanel = panel;
+      if (selected) {{
+        selectedPanel = panel;
+        // Timeline reports can contain many review images. Keep them lazy while
+        // a tab is hidden, then start the selected tab's image loads together so
+        // a reviewer never sees an empty timeline while scrolling through it.
+        for (const image of panel.querySelectorAll('img[loading="lazy"]')) {{
+          image.loading = "eager";
+        }}
+      }}
     }}
     if (options.scroll === true && selectedPanel) {{
       requestAnimationFrame(() => {{

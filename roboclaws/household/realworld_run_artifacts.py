@@ -79,7 +79,8 @@ def terminal_status_payload(
     task_kind: str = "",
 ) -> dict[str, str]:
     open_ended = task_intent == "open-ended" and task_kind != "long-horizon"
-    status = "success" if open_ended else cleanup_status
+    map_build = task_kind == "map-build" or task_intent == "map-build"
+    status = "success" if open_ended else "map_build_complete" if map_build else cleanup_status
     return {
         "intent_status": status,
         "goal_status": status,
