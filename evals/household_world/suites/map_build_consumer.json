@@ -1,7 +1,7 @@
 {
   "schema": "roboclaws_eval_suite_v1",
   "suite_id": "household_world.map_build_consumer",
-  "version": "2026-06-24",
+  "version": "2026-09-26",
   "capability": "household_world",
   "sample_ids": [
     "map_build.fixture_focused_seed7",
@@ -41,15 +41,17 @@
     ],
     "model_matrix_provider_profiles": [
       "mimo-responses",
+      "mimo-tp-openai-chat",
       "minimax-responses",
       "kimi-openai-chat"
     ],
     "parallel_execution": {
-      "parallel_group_id": "map_build_consumer_2026_06_24",
-      "provider_cell_count": 3,
+      "parallel_group_id": "map_build_consumer_2026_09_26",
+      "provider_cell_count": 4,
       "default_local_concurrency_width": 1,
       "concurrency_policy": "serial_by_default_for_single_molmospaces_visual_backend_slot",
       "isolation_contract": "one eval trial run_dir per provider/profile cell; shared runtime priors are read-only; raise ROBOCLAWS_MOLMO_MAX_VISUAL_BACKENDS explicitly before parallel live MolmoSpaces cells"
-    }
+    },
+    "baseline_epoch": "baseline_refresh_v2_2026-09-26"
   }
 }

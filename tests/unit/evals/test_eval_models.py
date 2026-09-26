@@ -394,6 +394,7 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
     ]
     assert map_build_consumer_suite.metadata["model_matrix_provider_profiles"] == [
         "mimo-responses",
+        "mimo-tp-openai-chat",
         "minimax-responses",
         "kimi-openai-chat",
     ]
@@ -405,6 +406,7 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
     assert fixture_map_build_sample.provider_profiles == (
         MISSING_NOT_APPLICABLE,
         "mimo-responses",
+        "mimo-tp-openai-chat",
         "minimax-responses",
         "kimi-openai-chat",
     )
