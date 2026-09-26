@@ -428,5 +428,5 @@ def test_openai_agents_launcher_applies_provider_overrides_per_invocation() -> N
     assert "MM_API_KEY" in helper_text
     assert "MM_BASE_URL" in helper_text
     assert "KIMI_API_KEY" in helper_text
-    assert "CODEX_RESPONSES_API_KEY" in helper_text
+    assert "CODEX_RESPONSES_API_KEY" not in helper_text
     assert "MIMO_RESPONSES_API_KEY" in helper_text

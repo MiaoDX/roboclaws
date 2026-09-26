@@ -6,7 +6,6 @@ from typing import Any
 MODEL_CAP_TEXT = "text"
 MODEL_CAP_IMAGE_INPUT = "image_input"
 
-PROVIDER_PROFILE_CODEX_RESPONSES = "codex-responses"
 PROVIDER_PROFILE_MIMO_RESPONSES = "mimo-responses"
 PROVIDER_PROFILE_MIMO_TP_OPENAI_CHAT = "mimo-tp-openai-chat"
 PROVIDER_PROFILE_MINIMAX_RESPONSES = "minimax-responses"
@@ -210,7 +209,6 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
 )
 
 _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
-    _opaque_responses_route(PROVIDER_PROFILE_CODEX_RESPONSES, "Codex", "CODEX_RESPONSES"),
     _opaque_responses_route(PROVIDER_PROFILE_MIMO_RESPONSES, "MiMo", "MIMO_RESPONSES"),
     ProviderRouteSpec(
         route_id=PROVIDER_PROFILE_MIMO_TP_OPENAI_CHAT,

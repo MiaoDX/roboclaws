@@ -45,7 +45,7 @@ def _campaign() -> tuple[Campaign, str]:
             },
             "optimizer": {
                 "agent_engine": "openai-agents-sdk",
-                "provider_profile": "codex-responses",
+                "provider_profile": "mimo-responses",
                 "model": "optimizer",
                 "settings": {},
             },

@@ -7,7 +7,6 @@ import os
 from pathlib import Path
 from typing import Any
 
-from roboclaws.agents import provider_transport as pt
 from roboclaws.agents.drivers.openai_agents_compaction import (
     _model_input_compaction_filter,
 )
@@ -153,7 +152,7 @@ def _apply_provider_default_model_settings(
         headers = dict(payload.get("extra_headers") or {})
         headers.setdefault("User-Agent", KIMI_CODING_USER_AGENT)
         payload["extra_headers"] = headers
-    return pt.compatible_model_settings(provider_profile, payload)
+    return payload
 
 
 def _sdk_run_config_payload(

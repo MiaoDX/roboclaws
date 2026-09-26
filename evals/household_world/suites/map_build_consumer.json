@@ -40,7 +40,6 @@
       "fixture_focused_prior"
     ],
     "model_matrix_provider_profiles": [
-      "codex-responses",
       "mimo-responses",
       "minimax-responses",
       "kimi-openai-chat"

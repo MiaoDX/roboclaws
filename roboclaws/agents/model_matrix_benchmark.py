@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 from roboclaws.agents.provider_registry import route_base_url
-from roboclaws.agents.provider_transport import provider_default_headers
 from roboclaws.agents.thinking_policy import thinking_request_body_for_wire
 from roboclaws.core.provider_catalog import provider_route_spec
 
@@ -127,7 +126,7 @@ AGENT_BENCHMARK_CASES: tuple[AgentBenchmarkCase, ...] = (
         prompt=(
             "Given this sanitized Agent SDK performance row, decide whether it is an accepted "
             "speedup, expected-rejected evidence, or blocked evidence. Keep private data out.\n\n"
-            "Row: provider_profile=codex-responses, model=codex, "
+            "Historical row: provider_profile=codex-responses, model=codex, "
             "evidence_lane=camera-grounded-labels. "
             "Baseline completed with done and report artifacts. Candidate O+AC completed with "
             "done and same-or-better quality. Observed wall time delta=-659.477s and model API "
@@ -261,7 +260,7 @@ def selected_agent_cases(*, case_ids: set[str]) -> tuple[AgentBenchmarkCase, ...
 
 def _opaque_responses_cases() -> tuple[MatrixCase, ...]:
     cases = []
-    for profile in ("codex-responses", "mimo-responses"):
+    for profile in ("mimo-responses",):
         route = provider_route_spec(profile)
         assert route.request_model_env
         label = route.label.removesuffix(" Responses")
@@ -435,7 +434,6 @@ def headers_for_case(case: MatrixCase, *, api_key: str) -> dict[str, str]:
         headers["anthropic-version"] = "2023-06-01"
         headers["x-api-key"] = api_key
     headers.update(dict(case.headers))
-    headers.update(provider_default_headers(case.provider_id))
     return headers
 
 

@@ -1,4 +1,8 @@
 ---
+
+> Historical record: Codex Responses and CloudML batch evaluation were retired
+> on 2026-09-26. The commands and next steps below describe the former system.
+
 plan_scope: cloudml-juicefs-eval
 status: active
 implementation_allowed: true

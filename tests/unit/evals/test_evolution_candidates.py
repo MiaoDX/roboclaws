@@ -36,7 +36,7 @@ def _campaign(repo: Path, skill: Path) -> Campaign:
             },
             "optimizer": {
                 "agent_engine": "openai-agents-sdk",
-                "provider_profile": "codex-responses",
+                "provider_profile": "mimo-responses",
                 "model": "optimizer",
                 "settings": {},
             },

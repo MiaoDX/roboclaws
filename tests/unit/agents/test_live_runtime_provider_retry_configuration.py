@@ -48,7 +48,7 @@ def test_openai_agents_default_model_settings_apply_provider_thinking_policy() -
     assert kimi_chat["extra_headers"] == {"User-Agent": "claude-code/1.0.0"}
 
 
-def test_openai_agents_runtime_uses_explicit_codex_responses_profile(
+def test_openai_agents_runtime_uses_explicit_mimo_responses_profile(
     tmp_path: Path, monkeypatch
 ) -> None:
     captured: dict[str, object] = {}
@@ -71,9 +71,9 @@ def test_openai_agents_runtime_uses_explicit_codex_responses_profile(
             captured["base_url"] = base_url
             captured["default_headers"] = default_headers
 
-    monkeypatch.setenv("CODEX_RESPONSES_BASE_URL", "https://codex.example.test/v1")
-    monkeypatch.setenv("CODEX_RESPONSES_API_KEY", "fake-codex-key")
-    monkeypatch.setenv("CODEX_RESPONSES_MODEL", "opaque-codex-model")
+    monkeypatch.setenv("MIMO_RESPONSES_BASE_URL", "https://mimo.example.test/v1")
+    monkeypatch.setenv("MIMO_RESPONSES_API_KEY", "fake-mimo-key")
+    monkeypatch.setenv("MIMO_RESPONSES_MODEL", "mimo-v2.6-pro")
     monkeypatch.setattr(
         "roboclaws.agents.drivers.openai_agents_live._run_with_async_mcp_server",
         lambda *_args, **_kwargs: SimpleNamespace(final_output="done"),
@@ -113,21 +113,21 @@ def test_openai_agents_runtime_uses_explicit_codex_responses_profile(
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
-        provider_profile="codex-responses",
+        provider_profile="mimo-responses",
     )
 
     OpenAIAgentsLiveRuntime().run(request)
 
-    assert captured["model"] == "opaque-codex-model"
-    assert captured["base_url"] == "https://codex.example.test/v1"
-    assert captured["api_key"] == "fake-codex-key"
-    assert captured["default_headers"]["X-Codex-Window-Id"].endswith(":0")
+    assert captured["model"] == "mimo-v2.6-pro"
+    assert captured["base_url"] == "https://mimo.example.test/v1"
+    assert captured["api_key"] == "fake-mimo-key"
+    assert captured["default_headers"] is None
     wrapped_model = captured["agent_kwargs"]["model"]
     assert isinstance(wrapped_model, _RetryingModel)
     assert wrapped_model.base_model is captured["responses_model"]
     assert captured["agent_kwargs"]["model_settings"].tool_choice == "auto"
     assert captured["agent_kwargs"]["model_settings"].parallel_tool_calls is False
-    assert not hasattr(captured["agent_kwargs"]["model_settings"], "truncation")
+    assert captured["agent_kwargs"]["model_settings"].truncation == "auto"
     assert not hasattr(captured["agent_kwargs"]["model_settings"], "extra_headers")
     assert captured["runner_kwargs"]["run_config"].trace_include_sensitive_data is False
     assert captured["runner_kwargs"]["run_config"].workflow_name == "roboclaws-openai-agents-live"

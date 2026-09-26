@@ -20,7 +20,7 @@ def _campaign_payload() -> dict[str, object]:
         },
         "optimizer": {
             "agent_engine": "openai-agents-sdk",
-            "provider_profile": "codex-responses",
+            "provider_profile": "mimo-responses",
             "model": "codex-model",
             "settings": {},
         },

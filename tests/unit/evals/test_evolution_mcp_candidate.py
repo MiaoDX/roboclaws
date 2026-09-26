@@ -23,7 +23,7 @@ def _campaign(tmp_path: Path) -> Campaign:
             },
             "optimizer": {
                 "agent_engine": "openai-agents-sdk",
-                "provider_profile": "codex-responses",
+                "provider_profile": "mimo-responses",
                 "model": "optimizer",
                 "settings": {},
             },

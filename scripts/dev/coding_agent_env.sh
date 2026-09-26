@@ -30,9 +30,6 @@ roboclaws_provider_registry() {
   local python_cmd
   python_cmd="$(roboclaws_python)" || return
   # shellcheck disable=SC2086
-  CODEX_RESPONSES_BASE_URL="${CODEX_RESPONSES_BASE_URL:-}" \
-  CODEX_RESPONSES_API_KEY="${CODEX_RESPONSES_API_KEY:-}" \
-  CODEX_RESPONSES_MODEL="${CODEX_RESPONSES_MODEL:-}" \
   MIMO_RESPONSES_BASE_URL="${MIMO_RESPONSES_BASE_URL:-}" \
   MIMO_RESPONSES_API_KEY="${MIMO_RESPONSES_API_KEY:-}" \
   MIMO_RESPONSES_MODEL="${MIMO_RESPONSES_MODEL:-}" \
@@ -151,10 +148,10 @@ roboclaws_assert_openai_agents_provider_allowed() {
   local provider
   provider="$(roboclaws_code_agent_provider ROBOCLAWS_PROVIDER_PROFILE)" || return
   case "$provider" in
-    codex-responses|mimo-responses|mimo-tp-openai-chat|minimax-responses|kimi-openai-chat|qwen-tp-responses)
+    mimo-responses|mimo-tp-openai-chat|minimax-responses|kimi-openai-chat|qwen-tp-responses)
       ;;
     *)
-      echo "error: unsupported OpenAI Agents SDK provider '${provider}'; expected codex-responses, mimo-responses, mimo-tp-openai-chat, minimax-responses, kimi-openai-chat, or qwen-tp-responses" >&2
+      echo "error: unsupported OpenAI Agents SDK provider '${provider}'; expected mimo-responses, mimo-tp-openai-chat, minimax-responses, kimi-openai-chat, or qwen-tp-responses" >&2
       return 2
       ;;
   esac

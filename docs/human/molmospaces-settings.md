@@ -494,7 +494,7 @@ KIMI_API_KEY=<your-key>
 
 Every SDK launch selects one profile explicitly. `kimi-openai-chat` uses the
 Kimi variables above. `minimax-responses` uses `MM_BASE_URL` and `MM_API_KEY`.
-`codex-responses` uses the `CODEX_RESPONSES_*` triple; `mimo-responses` uses
+`mimo-responses` uses
 the `MIMO_RESPONSES_*` triple. Endpoint, key, and request-model values stay in
 the gitignored local environment. The runtime does not fall back between
 profiles or between Chat Completions and Responses.

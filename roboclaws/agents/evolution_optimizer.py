@@ -165,7 +165,6 @@ def run_optimizer_agent(
     client = AsyncOpenAI(
         api_key=settings["api_key"],
         base_url=settings["base_url"],
-        **provider_transport.provider_client_options(settings["provider_profile"], run_dir),
     )
     model = _provider_model(
         settings,
@@ -173,9 +172,7 @@ def run_optimizer_agent(
         responses_model_cls=OpenAIResponsesModel,
         chat_model_cls=OpenAIChatCompletionsModel,
     )
-    configured_settings = provider_transport.compatible_model_settings(
-        settings["provider_profile"], dict(optimizer.get("settings") or {})
-    )
+    configured_settings = dict(optimizer.get("settings") or {})
     reserved_output_tokens = provider_transport.bounded_output_tokens(
         model=settings["model"],
         token_budget=float(campaign.budgets["tokens"]),

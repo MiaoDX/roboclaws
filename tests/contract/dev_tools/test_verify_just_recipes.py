@@ -22,7 +22,6 @@ def test_standalone_pytest_uses_repo_python_and_can_clear_provider_env() -> None
     assert "run 'uv sync --extra dev' in this checkout" in script_text
     for provider_variable in (
         "KIMI_API_KEY",
-        "CODEX_RESPONSES_API_KEY",
         "MIMO_RESPONSES_API_KEY",
         "MM_API_KEY",
         "OPENAI_API_KEY",

@@ -5,17 +5,6 @@ source_of_truth:
   narrative: docs/human/model-matrix.md
 verdicts:
   - agent_engine: openai-agents-sdk
-    provider_route: codex-responses
-    provider_profile: codex-responses
-    model_id: codex
-    route_status: experimental
-    lane_verdicts:
-      structured_labels: healthy
-      camera_grounded_labels: experimental
-      camera_raw_fpv: blocked
-    evidence: Deterministic proof and provider health pass; the two-sample fixed-prior consumer suite passes with 97 successful model requests and no provider failures, privacy leaks, or trajectory violations.
-    notes: A thin profile-scoped adapter supplies required ephemeral request metadata and omits unsupported default truncation. Reports retain only public profile/model labels.
-  - agent_engine: openai-agents-sdk
     provider_route: mimo-responses
     provider_profile: mimo-responses
     model_id: mimo
