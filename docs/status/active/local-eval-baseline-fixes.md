@@ -1,6 +1,6 @@
 # Local baseline failure fixes
 
-Status: ACTIVE. Owner: root intuitive-flow session. Latest intent: implement
+Status: DONE. Owner: root intuitive-flow session. Latest intent: implement
 the five known issues and rerun corresponding proof. Source: the user-approved
 diagnosis and `local-eval-baseline-refresh.md`; original evidence remains at
 `output/eval-harness/20260927T081341Z/`.
@@ -42,8 +42,7 @@ Accepted scope and proof:
 - Recheck original MiMo TP cleanup stall using the unchanged bounded timeout.
   Do not infer a local repair from a transient stall or substitute providers.
 
-Current slice: implementation and corresponding proof are complete except for
-provider-blocked MiniMax live behavior. No workers or competing task owners. The numbered-target original
+Current slice: implementation and corresponding proof are complete. No workers or competing task owners. The numbered-target original
 sample and the three-sample direct open-ended smoke suite pass in
 `output/evals/baseline-fixes/household_world_open_ended_goals/` (stamps
 `numbered-target-attempt1` and `direct-open-ended-regression`). Numbered matching,
@@ -55,15 +54,14 @@ Live proof: `mimo-tp-cleanup-attempt1` finished under
 original provider and unchanged 180s stall timeout: passed, 68 model attempts,
 67 successful calls, no provider failures, and a successful cleanup outcome.
 No live-trial retries.
-Provider probe passes MiMo TP but MiniMax still returns HTTP 500 with the
-explicit Token Plan usage limit (2056). MiniMax behavior proof remains blocked;
-the repaired classification is tested as non-retryable quota. Preserve this
-distinction from actual goal behavior acceptance.
+Provider probe passes both MiMo TP and MiniMax. The drink, dynamic-full, and
+sandbox-skills reruns each passed with zero failed or blocked trials. The
+repaired classification remains covered by its non-retryable quota tests.
 
 Verification: repo `.venv`, standalone pytest wrapper, Ruff, then sample-sharded
 eval CLI runs using the canonical prior, original providers, new output dirs,
 and no live-trial retries. Live quota/availability must be recorded explicitly.
 
-Stop condition: accepted fixes verified or a fresh external blocker prevents
-remaining live proof. No baseline promotion, cloud tasks, private-truth hints,
-credential changes, or grader relaxation. No unrelated cleanup is parked here.
+Stop condition met: accepted fixes verified. No baseline promotion, cloud tasks,
+private-truth hints, credential changes, or grader relaxation. No unrelated
+cleanup is parked here.

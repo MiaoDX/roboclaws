@@ -93,8 +93,9 @@ change, or overwrite of historical results occurred.
 
 ## Next action
 
-Investigate the two goal-predicate failures and the dynamic-full tool-name
-mismatch from their saved traces. After MiniMax quota recovers, rerun the blocked
-sandbox trial as a separate attempt; similarly recheck the MiMo TP stall without
-replacing this packet. Passing reruns must retain links to these original
-failures before any baseline promotion is considered.
+Follow-up fixes and original-provider reruns are recorded separately under
+`output/evals/baseline-fixes/`. The numbered area-inspection sample, MiniMax
+drink search, MiniMax dynamic-full cleanup, MiniMax sandbox-skills cleanup, and
+MiMo TP fixed-prior cleanup all passed. These targeted reruns retain the
+original failed packet as historical evidence and do not promote a new
+baseline.
