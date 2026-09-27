@@ -16,23 +16,15 @@ from roboclaws.core.task_intents import (
 )
 
 TOOL_PROTOCOL_PREFIX = (
-    "Use the household MCP tool entries exactly as exposed by Codex; in text, "
-    "refer to unprefixed tool names, and if the tool protocol requires a namespace "
-    "use namespace household, never mcp__household__ or roboclaws__. "
-)
-
-OPEN_TASK_TOOL_PROTOCOL_PREFIX = (
-    "Use the household MCP tool entries exactly as exposed by Codex; in text, "
-    "refer to unprefixed tool names, and if the tool protocol requires a namespace "
-    "use namespace household, never mcp__household__ or roboclaws__. "
+    "Call tools using their exact exposed names, such as metric_map, observe, and done. "
+    "These tool names are unprefixed; do not add a server namespace. "
 )
 
 COMMON_PREFIX = "Use the bundled household-world skill instructions. " + TOOL_PROTOCOL_PREFIX
 
 CUSTOM_PREFIX = (
     "Use the bundled household-world skill instructions. "
-    "Use the MCP tools as a bounded household robot capability surface. "
-    + OPEN_TASK_TOOL_PROTOCOL_PREFIX
+    "Use the MCP tools as a bounded household robot capability surface. " + TOOL_PROTOCOL_PREFIX
 )
 
 RUN_ARTIFACT_CONTRACT = (

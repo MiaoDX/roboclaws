@@ -7,10 +7,11 @@ metadata:
 
 # Household World
 
-Use only the `roboclaws__*` MCP tools exposed for the run. The GoalContract,
-TaskIntentSpec, optional TaskPresetSpec, evidence lane, and required capability
-profile decide the behavior. Task type does not create a separate runner or
-skill.
+Use only the MCP tools exposed for the run, with their exact unprefixed names
+(such as `metric_map`, `observe`, and `done`). Do not add a server namespace.
+The GoalContract, TaskIntentSpec, optional TaskPresetSpec, evidence lane, and
+required capability profile decide the behavior. Task type does not create a
+separate runner or skill.
 
 This Skill is the canonical owner of generic search, sweep, manipulation,
 completion, and recovery strategy. Run kickoff context supplies only the
@@ -27,7 +28,7 @@ show Private Evaluation after a run, but that information is not agent input.
 
 - No preset, `intent=open-ended`: the operator goal is authoritative. Inspect
   only as much as the goal needs, use public map/observation/target-query
-  evidence, and call `roboclaws__done(reason)` when the goal is satisfied,
+  evidence, and call `done(reason)` when the goal is satisfied,
   blocked by a public capability response, or exhausted by the public search
   budget.
 - `preset=cleanup`, `intent=cleanup`: run a full household cleanup sweep.
@@ -41,15 +42,15 @@ show Private Evaluation after a run, but that information is not agent input.
 
 ## Shared Loop
 
-1. Call `roboclaws__metric_map()` when map context is needed. Cleanup and
+1. Call `metric_map()` when map context is needed. Cleanup and
    map-build presets call it first.
 2. Treat `metric_map.inspection_waypoints` as public coverage candidates, not
    private task hints. Use Base Metric Map waypoints, public room labels,
-   Runtime Metric Map evidence, and `roboclaws__resolve_target_query()` for
+   Runtime Metric Map evidence, and `resolve_target_query()` for
    named places, stale labels, destinations, or open-ended search terms.
 3. Navigate only through public waypoints or public target candidates with
-   `roboclaws__navigate_to_waypoint()`, then observe with
-   `roboclaws__observe()`. Use `roboclaws__adjust_camera()` only for bounded
+   `navigate_to_waypoint()`, then observe with
+   `observe()`. Use `adjust_camera()` only for bounded
    public recovery when target or observation evidence is incomplete.
 4. Follow public recovery responses such as `required_tool`,
    `required_next_tool`, `blocked_capability`, `destination_options`,
@@ -59,7 +60,7 @@ show Private Evaluation after a run, but that information is not agent input.
    semantic anchors, inspected viewpoints, and the returned public search
    budget.
 
-Never return a final answer before calling `roboclaws__done(reason)`. Treat each
+Never return a final answer before calling `done(reason)`. Treat each
 atomic MCP response's versioned `completion` snapshot as the authoritative
 pre-terminal readiness state. Call `done` exactly once, only when that snapshot
 is ready; `done` is terminal and cannot be used to discover or recover work.
@@ -77,10 +78,13 @@ searches). If the result is `not_found` and
 `exhausted_public_search_budget` is false, do not retry equivalent synonyms.
 Follow the returned `public_search_budget.viewpoint_budget.unvisited_waypoint_ids`
 in order: navigate to the next public waypoint, observe once, then resolve the
-original target again. After the budget reports no unvisited waypoint and the
-final resolution is `not_found`, call `done` immediately with the public
-not-found evidence. Never turn a negative search into cleanup or an unbounded
-camera sweep.
+original target again. After observing the last waypoint, call
+`resolve_target_query` for the original target once more **before `done`**.
+An earlier resolution is stale after new observations, even if `metric_map`
+now shows no unvisited waypoints. Claim not found and call `done` only when
+this fresh final resolution returns both `status=not_found` and
+`exhausted_public_search_budget=true`; include that public evidence. Never turn
+a negative search into cleanup or an unbounded camera sweep.
 
 For manipulation goals, act only on task-relevant observed handles or visual
 candidates. If the backend blocks manipulation, report the blocker and call
@@ -92,7 +96,7 @@ sweep or a preset selects that policy.
 
 Build an exact checklist from `metric_map.inspection_waypoints`. For each
 useful waypoint or current-room area, call
-`roboclaws__navigate_to_waypoint(waypoint_id)`, then `roboclaws__observe()`.
+`navigate_to_waypoint(waypoint_id)`, then `observe()`.
 Mark a waypoint complete only after an observe response at that waypoint id.
 Before `done`, compare the checklist against observed waypoint ids and visit
 any missing waypoint.
@@ -143,7 +147,7 @@ other public fixture evidence.
 
 In `camera-raw-fpv`, inspect raw FPV image evidence directly. Select at most
 one fresh high-confidence cleanup object per source observation, then call
-`roboclaws__navigate_to_visual_candidate(...)` only when you intend to act on a
+`navigate_to_visual_candidate(...)` only when you intend to act on a
 visual candidate. Do not pre-register raw-FPV candidates with
 `declare_visual_candidates`. If a compact continuation supplies bounded public
 next actions from the latest completion snapshot, finish any
@@ -160,7 +164,7 @@ Omit `source_fixture_id` when Base Metric Map context is sufficient, and omit
 unknown `target_fixture_id` values rather than sending empty, null-like text.
 
 In `camera-grounded-labels`, when
-`roboclaws__observe_camera_grounded_candidates()` is exposed, use it as the
+`observe_camera_grounded_candidates()` is exposed, use it as the
 waypoint observation tool. Its response already contains the server-side DINO
 declaration; do not call `declare_visual_candidates` again for that source
 observation. Otherwise use `observe`, then `declare_visual_candidates` with the

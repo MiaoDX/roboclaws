@@ -79,7 +79,7 @@ def test_cleanup_skill_prioritizes_done_over_optional_reclean_loops() -> None:
     compact = " ".join(text.split())
 
     assert "Call `done` exactly once after its status is `ready`" in compact
-    assert "Never return a final answer before calling `roboclaws__done(reason)`" in compact
+    assert "Never return a final answer before calling `done(reason)`" in compact
     assert "`done` is terminal and cannot be used to discover or recover work" in compact
     assert "Do not observe again after a successful placement" in compact
     assert "default budget is one observation per inspection waypoint" in compact
