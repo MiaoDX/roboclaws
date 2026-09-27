@@ -243,6 +243,31 @@ def test_kimi_missing_choices_is_observable_and_retried_once(tmp_path: Path) -> 
     assert failures[0]["retry_exhausted"] is False
 
 
+def test_minimax_token_plan_limit_is_not_retried_as_http_500() -> None:
+    message = (
+        "Error code: 500 - {'error': {'message': '已达到 Token Plan 用量上限："
+        "请升级 Token Plan 套餐或购买积分补充用量。 (2056)', 'code': 'server_error'}}"
+    )
+    should_retry, failure = _should_retry_model_service_failure(
+        RuntimeError(message), attempt_index=0, retry_attempts=1
+    )
+    assert should_retry is False
+    assert failure.reason == "provider_quota_failure"
+    assert failure.provider_reason == "billing_limit"
+    assert failure.retryable is False
+    assert failure.resume_available is False
+
+
+def test_unrelated_http_500_with_same_numeric_code_stays_transient() -> None:
+    should_retry, failure = _should_retry_model_service_failure(
+        RuntimeError("Error code: 500 - internal server error (2056)"),
+        attempt_index=0,
+        retry_attempts=1,
+    )
+    assert should_retry is True
+    assert failure.reason == "provider_transient_failure"
+
+
 def test_kimi_billing_limit_is_provider_quota_failure_without_retry() -> None:
     message = (
         "Error code: 403 - {'error': {'message': \"You've reached your usage limit "
