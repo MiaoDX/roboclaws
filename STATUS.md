@@ -17,12 +17,13 @@ provider routes continue. See
 `docs/status/active/codex-responses-api-investigation.md` for evidence and limits.
 
 The first full local baseline refresh after retirement completed: 29 rows,
-24 passed, 3 failed, 2 blocked. All four fixed-prior providers ran locally;
-MiMo Responses, Kimi, and MiniMax passed both samples, while MiMo TP cleanup
-stalled. Remaining failures concern open-ended goal predicates and a dynamic
-skill tool-name mismatch; the last MiniMax sandbox trial hit its Token Plan
-limit. No baseline was promoted. See
-`docs/status/active/local-eval-baseline-refresh.md`.
+24 passed, 3 failed, 2 blocked. The follow-up fixes now pass the numbered
+area-inspection sample, the direct open-ended search suite, and the original
+MiMo TP fixed-prior cleanup sample (68 model attempts, no provider failures).
+Tool guidance now matches the unprefixed MCP surface, and explicit MiniMax
+Token Plan exhaustion is classified as non-retryable quota. The MiniMax live
+behavior rerun remains blocked by the provider's active quota limit. No
+baseline was promoted. See `docs/status/active/local-eval-baseline-fixes.md`.
 
 The State-First Context Manager implementation is complete for typed
 snapshots/checkpoints, pre-call bounded reconstruction, and checkpointed
@@ -110,9 +111,10 @@ providers.
 
 ## Next Action
 
-Triage the new local baseline's goal-predicate and tool-name failures; recheck
-the MiMo TP stall and rerun the blocked MiniMax sandbox trial after quota
-recovers. Preserve the original packet and record reruns as separate attempts.
+After MiniMax's Token Plan quota recovers, rerun the original drink,
+dynamic-full, and sandbox-skills samples as separate attempts. Preserve the
+original packet and the current blocked evidence; no baseline promotion is
+authorized by these reruns.
 The historical Kimi cleanup comparison remains a separate State-First Phase 4
 gate; no additional state-first implementation repair is currently indicated.
 
@@ -122,9 +124,10 @@ decisions remain unchanged.
 
 ## Current Blockers
 
-- The 2026-09-27 local baseline is not passing: three failed rows and two
-  blocked rows (MiMo TP stall and MiniMax Token Plan quota). All deterministic
-  gates and local product rows, including both DINO products, passed.
+- The 2026-09-27 local baseline remains historical and is not passing: its
+  three failed rows and two blocked rows are preserved. Follow-up fixes pass
+  the direct goal regressions and MiMo TP cleanup; MiniMax live behavior proof
+  is blocked by the provider's Token Plan quota.
 - State-First Phase 4's historical 2026-09-25 packet has five Kimi cleanup
   comparison trials blocked by the provider's 5-hour quota. The latest Kimi
   fixed-prior samples passed, but they do not replace that comparison slice.
