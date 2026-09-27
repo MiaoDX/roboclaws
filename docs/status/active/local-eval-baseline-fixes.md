@@ -42,17 +42,19 @@ Accepted scope and proof:
 - Recheck original MiMo TP cleanup stall using the unchanged bounded timeout.
   Do not infer a local repair from a transient stall or substitute providers.
 
-Current slice: implementation is in place; corresponding live proof is in
-progress. No workers or competing task owners. The numbered-target original
+Current slice: implementation and corresponding proof are complete except for
+provider-blocked MiniMax live behavior. No workers or competing task owners. The numbered-target original
 sample and the three-sample direct open-ended smoke suite pass in
 `output/evals/baseline-fixes/household_world_open_ended_goals/` (stamps
 `numbered-target-attempt1` and `direct-open-ended-regression`). Numbered matching,
 stale fixture recovery, provider retry, prompt delivery, and continuation tests
 pass. Whole-repo Ruff lint/format checks pass.
 
-Live proof: `mimo-tp-cleanup-attempt1` is running under
+Live proof: `mimo-tp-cleanup-attempt1` finished under
 `output/evals/baseline-fixes/household_world_map_consumer_fixed_prior/`, with the
-original provider and unchanged 180s stall timeout. No live-trial retries.
+original provider and unchanged 180s stall timeout: passed, 68 model attempts,
+67 successful calls, no provider failures, and a successful cleanup outcome.
+No live-trial retries.
 Provider probe passes MiMo TP but MiniMax still returns HTTP 500 with the
 explicit Token Plan usage limit (2056). MiniMax behavior proof remains blocked;
 the repaired classification is tested as non-retryable quota. Preserve this
