@@ -11,6 +11,7 @@ from roboclaws.core.task_intents import (
 from roboclaws.household.household_runtime_contract import (
     HouseholdRuntimeContract,
 )
+from roboclaws.household.target_query import filter_numbered_target_candidates
 from roboclaws.maps.runtime_prior_artifact import read_runtime_map_prior_artifact
 
 
@@ -32,19 +33,21 @@ def _open_ended_prior_waypoint_ids(
         return ()
     if str(getattr(goal_contract, "intent", "") or "") != HOUSEHOLD_INTENT_OPEN_ENDED:
         return ()
-    prompt_tokens = _search_tokens(
-        [
-            task_prompt,
-            str(getattr(goal_contract, "normalized_goal", "") or ""),
-            str(getattr(goal_contract, "raw_prompt", "") or ""),
-        ]
-    )
+    prompts = [
+        task_prompt,
+        str(getattr(goal_contract, "normalized_goal", "") or ""),
+        str(getattr(goal_contract, "raw_prompt", "") or ""),
+    ]
+    prompt_tokens = _search_tokens(prompts)
     if not prompt_tokens:
         return ()
     matches: list[str] = []
-    for anchor in runtime_map_prior.get("public_semantic_anchors") or []:
-        if not isinstance(anchor, dict):
-            continue
+    anchors = [
+        anchor
+        for anchor in runtime_map_prior.get("public_semantic_anchors") or []
+        if isinstance(anchor, dict)
+    ]
+    for anchor in filter_numbered_target_candidates(" ".join(prompts), anchors):
         waypoint_id = str(anchor.get("waypoint_id") or "")
         if not waypoint_id:
             continue
@@ -53,6 +56,7 @@ def _open_ended_prior_waypoint_ids(
                 str(anchor.get("label") or ""),
                 str(anchor.get("category") or ""),
                 str(anchor.get("anchor_type") or ""),
+                waypoint_id,
                 *[str(item) for item in anchor.get("aliases") or []],
             ]
         )
@@ -77,7 +81,7 @@ def _search_tokens(values: list[str]) -> set[str]:
     }
     tokens: set[str] = set()
     for value in values:
-        for token in re.findall(r"[a-zA-Z0-9]+", value.lower()):
+        for token in re.findall(r"[a-z]+|[0-9]+", value.lower()):
             if len(token) > 2 and token not in ignored:
                 tokens.add(token)
     return tokens
