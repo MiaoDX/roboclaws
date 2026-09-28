@@ -14,6 +14,7 @@ from roboclaws.core.dotenv import load_dotenv_file
 from roboclaws.core.provider_catalog import (
     MODEL_CAP_TEXT,
     PROVIDER_PROFILE_MIMO_RESPONSES,
+    ACTIVE_PROVIDER_PROFILES,
     ROUTE_CAP_SUPPORTED,
     ROUTE_CAP_UNKNOWN,
     default_provider_profile,
@@ -35,10 +36,16 @@ EXPECTED_PROFILES = (
     "kimi-openai-chat",
     "qwen-tp-responses",
 )
+EXPECTED_ACTIVE_PROFILES = (
+    "mimo-responses",
+    "mimo-tp-openai-chat",
+    "minimax-responses",
+)
 
 
 def test_openai_agents_registry_has_exact_public_profile_set() -> None:
-    assert supported_provider_profiles("openai-agents-sdk") == EXPECTED_PROFILES
+    assert supported_provider_profiles("openai-agents-sdk") == EXPECTED_ACTIVE_PROFILES
+    assert ACTIVE_PROVIDER_PROFILES == EXPECTED_ACTIVE_PROFILES
     assert tuple(route.route_id for route in provider_route_specs()) == EXPECTED_PROFILES
     assert default_provider_profile("openai-agents-sdk") == PROVIDER_PROFILE_MIMO_RESPONSES
 

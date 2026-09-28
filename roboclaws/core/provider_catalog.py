@@ -12,6 +12,14 @@ PROVIDER_PROFILE_MINIMAX_RESPONSES = "minimax-responses"
 PROVIDER_PROFILE_KIMI_OPENAI_CHAT = "kimi-openai-chat"
 PROVIDER_PROFILE_QWEN_TP_RESPONSES = "qwen-tp-responses"
 
+# Executable product/eval routes. Legacy route specifications remain readable
+# for historical reports, but callers selecting a live route must use this set.
+ACTIVE_PROVIDER_PROFILES = (
+    PROVIDER_PROFILE_MIMO_RESPONSES,
+    PROVIDER_PROFILE_MIMO_TP_OPENAI_CHAT,
+    PROVIDER_PROFILE_MINIMAX_RESPONSES,
+)
+
 ROUTE_CAP_SUPPORTED = "supported"
 ROUTE_CAP_UNSUPPORTED = "unsupported"
 ROUTE_CAP_UNKNOWN = "unknown"
@@ -382,7 +390,12 @@ def normalize_provider_route(route_id: str | None, *, default: str = "") -> str:
 
 
 def provider_routes_for_engine(agent_engine: str) -> tuple[ProviderRouteSpec, ...]:
-    return tuple(spec for spec in _PROVIDER_ROUTE_SPECS if agent_engine in spec.supported_engines)
+    return tuple(
+        spec
+        for spec in _PROVIDER_ROUTE_SPECS
+        if spec.public_profile in ACTIVE_PROVIDER_PROFILES
+        and agent_engine in spec.supported_engines
+    )
 
 
 def supported_provider_profiles(agent_engine: str) -> tuple[str, ...]:
