@@ -207,11 +207,11 @@ def test_execute_manifest_does_not_run_model_lane_without_live_request(tmp_path)
 def test_model_lane_live_command_uses_canonical_provider_identity(tmp_path):
     root = Path(__file__).resolve().parents[3]
     m = json.loads((root / "config/showcase-manifest.json").read_text())
-    row = next(row for row in m["rows"] if row["id"] == "household_world.open_ended_goals.kimi")
+    row = next(row for row in m["rows"] if row["id"] == "household_world.open_ended_goals.minimax")
     command = _row_command(row, live_execution="run", output_dir=tmp_path)
     assert command is not None
     assert "agent_engine=openai-agents-sdk" in command
-    assert "provider_profile=kimi-openai-chat" in command
+    assert "provider_profile=minimax-responses" in command
     assert "live_execution=run" in command
     assert "live_timeout_s=1800" in command
     assert "live_stall_timeout_s=120" in command
