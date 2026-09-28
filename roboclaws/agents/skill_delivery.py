@@ -33,8 +33,7 @@ def validate_runtime_skill_delivery_cell(value: str | None) -> str:
     cell = validate_skill_delivery_cell(value)
     if cell not in ACTIVE_SKILL_DELIVERY_CELLS:
         raise ValueError(
-            "runtime skill_delivery_cell must be one of "
-            + ", ".join(ACTIVE_SKILL_DELIVERY_CELLS)
+            "runtime skill_delivery_cell must be one of " + ", ".join(ACTIVE_SKILL_DELIVERY_CELLS)
         )
     return cell
 

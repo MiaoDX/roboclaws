@@ -57,7 +57,13 @@ def test_operator_console_sdk_map_build_does_not_select_baseline_profile(
 
 
 def test_provider_gate_requires_agent_key_route(tmp_path: Path, monkeypatch) -> None:
-    for key in ("MM_API_KEY", "MIMO_RESPONSES_API_KEY", "MIMO_RESPONSES_BASE_URL", "MIMO_RESPONSES_MODEL", "OPENAI_API_KEY"):
+    for key in (
+        "MM_API_KEY",
+        "MIMO_RESPONSES_API_KEY",
+        "MIMO_RESPONSES_BASE_URL",
+        "MIMO_RESPONSES_MODEL",
+        "OPENAI_API_KEY",
+    ):
         monkeypatch.delenv(key, raising=False)
     readiness = route_readiness(
         tmp_path,

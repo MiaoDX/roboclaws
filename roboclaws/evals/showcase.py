@@ -13,9 +13,9 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from roboclaws.core.provider_catalog import ACTIVE_PROVIDER_PROFILES
 from roboclaws.evals.public_reports import published_visual_report_href
 from roboclaws.evals.showcase_process import run_showcase_command
-from roboclaws.core.provider_catalog import ACTIVE_PROVIDER_PROFILES
 
 SCHEMA = "roboclaws_showcase_summary_v1"
 MANIFEST_SCHEMA = "roboclaws_showcase_manifest_v1"

@@ -12,9 +12,9 @@ from roboclaws.agents.provider_registry import (
 )
 from roboclaws.core.dotenv import load_dotenv_file
 from roboclaws.core.provider_catalog import (
+    ACTIVE_PROVIDER_PROFILES,
     MODEL_CAP_TEXT,
     PROVIDER_PROFILE_MIMO_RESPONSES,
-    ACTIVE_PROVIDER_PROFILES,
     ROUTE_CAP_SUPPORTED,
     ROUTE_CAP_UNKNOWN,
     default_provider_profile,
