@@ -73,11 +73,11 @@ Current live product route:
   `MIMO_RESPONSES_API_KEY`, and `MIMO_RESPONSES_MODEL`.
 - `mimo-tp-openai-chat` requires `MIMO_OPENAI_BASE_URL` and `MIMO_TP_KEY`.
 - `minimax-responses` requires `MM_BASE_URL` and `MM_API_KEY`.
-- `kimi-openai-chat` requires `KIMI_OPENAI_BASE_URL` and `KIMI_API_KEY`.
-- `qwen-tp-responses` requires `QWEN_TP_BASE_URL` and `QWEN_TP_KEY`.
 
-Every OpenAI Agents SDK launch selects one of these profiles explicitly. The
-runtime never falls back between Responses and Chat Completions transports.
+Every OpenAI Agents SDK launch selects one of the three active profiles
+explicitly. Kimi/Qwen identities remain readable in historical artifacts but
+are rejected by current executable manifests. The runtime never falls back
+between Responses and Chat Completions transports.
 
 Provider eval placement is fixed by the harness manifest, not inferred from a
 one-off connectivity probe:
@@ -85,9 +85,9 @@ one-off connectivity probe:
 - The eval harness runs locally. CloudML batch evaluation is retired.
 - `mimo-responses` remains an internal route and requires a reachable configured
   endpoint from the workstation.
-- `mimo-tp-openai-chat`, `kimi-openai-chat`, `minimax-responses`, and
-  `qwen-tp-responses` remain available locally and in the trusted GitHub Actions
-  capability showcase according to their existing readiness contracts.
+- `mimo-tp-openai-chat` and `minimax-responses` remain available locally and in
+  the trusted GitHub Actions capability showcase according to their readiness
+  contracts.
 
 Before system-provider Claude Code workflows:
 
@@ -145,9 +145,9 @@ Examples:
 - Map build:
   `just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=map-build agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=grounding-dino`
 - SDK cleanup:
-  `just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=cleanup agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=world-public-labels`
+  `just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=cleanup agent_engine=openai-agents-sdk provider_profile=minimax-responses evidence_lane=world-public-labels`
 - Open household goal:
-  `just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat prompt="我渴了，帮我找些解渴的东西"`
+  `just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=mimo-responses prompt="我渴了，帮我找些解渴的东西"`
 - Planner proof:
   `just run::surface surface=planner-proof world=planner-proof/default backend=mujoco intent=planner-proof agent_engine=direct-runner mode=dry-run`
 
