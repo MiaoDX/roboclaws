@@ -14,7 +14,7 @@
   "prompt": "请找到 Generated exploration candidate 5，并报告你到达的位置。",
   "goal_contract_hash": "unavailable",
   "allowed_agent_engines": ["direct-runner", "openai-agents-sdk"],
-  "provider_profiles": ["not_applicable", "codex-responses", "mimo-responses", "minimax-responses", "kimi-openai-chat"],
+  "provider_profiles": ["not_applicable", "mimo-responses", "minimax-responses", "kimi-openai-chat"],
   "trial_count": 1,
   "required_graders": ["artifacts", "privacy", "trajectory", "open_ended"],
   "private_goal_reference": {

@@ -7,7 +7,6 @@ from typing import Any
 from roboclaws.agents.drivers.openai_agents_run_config import KIMI_CODING_USER_AGENT
 from roboclaws.agents.provider_transport import (
     bounded_output_tokens,
-    compatible_model_settings,
 )
 from roboclaws.core.provider_catalog import (
     PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
@@ -42,7 +41,7 @@ def _sdk_model_settings_for_profile(profile: dict[str, Any]) -> dict[str, Any]:
         settings["include_usage"] = True
         if provider_profile == PROVIDER_PROFILE_KIMI_OPENAI_CHAT:
             settings["extra_headers"] = {"User-Agent": KIMI_CODING_USER_AGENT}
-    return compatible_model_settings(provider_profile, settings)
+    return settings
 
 
 def _sdk_run_config_for_profile(_profile: dict[str, Any]) -> dict[str, Any]:

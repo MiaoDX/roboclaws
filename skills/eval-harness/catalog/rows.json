@@ -44,22 +44,9 @@
     }
   },
   "provider_execution_policies": {
-    "codex-responses": {
-      "provider_network_scope": "internal",
-      "allowed_execution_targets": [
-        "local",
-        "cloudml"
-      ],
-      "execution_requirements": [
-        "network:configured-endpoint"
-      ]
-    },
     "mimo-responses": {
       "provider_network_scope": "internal",
-      "allowed_execution_targets": [
-        "local",
-        "cloudml"
-      ],
+      "allowed_execution_targets": ["local"],
       "execution_requirements": [
         "network:configured-endpoint"
       ]
@@ -352,50 +339,6 @@
       "profiles": [
         "baseline-core",
         "baseline-live-default",
-        "baseline-refresh"
-      ]
-    },
-    {
-      "row_id": "map-build-consumer-openai-agents-sdk-codex-responses",
-      "row_kind": "live_agent_eval",
-      "command": [
-        ".venv/bin/python",
-        "-m",
-        "roboclaws.evals.cli",
-        "suite=map_consumer_fixed_prior",
-        "runtime_map_prior={runtime_map_prior}",
-        "budget=focused",
-        "output_dir={eval_output_root}",
-        "stamp=map-build-consumer-openai-agents-sdk-codex-responses",
-        "agent_engine=openai-agents-sdk",
-        "provider_profile=codex-responses",
-        "live_execution=run"
-      ],
-      "axes": {
-        "agent_engine": "openai-agents-sdk",
-        "provider_profile": "codex-responses",
-        "intent": "map-build-consumer",
-        "suite": "map_consumer_fixed_prior",
-        "evidence_lane": "world-public-labels",
-        "backend": "{default_backend}",
-        "world": "{default_world}",
-        "parallel_group_id": "{map_build_consumer_parallel_group}",
-        "provider_cell_count": "{provider_cell_count}",
-        "default_local_concurrency_width": "1",
-        "concurrency_policy": "{concurrency_policy}"
-      },
-      "reason_selected": "MapBuild consumer proof keeps Codex Responses as one explicit provider cell.",
-      "expense": "live-agent",
-      "selection_rule_ids": [
-        "map_build"
-      ],
-      "requires": [
-        "python_env",
-        "openai_agents_package",
-        "provider_profile",
-        "runtime_map_prior"
-      ],
-      "profiles": [
         "baseline-refresh"
       ]
     },

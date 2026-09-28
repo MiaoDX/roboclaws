@@ -232,7 +232,6 @@ def test_openai_agents_route_payload_lists_provider_profiles() -> None:
 
     assert payload["provider_profile"] == "kimi-openai-chat"
     assert payload["supported_provider_profiles"] == [
-        "codex-responses",
         "mimo-responses",
         "mimo-tp-openai-chat",
         "minimax-responses",
@@ -240,7 +239,6 @@ def test_openai_agents_route_payload_lists_provider_profiles() -> None:
         "qwen-tp-responses",
     ]
     route_by_profile = {route["provider_profile"]: route for route in payload["provider_routes"]}
-    assert route_by_profile["codex-responses"]["default_model_id"] == "codex"
     assert route_by_profile["mimo-responses"]["default_model_id"] == "mimo"
     assert route_by_profile["minimax-responses"]["route_status"] == "healthy"
     assert route_by_profile["kimi-openai-chat"]["wire_api"] == "chat-completions"

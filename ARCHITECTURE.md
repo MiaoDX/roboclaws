@@ -83,17 +83,14 @@ Package proof CLIs
 - **Agent Engines And Provider Profiles** distinguish the product runtime
   (`agent_engine=openai-agents-sdk` for live agents, or `direct-runner` for
   deterministic proof) from the
-  model/key route (`provider_profile=codex-responses`, `mimo-responses`,
-  `mimo-tp-openai-chat`, `minimax-responses`, or `kimi-openai-chat`). Codex and MiMo use separate
-  environment-owned endpoint, key, and request-model triples while sharing the
-  standard Responses model path. Their internal routes are eligible on both the
-  local workstation and CloudML. Kimi and MiniMax use external routes and eval
-  only from the local workstation; provider rows carry this as
-  `provider_network_scope` plus fail-closed `allowed_execution_targets`
-  manifest fields. The hosted showcase uses MiMo's public Chat route while the
-  environment-configured MiMo Responses route remains internal. A thin Codex-only HTTP compatibility adapter
-  supplies required ephemeral request metadata and omits unsupported default
-  settings; artifacts retain only public profile/model labels.
+  model/key route (`provider_profile=mimo-responses`, `mimo-tp-openai-chat`,
+  `minimax-responses`, `kimi-openai-chat`, or `qwen-tp-responses`). MiMo Responses
+  uses an environment-owned endpoint, key, and request-model triple.
+  The hosted showcase uses MiMo's separate public Chat route.
+  Provider rows retain `provider_network_scope` and fail-closed
+  `allowed_execution_targets` manifest fields; the Eval Harness supports local
+  execution only. Codex Responses and CloudML batch evaluation are retired.
+  Artifacts retain only public profile/model labels.
   Retired live engines `codex-cli` and `claude-code` are rejected by current
   launch validation rather than preserved as compatibility aliases.
   `direct-runner` is the deterministic contract/eval baseline, not a live robot
@@ -147,7 +144,7 @@ Package proof CLIs
   the Opik web frontend on one named trusted-LAN interface. Prompt content is
   represented only by immutable Git, Skill, and rendered-prompt digests. Opik
   cannot schedule, authorize, grade, promote, or gate product or eval execution.
-  After canonical suite persistence, accepted CloudML collection, and terminal
+  After canonical suite persistence and terminal
   Eval Harness publication, the corresponding package owner automatically
   projects immutable Datasets, Experiments, traces, spans, and scores. The
   adjacent `opik_projection.json` receipt records `ready`, `disabled`, or

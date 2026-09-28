@@ -74,17 +74,17 @@ def test_eval_runner_records_live_agent_blocked_identity(tmp_path: Path) -> None
 def test_eval_runner_redacts_opaque_provider_request_model_identity(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("CODEX_RESPONSES_MODEL", "gpt-5.5")
+    monkeypatch.setenv("MIMO_RESPONSES_MODEL", "mimo-v2.6-pro")
 
     run = run_eval_suite(
         "cleanup_capability",
         output_root=tmp_path,
         stamp="resolved-model",
         agent_engine="openai-agents-sdk",
-        provider_profile="codex-responses",
+        provider_profile="mimo-responses",
     )
 
-    assert {result["identity"]["model"] for result in run.bundle["results"]} == {"codex"}
+    assert {result["identity"]["model"] for result in run.bundle["results"]} == {"mimo"}
 
 
 def test_eval_runner_keeps_public_provider_model_identity(tmp_path: Path) -> None:

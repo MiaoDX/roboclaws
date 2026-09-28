@@ -63,14 +63,12 @@ gitignored. Source it before any real VLM/provider call:
 
 ```bash
 set -a && source .env && set +a
-python -c "import os; assert os.environ.get('KIMI_API_KEY') or os.environ.get('CODEX_RESPONSES_API_KEY') or os.environ.get('MIMO_RESPONSES_API_KEY') or os.environ.get('MM_API_KEY'), 'No provider key set - did you source .env?'"
+python -c "import os; assert os.environ.get('KIMI_API_KEY') or os.environ.get('MIMO_RESPONSES_API_KEY') or os.environ.get('MM_API_KEY'), 'No provider key set - did you source .env?'"
 ```
 
 Current live product route:
 
 - `agent_engine=openai-agents-sdk`
-- `codex-responses` requires `CODEX_RESPONSES_BASE_URL`,
-  `CODEX_RESPONSES_API_KEY`, and `CODEX_RESPONSES_MODEL`.
 - `mimo-responses` requires `MIMO_RESPONSES_BASE_URL`,
   `MIMO_RESPONSES_API_KEY`, and `MIMO_RESPONSES_MODEL`.
 - `mimo-tp-openai-chat` requires `MIMO_OPENAI_BASE_URL` and `MIMO_TP_KEY`.
@@ -84,14 +82,12 @@ runtime never falls back between Responses and Chat Completions transports.
 Provider eval placement is fixed by the harness manifest, not inferred from a
 one-off connectivity probe:
 
-- `codex-responses` is an internal route allowed on the local workstation and
-  CloudML. `mimo-responses` may run from GitHub Actions only when its configured
-  endpoint is reachable from that runner.
+- The eval harness runs locally. CloudML batch evaluation is retired.
+- `mimo-responses` remains an internal route and requires a reachable configured
+  endpoint from the workstation.
 - `mimo-tp-openai-chat`, `kimi-openai-chat`, `minimax-responses`, and
-  `qwen-tp-responses` are external routes allowed on the
-  local workstation and in the trusted GitHub Actions capability showcase.
-  CloudML has no supported public-internet route for them; never submit those
-  rows to CloudML even if an incidental probe succeeds.
+  `qwen-tp-responses` remain available locally and in the trusted GitHub Actions
+  capability showcase according to their existing readiness contracts.
 
 Before system-provider Claude Code workflows:
 

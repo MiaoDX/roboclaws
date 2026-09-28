@@ -11,7 +11,6 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-from roboclaws.agents import provider_transport as pt
 from roboclaws.agents.drivers.openai_agents_event_log import (
     _append_event,
     _recording_tool_error_function,
@@ -595,7 +594,6 @@ def _model_for_request(request: LiveAgentRequest) -> Any:
         "api_key": settings["api_key"],
         "base_url": settings["base_url"],
     }
-    client_kwargs.update(pt.provider_client_options(settings["provider_profile"], request.run_dir))
     client = AsyncOpenAI(**client_kwargs)
     if settings["wire_api"] == "responses":
         from agents import OpenAIResponsesModel  # type: ignore[import-not-found]

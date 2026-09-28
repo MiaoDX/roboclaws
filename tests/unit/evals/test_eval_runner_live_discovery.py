@@ -89,7 +89,7 @@ def test_eval_runner_regrades_existing_live_artifacts_without_provider_call(
 @pytest.mark.parametrize(
     ("override", "message"),
     (
-        ({"provider_profile": "codex-responses"}, "provider_profile"),
+        ({"provider_profile": "mimo-responses"}, "provider_profile"),
         ({"skill_name": "other-skill"}, "skill_name"),
         ({"skill_delivery_cell": "no-skill"}, "skill_delivery_cell"),
     ),

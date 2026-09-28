@@ -1,5 +1,9 @@
 # Restore Codex And MiMo Responses Cells
 
+> Historical record: Codex Responses and CloudML batch evaluation were retired
+> on 2026-09-26. The commands and next steps below describe the former system.
+
+
 **Status:** Implemented
 **Created:** 2026-07-27
 **Last reviewed:** 2026-07-27

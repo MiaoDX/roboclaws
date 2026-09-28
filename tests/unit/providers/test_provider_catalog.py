@@ -13,7 +13,6 @@ from roboclaws.agents.provider_registry import (
 from roboclaws.core.dotenv import load_dotenv_file
 from roboclaws.core.provider_catalog import (
     MODEL_CAP_TEXT,
-    PROVIDER_PROFILE_CODEX_RESPONSES,
     PROVIDER_PROFILE_MIMO_RESPONSES,
     ROUTE_CAP_SUPPORTED,
     ROUTE_CAP_UNKNOWN,
@@ -30,7 +29,6 @@ from roboclaws.core.provider_catalog import (
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 EXPECTED_PROFILES = (
-    "codex-responses",
     "mimo-responses",
     "mimo-tp-openai-chat",
     "minimax-responses",
@@ -86,6 +84,7 @@ def test_unknown_agent_engines_share_one_readiness_error(agent_engine: str) -> N
 @pytest.mark.parametrize(
     "deleted",
     [
+        "codex-responses",
         "retired-responses-route",
         "retired-chat-route",
         "retired-anthropic-route",
@@ -203,10 +202,7 @@ def test_mimo_responses_accepts_provider_qualified_wire_model(model: str) -> Non
 
 @pytest.mark.parametrize(
     ("profile", "env_prefix", "public_model"),
-    [
-        (PROVIDER_PROFILE_CODEX_RESPONSES, "CODEX_RESPONSES", "codex"),
-        (PROVIDER_PROFILE_MIMO_RESPONSES, "MIMO_RESPONSES", "mimo"),
-    ],
+    [(PROVIDER_PROFILE_MIMO_RESPONSES, "MIMO_RESPONSES", "mimo")],
 )
 def test_opaque_responses_routes_use_required_environment_and_public_model(
     profile: str,
@@ -235,10 +231,7 @@ def test_opaque_responses_routes_use_required_environment_and_public_model(
 
 @pytest.mark.parametrize(
     ("profile", "env_prefix", "public_model"),
-    [
-        ("codex-responses", "CODEX_RESPONSES", "codex"),
-        ("mimo-responses", "MIMO_RESPONSES", "mimo"),
-    ],
+    [("mimo-responses", "MIMO_RESPONSES", "mimo")],
 )
 def test_opaque_readiness_requires_url_key_and_model(
     profile: str,
@@ -286,10 +279,7 @@ def test_openai_agents_settings_require_explicit_profile() -> None:
 
 @pytest.mark.parametrize(
     ("profile", "env_prefix", "public_model"),
-    [
-        ("codex-responses", "CODEX_RESPONSES", "codex"),
-        ("mimo-responses", "MIMO_RESPONSES", "mimo"),
-    ],
+    [("mimo-responses", "MIMO_RESPONSES", "mimo")],
 )
 def test_opaque_runtime_settings_resolve_environment_model(
     profile: str,

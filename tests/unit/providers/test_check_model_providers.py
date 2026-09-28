@@ -3,8 +3,16 @@ from __future__ import annotations
 import importlib.util
 import json
 import sys
-import uuid
 from pathlib import Path
+
+import pytest
+
+
+def test_retired_probe_cannot_report_empty_success() -> None:
+    script = _load_script_module()
+    args = script.parse_args(["--probe", "codex-responses", "--require-all"])
+    with pytest.raises(ValueError, match="unknown provider probe"):
+        script.select_probes(args)
 
 
 def _load_script_module():
@@ -31,7 +39,6 @@ def test_provider_probe_defaults_cover_kimi_and_payload() -> None:
     probes = {probe.probe_id: probe for probe in script.build_provider_probes()}
 
     assert set(probes) == {
-        "provider:codex-responses",
         "provider:mimo-responses",
         "provider:mimo-tp-openai-chat",
         "provider:minimax-responses-m3",
@@ -57,90 +64,6 @@ def test_provider_probe_defaults_exclude_unavailable_official_openai_route() -> 
 
     assert "provider:openai-responses" not in probes
     assert all(probe.api_key_env != "OPENAI_API_KEY" for probe in probes.values())
-
-
-def test_codex_probes_apply_required_transport_headers(monkeypatch) -> None:
-    script = _load_script_module()
-    captured: dict[str, object] = {}
-    monkeypatch.setenv("CODEX_RESPONSES_API_KEY", "fake-codex-key")
-    monkeypatch.setenv("CODEX_RESPONSES_BASE_URL", "https://codex.example/v1")
-    monkeypatch.setenv("CODEX_RESPONSES_MODEL", "opaque-model")
-
-    class FakeModelSettings:
-        def __init__(self, **_kwargs) -> None:
-            pass
-
-    class FakeAgent:
-        def __init__(self, **_kwargs) -> None:
-            pass
-
-    class FakeRunner:
-        @staticmethod
-        def run_sync(*_args, **_kwargs):
-            return type("Result", (), {"final_output": "ok"})()
-
-    class FakeAsyncOpenAI:
-        def __init__(self, **kwargs) -> None:
-            captured["async_client"] = kwargs
-
-    class FakeResponsesModel:
-        def __init__(self, model: str, *, openai_client: object) -> None:
-            captured["request_model"] = model
-            captured["model_client"] = openai_client
-
-    class FakeResponses:
-        @staticmethod
-        def create(**_kwargs):
-            return type("Response", (), {"status": "completed", "output_text": "ok"})()
-
-    class FakeOpenAI:
-        def __init__(self, **kwargs) -> None:
-            captured["sync_client"] = kwargs
-            self.responses = FakeResponses()
-
-    monkeypatch.setitem(
-        sys.modules,
-        "agents",
-        type(
-            "FakeAgentsModule",
-            (),
-            {
-                "Agent": FakeAgent,
-                "ModelSettings": FakeModelSettings,
-                "OpenAIChatCompletionsModel": object,
-                "OpenAIResponsesModel": FakeResponsesModel,
-                "Runner": FakeRunner,
-                "set_tracing_disabled": staticmethod(lambda *_args, **_kwargs: None),
-            },
-        ),
-    )
-    monkeypatch.setitem(
-        sys.modules,
-        "openai",
-        type(
-            "FakeOpenAIModule",
-            (),
-            {"AsyncOpenAI": FakeAsyncOpenAI, "OpenAI": FakeOpenAI},
-        ),
-    )
-
-    agent_probe = {probe.probe_id: probe for probe in script.build_agent_sdk_probes()}[
-        "agents-sdk:codex-responses"
-    ]
-    raw_probe = {probe.probe_id: probe for probe in script.build_provider_probes()}[
-        "provider:codex-responses"
-    ]
-
-    assert script.run_probe(agent_probe, prompt="ok", timeout_s=1.0).status == "PASS"
-    assert script.run_probe(raw_probe, prompt="ok", timeout_s=1.0).status == "PASS"
-    assert agent_probe.model == "codex"
-    assert raw_probe.model == "codex"
-    assert captured["request_model"] == "opaque-model"
-    for client_key in ("async_client", "sync_client"):
-        window_id = captured[client_key]["default_headers"]["X-Codex-Window-Id"]
-        thread_id, generation = window_id.rsplit(":", 1)
-        assert uuid.UUID(thread_id)
-        assert generation == "0"
 
 
 def test_mimo_probe_results_redact_endpoint_key_and_request_model(monkeypatch) -> None:
@@ -222,7 +145,6 @@ def test_agents_sdk_probe_defaults_use_larger_responses_budget() -> None:
     probes = {probe.probe_id: probe for probe in script.build_agent_sdk_probes()}
 
     assert probes["agents-sdk:minimax-responses"].max_tokens >= 256
-    assert probes["agents-sdk:codex-responses"].max_tokens >= 256
     assert probes["agents-sdk:mimo-responses"].max_tokens >= 256
     assert probes["agents-sdk:mimo-tp-openai-chat"].model == "mimo-v2.6-pro"
     assert probes["agents-sdk:kimi-openai-chat"].model == "kimi-for-coding"
@@ -395,7 +317,6 @@ def test_agents_sdk_public_profile_excludes_internal_routes() -> None:
     selected = script.select_probes(args)
 
     assert {probe.probe_id for probe in selected} == {
-        "agents-sdk:codex-responses",
         "agents-sdk:mimo-responses",
         "agents-sdk:mimo-tp-openai-chat",
         "agents-sdk:minimax-responses",
@@ -403,7 +324,6 @@ def test_agents_sdk_public_profile_excludes_internal_routes() -> None:
         "agents-sdk:qwen-tp-responses",
     }
     public_routes = {
-        "codex-responses",
         "mimo-responses",
         "mimo-tp-openai-chat",
         "minimax-responses",
