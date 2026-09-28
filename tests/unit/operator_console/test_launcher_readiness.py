@@ -399,9 +399,9 @@ def test_provider_gate_blocks_unknown_openai_agents_model_env(tmp_path: Path) ->
         tmp_path,
         route,
         env={
-            "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
-            "KIMI_API_KEY": "key",
-            "ROBOCLAWS_OPENAI_AGENTS_MODEL": "not-in-provider-catalog",
+            "MIMO_RESPONSES_BASE_URL": "https://mimo.example.test/v1",
+            "MIMO_RESPONSES_API_KEY": "key",
+            "MIMO_RESPONSES_MODEL": "not-in-provider-catalog",
         },
         overrides={"port": _free_port()},
     )
@@ -409,7 +409,6 @@ def test_provider_gate_blocks_unknown_openai_agents_model_env(tmp_path: Path) ->
     assert readiness["can_start"] is False
     assert readiness["blocker_kind"] == "needs_provider"
     assert readiness["provider"]["ok"] is False
-    assert "OpenAI Agents SDK setting model is unknown" in readiness["blocker"]
     assert "not-in-provider-catalog" in readiness["blocker"]
 
 

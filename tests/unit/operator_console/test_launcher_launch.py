@@ -109,7 +109,7 @@ def test_cleanup_workflow_launch_argv_uses_camera_grounded_and_standard_mess_def
     assert "camera_labeler=grounding-dino" in argv
     assert "scenario_setup=relocate-cleanup-related-objects" in argv
     assert "relocation_count=5" in argv
-    assert "provider_profile=kimi-openai-chat" in argv
+    assert "provider_profile=mimo-responses" in argv
     assert not any(item.startswith("agent_sdk_perf_profile=") for item in argv)
     assert "--agent-sdk-perf-profile" not in argv
     assert "ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE=baseline" not in argv

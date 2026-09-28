@@ -137,7 +137,7 @@ def test_console_prompt_gating_and_argv_construction_are_fixed_argv(tmp_path: Pa
     ]
     assert "preset=cleanup" in argv
     assert "evidence_lane=world-public-labels" in argv
-    assert "provider_profile=kimi-openai-chat" in argv
+    assert "provider_profile=mimo-responses" in argv
     assert "prompt=pick up the mug; rm -rf /" in argv
     assert "scenario_setup=relocate-cleanup-related-objects" in argv
     assert "relocation_count=2" in argv

@@ -10,6 +10,9 @@ from roboclaws.operator_console.routes import get_selection
 KIMI_ENV = {
     "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
     "KIMI_API_KEY": "key",
+    "MIMO_RESPONSES_BASE_URL": "https://mimo.example.test/v1",
+    "MIMO_RESPONSES_API_KEY": "key",
+    "MIMO_RESPONSES_MODEL": "mimo",
 }
 AGIBOT_SDK_MAP_BUILD = (
     "agibot-g2/map-12::agibot-gdk::map-build::openai-agents-sdk::camera-grounded-labels"
