@@ -14,9 +14,9 @@ the State-First GSD cursor and links here only when that initiative is relevant.
 ## Verification state
 
 Focused provider/catalog and console-route tests pass. Shared console fixtures
-now provide the catalog-owned MiMo environment while retaining explicit Kimi
-coverage. The broader console suite still has default-readiness assertions and
-fixtures that assume Kimi, so provider migration remains unfinished.
+and default-path assertions now use the catalog-owned MiMo environment while
+retaining explicit Kimi coverage. The full operator-console suite passes.
+Provider migration remains unfinished outside the console surface.
 Plan-level checks completed: referenced-path scan and `git diff --check`.
 Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 
@@ -30,10 +30,9 @@ Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 
 ## Next action
 
-Migrate operator-console readiness fixtures/assertions and remaining local
-default callers to the catalog-owned MiMo route, then reconcile the listed
-records and inventory executable versus historical Skill/provider callers
-before phase 2 edits.
+Reconcile the remaining executable versus historical Skill/provider callers,
+then migrate the active provider catalog, manifests and documentation before
+retiring executable Kimi/Qwen routes.
 
 ## Stop/resume conditions
 
