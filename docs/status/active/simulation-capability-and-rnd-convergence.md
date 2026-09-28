@@ -45,6 +45,7 @@ Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 - Reserved scene 13 first attempt is recorded at `output/convergence-visual/minimax/scene13/trial0/`: the authoritative run artifact also reports `completion_status=success`, four grounded cleanup chains, 5-target grading, sweep coverage 1.0, and zero disturbances. Its outer checker likewise exited nonzero on strict robot-view evidence, so it remains behavioral evidence pending validator-clean replay.
 - A fresh scene 11 replay after the held-object evidence fix was started at `output/convergence-visual/minimax/scene11/trial1/` but terminated before producing `run_result.json`; it is retained as an incomplete infrastructure attempt and does not replace the earlier scene 11 artifact.
 - The scene 11 trial1 terminal packet records MiniMax Token Plan quota exhaustion (`2056`, `provider_quota_failure`, `billing_limit`) after 25 successful model calls. The attempt is non-retryable under the provider contract; no further MiniMax cohort replay is authorized until quota availability changes.
+- MiMo Responses development smoke scene 0 was attempted at `output/convergence-visual/mimo/scene0/trial0/`; it reached 66 successful model calls and continued making tool progress for roughly 30 minutes without an authoritative `done`/`run_result.json`. It was stopped as an incomplete bounded attempt and does not count as MiMo acceptance.
 
 ## Next action
 
