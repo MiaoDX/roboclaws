@@ -27,12 +27,14 @@ Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 - State-First record: `docs/status/active/state-first-context-manager.md`
 - Reviewed Skill probe: `docs/status/active/skill-delivery-multiscene-probe.md`
 - Plan gate recommendation: `output/eval-harness/20260928T101404Z/eval_harness.{json,md}`
+- Active provider catalog surface: `mimo-responses`, `mimo-tp-openai-chat`, `minimax-responses`; legacy route specs remain readable for historical artifacts.
+- Trusted showcase manifest now contains only active provider rows; Kimi rows remain only in historical evidence/readers.
 
 ## Next action
 
-Reconcile the remaining executable versus historical Skill/provider callers,
-then migrate the active provider catalog, manifests and documentation before
-retiring executable Kimi/Qwen routes.
+Migrate remaining executable provider callers, manifests and documentation to
+the active three-route surface, then split Skill execution from historical
+report identity before retiring delivery branches.
 
 ## Stop/resume conditions
 

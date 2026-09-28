@@ -390,12 +390,7 @@ def normalize_provider_route(route_id: str | None, *, default: str = "") -> str:
 
 
 def provider_routes_for_engine(agent_engine: str) -> tuple[ProviderRouteSpec, ...]:
-    return tuple(
-        spec
-        for spec in _PROVIDER_ROUTE_SPECS
-        if spec.public_profile in ACTIVE_PROVIDER_PROFILES
-        and agent_engine in spec.supported_engines
-    )
+    return tuple(spec for spec in _PROVIDER_ROUTE_SPECS if agent_engine in spec.supported_engines)
 
 
 def supported_provider_profiles(agent_engine: str) -> tuple[str, ...]:

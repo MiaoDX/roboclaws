@@ -44,7 +44,7 @@ EXPECTED_ACTIVE_PROFILES = (
 
 
 def test_openai_agents_registry_has_exact_public_profile_set() -> None:
-    assert supported_provider_profiles("openai-agents-sdk") == EXPECTED_ACTIVE_PROFILES
+    assert supported_provider_profiles("openai-agents-sdk") == EXPECTED_PROFILES
     assert ACTIVE_PROVIDER_PROFILES == EXPECTED_ACTIVE_PROFILES
     assert tuple(route.route_id for route in provider_route_specs()) == EXPECTED_PROFILES
     assert default_provider_profile("openai-agents-sdk") == PROVIDER_PROFILE_MIMO_RESPONSES
