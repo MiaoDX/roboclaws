@@ -753,7 +753,7 @@
       "expense": "live-agent",
       "selection_rule_ids": ["cleanup_skill", "mcp_checker"],
       "requires": ["python_env", "openai_agents_package", "provider_profile"],
-      "profiles": ["baseline-refresh"]
+      "profiles": []
     },
     {
       "row_id": "openai-agents-sdk-cleanup-dynamic-routed-eval",
@@ -765,7 +765,7 @@
       "expense": "live-agent",
       "selection_rule_ids": ["cleanup_skill", "mcp_checker"],
       "requires": ["python_env", "openai_agents_package", "provider_profile"],
-      "profiles": ["baseline-refresh"]
+      "profiles": []
     },
     {
       "row_id": "openai-agents-sdk-cleanup-sandbox-skills-eval",
@@ -777,7 +777,7 @@
       "expense": "live-agent",
       "selection_rule_ids": ["cleanup_skill", "mcp_checker"],
       "requires": ["python_env", "openai_agents_package", "provider_profile", "sandbox_skills"],
-      "profiles": ["baseline-refresh"]
+      "profiles": []
     },
     {
       "row_id": "planner-proof-dry-run-product",

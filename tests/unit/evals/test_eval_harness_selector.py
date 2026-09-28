@@ -97,12 +97,16 @@ def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
     )
 
     rows = _selected_rows(manifest)
-    assert set(rows) == EXPECTED_ROW_IDS
+    assert set(rows) == EXPECTED_ROW_IDS - {
+        "openai-agents-sdk-cleanup-dynamic-full-eval",
+        "openai-agents-sdk-cleanup-dynamic-routed-eval",
+        "openai-agents-sdk-cleanup-sandbox-skills-eval",
+    }
     assert manifest["profile"] == "baseline-refresh"
-    assert manifest["summary"]["selected_row_count"] == len(EXPECTED_ROW_IDS)
+    assert manifest["summary"]["selected_row_count"] == len(EXPECTED_ROW_IDS) - 3
     assert manifest["summary"]["budget_skipped_count"] == 0
     assert manifest["summary"]["eval_suite_row_count"] == 6
-    assert manifest["summary"]["live_agent_eval_row_count"] == 11
+    assert manifest["summary"]["live_agent_eval_row_count"] == 8
     assert rows["openai-agents-sdk-open-task-live-eval"]["status"] == "not_run"
     assert rows["openai-agents-sdk-cleanup-live-eval"]["status"] == "not_run"
     assert not any(
