@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[3]
 def test_showcase_workflow_is_advisory_bounded_and_secret_guarded() -> None:
     workflow = (ROOT / ".github/workflows/showcase.yml").read_text(encoding="utf-8")
     assert "pull_request:" not in workflow
-    assert "push:" not in workflow
+    assert "push:" in workflow
     assert "cancel-in-progress: false" in workflow
     assert "timeout-minutes: 60" in workflow
     assert "timeout-minutes: 10" in workflow
@@ -15,12 +15,12 @@ def test_showcase_workflow_is_advisory_bounded_and_secret_guarded() -> None:
         "if: github.event_name == 'workflow_dispatch' && inputs.live_execution != 'run'" in workflow
     )
     assert "inputs.live_execution == 'run'" in workflow
-    assert "secrets.KIMI_API_KEY" in workflow
+    assert "secrets.KIMI_API_KEY" not in workflow
     assert "secrets.MIMO_TP_KEY" in workflow
     assert "secrets.MIMO_OPENAI_BASE_URL" in workflow
     assert "secrets.MIMO_RESPONSES_API_KEY" not in workflow
     assert "secrets.MM_API_KEY" in workflow
-    assert "max-parallel: 3" in workflow
+    assert "max-parallel: 2" in workflow
     assert "Install headless MuJoCo rendering runtime" in workflow
     assert "libegl1 libgl1 libgles2 libegl-mesa0" in workflow
     assert "ROBOCLAWS_OPENAI_AGENTS_ROBOT_VIEW_CAPTURE_POLICY: action_timeline" in workflow
@@ -32,7 +32,7 @@ def test_showcase_workflow_is_advisory_bounded_and_secret_guarded() -> None:
         < workflow.index("Run ${{ matrix.provider }} showcase shard")
     )
     assert "needs: provider-showcase" in workflow
-    assert "showcase-kimi-${{ github.sha }}" in workflow
+    assert "showcase-kimi-${{ github.sha }}" not in workflow
     assert "kimi_pid=$!" not in workflow
     assert "mimo_pid=$!" not in workflow
     assert "minimax_pid=$!" not in workflow

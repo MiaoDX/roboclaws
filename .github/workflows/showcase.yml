@@ -1,12 +1,14 @@
 name: Capability showcase
 
 on:
+  push:
+    branches: [main]
   schedule:
     - cron: "17 3 * * 1"
   workflow_dispatch:
     inputs:
       live_execution:
-        description: "Set run to execute provider-backed showcase rows on this branch"
+        description: "Set run to execute provider-backed showcase rows on protected main"
         required: false
         default: "blocked"
 
@@ -19,14 +21,12 @@ concurrency:
 
 jobs:
   provider-showcase:
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.live_execution == 'run')
+    if: github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.live_execution == 'run')
     strategy:
       fail-fast: false
-      max-parallel: 3
+      max-parallel: 2
       matrix:
         include:
-          - provider: kimi
-            row_args: --row-id household_world.cleanup_capability.kimi --row-id household_world.open_ended_goals.kimi
           - provider: mimo
             row_args: --row-id household_world.cleanup_capability.mimo --row-id household_world.open_ended_goals.mimo
           - provider: minimax
@@ -53,8 +53,6 @@ jobs:
         env:
           ROBOCLAWS_OPENAI_AGENTS_ROBOT_VIEW_CAPTURE_POLICY: action_timeline
           ROBOCLAWS_MOLMO_LIVE_SERVER_STARTUP_TIMEOUT_S: "300"
-          KIMI_API_KEY: ${{ matrix.provider == 'kimi' && secrets.KIMI_API_KEY || '' }}
-          KIMI_OPENAI_BASE_URL: ${{ matrix.provider == 'kimi' && secrets.KIMI_OPENAI_BASE_URL || '' }}
           MIMO_TP_KEY: ${{ matrix.provider == 'mimo' && secrets.MIMO_TP_KEY || '' }}
           MIMO_OPENAI_BASE_URL: ${{ matrix.provider == 'mimo' && secrets.MIMO_OPENAI_BASE_URL || '' }}
           MM_API_KEY: ${{ matrix.provider == 'minimax' && secrets.MM_API_KEY || '' }}
@@ -75,7 +73,7 @@ jobs:
           if-no-files-found: warn
 
   showcase:
-    if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    if: always() && (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     needs: provider-showcase
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -89,29 +87,22 @@ jobs:
         with:
           python-version: "3.12"
       - run: uv sync --extra dev
-      - name: Download Kimi evidence
-        if: github.event_name == 'schedule' || inputs.live_execution == 'run'
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          name: showcase-kimi-${{ github.sha }}
-          path: output/showcase/kimi
       - name: Download MiMo evidence
-        if: github.event_name == 'schedule' || inputs.live_execution == 'run'
+        if: github.event_name == 'push' || github.event_name == 'schedule' || inputs.live_execution == 'run'
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: showcase-mimo-${{ github.sha }}
           path: output/showcase/mimo
       - name: Download MiniMax evidence
-        if: github.event_name == 'schedule' || inputs.live_execution == 'run'
+        if: github.event_name == 'push' || github.event_name == 'schedule' || inputs.live_execution == 'run'
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: showcase-minimax-${{ github.sha }}
           path: output/showcase/minimax
       - name: Run deterministic smoke baseline
-        if: github.event_name == 'schedule' || inputs.live_execution == 'run'
+        if: github.event_name == 'push' || github.event_name == 'schedule' || inputs.live_execution == 'run'
         run: |
           mkdir -p output/showcase/smoke
           .venv/bin/python -m roboclaws.evals.showcase \
@@ -145,7 +136,6 @@ jobs:
             --run-url "$RUN_URL" \
             --artifact-url "$RUN_URL#artifacts" \
             --execution-index output/showcase/smoke/execution.json \
-            --execution-index output/showcase/kimi/execution.json \
             --execution-index output/showcase/mimo/execution.json \
             --execution-index output/showcase/minimax/execution.json \
             --execution-index output/showcase/preview/execution.json \
@@ -157,7 +147,7 @@ jobs:
           from pathlib import Path
           from roboclaws.evals.public_reports import publish_report_bundle
 
-          for shard in ("smoke", "kimi", "mimo", "minimax"):
+          for shard in ("smoke", "mimo", "minimax"):
               source = Path("output/showcase") / shard / "evals"
               destination = Path("output/showcase/site/reports") / shard / "evals"
               if source.is_dir():
@@ -198,7 +188,7 @@ jobs:
           name: showcase-summary-${{ github.sha }}
           path: output/showcase/site/**
       - name: Require model-backed showcase success
-        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.live_execution == 'run')
+        if: github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.live_execution == 'run')
         run: |
           .venv/bin/python - <<'PY'
           import json
