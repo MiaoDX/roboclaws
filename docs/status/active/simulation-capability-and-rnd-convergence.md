@@ -32,6 +32,7 @@ Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 - Runtime Skill lifecycle now accepts only `static-full`; broad delivery parsing remains available to eval/regrade paths.
 - Showcase workflow now runs active provider shards only, with protected-main push/schedule/manual routing and two-shard concurrency.
 - Showcase manifest validation now rejects retired provider profiles while summary/report rendering continues to read historical identities.
+- Full `just agent::verify` passes: Ruff, format, architecture import graph, and standalone pytest (100% complete; 1015 files formatted).
 
 ## Next action
 
