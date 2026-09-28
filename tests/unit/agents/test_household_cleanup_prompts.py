@@ -1,15 +1,37 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
+
+import pytest
 
 from roboclaws.agents.household_live_config import build_household_prompt_identity
 from roboclaws.agents.prompts.household_cleanup import (
     render_kickoff_prompt,
     render_map_build_prompt,
 )
+from roboclaws.agents.skill_delivery import build_skill_delivery
+from roboclaws.mcp.profiles import contract_profile, contract_profile_names
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+@pytest.mark.parametrize("cell", ["static-full", "dynamic-full", "dynamic-routed"])
+def test_delivered_skill_call_examples_use_registered_public_tool_names(cell: str) -> None:
+    skill = (REPO_ROOT / "skills" / "household-world" / "SKILL.md").read_text(encoding="utf-8")
+    delivery = build_skill_delivery(
+        cell, full_content=skill, intent="cleanup", evidence_lane="world-public-labels"
+    )
+    public_names = {
+        name
+        for profile in contract_profile_names()
+        for name in contract_profile(profile).public_tool_names()
+    }
+    public_names.add("observe_camera_grounded_candidates")
+    example_calls = set(re.findall(r"`([a-z_]+)\(", delivery.content))
+    assert {"metric_map", "observe", "done"} <= example_calls
+    assert example_calls <= public_names
 
 
 def test_kickoff_prompt_requires_operator_message_checkpoints() -> None:

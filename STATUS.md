@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-26
+Last updated: 2026-09-27
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -16,6 +16,14 @@ protocol probes; no client repair was verified. Local evals and the remaining
 provider routes continue. See
 `docs/status/active/codex-responses-api-investigation.md` for evidence and limits.
 
+The first full local baseline refresh after retirement completed: 29 rows,
+24 passed, 3 failed, 2 blocked. All four fixed-prior providers ran locally;
+MiMo Responses, Kimi, and MiniMax passed both samples, while MiMo TP cleanup
+stalled. Remaining failures concern open-ended goal predicates and a dynamic
+skill tool-name mismatch; the last MiniMax sandbox trial hit its Token Plan
+limit. No baseline was promoted. See
+`docs/status/active/local-eval-baseline-refresh.md`.
+
 The State-First Context Manager implementation is complete for typed
 snapshots/checkpoints, pre-call bounded reconstruction, and checkpointed
 continuation. Real Grounding DINO MapBuild proof and automated desktop/mobile
@@ -24,8 +32,9 @@ all completed DINO-as-input successfully. The earlier DINO blocker was only an
 unstarted loopback sidecar. MiMo reached 96,350 provider-reported input tokens
 against the configured 96,000-token hard limit on an accepted final call, so it
 has a residual accounting/headroom caveat but no reproduced context overflow.
-Milestone `v1.99` remains at Phase 4 partial because the canonical focused eval
-packet still has a provider-quota-blocked comparison slice. See
+Milestone `v1.99` remains at Phase 4 partial because the 2026-09-25 focused eval
+packet has a Kimi quota-blocked comparison slice. The new local refresh proves
+Kimi's fixed-prior route but does not rerun that historical comparison. See
 `docs/status/active/state-first-context-manager.md` and
 `.planning/phases/04-route-proof-and-rollout/04-LIVE-PROOF.md`.
 
@@ -101,9 +110,11 @@ providers.
 
 ## Next Action
 
-Rerun the Kimi quota-blocked cleanup comparison slice after the provider quota
-resets before closing State-First Phase 4. No additional state-first
-implementation repair is currently indicated.
+Triage the new local baseline's goal-predicate and tool-name failures; recheck
+the MiMo TP stall and rerun the blocked MiniMax sandbox trial after quota
+recovers. Preserve the original packet and record reruns as separate attempts.
+The historical Kimi cleanup comparison remains a separate State-First Phase 4
+gate; no additional state-first implementation repair is currently indicated.
 
 Use the Opik Dashboard for current external review and local JSON/Markdown for
 canonical decisions. The Eval Harness candidate and Skill-delivery baseline
@@ -111,10 +122,12 @@ decisions remain unchanged.
 
 ## Current Blockers
 
-- State-First Phase 4's focused eval gate is partial because the latest
-  `baseline-refresh` has five Kimi cleanup comparison trials blocked by the
-  provider's 5-hour quota. Full standalone pytest now passes; Grounding DINO,
-  open-ended bread, and operator-console validation are no longer blocked.
+- The 2026-09-27 local baseline is not passing: three failed rows and two
+  blocked rows (MiMo TP stall and MiniMax Token Plan quota). All deterministic
+  gates and local product rows, including both DINO products, passed.
+- State-First Phase 4's historical 2026-09-25 packet has five Kimi cleanup
+  comparison trials blocked by the provider's 5-hour quota. The latest Kimi
+  fixed-prior samples passed, but they do not replace that comparison slice.
 - The `20260817T072338Z` eval candidate is not publishable because it contains
   one behavior failure and one blocked trial bundle.
 - Agibot and B1 injected dependency readiness passes with the existing local SDK, Map 12 bundle,

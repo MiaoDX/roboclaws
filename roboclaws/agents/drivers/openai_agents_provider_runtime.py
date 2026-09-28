@@ -107,6 +107,7 @@ def _provider_quota_failure(lowered: str, detail: str) -> LiveAgentFailure | Non
         "access_terminated_error",
         "usage limit for this billing cycle",
         "reached your usage limit",
+        "已达到 token plan 用量上限",
     )
     if any(item in lowered for item in quota_markers):
         return LiveAgentFailure(
