@@ -17,6 +17,7 @@ SKILL_DELIVERY_CELLS = (
     "dynamic-routed",
     "sandbox-skills",
 )
+ACTIVE_SKILL_DELIVERY_CELLS = ("static-full",)
 DEFAULT_SKILL_DELIVERY_CELL = "static-full"
 
 
@@ -24,6 +25,17 @@ def validate_skill_delivery_cell(value: str | None) -> str:
     cell = str(value or DEFAULT_SKILL_DELIVERY_CELL).strip()
     if cell not in SKILL_DELIVERY_CELLS:
         raise ValueError("skill_delivery_cell must be one of " + ", ".join(SKILL_DELIVERY_CELLS))
+    return cell
+
+
+def validate_runtime_skill_delivery_cell(value: str | None) -> str:
+    """Validate the sole product Skill path; eval controls use the broad parser."""
+    cell = validate_skill_delivery_cell(value)
+    if cell not in ACTIVE_SKILL_DELIVERY_CELLS:
+        raise ValueError(
+            "runtime skill_delivery_cell must be one of "
+            + ", ".join(ACTIVE_SKILL_DELIVERY_CELLS)
+        )
     return cell
 
 

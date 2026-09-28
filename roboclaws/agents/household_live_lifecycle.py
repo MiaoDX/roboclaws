@@ -92,7 +92,10 @@ from roboclaws.agents.live_timing import round_duration as _round_duration
 from roboclaws.agents.live_timing import (
     runner_timing_breakdown as _runner_timing_breakdown,
 )
-from roboclaws.agents.skill_delivery import SKILL_DELIVERY_ENV, validate_skill_delivery_cell
+from roboclaws.agents.skill_delivery import (
+    SKILL_DELIVERY_ENV,
+    validate_runtime_skill_delivery_cell,
+)
 from roboclaws.agents.task_state import Checkpoint, TaskSnapshot, atomic_write_checkpoint
 from roboclaws.core.evaluation import checker_flags_for_household_intent
 from roboclaws.core.live_performance import (
@@ -142,7 +145,9 @@ class LiveOpenAIAgentsHouseholdRunner(HouseholdLiveHandoffMixin):
         )
         self.operator_handoff_active = False
         self.agent_sdk_perf_profile = _resolve_agent_sdk_perf_profile(args)
-        self.skill_delivery_cell = validate_skill_delivery_cell(os.environ.get(SKILL_DELIVERY_ENV))
+        self.skill_delivery_cell = validate_runtime_skill_delivery_cell(
+            os.environ.get(SKILL_DELIVERY_ENV)
+        )
         self.model_visible_tool_surface = json.loads(
             os.environ.get("ROBOCLAWS_EVAL_MODEL_VISIBLE_TOOL_SURFACE", "[]")
         )

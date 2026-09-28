@@ -17,6 +17,7 @@ from roboclaws.agents.skill_delivery import (
     build_skill_delivery,
     sandbox_readiness,
     validate_skill_delivery_cell,
+    validate_runtime_skill_delivery_cell,
 )
 
 SKILL = """# Household World
@@ -40,6 +41,14 @@ map
 ## Helpers
 private helper
 """
+
+
+def test_runtime_skill_delivery_accepts_only_static_product_path() -> None:
+    assert validate_runtime_skill_delivery_cell(None) == "static-full"
+    assert validate_runtime_skill_delivery_cell("static-full") == "static-full"
+    for retired in ("no-skill", "dynamic-full", "dynamic-routed", "sandbox-skills"):
+        with pytest.raises(ValueError, match="runtime skill_delivery_cell"):
+            validate_runtime_skill_delivery_cell(retired)
 
 
 def _request(tmp_path: Path, delivery: object) -> LiveAgentRequest:
