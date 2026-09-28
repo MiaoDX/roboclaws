@@ -57,7 +57,7 @@ def test_operator_console_sdk_map_build_does_not_select_baseline_profile(
 
 
 def test_provider_gate_requires_agent_key_route(tmp_path: Path, monkeypatch) -> None:
-    for key in ("MM_API_KEY", "KIMI_API_KEY", "KIMI_API_KEY", "KIMI_API_KEY", "OPENAI_API_KEY"):
+    for key in ("MM_API_KEY", "MIMO_RESPONSES_API_KEY", "MIMO_RESPONSES_BASE_URL", "MIMO_RESPONSES_MODEL", "OPENAI_API_KEY"):
         monkeypatch.delenv(key, raising=False)
     readiness = route_readiness(
         tmp_path,
@@ -65,16 +65,16 @@ def test_provider_gate_requires_agent_key_route(tmp_path: Path, monkeypatch) -> 
         overrides={"port": _free_port()},
     )
     assert not readiness["can_start"]
-    assert "KIMI_OPENAI_BASE_URL" in readiness["blocker"]
-    assert "KIMI_API_KEY" in readiness["blocker"]
+    assert "MIMO_RESPONSES_BASE_URL" in readiness["blocker"]
+    assert "MIMO_RESPONSES_API_KEY" in readiness["blocker"]
     assert readiness["blocker_kind"] == "needs_provider"
 
 
-def test_provider_gate_auto_loads_kimi_env_from_repo_dotenv(tmp_path: Path, monkeypatch) -> None:
+def test_provider_gate_auto_loads_mimo_env_from_repo_dotenv(tmp_path: Path, monkeypatch) -> None:
     for key in ("MM_API_KEY", "KIMI_API_KEY", "KIMI_API_KEY", "KIMI_API_KEY", "OPENAI_API_KEY"):
         monkeypatch.delenv(key, raising=False)
     (tmp_path / ".env").write_text(
-        "KIMI_OPENAI_BASE_URL=https://kimi.example.test/v1\nKIMI_API_KEY=from-dotenv\n",
+        "MIMO_RESPONSES_BASE_URL=https://mimo.example.test/v1\nMIMO_RESPONSES_API_KEY=from-dotenv\nMIMO_RESPONSES_MODEL=mimo\n",
         encoding="utf-8",
     )
 
@@ -85,8 +85,8 @@ def test_provider_gate_auto_loads_kimi_env_from_repo_dotenv(tmp_path: Path, monk
         env={},
     )
     assert readiness["can_start"] is True
-    assert load_repo_dotenv(tmp_path, {})["KIMI_API_KEY"] == "from-dotenv"
-    assert readiness["provider"]["provider"] == "kimi-openai-chat"
+    assert load_repo_dotenv(tmp_path, {})["MIMO_RESPONSES_API_KEY"] == "from-dotenv"
+    assert readiness["provider"]["provider"] == "mimo-responses"
 
 
 def test_provider_gate_allows_explicit_minimax_override_with_mm_key(tmp_path: Path) -> None:
@@ -140,16 +140,17 @@ def test_provider_gate_ignores_code_agent_model_alias_for_openai_agents(
         tmp_path,
         route,
         env={
-            "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
-            "KIMI_API_KEY": "key",
+            "MIMO_RESPONSES_BASE_URL": "https://mimo.example.test/v1",
+            "MIMO_RESPONSES_API_KEY": "key",
+            "MIMO_RESPONSES_MODEL": "mimo",
             "ROBOCLAWS_CODE_AGENT_MODEL": "k3",
         },
         overrides={"port": _free_port()},
     )
 
     assert readiness["can_start"] is True
-    assert readiness["provider"]["provider"] == "kimi-openai-chat"
-    assert readiness["provider"]["model"] == "kimi-for-coding"
+    assert readiness["provider"]["provider"] == "mimo-responses"
+    assert readiness["provider"]["model"] == "mimo"
 
 
 def test_provider_gate_requires_kimi_base_url_and_key(tmp_path: Path) -> None:
@@ -184,9 +185,9 @@ def test_provider_gate_uses_selected_openai_agents_provider(tmp_path: Path) -> N
 
     missing_default = route_readiness(tmp_path, route, env={})
     assert missing_default["can_start"] is False
-    assert missing_default["provider"]["provider"] == "kimi-openai-chat"
-    assert "KIMI_OPENAI_BASE_URL" in missing_default["blocker"]
-    assert "KIMI_API_KEY" in missing_default["blocker"]
+    assert missing_default["provider"]["provider"] == "mimo-responses"
+    assert "MIMO_RESPONSES_BASE_URL" in missing_default["blocker"]
+    assert "MIMO_RESPONSES_API_KEY" in missing_default["blocker"]
 
     minimax = route_readiness(
         tmp_path,
@@ -274,5 +275,5 @@ def test_openai_agents_open_task_route_uses_sdk_driver(tmp_path: Path) -> None:
     ]
     assert not any(item.startswith("preset=") for item in argv)
     assert "evidence_lane=world-public-labels" in argv
-    assert "provider_profile=kimi-openai-chat" in argv
+    assert "provider_profile=mimo-responses" in argv
     assert "scenario_setup=baseline" in argv
