@@ -86,6 +86,10 @@ def navigate_to_receptacle_core(
     return hooks.ok(
         tool,
         primitive_provenance=hooks.api_semantic_provenance,
+        # Preserve the public held-object identity for downstream camera
+        # evidence.  Without this, the semantic timeline can only focus the
+        # receptacle after navigation and loses the object-in-hand frame.
+        object_id=state.get("held_object_id"),
         receptacle_id=receptacle_id,
         previous_receptacle_id=previous,
         state_mutation=state_mutation,
