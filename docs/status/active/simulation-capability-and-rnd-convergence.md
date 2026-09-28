@@ -41,9 +41,10 @@ Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 
 ## Next action
 
-Resolve the focused live-row environment blockers and preserve their typed
-blocked evidence; then continue the required real-DINO multiscene capability
-cohort. Do not treat the focused packet as a passing baseline.
+The focused live-row blockers are resolved for MiniMax, with compatible repair
+evidence preserved. Next, prepare the frozen multiscene visual case manifest
+from the existing camera-grounded/DINO harness and collect the required
+MiniMax real-DINO cohort. Do not treat compatibility repairs as visual proof.
 
 ## Stop/resume conditions
 
