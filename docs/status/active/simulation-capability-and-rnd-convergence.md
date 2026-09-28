@@ -29,12 +29,15 @@ Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 - Plan gate recommendation: `output/eval-harness/20260928T101404Z/eval_harness.{json,md}`
 - Active provider catalog surface: `mimo-responses`, `mimo-tp-openai-chat`, `minimax-responses`; legacy route specs remain readable for historical artifacts.
 - Trusted showcase manifest now contains only active provider rows; Kimi rows remain only in historical evidence/readers.
+- Runtime Skill lifecycle now accepts only `static-full`; broad delivery parsing remains available to eval/regrade paths.
+- Showcase workflow now runs active provider shards only, with protected-main push/schedule/manual routing and two-shard concurrency.
+- Showcase manifest validation now rejects retired provider profiles while summary/report rendering continues to read historical identities.
 
 ## Next action
 
 Migrate remaining executable provider callers, manifests and documentation to
-the active three-route surface, then split Skill execution from historical
-report identity before retiring delivery branches.
+the active three-route surface, then remove retired delivery implementations
+after their selector and historical-reader tests are migrated.
 
 ## Stop/resume conditions
 

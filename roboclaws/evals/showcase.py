@@ -15,6 +15,7 @@ from typing import Any
 
 from roboclaws.evals.public_reports import published_visual_report_href
 from roboclaws.evals.showcase_process import run_showcase_command
+from roboclaws.core.provider_catalog import ACTIVE_PROVIDER_PROFILES
 
 SCHEMA = "roboclaws_showcase_summary_v1"
 MANIFEST_SCHEMA = "roboclaws_showcase_manifest_v1"
@@ -78,6 +79,11 @@ def validate_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
                 raise ValueError(f"showcase row {row['id']} missing {key}")
         if row["execution_mode"] not in EXECUTION_MODES:
             raise ValueError(f"showcase row {row['id']} has invalid execution_mode")
+        provider_profile = row.get("provider_profile")
+        if provider_profile and provider_profile not in ACTIVE_PROVIDER_PROFILES:
+            raise ValueError(
+                f"showcase row {row['id']} uses retired provider profile {provider_profile!r}"
+            )
         _validate_manifest_row_budgets(row)
         suite, samples = load_suite(row["suite"])
         canonical_suite_id = row.get("canonical_suite_id", row["id"])
