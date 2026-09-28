@@ -27,7 +27,7 @@ def test_description_campaign_is_deterministic_and_behavior_free(tmp_path: Path)
             },
             "optimizer": {
                 "agent_engine": "openai-agents-sdk",
-                "provider_profile": "codex-responses",
+                "provider_profile": "mimo-responses",
                 "model": "o",
                 "settings": {},
             },

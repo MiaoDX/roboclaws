@@ -11,6 +11,10 @@ from roboclaws.core.provider_catalog import provider_route_specs
 SECRET_ENV_KEYS = tuple(
     key for route in provider_route_specs() for key in route.required_env_keys
 ) + (
+    # Retired route configuration may still occur in retained evidence.
+    "CODEX_RESPONSES_API_KEY",
+    "CODEX_RESPONSES_BASE_URL",
+    "CODEX_RESPONSES_MODEL",
     "OPENAI_API_KEY",
     "ANTHROPIC_API_KEY",
 )

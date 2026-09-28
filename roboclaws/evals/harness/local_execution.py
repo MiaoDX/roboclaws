@@ -161,6 +161,10 @@ def _validate_execution_target(
     *,
     execution_target: str,
 ) -> None:
+    if execution_target != "local":
+        raise ValueError(
+            f"cannot run on execution target {execution_target!r}; only local is supported"
+        )
     for row in rows:
         axes = row.get("axes") or {}
         provider_profile = str(axes.get("provider_profile") or "")

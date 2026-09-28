@@ -6,7 +6,6 @@ from roboclaws.evals.harness import runner, selector
 from roboclaws.evals.harness.prior import resolve_baseline_prior
 
 LIVE_AGENT_ROW_IDS = {
-    "map-build-consumer-openai-agents-sdk-codex-responses",
     "map-build-consumer-openai-agents-sdk-mimo-responses",
     "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
     "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
@@ -20,7 +19,6 @@ LIVE_AGENT_ROW_IDS = {
     "openai-agents-sdk-cleanup-sandbox-skills-eval",
 }
 ALTERNATE_PROVIDER_MATRIX_ROW_IDS = {
-    "map-build-consumer-openai-agents-sdk-codex-responses",
     "map-build-consumer-openai-agents-sdk-mimo-responses",
     "map-build-consumer-openai-agents-sdk-minimax-responses",
 }

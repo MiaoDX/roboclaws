@@ -2,6 +2,11 @@
 
 ## Status
 
+## Superseded baseline note
+
+The 2026-09-26 provider retirement supersedes the Codex and CloudML portions of this plan. The maintained fixed-prior baseline now uses four local provider cells (MiMo Responses, MiMo TP Chat, Kimi, and MiniMax), with suite version `2026-09-26` and epoch `baseline_refresh_v2_2026-09-26`. Existing remote and Codex output remains historical evidence.
+
+
 Approved plan for implementation in a separate context. Planning only; no
 implementation changes are included in this plan. The provider-identity,
 baseline-epoch, CI execution, and DINO entry-point decisions below are the

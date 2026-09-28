@@ -18,7 +18,6 @@ from pathlib import Path
 from typing import Any, Literal
 
 from roboclaws.agents.provider_registry import route_base_url
-from roboclaws.agents.provider_transport import provider_default_headers
 from roboclaws.agents.thinking_policy import thinking_request_body_for_wire
 from roboclaws.core.dotenv import update_env_from_dotenv_file
 from roboclaws.core.json_sources import parse_json_object_text
@@ -37,7 +36,6 @@ DEFAULT_TIMEOUT_S = 30.0
 ProbeMode = Literal["agents-sdk", "provider"]
 
 PUBLIC_AGENT_SDK_ROUTE_IDS = (
-    "codex-responses",
     "mimo-responses",
     "mimo-tp-openai-chat",
     "minimax-responses",
@@ -119,7 +117,6 @@ def build_provider_probes(
     responses_max_tokens: int = DEFAULT_RESPONSES_MAX_OUTPUT_TOKENS,
     chat_max_tokens: int = DEFAULT_CHAT_MAX_TOKENS,
 ) -> list[ProbeSpec]:
-    codex_route = provider_route_spec("codex-responses")
     mimo_route = provider_route_spec("mimo-responses")
     mimo_tp_route = provider_route_spec("mimo-tp-openai-chat")
     minimax_route = provider_route_spec("minimax-responses")
@@ -127,12 +124,6 @@ def build_provider_probes(
     qwen_route = provider_route_spec("qwen-tp-responses")
 
     return [
-        _provider_from_route(
-            "codex-responses",
-            codex_route,
-            max_tokens=responses_max_tokens,
-            request_model=os.environ.get(codex_route.request_model_env or "", ""),
-        ),
         _provider_from_route(
             "mimo-responses",
             mimo_route,
@@ -287,9 +278,6 @@ def _run_agents_sdk_probe(
         "timeout": timeout_s,
         "max_retries": 0,
     }
-    default_headers = provider_default_headers(spec.route_id)
-    if default_headers:
-        client_kwargs["default_headers"] = default_headers
     client = AsyncOpenAI(**client_kwargs)
     if spec.wire_api == WIRE_RESPONSES:
         model = OpenAIResponsesModel(_request_model(spec), openai_client=client)
@@ -329,9 +317,6 @@ def _run_responses_probe(
     kwargs: dict[str, Any] = {"api_key": api_key, "timeout": timeout_s, "max_retries": 0}
     if spec.base_url:
         kwargs["base_url"] = spec.base_url
-    default_headers = provider_default_headers(spec.route_id)
-    if default_headers:
-        kwargs["default_headers"] = default_headers
     client = OpenAI(**kwargs)
     response = client.responses.create(
         model=_request_model(spec),
@@ -481,6 +466,10 @@ def select_probes(args: argparse.Namespace) -> list[ProbeSpec]:
             probes.extend(provider_probes)
     if args.probe:
         wanted = set(args.probe)
+        available = {name for probe in probes for name in (probe.probe_id, probe.route_id)}
+        unknown = wanted - available
+        if unknown:
+            raise ValueError("unknown provider probe(s): " + ", ".join(sorted(unknown)))
         probes = [probe for probe in probes if probe.probe_id in wanted or probe.route_id in wanted]
     return probes
 

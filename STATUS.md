@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-02
+Last updated: 2026-09-26
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -9,6 +9,12 @@ orientation, move it to plans, ADRs, retrospectives, or `docs/human/**` and
 leave a link.
 
 ## Current Focus
+
+Codex Responses and CloudML batch evaluation are retired from active support.
+Full Codex SDK runs failed at the first model request (403) despite header and
+protocol probes; no client repair was verified. Local evals and the remaining
+provider routes continue. See
+`docs/status/active/codex-responses-api-investigation.md` for evidence and limits.
 
 The State-First Context Manager implementation is complete for typed
 snapshots/checkpoints, pre-call bounded reconstruction, and checkpointed

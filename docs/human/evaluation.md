@@ -47,7 +47,7 @@ root state, or host capabilities; only its ephemeral scratch space is writable.
 The trusted supervisor retains provider access and owns durable artifacts.
 Behavior execution remains fail-closed unless the campaign binds a passing
 local/remote isolation attestation and the candidate passes the static gate.
-The current CloudML native-container attestation is under
+Historical CloudML native-container attestation evidence is under
 `output/eval-evolution/20260805-phase3-isolation/cloudml/`.
 
 An eval suite answers whether a capability is improving over time, not whether
@@ -117,11 +117,6 @@ Valid failed and blocked trials are included; rows without an eval result
 bundle are not. Specialist eval schemas such as `operator_session_live` keep
 their Trace telemetry but are not coerced into repo-suite Datasets.
 
-CloudML workers may not share the operator's loopback Opik service. During
-collection, each accepted result bundle is therefore projected locally before
-the final harness reports and credential scan are regenerated. This is a local
-result projection, not provider rerun or Trace replay.
-
 For repair, backfill, or dataset-only projection, an existing suite and optional
 completed result bundle can still be projected without executing an eval:
 
@@ -140,7 +135,7 @@ deadline. Unreachable or failing Opik services produce a sanitized
 `unavailable` receipt rather than changing local results.
 
 `opik-project` is the read-only repair/backfill command. It does not launch
-an eval, provider, simulator, CloudML task, or hardware operation. Local suite
+an eval, provider, simulator, or hardware operation. Local suite
 and result artifacts remain canonical. Opik receives public sample and trial
 identity, digests, closed launch identity, and allowlisted grader status; it
 does not receive prompt bodies, private references, generated-mess truth,
@@ -168,62 +163,23 @@ closed-content mismatch.
 `baseline-core` is the normal broad local refresh without live providers.
 `baseline-live-default` adds the normal MiniMax live rows, with prior required
 for its open-task and cleanup consumers. `baseline-refresh` includes the
-five-cell fixed-prior comparison. Prior-consuming baseline rows
+four-cell fixed-prior comparison. Prior-consuming baseline rows
 resolve the canonical prior from `assets/eval-priors/` by default, or accept an
 explicit prior for a controlled refresh; missing priors stay selected and are
 reported as blocked. `baseline-ci` is the deterministic PR subset and never
 executes providers or provider egress. Rows whose live preflight is not ready
 record blocked evidence instead of being silently skipped.
 
-The built-in `just agent::eval execute` worker runs locally. The harness itself
-is execution-neutral: maintainers can freeze selected rows and dispatch them to
-CloudML with the repo-owned
-[`cloudml-eval-ops`](../../skills/cloudml-eval-ops/SKILL.md) skill. That skill
-uses the official `cml` lifecycle commands and executor-backed JuiceFS transfer,
-then returns verified row results to the normal harness report. CloudML remains
-an eval execution environment, not a product `backend`.
+The `just agent::eval execute` worker runs locally. CloudML batch evaluation,
+including staging, submission, monitoring, and collection guidance, is retired.
+Historical remote results remain evidence and are not rerunnable deployment
+instructions.
 
-This is intentionally a Markdown operations layer rather than a second Python
-control plane or a private companion repository. A request to run or refresh a
-repo-scoped CloudML eval authorizes the bounded preflight, staging, submission,
-monitoring, collection, and repair/retry work described by the skill and
-`AGENTS.md`; material workspace, resource, concurrency, credential, or cost
-expansion still requires confirmation. Durable baseline or catalog publication
-also remains a separate human decision.
-
-For local execution, `max_parallel=1` preserves serial behavior; raising it
-runs independent rows concurrently while dependency chains and shared
-visual-backend groups remain ordered. For CloudML, parallel proof requires
-independent task row intervals that actually overlap, not merely multiple
-successful submissions. Each run retains `plan.json`, append-only task
-receipts, terminal markers, collection verification, and the normal JSON,
-Markdown, and HTML reports under `output/eval-harness/<run-id>/cloudml-ops/`.
-
-The full `baseline-refresh` placement policy uses one selected CloudML row per
-CloudML task, one worker Pod per task, and `max_parallel=1` inside every worker,
-including deterministic CPU rows. Task count is derived from the frozen
-manifest rather than a fixed historical shard count or observed concurrency
-peak. Physical-host isolation is not required. A producer/consumer dependency
-chain runs in two stages: the producer task must durably commit and verify its
-artifact before the consumer task is submitted in a separate Pod.
-
-The default result/capability refresh allows at most two active rows per
-provider. It records provider throttling and does not treat concurrent-run
-latency as comparable performance evidence. A latency or cost baseline instead
-uses at most one active row per provider. Kimi and MiniMax are external-provider
-rows and always run locally with `max_parallel=1`; a successful ad hoc CloudML
-probe cannot override that placement. Codex and MiMo are internal-provider rows
-eligible for local or CloudML execution after route readiness passes. Local
-provider rows may overlap the CloudML wave and merge into the same hybrid
-report. A terminal report may preserve explicitly blocked external rows, but it
-is not an accepted complete baseline and must not be published as one.
-
-Grounding DINO remains colocated with its corresponding MuJoCo row: the worker
-Pod runs the simulator/runtime and its local HTTP visual-grounding sidecar. The
-baseline does not use a shared cross-Pod DINO service. r49 tasks use
-`GUARANTEED` resources with `preemptible=true`; CPU tasks remain
-non-preemptible. Scheduler retries stay disabled, and only a classified
-preemption or infrastructure failure may create one additional attempt.
+`max_parallel=1` preserves serial behavior; raising it runs independent rows
+concurrently while dependency chains and shared visual-backend groups remain
+ordered. Provider rows retain explicit network requirements and local placement.
+Grounding DINO runs alongside its corresponding local MuJoCo runtime. A report
+with required blocked rows is not an accepted complete baseline.
 
 Scene expansion resolves an execution-neutral case from the catalog row,
 suite, provider profile, seed, and optional `(scene_source, scene_index)`
@@ -237,7 +193,6 @@ OpenAI Agents SDK runs always select one profile explicitly:
 | Profile | Wire API | Required configuration |
 | --- | --- | --- |
 | `kimi-openai-chat` | Chat Completions | `KIMI_OPENAI_BASE_URL`, `KIMI_API_KEY` |
-| `codex-responses` | Responses | `CODEX_RESPONSES_BASE_URL`, `CODEX_RESPONSES_API_KEY`, `CODEX_RESPONSES_MODEL` |
 | `mimo-responses` | Responses | `MIMO_RESPONSES_BASE_URL`, `MIMO_RESPONSES_API_KEY`, `MIMO_RESPONSES_MODEL` |
 | `minimax-responses` | Responses | `MM_BASE_URL`, `MM_API_KEY` |
 
@@ -409,7 +364,7 @@ rejected before any live execution.
 
 MCP behavior candidates require a campaign-bound isolation attestation that
 proves credential scrubbing, private-data isolation, and unauthorized
-write/network denial. The current local and CloudML native-container evidence
-passes that gate. A candidate may then project existing-tool public responses
+write/network denial. Retained local and remote attestation evidence records the previous proof;
+a new campaign still requires a valid bound attestation. A candidate may then project existing-tool public responses
 inside the isolated worker, but cannot change the public tool set or bypass the
 trusted supervisor's output validation.

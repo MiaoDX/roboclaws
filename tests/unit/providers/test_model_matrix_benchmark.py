@@ -3,7 +3,6 @@ from __future__ import annotations
 import importlib.util
 import json
 import sys
-import uuid
 from pathlib import Path
 
 import pytest
@@ -26,7 +25,6 @@ def test_default_cases_cover_routes_and_wire_formats() -> None:
     cases = {case.case_id: case for case in script.default_cases()}
 
     assert set(cases) == {
-        "codex-responses:codex:responses",
         "mimo-responses:mimo:responses",
         "minimax-responses:MiniMax-M3:responses",
         "kimi:kimi-for-coding:chat",
@@ -36,10 +34,7 @@ def test_default_cases_cover_routes_and_wire_formats() -> None:
 
 @pytest.mark.parametrize(
     ("profile", "env_prefix", "public_model"),
-    [
-        ("codex-responses", "CODEX_RESPONSES", "codex"),
-        ("mimo-responses", "MIMO_RESPONSES", "mimo"),
-    ],
+    [("mimo-responses", "MIMO_RESPONSES", "mimo")],
 )
 def test_opaque_case_reads_environment_configuration(
     monkeypatch, profile: str, env_prefix: str, public_model: str
@@ -74,13 +69,13 @@ def test_load_dotenv_uses_explicit_file_and_preserves_existing_env(
 ) -> None:
     script = _load_script_module()
     dotenv = tmp_path / "matrix.env"
-    dotenv.write_text('CODEX_RESPONSES_API_KEY="from file"\nKEEP=from-file\n', encoding="utf-8")
-    monkeypatch.delenv("CODEX_RESPONSES_API_KEY", raising=False)
+    dotenv.write_text('MIMO_RESPONSES_API_KEY="from file"\nKEEP=from-file\n', encoding="utf-8")
+    monkeypatch.delenv("MIMO_RESPONSES_API_KEY", raising=False)
     monkeypatch.setenv("KEEP", "host")
 
     script.load_dotenv(dotenv)
 
-    assert script.os.environ["CODEX_RESPONSES_API_KEY"] == "from file"
+    assert script.os.environ["MIMO_RESPONSES_API_KEY"] == "from file"
     assert script.os.environ["KEEP"] == "host"
 
 
@@ -102,7 +97,7 @@ def test_endpoint_urls_normalize_wire_api_suffixes() -> None:
 
 
 def test_payloads_match_wire_format(monkeypatch) -> None:
-    monkeypatch.setenv("CODEX_RESPONSES_MODEL", "opaque-model")
+    monkeypatch.setenv("MIMO_RESPONSES_MODEL", "opaque-model")
     script = _load_script_module()
     cases = {case.case_id: case for case in script.default_cases()}
 
@@ -112,7 +107,7 @@ def test_payloads_match_wire_format(monkeypatch) -> None:
         max_tokens=8,
     )
     responses_payload = script.payload_for_case(
-        cases["codex-responses:codex:responses"],
+        cases["mimo-responses:mimo:responses"],
         prompt="ping",
         max_tokens=8,
     )
@@ -127,24 +122,22 @@ def test_payloads_match_wire_format(monkeypatch) -> None:
     assert "input" not in chat_payload
     assert "thinking" not in chat_payload
     assert responses_payload["input"] == "ping"
-    assert responses_payload["model"] == cases["codex-responses:codex:responses"].request_model
+    assert responses_payload["model"] == cases["mimo-responses:mimo:responses"].request_model
     assert responses_payload["max_output_tokens"] == 8
     assert responses_payload["reasoning"] == {"effort": "medium"}
     assert "messages" not in responses_payload
     assert "thinking" not in kimi_payload
 
 
-def test_codex_benchmark_artifact_redacts_private_configuration(monkeypatch) -> None:
+def test_mimo_benchmark_artifact_redacts_private_configuration(monkeypatch) -> None:
     canary_url = "https://private-benchmark-canary.example/v1"
     canary_key = "benchmark-key-canary-123456"
     canary_model = "benchmark-model-canary-654321"
-    monkeypatch.setenv("CODEX_RESPONSES_BASE_URL", canary_url)
-    monkeypatch.setenv("CODEX_RESPONSES_API_KEY", canary_key)
-    monkeypatch.setenv("CODEX_RESPONSES_MODEL", canary_model)
+    monkeypatch.setenv("MIMO_RESPONSES_BASE_URL", canary_url)
+    monkeypatch.setenv("MIMO_RESPONSES_API_KEY", canary_key)
+    monkeypatch.setenv("MIMO_RESPONSES_MODEL", canary_model)
     script = _load_script_module()
-    case = {case.case_id: case for case in script.default_cases()}[
-        "codex-responses:codex:responses"
-    ]
+    case = {case.case_id: case for case in script.default_cases()}["mimo-responses:mimo:responses"]
 
     class FakeResponse:
         status = 200
@@ -177,8 +170,8 @@ def test_codex_benchmark_artifact_redacts_private_configuration(monkeypatch) -> 
     args = script.parse_args(["--iterations", "1"])
     serialized = json.dumps(script.result_payload([result], args=args))
 
-    assert result.model == "codex"
-    assert result.response_model == "codex"
+    assert result.model == "mimo"
+    assert result.response_model == "mimo"
     for canary in (canary_url, canary_key, canary_model):
         assert canary not in serialized
 
@@ -210,22 +203,15 @@ def test_headers_include_kimi_coding_user_agent() -> None:
     assert headers["User-Agent"] == "claude-code/1.0.0"
 
 
-def test_headers_include_codex_transport_compatibility_only_for_codex() -> None:
+def test_headers_include_no_retired_transport_compatibility() -> None:
     script = _load_script_module()
     cases = {case.case_id: case for case in script.default_cases()}
 
-    codex_headers = script.headers_for_case(
-        cases["codex-responses:codex:responses"],
-        api_key="secret",
-    )
     mimo_headers = script.headers_for_case(
         cases["mimo-responses:mimo:responses"],
         api_key="secret",
     )
 
-    thread_id, generation = codex_headers["X-Codex-Window-Id"].rsplit(":", 1)
-    assert uuid.UUID(thread_id)
-    assert generation == "0"
     assert "X-Codex-Window-Id" not in mimo_headers
 
 
@@ -363,9 +349,7 @@ def test_usage_tokens_and_tps_prefer_provider_usage() -> None:
 
 def test_stream_throughput_skips_non_chat_wire() -> None:
     script = _load_script_module()
-    case = {case.case_id: case for case in script.default_cases()}[
-        "codex-responses:codex:responses"
-    ]
+    case = {case.case_id: case for case in script.default_cases()}["mimo-responses:mimo:responses"]
 
     result = script.run_case(
         case,
@@ -374,7 +358,7 @@ def test_stream_throughput_skips_non_chat_wire() -> None:
         iterations=1,
         max_tokens=8,
         timeout_s=1.0,
-        env={"CODEX_RESPONSES_API_KEY": "secret"},
+        env={"MIMO_RESPONSES_API_KEY": "secret"},
     )
 
     assert result.status == "SKIP"

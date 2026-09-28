@@ -385,24 +385,19 @@ def test_catalog_resolves_execution_and_provider_requirements(tmp_path: Path) ->
         for row in rows_module.candidate_rows(output_dir=tmp_path, explicit_axes={})
     }
 
-    codex = rows["map-build-consumer-openai-agents-sdk-codex-responses"]
     mimo = rows["map-build-consumer-openai-agents-sdk-mimo-responses"]
     kimi = rows["map-build-consumer-openai-agents-sdk-kimi-openai-chat"]
     minimax = rows["map-build-consumer-openai-agents-sdk-minimax-responses"]
     consumer = rows["direct-cleanup-runtime-prior-consumer"]
-    assert "network:configured-endpoint" in codex["execution_requirements"]
     assert "network:configured-endpoint" in mimo["execution_requirements"]
     assert "network:external-egress" in kimi["execution_requirements"]
     assert "provider:kimi-openai-chat" in kimi["execution_requirements"]
-    assert codex["provider_network_scope"] == "internal"
     assert mimo["provider_network_scope"] == "internal"
-    assert codex["allowed_execution_targets"] == ["local", "cloudml"]
-    assert mimo["allowed_execution_targets"] == ["local", "cloudml"]
+    assert mimo["allowed_execution_targets"] == ["local"]
     assert kimi["provider_network_scope"] == "external"
     assert minimax["provider_network_scope"] == "external"
     assert kimi["allowed_execution_targets"] == ["local"]
     assert minimax["allowed_execution_targets"] == ["local"]
-    assert codex["timeout_s"] == 3600
     assert mimo["timeout_s"] == 3600
     assert consumer["depends_on"] == ["direct-map-build-world-public"]
 
@@ -435,26 +430,23 @@ def test_cloudml_execution_rejects_local_only_provider_before_running(
     assert called is False
 
 
-def test_cloudml_execution_accepts_internal_provider(
+@pytest.mark.parametrize("provider", ["", "mimo-responses"])
+def test_retired_execution_target_rejected_even_for_frozen_manifest(
     tmp_path: Path,
     monkeypatch: MonkeyPatch,
+    provider: str,
 ) -> None:
-    row = _row(tmp_path, "internal-provider")
-    row["axes"] = {"provider_profile": "mimo-responses"}
-    row["provider_network_scope"] = "internal"
+    row = _row(tmp_path, "frozen-row")
+    row["axes"] = {"provider_profile": provider}
     row["allowed_execution_targets"] = ["local", "cloudml"]
-    manifest = _manifest(tmp_path, row)
     monkeypatch.setenv("ROBOCLAWS_EVAL_EXECUTION_TARGET", "cloudml")
-
-    local_execution.execute_local_rows(
-        manifest,
-        run_row=_pass_row,
-        row_blockers=_no_blockers,
-        write_row_result=lambda row: None,
-    )
-
-    assert row["outcome"] == "passed"
-    assert row["execution_target"] == "cloudml"
+    with pytest.raises(ValueError, match="only local is supported"):
+        local_execution.execute_local_rows(
+            _manifest(tmp_path, row),
+            run_row=_pass_row,
+            row_blockers=_no_blockers,
+            write_row_result=lambda row: None,
+        )
 
 
 def test_provider_execution_policy_is_fail_closed_when_missing(
@@ -476,7 +468,7 @@ def test_provider_execution_policy_is_fail_closed_when_missing(
 
 
 def test_external_provider_policy_cannot_allow_cloudml() -> None:
-    with pytest.raises(ValueError, match="must be restricted to local execution"):
+    with pytest.raises(ValueError, match="must declare allowed execution targets"):
         rows_module._provider_execution_policy(
             "external-provider",
             provider_policies={

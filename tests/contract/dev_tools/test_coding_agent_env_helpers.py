@@ -133,10 +133,7 @@ def test_profile_summary_uses_final_kimi_contract() -> None:
 
 
 def test_profile_summaries_redact_opaque_responses_endpoints() -> None:
-    for profile, env_prefix, public_model in (
-        ("codex-responses", "CODEX_RESPONSES", "codex"),
-        ("mimo-responses", "MIMO_RESPONSES", "mimo"),
-    ):
+    for profile, env_prefix, public_model in (("mimo-responses", "MIMO_RESPONSES", "mimo"),):
         endpoint_canary = f"https://{public_model}-private-canary.example.test/v1"
         result = run_helper(
             f"""
