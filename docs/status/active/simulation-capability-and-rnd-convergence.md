@@ -33,12 +33,14 @@ Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 - Showcase workflow now runs active provider shards only, with protected-main push/schedule/manual routing and two-shard concurrency.
 - Showcase manifest validation now rejects retired provider profiles while summary/report rendering continues to read historical identities.
 - Full `just agent::verify` passes: Ruff, format, architecture import graph, and standalone pytest (100% complete; 1015 files formatted).
+- Explicit `no-skill` kickoff now states that the Skill body is withheld while tool descriptions and run context remain available.
+- Focused facade execution completed at `output/eval-harness/20260928T113410Z/`: 13 passed, 4 failed, 2 blocked; required SDK open-task and cleanup rows were `environment_blocked`, while the no-skill live row executed. This is evidence, not acceptance.
 
 ## Next action
 
-Migrate remaining executable provider callers, manifests and documentation to
-the active three-route surface, then remove retired delivery implementations
-after their selector and historical-reader tests are migrated.
+Resolve the focused live-row environment blockers and preserve their typed
+blocked evidence; then continue the required real-DINO multiscene capability
+cohort. Do not treat the focused packet as a passing baseline.
 
 ## Stop/resume conditions
 
