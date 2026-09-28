@@ -44,14 +44,17 @@ Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 - Reserved scene 11 first attempt is recorded at `output/convergence-visual/minimax/scene11/trial0/`: the authoritative run artifact reports `completion_status=success`, four grounded cleanup chains, 5-target grading, sweep coverage 1.0, and zero disturbances. The outer cleanup-validation wrapper exited nonzero on a checker mismatch after the successful artifact was written; this remains an explicit validation discrepancy and does not count as a clean accepted cohort row until resolved.
 - Reserved scene 13 first attempt is recorded at `output/convergence-visual/minimax/scene13/trial0/`: the authoritative run artifact also reports `completion_status=success`, four grounded cleanup chains, 5-target grading, sweep coverage 1.0, and zero disturbances. Its outer checker likewise exited nonzero on strict robot-view evidence, so it remains behavioral evidence pending validator-clean replay.
 - A fresh scene 11 replay after the held-object evidence fix was started at `output/convergence-visual/minimax/scene11/trial1/` but terminated before producing `run_result.json`; it is retained as an incomplete infrastructure attempt and does not replace the earlier scene 11 artifact.
+- The scene 11 trial1 terminal packet records MiniMax Token Plan quota exhaustion (`2056`, `provider_quota_failure`, `billing_limit`) after 25 successful model calls. The attempt is non-retryable under the provider contract; no further MiniMax cohort replay is authorized until quota availability changes.
 
 ## Next action
 
 The focused live-row blockers are resolved for MiniMax, with compatible repair
-evidence preserved. Development-scene first attempts are now collected for the
-three frozen scenes. Next, complete the remaining MiniMax trial identities and
-reserved-scene checks needed for the manifest acceptance thresholds. Do not
-treat compatibility repairs as visual proof.
+evidence preserved. Development-scene first attempts and behavioral reserved
+attempts are recorded, but strict visual validation and the required cohort are
+incomplete. MiniMax collection is currently blocked by the recorded provider
+quota exhaustion; resume only after provider readiness changes, then replay the
+affected identities with validator-clean artifacts. Do not treat compatibility
+repairs as visual proof.
 
 ## Stop/resume conditions
 
