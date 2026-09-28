@@ -27,6 +27,12 @@ CUSTOM_PREFIX = (
     "Use the MCP tools as a bounded household robot capability surface. " + TOOL_PROTOCOL_PREFIX
 )
 
+NO_SKILL_PREFIX = (
+    "Use the MCP tools as a bounded household robot capability surface. "
+    "The product Skill body is withheld for this explicit eval control; use the exposed "
+    "tool descriptions and run context as your available guidance. " + TOOL_PROTOCOL_PREFIX
+)
+
 RUN_ARTIFACT_CONTRACT = (
     "Required closeout artifacts: run_result.json, runtime_metric_map.json, and report.html; "
     "only the MCP done response creates the authoritative run result. "
@@ -96,8 +102,15 @@ def _with_task(
     *,
     household_intent: str = "",
     goal_contract: GoalContract | None = None,
+    skill_delivery_cell: str = "",
 ) -> str:
-    prefix = CUSTOM_PREFIX if household_intent_is_open_ended(household_intent) else COMMON_PREFIX
+    prefix = (
+        NO_SKILL_PREFIX
+        if skill_delivery_cell == "no-skill"
+        else CUSTOM_PREFIX
+        if household_intent_is_open_ended(household_intent)
+        else COMMON_PREFIX
+    )
     return (
         prefix
         + _task_prefix(
@@ -156,6 +169,7 @@ def render_kickoff_prompt(
     camera_grounded_composite_tools: bool = False,
     operator_session_context: dict[str, Any] | None = None,
     operator_session_context_json: str = "",
+    skill_delivery_cell: str = "",
 ) -> str:
     """Render the live-agent kickoff prompt for a cleanup evidence lane."""
 
@@ -192,6 +206,7 @@ def render_kickoff_prompt(
         task,
         household_intent=household_intent,
         goal_contract=goal_contract,
+        skill_delivery_cell=skill_delivery_cell,
     )
     return append_operator_session_context(
         prompt,

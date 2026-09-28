@@ -44,6 +44,12 @@ def test_kickoff_prompt_requires_operator_message_checkpoints() -> None:
     assert "operator_message_pending" in prompt
 
 
+def test_no_skill_kickoff_identifies_withheld_skill_body() -> None:
+    prompt = render_kickoff_prompt("world-public-labels", skill_delivery_cell="no-skill")
+    assert "Skill body is withheld" in prompt
+    assert "Use the bundled household-world skill instructions" not in prompt
+
+
 def test_skill_owns_generic_strategy_while_kickoff_owns_run_context() -> None:
     skill = (REPO_ROOT / "skills" / "household-world" / "SKILL.md").read_text(encoding="utf-8")
     prompt = render_kickoff_prompt("world-public-labels")

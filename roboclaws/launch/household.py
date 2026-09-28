@@ -17,6 +17,7 @@ from roboclaws.agents.prompts.household_cleanup import (
     render_kickoff_prompt,
     render_map_build_prompt,
 )
+from roboclaws.agents.skill_delivery import SKILL_DELIVERY_ENV
 from roboclaws.core.open_ended_artifacts import validate_open_ended_artifacts
 from roboclaws.core.provider_catalog import provider_route_spec
 from roboclaws.household.cleanup_validation import load_run_results, validate_run_result
@@ -246,6 +247,7 @@ def _live_command(
             execution.task,
             camera_grounded_composite_tools=composite,
             operator_session_context_json=_get(execution.kv, "operator_session_context_json", ""),
+            skill_delivery_cell=os.environ.get(SKILL_DELIVERY_ENV, ""),
         )
     else:
         kickoff = render_kickoff_prompt(
