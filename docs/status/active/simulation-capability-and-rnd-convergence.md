@@ -26,7 +26,7 @@ Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 - Historical baseline: `docs/status/active/local-eval-baseline-refresh.md`
 - State-First record: `docs/status/active/state-first-context-manager.md`
 - Reviewed Skill probe: `docs/status/active/skill-delivery-multiscene-probe.md`
-- Plan gate recommendation: `output/eval-harness/20260928T101404Z/eval_harness.{json,md}`
+- Plan gate recommendation: `output/eval-harness/20260928T111441Z/eval_harness.{json,md}`
 - Active provider catalog surface: `mimo-responses`, `mimo-tp-openai-chat`, `minimax-responses`; legacy route specs remain readable for historical artifacts.
 - Trusted showcase manifest now contains only active provider rows; Kimi rows remain only in historical evidence/readers.
 - Runtime Skill lifecycle now accepts only `static-full`; broad delivery parsing remains available to eval/regrade paths.
