@@ -16,13 +16,18 @@ protocol probes; no client repair was verified. Local evals and the remaining
 provider routes continue. See
 `docs/status/active/codex-responses-api-investigation.md` for evidence and limits.
 
-The first full local baseline refresh after retirement completed: 29 rows,
-24 passed, 3 failed, 2 blocked. Follow-up reruns now pass all five affected
-original samples: numbered area inspection, MiniMax drink search, MiniMax
-dynamic-full cleanup, MiniMax sandbox-skills cleanup, and MiMo TP fixed-prior
-cleanup. Tool guidance matches the unprefixed MCP surface, and explicit
-MiniMax Token Plan exhaustion is classified as non-retryable quota. No baseline
-was promoted; the original packet remains historical evidence.
+The latest full local baseline refresh completed: 29 rows, 26 passed, 0 failed,
+3 blocked. MiMo TP fixed-prior cleanup stalled during a model call; five
+MiniMax cleanup trials were blocked by explicit, non-retryable Token Plan quota
+exhaustion. The prior 24-passed/3-failed/2-blocked packet and targeted follow-up
+reruns remain separate historical evidence. No baseline was promoted. See
+`docs/status/active/local-eval-baseline-refresh.md`.
+
+The 2026-09-28 targeted rerun of all three blocked rows now passes: MiMo TP
+fixed-prior 2/2, MiniMax dynamic-routed 3/3, and MiniMax sandbox-skills 3/3.
+No Token Plan `2056` response recurred. These checks confirm current provider
+availability and remain separate evidence; the historical full packet is not
+rewritten or promoted.
 
 The State-First Context Manager implementation is complete for typed
 snapshots/checkpoints, pre-call bounded reconstruction, and checkpointed
@@ -110,9 +115,9 @@ providers.
 
 ## Next Action
 
-Keep the original baseline packet and the four follow-up result bundles as
+Keep both full baseline packets and the four follow-up result bundles as
 separate evidence. Reconsider baseline promotion only through the existing
-human review process; these targeted reruns do not silently promote a baseline.
+human review process.
 The historical Kimi cleanup comparison remains a separate State-First Phase 4
 gate; no additional state-first implementation repair is currently indicated.
 
@@ -122,10 +127,10 @@ decisions remain unchanged.
 
 ## Current Blockers
 
-- The 2026-09-27 local baseline remains historical and is not passing: its
-  three failed rows and two blocked rows are preserved. All five corresponding
-  follow-up samples now pass with their original providers; the rerun evidence
-  is separate and has not been promoted.
+- The latest 2026-09-27 local baseline rerun is not passing: three rows are
+  blocked by one MiMo TP model-call stall and MiniMax Token Plan exhaustion.
+  The prior packet's three failed and two blocked rows remain preserved; none
+  of these packets has been promoted.
 - State-First Phase 4's historical 2026-09-25 packet has five Kimi cleanup
   comparison trials blocked by the provider's 5-hour quota. The latest Kimi
   fixed-prior samples passed, but they do not replace that comparison slice.

@@ -4,6 +4,49 @@ Date: 2026-09-27
 
 Owner: Eval Harness / Eval Suites architecture layer.
 
+## 2026-09-28 targeted rerun
+
+The three blocked rows from the 2026-09-27 packet were rerun individually with
+the repo `.env` loaded and fresh output paths under
+`output/eval-harness/20260928T015338Z/`:
+
+| Case | Result |
+| --- | --- |
+| MiMo TP fixed-prior consumer | 2/2 passed, 0 blocked, 0 failed |
+| MiniMax dynamic-routed cleanup | 3/3 passed, 0 blocked, 0 failed |
+| MiniMax sandbox-skills cleanup | 3/3 passed, 0 blocked, 0 failed |
+
+The MiMo trials completed 73 successful model calls; the two MiniMax suites
+completed 161 and 174 successful model calls respectively. No Token Plan `2056`
+response recurred. The earlier direct invocation without loading `.env` was
+discarded because both MiMo trials failed before making a model request; it is
+not part of this result.
+
+These targeted results confirm current provider availability but do not rewrite
+the historical full baseline packet or promote a new baseline.
+
+## 2026-09-27 rerun
+
+The same `baseline-refresh` command completed a second full local run on the
+current checkout. Run `output/eval-harness/20260927T132336Z/` started at
+13:23:36 UTC and finalized at 15:29:04 UTC (about 2h 5m). It selected all 29
+rows with zero budget skips: **26 passed, 0 failed, 3 blocked**. The command
+exited 2 because required rows were blocked. The 53 graded suite/live trials
+were 47 passed, 0 failed, 6 blocked. Completion v2 hashes match the published
+`eval_harness.json` and `eval_harness.md`.
+
+The MiMo TP fixed-prior cleanup trial again blocked after a model call remained
+in flight past the 180s stall threshold, with no provider HTTP error captured.
+MiniMax dynamic-routed cleanup passed its first trial, then two trials blocked;
+sandbox-skills cleanup blocked all three trials. Those five MiniMax trials
+received explicit Token Plan usage-limit code 2056 responses, recorded as
+`provider_quota_failure` / `billing_limit` with `retryable=false`.
+
+The previously failed numbered area-inspection, drink-search, and dynamic-full
+cleanup rows passed in this full rerun. All four fixed-prior provider cells were
+attempted locally against the same read-only prior. The rerun remains separate
+evidence, not a promoted baseline; the earlier packet below is unchanged.
+
 ## Result
 
 The first full local refresh after Codex Responses and CloudML batch retirement
