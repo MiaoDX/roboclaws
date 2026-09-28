@@ -39,6 +39,7 @@ Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 - Corrected snapshot-shape and `.env` loading repairs passed independently: MiniMax static-full cleanup `3/3` at `output/eval-harness/20260928T113410Z/repair3/`, and MiniMax open-ended `3/3` at `output/eval-harness/20260928T113410Z/repair3-open/`. These are compatible replacement evidence, not a rewrite of the original blocked packet.
 - MiMo TP static-full cleanup compatibility cohort completed at `output/eval-harness/20260928T113410Z/mimo-tp/`: 2/3 passed, 1/3 blocked by the recorded 180-second no-progress stall; no failures. The blocked denominator remains visible and the cohort is not accepted as fully passing.
 - Frozen visual case identity is recorded in `evals/household_world/manifests/simulation_convergence_visual_v1.json`: development scenes 0/10/12, reserved scenes 11/13, seed 7 with three trial identities per scene, real DINO lane, and fresh-map treatment. Fixture readiness and live collection remain pending.
+- Fresh real-Grounding-DINO MapBuild readiness runs completed for development scenes 0, 10, and 12 with seed 7: `output/convergence-mapbuild/scene0/0928_2122/seed-7/`, `output/convergence-mapbuild/scene10/0928_2125/seed-7/`, and `output/convergence-mapbuild/scene12/0928_2128/seed-7/`. Each exited `household-world ok` with `map_build_baseline complete`, private truth excluded, zero labeler failures, and sweep coverage 1.0; the runs recorded 35/20/50 DINO events and 239/108/327 candidates respectively.
 
 ## Next action
 
