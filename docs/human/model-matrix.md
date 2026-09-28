@@ -1,19 +1,18 @@
 # Model And Provider Matrix
 
-OpenAI Agents SDK launches require an explicit `provider_profile`. Roboclaws
-supports five profiles and never retries one wire API through another.
+OpenAI Agents SDK launches require an explicit `provider_profile`. The active
+product and eval surface has three profiles and never retries one wire API
+through another. Kimi and Qwen identities remain readable in historical
+artifacts but are not executable routes.
 
 | Profile | Network scope | Allowed eval targets | Wire API | Model identity | Required environment |
 | --- | --- | --- | --- | --- | --- |
 | `mimo-responses` | Internal | Local | Responses | `mimo-v2.6-pro` (strictly validated) | `MIMO_RESPONSES_BASE_URL`, `MIMO_RESPONSES_API_KEY`, `MIMO_RESPONSES_MODEL` |
 | `mimo-tp-openai-chat` | External | Local, trusted GitHub Actions showcase | Chat Completions | `mimo-v2.6-pro` | `MIMO_OPENAI_BASE_URL`, `MIMO_TP_KEY` |
 | `minimax-responses` | External | Local, trusted GitHub Actions showcase | Responses | Public MiniMax catalog model | `MM_BASE_URL`, `MM_API_KEY` |
-| `kimi-openai-chat` | External | Local, trusted GitHub Actions showcase | Chat Completions | `kimi-for-coding` (diagnostic `k3`, `k3-256k`) | `KIMI_OPENAI_BASE_URL`, `KIMI_API_KEY` |
-| `qwen-tp-responses` | External | Local, trusted GitHub Actions showcase | Responses | `qwen3.8-max` (variant `qwen3.8-flash`) | `QWEN_TP_BASE_URL`, `QWEN_TP_KEY` |
 
-Token-plan describes provider access, not the wire protocol. The MiMo and Kimi
-token-plan routes use Chat Completions, while the MiniMax and Qwen token-plan
-routes use Responses.
+Token-plan describes provider access, not the wire protocol. The MiMo token-plan
+route uses Chat Completions, while the MiniMax route uses Responses.
 
 Responses and Chat Completions are different transports. Responses can expose
 provider-native reasoning and structured response items; Chat Completions uses
@@ -27,7 +26,8 @@ Codex Responses support was retired after full-program requests failed with 403;
 see the [investigation](../status/active/codex-responses-api-investigation.md).
 CloudML batch evaluation is retired; the eval harness executes locally.
 
-The Qwen token-plan route is experimental pending the standard two-sample
+Historical Qwen token-plan evidence is retained for report reading. The route
+is no longer executable in the active catalog. It was experimental pending the standard two-sample
 fixed-prior consumer suite. Direct endpoint probes have live-proven text,
 native tool calling, image input (provider enforces a 10px minimum edge), and
 `reasoning.effort` control including a real `none` disable, so both transports
@@ -67,7 +67,7 @@ ranking:
 | --- | --- | --- |
 | Public primary, rank 1 | `minimax-responses` / `MiniMax-M3` | Default public live proof and first Map Build row. |
 | Public primary, rank 2 | `mimo-tp-openai-chat` / `mimo-v2.6-pro` | Second public high-volume route with the same cleanup and open-ended proof shapes. |
-| Public compatibility | `kimi-openai-chat` / `kimi-for-coding`; future `qwen-tp-responses` | Compatibility and transport coverage; not a quota or quality ranking. Qwen stays out of the maintained row set until its fixed-prior proof is complete. |
+| Historical compatibility | Kimi/Qwen identities in retained reports | Read-only historical compatibility; these routes are not selected by current launch or showcase matrices. |
 | Internal high-volume | `mimo-responses` | Local status and capacity proof. This route is not dispatched by the public GitHub showcase. |
 
 The Pages report labels each row with its lane and capacity rank. Results across
