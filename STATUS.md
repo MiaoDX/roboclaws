@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-27
+Last updated: 2026-09-28
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -9,6 +9,15 @@ orientation, move it to plans, ADRs, retrospectives, or `docs/human/**` and
 leave a link.
 
 ## Current Focus
+
+The approved next direction is simulation-first, cross-scene visual cleanup,
+supported by one product Skill delivery, three provider routes, and fixed
+initiative state ownership. The canonical scope and acceptance contract is
+[Simulation Capability And R&D Convergence](docs/plans/2026-09-28-simulation-capability-and-rnd-convergence.md).
+Implementation is active: provider/default, Skill, selector, showcase, and
+runbook convergence slices are merged and deterministic verification is green.
+Historical packets remain unchanged. Real-robot work is deliberately on hold
+and is not a blocker for this direction.
 
 Codex Responses and CloudML batch evaluation are retired from active support.
 Full Codex SDK runs failed at the first model request (403) despite header and
@@ -113,7 +122,16 @@ Live eval execution is opt-in with `live_execution=run`; default non-direct eval
 requests record blocked identity/preflight packets instead of launching real
 providers.
 
+The convergence live repairs provide MiniMax static-full cleanup 3/3 and
+open-ended 3/3 with the canonical runtime prior. MiMo TP cleanup compatibility
+is 2/3 passed with one 180-second stall; this remains an incomplete required
+cohort. See the initiative capsule for exact evidence paths.
+
 ## Next Action
+
+Continue the convergence plan from the remaining MiMo TP compatibility stall
+and the real-DINO multiscene capability cohort. The following baseline notes
+remain historical follow-up context, not a competing priority.
 
 Keep both full baseline packets and the four follow-up result bundles as
 separate evidence. Reconsider baseline promotion only through the existing
@@ -127,6 +145,9 @@ decisions remain unchanged.
 
 ## Current Blockers
 
+- The convergence MiMo TP static-full cleanup compatibility cohort has one
+  blocked first attempt after a 180-second no-progress stall; two attempts pass.
+  The real-DINO multiscene capability cohort is not yet collected.
 - The latest 2026-09-27 local baseline rerun is not passing: three rows are
   blocked by one MiMo TP model-call stall and MiniMax Token Plan exhaustion.
   The prior packet's three failed and two blocked rows remain preserved; none
