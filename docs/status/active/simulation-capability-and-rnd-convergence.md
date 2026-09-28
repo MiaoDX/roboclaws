@@ -36,6 +36,7 @@ Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 - Explicit `no-skill` kickoff now states that the Skill body is withheld while tool descriptions and run context remain available.
 - Focused facade execution completed at `output/eval-harness/20260928T113410Z/`: 13 passed, 4 failed, 2 blocked; required SDK open-task and cleanup rows were `environment_blocked`, while the no-skill live row executed. This is evidence, not acceptance.
 - Exact-identity MiniMax repair attempts with `runtime_map_prior=assets/eval-priors/runtime_map_prior_catalog.json` were recorded under `output/eval-harness/20260928T113410Z/repair/`; both cleanup and open-ended cohorts remained blocked because the cleanup MCP server exited before readiness, before any model call.
+- Corrected snapshot-shape and `.env` loading repairs passed independently: MiniMax static-full cleanup `3/3` at `output/eval-harness/20260928T113410Z/repair3/`, and MiniMax open-ended `3/3` at `output/eval-harness/20260928T113410Z/repair3-open/`. These are compatible replacement evidence, not a rewrite of the original blocked packet.
 
 ## Next action
 
