@@ -192,8 +192,8 @@ OpenAI Agents SDK runs always select one profile explicitly:
 
 | Profile | Wire API | Required configuration |
 | --- | --- | --- |
-| `kimi-openai-chat` | Chat Completions | `KIMI_OPENAI_BASE_URL`, `KIMI_API_KEY` |
 | `mimo-responses` | Responses | `MIMO_RESPONSES_BASE_URL`, `MIMO_RESPONSES_API_KEY`, `MIMO_RESPONSES_MODEL` |
+| `mimo-tp-openai-chat` | Chat Completions | `MIMO_OPENAI_BASE_URL`, `MIMO_TP_KEY` |
 | `minimax-responses` | Responses | `MM_BASE_URL`, `MM_API_KEY` |
 
 Non-direct suite selections preserve live-agent identity and produce blocked
@@ -201,10 +201,10 @@ provider/runtime evidence unless `live_execution=run` is explicit:
 
 ```bash
 just agent::eval suite=cleanup_capability budget=smoke \
-  agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat
+  agent_engine=openai-agents-sdk provider_profile=minimax-responses
 
 just agent::eval suite=open_ended_goals budget=smoke \
-  agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat \
+  agent_engine=openai-agents-sdk provider_profile=mimo-tp-openai-chat \
   live_execution=run
 ```
 
