@@ -13,8 +13,12 @@ the State-First GSD cursor and links here only when that initiative is relevant.
 
 ## Verification state
 
-Not run for implementation. Plan-level checks pending: gate recommendation,
-referenced-path checks, and `git diff --check`.
+Focused provider/catalog and console-route tests pass. Shared console fixtures
+now provide the catalog-owned MiMo environment while retaining explicit Kimi
+coverage. The broader console suite still has default-readiness assertions and
+fixtures that assume Kimi, so provider migration remains unfinished.
+Plan-level checks completed: referenced-path scan and `git diff --check`.
+Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 
 ## Proven evidence
 
@@ -22,12 +26,14 @@ referenced-path checks, and `git diff --check`.
 - Historical baseline: `docs/status/active/local-eval-baseline-refresh.md`
 - State-First record: `docs/status/active/state-first-context-manager.md`
 - Reviewed Skill probe: `docs/status/active/skill-delivery-multiscene-probe.md`
+- Plan gate recommendation: `output/eval-harness/20260928T101404Z/eval_harness.{json,md}`
 
 ## Next action
 
-Update active-record guidance for stable initiative ownership, then reconcile
-the listed records and inventory executable versus historical Skill/provider
-callers before phase 2 edits.
+Migrate operator-console readiness fixtures/assertions and remaining local
+default callers to the catalog-owned MiMo route, then reconcile the listed
+records and inventory executable versus historical Skill/provider callers
+before phase 2 edits.
 
 ## Stop/resume conditions
 

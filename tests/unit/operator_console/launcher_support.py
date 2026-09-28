@@ -13,6 +13,9 @@ from tests.unit.operator_console.conftest import (  # noqa: F401  re-exported fo
 KIMI_ENV = {
     "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
     "KIMI_API_KEY": "key",
+    "MIMO_RESPONSES_BASE_URL": "https://mimo.example.test/v1",
+    "MIMO_RESPONSES_API_KEY": "key",
+    "MIMO_RESPONSES_MODEL": "mimo",
 }
 
 
