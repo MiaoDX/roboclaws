@@ -205,7 +205,7 @@ def test_console_combinations_are_catalog_backed_axes() -> None:
             "mujoco",
             "open-ended",
             "openai-agents-sdk",
-            "kimi-openai-chat",
+            console_workflows.DEFAULT_PROVIDER_PROFILE,
             "world-public-labels",
         ),
         (
@@ -213,7 +213,7 @@ def test_console_combinations_are_catalog_backed_axes() -> None:
             "isaaclab",
             "open-ended",
             "openai-agents-sdk",
-            "kimi-openai-chat",
+            console_workflows.DEFAULT_PROVIDER_PROFILE,
             "world-public-labels",
         ),
     }
@@ -230,7 +230,7 @@ def test_openai_agents_route_payload_lists_provider_profiles() -> None:
     route = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
     payload = route.to_payload()
 
-    assert payload["provider_profile"] == "kimi-openai-chat"
+    assert payload["provider_profile"] == console_workflows.DEFAULT_PROVIDER_PROFILE
     assert payload["supported_provider_profiles"] == [
         "mimo-responses",
         "mimo-tp-openai-chat",
@@ -241,7 +241,7 @@ def test_openai_agents_route_payload_lists_provider_profiles() -> None:
     route_by_profile = {route["provider_profile"]: route for route in payload["provider_routes"]}
     assert route_by_profile["mimo-responses"]["default_model_id"] == "mimo"
     assert route_by_profile["minimax-responses"]["route_status"] == "healthy"
-    assert route_by_profile["kimi-openai-chat"]["wire_api"] == "chat-completions"
+    assert route_by_profile[console_workflows.DEFAULT_PROVIDER_PROFILE]["wire_api"] == "responses"
     assert route_by_profile["minimax-responses"]["route_capabilities"]["image_transport"] == (
         "unknown"
     )
@@ -510,7 +510,7 @@ def test_payload_exposes_orthogonal_ui_metadata() -> None:
     assert mujoco["world_id"] == "molmospaces/procthor-objaverse-val/0"
     assert mujoco["backend_id"] == "mujoco"
     assert mujoco["agent_engine_id"] == "openai-agents-sdk"
-    assert mujoco["provider_profile"] == "kimi-openai-chat"
+    assert mujoco["provider_profile"] == console_workflows.DEFAULT_PROVIDER_PROFILE
     assert mujoco["scenario_setup"] == "baseline"
     assert "agent_engine=openai-agents-sdk" in mujoco["argv_preview"]
     assert "scenario_setup=baseline" in mujoco["argv_preview"]
@@ -532,7 +532,7 @@ def test_payload_exposes_orthogonal_ui_metadata() -> None:
     assert b1_openai_agents["world_id"] == "b1-map12"
     assert b1_openai_agents["backend_id"] == "isaaclab"
     assert b1_openai_agents["agent_engine_id"] == "openai-agents-sdk"
-    assert b1_openai_agents["provider_profile"] == "kimi-openai-chat"
+    assert b1_openai_agents["provider_profile"] == console_workflows.DEFAULT_PROVIDER_PROFILE
     assert b1_openai_agents["required_overrides"] == [
         "b1_alignment_artifact",
         "b1_navigation_artifact",
@@ -571,7 +571,7 @@ def test_prompt_gating_uses_argv_element_not_shell_joining(tmp_path) -> None:
         "agent_engine=openai-agents-sdk",
     ]
     assert "evidence_lane=world-public-labels" in argv
-    assert "provider_profile=kimi-openai-chat" in argv
+    assert f"provider_profile={console_workflows.DEFAULT_PROVIDER_PROFILE}" in argv
     assert "scenario_setup=baseline" in argv
     assert "prompt=collect mugs; rm -rf / should stay text" in argv
 
@@ -660,7 +660,9 @@ def _write_prior_catalog(
                         "selected_candidate_id": "candidate-1",
                         "run_id": "run-1",
                         "product_route": {"agent_engine": "openai-agents-sdk"},
-                        "producer": {"provider_profile": "kimi-openai-chat"},
+                        "producer": {
+                            "provider_profile": console_workflows.DEFAULT_PROVIDER_PROFILE
+                        },
                         "evidence": ["hard_gates_passed"],
                     }
                 ],

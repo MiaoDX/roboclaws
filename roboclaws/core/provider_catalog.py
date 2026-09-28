@@ -390,6 +390,8 @@ def supported_provider_profiles(agent_engine: str) -> tuple[str, ...]:
 
 
 def default_provider_profile(agent_engine: str) -> str | None:
+    if agent_engine == "openai-agents-sdk":
+        return PROVIDER_PROFILE_MIMO_RESPONSES
     return None
 
 

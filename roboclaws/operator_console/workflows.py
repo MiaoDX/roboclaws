@@ -10,6 +10,7 @@ from roboclaws.core.environment_setup import (
     ENVIRONMENT_SETUP_BASELINE,
     ENVIRONMENT_SETUP_RELOCATE_CLEANUP_RELATED_OBJECTS,
 )
+from roboclaws.core.provider_catalog import default_provider_profile
 from roboclaws.household.profiles import CAMERA_GROUNDED_LABELS_LANE
 from roboclaws.launch.worlds import WORLD_SPECS
 from roboclaws.maps.runtime_prior_catalog import (
@@ -20,7 +21,7 @@ from roboclaws.maps.runtime_prior_catalog import (
 
 DEFAULT_CAMERA_LABELER = "grounding-dino"
 DEFAULT_RELOCATION_COUNT = "5"
-DEFAULT_PROVIDER_PROFILE = "kimi-openai-chat"
+DEFAULT_PROVIDER_PROFILE = default_provider_profile("openai-agents-sdk") or ""
 
 WORKFLOW_BUILD_MAP = "build-map"
 WORKFLOW_OPEN_TASK = "open-task"

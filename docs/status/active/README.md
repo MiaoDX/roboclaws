@@ -1,7 +1,10 @@
 # Active Standalone Work
 
-Use this directory for parallel terminal or agent work that needs lightweight
-coordination but should not change the repo-level dashboard in `STATUS.md`.
+Use this directory for parallel terminal or agent work and durable initiative
+capsules. A named initiative keeps one stable owner file for its full lifetime;
+GSD state may link to that capsule but must not create a competing initiative
+status record. Short-lived standalone task files may still be deleted or
+archived at closeout.
 
 One standalone task owns one file:
 
@@ -9,9 +12,10 @@ One standalone task owns one file:
 docs/status/active/<task-slug>.md
 ```
 
-Keep each file short and delete or archive it when the task is done. Do not use
-these files as substitutes for GSD phase plans, `docs/plans/`, issues, or
-verification artifacts.
+Keep each file short. Initiative capsules remain at their stable path after
+completion or parking with a terminal conclusion, evidence links and resume
+conditions. Do not use these files as substitutes for GSD phase plans,
+`docs/plans/`, issues, or verification artifacts.
 
 ## Template
 
@@ -20,7 +24,7 @@ verification artifacts.
 
 Owner/session: <terminal or agent>
 Started: YYYY-MM-DD HH:MM
-State: active | blocked | done
+State: active | blocked | done | parked
 
 ## Scope
 
