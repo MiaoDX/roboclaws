@@ -133,7 +133,9 @@ def test_realworld_contract_rejects_skipped_semantic_phases_without_private_trut
     assert skipped_place["fixture_id"] == target_fixture["fixture_id"]
     _assert_no_forbidden_keys(skipped_place)
 
-    assert contract.navigate_to_receptacle(str(target_fixture["fixture_id"]))["ok"] is True
+    navigate_response = contract.navigate_to_receptacle(str(target_fixture["fixture_id"]))
+    assert navigate_response["ok"] is True
+    assert navigate_response["object_id"] == detection["object_id"]
     assert contract.place(str(target_fixture["fixture_id"]))["ok"] is True
 
 
