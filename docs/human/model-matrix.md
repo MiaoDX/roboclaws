@@ -53,6 +53,11 @@ Provider secrets and endpoint/request-model values remain in the gitignored
 `.env`; readiness, benchmark, console, and run artifacts expose only public
 profile/model labels.
 
+Explicit subscription or billing-limit responses are non-retryable quota
+failures. This includes MiniMax's Token Plan usage-limit message even when it
+arrives as HTTP 500. Resume the affected provider's eval after quota recovers;
+a passing readiness probe alone does not establish task completion.
+
 ## Showcase Capacity Lanes
 
 The public showcase is organized by usable quota, not by a single global model

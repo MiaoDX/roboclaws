@@ -480,7 +480,10 @@ def _compact_continuation_task_guidance(intent: str) -> str:
             "resolve_target_query returns not_found with exhausted_public_search_budget=false, "
             "stop retrying synonyms and visit the next unvisited public waypoint from its "
             "viewpoint budget, observe once, then retry the original query. When the public "
-            "waypoint budget is exhausted and the query remains not_found, call done immediately."
+            "last waypoint has been observed, call resolve_target_query for the original "
+            "target again before done. An earlier resolution is stale after new observations. "
+            "Call done with not-found evidence only when this fresh final resolution returns "
+            "not_found and exhausted_public_search_budget=true."
         )
     return (
         "Continue missing cleanup work in this order: first finish held entries in "

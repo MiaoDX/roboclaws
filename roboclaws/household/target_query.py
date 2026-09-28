@@ -19,10 +19,14 @@ def resolve_target_query(
 
     normalized_query = _normalize_query(query)
     operation = str(operation or "inspect").strip().lower() or "inspect"
-    candidates = [
-        _candidate_resolution_row(candidate, normalized_query, operation=operation)
+    public_candidates = [
+        candidate
         for candidate in runtime_metric_map.get("target_candidates") or []
         if isinstance(candidate, dict)
+    ]
+    candidates = [
+        _candidate_resolution_row(candidate, normalized_query, operation=operation)
+        for candidate in filter_numbered_target_candidates(query, public_candidates)
     ]
     matches = [item for item in candidates if item["match_score"] > 0.0]
     matches.sort(
@@ -43,7 +47,7 @@ def resolve_target_query(
         "normalized_query": normalized_query["compact"],
         "operation": operation,
         "status": "matched" if limited else "not_found",
-        "candidate_count": len(candidates),
+        "candidate_count": len(public_candidates),
         "match_count": len(matches),
         "matches": limited,
         "best_match": limited[0] if limited else None,
@@ -129,7 +133,7 @@ def _candidate_resolution_row(
     return row
 
 
-def _candidate_search_terms(candidate: dict[str, Any]) -> list[str]:
+def _candidate_search_values(candidate: dict[str, Any]) -> list[Any]:
     values: list[Any] = [
         candidate.get("query"),
         candidate.get("label"),
@@ -156,8 +160,41 @@ def _candidate_search_terms(candidate: dict[str, Any]) -> list[str]:
                 generated.get("waypoint_source"),
             ]
         )
+    return values
+
+
+def filter_numbered_target_candidates(
+    query: str, candidates: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Bind numbered references only to identities present in public candidates.
+
+    Semantic recovery for stale fixture names (e.g. sink_01) remains possible
+    when that numbered identity family is absent from the public map.
+    """
+    requested = _numbered_references(query)
+    if not requested:
+        return candidates
+    references = [
+        set().union(
+            *(_numbered_references(str(value or "")) for value in _candidate_search_values(c))
+        )
+        for c in candidates
+    ]
+    public_families = {family for refs in references for family, _ in refs}
+    required = {ref for ref in requested if ref[0] in public_families}
+    return [candidate for candidate, refs in zip(candidates, references) if required <= refs]
+
+
+def _numbered_references(value: str) -> set[tuple[str, int]]:
+    return {
+        (family, int(number))
+        for family, number in re.findall(r"([a-z]+)[ _-]*(\d+)(?!\d)", value.lower())
+    }
+
+
+def _candidate_search_terms(candidate: dict[str, Any]) -> list[str]:
     terms: list[str] = []
-    for value in values:
+    for value in _candidate_search_values(candidate):
         text = str(value or "").strip()
         if not text:
             continue
