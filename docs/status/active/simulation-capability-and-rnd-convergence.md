@@ -40,13 +40,15 @@ Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 - MiMo TP static-full cleanup compatibility cohort completed at `output/eval-harness/20260928T113410Z/mimo-tp/`: 2/3 passed, 1/3 blocked by the recorded 180-second no-progress stall; no failures. The blocked denominator remains visible and the cohort is not accepted as fully passing.
 - Frozen visual case identity is recorded in `evals/household_world/manifests/simulation_convergence_visual_v1.json`: development scenes 0/10/12, reserved scenes 11/13, seed 7 with three trial identities per scene, real DINO lane, and fresh-map treatment. Fixture readiness and live collection remain pending.
 - Fresh real-Grounding-DINO MapBuild readiness runs completed for development scenes 0, 10, and 12 with seed 7: `output/convergence-mapbuild/scene0/0928_2122/seed-7/`, `output/convergence-mapbuild/scene10/0928_2125/seed-7/`, and `output/convergence-mapbuild/scene12/0928_2128/seed-7/`. Each exited `household-world ok` with `map_build_baseline complete`, private truth excluded, zero labeler failures, and sweep coverage 1.0; the runs recorded 35/20/50 DINO events and 239/108/327 candidates respectively.
+- MiniMax real-DINO first attempts now exist for every development scene in the frozen manifest: scene 0 at `output/convergence-visual/minimax/scene0/trial0/` restored 3/5 targets, scene 10 at `output/convergence-visual/minimax/scene10/trial0/` restored 1/5, and scene 12 at `output/convergence-visual/minimax/scene12/trial0/` restored 2/5. All three completed with `partial_success`, real `grounding-dino` provenance, sweep coverage 1.0, and zero disturbances. These are cross-scene capability evidence, not the 12/15 acceptance cohort.
 
 ## Next action
 
 The focused live-row blockers are resolved for MiniMax, with compatible repair
-evidence preserved. Next, prepare the frozen multiscene visual case manifest
-from the existing camera-grounded/DINO harness and collect the required
-MiniMax real-DINO cohort. Do not treat compatibility repairs as visual proof.
+evidence preserved. Development-scene first attempts are now collected for the
+three frozen scenes. Next, complete the remaining MiniMax trial identities and
+reserved-scene checks needed for the manifest acceptance thresholds. Do not
+treat compatibility repairs as visual proof.
 
 ## Stop/resume conditions
 
