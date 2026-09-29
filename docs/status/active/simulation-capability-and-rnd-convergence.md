@@ -49,16 +49,17 @@ Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 - After the reported quota recovery, MiniMax trial-1 collection resumed. Scene 0 trial 1 at `output/convergence-visual/minimax/scene0/trial1/` is validator-clean and reports success with 4/5 accepted targets, sweep coverage 1.0, and zero disturbances. Scene 10 trial 1 at `output/convergence-visual/minimax/scene10/trial1/` reports behavioral success with 4/5, sweep 1.0, and zero disturbances, but strict validation still rejects an open-receptacle focused frame with zero object pixels and room mismatch. Scene 12 trial 1 at `output/convergence-visual/minimax/scene12/trial1/` is checker-clean but partial success at 2/5, sweep 1.0, and zero disturbances. Trial-1 outcomes expand the complete cohort evidence but do not alter first-attempt acceptance denominators.
 - Reserved trial-1 follow-up artifacts are now present: scene 11 trial 2 at `output/convergence-visual/minimax/scene11/trial2/` and scene 13 trial 1 at `output/convergence-visual/minimax/scene13/trial1/` each report behavioral success at 4/5, sweep coverage 1.0, and zero disturbances. Both retain strict checker failures on focused robot-view visibility, so they remain behavioral evidence and do not count as validator-clean acceptance rows.
 - MiniMax development trial-2 follow-ups are complete: scene 0 at `output/convergence-visual/minimax/scene0/trial2/` reports partial success 3/5, scene 10 at `output/convergence-visual/minimax/scene10/trial2/` reports behavioral success 4/5 with strict checker failure, and scene 12 at `output/convergence-visual/minimax/scene12/trial2/` reports partial success 2/5. All three have sweep coverage 1.0 and zero disturbances; these follow-ups do not alter first-attempt acceptance denominators.
+- The final reserved identity, scene 13 trial 2 at `output/convergence-visual/minimax/scene13/trial2/`, completed as an authoritative behavioral failure: 0/5 accepted targets, sweep coverage 1.0, zero disturbances, and no actionable public DINO handle reached navigation authorization. This preserves the complete 15-case identity ledger with explicit failure evidence; the frozen MiniMax acceptance threshold is not met.
 
 ## Next action
 
 The focused live-row blockers are resolved for MiniMax, with compatible repair
-evidence preserved. Quota recovery allowed additional trial-1 follow-ups, but
-strict visual validation and the required cohort remain incomplete. Continue
-the remaining development trial identities under the unchanged envelope, and
-repair the focused open-receptacle visibility/room-pose defect before counting
-those behavioral successes as validator-clean. Do not treat compatibility
-repairs as visual proof.
+evidence preserved. Quota recovery allowed the complete 15-case identity ledger
+to be collected, but the required first-attempt threshold and strict visual
+validation remain incomplete: focused open-receptacle visibility/room-pose
+defects reject several behavioral successes, and scene 13 trial 2 is a genuine
+public-discovery failure. MiMo Responses real-DINO smoke is also incomplete.
+Do not treat compatibility repairs as visual proof.
 
 ## Stop/resume conditions
 
