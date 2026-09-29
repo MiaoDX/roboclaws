@@ -47,15 +47,16 @@ Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 - The scene 11 trial1 terminal packet records MiniMax Token Plan quota exhaustion (`2056`, `provider_quota_failure`, `billing_limit`) after 25 successful model calls. The attempt is non-retryable under the provider contract; no further MiniMax cohort replay is authorized until quota availability changes.
 - MiMo Responses development smoke scene 0 was attempted at `output/convergence-visual/mimo/scene0/trial0/`; it reached 66 successful model calls and continued making tool progress for roughly 30 minutes without an authoritative `done`/`run_result.json`. It was stopped as an incomplete bounded attempt and does not count as MiMo acceptance.
 - After the reported quota recovery, MiniMax trial-1 collection resumed. Scene 0 trial 1 at `output/convergence-visual/minimax/scene0/trial1/` is validator-clean and reports success with 4/5 accepted targets, sweep coverage 1.0, and zero disturbances. Scene 10 trial 1 at `output/convergence-visual/minimax/scene10/trial1/` reports behavioral success with 4/5, sweep 1.0, and zero disturbances, but strict validation still rejects an open-receptacle focused frame with zero object pixels and room mismatch. Scene 12 trial 1 at `output/convergence-visual/minimax/scene12/trial1/` is checker-clean but partial success at 2/5, sweep 1.0, and zero disturbances. Trial-1 outcomes expand the complete cohort evidence but do not alter first-attempt acceptance denominators.
+- Reserved trial-1 follow-up artifacts are now present: scene 11 trial 2 at `output/convergence-visual/minimax/scene11/trial2/` and scene 13 trial 1 at `output/convergence-visual/minimax/scene13/trial1/` each report behavioral success at 4/5, sweep coverage 1.0, and zero disturbances. Both retain strict checker failures on focused robot-view visibility, so they remain behavioral evidence and do not count as validator-clean acceptance rows.
 
 ## Next action
 
 The focused live-row blockers are resolved for MiniMax, with compatible repair
-evidence preserved. Development-scene first attempts and behavioral reserved
-attempts are recorded, but strict visual validation and the required cohort are
-incomplete. MiniMax collection is currently blocked by the recorded provider
-quota exhaustion; resume only after provider readiness changes, then replay the
-affected identities with validator-clean artifacts. Do not treat compatibility
+evidence preserved. Quota recovery allowed additional trial-1 follow-ups, but
+strict visual validation and the required cohort remain incomplete. Continue
+the remaining development trial identities under the unchanged envelope, and
+repair the focused open-receptacle visibility/room-pose defect before counting
+those behavioral successes as validator-clean. Do not treat compatibility
 repairs as visual proof.
 
 ## Stop/resume conditions
