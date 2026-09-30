@@ -701,3 +701,24 @@ def test_openai_agents_perf_profile_resolves_qwen_responses_context_limits(monke
     # qwen3.8-max declares 1M native window; derived hard limit clamps at 256K.
     assert qwen["context_hard_limit_tokens"] == 256_000
     assert qwen["sdk_model_settings"]["truncation"] == "auto"
+
+
+@pytest.mark.parametrize("profile", ["kimi-openai-chat", "qwen-tp-responses"])
+def test_retired_profile_reports_provider_configuration_failure(
+    tmp_path: Path, monkeypatch, profile: str
+) -> None:
+    monkeypatch.setenv("ROBOCLAWS_PROVIDER_PROFILE", profile)
+    request = LiveAgentRequest(
+        run_id="household-world",
+        skill_name="household-world",
+        kickoff_prompt="clean the room",
+        mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
+        run_dir=tmp_path / "run",
+        provider_profile=profile,
+    )
+    result = OpenAIAgentsLiveRuntime().run(request)
+    assert result.phase == "failed"
+    assert result.reason == "provider_config_failure"
+    status = json.loads((tmp_path / "run" / "live_status.json").read_text())
+    assert status["reason"] == "provider_config_failure"
+    assert "is retired" in status["detail"]

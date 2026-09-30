@@ -178,7 +178,8 @@ def openai_agents_runtime_settings(
     if provider not in provider_catalog.ACTIVE_PROVIDER_PROFILES:
         supported = ", ".join(provider_catalog.ACTIVE_PROVIDER_PROFILES)
         raise ValueError(
-            f"OpenAI Agents SDK provider_profile {provider!r} is retired; select one of {supported}"
+            f"OpenAI Agents SDK setting provider_profile {provider!r} is retired; "
+            f"select one of {supported}"
         )
     try:
         route = provider_catalog.resolve_provider_route_for_engine("openai-agents-sdk", provider)
