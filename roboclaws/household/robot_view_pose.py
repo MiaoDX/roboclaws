@@ -87,8 +87,6 @@ def resolve_cleanup_robot_pose(
             )
         )
     _, clearance, _, x, y, robot_room = max(candidates)
-    if robot_room is None and target_room_id is not None:
-        robot_room = target_room_id
     theta = math.atan2(target[1] - y, target[0] - x)
     head_pitch = robot_head_pitch_for_target(target, [x, y])
     return {

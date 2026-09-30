@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 from typing import Any
 
+from roboclaws.backends.molmospaces.placement import receptacle_requires_open
 from roboclaws.household.robot_view_pose import (
     angle_delta,
     point_inside_room_outline,
@@ -36,7 +37,7 @@ def robot_pose_for_open_receptacle(
     state: dict[str, Any],
     receptacle: dict[str, Any],
 ) -> dict[str, Any]:
-    if receptacle.get("category") != "Fridge":
+    if not receptacle_requires_open(receptacle):
         return robot_pose_near_receptacle(state, receptacle)
 
     base = receptacle["position"]

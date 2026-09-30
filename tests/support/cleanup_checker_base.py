@@ -306,7 +306,7 @@ def _promote_agibot_fixture_to_hardware_shape(
             event["status"] = "ok"
 
 
-def _robot_step(action: str) -> dict[str, object]:
+def _robot_step(action: str, *, focused_object_id: str | None = None) -> dict[str, object]:
     phase, _, target = action.partition(" ")
     object_id = (
         target
@@ -319,7 +319,7 @@ def _robot_step(action: str) -> dict[str, object]:
             "place_inside",
         }
         else (
-            "observed_001"
+            focused_object_id
             if phase in {"navigate_to_receptacle", "open_receptacle", "close_receptacle"}
             else None
         )

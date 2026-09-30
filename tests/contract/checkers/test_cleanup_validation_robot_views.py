@@ -253,10 +253,10 @@ def test_checker_can_require_robot_view_report_artifacts(tmp_path: Path) -> None
     result["robot_view_steps"] = [
         _robot_step("navigate_to_object observed_001"),
         _robot_step("pick observed_001"),
-        _robot_step("navigate_to_receptacle refrigerator_01"),
-        _robot_step("open_receptacle refrigerator_01"),
+        _robot_step("navigate_to_receptacle refrigerator_01", focused_object_id="observed_001"),
+        _robot_step("open_receptacle refrigerator_01", focused_object_id="observed_001"),
         _robot_step("place_inside observed_001"),
-        _robot_step("close_receptacle refrigerator_01"),
+        _robot_step("close_receptacle refrigerator_01", focused_object_id="observed_001"),
         _robot_step("place observed_002"),
     ]
 
@@ -287,10 +287,10 @@ def test_checker_counts_visual_candidate_robot_view_as_object_navigation(
             },
         },
         _robot_step("pick observed_001"),
-        _robot_step("navigate_to_receptacle refrigerator_01"),
-        _robot_step("open_receptacle refrigerator_01"),
+        _robot_step("navigate_to_receptacle refrigerator_01", focused_object_id="observed_001"),
+        _robot_step("open_receptacle refrigerator_01", focused_object_id="observed_001"),
         _robot_step("place_inside observed_001"),
-        _robot_step("close_receptacle refrigerator_01"),
+        _robot_step("close_receptacle refrigerator_01", focused_object_id="observed_001"),
         _robot_step("place observed_002"),
     ]
 
@@ -359,6 +359,17 @@ def test_checker_rejects_object_action_with_receptacle_only_focus() -> None:
                 },
             }
         )
+
+
+def test_generic_robot_fixture_requires_explicit_object_continuity() -> None:
+    assert _robot_step("open_receptacle refrigerator_01")["focus"]["object_id"] is None
+    assert (
+        _robot_step(
+            "open_receptacle refrigerator_01",
+            focused_object_id="observed_001",
+        )["focus"]["object_id"]
+        == "observed_001"
+    )
 
 
 def test_checker_accepts_authorized_source_fpv_evidence_for_weak_nav_view(

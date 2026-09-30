@@ -207,6 +207,34 @@ def test_worker_robot_pose_near_receptacle_uses_shared_pose_resolver() -> None:
     assert pose["same_room_as_target"] is True
 
 
+def test_worker_robot_pose_does_not_claim_same_room_without_valid_candidate() -> None:
+    pytest.importorskip("mujoco")
+    worker = _load_worker_module()
+    state = {
+        "receptacles": {
+            "sink_01": {
+                "receptacle_id": "sink_01",
+                "position": [0.0, 0.0, 0.75],
+                "room_area": "room_tiny",
+            }
+        },
+        "objects": {},
+        "room_outlines": [
+            {
+                "room_id": "room_tiny",
+                "center": [0.0, 0.0],
+                "half_extents": [0.4, 0.4],
+            }
+        ],
+    }
+
+    pose = worker._robot_pose_near_receptacle(state, state["receptacles"]["sink_01"])
+
+    assert pose["robot_room_id"] is None
+    assert pose["same_room_as_target"] is False
+    assert pose["room_plausibility"] == "room_mismatch"
+
+
 def test_worker_robot_pose_for_boundary_fridge_stays_in_target_room() -> None:
     pytest.importorskip("mujoco")
     worker = _load_worker_module()
@@ -214,7 +242,7 @@ def test_worker_robot_pose_for_boundary_fridge_stays_in_target_room() -> None:
         "receptacles": {
             "fridge_01": {
                 "receptacle_id": "fridge_01",
-                "category": "Fridge",
+                "category": "fridge",
                 "position": [0.55, 6.22, 0.95],
                 "room_area": "room_6",
             }
@@ -237,6 +265,7 @@ def test_worker_robot_pose_for_boundary_fridge_stays_in_target_room() -> None:
     assert pose["same_room_as_target"] is True
     assert pose["room_plausibility"] == "same_room"
     assert pose["robot_room_id"] == "room_6"
+    assert pose["pose_request"]["stand_off_m"] == 1.8
     assert pose["x"] >= 0.0
     assert pose["theta_source"] == "opened_receptacle_access_yaw"
     held_position = worker._held_object_position({"robot_pose": pose})
@@ -250,7 +279,7 @@ def test_worker_robot_pose_for_open_fridge_keeps_held_object_outside_door() -> N
         "receptacles": {
             "fridge_01": {
                 "receptacle_id": "fridge_01",
-                "category": "Fridge",
+                "category": "Refrigerator",
                 "position": [12.73, 7.93, 0.84],
                 "room_area": "room_6",
             }
@@ -272,6 +301,7 @@ def test_worker_robot_pose_for_open_fridge_keeps_held_object_outside_door() -> N
     held_position = worker._held_object_position({"robot_pose": pose})
 
     assert pose["same_room_as_target"] is True
+    assert pose["pose_request"]["stand_off_m"] == 1.8
     assert math.dist(held_position[:2], [12.73, 7.93]) > 0.5
 
 
