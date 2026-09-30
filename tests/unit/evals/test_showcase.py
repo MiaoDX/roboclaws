@@ -428,3 +428,10 @@ def test_compact_external_cases_are_paired_across_providers(suite):
     assert {key: paired[0].get(key) for key in fields} == {
         key: paired[1].get(key) for key in fields
     }
+
+
+def test_manifest_seed_must_match_executed_sample():
+    m = manifest()
+    m["rows"][0]["seed"] += 1
+    with pytest.raises(ValueError, match="does not match selected sample"):
+        validate_manifest(m)

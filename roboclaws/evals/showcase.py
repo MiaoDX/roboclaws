@@ -124,7 +124,7 @@ def _validate_manifest_row_selection(row: dict[str, Any], samples: list[Any]) ->
     if selected_sample_id and not selected_samples:
         raise ValueError(f"showcase row {row['id']} selects an unknown sample")
     for sample in selected_samples:
-        for field in ("evidence_lane", "camera_labeler"):
+        for field in ("evidence_lane", "camera_labeler", "seed"):
             if row[field] != getattr(sample, field):
                 raise ValueError(
                     f"showcase row {row['id']} {field}={row[field]!r} does not match "
