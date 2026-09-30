@@ -363,3 +363,32 @@ def test_later_trial_identity_mismatch_cannot_pass_showcase():
     assert derived["status"] == "failed"
     assert derived["reason"] == "showcase_identity_mismatch"
     assert derived["metrics"]["passed"] == 2
+
+
+@pytest.mark.parametrize("actual", ["mimo-tp-openai-chat", "not_applicable", None])
+def test_required_provider_row_cannot_use_another_provider(actual):
+    row = next(
+        row
+        for row in json.loads(
+            (Path(__file__).resolve().parents[3] / "config/showcase-manifest.json").read_text()
+        )["rows"]
+        if row.get("provider_profile") == "minimax-responses"
+    )
+    derived = derive_row(
+        row,
+        {
+            "aggregate": {"total": 1, "passed": 1},
+            "results": [
+                {
+                    "identity": {
+                        "agent_engine": row["agent_engine"],
+                        "provider_profile": actual,
+                        "evidence_lane": row["evidence_lane"],
+                        "camera_labeler": row["camera_labeler"],
+                    }
+                }
+            ],
+        },
+    )
+    assert derived["status"] == "failed"
+    assert derived["reason"] == "showcase_identity_mismatch"

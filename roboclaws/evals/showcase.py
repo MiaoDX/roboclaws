@@ -373,8 +373,9 @@ def _result_identity_mismatch(row: dict[str, Any], identity: dict[str, Any]) -> 
     if not identity:
         return False
     return any(
-        identity.get(field) != row.get(field) for field in ("evidence_lane", "camera_labeler")
-    )
+        row.get(field) and identity.get(field) != row[field]
+        for field in ("agent_engine", "provider_profile")
+    ) or any(identity.get(field) != row.get(field) for field in ("evidence_lane", "camera_labeler"))
 
 
 def build_summary(
