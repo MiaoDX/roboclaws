@@ -21,6 +21,7 @@ HARNESS_PROFILES = (
     "baseline-live-default",
     "baseline-refresh",
     "baseline-ci",
+    "skill-control",
 )
 # Profiles whose consumer rows must take the manifest-level canonical prior
 # instead of their own same-run artifact reference. The remaining baseline
@@ -409,6 +410,8 @@ def _apply_selection_rules(
     signal_ids = {signal["id"] for signal in signals}
     signal_by_id = {signal["id"]: signal for signal in signals}
     for row in rows:
+        if row.get("skill_delivery_cell") == "no-skill" and profile != "skill-control":
+            continue
         if profile != "adaptive":
             if not _profile_row_allowed(row, profile):
                 continue

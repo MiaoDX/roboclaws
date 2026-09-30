@@ -368,3 +368,10 @@ write/network denial. Retained local and remote attestation evidence records the
 a new campaign still requires a valid bound attestation. A candidate may then project existing-tool public responses
 inside the isolated worker, but cannot change the public tool set or bypass the
 trusted supervisor's output validation.
+
+The explicit Skill control comparison uses
+`just agent::eval recommend profile=skill-control budget=focused`.
+It selects paired static-full/no-skill cleanup rows with the same supported
+provider and Runtime Map Prior. Supply `runtime_map_prior=<catalog-or-snapshot>`
+when needed. Use `execute` and `live_execution=run` to collect live evidence;
+no-skill is excluded from adaptive and everyday baseline recommendations.

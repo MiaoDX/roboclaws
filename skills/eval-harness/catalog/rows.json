@@ -714,7 +714,8 @@
       ],
       "profiles": [
         "baseline-live-default",
-        "baseline-refresh"
+        "baseline-refresh",
+        "skill-control"
       ]
     },
     {
@@ -726,6 +727,7 @@
         "-m",
         "roboclaws.evals.cli",
         "suite=cleanup_capability",
+        "runtime_map_prior={runtime_map_prior}",
         "budget=smoke",
         "output_dir={eval_output_root}",
         "stamp=openai-agents-sdk-cleanup-no-skill-eval",
@@ -752,10 +754,11 @@
       "requires": [
         "python_env",
         "openai_agents_package",
-        "provider_profile"
+        "provider_profile",
+        "runtime_map_prior"
       ],
       "profiles": [
-        "baseline-refresh"
+        "skill-control"
       ]
     },
     {

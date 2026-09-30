@@ -93,12 +93,12 @@ def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
     )
 
     rows = _selected_rows(manifest)
-    assert set(rows) == EXPECTED_ROW_IDS
+    assert set(rows) == EXPECTED_ROW_IDS - {"openai-agents-sdk-cleanup-no-skill-eval"}
     assert manifest["profile"] == "baseline-refresh"
-    assert manifest["summary"]["selected_row_count"] == len(EXPECTED_ROW_IDS)
+    assert manifest["summary"]["selected_row_count"] == len(EXPECTED_ROW_IDS) - 1
     assert manifest["summary"]["budget_skipped_count"] == 0
     assert manifest["summary"]["eval_suite_row_count"] == 6
-    assert manifest["summary"]["live_agent_eval_row_count"] == 7
+    assert manifest["summary"]["live_agent_eval_row_count"] == 6
     assert rows["openai-agents-sdk-open-task-live-eval"]["status"] == "not_run"
     assert rows["openai-agents-sdk-cleanup-live-eval"]["status"] == "not_run"
     assert not any(
@@ -697,3 +697,22 @@ def test_recommendation_writes_json_markdown_and_html(tmp_path: Path) -> None:
     assert "openai-agents-sdk-open-task-live-eval" in (tmp_path / "eval_harness.md").read_text(
         encoding="utf-8"
     )
+
+
+@pytest.mark.parametrize("profile", ["adaptive", "baseline-refresh", "skill-control"])
+def test_no_skill_requires_explicit_control_profile(tmp_path, profile):
+    manifest = selector.build_eval_harness(
+        profile=profile,
+        budget="focused",
+        output_dir=tmp_path,
+        changed_files=["skills/household-world/SKILL.md"],
+    )
+    rows = _selected_rows(manifest)
+    assert ("openai-agents-sdk-cleanup-no-skill-eval" in rows) == (profile == "skill-control")
+    if profile == "skill-control":
+        assert set(rows) == {
+            "openai-agents-sdk-cleanup-live-eval",
+            "openai-agents-sdk-cleanup-no-skill-eval",
+        }
+        for row in rows.values():
+            assert any(arg.startswith("runtime_map_prior=") for arg in row["command"])
