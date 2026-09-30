@@ -329,7 +329,15 @@ def derive_row(
         else {}
     )
     selected_identity = execution_identity or {}
-    identity_mismatch = _result_identity_mismatch(row, canonical_identity)
+    identity_mismatch = (
+        any(
+            _result_identity_mismatch(row, item.get("identity", {}))
+            for item in identities
+            if isinstance(item, dict)
+        )
+        if isinstance(identities, list)
+        else False
+    )
     if results is not None and identity_mismatch:
         status, reason = "failed", "showcase_identity_mismatch"
     result = {

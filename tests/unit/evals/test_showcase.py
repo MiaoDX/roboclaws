@@ -338,3 +338,28 @@ def test_showcase_requires_every_case_to_pass(counts, status):
     for key in ("total", "passed", "blocked", "failed"):
         if key in counts:
             assert row["metrics"][key] == counts[key]
+
+
+def test_later_trial_identity_mismatch_cannot_pass_showcase():
+    row = manifest()["rows"][0]
+    results = {
+        "aggregate": {"total": 2, "passed": 2},
+        "results": [
+            {
+                "identity": {
+                    "evidence_lane": "world-public-labels",
+                    "camera_labeler": "not_applicable",
+                }
+            },
+            {
+                "identity": {
+                    "evidence_lane": "camera-grounded-labels",
+                    "camera_labeler": "grounding-dino",
+                }
+            },
+        ],
+    }
+    derived = derive_row(row, results)
+    assert derived["status"] == "failed"
+    assert derived["reason"] == "showcase_identity_mismatch"
+    assert derived["metrics"]["passed"] == 2
