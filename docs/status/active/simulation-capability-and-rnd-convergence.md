@@ -16,7 +16,7 @@ the State-First GSD cursor and links here only when that initiative is relevant.
 Focused provider/catalog and console-route tests pass. Shared console fixtures
 and default-path assertions now use the catalog-owned MiMo environment while
 retaining explicit Kimi coverage. The full operator-console suite passes.
-Eval sample/suite and harness-row migration is implemented. Full provider retirement remains incomplete: runtime supported-profile registration, developer probes, and remaining active guidance still expose retired routes. Earlier broad completion claims were premature.
+Eval sample/suite, harness-row, shell-launch, and maintained guidance migration is implemented. Full provider retirement remains incomplete: runtime supported-profile registration, developer probes, and remaining active guidance still expose retired routes. Earlier broad completion claims were premature.
 Plan-level checks completed: referenced-path scan and `git diff --check`.
 Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 
