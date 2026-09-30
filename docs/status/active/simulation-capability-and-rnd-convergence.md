@@ -10,11 +10,14 @@ Phase 2/3 provider retirement and showcase acceptance repairs are implemented
 incrementally. The new paired compact open-ended local proof passes on MiniMax
 and MiMo TP; cleanup, hosted execution, full external matrices, and real-DINO
 acceptance remain open. The paired open-ended processes are terminal.
-MiniMax compact cleanup attempt 1 is running under tool session `24337`, with
-artifacts at `output/convergence-compact/minimax-cleanup-attempt-1/`. Poll that
-handle or inspect its process/terminal artifacts before another simulator run.
-It uses the frozen repetition 0, seed 7, 100-call/3600-second limits and no
-trial retries; do not substitute it for historical cohort outcomes.
+MiniMax compact cleanup attempt 1 is terminal and passed (`1/1`, zero
+failed/blocked), with canonical artifacts under
+`output/convergence-compact/minimax-cleanup-attempt-1/`; current showcase
+identity/aggregate validation also passes. MiMo TP paired cleanup attempt 1 is
+running under session `21439` at
+`output/convergence-compact/mimo-tp-cleanup-attempt-1/`. Poll the same handle
+before another simulator run. Both use repetition 0, seed 7, the frozen
+100-call/3600-second limits and no trial retries.
 
 ## Verification state
 
@@ -32,7 +35,11 @@ live trial identities. Compact provider rows now use matching samples, seed and
 repetition; sample provider eligibility and seed consistency have test coverage.
 Full frozen external cohorts and expected-case identity matching remain unbuilt.
 Plan-level checks completed: referenced-path scan and `git diff --check`.
-Gate recommendation: `output/eval-harness/20260928T101404Z/`.
+Latest gate recommendation: `output/eval-harness/20260930T101829Z/`.
+It selects all three retired dynamic-full/dynamic-routed/sandbox-skills rows
+(`selected=true`, `not_run`); remove them from active recommendations and
+execution before using the plan-wide facade. This is an implementation gap,
+not an external blocker.
 
 ## Proven evidence
 
