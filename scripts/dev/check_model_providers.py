@@ -72,7 +72,7 @@ class ProbeResult:
 
     @property
     def ok(self) -> bool:
-        return self.status in {"PASS", "SKIP", "UNSUPPORTED"}
+        return self.status == "PASS"
 
 
 def load_dotenv(path: Path) -> None:

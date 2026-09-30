@@ -89,7 +89,8 @@ def test_mimo_probe_results_redact_endpoint_key_and_request_model(monkeypatch) -
         assert canary not in serialized
 
 
-def test_require_all_fails_on_skipped_probe(monkeypatch) -> None:
+@pytest.mark.parametrize("flags", [[], ["--require-all"]])
+def test_missing_required_provider_fails_with_or_without_require_all(monkeypatch, flags) -> None:
     script = _load_script_module()
     monkeypatch.delenv("MM_API_KEY", raising=False)
     monkeypatch.setattr(
@@ -110,7 +111,7 @@ def test_require_all_fails_on_skipped_probe(monkeypatch) -> None:
     )
     monkeypatch.setattr(script, "build_provider_probes", lambda **_kwargs: [])
 
-    assert script.main(["--mode", "agents-sdk", "--dotenv", "", "--require-all"]) == 1
+    assert script.main(["--mode", "agents-sdk", "--dotenv", "", *flags]) == 1
 
 
 def test_load_dotenv_uses_explicit_file_and_preserves_existing_env(
@@ -239,3 +240,17 @@ def test_public_profile_rejects_explicit_internal_route() -> None:
     args = script.parse_args(["--profile", "agents-sdk-public", "--probe", "mimo-responses"])
     with pytest.raises(ValueError, match="unknown provider probe"):
         script.select_probes(args)
+
+
+@pytest.mark.parametrize("status", ["FAIL", "SKIP", "UNSUPPORTED"])
+def test_only_passing_probe_is_ok(status: str) -> None:
+    script = _load_script_module()
+    result = script.ProbeResult(
+        probe_id="agents-sdk:minimax-responses",
+        mode="agents-sdk",
+        wire_api="responses",
+        model="MiniMax-M3",
+        status=status,
+        elapsed_s=0.0,
+    )
+    assert result.ok is False
