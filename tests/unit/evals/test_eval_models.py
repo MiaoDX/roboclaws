@@ -376,7 +376,6 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
         MISSING_NOT_APPLICABLE,
         "mimo-responses",
         "minimax-responses",
-        "kimi-openai-chat",
     )
 
     map_build_consumer_suite = suites[1]
@@ -396,7 +395,6 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
         "mimo-responses",
         "mimo-tp-openai-chat",
         "minimax-responses",
-        "kimi-openai-chat",
     ]
 
     fixture_map_build_sample = next(
@@ -408,7 +406,6 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
         "mimo-responses",
         "mimo-tp-openai-chat",
         "minimax-responses",
-        "kimi-openai-chat",
     )
 
     open_ended_suite = suites[3]
@@ -433,7 +430,6 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
         MISSING_NOT_APPLICABLE,
         "mimo-responses",
         "minimax-responses",
-        "kimi-openai-chat",
     )
     _assert_negative_search_contract(open_ended_sample)
     assert room_sample.grader_config["open_ended_category"] == "area_inspection"

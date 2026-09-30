@@ -42,8 +42,7 @@
     "model_matrix_provider_profiles": [
       "mimo-responses",
       "mimo-tp-openai-chat",
-      "minimax-responses",
-      "kimi-openai-chat"
+      "minimax-responses"
     ],
     "parallel_execution": {
       "parallel_group_id": "map_build_consumer_2026_09_26",
