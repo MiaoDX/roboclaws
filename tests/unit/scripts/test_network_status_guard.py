@@ -167,9 +167,9 @@ def test_openai_agents_provider_gate_requires_explicit_profile() -> None:
 def test_openai_agents_provider_gate_allows_chat_without_network_probe() -> None:
     env = os.environ.copy()
     env.pop("ROBOCLAWS_WORK_NETWORK_PROBE_URL", None)
-    env["ROBOCLAWS_PROVIDER_PROFILE"] = "kimi-openai-chat"
-    env["KIMI_OPENAI_BASE_URL"] = "https://kimi.example.test/v1"
-    env["KIMI_API_KEY"] = "fake-kimi-key"
+    env["ROBOCLAWS_PROVIDER_PROFILE"] = "mimo-tp-openai-chat"
+    env["MIMO_OPENAI_BASE_URL"] = "https://mimo.example.test/v1"
+    env["MIMO_TP_KEY"] = "fake-mimo-key"
 
     result = subprocess.run(
         [
@@ -188,7 +188,7 @@ def test_openai_agents_provider_gate_allows_chat_without_network_probe() -> None
         text=True,
     )
 
-    assert "OpenAI Agents SDK provider gate ok (kimi-openai-chat)" in result.stderr
+    assert "OpenAI Agents SDK provider gate ok (mimo-tp-openai-chat)" in result.stderr
 
 
 def test_retired_local_runtime_recipes_are_absent() -> None:

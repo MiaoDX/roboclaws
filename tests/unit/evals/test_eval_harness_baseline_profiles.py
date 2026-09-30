@@ -8,7 +8,6 @@ from roboclaws.evals.harness.prior import resolve_baseline_prior
 LIVE_AGENT_ROW_IDS = {
     "map-build-consumer-openai-agents-sdk-mimo-responses",
     "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
-    "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
     "map-build-consumer-openai-agents-sdk-minimax-responses",
     "openai-agents-sdk-open-task-live-eval",
     "openai-agents-sdk-session-live-eval",
@@ -23,7 +22,7 @@ ALTERNATE_PROVIDER_MATRIX_ROW_IDS = {
     "map-build-consumer-openai-agents-sdk-minimax-responses",
 }
 FIXED_PRIOR_PROVIDER_ROW_IDS = ALTERNATE_PROVIDER_MATRIX_ROW_IDS | {
-    "map-build-consumer-openai-agents-sdk-kimi-openai-chat"
+    "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat"
 }
 EXPERIMENTAL_SKILL_DELIVERY_ROW_IDS = {
     "openai-agents-sdk-cleanup-no-skill-eval",

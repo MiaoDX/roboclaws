@@ -386,17 +386,17 @@ def test_catalog_resolves_execution_and_provider_requirements(tmp_path: Path) ->
     }
 
     mimo = rows["map-build-consumer-openai-agents-sdk-mimo-responses"]
-    kimi = rows["map-build-consumer-openai-agents-sdk-kimi-openai-chat"]
+    mimo_tp = rows["map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat"]
     minimax = rows["map-build-consumer-openai-agents-sdk-minimax-responses"]
     consumer = rows["direct-cleanup-runtime-prior-consumer"]
     assert "network:configured-endpoint" in mimo["execution_requirements"]
-    assert "network:external-egress" in kimi["execution_requirements"]
-    assert "provider:kimi-openai-chat" in kimi["execution_requirements"]
+    assert "network:external-egress" in mimo_tp["execution_requirements"]
+    assert "provider:mimo-tp-openai-chat" in mimo_tp["execution_requirements"]
     assert mimo["provider_network_scope"] == "internal"
     assert mimo["allowed_execution_targets"] == ["local"]
-    assert kimi["provider_network_scope"] == "external"
+    assert mimo_tp["provider_network_scope"] == "external"
     assert minimax["provider_network_scope"] == "external"
-    assert kimi["allowed_execution_targets"] == ["local"]
+    assert mimo_tp["allowed_execution_targets"] == ["local"]
     assert minimax["allowed_execution_targets"] == ["local"]
     assert mimo["timeout_s"] == 3600
     assert consumer["depends_on"] == ["direct-map-build-world-public"]
