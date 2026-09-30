@@ -12,6 +12,8 @@ from roboclaws.household.robot_view_pose import (
     room_outline_clearance,
 )
 
+FRIDGE_OPEN_ROBOT_STAND_OFF_M = 1.8
+
 
 def robot_pose_near_receptacle(
     state: dict[str, Any],
@@ -39,40 +41,20 @@ def robot_pose_for_open_receptacle(
 
     base = receptacle["position"]
     target_room_id = target_room_id_for_receptacle(state, receptacle)
-    candidates = [
-        (float(base[0]) - 0.76, float(base[1]) + 0.20),
-        (float(base[0]) - 0.72, float(base[1]) + 0.36),
-        (float(base[0]) - 0.90, float(base[1]) + 0.08),
-    ]
-    x, y = first_same_room_point(state, candidates, target_room_id)
-    target = [float(base[0]), float(base[1]), float(base[2]) + 0.35]
-    theta = math.atan2(target[1] - y, target[0] - x)
-    pose = {
-        "x": round(float(x), 6),
-        "y": round(float(y), 6),
-        "z": 0.0,
-        "theta": round(float(theta), 6),
-        "theta_source": "opened_receptacle_access_yaw",
-        "head_yaw": 0.0,
-        "head_yaw_source": "base_yaw_handles_target_bearing",
-        "head_pitch": robot_head_pitch_for_target_value(target, [x, y]),
-        "head_pitch_source": "target_framing_head_pitch",
-        "target_receptacle_id": receptacle["receptacle_id"],
-        "robot_room_id": room_for_state_point(state, [x, y]) or target_room_id,
-    }
-    pose.update(room_relation_payload(state, receptacle, [pose["x"], pose["y"]]))
-    return {key: value for key, value in pose.items() if value is not None}
-
-
-def first_same_room_point(
-    state: dict[str, Any],
-    candidates: list[tuple[float, float]],
-    target_room_id: str | None,
-) -> tuple[float, float]:
-    for x, y in candidates:
-        if room_for_state_point(state, [x, y]) == target_room_id:
-            return x, y
-    return candidates[0]
+    # Keep the robot farther from the door than the fixed 0.8 m held-object
+    # reach.  The previous door-side candidates put a held object at the
+    # fridge center, making both robot-view cameras report zero object pixels;
+    # resolving against the room outline also avoids boundary poses outside
+    # the target room.
+    pose = robot_pose_near_position(
+        state,
+        base,
+        target_room_id=target_room_id,
+        target_receptacle_id=receptacle["receptacle_id"],
+        stand_off_m=FRIDGE_OPEN_ROBOT_STAND_OFF_M,
+    )
+    pose["theta_source"] = "opened_receptacle_access_yaw"
+    return pose
 
 
 def robot_pose_near_object(
@@ -199,8 +181,13 @@ def robot_pose_near_position(
     target_room_id: str | None,
     target_receptacle_id: str | None = None,
     target_object_id: str | None = None,
+    stand_off_m: float | None = None,
 ) -> dict[str, Any]:
-    stand_off = robot_stand_off_for_target(state, target_object_id)
+    stand_off = (
+        float(stand_off_m)
+        if stand_off_m is not None
+        else robot_stand_off_for_target(state, target_object_id)
+    )
     pose = resolve_cleanup_robot_pose(
         target_position=target,
         target_room_id=target_room_id,

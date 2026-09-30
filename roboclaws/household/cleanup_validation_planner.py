@@ -47,12 +47,15 @@ from roboclaws.household.semantic_timeline import (
     CANONICAL_SURFACE_CLEANUP_PHASES,
     CLOSE_RECEPTACLE_PHASE,
     FOCUSED_SEMANTIC_ACTION_PREFIXES,
+    FOCUSED_SEMANTIC_PHASES,
     NAVIGATE_TO_VISUAL_CANDIDATE_TOOL,
     OPEN_RECEPTACLE_PHASE,
     PLACE_INSIDE_PHASE,
     annotate_focus_visual_grounding,
 )
 from roboclaws.maps.route import SIM_COSTMAP_PLANNER
+
+OBJECT_BEARING_FOCUSED_PHASES = frozenset(FOCUSED_SEMANTIC_PHASES)
 
 
 def _assert_planner_proof_attachment(
@@ -427,6 +430,11 @@ def _canonical_robot_view_phase(step: dict[str, Any], action: str) -> str:
 def _assert_focused_robot_step(step: dict[str, Any]) -> None:
     focus = annotate_focus_visual_grounding(step.get("focus") or {}) or {}
     assert focus.get("has_focus") is True, step
+    phase = _canonical_robot_view_phase(step, str(step.get("action") or ""))
+    if phase in OBJECT_BEARING_FOCUSED_PHASES:
+        assert any(focus.get(key) for key in ("object_id", "object_body_name", "object_label")), (
+            step
+        )
     if _has_reviewable_source_fpv_action_evidence(step):
         return
     fpv_visibility = focus.get("fpv_visibility") or {}

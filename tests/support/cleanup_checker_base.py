@@ -307,6 +307,33 @@ def _promote_agibot_fixture_to_hardware_shape(
 
 
 def _robot_step(action: str) -> dict[str, object]:
+    phase, _, target = action.partition(" ")
+    object_id = (
+        target
+        if phase
+        in {
+            "navigate_to_object",
+            "navigate_to_visual_candidate",
+            "pick",
+            "place",
+            "place_inside",
+        }
+        else (
+            "observed_001"
+            if phase in {"navigate_to_receptacle", "open_receptacle", "close_receptacle"}
+            else None
+        )
+    )
+    receptacle_id = (
+        target
+        if phase
+        in {
+            "navigate_to_receptacle",
+            "open_receptacle",
+            "close_receptacle",
+        }
+        else "refrigerator_01"
+    )
     return {
         "action": action,
         "room_outline_count": 1,
@@ -318,8 +345,10 @@ def _robot_step(action: str) -> dict[str, object]:
         },
         "focus": {
             "has_focus": True,
-            "fpv_visibility": {"status": "ok"},
-            "visibility": {"status": "ok"},
+            "object_id": object_id,
+            "receptacle_id": receptacle_id,
+            "fpv_visibility": {"status": "ok", "object_pixels": 1},
+            "visibility": {"status": "ok", "object_pixels": 1},
         },
     }
 

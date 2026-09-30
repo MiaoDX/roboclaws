@@ -346,6 +346,21 @@ def test_checker_rejects_zero_pixel_focused_surface_action(tmp_path: Path) -> No
         )
 
 
+def test_checker_rejects_object_action_with_receptacle_only_focus() -> None:
+    with pytest.raises(AssertionError):
+        _assert_focused_robot_step(
+            {
+                "action": "open_receptacle refrigerator_01",
+                "focus": {
+                    "has_focus": True,
+                    "receptacle_id": "refrigerator_01",
+                    "fpv_visibility": {"status": "ok"},
+                    "visibility": {"status": "ok"},
+                },
+            }
+        )
+
+
 def test_checker_accepts_authorized_source_fpv_evidence_for_weak_nav_view(
     tmp_path: Path,
 ) -> None:
