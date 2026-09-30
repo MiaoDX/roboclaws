@@ -400,3 +400,31 @@ def test_live_showcase_requires_trial_identity(trials):
     result = derive_row(row, {"aggregate": {"total": 1, "passed": 1}, "results": trials})
     assert result["status"] == "blocked"
     assert result["reason"] == "incomplete_trial_identity"
+
+
+@pytest.mark.parametrize("suite", ["cleanup_capability", "open_ended_goals"])
+def test_compact_external_cases_are_paired_across_providers(suite):
+    rows = json.loads(
+        (Path(__file__).resolve().parents[3] / "config/showcase-manifest.json").read_text()
+    )["rows"]
+    paired = [row for row in rows if row["suite"] == suite]
+    assert {row["provider_profile"] for row in paired} == {
+        "minimax-responses",
+        "mimo-tp-openai-chat",
+    }
+    fields = (
+        "version",
+        "sample_ids",
+        "sample_id",
+        "repetition_index",
+        "seed",
+        "evidence_lane",
+        "camera_labeler",
+        "budget",
+        "decision_call_budget",
+        "timeout_s",
+        "stall_timeout_s",
+    )
+    assert {key: paired[0].get(key) for key in fields} == {
+        key: paired[1].get(key) for key in fields
+    }
