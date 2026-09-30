@@ -32,7 +32,7 @@ Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 - Runtime Skill lifecycle now accepts only `static-full`; broad delivery parsing remains available to eval/regrade paths.
 - Showcase workflow now runs active provider shards only, with protected-main push/schedule/manual routing and two-shard concurrency.
 - Showcase manifest validation now rejects retired provider profiles while summary/report rendering continues to read historical identities.
-- Full `just agent::verify` passes: Ruff, format, architecture import graph, and standalone pytest (100% complete; 1015 files formatted).
+- Full `just agent::verify` passes on the current tree: Ruff, format, architecture import graph, and standalone pytest (100% complete; 1015 files formatted), including the active-provider catalog guard.
 - Explicit `no-skill` kickoff now states that the Skill body is withheld while tool descriptions and run context remain available.
 - Focused facade execution completed at `output/eval-harness/20260928T113410Z/`: 13 passed, 4 failed, 2 blocked; required SDK open-task and cleanup rows were `environment_blocked`, while the no-skill live row executed. This is evidence, not acceptance.
 - Exact-identity MiniMax repair attempts with `runtime_map_prior=assets/eval-priors/runtime_map_prior_catalog.json` were recorded under `output/eval-harness/20260928T113410Z/repair/`; both cleanup and open-ended cohorts remained blocked because the cleanup MCP server exited before readiness, before any model call.
