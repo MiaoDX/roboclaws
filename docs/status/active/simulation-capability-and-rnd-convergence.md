@@ -50,16 +50,18 @@ Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 - Reserved trial-1 follow-up artifacts are now present: scene 11 trial 2 at `output/convergence-visual/minimax/scene11/trial2/` and scene 13 trial 1 at `output/convergence-visual/minimax/scene13/trial1/` each report behavioral success at 4/5, sweep coverage 1.0, and zero disturbances. Both retain strict checker failures on focused robot-view visibility, so they remain behavioral evidence and do not count as validator-clean acceptance rows.
 - MiniMax development trial-2 follow-ups are complete: scene 0 at `output/convergence-visual/minimax/scene0/trial2/` reports partial success 3/5, scene 10 at `output/convergence-visual/minimax/scene10/trial2/` reports behavioral success 4/5 with strict checker failure, and scene 12 at `output/convergence-visual/minimax/scene12/trial2/` reports partial success 2/5. All three have sweep coverage 1.0 and zero disturbances; these follow-ups do not alter first-attempt acceptance denominators.
 - The final reserved identity, scene 13 trial 2 at `output/convergence-visual/minimax/scene13/trial2/`, completed as an authoritative behavioral failure: 0/5 accepted targets, sweep coverage 1.0, zero disturbances, and no actionable public DINO handle reached navigation authorization. This preserves the complete 15-case identity ledger with explicit failure evidence; the frozen MiniMax acceptance threshold is not met.
+- The strict-visual repair replay for scene 13 at `output/convergence-visual/minimax-repair/scene13/repair0/` is checker-clean after the two producer/checker fixes: the open-fridge pose records a 1.8 m stand-off and `same_room`, the focused Apple frame has 3026 FPV and 283 verify object pixels, and `place_inside`/`close_receptacle` report `contained_inside`. The authoritative run remains `partial_success` (3/5 restored), so this is visual-validation evidence rather than an accepted cohort row.
 
 ## Next action
 
 The focused live-row blockers are resolved for MiniMax, with compatible repair
 evidence preserved. Quota recovery allowed the complete 15-case identity ledger
-to be collected, but the required first-attempt threshold and strict visual
-validation remain incomplete: focused open-receptacle visibility/room-pose
-defects reject several behavioral successes, and scene 13 trial 2 is a genuine
-public-discovery failure. MiMo Responses real-DINO smoke is also incomplete.
-Do not treat compatibility repairs as visual proof.
+to be collected. Scene 13's focused fridge-view defect is fixed and checker-clean
+in the repair replay, while scene 10/11 still retain behavior-incomplete strict
+validation evidence and scene 13 trial 2 remains a genuine public-discovery
+failure. The required first-attempt threshold is still not met, and MiMo
+Responses real-DINO smoke is incomplete. Do not treat the repair replay as
+visual-cohort acceptance.
 
 ## Stop/resume conditions
 
