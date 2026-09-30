@@ -21,6 +21,7 @@ from roboclaws.agents.provider_registry import route_base_url
 from roboclaws.agents.thinking_policy import thinking_request_body_for_wire
 from roboclaws.core.dotenv import update_env_from_dotenv_file
 from roboclaws.core.provider_catalog import (
+    ACTIVE_PROVIDER_PROFILES,
     WIRE_CHAT_COMPLETIONS,
     WIRE_RESPONSES,
     provider_route_spec,
@@ -35,7 +36,6 @@ DEFAULT_TIMEOUT_S = 30.0
 ProbeMode = Literal["agents-sdk", "provider"]
 
 PUBLIC_AGENT_SDK_ROUTE_IDS = (
-    "mimo-responses",
     "mimo-tp-openai-chat",
     "minimax-responses",
 )
@@ -89,7 +89,7 @@ def build_agent_sdk_probes(
     chat_max_tokens: int = DEFAULT_CHAT_MAX_TOKENS,
 ) -> list[ProbeSpec]:
     probes: list[ProbeSpec] = []
-    for route_id in PUBLIC_AGENT_SDK_ROUTE_IDS:
+    for route_id in ACTIVE_PROVIDER_PROFILES:
         route = provider_route_spec(route_id)
         probes.append(
             ProbeSpec(

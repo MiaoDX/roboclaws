@@ -224,13 +224,18 @@ def test_agents_sdk_public_profile_excludes_internal_routes() -> None:
     selected = script.select_probes(args)
 
     assert {probe.probe_id for probe in selected} == {
-        "agents-sdk:mimo-responses",
         "agents-sdk:mimo-tp-openai-chat",
         "agents-sdk:minimax-responses",
     }
     public_routes = {
-        "mimo-responses",
         "mimo-tp-openai-chat",
         "minimax-responses",
     }
     assert all(probe.route_id in public_routes for probe in selected)
+
+
+def test_public_profile_rejects_explicit_internal_route() -> None:
+    script = _load_script_module()
+    args = script.parse_args(["--profile", "agents-sdk-public", "--probe", "mimo-responses"])
+    with pytest.raises(ValueError, match="unknown provider probe"):
+        script.select_probes(args)
