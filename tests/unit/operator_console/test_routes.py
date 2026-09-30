@@ -235,8 +235,6 @@ def test_openai_agents_route_payload_lists_provider_profiles() -> None:
         "mimo-responses",
         "mimo-tp-openai-chat",
         "minimax-responses",
-        "kimi-openai-chat",
-        "qwen-tp-responses",
     ]
     route_by_profile = {route["provider_profile"]: route for route in payload["provider_routes"]}
     assert route_by_profile["mimo-responses"]["default_model_id"] == "mimo"
