@@ -435,3 +435,19 @@ def test_manifest_seed_must_match_executed_sample():
     m["rows"][0]["seed"] += 1
     with pytest.raises(ValueError, match="does not match selected sample"):
         validate_manifest(m)
+
+
+def test_live_showcase_cases_allow_their_selected_provider():
+    from roboclaws.evals.suite_loading import load_suite
+
+    rows = json.loads(
+        (Path(__file__).resolve().parents[3] / "config/showcase-manifest.json").read_text()
+    )["rows"]
+    for row in rows:
+        if not row.get("provider_profile"):
+            continue
+        _, samples = load_suite(row["suite"])
+        selected = [sample for sample in samples if sample.sample_id in row["sample_ids"]]
+        assert selected
+        for sample in selected:
+            assert row["provider_profile"] in sample.provider_profiles, row["id"]
