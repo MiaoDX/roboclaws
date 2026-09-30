@@ -27,7 +27,7 @@ def test_default_cases_cover_routes_and_wire_formats() -> None:
     assert set(cases) == {
         "mimo-responses:mimo:responses",
         "minimax-responses:MiniMax-M3:responses",
-        "kimi:kimi-for-coding:chat",
+        "mimo-tp-openai-chat:mimo-v2.6-pro:chat",
     }
     assert {case.wire_api for case in cases.values()} == {"openai-chat", "openai-responses"}
 
@@ -53,15 +53,15 @@ def test_opaque_case_reads_environment_configuration(
     assert case.api_key_env == f"{env_prefix}_API_KEY"
 
 
-def test_kimi_case_reads_registry_env(monkeypatch) -> None:
-    monkeypatch.setenv("KIMI_OPENAI_BASE_URL", "https://kimi.example/v1")
+def test_mimo_tp_case_reads_registry_env(monkeypatch) -> None:
+    monkeypatch.setenv("MIMO_OPENAI_BASE_URL", "https://mimo.example/v1")
     script = _load_script_module()
 
     cases = {case.case_id: case for case in script.default_cases()}
 
-    case = cases["kimi:kimi-for-coding:chat"]
-    assert case.base_url == "https://kimi.example/v1"
-    assert case.api_key_env == "KIMI_API_KEY"
+    case = cases["mimo-tp-openai-chat:mimo-v2.6-pro:chat"]
+    assert case.base_url == "https://mimo.example/v1"
+    assert case.api_key_env == "MIMO_TP_KEY"
 
 
 def test_load_dotenv_uses_explicit_file_and_preserves_existing_env(
@@ -102,7 +102,7 @@ def test_payloads_match_wire_format(monkeypatch) -> None:
     cases = {case.case_id: case for case in script.default_cases()}
 
     chat_payload = script.payload_for_case(
-        cases["kimi:kimi-for-coding:chat"],
+        cases["mimo-tp-openai-chat:mimo-v2.6-pro:chat"],
         prompt="ping",
         max_tokens=8,
     )
@@ -111,8 +111,8 @@ def test_payloads_match_wire_format(monkeypatch) -> None:
         prompt="ping",
         max_tokens=8,
     )
-    kimi_payload = script.payload_for_case(
-        cases["kimi:kimi-for-coding:chat"],
+    mimo_payload = script.payload_for_case(
+        cases["mimo-tp-openai-chat:mimo-v2.6-pro:chat"],
         prompt="ping",
         max_tokens=8,
     )
@@ -126,7 +126,7 @@ def test_payloads_match_wire_format(monkeypatch) -> None:
     assert responses_payload["max_output_tokens"] == 8
     assert responses_payload["reasoning"] == {"effort": "medium"}
     assert "messages" not in responses_payload
-    assert "thinking" not in kimi_payload
+    assert "thinking" not in mimo_payload
 
 
 def test_mimo_benchmark_artifact_redacts_private_configuration(monkeypatch) -> None:
@@ -191,16 +191,18 @@ def test_default_token_budget_leaves_room_for_reasoning() -> None:
     assert "agent-case" in script.LAYER_CHOICES
 
 
-def test_headers_include_kimi_coding_user_agent() -> None:
+def test_chat_headers_do_not_impersonate_coding_agent() -> None:
     script = _load_script_module()
     cases = {case.case_id: case for case in script.default_cases()}
 
-    headers = script.headers_for_case(cases["kimi:kimi-for-coding:chat"], api_key="secret")
+    headers = script.headers_for_case(
+        cases["mimo-tp-openai-chat:mimo-v2.6-pro:chat"], api_key="secret"
+    )
 
     assert headers["Authorization"] == "Bearer secret"
     assert "x-api-key" not in headers
     assert "anthropic-version" not in headers
-    assert headers["User-Agent"] == "claude-code/1.0.0"
+    assert headers.get("User-Agent") != "claude-code/1.0.0"
 
 
 def test_headers_include_no_retired_transport_compatibility() -> None:
@@ -306,7 +308,9 @@ def test_result_payload_counts_statuses() -> None:
 
 def test_usage_tokens_and_tps_prefer_provider_usage() -> None:
     script = _load_script_module()
-    case = {case.case_id: case for case in script.default_cases()}["kimi:kimi-for-coding:chat"]
+    case = {case.case_id: case for case in script.default_cases()}[
+        "mimo-tp-openai-chat:mimo-v2.6-pro:chat"
+    ]
 
     result = script.summarize_case(
         case,
@@ -679,7 +683,9 @@ def test_agent_cases_are_selectable_and_do_not_store_full_prompt() -> None:
 
 def test_agent_case_summary_carries_case_metadata() -> None:
     script = _load_script_module()
-    case = {case.case_id: case for case in script.default_cases()}["kimi:kimi-for-coding:chat"]
+    case = {case.case_id: case for case in script.default_cases()}[
+        "mimo-tp-openai-chat:mimo-v2.6-pro:chat"
+    ]
     agent_case = script.selected_agent_cases(case_ids={"cleanup-worklist-plan"})[0]
 
     result = script.summarize_case(

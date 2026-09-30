@@ -229,7 +229,7 @@ def default_cases() -> tuple[MatrixCase, ...]:
     return (
         *_opaque_responses_cases(),
         *_minimax_cases(),
-        *_kimi_cases(),
+        *_mimo_tp_cases(),
     )
 
 
@@ -300,23 +300,19 @@ def _minimax_cases() -> tuple[MatrixCase, ...]:
     )
 
 
-def _kimi_cases() -> tuple[MatrixCase, ...]:
-    chat_route = provider_route_spec("kimi-openai-chat")
+def _mimo_tp_cases() -> tuple[MatrixCase, ...]:
+    chat_route = provider_route_spec("mimo-tp-openai-chat")
     return (
         MatrixCase(
-            case_id=f"kimi:{chat_route.default_model_id}:chat",
-            provider_id="kimi",
-            provider_label="Kimi",
+            case_id=f"mimo-tp-openai-chat:{chat_route.default_model_id}:chat",
+            provider_id="mimo-tp-openai-chat",
+            provider_label="MiMo TP",
             model=chat_route.default_model_id,
             wire_api="openai-chat",
             api_key_env=chat_route.api_key_env or "",
             base_url=route_base_url(chat_route),
-            headers=(("User-Agent", "claude-code/1.0.0"),),
             expected_support="native",
-            note=(
-                "Kimi Code is the default lower-cost coding route. No explicit thinking body "
-                "is sent; benchmark the canonical model id."
-            ),
+            note="Public MiMo Chat route for compatibility benchmarking.",
         ),
     )
 
@@ -394,14 +390,6 @@ def payload_for_case(case: MatrixCase, *, prompt: str, max_tokens: int) -> dict[
             "max_tokens": max_tokens,
             "stream": False,
         }
-        if case.provider_id == "kimi" and request_model in {"k3", "kimi-for-coding"}:
-            payload.update(
-                thinking_request_body_for_wire(
-                    provider_profile="kimi-openai-chat",
-                    wire_api="chat-completions",
-                    mode="default",
-                )
-            )
         return payload
     if case.wire_api == "openai-responses":
         payload = {
