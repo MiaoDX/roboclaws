@@ -15,6 +15,7 @@ from typing import Any
 
 from roboclaws.core.provider_catalog import ACTIVE_PROVIDER_PROFILES
 from roboclaws.evals.public_reports import published_visual_report_href
+from roboclaws.evals.showcase_acceptance import aggregate_status, validate_result_identities
 from roboclaws.evals.showcase_process import run_showcase_command
 
 SCHEMA = "roboclaws_showcase_summary_v1"
@@ -300,23 +301,7 @@ def derive_row(
     aggregate = results.get("aggregate", {}) if isinstance(results, dict) else {}
     if not isinstance(aggregate, dict):
         aggregate = {}
-    if results is None:
-        status = "not_run" if missing_reason == "live_execution_not_requested" else "blocked"
-        reason = missing_reason
-    elif aggregate.get("blocked", 0) and not aggregate.get("failed", 0):
-        status, reason = (
-            "blocked",
-            next(iter(aggregate.get("failure_classes") or {"unavailable": 1})),
-        )
-    elif aggregate.get("failed", 0):
-        status, reason = (
-            "failed",
-            next(iter(aggregate.get("failure_classes", {"evaluation_failed": 1}))),
-        )
-    elif not aggregate.get("total") or aggregate.get("passed", 0) != aggregate.get("total"):
-        status, reason = "blocked", "incomplete_attempt"
-    else:
-        status, reason = "passed", None
+    status, reason = aggregate_status(results, aggregate, missing_reason)
     metrics = {
         key: aggregate[key]
         for key in ALLOWED_METRICS
@@ -327,16 +312,7 @@ def derive_row(
     canonical_identity = trial_identities[0] if trial_identities else {}
     canonical_identity = canonical_identity if isinstance(canonical_identity, dict) else {}
     selected_identity = execution_identity or {}
-    identity_mismatch = any(_result_identity_mismatch(row, item) for item in trial_identities)
-    status, reason = (
-        ("blocked", "incomplete_trial_identity")
-        if row.get("provider_profile")
-        and status == "passed"
-        and (len(trial_identities) != aggregate.get("total") or not all(trial_identities))
-        else (status, reason)
-    )
-    if results is not None and identity_mismatch:
-        status, reason = "failed", "showcase_identity_mismatch"
+    status, reason = validate_result_identities(row, trial_identities, aggregate, status, reason)
     result = {
         "id": row["id"],
         "suite": row["suite"],
@@ -369,15 +345,6 @@ def derive_row(
 def _trial_identities(identities: Any) -> list[Any]:
     items = identities if isinstance(identities, list) else []
     return [item.get("identity") for item in items if isinstance(item, dict)]
-
-
-def _result_identity_mismatch(row: dict[str, Any], identity: dict[str, Any]) -> bool:
-    if not isinstance(identity, dict) or not identity:
-        return False
-    return any(
-        row.get(field) and identity.get(field) != row[field]
-        for field in ("agent_engine", "provider_profile")
-    ) or any(identity.get(field) != row.get(field) for field in ("evidence_lane", "camera_labeler"))
 
 
 def build_summary(
