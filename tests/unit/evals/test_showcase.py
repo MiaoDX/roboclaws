@@ -320,3 +320,21 @@ def test_showcase_html_renders_dashboard_instead_of_escaped_markdown():
     assert rendered.count('href="https://example.test/run"') == 3
     assert rendered.count(">Actions</a>") == 2
     assert rendered.count('href="https://example.test/artifacts"') == 1
+
+
+@pytest.mark.parametrize(
+    "counts,status",
+    [
+        ({"total": 3, "passed": 2, "blocked": 1}, "blocked"),
+        ({"total": 3, "passed": 1, "blocked": 1, "failed": 1}, "failed"),
+        ({"total": 3, "passed": 2}, "blocked"),
+        ({"total": 3, "passed": 2, "not_run": 1}, "blocked"),
+        ({"total": 3, "passed": 3}, "passed"),
+    ],
+)
+def test_showcase_requires_every_case_to_pass(counts, status):
+    row = derive_row(manifest()["rows"][0], {"aggregate": counts})
+    assert row["status"] == status
+    for key in ("total", "passed", "blocked", "failed"):
+        if key in counts:
+            assert row["metrics"][key] == counts[key]

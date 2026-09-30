@@ -303,18 +303,17 @@ def derive_row(
     if results is None:
         status = "not_run" if missing_reason == "live_execution_not_requested" else "blocked"
         reason = missing_reason
-    elif (
-        aggregate.get("blocked", 0)
-        and not aggregate.get("failed", 0)
-        and not aggregate.get("passed", 0)
-    ):
-        status, reason = "blocked", next(iter(aggregate.get("failure_classes", {"unavailable": 1})))
+    elif aggregate.get("blocked", 0) and not aggregate.get("failed", 0):
+        status, reason = (
+            "blocked",
+            next(iter(aggregate.get("failure_classes") or {"unavailable": 1})),
+        )
     elif aggregate.get("failed", 0):
         status, reason = (
             "failed",
             next(iter(aggregate.get("failure_classes", {"evaluation_failed": 1}))),
         )
-    elif not aggregate.get("total"):
+    elif not aggregate.get("total") or aggregate.get("passed", 0) != aggregate.get("total"):
         status, reason = "blocked", "incomplete_attempt"
     else:
         status, reason = "passed", None
