@@ -392,3 +392,11 @@ def test_required_provider_row_cannot_use_another_provider(actual):
     )
     assert derived["status"] == "failed"
     assert derived["reason"] == "showcase_identity_mismatch"
+
+
+@pytest.mark.parametrize("trials", [None, [], [{}], [{"identity": None}]])
+def test_live_showcase_requires_trial_identity(trials):
+    row = {**manifest()["rows"][0], "provider_profile": "minimax-responses"}
+    result = derive_row(row, {"aggregate": {"total": 1, "passed": 1}, "results": trials})
+    assert result["status"] == "blocked"
+    assert result["reason"] == "incomplete_trial_identity"

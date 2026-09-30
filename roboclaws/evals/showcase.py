@@ -323,20 +323,17 @@ def derive_row(
         if key in aggregate and isinstance(aggregate[key], (int, float))
     }
     identities = results.get("results", []) if isinstance(results, dict) else []
-    canonical_identity = (
-        identities[0].get("identity", {})
-        if isinstance(identities, list) and identities and isinstance(identities[0], dict)
-        else {}
-    )
+    trial_identities = _trial_identities(identities)
+    canonical_identity = trial_identities[0] if trial_identities else {}
+    canonical_identity = canonical_identity if isinstance(canonical_identity, dict) else {}
     selected_identity = execution_identity or {}
-    identity_mismatch = (
-        any(
-            _result_identity_mismatch(row, item.get("identity", {}))
-            for item in identities
-            if isinstance(item, dict)
-        )
-        if isinstance(identities, list)
-        else False
+    identity_mismatch = any(_result_identity_mismatch(row, item) for item in trial_identities)
+    status, reason = (
+        ("blocked", "incomplete_trial_identity")
+        if row.get("provider_profile")
+        and status == "passed"
+        and (len(trial_identities) != aggregate.get("total") or not all(trial_identities))
+        else (status, reason)
     )
     if results is not None and identity_mismatch:
         status, reason = "failed", "showcase_identity_mismatch"
@@ -369,8 +366,13 @@ def derive_row(
     return result
 
 
+def _trial_identities(identities: Any) -> list[Any]:
+    items = identities if isinstance(identities, list) else []
+    return [item.get("identity") for item in items if isinstance(item, dict)]
+
+
 def _result_identity_mismatch(row: dict[str, Any], identity: dict[str, Any]) -> bool:
-    if not identity:
+    if not isinstance(identity, dict) or not identity:
         return False
     return any(
         row.get(field) and identity.get(field) != row[field]
