@@ -387,6 +387,7 @@ def test_all_household_world_sample_fixtures_are_schema_valid() -> None:
         "cleanup.consumer_no_prior_seed7",
         "cleanup.consumer_fixture_focused_prior_seed7",
     )
+
     assert map_build_consumer_suite.metadata["comparison_variants"] == [
         "no_prior",
         "fixture_focused_prior",
@@ -516,3 +517,15 @@ def _minimal_sample_payload() -> dict:
             "scorer_input": "private",
         },
     }
+
+
+def test_active_household_eval_catalog_excludes_retired_provider_profiles() -> None:
+    active_paths = sorted(
+        (REPO_ROOT / "evals" / "household_world" / "samples").glob("*/*.json")
+    ) + sorted((REPO_ROOT / "evals" / "household_world" / "suites").glob("*.json"))
+    retired = {"kimi-openai-chat", "qwen-tp-responses"}
+
+    for path in active_paths:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        for key in ("provider_profiles", "model_matrix_provider_profiles"):
+            assert not retired.intersection(payload.get(key, ())), path
