@@ -6,10 +6,13 @@ Source plan: `docs/plans/2026-09-28-simulation-capability-and-rnd-convergence.md
 
 ## Current slice
 
-Phase 1 — establish the fixed initiative owner and reconcile current versus
-historical status records. The canonical plan owns scope and acceptance; this
-capsule owns execution state and evidence links. `.planning/STATE.md` remains
-the State-First GSD cursor and links here only when that initiative is relevant.
+Phase 2/3 retirement and showcase acceptance repairs are implemented incrementally;
+required capability acceptance remains open. Fresh paired compact evidence is now
+being collected serially. MiniMax bread attempt 1 is running under tool session
+`1917`, with artifacts at `output/convergence-compact/minimax-attempt-1/`.
+Resume by polling that handle or inspecting the process and terminal artifacts;
+do not restart merely because an observation times out. This is new evidence,
+not a replacement for the historical visual or compatibility cohorts.
 
 ## Verification state
 
