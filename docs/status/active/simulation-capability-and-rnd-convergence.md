@@ -18,10 +18,19 @@ trial retries; do not substitute it for historical cohort outcomes.
 
 ## Verification state
 
-Focused provider/catalog and console-route tests pass. Shared console fixtures
-and default-path assertions now use the catalog-owned MiMo environment while
-retaining explicit Kimi coverage. The full operator-console suite passes.
-Eval sample/suite, harness-row, shell-launch, and maintained guidance migration is implemented. Full provider retirement remains incomplete: runtime supported-profile registration, developer probes, and remaining active guidance still expose retired routes. Earlier broad completion claims were premature.
+Provider readiness and runtime construction now reject retired Kimi/Qwen
+profiles; engine launch catalogs advertise only the three active routes.
+Readiness probes and the benchmark use active routes, with the public probe
+profile excluding internal MiMo Responses. Focused provider, launch, console,
+and dev-tool checks passed for those changes; no current-tree full-gate pass is
+claimed after the latest migrations. Historical route lookup still exists and
+its remaining executable consumers require a final audit.
+
+Showcase aggregation rejects mixed blocked/passed and incomplete counts, checks
+all populated trial identities against provider/engine/lane, and blocks missing
+live trial identities. Compact provider rows now use matching samples, seed and
+repetition; sample provider eligibility and seed consistency have test coverage.
+Full frozen external cohorts and expected-case identity matching remain unbuilt.
 Plan-level checks completed: referenced-path scan and `git diff --check`.
 Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 
@@ -48,7 +57,7 @@ Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 - Showcase workflow now runs active provider shards only, with protected-main push/schedule/manual routing and two-shard concurrency.
 - Showcase manifest validation now rejects retired provider profiles while summary/report rendering continues to read historical identities.
 - Active eval-harness catalog now contains only the three supported provider rows; retired Kimi execution policy and row were removed, with selector coverage updated and passing.
-- Full `just agent::verify` passes on the current tree: Ruff, format, architecture import graph, and standalone pytest (100% complete; 1015 files formatted), including the active-provider catalog guard.
+- Earlier `just agent::verify` passed before the subsequent migrations: Ruff, format, architecture import graph, and standalone pytest (100% complete; 1015 files formatted), including the active-provider catalog guard.
 - Explicit `no-skill` kickoff now states that the Skill body is withheld while tool descriptions and run context remain available.
 - Focused facade execution completed at `output/eval-harness/20260928T113410Z/`: 13 passed, 4 failed, 2 blocked; required SDK open-task and cleanup rows were `environment_blocked`, while the no-skill live row executed. This is evidence, not acceptance.
 - Exact-identity MiniMax repair attempts with `runtime_map_prior=assets/eval-priors/runtime_map_prior_catalog.json` were recorded under `output/eval-harness/20260928T113410Z/repair/`; both cleanup and open-ended cohorts remained blocked because the cleanup MCP server exited before readiness, before any model call.
