@@ -16,7 +16,7 @@ the State-First GSD cursor and links here only when that initiative is relevant.
 Focused provider/catalog and console-route tests pass. Shared console fixtures
 and default-path assertions now use the catalog-owned MiMo environment while
 retaining explicit Kimi coverage. The full operator-console suite passes.
-Provider migration is complete for active eval samples, suites, and maintained launch documentation; legacy route specs and historical evidence remain readable.
+Eval sample/suite and harness-row migration is implemented. Full provider retirement remains incomplete: runtime supported-profile registration, developer probes, and remaining active guidance still expose retired routes. Earlier broad completion claims were premature.
 Plan-level checks completed: referenced-path scan and `git diff --check`.
 Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 
@@ -56,7 +56,7 @@ Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 
 ## Next action
 
-The active provider/catalog migration slice is complete. The focused live-row blockers are resolved for MiniMax, with compatible repair
+Finish runtime/probe provider retirement and remaining active guidance. The focused live-row blockers are resolved for MiniMax, with compatible repair
 evidence preserved. Quota recovery allowed the complete 15-case identity ledger
 to be collected. Scene 13's focused fridge-view defect is fixed and checker-clean
 in the repair replay, and post-fix scene 10/11 replays are also checker-clean;
@@ -75,3 +75,5 @@ under the unchanged contract.
 
 Do not rewrite historical evidence, publish a baseline, run live providers or
 simulators during phase 1, or modify unrelated active capsules.
+
+- Verification correction: suite retirement checks now inspect nested metadata and enforce provider-cell counts. Focused model-schema tests pass (16 tests); active suite count is corrected to three.

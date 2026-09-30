@@ -488,12 +488,12 @@ direct navigation demos. Normal users configure keys only; command shape
 controls behavior.
 
 ```bash
-KIMI_OPENAI_BASE_URL=
-KIMI_API_KEY=<your-key>
+MM_BASE_URL=<your-endpoint>
+MM_API_KEY=<your-key>
 ```
 
-Every SDK launch selects one profile explicitly. `minimax-responses` uses the
-Kimi variables above. `minimax-responses` uses `MM_BASE_URL` and `MM_API_KEY`.
+Local SDK launches default to `mimo-responses`; eval rows select a profile
+explicitly. `minimax-responses` uses `MM_BASE_URL` and `MM_API_KEY`.
 `mimo-responses` uses
 the `MIMO_RESPONSES_*` triple. Endpoint, key, and request-model values stay in
 the gitignored local environment. The runtime does not fall back between

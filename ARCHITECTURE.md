@@ -84,7 +84,7 @@ Package proof CLIs
   (`agent_engine=openai-agents-sdk` for live agents, or `direct-runner` for
   deterministic proof) from the
   model/key route (`provider_profile=mimo-responses`, `mimo-tp-openai-chat`,
-  `minimax-responses`, `minimax-responses`, or `qwen-tp-responses`). MiMo Responses
+  or `minimax-responses`). MiMo Responses
   uses an environment-owned endpoint, key, and request-model triple.
   The hosted showcase uses MiMo's separate public Chat route.
   Provider rows retain `provider_network_scope` and fail-closed

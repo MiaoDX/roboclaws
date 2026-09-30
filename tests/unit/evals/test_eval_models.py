@@ -527,5 +527,9 @@ def test_active_household_eval_catalog_excludes_retired_provider_profiles() -> N
 
     for path in active_paths:
         payload = json.loads(path.read_text(encoding="utf-8"))
-        for key in ("provider_profiles", "model_matrix_provider_profiles"):
-            assert not retired.intersection(payload.get(key, ())), path
+        assert not retired.intersection(payload.get("provider_profiles", ())), path
+        metadata = payload.get("metadata", {})
+        matrix = metadata.get("model_matrix_provider_profiles", ())
+        assert not retired.intersection(matrix), path
+        if matrix:
+            assert metadata["parallel_execution"]["provider_cell_count"] == len(matrix), path
