@@ -56,6 +56,11 @@ def provider_readiness(
         }
     try:
         route = provider_catalog.resolve_provider_route_for_engine(agent_engine, provider_profile)
+        if route.public_profile not in provider_catalog.ACTIVE_PROVIDER_PROFILES:
+            raise ValueError(
+                f"provider_profile {route.public_profile!r} is retired; select one of "
+                + ", ".join(provider_catalog.ACTIVE_PROVIDER_PROFILES)
+            )
     except KeyError:
         message = (
             f"provider_profile {selected!r} is unknown for agent_engine {agent_engine!r}; "

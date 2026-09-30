@@ -15,7 +15,6 @@ from roboclaws.core.provider_catalog import (
     ACTIVE_PROVIDER_PROFILES,
     MODEL_CAP_TEXT,
     PROVIDER_PROFILE_MIMO_RESPONSES,
-    ROUTE_CAP_SUPPORTED,
     ROUTE_CAP_UNKNOWN,
     default_provider_profile,
     model_aliases,
@@ -166,25 +165,17 @@ def test_mimo_tp_chat_accepts_explicit_pro_model() -> None:
     assert settings["request_model"] == "mimo-v2.6-pro"
 
 
-def test_qwen_tp_responses_readiness_uses_public_endpoint_credentials() -> None:
-    route = provider_route_spec("qwen-tp-responses")
-    assert route.required_env_keys == ("QWEN_TP_BASE_URL", "QWEN_TP_KEY")
-    assert route.compatible_model_ids == ("qwen3.8-max", "qwen3.8-flash")
+@pytest.mark.parametrize("profile", ["kimi-openai-chat", "qwen-tp-responses"])
+def test_retired_provider_readiness_rejects_even_configured_credentials(profile: str) -> None:
+    route = provider_route_spec(profile)
     readiness = provider_readiness(
         agent_engine="openai-agents-sdk",
-        provider_profile=route.route_id,
-        env={
-            "QWEN_TP_BASE_URL": "https://qwen.example/compatible-mode/v1",
-            "QWEN_TP_KEY": "secret",
-        },
+        provider_profile=profile,
+        env={key: "configured-test-value" for key in route.required_env_keys},
     )
-    assert readiness["ok"] is True
-    assert readiness["model"] == "qwen3.8-max"
-    assert readiness["wire_api"] == "responses"
-    assert readiness["route_capabilities"] == {
-        "image_transport": ROUTE_CAP_SUPPORTED,
-        "tool_call_transport": ROUTE_CAP_SUPPORTED,
-    }
+    assert readiness["ok"] is False
+    assert "is retired" in readiness["message"]
+    assert "minimax-responses" in readiness["message"]
 
 
 def test_qwen_tp_responses_accepts_flash_and_rejects_foreign_model() -> None:
