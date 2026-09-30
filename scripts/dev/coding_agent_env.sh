@@ -148,10 +148,10 @@ roboclaws_assert_openai_agents_provider_allowed() {
   local provider
   provider="$(roboclaws_code_agent_provider ROBOCLAWS_PROVIDER_PROFILE)" || return
   case "$provider" in
-    mimo-responses|mimo-tp-openai-chat|minimax-responses|kimi-openai-chat|qwen-tp-responses)
+    mimo-responses|mimo-tp-openai-chat|minimax-responses)
       ;;
     *)
-      echo "error: unsupported OpenAI Agents SDK provider '${provider}'; expected mimo-responses, mimo-tp-openai-chat, minimax-responses, kimi-openai-chat, or qwen-tp-responses" >&2
+      echo "error: unsupported OpenAI Agents SDK provider '${provider}'; expected mimo-responses, mimo-tp-openai-chat, or minimax-responses" >&2
       return 2
       ;;
   esac

@@ -180,3 +180,32 @@ def test_python_helper_requires_repo_venv_without_system_fallback() -> None:
         assert result.returncode == 2
         assert "missing repo Python at .venv/bin/python" in result.stderr
     assert "python3" not in result.stdout
+
+
+def test_sdk_launch_gate_rejects_retired_profiles() -> None:
+    for profile in ("kimi-openai-chat", "qwen-tp-responses"):
+        result = run_helper(
+            f"""
+            set -euo pipefail
+            source "$ROBOCLAWS_HELPER"
+            ROBOCLAWS_PROVIDER_PROFILE={profile}
+            roboclaws_assert_openai_agents_provider_allowed
+            """
+        )
+        assert result.returncode == 2
+        assert "unsupported OpenAI Agents SDK provider" in result.stderr
+        assert "provider gate ok" not in result.stderr
+
+
+def test_sdk_launch_gate_accepts_active_profiles() -> None:
+    for profile in ("mimo-responses", "mimo-tp-openai-chat", "minimax-responses"):
+        result = run_helper(
+            f"""
+            set -euo pipefail
+            source "$ROBOCLAWS_HELPER"
+            ROBOCLAWS_PROVIDER_PROFILE={profile}
+            roboclaws_assert_openai_agents_provider_allowed
+            """
+        )
+        assert result.returncode == 0
+        assert f"provider gate ok ({profile})" in result.stderr
