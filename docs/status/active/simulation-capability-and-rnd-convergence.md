@@ -32,6 +32,7 @@ Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 - Runtime Skill lifecycle now accepts only `static-full`; broad delivery parsing remains available to eval/regrade paths.
 - Showcase workflow now runs active provider shards only, with protected-main push/schedule/manual routing and two-shard concurrency.
 - Showcase manifest validation now rejects retired provider profiles while summary/report rendering continues to read historical identities.
+- Active eval-harness catalog now contains only the three supported provider rows; retired Kimi execution policy and row were removed, with selector coverage updated and passing.
 - Full `just agent::verify` passes on the current tree: Ruff, format, architecture import graph, and standalone pytest (100% complete; 1015 files formatted), including the active-provider catalog guard.
 - Explicit `no-skill` kickoff now states that the Skill body is withheld while tool descriptions and run context remain available.
 - Focused facade execution completed at `output/eval-harness/20260928T113410Z/`: 13 passed, 4 failed, 2 blocked; required SDK open-task and cleanup rows were `environment_blocked`, while the no-skill live row executed. This is evidence, not acceptance.
