@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from roboclaws.agents.skill_delivery import validate_eval_skill_delivery_cell
 from roboclaws.core.backend_catalog import BACKEND_SPECS
 from roboclaws.core.goals import normalize_goal_contract
 from roboclaws.core.task_intents import TASK_INTENT_SPECS
@@ -363,9 +364,10 @@ def live_surface_env(kwargs: dict[str, Any], *, base_env: Any) -> dict[str, str]
     """Return environment overrides for the selected live agent engine."""
 
     env = dict(base_env)
-    env["ROBOCLAWS_EVAL_SKILL_DELIVERY_CELL"] = str(
+    env["ROBOCLAWS_EVAL_SKILL_DELIVERY_CELL"] = validate_eval_skill_delivery_cell(
         kwargs.get("skill_delivery_cell") or "static-full"
     )
+    env["ROBOCLAWS_EVAL_SKILL_CONTROL"] = "1"
     env["ROBOCLAWS_EVAL_TASK_KIND"] = str(kwargs.get("task_kind") or "")
     env["ROBOCLAWS_EVAL_MODEL_VISIBLE_TOOL_SURFACE"] = json.dumps(
         list(kwargs.get("model_visible_tool_surface") or ()), separators=(",", ":")

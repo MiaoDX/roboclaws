@@ -375,3 +375,8 @@ It selects paired static-full/no-skill cleanup rows with the same supported
 provider and Runtime Map Prior. Supply `runtime_map_prior=<catalog-or-snapshot>`
 when needed. Use `execute` and `live_execution=run` to collect live evidence;
 no-skill is excluded from adaptive and everyday baseline recommendations.
+The eval launcher explicitly enables this control in its subprocess environment;
+ordinary product launches accept only static-full. The control withholds both
+Skill body and index while retaining the same task, tools, and run context.
+Retired delivery identities remain readable for historical regrading, but cannot
+be launched. Eval Evolution isolation remains independent of Skill delivery.

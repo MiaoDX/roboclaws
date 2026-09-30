@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Callable
 
-from roboclaws.agents.skill_delivery import sandbox_readiness
 from roboclaws.evals import long_horizon_contract
 from roboclaws.evals.agent_identity import blocked_result_from_live_agent_request
 from roboclaws.evals.dependencies import dependency_failure, resolve_artifact_dependencies
@@ -137,13 +136,6 @@ def _run_trial(
                 runtime_map_prior=runtime_map_prior,
                 regrade_source_dir=regrade_source_dir,
             )
-        if skill_delivery_cell == "sandbox-skills":
-            posture = sandbox_readiness()
-            if posture["status"] != "ready":
-                return blocked_result_from_exception(
-                    trial,
-                    RuntimeError(f"sandbox-skills unavailable: {posture['reason']}"),
-                )
         if live_execution == "run":
             return run_live_eval_trial(
                 sample=sample,

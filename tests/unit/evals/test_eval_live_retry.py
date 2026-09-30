@@ -195,7 +195,7 @@ def test_retry_attempts_share_one_live_wall_clock_deadline(
         output_root=tmp_path,
         stamp="shared-retry-deadline",
         agent_engine="openai-agents-sdk",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
         live_execution="run",
         live_timeout_s=10.0,
         live_stall_timeout_s=8.0,

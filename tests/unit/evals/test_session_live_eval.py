@@ -30,7 +30,7 @@ def test_session_live_eval_blocks_when_provider_not_ready(tmp_path: Path) -> Non
     run = run_session_live_eval(
         output_root=tmp_path,
         stamp="blocked",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
         live_execution="run",
         env={},
     )
@@ -59,11 +59,11 @@ def test_session_live_restores_environment_when_server_startup_fails(
         run_session_live_eval(
             output_root=tmp_path,
             stamp="startup-failure",
-            provider_profile="kimi-openai-chat",
+            provider_profile="mimo-tp-openai-chat",
             live_execution="run",
             env={
-                "KIMI_API_KEY": "key",
-                "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
+                "MIMO_TP_KEY": "key",
+                "MIMO_OPENAI_BASE_URL": "https://mimo.example.test/v1",
                 sentinel: "temporary",
             },
             start_server=fail_start,
@@ -89,11 +89,11 @@ def test_session_live_closes_server_and_restores_environment_when_thread_start_f
         run_session_live_eval(
             output_root=tmp_path,
             stamp="thread-start-failure",
-            provider_profile="kimi-openai-chat",
+            provider_profile="mimo-tp-openai-chat",
             live_execution="run",
             env={
-                "KIMI_API_KEY": "key",
-                "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
+                "MIMO_TP_KEY": "key",
+                "MIMO_OPENAI_BASE_URL": "https://mimo.example.test/v1",
                 sentinel: "temporary",
             },
             start_server=lambda _root: server,
@@ -126,7 +126,7 @@ def test_session_live_parent_provider_failure_preempts_steer_grading(tmp_path: P
     result = _blocked_parent_provider_result(
         parent_dir=tmp_path / "parent",
         parent_state={"phase": "failed"},
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
     )
 
     assert result is not None
@@ -188,8 +188,8 @@ def test_session_live_eval_runs_headless_console_flow_with_fake_product(
         )
 
     env = {
-        "KIMI_API_KEY": "key",
-        "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
+        "MIMO_TP_KEY": "key",
+        "MIMO_OPENAI_BASE_URL": "https://mimo.example.test/v1",
         "ROBOCLAWS_SESSION_LIVE_MCP_PORT": "19888",
         "ROBOCLAWS_SESSION_LIVE_ENV_SENTINEL": "visible-to-console",
     }
@@ -200,7 +200,7 @@ def test_session_live_eval_runs_headless_console_flow_with_fake_product(
         run = run_session_live_eval(
             output_root=tmp_path,
             stamp="session",
-            provider_profile="kimi-openai-chat",
+            provider_profile="mimo-tp-openai-chat",
             live_execution="run",
             live_timeout_s=5,
             env=env,
@@ -252,8 +252,8 @@ def test_session_live_classifies_blocked_next_goal_parent_artifact_gap(
         )
 
     env = {
-        "KIMI_API_KEY": "key",
-        "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
+        "MIMO_TP_KEY": "key",
+        "MIMO_OPENAI_BASE_URL": "https://mimo.example.test/v1",
         "ROBOCLAWS_SESSION_LIVE_MCP_PORT": "19889",
     }
     with (
@@ -263,7 +263,7 @@ def test_session_live_classifies_blocked_next_goal_parent_artifact_gap(
         run = run_session_live_eval(
             output_root=tmp_path,
             stamp="session-artifact-gap",
-            provider_profile="kimi-openai-chat",
+            provider_profile="mimo-tp-openai-chat",
             live_execution="run",
             live_timeout_s=5,
             env=env,

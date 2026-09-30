@@ -42,7 +42,7 @@ def _live_surface_kwargs(
         "scene_source": "procthor-10k-val",
         "scene_index": 0,
         "agent_engine": "openai-agents-sdk",
-        "provider_profile": "kimi-openai-chat",
+        "provider_profile": "mimo-tp-openai-chat",
         "model": None,
         "live_timeout_s": live_timeout_s,
         "live_stall_timeout_s": live_stall_timeout_s,

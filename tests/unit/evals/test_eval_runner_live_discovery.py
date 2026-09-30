@@ -35,13 +35,20 @@ def test_eval_runner_regrades_existing_live_artifacts_without_provider_call(
         output_root=tmp_path,
         stamp="live-source",
         agent_engine="openai-agents-sdk",
-        provider_profile="kimi-openai-chat",
-        model="k3",
+        provider_profile="mimo-tp-openai-chat",
+        model="mimo-v2.6-pro",
         live_execution="run",
         skill_name="source-skill",
-        skill_delivery_cell="dynamic-routed",
+        skill_delivery_cell="static-full",
         live_product_runner=live_product_runner,
     )
+
+    # Historical fixtures are read-only data, never executed through a retired adapter.
+    for result in source_run.bundle["results"]:
+        result["identity"]["provider_profile"] = "kimi-openai-chat"
+        result["identity"]["model"] = "k3"
+        result["identity"]["runtime"]["skill_delivery_cell"] = "dynamic-routed"
+    source_run.results_path.write_text(json.dumps(source_run.bundle))
 
     def forbidden_live_product_runner(**_kwargs: Any) -> dict[str, Any]:
         raise AssertionError("regrade_source must not call the live provider route")
@@ -59,7 +66,6 @@ def test_eval_runner_regrades_existing_live_artifacts_without_provider_call(
         output_root=tmp_path,
         stamp="live-source-regrade",
         agent_engine="openai-agents-sdk",
-        provider_profile="kimi-openai-chat",
         regrade_source=source_run.output_dir,
         live_product_runner=forbidden_live_product_runner,
     )
@@ -112,10 +118,10 @@ def test_eval_runner_rejects_regrade_execution_identity_override(
         output_root=tmp_path,
         stamp=f"identity-source-{message}",
         agent_engine="openai-agents-sdk",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
         live_execution="run",
         skill_name="source-skill",
-        skill_delivery_cell="dynamic-routed",
+        skill_delivery_cell="static-full",
         live_product_runner=live_product_runner,
     )
 
@@ -147,7 +153,7 @@ def test_eval_runner_rejects_regrade_model_override(
         output_root=tmp_path,
         stamp="model-source",
         agent_engine="openai-agents-sdk",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
         live_execution="run",
         live_product_runner=live_product_runner,
     )
@@ -181,7 +187,7 @@ def test_eval_runner_rejects_regrade_source_suite_version_mismatch(tmp_path: Pat
         output_root=tmp_path,
         stamp="suite-version-source",
         agent_engine="openai-agents-sdk",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
         live_execution="run",
         live_product_runner=live_product_runner,
     )
@@ -212,7 +218,7 @@ def test_eval_runner_rejects_live_result_without_effective_run_dir(tmp_path: Pat
         output_root=tmp_path,
         stamp="live-missing-effective-run-dir",
         agent_engine="openai-agents-sdk",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
         live_execution="run",
         live_product_runner=live_product_runner,
     )
@@ -246,7 +252,7 @@ def test_eval_runner_rejects_live_effective_run_dir_outside_trial(tmp_path: Path
         output_root=tmp_path,
         stamp="live-escaped-effective-run-dir",
         agent_engine="openai-agents-sdk",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
         live_execution="run",
         live_product_runner=live_product_runner,
     )
@@ -471,7 +477,7 @@ def test_live_open_ended_eval_fails_after_checker_nonzero_exit(
         output_root=tmp_path,
         stamp="live-open-ended-checker-nonzero",
         agent_engine="openai-agents-sdk",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
         live_execution="run",
         live_timeout_s=12.5,
     )
@@ -618,7 +624,7 @@ def test_live_cleanup_eval_fails_after_checker_nonzero_exit(
         output_root=tmp_path,
         stamp="live-cleanup-checker-nonzero",
         agent_engine="openai-agents-sdk",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
         live_execution="run",
         live_timeout_s=12.5,
     )

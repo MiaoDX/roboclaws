@@ -9,8 +9,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from roboclaws.agents.skill_delivery import validate_skill_delivery_cell
+from roboclaws.agents.skill_delivery import (
+    validate_eval_skill_delivery_cell,
+    validate_skill_delivery_cell,
+)
 from roboclaws.core.json_sources import read_json_object
+from roboclaws.core.provider_catalog import normalize_provider_route, provider_route_spec
 from roboclaws.evals.agent_identity import (
     agent_engine_spec,
     eval_model_identity,
@@ -295,7 +299,11 @@ def run_eval_suite(
 
     if live_execution not in {"blocked", "run"}:
         raise ValueError("live_execution must be blocked or run")
-    selected_skill_delivery_cell = validate_skill_delivery_cell(skill_delivery_cell)
+    selected_skill_delivery_cell = (
+        validate_skill_delivery_cell(skill_delivery_cell)
+        if regrade_source is not None
+        else validate_eval_skill_delivery_cell(skill_delivery_cell)
+    )
     if regrade_source is not None and agent_engine == "direct-runner":
         raise ValueError("regrade_source is only supported for live-agent eval runs")
 
@@ -609,11 +617,11 @@ def _validate_regrade_source_execution_identity(
 ) -> str:
     if source_trial.agent_engine != agent_engine or source_trial.runner_class != runner_class:
         raise ValueError("regrade agent_engine does not match source execution identity")
-    validated_source_provider = eval_provider_profile(
-        agent_engine=agent_engine,
-        provider_profile=source_trial.provider_profile,
-    )
-    if validated_source_provider != source_trial.provider_profile:
+    route = provider_route_spec(source_trial.provider_profile)
+    if (
+        route.public_profile != source_trial.provider_profile
+        or agent_engine not in route.supported_engines
+    ):
         raise ValueError("regrade_source has invalid provider execution identity")
     source_cell = source_trial.runtime.get("skill_delivery_cell")
     if not isinstance(source_cell, str) or validate_skill_delivery_cell(source_cell) != source_cell:
@@ -632,10 +640,7 @@ def _validate_regrade_execution_overrides(
     skill_delivery_cell: str | None,
 ) -> None:
     if provider_profile is not None:
-        requested_provider = eval_provider_profile(
-            agent_engine=agent_engine,
-            provider_profile=provider_profile,
-        )
+        requested_provider = normalize_provider_route(provider_profile)
         if source_trial.provider_profile != requested_provider:
             raise ValueError("regrade provider_profile does not match source execution identity")
     if model is not None:

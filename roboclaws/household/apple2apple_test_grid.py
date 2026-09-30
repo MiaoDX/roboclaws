@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.core.provider_catalog import (
-    PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
+    PROVIDER_PROFILE_MIMO_TP_OPENAI_CHAT,
     provider_route_spec,
 )
 from roboclaws.core.rerun import shell_join
@@ -42,13 +42,13 @@ class EvidenceLane:
 
 AGENT_ROUTES: tuple[AgentRoute, ...] = (
     AgentRoute(
-        route_id="agents-sdk-kimi",
-        label="OpenAI Agents SDK Kimi",
+        route_id="agents-sdk-mimo-tp",
+        label="OpenAI Agents SDK MiMo TP",
         driver="openai-agents-sdk",
         agent_engine="openai-agents-sdk",
-        provider_profile=PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
-        env={"ROBOCLAWS_PROVIDER_PROFILE": PROVIDER_PROFILE_KIMI_OPENAI_CHAT},
-        required_env=provider_route_spec(PROVIDER_PROFILE_KIMI_OPENAI_CHAT).required_env_keys,
+        provider_profile=PROVIDER_PROFILE_MIMO_TP_OPENAI_CHAT,
+        env={"ROBOCLAWS_PROVIDER_PROFILE": PROVIDER_PROFILE_MIMO_TP_OPENAI_CHAT},
+        required_env=provider_route_spec(PROVIDER_PROFILE_MIMO_TP_OPENAI_CHAT).required_env_keys,
     ),
 )
 
@@ -112,7 +112,7 @@ def build_apple2apple_test_grid(
         "name": "molmospaces_apple2apple_g2_grid",
         "description": (
             "Apple-to-apple MolmoSpaces cleanup grid for online/offline Runtime "
-            "Metric Map comparison through the OpenAI Agents SDK Kimi Chat route, "
+            "Metric Map comparison through the OpenAI Agents SDK MiMo TP Chat route, "
             "with Grounding DINO evidence."
         ),
         "seed": seed,

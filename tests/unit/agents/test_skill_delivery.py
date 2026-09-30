@@ -15,7 +15,8 @@ from roboclaws.agents.live_runtime import LiveAgentMCPServer, LiveAgentRequest
 from roboclaws.agents.skill_delivery import (
     SKILL_DELIVERY_CELLS,
     build_skill_delivery,
-    sandbox_readiness,
+    runtime_skill_delivery_cell,
+    validate_eval_skill_delivery_cell,
     validate_runtime_skill_delivery_cell,
     validate_skill_delivery_cell,
 )
@@ -81,39 +82,6 @@ def test_delivery_cells_are_closed() -> None:
         validate_skill_delivery_cell("broader-shell")
 
 
-def test_non_sandbox_delivery_does_not_probe_sandbox_runtime(monkeypatch) -> None:
-    probes: list[bool] = []
-
-    def readiness(*, probe_runtime: bool = True) -> dict[str, object]:
-        probes.append(probe_runtime)
-        return {"network": "disabled", "status": "not_requested"}
-
-    monkeypatch.setattr("roboclaws.agents.skill_delivery.sandbox_readiness", readiness)
-    build_skill_delivery(
-        "static-full",
-        full_content=SKILL,
-        intent="cleanup",
-        evidence_lane="world-public-labels",
-    )
-
-    assert probes == [False]
-
-
-def test_dynamic_full_is_byte_identical_to_static_full(tmp_path: Path) -> None:
-    static = build_skill_delivery(
-        "static-full", full_content=SKILL, intent="cleanup", evidence_lane="world-public-labels"
-    )
-    dynamic = build_skill_delivery(
-        "dynamic-full", full_content=SKILL, intent="cleanup", evidence_lane="world-public-labels"
-    )
-    static_instructions, _ = _instructions_with_skill_context(_request(tmp_path, static))
-    dynamic_callback, _ = _instructions_with_skill_context(_request(tmp_path, dynamic))
-    assert callable(dynamic_callback)
-    assert dynamic_callback(None, None) == static_instructions
-    assert "kickoff" not in static_instructions
-    assert dynamic.artifact()["events"][0]["effective_instruction_sha256"]
-
-
 def test_no_skill_contains_no_body_or_index() -> None:
     delivery = build_skill_delivery(
         "no-skill", full_content=SKILL, intent="cleanup", evidence_lane="world-public-labels"
@@ -144,40 +112,10 @@ def test_unconfigured_skill_context_keeps_kickoff_out_of_instructions(tmp_path: 
     assert summary["reason"] == "not_configured"
 
 
-def test_routed_content_contains_only_frozen_selected_sections() -> None:
-    routed = build_skill_delivery(
-        "dynamic-routed",
-        full_content=SKILL,
-        intent="cleanup",
-        evidence_lane="camera-grounded-labels",
-    )
-    assert "# Household World" in routed.content
-    assert "## Intent Routing" in routed.content
-    assert "## Shared Loop" in routed.content
-    assert "## Cleanup Preset" in routed.content
-    assert "camera-grounded-labels" in routed.content
-    assert "Map-Build Preset" not in routed.content
-    assert "private helper" not in routed.content
-
-
-def test_long_horizon_routing_includes_manipulation_strategy() -> None:
-    routed = build_skill_delivery(
-        "dynamic-routed",
-        full_content=SKILL,
-        intent="open-ended",
-        evidence_lane="world-public-labels",
-        task_kind="long-horizon",
-    )
-    assert "## Open-Ended Goals" not in routed.content
-    assert "## Long-Horizon Eval" in routed.content
-    assert "## Cleanup Preset" not in routed.content
-    assert "long-horizon eval task" in routed.content
-
-
 def test_skill_delivery_rejects_unknown_task_kind() -> None:
     with pytest.raises(ValueError, match="task_kind"):
         build_skill_delivery(
-            "dynamic-routed",
+            "static-full",
             full_content=SKILL,
             intent="open-ended",
             evidence_lane="world-public-labels",
@@ -185,72 +123,23 @@ def test_skill_delivery_rejects_unknown_task_kind() -> None:
         )
 
 
-def test_delivery_artifact_records_identity_events_tools_and_sandbox(tmp_path: Path) -> None:
+def test_delivery_artifact_records_identity_and_tools(tmp_path: Path) -> None:
     delivery = build_skill_delivery(
-        "dynamic-full", full_content=SKILL, intent="cleanup", evidence_lane="world-public-labels"
+        "static-full", full_content=SKILL, intent="cleanup", evidence_lane="world-public-labels"
     )
     request = _request(tmp_path, delivery)
-    callback, summary = _instructions_with_skill_context(request)
-    callback(None, None)
+    instructions, summary = _instructions_with_skill_context(request)
+    assert instructions and SKILL.strip() in instructions
     path = tmp_path / "openai-agents-skill-context.json"
     _write_skill_context_summary(path, summary, request=request)
     payload = json.loads(path.read_text())
-    assert payload["requested_cell"] == "dynamic-full"
+    assert payload["requested_cell"] == "static-full"
     assert payload["content_sha256"]
     assert payload["index_sha256"]
     assert payload["included_bytes"] == len(SKILL.encode())
-    assert payload["events"][0]["call_index"] == 0
+    assert not payload.get("events")
     assert payload["model_visible_tool_surface"] == ["metric_map", "done"]
     assert payload["sdk_version"]
-    assert payload["sandbox_posture"]["network"] == "disabled"
-
-
-def test_installed_sdk_sandbox_uses_official_imports_and_fails_closed() -> None:
-    posture = sandbox_readiness()
-    assert posture["imports"] == {
-        "agents.sandbox.SandboxAgent": True,
-        "agents.sandbox.capabilities.Skills": True,
-    }
-    assert posture["sdk_version"] == "0.19.2"
-    assert posture["status"] in {"ready", "blocked"}
-    assert posture["reason"] in {
-        "supported_exact_contract",
-        "sdk_missing_docker_extra",
-        "docker_daemon_unavailable",
-        "sandbox_image_unavailable",
-    }
-    assert posture["shell"] == "disabled"
-    assert posture["default_capabilities"] == "disabled"
-    assert posture["mounts"] == []
-    if posture["status"] == "ready":
-        assert posture["workspace_entries"] == [".agents/household-world"]
-    assert {"repository", "run_outputs", "credentials"} <= set(posture["forbidden_access"])
-
-
-def test_sandbox_delivery_keeps_body_out_of_agent_instructions() -> None:
-    delivery = build_skill_delivery(
-        "sandbox-skills",
-        full_content=SKILL,
-        intent="cleanup",
-        evidence_lane="world-public-labels",
-    )
-    assert delivery.content == SKILL
-    assert delivery.instructions() is None
-    artifact = delivery.artifact(tool_surface=["metric_map", "done"])
-    assert artifact["delivery"] == "sandbox_skills"
-    assert artifact["included_bytes"] == len(SKILL.encode())
-    assert artifact["model_visible_tool_surface"] == [
-        "metric_map",
-        "done",
-        "read_selected_skill",
-    ]
-    assert artifact["events"] == [
-        {
-            "event": "sandbox_skill_bundle_configured",
-            "skill": "household-world",
-            "content_sha256": artifact["content_sha256"],
-        }
-    ]
 
 
 def test_model_call_delivery_fields_capture_effective_instructions_and_tools() -> None:
@@ -261,3 +150,22 @@ def test_model_call_delivery_fields_capture_effective_instructions_and_tools() -
     assert fields["effective_instruction_sha256"]
     assert fields["effective_instruction_bytes"] == len(b"effective instructions")
     assert fields["model_visible_tool_surface"] == ["metric_map"]
+
+
+@pytest.mark.parametrize("cell", ["dynamic-full", "dynamic-routed", "sandbox-skills"])
+def test_retired_identity_is_readable_but_not_executable(cell):
+    assert validate_skill_delivery_cell(cell) == cell
+    with pytest.raises(ValueError, match="retired skill_delivery_cell"):
+        validate_eval_skill_delivery_cell(cell)
+    with pytest.raises(ValueError, match="retired skill_delivery_cell"):
+        build_skill_delivery(
+            cell, full_content=SKILL, intent="cleanup", evidence_lane="world-public-labels"
+        )
+
+
+def test_no_skill_requires_explicit_eval_control_environment():
+    env = {"ROBOCLAWS_EVAL_SKILL_DELIVERY_CELL": "no-skill"}
+    with pytest.raises(ValueError, match="runtime skill_delivery_cell"):
+        runtime_skill_delivery_cell(env)
+    env["ROBOCLAWS_EVAL_SKILL_CONTROL"] = "1"
+    assert runtime_skill_delivery_cell(env) == "no-skill"

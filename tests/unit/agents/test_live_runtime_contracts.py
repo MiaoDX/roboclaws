@@ -355,7 +355,7 @@ def test_agent_sdk_skill_context_records_digest_of_truncated_delivery(tmp_path: 
     context = _load_agent_sdk_skill_context(
         tmp_path / "repo",
         skill_name="household-world",
-        delivery_cell="sandbox-skills",
+        delivery_cell="static-full",
     )
 
     assert context["truncated"] is True

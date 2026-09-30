@@ -17,7 +17,7 @@ from roboclaws.mcp.profiles import contract_profile, contract_profile_names
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
-@pytest.mark.parametrize("cell", ["static-full", "dynamic-full", "dynamic-routed"])
+@pytest.mark.parametrize("cell", ["static-full"])
 def test_delivered_skill_call_examples_use_registered_public_tool_names(cell: str) -> None:
     skill = (REPO_ROOT / "skills" / "household-world" / "SKILL.md").read_text(encoding="utf-8")
     delivery = build_skill_delivery(
@@ -46,6 +46,12 @@ def test_kickoff_prompt_requires_operator_message_checkpoints() -> None:
 
 def test_no_skill_kickoff_identifies_withheld_skill_body() -> None:
     prompt = render_kickoff_prompt("world-public-labels", skill_delivery_cell="no-skill")
+    assert "Skill body is withheld" in prompt
+    assert "Use the bundled household-world skill instructions" not in prompt
+
+
+def test_no_skill_map_build_identifies_withheld_skill_body() -> None:
+    prompt = render_map_build_prompt("world-public-labels", "", skill_delivery_cell="no-skill")
     assert "Skill body is withheld" in prompt
     assert "Use the bundled household-world skill instructions" not in prompt
 

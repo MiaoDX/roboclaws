@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from roboclaws.agents.experiment_telemetry import PromptIdentity
-from roboclaws.agents.skill_delivery import build_skill_delivery, validate_skill_delivery_cell
+from roboclaws.agents.skill_delivery import build_skill_delivery, validate_eval_skill_delivery_cell
 
 MAX_AGENT_SDK_SKILL_CONTEXT_BYTES = 24_000
 EVAL_SKILL_SOURCE_ROOT_ENV = "ROBOCLAWS_EVAL_SKILL_SOURCE_ROOT"
@@ -142,7 +142,7 @@ def _load_agent_sdk_skill_context(
     evidence_lane: str = "world-public-labels",
     task_kind: str = "",
 ) -> dict[str, Any]:
-    delivery_cell = validate_skill_delivery_cell(delivery_cell)
+    delivery_cell = validate_eval_skill_delivery_cell(delivery_cell)
     relative_path = Path("skills") / skill_name / "SKILL.md"
     source_path = Path(repo_root) / relative_path
     base_payload: dict[str, Any] = {

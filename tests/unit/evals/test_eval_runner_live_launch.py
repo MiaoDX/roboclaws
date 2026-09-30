@@ -39,7 +39,7 @@ def test_eval_runner_runs_live_agent_when_explicitly_enabled(tmp_path: Path) -> 
         output_root=tmp_path,
         stamp="live-run",
         agent_engine="openai-agents-sdk",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
         live_execution="run",
         live_timeout_s=12.5,
         live_stall_timeout_s=6.25,
@@ -50,7 +50,7 @@ def test_eval_runner_runs_live_agent_when_explicitly_enabled(tmp_path: Path) -> 
     assert payload["aggregate"]["passed"] == 3
     assert payload["aggregate"]["blocked"] == 0
     assert seen_kwargs[0]["agent_engine"] == "openai-agents-sdk"
-    assert seen_kwargs[0]["provider_profile"] == "kimi-openai-chat"
+    assert seen_kwargs[0]["provider_profile"] == "mimo-tp-openai-chat"
     assert seen_kwargs[0]["live_timeout_s"] == 12.5
     assert seen_kwargs[0]["live_stall_timeout_s"] == 6.25
     result = payload["results"][0]
@@ -74,7 +74,7 @@ def test_live_surface_command_uses_current_public_launch_axes(tmp_path: Path) ->
         output_root=tmp_path,
         stamp="live-command",
         agent_engine="openai-agents-sdk",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
         live_execution="run",
         live_product_runner=live_product_runner,
     )
@@ -82,7 +82,7 @@ def test_live_surface_command_uses_current_public_launch_axes(tmp_path: Path) ->
     command = live_surface_command(seen_kwargs[0], output_dir=tmp_path / "surface-run")
     assert "backend=mujoco" in command
     assert "agent_engine=openai-agents-sdk" in command
-    assert "provider_profile=kimi-openai-chat" in command
+    assert "provider_profile=mimo-tp-openai-chat" in command
     assert "evidence_lane=world-public-labels" in command
     assert "robot_views=on" in command
     assert "run_preset=smoke" not in command
@@ -107,7 +107,7 @@ def test_long_horizon_live_command_uses_eval_target_setup(tmp_path: Path) -> Non
     kwargs = {
         "eval_sample": sample,
         "agent_engine": "openai-agents-sdk",
-        "provider_profile": "kimi-openai-chat",
+        "provider_profile": "mimo-tp-openai-chat",
         "backend": "mujoco",
         "evidence_lane": "world-public-labels",
         "seed": sample.seed,
@@ -183,7 +183,7 @@ def test_live_surface_command_passes_map_build_camera_labeler(tmp_path: Path) ->
         {
             "eval_sample": sample,
             "agent_engine": "openai-agents-sdk",
-            "provider_profile": "kimi-openai-chat",
+            "provider_profile": "mimo-tp-openai-chat",
             "evidence_lane": sample.evidence_lane,
             "visual_grounding": sample.camera_labeler,
             "map_build": True,
@@ -227,7 +227,7 @@ def test_live_surface_command_uses_no_preset_public_open_task_route(tmp_path: Pa
         output_root=tmp_path,
         stamp="live-open-task-command",
         agent_engine="openai-agents-sdk",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
         live_execution="run",
         live_product_runner=live_product_runner,
     )
@@ -235,7 +235,7 @@ def test_live_surface_command_uses_no_preset_public_open_task_route(tmp_path: Pa
     command = live_surface_command(seen_kwargs[0], output_dir=tmp_path / "surface-run")
     assert "surface=household-world" in command
     assert "agent_engine=openai-agents-sdk" in command
-    assert "provider_profile=kimi-openai-chat" in command
+    assert "provider_profile=mimo-tp-openai-chat" in command
     assert "run_preset=smoke" not in command
     assert not any(item.startswith("preset=") for item in command)
     assert any(item.startswith("prompt=") for item in command)

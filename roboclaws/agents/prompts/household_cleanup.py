@@ -222,6 +222,7 @@ def render_map_build_prompt(
     camera_grounded_composite_tools: bool = False,
     operator_session_context: dict[str, Any] | None = None,
     operator_session_context_json: str = "",
+    skill_delivery_cell: str = "",
 ) -> str:
     """Render the live-agent kickoff prompt for intent=map-build."""
 
@@ -240,7 +241,8 @@ def render_map_build_prompt(
             if composite
             else "Camera-grounded observation mode=observe plus declare_visual_candidates. "
         )
-    prompt = CUSTOM_PREFIX + MAP_BUILD_RUN_CONTEXT.format(
+    prefix = NO_SKILL_PREFIX if skill_delivery_cell == "no-skill" else CUSTOM_PREFIX
+    prompt = prefix + MAP_BUILD_RUN_CONTEXT.format(
         task=task,
         profile=profile,
         waypoint_observe_tool=observe_tool,

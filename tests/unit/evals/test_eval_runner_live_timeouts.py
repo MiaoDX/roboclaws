@@ -230,7 +230,7 @@ def test_live_eval_classifies_budget_runtime_failure(tmp_path: Path, reason: str
         output_root=tmp_path,
         stamp="live-open-ended-observe-budget",
         agent_engine="openai-agents-sdk",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
         live_execution="run",
         live_product_runner=live_product_runner,
     )

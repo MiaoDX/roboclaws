@@ -226,14 +226,9 @@ def _run_openai_agents(
     # normalized tool result; without launcher resume state the seam stays inert.
     tool_result_callback = _checkpoint_callback(request)
 
-    agent_cls = Agent
-    if _is_sandbox_skills_request(request):
-        from agents.sandbox import SandboxAgent  # type: ignore[import-not-found]
-
-        agent_cls = SandboxAgent
     parts = _openai_agents_run_parts(
         request,
-        agent_cls=agent_cls,
+        agent_cls=Agent,
         model_settings_cls=ModelSettings,
         run_config_cls=RunConfig,
         mcp_server_cls=MCPServerStreamableHttp,
@@ -426,10 +421,6 @@ def _openai_agents_run_parts(
         "model_settings": model_settings,
         **_sdk_run_config_payload(request, events_path=events_path),
     }
-    if _is_sandbox_skills_request(request):
-        from roboclaws.agents.drivers.openai_agents_sandbox_skills import sandbox_run_config
-
-        run_config_kwargs["sandbox"] = sandbox_run_config()
     run_config = run_config_cls(
         **run_config_kwargs,
     )
@@ -451,10 +442,6 @@ def _openai_agents_run_parts(
         events_path=events_path,
         runtime_config=runtime_config,
     )
-    if _is_sandbox_skills_request(request):
-        from roboclaws.agents.drivers.openai_agents_sandbox_skills import sandbox_agent_kwargs
-
-        agent_kwargs.update(sandbox_agent_kwargs(request))
     agent = agent_cls(**agent_kwargs)
     return _OpenAIAgentsRunParts(
         agent=agent,
@@ -504,14 +491,6 @@ def _agent_kwargs(
         "model": model,
         "model_settings": model_settings,
     }
-
-
-def _is_sandbox_skills_request(request: LiveAgentRequest) -> bool:
-    from roboclaws.agents.drivers.openai_agents_sandbox_skills import (
-        is_sandbox_skills_request,
-    )
-
-    return is_sandbox_skills_request(request)
 
 
 def _run_with_async_mcp_server(

@@ -71,7 +71,7 @@ def test_live_surface_product_fails_aloud_on_malformed_run_result(
         output_root=tmp_path,
         stamp="live-malformed-run-result",
         agent_engine="openai-agents-sdk",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
         live_execution="run",
         live_timeout_s=12.5,
     )
@@ -161,13 +161,13 @@ def test_live_eval_rejects_invalid_runtime_map_dependency_before_launch(
         mutate=lambda sample: sample.update(
             {
                 "allowed_agent_engines": ["openai-agents-sdk"],
-                "provider_profiles": ["kimi-openai-chat"],
+                "provider_profiles": ["mimo-tp-openai-chat"],
                 "artifact_dependencies": artifact_dependencies,
             }
         ),
         assertion_message=f"live product runner should not launch with invalid {case_name}",
         agent_engine="openai-agents-sdk",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
         live_execution="run",
     )
 

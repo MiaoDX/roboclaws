@@ -260,6 +260,7 @@ def _live_command(
                 os.environ.get("ROBOCLAWS_OPENAI_AGENTS_RAW_FPV_CANDIDATE_BUDGET", "24")
             ),
             done_retry_budget=int(os.environ.get("ROBOCLAWS_OPENAI_AGENTS_DONE_RETRY_BUDGET", "1")),
+            skill_delivery_cell=os.environ.get(SKILL_DELIVERY_ENV, ""),
             camera_grounded_composite_tools=composite,
             operator_session_context_json=_get(execution.kv, "operator_session_context_json", ""),
         )

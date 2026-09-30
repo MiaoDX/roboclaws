@@ -697,20 +697,6 @@ wheels = [
 ]
 
 [[package]]
-name = "docker"
-version = "7.2.0"
-source = { registry = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/" }
-dependencies = [
-    { name = "pywin32", marker = "sys_platform == 'win32'" },
-    { name = "requests" },
-    { name = "urllib3" },
-]
-sdist = { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/88/7f/731ff914b0255d3d065f45fd4e626d4b8c95dbcbaada049f337a6ac16410/docker-7.2.0.tar.gz", hash = "sha256:cebb93773d334f778e023a7ee352a8d6e13ab1bd3b863a4d4a59dec897df43ac", size = 118731, upload-time = "2026-07-09T14:53:46.39Z" }
-wheels = [
-    { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/75/23/529140fe1aab80fc6992f93a706deec709140a6397439139a054e1515c45/docker-7.2.0-py3-none-any.whl", hash = "sha256:a3f45fdeb9165e2d25d9a1d02ddf3bc70fb572cf5ebbf9b58558c22caf29b71f", size = 148775, upload-time = "2026-07-09T14:53:45.224Z" },
-]
-
-[[package]]
 name = "docstring-parser"
 version = "0.18.0"
 source = { registry = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/" }
@@ -2558,11 +2544,6 @@ wheels = [
     { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/02/dd/af34f1f519e54941c18e8b0b1ac0386da5bf8fd32bc3ec207e05043475d4/openai_agents-0.19.2-py3-none-any.whl", hash = "sha256:ea2d7e306731c73a5e340bf23ca98326088bdfe8c61cd8e171a307adcd2957d0", size = 941518, upload-time = "2026-08-01T01:09:18.055Z" },
 ]
 
-[package.optional-dependencies]
-docker = [
-    { name = "docker" },
-]
-
 [[package]]
 name = "opencv-python"
 version = "4.13.0.92"
@@ -3693,7 +3674,7 @@ dev = [
     { name = "molmo-spaces", extra = ["mujoco"] },
     { name = "numpy" },
     { name = "openai" },
-    { name = "openai-agents", extra = ["docker"] },
+    { name = "openai-agents" },
     { name = "openinference-instrumentation-openai-agents" },
     { name = "opentelemetry-exporter-otlp-proto-http" },
     { name = "pillow" },
@@ -3733,8 +3714,8 @@ requires-dist = [
     { name = "numpy", specifier = ">=1.24" },
     { name = "numpy", marker = "extra == 'dev'", specifier = ">=1.24" },
     { name = "openai", marker = "extra == 'dev'", specifier = ">=1.50" },
+    { name = "openai-agents", marker = "extra == 'dev'", specifier = "==0.19.2" },
     { name = "openai-agents", marker = "extra == 'openai-agents'", specifier = "==0.19.2" },
-    { name = "openai-agents", extras = ["docker"], marker = "extra == 'dev'", specifier = "==0.19.2" },
     { name = "openinference-instrumentation-openai-agents", marker = "extra == 'dev'", specifier = "==1.3.0" },
     { name = "openinference-instrumentation-openai-agents", marker = "extra == 'openai-agents'", specifier = "==1.3.0" },
     { name = "opentelemetry-exporter-otlp-proto-http", marker = "extra == 'dev'", specifier = "==1.36.0" },

@@ -37,7 +37,7 @@ def test_eval_runner_records_live_agent_blocked_identity(tmp_path: Path) -> None
         output_root=tmp_path,
         stamp="live-blocked",
         agent_engine="openai-agents-sdk",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
         product_runner=_passing_product_runner,
     )
 
@@ -52,14 +52,14 @@ def test_eval_runner_records_live_agent_blocked_identity(tmp_path: Path) -> None
     assert result["failure_class"] == "model_or_provider_unavailable"
     assert result["identity"]["agent_engine"] == "openai-agents-sdk"
     assert result["identity"]["runner_class"] == "live-agent"
-    assert result["identity"]["provider_profile"] == "kimi-openai-chat"
+    assert result["identity"]["provider_profile"] == "mimo-tp-openai-chat"
     assert result["grader_outputs"]["runner"]["error_type"] == "LiveAgentEvalNotExecuted"
     preflight = result["grader_outputs"]["runner"]["preflight"]
     assert preflight["schema"] == "roboclaws_live_eval_preflight_v1"
-    assert preflight["provider_readiness"]["provider_profile"] == "kimi-openai-chat"
+    assert preflight["provider_readiness"]["provider_profile"] == "mimo-tp-openai-chat"
     assert preflight["provider_readiness"]["required_env"] == [
-        "KIMI_OPENAI_BASE_URL",
-        "KIMI_API_KEY",
+        "MIMO_OPENAI_BASE_URL",
+        "MIMO_TP_KEY",
     ]
     assert preflight["runtime_readiness"]["required_runtime"] == (
         "OpenAI Agents SDK household runner"
@@ -93,10 +93,10 @@ def test_eval_runner_keeps_public_provider_model_identity(tmp_path: Path) -> Non
         output_root=tmp_path,
         stamp="public-model",
         agent_engine="openai-agents-sdk",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
     )
 
-    assert {result["identity"]["model"] for result in run.bundle["results"]} == {"kimi-for-coding"}
+    assert {result["identity"]["model"] for result in run.bundle["results"]} == {"mimo-v2.6-pro"}
 
 
 def test_eval_runner_classifies_live_provider_failures_as_blocked(tmp_path: Path) -> None:
@@ -111,7 +111,7 @@ def test_eval_runner_classifies_live_provider_failures_as_blocked(tmp_path: Path
         output_root=tmp_path,
         stamp="live-provider-blocked",
         agent_engine="openai-agents-sdk",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
         live_execution="run",
         live_product_runner=live_product_runner,
     )
@@ -220,7 +220,7 @@ def test_live_surface_product_rejects_failed_live_status(
 def test_live_surface_env_sets_provider_and_model_keys(tmp_path: Path) -> None:
     kwargs: dict[str, Any] = {
         "agent_engine": "openai-agents-sdk",
-        "provider_profile": "kimi-openai-chat",
+        "provider_profile": "mimo-tp-openai-chat",
         "model": "k3",
         "live_token_budget": 12000,
         "live_cost_budget_usd": 0.25,
@@ -235,7 +235,7 @@ def test_live_surface_env_sets_provider_and_model_keys(tmp_path: Path) -> None:
     env = live_surface_env(kwargs, base_env={"PATH": "/bin"})
 
     assert env["PATH"] == "/bin"
-    assert env["ROBOCLAWS_PROVIDER_PROFILE"] == "kimi-openai-chat"
+    assert env["ROBOCLAWS_PROVIDER_PROFILE"] == "mimo-tp-openai-chat"
     assert env["ROBOCLAWS_OPENAI_AGENTS_MODEL"] == "k3"
     assert env["ROBOCLAWS_EVAL_PROVIDER_TOKEN_BUDGET"] == "12000.0"
     assert env["ROBOCLAWS_EVAL_PROVIDER_COST_BUDGET_USD"] == "0.25"
