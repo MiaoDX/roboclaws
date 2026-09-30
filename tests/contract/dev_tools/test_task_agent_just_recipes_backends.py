@@ -45,7 +45,7 @@ def test_map_build_sdk_routes_agibot_backend_to_live_runner(tmp_path: Path) -> N
     route = trace_household_map_build_run(
         "openai-agents-sdk",
         "camera-grounded-labels",
-        "provider_profile=kimi-openai-chat",
+        "provider_profile=mimo-tp-openai-chat",
         "backend=agibot_gdk",
         *agibot_dependency_overrides(tmp_path),
         "context_json=tests/fixtures/agibot_map_context.completed.json",
@@ -155,7 +155,7 @@ def test_agibot_sdk_map_build_route_requires_context_json(tmp_path: Path) -> Non
     stderr = assert_household_map_build_run_fails(
         "openai-agents-sdk",
         "camera-grounded-labels",
-        "provider_profile=kimi-openai-chat",
+        "provider_profile=mimo-tp-openai-chat",
         "backend=agibot_gdk",
         "camera_labeler=grounding-dino",
         *agibot_dependency_overrides(tmp_path),

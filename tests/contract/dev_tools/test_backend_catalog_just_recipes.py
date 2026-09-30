@@ -29,7 +29,7 @@ def test_sdk_map_build_rejects_unknown_backend_from_catalog() -> None:
             "run::surface",
             "surface=household-world",
             "agent_engine=openai-agents-sdk",
-            "provider_profile=kimi-openai-chat",
+            "provider_profile=mimo-tp-openai-chat",
             "preset=map-build",
             "backend=missing_backend",
         ],

@@ -34,7 +34,7 @@ def _write_run(
     selection_id: str = MUJOCO_OPENAI_AGENTS_OPEN_TASK,
     phase: str = "running-sdk",
     run_result: dict[str, object] | None = None,
-    provider_profile: str = "kimi-openai-chat",
+    provider_profile: str = "mimo-tp-openai-chat",
     mcp_host: str = "127.0.0.1",
     mcp_port: int = 18788,
 ) -> Path:

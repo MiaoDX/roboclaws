@@ -78,7 +78,7 @@ def test_surface_launch_rejects_removed_axes_as_unknown(override: str) -> None:
             (
                 "surface=household-world",
                 "agent_engine=openai-agents-sdk",
-                "provider_profile=kimi-openai-chat",
+                "provider_profile=mimo-tp-openai-chat",
                 "preset=cleanup",
                 "evidence_lane=camera-grounded-labels",
                 "camera_labeler=grounding-dino",
@@ -92,7 +92,7 @@ def test_surface_cleanup_prompt_stays_cleanup_intent_when_explicit() -> None:
         (
             "surface=household-world",
             "agent_engine=openai-agents-sdk",
-            "provider_profile=kimi-openai-chat",
+            "provider_profile=mimo-tp-openai-chat",
             "preset=cleanup",
             "prompt=只收拾桌面上的杯子",
         )
@@ -114,7 +114,7 @@ def test_surface_launch_plan_exposes_typed_goal_contract() -> None:
         (
             "surface=household-world",
             "agent_engine=openai-agents-sdk",
-            "provider_profile=kimi-openai-chat",
+            "provider_profile=mimo-tp-openai-chat",
             "preset=map-build",
         )
     )
@@ -124,7 +124,7 @@ def test_surface_launch_plan_exposes_typed_goal_contract() -> None:
     assert plan.backend == "mujoco"
     assert plan.implementation_backend == "molmospaces_subprocess"
     assert plan.agent_engine == "openai-agents-sdk"
-    assert plan.provider_profile == "kimi-openai-chat"
+    assert plan.provider_profile == "mimo-tp-openai-chat"
     assert plan.intent == "map-build"
     assert plan.preset == "map-build"
     assert plan.evidence_mode == "camera-grounded-labels"
@@ -146,14 +146,14 @@ def test_surface_map_build_defaults_to_openai_agents_sdk_camera_grounded_dino() 
         (
             "surface=household-world",
             "agent_engine=openai-agents-sdk",
-            "provider_profile=kimi-openai-chat",
+            "provider_profile=mimo-tp-openai-chat",
             "preset=map-build",
         )
     )
 
     assert plan.agent_engine == "openai-agents-sdk"
     assert plan.dispatch_runner == "openai-agents-live"
-    assert plan.provider_profile == "kimi-openai-chat"
+    assert plan.provider_profile == "mimo-tp-openai-chat"
     assert plan.evidence_mode == "camera-grounded-labels"
     assert plan.profile == "camera-grounded-labels"
     assert plan.adapter_options["camera_labeler"] == "grounding-dino"
@@ -192,7 +192,7 @@ def test_surface_launch_exports_operator_session_context_to_lower_recipe_environ
         (
             "surface=household-world",
             "agent_engine=openai-agents-sdk",
-            "provider_profile=kimi-openai-chat",
+            "provider_profile=mimo-tp-openai-chat",
             "prompt=next task",
             "evidence_lane=world-public-labels",
             f"operator_session_context_json={context}",
@@ -220,7 +220,7 @@ def test_surface_launch_exports_operator_session_context_to_lower_recipe_environ
             (
                 "surface=household-world",
                 "agent_engine=openai-agents-sdk",
-                "provider_profile=kimi-openai-chat",
+                "provider_profile=mimo-tp-openai-chat",
                 "preset=cleanup",
                 "evidence_lane=world-public-labels-perf",
             ),
@@ -230,7 +230,7 @@ def test_surface_launch_exports_operator_session_context_to_lower_recipe_environ
             (
                 "surface=household-world",
                 "agent_engine=openai-agents-sdk",
-                "provider_profile=kimi-openai-chat",
+                "provider_profile=mimo-tp-openai-chat",
                 "preset=cleanup",
                 "evidence_lane=minimal",
             ),
@@ -240,7 +240,7 @@ def test_surface_launch_exports_operator_session_context_to_lower_recipe_environ
             (
                 "surface=household-world",
                 "agent_engine=openai-agents-sdk",
-                "provider_profile=kimi-openai-chat",
+                "provider_profile=mimo-tp-openai-chat",
                 "preset=cleanup",
                 "evidence_lane=visual",
             ),
@@ -250,7 +250,7 @@ def test_surface_launch_exports_operator_session_context_to_lower_recipe_environ
             (
                 "surface=household-world",
                 "agent_engine=openai-agents-sdk",
-                "provider_profile=kimi-openai-chat",
+                "provider_profile=mimo-tp-openai-chat",
                 "preset=cleanup",
                 "evidence_lane=world-public-labels",
                 "cleanup_routine=mcp",
@@ -261,7 +261,7 @@ def test_surface_launch_exports_operator_session_context_to_lower_recipe_environ
             (
                 "surface=household-world",
                 "agent_engine=openai-agents-sdk",
-                "provider_profile=kimi-openai-chat",
+                "provider_profile=mimo-tp-openai-chat",
                 "preset=cleanup",
                 "evidence_lane=world-public-labels",
                 "generated_mess_count=5",
@@ -283,7 +283,7 @@ def test_surface_router_is_importable_source_of_truth() -> None:
         (
             "surface=household-world",
             "agent_engine=openai-agents-sdk",
-            "provider_profile=kimi-openai-chat",
+            "provider_profile=mimo-tp-openai-chat",
             "preset=cleanup",
             "run_preset=smoke",
             "evidence_lane=world-public-labels",
@@ -297,7 +297,7 @@ def test_surface_router_is_importable_source_of_truth() -> None:
     assert resolved.world == "molmospaces/procthor-10k-val/0"
     assert resolved.backend == "mujoco"
     assert resolved.agent_engine == "openai-agents-sdk"
-    assert resolved.provider_profile == "kimi-openai-chat"
+    assert resolved.provider_profile == "mimo-tp-openai-chat"
     assert resolved.evidence_mode == "smoke"
 
     with pytest.raises(LaunchError, match="unsupported surface 'molmospace-cleanup'"):
@@ -311,7 +311,7 @@ def test_surface_launch_plan_exposes_domain_metadata_before_dispatch() -> None:
             "world=agibot-g2/map-12",
             "backend=agibot-gdk",
             "agent_engine=openai-agents-sdk",
-            "provider_profile=kimi-openai-chat",
+            "provider_profile=mimo-tp-openai-chat",
             "preset=cleanup",
             "run_preset=smoke",
             "evidence_lane=world-public-labels",
@@ -345,7 +345,7 @@ def test_python_launch_plan_accepts_world_labels_sanitized_lane() -> None:
         (
             "surface=household-world",
             "agent_engine=openai-agents-sdk",
-            "provider_profile=kimi-openai-chat",
+            "provider_profile=mimo-tp-openai-chat",
             "preset=cleanup",
             "evidence_lane=world-public-labels",
         )
@@ -399,7 +399,7 @@ def test_b1_public_launch_rejects_stale_semantic_projection_artifact_axis() -> N
             "world=b1-map12",
             "backend=isaaclab",
             "agent_engine=openai-agents-sdk",
-            "provider_profile=kimi-openai-chat",
+            "provider_profile=mimo-tp-openai-chat",
             "prompt=inspect the digital twin",
             "evidence_lane=world-public-labels",
             "b1_semantic_projection_artifact=output/b1-map12/semantic-projection/semantic_projection.json",
@@ -414,15 +414,15 @@ def test_openai_agents_launcher_applies_provider_overrides_per_invocation() -> N
         (
             "surface=household-world",
             "agent_engine=openai-agents-sdk",
-            "provider_profile=kimi-openai-chat",
+            "provider_profile=mimo-tp-openai-chat",
             "preset=cleanup",
             "evidence_lane=world-public-labels",
         )
     )
     exported_env = export_env_from_plan(plan)
 
-    assert plan.provider_profile == "kimi-openai-chat"
-    assert exported_env["ROBOCLAWS_PROVIDER_PROFILE"] == "kimi-openai-chat"
+    assert plan.provider_profile == "mimo-tp-openai-chat"
+    assert exported_env["ROBOCLAWS_PROVIDER_PROFILE"] == "mimo-tp-openai-chat"
     assert "provider_profile" not in plan.adapter_options
 
     assert "MM_API_KEY" in helper_text
