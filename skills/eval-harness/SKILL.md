@@ -89,6 +89,9 @@ just agent::eval promote-regression \
   `baseline-core`; provider-backed rows and internal/external provider egress
   are rejected at selection time. Ordinary dependency downloads remain valid
   workflow network access.
+- `profile=skill-control`: explicitly select the paired MiniMax cleanup
+  `static-full`/`no-skill` control with identical suite, budget, and canonical
+  Runtime Map Prior. No-skill is excluded from adaptive and baseline profiles.
 - All named baseline profiles run selected rows or record explicit blocked
   evidence; their rows are not converted to `skipped_by_budget`.
 

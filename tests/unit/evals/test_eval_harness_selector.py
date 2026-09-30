@@ -716,3 +716,23 @@ def test_no_skill_requires_explicit_control_profile(tmp_path, profile):
         }
         for row in rows.values():
             assert any(arg.startswith("runtime_map_prior=") for arg in row["command"])
+
+
+def test_skill_control_resolved_commands_only_differ_in_treatment_and_stamp(tmp_path):
+    manifest = selector.build_eval_harness(profile="skill-control", output_dir=tmp_path)
+    rows = list(_selected_rows(manifest).values())
+    commands = [runner._resolve_row_command(row, manifest) for row in rows]
+    paired_commands = [
+        [arg for arg in command if not arg.startswith(("stamp=", "skill_delivery_cell="))]
+        for command in commands
+    ]
+    assert len(paired_commands) == 2
+    assert paired_commands[0] == paired_commands[1]
+    assert f"runtime_map_prior={manifest['runtime_map_prior']}" in paired_commands[0]
+    assert manifest["runtime_map_prior"]
+    assert {
+        arg for command in commands for arg in command if arg.startswith("skill_delivery_cell=")
+    } == {
+        "skill_delivery_cell=static-full",
+        "skill_delivery_cell=no-skill",
+    }
