@@ -13,9 +13,6 @@ LIVE_AGENT_ROW_IDS = {
     "openai-agents-sdk-session-live-eval",
     "openai-agents-sdk-cleanup-live-eval",
     "openai-agents-sdk-cleanup-no-skill-eval",
-    "openai-agents-sdk-cleanup-dynamic-full-eval",
-    "openai-agents-sdk-cleanup-dynamic-routed-eval",
-    "openai-agents-sdk-cleanup-sandbox-skills-eval",
 }
 ALTERNATE_PROVIDER_MATRIX_ROW_IDS = {
     "map-build-consumer-openai-agents-sdk-mimo-responses",
@@ -26,9 +23,6 @@ FIXED_PRIOR_PROVIDER_ROW_IDS = ALTERNATE_PROVIDER_MATRIX_ROW_IDS | {
 }
 EXPERIMENTAL_SKILL_DELIVERY_ROW_IDS = {
     "openai-agents-sdk-cleanup-no-skill-eval",
-    "openai-agents-sdk-cleanup-dynamic-full-eval",
-    "openai-agents-sdk-cleanup-dynamic-routed-eval",
-    "openai-agents-sdk-cleanup-sandbox-skills-eval",
 }
 
 

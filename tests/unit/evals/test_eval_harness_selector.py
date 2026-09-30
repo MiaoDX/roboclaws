@@ -33,9 +33,6 @@ EXPECTED_ROW_IDS = {
     "openai-agents-sdk-session-live-eval",
     "openai-agents-sdk-cleanup-live-eval",
     "openai-agents-sdk-cleanup-no-skill-eval",
-    "openai-agents-sdk-cleanup-dynamic-full-eval",
-    "openai-agents-sdk-cleanup-dynamic-routed-eval",
-    "openai-agents-sdk-cleanup-sandbox-skills-eval",
     "planner-proof-dry-run-product",
     "direct-camera-grounded-grounding-dino",
     "direct-map-build-grounding-dino",
@@ -96,13 +93,9 @@ def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
     )
 
     rows = _selected_rows(manifest)
-    assert set(rows) == EXPECTED_ROW_IDS - {
-        "openai-agents-sdk-cleanup-dynamic-full-eval",
-        "openai-agents-sdk-cleanup-dynamic-routed-eval",
-        "openai-agents-sdk-cleanup-sandbox-skills-eval",
-    }
+    assert set(rows) == EXPECTED_ROW_IDS
     assert manifest["profile"] == "baseline-refresh"
-    assert manifest["summary"]["selected_row_count"] == len(EXPECTED_ROW_IDS) - 3
+    assert manifest["summary"]["selected_row_count"] == len(EXPECTED_ROW_IDS)
     assert manifest["summary"]["budget_skipped_count"] == 0
     assert manifest["summary"]["eval_suite_row_count"] == 6
     assert manifest["summary"]["live_agent_eval_row_count"] == 7
@@ -547,9 +540,7 @@ def test_execute_marks_live_row_blocked_when_provider_is_missing(
         rows["openai-agents-sdk-cleanup-live-eval"]["blocker_category"]
         == "model_or_provider_unavailable"
     )
-    sandbox_row = rows["openai-agents-sdk-cleanup-sandbox-skills-eval"]
-    assert sandbox_row["status"] == "blocked"
-    assert sandbox_row["blocker_category"] == "model_or_provider_unavailable"
+    assert "openai-agents-sdk-cleanup-sandbox-skills-eval" not in rows
 
 
 def test_provider_blocker_rejects_unknown_profile_even_when_provider_env_exists(
