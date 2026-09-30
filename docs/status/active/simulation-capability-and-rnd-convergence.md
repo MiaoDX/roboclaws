@@ -6,18 +6,15 @@ Source plan: `docs/plans/2026-09-28-simulation-capability-and-rnd-convergence.md
 
 ## Current slice
 
-Phase 2/3 provider retirement and showcase acceptance repairs are implemented
-incrementally. The new paired compact open-ended local proof passes on MiniMax
-and MiMo TP; cleanup, hosted execution, full external matrices, and real-DINO
-acceptance remain open. The paired open-ended processes are terminal.
-MiniMax compact cleanup attempt 1 is terminal and passed (`1/1`, zero
-failed/blocked), with canonical artifacts under
-`output/convergence-compact/minimax-cleanup-attempt-1/`; current showcase
-identity/aggregate validation also passes. MiMo TP paired cleanup attempt 1 is
-running under session `21439` at
-`output/convergence-compact/mimo-tp-cleanup-attempt-1/`. Poll the same handle
-before another simulator run. Both use repetition 0, seed 7, the frozen
-100-call/3600-second limits and no trial retries.
+Phase 2/3 provider retirement and showcase acceptance repairs remain active.
+Paired local compact bread and cleanup proofs are terminal: MiniMax and MiMo TP
+each pass both cases (`1/1` per row, zero failed/blocked). All four first-attempt
+packets under `output/convergence-compact/` pass current exact-case showcase
+validation. No simulator process from this collection remains active.
+
+Full initiative acceptance is incomplete: executable legacy Skill/provider
+consumers, full external matrices, trusted current-code hosted proof, paired
+Skill-control live proof, and real-DINO capability acceptance remain open.
 
 ## Verification state
 
@@ -29,17 +26,46 @@ and dev-tool checks passed for those changes; no current-tree full-gate pass is
 claimed after the latest migrations. Historical route lookup still exists and
 its remaining executable consumers require a final audit.
 
-Showcase aggregation rejects mixed blocked/passed and incomplete counts, checks
-all populated trial identities against provider/engine/lane, and blocks missing
-live trial identities. Compact provider rows now use matching samples, seed and
-repetition; sample provider eligibility and seed consistency have test coverage.
-Full frozen external cohorts and expected-case identity matching remain unbuilt.
-Plan-level checks completed: referenced-path scan and `git diff --check`.
-Latest gate recommendation: `output/eval-harness/20260930T101829Z/`.
-It selects all three retired dynamic-full/dynamic-routed/sandbox-skills rows
-(`selected=true`, `not_run`); remove them from active recommendations and
-execution before using the plan-wide facade. This is an implementation gap,
-not an external blocker.
+Showcase aggregation rejects mixed blocked/passed and incomplete counts;
+provider-backed passing packets must include every requested sample/repetition
+exactly once, matching suite/sample versions, seed, world, backend, provider,
+engine and lane. Malformed identities block. Focused showcase tests: 56 passed;
+all four new compact live packets pass the stricter checker. Commit `43a276bc`.
+
+Retired delivery rows are removed from the harness catalog. No-skill is selected
+only by explicit `profile=skill-control`; the resolved static-full/no-skill
+commands have matching provider, suite, budget and canonical prior, differing
+only in treatment and output stamp. Selector/profile checks: 32 passed. Latest
+control recommendation: `output/eval-harness/20260930T102512Z/`.
+
+The Skill/runtime retirement and remaining eval caller migration are committed
+as `2134f313`. The commit hook's complete fast pytest subset passed. Current-tree
+Ruff, format (1014 files), quality ratchet and architecture checks pass (558
+modules, zero violations), as do the 49 additional report/artifact checks from
+the standard gate. The earlier `just agent::verify` invocation was deliberately
+interrupted before the retirement slice; its log is partial, not a pass. Full
+commit-hook output is `/tmp/convergence-retirement-commit.log`.
+
+Executable dynamic/sandbox Skill delivery, sandbox adapter/probe and the Docker
+extra are removed; `uv sync --extra dev` completed and Docker distribution is
+absent. No-skill requires an eval-only environment opt-in; cleanup and MapBuild
+kickoff preserve that treatment. Historical Kimi/dynamic-routed regrade passes
+without provider calls, and Evolution isolation checks pass. The Kimi-only
+apple2apple generator and stale active eval fixtures now use MiMo TP.
+
+Paired Skill live proof is RUNNING under session `3188`. Poll that handle;
+do not launch another simulator. Exact commands are frozen in
+`output/convergence-skill-control/paired-commands.json`: MiniMax static-full then
+no-skill, each cleanup seed7/repetition0 with identical canonical prior,
+100-call/3600-second/180-second-stall bounds and zero retries. The serial wrapper
+writes `attempts.json` after each completion, with separate stdout/stderr logs.
+At last observation static-full was `starting-server`; no-skill had not started.
+These are first attempts after the retirement slice, not accepted results yet.
+
+GitHub authentication and workflow read access pass. The latest successful
+hosted run, `https://github.com/MiaoDX/roboclaws/actions/runs/36406210330`, is at
+old commit `becf890c` and includes retired Kimi. It is historical timing evidence,
+not proof of the current manifest or two-provider workflow.
 
 ## Proven evidence
 
@@ -87,8 +113,13 @@ not an external blocker.
 
 ## Next action
 
-Finish runtime/probe provider retirement and remaining active guidance. The focused live-row blockers are resolved for MiniMax, with compatible repair
-evidence preserved. Quota recovery allowed the complete 15-case identity ledger
+Poll Skill proof session `3188` to terminal, inspect both identities, results and
+usage, and retain any failure/block without retrying in place. Then complete the
+remaining provider retirement audit: Kimi-specific headers/thinking branches and
+legacy catalog registration still need review. Full external case matrices,
+current-code trusted hosted proof and real-DINO acceptance remain open. The
+compact local bread/cleanup proof passes on both external providers, with older
+compatibility attempts preserved. Quota recovery allowed the complete 15-case identity ledger
 to be collected. Scene 13's focused fridge-view defect is fixed and checker-clean
 in the repair replay, and post-fix scene 10/11 replays are also checker-clean;
 their remaining failures are behavior-incomplete candidate selection. Scene 13
@@ -104,7 +135,8 @@ under the unchanged contract.
 
 ## No-touch scope
 
-Do not rewrite historical evidence, publish a baseline, run live providers or
-simulators during phase 1, or modify unrelated active capsules.
+Do not rewrite historical evidence, publish a baseline/catalog, change resources
+or credentials, move a real robot, or modify unrelated active capsules. Keep one
+simulator runtime at a time and retain every new attempt separately.
 
 - Verification correction: suite retirement checks now inspect nested metadata and enforce provider-cell counts. Focused model-schema tests pass (16 tests); active suite count is corrected to three.
