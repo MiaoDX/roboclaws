@@ -56,8 +56,8 @@ requires `camera_labeler=<labeler>`.
 
 ```bash
 just run::surface surface=household-world agent_engine=direct-runner preset=map-build evidence_lane=camera-grounded-labels camera_labeler=grounding-dino
-just run::surface surface=household-world agent_engine=openai-agents-sdk preset=cleanup evidence_lane=world-public-labels provider_profile=kimi-openai-chat
-just run::surface surface=household-world agent_engine=openai-agents-sdk prompt="find something useful to drink" provider_profile=kimi-openai-chat
+just run::surface surface=household-world agent_engine=openai-agents-sdk preset=cleanup evidence_lane=world-public-labels provider_profile=minimax-responses
+just run::surface surface=household-world agent_engine=openai-agents-sdk prompt="find something useful to drink" provider_profile=minimax-responses
 just run::surface surface=planner-proof world=planner-proof/default backend=mujoco intent=planner-proof agent_engine=direct-runner mode=dry-run
 just console::run
 ```

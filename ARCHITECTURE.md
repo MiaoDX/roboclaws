@@ -84,7 +84,7 @@ Package proof CLIs
   (`agent_engine=openai-agents-sdk` for live agents, or `direct-runner` for
   deterministic proof) from the
   model/key route (`provider_profile=mimo-responses`, `mimo-tp-openai-chat`,
-  `minimax-responses`, `kimi-openai-chat`, or `qwen-tp-responses`). MiMo Responses
+  `minimax-responses`, `minimax-responses`, or `qwen-tp-responses`). MiMo Responses
   uses an environment-owned endpoint, key, and request-model triple.
   The hosted showcase uses MiMo's separate public Chat route.
   Provider rows retain `provider_network_scope` and fail-closed
@@ -366,9 +366,9 @@ just run::surface surface=<surface> agent_engine=<engine> [world=<world>] [backe
 Examples:
 
 ```bash
-just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=map-build agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=camera-grounded-labels camera_labeler=grounding-dino scenario_setup=baseline seed=7
+just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=map-build agent_engine=openai-agents-sdk provider_profile=minimax-responses evidence_lane=camera-grounded-labels camera_labeler=grounding-dino scenario_setup=baseline seed=7
 just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=cleanup agent_engine=direct-runner evidence_lane=world-public-labels scenario_setup=relocate-cleanup-related-objects seed=7
-just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat prompt="find something useful to drink"
+just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=minimax-responses prompt="find something useful to drink"
 just run::surface surface=planner-proof world=planner-proof/default backend=mujoco intent=planner-proof agent_engine=direct-runner mode=dry-run
 just console::run
 ```

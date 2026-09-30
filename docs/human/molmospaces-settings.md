@@ -446,7 +446,7 @@ Use the public launch catalog for operator-facing runs:
 ```bash
 just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=cleanup agent_engine=<engine> evidence_lane=<lane>
 just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=map-build agent_engine=direct-runner evidence_lane=camera-grounded-labels camera_labeler=grounding-dino
-just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat prompt="find something useful to drink"
+just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco agent_engine=openai-agents-sdk provider_profile=minimax-responses prompt="find something useful to drink"
 ```
 
 Use the canonical surface route for maintainer debugging and historical report
@@ -492,7 +492,7 @@ KIMI_OPENAI_BASE_URL=
 KIMI_API_KEY=<your-key>
 ```
 
-Every SDK launch selects one profile explicitly. `kimi-openai-chat` uses the
+Every SDK launch selects one profile explicitly. `minimax-responses` uses the
 Kimi variables above. `minimax-responses` uses `MM_BASE_URL` and `MM_API_KEY`.
 `mimo-responses` uses
 the `MIMO_RESPONSES_*` triple. Endpoint, key, and request-model values stay in
@@ -500,7 +500,7 @@ the gitignored local environment. The runtime does not fall back between
 profiles or between Chat Completions and Responses.
 
 ```bash
-just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=cleanup agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat evidence_lane=world-public-labels seed=7 scenario_setup=relocate-cleanup-related-objects relocation_count=5
+just run::surface surface=household-world world=molmospaces/procthor-10k-val/0 backend=mujoco preset=cleanup agent_engine=openai-agents-sdk provider_profile=minimax-responses evidence_lane=world-public-labels seed=7 scenario_setup=relocate-cleanup-related-objects relocation_count=5
 ```
 
 Probe a live SDK run without attaching:

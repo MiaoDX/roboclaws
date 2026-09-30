@@ -225,7 +225,7 @@ is also opt-in:
 
 ```bash
 just agent::eval session-live budget=smoke \
-  agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat \
+  agent_engine=openai-agents-sdk provider_profile=minimax-responses \
   live_execution=run
 ```
 
@@ -268,7 +268,7 @@ Completed provider artifacts can be regraded without another live call:
 
 ```bash
 just agent::eval suite=map_build_consumer budget=focused \
-  agent_engine=openai-agents-sdk provider_profile=kimi-openai-chat \
+  agent_engine=openai-agents-sdk provider_profile=minimax-responses \
   regrade_source=output/evals/<suite>/<stamp>
 ```
 
