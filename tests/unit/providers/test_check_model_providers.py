@@ -8,9 +8,10 @@ from pathlib import Path
 import pytest
 
 
-def test_retired_probe_cannot_report_empty_success() -> None:
+@pytest.mark.parametrize("profile", ["codex-responses", "kimi-openai-chat", "qwen-tp-responses"])
+def test_retired_probe_cannot_report_empty_success(profile: str) -> None:
     script = _load_script_module()
-    args = script.parse_args(["--probe", "codex-responses", "--require-all"])
+    args = script.parse_args(["--probe", profile, "--require-all"])
     with pytest.raises(ValueError, match="unknown provider probe"):
         script.select_probes(args)
 
@@ -33,7 +34,7 @@ def test_provider_health_defaults_leave_room_for_reasoning_tokens() -> None:
     assert script.DEFAULT_CHAT_MAX_TOKENS >= 128
 
 
-def test_provider_probe_defaults_cover_kimi_and_payload() -> None:
+def test_provider_probe_defaults_cover_active_routes() -> None:
     script = _load_script_module()
 
     probes = {probe.probe_id: probe for probe in script.build_provider_probes()}
@@ -42,19 +43,7 @@ def test_provider_probe_defaults_cover_kimi_and_payload() -> None:
         "provider:mimo-responses",
         "provider:mimo-tp-openai-chat",
         "provider:minimax-responses-m3",
-        "provider:kimi-coding-chat",
-        "provider:qwen-tp-responses",
     }
-    kimi = probes["provider:kimi-coding-chat"]
-    payload = script.kimi_coding_payload(
-        prompt="Health check. Reply exactly ok.",
-        model=kimi.model,
-        max_tokens=kimi.max_tokens,
-    )
-    assert payload["max_tokens"] >= 128
-    assert payload["stream"] is False
-    assert "thinking" not in payload
-    assert "temperature" not in payload
 
 
 def test_provider_probe_defaults_exclude_unavailable_official_openai_route() -> None:
@@ -147,16 +136,14 @@ def test_agents_sdk_probe_defaults_use_larger_responses_budget() -> None:
     assert probes["agents-sdk:minimax-responses"].max_tokens >= 256
     assert probes["agents-sdk:mimo-responses"].max_tokens >= 256
     assert probes["agents-sdk:mimo-tp-openai-chat"].model == "mimo-v2.6-pro"
-    assert probes["agents-sdk:kimi-openai-chat"].model == "kimi-for-coding"
-    assert not probes["agents-sdk:kimi-openai-chat"].unsupported_reason
 
 
-def test_kimi_agents_sdk_probe_uses_coding_agent_user_agent_header(
+def test_mimo_tp_agents_sdk_probe_uses_chat_transport(
     monkeypatch,
 ) -> None:
     script = _load_script_module()
     captured: dict[str, object] = {}
-    monkeypatch.setenv("KIMI_API_KEY", "fake-kimi-key")
+    monkeypatch.setenv("MIMO_TP_KEY", "fake-mimo-key")
 
     class FakeModelSettings:
         def __init__(self, **kwargs) -> None:
@@ -202,7 +189,7 @@ def test_kimi_agents_sdk_probe_uses_coding_agent_user_agent_header(
         type("FakeOpenAIModule", (), {"AsyncOpenAI": FakeAsyncOpenAI}),
     )
     probe = {probe.probe_id: probe for probe in script.build_agent_sdk_probes()}[
-        "agents-sdk:kimi-openai-chat"
+        "agents-sdk:mimo-tp-openai-chat"
     ]
 
     result = script.run_probe(
@@ -213,89 +200,9 @@ def test_kimi_agents_sdk_probe_uses_coding_agent_user_agent_header(
 
     assert result.status == "PASS"
     assert result.ok is True
-    assert captured["model"] == "kimi-for-coding"
-    assert captured["model_settings"]["extra_headers"] == {"User-Agent": "claude-code/1.0.0"}
+    assert captured["model"] == "mimo-v2.6-pro"
+    assert "extra_headers" not in captured["model_settings"]
     assert "extra_body" not in captured["model_settings"]
-
-
-def _install_fake_httpx(monkeypatch, *, response_text: str, status_error: Exception | None = None):
-    captured: dict[str, object] = {}
-
-    class FakeResponse:
-        text = response_text
-
-        @staticmethod
-        def raise_for_status() -> None:
-            if status_error is not None:
-                raise status_error
-
-    class FakeClient:
-        def __init__(self, **kwargs) -> None:
-            captured["client"] = kwargs
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *_args) -> None:
-            return None
-
-        @staticmethod
-        def post(*_args, **kwargs):
-            captured["post"] = kwargs
-            return FakeResponse()
-
-    monkeypatch.setitem(sys.modules, "httpx", type("FakeHttpxModule", (), {"Client": FakeClient}))
-    return captured
-
-
-def test_kimi_provider_probe_validates_provider_response_source(monkeypatch) -> None:
-    script = _load_script_module()
-    monkeypatch.setenv("KIMI_API_KEY", "fake-kimi-key")
-    probe = {probe.probe_id: probe for probe in script.build_provider_probes()}[
-        "provider:kimi-coding-chat"
-    ]
-    _install_fake_httpx(monkeypatch, response_text='["not-an-object"]')
-
-    result = script.run_probe(probe, prompt="Health check. Reply exactly ok.", timeout_s=1.0)
-
-    assert result.status == "FAIL"
-    assert result.error_type == "ValueError"
-    assert "Kimi coding provider response source must contain a JSON object" in result.error
-    assert "provider:kimi-coding-chat" in result.error
-
-
-def test_kimi_provider_probe_validates_response_message_shape(monkeypatch) -> None:
-    script = _load_script_module()
-    monkeypatch.setenv("KIMI_API_KEY", "fake-kimi-key")
-    probe = {probe.probe_id: probe for probe in script.build_provider_probes()}[
-        "provider:kimi-coding-chat"
-    ]
-    _install_fake_httpx(monkeypatch, response_text=json.dumps({"choices": [{"message": []}]}))
-
-    result = script.run_probe(probe, prompt="Health check. Reply exactly ok.", timeout_s=1.0)
-
-    assert result.status == "FAIL"
-    assert result.error_type == "RuntimeError"
-    assert "choices[0].message must be a JSON object" in result.error
-    assert "provider:kimi-coding-chat" in result.error
-
-
-def test_kimi_provider_probe_reads_reasoning_content_from_valid_response(monkeypatch) -> None:
-    script = _load_script_module()
-    monkeypatch.setenv("KIMI_API_KEY", "fake-kimi-key")
-    probe = {probe.probe_id: probe for probe in script.build_provider_probes()}[
-        "provider:kimi-coding-chat"
-    ]
-    captured = _install_fake_httpx(
-        monkeypatch,
-        response_text=json.dumps({"choices": [{"message": {"reasoning_content": "ok"}}]}),
-    )
-
-    result = script.run_probe(probe, prompt="Health check. Reply exactly ok.", timeout_s=1.0)
-
-    assert result.status == "PASS"
-    assert result.output == "ok"
-    assert captured["post"]["headers"]["User-Agent"] == "claude-code/1.0.0"
 
 
 def test_select_probe_can_limit_by_route_or_probe_id() -> None:
@@ -320,26 +227,10 @@ def test_agents_sdk_public_profile_excludes_internal_routes() -> None:
         "agents-sdk:mimo-responses",
         "agents-sdk:mimo-tp-openai-chat",
         "agents-sdk:minimax-responses",
-        "agents-sdk:kimi-openai-chat",
-        "agents-sdk:qwen-tp-responses",
     }
     public_routes = {
         "mimo-responses",
         "mimo-tp-openai-chat",
         "minimax-responses",
-        "kimi-openai-chat",
-        "qwen-tp-responses",
     }
     assert all(probe.route_id in public_routes for probe in selected)
-
-
-def test_select_probe_can_limit_kimi_route_across_sdk_and_provider_probes() -> None:
-    script = _load_script_module()
-    args = script.parse_args(["--mode", "all", "--probe", "kimi-openai-chat"])
-
-    selected = script.select_probes(args)
-
-    assert {probe.probe_id for probe in selected} == {
-        "agents-sdk:kimi-openai-chat",
-        "provider:kimi-coding-chat",
-    }

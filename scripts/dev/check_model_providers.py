@@ -20,7 +20,6 @@ from typing import Any, Literal
 from roboclaws.agents.provider_registry import route_base_url
 from roboclaws.agents.thinking_policy import thinking_request_body_for_wire
 from roboclaws.core.dotenv import update_env_from_dotenv_file
-from roboclaws.core.json_sources import parse_json_object_text
 from roboclaws.core.provider_catalog import (
     WIRE_CHAT_COMPLETIONS,
     WIRE_RESPONSES,
@@ -39,8 +38,6 @@ PUBLIC_AGENT_SDK_ROUTE_IDS = (
     "mimo-responses",
     "mimo-tp-openai-chat",
     "minimax-responses",
-    "kimi-openai-chat",
-    "qwen-tp-responses",
 )
 
 
@@ -120,8 +117,6 @@ def build_provider_probes(
     mimo_route = provider_route_spec("mimo-responses")
     mimo_tp_route = provider_route_spec("mimo-tp-openai-chat")
     minimax_route = provider_route_spec("minimax-responses")
-    kimi_route = provider_route_spec("kimi-openai-chat")
-    qwen_route = provider_route_spec("qwen-tp-responses")
 
     return [
         _provider_from_route(
@@ -133,23 +128,6 @@ def build_provider_probes(
         _provider_from_route("mimo-tp-openai-chat", mimo_tp_route, max_tokens=chat_max_tokens),
         _provider_from_route(
             "minimax-responses-m3", minimax_route, max_tokens=responses_max_tokens
-        ),
-        _provider_from_route("qwen-tp-responses", qwen_route, max_tokens=responses_max_tokens),
-        ProbeSpec(
-            probe_id="provider:kimi-coding-chat",
-            mode="provider",
-            route_id=kimi_route.route_id,
-            wire_api=kimi_route.wire_api,
-            model=kimi_route.default_model_id,
-            api_key_env=kimi_route.api_key_env or "",
-            base_url=route_base_url(kimi_route),
-            max_tokens=chat_max_tokens,
-            provider_note=(
-                "Kimi coding requires a Claude-Code-compatible User-Agent header. "
-                "The coding model is thinking-only; this probe omits the old explicit "
-                "thinking body "
-                "and omits temperature because the provider pins model-specific values."
-            ),
         ),
     ]
 
@@ -207,10 +185,6 @@ def run_probe(
     try:
         if spec.mode == "agents-sdk":
             output = _run_agents_sdk_probe(
-                spec, prompt=prompt, timeout_s=timeout_s, api_key=api_key
-            )
-        elif spec.probe_id == "provider:kimi-coding-chat":
-            output = _run_kimi_coding_probe(
                 spec, prompt=prompt, timeout_s=timeout_s, api_key=api_key
             )
         elif spec.wire_api == WIRE_RESPONSES:
@@ -286,15 +260,6 @@ def _run_agents_sdk_probe(
     else:
         raise RuntimeError(f"unsupported Agents SDK wire API: {spec.wire_api}")
     model_settings_payload: dict[str, Any] = {"max_tokens": spec.max_tokens}
-    if spec.route_id == "kimi-openai-chat":
-        model_settings_payload["extra_headers"] = {"User-Agent": "claude-code/1.0.0"}
-        extra_body = thinking_request_body_for_wire(
-            provider_profile=spec.route_id,
-            wire_api=spec.wire_api,
-            mode="default",
-        )
-        if extra_body:
-            model_settings_payload["extra_body"] = extra_body
     agent = Agent(
         name=f"roboclaws-provider-health-{spec.route_id or spec.model}",
         instructions="Reply with exactly: ok",
@@ -365,72 +330,6 @@ def _run_chat_probe(
     if not output:
         raise RuntimeError("chat completion returned an empty message content")
     return output
-
-
-def _run_kimi_coding_probe(
-    spec: ProbeSpec,
-    *,
-    prompt: str,
-    timeout_s: float,
-    api_key: str,
-) -> str:
-    import httpx  # type: ignore[import-not-found]
-
-    payload = kimi_coding_payload(
-        prompt=prompt,
-        model=_request_model(spec),
-        max_tokens=spec.max_tokens,
-    )
-    with httpx.Client(base_url=spec.base_url, timeout=timeout_s) as client:
-        response = client.post(
-            "/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-                "User-Agent": "claude-code/1.0.0",
-            },
-            json=payload,
-        )
-        response.raise_for_status()
-        data = parse_json_object_text(
-            response.text,
-            label="Kimi coding provider response",
-            source=spec.probe_id,
-        )
-    choices = data.get("choices")
-    if not isinstance(choices, list) or not choices:
-        raise RuntimeError(
-            f"Kimi coding provider response choices must be a non-empty array: {spec.probe_id}"
-        )
-    first_choice = choices[0]
-    if not isinstance(first_choice, dict):
-        raise RuntimeError(
-            f"Kimi coding provider response choices[0] must be a JSON object: {spec.probe_id}"
-        )
-    message = first_choice.get("message")
-    if not isinstance(message, dict):
-        raise RuntimeError(
-            "Kimi coding provider response choices[0].message must be a JSON object: "
-            f"{spec.probe_id}"
-        )
-    output = str(message.get("content") or message.get("reasoning_content") or "")
-    if not output:
-        raise RuntimeError("Kimi coding completion returned empty content")
-    return output
-
-
-def kimi_coding_payload(*, prompt: str, model: str, max_tokens: int) -> dict[str, Any]:
-    return {
-        "model": model,
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": max_tokens,
-        "stream": False,
-        **thinking_request_body_for_wire(
-            provider_profile="kimi-openai-chat",
-            wire_api=WIRE_CHAT_COMPLETIONS,
-            mode="default",
-        ),
-    }
 
 
 def _request_model(spec: ProbeSpec) -> str:
