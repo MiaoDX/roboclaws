@@ -6,13 +6,10 @@ Source plan: `docs/plans/2026-09-28-simulation-capability-and-rnd-convergence.md
 
 ## Current slice
 
-Phase 2/3 retirement and showcase acceptance repairs are implemented incrementally;
-required capability acceptance remains open. Fresh paired compact evidence is now
-being collected serially. MiniMax bread attempt 1 is running under tool session
-`1917`, with artifacts at `output/convergence-compact/minimax-attempt-1/`.
-Resume by polling that handle or inspecting the process and terminal artifacts;
-do not restart merely because an observation times out. This is new evidence,
-not a replacement for the historical visual or compatibility cohorts.
+Phase 2/3 provider retirement and showcase acceptance repairs are implemented
+incrementally. The new paired compact open-ended local proof passes on MiniMax
+and MiMo TP; cleanup, hosted execution, full external matrices, and real-DINO
+acceptance remain open. No live process from this compact pair remains running.
 
 ## Verification state
 
@@ -24,6 +21,16 @@ Plan-level checks completed: referenced-path scan and `git diff --check`.
 Gate recommendation: `output/eval-harness/20260928T101404Z/`.
 
 ## Proven evidence
+
+- Fresh paired compact bread proof: MiniMax `1/1` passed at
+  `output/convergence-compact/minimax-attempt-1/` (43.186 seconds), and MiMo TP
+  `1/1` passed at `output/convergence-compact/mimo-tp-attempt-1/` (92.818 seconds).
+  Both are first attempts with zero failed/blocked trials and zero model failures,
+  explicit provider identity, world-public-labels, seed 7, repetition 0, 16-call
+  cap, 120-second stall cap, and zero trial retries. Both terminal eval packets
+  pass current `derive_row` identity/aggregate validation. These are local compact
+  open-ended proofs, not hosted-workflow, cleanup, or real-DINO acceptance.
+
 
 - Current dashboard: `STATUS.md`
 - Historical baseline: `docs/status/active/local-eval-baseline-refresh.md`
