@@ -46,17 +46,14 @@
   "provider_execution_policies": {
     "mimo-responses": {
       "provider_network_scope": "internal",
-      "allowed_execution_targets": ["local"],
+      "allowed_execution_targets": [
+        "local"
+      ],
       "execution_requirements": [
         "network:configured-endpoint"
       ]
     },
     "mimo-tp-openai-chat": {
-      "provider_network_scope": "external",
-      "allowed_execution_targets": ["local"],
-      "execution_requirements": ["network:external-egress"]
-    },
-    "kimi-openai-chat": {
       "provider_network_scope": "external",
       "allowed_execution_targets": [
         "local"
@@ -79,13 +76,46 @@
     {
       "row_id": "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
       "row_kind": "live_agent_eval",
-      "command": [".venv/bin/python", "-m", "roboclaws.evals.cli", "suite=map_consumer_fixed_prior", "runtime_map_prior={runtime_map_prior}", "budget=focused", "output_dir={eval_output_root}", "stamp=map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat", "agent_engine=openai-agents-sdk", "provider_profile=mimo-tp-openai-chat", "live_execution=run"],
-      "axes": {"agent_engine": "openai-agents-sdk", "provider_profile": "mimo-tp-openai-chat", "intent": "map-build-consumer", "suite": "map_consumer_fixed_prior", "evidence_lane": "world-public-labels", "backend": "{default_backend}", "world": "{default_world}", "provider_cell_count": "{provider_cell_count}", "parallel_group_id": "{map_build_consumer_parallel_group}", "default_local_concurrency_width": "1", "concurrency_policy": "{concurrency_policy}"},
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.evals.cli",
+        "suite=map_consumer_fixed_prior",
+        "runtime_map_prior={runtime_map_prior}",
+        "budget=focused",
+        "output_dir={eval_output_root}",
+        "stamp=map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
+        "agent_engine=openai-agents-sdk",
+        "provider_profile=mimo-tp-openai-chat",
+        "live_execution=run"
+      ],
+      "axes": {
+        "agent_engine": "openai-agents-sdk",
+        "provider_profile": "mimo-tp-openai-chat",
+        "intent": "map-build-consumer",
+        "suite": "map_consumer_fixed_prior",
+        "evidence_lane": "world-public-labels",
+        "backend": "{default_backend}",
+        "world": "{default_world}",
+        "provider_cell_count": "{provider_cell_count}",
+        "parallel_group_id": "{map_build_consumer_parallel_group}",
+        "default_local_concurrency_width": "1",
+        "concurrency_policy": "{concurrency_policy}"
+      },
       "reason_selected": "MapBuild consumer proof keeps MiMo TP Chat as an explicit fixed-prior provider cell.",
       "expense": "live-agent",
-      "selection_rule_ids": ["map_build"],
-      "requires": ["python_env", "openai_agents_package", "provider_profile", "runtime_map_prior"],
-      "profiles": ["baseline-refresh"]
+      "selection_rule_ids": [
+        "map_build"
+      ],
+      "requires": [
+        "python_env",
+        "openai_agents_package",
+        "provider_profile",
+        "runtime_map_prior"
+      ],
+      "profiles": [
+        "baseline-refresh"
+      ]
     },
     {
       "row_id": "route-trace-contract-tests",
@@ -372,50 +402,6 @@
         "concurrency_policy": "{concurrency_policy}"
       },
       "reason_selected": "MapBuild consumer proof keeps MiMo Responses as one explicit provider cell.",
-      "expense": "live-agent",
-      "selection_rule_ids": [
-        "map_build"
-      ],
-      "requires": [
-        "python_env",
-        "openai_agents_package",
-        "provider_profile",
-        "runtime_map_prior"
-      ],
-      "profiles": [
-        "baseline-refresh"
-      ]
-    },
-    {
-      "row_id": "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
-      "row_kind": "live_agent_eval",
-      "command": [
-        ".venv/bin/python",
-        "-m",
-        "roboclaws.evals.cli",
-        "suite=map_consumer_fixed_prior",
-        "runtime_map_prior={runtime_map_prior}",
-        "budget=focused",
-        "output_dir={eval_output_root}",
-        "stamp=map-build-consumer-openai-agents-sdk-kimi-openai-chat",
-        "agent_engine=openai-agents-sdk",
-        "provider_profile=kimi-openai-chat",
-        "live_execution=run"
-      ],
-      "axes": {
-        "agent_engine": "openai-agents-sdk",
-        "provider_profile": "kimi-openai-chat",
-        "intent": "map-build-consumer",
-        "suite": "map_consumer_fixed_prior",
-        "evidence_lane": "world-public-labels",
-        "backend": "{default_backend}",
-        "world": "{default_world}",
-        "parallel_group_id": "{map_build_consumer_parallel_group}",
-        "provider_cell_count": "{provider_cell_count}",
-        "default_local_concurrency_width": "1",
-        "concurrency_policy": "{concurrency_policy}"
-      },
-      "reason_selected": "MapBuild consumer plan/model-matrix proof needs this provider profile as a first-class availability-or-behavior cell. Run provider cells serially unless ROBOCLAWS_MOLMO_MAX_VISUAL_BACKENDS is explicitly raised and each live row has an isolated stamp/output root.",
       "expense": "live-agent",
       "selection_rule_ids": [
         "map_build"
@@ -735,48 +721,159 @@
       "row_id": "openai-agents-sdk-cleanup-no-skill-eval",
       "skill_delivery_cell": "no-skill",
       "row_kind": "live_agent_eval",
-      "command": [".venv/bin/python", "-m", "roboclaws.evals.cli", "suite=cleanup_capability", "budget=smoke", "output_dir={eval_output_root}", "stamp=openai-agents-sdk-cleanup-no-skill-eval", "agent_engine=openai-agents-sdk", "provider_profile={agent_sdk_provider}", "skill_delivery_cell=no-skill", "live_execution=run"],
-      "axes": {"agent_engine": "openai-agents-sdk", "provider_profile": "{agent_sdk_provider}", "intent": "cleanup", "preset": "cleanup", "evidence_lane": "world-public-labels", "backend": "{default_backend}", "world": "{default_world}"},
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.evals.cli",
+        "suite=cleanup_capability",
+        "budget=smoke",
+        "output_dir={eval_output_root}",
+        "stamp=openai-agents-sdk-cleanup-no-skill-eval",
+        "agent_engine=openai-agents-sdk",
+        "provider_profile={agent_sdk_provider}",
+        "skill_delivery_cell=no-skill",
+        "live_execution=run"
+      ],
+      "axes": {
+        "agent_engine": "openai-agents-sdk",
+        "provider_profile": "{agent_sdk_provider}",
+        "intent": "cleanup",
+        "preset": "cleanup",
+        "evidence_lane": "world-public-labels",
+        "backend": "{default_backend}",
+        "world": "{default_world}"
+      },
       "reason_selected": "Skill-delivery evaluation no-skill control.",
       "expense": "live-agent",
-      "selection_rule_ids": ["cleanup_skill", "mcp_checker"],
-      "requires": ["python_env", "openai_agents_package", "provider_profile"],
-      "profiles": ["baseline-refresh"]
+      "selection_rule_ids": [
+        "cleanup_skill",
+        "mcp_checker"
+      ],
+      "requires": [
+        "python_env",
+        "openai_agents_package",
+        "provider_profile"
+      ],
+      "profiles": [
+        "baseline-refresh"
+      ]
     },
     {
       "row_id": "openai-agents-sdk-cleanup-dynamic-full-eval",
       "skill_delivery_cell": "dynamic-full",
       "row_kind": "live_agent_eval",
-      "command": [".venv/bin/python", "-m", "roboclaws.evals.cli", "suite=cleanup_capability", "budget=smoke", "output_dir={eval_output_root}", "stamp=openai-agents-sdk-cleanup-dynamic-full-eval", "agent_engine=openai-agents-sdk", "provider_profile={agent_sdk_provider}", "skill_delivery_cell=dynamic-full", "live_execution=run"],
-      "axes": {"agent_engine": "openai-agents-sdk", "provider_profile": "{agent_sdk_provider}", "intent": "cleanup", "preset": "cleanup", "evidence_lane": "world-public-labels", "backend": "{default_backend}", "world": "{default_world}"},
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.evals.cli",
+        "suite=cleanup_capability",
+        "budget=smoke",
+        "output_dir={eval_output_root}",
+        "stamp=openai-agents-sdk-cleanup-dynamic-full-eval",
+        "agent_engine=openai-agents-sdk",
+        "provider_profile={agent_sdk_provider}",
+        "skill_delivery_cell=dynamic-full",
+        "live_execution=run"
+      ],
+      "axes": {
+        "agent_engine": "openai-agents-sdk",
+        "provider_profile": "{agent_sdk_provider}",
+        "intent": "cleanup",
+        "preset": "cleanup",
+        "evidence_lane": "world-public-labels",
+        "backend": "{default_backend}",
+        "world": "{default_world}"
+      },
       "reason_selected": "Skill-delivery evaluation byte-identical dynamic callback control.",
       "expense": "live-agent",
-      "selection_rule_ids": ["cleanup_skill", "mcp_checker"],
-      "requires": ["python_env", "openai_agents_package", "provider_profile"],
+      "selection_rule_ids": [
+        "cleanup_skill",
+        "mcp_checker"
+      ],
+      "requires": [
+        "python_env",
+        "openai_agents_package",
+        "provider_profile"
+      ],
       "profiles": []
     },
     {
       "row_id": "openai-agents-sdk-cleanup-dynamic-routed-eval",
       "skill_delivery_cell": "dynamic-routed",
       "row_kind": "live_agent_eval",
-      "command": [".venv/bin/python", "-m", "roboclaws.evals.cli", "suite=cleanup_capability", "budget=smoke", "output_dir={eval_output_root}", "stamp=openai-agents-sdk-cleanup-dynamic-routed-eval", "agent_engine=openai-agents-sdk", "provider_profile={agent_sdk_provider}", "skill_delivery_cell=dynamic-routed", "live_execution=run"],
-      "axes": {"agent_engine": "openai-agents-sdk", "provider_profile": "{agent_sdk_provider}", "intent": "cleanup", "preset": "cleanup", "evidence_lane": "world-public-labels", "backend": "{default_backend}", "world": "{default_world}"},
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.evals.cli",
+        "suite=cleanup_capability",
+        "budget=smoke",
+        "output_dir={eval_output_root}",
+        "stamp=openai-agents-sdk-cleanup-dynamic-routed-eval",
+        "agent_engine=openai-agents-sdk",
+        "provider_profile={agent_sdk_provider}",
+        "skill_delivery_cell=dynamic-routed",
+        "live_execution=run"
+      ],
+      "axes": {
+        "agent_engine": "openai-agents-sdk",
+        "provider_profile": "{agent_sdk_provider}",
+        "intent": "cleanup",
+        "preset": "cleanup",
+        "evidence_lane": "world-public-labels",
+        "backend": "{default_backend}",
+        "world": "{default_world}"
+      },
       "reason_selected": "Skill-delivery evaluation frozen shared, intent, and evidence guidance.",
       "expense": "live-agent",
-      "selection_rule_ids": ["cleanup_skill", "mcp_checker"],
-      "requires": ["python_env", "openai_agents_package", "provider_profile"],
+      "selection_rule_ids": [
+        "cleanup_skill",
+        "mcp_checker"
+      ],
+      "requires": [
+        "python_env",
+        "openai_agents_package",
+        "provider_profile"
+      ],
       "profiles": []
     },
     {
       "row_id": "openai-agents-sdk-cleanup-sandbox-skills-eval",
       "skill_delivery_cell": "sandbox-skills",
       "row_kind": "live_agent_eval",
-      "command": [".venv/bin/python", "-m", "roboclaws.evals.cli", "suite=cleanup_capability", "budget=smoke", "output_dir={eval_output_root}", "stamp=openai-agents-sdk-cleanup-sandbox-skills-eval", "agent_engine=openai-agents-sdk", "provider_profile={agent_sdk_provider}", "skill_delivery_cell=sandbox-skills", "live_execution=run"],
-      "axes": {"agent_engine": "openai-agents-sdk", "provider_profile": "{agent_sdk_provider}", "intent": "cleanup", "preset": "cleanup", "evidence_lane": "world-public-labels", "backend": "{default_backend}", "world": "{default_world}"},
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "roboclaws.evals.cli",
+        "suite=cleanup_capability",
+        "budget=smoke",
+        "output_dir={eval_output_root}",
+        "stamp=openai-agents-sdk-cleanup-sandbox-skills-eval",
+        "agent_engine=openai-agents-sdk",
+        "provider_profile={agent_sdk_provider}",
+        "skill_delivery_cell=sandbox-skills",
+        "live_execution=run"
+      ],
+      "axes": {
+        "agent_engine": "openai-agents-sdk",
+        "provider_profile": "{agent_sdk_provider}",
+        "intent": "cleanup",
+        "preset": "cleanup",
+        "evidence_lane": "world-public-labels",
+        "backend": "{default_backend}",
+        "world": "{default_world}"
+      },
       "reason_selected": "Exploratory official SandboxAgent plus Skills readiness and isolation row.",
       "expense": "live-agent",
-      "selection_rule_ids": ["cleanup_skill", "mcp_checker"],
-      "requires": ["python_env", "openai_agents_package", "provider_profile", "sandbox_skills"],
+      "selection_rule_ids": [
+        "cleanup_skill",
+        "mcp_checker"
+      ],
+      "requires": [
+        "python_env",
+        "openai_agents_package",
+        "provider_profile",
+        "sandbox_skills"
+      ],
       "profiles": []
     },
     {

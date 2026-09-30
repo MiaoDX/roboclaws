@@ -24,7 +24,6 @@ EXPECTED_ROW_IDS = {
     "map-build-consumer-eval-suite",
     "map-build-consumer-openai-agents-sdk-mimo-responses",
     "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
-    "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
     "map-build-consumer-openai-agents-sdk-minimax-responses",
     "open-ended-goals-eval-suite",
     "scene-sampler-stress-eval-suite",
@@ -106,7 +105,7 @@ def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
     assert manifest["summary"]["selected_row_count"] == len(EXPECTED_ROW_IDS) - 3
     assert manifest["summary"]["budget_skipped_count"] == 0
     assert manifest["summary"]["eval_suite_row_count"] == 6
-    assert manifest["summary"]["live_agent_eval_row_count"] == 8
+    assert manifest["summary"]["live_agent_eval_row_count"] == 7
     assert rows["openai-agents-sdk-open-task-live-eval"]["status"] == "not_run"
     assert rows["openai-agents-sdk-cleanup-live-eval"]["status"] == "not_run"
     assert not any(
@@ -118,7 +117,7 @@ def test_baseline_refresh_profile_selects_full_baseline_without_budget_skips(
         for row_id, row in rows.items()
         if row_id.startswith("map-build-consumer-openai-agents-sdk-")
     ]
-    assert len(provider_rows) == 4
+    assert len(provider_rows) == 3
     assert all(
         not any(
             item.startswith(("live_timeout_s=", "live_stall_timeout_s=")) for item in row["command"]
@@ -197,7 +196,6 @@ def test_changed_file_signals_select_expected_eval_harness_rows(tmp_path: Path) 
                 "direct-cleanup-runtime-prior-consumer",
                 "map-build-consumer-eval-suite",
                 "map-build-consumer-openai-agents-sdk-mimo-responses",
-                "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
                 "map-build-consumer-openai-agents-sdk-minimax-responses",
             ),
         },
@@ -421,7 +419,7 @@ def test_fixed_prior_provider_does_not_use_current_map_build_row(
     map_row["status"] = "ran"
     map_row["outcome"] = "passed"
 
-    fixed_prior_row = rows["map-build-consumer-openai-agents-sdk-kimi-openai-chat"]
+    fixed_prior_row = rows["map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat"]
     fixed_prior_row["selected"] = True
     blockers = runner._row_blockers(fixed_prior_row, manifest)
 
@@ -491,13 +489,11 @@ def test_map_build_consumer_change_selects_four_profile_model_matrix(
     assert set(matrix_rows) == {
         "map-build-consumer-openai-agents-sdk-mimo-responses",
         "map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat",
-        "map-build-consumer-openai-agents-sdk-kimi-openai-chat",
         "map-build-consumer-openai-agents-sdk-minimax-responses",
     }
     assert {row["axes"]["provider_profile"] for row in matrix_rows.values()} == {
         "mimo-responses",
         "mimo-tp-openai-chat",
-        "kimi-openai-chat",
         "minimax-responses",
     }
     for row in matrix_rows.values():
@@ -507,7 +503,7 @@ def test_map_build_consumer_change_selects_four_profile_model_matrix(
         assert "agent_engine=openai-agents-sdk" in row["command"]
         assert not any(item.startswith("live_timeout_s=") for item in row["command"])
         assert "live_execution=run" in row["command"]
-        assert row["axes"]["provider_cell_count"] == "4"
+        assert row["axes"]["provider_cell_count"] == "3"
         assert row["axes"]["default_local_concurrency_width"] == "1"
         assert row["axes"]["concurrency_policy"] == (
             "serial_by_default_for_single_molmospaces_visual_backend_slot"
@@ -519,12 +515,12 @@ def test_explicit_provider_axis_selects_matching_map_build_consumer_matrix_rows(
 ) -> None:
     manifest = selector.build_eval_harness(
         budget="focused",
-        provider_profile=["kimi-openai-chat", "minimax-responses"],
+        provider_profile=["minimax-responses"],
         output_dir=tmp_path,
     )
 
     rows = _selected_rows(manifest)
-    assert "map-build-consumer-openai-agents-sdk-kimi-openai-chat" in rows
+    assert "map-build-consumer-openai-agents-sdk-kimi-openai-chat" not in rows
     assert "map-build-consumer-openai-agents-sdk-minimax-responses" in rows
     assert "map-build-consumer-openai-agents-sdk-codex-responses" not in rows
     assert "map-build-consumer-openai-agents-sdk-mimo-responses" not in rows
