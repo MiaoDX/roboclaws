@@ -533,3 +533,21 @@ def test_active_household_eval_catalog_excludes_retired_provider_profiles() -> N
         assert not retired.intersection(matrix), path
         if matrix:
             assert metadata["parallel_execution"]["provider_cell_count"] == len(matrix), path
+
+
+def test_maintained_provider_surfaces_exclude_retired_ids() -> None:
+    maintained_paths = (
+        REPO_ROOT / "ARCHITECTURE.md",
+        REPO_ROOT / "just" / "README.md",
+        REPO_ROOT / "docs" / "human" / "evaluation.md",
+        REPO_ROOT / "docs" / "human" / "model-matrix.md",
+        REPO_ROOT / "docs" / "human" / "contributing.md",
+        REPO_ROOT / "docs" / "agents" / "operating-runbook.md",
+        REPO_ROOT / "config" / "showcase-manifest.json",
+        REPO_ROOT / "skills" / "eval-harness" / "catalog" / "rows.json",
+    )
+    retired = ("kimi-openai-chat", "qwen-tp-responses")
+
+    for path in maintained_paths:
+        text = path.read_text(encoding="utf-8")
+        assert not any(profile in text for profile in retired), path
