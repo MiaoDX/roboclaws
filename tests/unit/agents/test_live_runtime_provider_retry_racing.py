@@ -28,7 +28,7 @@ from tests.unit.agents.live_runtime_support import (
 )
 
 
-def test_openai_agents_runtime_applies_kimi_chat_transport_contract(
+def test_openai_agents_runtime_applies_mimo_tp_chat_transport_contract(
     tmp_path: Path, monkeypatch
 ) -> None:
     captured: dict[str, object] = {}
@@ -50,10 +50,10 @@ def test_openai_agents_runtime_applies_kimi_chat_transport_contract(
             captured["api_key"] = api_key
             captured["base_url"] = base_url
 
-    monkeypatch.setenv("KIMI_OPENAI_BASE_URL", "https://kimi.example.test/v1")
-    monkeypatch.setenv("KIMI_OPENAI_BASE_URL", "https://kimi.example.test/v1")
-    monkeypatch.setenv("KIMI_OPENAI_BASE_URL", "https://kimi.example.test/v1")
-    monkeypatch.setenv("KIMI_API_KEY", "fake-kimi-key")
+    monkeypatch.setenv("MIMO_OPENAI_BASE_URL", "https://kimi.example.test/v1")
+    monkeypatch.setenv("MIMO_OPENAI_BASE_URL", "https://kimi.example.test/v1")
+    monkeypatch.setenv("MIMO_OPENAI_BASE_URL", "https://kimi.example.test/v1")
+    monkeypatch.setenv("MIMO_TP_KEY", "fake-kimi-key")
     monkeypatch.setattr(
         "roboclaws.agents.drivers.openai_agents_live._run_with_async_mcp_server",
         lambda *_args, **_kwargs: SimpleNamespace(final_output="done"),
@@ -89,12 +89,12 @@ def test_openai_agents_runtime_applies_kimi_chat_transport_contract(
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
     )
 
     OpenAIAgentsLiveRuntime().run(request)
 
-    assert captured["model"] == "kimi-for-coding"
+    assert captured["model"] == "mimo-v2.6-pro"
     assert captured["base_url"] == "https://kimi.example.test/v1"
     assert captured["api_key"] == "fake-kimi-key"
     wrapped_model = captured["agent_kwargs"]["model"]
@@ -102,15 +102,13 @@ def test_openai_agents_runtime_applies_kimi_chat_transport_contract(
     assert wrapped_model.base_model is captured["chat_model"]
     assert captured["agent_kwargs"]["model_settings"].include_usage is True
     assert captured["agent_kwargs"]["model_settings"].parallel_tool_calls is False
-    assert not hasattr(captured["agent_kwargs"]["model_settings"], "extra_body")
-    assert captured["agent_kwargs"]["model_settings"].extra_headers == {
-        "User-Agent": "claude-code/1.0.0"
-    }
+    assert captured["agent_kwargs"]["model_settings"].extra_body["thinking"]["type"] == "enabled"
+    assert not hasattr(captured["agent_kwargs"]["model_settings"], "extra_headers")
     events = [
         json.loads(line)
         for line in (tmp_path / "run" / "openai-agents-events.jsonl").read_text().splitlines()
     ]
-    assert events[0]["provider_profile"] == "kimi-openai-chat"
+    assert events[0]["provider_profile"] == "mimo-tp-openai-chat"
     assert events[0]["wire_api"] == "chat-completions"
     assert events[0]["sdk_model_settings"]["include_usage"] is True
     assert events[0]["agent_sdk_responses_features"]["available"] is False

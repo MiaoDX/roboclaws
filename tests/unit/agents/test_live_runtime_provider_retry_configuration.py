@@ -153,7 +153,9 @@ def test_openai_agents_runtime_uses_explicit_mimo_responses_profile(
     assert events[0]["model_racing_observability"]["winner_selection"] == "single_arm_no_racing"
 
 
-def test_openai_agents_runtime_applies_kimi_coding_user_agent(tmp_path: Path, monkeypatch) -> None:
+def test_openai_agents_runtime_applies_mimo_tp_thinking_contract(
+    tmp_path: Path, monkeypatch
+) -> None:
     captured: dict[str, object] = {}
 
     class FakeOpenAIChatCompletionsModel:
@@ -173,8 +175,8 @@ def test_openai_agents_runtime_applies_kimi_coding_user_agent(tmp_path: Path, mo
             captured["api_key"] = api_key
             captured["base_url"] = base_url
 
-    monkeypatch.setenv("KIMI_OPENAI_BASE_URL", "https://kimi.example.test/v1")
-    monkeypatch.setenv("KIMI_API_KEY", "fake-kimi-key")
+    monkeypatch.setenv("MIMO_OPENAI_BASE_URL", "https://kimi.example.test/v1")
+    monkeypatch.setenv("MIMO_TP_KEY", "fake-kimi-key")
     monkeypatch.setattr(
         "roboclaws.agents.drivers.openai_agents_live._run_with_async_mcp_server",
         lambda *_args, **_kwargs: SimpleNamespace(final_output="done"),
@@ -210,11 +212,11 @@ def test_openai_agents_runtime_applies_kimi_coding_user_agent(tmp_path: Path, mo
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
         metadata={
             "agent_sdk_perf_profile": {
                 "profile_id": "baseline",
-                "provider_profile": "kimi-openai-chat",
+                "provider_profile": "mimo-tp-openai-chat",
                 "wire_api": "chat-completions",
                 "sdk_model_settings": {
                     "tool_choice": "auto",
@@ -229,18 +231,18 @@ def test_openai_agents_runtime_applies_kimi_coding_user_agent(tmp_path: Path, mo
     OpenAIAgentsLiveRuntime().run(request)
 
     model_settings = captured["agent_kwargs"]["model_settings"]
-    assert captured["model"] == "kimi-for-coding"
+    assert captured["model"] == "mimo-v2.6-pro"
     assert captured["base_url"] == "https://kimi.example.test/v1"
     assert captured["api_key"] == "fake-kimi-key"
     assert model_settings.include_usage is True
-    assert not hasattr(model_settings, "extra_body")
-    assert model_settings.extra_headers == {"User-Agent": "claude-code/1.0.0"}
+    assert model_settings.extra_body["thinking"]["type"] == "enabled"
+    assert not hasattr(model_settings, "extra_headers")
     events = [
         json.loads(line)
         for line in (tmp_path / "run" / "openai-agents-events.jsonl").read_text().splitlines()
     ]
-    assert events[0]["provider_profile"] == "kimi-openai-chat"
-    assert events[0]["sdk_model_settings"]["extra_headers"] == {"User-Agent": "claude-code/1.0.0"}
+    assert events[0]["provider_profile"] == "mimo-tp-openai-chat"
+    assert "extra_headers" not in events[0]["sdk_model_settings"]
 
 
 def test_openai_agents_runtime_preserves_zero_mcp_client_timeout_disable(
@@ -262,23 +264,23 @@ def test_openai_agents_runtime_preserves_zero_mcp_client_timeout_disable(
     ("metadata", "env", "expected_detail"),
     [
         (
-            {"provider_profile": "kimi-openai-chat"},
+            {"provider_profile": "mimo-tp-openai-chat"},
             {"ROBOCLAWS_PROVIDER_PROFILE": "minimax-responses"},
             "conflicting OpenAI Agents SDK setting provider_profile",
         ),
         (
-            {"model": "kimi-k2-5"},
-            {"ROBOCLAWS_OPENAI_AGENTS_MODEL": "k3"},
+            {"model": "mimo-v2.6-flash"},
+            {"ROBOCLAWS_OPENAI_AGENTS_MODEL": "mimo-v2.6-pro"},
             "conflicting OpenAI Agents SDK setting model",
         ),
         (
             {"base_url": "https://kimi-one.example.test/v1"},
-            {"KIMI_OPENAI_BASE_URL": "https://kimi-two.example.test/v1"},
+            {"MIMO_OPENAI_BASE_URL": "https://kimi-two.example.test/v1"},
             "conflicting OpenAI Agents SDK setting base_url",
         ),
         (
             {"api_key": "metadata-key"},
-            {"KIMI_API_KEY": "env-key"},
+            {"MIMO_TP_KEY": "env-key"},
             "conflicting OpenAI Agents SDK setting api_key",
         ),
     ],
@@ -291,9 +293,9 @@ def test_openai_agents_runtime_rejects_conflicting_provider_model_env_settings(
     expected_detail: str,
 ) -> None:
     base_env = {
-        "ROBOCLAWS_PROVIDER_PROFILE": "kimi-openai-chat",
-        "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
-        "KIMI_API_KEY": "fake-kimi-key",
+        "ROBOCLAWS_PROVIDER_PROFILE": "mimo-tp-openai-chat",
+        "MIMO_OPENAI_BASE_URL": "https://kimi.example.test/v1",
+        "MIMO_TP_KEY": "fake-kimi-key",
     }
     base_env.update(env)
     for key, value in base_env.items():
@@ -317,9 +319,9 @@ def test_openai_agents_runtime_rejects_conflicting_provider_model_env_settings(
 
 
 def test_openai_agents_runtime_rejects_unknown_model_env(tmp_path: Path, monkeypatch) -> None:
-    monkeypatch.setenv("ROBOCLAWS_PROVIDER_PROFILE", "kimi-openai-chat")
-    monkeypatch.setenv("KIMI_OPENAI_BASE_URL", "https://kimi.example.test/v1")
-    monkeypatch.setenv("KIMI_API_KEY", "fake-kimi-key")
+    monkeypatch.setenv("ROBOCLAWS_PROVIDER_PROFILE", "mimo-tp-openai-chat")
+    monkeypatch.setenv("MIMO_OPENAI_BASE_URL", "https://kimi.example.test/v1")
+    monkeypatch.setenv("MIMO_TP_KEY", "fake-kimi-key")
     monkeypatch.setenv("ROBOCLAWS_OPENAI_AGENTS_MODEL", "not-in-provider-catalog")
     request = LiveAgentRequest(
         run_id="household-world",
@@ -443,7 +445,7 @@ def test_openai_agents_runtime_allows_matching_provider_model_env_aliases(
     assert captured["api_key"] == "fake-kimi-key"
 
 
-def test_openai_agents_runtime_can_use_kimi_openai_chat_profile(
+def test_openai_agents_runtime_can_use_mimo_tp_openai_chat_profile(
     tmp_path: Path, monkeypatch
 ) -> None:
     captured: dict[str, object] = {}
@@ -463,8 +465,8 @@ def test_openai_agents_runtime_can_use_kimi_openai_chat_profile(
             captured["api_key"] = api_key
             captured["base_url"] = base_url
 
-    monkeypatch.setenv("KIMI_OPENAI_BASE_URL", "https://kimi.example.test/v1")
-    monkeypatch.setenv("KIMI_API_KEY", "fake-kimi-key")
+    monkeypatch.setenv("MIMO_OPENAI_BASE_URL", "https://kimi.example.test/v1")
+    monkeypatch.setenv("MIMO_TP_KEY", "fake-kimi-key")
     monkeypatch.setattr(
         "roboclaws.agents.drivers.openai_agents_live._run_with_async_mcp_server",
         lambda *_args, **_kwargs: SimpleNamespace(final_output="done"),
@@ -500,18 +502,16 @@ def test_openai_agents_runtime_can_use_kimi_openai_chat_profile(
         kickoff_prompt="clean the room",
         mcp_server=LiveAgentMCPServer(name="cleanup", url="http://127.0.0.1:18788/mcp"),
         run_dir=tmp_path / "run",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
     )
 
     OpenAIAgentsLiveRuntime().run(request)
 
-    assert captured["model"] == "kimi-for-coding"
+    assert captured["model"] == "mimo-v2.6-pro"
     assert captured["base_url"] == "https://kimi.example.test/v1"
     assert captured["api_key"] == "fake-kimi-key"
-    assert captured["agent_kwargs"]["model_settings"].extra_headers == {
-        "User-Agent": "claude-code/1.0.0"
-    }
-    assert not hasattr(captured["agent_kwargs"]["model_settings"], "extra_body")
+    assert not hasattr(captured["agent_kwargs"]["model_settings"], "extra_headers")
+    assert captured["agent_kwargs"]["model_settings"].extra_body["thinking"]["type"] == "enabled"
 
 
 def test_openai_agents_runtime_rejects_invalid_cache_tools_metadata(

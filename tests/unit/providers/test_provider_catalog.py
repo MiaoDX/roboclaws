@@ -326,3 +326,17 @@ def test_registry_cli_json_contains_only_final_profiles(tmp_path) -> None:
     payload = json.loads(output.read_text(encoding="utf-8"))
     route_ids = [route["route_id"] for route in payload["provider_routes"]]
     assert route_ids == list(EXPECTED_PROFILES)
+
+
+@pytest.mark.parametrize("profile", ["kimi-openai-chat", "qwen-tp-responses"])
+def test_retired_profiles_cannot_construct_runtime_settings(profile: str) -> None:
+    with pytest.raises(ValueError, match="is retired"):
+        openai_agents_runtime_settings(
+            provider_profile=profile,
+            request_provider_profile=None,
+            model=None,
+            request_model=None,
+            base_url="https://unused.example.test/v1",
+            api_key="unused-test-key",
+            env={},
+        )

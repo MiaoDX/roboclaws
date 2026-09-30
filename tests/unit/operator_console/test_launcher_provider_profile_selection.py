@@ -33,7 +33,7 @@ def test_provider_gate_rejects_conflicting_provider_profile_env_override(tmp_pat
             tmp_path,
             route,
             env={"MM_BASE_URL": "https://minimax.example.test/v1", "MM_API_KEY": "key"},
-            overrides={"port": _free_port(), "provider_profile": "kimi-openai-chat"},
+            overrides={"port": _free_port(), "provider_profile": "mimo-tp-openai-chat"},
             env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "minimax-responses"},
         )
 
@@ -46,19 +46,19 @@ def test_provider_gate_route_selection_overrides_ambient_provider_profile(tmp_pa
         tmp_path,
         route,
         env={
-            "KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1",
-            "KIMI_API_KEY": "key",
+            "MIMO_OPENAI_BASE_URL": "https://mimo_tp.example.test/v1",
+            "MIMO_TP_KEY": "key",
             "ROBOCLAWS_PROVIDER_PROFILE": "minimax-responses",
         },
         overrides={
             "port": _free_port(),
-            "provider_profile": "kimi-openai-chat",
+            "provider_profile": "mimo-tp-openai-chat",
             **b1_overrides,
         },
     )
 
     assert readiness["can_start"] is True
-    assert readiness["provider"]["provider"] == "kimi-openai-chat"
+    assert readiness["provider"]["provider"] == "mimo-tp-openai-chat"
 
 
 def test_start_console_run_uses_one_provider_profile_selection(tmp_path: Path) -> None:

@@ -77,7 +77,7 @@ def test_provider_gate_requires_agent_key_route(tmp_path: Path, monkeypatch) -> 
 
 
 def test_provider_gate_auto_loads_mimo_env_from_repo_dotenv(tmp_path: Path, monkeypatch) -> None:
-    for key in ("MM_API_KEY", "KIMI_API_KEY", "KIMI_API_KEY", "KIMI_API_KEY", "OPENAI_API_KEY"):
+    for key in ("MM_API_KEY", "MIMO_TP_KEY", "MIMO_TP_KEY", "MIMO_TP_KEY", "OPENAI_API_KEY"):
         monkeypatch.delenv(key, raising=False)
     (tmp_path / ".env").write_text(
         "MIMO_RESPONSES_BASE_URL=https://mimo.example.test/v1\nMIMO_RESPONSES_API_KEY=from-dotenv\nMIMO_RESPONSES_MODEL=mimo\n",
@@ -124,17 +124,17 @@ def test_provider_gate_allows_final_openai_agents_profiles(tmp_path: Path) -> No
     assert minimax["provider"]["driver"] == "openai-agents-sdk"
     assert minimax["provider"]["model"] == "MiniMax-M3"
 
-    kimi = route_readiness(
+    mimo_tp = route_readiness(
         tmp_path,
         route,
-        env={"KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1", "KIMI_API_KEY": "key"},
-        overrides={"port": _free_port(), "provider_profile": "kimi-openai-chat"},
-        env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "kimi-openai-chat"},
+        env={"MIMO_OPENAI_BASE_URL": "https://mimo_tp.example.test/v1", "MIMO_TP_KEY": "key"},
+        overrides={"port": _free_port(), "provider_profile": "mimo-tp-openai-chat"},
+        env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "mimo-tp-openai-chat"},
     )
-    assert kimi["can_start"] is True
-    assert kimi["provider"]["provider"] == "kimi-openai-chat"
-    assert kimi["provider"]["driver"] == "openai-agents-sdk"
-    assert kimi["provider"]["model"] == "kimi-for-coding"
+    assert mimo_tp["can_start"] is True
+    assert mimo_tp["provider"]["provider"] == "mimo-tp-openai-chat"
+    assert mimo_tp["provider"]["driver"] == "openai-agents-sdk"
+    assert mimo_tp["provider"]["model"] == "mimo-v2.6-pro"
 
 
 def test_provider_gate_ignores_code_agent_model_alias_for_openai_agents(
@@ -159,31 +159,31 @@ def test_provider_gate_ignores_code_agent_model_alias_for_openai_agents(
     assert readiness["provider"]["model"] == "mimo"
 
 
-def test_provider_gate_requires_kimi_base_url_and_key(tmp_path: Path) -> None:
+def test_provider_gate_requires_mimo_tp_base_url_and_key(tmp_path: Path) -> None:
     route = get_selection(MUJOCO_OPENAI_AGENTS_OPEN_TASK)
 
     missing_base_url = route_readiness(
         tmp_path,
         route,
-        env={"KIMI_API_KEY": "key"},
-        overrides={"port": _free_port(), "provider_profile": "kimi-openai-chat"},
-        env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "kimi-openai-chat"},
+        env={"MIMO_TP_KEY": "key"},
+        overrides={"port": _free_port(), "provider_profile": "mimo-tp-openai-chat"},
+        env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "mimo-tp-openai-chat"},
     )
 
     assert missing_base_url["can_start"] is False
     assert missing_base_url["blocker_kind"] == "needs_provider"
-    assert "KIMI_OPENAI_BASE_URL" in missing_base_url["blocker"]
+    assert "MIMO_OPENAI_BASE_URL" in missing_base_url["blocker"]
 
     ready = route_readiness(
         tmp_path,
         route,
-        env={"KIMI_OPENAI_BASE_URL": "https://kimi.example.test/v1", "KIMI_API_KEY": "key"},
-        overrides={"port": _free_port(), "provider_profile": "kimi-openai-chat"},
-        env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "kimi-openai-chat"},
+        env={"MIMO_OPENAI_BASE_URL": "https://mimo_tp.example.test/v1", "MIMO_TP_KEY": "key"},
+        overrides={"port": _free_port(), "provider_profile": "mimo-tp-openai-chat"},
+        env_overrides={"ROBOCLAWS_PROVIDER_PROFILE": "mimo-tp-openai-chat"},
     )
 
     assert ready["can_start"] is True
-    assert ready["provider"]["provider"] == "kimi-openai-chat"
+    assert ready["provider"]["provider"] == "mimo-tp-openai-chat"
 
 
 def test_provider_gate_uses_selected_openai_agents_provider(tmp_path: Path) -> None:
