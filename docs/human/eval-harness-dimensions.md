@@ -45,7 +45,7 @@ preserved as compatibility aliases.
 | --- | --- | --- | --- |
 | `mimo-responses` | Environment-supplied opaque model, public label `mimo` | Responses | Independent MiMo cell with passing fixed-prior live proof. |
 | `minimax-responses` | `MiniMax-M3` | Responses | Named public comparison route. |
-| `kimi-openai-chat` | `kimi-for-coding` (`k3`, `k3-256k` diagnostics) | Chat Completions | External compatibility and comparison route. |
+| `mimo-tp-openai-chat` | `mimo-v2.6-pro` | Chat Completions | External compatibility and comparison route. |
 
 No endpoint/model default or transport fallback exists. Commands, packets, and
 console launches serialize the selected profile explicitly.

@@ -26,17 +26,3 @@ verdicts:
       camera_raw_fpv: blocked
     evidence: Local OpenAI Agents SDK structured cleanup completed successfully.
     notes: Named Responses comparison. Model image capability does not imply verified SDK image transport.
-  - agent_engine: openai-agents-sdk
-    provider_route: kimi-openai-chat
-    provider_profile: kimi-openai-chat
-    model_id: k3
-    route_status: experimental
-    lane_verdicts:
-      structured_labels: experimental
-      camera_grounded_labels: experimental
-      camera_raw_fpv: blocked
-    evidence: Prior Kimi SDK and provider probes; current live proof remains route-readiness dependent.
-    notes: Only Chat Completions profile. K3 is the production default; k3-256k remains an explicit diagnostic tier.
-retired_agent_engines:
-  - codex-cli
-  - claude-code
