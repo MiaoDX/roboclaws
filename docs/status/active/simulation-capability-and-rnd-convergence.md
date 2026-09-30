@@ -9,7 +9,12 @@ Source plan: `docs/plans/2026-09-28-simulation-capability-and-rnd-convergence.md
 Phase 2/3 provider retirement and showcase acceptance repairs are implemented
 incrementally. The new paired compact open-ended local proof passes on MiniMax
 and MiMo TP; cleanup, hosted execution, full external matrices, and real-DINO
-acceptance remain open. No live process from this compact pair remains running.
+acceptance remain open. The paired open-ended processes are terminal.
+MiniMax compact cleanup attempt 1 is running under tool session `24337`, with
+artifacts at `output/convergence-compact/minimax-cleanup-attempt-1/`. Poll that
+handle or inspect its process/terminal artifacts before another simulator run.
+It uses the frozen repetition 0, seed 7, 100-call/3600-second limits and no
+trial retries; do not substitute it for historical cohort outcomes.
 
 ## Verification state
 
