@@ -18,7 +18,7 @@ def test_agent_eval_routes_to_eval_cli_with_unchanged_arguments() -> None:
         "suite=smoke_regression",
         "budget=smoke",
         "agent_engine=openai-agents-sdk",
-        "provider_profile=kimi-openai-chat",
+        "provider_profile=mimo-tp-openai-chat",
         "live_execution=run",
         "regrade_source=output/evals/household_world_cleanup_capability/source-run",
     )
@@ -70,7 +70,7 @@ def test_surface_cleanup_live_run_dir_reaches_sdk_package_owner() -> None:
         "surface=household-world",
         "preset=cleanup",
         "agent_engine=openai-agents-sdk",
-        "provider_profile=kimi-openai-chat",
+        "provider_profile=mimo-tp-openai-chat",
         "evidence_lane=world-public-labels",
         "seed=7",
         "output_dir=/tmp/roboclaws-eval-surface-test",
