@@ -28,9 +28,9 @@ verification and exact attempt identities.
 
 ## Next Action
 
-The repaired scene0 development replay passes with real CUDA DINO; scene10 is
-checker-clean but remains partial at 3/5. Collect the running scene12 replay,
-close remaining visual discovery failures, prepare
+The repaired scene0 and current-code scene10 development replays pass with real
+CUDA DINO at4/5. Scene12 still terminates early at3/5 and80% coverage. Resolve
+that remaining coverage failure, complete MiMo Responses smoke, prepare
 the new frozen scene/epoch manifest, and implement bounded full external
 execution with trusted current-code hosted proof. Keep world-label compatibility
 and real-DINO capability evidence separate.

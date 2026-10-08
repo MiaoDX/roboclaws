@@ -112,24 +112,48 @@ appears once with only 349 pixels. No corresponding public target detection
 was returned. The maintainer-only aggregate is
 `output/convergence-resume-20261008/minimax-scene10-attempt1/source-frame-visibility-diagnosis.json`.
 No hidden target identity was used to choose a robot action or detector query.
-A public-only comparison script is prepared (not yet run):
+A public-only comparison script completed:
 `output/convergence-resume-20261008/scene10-viewpoint-diagnostic.py`.
 It compares all public inspection headings with a bounded 0.5m forward view,
-using the same detector and no model/manipulation calls. Run only after scene12
-is terminal. No strategy change is justified until that hypothesis is tested.
+using the same detector and no model/manipulation calls. The 32-view comparison
+completed in 286.142s, with no failed navigation. Canonical views returned three
+recommended detections in total; translated views also returned three, but the
+room7 270-degree translated view returned three versus two at its canonical
+pose. This is local evidence of a useful viewpoint change, not cohort acceptance.
 The resource-endpoint recheck remains curl28 (session `87013`, terminal), log
 `output/convergence-resume-20261008/resource-endpoint-probe-attempt2.log`.
 
-Scene12 development replay is RUNNING under session `60527`, wrapper
+Scene12 development replay is terminal (session `60527`), wrapper
 `output/convergence-resume-20261008/replay-scene12-attempt1.py`, attempt root
 `output/convergence-resume-20261008/minimax-scene12-attempt1/`.
-It uses MiniMax/DINO/static-full/fresh-map, five targets, 100 calls, 3600 seconds,
+It used MiniMax/DINO/static-full/fresh-map, five targets, 100 calls, 3600 seconds,
 180-second stall, zero automatic trial retries and a 16M cumulative-token limit.
-Hypothesis: the recovery change can generalize to scene12 within explicit usage
-bounds; success enables the next frozen-cohort preparation, while failure keeps
-development diagnosis open. This remains independent development evidence with
-code/worktree hashes; do not stitch it into an earlier epoch. Poll the handle and
-sanitized live_status; do not launch another simulator.
+It ended partial at 3/5, sweep0.8, disturbances0 after852.569s; the checker rejected
+insufficient sweep coverage. There were69 successful model calls and no provider
+failure; input/output6,675,921/20,750, budget charged6,696,671 with no failure.
+The last public snapshot still named incomplete heading coverage and two unvisited
+waypoints. This is a behavior failure, not budget exhaustion. Its terminal error
+contains a very large private report assertion; read only `proof-summary.json`
+or extract sanitized fields, never print terminal.json in full.
+
+Commit `6e32fe24` fixes decision counters resetting across continuations and adds
+the bounded forward-view Skill rule supported by the diagnostic. A deterministic
+audit reproduced two logical calls under a one-call limit before the fix; focused
+checks (66 tests), full gate and commit hooks pass. Real MiniMax initial request
+plus same-run continuation proves the second request is denied before outbound:
+one provider request,169 tokens, `decision_call_budget_exhausted` on continuation.
+Evidence: `output/convergence-resume-20261008/decision-continuation-live-attempt1/proof-summary.json`.
+Final complete gate log:
+`output/convergence-resume-20261008/verify-after-decision-and-forward-recovery-attempt1.log`.
+
+Current-code scene10 replay PASSED at `6e32fe24`:4/5, four cleanup chains,
+sweep1.0, disturbances0, authoritative ready/done, checker exit0,574.407s.
+Sixty successful model calls,18 DINO observations, input/output4,828,623/14,971;
+the16M ledger charged4,843,594 with no unknown requests. Dollar cost unavailable.
+Evidence: `output/convergence-resume-20261008/minimax-scene10-forward-attempt1/proof-summary.json`.
+This is independent development evidence; it does not replace the old failed
+cohort and does not alone prove a causal strategy gain. All simulator sessions
+from this turn are terminal; the next probe may launch one runtime.
 
 Before this new strategy edit, reserve scenes **14 and 15** (procthor-10k-val)
 for the next visual epoch. No images or behavior traces from these scenes were
@@ -207,8 +231,8 @@ Kimi and is not current-code proof.
 
 ## Next action
 
-Collect the running scene12 replay. Investigate the remaining development-scene
-discovery failures. Resolve
+Validate current-code scene12 and resolve its premature completion/coverage
+failure, then complete MiMo Responses development smoke. Resolve
 the proven reserved-scene asset-download blocker before reserved execution.
 Complete new epoch/full matched manifests,
 actual token/runtime budgets, trusted current-code hosted proof and the full visual
