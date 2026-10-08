@@ -287,3 +287,49 @@ def test_real_sdk_client_cannot_retry_outside_ledger(tmp_path, monkeypatch):
         asyncio.run(run())
     assert len(attempts) == 1
     assert ledger(tmp_path)["charged_tokens"] == RESERVATION
+
+
+@pytest.mark.parametrize("fail_first", [False, True])
+def test_decision_limit_survives_continuation_and_counts_retries_once(tmp_path, fail_first):
+    base = FakeModel(fail_first=fail_first)
+
+    def continuation(attempt):
+        filename = (
+            "openai-agents-events.jsonl"
+            if not attempt
+            else f"openai-agents-events.continuation-{attempt}.jsonl"
+        )
+        return _RetryingModel(
+            base,
+            retry_attempts=1,
+            retry_sleep_s=0,
+            events_path=tmp_path / filename,
+            spans_path=tmp_path / f"spans-{attempt}.jsonl",
+            runtime_config={**CONFIG, "decision_call_budget": 2, "attempt_index": attempt},
+        )
+
+    asyncio.run(call(continuation(0)))
+    resumed = continuation(1)
+    asyncio.run(call(resumed))
+    assert resumed.runtime_config["decision_calls_used"] == 2
+    with pytest.raises(OpenAIAgentsBudgetExceededError, match="decision_call_budget_exhausted"):
+        asyncio.run(call(continuation(2)))
+    assert base.calls == (3 if fail_first else 2)
+
+
+@pytest.mark.parametrize("prior_log", [None, "{truncated", '{"event":"model_service_attempt"}'])
+def test_continuation_rejects_missing_or_corrupt_decision_accounting(tmp_path, prior_log):
+    if prior_log is not None:
+        (tmp_path / "openai-agents-events.jsonl").write_text(prior_log)
+    # The current attempt's fresh start event cannot stand in for missing history.
+    current = tmp_path / "openai-agents-events.continuation-1.jsonl"
+    current.write_text('{"event":"start"}\n')
+    with pytest.raises(OpenAIAgentsBudgetExceededError, match="accounting_unavailable"):
+        _RetryingModel(
+            FakeModel(),
+            retry_attempts=0,
+            retry_sleep_s=0,
+            events_path=current,
+            spans_path=tmp_path / "spans.jsonl",
+            runtime_config={**CONFIG, "decision_call_budget": 1, "attempt_index": 1},
+        )

@@ -232,6 +232,8 @@ just agent::eval suite=open_ended_goals budget=smoke \
 Live eval rows use a row-owned `decision_call_budget` as the primary capability
 budget. It counts logical model decision requests, while provider retries share
 the same decision slot and remain visible in provider-attempt telemetry. The
+counter includes prior continuation attempts, recovered from canonical SDK
+event logs; missing or malformed history stops a budgeted continuation. The
 row's wall-clock timeout and no-progress timeout remain watchdogs for hung
 processes and startup failures; they are not the main cross-environment
 comparison metric. Provider availability, missing credentials, port conflicts,

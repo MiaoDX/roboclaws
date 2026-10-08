@@ -186,6 +186,15 @@ actionable pending candidates as they appear. An empty canonical view and a
 visited waypoint do not establish coverage of its other required headings.
 Do not invent a smaller observation or call budget to skip this required work;
 only an explicit run limit or public capability response can exhaust it.
+After a waypoint has completed its required four-heading sweep, if the latest
+public completion snapshot is still blocked on grounded cleanup chains and the
+waypoint produced no actionable worklist, take at most one bounded forward
+reobservation from that same waypoint: call
+`navigate_to_relative_pose(forward_m=0.5, lateral_m=0, yaw_delta_deg=0)`, then
+take one fresh composite observation. This is a discovery view, not permission
+to act on an old handle; act only on a newly returned
+`pending_cleanup_candidates` entry with its current public evidence. Do not
+repeat the forward view at that waypoint or invent a larger translation.
 During this bounded recovery, do not manipulate any old
 observed handle. A handle becomes actionable only when the latest completion
 snapshot lists it in `pending_cleanup_candidates`. Never retry a handle after a

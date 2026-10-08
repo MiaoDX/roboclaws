@@ -103,7 +103,12 @@ class _RetryingModel(_AgentsModel):
         self.spans_path = spans_path
         self.runtime_config = dict(runtime_config)
         self._model_call_index = 0
-        self.runtime_config.setdefault("decision_calls_used", 0)
+        self._prior_decision_calls = (
+            _prior_decision_calls(events_path)
+            if runtime_config.get("attempt_index") and runtime_config.get("decision_call_budget")
+            else 0
+        )
+        self.runtime_config["decision_calls_used"] = self._prior_decision_calls
         self.token_budget = ProviderTokenBudget(events_path.parent, self.runtime_config)
 
     async def close(self) -> None:
@@ -462,12 +467,13 @@ class _RetryingModel(_AgentsModel):
         if budget is not None:
             if isinstance(budget, bool) or not isinstance(budget, int) or budget < 1:
                 raise ValueError(f"decision_call_budget must be a positive integer, got {budget!r}")
-            if self._model_call_index >= budget:
+            used = self._prior_decision_calls + self._model_call_index
+            if used >= budget:
                 detail = json.dumps(
                     {
                         "schema": "agent_sdk_decision_call_budget_terminal_v1",
                         "decision_call_budget": budget,
-                        "decision_calls_used": self._model_call_index,
+                        "decision_calls_used": used,
                         "provider_profile": self.runtime_config.get("provider_profile", ""),
                         "model": self.runtime_config.get("model", ""),
                         "profile_id": self.runtime_config.get("profile_id")
@@ -490,8 +496,42 @@ class _RetryingModel(_AgentsModel):
                     )
                 )
         value = self._next_model_call_index()
-        self.runtime_config["decision_calls_used"] = self._model_call_index
+        self.runtime_config["decision_calls_used"] = (
+            self._prior_decision_calls + self._model_call_index
+        )
         return value
+
+
+def _prior_decision_calls(events_path: Path) -> int:
+    """Recover prior logical calls from canonical events, coalescing transport retries."""
+    paths = [
+        path
+        for path in events_path.parent.glob("openai-agents-events*.jsonl")
+        if path != events_path
+    ]
+    calls: set[tuple[Path, int]] = set()
+    try:
+        if not paths:
+            raise ValueError("prior SDK event logs are missing")
+        for path in paths:
+            for line in path.read_text(encoding="utf-8").splitlines():
+                event = json.loads(line)
+                if event.get("event") != "model_service_attempt":
+                    continue
+                index = event.get("call_index")
+                if type(index) is not int or index < 0:
+                    raise ValueError("prior SDK event has no valid decision call index")
+                calls.add((path, index))
+    except (OSError, ValueError, AttributeError) as exc:
+        raise OpenAIAgentsBudgetExceededError(
+            LiveAgentFailure(
+                "decision_call_budget_accounting_unavailable",
+                retryable=False,
+                resume_available=False,
+                detail="Cannot recover decision usage from prior SDK event logs.",
+            )
+        ) from exc
+    return len(calls)
 
 
 def _should_retry_model_service_failure(

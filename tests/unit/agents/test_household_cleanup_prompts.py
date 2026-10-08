@@ -64,6 +64,8 @@ def test_skill_owns_generic_strategy_while_kickoff_owns_run_context() -> None:
     assert "Build an exact checklist" in skill
     assert "navigate_to_object(object_id)" in skill
     assert "pending_cleanup_candidates" in skill
+    assert "forward_m=0.5" in skill
+    assert "at most one bounded forward" in skill
     assert "Evidence lane=world-public-labels" in prompt
     assert "Required closeout artifacts" in prompt
     assert "navigate_to_object" not in prompt
