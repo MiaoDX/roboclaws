@@ -21,7 +21,8 @@ second stall after a successful connectivity probe.
 MiMo Responses scene12 attempt1 is terminal: four distinct cleanup chains and
 public readiness pass, but private restoration is3/5, so capability fails.
 The required fresh MapBuild/cleanup suite is running on MiMo Responses: scene0's
-complete pair passes at4/5; scene10 builder passes and its consumer is active.
+complete pair passes at4/5; scene10 builder passes and its consumer is blocked
+after a180s response stall.
 No development replay replaces an old failed cohort row. Full MiniMax real-DINO,
 MiMo Responses smoke, matched external cohorts and trusted current-code hosted
 proof remain required. No baseline/catalog or full schedule is promoted.
@@ -113,9 +114,11 @@ Scene10 builder PASSED in890.209s:43 successful responses, zero provider errors,
 five enrichment anchors, four stable categories,100 objects and117 candidates.
 All four required graders pass. Input/output2,891,036/14,029; ledger3,305,065
 including400K unknown terminal reservation. See `scene10-builder-proof-summary.json`.
-Its cleanup consumer is active at2013s with85 successful responses, zero provider
-errors and three placements. Scene12's pair remains queued. Executable/content
-identity must remain unchanged until all six trials terminate; docs-only updates
+Its cleanup consumer is BLOCKED after2058.316s at the180s no-progress stall guard,
+with85 successful responses, zero provider errors, three placements and no
+authoritative result. This infrastructure block is retained separately from
+behavioral failure; no automatic retry occurred. Scene12 builder is now running.
+Executable/content identity must remain unchanged until all six trials terminate; docs-only updates
 since `b8da0503` do not change that identity.
 Poll session8816 and per-trial `live_status.json`; never launch another simulator.
 
