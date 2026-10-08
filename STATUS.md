@@ -1,249 +1,86 @@
 # Project Status
 
-Last updated: 2026-09-30
+Last updated: 2026-10-08
 
-This is the human-facing dashboard for current repo state. Keep it short,
-latest-first, and pointer-based. Do not use this file as a changelog or
-execution ledger. When older shipped detail is no longer needed for today's
-orientation, move it to plans, ADRs, retrospectives, or `docs/human/**` and
-leave a link.
+This dashboard owns current priorities, next action and links. The fixed
+initiative capsule owns detailed execution state and evidence; this file is
+not a changelog or a second acceptance ledger.
 
 ## Current Focus
 
-The approved next direction is simulation-first, cross-scene visual cleanup,
-supported by one product Skill delivery, three provider routes, and fixed
-initiative state ownership. The canonical scope and acceptance contract is
-[Simulation Capability And R&D Convergence](docs/plans/2026-09-28-simulation-capability-and-rnd-convergence.md).
-Implementation is active: provider/default, Skill, selector, showcase, and
-runbook convergence slices are merged and deterministic verification is green.
-Historical packets remain unchanged. Real-robot work is deliberately on hold
-and is not a blocker for this direction.
+Simulation-first, cross-scene visual cleanup is the active priority. The
+[approved convergence plan](docs/plans/2026-09-28-simulation-capability-and-rnd-convergence.md)
+owns scope and acceptance, and the
+[initiative capsule](docs/status/active/simulation-capability-and-rnd-convergence.md)
+owns current implementation and verification state. Real-robot work is parked.
 
-Codex Responses and CloudML batch evaluation are retired from active support.
-Full Codex SDK runs failed at the first model request (403) despite header and
-protocol probes; no client repair was verified. Local evals and the remaining
-provider routes continue. See
-`docs/status/active/codex-responses-api-investigation.md` for evidence and limits.
+Product/provider convergence is implemented: one static-full Skill, an explicit
+eval-only no-skill control, and three active routes (MiMo Responses, MiMo TP,
+MiniMax). Historical identities remain readable without executable retired
+routes. [ADR-0151](docs/adr/0151-converge-on-simulation-capability-and-purposeful-validation.md)
+records the durable decisions.
 
-The latest full local baseline refresh completed: 29 rows, 26 passed, 0 failed,
-3 blocked. MiMo TP fixed-prior cleanup stalled during a model call; five
-MiniMax cleanup trials were blocked by explicit, non-retryable Token Plan quota
-exhaustion. The prior 24-passed/3-failed/2-blocked packet and targeted follow-up
-reruns remain separate historical evidence. No baseline was promoted. See
-`docs/status/active/local-eval-baseline-refresh.md`.
-
-The 2026-09-28 targeted rerun of all three blocked rows now passes: MiMo TP
-fixed-prior 2/2, MiniMax dynamic-routed 3/3, and MiniMax sandbox-skills 3/3.
-No Token Plan `2056` response recurred. These checks confirm current provider
-availability and remain separate evidence; the historical full packet is not
-rewritten or promoted.
-
-The State-First Context Manager implementation is complete for typed
-snapshots/checkpoints, pre-call bounded reconstruction, and checkpointed
-continuation. Real Grounding DINO MapBuild proof and automated desktop/mobile
-operator-console QA now pass; fresh SDK rechecks with MiniMax, Kimi, and MiMo
-all completed DINO-as-input successfully. The earlier DINO blocker was only an
-unstarted loopback sidecar. MiMo reached 96,350 provider-reported input tokens
-against the configured 96,000-token hard limit on an accepted final call, so it
-has a residual accounting/headroom caveat but no reproduced context overflow.
-Milestone `v1.99` remains at Phase 4 partial because the 2026-09-25 focused eval
-packet has a Kimi quota-blocked comparison slice. The new local refresh proves
-Kimi's fixed-prior route but does not rerun that historical comparison. See
-`docs/status/active/state-first-context-manager.md` and
-`.planning/phases/04-route-proof-and-rollout/04-LIVE-PROOF.md`.
-
-The Opik-only observability migration is complete. Opik 2.2.36 is the sole
-supported external backend for the `roboclaws-runtime` and `roboclaws-eval`
-Projects; local JSON, Markdown, run artifacts, graders, and human promotion
-remain canonical. Runtime and eval projection are bounded, loopback-only,
-idempotent, privacy-denying, and fail-open. See ADR-0150 and
-`docs/plans/2026-08-25-opik-only-observability-migration.md`.
-
-The production Dashboard is available at `http://127.0.0.1:5174/` and through
-the explicit trusted-LAN review bind configured by the operator. The example
-configuration uses the documentation-only address `192.0.2.60`. It links
-the full reviewed 65-row Dataset and states the fidelity boundary: 25 rows have
-native Experiment/trace drilldown and 40 remain Dataset-only. Opik 2.2.36 keeps
-a desktop-width Dashboard canvas on mobile, so narrow screens require
-horizontal navigation.
-
-Phoenix and the Eval Harness HTML companion are retired from active code,
-deployment, tests, commands, and docs. New terminal harness runs atomically
-publish only `eval_harness.json` and `eval_harness.md`, then write completion v2
-and a fail-open `opik_projection.json`. Retained `output/phoenix/` and
-`output/opik-poc/` remain inactive historical evidence and were not deleted.
-
-## Previous Focus
-
-The reviewed multi-scene Skill-delivery comparison remains inconclusive and did
-not change the product default or publish a baseline. See
-`docs/status/active/skill-delivery-multiscene-probe.md` and
-`docs/plans/2026-08-03-agent-skill-delivery-eval.md` for the paired evidence.
-
-Eval Evolution Phases 0-4 are complete under
-`docs/plans/2026-08-04-eval-evolution-agent-sdk.md`. Candidate identity,
-isolation, sealed holdout, and human-only promotion are enforced; no candidate
-was promoted. The blocked-by-default public facade remains
-`just agent::eval evolve|evolve-promote`.
-
-The invalid hybrid candidate at `output/eval-harness/20260803T023049Z/` remains
-retained as evidence and unpublished. Its checker/eval ownership regression is
-fixed: product checker failures now fail closed, `done` is terminal, and one
-canonical completion snapshot is shared across runtime evidence surfaces.
-
-The active product shape is:
-
-- `surface=household-world` for no-preset open household goals.
-- `surface=household-world preset=map-build` for Runtime Metric Map evidence.
-- `surface=household-world preset=cleanup` for cleanup.
-- `surface=planner-proof` for the confidence route.
-
-Current household map/runtime contracts:
-
-- Base Metric Map is the required start-of-run map context.
-- Runtime Metric Map owns map-build and observation semantic evidence.
-- Runtime Map Prior Snapshot is the downstream prior wrapper.
-- Canonical Runtime Map Priors are explicitly promoted, content-addressed, and
-  reused read-only across normal provider consumer matrices.
-- Product runtime, smoke helpers, and current tests fail loudly when a required
-  Base Metric Map bundle is missing.
-
-Eval suites are first-class architecture evidence. Deterministic suites are
-available through:
-
-```bash
-just agent::eval suite=smoke_regression budget=smoke
-just agent::eval suite=open_ended_goals budget=smoke
-just agent::eval suite=map_build_quality budget=smoke
-just agent::eval suite=map_consumer_no_prior budget=smoke
-```
-
-Live eval execution is opt-in with `live_execution=run`; default non-direct eval
-requests record blocked identity/preflight packets instead of launching real
-providers.
-
-The convergence live repairs provide MiniMax static-full cleanup 3/3 and
-open-ended 3/3 with the canonical runtime prior. MiMo TP cleanup compatibility
-is 2/3 passed with one 180-second stall; this remains an incomplete required
-cohort. See the initiative capsule for exact evidence paths.
+Three-provider readiness and real-DINO readiness pass. The standard repository
+gate passed after complete-cohort validation was added. Compact external
+bread/cleanup proofs and the paired MiniMax Skill control pass, but full
+initiative acceptance remains incomplete. Refer to the capsule for current-code
+verification and exact attempt identities.
 
 ## Next Action
 
-Continue convergence with current-code real-DINO development diagnosis and
-matched full external cohort/budget preparation. Both external providers now
-pass compact bread and cleanup first attempts, and the paired MiniMax Skill
-control passes both treatments. These do not replace the full-cohort gates.
-The following baseline notes remain historical follow-up context, not a
-competing priority.
+Complete the current development-scene DINO replay after removing contradictory
+completion/recovery instructions. Then close visual discovery failures, prepare
+the new frozen scene/epoch manifest, and implement bounded full external
+execution with trusted current-code hosted proof. Keep world-label compatibility
+and real-DINO capability evidence separate.
 
-Keep both full baseline packets and the four follow-up result bundles as
-separate evidence. Reconsider baseline promotion only through the existing
-human review process.
-The historical Kimi cleanup comparison remains a separate State-First Phase 4
-gate; no additional state-first implementation repair is currently indicated.
+## Current Acceptance Gaps
 
-Use the Opik Dashboard for current external review and local JSON/Markdown for
-canonical decisions. The Eval Harness candidate and Skill-delivery baseline
-decisions remain unchanged.
+- Real-DINO MiniMax v1 covers all 15 identities but misses acceptance. The latest
+  development replay before the strategy fix restored 3/5 with incomplete heading
+  coverage. MiMo Responses development smoke is still incomplete.
+- Former reserved scenes 11/13 were inspected during diagnosis. The capsule fixes
+  new reserved scene IDs before further tuning; readiness and the next full
+  executable manifest remain to be completed.
+- Matched full external case lists, cumulative token/runtime envelopes and
+  sharding still need implementation. Current case caps exceed the existing
+  60-minute hosted shard envelope. No full schedule or baseline is promoted.
+- The preserved MiMo TP compatibility cohort is 2/3 with one blocked stall;
+  later compact successes do not rewrite that cohort.
 
-## Current Blockers
+Provider/network readiness failures from the earlier restricted environment
+are historical. Retired Kimi quota requirements do not block the new scope.
 
-- The convergence MiMo TP static-full cleanup compatibility cohort has one
-  blocked first attempt after a 180-second no-progress stall; two attempts pass.
-  The real-DINO MiniMax v1 ledger covers all 15 identities but misses acceptance;
-  MiMo Responses development smoke is incomplete. Reserved scenes 11/13 were
-  inspected, so new generalization proof needs a fresh reserved set. Full hosted
-  case caps also exceed the current 60-minute shard envelope; scheduled full
-  execution is not enabled.
-- The latest 2026-09-27 local baseline rerun is not passing: three rows are
-  blocked by one MiMo TP model-call stall and MiniMax Token Plan exhaustion.
-  The prior packet's three failed and two blocked rows remain preserved; none
-  of these packets has been promoted.
-- State-First Phase 4's historical 2026-09-25 packet has five Kimi cleanup
-  comparison trials blocked by the provider's 5-hour quota. The latest Kimi
-  fixed-prior samples passed, but they do not replace that comparison slice.
-- The `20260817T072338Z` eval candidate is not publishable because it contains
-  one behavior failure and one blocked trial bundle.
-- Agibot and B1 injected dependency readiness passes with the existing local SDK, Map 12 bundle,
-  B1 scene, and alignment/navigation proofs. Real-robot movement remains unauthorized and requires
-  a present operator plus the existing localization, run-enablement, and E-stop gates.
+## Related Work And Historical Evidence
 
-## Human Review Surface
+- [Local baseline refresh](docs/status/active/local-eval-baseline-refresh.md):
+  full packets and later targeted reruns remain separate; no baseline promotion.
+- [State-First Context Manager](docs/status/active/state-first-context-manager.md):
+  typed checkpoints/continuation and DINO input proofs are implemented. Its
+  historical Kimi comparison remains incomplete in its original packet; that
+  retired route is outside the new convergence acceptance contract.
+- [Skill delivery comparison](docs/status/active/skill-delivery-multiscene-probe.md):
+  historical comparison remains inconclusive and did not establish a ranking.
+- [Codex Responses investigation](docs/status/active/codex-responses-api-investigation.md):
+  Codex Responses and CloudML batch eval are retired from active support.
+- [Opik migration](docs/plans/2026-08-25-opik-only-observability-migration.md):
+  Opik is the sole external observability backend. Local JSON/Markdown and
+  human promotion remain canonical; see ADR-0150 for the boundary.
 
-- Project orientation: `README.md`
-- Architecture and contracts: `ARCHITECTURE.md`
-- Public command grammar: `just/README.md`
-- Skill-first MCP design:
-  `docs/human/mcp-skills-and-semantic-profiles.md`
-- Local runtime and provider keys: `docs/human/local-runtime.md`
-- Evaluation docs: `docs/human/evaluation.md`
-- Current model/provider notes: `docs/human/model-matrix.md`
-- Human docs index: `docs/human/README.md`
+## Human And Agent Sources
 
-## Current Source Links
+- Orientation and runnable examples: [README.md](README.md).
+- Architecture and layer ownership: [ARCHITECTURE.md](ARCHITECTURE.md).
+- Public launch grammar: [just/README.md](just/README.md).
+- Evaluation and proof boundaries: [evaluation docs](docs/human/evaluation.md).
+- Model routes: [model matrix](docs/human/model-matrix.md).
+- Local hazards and checks: [operating runbook](docs/agents/operating-runbook.md).
+- Human docs index: [docs/human/README.md](docs/human/README.md).
+- Initiative status ownership: [active-state guide](docs/status/active/README.md).
+- GSD execution cursor, when applicable: [.planning/STATE.md](.planning/STATE.md).
+- Durable decisions: [ADRs](docs/adr/README.md); shipped history:
+  [retrospectives](docs/retrospectives/).
 
-Plans:
-`docs/plans/2026-08-02-household-backend-port-refactor.md`,
-`docs/plans/2026-07-31-refactor-just-command-surface.md`,
-`docs/plans/2026-07-30-aggressive-architecture-migration.md`,
-`docs/plans/2026-07-30-retire-openclaw-and-local-docker-surfaces.md`,
-`docs/plans/2026-07-30-post-cleanup-saturation-refactors.md`,
-`docs/plans/2026-07-28-forward-only-post-review-cleanup.md`,
-`docs/plans/2026-07-27-restore-codex-mimo-responses-cells.md`,
-`docs/plans/2026-07-01-recommended-runtime-map-prior-selection.md`,
-`docs/plans/2026-06-26-map-build-quality-eval-harness.md`,
-`docs/plans/2026-06-20-cross-environment-map-waypoint-source-of-truth.md`,
-`docs/plans/2026-06-18-b1-map12-semantic-and-public-nav-followups.md`,
-`docs/plans/2026-06-17-b1-map12-two-map-alignment-blocker.md`,
-`docs/plans/2026-06-17-sim-map-surface-simplification.md`,
-`docs/plans/2026-06-16-open-ended-eval-matrix-expansion.md`,
-`docs/plans/2026-06-15-non-cleanup-eval-support.md`,
-`docs/plans/2026-06-14-eval-driven-architecture.md`, and
-`docs/plans/2026-06-11-household-map-launch-open-ended-contracts.md`.
-
-ADRs:
-`docs/adr/0140-use-eval-suites-as-first-class-architecture-layer.md`,
-`docs/adr/0136-use-base-metric-map-and-first-class-household-launch-contracts.md`,
-and `docs/adr/0138-use-detector-only-visual-grounding-sidecar.md`.
-
-## AI-Agent Sources
-
-- Agent operating details: `docs/agents/operating-runbook.md`
-- GSD execution state: `.planning/STATE.md`
-- Current GSD phase details: follow the latest phase link in `.planning/STATE.md`
-- Pre-GSD plans: `docs/plans/`
-- Durable decisions: `docs/adr/`
-- Shipped history: `docs/retrospectives/`
-- Concurrent standalone work: `docs/status/active/`
-
-## Repo-Wide Parked Work
-
-- Queued implementation tasks unrelated to the current active focus:
-  `TODOS.md`
-- Scratch ideas and future directions unrelated to the current active focus:
-  `THOUGHTS.md`
-- GitHub issues track externally visible work for `MiaoDX/roboclaws`.
-
-The cleanup plan is mechanically archiving only explicitly terminal active
-capsules; active, blocked, ambiguous, and JSON evidence surfaces remain in
-place.
-
-## Workflow Contract
-
-Use the staged workflow:
-
-`idea -> docs/plans/<slug>.md -> review/autoplan -> GSD plan/execute -> verify -> retrospective`
-
-Rules:
-
-- `STATUS.md` answers "what is happening now?"
-- `docs/plans/` owns pre-GSD plans.
-- `.planning/` is GSD-owned execution detail.
-- `docs/human/` is the human-readable doc set.
-- `docs/adr/` records durable decisions, not progress.
-- Root `PLAN.md` is a legacy pointer, not an active plan.
-- `TODOS.md` and `THOUGHTS.md` are parked-work surfaces, not current status.
-- Parallel terminals should use one task-owned file under
-  `docs/status/active/`.
-- At GSD closeout/verify/ship, update this file only if repo-level current
-  focus, latest phase, next action, or blocker changed.
+Plans own design and acceptance; an initiative retains its fixed capsule through
+GSD and closure. GSD owns execution structure/evidence and links that capsule.
+Parked ideas remain in TODOS.md and THOUGHTS.md, outside the current priority.
