@@ -156,6 +156,7 @@ def run_eval_from_overrides(overrides: dict[str, str]) -> EvalSuiteRun:
     live_timeout_s = _optional_float(values.pop("live_timeout_s", None))
     live_stall_timeout_s = _optional_float(values.pop("live_stall_timeout_s", None))
     decision_call_budget = _optional_int(values.pop("decision_call_budget", None))
+    live_total_token_budget = _optional_int(values.pop("live_total_token_budget", None))
     regrade_source = _optional_path(values.pop("regrade_source", None))
     runtime_map_prior = _optional_path(values.pop("runtime_map_prior", None))
     sample_id = values.pop("sample_id", None)
@@ -178,6 +179,7 @@ def run_eval_from_overrides(overrides: dict[str, str]) -> EvalSuiteRun:
         live_timeout_s=live_timeout_s,
         live_stall_timeout_s=live_stall_timeout_s,
         decision_call_budget=decision_call_budget,
+        live_total_token_budget=live_total_token_budget,
         regrade_source=regrade_source,
         runtime_map_prior=runtime_map_prior,
         sample_id=sample_id,
@@ -285,6 +287,7 @@ def run_eval_suite(
     live_timeout_s: float | None = None,
     live_stall_timeout_s: float | None = None,
     decision_call_budget: int | None = None,
+    live_total_token_budget: int | None = None,
     live_token_budget: float | None = None,
     live_cost_budget_usd: float | None = None,
     regrade_source: Path | None = None,
@@ -398,6 +401,7 @@ def run_eval_suite(
                 live_timeout_s=live_timeout_s,
                 live_stall_timeout_s=live_stall_timeout_s,
                 decision_call_budget=decision_call_budget,
+                live_total_token_budget=live_total_token_budget,
                 live_token_budget=live_token_budget,
                 live_cost_budget_usd=live_cost_budget_usd,
                 regrade_source_dir=regrade_source_dir,

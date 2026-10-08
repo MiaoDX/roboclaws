@@ -11,6 +11,25 @@ from tests.unit.agents.live_runtime_support import (
 )
 
 
+@pytest.mark.parametrize("invalid", [0, -1, True, 1.5, "1.5"])
+def test_total_token_budget_rejects_invalid_values(monkeypatch, invalid):
+    monkeypatch.delenv("ROBOCLAWS_EVAL_TOTAL_TOKEN_BUDGET", raising=False)
+    with pytest.raises(ValueError, match="total_token_budget"):
+        _resolve_agent_sdk_perf_profile(
+            _openai_agents_perf_profile_base_args(total_token_budget=invalid)
+        )
+
+
+def test_total_token_budget_profile_reads_env_and_rejects_conflict(monkeypatch):
+    monkeypatch.setenv("ROBOCLAWS_EVAL_TOTAL_TOKEN_BUDGET", "4000000")
+    profile = _resolve_agent_sdk_perf_profile(_openai_agents_perf_profile_base_args())
+    assert profile["total_token_budget"] == 4_000_000
+    with pytest.raises(ValueError, match="conflicting.*total_token_budget"):
+        _resolve_agent_sdk_perf_profile(
+            _openai_agents_perf_profile_base_args(total_token_budget=5_000_000)
+        )
+
+
 def test_openai_agents_perf_profile_resolves_context_managed_defaults(monkeypatch) -> None:
     monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", raising=False)
     monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_MCP_CLIENT_SESSION_TIMEOUT_S", raising=False)

@@ -43,6 +43,7 @@ def test_eval_runner_runs_live_agent_when_explicitly_enabled(tmp_path: Path) -> 
         live_execution="run",
         live_timeout_s=12.5,
         live_stall_timeout_s=6.25,
+        live_total_token_budget=4_000_000,
         live_product_runner=live_product_runner,
     )
 
@@ -53,6 +54,7 @@ def test_eval_runner_runs_live_agent_when_explicitly_enabled(tmp_path: Path) -> 
     assert seen_kwargs[0]["provider_profile"] == "mimo-tp-openai-chat"
     assert seen_kwargs[0]["live_timeout_s"] == 12.5
     assert seen_kwargs[0]["live_stall_timeout_s"] == 6.25
+    assert seen_kwargs[0]["live_total_token_budget"] == 4_000_000
     result = payload["results"][0]
     assert result["identity"]["runner_class"] == "live-agent"
     assert result["artifacts"]["run_result"].endswith(

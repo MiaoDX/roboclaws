@@ -75,12 +75,46 @@ and `resource-endpoint-probe.log` in that same root. This is a concrete scene
 resource availability blocker, not provider/DINO unavailability or behavior failure.
 Do not silently select another reserved set or change resource credentials.
 
-Development scene10 replay is RUNNING under session `87633` using the existing
-local scene resources. Wrapper: `output/convergence-resume-20261008/replay-scene10-attempt1.py`;
-attempt root: `output/convergence-resume-20261008/minimax-scene10-attempt1/`.
-It uses the same MiniMax/DINO/static-full/fresh-map treatment, five targets,
-100 calls, 3600 seconds, 180-second stall and zero automatic trial retries.
-Poll the handle and sanitized live_status; do not launch another simulator.
+Development scene10 replay is terminal (session `87633`, exit0): partial_success,
+3/5 restored, 3 grounded chains, sweep 1.0, disturbances 0, checker exit 0, 682.46s.
+The final public completion still reports insufficient grounded cleanup chains;
+the agent terminated after additional headings produced no pending candidates.
+There were 66 successful model calls, no provider failures, 24 DINO observations,
+input/output tokens 5,287,391/19,167 and no usage-span limitation; dollar cost is
+unavailable. This does not establish a new strategy root cause or pass acceptance.
+Evidence: `output/convergence-resume-20261008/minimax-scene10-attempt1/proof-summary.json`.
+
+Cumulative token enforcement is implemented in the agent-engine provider boundary;
+the eval/showcase seams pass an explicit per-run limit. It reserves native model
+input/output capacity before every transport attempt, settles known usage,
+retains unknown usage, and shares a locked ledger across continuations. Hidden
+client retries are disabled for budgeted runs. Focused checks passed (189 tests).
+Real MiniMax bread proof passed 1/1 in 64.067s with a 4M-token limit: five settled
+responses total 146,553 tokens plus one terminal-interrupted 2M reservation,
+charged 2,146,553. The separate 1-token negative case stops before the first
+provider attempt, records zero requests, and correctly remains an eval failure
+(`budget_exhausted`), not a capability pass. Both attempts have zero trial retries
+and exact worktree identities under
+`output/convergence-resume-20261008/token-budget-live-attempt1/`.
+The first full gate stopped at a new environment-helper complexity violation;
+that helper is repaired. Full gate attempt2 passed (session `24423`, exit 0), log
+`output/convergence-resume-20261008/verify-after-total-token-budget-attempt2.log`.
+Staging exposed one new-file validator complexity violation that the unstaged
+ratchet had not included; simplifying that branch preserved behavior. The 28
+budget tests and full gate attempt3 passed (session `41549`, exit 0), log
+`output/convergence-resume-20261008/verify-after-total-token-budget-attempt3.log`.
+The slice includes engine/eval implementation, tests and human/architecture docs.
+
+Scene12 development replay is RUNNING under session `60527`, wrapper
+`output/convergence-resume-20261008/replay-scene12-attempt1.py`, attempt root
+`output/convergence-resume-20261008/minimax-scene12-attempt1/`.
+It uses MiniMax/DINO/static-full/fresh-map, five targets, 100 calls, 3600 seconds,
+180-second stall, zero automatic trial retries and a 16M cumulative-token limit.
+Hypothesis: the recovery change can generalize to scene12 within explicit usage
+bounds; success enables the next frozen-cohort preparation, while failure keeps
+development diagnosis open. This remains independent development evidence with
+code/worktree hashes; do not stitch it into an earlier epoch. Poll the handle and
+sanitized live_status; do not launch another simulator.
 
 Before this new strategy edit, reserve scenes **14 and 15** (procthor-10k-val)
 for the next visual epoch. No images or behavior traces from these scenes were
@@ -158,7 +192,8 @@ Kimi and is not current-code proof.
 
 ## Next action
 
-Collect the running scene10 development replay, then validate scene12. Resolve
+Collect the running scene12 replay. Investigate the remaining development-scene
+discovery failures. Resolve
 the proven reserved-scene asset-download blocker before reserved execution.
 Complete new epoch/full matched manifests,
 actual token/runtime budgets, trusted current-code hosted proof and the full visual

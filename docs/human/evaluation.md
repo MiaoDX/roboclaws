@@ -239,6 +239,26 @@ and runtime readiness are classified separately from agent behavior. Performance
 packets expose `decision_call_count` and `decision_call_budget`; missing
 telemetry stays unavailable rather than being reported as zero.
 
+`live_total_token_budget=<positive integer>` adds a cumulative input-plus-output
+token limit per product run. Showcase rows use `total_token_budget` for this
+setting; eval launches pass `ROBOCLAWS_EVAL_TOTAL_TOKEN_BUDGET` to the SDK engine.
+It is independent of `live_token_budget`, which only allocates priced output
+capacity and does not enforce cumulative usage. Cached input still counts.
+
+The agent-engine layer persists `provider_token_budget.json` beside the SDK
+events. Before each actual provider attempt, including transport retries, it
+reserves twice the model catalog's native context window (one input window and
+one output window). Successful calls settle against reported input/output usage.
+Failures and cancellations retain the full reservation. Missing/zero usage or
+usage above the reservation stops further calls; the latter records actual
+usage and invalidates the assumed bound. The guarantee depends on the provider
+honoring its declared limits. This conservative policy can stop while tokens
+remain when they cannot cover another full reservation. Hidden client retries
+are disabled; budgeted runs reject multi-arm racing and unknown model limits.
+Continuations share the ledger and cannot change or disable its budget.
+The ledger is maintainer evidence, contains no prompts, and is not dollar-cost
+telemetry. Unavailable provider cost remains unavailable.
+
 The `session-live` route verifies an Operator Session parent run, active-run
 steering, terminal artifacts, and a linked child goal. The parent and child are
 separate agent runs, so each receives a fresh 1500-second wall-clock budget. It

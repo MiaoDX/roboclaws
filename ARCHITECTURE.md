@@ -550,6 +550,10 @@ Every serious run should produce reviewable evidence:
   policy, readiness, and privacy sections.
 - `model_call_metrics.jsonl` for sanitized per-call model-work rows when the
   live OpenAI Agents SDK route exposes compatible usage or timing telemetry.
+- `provider_token_budget.json` for optional engine-owned cumulative token
+  reservations and settled usage, shared across continuations and charged for
+  every transport attempt. Eval/showcase supplies the limit; the SDK provider
+  boundary enforces it. Unknown usage retains its conservative reservation.
 - `roboclaws_report_performance_metrics_v1` packets, usually produced by the
   report-performance extractor, for maintainer comparisons of quality,
   call-count work, model work, normalized-estimate availability, and residual

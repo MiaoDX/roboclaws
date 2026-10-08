@@ -14,6 +14,7 @@ from roboclaws.agents.drivers.openai_agents_event_log import _write_json
 from roboclaws.agents.drivers.openai_agents_event_projection import _drop_empty, _to_jsonable
 from roboclaws.agents.drivers.openai_agents_input_config import _input_compaction_config
 from roboclaws.agents.drivers.openai_agents_retry_model import _model_service_retry_config
+from roboclaws.agents.drivers.openai_agents_token_budget import total_token_budget
 from roboclaws.agents.live_runtime import LiveAgentRequest
 from roboclaws.agents.provider_registry import openai_agents_runtime_settings
 from roboclaws.agents.skill_delivery import render_instructions
@@ -339,6 +340,7 @@ def _runtime_config(
     input_compaction = _input_compaction_config(request)
     racing_observability = _model_racing_observability_config(request)
     responses_feature_surface = _responses_feature_surface(model_settings)
+    profile = dict(request.metadata).get("agent_sdk_perf_profile")
     return {
         "runtime": "openai-agents-live",
         "provider_profile": model_settings.get("provider_profile") or request.provider_profile,
@@ -347,6 +349,10 @@ def _runtime_config(
         "wire_api": model_settings.get("wire_api") or "",
         "max_turns": _max_turns(request),
         "decision_call_budget": _decision_call_budget(request),
+        "total_token_budget": total_token_budget(
+            profile.get("total_token_budget") if isinstance(profile, dict) else None
+        ),
+        "attempt_index": dict(request.metadata).get("attempt_index", 0),
         "cache_tools_list": _cache_tools_list(request),
         "mcp_server": {
             "name": request.mcp_server.name,

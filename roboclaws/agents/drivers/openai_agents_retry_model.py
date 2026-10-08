@@ -30,6 +30,7 @@ from roboclaws.agents.drivers.openai_agents_provider_runtime import (
 from roboclaws.agents.drivers.openai_agents_provider_runtime import (
     failure_from_exception as _failure_from_exception,
 )
+from roboclaws.agents.drivers.openai_agents_token_budget import ProviderTokenBudget
 from roboclaws.agents.live_runtime import LiveAgentRequest
 from roboclaws.agents.live_status import LiveAgentFailure
 
@@ -103,6 +104,7 @@ class _RetryingModel(_AgentsModel):
         self.runtime_config = dict(runtime_config)
         self._model_call_index = 0
         self.runtime_config.setdefault("decision_calls_used", 0)
+        self.token_budget = ProviderTokenBudget(events_path.parent, self.runtime_config)
 
     async def close(self) -> None:
         try:
@@ -135,6 +137,7 @@ class _RetryingModel(_AgentsModel):
         call_index = self._reserve_decision_call()
         attempt_index = 0
         while True:
+            token_reservation = self.token_budget.reserve()
             started = time.time()
             racing_enabled = _get_response_racing_enabled(self.runtime_config)
             _append_model_service_event(
@@ -195,6 +198,7 @@ class _RetryingModel(_AgentsModel):
                         conversation_id=conversation_id,
                         prompt=prompt,
                     )
+                self.token_budget.settle(token_reservation, getattr(result, "usage", None))
             except Exception as exc:
                 should_retry, failure = _should_retry_model_service_failure(
                     exc,
@@ -301,8 +305,10 @@ class _RetryingModel(_AgentsModel):
         call_index = self._reserve_decision_call()
         attempt_index = 0
         while True:
+            token_reservation = self.token_budget.reserve()
             started = time.time()
             yielded_event = False
+            settled = False
             arm_id = _model_racing_arm_id(call_index=call_index, attempt_index=attempt_index)
             _append_model_racing_event(
                 self.events_path,
@@ -346,8 +352,16 @@ class _RetryingModel(_AgentsModel):
                     prompt=prompt,
                 )
                 async for event in stream:
+                    if getattr(event, "type", None) == "response.completed":
+                        response = getattr(event, "response", None)
+                        self.token_budget.settle(
+                            token_reservation, getattr(response, "usage", None)
+                        )
+                        settled = True
                     yielded_event = True
                     yield event
+                if not settled:
+                    self.token_budget.settle(token_reservation, None)
             except Exception as exc:
                 safe_to_replay = not yielded_event
                 should_retry, failure = _should_retry_model_service_failure(

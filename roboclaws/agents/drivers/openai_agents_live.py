@@ -569,10 +569,18 @@ def _model_for_request(request: LiveAgentRequest) -> Any:
     from openai import AsyncOpenAI  # type: ignore[import-not-found]
 
     settings = _model_settings(request)
+    runtime_config = _runtime_config(
+        request,
+        mcp_client_session_timeout_configured=_mcp_client_session_timeout_seconds(request)[0],
+        mcp_client_session_timeout_s=_mcp_client_session_timeout_seconds(request)[1],
+    )
     client_kwargs: dict[str, Any] = {
         "api_key": settings["api_key"],
         "base_url": settings["base_url"],
     }
+    if runtime_config.get("total_token_budget") is not None:
+        # Every transport attempt must pass through the reservation ledger.
+        client_kwargs["max_retries"] = 0
     client = AsyncOpenAI(**client_kwargs)
     if settings["wire_api"] == "responses":
         from agents import OpenAIResponsesModel  # type: ignore[import-not-found]
@@ -592,9 +600,5 @@ def _model_for_request(request: LiveAgentRequest) -> Any:
         retry_sleep_s=float(retry_config["retry_sleep_s"]),
         events_path=request.artifact_path("openai_agents_events", "openai-agents-events.jsonl"),
         spans_path=request.artifact_path("openai_agents_spans", "openai-agents-spans.jsonl"),
-        runtime_config=_runtime_config(
-            request,
-            mcp_client_session_timeout_configured=_mcp_client_session_timeout_seconds(request)[0],
-            mcp_client_session_timeout_s=_mcp_client_session_timeout_seconds(request)[1],
-        ),
+        runtime_config=runtime_config,
     )

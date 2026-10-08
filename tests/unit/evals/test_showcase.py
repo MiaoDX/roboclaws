@@ -130,6 +130,9 @@ def test_manifest_rejects_duplicate_ids():
         ("stall_timeout_s", float("inf")),
         ("stall_timeout_s", -1),
         ("decision_call_budget", 0),
+        ("total_token_budget", 0),
+        ("total_token_budget", True),
+        ("total_token_budget", 1.5),
     ],
 )
 def test_manifest_rejects_non_positive_budgets(key, value):
@@ -215,6 +218,7 @@ def test_model_lane_live_command_uses_canonical_provider_identity(tmp_path):
     root = Path(__file__).resolve().parents[3]
     m = json.loads((root / "config/showcase-manifest.json").read_text())
     row = next(row for row in m["rows"] if row["id"] == "household_world.open_ended_goals.minimax")
+    row["total_token_budget"] = 4_000_000
     command = _row_command(row, live_execution="run", output_dir=tmp_path)
     assert command is not None
     assert "agent_engine=openai-agents-sdk" in command
@@ -225,6 +229,7 @@ def test_model_lane_live_command_uses_canonical_provider_identity(tmp_path):
     assert "live_timeout_s=1800" in command
     assert "live_stall_timeout_s=120" in command
     assert "decision_call_budget=16" in command
+    assert "live_total_token_budget=4000000" in command
     assert "sample_id=open_ended.bread_seed7" in command
     assert "repetition_index=0" in command
 

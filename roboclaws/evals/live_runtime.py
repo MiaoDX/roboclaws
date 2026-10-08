@@ -8,6 +8,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from roboclaws.agents.drivers.openai_agents_token_budget import (
+    TOTAL_TOKEN_BUDGET_ENV,
+    total_token_budget,
+)
 from roboclaws.agents.skill_delivery import validate_eval_skill_delivery_cell
 from roboclaws.core.backend_catalog import BACKEND_SPECS
 from roboclaws.core.goals import normalize_goal_contract
@@ -175,6 +179,7 @@ def live_product_run_kwargs(
     live_timeout_s: float | None,
     live_stall_timeout_s: float | None,
     decision_call_budget: int | None = None,
+    live_total_token_budget: int | None = None,
     live_token_budget: float | None = None,
     live_cost_budget_usd: float | None = None,
     skill_delivery_cell: str = "static-full",
@@ -200,6 +205,7 @@ def live_product_run_kwargs(
             "live_timeout_s": live_timeout_s,
             "live_stall_timeout_s": live_stall_timeout_s,
             "decision_call_budget": decision_call_budget,
+            "live_total_token_budget": live_total_token_budget,
             "live_token_budget": live_token_budget,
             "live_cost_budget_usd": live_cost_budget_usd,
             "skill_delivery_cell": skill_delivery_cell,
@@ -401,15 +407,21 @@ def live_surface_env(kwargs: dict[str, Any], *, base_env: Any) -> dict[str, str]
         env[EVAL_PROVIDER_COST_BUDGET_ENV] = str(float(cost_budget))
     else:
         env.pop(EVAL_PROVIDER_COST_BUDGET_ENV, None)
-    _apply_decision_call_budget_env(env, kwargs.get("decision_call_budget"))
+    _apply_agent_budget_env(env, kwargs)
     return env
 
 
-def _apply_decision_call_budget_env(env: dict[str, str], value: Any) -> None:
+def _apply_agent_budget_env(env: dict[str, str], kwargs: dict[str, Any]) -> None:
+    value = kwargs.get("decision_call_budget")
     if value is None:
         env.pop("ROBOCLAWS_OPENAI_AGENTS_DECISION_CALL_BUDGET", None)
     else:
         env["ROBOCLAWS_OPENAI_AGENTS_DECISION_CALL_BUDGET"] = str(int(value))
+    total_budget = total_token_budget(kwargs.get("live_total_token_budget"))
+    if total_budget is None:
+        env.pop(TOTAL_TOKEN_BUDGET_ENV, None)
+    else:
+        env[TOTAL_TOKEN_BUDGET_ENV] = str(total_budget)
 
 
 def live_evidence_lane(kwargs: dict[str, Any]) -> str:

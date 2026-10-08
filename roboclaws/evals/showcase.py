@@ -97,6 +97,9 @@ def validate_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
 
 
 def _validate_manifest_row_budgets(row: dict[str, Any]) -> None:
+    total = row.get("total_token_budget")
+    if total is not None and (isinstance(total, bool) or not isinstance(total, int) or total < 1):
+        raise ValueError(f"showcase row {row['id']} has invalid total_token_budget")
     for budget_key in ("timeout_s", "stall_timeout_s"):
         value = row.get(budget_key)
         if value is not None and (
@@ -268,6 +271,8 @@ def _row_command(row: dict[str, Any], *, live_execution: str, output_dir: Path) 
                 f"decision_call_budget={row['decision_call_budget']}",
             )
         )
+        if row.get("total_token_budget") is not None:
+            command.append(f"live_total_token_budget={row['total_token_budget']}")
     if isinstance(row.get("sample_id"), str) and row["sample_id"]:
         command.append(f"sample_id={row['sample_id']}")
     if isinstance(row.get("repetition_index"), int):

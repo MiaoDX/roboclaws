@@ -223,6 +223,7 @@ def test_live_surface_env_sets_provider_and_model_keys(tmp_path: Path) -> None:
         "provider_profile": "mimo-tp-openai-chat",
         "model": "k3",
         "live_token_budget": 12000,
+        "live_total_token_budget": 4_000_000,
         "live_cost_budget_usd": 0.25,
         "telemetry_identity": {
             "observability_context": "eval",
@@ -238,6 +239,7 @@ def test_live_surface_env_sets_provider_and_model_keys(tmp_path: Path) -> None:
     assert env["ROBOCLAWS_PROVIDER_PROFILE"] == "mimo-tp-openai-chat"
     assert env["ROBOCLAWS_OPENAI_AGENTS_MODEL"] == "k3"
     assert env["ROBOCLAWS_EVAL_PROVIDER_TOKEN_BUDGET"] == "12000.0"
+    assert env["ROBOCLAWS_EVAL_TOTAL_TOKEN_BUDGET"] == "4000000"
     assert env["ROBOCLAWS_EVAL_PROVIDER_COST_BUDGET_USD"] == "0.25"
     assert json.loads(env["ROBOCLAWS_EVAL_TELEMETRY_IDENTITY"]) == {
         "observability_context": "eval",

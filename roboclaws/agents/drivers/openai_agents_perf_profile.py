@@ -24,6 +24,10 @@ from roboclaws.agents.drivers.openai_agents_run_config import (
     DEFAULT_OPENAI_AGENTS_MAX_TURNS,
     MCP_CLIENT_SESSION_TIMEOUT_ENV,
 )
+from roboclaws.agents.drivers.openai_agents_token_budget import (
+    TOTAL_TOKEN_BUDGET_ENV,
+    total_token_budget,
+)
 from roboclaws.agents.thinking_policy import normalize_thinking_mode
 from roboclaws.core.provider_catalog import (
     ROUTE_CAP_SUPPORTED,
@@ -88,6 +92,10 @@ def _bool_setting_value(raw: object) -> bool:
 
 
 def resolve_agent_sdk_perf_profile(args: argparse.Namespace) -> dict[str, Any]:
+    token_limit = total_token_budget(getattr(args, "total_token_budget", None))
+    env_token_limit = total_token_budget(os.environ.get(TOTAL_TOKEN_BUDGET_ENV))
+    if token_limit is not None and env_token_limit is not None and token_limit != env_token_limit:
+        raise ValueError("conflicting OpenAI Agents SDK setting total_token_budget")
     provider_profile = _normal_provider_profile(str(getattr(args, "provider_profile", "") or ""))
     model = str(getattr(args, "model", "") or "")
     model_family = model_family_for_route_model(provider_profile, model or None)
@@ -184,6 +192,7 @@ def resolve_agent_sdk_perf_profile(args: argparse.Namespace) -> dict[str, Any]:
             allow_none=True,
         ),
         "decision_call_budget": _decision_call_budget_setting(args, defaults),
+        "total_token_budget": token_limit if token_limit is not None else env_token_limit,
         "context_hard_limit_tokens": _int_setting(
             args,
             "context_hard_limit_tokens",
