@@ -40,8 +40,9 @@ terminal: all three builders and scene0 cleanup pass; scene10 cleanup is blocked
 by a180s response stall, and scene12 cleanup fails at the100-decision budget.
 A backend support-attribution fix passes22 focused checks, the full repository
 gate, and a fresh40-view CUDA DINO diagnostic (`55f879d8`). New-code scene12
-cleanup smoke is running; attribution repair alone does not establish discovery
-or capability acceptance.
+cleanup smoke under `55f879d8` reaches4 chains and authoritative done but
+remains3/5 restored; attribution repair alone does not establish discovery or
+capability acceptance.
 A fix for contradictory composite
 tool controls passes the standard gate; its MiniMax scene12 replay is blocked
 by provider billing limit after44 successful responses.

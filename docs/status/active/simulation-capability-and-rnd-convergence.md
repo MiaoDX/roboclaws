@@ -197,10 +197,24 @@ that limitation, no lock, code change, budget relaxation or retry.
 
 The full `just agent::verify` passes. Investigation
 `32626-1791447476-2d91d8ca` is closed successfully; its owned scope was released
-and root-cause learning recorded. Next run the prepared canonical v2 scene12
-no-prior development case on MiMo at the same100-call /16M-token /3600s-wall /
-180s-stall bounds with zero retries. It is a separate new-code attempt, never a
-replacement for previous failures or a full-cohort acceptance claim.
+and root-cause learning recorded.
+
+New-code scene12 smoke `mimo-scene12-support-attempt1` is terminal and FAILED
+outcome grading: started clean at `55f879d8`, elapsed2255.848s,100 successful
+MiMo Responses,0 provider errors,0 retries, input/output7,328,201/42,221,
+ledger7,370,422 of16M. It reaches authoritative `done`, sweep1.0, disturbances0
+and four complete cleanup chains, but restoration is3/5 (0.6); artifacts,
+privacy and trajectory pass, outcome fails. The two wrong target identities are
+RemoteControl and Plate; three accepted are Bowl, Book and Pillow. This is a
+new-code development result, not a replacement for the original cohort and not
+capability acceptance. The public run and private grader remain separate under
+`output/convergence-resume-20261008/mimo-scene12-support-attempt1/`.
+
+The support attribution repair therefore passes its own geometry/DINO proof but
+does not solve scene12 target discovery/actionability. The new run's unchanged
+RemoteControl seed remains on CounterTop; Plate remains an unacted seed on Sofa
+in grader diagnostics. Do not infer that either target was misplaced by an
+executed action. Keep this failure as the current scene12 bottleneck.
 
 ## MiMo response-stall investigation
 
@@ -425,11 +439,10 @@ must reach an authorized trusted ref before the new hosted proof can run.
 
 ## Remaining acceptance and next action
 
-1. Collect new-code scene12 no-prior development smoke (session30722) before
-   any additional simulator or product changes. Diagnose
-   scene12 missing discovery/actionability and the new prior-consuming run's
-   budget exhaustion using public traces. Complete passing MiMo real-DINO smoke
-   and all three fresh MapBuild pairs under a new consistent executable epoch.
+1. Diagnose scene12 missing discovery/actionability using the new-code public
+   trace and grader-only result; no support-attribution change is justified by
+   this run. Complete passing MiMo real-DINO smoke on development10/12 and all
+   three fresh MapBuild pairs under a new consistent executable epoch.
    Diagnose recurring MiMo scene10 response stalls before another retry; resume
    MiniMax only after billing readiness is restored. Do not relax budgets or
    substitute development passes for required cohorts.
