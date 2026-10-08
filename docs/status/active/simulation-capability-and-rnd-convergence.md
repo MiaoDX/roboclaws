@@ -32,7 +32,10 @@ MiMo Responses scene10 attempt2 is RUNNING, session `87152`:
   static-full, seed7, five targets and fresh Runtime Metric Map.
 - Bounds unchanged:100 cumulative calls,16M tokens,3600s wall,180s stall,
   zero automatic retries. Canonical route `mimo`, request `xiaomi/mimo-v2.6-pro`.
-- Latest poll: running-sdk at435s,19 successful responses, ledger charged1,490,290.
+- Latest poll: running-sdk at960s,40 successful model responses.
+- Next simulator wrapper is prepared but NOT launched:
+  `output/convergence-resume-20261008/replay-mimo-scene12-attempt1.py`.
+  It requires a clean checkout and preserves the same per-run bounds.
 
 MiniMax scene12 attempt3 (session `25951`) is terminal:
 
@@ -72,8 +75,18 @@ never print a raw checker assertion or private report wholesale.
   Full gate attempt1 caught the grading module size limit; the new chain grader
   now has a focused eval owner, without baseline relaxation. Attempt2 loaded old
   assertions while the prepared-only schedule metadata was removed; final focused
-  checks pass. Fixed-file full attempt3 is running (session `61771`,
+  checks pass. Fixed-file full attempt3 PASSED (session `61771`, exit0,
   `verify-after-convergence-manifests-attempt3.log`).
+- Actual committed CLI preflight at `ec5b2d1d` produces both shard plans,
+  blocks the selected case with `live_execution_not_requested`, sends zero
+  model requests, and retains all10 rows as blocked when merging incomplete
+  evidence. Full:38 cases /3,632 calls /584M tokens /34 trial-hours /3,028
+  runner-minutes. Development:26 cases /2,432 calls /392M tokens /22 trial-hours
+  /1,996 runner-minutes. At most2 shards; zero automatic trial retries.
+  Evidence: `convergence-v2-preflight-attempt1/proof-summary.json`.
+  These are prepared/preflight identities, not a final accepted epoch or live
+  full execution. Check fixture readiness and the material cost boundary before
+  activating the full envelope; current schedule remains compact.
 - `0c00fba2` completion-projection fix: remove the unconditional declaration
   navigation hint and strip completed-step controls from the composite response.
   Preserve atomic trace controls and evidence; emit one current outer completion.
@@ -247,7 +260,8 @@ must reach an authorized trusted ref before the new hosted proof can run.
    `sharding-live-bread-attempt1/proof-summary.json` under the output root above.
    Compact wiring/local proof alone do not establish hosted acceptance.
 3. Resolve reserved14/15 asset readiness without scene shopping. Freeze exact
-   executable epoch, scenes/seeds, fixture/map treatment, graders and budgets.
+   executable epoch, scenes/seeds, fixture/map treatment, graders and budgets
+   from the prepared v2 suites and full/development manifests. Preserve old v1.
 4. Run MiniMax full real-DINO15-case cohort: >=12/15 overall, >=5/6 reserved,
    >=1 pass per scene, zero blocked; each pass requires >=4 grounded chains,
    sweep>=0.9, disturbances<=2 and authoritative done.

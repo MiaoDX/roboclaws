@@ -55,6 +55,7 @@ and real-DINO capability evidence separate.
   bounded compact workflow wiring pass deterministic checks and a real local
   MiniMax case through execution and merge.
   Prepared full lists now match providers, including open-ended and MapBuild;
+  their standard gate and real blocked-mode CLI planning/merge proof pass.
   full execution and trusted current-code hosted proof remain incomplete.
   No full schedule or baseline is promoted.
 - The preserved MiMo TP compatibility cohort is 2/3 with one blocked stall;
