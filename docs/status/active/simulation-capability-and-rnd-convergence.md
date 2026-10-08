@@ -184,6 +184,17 @@ zero regressions. The original scene12 defect is reproduced and eliminated.
 No model calls or manipulation occurred; missing target discovery and agent
 cleanup completion remain unproven by this diagnostic.
 
+The terminal fresh-map scene12 public work audit is retained in
+`mimo-fresh-map-attempt1/scene12-consumer-public-work-accounting.json`.
+It records100 top-level requests:10 identical empty-argument map calls before
+navigation,40 composite observations,27 relative moves,11 waypoint navigations
+and12 manipulation-chain steps. Final public completion lacks a fourth chain
+and heading coverage at three waypoints. The first observation correctly
+prioritizes an unvisited waypoint, so a conflicting sweep/heading priority was
+not reproduced. Model text is not retained; repeated-call causality remains
+unresolved. Read-only investigation `32626-1791455096-dc522e19` is closed with
+that limitation, no lock, code change, budget relaxation or retry.
+
 The full `just agent::verify` passes. Investigation
 `32626-1791447476-2d91d8ca` is closed successfully; its owned scope was released
 and root-cause learning recorded. Next run the prepared canonical v2 scene12
