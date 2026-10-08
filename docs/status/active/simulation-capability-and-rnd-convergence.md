@@ -20,7 +20,7 @@ The complete standard gate passed after the cohort change (session `75547`, exit
 `output/convergence-resume-20261008/verify-after-cohorts.log`.
 The earlier sandbox/network failures are historical and are no longer blockers.
 
-Current development evidence: scene0 attempt2 is terminal, not running.
+Preserved pre-fix development evidence: scene0 attempt2 is terminal.
 MiniMax real DINO, static-full, seed7, fresh map/no prior: partial_success after
 551.359 seconds, 3/5 restored, 3 grounded chains, sweep 1.0, disturbances 0.
 Only room2 completed four headings; rooms3–8 remained at one. The agent called
@@ -58,17 +58,29 @@ multi-trial live rows require an explicit deadline covering all selected caps.
 Focused showcase/workflow/process checks pass; full gate session `98851`
 passed (exit 0), log `output/convergence-resume-20261008/verify-after-showcase-runtime.log`.
 
-Reserved scene fixture readiness is RUNNING under session `6071`. Wrapper:
-`output/convergence-resume-20261008/reserved-readiness-attempt1.py`.
-It prepares missing Base Metric Maps and checks five feasible misplaced targets
-using the existing backend, without agent runs, detector calls or image review.
-Readiness summary will be under `reserved-readiness-attempt1/readiness.json`.
-Keep one simulator; poll the existing handle and do not relaunch on observation
-timeouts. Scene14 map preparation ended with `MolmoSpaces subprocess worker timed out
-(init, 300s)`. Scene15 init remains live under that same wrapper. No scenes were
-substituted. The next diagnostic is a bounded worker run with faulthandler stack
-dumps (`reserved-init-diagnostic.py`), after the current simulator is terminal.
-The environment-key comparison found no relevant dotenv/proxy difference.
+Reserved scene fixture readiness attempt1 is terminal: both scenes14/15 were
+blocked by `MolmoSpaces subprocess worker timed out (init, 300s)`. Scene15's
+checked-in Base Metric Map validates; scene14's map was not produced. No
+behavior/image review took place and no scene was substituted. Summary:
+`output/convergence-resume-20261008/reserved-readiness-attempt1/readiness.json`.
+Environment-key comparison found no relevant dotenv/proxy difference.
+The 70-second diagnostic attempt2 is terminal (session36704, exit124).
+Faulthandler shows the main worker waiting on scene archive extraction and a
+thread stalled in requests/urllib3 TCP connection setup at
+`molmospaces_resources/remote_storage.py:69` (`stream_archive`). It has not
+reached MuJoCo load. The direct guarded endpoint probe also failed with curl28:
+connection to the configured public R2 resource endpoint port443 timed out.
+Evidence: `output/convergence-resume-20261008/reserved-init-diagnostic-attempt2.log`
+and `resource-endpoint-probe.log` in that same root. This is a concrete scene
+resource availability blocker, not provider/DINO unavailability or behavior failure.
+Do not silently select another reserved set or change resource credentials.
+
+Development scene10 replay is RUNNING under session `87633` using the existing
+local scene resources. Wrapper: `output/convergence-resume-20261008/replay-scene10-attempt1.py`;
+attempt root: `output/convergence-resume-20261008/minimax-scene10-attempt1/`.
+It uses the same MiniMax/DINO/static-full/fresh-map treatment, five targets,
+100 calls, 3600 seconds, 180-second stall and zero automatic trial retries.
+Poll the handle and sanitized live_status; do not launch another simulator.
 
 Before this new strategy edit, reserve scenes **14 and 15** (procthor-10k-val)
 for the next visual epoch. No images or behavior traces from these scenes were
@@ -146,8 +158,9 @@ Kimi and is not current-code proof.
 
 ## Next action
 
-Collect reserved-scene readiness and the current full gate, then validate the
-recovery change on development scenes10/12. Complete new epoch/full matched manifests,
+Collect the running scene10 development replay, then validate scene12. Resolve
+the proven reserved-scene asset-download blocker before reserved execution.
+Complete new epoch/full matched manifests,
 actual token/runtime budgets, trusted current-code hosted proof and the full visual
 gate. Neither compact successes nor green deterministic tests close these gates.
 Do not stitch different code/content epochs into the old first-attempt cohort.
