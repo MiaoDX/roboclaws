@@ -33,8 +33,8 @@ MiMo Responses scene12 attempt1 is RUNNING, session `30357`:
   targets, fresh Runtime Metric Map. Canonical route `mimo`, request model
   `xiaomi/mimo-v2.6-pro`.
 - Same100-call /16M-token /3600s-wall /180s-stall bounds, zero automatic retries.
-- Latest live poll: running-sdk at570s,11 successful responses, one completed
-  cleanup chain, waypoint coverage0.2; no terminal capability verdict yet.
+- Latest live poll: running-sdk at1320s,18 successful responses, zero provider
+  errors; no authoritative run result or terminal capability verdict yet.
 
 MiMo Responses scene10 attempt2 is terminal and BLOCKED, session `87152`:
 
@@ -73,6 +73,37 @@ MiniMax scene12 attempt3 (session `25951`) is terminal:
 All earlier simulator sessions, including MiMo scene10 `80444`, are terminal.
 Keep one simulator at a time. Read compact summaries or selected JSON fields;
 never print a raw checker assertion or private report wholesale.
+
+The next required independent proof is prepared in
+`output/convergence-resume-20261008/run-mimo-fresh-map-attempt1.py`.
+After session30357 is confirmed terminal, run it with the repo `.venv/bin/python`.
+It invokes the canonical suite CLI for all six fresh MapBuild/cleanup trials,
+serially across development0/10/12, using MiMo Responses and the committed
+100-call /16M-token /3600s-wall /180s-stall per-trial bounds, zero retries.
+It requires a clean checkout and an existing scene12 terminal artifact, records
+code/content/command identity, and refuses to overwrite an existing attempt.
+It has not launched; its prepared command is not live evidence.
+
+## MiMo response-stall investigation
+
+`output/convergence-resume-20261008/mimo-response-stall-investigation-attempt1.json`
+compares sanitized timings from scene0, both scene10 attempts and the active
+scene12. Both scene10 stalls occur inside nonstreaming `get_response`; their
+unfinished inputs are164,137 and54,675 bytes. No provider error was emitted.
+The SDK default read timeout is600s, longer than the frozen180s eval stall
+guard, so missing error events cannot rule out an upstream or transport failure.
+The guard intentionally ignores status heartbeats and observes actual progress.
+
+The successful scene0/scene10-attempt2 response maxima are101.021/104.957s.
+At the captured scene12 snapshot, the longest successful response is154.846s
+with5,575 reasoning tokens. Slow reasoning is plausible, but local spans do
+not distinguish provider queueing, generation and transport waiting for the
+cancelled calls. Input size alone does not establish the cause either.
+No product fix, timeout relaxation, thinking-mode change or retry is justified
+by this evidence. The investigation closes with root cause unresolved; obtain
+provider-side timing or a separately bounded transport-progress diagnostic
+before another scene10 replay. The already running scene12 and required fresh
+MapBuild proof can continue independently. No scope lock was acquired.
 
 ## Latest implementation and checks
 
