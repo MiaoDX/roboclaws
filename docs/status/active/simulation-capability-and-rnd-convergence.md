@@ -24,8 +24,9 @@ The fresh MapBuild/cleanup suite is terminal: four passed, one failed, one block
 All three builders pass; scene0 cleanup passes4/5, scene10 cleanup stalls, and
 scene12 cleanup exhausts100 decisions with three chains and unfinished headings.
 The backend support-attribution fix passes22 focused tests, the complete
-repository gate, and a fresh real backend/CUDA DINO proof. New-code scene12
-agent cleanup verification is next; overall capability remains incomplete.
+repository gate, and a fresh real backend/CUDA DINO proof (`55f879d8`).
+New-code scene12 agent cleanup verification is running; overall capability
+remains incomplete.
 No development replay replaces an old failed cohort row. Full MiniMax real-DINO,
 MiMo Responses smoke, matched external cohorts and trusted current-code hosted
 proof remain required. No baseline/catalog or full schedule is promoted.
@@ -119,9 +120,17 @@ no usage limitation. These are first-attempt results, not replacement rows.
 
 All six-trial and diagnostic simulator sessions are terminal. Sessions `27674`
 (real backend/DINO) and `23229` (full gate) completed successfully and are consumed.
-The prepared new-code scene12 replay is
-`output/convergence-resume-20261008/replay-mimo-scene12-support-attempt1.py`;
-start it only after committing the verified repair with a clean checkout.
+
+ACTIVE simulator: new-code MiMo scene12 no-prior development smoke, session
+`30722`, started clean at `55f879d8`. Wrapper/log:
+`output/convergence-resume-20261008/replay-mimo-scene12-support-attempt1.py`
+and matching `.log`; root `mimo-scene12-support-attempt1/` under that directory.
+Canonical sample `cleanup.convergence_v2.dino.scene12.seed7`, repetition0 only,
+static-full, actual CUDA DINO, request `xiaomi/mimo-v2.6-pro`. Bounds remain
+100 calls /16M tokens /3600s wall /180s stall, zero retries. Preserve executable
+identity during this run. Poll session30722 and `surface-run/seed-7/live_status.json`
+before starting another simulator. This single development trial cannot replace
+old rows or establish a complete cohort; no baseline promotion.
 
 The scene12 public/private mismatch was investigated after termination. The
 four chain count comes from four distinct public observed handles, each with a
@@ -405,8 +414,8 @@ must reach an authorized trusted ref before the new hosted proof can run.
 
 ## Remaining acceptance and next action
 
-1. Commit the verified support-attribution repair and run the prepared new-code
-   scene12 no-prior development smoke. Diagnose
+1. Collect new-code scene12 no-prior development smoke (session30722) before
+   any additional simulator or product changes. Diagnose
    scene12 missing discovery/actionability and the new prior-consuming run's
    budget exhaustion using public traces. Complete passing MiMo real-DINO smoke
    and all three fresh MapBuild pairs under a new consistent executable epoch.
