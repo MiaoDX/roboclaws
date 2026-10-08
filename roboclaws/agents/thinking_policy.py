@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Literal
 
 from roboclaws.core.provider_catalog import (
-    PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
+    RETIRED_PROVIDER_PROFILES,
     WIRE_CHAT_COMPLETIONS,
     WIRE_RESPONSES,
 )
@@ -38,6 +38,10 @@ def apply_model_thinking_policy(
 ) -> dict[str, Any]:
     """Apply provider-aware thinking settings to an OpenAI Agents SDK settings dict."""
 
+    if provider_profile in RETIRED_PROVIDER_PROFILES:
+        raise ValueError(
+            f"OpenAI Agents SDK setting provider_profile {provider_profile!r} is retired"
+        )
     normalized = normalize_thinking_mode(mode)
     if normalized == THINKING_MODE_DEFAULT:
         if wire_api in {WIRE_CHAT_COMPLETIONS, WIRE_RESPONSES}:
@@ -48,15 +52,9 @@ def apply_model_thinking_policy(
                 mode=THINKING_MODE_ENABLED,
             )
         return settings
-    if provider_profile == PROVIDER_PROFILE_KIMI_OPENAI_CHAT:
-        if wire_api != WIRE_CHAT_COMPLETIONS:
-            raise ValueError("Kimi coding thinking policy is only supported on OpenAI Chat")
-        if normalized == THINKING_MODE_DISABLED:
-            raise ValueError("Kimi coding is thinking-only and cannot disable thinking mode")
-        return settings
     if wire_api == WIRE_CHAT_COMPLETIONS:
         extra_body = dict(settings.get("extra_body") or {})
-        extra_body["thinking"] = _kimi_thinking_payload(normalized)
+        extra_body["thinking"] = _chat_thinking_payload(normalized)
         settings["extra_body"] = extra_body
         return settings
     if wire_api == WIRE_RESPONSES:
@@ -76,20 +74,18 @@ def thinking_request_body_for_wire(
 ) -> dict[str, Any]:
     """Return raw HTTP request-body fields for model-matrix/direct probes."""
 
+    if provider_profile in RETIRED_PROVIDER_PROFILES:
+        raise ValueError(
+            f"OpenAI Agents SDK setting provider_profile {provider_profile!r} is retired"
+        )
     normalized = normalize_thinking_mode(mode)
     if normalized == THINKING_MODE_DEFAULT:
         if wire_api in {WIRE_CHAT_COMPLETIONS, WIRE_RESPONSES}:
             normalized = THINKING_MODE_ENABLED
         else:
             return {}
-    if provider_profile == PROVIDER_PROFILE_KIMI_OPENAI_CHAT:
-        if wire_api != WIRE_CHAT_COMPLETIONS:
-            raise ValueError("Kimi coding thinking policy is only supported on OpenAI Chat")
-        if normalized == THINKING_MODE_DISABLED:
-            raise ValueError("Kimi coding is thinking-only and cannot disable thinking mode")
-        return {}
     if wire_api == WIRE_CHAT_COMPLETIONS:
-        return {"thinking": _kimi_thinking_payload(normalized)}
+        return {"thinking": _chat_thinking_payload(normalized)}
     if wire_api == WIRE_RESPONSES:
         return {"reasoning": _responses_reasoning_payload(normalized)}
     raise ValueError(
@@ -98,12 +94,12 @@ def thinking_request_body_for_wire(
     )
 
 
-def _kimi_thinking_payload(mode: str) -> dict[str, str]:
+def _chat_thinking_payload(mode: str) -> dict[str, str]:
     if mode == THINKING_MODE_ENABLED:
         return {"type": "enabled", "keep": "all"}
     if mode == THINKING_MODE_DISABLED:
         return {"type": "disabled"}
-    raise ValueError(f"unsupported Kimi thinking mode {mode!r}")
+    raise ValueError(f"unsupported Chat thinking mode {mode!r}")
 
 
 def _responses_reasoning_payload(mode: str) -> dict[str, str]:

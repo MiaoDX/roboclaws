@@ -19,8 +19,7 @@ provider-native reasoning and structured response items; Chat Completions uses
 message/delta semantics. The runtime selects the matching SDK model class from
 the profile and does not perform automatic fallback.
 
-Kimi's thinking-only and public provider User-Agent compatibility rules remain
-explicit. The environment-configured MiMo Responses route has text-only catalog
+The environment-configured MiMo Responses route has text-only catalog
 capability, unknown image transport, and no alias, pricing, or endpoint default.
 Codex Responses support was retired after full-program requests failed with 403;
 see the [investigation](../status/active/codex-responses-api-investigation.md).

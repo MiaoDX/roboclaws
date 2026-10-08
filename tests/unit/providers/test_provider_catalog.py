@@ -18,6 +18,8 @@ from roboclaws.core.provider_catalog import (
     ROUTE_CAP_UNKNOWN,
     default_provider_profile,
     model_aliases,
+    model_specs,
+    provider_identity_engines,
     provider_route_spec,
     provider_route_specs,
     resolve_model,
@@ -32,9 +34,8 @@ EXPECTED_PROFILES = (
     "mimo-responses",
     "mimo-tp-openai-chat",
     "minimax-responses",
-    "kimi-openai-chat",
-    "qwen-tp-responses",
 )
+
 EXPECTED_ACTIVE_PROFILES = (
     "mimo-responses",
     "mimo-tp-openai-chat",
@@ -47,6 +48,14 @@ def test_openai_agents_registry_has_exact_public_profile_set() -> None:
     assert ACTIVE_PROVIDER_PROFILES == EXPECTED_ACTIVE_PROFILES
     assert tuple(route.route_id for route in provider_route_specs()) == EXPECTED_PROFILES
     assert default_provider_profile("openai-agents-sdk") == PROVIDER_PROFILE_MIMO_RESPONSES
+    assert {model.family for model in model_specs()} == {"mimo", "minimax"}
+
+
+@pytest.mark.parametrize("profile", ["kimi-openai-chat", "qwen-tp-responses"])
+def test_historical_identity_does_not_restore_route_registration(profile):
+    assert provider_identity_engines(profile) == ("openai-agents-sdk",)
+    with pytest.raises(KeyError):
+        provider_route_spec(profile)
 
 
 def test_env_example_tracks_active_provider_environment_contract() -> None:
@@ -91,6 +100,8 @@ def test_unknown_agent_engines_share_one_readiness_error(agent_engine: str) -> N
     "deleted",
     [
         "codex-responses",
+        "kimi-openai-chat",
+        "qwen-tp-responses",
         "retired-responses-route",
         "retired-chat-route",
         "retired-anthropic-route",
@@ -122,11 +133,9 @@ def test_named_chat_profiles_have_catalog_models() -> None:
     ]
     assert [route.public_profile for route in chat_routes] == [
         "mimo-tp-openai-chat",
-        "kimi-openai-chat",
     ]
     assert [resolve_model(route.default_model_id).family for route in chat_routes] == [
         "mimo",
-        "kimi",
     ]
 
 
@@ -167,24 +176,17 @@ def test_mimo_tp_chat_accepts_explicit_pro_model() -> None:
 
 @pytest.mark.parametrize("profile", ["kimi-openai-chat", "qwen-tp-responses"])
 def test_retired_provider_readiness_rejects_even_configured_credentials(profile: str) -> None:
-    route = provider_route_spec(profile)
     readiness = provider_readiness(
         agent_engine="openai-agents-sdk",
         provider_profile=profile,
-        env={key: "configured-test-value" for key in route.required_env_keys},
+        env={
+            key: "configured-test-value"
+            for key in ("KIMI_API_KEY", "KIMI_OPENAI_BASE_URL", "QWEN_TP_KEY", "QWEN_TP_BASE_URL")
+        },
     )
     assert readiness["ok"] is False
     assert "is retired" in readiness["message"]
     assert "minimax-responses" in readiness["message"]
-
-
-def test_qwen_tp_responses_accepts_flash_and_rejects_foreign_model() -> None:
-    resolved = resolve_route_model("qwen-tp-responses", "qwen3.8-flash")
-    assert resolved.model_id == "qwen3.8-flash"
-    assert resolved.family == "qwen"
-    assert resolved.supports_image_input is True
-    with pytest.raises(ValueError, match="incompatible"):
-        resolve_route_model("qwen-tp-responses", "k3")
 
 
 def test_mimo_responses_rejects_non_pro_model() -> None:

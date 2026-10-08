@@ -15,7 +15,7 @@ def _execution(*, dispatch_runner: str = "direct", backend: str = "api_semantic_
         dispatch_runner=dispatch_runner,
         goal_contract=SimpleNamespace(to_json=lambda: '{"schema":"goal"}'),
         intent="cleanup",
-        provider_profile="kimi-openai-chat",
+        provider_profile="mimo-tp-openai-chat",
         skill_name="household-world",
         surface="household-world",
         world="molmospaces/procthor-10k-val/0",

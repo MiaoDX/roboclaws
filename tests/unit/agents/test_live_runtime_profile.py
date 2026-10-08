@@ -20,9 +20,9 @@ def test_openai_agents_perf_profile_resolves_context_managed_defaults(monkeypatc
 
     assert profile["profile_id"] == "context_managed_v1"
     assert profile["source"] == "default"
-    assert profile["provider_profile"] == "kimi-openai-chat"
+    assert profile["provider_profile"] == "mimo-tp-openai-chat"
     assert profile["wire_api"] == "chat-completions"
-    assert profile["model_family"] == "kimi"
+    assert profile["model_family"] == "mimo"
     assert profile["evidence_lane"] == "camera-grounded-labels"
     assert profile["model_thinking_mode"] == "default"
     assert profile["continuation_mode"] == "state_summary_only"
@@ -63,7 +63,6 @@ def test_openai_agents_perf_profile_resolves_context_managed_defaults(monkeypatc
         "parallel_tool_calls": False,
         "model_thinking_mode": "default",
         "include_usage": True,
-        "extra_headers": {"User-Agent": "claude-code/1.0.0"},
     }
     assert profile["sdk_run_config"] == {
         "trace_include_sensitive_data": False,
@@ -72,6 +71,16 @@ def test_openai_agents_perf_profile_resolves_context_managed_defaults(monkeypatc
 
 
 def test_eval_provider_budget_reaches_sdk_model_settings(monkeypatch) -> None:
+    from dataclasses import replace
+
+    from roboclaws.core.provider_catalog import resolve_model
+
+    # The active subscription route has no billable output rate. Use an explicit
+    # priced fixture to test cap propagation without inventing production pricing.
+    priced_model = replace(resolve_model("mimo-v2.6-pro"), cost_per_m={"output": 3.0})
+    monkeypatch.setattr(
+        "roboclaws.agents.provider_transport.maybe_resolve_model", lambda _model: priced_model
+    )
     monkeypatch.setenv("ROBOCLAWS_EVAL_PROVIDER_TOKEN_BUDGET", "128000")
     monkeypatch.setenv("ROBOCLAWS_EVAL_PROVIDER_COST_BUDGET_USD", "0.384")
 

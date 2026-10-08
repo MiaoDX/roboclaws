@@ -37,15 +37,15 @@ def test_openai_agents_default_model_settings_apply_provider_thinking_policy() -
         wire_api="responses",
         profile_id="baseline",
     )
-    kimi_chat = _default_sdk_model_settings_payload(
-        provider_profile="kimi-openai-chat",
+    mimo_chat = _default_sdk_model_settings_payload(
+        provider_profile="mimo-tp-openai-chat",
         wire_api="chat-completions",
         profile_id="baseline",
     )
     assert responses["reasoning"] == {"effort": "medium"}
     assert responses["truncation"] == "auto"
-    assert "extra_body" not in kimi_chat
-    assert kimi_chat["extra_headers"] == {"User-Agent": "claude-code/1.0.0"}
+    assert mimo_chat["extra_body"] == {"thinking": {"type": "enabled", "keep": "all"}}
+    assert "extra_headers" not in mimo_chat
 
 
 def test_openai_agents_runtime_uses_explicit_mimo_responses_profile(
@@ -639,7 +639,7 @@ def test_openai_agents_perf_profile_uses_cache_tools_env(monkeypatch) -> None:
     assert profile["cache_tools_list"] is False
 
 
-def test_openai_agents_perf_profile_resolves_minimax_and_kimi_defaults(monkeypatch) -> None:
+def test_openai_agents_perf_profile_resolves_minimax_and_mimo_defaults(monkeypatch) -> None:
     monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", raising=False)
     minimax = _resolve_agent_sdk_perf_profile(
         _openai_agents_perf_profile_base_args(
@@ -659,48 +659,19 @@ def test_openai_agents_perf_profile_resolves_minimax_and_kimi_defaults(monkeypat
 
     chat = _resolve_agent_sdk_perf_profile(
         _openai_agents_perf_profile_base_args(
-            provider_profile="kimi-openai-chat",
-            model="k3",
+            provider_profile="mimo-tp-openai-chat",
+            model="mimo-v2.6-pro",
         )
     )
-    assert chat["provider_profile"] == "kimi-openai-chat"
+    assert chat["provider_profile"] == "mimo-tp-openai-chat"
     assert chat["wire_api"] == "chat-completions"
-    assert chat["model_family"] == "kimi"
+    assert chat["model_family"] == "mimo"
     assert chat["sdk_model_settings"] == {
         "tool_choice": "auto",
         "parallel_tool_calls": False,
         "model_thinking_mode": "default",
         "include_usage": True,
-        "extra_headers": {"User-Agent": "claude-code/1.0.0"},
     }
-
-    kimi = _resolve_agent_sdk_perf_profile(
-        _openai_agents_perf_profile_base_args(
-            provider_profile="kimi-openai-chat",
-            model="k3",
-        )
-    )
-    assert kimi["provider_profile"] == "kimi-openai-chat"
-    assert kimi["wire_api"] == "chat-completions"
-    assert kimi["sdk_model_settings"]["extra_headers"] == {"User-Agent": "claude-code/1.0.0"}
-
-
-def test_openai_agents_perf_profile_resolves_qwen_responses_context_limits(monkeypatch) -> None:
-    monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", raising=False)
-    qwen = _resolve_agent_sdk_perf_profile(
-        _openai_agents_perf_profile_base_args(
-            provider_profile="qwen-tp-responses",
-            model="qwen3.8-max",
-            agent_sdk_perf_profile="context_managed_v1",
-        )
-    )
-
-    assert qwen["provider_profile"] == "qwen-tp-responses"
-    assert qwen["wire_api"] == "responses"
-    assert qwen["model_family"] == "qwen"
-    # qwen3.8-max declares 1M native window; derived hard limit clamps at 256K.
-    assert qwen["context_hard_limit_tokens"] == 256_000
-    assert qwen["sdk_model_settings"]["truncation"] == "auto"
 
 
 @pytest.mark.parametrize("profile", ["kimi-openai-chat", "qwen-tp-responses"])

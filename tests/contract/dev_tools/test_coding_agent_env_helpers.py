@@ -114,21 +114,21 @@ def test_provider_helper_requires_explicit_profile_selection() -> None:
     assert "Traceback" not in result.stderr
 
 
-def test_profile_summary_uses_final_kimi_contract() -> None:
+def test_profile_summary_uses_active_chat_contract() -> None:
     result = run_helper(
         """
         set -euo pipefail
         source "$ROBOCLAWS_HELPER"
-        ROBOCLAWS_PROVIDER_PROFILE=kimi-openai-chat
-        KIMI_OPENAI_BASE_URL=https://kimi.example.test/v1
-        KIMI_API_KEY=fake-kimi-key
+        ROBOCLAWS_PROVIDER_PROFILE=mimo-tp-openai-chat
+        MIMO_OPENAI_BASE_URL=https://mimo.example.test/v1
+        MIMO_TP_KEY=fake-mimo-key
         roboclaws_code_agent_profile_summary \
           ROBOCLAWS_PROVIDER_PROFILE ROBOCLAWS_OPENAI_AGENTS_MODEL
         """
     )
 
     assert result.returncode == 0
-    assert "kimi-openai-chat model=kimi-for-coding" in result.stdout
+    assert "mimo-tp-openai-chat model=mimo-v2.6-pro" in result.stdout
     assert "protocol=chat-completions" in result.stdout
 
 
@@ -193,7 +193,7 @@ def test_sdk_launch_gate_rejects_retired_profiles() -> None:
             """
         )
         assert result.returncode == 2
-        assert "unsupported OpenAI Agents SDK provider" in result.stderr
+        assert "unsupported provider profile" in result.stderr
         assert "provider gate ok" not in result.stderr
 
 

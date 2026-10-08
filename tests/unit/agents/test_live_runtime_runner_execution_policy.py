@@ -63,7 +63,7 @@ def test_openai_agents_cleanup_runner_invokes_sdk_then_checker(tmp_path: Path, m
     class FakeRuntime:
         def run(self, request: LiveAgentRequest) -> LiveAgentResult:
             assert request.mcp_server.url == "http://127.0.0.1:18788/mcp"
-            assert request.provider_profile == "kimi-openai-chat"
+            assert request.provider_profile == "mimo-tp-openai-chat"
             (request.run_dir / "run_result.json").write_text(
                 json.dumps(
                     {
@@ -124,8 +124,8 @@ def test_openai_agents_cleanup_runner_invokes_sdk_then_checker(tmp_path: Path, m
         host="127.0.0.1",
         port=18788,
         lock_path=lock_path,
-        provider_profile="kimi-openai-chat",
-        model="k3",
+        provider_profile="mimo-tp-openai-chat",
+        model="mimo-v2.6-pro",
         max_turns=128,
         mcp_client_session_timeout_s=30.0,
         agent_sdk_perf_profile="",
@@ -257,8 +257,8 @@ def test_openai_agents_cleanup_runner_loads_canonical_skill_context(
         host="127.0.0.1",
         port=18788,
         lock_path=tmp_path / "live.lock",
-        provider_profile="kimi-openai-chat",
-        model="k3",
+        provider_profile="mimo-tp-openai-chat",
+        model="mimo-v2.6-pro",
         max_turns=128,
         incomplete_turn_continuation_attempts=2,
         mcp_client_session_timeout_s=30.0,
@@ -401,8 +401,8 @@ def test_openai_agents_cleanup_runner_continues_incomplete_sdk_turn(
         host="127.0.0.1",
         port=18788,
         lock_path=tmp_path / "live.lock",
-        provider_profile="kimi-openai-chat",
-        model="k3",
+        provider_profile="mimo-tp-openai-chat",
+        model="mimo-v2.6-pro",
         max_turns=128,
         incomplete_turn_continuation_attempts=2,
         mcp_client_session_timeout_s=30.0,
@@ -558,8 +558,8 @@ def test_openai_agents_cleanup_runner_compact_continuation_excludes_full_prompt(
         host="127.0.0.1",
         port=18788,
         lock_path=tmp_path / "live.lock",
-        provider_profile="kimi-openai-chat",
-        model="k3",
+        provider_profile="mimo-tp-openai-chat",
+        model="mimo-v2.6-pro",
         max_turns=128,
         incomplete_turn_continuation_attempts=2,
         mcp_client_session_timeout_s=30.0,

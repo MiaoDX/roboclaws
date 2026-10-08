@@ -63,7 +63,7 @@ gitignored. Source it before any real VLM/provider call:
 
 ```bash
 set -a && source .env && set +a
-python -c "import os; assert os.environ.get('KIMI_API_KEY') or os.environ.get('MIMO_RESPONSES_API_KEY') or os.environ.get('MM_API_KEY'), 'No provider key set - did you source .env?'"
+python -c "import os; assert os.environ.get('MIMO_RESPONSES_API_KEY') or os.environ.get('MIMO_TP_KEY') or os.environ.get('MM_API_KEY'), 'No provider key set - did you source .env?'"
 ```
 
 Current live product route:

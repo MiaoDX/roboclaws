@@ -171,8 +171,8 @@ def test_showcase_provider_lanes_follow_capacity_policy():
 
     assert showcase_lane("minimax-responses") == ("public-primary", 1)
     assert showcase_lane("mimo-tp-openai-chat") == ("public-primary", 2)
-    assert showcase_lane("kimi-openai-chat") == ("public-compatibility", 3)
-    assert showcase_lane("qwen-tp-responses") == ("public-compatibility", 3)
+    assert showcase_lane("kimi-openai-chat") == ("unclassified", 99)
+    assert showcase_lane("qwen-tp-responses") == ("unclassified", 99)
 
 
 def test_manifest_rejects_evidence_identity_that_disagrees_with_selected_sample():
@@ -310,8 +310,7 @@ def test_showcase_html_renders_dashboard_instead_of_escaped_markdown():
     assert "<pre>" not in rendered
     assert "showcase_row_timeout" in rendered
     assert "kimi-openai-chat" in rendered
-    assert "public-compatibility" in rendered
-    assert "#3" in rendered
+    assert "public-compatibility" not in rendered
     assert 'href="reports/mimo/evals/cleanup/run/eval_report.html"' in rendered
     assert 'href="reports/mimo/evals/cleanup/run/runs/sample/report.html"' in rendered
     assert "Visual HTML report" in rendered

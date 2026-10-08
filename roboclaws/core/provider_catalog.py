@@ -12,8 +12,7 @@ PROVIDER_PROFILE_MINIMAX_RESPONSES = "minimax-responses"
 PROVIDER_PROFILE_KIMI_OPENAI_CHAT = "kimi-openai-chat"
 PROVIDER_PROFILE_QWEN_TP_RESPONSES = "qwen-tp-responses"
 
-# Executable product/eval routes. Legacy route specifications remain readable
-# for historical reports, but callers selecting a live route must use this set.
+# Executable product/eval routes. Historical identities are kept separately.
 ACTIVE_PROVIDER_PROFILES = (
     PROVIDER_PROFILE_MIMO_RESPONSES,
     PROVIDER_PROFILE_MIMO_TP_OPENAI_CHAT,
@@ -262,59 +261,6 @@ _PROVIDER_ROUTE_SPECS: tuple[ProviderRouteSpec, ...] = (
         },
         status_note="OpenAI Agents SDK structured cleanup works.",
     ),
-    ProviderRouteSpec(
-        route_id=PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
-        public_profile=PROVIDER_PROFILE_KIMI_OPENAI_CHAT,
-        label="Kimi Code",
-        supported_engines=("openai-agents-sdk",),
-        default_model_id="kimi-for-coding",
-        required_env_keys=("KIMI_OPENAI_BASE_URL", "KIMI_API_KEY"),
-        api_key_env="KIMI_API_KEY",
-        base_url_env="KIMI_OPENAI_BASE_URL",
-        base_url_default="",
-        wire_api=WIRE_CHAT_COMPLETIONS,
-        wire_source=WIRE_SOURCE_NATIVE,
-        default_use=True,
-        default_use_note=(
-            "Default-enabled Kimi Code route. kimi-for-coding is the current lower-cost "
-            "coding model; K3 remains an explicit high-capability variant."
-        ),
-        compatible_model_ids=("kimi-for-coding", "k3", "k3-256k"),
-        per_engine_status={"openai-agents-sdk": ROUTE_EXPERIMENTAL},
-        route_capabilities={
-            "image_transport": ROUTE_CAP_UNSUPPORTED,
-            "tool_call_transport": ROUTE_CAP_SUPPORTED,
-        },
-    ),
-    ProviderRouteSpec(
-        route_id=PROVIDER_PROFILE_QWEN_TP_RESPONSES,
-        public_profile=PROVIDER_PROFILE_QWEN_TP_RESPONSES,
-        label="Qwen TP 3.8",
-        supported_engines=("openai-agents-sdk",),
-        default_model_id="qwen3.8-max",
-        required_env_keys=("QWEN_TP_BASE_URL", "QWEN_TP_KEY"),
-        api_key_env="QWEN_TP_KEY",
-        base_url_env="QWEN_TP_BASE_URL",
-        base_url_default="",
-        wire_api=WIRE_RESPONSES,
-        wire_source=WIRE_SOURCE_NATIVE,
-        default_use=False,
-        default_use_note=(
-            "Qwen token-plan Responses route; subscription Credits billing with a "
-            "7-day quota window, so eval batches must watch the tier limit."
-        ),
-        compatible_model_ids=("qwen3.8-max", "qwen3.8-flash"),
-        per_engine_status={"openai-agents-sdk": ROUTE_EXPERIMENTAL},
-        route_capabilities={
-            "image_transport": ROUTE_CAP_SUPPORTED,
-            "tool_call_transport": ROUTE_CAP_SUPPORTED,
-        },
-        status_note=(
-            "Text, tool calling, image input (min 10px), and reasoning effort "
-            "medium/none are live-proven on the Responses endpoint; streaming and "
-            "previous_response_id continuation remain unproven."
-        ),
-    ),
 )
 
 
@@ -334,8 +280,24 @@ _ROUTE_BY_ALIAS = {
 }
 
 
+# Historical readers need identity only, never endpoint or client construction data.
+RETIRED_PROVIDER_PROFILES = (PROVIDER_PROFILE_KIMI_OPENAI_CHAT, PROVIDER_PROFILE_QWEN_TP_RESPONSES)
+
+
+def provider_identity_engines(profile: str) -> tuple[str, ...]:
+    if profile in RETIRED_PROVIDER_PROFILES:
+        return ("openai-agents-sdk",)
+    return provider_route_spec(profile).supported_engines
+
+
 def model_specs() -> tuple[ModelSpec, ...]:
-    return _MODEL_SPECS
+    """Models advertised by active routes; historical lookup stays in resolve_model."""
+    active_ids = {
+        model_id
+        for route in _PROVIDER_ROUTE_SPECS
+        for model_id in (route.default_model_id, *route.compatible_model_ids)
+    }
+    return tuple(spec for spec in _MODEL_SPECS if spec.model_id in active_ids)
 
 
 def provider_route_specs() -> tuple[ProviderRouteSpec, ...]:
@@ -343,7 +305,7 @@ def provider_route_specs() -> tuple[ProviderRouteSpec, ...]:
 
 
 def default_enabled_models() -> tuple[ModelSpec, ...]:
-    return tuple(spec for spec in _MODEL_SPECS if spec.default_use)
+    return tuple(spec for spec in model_specs() if spec.default_use)
 
 
 def default_enabled_provider_routes() -> tuple[ProviderRouteSpec, ...]:

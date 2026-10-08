@@ -206,29 +206,27 @@ def test_openai_agents_runtime_rejects_invalid_model_racing_numeric_settings(
 
 def test_openai_agents_perf_profile_resolves_managed_and_racing_defaults(monkeypatch) -> None:
     monkeypatch.delenv("ROBOCLAWS_OPENAI_AGENTS_PERF_PROFILE", raising=False)
-    kimi_managed = _resolve_agent_sdk_perf_profile(
+    mimo_managed = _resolve_agent_sdk_perf_profile(
         _openai_agents_perf_profile_base_args(agent_sdk_perf_profile="context_managed_v1")
     )
 
-    assert kimi_managed["source"] == "cli"
-    assert kimi_managed["continuation_mode"] == "state_summary_only"
-    assert kimi_managed["max_turns"] == 128
-    assert kimi_managed["max_continuations"] == 1
-    # Kimi Code declares 200K native window; hard limit = 200000 * 0.75 = 150_000.
-    assert kimi_managed["context_hard_limit_tokens"] == 150_000
-    assert kimi_managed["done_retry_budget"] == 1
-    assert "truncation" not in kimi_managed["sdk_model_settings"]
-    assert kimi_managed["sdk_model_settings"]["extra_headers"] == {
-        "User-Agent": "claude-code/1.0.0"
-    }
+    assert mimo_managed["source"] == "cli"
+    assert mimo_managed["continuation_mode"] == "state_summary_only"
+    assert mimo_managed["max_turns"] == 128
+    assert mimo_managed["max_continuations"] == 1
+    # MiMo TP Pro declares 200K native window; hard limit = 200000 * 0.75 = 150_000.
+    assert mimo_managed["context_hard_limit_tokens"] == 150_000
+    assert mimo_managed["done_retry_budget"] == 1
+    assert "truncation" not in mimo_managed["sdk_model_settings"]
+    assert "extra_headers" not in mimo_managed["sdk_model_settings"]
     # candidate_ids removed in Task 14 (informational; mode list is now the source of truth)
-    assert "mode" in kimi_managed["model_input_compaction"]
-    assert kimi_managed["model_input_compaction"]["mode"] == [
+    assert "mode" in mimo_managed["model_input_compaction"]
+    assert mimo_managed["model_input_compaction"]["mode"] == [
         "camera_grounded_history_v1",
         "public_tool_result_summary_v1",
         "repeated_metric_map_delta_v1",
     ]
-    assert kimi_managed["model_input_compaction"]["camera_grounded_history"] == {
+    assert mimo_managed["model_input_compaction"]["camera_grounded_history"] == {
         "schema": "agent_sdk_camera_grounded_history_policy_v1",
         "enabled": True,
         "mode": "retain_latest_actionable_outputs",
@@ -239,8 +237,8 @@ def test_openai_agents_perf_profile_resolves_managed_and_racing_defaults(monkeyp
             "and run artifacts remain complete"
         ),
     }
-    assert kimi_managed["camera_grounded_composite_tools"]["candidate_ids"] == ["O"]
-    assert kimi_managed["camera_grounded_composite_tools"]["enabled"] is True
+    assert mimo_managed["camera_grounded_composite_tools"]["candidate_ids"] == ["O"]
+    assert mimo_managed["camera_grounded_composite_tools"]["enabled"] is True
 
     racing = _resolve_agent_sdk_perf_profile(
         _openai_agents_perf_profile_base_args(model_racing=True, model_racing_arm_count=None)

@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-28
+Last updated: 2026-09-30
 
 This is the human-facing dashboard for current repo state. Keep it short,
 latest-first, and pointer-based. Do not use this file as a changelog or
@@ -129,9 +129,12 @@ cohort. See the initiative capsule for exact evidence paths.
 
 ## Next Action
 
-Continue the convergence plan from the remaining MiMo TP compatibility stall
-and the real-DINO multiscene capability cohort. The following baseline notes
-remain historical follow-up context, not a competing priority.
+Continue convergence with current-code real-DINO development diagnosis and
+matched full external cohort/budget preparation. Both external providers now
+pass compact bread and cleanup first attempts, and the paired MiniMax Skill
+control passes both treatments. These do not replace the full-cohort gates.
+The following baseline notes remain historical follow-up context, not a
+competing priority.
 
 Keep both full baseline packets and the four follow-up result bundles as
 separate evidence. Reconsider baseline promotion only through the existing
@@ -147,7 +150,11 @@ decisions remain unchanged.
 
 - The convergence MiMo TP static-full cleanup compatibility cohort has one
   blocked first attempt after a 180-second no-progress stall; two attempts pass.
-  The real-DINO multiscene capability cohort is not yet collected.
+  The real-DINO MiniMax v1 ledger covers all 15 identities but misses acceptance;
+  MiMo Responses development smoke is incomplete. Reserved scenes 11/13 were
+  inspected, so new generalization proof needs a fresh reserved set. Full hosted
+  case caps also exceed the current 60-minute shard envelope; scheduled full
+  execution is not enabled.
 - The latest 2026-09-27 local baseline rerun is not passing: three rows are
   blocked by one MiMo TP model-call stall and MiniMax Token Plan exhaustion.
   The prior packet's three failed and two blocked rows remain preserved; none

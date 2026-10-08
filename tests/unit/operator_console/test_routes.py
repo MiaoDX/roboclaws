@@ -243,8 +243,7 @@ def test_openai_agents_route_payload_lists_provider_profiles() -> None:
     assert route_by_profile["minimax-responses"]["route_capabilities"]["image_transport"] == (
         "unknown"
     )
-    assert route_by_profile["qwen-tp-responses"]["wire_api"] == "responses"
-    assert route_by_profile["qwen-tp-responses"]["route_status"] == "experimental"
+    assert set(route_by_profile) == set(payload["supported_provider_profiles"])
 
 
 def test_console_exposes_all_supported_household_evidence_lanes() -> None:

@@ -12,6 +12,10 @@ SECRET_ENV_KEYS = tuple(
     key for route in provider_route_specs() for key in route.required_env_keys
 ) + (
     # Retired route configuration may still occur in retained evidence.
+    "KIMI_API_KEY",
+    "KIMI_OPENAI_BASE_URL",
+    "QWEN_TP_KEY",
+    "QWEN_TP_BASE_URL",
     "CODEX_RESPONSES_API_KEY",
     "CODEX_RESPONSES_BASE_URL",
     "CODEX_RESPONSES_MODEL",

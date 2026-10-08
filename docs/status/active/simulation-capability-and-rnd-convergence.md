@@ -12,9 +12,8 @@ each pass both cases (`1/1` per row, zero failed/blocked). All four first-attemp
 packets under `output/convergence-compact/` pass current exact-case showcase
 validation. No simulator process from this collection remains active.
 
-Full initiative acceptance is incomplete: executable legacy Skill/provider
-consumers, full external matrices, trusted current-code hosted proof, paired
-Skill-control live proof, and real-DINO capability acceptance remain open.
+Full initiative acceptance is incomplete: full external matrices, trusted
+current-code hosted proof, and real-DINO capability acceptance remain open.
 
 ## Verification state
 
@@ -23,8 +22,10 @@ profiles; engine launch catalogs advertise only the three active routes.
 Readiness probes and the benchmark use active routes, with the public probe
 profile excluding internal MiMo Responses. Focused provider, launch, console,
 and dev-tool checks passed for those changes; no current-tree full-gate pass is
-claimed after the latest migrations. Historical route lookup still exists and
-its remaining executable consumers require a final audit.
+claimed after the latest migrations. Historical provider identity/model lookup remains read-only; executable Kimi/Qwen
+route registrations, request headers and thinking branches are removed. Active
+README and contributor guidance now describe the two external providers and
+protected-main manual execution.
 
 Showcase aggregation rejects mixed blocked/passed and incomplete counts;
 provider-backed passing packets must include every requested sample/repetition
@@ -53,14 +54,41 @@ kickoff preserve that treatment. Historical Kimi/dynamic-routed regrade passes
 without provider calls, and Evolution isolation checks pass. The Kimi-only
 apple2apple generator and stale active eval fixtures now use MiMo TP.
 
-Paired Skill live proof is RUNNING under session `3188`. Poll that handle;
-do not launch another simulator. Exact commands are frozen in
-`output/convergence-skill-control/paired-commands.json`: MiniMax static-full then
-no-skill, each cleanup seed7/repetition0 with identical canonical prior,
-100-call/3600-second/180-second-stall bounds and zero retries. The serial wrapper
-writes `attempts.json` after each completion, with separate stdout/stderr logs.
-At last observation static-full was `starting-server`; no-skill had not started.
-These are first attempts after the retirement slice, not accepted results yet.
+Paired Skill live proof is terminal: both first attempts passed `1/1`.
+Static-full took 316.399 seconds and no-skill 300.399 seconds, with identical
+MiniMax cleanup seed7/repetition0, canonical prior, 100-call/3600-second/
+180-second-stall bounds and zero retries. Identities match except for the
+Skill treatment; the no-skill artifact records zero included Skill bytes/tokens.
+Commands, attempts and usage are retained under `output/convergence-skill-control/`
+in `paired-commands.json`, `attempts.json` and `paired-proof-summary.json`.
+Static-full input/output usage was 3,024,663/9,010 tokens; no-skill was
+2,923,348/4,863. Both have a missing-response-span limitation. Prompt sizes were
+not extracted and dollar cost is unavailable, not zero. This single paired
+case is a control proof, not a statistically meaningful Skill ranking.
+
+SDK availability was previously proven for all three active routes in
+`output/convergence-provider-retirement/sdk-readiness.json`; the 2026-10-08
+refresh could not complete because provider network calls hung in the restricted
+sandbox. Focused agent,
+console route and catalog checks pass (413 tests), as do Ruff and formatting.
+The current standard gate reached the full suite but could not pass in this sandbox: `uv build` hit its package-source/network restriction and socket-based operator-console tests hit `PermissionError: Operation not permitted`. Ruff, formatting, architecture, quality ratchet, and the focused provider/agent/launch/console/catalog suite pass; no unrestricted full-gate pass is claimed.
+
+Read-only historical development diagnosis is retained at
+`output/convergence-visual/diagnosis-scene0-trial2.json`: the agent called done
+with explicit heading-coverage and cleanup-chain blockers. Two detected Books
+were correctly non-recommended on Desk/ShelvingUnit; the missing misplaced Book
+was not those handles. Do not weaken cleanup recommendation or authorization
+from this evidence. Current-code scene0 DINO replay remains required.
+Previously inspected reserved scenes 11/13 are no longer unseen holdout; a new
+reserved set/version is required before any fresh generalization claim.
+
+Hosted full-matrix feasibility is recorded at
+`output/convergence-hosted-readiness/full-matrix-feasibility.json`.
+Fifteen observed compact cleanup runtimes alone imply about 93 minutes for
+MiniMax and 162 minutes for MiMo TP, excluding setup and other tasks. The
+3600-second per-case cap implies 15 hours/provider and cannot fit a 60-minute
+shard. Full scheduled execution remains unenabled pending a concrete bounded
+sharding/envelope decision; no cost/resource expansion is authorized by elapsed time.
 
 GitHub authentication and workflow read access pass. The latest successful
 hosted run, `https://github.com/MiaoDX/roboclaws/actions/runs/36406210330`, is at
@@ -84,7 +112,7 @@ not proof of the current manifest or two-provider workflow.
 - State-First record: `docs/status/active/state-first-context-manager.md`
 - Reviewed Skill probe: `docs/status/active/skill-delivery-multiscene-probe.md`
 - Plan gate recommendation: `output/eval-harness/20260928T111441Z/eval_harness.{json,md}`
-- Active provider catalog surface: `mimo-responses`, `mimo-tp-openai-chat`, `minimax-responses`; legacy route specs remain readable for historical artifacts.
+- Active provider catalog surface: `mimo-responses`, `mimo-tp-openai-chat`, `minimax-responses`; legacy identities remain readable without executable route specs.
 - Trusted showcase manifest now contains only active provider rows; Kimi rows remain only in historical evidence/readers.
 - Runtime Skill lifecycle now accepts only `static-full`; broad delivery parsing remains available to eval/regrade paths.
 - Showcase workflow now runs active provider shards only, with protected-main push/schedule/manual routing and two-shard concurrency.
@@ -96,7 +124,7 @@ not proof of the current manifest or two-provider workflow.
 - Exact-identity MiniMax repair attempts with `runtime_map_prior=assets/eval-priors/runtime_map_prior_catalog.json` were recorded under `output/eval-harness/20260928T113410Z/repair/`; both cleanup and open-ended cohorts remained blocked because the cleanup MCP server exited before readiness, before any model call.
 - Corrected snapshot-shape and `.env` loading repairs passed independently: MiniMax static-full cleanup `3/3` at `output/eval-harness/20260928T113410Z/repair3/`, and MiniMax open-ended `3/3` at `output/eval-harness/20260928T113410Z/repair3-open/`. These are compatible replacement evidence, not a rewrite of the original blocked packet.
 - MiMo TP static-full cleanup compatibility cohort completed at `output/eval-harness/20260928T113410Z/mimo-tp/`: 2/3 passed, 1/3 blocked by the recorded 180-second no-progress stall; no failures. The blocked denominator remains visible and the cohort is not accepted as fully passing.
-- Frozen visual case identity is recorded in `evals/household_world/manifests/simulation_convergence_visual_v1.json`: development scenes 0/10/12, reserved scenes 11/13, seed 7 with three trial identities per scene, real DINO lane, and fresh-map treatment. Fixture readiness and live collection remain pending.
+- Frozen visual case identity is recorded in `evals/household_world/manifests/simulation_convergence_visual_v1.json`: development scenes 0/10/12, reserved scenes 11/13, seed 7 with three trial identities per scene, real DINO lane, and fresh-map treatment. The v1 collection is now complete by identity but fails acceptance; later reserved-scene inspection prevents an unseen-holdout claim.
 - Fresh real-Grounding-DINO MapBuild readiness runs completed for development scenes 0, 10, and 12 with seed 7: `output/convergence-mapbuild/scene0/0928_2122/seed-7/`, `output/convergence-mapbuild/scene10/0928_2125/seed-7/`, and `output/convergence-mapbuild/scene12/0928_2128/seed-7/`. Each exited `household-world ok` with `map_build_baseline complete`, private truth excluded, zero labeler failures, and sweep coverage 1.0; the runs recorded 35/20/50 DINO events and 239/108/327 candidates respectively.
 - MiniMax real-DINO first attempts now exist for every development scene in the frozen manifest: scene 0 at `output/convergence-visual/minimax/scene0/trial0/` restored 3/5 targets, scene 10 at `output/convergence-visual/minimax/scene10/trial0/` restored 1/5, and scene 12 at `output/convergence-visual/minimax/scene12/trial0/` restored 2/5. All three completed with `partial_success`, real `grounding-dino` provenance, sweep coverage 1.0, and zero disturbances. These are cross-scene capability evidence, not the 12/15 acceptance cohort.
 - Reserved scene 11 first attempt is recorded at `output/convergence-visual/minimax/scene11/trial0/`: the authoritative run artifact reports `completion_status=success`, four grounded cleanup chains, 5-target grading, sweep coverage 1.0, and zero disturbances. The outer cleanup-validation wrapper exited nonzero on a checker mismatch after the successful artifact was written; this remains an explicit validation discrepancy and does not count as a clean accepted cohort row until resolved.
@@ -113,19 +141,13 @@ not proof of the current manifest or two-provider workflow.
 
 ## Next action
 
-Poll Skill proof session `3188` to terminal, inspect both identities, results and
-usage, and retain any failure/block without retrying in place. Then complete the
-remaining provider retirement audit: Kimi-specific headers/thinking branches and
-legacy catalog registration still need review. Full external case matrices,
-current-code trusted hosted proof and real-DINO acceptance remain open. The
-compact local bread/cleanup proof passes on both external providers, with older
-compatibility attempts preserved. Quota recovery allowed the complete 15-case identity ledger
-to be collected. Scene 13's focused fridge-view defect is fixed and checker-clean
-in the repair replay, and post-fix scene 10/11 replays are also checker-clean;
-their remaining failures are behavior-incomplete candidate selection. Scene 13
-trial 2 remains a genuine public-discovery failure. The required first-attempt
-threshold is still not met, and MiMo Responses real-DINO smoke is incomplete.
-Do not treat the repair replays as visual-cohort acceptance.
+Finish and commit the provider slice after the current standard gate. Then run
+one current-code development scene0 real-DINO replay to distinguish historical
+behavior from current behavior before a strategy fix. Full matched external
+matrices, trusted hosted proof and visual acceptance remain required. Preserve
+all old failures, blocked attempts and repair replays; none becomes acceptance
+by combining incompatible epochs. Prepare concrete full-cohort budgets before
+requesting any material hosted resource/cost expansion.
 
 ## Stop/resume conditions
 

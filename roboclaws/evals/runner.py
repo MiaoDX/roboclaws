@@ -14,7 +14,7 @@ from roboclaws.agents.skill_delivery import (
     validate_skill_delivery_cell,
 )
 from roboclaws.core.json_sources import read_json_object
-from roboclaws.core.provider_catalog import normalize_provider_route, provider_route_spec
+from roboclaws.core.provider_catalog import provider_identity_engines
 from roboclaws.evals.agent_identity import (
     agent_engine_spec,
     eval_model_identity,
@@ -617,11 +617,7 @@ def _validate_regrade_source_execution_identity(
 ) -> str:
     if source_trial.agent_engine != agent_engine or source_trial.runner_class != runner_class:
         raise ValueError("regrade agent_engine does not match source execution identity")
-    route = provider_route_spec(source_trial.provider_profile)
-    if (
-        route.public_profile != source_trial.provider_profile
-        or agent_engine not in route.supported_engines
-    ):
+    if agent_engine not in provider_identity_engines(source_trial.provider_profile):
         raise ValueError("regrade_source has invalid provider execution identity")
     source_cell = source_trial.runtime.get("skill_delivery_cell")
     if not isinstance(source_cell, str) or validate_skill_delivery_cell(source_cell) != source_cell:
@@ -640,7 +636,7 @@ def _validate_regrade_execution_overrides(
     skill_delivery_cell: str | None,
 ) -> None:
     if provider_profile is not None:
-        requested_provider = normalize_provider_route(provider_profile)
+        requested_provider = provider_profile
         if source_trial.provider_profile != requested_provider:
             raise ValueError("regrade provider_profile does not match source execution identity")
     if model is not None:

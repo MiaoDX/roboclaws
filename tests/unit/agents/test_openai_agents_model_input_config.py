@@ -45,8 +45,8 @@ def _perf_profile_args(**overrides: object) -> Namespace:
         None,
     )
     values.update(
-        provider_profile="kimi-openai-chat",
-        model="k3",
+        provider_profile="mimo-tp-openai-chat",
+        model="mimo-v2.6-pro",
         agent_sdk_perf_profile="",
         continuation_mode="",
         model_thinking_mode="default",

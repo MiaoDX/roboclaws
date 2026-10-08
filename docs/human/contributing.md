@@ -81,16 +81,16 @@ Isaac, Agibot, and robot-backed runs belong in advisory, manual, scheduled,
 or local-only gates unless explicitly promoted.
 
 The weekly showcase puts MiniMax first and MiMo token-plan second in the public
-primary lane. It runs Map Build with MiniMax and shards the three Cleanup trials
-and three Open-ended samples across Kimi, MiMo, and MiniMax. Each provider runs
+primary lane. It runs Map Build with MiniMax and one Cleanup trial
+and one Open-ended sample for each of MiMo and MiniMax. Each provider runs
 in an isolated GitHub job, so their synthetic household runtime locks do not
 conflict. Tasks within one provider job remain serial, keeping provider
-concurrency at one; the matrix permits at most three provider jobs. Workflow
+concurrency at one; the matrix permits at most two provider jobs. Workflow
 concurrency permits only one showcase run at a time.
 
-A manual run on any repository branch may explicitly set `live_execution=run`
-for the same provider-backed matrix, so changes can be verified before merging
-to `main`. Push and pull-request CI remain deterministic and secret-free; Pages
+A manual run on protected `main` may explicitly set `live_execution=run`
+for the same provider-backed matrix. The separate required push and
+pull-request CI remains deterministic and secret-free; Pages
 deployment remains restricted to `main`. Showcase failures never change merge
 status, and a failed or unrequested row preserves its previous successful
 evidence pointer. Providers never fall back to another profile.

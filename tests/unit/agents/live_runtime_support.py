@@ -64,7 +64,7 @@ def _assert_context_managed_openai_agents_timing(timing: dict[str, object]) -> N
     assert timing["agent_sdk_perf_profile"]["source"] == "default"
     assert timing["agent_sdk_perf_profile"]["continuation_mode"] == "state_summary_only"
     assert timing["agent_sdk_perf_profile"]["max_turns"] == 128
-    # k3 declares 200K native window; derived hard limit = 150_000.
+    # MiMo TP Pro declares 200K native window; derived hard limit = 150_000.
     assert timing["agent_sdk_perf_profile"]["context_hard_limit_tokens"] == 150_000
     assert timing["agent_sdk_perf_profile"]["model_input_compaction"]["enabled"] is True
     assert timing["agent_sdk_perf_profile"]["model_service_retry_attempts"] == 1
@@ -73,7 +73,6 @@ def _assert_context_managed_openai_agents_timing(timing: dict[str, object]) -> N
         _expected_model_racing_observability()
     )
     assert timing["agent_sdk_perf_profile"]["sdk_model_settings"] == {
-        "extra_headers": {"User-Agent": "claude-code/1.0.0"},
         "include_usage": True,
         "model_thinking_mode": "default",
         "parallel_tool_calls": False,
@@ -138,8 +137,8 @@ def _openai_agents_perf_profile_base_args(**overrides) -> Namespace:
         None,
     )
     values.update(
-        provider_profile="kimi-openai-chat",
-        model="k3",
+        provider_profile="mimo-tp-openai-chat",
+        model="mimo-v2.6-pro",
         agent_sdk_perf_profile="",
         continuation_mode="",
         model_thinking_mode="default",

@@ -37,10 +37,6 @@ roboclaws_provider_registry() {
   MIMO_TP_KEY="${MIMO_TP_KEY:-}" \
   MM_BASE_URL="${MM_BASE_URL:-}" \
   MM_API_KEY="${MM_API_KEY:-}" \
-  KIMI_OPENAI_BASE_URL="${KIMI_OPENAI_BASE_URL:-}" \
-  KIMI_API_KEY="${KIMI_API_KEY:-}" \
-  QWEN_TP_BASE_URL="${QWEN_TP_BASE_URL:-}" \
-  QWEN_TP_KEY="${QWEN_TP_KEY:-}" \
   $python_cmd -m roboclaws.agents.provider_registry "$@"
 }
 

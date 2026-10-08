@@ -55,12 +55,12 @@ def provider_readiness(
             "message": unsupported_agent_engine_message(agent_engine),
         }
     try:
-        route = provider_catalog.resolve_provider_route_for_engine(agent_engine, provider_profile)
-        if route.public_profile not in provider_catalog.ACTIVE_PROVIDER_PROFILES:
+        if selected in provider_catalog.RETIRED_PROVIDER_PROFILES:
             raise ValueError(
-                f"provider_profile {route.public_profile!r} is retired; select one of "
+                f"provider_profile {selected!r} is retired; select one of "
                 + ", ".join(provider_catalog.ACTIVE_PROVIDER_PROFILES)
             )
+        route = provider_catalog.resolve_provider_route_for_engine(agent_engine, provider_profile)
     except KeyError:
         message = (
             f"provider_profile {selected!r} is unknown for agent_engine {agent_engine!r}; "
@@ -310,6 +310,12 @@ def _conflict_checked_pair(
 
 
 def _normal_provider_profile(value: str) -> str:
+    if value in provider_catalog.RETIRED_PROVIDER_PROFILES:
+        raise ValueError(
+            f"OpenAI Agents SDK setting provider_profile {value!r} is retired; "
+            + "select one of "
+            + ", ".join(provider_catalog.ACTIVE_PROVIDER_PROFILES)
+        )
     try:
         return provider_catalog.normalize_provider_route(value)
     except KeyError as exc:

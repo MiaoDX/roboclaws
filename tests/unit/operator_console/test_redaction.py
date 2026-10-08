@@ -52,3 +52,11 @@ def test_redacts_every_catalog_provider_environment_value() -> None:
     redacted = redact_text(" ".join(env.values()), env=env)
 
     assert all(value not in redacted for value in env.values())
+
+
+def test_retired_provider_credentials_stay_redacted():
+    env = {
+        key: "historical-secret-" + key
+        for key in ("KIMI_API_KEY", "KIMI_OPENAI_BASE_URL", "QWEN_TP_KEY", "QWEN_TP_BASE_URL")
+    }
+    assert all(value not in redact_text(" ".join(env.values()), env=env) for value in env.values())

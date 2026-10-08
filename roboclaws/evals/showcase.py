@@ -27,8 +27,6 @@ EXECUTION_MODES = {"deterministic", "deterministic_and_manual_live", "manual_liv
 SHOWCASE_LANE_BY_PROVIDER = {
     "minimax-responses": ("public-primary", 1),
     "mimo-tp-openai-chat": ("public-primary", 2),
-    "kimi-openai-chat": ("public-compatibility", 3),
-    "qwen-tp-responses": ("public-compatibility", 3),
 }
 
 
