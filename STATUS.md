@@ -29,9 +29,10 @@ verification and exact attempt identities.
 ## Next Action
 
 The repaired scene0 and current-code scene10 development replays pass with real
-CUDA DINO at 4/5. Scene12's latest replay reaches full coverage but remains 3/5;
+CUDA DINO at 4/5. Scene12's latest replay visits all waypoints but remains 3/5
+with mandatory heading recovery unfinished;
 MiMo Responses scene0 smoke is running with enforced cumulative tokens.
-Resolve remaining visual discovery/cleanup failures, complete local smoke, prepare
+Resolve premature completion and remaining visual failures, complete local smoke, prepare
 the new frozen scene/epoch manifest, and implement bounded full external
 execution with trusted current-code hosted proof. Keep world-label compatibility
 and real-DINO capability evidence separate.

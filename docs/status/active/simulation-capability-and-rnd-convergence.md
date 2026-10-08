@@ -13,7 +13,7 @@ MiMo TP, MiniMax) are implemented. Historical identities remain readable without
 re-enabling retired routes. ADR-0151 owns the durable convergence decisions.
 
 Current visual development evidence: scene0 and scene10 pass at 4/5; scene12
-reaches full coverage but remains 3/5. MiMo Responses scene0 smoke is running.
+visits all waypoints but remains 3/5 with mandatory heading recovery unfinished. MiMo Responses scene0 smoke is running.
 No development replay replaces an old failed cohort row. Full MiniMax real-DINO,
 MiMo Responses smoke, matched external cohorts and trusted current-code hosted
 proof remain required. No baseline/catalog or full schedule is promoted.
@@ -31,8 +31,8 @@ MiMo Responses scene0 attempt1 is RUNNING, session `73269`:
 - Started on `f39da4ea` plus the recorded request-model budget fix; that engine
   fix is now committed as `b0ba995c`. The attempt contract preserves its exact
   diff/source identities. Later showcase edits do not change its product engine.
-- Latest check: running-sdk at 1050s, 44 successful calls, zero provider errors,
-  two pick/place chains. Ledger uses 400K reservations per request.
+- Latest check: running-sdk at 1335s, 57 successful calls, zero provider errors,
+  three picks/two placements. Ledger uses 400K reservations per request.
 
 All earlier simulator sessions, including scene12 session `9610`, are terminal.
 Keep one simulator at a time. Read compact summaries or selected JSON fields;
@@ -55,7 +55,7 @@ never print a raw checker assertion or private report wholesale.
   repair. The 35 budget tests and full standard gate pass; live MiMo responses
   settle in the ledger. Investigation is closed; no scope lock remains.
   Gate: `output/convergence-resume-20261008/verify-after-mimo-request-model-attempt1.log`.
-- Case sharding is implemented; focused and complete deterministic gates pass. The eval-owned
+- `942570b3`: case sharding is implemented; focused and complete deterministic gates pass. The eval-owned
   `showcase_shards` CLI freezes clean code, full suite/sample content, models and
   budgets; executes independent sample/repetition cases through the existing
   showcase/eval CLI; and merges existing result bundles. Duplicate/incompatible
@@ -92,7 +92,11 @@ retains its exact contract and failure history.
 Scene12 attempt2 recorded 79 model metrics, input/output 7,225,018/18,140;
 its ledger charged 9,243,158 of16M including a retained 2M unknown reservation.
 Usage has a missing terminal-response-span limitation; dollar cost unavailable.
-This attempt resolves coverage but does not pass cleanup capability.
+The 1.0 sweep metric measures waypoint visits. The last public completion still
+names insufficient heading coverage at room3 (3/4) and rooms6/7/8/9 (1/4 each),
+as well as insufficient grounded chains. The done reason explicitly acknowledges
+these unfinished headings. Premature completion therefore remains unresolved;
+checker0 is not readiness or capability acceptance.
 
 Scene10 current replay used 60 successful responses, 18 real CUDA DINO
 observations, input/output4,828,623/14,971 and ledger charge4,843,594 of16M.
@@ -150,9 +154,12 @@ must reach an authorized trusted ref before the new hosted proof can run.
 ## Remaining acceptance and next action
 
 1. Collect MiMo scene0; complete passing real-DINO smoke on development0/10/12.
-   Diagnose current scene12 cleanup/discovery shortfall before new visual epoch.
-2. Commit the verified sharding slice and run its actual CLI preflight and a
-   real provider case when the simulator is free. Obtain trusted
+   Diagnose scene12 premature completion with unfinished mandatory headings
+   before the new visual epoch; distinguish waypoint visits from heading coverage.
+2. Run a real provider case through the committed sharding CLI when the
+   simulator is free. Its actual blocked-mode CLI preflight passes: five missing
+   rows remain blocked, with no product run requested; see
+   `output/convergence-resume-20261008/sharding-preflight-attempt1/proof-summary.json`. Obtain trusted
    current-code hosted proof; compact wiring alone is not sufficient.
 3. Resolve reserved14/15 asset readiness without scene shopping. Freeze exact
    executable epoch, scenes/seeds, fixture/map treatment, graders and budgets.
