@@ -23,6 +23,38 @@ def ledger(path):
     return json.loads((path / "provider_token_budget.json").read_text())
 
 
+@pytest.mark.parametrize("request_model", ["mimo-v2.6-pro", "xiaomi/mimo-v2.6-pro"])
+def test_opaque_route_reserves_actual_request_model_capacity(tmp_path, monkeypatch, request_model):
+    from roboclaws.agents.drivers.openai_agents_run_config import _runtime_config
+    from roboclaws.agents.live_runtime import LiveAgentMCPServer, LiveAgentRequest
+
+    monkeypatch.setenv("MIMO_RESPONSES_BASE_URL", "https://provider.example.test/v1")
+    monkeypatch.setenv("MIMO_RESPONSES_API_KEY", "test-key")
+    monkeypatch.setenv("MIMO_RESPONSES_MODEL", request_model)
+    request = LiveAgentRequest(
+        run_id="opaque-budget-test",
+        skill_name="household-world",
+        kickoff_prompt="test",
+        mcp_server=LiveAgentMCPServer(name="unused", url="http://127.0.0.1:1/mcp"),
+        run_dir=tmp_path,
+        provider_profile="mimo-responses",
+        metadata={"agent_sdk_perf_profile": {"total_token_budget": 400_000}},
+    )
+    config = _runtime_config(
+        request, mcp_client_session_timeout_configured=False, mcp_client_session_timeout_s=None
+    )
+    budget = ProviderTokenBudget(tmp_path, config)
+    budget.reserve()
+    assert ledger(tmp_path)["charged_tokens"] == 400_000
+    assert ledger(tmp_path)["request_model"] == request_model
+    assert ledger(tmp_path)["model"] == "mimo"
+    with pytest.raises(OpenAIAgentsBudgetExceededError, match="budget_exhausted"):
+        budget.reserve()
+    other_name = "xiaomi/mimo-v2.6-pro" if request_model == "mimo-v2.6-pro" else "mimo-v2.6-pro"
+    with pytest.raises(ValueError, match="identity changed"):
+        ProviderTokenBudget(tmp_path, {**config, "request_model": other_name})
+
+
 def test_settlement_releases_capacity_and_continuation_keeps_spend(tmp_path):
     budget = budget_at(tmp_path, RESERVATION + 110)
     budget.settle(budget.reserve(), SimpleNamespace(input_tokens=100, output_tokens=10))

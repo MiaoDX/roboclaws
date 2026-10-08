@@ -181,7 +181,7 @@ _MODEL_SPECS: tuple[ModelSpec, ...] = (
     ),
     ModelSpec(
         "mimo-v2.6-pro",
-        ("mimo-v2.6-pro",),
+        ("mimo-v2.6-pro", "xiaomi/mimo-v2.6-pro"),
         "mimo",
         _caps(MODEL_CAP_TEXT),
         context_window_tokens=200_000,

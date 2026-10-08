@@ -345,6 +345,7 @@ def _runtime_config(
         "runtime": "openai-agents-live",
         "provider_profile": model_settings.get("provider_profile") or request.provider_profile,
         "model": model_settings.get("model") or request.model,
+        "request_model": model_settings.get("request_model") or request.model,
         "profile_id": _profile_id(request),
         "wire_api": model_settings.get("wire_api") or "",
         "max_turns": _max_turns(request),

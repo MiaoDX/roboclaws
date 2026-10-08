@@ -44,7 +44,8 @@ class ProviderTokenBudget:
             if self.path.exists():
                 raise ValueError("cannot disable total_token_budget on an existing budgeted run")
             return
-        spec = maybe_resolve_model(config.get("model"))
+        request_model = config.get("request_model") or config.get("model")
+        spec = maybe_resolve_model(request_model)
         if spec is None or not spec.context_window_tokens:
             raise ValueError("total_token_budget requires a model with a declared context window")
         racing = config.get("model_racing_observability") or {}
@@ -56,6 +57,7 @@ class ProviderTokenBudget:
             "limit_tokens": self.limit,
             "provider_profile": config.get("provider_profile"),
             "model": config.get("model"),
+            "request_model": request_model,
             "reservation_tokens_per_request": self.reservation,
             "reservation_basis": "native_context_window_for_each_of_input_and_output",
         }
