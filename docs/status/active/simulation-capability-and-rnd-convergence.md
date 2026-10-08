@@ -18,14 +18,16 @@ MiniMax scene12 attempt3 is blocked by provider billing limit after removing
 contradictory composite-tool controls. MiMo Responses scene0 passes; scene10
 attempt1 is blocked by a model-response stall; attempt2 is now blocked by a
 second stall after a successful connectivity probe.
-MiMo Responses scene12 attempt1 is running under the same per-run bounds.
+MiMo Responses scene12 attempt1 is terminal: four distinct cleanup chains and
+public readiness pass, but private restoration is3/5, so capability fails.
+The required fresh MapBuild/cleanup suite is now running on MiMo Responses.
 No development replay replaces an old failed cohort row. Full MiniMax real-DINO,
 MiMo Responses smoke, matched external cohorts and trusted current-code hosted
 proof remain required. No baseline/catalog or full schedule is promoted.
 
 ## Live work — poll before starting another simulator
 
-MiMo Responses scene12 attempt1 is RUNNING, session `30357`:
+MiMo Responses scene12 attempt1 is terminal, session `30357` consumed:
 
 - Wrapper/log: `output/convergence-resume-20261008/replay-mimo-scene12-attempt1.py`
   and matching `.log`; root `mimo-scene12-attempt1/` under that output directory.
@@ -37,8 +39,11 @@ MiMo Responses scene12 attempt1 is RUNNING, session `30357`:
   zero provider errors, 35 CUDA-DINO observations, 4 distinct public grounded
   cleanup chains, sweep coverage1.0 and disturbances0. Authoritative private
   scoring restored3/5 (0.6), so this is not a capability pass. The public
-  completion snapshot was `ready` before `done`; the final run result remains
-  partial because one target was placed incorrectly and one target was missed.
+  completion snapshot was `ready` before `done`. Placement diagnostics confirm
+  four distinct physical objects: three restored targets and one non-target;
+  two targets were unacted. No executed action misplacing a target is proven.
+  Input/output tokens2,834,447/48,079; ledger charged2,882,526 of16M; dollar cost
+  unavailable. `proof-summary.json` and `outcome-diagnosis.json` retain the result.
 
 MiMo Responses scene10 attempt2 is terminal and BLOCKED, session `87152`:
 
@@ -74,29 +79,35 @@ MiniMax scene12 attempt3 (session `25951`) is terminal:
 - `proof-summary.json` preserves the blocked result. No conclusion about the
   fix's effect on premature completion is possible from this interrupted run.
 
-All earlier simulator sessions, including MiMo scene10 `80444`, are terminal.
+All earlier simulator sessions, including MiMo scene12 `30357`, are terminal.
 Keep one simulator at a time. Read compact summaries or selected JSON fields;
 never print a raw checker assertion or private report wholesale.
 
-The required independent proof is now running from
+The required independent proof is RUNNING, session `8816`, from
 `output/convergence-resume-20261008/run-mimo-fresh-map-attempt1.py`.
 It invokes the canonical suite CLI for all six fresh MapBuild/cleanup trials,
 serially across development0/10/12, using MiMo Responses and the committed
 100-call /16M-token /3600s-wall /180s-stall per-trial bounds, zero retries.
 It requires a clean checkout and an existing scene12 terminal artifact, records
 code/content/command identity, and refuses to overwrite an existing attempt.
-The first scene0 MapBuild builder is active under
-`mimo-fresh-map-attempt1/.../map_build_convergence_v2_dino_scene0_seed7`; it
-has passed 51 model responses with zero provider errors and has written a fresh
-Runtime Metric Map. The remaining five trials are queued serially.
+It started clean at `b8da0503`. Root: `output/convergence-resume-20261008/mimo-fresh-map-attempt1/`.
+The scene0 MapBuild builder finished in974.261s with67 successful responses,
+zero provider errors. Offline current-sample grading passes artifacts/privacy/
+trajectory/outcome:12 runtime enrichment anchors,8 stable categories,188
+observed objects,221 target candidates, no private truth/source-map mutation
+or RGB-only object-pose claim. Evidence: `scene0-builder-grading-check.json`.
+The scene0 cleanup consumer is active; scenes10/12 pairs remain queued serially.
+Poll session8816 and per-trial `live_status.json`; never launch another simulator.
 
 The scene12 public/private mismatch was investigated after termination. The
 four chain count comes from four distinct public observed handles, each with a
-complete nav→pick→nav→place sequence. Private scoring independently found only
-three of five targets at acceptable locations; one placement was wrong and one
-target was missed. This is a behavior failure under the existing contract, not
-a duplicate-chain or grader bug. The 0.8 restoration requirement remains
-unchanged.
+complete nav→pick→nav→place sequence. Joining placement diagnostics with private
+scoring (grader only) proves four distinct physical objects, three restored
+targets and one non-target. Both remaining targets were unacted. Earlier wording
+claiming an incorrect target placement was unsupported and is superseded here.
+This fails the existing0.8 restoration requirement; public readiness remains
+independent of private scoring. Diagnose missing discovery/actionability from
+public trace before proposing a strategy change.
 
 ## MiMo response-stall investigation
 
@@ -116,8 +127,8 @@ cancelled calls. Input size alone does not establish the cause either.
 No product fix, timeout relaxation, thinking-mode change or retry is justified
 by this evidence. The investigation closes with root cause unresolved; obtain
 provider-side timing or a separately bounded transport-progress diagnostic
-before another scene10 replay. The already running scene12 and required fresh
-MapBuild proof can continue independently. No scope lock was acquired.
+before another scene10 replay. Scene12 subsequently completed without a stall;
+the required fresh MapBuild proof continues independently. No scope lock was acquired.
 
 ## Latest implementation and checks
 
@@ -321,8 +332,10 @@ must reach an authorized trusted ref before the new hosted proof can run.
 
 ## Remaining acceptance and next action
 
-1. Collect MiMo scene12 attempt1 (session30357) before launching another simulator.
-   Diagnose recurring MiMo scene10 response stalls before another repair attempt.
+1. Collect the six-trial fresh MapBuild/cleanup proof (session8816) before
+   launching another simulator. Scene0 builder passes; its consumer is active.
+   Diagnose recurring MiMo scene10 response stalls before another repair attempt,
+   and scene12 missing discovery/actionability from public trace.
    Resume MiniMax scene12 only after billing readiness is restored; the response
    projection itself is verified and committed. Complete passing MiMo real-DINO smoke on development10/12 as separately
    recorded attempts under unchanged bounds.

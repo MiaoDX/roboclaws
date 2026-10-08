@@ -34,7 +34,9 @@ with mandatory heading recovery unfinished;
 MiMo Responses scene0 passes at4/5 with enforced cumulative tokens; scene10
 attempt2 is blocked after a second 180-second model-response stall (68 responses,
 3/4 chains). A successful readiness probe remains separate.
-MiMo scene12 smoke is running under the same bounds.
+MiMo scene12 smoke finishes with four chains and public readiness, but restoration
+is3/5, so it fails capability acceptance. The fresh MapBuild/cleanup suite is
+running serially on MiMo: scene0 builder passes and its cleanup consumer is active.
 A fix for contradictory composite
 tool controls passes the standard gate; its MiniMax scene12 replay is blocked
 by provider billing limit after44 successful responses.
