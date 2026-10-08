@@ -147,6 +147,15 @@ using the same semantic sequence as the household runtime; failed picks and
 duplicate object sequences do not increase the count. Restoration, coverage,
 disturbance, completion and real-DINO provenance requirements remain separate.
 
+The additional `map_build_cleanup_convergence_v2` suite pairs fresh DINO MapBuild
+with cleanup on each development scene0/10/12 through existing artifact
+dependencies. Each consumer requires its own scene's builder output; movable
+hints still require current-run confirmation. All six trials must pass to prove
+this chain. This prior-consuming supplement is separate from the15-case no-prior
+cohort and is not eligible for independent-case showcase sharding. It is
+prepared for serial local execution, with100 calls /16M tokens /3600s wall /
+180s stall per trial and no automatic retries; actual live proof remains required.
+
 Evaluation is a Git-checkout-owned maintainer layer. The sdist and wheel omit
 `roboclaws.evals`, `evals/**`, and the eval-harness skill; installed product
 runtimes therefore do not expose `roboclaws eval`, top-level `eval`, or

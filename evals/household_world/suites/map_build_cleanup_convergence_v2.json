@@ -1,0 +1,59 @@
+{
+  "schema": "roboclaws_eval_suite_v1",
+  "suite_id": "household_world.map_build_cleanup_convergence_v2",
+  "version": "2026-10-08-v2",
+  "capability": "household_world",
+  "sample_ids": [
+    "map_build.convergence_v2.dino.scene0.seed7",
+    "cleanup.convergence_v2.dino.fresh_map_scene0.seed7",
+    "map_build.convergence_v2.dino.scene10.seed7",
+    "cleanup.convergence_v2.dino.fresh_map_scene10.seed7",
+    "map_build.convergence_v2.dino.scene12.seed7",
+    "cleanup.convergence_v2.dino.fresh_map_scene12.seed7"
+  ],
+  "sample_refs": [
+    "evals/household_world/samples/map_build/convergence_v2/dino_scene0_seed7.json",
+    "evals/household_world/samples/cleanup/convergence_v2/dino_fresh_map_scene0_seed7.json",
+    "evals/household_world/samples/map_build/convergence_v2/dino_scene10_seed7.json",
+    "evals/household_world/samples/cleanup/convergence_v2/dino_fresh_map_scene10_seed7.json",
+    "evals/household_world/samples/map_build/convergence_v2/dino_scene12_seed7.json",
+    "evals/household_world/samples/cleanup/convergence_v2/dino_fresh_map_scene12_seed7.json"
+  ],
+  "required_graders": [
+    "artifacts",
+    "privacy",
+    "trajectory",
+    "outcome"
+  ],
+  "thresholds": {
+    "pass_at_1": 1.0,
+    "private_truth_leak_count": 0,
+    "trajectory_policy_violation_count": 0
+  },
+  "metadata": {
+    "execution_mode": "same_provider_end_to_end",
+    "report_family": "end_to_end",
+    "role": "additional required fresh MapBuild to cleanup proof on all development scenes; separate from no-prior 15-case cohort",
+    "development_scenes": [
+      0,
+      10,
+      12
+    ],
+    "reserved_scenes": [],
+    "provider_profile": "minimax-responses",
+    "development_provider_profile": "mimo-responses",
+    "map_treatment": "fresh_builder_to_same_suite_scene_matched_consumer",
+    "movable_object_priors_require_current_run_confirmation": true,
+    "parallel_execution": {
+      "default_local_concurrency_width": 1
+    },
+    "per_trial_bounds": {
+      "decision_calls": 100,
+      "runtime_s": 3600,
+      "stall_s": 180,
+      "provider_tokens": 16000000,
+      "trial_retries": 0
+    },
+    "case_readiness": "prepared_pending_live_proof"
+  }
+}

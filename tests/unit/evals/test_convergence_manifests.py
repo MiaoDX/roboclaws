@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from roboclaws.evals import showcase_shards
+from roboclaws.evals.dependencies import dependency_failure, resolve_artifact_dependencies
 from roboclaws.evals.showcase import validate_manifest
 from roboclaws.evals.suite_loading import load_suite, validate_suite_runtime_map_prior
 
@@ -74,3 +75,30 @@ def test_visual_and_world_cohorts_keep_identical_fixtures_and_no_prior(tmp_path)
     assert {(c["sample_id"], c["trial_index"]) for c in ledger["cases"]} == {
         (s.sample_id, i) for s in visual for i in range(s.trial_count)
     }
+
+
+def test_fresh_map_pairs_require_their_own_same_scene_builder(tmp_path):
+    _, samples = load_suite("map_build_cleanup_convergence_v2")
+    assert len(samples) == 6
+    artifacts = {}
+    for build, cleanup in zip(samples[::2], samples[1::2], strict=True):
+        assert build.intent == "map-build" and cleanup.intent == "cleanup"
+        assert build.world == cleanup.world
+        assert build.evidence_lane == cleanup.evidence_lane == "camera-grounded-labels"
+        assert build.camera_labeler == cleanup.camera_labeler == "grounding-dino"
+        assert build.trial_count == cleanup.trial_count == 1
+        assert "outcome" in build.required_graders
+        assert not build.artifact_dependencies
+        missing = resolve_artifact_dependencies(
+            cleanup, repetition_index=0, sample_artifacts=artifacts
+        )
+        assert dependency_failure(missing)["failure_class"] == "artifact_missing"
+        prior = tmp_path / (build.sample_id + ".json")
+        prior.write_text("{}\n")
+        artifacts[build.sample_id] = {"runtime_metric_map": str(prior), "source_status": "passed"}
+        dependency = resolve_artifact_dependencies(
+            cleanup, repetition_index=0, sample_artifacts=artifacts
+        )
+        assert dependency["runtime_map_prior_path"] == str(prior)
+        assert dependency["runtime_map_prior_source_sample_id"] == build.sample_id
+        assert dependency_failure(dependency) is None

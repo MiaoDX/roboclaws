@@ -1,0 +1,61 @@
+{
+  "schema": "roboclaws_eval_sample_v1",
+  "sample_id": "cleanup.convergence_v2.dino.fresh_map_scene0.seed7",
+  "version": "2026-10-08-v2",
+  "surface": "household-world",
+  "intent": "cleanup",
+  "preset": "cleanup",
+  "world": "molmospaces/procthor-10k-val/0",
+  "backend": "mujoco",
+  "evidence_lane": "camera-grounded-labels",
+  "camera_labeler": "grounding-dino",
+  "scenario_setup": "relocate-cleanup-related-objects",
+  "seed": 7,
+  "prompt": "not_applicable",
+  "goal_contract_hash": "unavailable",
+  "allowed_agent_engines": [
+    "openai-agents-sdk"
+  ],
+  "provider_profiles": [
+    "minimax-responses",
+    "mimo-responses"
+  ],
+  "trial_count": 1,
+  "required_graders": [
+    "artifacts",
+    "privacy",
+    "trajectory",
+    "outcome"
+  ],
+  "private_goal_reference": {
+    "schema": "household_eval_private_goal_reference_v1",
+    "private_truth_scope": "grader_only",
+    "generated_mess_count": 5,
+    "acceptable_destinations": "private",
+    "map_treatment": "same_suite_fresh_map_build_prior_requires_current_run_confirmation",
+    "cohort": "development",
+    "runtime_requirements": {
+      "requires_real_molmospaces_backend": true,
+      "requires_product_evidence_lane": true
+    }
+  },
+  "grader_config": {
+    "min_restoration_rate": 0.8,
+    "min_sweep_coverage_rate": 0.9,
+    "max_disturbance_count": 2,
+    "require_authoritative_done": true,
+    "min_complete_cleanup_chains": 4
+  },
+  "launch_overrides": {
+    "evidence_lane": "camera-grounded-labels",
+    "seed": 7,
+    "scenario_setup": "relocate-cleanup-related-objects",
+    "relocation_count": 5,
+    "scene_source": "procthor-10k-val",
+    "scene_index": 0,
+    "camera_labeler": "grounding-dino"
+  },
+  "artifact_dependencies": {
+    "runtime_map_prior_from_sample": "map_build.convergence_v2.dino.scene0.seed7"
+  }
+}

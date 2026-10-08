@@ -16,15 +16,15 @@ Current visual development evidence: scene0 and scene10 pass at 4/5; scene12
 visits all waypoints but remains 3/5 with mandatory heading recovery unfinished.
 MiniMax scene12 attempt3 is blocked by provider billing limit after removing
 contradictory composite-tool controls. MiMo Responses scene0 passes; scene10
-attempt1 is blocked by a model-response stall; attempt2 is running after a
-successful connectivity probe.
+attempt1 is blocked by a model-response stall; attempt2 is now blocked by a
+second stall after a successful connectivity probe.
 No development replay replaces an old failed cohort row. Full MiniMax real-DINO,
 MiMo Responses smoke, matched external cohorts and trusted current-code hosted
 proof remain required. No baseline/catalog or full schedule is promoted.
 
 ## Live work — poll before starting another simulator
 
-MiMo Responses scene10 attempt2 is RUNNING, session `87152`:
+MiMo Responses scene10 attempt2 is terminal and BLOCKED, session `87152`:
 
 - Wrapper/log: `output/convergence-resume-20261008/replay-mimo-scene10-attempt2.py`
   and matching `.log`; root: `mimo-scene10-attempt2/` under that output directory.
@@ -32,7 +32,11 @@ MiMo Responses scene10 attempt2 is RUNNING, session `87152`:
   static-full, seed7, five targets and fresh Runtime Metric Map.
 - Bounds unchanged:100 cumulative calls,16M tokens,3600s wall,180s stall,
   zero automatic retries. Canonical route `mimo`, request `xiaomi/mimo-v2.6-pro`.
-- Latest poll: running-sdk at960s,40 successful model responses.
+- Terminal at1773.084s after a 180s no-progress stall: 68 successful responses,
+  no provider errors, three complete cleanup chains, full waypoint/heading
+  coverage, but no authoritative run result. Ledger charged4,979,428 of16M;
+  model metric usage was unavailable after the stall. `proof-summary.json`
+  preserves this infrastructure block and does not establish capability pass.
 - Next simulator wrapper is prepared but NOT launched:
   `output/convergence-resume-20261008/replay-mimo-scene12-attempt1.py`.
   It requires a clean checkout and preserves the same per-run bounds.
@@ -60,6 +64,17 @@ never print a raw checker assertion or private report wholesale.
 
 ## Latest implementation and checks
 
+- Prepared `map_build_cleanup_convergence_v2` adds the plan's missing fresh
+  MapBuild-to-cleanup pairs for development0/10/12 using existing ordered suite
+  dependencies. It is a separate prior-consuming supplement, not a replacement
+  for the15-case no-prior cohort. Builder samples require actual semantic
+  enrichment and outcome grading; consumers require their own scene's fresh
+  builder output and retain four-chain acceptance.14 focused tests pass;
+  live proof is still missing. One provider's six trials cap600 calls /96M
+  tokens /6 trial-hours; run serially with zero automatic retries. Blocked-mode
+  preflight records all six trials as `model_or_provider_unavailable` with zero
+  provider requests (`fresh-map-preflight-attempt1/proof-summary.json`). The
+  full standard gate passes after this addition.
 - `69de6d14`: prepared v2 suites/sample lists cover development0/10/12 and fixed reserved14/15,
   three seed7 trials each, separate DINO/world-label lanes and no prior reuse.
   Full/development external manifests pair the same cleanup, all three current

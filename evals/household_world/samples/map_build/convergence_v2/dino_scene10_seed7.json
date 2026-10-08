@@ -1,0 +1,62 @@
+{
+  "schema": "roboclaws_eval_sample_v1",
+  "sample_id": "map_build.convergence_v2.dino.scene10.seed7",
+  "version": "2026-10-08-v2",
+  "surface": "household-world",
+  "intent": "map-build",
+  "preset": "map-build",
+  "world": "molmospaces/procthor-10k-val/10",
+  "backend": "mujoco",
+  "evidence_lane": "camera-grounded-labels",
+  "camera_labeler": "grounding-dino",
+  "scenario_setup": "baseline",
+  "seed": 7,
+  "prompt": "not_applicable",
+  "goal_contract_hash": "unavailable",
+  "allowed_agent_engines": [
+    "openai-agents-sdk"
+  ],
+  "provider_profiles": [
+    "mimo-responses",
+    "minimax-responses"
+  ],
+  "trial_count": 1,
+  "required_graders": [
+    "artifacts",
+    "privacy",
+    "trajectory",
+    "outcome"
+  ],
+  "private_goal_reference": {
+    "schema": "household_eval_private_goal_reference_v1",
+    "private_truth_scope": "grader_only",
+    "expected_runtime_metric_map": true,
+    "runtime_requirements": {
+      "requires_real_molmospaces_backend": true,
+      "requires_product_evidence_lane": true
+    },
+    "map_treatment": "fresh_map_build_no_prior"
+  },
+  "grader_config": {
+    "min_public_semantic_anchors": 1,
+    "min_generated_exploration_candidates": 1,
+    "require_runtime_metric_map_schema": "runtime_metric_map_v1",
+    "require_private_truth_absent": true,
+    "require_source_map_not_mutated": true,
+    "min_stable_semantic_anchor_categories": 1,
+    "min_runtime_enrichment_anchors": 1,
+    "require_semantic_enrichment_over_base": true,
+    "min_observed_objects": 1,
+    "min_target_candidates": 1,
+    "max_duplicate_fixture_viewpoint_groups": 0,
+    "forbid_rgb_only_object_pose": true
+  },
+  "launch_overrides": {
+    "evidence_lane": "camera-grounded-labels",
+    "camera_labeler": "grounding-dino",
+    "seed": 7,
+    "scenario_setup": "baseline",
+    "scene_source": "procthor-10k-val",
+    "scene_index": 10
+  }
+}
