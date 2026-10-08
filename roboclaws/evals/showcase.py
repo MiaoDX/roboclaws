@@ -7,6 +7,7 @@ import datetime as dt
 import hashlib
 import html
 import json
+import math
 import os
 import sys
 import tempfile
@@ -17,7 +18,7 @@ from roboclaws.core.provider_catalog import ACTIVE_PROVIDER_PROFILES
 from roboclaws.evals.public_reports import published_visual_report_href
 from roboclaws.evals.showcase_acceptance import aggregate_status, validate_result_identities
 from roboclaws.evals.showcase_cohorts import evaluate_cohort, validate_cohort_policy
-from roboclaws.evals.showcase_process import run_showcase_command
+from roboclaws.evals.showcase_process import row_execution_timeout_s, run_showcase_command
 
 SCHEMA = "roboclaws_showcase_summary_v1"
 MANIFEST_SCHEMA = "roboclaws_showcase_manifest_v1"
@@ -91,13 +92,19 @@ def validate_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
             raise ValueError(f"showcase row {row['id']} does not match canonical suite identity")
         _validate_manifest_row_selection(row, samples)
         validate_cohort_policy(row, samples)
+        row_execution_timeout_s(row, samples)
     return manifest
 
 
 def _validate_manifest_row_budgets(row: dict[str, Any]) -> None:
     for budget_key in ("timeout_s", "stall_timeout_s"):
         value = row.get(budget_key)
-        if value is not None and (not isinstance(value, (int, float)) or value <= 0):
+        if value is not None and (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(value)
+            or value <= 0
+        ):
             raise ValueError(f"showcase row {row['id']} has invalid {budget_key}")
     decision_call_budget = row.get("decision_call_budget")
     if row["execution_mode"] != "deterministic" and (
@@ -171,7 +178,7 @@ def execute_manifest(
             continue
         completed, timed_out = run_showcase_command(
             command,
-            timeout_s=int(row["timeout_s"]) + 30,
+            timeout_s=row_execution_timeout_s(row),
         )
         if timed_out:
             attempts.append(

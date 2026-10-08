@@ -85,6 +85,12 @@ artifact and checker failures cannot. The summary retains failed counts,
 failure classes and per-world/reserved denominators when a cohort meets its
 threshold. Small gates keep their all-pass rule.
 
+`timeout_s` caps each live trial. A row selecting multiple live trials must also
+declare integer `execution_timeout_s`, at least the sum of their per-trial caps
+plus 30 seconds for reporting. The outer process uses that aggregate deadline;
+it must not terminate a full cohort at the first trial's time limit. Workflow
+shards must separately fit their selected row deadlines, setup and upload margin.
+
 This acceptance support does not enable scheduled full execution. Matched case
 manifests, runtime/call/token envelopes and hosted evidence remain required.
 Execution must fit the convergence plan's resource contract; a material cost

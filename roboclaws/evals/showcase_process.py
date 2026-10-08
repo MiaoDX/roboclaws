@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import math
 import os
 import signal
 import subprocess
+from typing import Any
 
 
 def run_showcase_command(
@@ -60,3 +62,28 @@ def _merge_timeout_output(partial: str | bytes | None, final: str) -> str:
     if isinstance(partial, bytes):
         partial = partial.decode(errors="replace")
     return final if final.startswith(partial) else partial + final
+
+
+def row_execution_timeout_s(row: dict[str, Any], samples: list[Any] | None = None) -> int:
+    """Keep a whole-row process deadline distinct from each live trial's cap."""
+    from roboclaws.evals.suite_loading import load_suite
+
+    if samples is None:
+        _, samples = load_suite(row["suite"])
+    selected = [s for s in samples if not row.get("sample_id") or s.sample_id == row["sample_id"]]
+    trials = sum(1 if row.get("repetition_index") is not None else s.trial_count for s in selected)
+    live = row["execution_mode"] != "deterministic"
+    minimum = math.ceil(row["timeout_s"] * (trials if live else 1)) + 30
+    value = row.get("execution_timeout_s")
+    if value is None:
+        if live and trials > 1:
+            raise ValueError(
+                f"showcase row {row['id']} requires execution_timeout_s for {trials} live trials"
+            )
+        return minimum
+    if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
+        raise ValueError(
+            f"showcase row {row['id']} execution_timeout_s must be an integer >= {minimum} "
+            "to cover selected trial caps and report margin"
+        )
+    return value

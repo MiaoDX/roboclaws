@@ -123,7 +123,14 @@ def test_manifest_rejects_duplicate_ids():
 
 @pytest.mark.parametrize(
     "key,value",
-    [("timeout_s", 0), ("stall_timeout_s", -1), ("decision_call_budget", 0)],
+    [
+        ("timeout_s", 0),
+        ("timeout_s", True),
+        ("timeout_s", float("nan")),
+        ("stall_timeout_s", float("inf")),
+        ("stall_timeout_s", -1),
+        ("decision_call_budget", 0),
+    ],
 )
 def test_manifest_rejects_non_positive_budgets(key, value):
     m = manifest()

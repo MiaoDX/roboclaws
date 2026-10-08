@@ -34,6 +34,7 @@ def cohort(monkeypatch):
         "camera_labeler": "not_applicable",
         "budget": "focused",
         "timeout_s": 3600,
+        "execution_timeout_s": 54030,
         "decision_call_budget": 100,
         "execution_mode": "manual_live_only",
         "cohort_acceptance": {
@@ -84,6 +85,51 @@ def fail_cases(packet, indices, *, status="failed", failure_class="private_goal_
         "total": len(packet["results"]),
         **Counter(trial["status"] for trial in packet["results"]),
     }
+
+
+def test_multitrial_row_requires_explicit_aggregate_runtime(cohort):
+    row, _ = cohort
+    row.pop("execution_timeout_s")
+    with pytest.raises(ValueError, match="requires execution_timeout_s for 15 live trials"):
+        validate_manifest({"schema": "roboclaws_showcase_manifest_v1", "rows": [row]})
+
+
+@pytest.mark.parametrize("cap", [3630, 54029, True, float("inf")])
+def test_aggregate_runtime_cannot_truncate_selected_trial_caps(cohort, cap):
+    row, _ = cohort
+    row["execution_timeout_s"] = cap
+    with pytest.raises(ValueError, match="execution_timeout_s must be an integer >= 54030"):
+        validate_manifest({"schema": "roboclaws_showcase_manifest_v1", "rows": [row]})
+
+
+def test_execution_uses_aggregate_timeout_and_keeps_per_trial_cap(cohort, monkeypatch, tmp_path):
+    import json
+    from types import SimpleNamespace
+
+    from roboclaws.evals.showcase import execute_manifest
+
+    row, packet = cohort
+    result_path = tmp_path / "eval_results.json"
+    result_path.write_text(json.dumps(packet))
+    calls = []
+
+    def run(command, *, timeout_s):
+        calls.append((command, timeout_s))
+        return SimpleNamespace(
+            returncode=0, stdout=json.dumps({"results": str(result_path)})
+        ), False
+
+    monkeypatch.setattr("roboclaws.evals.showcase.run_showcase_command", run)
+    index = execute_manifest(
+        {"schema": "roboclaws_showcase_manifest_v1", "rows": [row]},
+        output_dir=tmp_path,
+        live_execution="run",
+    )
+    assert len(calls) == 1
+    assert calls[0][1] == 54030
+    assert "live_timeout_s=3600" in calls[0][0]
+    assert "live_retry_limit=0" in calls[0][0]
+    assert index["attempts"][0]["state"] == "completed"
 
 
 def test_accepts_threshold_without_relabeling_failed_trials(cohort):
