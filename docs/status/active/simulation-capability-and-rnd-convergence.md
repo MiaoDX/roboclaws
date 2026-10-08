@@ -18,11 +18,23 @@ MiniMax scene12 attempt3 is blocked by provider billing limit after removing
 contradictory composite-tool controls. MiMo Responses scene0 passes; scene10
 attempt1 is blocked by a model-response stall; attempt2 is now blocked by a
 second stall after a successful connectivity probe.
+MiMo Responses scene12 attempt1 is running under the same per-run bounds.
 No development replay replaces an old failed cohort row. Full MiniMax real-DINO,
 MiMo Responses smoke, matched external cohorts and trusted current-code hosted
 proof remain required. No baseline/catalog or full schedule is promoted.
 
 ## Live work — poll before starting another simulator
+
+MiMo Responses scene12 attempt1 is RUNNING, session `30357`:
+
+- Wrapper/log: `output/convergence-resume-20261008/replay-mimo-scene12-attempt1.py`
+  and matching `.log`; root `mimo-scene12-attempt1/` under that output directory.
+- Clean start at `ed7b6332`, real CUDA DINO, static-full, scene12 seed7, five
+  targets, fresh Runtime Metric Map. Canonical route `mimo`, request model
+  `xiaomi/mimo-v2.6-pro`.
+- Same100-call /16M-token /3600s-wall /180s-stall bounds, zero automatic retries.
+- Latest live poll: running-sdk at570s,11 successful responses, one completed
+  cleanup chain, waypoint coverage0.2; no terminal capability verdict yet.
 
 MiMo Responses scene10 attempt2 is terminal and BLOCKED, session `87152`:
 
@@ -35,11 +47,11 @@ MiMo Responses scene10 attempt2 is terminal and BLOCKED, session `87152`:
 - Terminal at1773.084s after a 180s no-progress stall: 68 successful responses,
   no provider errors, three complete cleanup chains, full waypoint/heading
   coverage, but no authoritative run result. Ledger charged4,979,428 of16M;
-  model metric usage was unavailable after the stall. `proof-summary.json`
-  preserves this infrastructure block and does not establish capability pass.
-- Next simulator wrapper is prepared but NOT launched:
-  `output/convergence-resume-20261008/replay-mimo-scene12-attempt1.py`.
-  It requires a clean checkout and preserves the same per-run bounds.
+  original terminal model metrics were absent. Existing span extraction recovers
+  input/output4,560,704/18,724 and cached415,104 across69 metrics into separate
+  `recovered-model-call-metrics.jsonl`; the unfinished response's usage remains
+  unknown (retained400K reservation). `proof-summary.json` preserves this
+  infrastructure block and does not establish capability pass.
 
 MiniMax scene12 attempt3 (session `25951`) is terminal:
 
@@ -64,7 +76,7 @@ never print a raw checker assertion or private report wholesale.
 
 ## Latest implementation and checks
 
-- Prepared `map_build_cleanup_convergence_v2` adds the plan's missing fresh
+- `ed7b6332`: `map_build_cleanup_convergence_v2` adds the plan's missing fresh
   MapBuild-to-cleanup pairs for development0/10/12 using existing ordered suite
   dependencies. It is a separate prior-consuming supplement, not a replacement
   for the15-case no-prior cohort. Builder samples require actual semantic
@@ -74,7 +86,8 @@ never print a raw checker assertion or private report wholesale.
   tokens /6 trial-hours; run serially with zero automatic retries. Blocked-mode
   preflight records all six trials as `model_or_provider_unavailable` with zero
   provider requests (`fresh-map-preflight-attempt1/proof-summary.json`). The
-  full standard gate passes after this addition.
+  full standard gate passes after this addition
+  (`verify-after-fresh-map-cohort-attempt1.log`, session `8999`, exit0).
 - `69de6d14`: prepared v2 suites/sample lists cover development0/10/12 and fixed reserved14/15,
   three seed7 trials each, separate DINO/world-label lanes and no prior reuse.
   Full/development external manifests pair the same cleanup, all three current
@@ -263,7 +276,9 @@ must reach an authorized trusted ref before the new hosted proof can run.
 
 ## Remaining acceptance and next action
 
-1. Resume MiniMax scene12 only after billing readiness is restored; the response
+1. Collect MiMo scene12 attempt1 (session30357) before launching another simulator.
+   Diagnose recurring MiMo scene10 response stalls before another repair attempt.
+   Resume MiniMax scene12 only after billing readiness is restored; the response
    projection itself is verified and committed. Complete passing MiMo real-DINO smoke on development10/12 as separately
    recorded attempts under unchanged bounds.
    Scene0 is now passed with exact attempt identity above.
@@ -284,6 +299,8 @@ must reach an authorized trusted ref before the new hosted proof can run.
    MapBuild regressions, with aggregate usage/runtime envelopes and bounded
    hosted execution. Do not stitch code/content epochs or enable full schedules
    from compact proof.
+   Also run the separate fresh DINO MapBuild-to-cleanup suite across all three
+   development scenes; its prepared lists and blocked preflight are not live proof.
 6. Assemble the plan's complete capability packet and reconcile docs only when
    required evidence supports completion. Baseline promotion stays separate.
 

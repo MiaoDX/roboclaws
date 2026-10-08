@@ -34,6 +34,7 @@ with mandatory heading recovery unfinished;
 MiMo Responses scene0 passes at4/5 with enforced cumulative tokens; scene10
 attempt2 is blocked after a second 180-second model-response stall (68 responses,
 3/4 chains). A successful readiness probe remains separate.
+MiMo scene12 smoke is running under the same bounds.
 A fix for contradictory composite
 tool controls passes the standard gate; its MiniMax scene12 replay is blocked
 by provider billing limit after44 successful responses.
@@ -57,7 +58,7 @@ and real-DINO capability evidence separate.
   MiniMax case through execution and merge.
   Prepared full lists now match providers, including open-ended and MapBuild;
   their standard gate and real blocked-mode CLI planning/merge proof pass.
-  full execution and trusted current-code hosted proof remain incomplete.
+  Full execution and trusted current-code hosted proof remain incomplete.
   No full schedule or baseline is promoted.
 - The preserved MiMo TP compatibility cohort is 2/3 with one blocked stall;
   later compact successes do not rewrite that cohort.
