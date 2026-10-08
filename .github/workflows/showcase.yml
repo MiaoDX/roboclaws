@@ -20,36 +20,70 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  provider-showcase:
-    if: github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.live_execution == 'run')
-    strategy:
-      fail-fast: false
-      max-parallel: 2
-      matrix:
-        include:
-          - provider: mimo
-            row_args: --row-id household_world.cleanup_capability.mimo --row-id household_world.open_ended_goals.mimo
-          - provider: minimax
-            row_args: --row-id household_world.map_build_quality --row-id household_world.cleanup_capability.minimax --row-id household_world.open_ended_goals.minimax
+  plan-shards:
+    if: github.ref == 'refs/heads/main' && github.ref_protected && (github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.live_execution == 'run'))
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 10
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install headless MuJoCo rendering runtime
+      - run: uv sync --extra dev
+      - name: Freeze case shards and aggregate execution envelope
+        id: plan
+        run: |
+          .venv/bin/python -m roboclaws.evals.showcase_shards plan \
+            --manifest config/showcase-manifest.json \
+            --output output/showcase/planning/shard-plan.json
+          .venv/bin/python - <<'PYPLAN'
+          import json
+          import os
+          from pathlib import Path
+
+          plan = json.loads(Path("output/showcase/planning/shard-plan.json").read_text())
+          with open(os.environ["GITHUB_OUTPUT"], "a") as handle:
+              handle.write("matrix=" + json.dumps({"include": plan["shards"]}) + "\n")
+          PYPLAN
+      - uses: actions/upload-artifact@v4
+        with:
+          name: showcase-shard-plan
+          path: output/showcase/planning/shard-plan.json
+
+  provider-showcase:
+    needs: plan-shards
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix: ${{ fromJSON(needs.plan-shards.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ matrix.timeout_minutes }}
+    steps:
+      - uses: actions/checkout@v4
+        timeout-minutes: 2
+      - uses: astral-sh/setup-uv@v5
+        timeout-minutes: 2
+      - uses: actions/setup-python@v5
+        timeout-minutes: 2
+        with:
+          python-version: "3.12"
+      - name: Install and provision headless MuJoCo runtime
+        timeout-minutes: 12
         run: |
           sudo apt-get update
           sudo apt-get install --yes libegl1 libgl1 libgles2 libegl-mesa0
-      - run: uv sync --extra dev
-      - name: Repair MolmoSpaces resource cache manifest
-        run: .venv/bin/python scripts/dev/repair_molmospaces_resource_cache.py
-      - name: Provision MolmoSpaces resources before timed trials
-        timeout-minutes: 10
-        run: .venv/bin/python -m molmo_spaces.molmo_spaces_constants
-      - name: Run ${{ matrix.provider }} showcase shard
+          uv sync --extra dev
+          .venv/bin/python scripts/dev/repair_molmospaces_resource_cache.py
+          timeout --signal=TERM --kill-after=10s 600 .venv/bin/python -m molmo_spaces.molmo_spaces_constants
+      - uses: actions/download-artifact@v4
+        timeout-minutes: 2
+        with:
+          name: showcase-shard-plan
+          path: output/showcase/planning
+      - name: Run ${{ matrix.provider }} case shard
         env:
           ROBOCLAWS_OPENAI_AGENTS_ROBOT_VIEW_CAPTURE_POLICY: action_timeline
           ROBOCLAWS_MOLMO_LIVE_SERVER_STARTUP_TIMEOUT_S: "300"
@@ -58,18 +92,18 @@ jobs:
           MM_API_KEY: ${{ matrix.provider == 'minimax' && secrets.MM_API_KEY || '' }}
           MM_BASE_URL: ${{ matrix.provider == 'minimax' && secrets.MM_BASE_URL || '' }}
         run: |
-          mkdir -p "output/showcase/${{ matrix.provider }}"
-          .venv/bin/python -m roboclaws.evals.showcase \
+          .venv/bin/python -m roboclaws.evals.showcase_shards execute \
             --manifest config/showcase-manifest.json \
-            --output "output/showcase/${{ matrix.provider }}" \
-            --execute --live-execution run \
-            ${{ matrix.row_args }}
-      - name: Upload ${{ matrix.provider }} evidence
+            --plan output/showcase/planning/shard-plan.json \
+            --output "output/showcase/shards/${{ matrix.id }}" \
+            --shard-id "${{ matrix.id }}" --live-execution run
+      - name: Upload ${{ matrix.provider }} case evidence
         if: always()
+        timeout-minutes: 5
         uses: actions/upload-artifact@v4
         with:
-          name: showcase-${{ matrix.provider }}-${{ github.sha }}
-          path: output/showcase/${{ matrix.provider }}/**
+          name: ${{ matrix.id }}
+          path: output/showcase/shards/${{ matrix.id }}/**
           if-no-files-found: warn
 
   showcase:
@@ -87,20 +121,34 @@ jobs:
         with:
           python-version: "3.12"
       - run: uv sync --extra dev
-      - name: Download MiMo evidence
+      - name: Download frozen shard plan
         if: github.event_name == 'push' || github.event_name == 'schedule' || inputs.live_execution == 'run'
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
-          name: showcase-mimo-${{ github.sha }}
-          path: output/showcase/mimo
-      - name: Download MiniMax evidence
+          name: showcase-shard-plan
+          path: output/showcase/planning
+      - name: Download all case evidence
         if: github.event_name == 'push' || github.event_name == 'schedule' || inputs.live_execution == 'run'
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
-          name: showcase-minimax-${{ github.sha }}
-          path: output/showcase/minimax
+          pattern: showcase-case-*
+          path: output/showcase/shards
+      - name: Merge complete rows without replacing failed cases
+        if: github.event_name == 'push' || github.event_name == 'schedule' || inputs.live_execution == 'run'
+        run: |
+          .venv/bin/python - <<'PYMERGE'
+          import json
+          from pathlib import Path
+          from roboclaws.evals.showcase_shards import merge_shards
+
+          root = Path("output/showcase")
+          manifest = json.loads(Path("config/showcase-manifest.json").read_text())
+          plan = json.loads((root / "planning/shard-plan.json").read_text())
+          merge_shards(manifest, plan, shard_dirs=sorted((root / "shards").glob("showcase-case-*")),
+                       output_dir=root / "merged")
+          PYMERGE
       - name: Run deterministic smoke baseline
         if: github.event_name == 'push' || github.event_name == 'schedule' || inputs.live_execution == 'run'
         run: |
@@ -136,8 +184,7 @@ jobs:
             --run-url "$RUN_URL" \
             --artifact-url "$RUN_URL#artifacts" \
             --execution-index output/showcase/smoke/execution.json \
-            --execution-index output/showcase/mimo/execution.json \
-            --execution-index output/showcase/minimax/execution.json \
+            --execution-index output/showcase/merged/execution.json \
             --execution-index output/showcase/preview/execution.json \
             --previous output/showcase/previous.json
       - name: Publish report drilldowns
@@ -147,11 +194,12 @@ jobs:
           from pathlib import Path
           from roboclaws.evals.public_reports import publish_report_bundle
 
-          for shard in ("smoke", "mimo", "minimax"):
+          for shard in ("smoke", "merged"):
               source = Path("output/showcase") / shard / "evals"
               destination = Path("output/showcase/site/reports") / shard / "evals"
               if source.is_dir():
                   publish_report_bundle(source, destination)
+          publish_report_bundle(Path("output/showcase/shards"), Path("output/showcase/site/reports/shards"))
           PY
       - name: Verify published report drilldowns
         if: always()
@@ -179,7 +227,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: capability-showcase-${{ github.sha }}
-          path: output/showcase/*/evals/**
+          path: |
+            output/showcase/*/evals/**
+            output/showcase/shards/**
+            output/showcase/planning/shard-plan.json
           if-no-files-found: warn
       - name: Upload showcase summary
         if: always()

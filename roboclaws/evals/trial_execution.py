@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Callable
 
@@ -138,6 +139,19 @@ def _run_trial(
                 regrade_source_dir=regrade_source_dir,
             )
         if live_execution == "run":
+            trial = replace(
+                trial,
+                budgets={
+                    **trial.budgets,
+                    "time_s": live_timeout_s,
+                    "stall_timeout_s": live_stall_timeout_s,
+                    "decision_calls": decision_call_budget,
+                    "total_tokens": live_total_token_budget,
+                    "token": live_token_budget,
+                    "cost": live_cost_budget_usd,
+                    "retry": live_retry_limit,
+                },
+            )
             return run_live_eval_trial(
                 sample=sample,
                 trial=trial,

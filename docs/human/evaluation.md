@@ -91,6 +91,34 @@ plus 30 seconds for reporting. The outer process uses that aggregate deadline;
 it must not terminate a full cohort at the first trial's time limit. Workflow
 shards must separately fit their selected row deadlines, setup and upload margin.
 
+The eval layer's `roboclaws.evals.showcase_shards` CLI splits external showcase
+rows into independent sample/repetition cases. `plan` requires a clean committed
+checkout and explicit canonical models and cumulative token limits. It freezes
+the commit, suite/sample content (including graders and map treatment), manifest
+and budgets. `execute` selects one case through the existing eval CLI, with zero
+trial retries. `merge` produces the existing eval bundles without changing trial
+statuses; duplicate or incompatible evidence is rejected, and missing cases
+block their entire row. Cases with cross-case artifact dependencies cannot be
+split by this route.
+
+```bash
+.venv/bin/python -m roboclaws.evals.showcase_shards plan \
+  --manifest config/showcase-manifest.json --output output/showcase/shard-plan.json
+.venv/bin/python -m roboclaws.evals.showcase_shards execute \
+  --manifest config/showcase-manifest.json --plan output/showcase/shard-plan.json \
+  --shard-id showcase-case-000 --output output/showcase/shards/showcase-case-000 \
+  --live-execution run
+```
+
+The trusted workflow generates all case shards from this plan, uses provider-only
+secrets, and permits at most two concurrent external jobs. Each job reserves
+20 minutes for bounded setup and five for upload in addition to its case/report
+deadline. Current 60-minute cleanup cases therefore require 86-minute jobs;
+30-minute cases require 56-minute jobs. The plan reports summed decision-call,
+cumulative-token, trial-time and runner-minute envelopes. Its compact case set
+has five external cases, 332 decision calls and a 56-million-token ceiling.
+These are upper bounds, not expected usage or dollar-cost estimates.
+
 This acceptance support does not enable scheduled full execution. Matched case
 manifests, runtime/call/token envelopes and hosted evidence remain required.
 Execution must fit the convergence plan's resource contract; a material cost
@@ -250,7 +278,10 @@ capacity and does not enforce cumulative usage. Cached input still counts.
 The agent-engine layer persists `provider_token_budget.json` beside the SDK
 events. Before each actual provider attempt, including transport retries, it
 reserves twice the model catalog's native context window (one input window and
-one output window). Successful calls settle against reported input/output usage.
+one output window). For an opaque route such as MiMo Responses, that bound comes
+from the actual configured request model, not the route name. Both identities
+are retained in the ledger and must match on continuation.
+Successful calls settle against reported input/output usage.
 Failures and cancellations retain the full reservation. Missing/zero usage or
 usage above the reservation stops further calls; the latter records actual
 usage and invalidates the assumed bound. The guarantee depends on the provider

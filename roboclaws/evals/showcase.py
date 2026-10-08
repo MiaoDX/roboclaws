@@ -260,6 +260,8 @@ def _row_command(row: dict[str, Any], *, live_execution: str, output_dir: Path) 
     profile = row.get(profile_key) or (row.get("provider_profile") if use_live else None)
     if isinstance(profile, str) and profile:
         command.append(f"provider_profile={profile}")
+    if row.get("model"):
+        command.append(f"model={row['model']}")
     if use_live:
         command.extend(
             (
@@ -655,6 +657,8 @@ def _load_execution_indexes(
         indexed_results = execution.get("results", {})
         if not isinstance(indexed_results, dict):
             continue
+        if result_paths.keys() & indexed_results.keys():
+            raise ValueError("duplicate showcase rows: merge case shards before loading indexes")
         result_paths.update(indexed_results)
         for row_id, result_path in indexed_results.items():
             report_href = _published_report_href(execution_path, result_path)

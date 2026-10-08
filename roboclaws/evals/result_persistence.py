@@ -17,10 +17,13 @@ def persist_results(
     output_dir: Path,
     budget: str,
     selection: dict[str, Any] | None = None,
+    artifact_link_root: Path | None = None,
 ) -> tuple[dict[str, Any], Path, Path]:
     bundle = results_bundle(suite=suite, results=results, output_dir=output_dir, budget=budget)
     if selection:
         bundle["selection"] = selection
+    if artifact_link_root is not None:
+        bundle["artifacts"]["link_root"] = str(artifact_link_root)
     results_path = output_dir / "eval_results.json"
     report_path = output_dir / "eval_report.html"
     write_json(results_path, bundle)

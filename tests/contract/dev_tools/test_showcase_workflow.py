@@ -8,7 +8,7 @@ def test_showcase_workflow_is_advisory_bounded_and_secret_guarded() -> None:
     assert "pull_request:" not in workflow
     assert "push:" in workflow
     assert "cancel-in-progress: false" in workflow
-    assert "timeout-minutes: 60" in workflow
+    assert "timeout-minutes: ${{ matrix.timeout_minutes }}" in workflow
     assert "timeout-minutes: 10" in workflow
     assert "continue-on-error: true" in workflow
     assert (
@@ -21,7 +21,7 @@ def test_showcase_workflow_is_advisory_bounded_and_secret_guarded() -> None:
     assert "secrets.MIMO_RESPONSES_API_KEY" not in workflow
     assert "secrets.MM_API_KEY" in workflow
     assert "max-parallel: 2" in workflow
-    assert "Install headless MuJoCo rendering runtime" in workflow
+    assert "Install and provision headless MuJoCo runtime" in workflow
     assert "libegl1 libgl1 libgles2 libegl-mesa0" in workflow
     assert "ROBOCLAWS_OPENAI_AGENTS_ROBOT_VIEW_CAPTURE_POLICY: action_timeline" in workflow
     assert 'ROBOCLAWS_MOLMO_LIVE_SERVER_STARTUP_TIMEOUT_S: "300"' in workflow
@@ -29,9 +29,15 @@ def test_showcase_workflow_is_advisory_bounded_and_secret_guarded() -> None:
     assert (
         workflow.index("repair_molmospaces_resource_cache.py")
         < workflow.index("python -m molmo_spaces.molmo_spaces_constants")
-        < workflow.index("Run ${{ matrix.provider }} showcase shard")
+        < workflow.index("Run ${{ matrix.provider }} case shard")
     )
     assert "needs: provider-showcase" in workflow
+    assert "needs: plan-shards" in workflow
+    assert "github.ref_protected" in workflow
+    assert "fromJSON(needs.plan-shards.outputs.matrix)" in workflow
+    assert "pattern: showcase-case-*" in workflow
+    assert "Merge complete rows without replacing failed cases" in workflow
+    assert "--execution-index output/showcase/merged/execution.json" in workflow
     assert "showcase-kimi-${{ github.sha }}" not in workflow
     assert "kimi_pid=$!" not in workflow
     assert "mimo_pid=$!" not in workflow
@@ -52,6 +58,20 @@ def test_showcase_workflow_is_advisory_bounded_and_secret_guarded() -> None:
     assert "needs: showcase" in workflow
     assert "cleanup_capability" in (ROOT / "config/showcase-manifest.json").read_text()
     assert "seed=7" not in workflow
+
+
+def test_case_shard_setup_and_upload_fit_calculated_envelope():
+    import yaml
+
+    from roboclaws.evals.showcase_shards import SETUP_TIMEOUT_S, UPLOAD_TIMEOUT_S
+
+    workflow = yaml.safe_load((ROOT / ".github/workflows/showcase.yml").read_text())
+    steps = workflow["jobs"]["provider-showcase"]["steps"]
+    execution = next(
+        i for i, step in enumerate(steps) if step.get("name", "").endswith("case shard")
+    )
+    assert sum(step["timeout-minutes"] for step in steps[:execution]) * 60 <= SETUP_TIMEOUT_S
+    assert sum(step["timeout-minutes"] for step in steps[execution + 1 :]) * 60 <= UPLOAD_TIMEOUT_S
 
 
 def test_showcase_manifest_routes_canonical_suites() -> None:

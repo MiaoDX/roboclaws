@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import os
 from pathlib import Path
 from typing import Any
 
@@ -106,7 +107,10 @@ def render_eval_report(bundle: dict[str, Any]) -> str:
     suite = bundle["suite"]
     artifacts = bundle.get("artifacts") if isinstance(bundle.get("artifacts"), dict) else {}
     output_dir = Path(str(artifacts.get("output_dir") or "."))
-    rows = "\n".join(_report_row(result, output_dir=output_dir) for result in bundle["results"])
+    link_root = Path(str(artifacts.get("link_root") or output_dir))
+    rows = "\n".join(
+        _report_row(row, output_dir=output_dir, link_root=link_root) for row in bundle["results"]
+    )
     aggregate = bundle["aggregate"]
     sampler_projection = _sampler_projection_section(aggregate)
     map_build_review = render_map_build_review_section(
@@ -516,13 +520,13 @@ def _sampler_projection_source_row(source: str, payload: Any) -> str:
     )
 
 
-def _report_row(result: dict[str, Any], *, output_dir: Path) -> str:
+def _report_row(result: dict[str, Any], *, output_dir: Path, link_root: Path) -> str:
     identity = result.get("identity") if isinstance(result.get("identity"), dict) else {}
     artifacts = result.get("artifacts") if isinstance(result.get("artifacts"), dict) else {}
     links = []
     for key, label in (("run_result", "run_result"), ("report", "report")):
         if key in artifacts:
-            links.append(_artifact_link_or_status(label, artifacts.get(key), output_dir))
+            links.append(_artifact_link_or_status(label, artifacts.get(key), output_dir, link_root))
     status = str(result.get("status") or "")
     metrics = result.get("metrics") if isinstance(result.get("metrics"), dict) else {}
     attempts = (
@@ -555,12 +559,11 @@ def _report_row(result: dict[str, Any], *, output_dir: Path) -> str:
     )
 
 
-def _artifact_link_or_status(label: str, raw_path: Any, output_dir: Path) -> str:
+def _artifact_link_or_status(label: str, raw_path: Any, output_dir: Path, link_root: Path) -> str:
     path_text = str(raw_path or "").strip()
     if not path_text:
         return _artifact_unavailable(label, "empty artifact path", "")
     artifact_path = Path(path_text)
-    resolved_output_dir = output_dir.resolve()
     candidates = (
         [artifact_path]
         if artifact_path.is_absolute()
@@ -570,7 +573,8 @@ def _artifact_link_or_status(label: str, raw_path: Any, output_dir: Path) -> str
     for candidate in candidates:
         try:
             resolved_candidate = candidate.resolve()
-            relative_path = resolved_candidate.relative_to(resolved_output_dir)
+            resolved_candidate.relative_to(link_root.resolve())
+            relative_path = Path(os.path.relpath(resolved_candidate, output_dir.resolve()))
         except (OSError, ValueError):
             continue
         missing_relative_path = relative_path

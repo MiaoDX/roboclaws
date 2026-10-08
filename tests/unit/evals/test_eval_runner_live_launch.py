@@ -43,6 +43,7 @@ def test_eval_runner_runs_live_agent_when_explicitly_enabled(tmp_path: Path) -> 
         live_execution="run",
         live_timeout_s=12.5,
         live_stall_timeout_s=6.25,
+        decision_call_budget=16,
         live_total_token_budget=4_000_000,
         live_product_runner=live_product_runner,
     )
@@ -56,6 +57,17 @@ def test_eval_runner_runs_live_agent_when_explicitly_enabled(tmp_path: Path) -> 
     assert seen_kwargs[0]["live_stall_timeout_s"] == 6.25
     assert seen_kwargs[0]["live_total_token_budget"] == 4_000_000
     result = payload["results"][0]
+    assert result["identity"]["budgets"] == {
+        "steps": 50,
+        "time_s": 12.5,
+        "stall_timeout_s": 6.25,
+        "decision_calls": 16,
+        "total_tokens": 4_000_000,
+        "token": None,
+        "cost": None,
+        "retry": 0,
+        "repetition": 0,
+    }
     assert result["identity"]["runner_class"] == "live-agent"
     assert result["artifacts"]["run_result"].endswith(
         "runs/cleanup_repeated_seed7/trial-0000/surface-run/seed-7/run_result.json"

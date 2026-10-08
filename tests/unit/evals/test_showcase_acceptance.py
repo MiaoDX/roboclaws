@@ -19,7 +19,13 @@ def cleanup_packet():
     identity = {
         **{
             field: row[field]
-            for field in ("agent_engine", "provider_profile", "evidence_lane", "camera_labeler")
+            for field in (
+                "agent_engine",
+                "provider_profile",
+                "model",
+                "evidence_lane",
+                "camera_labeler",
+            )
         },
         "suite_id": suite.suite_id,
         "suite_version": suite.version,

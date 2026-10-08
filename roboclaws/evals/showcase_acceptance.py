@@ -31,7 +31,7 @@ def _result_identity_mismatch(row: dict[str, Any], identity: dict[str, Any]) -> 
         return False
     return any(
         row.get(field) and identity.get(field) != row[field]
-        for field in ("agent_engine", "provider_profile")
+        for field in ("agent_engine", "provider_profile", "model")
     ) or any(identity.get(field) != row.get(field) for field in ("evidence_lane", "camera_labeler"))
 
 

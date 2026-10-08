@@ -1,268 +1,175 @@
 # Simulation Capability And R&D Convergence
 
 State: active
-Owner/session: Codex `/root`  
+Owner/session: Codex `/root`
 Source plan: `docs/plans/2026-09-28-simulation-capability-and-rnd-convergence.md`
 
-## Current slice
+## Current conclusion
 
-Implementation state: active. Verification state: partial; capability acceptance incomplete.
-Latest intent: continue implementation and required probes under the approved plan.
+Implementation is active; verification is partial; capability acceptance is
+incomplete. Latest intent is to continue the approved plan and required probes.
+One static-full product Skill and three executable providers (MiMo Responses,
+MiMo TP, MiniMax) are implemented. Historical identities remain readable without
+re-enabling retired routes. ADR-0151 owns the durable convergence decisions.
 
-Provider/Skill convergence is committed through `a5647ec8`: only static-full is a
-product delivery, no-skill is an explicit eval control, and only MiMo Responses,
-MiMo TP and MiniMax are executable providers. Historical identities remain readable.
-Exact showcase identities and complete cohort thresholds are validated without
-rewriting failed trial statuses or averaging away blocked/infrastructure rows.
+Current visual development evidence: scene0 and scene10 pass at 4/5; scene12
+reaches full coverage but remains 3/5. MiMo Responses scene0 smoke is running.
+No development replay replaces an old failed cohort row. Full MiniMax real-DINO,
+MiMo Responses smoke, matched external cohorts and trusted current-code hosted
+proof remain required. No baseline/catalog or full schedule is promoted.
 
-On 2026-10-08 all three SDK provider probes and managed real-DINO readiness passed.
-The complete standard gate passed after the cohort change (session `75547`, exit 0):
-`output/convergence-resume-20261008/verify-after-cohorts.log`.
-The earlier sandbox/network failures are historical and are no longer blockers.
+## Live work — poll before starting another simulator
 
-Preserved pre-fix development evidence: scene0 attempt2 is terminal.
-MiniMax real DINO, static-full, seed7, fresh map/no prior: partial_success after
-551.359 seconds, 3/5 restored, 3 grounded chains, sweep 1.0, disturbances 0.
-Only room2 completed four headings; rooms3–8 remained at one. The agent called
-terminal done despite the latest public completion naming room3 recovery.
-There were 38 successful model responses, zero provider failures and one
-terminal-interrupted response span. Reported input/output tokens: 3,646,813/13,182;
-usage has a missing-response-span limitation and dollar cost is unavailable.
+MiMo Responses scene0 attempt1 is RUNNING, session `73269`:
 
-Attempt1 failed before any model call because live_token_budget requires a paired
-priced output reservation/cost budget. Attempt2 omits it: no cumulative token cap
-is claimed. All attempts and exact code/command/limits are preserved under
-`output/convergence-resume-20261008/`; diagnostic summary:
-`output/convergence-resume-20261008/diagnosis-scene0-attempt2.json`.
+- Wrapper: `output/convergence-resume-20261008/replay-mimo-scene0-attempt1.py`.
+- Root: `output/convergence-resume-20261008/mimo-scene0-attempt1/`.
+- Log: `output/convergence-resume-20261008/replay-mimo-scene0-attempt1.log`.
+- Real CUDA DINO, static-full, fresh map, seed7, five targets.
+- 100 cumulative decision calls, 3600s wall, 180s stall, 16M cumulative tokens,
+  zero automatic trial retries. Request model: `xiaomi/mimo-v2.6-pro`.
+- Started on `f39da4ea` plus the recorded request-model budget fix; that engine
+  fix is now committed as `b0ba995c`. The attempt contract preserves its exact
+  diff/source identities. Later showcase edits do not change its product engine.
+- Latest check: running-sdk at 1050s, 44 successful calls, zero provider errors,
+  two pick/place chains. Ledger uses 400K reservations per request.
 
-## Latest completed experiment
+All earlier simulator sessions, including scene12 session `9610`, are terminal.
+Keep one simulator at a time. Read compact summaries or selected JSON fields;
+never print a raw checker assertion or private report wholesale.
 
-Recovery fix `f77db430` removed contradictory kickoff strategy and clarified
-mandatory recovery in the Skill. Same-bounds scene0 attempt3 PASSED: 4/5 restored,
-4 grounded chains, sweep 1.0, disturbances 0, authoritative success and checker
-exit 0 after 867.553 seconds. The final public pre-done completion was ready.
-There are 76 successful response metrics, input/output tokens 6,852,297/11,280,
-no usage-span limitation, and unavailable dollar cost. The 23 real-DINO observation
-events record CUDA on NVIDIA GeForce RTX 3090. This is new development
-evidence, not a replacement in the old 15-case cohort. Summary:
-`output/convergence-resume-20261008/minimax-scene0-attempt3/proof-summary.json`.
-The experiment establishes that recovery continues beyond the first room; it
-makes no claim that every possible heading must be scanned after readiness.
-The fix's complete standard gate passed at
-`output/convergence-resume-20261008/verify-after-recovery-attempt2.log`.
+## Latest implementation and checks
 
-ADR-0151 is committed (`6631b4d6`), STATUS.md is trimmed, and initial historical
-baseline/Skill/state-first capsules plus GSD pointers have explicit dispositions.
-Cohort execution deadlines are now distinct from per-trial caps (`21334ee7`);
-multi-trial live rows require an explicit deadline covering all selected caps.
-Focused showcase/workflow/process checks pass; full gate session `98851`
-passed (exit 0), log `output/convergence-resume-20261008/verify-after-showcase-runtime.log`.
+- `b3414001`: cumulative token enforcement at the SDK provider boundary. It
+  reserves twice native context capacity for each transport attempt, settles
+  known usage, retains unknown usage and shares a locked ledger across
+  continuations. Hidden client retries and multi-arm racing are disabled for
+  budgeted runs. Eval/showcase propagates explicit per-run limits.
+- `6e32fe24`: decision counts persist across continuations; the Skill includes
+  one bounded 0.5m forward reobservation after required four-heading recovery
+  when its public conditions apply. Scene10 and scene12 current replays both
+  contain **zero forward-recovery requests**; no causal strategy gain is proven.
+- `b0ba995c`: token accounting resolves and retains the actual wire request
+  model for MiMo Responses instead of trying to budget the opaque route `mimo`.
+  Both supported names reproduce the old error and pass the regression after
+  repair. The 35 budget tests and full standard gate pass; live MiMo responses
+  settle in the ledger. Investigation is closed; no scope lock remains.
+  Gate: `output/convergence-resume-20261008/verify-after-mimo-request-model-attempt1.log`.
+- Case sharding is implemented; focused and complete deterministic gates pass. The eval-owned
+  `showcase_shards` CLI freezes clean code, full suite/sample content, models and
+  budgets; executes independent sample/repetition cases through the existing
+  showcase/eval CLI; and merges existing result bundles. Duplicate/incompatible
+  evidence is rejected; missing cases block the row; trial failures stay intact.
+  Trial identity now records the actual execution budgets. Merged reports retain
+  links to original shard evidence without copying or rewriting those artifacts.
+- Compact workflow wiring now plans five external case jobs, at most two
+  concurrently, with provider-only secrets and protected-main gating. Setup is
+  bounded to 20 minutes and upload to five. Cleanup jobs require 86 minutes,
+  other current jobs 56. Compact envelope: 332 decision calls, 56M tokens,
+  12600 trial seconds, 340 runner minutes. Full lists are not enabled.
+- Sharding focused checks: 150 passed, including a complete 15-case threshold
+  merge with three preserved behavioral failures and every report link.
+  `output/convergence-resume-20261008/sharding-focused-attempt3.log`.
+  Full gate attempt1 stopped at new helper complexity and the report module's
+  size limit; those are repaired without increasing the ratchet baseline.
+  Attempt2 passed (session `9436`, exit0):
+  `output/convergence-resume-20261008/verify-after-case-sharding-attempt2.log`.
 
-Reserved scene fixture readiness attempt1 is terminal: both scenes14/15 were
-blocked by `MolmoSpaces subprocess worker timed out (init, 300s)`. Scene15's
-checked-in Base Metric Map validates; scene14's map was not produced. No
-behavior/image review took place and no scene was substituted. Summary:
-`output/convergence-resume-20261008/reserved-readiness-attempt1/readiness.json`.
-Environment-key comparison found no relevant dotenv/proxy difference.
-The 70-second diagnostic attempt2 is terminal (session36704, exit124).
-Faulthandler shows the main worker waiting on scene archive extraction and a
-thread stalled in requests/urllib3 TCP connection setup at
-`molmospaces_resources/remote_storage.py:69` (`stream_archive`). It has not
-reached MuJoCo load. The direct guarded endpoint probe also failed with curl28:
-connection to the configured public R2 resource endpoint port443 timed out.
-Evidence: `output/convergence-resume-20261008/reserved-init-diagnostic-attempt2.log`
-and `resource-endpoint-probe.log` in that same root. This is a concrete scene
-resource availability blocker, not provider/DINO unavailability or behavior failure.
-Do not silently select another reserved set or change resource credentials.
+## Visual evidence and interpretation
 
-Development scene10 replay is terminal (session `87633`, exit0): partial_success,
-3/5 restored, 3 grounded chains, sweep 1.0, disturbances 0, checker exit 0, 682.46s.
-The final public completion still reports insufficient grounded cleanup chains;
-the agent terminated after additional headings produced no pending candidates.
-There were 66 successful model calls, no provider failures, 24 DINO observations,
-input/output tokens 5,287,391/19,167 and no usage-span limitation; dollar cost is
-unavailable. This does not establish a new strategy root cause or pass acceptance.
-Evidence: `output/convergence-resume-20261008/minimax-scene10-attempt1/proof-summary.json`.
+All paths below are under `output/convergence-resume-20261008/`; each attempt
+retains its exact contract and failure history.
 
-Cumulative token enforcement is committed (`b3414001`) in the agent-engine provider boundary;
-the eval/showcase seams pass an explicit per-run limit. It reserves native model
-input/output capacity before every transport attempt, settles known usage,
-retains unknown usage, and shares a locked ledger across continuations. Hidden
-client retries are disabled for budgeted runs. Focused checks passed (189 tests).
-Real MiniMax bread proof passed 1/1 in 64.067s with a 4M-token limit: five settled
-responses total 146,553 tokens plus one terminal-interrupted 2M reservation,
-charged 2,146,553. The separate 1-token negative case stops before the first
-provider attempt, records zero requests, and correctly remains an eval failure
-(`budget_exhausted`), not a capability pass. Both attempts have zero trial retries
-and exact worktree identities under
-`output/convergence-resume-20261008/token-budget-live-attempt1/`.
-The first full gate stopped at a new environment-helper complexity violation;
-that helper is repaired. Full gate attempt2 passed (session `24423`, exit 0), log
-`output/convergence-resume-20261008/verify-after-total-token-budget-attempt2.log`.
-Staging exposed one new-file validator complexity violation that the unstaged
-ratchet had not included; simplifying that branch preserved behavior. The 28
-budget tests and full gate attempt3 passed (session `41549`, exit 0), log
-`output/convergence-resume-20261008/verify-after-total-token-budget-attempt3.log`.
-The slice includes engine/eval implementation, tests and human/architecture docs.
-Compact budget proof: `output/convergence-resume-20261008/token-budget-live-attempt1/proof-summary.json`.
+| Attempt | Result | Evidence |
+| --- | --- | --- |
+| scene0 attempt2 | 3/5, coverage 1.0, zero disturbances; stopped despite public recovery requirement | `diagnosis-scene0-attempt2.json` |
+| scene0 attempt3, after `f77db430` | Pass 4/5, four chains, coverage 1.0, zero disturbances, checker0; 867.553s | `minimax-scene0-attempt3/proof-summary.json` |
+| scene10 attempt1 | Partial 3/5, three chains, coverage1.0, zero disturbances, checker0; 682.46s | `minimax-scene10-attempt1/proof-summary.json` |
+| scene10 current replay at `6e32fe24` | Pass 4/5, four chains, coverage1.0, zero disturbances, checker0; 574.407s | `minimax-scene10-forward-attempt1/proof-summary.json` |
+| scene12 attempt1 | Partial 3/5, coverage0.8; checker1 for unfinished coverage; 852.569s | `minimax-scene12-attempt1/proof-summary.json` |
+| scene12 attempt2 at `9cf40333` | Partial 3/5, three chains, coverage1.0, zero disturbances, checker0; 978.706s | `minimax-scene12-attempt2/proof-summary.json` |
 
-Scene10 source-frame diagnosis narrows the unresolved failure to discovery:
-one of the two unrestored targets appears in zero source frames; the other
-appears once with only 349 pixels. No corresponding public target detection
-was returned. The maintainer-only aggregate is
-`output/convergence-resume-20261008/minimax-scene10-attempt1/source-frame-visibility-diagnosis.json`.
-No hidden target identity was used to choose a robot action or detector query.
-A public-only comparison script completed:
-`output/convergence-resume-20261008/scene10-viewpoint-diagnostic.py`.
-It compares all public inspection headings with a bounded 0.5m forward view,
-using the same detector and no model/manipulation calls. The 32-view comparison
-completed in 286.142s, with no failed navigation. Canonical views returned three
-recommended detections in total; translated views also returned three, but the
-room7 270-degree translated view returned three versus two at its canonical
-pose. This is local evidence of a useful viewpoint change, not cohort acceptance.
-The resource-endpoint recheck remains curl28 (session `87013`, terminal), log
-`output/convergence-resume-20261008/resource-endpoint-probe-attempt2.log`.
+Scene12 attempt2 recorded 79 model metrics, input/output 7,225,018/18,140;
+its ledger charged 9,243,158 of16M including a retained 2M unknown reservation.
+Usage has a missing terminal-response-span limitation; dollar cost unavailable.
+This attempt resolves coverage but does not pass cleanup capability.
 
-Scene12 development replay is terminal (session `60527`), wrapper
-`output/convergence-resume-20261008/replay-scene12-attempt1.py`, attempt root
-`output/convergence-resume-20261008/minimax-scene12-attempt1/`.
-It used MiniMax/DINO/static-full/fresh-map, five targets, 100 calls, 3600 seconds,
-180-second stall, zero automatic trial retries and a 16M cumulative-token limit.
-It ended partial at 3/5, sweep 0.8, disturbances 0 after 852.569s; the checker rejected
-insufficient sweep coverage. There were 69 successful model calls and no provider
-failure; input/output 6,675,921/20,750, budget charged 6,696,671 with no failure.
-The last public snapshot still named incomplete heading coverage and two unvisited
-waypoints. This is a behavior failure, not budget exhaustion. Its terminal error
-contains a very large private report assertion; read only `proof-summary.json`
-or extract sanitized fields, never print terminal.json in full.
+Scene10 current replay used 60 successful responses, 18 real CUDA DINO
+observations, input/output4,828,623/14,971 and ledger charge4,843,594 of16M.
+The prior public-only viewpoint diagnostic compared 32 canonical/forward views
+without model or manipulation calls. One view gained a recommendation while
+another lost one; aggregate unique discovery gain is unproven. Private source
+frame diagnosis was grader-only and did not select robot poses or queries.
+Evidence: `scene10-viewpoint-diagnostic-attempt1/` and
+`minimax-scene10-attempt1/source-frame-visibility-diagnosis.json`.
 
-Commit `6e32fe24` fixes decision counters resetting across continuations and adds
-the bounded forward-view Skill rule supported by the diagnostic. A deterministic
-audit reproduced two logical calls under a one-call limit before the fix; focused
-checks (66 tests), full gate and commit hooks pass. Real MiniMax initial request
-plus same-run continuation proves the second request is denied before outbound:
-one provider request, 169 tokens, `decision_call_budget_exhausted` on continuation.
-Evidence: `output/convergence-resume-20261008/decision-continuation-live-attempt1/proof-summary.json`.
-Final complete gate log:
-`output/convergence-resume-20261008/verify-after-decision-and-forward-recovery-attempt1.log`.
+## Concrete external blockers
 
-Current-code scene10 replay PASSED at `6e32fe24`: 4/5, four cleanup chains,
-sweep 1.0, disturbances 0, authoritative ready/done, checker exit 0, 574.407s.
-Sixty successful model calls, 18 DINO observations, input/output 4,828,623/14,971;
-the 16M ledger charged 4,843,594 with no unknown requests. Dollar cost unavailable.
-Evidence: `output/convergence-resume-20261008/minimax-scene10-forward-attempt1/proof-summary.json`.
-This is independent development evidence; it does not replace the old failed
-cohort and does not prove a causal strategy gain: the trace has **zero 0.5m
-forward-recovery requests**, so the added Skill rule remains unexercised in a
-product replay. Actual Grounding DINO stage provenance confirms CUDA for both
-scene10 and scene12. No strategy-effect claim is established by this single pass.
+New reserved scenes **14/15, procthor-10k-val**, were fixed before this strategy
+change. Old11/13 were inspected and cannot support a new unseen-holdout claim.
+No new reserved images/behavior were reviewed and no scenes were substituted.
 
-Current-code scene12 attempt2 is RUNNING (session `9610`) at `9cf40333`, wrapper
-`output/convergence-resume-20261008/replay-scene12-attempt2.py`; attempt root
-`output/convergence-resume-20261008/minimax-scene12-attempt2/`.
-It retains the same MiniMax/DINO/static-full/fresh-map, seed7/five-target,
-100-call/3600s/180s stall/16M-token/zero-trial-retry bounds. The latest checked
-state was running-sdk, two successful calls and no provider errors at105s.
-It tests whether current Skill/budget behavior meets the scene12 development
-gate; preserve failures and do not silently relax coverage or usage bounds.
-Poll this process; do not launch another simulator until terminal. All other
-simulator handles recorded above are terminal. Failure details now go to a
-private file and the wrapper emits a compact terminal summary.
+Both new reserved readiness attempts hit init timeout300s. Scene15's checked-in
+Base Metric Map validates; scene14's map remains missing. Faulthandler places
+the stall in archive download TCP connection setup before MuJoCo load.
+Configured public R2 port443 and the official Hugging Face resource endpoint
+both return curl28 connection timeout. No credentials/configuration changed.
+Evidence under the same output root:
+`reserved-readiness-attempt1/readiness.json`,
+`reserved-init-diagnostic-attempt2.log`, `reserved-resource-blocker.json`,
+`resource-endpoint-probe-attempt2.log`, `hf-resource-endpoint-probe.log`.
+Provider/DINO readiness itself passes; this is an asset-download blocker.
 
-Before this new strategy edit, reserve scenes **14 and 15** (procthor-10k-val)
-for the next visual epoch. No images or behavior traces from these scenes were
-inspected for this investigation. Scene15 has a checked-in Base Metric Map;
-scene14 map/fixture readiness remains to be established before freezing the full
-executable case manifest. Selection is fixed before tuning; infrastructure
-readiness cannot become a search for favorable behavior. Old reserved scenes
-11/13 have been inspected and cannot support an unseen-holdout claim.
+Remote protected `main` is still `becf890c65106b003c4ba07b0dc7797b53817fe8`.
+Successful hosted runs37297221973 and36406210330 execute that historical code,
+including retired Kimi; neither is current-code proof. Current implementation
+must reach an authorized trusted ref before the new hosted proof can run.
 
-## Verification boundaries
+## Preserved proof boundaries
 
-The compact bread/cleanup first attempts pass for both external providers, and
-the matched MiniMax static-full/no-skill control passes both treatments. These
-are local small proofs, not full external, hosted, or visual acceptance.
-The control has matching seed/prior/budgets and zero trial retries. Static-full
-input/output usage is 3,024,663/9,010; no-skill 2,923,348/4,863. Both have a
-missing-response-span limitation; dollar cost is unavailable. No causal Skill
-ranking is claimed from one paired case.
+- Three SDK provider readiness probes and managed real DINO readiness pass.
+  `sdk-readiness.json` records active routes. MiMo TP currently resolves to
+  `mimo-v2.6-pro`; do not infer a different model from stale summary text.
+- Real MiniMax cumulative-token proof passes bread1/1 under4M; a separate
+  one-token negative probe stops with zero outbound requests.
+  `token-budget-live-attempt1/proof-summary.json`.
+- Real decision-continuation proof records one outbound request and169 tokens,
+  then denies a continuation before a second request.
+  `decision-continuation-live-attempt1/proof-summary.json`.
+- Both external compact bread/cleanup proofs and paired MiniMax static-full /
+  no-skill control pass. These are local compact/world-label evidence, not a
+  full external cohort, current hosted proof or causal Skill ranking.
+- The historical real-DINO v1 identity ledger covers15 cases but fails
+  acceptance. Preserved MiMo TP compatibility is2/3 with one blocked stall.
+  Repair replays never rewrite those denominators.
+- Historical artifacts remain under `output/convergence-visual/`,
+  `output/convergence-compact/` and `output/eval-harness/20260928T113410Z/`.
+  Related state: `docs/status/active/local-eval-baseline-refresh.md`,
+  `state-first-context-manager.md`, `skill-delivery-multiscene-probe.md`.
 
-The preserved real-DINO v1 ledger covers all 15 identities but fails acceptance.
-MiMo Responses development smoke is incomplete; MiMo TP historical cleanup
-compatibility is 2/3 with one blocked stall. Repairs remain separate evidence.
+## Remaining acceptance and next action
 
-Hosted feasibility: `output/convergence-hosted-readiness/full-matrix-feasibility.json`.
-Fifteen observed cleanup runtimes imply about 93 minutes MiniMax / 162 minutes
-MiMo TP before setup or other tasks. Current 3600-second per-case caps cannot fit
-60-minute shards. Full execution remains unenabled pending matched manifests,
-aggregate token/runtime envelopes and bounded sharding (maximum two external
-shards). The old successful hosted run 36406210330 at becf890c includes retired
-Kimi and is not current-code proof.
+1. Collect MiMo scene0; complete passing real-DINO smoke on development0/10/12.
+   Diagnose current scene12 cleanup/discovery shortfall before new visual epoch.
+2. Commit the verified sharding slice and run its actual CLI preflight and a
+   real provider case when the simulator is free. Obtain trusted
+   current-code hosted proof; compact wiring alone is not sufficient.
+3. Resolve reserved14/15 asset readiness without scene shopping. Freeze exact
+   executable epoch, scenes/seeds, fixture/map treatment, graders and budgets.
+4. Run MiniMax full real-DINO15-case cohort: >=12/15 overall, >=5/6 reserved,
+   >=1 pass per scene, zero blocked; each pass requires >=4 grounded chains,
+   sweep>=0.9, disturbances<=2 and authoritative done.
+5. Complete matching MiniMax/MiMo TP world-label cohorts and current open-ended /
+   MapBuild regressions, with aggregate usage/runtime envelopes and bounded
+   hosted execution. Do not stitch code/content epochs or enable full schedules
+   from compact proof.
+6. Assemble the plan's complete capability packet and reconcile docs only when
+   required evidence supports completion. Baseline promotion stays separate.
 
-## Proven evidence
+## Stop/resume and no-touch scope
 
-- Fresh paired compact bread proof: MiniMax `1/1` passed at
-  `output/convergence-compact/minimax-attempt-1/` (43.186 seconds), and MiMo TP
-  `1/1` passed at `output/convergence-compact/mimo-tp-attempt-1/` (92.818 seconds).
-  Both are first attempts with zero failed/blocked trials and zero model failures,
-  explicit provider identity, world-public-labels, seed 7, repetition 0, 16-call
-  cap, 120-second stall cap, and zero trial retries. Both terminal eval packets
-  pass current `derive_row` identity/aggregate validation. These are local compact
-  open-ended proofs, not hosted-workflow, cleanup, or real-DINO acceptance.
-
-
-- Current dashboard: `STATUS.md`
-- Historical baseline: `docs/status/active/local-eval-baseline-refresh.md`
-- State-First record: `docs/status/active/state-first-context-manager.md`
-- Reviewed Skill probe: `docs/status/active/skill-delivery-multiscene-probe.md`
-- Plan gate recommendation: `output/eval-harness/20260928T111441Z/eval_harness.{json,md}`
-- Active provider catalog surface: `mimo-responses`, `mimo-tp-openai-chat`, `minimax-responses`; legacy identities remain readable without executable route specs.
-- Trusted showcase manifest now contains only active provider rows; Kimi rows remain only in historical evidence/readers.
-- Runtime Skill lifecycle now accepts only `static-full`; broad delivery parsing remains available to eval/regrade paths.
-- Showcase workflow now runs active provider shards only, with protected-main push/schedule/manual routing and two-shard concurrency.
-- Showcase manifest validation now rejects retired provider profiles while summary/report rendering continues to read historical identities.
-- Active eval-harness catalog now contains only the three supported provider rows; retired Kimi execution policy and row were removed, with selector coverage updated and passing.
-- Earlier `just agent::verify` passed before the subsequent migrations: Ruff, format, architecture import graph, and standalone pytest (100% complete; 1015 files formatted), including the active-provider catalog guard.
-- Explicit `no-skill` kickoff now states that the Skill body is withheld while tool descriptions and run context remain available.
-- Focused facade execution completed at `output/eval-harness/20260928T113410Z/`: 13 passed, 4 failed, 2 blocked; required SDK open-task and cleanup rows were `environment_blocked`, while the no-skill live row executed. This is evidence, not acceptance.
-- Exact-identity MiniMax repair attempts with `runtime_map_prior=assets/eval-priors/runtime_map_prior_catalog.json` were recorded under `output/eval-harness/20260928T113410Z/repair/`; both cleanup and open-ended cohorts remained blocked because the cleanup MCP server exited before readiness, before any model call.
-- Corrected snapshot-shape and `.env` loading repairs passed independently: MiniMax static-full cleanup `3/3` at `output/eval-harness/20260928T113410Z/repair3/`, and MiniMax open-ended `3/3` at `output/eval-harness/20260928T113410Z/repair3-open/`. These are compatible replacement evidence, not a rewrite of the original blocked packet.
-- MiMo TP static-full cleanup compatibility cohort completed at `output/eval-harness/20260928T113410Z/mimo-tp/`: 2/3 passed, 1/3 blocked by the recorded 180-second no-progress stall; no failures. The blocked denominator remains visible and the cohort is not accepted as fully passing.
-- Frozen visual case identity is recorded in `evals/household_world/manifests/simulation_convergence_visual_v1.json`: development scenes 0/10/12, reserved scenes 11/13, seed 7 with three trial identities per scene, real DINO lane, and fresh-map treatment. The v1 collection is now complete by identity but fails acceptance; later reserved-scene inspection prevents an unseen-holdout claim.
-- Fresh real-Grounding-DINO MapBuild readiness runs completed for development scenes 0, 10, and 12 with seed 7: `output/convergence-mapbuild/scene0/0928_2122/seed-7/`, `output/convergence-mapbuild/scene10/0928_2125/seed-7/`, and `output/convergence-mapbuild/scene12/0928_2128/seed-7/`. Each exited `household-world ok` with `map_build_baseline complete`, private truth excluded, zero labeler failures, and sweep coverage 1.0; the runs recorded 35/20/50 DINO events and 239/108/327 candidates respectively.
-- MiniMax real-DINO first attempts now exist for every development scene in the frozen manifest: scene 0 at `output/convergence-visual/minimax/scene0/trial0/` restored 3/5 targets, scene 10 at `output/convergence-visual/minimax/scene10/trial0/` restored 1/5, and scene 12 at `output/convergence-visual/minimax/scene12/trial0/` restored 2/5. All three completed with `partial_success`, real `grounding-dino` provenance, sweep coverage 1.0, and zero disturbances. These are cross-scene capability evidence, not the 12/15 acceptance cohort.
-- Reserved scene 11 first attempt is recorded at `output/convergence-visual/minimax/scene11/trial0/`: the authoritative run artifact reports `completion_status=success`, four grounded cleanup chains, 5-target grading, sweep coverage 1.0, and zero disturbances. The outer cleanup-validation wrapper exited nonzero on a checker mismatch after the successful artifact was written; this remains an explicit validation discrepancy and does not count as a clean accepted cohort row until resolved.
-- Reserved scene 13 first attempt is recorded at `output/convergence-visual/minimax/scene13/trial0/`: the authoritative run artifact also reports `completion_status=success`, four grounded cleanup chains, 5-target grading, sweep coverage 1.0, and zero disturbances. Its outer checker likewise exited nonzero on strict robot-view evidence, so it remains behavioral evidence pending validator-clean replay.
-- A fresh scene 11 replay after the held-object evidence fix was started at `output/convergence-visual/minimax/scene11/trial1/` but terminated before producing `run_result.json`; it is retained as an incomplete infrastructure attempt and does not replace the earlier scene 11 artifact.
-- The scene 11 trial1 terminal packet records MiniMax Token Plan quota exhaustion (`2056`, `provider_quota_failure`, `billing_limit`) after 25 successful model calls. That attempt was non-retryable under the provider contract; later quota recovery enabled the separately identified repair replays below.
-- MiMo Responses development smoke scene 0 was attempted at `output/convergence-visual/mimo/scene0/trial0/`; it reached 66 successful model calls and continued making tool progress for roughly 30 minutes without an authoritative `done`/`run_result.json`. It was stopped as an incomplete bounded attempt and does not count as MiMo acceptance.
-- After the reported quota recovery, MiniMax trial-1 collection resumed. Scene 0 trial 1 at `output/convergence-visual/minimax/scene0/trial1/` is validator-clean and reports success with 4/5 accepted targets, sweep coverage 1.0, and zero disturbances. Scene 10 trial 1 at `output/convergence-visual/minimax/scene10/trial1/` reports behavioral success with 4/5, sweep 1.0, and zero disturbances, but its historical strict validation still rejects an open-receptacle focused frame with zero object pixels and room mismatch. Scene 12 trial 1 at `output/convergence-visual/minimax/scene12/trial1/` is checker-clean but partial success at 2/5, sweep 1.0, and zero disturbances. Trial-1 outcomes expand the complete cohort evidence but do not alter first-attempt acceptance denominators.
-- Reserved trial-1 follow-up artifacts are now present: scene 11 trial 2 at `output/convergence-visual/minimax/scene11/trial2/` and scene 13 trial 1 at `output/convergence-visual/minimax/scene13/trial1/` each report behavioral success at 4/5, sweep coverage 1.0, and zero disturbances. Their historical strict checker failures remain preserved as immutable evidence.
-- MiniMax development trial-2 follow-ups are complete: scene 0 at `output/convergence-visual/minimax/scene0/trial2/` reports partial success 3/5, scene 10 at `output/convergence-visual/minimax/scene10/trial2/` reports behavioral success 4/5 with strict checker failure, and scene 12 at `output/convergence-visual/minimax/scene12/trial2/` reports partial success 2/5. All three have sweep coverage 1.0 and zero disturbances; these follow-ups do not alter first-attempt acceptance denominators.
-- The final reserved identity, scene 13 trial 2 at `output/convergence-visual/minimax/scene13/trial2/`, completed as an authoritative behavioral failure: 0/5 accepted targets, sweep coverage 1.0, zero disturbances, and no actionable public DINO handle reached navigation authorization. This preserves the complete 15-case identity ledger with explicit failure evidence; the frozen MiniMax acceptance threshold is not met.
-- The strict-visual repair replay for scene 13 at `output/convergence-visual/minimax-repair/scene13/repair0/` is checker-clean after the two producer/checker fixes: the open-fridge pose records a 1.8 m stand-off and `same_room`, the focused Apple frame has 3026 FPV and 283 verify object pixels, and `place_inside`/`close_receptacle` report `contained_inside`. The authoritative run remains `partial_success` (3/5 restored), so this is visual-validation evidence rather than an accepted cohort row.
-- Exact post-fix replays for scene 10 and scene 11 at `output/convergence-visual/minimax-repair/scene10/repair1/` and `output/convergence-visual/minimax-repair/scene11/repair1/` both exit `household-world ok` with no strict checker rejection. They are behavior-incomplete at 1/4 cleanup chains each: scene 10 rejected four detected candidates as `visual_candidate_not_cleanup_recommended`, while scene 11 returned only one cleanup-recommended candidate. These are behavior evidence, not quota or visual-validation failures.
-
-## Next action
-
-Collect current-code scene12 attempt2 and resolve its premature completion/coverage
-failure, then complete MiMo Responses development smoke. Resolve
-the proven reserved-scene asset-download blocker before reserved execution.
-Complete new epoch/full matched manifests,
-actual token/runtime budgets, trusted current-code hosted proof and the full visual
-gate. Neither compact successes nor green deterministic tests close these gates.
-Do not stitch different code/content epochs into the old first-attempt cohort.
-
-## Stop/resume conditions
-
-Stop for a material scope, provider/resource/cost, credential, privacy,
-publication, or real-robot decision. Resume ordinary in-scope implementation
-under the unchanged contract.
-
-## No-touch scope
-
-Do not rewrite historical evidence, publish a baseline/catalog, change resources
-or credentials, move a real robot, or modify unrelated active capsules. Keep one
-simulator runtime at a time and retain every new attempt separately.
-
-- Verification correction: suite retirement checks now inspect nested metadata and enforce provider-cell counts. Focused model-schema tests pass (16 tests); active suite count is corrected to three.
+Continue ordinary in-scope implementation and independent proof. Stop for a
+material provider/resource/cost expansion, credential/privacy change, durable
+baseline/catalog publication or real-robot decision. One simulator at a time;
+maximum two external shards; zero automatic trial retries. Preserve every
+attempt, historical report and unrelated capsule. Do not move a real robot.

@@ -472,6 +472,10 @@ Eval execution is composed by `evals/runner.py`. Suite loading, trial
 execution, live process execution, live product policy, artifact/privacy/
 outcome grading, open-ended grading, grader source handling, failure/result
 projection, result persistence, and aggregation/reporting have direct owners.
+The eval-owned `showcase_shards` adapter freezes independent case identities and
+execution envelopes, invokes this same runner, and merges its existing result
+bundles. It preserves every case status and rejects missing or mixed evidence;
+it is also the source of the trusted showcase workflow's bounded job matrix.
 `evals/cli.py` imports only the runner from the eval package; the runner
 composes suite execution and CLI tool-mode dispatch without a reverse import
 or compatibility facade.
