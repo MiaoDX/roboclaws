@@ -1,0 +1,267 @@
+{
+  "schema": "roboclaws_showcase_manifest_v1",
+  "version": "2026-10-08-v2",
+  "execution_readiness": "prepared_pending_fixture_readiness_and_hosted_proof",
+  "rows": [
+    {
+      "id": "household_world.cleanup_convergence_world_v2.minimax",
+      "canonical_suite_id": "household_world.cleanup_convergence_world_v2",
+      "suite": "cleanup_convergence_world_v2",
+      "version": "2026-10-08-v2",
+      "sample_ids": [
+        "cleanup.convergence_v2.world.scene0.seed7",
+        "cleanup.convergence_v2.world.scene10.seed7",
+        "cleanup.convergence_v2.world.scene12.seed7",
+        "cleanup.convergence_v2.world.scene14.seed7",
+        "cleanup.convergence_v2.world.scene15.seed7"
+      ],
+      "agent_engine": "openai-agents-sdk",
+      "provider_profile": "minimax-responses",
+      "model": "MiniMax-M3",
+      "seed": 7,
+      "evidence_lane": "world-public-labels",
+      "camera_labeler": "not_applicable",
+      "budget": "focused",
+      "timeout_s": 3600,
+      "stall_timeout_s": 180,
+      "decision_call_budget": 100,
+      "total_token_budget": 16000000,
+      "execution_timeout_s": 54030,
+      "execution_mode": "manual_live_only",
+      "comparison_scope": "common",
+      "cohort_acceptance": {
+        "min_passed": 12,
+        "min_per_world": 1,
+        "reserved_worlds": [
+          "molmospaces/procthor-10k-val/14",
+          "molmospaces/procthor-10k-val/15"
+        ],
+        "min_reserved_passed": 5
+      }
+    },
+    {
+      "id": "household_world.open_ended_goals.minimax.drink",
+      "canonical_suite_id": "household_world.open_ended_goals",
+      "suite": "open_ended_goals",
+      "version": "2026-06-15",
+      "sample_ids": [
+        "open_ended.drink_seed7"
+      ],
+      "agent_engine": "openai-agents-sdk",
+      "provider_profile": "minimax-responses",
+      "model": "MiniMax-M3",
+      "total_token_budget": 16000000,
+      "seed": 7,
+      "evidence_lane": "world-public-labels",
+      "camera_labeler": "not_applicable",
+      "budget": "focused",
+      "timeout_s": 1800,
+      "decision_call_budget": 100,
+      "stall_timeout_s": 180,
+      "execution_mode": "manual_live_only",
+      "comparison_scope": "common",
+      "sample_id": "open_ended.drink_seed7",
+      "repetition_index": 0
+    },
+    {
+      "id": "household_world.open_ended_goals.minimax.room4_anchor",
+      "canonical_suite_id": "household_world.open_ended_goals",
+      "suite": "open_ended_goals",
+      "version": "2026-06-15",
+      "sample_ids": [
+        "open_ended.room4_anchor_seed7"
+      ],
+      "agent_engine": "openai-agents-sdk",
+      "provider_profile": "minimax-responses",
+      "model": "MiniMax-M3",
+      "total_token_budget": 16000000,
+      "seed": 7,
+      "evidence_lane": "world-public-labels",
+      "camera_labeler": "not_applicable",
+      "budget": "focused",
+      "timeout_s": 1800,
+      "decision_call_budget": 100,
+      "stall_timeout_s": 180,
+      "execution_mode": "manual_live_only",
+      "comparison_scope": "common",
+      "sample_id": "open_ended.room4_anchor_seed7",
+      "repetition_index": 0
+    },
+    {
+      "id": "household_world.open_ended_goals.minimax.bread",
+      "canonical_suite_id": "household_world.open_ended_goals",
+      "suite": "open_ended_goals",
+      "version": "2026-06-15",
+      "sample_ids": [
+        "open_ended.bread_seed7"
+      ],
+      "agent_engine": "openai-agents-sdk",
+      "provider_profile": "minimax-responses",
+      "model": "MiniMax-M3",
+      "total_token_budget": 4000000,
+      "seed": 7,
+      "evidence_lane": "world-public-labels",
+      "camera_labeler": "not_applicable",
+      "budget": "focused",
+      "timeout_s": 1800,
+      "decision_call_budget": 16,
+      "stall_timeout_s": 120,
+      "execution_mode": "manual_live_only",
+      "comparison_scope": "common",
+      "sample_id": "open_ended.bread_seed7",
+      "repetition_index": 0
+    },
+    {
+      "id": "household_world.map_build_quality.minimax",
+      "suite": "map_build_quality",
+      "version": "2026-07-23",
+      "sample_ids": [
+        "map_build.fixture_focused_seed7"
+      ],
+      "agent_engine": "openai-agents-sdk",
+      "provider_profile": "minimax-responses",
+      "model": "MiniMax-M3",
+      "total_token_budget": 16000000,
+      "seed": 7,
+      "evidence_lane": "world-public-labels",
+      "camera_labeler": "not_applicable",
+      "budget": "focused",
+      "timeout_s": 1800,
+      "decision_call_budget": 100,
+      "stall_timeout_s": 600,
+      "execution_mode": "manual_live_only",
+      "canonical_suite_id": "household_world.map_build_quality",
+      "comparison_scope": "common"
+    },
+    {
+      "id": "household_world.cleanup_convergence_world_v2.mimo",
+      "canonical_suite_id": "household_world.cleanup_convergence_world_v2",
+      "suite": "cleanup_convergence_world_v2",
+      "version": "2026-10-08-v2",
+      "sample_ids": [
+        "cleanup.convergence_v2.world.scene0.seed7",
+        "cleanup.convergence_v2.world.scene10.seed7",
+        "cleanup.convergence_v2.world.scene12.seed7",
+        "cleanup.convergence_v2.world.scene14.seed7",
+        "cleanup.convergence_v2.world.scene15.seed7"
+      ],
+      "agent_engine": "openai-agents-sdk",
+      "provider_profile": "mimo-tp-openai-chat",
+      "model": "mimo-v2.6-pro",
+      "seed": 7,
+      "evidence_lane": "world-public-labels",
+      "camera_labeler": "not_applicable",
+      "budget": "focused",
+      "timeout_s": 3600,
+      "stall_timeout_s": 180,
+      "decision_call_budget": 100,
+      "total_token_budget": 16000000,
+      "execution_timeout_s": 54030,
+      "execution_mode": "manual_live_only",
+      "comparison_scope": "common",
+      "cohort_acceptance": {
+        "min_passed": 12,
+        "min_per_world": 1,
+        "reserved_worlds": [
+          "molmospaces/procthor-10k-val/14",
+          "molmospaces/procthor-10k-val/15"
+        ],
+        "min_reserved_passed": 5
+      }
+    },
+    {
+      "id": "household_world.open_ended_goals.mimo.drink",
+      "canonical_suite_id": "household_world.open_ended_goals",
+      "suite": "open_ended_goals",
+      "version": "2026-06-15",
+      "sample_ids": [
+        "open_ended.drink_seed7"
+      ],
+      "agent_engine": "openai-agents-sdk",
+      "provider_profile": "mimo-tp-openai-chat",
+      "model": "mimo-v2.6-pro",
+      "total_token_budget": 16000000,
+      "seed": 7,
+      "evidence_lane": "world-public-labels",
+      "camera_labeler": "not_applicable",
+      "budget": "focused",
+      "timeout_s": 1800,
+      "decision_call_budget": 100,
+      "stall_timeout_s": 180,
+      "execution_mode": "manual_live_only",
+      "comparison_scope": "common",
+      "sample_id": "open_ended.drink_seed7",
+      "repetition_index": 0
+    },
+    {
+      "id": "household_world.open_ended_goals.mimo.room4_anchor",
+      "canonical_suite_id": "household_world.open_ended_goals",
+      "suite": "open_ended_goals",
+      "version": "2026-06-15",
+      "sample_ids": [
+        "open_ended.room4_anchor_seed7"
+      ],
+      "agent_engine": "openai-agents-sdk",
+      "provider_profile": "mimo-tp-openai-chat",
+      "model": "mimo-v2.6-pro",
+      "total_token_budget": 16000000,
+      "seed": 7,
+      "evidence_lane": "world-public-labels",
+      "camera_labeler": "not_applicable",
+      "budget": "focused",
+      "timeout_s": 1800,
+      "decision_call_budget": 100,
+      "stall_timeout_s": 180,
+      "execution_mode": "manual_live_only",
+      "comparison_scope": "common",
+      "sample_id": "open_ended.room4_anchor_seed7",
+      "repetition_index": 0
+    },
+    {
+      "id": "household_world.open_ended_goals.mimo.bread",
+      "canonical_suite_id": "household_world.open_ended_goals",
+      "suite": "open_ended_goals",
+      "version": "2026-06-15",
+      "sample_ids": [
+        "open_ended.bread_seed7"
+      ],
+      "agent_engine": "openai-agents-sdk",
+      "provider_profile": "mimo-tp-openai-chat",
+      "model": "mimo-v2.6-pro",
+      "total_token_budget": 4000000,
+      "seed": 7,
+      "evidence_lane": "world-public-labels",
+      "camera_labeler": "not_applicable",
+      "budget": "focused",
+      "timeout_s": 1800,
+      "decision_call_budget": 16,
+      "stall_timeout_s": 120,
+      "execution_mode": "manual_live_only",
+      "comparison_scope": "common",
+      "sample_id": "open_ended.bread_seed7",
+      "repetition_index": 0
+    },
+    {
+      "id": "household_world.map_build_quality.mimo",
+      "suite": "map_build_quality",
+      "version": "2026-07-23",
+      "sample_ids": [
+        "map_build.fixture_focused_seed7"
+      ],
+      "agent_engine": "openai-agents-sdk",
+      "provider_profile": "mimo-tp-openai-chat",
+      "model": "mimo-v2.6-pro",
+      "total_token_budget": 16000000,
+      "seed": 7,
+      "evidence_lane": "world-public-labels",
+      "camera_labeler": "not_applicable",
+      "budget": "focused",
+      "timeout_s": 1800,
+      "decision_call_budget": 100,
+      "stall_timeout_s": 600,
+      "execution_mode": "manual_live_only",
+      "canonical_suite_id": "household_world.map_build_quality",
+      "comparison_scope": "common"
+    }
+  ]
+}

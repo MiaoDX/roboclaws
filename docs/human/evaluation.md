@@ -119,10 +119,33 @@ cumulative-token, trial-time and runner-minute envelopes. Its compact case set
 has five external cases, 332 decision calls and a 56-million-token ceiling.
 These are upper bounds, not expected usage or dollar-cost estimates.
 
-This acceptance support does not enable scheduled full execution. Matched case
-manifests, runtime/call/token envelopes and hosted evidence remain required.
+Prepared external lists live in `config/showcase-development-manifest.json`
+and `config/showcase-full-manifest.json`. Both providers share the same cases,
+graders and limits: development selects scenes0/10/12, while full adds the fixed
+reserved scenes14/15. Each scene has three independent seed7 trials. Both lists
+also include all three current open-ended cases and the current MapBuild case
+for each provider. Their readiness labels describe preparation status; they do
+not bypass runtime readiness or constitute an accepted cohort.
+
+The full list has38 external cases, a3,632-call /584-million-token ceiling,
+34 trial-hours and3,028 runner-minutes including setup/report/upload allowances.
+The development list has26 cases,2,432 calls,392 million tokens,22 trial-hours
+and1,996 runner-minutes. These bounded maximums are not expected use or cost.
+The workflow still references only the compact manifest. Fixture readiness,
+final code/content freeze, cost-envelope review and trusted hosted proof remain
+required before full execution or scheduled activation.
 Execution must fit the convergence plan's resource contract; a material cost
 or resource expansion requires a separate decision.
+
+`cleanup_convergence_world_v2` and `cleanup_convergence_dino_v2` share fixture
+identities and fresh Runtime Metric Map treatment; they reject a supplied prior.
+The DINO suite has its separate visual case ledger under
+`evals/household_world/manifests/simulation_convergence_visual_v2.json`.
+New convergence samples require four complete cleanup chains for distinct
+objects. The eval layer reconstructs these from successful public tool responses
+using the same semantic sequence as the household runtime; failed picks and
+duplicate object sequences do not increase the count. Restoration, coverage,
+disturbance, completion and real-DINO provenance requirements remain separate.
 
 Evaluation is a Git-checkout-owned maintainer layer. The sdist and wheel omit
 `roboclaws.evals`, `evals/**`, and the eval-harness skill; installed product

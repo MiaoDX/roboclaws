@@ -1,0 +1,55 @@
+{
+  "schema": "roboclaws_eval_suite_v1",
+  "suite_id": "household_world.cleanup_convergence_world_v2",
+  "version": "2026-10-08-v2",
+  "capability": "household_world_cleanup",
+  "sample_ids": [
+    "cleanup.convergence_v2.world.scene0.seed7",
+    "cleanup.convergence_v2.world.scene10.seed7",
+    "cleanup.convergence_v2.world.scene12.seed7",
+    "cleanup.convergence_v2.world.scene14.seed7",
+    "cleanup.convergence_v2.world.scene15.seed7"
+  ],
+  "sample_refs": [
+    "evals/household_world/samples/cleanup/convergence_v2/world_scene0_seed7.json",
+    "evals/household_world/samples/cleanup/convergence_v2/world_scene10_seed7.json",
+    "evals/household_world/samples/cleanup/convergence_v2/world_scene12_seed7.json",
+    "evals/household_world/samples/cleanup/convergence_v2/world_scene14_seed7.json",
+    "evals/household_world/samples/cleanup/convergence_v2/world_scene15_seed7.json"
+  ],
+  "required_graders": [
+    "artifacts",
+    "privacy",
+    "trajectory",
+    "outcome"
+  ],
+  "thresholds": {
+    "private_truth_leak_count": 0,
+    "trajectory_policy_violation_count": 0
+  },
+  "metadata": {
+    "execution_mode": "no_prior_control",
+    "case_readiness": "pending_reserved_assets_and_development_proof",
+    "development_scenes": [
+      0,
+      10,
+      12
+    ],
+    "reserved_scenes": [
+      14,
+      15
+    ],
+    "trial_count": 3,
+    "map_treatment": "fresh_runtime_metric_map_no_prior",
+    "acceptance_owner": "docs/plans/2026-09-28-simulation-capability-and-rnd-convergence.md",
+    "cohort_acceptance": {
+      "min_passed": 12,
+      "min_per_world": 1,
+      "reserved_worlds": [
+        "molmospaces/procthor-10k-val/14",
+        "molmospaces/procthor-10k-val/15"
+      ],
+      "min_reserved_passed": 5
+    }
+  }
+}

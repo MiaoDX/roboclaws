@@ -7,6 +7,7 @@ from typing import Any
 
 from roboclaws.evals import grading_sources, long_horizon_contract, open_ended_grading
 from roboclaws.evals import long_horizon_grader as lhg
+from roboclaws.evals.cleanup_grading import grade_cleanup_chains
 from roboclaws.evals.map_build_quality import grade_runtime_metric_map_quality
 from roboclaws.evals.models import (
     MISSING_NOT_APPLICABLE,
@@ -198,6 +199,9 @@ def _outcome_grader(
         else {}
     )
     semantic_completion_status = str(semantic_acceptability.get("status") or "")
+    chain_grade = grade_cleanup_chains(
+        run_dir, minimum=(sample.grader_config or {}).get("min_complete_cleanup_chains", 0)
+    )
     if sample.intent == "cleanup":
         restoration_rate = _float_or_none(score.get("mess_restoration_rate"))
         sweep_coverage_rate = _float_or_none(score.get("sweep_coverage_rate"))
@@ -206,6 +210,7 @@ def _outcome_grader(
         passed = bool(
             completion_status in {"passed", "success", "complete", "completed"}
             and done_present
+            and chain_grade["complete_cleanup_chains_satisfied"]
             and restoration_rate is not None
             and restoration_rate
             >= float((sample.grader_config or {}).get("min_restoration_rate", 0.7))
@@ -231,6 +236,7 @@ def _outcome_grader(
         "sweep_coverage_rate": score.get("sweep_coverage_rate", MISSING_UNAVAILABLE),
         "disturbance_count": score.get("disturbance_count", MISSING_UNAVAILABLE),
         "authoritative_done_present": done_present,
+        **chain_grade,
     }
 
 
