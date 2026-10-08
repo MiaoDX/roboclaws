@@ -1,5 +1,11 @@
 # State-First Context Manager
 
+Disposition: implementation retained; historical comparison acceptance remains
+partial. The [convergence plan](../../plans/2026-09-28-simulation-capability-and-rnd-convergence.md)
+supersedes the Kimi comparison requirement for new work. Kimi is retired from
+execution; do not rerun it to complete this historical packet. This capsule
+remains the initiative status owner, and GSD retains its execution evidence.
+
 ## Route
 - Source plan: `docs/plans/2026-09-01-state-first-context-manager.md`
 - Mode: durable execution via GSD milestone `v1.99`
@@ -24,8 +30,8 @@
   usage was available in the raw event artifact but not aggregated into
   `context_metrics` (`span_usage_missing`), with its observed generation spans
   staying below 77,299 tokens.
-- Phase 4 focused eval remains partial because of a current Kimi quota block in
-  the cleanup comparison rows.
+- Phase 4's historical focused eval remains partial because Kimi quota blocked
+  the cleanup comparison rows in that packet.
 
 ## Proven Evidence
 - Implementation commits: `5f5727a8`, `47e55fc6`, `45bae24e`, `9212dad2`,
@@ -41,11 +47,10 @@
   and `output/state-first-context-manager/provider-recheck-mimo/0902_1703/seed-13/`.
 
 ## Next Action
-No state-first implementation repair is indicated. The old MiMo context
-failure did not reproduce, and the open-ended bread row now passes on a real
-MolmoSpaces scene. Keep the MiMo accounting/headroom caveat visible and
-rerun the Kimi cleanup comparison after its provider quota resets before
-calling the canonical focused eval gate passing.
+No state-first implementation repair is indicated. Preserve the historical
+partial gate and MiMo accounting/headroom caveat. Current provider/capability
+proof follows the [convergence capsule](simulation-capability-and-rnd-convergence.md);
+its new acceptance cannot rewrite this historical comparison as passing.
 
 ## No-Touch Scope
 Do not publish a durable baseline, substitute providers/lanes, alter public

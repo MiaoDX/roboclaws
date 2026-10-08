@@ -2,6 +2,11 @@
 
 Status: complete; reviewed; inconclusive
 
+Disposition: historical comparison, preserved without promotion. Its Kimi route
+is retired; future product/control execution follows the
+[convergence contract](../../plans/2026-09-28-simulation-capability-and-rnd-convergence.md).
+The old paired results and inconclusive decision below are unchanged.
+
 The completed campaign is a reviewed, paired `no-skill` versus `static-full`
 cleanup comparison across MolmoSpaces scenes 0, 10, and 12. It uses
 `kimi-openai-chat` / `kimi-k2.7-code`, seed 7, `world-public-labels`, five

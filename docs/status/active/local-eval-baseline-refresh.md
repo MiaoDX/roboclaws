@@ -4,6 +4,13 @@ Date: 2026-09-27
 
 Owner: Eval Harness / Eval Suites architecture layer.
 
+Disposition: historical baseline packets and targeted reruns, without promotion.
+The [convergence plan](../../plans/2026-09-28-simulation-capability-and-rnd-convergence.md)
+supersedes this provider/Skill matrix for new execution. Retired Kimi and dynamic
+or sandbox delivery results below remain immutable evidence; they are not
+current executable recommendations. Current readiness and required gates are
+owned by the [convergence capsule](simulation-capability-and-rnd-convergence.md).
+
 ## 2026-09-28 targeted rerun
 
 The three blocked rows from the 2026-09-27 packet were rerun individually with

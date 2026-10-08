@@ -19,6 +19,12 @@ progress:
 See `.planning/PROJECT.md` for the core value, constraints, and success metric.
 See `.planning/ROADMAP.md` for the active phase sequence and criteria.
 
+Initiative status owner:
+[`docs/status/active/state-first-context-manager.md`](../docs/status/active/state-first-context-manager.md).
+This file owns the GSD execution cursor and phase evidence, not a second
+initiative status. Current repo priority follows the separate
+[convergence capsule](../docs/status/active/simulation-capability-and-rnd-convergence.md).
+
 ## Current Position
 
 Phase 4 of 4 is partial: Route Proof And Rollout.
@@ -55,7 +61,8 @@ Progress: [████████░░] 75%
 
 ## Session Continuity
 
-Next action: decide separately whether to repair the missing historical eval
-fixture and the existing direct-runner behavior failure. Both are outside the
-state-first implementation scope, but the canonical focused eval gate cannot be
-called passing while they remain.
+Keep the historical Phase 4 partial result and its original evidence. The
+convergence plan supersedes its retired-provider matrix for new execution;
+there is no request to restart Kimi comparisons. Resume state-first-specific
+work only for a new issue in its retained context/checkpoint behavior. Current
+implementation and live proofs continue through the convergence capsule.
