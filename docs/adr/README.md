@@ -41,6 +41,7 @@ guidance:
 | [0148](0148-retire-openclaw-and-local-docker-runtime.md) | Retire OpenClaw And Local Docker Runtime | Keeps active agent execution host-based while preserving CloudML image contracts. |
 | [0149](0149-project-agent-observability-as-one-way-side-effects.md) | Project Agent Observability As One-Way Side Effects | Canonical privacy, ownership, and fail-open boundary for external observability. |
 | [0150](0150-use-opik-as-the-sole-external-observability-backend.md) | Use Opik As The Sole External Observability Backend | Selects the one supported browser/deployment while keeping local evidence canonical. |
+| [0151](0151-converge-on-simulation-capability-and-purposeful-validation.md) | Converge On Simulation Capability And Purposeful Validation | One product Skill, three providers, separate visual proof and stable initiative ownership. |
 
 ## Archived Superseded ADRs
 
