@@ -177,14 +177,20 @@ def test_map_build_camera_grounded_baseline_prompt_keeps_two_step_cadence() -> N
     assert "Waypoint observation tool=observe_camera_grounded_candidates" not in prompt
 
 
-def test_cleanup_camera_grounded_composite_prompt_requires_bounded_heading_sweep() -> None:
+@pytest.mark.parametrize("cell", ["static-full", "no-skill"])
+def test_cleanup_camera_grounded_kickoff_leaves_recovery_strategy_to_skill(cell: str) -> None:
     prompt = render_kickoff_prompt(
         "camera-grounded-labels",
         intent="cleanup",
         camera_grounded_composite_tools=True,
+        skill_delivery_cell=cell,
     )
 
-    assert "At every public inspection waypoint" in prompt
-    assert "call the composite tool once at the canonical pose" in prompt
-    assert "insufficient_camera_grounded_heading_coverage" in prompt
-    assert "do not perform it speculatively" not in prompt
+    assert "Evidence lane=camera-grounded-labels" in prompt
+    assert "Camera-grounded observation mode=composite" in prompt
+    assert "do not call declare_visual_candidates again" in prompt
+    assert "Required closeout artifacts" in prompt
+    assert "If done returns" not in prompt
+    assert "optional heading recovery" not in prompt
+    assert "At every public inspection waypoint" not in prompt
+    assert "90-degree turns" not in prompt

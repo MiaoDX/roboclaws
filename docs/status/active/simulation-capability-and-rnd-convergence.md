@@ -1,99 +1,88 @@
 # Simulation Capability And R&D Convergence
 
-State: active  
+State: active
 Owner/session: Codex `/root`  
 Source plan: `docs/plans/2026-09-28-simulation-capability-and-rnd-convergence.md`
 
 ## Current slice
 
-Phase 2/3 provider retirement and showcase acceptance repairs remain active.
-Paired local compact bread and cleanup proofs are terminal: MiniMax and MiMo TP
-each pass both cases (`1/1` per row, zero failed/blocked). All four first-attempt
-packets under `output/convergence-compact/` pass current exact-case showcase
-validation. No simulator process from this collection remains active.
+Implementation state: active. Verification state: partial; capability acceptance incomplete.
+Latest intent: continue implementation and required probes under the approved plan.
 
-Full initiative acceptance is incomplete: full external matrices, trusted
-current-code hosted proof, and real-DINO capability acceptance remain open.
+Provider/Skill convergence is committed through `a5647ec8`: only static-full is a
+product delivery, no-skill is an explicit eval control, and only MiMo Responses,
+MiMo TP and MiniMax are executable providers. Historical identities remain readable.
+Exact showcase identities and complete cohort thresholds are validated without
+rewriting failed trial statuses or averaging away blocked/infrastructure rows.
 
-## Verification state
+On 2026-10-08 all three SDK provider probes and managed real-DINO readiness passed.
+The complete standard gate passed after the cohort change (session `75547`, exit 0):
+`output/convergence-resume-20261008/verify-after-cohorts.log`.
+The earlier sandbox/network failures are historical and are no longer blockers.
 
-Provider readiness and runtime construction now reject retired Kimi/Qwen
-profiles; engine launch catalogs advertise only the three active routes.
-Readiness probes and the benchmark use active routes, with the public probe
-profile excluding internal MiMo Responses. Focused provider, launch, console,
-and dev-tool checks passed for those changes; no current-tree full-gate pass is
-claimed after the latest migrations. Historical provider identity/model lookup remains read-only; executable Kimi/Qwen
-route registrations, request headers and thinking branches are removed. Active
-README and contributor guidance now describe the two external providers and
-protected-main manual execution.
+Current development evidence: scene0 attempt2 is terminal, not running.
+MiniMax real DINO, static-full, seed7, fresh map/no prior: partial_success after
+551.359 seconds, 3/5 restored, 3 grounded chains, sweep 1.0, disturbances 0.
+Only room2 completed four headings; rooms3–8 remained at one. The agent called
+terminal done despite the latest public completion naming room3 recovery.
+There were 38 successful model responses, zero provider failures and one
+terminal-interrupted response span. Reported input/output tokens: 3,646,813/13,182;
+usage has a missing-response-span limitation and dollar cost is unavailable.
 
-Showcase aggregation rejects mixed blocked/passed and incomplete counts;
-provider-backed passing packets must include every requested sample/repetition
-exactly once, matching suite/sample versions, seed, world, backend, provider,
-engine and lane. Malformed identities block. Focused showcase tests: 56 passed;
-all four new compact live packets pass the stricter checker. Commit `43a276bc`.
+Attempt1 failed before any model call because live_token_budget requires a paired
+priced output reservation/cost budget. Attempt2 omits it: no cumulative token cap
+is claimed. All attempts and exact code/command/limits are preserved under
+`output/convergence-resume-20261008/`; diagnostic summary:
+`output/convergence-resume-20261008/diagnosis-scene0-attempt2.json`.
 
-Retired delivery rows are removed from the harness catalog. No-skill is selected
-only by explicit `profile=skill-control`; the resolved static-full/no-skill
-commands have matching provider, suite, budget and canonical prior, differing
-only in treatment and output stamp. Selector/profile checks: 32 passed. Latest
-control recommendation: `output/eval-harness/20260930T102512Z/`.
+## Current experiment
 
-The Skill/runtime retirement and remaining eval caller migration are committed
-as `2134f313`. The commit hook's complete fast pytest subset passed. Current-tree
-Ruff, format (1014 files), quality ratchet and architecture checks pass (558
-modules, zero violations), as do the 49 additional report/artifact checks from
-the standard gate. The earlier `just agent::verify` invocation was deliberately
-interrupted before the retirement slice; its log is partial, not a pass. Full
-commit-hook output is `/tmp/convergence-retirement-commit.log`.
+- Blocker class: behavior_incomplete; required heading recovery is abandoned.
+- Hypothesis: kickoff contradicts Skill by calling heading recovery optional and
+  asking for a blocker from terminal done. Skill's initial observation cadence
+  is also labeled a default budget. The agent's terminal explanation cites an
+  exhausted sweep budget despite only 39/100 model requests and 551/3600 seconds.
+- Change: remove generic recovery strategy from kickoff, clarify required recovery
+  and repeated completion-directed waypoint progression in the owning Skill.
+- Decision delta: a new same-bounds scene0 development attempt determines whether
+  the agent follows recovery across all incomplete waypoints and discovers enough
+  additional public candidates. If headings complete but chains remain <4, pursue
+  visual discovery separately; do not weaken recommendation or completion guards.
+- Success: public heading blockers resolved before voluntary done; full case
+  success additionally requires >=4 chains and authoritative successful completion.
+- Proof: focused prompt/Skill checks, standard gate, then a separately identified
+  real-DINO replay with 100 decision calls, 3600 seconds, 180-second stall and
+  zero automatic trial retries. Existing bounded transport retry remains separate.
 
-Executable dynamic/sandbox Skill delivery, sandbox adapter/probe and the Docker
-extra are removed; `uv sync --extra dev` completed and Docker distribution is
-absent. No-skill requires an eval-only environment opt-in; cleanup and MapBuild
-kickoff preserve that treatment. Historical Kimi/dynamic-routed regrade passes
-without provider calls, and Evolution isolation checks pass. The Kimi-only
-apple2apple generator and stale active eval fixtures now use MiMo TP.
+Before this new strategy edit, reserve scenes **14 and 15** (procthor-10k-val)
+for the next visual epoch. No images or behavior traces from these scenes were
+inspected for this investigation. Scene15 has a checked-in Base Metric Map;
+scene14 map/fixture readiness remains to be established before freezing the full
+executable case manifest. Selection is fixed before tuning; infrastructure
+readiness cannot become a search for favorable behavior. Old reserved scenes
+11/13 have been inspected and cannot support an unseen-holdout claim.
 
-Paired Skill live proof is terminal: both first attempts passed `1/1`.
-Static-full took 316.399 seconds and no-skill 300.399 seconds, with identical
-MiniMax cleanup seed7/repetition0, canonical prior, 100-call/3600-second/
-180-second-stall bounds and zero retries. Identities match except for the
-Skill treatment; the no-skill artifact records zero included Skill bytes/tokens.
-Commands, attempts and usage are retained under `output/convergence-skill-control/`
-in `paired-commands.json`, `attempts.json` and `paired-proof-summary.json`.
-Static-full input/output usage was 3,024,663/9,010 tokens; no-skill was
-2,923,348/4,863. Both have a missing-response-span limitation. Prompt sizes were
-not extracted and dollar cost is unavailable, not zero. This single paired
-case is a control proof, not a statistically meaningful Skill ranking.
+## Verification boundaries
 
-SDK availability was previously proven for all three active routes in
-`output/convergence-provider-retirement/sdk-readiness.json`; the 2026-10-08
-refresh could not complete because provider network calls hung in the restricted
-sandbox. Focused agent,
-console route and catalog checks pass (413 tests), as do Ruff and formatting.
-The current standard gate reached the full suite but could not pass in this sandbox: `uv build` hit its package-source/network restriction and socket-based operator-console tests hit `PermissionError: Operation not permitted`. Ruff, formatting, architecture, quality ratchet, and the focused provider/agent/launch/console/catalog suite pass; no unrestricted full-gate pass is claimed.
+The compact bread/cleanup first attempts pass for both external providers, and
+the matched MiniMax static-full/no-skill control passes both treatments. These
+are local small proofs, not full external, hosted, or visual acceptance.
+The control has matching seed/prior/budgets and zero trial retries. Static-full
+input/output usage is 3,024,663/9,010; no-skill 2,923,348/4,863. Both have a
+missing-response-span limitation; dollar cost is unavailable. No causal Skill
+ranking is claimed from one paired case.
 
-Read-only historical development diagnosis is retained at
-`output/convergence-visual/diagnosis-scene0-trial2.json`: the agent called done
-with explicit heading-coverage and cleanup-chain blockers. Two detected Books
-were correctly non-recommended on Desk/ShelvingUnit; the missing misplaced Book
-was not those handles. Do not weaken cleanup recommendation or authorization
-from this evidence. Current-code scene0 DINO replay remains required.
-Previously inspected reserved scenes 11/13 are no longer unseen holdout; a new
-reserved set/version is required before any fresh generalization claim.
+The preserved real-DINO v1 ledger covers all 15 identities but fails acceptance.
+MiMo Responses development smoke is incomplete; MiMo TP historical cleanup
+compatibility is 2/3 with one blocked stall. Repairs remain separate evidence.
 
-Hosted full-matrix feasibility is recorded at
-`output/convergence-hosted-readiness/full-matrix-feasibility.json`.
-Fifteen observed compact cleanup runtimes alone imply about 93 minutes for
-MiniMax and 162 minutes for MiMo TP, excluding setup and other tasks. The
-3600-second per-case cap implies 15 hours/provider and cannot fit a 60-minute
-shard. Full scheduled execution remains unenabled pending a concrete bounded
-sharding/envelope decision; no cost/resource expansion is authorized by elapsed time.
-
-GitHub authentication and workflow read access pass. The latest successful
-hosted run, `https://github.com/MiaoDX/roboclaws/actions/runs/36406210330`, is at
-old commit `becf890c` and includes retired Kimi. It is historical timing evidence,
-not proof of the current manifest or two-provider workflow.
+Hosted feasibility: `output/convergence-hosted-readiness/full-matrix-feasibility.json`.
+Fifteen observed cleanup runtimes imply about 93 minutes MiniMax / 162 minutes
+MiMo TP before setup or other tasks. Current 3600-second per-case caps cannot fit
+60-minute shards. Full execution remains unenabled pending matched manifests,
+aggregate token/runtime envelopes and bounded sharding (maximum two external
+shards). The old successful hosted run 36406210330 at becf890c includes retired
+Kimi and is not current-code proof.
 
 ## Proven evidence
 
@@ -141,13 +130,11 @@ not proof of the current manifest or two-provider workflow.
 
 ## Next action
 
-Finish and commit the provider slice after the current standard gate. Then run
-one current-code development scene0 real-DINO replay to distinguish historical
-behavior from current behavior before a strategy fix. Full matched external
-matrices, trusted hosted proof and visual acceptance remain required. Preserve
-all old failures, blocked attempts and repair replays; none becomes acceptance
-by combining incompatible epochs. Prepare concrete full-cohort budgets before
-requesting any material hosted resource/cost expansion.
+Complete the current development experiment and retain its terminal evidence.
+Then complete the approved ADR, new epoch fixture readiness/full matched manifests,
+actual token/runtime budgets, trusted current-code hosted proof and the full visual
+gate. Neither compact successes nor green deterministic tests close these gates.
+Do not stitch different code/content epochs into the old first-attempt cohort.
 
 ## Stop/resume conditions
 

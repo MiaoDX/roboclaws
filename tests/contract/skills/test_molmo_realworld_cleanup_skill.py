@@ -82,7 +82,10 @@ def test_cleanup_skill_prioritizes_done_over_optional_reclean_loops() -> None:
     assert "Never return a final answer before calling `done(reason)`" in compact
     assert "`done` is terminal and cannot be used to discover or recover work" in compact
     assert "Do not observe again after a successful placement" in compact
-    assert "default budget is one observation per inspection waypoint" in compact
+    assert "initial sweep uses one observation per inspection waypoint" in compact
+    assert "Required recovery observations are additional" in compact
+    assert "continue with the new first incomplete waypoint" in compact
+    assert "Do not invent a smaller observation or call budget" in compact
     assert "Use the public candidate's `recommended_tool` for placement" in compact
     assert "do not infer additional required steps from fixture category names" in compact
     assert "act only on those public candidate entries" in compact

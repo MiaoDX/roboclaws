@@ -129,9 +129,11 @@ place(candidate_fixture_id)                # when recommended by the public cand
 ```
 
 Do not observe again after a successful placement unless a public tool response
-requires fresh visual evidence. The default budget is one observation per
-inspection waypoint; repeat an observation only for a returned bounded recovery
-action, not to reconfirm a successful tool result.
+requires fresh visual evidence. The initial sweep uses one observation per
+inspection waypoint. Required recovery observations are additional: a returned
+heading-coverage blocker authorizes its bounded observations even at an already
+visited waypoint. This initial cadence is not a total observation budget. Do not
+repeat observations just to reconfirm a successful tool result.
 
 Use the public candidate's `recommended_tool` for placement. If any tool returns
 `error_reason: semantic_order`, call its `required_tool` with the same public
@@ -177,7 +179,14 @@ snapshot has `insufficient_camera_grounded_heading_coverage` and no pending
 worklist, follow only its first `next_actions` entry: navigate to its exact
 `next_waypoint_id`, take the canonical composite observation, then perform the
 three consecutive 90-degree body turns and composite observations before
-leaving that waypoint. During this bounded recovery, do not manipulate any old
+leaving that waypoint. After completing those headings, read the new completion
+snapshot and continue with the new first incomplete waypoint. Repeat this
+bounded procedure until no heading-coverage blocker remains, draining freshly
+actionable pending candidates as they appear. An empty canonical view and a
+visited waypoint do not establish coverage of its other required headings.
+Do not invent a smaller observation or call budget to skip this required work;
+only an explicit run limit or public capability response can exhaust it.
+During this bounded recovery, do not manipulate any old
 observed handle. A handle becomes actionable only when the latest completion
 snapshot lists it in `pending_cleanup_candidates`. Never retry a handle after a
 public tool reports that it is not cleanup-recommended or explicitly says not
