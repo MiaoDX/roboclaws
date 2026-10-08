@@ -205,7 +205,8 @@ def test_camera_grounded_live_command_uses_composite_prompt_by_default(
 
     prompt = command[command.index("--kickoff-prompt") + 1]
     assert "observe_camera_grounded_candidates" in prompt
-    assert "call the composite tool once at the canonical pose" in prompt
+    assert "If done returns" not in prompt
+    assert "optional heading recovery" not in prompt
 
 
 def test_camera_grounded_live_command_honors_explicit_composite_disable(
