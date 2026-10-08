@@ -13,31 +13,51 @@ MiMo TP, MiniMax) are implemented. Historical identities remain readable without
 re-enabling retired routes. ADR-0151 owns the durable convergence decisions.
 
 Current visual development evidence: scene0 and scene10 pass at 4/5; scene12
-visits all waypoints but remains 3/5 with mandatory heading recovery unfinished. MiMo Responses scene0 passes; scene10 smoke is running.
+visits all waypoints but remains 3/5 with mandatory heading recovery unfinished.
+MiniMax scene12 attempt3 is blocked by provider billing limit after removing
+contradictory composite-tool controls. MiMo Responses scene0 passes; scene10
+attempt1 is blocked by a model-response stall, with subsequent connectivity passing.
 No development replay replaces an old failed cohort row. Full MiniMax real-DINO,
 MiMo Responses smoke, matched external cohorts and trusted current-code hosted
 proof remain required. No baseline/catalog or full schedule is promoted.
 
 ## Live work — poll before starting another simulator
 
-MiMo Responses scene10 attempt1 is RUNNING, session `80444`:
+No simulator is running. MiniMax scene12 attempt3 (session `25951`) is terminal:
 
-- Wrapper: `output/convergence-resume-20261008/replay-mimo-scene10-attempt1.py`.
-- Root: `output/convergence-resume-20261008/mimo-scene10-attempt1/`.
-- Log: `output/convergence-resume-20261008/replay-mimo-scene10-attempt1.log`.
+- Wrapper: `output/convergence-resume-20261008/replay-scene12-attempt3.py`.
+- Root: `output/convergence-resume-20261008/minimax-scene12-attempt3/`.
+- Log: `output/convergence-resume-20261008/replay-scene12-attempt3.log`.
 - Real CUDA DINO, static-full, fresh map, seed7, five targets.
 - 100 cumulative decision calls, 3600s wall, 180s stall, 16M cumulative tokens,
-  zero automatic trial retries. Request model: `xiaomi/mimo-v2.6-pro`.
-- Started on clean `5830ce3d`, after the request-model budget and sharding fixes.
-- Latest check: running-sdk at75s, four successful calls, zero provider errors.
-  Ledger uses400K reservations per request.
+  zero automatic trial retries. Model: `MiniMax-M3`.
+- Started on `7a9b03f9` plus the staged completion-projection fix. The original
+  contract's unstaged-diff hash omitted staged edits; `code-identity-supplement.json`
+  and `code-diff.patch` capture unchanged source during the live attempt.
+- Terminal at656.374s: 44 successful responses, then `provider_quota_failure` /
+  `billing_limit` on request45; no retry. Two public grounded chains completed,
+  but no authoritative run result. Ledger charged5,906,328 of16M.
+- `proof-summary.json` preserves the blocked result. No conclusion about the
+  fix's effect on premature completion is possible from this interrupted run.
 
-All earlier simulator sessions, including scene12 `9610`, MiMo scene0 `73269`, and shard proof `89957`, are terminal.
+All earlier simulator sessions, including MiMo scene10 `80444`, are terminal.
 Keep one simulator at a time. Read compact summaries or selected JSON fields;
 never print a raw checker assertion or private report wholesale.
 
 ## Latest implementation and checks
 
+- `0c00fba2` completion-projection fix: remove the unconditional declaration
+  navigation hint and strip completed-step controls from the composite response.
+  Preserve atomic trace controls and evidence; emit one current outer completion.
+  A regression reproduces the old no-candidate navigation contradiction and
+  passes after repair. Focused tests and full `just agent::verify` pass (session
+  `74286`, exit0). Logs: `completion-projection-before.log`,
+  `completion-projection-after.log`, and
+  `verify-after-completion-projection-attempt1.log` under the output root below.
+  Seventeen actual DINO composite responses pass the same projection/evidence
+  checks (`minimax-scene12-attempt3/completion-projection-live-check.json`).
+  Premature-done causality remains unproven; the live replay hit provider quota.
+  The response-contract investigation is closed and its owned scope lock released.
 - `b3414001`: cumulative token enforcement at the SDK provider boundary. It
   reserves twice native context capacity for each transport attempt, settles
   known usage, retains unknown usage and shares a locked ledger across
@@ -51,7 +71,7 @@ never print a raw checker assertion or private report wholesale.
   model for MiMo Responses instead of trying to budget the opaque route `mimo`.
   Both supported names reproduce the old error and pass the regression after
   repair. The 35 budget tests and full standard gate pass; live MiMo responses
-  settle in the ledger. Investigation is closed; no scope lock remains.
+  settle in the ledger. That request-model investigation is closed.
   Gate: `output/convergence-resume-20261008/verify-after-mimo-request-model-attempt1.log`.
 - `942570b3`: case sharding is implemented; focused and complete deterministic gates pass. The eval-owned
   `showcase_shards` CLI freezes clean code, full suite/sample content, models and
@@ -104,6 +124,18 @@ stage provenance; model `IDEA-Research/grounding-dino-base`. Dollar cost
 unavailable. Summary: `mimo-scene0-attempt1/proof-summary.json`.
 This closes one of the three local-default development smoke scenes only.
 
+MiMo Responses scene10 attempt1 is BLOCKED: `LiveEvalTimeoutError` after 180s
+without progress awaiting the fifth model response, 259.103s total. Four model
+responses succeeded; no provider error event or authoritative run result exists.
+Input/output85,171/271; ledger charged485,442 of16M including a retained400K
+unknown reservation. Terminal-response usage and dollar cost are unavailable.
+Zero automatic trial retries. This is stalled infrastructure evidence, not a
+capability pass or behavior failure. Summary: `mimo-scene10-attempt1/proof-summary.json`.
+A subsequent zero-retry MiMo SDK readiness probe passes in2.086s; this establishes
+current connectivity only, not scene10 completion. Evidence:
+`mimo-readiness-after-stall-attempt1.json`; this readiness utility exposes no usage
+or cost metrics (256 output-token cap, 30s transport timeout).
+
 Scene12 attempt2 recorded 79 model metrics, input/output 7,225,018/18,140;
 its ledger charged 9,243,158 of16M including a retained 2M unknown reservation.
 Usage has a missing terminal-response-span limitation; dollar cost unavailable.
@@ -124,6 +156,11 @@ Evidence: `scene10-viewpoint-diagnostic-attempt1/` and
 
 ## Concrete external blockers
 
+MiniMax scene12 attempt3 hits a non-retryable provider billing limit after44
+successful responses. Keep MiniMax-dependent capability work blocked until
+quota readiness is restored; do not change credentials or substitute providers
+for its mandatory acceptance. MiMo work can proceed independently.
+
 New reserved scenes **14/15, procthor-10k-val**, were fixed before this strategy
 change. Old11/13 were inspected and cannot support a new unseen-holdout claim.
 No new reserved images/behavior were reviewed and no scenes were substituted.
@@ -137,6 +174,8 @@ Evidence under the same output root:
 `reserved-readiness-attempt1/readiness.json`,
 `reserved-init-diagnostic-attempt2.log`, `reserved-resource-blocker.json`,
 `resource-endpoint-probe-attempt2.log`, `hf-resource-endpoint-probe.log`.
+The current bounded recheck also times out on both official endpoints:
+`resource-endpoints-attempt3.json`; no dependency, endpoint or credential changed.
 Provider/DINO readiness itself passes; this is an asset-download blocker.
 
 Remote protected `main` is still `becf890c65106b003c4ba07b0dc7797b53817fe8`.
@@ -168,7 +207,9 @@ must reach an authorized trusted ref before the new hosted proof can run.
 
 ## Remaining acceptance and next action
 
-1. Collect MiMo scene10; complete passing real-DINO smoke on development10/12.
+1. Resume MiniMax scene12 only after billing readiness is restored; the response
+   projection itself is verified and committed. Complete passing MiMo real-DINO smoke on development10/12 as separately
+   recorded attempts under unchanged bounds.
    Scene0 is now passed with exact attempt identity above.
    Diagnose scene12 premature completion with unfinished mandatory headings
    before the new visual epoch; distinguish waypoint visits from heading coverage.

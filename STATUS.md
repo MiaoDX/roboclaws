@@ -32,7 +32,9 @@ The repaired scene0 and current-code scene10 development replays pass with real
 CUDA DINO at 4/5. Scene12's latest replay visits all waypoints but remains 3/5
 with mandatory heading recovery unfinished;
 MiMo Responses scene0 passes at4/5 with enforced cumulative tokens; scene10
-smoke is running.
+attempt1 is blocked by a model-response stall. A fix for contradictory composite
+tool controls passes the standard gate; its MiniMax scene12 replay is blocked
+by provider billing limit after44 successful responses.
 Resolve premature completion and remaining visual failures, complete local smoke, prepare
 the new frozen scene/epoch manifest, and implement bounded full external
 execution with trusted current-code hosted proof. Keep world-label compatibility
