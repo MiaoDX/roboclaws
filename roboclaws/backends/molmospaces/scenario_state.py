@@ -444,10 +444,23 @@ def score(final_locations: dict[str, str], manifest: dict[str, Any]) -> dict[str
 
 
 def nearest_receptacle(position: list[float], receptacles: list[dict[str, Any]]) -> str:
+    """Associate the current object position with the nearest support geometry."""
+    return min(receptacles, key=lambda item: _support_distance(position, item))["receptacle_id"]
+
+
+def _support_distance(position: list[float], receptacle: dict[str, Any]) -> float:
+    surfaces = receptacle.get("support_surfaces") or []
+    if not surfaces:
+        # Geometry-free fixtures have only their recorded point position.
+        return math.dist(position, receptacle["position"])
     return min(
-        receptacles,
-        key=lambda item: math.dist(position[:2], item["position"][:2]),
-    )["receptacle_id"]
+        math.hypot(
+            max(abs(position[0] - surface["center"][0]) - surface["half_extents"][0], 0.0),
+            max(abs(position[1] - surface["center"][1]) - surface["half_extents"][1], 0.0),
+            position[2] - surface["top_z"],
+        )
+        for surface in surfaces
+    )
 
 
 def first_wrong_receptacle(state: dict[str, Any], target: dict[str, Any]) -> str:

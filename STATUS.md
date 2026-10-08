@@ -36,11 +36,11 @@ attempt2 is blocked after a second 180-second model-response stall (68 responses
 3/4 chains). A successful readiness probe remains separate.
 MiMo scene12 smoke finishes with four chains and public readiness, but restoration
 is3/5, so it fails capability acceptance. The fresh MapBuild/cleanup suite is
-running serially on MiMo: scene0's complete pair passes at4/5; scene10 builder
-passes and its cleanup consumer is blocked after a180s response stall at85
-successful responses. A backend support-attribution defect
-has a verified isolated candidate; apply it only after the suite terminates,
-then collect new-code live proof without rewriting old outcomes.
+terminal: all three builders and scene0 cleanup pass; scene10 cleanup is blocked
+by a180s response stall, and scene12 cleanup fails at the100-decision budget.
+A backend support-attribution fix passes22 focused checks, the full repository
+gate, and a fresh40-view CUDA DINO diagnostic. New-code scene12 cleanup smoke
+is next; attribution repair does not establish discovery or capability acceptance.
 A fix for contradictory composite
 tool controls passes the standard gate; its MiniMax scene12 replay is blocked
 by provider billing limit after44 successful responses.
