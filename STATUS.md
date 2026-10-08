@@ -28,17 +28,17 @@ verification and exact attempt identities.
 
 ## Next Action
 
-Complete the current development-scene DINO replay after removing contradictory
-completion/recovery instructions. Then close visual discovery failures, prepare
+The repaired scene0 development replay now passes with real CUDA DINO. Validate
+the change on the other development scenes, close remaining visual failures, prepare
 the new frozen scene/epoch manifest, and implement bounded full external
 execution with trusted current-code hosted proof. Keep world-label compatibility
 and real-DINO capability evidence separate.
 
 ## Current Acceptance Gaps
 
-- Real-DINO MiniMax v1 covers all 15 identities but misses acceptance. The latest
-  development replay before the strategy fix restored 3/5 with incomplete heading
-  coverage. MiMo Responses development smoke is still incomplete.
+- Real-DINO MiniMax v1 covers all 15 identities but misses acceptance. The post-fix scene0
+  development replay passes at 4/5, with full waypoint coverage and zero disturbances;
+  this does not replace the failed cohort. MiMo Responses development smoke is incomplete.
 - Former reserved scenes 11/13 were inspected during diagnosis. The capsule fixes
   new reserved scene IDs before further tuning; readiness and the next full
   executable manifest remain to be completed.

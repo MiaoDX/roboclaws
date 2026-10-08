@@ -35,24 +35,40 @@ is claimed. All attempts and exact code/command/limits are preserved under
 `output/convergence-resume-20261008/`; diagnostic summary:
 `output/convergence-resume-20261008/diagnosis-scene0-attempt2.json`.
 
-## Current experiment
+## Latest completed experiment
 
-- Blocker class: behavior_incomplete; required heading recovery is abandoned.
-- Hypothesis: kickoff contradicts Skill by calling heading recovery optional and
-  asking for a blocker from terminal done. Skill's initial observation cadence
-  is also labeled a default budget. The agent's terminal explanation cites an
-  exhausted sweep budget despite only 39/100 model requests and 551/3600 seconds.
-- Change: remove generic recovery strategy from kickoff, clarify required recovery
-  and repeated completion-directed waypoint progression in the owning Skill.
-- Decision delta: a new same-bounds scene0 development attempt determines whether
-  the agent follows recovery across all incomplete waypoints and discovers enough
-  additional public candidates. If headings complete but chains remain <4, pursue
-  visual discovery separately; do not weaken recommendation or completion guards.
-- Success: public heading blockers resolved before voluntary done; full case
-  success additionally requires >=4 chains and authoritative successful completion.
-- Proof: focused prompt/Skill checks, standard gate, then a separately identified
-  real-DINO replay with 100 decision calls, 3600 seconds, 180-second stall and
-  zero automatic trial retries. Existing bounded transport retry remains separate.
+Recovery fix `f77db430` removed contradictory kickoff strategy and clarified
+mandatory recovery in the Skill. Same-bounds scene0 attempt3 PASSED: 4/5 restored,
+4 grounded chains, sweep 1.0, disturbances 0, authoritative success and checker
+exit 0 after 867.553 seconds. The final public pre-done completion was ready.
+There are 76 successful response metrics, input/output tokens 6,852,297/11,280,
+no usage-span limitation, and unavailable dollar cost. The 23 real-DINO observation
+events record CUDA on NVIDIA GeForce RTX 3090. This is new development
+evidence, not a replacement in the old 15-case cohort. Summary:
+`output/convergence-resume-20261008/minimax-scene0-attempt3/proof-summary.json`.
+The experiment establishes that recovery continues beyond the first room; it
+makes no claim that every possible heading must be scanned after readiness.
+The fix's complete standard gate passed at
+`output/convergence-resume-20261008/verify-after-recovery-attempt2.log`.
+
+ADR-0151 is committed (`6631b4d6`), STATUS.md is trimmed, and initial historical
+baseline/Skill/state-first capsules plus GSD pointers have explicit dispositions.
+Cohort execution deadlines are now distinct from per-trial caps (`21334ee7`);
+multi-trial live rows require an explicit deadline covering all selected caps.
+Focused showcase/workflow/process checks pass; full gate session `98851`
+passed (exit 0), log `output/convergence-resume-20261008/verify-after-showcase-runtime.log`.
+
+Reserved scene fixture readiness is RUNNING under session `6071`. Wrapper:
+`output/convergence-resume-20261008/reserved-readiness-attempt1.py`.
+It prepares missing Base Metric Maps and checks five feasible misplaced targets
+using the existing backend, without agent runs, detector calls or image review.
+Readiness summary will be under `reserved-readiness-attempt1/readiness.json`.
+Keep one simulator; poll the existing handle and do not relaunch on observation
+timeouts. Scene14 map preparation ended with `MolmoSpaces subprocess worker timed out
+(init, 300s)`. Scene15 init remains live under that same wrapper. No scenes were
+substituted. The next diagnostic is a bounded worker run with faulthandler stack
+dumps (`reserved-init-diagnostic.py`), after the current simulator is terminal.
+The environment-key comparison found no relevant dotenv/proxy difference.
 
 Before this new strategy edit, reserve scenes **14 and 15** (procthor-10k-val)
 for the next visual epoch. No images or behavior traces from these scenes were
@@ -130,8 +146,8 @@ Kimi and is not current-code proof.
 
 ## Next action
 
-Complete the current development experiment and retain its terminal evidence.
-Then complete the approved ADR, new epoch fixture readiness/full matched manifests,
+Collect reserved-scene readiness and the current full gate, then validate the
+recovery change on development scenes10/12. Complete new epoch/full matched manifests,
 actual token/runtime budgets, trusted current-code hosted proof and the full visual
 gate. Neither compact successes nor green deterministic tests close these gates.
 Do not stitch different code/content epochs into the old first-attempt cohort.
