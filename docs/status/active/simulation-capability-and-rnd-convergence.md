@@ -84,7 +84,7 @@ input/output tokens 5,287,391/19,167 and no usage-span limitation; dollar cost i
 unavailable. This does not establish a new strategy root cause or pass acceptance.
 Evidence: `output/convergence-resume-20261008/minimax-scene10-attempt1/proof-summary.json`.
 
-Cumulative token enforcement is implemented in the agent-engine provider boundary;
+Cumulative token enforcement is committed (`b3414001`) in the agent-engine provider boundary;
 the eval/showcase seams pass an explicit per-run limit. It reserves native model
 input/output capacity before every transport attempt, settles known usage,
 retains unknown usage, and shares a locked ledger across continuations. Hidden
@@ -104,6 +104,21 @@ ratchet had not included; simplifying that branch preserved behavior. The 28
 budget tests and full gate attempt3 passed (session `41549`, exit 0), log
 `output/convergence-resume-20261008/verify-after-total-token-budget-attempt3.log`.
 The slice includes engine/eval implementation, tests and human/architecture docs.
+Compact budget proof: `output/convergence-resume-20261008/token-budget-live-attempt1/proof-summary.json`.
+
+Scene10 source-frame diagnosis narrows the unresolved failure to discovery:
+one of the two unrestored targets appears in zero source frames; the other
+appears once with only 349 pixels. No corresponding public target detection
+was returned. The maintainer-only aggregate is
+`output/convergence-resume-20261008/minimax-scene10-attempt1/source-frame-visibility-diagnosis.json`.
+No hidden target identity was used to choose a robot action or detector query.
+A public-only comparison script is prepared (not yet run):
+`output/convergence-resume-20261008/scene10-viewpoint-diagnostic.py`.
+It compares all public inspection headings with a bounded 0.5m forward view,
+using the same detector and no model/manipulation calls. Run only after scene12
+is terminal. No strategy change is justified until that hypothesis is tested.
+The resource-endpoint recheck remains curl28 (session `87013`, terminal), log
+`output/convergence-resume-20261008/resource-endpoint-probe-attempt2.log`.
 
 Scene12 development replay is RUNNING under session `60527`, wrapper
 `output/convergence-resume-20261008/replay-scene12-attempt1.py`, attempt root

@@ -28,8 +28,9 @@ verification and exact attempt identities.
 
 ## Next Action
 
-The repaired scene0 development replay now passes with real CUDA DINO. Validate
-the change on the other development scenes, close remaining visual failures, prepare
+The repaired scene0 development replay passes with real CUDA DINO; scene10 is
+checker-clean but remains partial at 3/5. Collect the running scene12 replay,
+close remaining visual discovery failures, prepare
 the new frozen scene/epoch manifest, and implement bounded full external
 execution with trusted current-code hosted proof. Keep world-label compatibility
 and real-DINO capability evidence separate.
@@ -39,11 +40,12 @@ and real-DINO capability evidence separate.
 - Real-DINO MiniMax v1 covers all 15 identities but misses acceptance. The post-fix scene0
   development replay passes at 4/5, with full waypoint coverage and zero disturbances;
   this does not replace the failed cohort. MiMo Responses development smoke is incomplete.
-- Former reserved scenes 11/13 were inspected during diagnosis. The capsule fixes
-  new reserved scene IDs before further tuning; readiness and the next full
-  executable manifest remain to be completed.
-- Matched full external case lists, cumulative token/runtime envelopes and
-  sharding still need implementation. Current case caps exceed the existing
+- Former reserved scenes 11/13 were inspected during diagnosis. New reserved
+  scenes 14/15 are fixed, but their resource download endpoint is unreachable;
+  readiness and the next full executable manifest remain incomplete.
+- Per-run cumulative token enforcement is implemented and live-verified.
+  Matched full external case lists, aggregate envelopes and sharding still need
+  implementation. Current case caps exceed the existing
   60-minute hosted shard envelope. No full schedule or baseline is promoted.
 - The preserved MiMo TP compatibility cohort is 2/3 with one blocked stall;
   later compact successes do not rewrite that cohort.
