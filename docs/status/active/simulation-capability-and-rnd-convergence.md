@@ -20,7 +20,8 @@ attempt1 is blocked by a model-response stall; attempt2 is now blocked by a
 second stall after a successful connectivity probe.
 MiMo Responses scene12 attempt1 is terminal: four distinct cleanup chains and
 public readiness pass, but private restoration is3/5, so capability fails.
-The required fresh MapBuild/cleanup suite is now running on MiMo Responses.
+The required fresh MapBuild/cleanup suite is running on MiMo Responses: scene0's
+complete pair passes at4/5; scene10 builder passes and its consumer is active.
 No development replay replaces an old failed cohort row. Full MiniMax real-DINO,
 MiMo Responses smoke, matched external cohorts and trusted current-code hosted
 proof remain required. No baseline/catalog or full schedule is promoted.
@@ -100,11 +101,22 @@ or RGB-only object-pose claim. Evidence: `scene0-builder-grading-check.json`.
 input/output4,751,028/5,783,68 metric rows,67 successful responses and a missing
 terminal-response-usage limitation. Ledger charged5,156,811 of16M including a
 retained400K reservation; dollar cost unavailable.
-The scene0 cleanup consumer is active at706s,41 successful responses, zero
-provider errors and three placements; scenes10/12 pairs remain queued serially.
+The scene0 cleanup consumer PASSED in927.514s:52 successful responses, zero
+provider errors,4/5 restored, four chains, sweep1.0 and zero disturbances. All
+four required graders pass. Input/output3,263,725/13,605; ledger3,677,330 of16M
+including400K unknown terminal reservation. `scene0-pair-proof-summary.json`
+retains the pair result and usage limitation; dollar cost is unavailable.
 `scene0-consumer-prior-check.json` confirms its live server argument points to
 this builder's map (digest `fe974be564d40ea650dd7a81f87176b4bf33c02830149497bb4a2c457a33a463`)
-and188 prior records were imported. Terminal consumer/dependency grading is pending.
+and188 prior records were imported. Terminal consumer/dependency grading passes.
+Scene10 builder PASSED in890.209s:43 successful responses, zero provider errors,
+five enrichment anchors, four stable categories,100 objects and117 candidates.
+All four required graders pass. Input/output2,891,036/14,029; ledger3,305,065
+including400K unknown terminal reservation. See `scene10-builder-proof-summary.json`.
+Its cleanup consumer is active at2013s with85 successful responses, zero provider
+errors and three placements. Scene12's pair remains queued. Executable/content
+identity must remain unchanged until all six trials terminate; docs-only updates
+since `b8da0503` do not change that identity.
 Poll session8816 and per-trial `live_status.json`; never launch another simulator.
 
 The scene12 public/private mismatch was investigated after termination. The
@@ -116,6 +128,39 @@ claiming an incorrect target placement was unsupported and is superseded here.
 This fails the existing0.8 restoration requirement; public readiness remains
 independent of private scoring. Diagnose missing discovery/actionability from
 public trace before proposing a strategy change.
+
+## Support-attribution investigation — candidate only
+
+The backend `scenario_state.nearest_receptacle` assigns supports by XY distance
+to furniture body origins, ignoring support extent and height. Private geometry
+diagnosis proves one unchanged direct-support scene12 object is on a countertop
+but assigned to an adjacent desk. This affects location/scoring and may feed
+visual candidate support estimates. It does not prove the missed discovery was
+caused by attribution: the unacted target remote has zero segmented pixels in
+all recorded frames, and the public remote candidate previously examined is a
+different physical object. The other unacted target appears in two frames,
+including one detector source. Evidence stays grader-only; do not use private
+target geometry for agent inputs or pose/query selection.
+
+An isolated candidate ranks 3D distance to existing support rectangles, using
+recorded 3D points for fixtures without surface geometry. No seeded hints,
+target identities, thresholds or scene-specific data enter the implementation.
+Five new regression drafts fail on current code; the isolated candidate passes
+all22 new/affected checks. Offline comparison covers35 unchanged direct-support
+placements across four old runs: two incorrect old attributions become correct,
+with zero sample regressions. This is diagnostic evidence, not live proof, and
+old outcomes remain unchanged.
+
+Artifacts under `output/convergence-resume-20261008/`:
+`support-attribution-fix.patch`, `scenario_state_candidate.py`,
+`test_support_attribution.py`, `support-attribution-before.log`,
+`support-attribution-candidate-tests.log`, `support-attribution-offline-attempt1.json`;
+scene12 visibility counts: `mimo-scene12-attempt1/unacted-target-visibility-counts.json`.
+Investigation session `32626-1791447476-2d91d8ca` remains open, no scope lock yet.
+After the fresh suite terminates: retain six-trial outcomes and executable identity,
+acquire backend/test scope, apply/review the candidate, run actual-source focused
+tests and the standard gate, then real backend/DINO proof under a new identity.
+The fix addresses support attribution; scene12 discovery remains a separate gap.
 
 ## MiMo response-stall investigation
 

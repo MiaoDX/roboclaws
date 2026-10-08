@@ -36,7 +36,10 @@ attempt2 is blocked after a second 180-second model-response stall (68 responses
 3/4 chains). A successful readiness probe remains separate.
 MiMo scene12 smoke finishes with four chains and public readiness, but restoration
 is3/5, so it fails capability acceptance. The fresh MapBuild/cleanup suite is
-running serially on MiMo: scene0 builder passes and its cleanup consumer is active.
+running serially on MiMo: scene0's complete pair passes at4/5; scene10 builder
+passes and its cleanup consumer is active. A backend support-attribution defect
+has a verified isolated candidate; apply it only after the suite terminates,
+then collect new-code live proof without rewriting old outcomes.
 A fix for contradictory composite
 tool controls passes the standard gate; its MiniMax scene12 replay is blocked
 by provider billing limit after44 successful responses.
