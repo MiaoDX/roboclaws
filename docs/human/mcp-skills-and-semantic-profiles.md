@@ -269,6 +269,11 @@ hidden mess membership, acceptable destination sets, private manifests, or
 scorer truth. Do not add a separate default MCP tool just to ask whether `done`
 is ready.
 
+Composite observation responses expose one current outer `completion` snapshot.
+Nested observation and candidate-declaration data retain their evidence without
+reissuing instructions for steps the composite already completed. The underlying
+atomic trace events keep their original controls for audit.
+
 `check_operator_messages` is a public steering checkpoint for supported
 operator-console routes. Ordinary MCP responses may expose only a pending hint
 when unread operator steering exists; the message text is retrieved through

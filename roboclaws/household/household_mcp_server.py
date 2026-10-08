@@ -383,6 +383,9 @@ class HouseholdWorldMCPServer(HouseholdMCPArtifactLifecycle, HouseholdMCPTraceLi
                 "private_target_truth_included": False,
             }
         declaration = self.call_tool("declare_visual_candidates", observation_id=observation_id)
+        # Both steps have completed. Their trace retains the original controls;
+        # the composite gets one fresh completion snapshot from call_tool.
+        completed_step_controls = {"instruction", "required_next_tool", "completion"}
         return {
             "ok": bool(declaration.get("ok")),
             "tool": "observe_camera_grounded_candidates",
@@ -392,8 +395,16 @@ class HouseholdWorldMCPServer(HouseholdMCPArtifactLifecycle, HouseholdMCPTraceLi
             "observation_id": observation_id,
             "waypoint_id": observation.get("waypoint_id", raw.get("waypoint_id", "")),
             "room_id": observation.get("current_room_id", raw.get("room_id", "")),
-            "observation": observation,
-            "declaration": declaration,
+            "observation": {
+                key: value
+                for key, value in observation.items()
+                if key not in completed_step_controls
+            },
+            "declaration": {
+                key: value
+                for key, value in declaration.items()
+                if key not in completed_step_controls
+            },
             "candidate_count": declaration.get("candidate_count", 0),
             "registered_observed_handles": list(
                 declaration.get("registered_observed_handles") or []
@@ -408,7 +419,6 @@ class HouseholdWorldMCPServer(HouseholdMCPArtifactLifecycle, HouseholdMCPTraceLi
                 "Composite shortcut for private Agent SDK Candidate O. It preserves the "
                 "underlying observe and declare_visual_candidates trace events."
             ),
-            "instruction": declaration.get("instruction", ""),
         }
 
     def done_readiness_evidence(self) -> dict[str, Any]:

@@ -97,10 +97,6 @@ class HouseholdMCPArtifactLifecycle:
         if tool == "declare_visual_candidates" and augmented.get("ok"):
             augmented = _compact_declare_visual_candidates_response(augmented)
             augmented = project_candidate_public_response("declare_visual_candidates", augmented)
-            augmented["instruction"] = (
-                "For the first returned candidate with candidate_state=navigation_authorized, "
-                "call navigate_to_object with its public object_id."
-            )
         if tool in {"place", "place_inside", "close_receptacle"} and augmented.get("ok"):
             augmented["instruction"] = (
                 "After placing and closing if needed, call observe once in the current "
