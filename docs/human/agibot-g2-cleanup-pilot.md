@@ -47,9 +47,9 @@ set -a && source .env && set +a
 scripts/dev/network_status.sh
 ```
 
-每次 SDK 启动都必须显式选择 profile。默认验证使用 `minimax-responses`，并从
-repo-local `.env` 读取 `KIMI_OPENAI_BASE_URL` 和 `KIMI_API_KEY`；也可以显式选择
-`mimo-responses` 或 `minimax-responses`。不要把 URL、key 或实际请求模型写进日志、报告或文档。
+每次 SDK 启动都必须显式选择 profile。默认验证使用 `minimax-responses`；也可以显式选择
+`mimo-responses` 或 `mimo-tp-openai-chat`。各 profile 所需的 endpoint、key
+和模型变量从 repo-local `.env` 读取。不要把 URL、key 或实际请求模型写进日志、报告或文档。
 
 ### 2. 离线 Agibot map 转 snapshot
 
