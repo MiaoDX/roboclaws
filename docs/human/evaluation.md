@@ -75,6 +75,21 @@ Versioned definitions live under `evals/<capability>/`; the first package is
 `evals/household_world/`. The Python schema and runner code lives under
 `roboclaws.evals`.
 
+Showcase small gates require every selected case to pass. A full-cohort row may
+declare `cohort_acceptance` with `min_passed`, `min_per_world`, `reserved_worlds`
+and `min_reserved_passed`. The eval layer validates the exact case set, versions
+and repetition identities, and checks aggregate counts against each trial.
+Any missing or blocked case prevents acceptance. Only explicit task-behavior
+failures may fit within the threshold; privacy, trajectory, infrastructure,
+artifact and checker failures cannot. The summary retains failed counts,
+failure classes and per-world/reserved denominators when a cohort meets its
+threshold. Small gates keep their all-pass rule.
+
+This acceptance support does not enable scheduled full execution. Matched case
+manifests, runtime/call/token envelopes and hosted evidence remain required.
+Execution must fit the convergence plan's resource contract; a material cost
+or resource expansion requires a separate decision.
+
 Evaluation is a Git-checkout-owned maintainer layer. The sdist and wheel omit
 `roboclaws.evals`, `evals/**`, and the eval-harness skill; installed product
 runtimes therefore do not expose `roboclaws eval`, top-level `eval`, or

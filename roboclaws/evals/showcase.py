@@ -16,6 +16,7 @@ from typing import Any
 from roboclaws.core.provider_catalog import ACTIVE_PROVIDER_PROFILES
 from roboclaws.evals.public_reports import published_visual_report_href
 from roboclaws.evals.showcase_acceptance import aggregate_status, validate_result_identities
+from roboclaws.evals.showcase_cohorts import evaluate_cohort, validate_cohort_policy
 from roboclaws.evals.showcase_process import run_showcase_command
 
 SCHEMA = "roboclaws_showcase_summary_v1"
@@ -89,6 +90,7 @@ def validate_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
         if suite.suite_id != canonical_suite_id or suite.version != row["version"]:
             raise ValueError(f"showcase row {row['id']} does not match canonical suite identity")
         _validate_manifest_row_selection(row, samples)
+        validate_cohort_policy(row, samples)
     return manifest
 
 
@@ -252,6 +254,8 @@ def _row_command(row: dict[str, Any], *, live_execution: str, output_dir: Path) 
         command.extend(
             (
                 "live_execution=run",
+                "live_retry_limit=0",
+                "skill_delivery_cell=static-full",
                 f"live_timeout_s={row['timeout_s']}",
                 f"live_stall_timeout_s={row.get('stall_timeout_s', row['timeout_s'])}",
                 f"decision_call_budget={row['decision_call_budget']}",
@@ -311,6 +315,9 @@ def derive_row(
     canonical_identity = canonical_identity if isinstance(canonical_identity, dict) else {}
     selected_identity = execution_identity or {}
     status, reason = validate_result_identities(row, trial_identities, aggregate, status, reason)
+    cohort = None
+    if row.get("cohort_acceptance") is not None and results is not None:
+        status, reason, cohort = evaluate_cohort(row, results)
     result = {
         "id": row["id"],
         "suite": row["suite"],
@@ -327,6 +334,8 @@ def derive_row(
         "metrics": metrics,
     }
     lane, capacity_rank = showcase_lane(result["provider_profile"])
+    if cohort is not None:
+        result["cohort"] = cohort
     result["showcase_lane"] = lane
     result["capacity_rank"] = capacity_rank
     if source:

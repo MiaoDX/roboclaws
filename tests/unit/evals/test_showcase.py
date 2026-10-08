@@ -213,6 +213,8 @@ def test_model_lane_live_command_uses_canonical_provider_identity(tmp_path):
     assert "agent_engine=openai-agents-sdk" in command
     assert "provider_profile=minimax-responses" in command
     assert "live_execution=run" in command
+    assert "live_retry_limit=0" in command
+    assert "skill_delivery_cell=static-full" in command
     assert "live_timeout_s=1800" in command
     assert "live_stall_timeout_s=120" in command
     assert "decision_call_budget=16" in command
