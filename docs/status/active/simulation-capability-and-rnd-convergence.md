@@ -33,8 +33,12 @@ MiMo Responses scene12 attempt1 is RUNNING, session `30357`:
   targets, fresh Runtime Metric Map. Canonical route `mimo`, request model
   `xiaomi/mimo-v2.6-pro`.
 - Same100-call /16M-token /3600s-wall /180s-stall bounds, zero automatic retries.
-- Latest live poll: running-sdk at1320s,18 successful responses, zero provider
-  errors; no authoritative run result or terminal capability verdict yet.
+- Terminal at2507.643s with `partial_success`: 41 successful model responses,
+  zero provider errors, 35 CUDA-DINO observations, 4 distinct public grounded
+  cleanup chains, sweep coverage1.0 and disturbances0. Authoritative private
+  scoring restored3/5 (0.6), so this is not a capability pass. The public
+  completion snapshot was `ready` before `done`; the final run result remains
+  partial because one target was placed incorrectly and one target was missed.
 
 MiMo Responses scene10 attempt2 is terminal and BLOCKED, session `87152`:
 
@@ -74,15 +78,25 @@ All earlier simulator sessions, including MiMo scene10 `80444`, are terminal.
 Keep one simulator at a time. Read compact summaries or selected JSON fields;
 never print a raw checker assertion or private report wholesale.
 
-The next required independent proof is prepared in
+The required independent proof is now running from
 `output/convergence-resume-20261008/run-mimo-fresh-map-attempt1.py`.
-After session30357 is confirmed terminal, run it with the repo `.venv/bin/python`.
 It invokes the canonical suite CLI for all six fresh MapBuild/cleanup trials,
 serially across development0/10/12, using MiMo Responses and the committed
 100-call /16M-token /3600s-wall /180s-stall per-trial bounds, zero retries.
 It requires a clean checkout and an existing scene12 terminal artifact, records
 code/content/command identity, and refuses to overwrite an existing attempt.
-It has not launched; its prepared command is not live evidence.
+The first scene0 MapBuild builder is active under
+`mimo-fresh-map-attempt1/.../map_build_convergence_v2_dino_scene0_seed7`; it
+has passed 51 model responses with zero provider errors and has written a fresh
+Runtime Metric Map. The remaining five trials are queued serially.
+
+The scene12 public/private mismatch was investigated after termination. The
+four chain count comes from four distinct public observed handles, each with a
+complete nav→pick→nav→place sequence. Private scoring independently found only
+three of five targets at acceptable locations; one placement was wrong and one
+target was missed. This is a behavior failure under the existing contract, not
+a duplicate-chain or grader bug. The 0.8 restoration requirement remains
+unchanged.
 
 ## MiMo response-stall investigation
 
