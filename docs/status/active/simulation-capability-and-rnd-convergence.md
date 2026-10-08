@@ -96,7 +96,15 @@ zero provider errors. Offline current-sample grading passes artifacts/privacy/
 trajectory/outcome:12 runtime enrichment anchors,8 stable categories,188
 observed objects,221 target candidates, no private truth/source-map mutation
 or RGB-only object-pose claim. Evidence: `scene0-builder-grading-check.json`.
-The scene0 cleanup consumer is active; scenes10/12 pairs remain queued serially.
+`scene0-builder-proof-summary.json` also confirms CUDA provenance and records
+input/output4,751,028/5,783,68 metric rows,67 successful responses and a missing
+terminal-response-usage limitation. Ledger charged5,156,811 of16M including a
+retained400K reservation; dollar cost unavailable.
+The scene0 cleanup consumer is active at706s,41 successful responses, zero
+provider errors and three placements; scenes10/12 pairs remain queued serially.
+`scene0-consumer-prior-check.json` confirms its live server argument points to
+this builder's map (digest `fe974be564d40ea650dd7a81f87176b4bf33c02830149497bb4a2c457a33a463`)
+and188 prior records were imported. Terminal consumer/dependency grading is pending.
 Poll session8816 and per-trial `live_status.json`; never launch another simulator.
 
 The scene12 public/private mismatch was investigated after termination. The
