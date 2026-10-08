@@ -31,7 +31,8 @@ verification and exact attempt identities.
 The repaired scene0 and current-code scene10 development replays pass with real
 CUDA DINO at 4/5. Scene12's latest replay visits all waypoints but remains 3/5
 with mandatory heading recovery unfinished;
-MiMo Responses scene0 smoke is running with enforced cumulative tokens.
+MiMo Responses scene0 passes at4/5 with enforced cumulative tokens; scene10
+smoke is running.
 Resolve premature completion and remaining visual failures, complete local smoke, prepare
 the new frozen scene/epoch manifest, and implement bounded full external
 execution with trusted current-code hosted proof. Keep world-label compatibility
@@ -47,7 +48,8 @@ and real-DINO capability evidence separate.
   readiness and the next full executable manifest remain incomplete.
 - Per-run cumulative token enforcement is implemented and live-verified,
   including the actual MiMo Responses request-model identity. Case sharding and
-  bounded compact workflow wiring are implemented; deterministic checks pass.
+  bounded compact workflow wiring pass deterministic checks and a real local
+  MiniMax case through execution and merge.
   Matched full external case lists and trusted current-code hosted proof remain
   incomplete. No full schedule or baseline is promoted.
 - The preserved MiMo TP compatibility cohort is 2/3 with one blocked stall;

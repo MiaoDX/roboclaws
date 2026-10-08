@@ -13,28 +13,26 @@ MiMo TP, MiniMax) are implemented. Historical identities remain readable without
 re-enabling retired routes. ADR-0151 owns the durable convergence decisions.
 
 Current visual development evidence: scene0 and scene10 pass at 4/5; scene12
-visits all waypoints but remains 3/5 with mandatory heading recovery unfinished. MiMo Responses scene0 smoke is running.
+visits all waypoints but remains 3/5 with mandatory heading recovery unfinished. MiMo Responses scene0 passes; scene10 smoke is running.
 No development replay replaces an old failed cohort row. Full MiniMax real-DINO,
 MiMo Responses smoke, matched external cohorts and trusted current-code hosted
 proof remain required. No baseline/catalog or full schedule is promoted.
 
 ## Live work — poll before starting another simulator
 
-MiMo Responses scene0 attempt1 is RUNNING, session `73269`:
+MiMo Responses scene10 attempt1 is RUNNING, session `80444`:
 
-- Wrapper: `output/convergence-resume-20261008/replay-mimo-scene0-attempt1.py`.
-- Root: `output/convergence-resume-20261008/mimo-scene0-attempt1/`.
-- Log: `output/convergence-resume-20261008/replay-mimo-scene0-attempt1.log`.
+- Wrapper: `output/convergence-resume-20261008/replay-mimo-scene10-attempt1.py`.
+- Root: `output/convergence-resume-20261008/mimo-scene10-attempt1/`.
+- Log: `output/convergence-resume-20261008/replay-mimo-scene10-attempt1.log`.
 - Real CUDA DINO, static-full, fresh map, seed7, five targets.
 - 100 cumulative decision calls, 3600s wall, 180s stall, 16M cumulative tokens,
   zero automatic trial retries. Request model: `xiaomi/mimo-v2.6-pro`.
-- Started on `f39da4ea` plus the recorded request-model budget fix; that engine
-  fix is now committed as `b0ba995c`. The attempt contract preserves its exact
-  diff/source identities. Later showcase edits do not change its product engine.
-- Latest check: running-sdk at 1335s, 57 successful calls, zero provider errors,
-  three picks/two placements. Ledger uses 400K reservations per request.
+- Started on clean `5830ce3d`, after the request-model budget and sharding fixes.
+- Latest check: running-sdk at75s, four successful calls, zero provider errors.
+  Ledger uses400K reservations per request.
 
-All earlier simulator sessions, including scene12 session `9610`, are terminal.
+All earlier simulator sessions, including scene12 `9610`, MiMo scene0 `73269`, and shard proof `89957`, are terminal.
 Keep one simulator at a time. Read compact summaries or selected JSON fields;
 never print a raw checker assertion or private report wholesale.
 
@@ -75,6 +73,14 @@ never print a raw checker assertion or private report wholesale.
   Attempt2 passed (session `9436`, exit0):
   `output/convergence-resume-20261008/verify-after-case-sharding-attempt2.log`.
 
+Real local case-sharding proof passes at `5830ce3d`: the canonical MiniMax
+bread case executes once and merges into1/1 passed, zero failed/blocked, exact
+16-call/1800s/120s-stall/4M-token/zero-retry identity. Runtime57.023s; six successful
+responses, zero provider errors; ledger charged2,180,793 including a retained2M
+unknown terminal reservation. This proves the real local CLI path, not hosted or
+full-cohort acceptance. Evidence:
+`output/convergence-resume-20261008/sharding-live-bread-attempt1/proof-summary.json`.
+
 ## Visual evidence and interpretation
 
 All paths below are under `output/convergence-resume-20261008/`; each attempt
@@ -88,6 +94,15 @@ retains its exact contract and failure history.
 | scene10 current replay at `6e32fe24` | Pass 4/5, four chains, coverage1.0, zero disturbances, checker0; 574.407s | `minimax-scene10-forward-attempt1/proof-summary.json` |
 | scene12 attempt1 | Partial 3/5, coverage0.8; checker1 for unfinished coverage; 852.569s | `minimax-scene12-attempt1/proof-summary.json` |
 | scene12 attempt2 at `9cf40333` | Partial 3/5, three chains, coverage1.0, zero disturbances, checker0; 978.706s | `minimax-scene12-attempt2/proof-summary.json` |
+
+MiMo Responses scene0 attempt1 PASSED at the recorded `f39da4ea`+request-model
+fix identity (engine fix committed as `b0ba995c`):4/5, four grounded chains,
+sweep1.0, disturbances0, public ready before done, checker0,1701.077s.
+Seventy-one model metrics, input/output5,234,605/21,903, no usage-span limitation;
+ledger charged5,256,508 of16M. Twenty-six actual DINO observations with CUDA
+stage provenance; model `IDEA-Research/grounding-dino-base`. Dollar cost
+unavailable. Summary: `mimo-scene0-attempt1/proof-summary.json`.
+This closes one of the three local-default development smoke scenes only.
 
 Scene12 attempt2 recorded 79 model metrics, input/output 7,225,018/18,140;
 its ledger charged 9,243,158 of16M including a retained 2M unknown reservation.
@@ -153,14 +168,15 @@ must reach an authorized trusted ref before the new hosted proof can run.
 
 ## Remaining acceptance and next action
 
-1. Collect MiMo scene0; complete passing real-DINO smoke on development0/10/12.
+1. Collect MiMo scene10; complete passing real-DINO smoke on development10/12.
+   Scene0 is now passed with exact attempt identity above.
    Diagnose scene12 premature completion with unfinished mandatory headings
    before the new visual epoch; distinguish waypoint visits from heading coverage.
-2. Run a real provider case through the committed sharding CLI when the
-   simulator is free. Its actual blocked-mode CLI preflight passes: five missing
-   rows remain blocked, with no product run requested; see
-   `output/convergence-resume-20261008/sharding-preflight-attempt1/proof-summary.json`. Obtain trusted
-   current-code hosted proof; compact wiring alone is not sufficient.
+2. Obtain trusted current-code hosted proof. Both actual blocked-mode preflight
+   and a real local provider case pass through the committed shard CLI; see
+   `sharding-preflight-attempt1/proof-summary.json` and
+   `sharding-live-bread-attempt1/proof-summary.json` under the output root above.
+   Compact wiring/local proof alone do not establish hosted acceptance.
 3. Resolve reserved14/15 asset readiness without scene shopping. Freeze exact
    executable epoch, scenes/seeds, fixture/map treatment, graders and budgets.
 4. Run MiniMax full real-DINO15-case cohort: >=12/15 overall, >=5/6 reserved,
