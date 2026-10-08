@@ -16,14 +16,25 @@ Current visual development evidence: scene0 and scene10 pass at 4/5; scene12
 visits all waypoints but remains 3/5 with mandatory heading recovery unfinished.
 MiniMax scene12 attempt3 is blocked by provider billing limit after removing
 contradictory composite-tool controls. MiMo Responses scene0 passes; scene10
-attempt1 is blocked by a model-response stall, with subsequent connectivity passing.
+attempt1 is blocked by a model-response stall; attempt2 is running after a
+successful connectivity probe.
 No development replay replaces an old failed cohort row. Full MiniMax real-DINO,
 MiMo Responses smoke, matched external cohorts and trusted current-code hosted
 proof remain required. No baseline/catalog or full schedule is promoted.
 
 ## Live work — poll before starting another simulator
 
-No simulator is running. MiniMax scene12 attempt3 (session `25951`) is terminal:
+MiMo Responses scene10 attempt2 is RUNNING, session `87152`:
+
+- Wrapper/log: `output/convergence-resume-20261008/replay-mimo-scene10-attempt2.py`
+  and matching `.log`; root: `mimo-scene10-attempt2/` under that output directory.
+- Clean start at `b00f64d4`, including response fix `0c00fba2`. Real CUDA DINO,
+  static-full, seed7, five targets and fresh Runtime Metric Map.
+- Bounds unchanged:100 cumulative calls,16M tokens,3600s wall,180s stall,
+  zero automatic retries. Canonical route `mimo`, request `xiaomi/mimo-v2.6-pro`.
+- Latest poll: running-sdk at435s,19 successful responses, ledger charged1,490,290.
+
+MiniMax scene12 attempt3 (session `25951`) is terminal:
 
 - Wrapper: `output/convergence-resume-20261008/replay-scene12-attempt3.py`.
 - Root: `output/convergence-resume-20261008/minimax-scene12-attempt3/`.
@@ -46,6 +57,23 @@ never print a raw checker assertion or private report wholesale.
 
 ## Latest implementation and checks
 
+- `69de6d14`: prepared v2 suites/sample lists cover development0/10/12 and fixed reserved14/15,
+  three seed7 trials each, separate DINO/world-label lanes and no prior reuse.
+  Full/development external manifests pair the same cleanup, all three current
+  open-ended cases and MapBuild for both external providers. They are not wired
+  into the schedule and fixture readiness/final execution freeze remain pending.
+  New sample grading requires four distinct complete successful cleanup chains
+  reconstructed from public trace. Three negative regressions fail before the
+  extension and pass after;65 focused checks pass. Offline verification of real
+  development artifacts yields4/4/3 chains for scene0/10/12 and pass/pass/fail,
+  without replacing the original attempts. Evidence:
+  `convergence-manifests-focused-attempt2.log`,
+  `complete-chain-existing-artifact-regrade.json` under the output root.
+  Full gate attempt1 caught the grading module size limit; the new chain grader
+  now has a focused eval owner, without baseline relaxation. Attempt2 loaded old
+  assertions while the prepared-only schedule metadata was removed; final focused
+  checks pass. Fixed-file full attempt3 is running (session `61771`,
+  `verify-after-convergence-manifests-attempt3.log`).
 - `0c00fba2` completion-projection fix: remove the unconditional declaration
   navigation hint and strip completed-step controls from the composite response.
   Preserve atomic trace controls and evidence; emit one current outer completion.

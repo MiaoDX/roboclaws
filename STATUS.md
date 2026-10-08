@@ -32,7 +32,8 @@ The repaired scene0 and current-code scene10 development replays pass with real
 CUDA DINO at 4/5. Scene12's latest replay visits all waypoints but remains 3/5
 with mandatory heading recovery unfinished;
 MiMo Responses scene0 passes at4/5 with enforced cumulative tokens; scene10
-attempt1 is blocked by a model-response stall. A fix for contradictory composite
+attempt2 is running after a blocked stall and successful readiness probe.
+A fix for contradictory composite
 tool controls passes the standard gate; its MiniMax scene12 replay is blocked
 by provider billing limit after44 successful responses.
 Resolve premature completion and remaining visual failures, complete local smoke, prepare
@@ -47,13 +48,15 @@ and real-DINO capability evidence separate.
   this does not replace the failed cohort. MiMo Responses development smoke is incomplete.
 - Former reserved scenes 11/13 were inspected during diagnosis. New reserved
   scenes 14/15 are fixed, but their resource download endpoint is unreachable;
-  readiness and the next full executable manifest remain incomplete.
+  readiness and final execution freeze remain incomplete. Prepared v2 visual
+  and paired external full/development case lists retain these fixed scenes.
 - Per-run cumulative token enforcement is implemented and live-verified,
   including the actual MiMo Responses request-model identity. Case sharding and
   bounded compact workflow wiring pass deterministic checks and a real local
   MiniMax case through execution and merge.
-  Matched full external case lists and trusted current-code hosted proof remain
-  incomplete. No full schedule or baseline is promoted.
+  Prepared full lists now match providers, including open-ended and MapBuild;
+  full execution and trusted current-code hosted proof remain incomplete.
+  No full schedule or baseline is promoted.
 - The preserved MiMo TP compatibility cohort is 2/3 with one blocked stall;
   later compact successes do not rewrite that cohort.
 
