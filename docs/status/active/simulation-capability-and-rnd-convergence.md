@@ -25,8 +25,13 @@ All three builders pass; scene0 cleanup passes4/5, scene10 cleanup stalls, and
 scene12 cleanup exhausts100 decisions with three chains and unfinished headings.
 The backend support-attribution fix passes22 focused tests, the complete
 repository gate, and a fresh real backend/CUDA DINO proof (`55f879d8`).
-New-code scene12 agent cleanup verification is running; overall capability
-remains incomplete.
+New-code scene12 agent cleanup verification is terminal: it reaches four
+complete chains and authoritative `done`, but restores only3/5 targets.
+A follow-up 50-view public scan with one bounded0.5m forward reobservation
+per waypoint leaves the same visibility pattern: the private RemoteControl
+has zero pixels, while Plate has only two low-pixel frames and no public Plate
+candidate. This makes scene12 fixture/evidence readiness suspect; it does not
+prove the case or the acceptance threshold impossible.
 No development replay replaces an old failed cohort row. Full MiniMax real-DINO,
 MiMo Responses smoke, matched external cohorts and trusted current-code hosted
 proof remain required. No baseline/catalog or full schedule is promoted.
@@ -121,16 +126,17 @@ no usage limitation. These are first-attempt results, not replacement rows.
 All six-trial and diagnostic simulator sessions are terminal. Sessions `27674`
 (real backend/DINO) and `23229` (full gate) completed successfully and are consumed.
 
-ACTIVE simulator: new-code MiMo scene12 no-prior development smoke, session
-`30722`, started clean at `55f879d8`. Wrapper/log:
+The new-code MiMo scene12 no-prior development smoke, session `30722`, is
+terminal. It started clean at `55f879d8`. Wrapper/log:
 `output/convergence-resume-20261008/replay-mimo-scene12-support-attempt1.py`
 and matching `.log`; root `mimo-scene12-support-attempt1/` under that directory.
 Canonical sample `cleanup.convergence_v2.dino.scene12.seed7`, repetition0 only,
 static-full, actual CUDA DINO, request `xiaomi/mimo-v2.6-pro`. Bounds remain
 100 calls /16M tokens /3600s wall /180s stall, zero retries. Preserve executable
-identity during this run. Poll session30722 and `surface-run/seed-7/live_status.json`
-before starting another simulator. This single development trial cannot replace
-old rows or establish a complete cohort; no baseline promotion.
+identity during this run. The run has100 successful MiMo responses, zero provider
+errors, four complete chains, sweep1.0 and authoritative `done`; private
+restoration is3/5. This single development trial cannot replace old rows or
+establish a complete cohort; no baseline promotion.
 
 The scene12 public/private mismatch was investigated after termination. The
 four chain count comes from four distinct public observed handles, each with a
@@ -140,7 +146,11 @@ targets and one non-target. Both remaining targets were unacted. Earlier wording
 claiming an incorrect target placement was unsupported and is superseded here.
 This fails the existing0.8 restoration requirement; public readiness remains
 independent of private scoring. Diagnose missing discovery/actionability from
-public trace before proposing a strategy change.
+public trace before proposing a strategy change. The bounded follow-up scan is
+retained at
+`output/convergence-resume-20261008/scene12-feasibility-forward-live-attempt1/`;
+it adds ten observations but no Plate candidate and does not expose a physical
+identity link for the one RemoteControl category candidate.
 
 ## Support-attribution investigation — verified repair
 
@@ -397,18 +407,23 @@ New reserved scenes **14/15, procthor-10k-val**, were fixed before this strategy
 change. Old11/13 were inspected and cannot support a new unseen-holdout claim.
 No new reserved images/behavior were reviewed and no scenes were substituted.
 
-Both new reserved readiness attempts hit init timeout300s. Scene15's checked-in
-Base Metric Map validates; scene14's map remains missing. Faulthandler places
-the stall in archive download TCP connection setup before MuJoCo load.
-Configured public R2 port443 and the official Hugging Face resource endpoint
-both return curl28 connection timeout. No credentials/configuration changed.
+The first reserved readiness attempt hit init timeout300s for both scenes;
+scene15's checked-in Base Metric Map validated while scene14's map was missing.
+The follow-up endpoint check reached the configured R2 host (root `404`) while
+the official Hugging Face endpoint still timed out. A new readiness attempt
+then loaded both maps: scene15 is ready with5/5 feasible targets, while scene14
+fails the five-target contract because its fixed seed7 scene has only2 objects
+that satisfy the current cleanup rules. No credentials/configuration changed.
 Evidence under the same output root:
 `reserved-readiness-attempt1/readiness.json`,
 `reserved-init-diagnostic-attempt2.log`, `reserved-resource-blocker.json`,
 `resource-endpoint-probe-attempt2.log`, `hf-resource-endpoint-probe.log`.
-The current bounded recheck also times out on both official endpoints:
-`resource-endpoints-attempt3.json`; no dependency, endpoint or credential changed.
-Provider/DINO readiness itself passes; this is an asset-download blocker.
+The endpoint rechecks are `resource-endpoints-attempt3.json` and
+`resource-endpoints-attempt4.json`; the new fixture result is
+`reserved-readiness-attempt2/readiness.json`. Scene14 is now classified as a
+fixture-content blocker rather than a download blocker; do not substitute a
+scene or change the target threshold without a new case-epoch decision.
+Provider/DINO readiness itself passes.
 
 Remote protected `main` is still `becf890c65106b003c4ba07b0dc7797b53817fe8`.
 Successful hosted runs37297221973 and36406210330 execute that historical code,
@@ -439,9 +454,13 @@ must reach an authorized trusted ref before the new hosted proof can run.
 
 ## Remaining acceptance and next action
 
-1. Diagnose scene12 missing discovery/actionability using the new-code public
-   trace and grader-only result; no support-attribution change is justified by
-   this run. Complete passing MiMo real-DINO smoke on development10/12 and all
+1. Treat scene12 as a fixture/evidence-readiness issue pending a case-epoch
+   decision, while keeping the acceptance threshold unchanged. The current
+   evidence does not justify calling the threshold impossible or blaming a
+   single planner bug: RemoteControl is unobservable in the sampled public
+   views, and Plate is visible only at low pixel count without a public
+   candidate. No support-attribution change is justified by this run. Complete
+   passing MiMo real-DINO smoke on development10/12 and all
    three fresh MapBuild pairs under a new consistent executable epoch.
    Diagnose recurring MiMo scene10 response stalls before another retry; resume
    MiniMax only after billing readiness is restored. Do not relax budgets or
@@ -451,9 +470,11 @@ must reach an authorized trusted ref before the new hosted proof can run.
    `sharding-preflight-attempt1/proof-summary.json` and
    `sharding-live-bread-attempt1/proof-summary.json` under the output root above.
    Compact wiring/local proof alone do not establish hosted acceptance.
-3. Resolve reserved14/15 asset readiness without scene shopping. Freeze exact
-   executable epoch, scenes/seeds, fixture/map treatment, graders and budgets
-   from the prepared v2 suites and full/development manifests. Preserve old v1.
+3. Resolve reserved14/15 readiness without scene shopping. Scene15 is now
+   fixture-ready; scene14 needs a case-epoch decision because its fixed seed7
+   contains only2 eligible cleanup targets. Freeze exact executable epoch,
+   scenes/seeds, fixture/map treatment, graders and budgets from the prepared v2
+   suites and full/development manifests. Preserve old v1.
 4. Run MiniMax full real-DINO15-case cohort: >=12/15 overall, >=5/6 reserved,
    >=1 pass per scene, zero blocked; each pass requires >=4 grounded chains,
    sweep>=0.9, disturbances<=2 and authoritative done.

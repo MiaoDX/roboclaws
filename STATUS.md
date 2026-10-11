@@ -41,12 +41,15 @@ by a180s response stall, and scene12 cleanup fails at the100-decision budget.
 A backend support-attribution fix passes22 focused checks, the full repository
 gate, and a fresh40-view CUDA DINO diagnostic (`55f879d8`). New-code scene12
 cleanup smoke under `55f879d8` reaches4 chains and authoritative done but
-remains3/5 restored; attribution repair alone does not establish discovery or
-capability acceptance.
+remains3/5 restored; a bounded50-view forward-reobservation diagnostic still
+finds no public Plate candidate and zero private RemoteControl pixels. This is
+evidence of fixture/evidence-readiness risk, not proof that the threshold is
+impossible; attribution repair alone does not establish discovery or capability
+acceptance.
 A fix for contradictory composite
 tool controls passes the standard gate; its MiniMax scene12 replay is blocked
 by provider billing limit after44 successful responses.
-Resolve premature completion and remaining visual failures, complete local smoke, prepare
+Resolve fixture readiness and remaining visual failures, complete local smoke, prepare
 the new frozen scene/epoch manifest, and implement bounded full external
 execution with trusted current-code hosted proof. Keep world-label compatibility
 and real-DINO capability evidence separate.
@@ -56,10 +59,13 @@ and real-DINO capability evidence separate.
 - Real-DINO MiniMax v1 covers all 15 identities but misses acceptance. The post-fix scene0
   development replay passes at 4/5, with full waypoint coverage and zero disturbances;
   this does not replace the failed cohort. MiMo Responses development smoke is incomplete.
-- Former reserved scenes 11/13 were inspected during diagnosis. New reserved
-  scenes 14/15 are fixed, but their resource download endpoint is unreachable;
-  readiness and final execution freeze remain incomplete. Prepared v2 visual
-  and paired external full/development case lists retain these fixed scenes.
+- Former reserved scenes 11/13 were inspected during diagnosis. A new
+  readiness attempt now marks scene15 ready with5/5 feasible targets. Scene14
+  loads and validates its map but has only2 targets satisfying the current
+  cleanup rules at seed7, so it is fixture-infeasible for the five-target
+  contract. Readiness and final execution freeze remain incomplete; the
+  attempt is recorded under `reserved-readiness-attempt2/` and does not alter
+  the prepared v2 case lists.
 - Per-run cumulative token enforcement is implemented and live-verified,
   including the actual MiMo Responses request-model identity. Case sharding and
   bounded compact workflow wiring pass deterministic checks and a real local
