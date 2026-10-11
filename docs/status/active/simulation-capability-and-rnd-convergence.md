@@ -39,6 +39,37 @@ No development replay replaces an old failed cohort row. Full MiniMax real-DINO,
 MiMo Responses smoke, matched external cohorts and trusted current-code hosted
 proof remain required. No baseline/catalog or full schedule is promoted.
 
+The 2026-10-12 fixed-prior probe reran all five rows that the previous focused
+harness execution blocked because no Runtime Map Prior was supplied. Four rows
+passed: MiniMax map-consumer, MiniMax open-ended, MiniMax cleanup (3/3 repeated
+trials), and MiMo Responses map-consumer. MiMo TP map-consumer passed its
+open-ended trial, while its cleanup trial stalled after 32 successful model
+responses and remains `environment_blocked` under the unchanged 180-second
+stall guard. The prior omission is therefore an execution/configuration gap,
+and the TP stall is provider/runtime reliability evidence; neither shows that
+the capability thresholds are impossible. Artifacts are retained under
+`output/eval-harness/20261012T-fixed-prior-*-live/`.
+
+The current evidence classification is: scene12's 3/5 restoration is a real
+case-level capability/evidence miss; scene14 is fixture-infeasible for the
+five-target contract; scene15 is not yet visually ready; and the 9/10 sweep
+case is correctly incomplete because authoritative cleanup `done` requires a
+complete public sweep even though the written 0.9 value is a grading lower
+bound. Keep the 12/15 and 5/6 thresholds unchanged.
+
+Fixed-prior rerun identities and outcomes:
+
+| Row | Outcome | Evidence |
+| --- | --- | --- |
+| `map-build-consumer-openai-agents-sdk-minimax-responses` | PASS | 2/2 trials; map consumer and open-ended anchor pass |
+| `map-build-consumer-openai-agents-sdk-mimo-responses` | PASS | 2/2 trials; cleanup restoration 1.0 |
+| `map-build-consumer-openai-agents-sdk-mimo-tp-openai-chat` | BLOCKED | open-ended pass; cleanup stalled after 32 successful responses at the unchanged 180s guard |
+| `openai-agents-sdk-open-task-live-eval` | PASS | 3/3 open-ended cases pass |
+| `openai-agents-sdk-cleanup-live-eval` | PASS | 3/3 repeated cleanup trials pass; restoration 0.8/1.0/1.0 |
+
+All rows consumed the same current-code world-public Runtime Metric Map prior
+from `output/eval-harness/20261011T154346Z/rows/direct-map-build-world-public/run/1012_0000/seed-7/runtime_metric_map.json`.
+
 ## Latest live work — all listed sessions are terminal
 
 MiniMax scene12 attempt4 is terminal and FAILED checker validation. It started

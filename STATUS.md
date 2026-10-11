@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-11
+Last updated: 2026-10-12
 
 This dashboard owns current priorities, next action and links. The fixed
 initiative capsule owns detailed execution state and evidence; this file is
@@ -23,8 +23,13 @@ records the durable decisions.
 Three-provider readiness and real-DINO readiness pass. The standard repository
 gate passed after complete-cohort validation was added. Compact external
 bread/cleanup proofs and the paired MiniMax Skill control pass, but full
-initiative acceptance remains incomplete. Refer to the capsule for current-code
-verification and exact attempt identities.
+initiative acceptance remains incomplete. A fixed-prior rerun of the five rows
+that were previously blocked by a missing Runtime Map Prior produced four
+passes and one provider-stall block: MiniMax map-consumer/open-ended/cleanup
+all pass, MiMo Responses map-consumer passes, and MiMo TP cleanup stalls after
+32 successful responses. This separates an execution-input omission and
+provider reliability from capability grading. Refer to the capsule for
+current-code verification and exact attempt identities.
 
 ## Next Action
 
@@ -56,10 +61,12 @@ acceptance.
 A fix for contradictory composite
 tool controls passes the standard gate; its MiniMax scene12 replay is blocked
 by provider billing limit after44 successful responses.
-Resolve fixture readiness and remaining visual failures, complete local smoke, prepare
-the new frozen scene/epoch manifest, and implement bounded full external
-execution with trusted current-code hosted proof. Keep world-label compatibility
-and real-DINO capability evidence separate.
+The fixed-prior probes show that the original missing-prior rows were not
+unreachable acceptance criteria. Keep the MiMo TP stall as a provider/runtime
+block, resolve scene14 fixture infeasibility and scene15 visual readiness before
+reserved execution, then complete the MiniMax real-DINO cohort and trusted
+current-code hosted proof. Keep world-label compatibility and real-DINO
+capability evidence separate.
 
 ## Current Acceptance Gaps
 
@@ -95,6 +102,11 @@ and real-DINO capability evidence separate.
   No full schedule or baseline is promoted.
 - The preserved MiMo TP compatibility cohort is 2/3 with one blocked stall;
   later compact successes do not rewrite that cohort.
+- The 2026-10-12 fixed-prior rerun passed four of the five previously prior-blocked
+  harness rows. The remaining MiMo TP cleanup row stalled after 32 successful
+  responses and remains `environment_blocked`; it is provider/runtime evidence,
+  not an impossible acceptance standard. Artifacts are under
+  `output/eval-harness/20261012T-fixed-prior-*-live/`.
 
 Provider/network readiness failures from the earlier restricted environment
 are historical. Retired Kimi quota requirements do not block the new scope.
