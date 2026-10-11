@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-08
+Last updated: 2026-10-11
 
 This dashboard owns current priorities, next action and links. The fixed
 initiative capsule owns detailed execution state and evidence; this file is
