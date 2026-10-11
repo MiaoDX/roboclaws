@@ -1,0 +1,12 @@
+robot_profile_id: rby1m
+base_frame_id: base_link
+map_frame_id: map
+footprint:
+  type: radius
+  radius_m: 0.35
+camera:
+  frame_id: head_camera_rgb_optical_frame
+  mount: rby1m_head
+navigation_tolerances:
+  xy_goal_tolerance_m: 0.25
+  yaw_goal_tolerance_rad: 0.35

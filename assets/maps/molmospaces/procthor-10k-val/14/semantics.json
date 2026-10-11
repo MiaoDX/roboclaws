@@ -1,0 +1,113 @@
+{
+  "base_metric_map_contract": {
+    "consumer_scope": "sim_real_robot_and_digital_twin",
+    "inspection_waypoint_count": 1,
+    "navigation_area_count": 1,
+    "schema": "base_metric_map_v1",
+    "semantic_label_count": 1,
+    "waypoint_generation_policy": "base_navigation_area_centroid_clearance_v1"
+  },
+  "display_frame": null,
+  "driveable_ways": [
+    {
+      "from_room_id": "room_2",
+      "to_room_id": "room_2"
+    }
+  ],
+  "environment_id": "molmospaces-procthor-10k-val-14",
+  "frame_ids": {
+    "base": "base_link",
+    "camera": "head_camera_rgb_optical_frame",
+    "map": "map"
+  },
+  "inspection_waypoints": [
+    {
+      "clearance_radius_m": 0.35,
+      "frame_id": "map",
+      "generation_policy": "base_navigation_area_centroid_clearance_v1",
+      "label": "Generated exploration candidate 1",
+      "navigation_area_id": "room_2",
+      "purpose": "base_navigation_area_inspection",
+      "room_id": "room_2",
+      "room_label": "Living Room",
+      "source_label_id": "room_2",
+      "source_polygon_index": 1,
+      "sweep_index": 1,
+      "waypoint_id": "room_2_inspection",
+      "waypoint_source": "generated_exploration_candidate",
+      "x": 3.15,
+      "y": 4.2,
+      "yaw": 0.0
+    }
+  ],
+  "map_id": "molmospaces-procthor-10k-val-14_base_metric_map",
+  "map_version": "base-metric-map-v1",
+  "provenance": {
+    "contains_movable_objects": false,
+    "contains_private_scoring_truth": false,
+    "contains_receptacles": false,
+    "contains_runtime_observations": false,
+    "contains_static_fixtures": false,
+    "room_label_source": "molmospaces_scene_room_outlines",
+    "scene_index": 14,
+    "scene_source": "procthor-10k-val",
+    "source": "molmospaces_scene_source_map_preparation",
+    "source_artifact": "molmospaces://procthor-10k-val/14",
+    "uses_navigation_memory_as_waypoint_source": false
+  },
+  "rooms": [
+    {
+      "alignment_status": "native",
+      "category": "living_room",
+      "geometry_source": "scene_engine_partition",
+      "label_source": "source_scene_json",
+      "map_area_id": "room_2",
+      "navigation_area_id": "room_2",
+      "polygon": [
+        {
+          "x": 0.0,
+          "y": 0.0
+        },
+        {
+          "x": 6.275,
+          "y": 0.0
+        },
+        {
+          "x": 6.275,
+          "y": 8.366
+        },
+        {
+          "x": 0.0,
+          "y": 8.366
+        }
+      ],
+      "polygon_role": "navigation_area",
+      "polygon_usage": {
+        "navigation": true,
+        "review": true,
+        "semantic_labeling": "accepted"
+      },
+      "review_status": "accepted",
+      "room_id": "room_2",
+      "room_label": "Living Room",
+      "semantic_source": "source_scene_json",
+      "source_label_id": "room_2",
+      "source_map_frame_id": "map",
+      "source_polygon_index": 1
+    }
+  ],
+  "schema": "nav2_cleanup_semantics_v1",
+  "spatial_contract": {
+    "alignment_status": "native",
+    "display_frame_status": "absent_first_slice_raw_source_map_frame_only",
+    "public_contract_note": "Semantic geometry is authored in the source map frame. This first slice intentionally has no rectified display frame.",
+    "schema": "map_spatial_contract_v1",
+    "semantic_geometry_frame": "source_map_frame",
+    "source_map_frame": {
+      "frame_id": "map",
+      "spatial_truth": true,
+      "units": "meters"
+    }
+  },
+  "static_landmarks": []
+}

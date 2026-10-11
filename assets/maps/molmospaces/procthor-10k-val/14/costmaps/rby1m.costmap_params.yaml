@@ -1,0 +1,22 @@
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      global_frame: map
+      robot_base_frame: base_link
+      resolution: 0.05
+      footprint_padding: 0.01
+      plugins:
+        - static_layer
+        - inflation_layer
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: true
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        inflation_radius: 0.45
+        cost_scaling_factor: 3.0
+      runtime_gaps:
+        - runtime_obstacle_layer_not_simulated
+        - voxel_layer_not_simulated
+        - rolling_local_costmap_not_simulated
+        - tf_timing_not_simulated
