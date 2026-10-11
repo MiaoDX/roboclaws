@@ -411,18 +411,23 @@ The first reserved readiness attempt hit init timeout300s for both scenes;
 scene15's checked-in Base Metric Map validated while scene14's map was missing.
 The follow-up endpoint check reached the configured R2 host (root `404`) while
 the official Hugging Face endpoint still timed out. A new readiness attempt
-then loaded both maps: scene15 is ready with5/5 feasible targets, while scene14
-fails the five-target contract because its fixed seed7 scene has only2 objects
-that satisfy the current cleanup rules. No credentials/configuration changed.
+then loaded both maps: scene15 is structurally ready with5/5 feasible targets,
+while scene14 fails the five-target contract because its fixed seed7 scene has
+only2 objects that satisfy the current cleanup rules. The separate 50-view
+scene15 real-DINO scan finds no public RemoteControl candidate despite low-pixel
+private evidence, so visual readiness is still open. No
+credentials/configuration changed.
 Evidence under the same output root:
 `reserved-readiness-attempt1/readiness.json`,
 `reserved-init-diagnostic-attempt2.log`, `reserved-resource-blocker.json`,
 `resource-endpoint-probe-attempt2.log`, `hf-resource-endpoint-probe.log`.
 The endpoint rechecks are `resource-endpoints-attempt3.json` and
 `resource-endpoints-attempt4.json`; the new fixture result is
-`reserved-readiness-attempt2/readiness.json`. Scene14 is now classified as a
-fixture-content blocker rather than a download blocker; do not substitute a
-scene or change the target threshold without a new case-epoch decision.
+`reserved-readiness-attempt2/readiness.json`. Visual evidence is in
+`scene15-feasibility-forward-live-attempt1/fixture-feasibility-grader-summary.private.json`.
+Scene14 is now classified as a fixture-content blocker rather than a download
+blocker, and scene15 has a remaining visual-evidence blocker; do not substitute
+a scene or change the target threshold without a new case-epoch decision.
 Provider/DINO readiness itself passes.
 
 Remote protected `main` is still `becf890c65106b003c4ba07b0dc7797b53817fe8`.
@@ -470,11 +475,12 @@ must reach an authorized trusted ref before the new hosted proof can run.
    `sharding-preflight-attempt1/proof-summary.json` and
    `sharding-live-bread-attempt1/proof-summary.json` under the output root above.
    Compact wiring/local proof alone do not establish hosted acceptance.
-3. Resolve reserved14/15 readiness without scene shopping. Scene15 is now
-   fixture-ready; scene14 needs a case-epoch decision because its fixed seed7
-   contains only2 eligible cleanup targets. Freeze exact executable epoch,
-   scenes/seeds, fixture/map treatment, graders and budgets from the prepared v2
-   suites and full/development manifests. Preserve old v1.
+3. Resolve reserved14/15 readiness without scene shopping. Scene15 is
+   structurally ready but still needs visual evidence for RemoteControl;
+   scene14 needs a case-epoch decision because its fixed seed7 contains only2
+   eligible cleanup targets. Freeze exact executable epoch, scenes/seeds,
+   fixture/map treatment, graders and budgets from the prepared v2 suites and
+   full/development manifests. Preserve old v1.
 4. Run MiniMax full real-DINO15-case cohort: >=12/15 overall, >=5/6 reserved,
    >=1 pass per scene, zero blocked; each pass requires >=4 grounded chains,
    sweep>=0.9, disturbances<=2 and authoritative done.

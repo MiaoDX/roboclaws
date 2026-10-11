@@ -60,12 +60,15 @@ and real-DINO capability evidence separate.
   development replay passes at 4/5, with full waypoint coverage and zero disturbances;
   this does not replace the failed cohort. MiMo Responses development smoke is incomplete.
 - Former reserved scenes 11/13 were inspected during diagnosis. A new
-  readiness attempt now marks scene15 ready with5/5 feasible targets. Scene14
-  loads and validates its map but has only2 targets satisfying the current
-  cleanup rules at seed7, so it is fixture-infeasible for the five-target
-  contract. Readiness and final execution freeze remain incomplete; the
-  attempt is recorded under `reserved-readiness-attempt2/` and does not alter
-  the prepared v2 case lists.
+  readiness attempt marks scene15 structurally ready with5/5 feasible targets.
+  Its 50-view real-DINO scan still finds no public RemoteControl candidate
+  (only low-pixel private evidence), so visual readiness is not yet accepted.
+  Scene14 loads and validates its map but has only2 targets satisfying the
+  current cleanup rules at seed7, so it is fixture-infeasible for the
+  five-target contract. Readiness and final execution freeze remain
+  incomplete; attempts are recorded under `reserved-readiness-attempt2/` and
+  `scene15-feasibility-forward-live-attempt1/` without altering the prepared
+  v2 case lists.
 - Per-run cumulative token enforcement is implemented and live-verified,
   including the actual MiMo Responses request-model identity. Case sharding and
   bounded compact workflow wiring pass deterministic checks and a real local
