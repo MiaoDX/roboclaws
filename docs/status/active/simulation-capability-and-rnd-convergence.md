@@ -383,7 +383,10 @@ returns explicit `incomplete/max_output_tokens` with reasoning-only usage for
 empty-output health probe but does not explain the180s scene10 stall. Evidence:
 `mimo-micro-readiness-attempt1.json`,
 `mimo-payload-response-diagnostic-attempt1.json` and
-`mimo-payload-response-diagnostic-attempt2.json`.
+`mimo-payload-response-diagnostic-attempt2.json`. A 32KB request with a
+4096-token cap also consumes the full cap as reasoning and returns incomplete
+in18.6s; this confirms high-reasoning behavior but still does not reproduce the
+180s transport stall. Evidence: `mimo-payload-response-diagnostic-attempt3.json`.
 
 Scene12 attempt2 recorded 79 model metrics, input/output 7,225,018/18,140;
 its ledger charged 9,243,158 of16M including a retained 2M unknown reservation.

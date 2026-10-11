@@ -37,6 +37,7 @@ attempt2 is blocked after a second 180-second model-response stall (68 responses
 Three fresh small MiMo Responses probes pass; high-payload probes return explicit
 reasoning-only `max_output_tokens` incompletes rather than transport errors, so
 they do not establish a fix or root cause for the 180-second scene10 stall.
+Increasing the cap to4096 still exhausts on reasoning in18.6s.
 MiMo scene12 smoke finishes with four chains and public readiness, but restoration
 is3/5, so it fails capability acceptance. The fresh MapBuild/cleanup suite is
 terminal: all three builders and scene0 cleanup pass; scene10 cleanup is blocked
