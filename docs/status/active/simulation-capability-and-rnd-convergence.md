@@ -12,8 +12,11 @@ One static-full product Skill and three executable providers (MiMo Responses,
 MiMo TP, MiniMax) are implemented. Historical identities remain readable without
 re-enabling retired routes. ADR-0151 owns the durable convergence decisions.
 
-Current visual development evidence: scene0 and scene10 pass at 4/5; scene12
-visits all waypoints but remains 3/5 with mandatory heading recovery unfinished.
+Current visual development evidence: scene0 and scene10 pass at 4/5; the latest
+MiniMax scene12 replay is terminal at 3/5 restored, with 3 complete chains and
+9/10 waypoints visited. This is a behavioral/evidence failure, not a provider
+failure. The plan's sweep >=0.9 is a grader lower bound; authoritative cleanup
+runtime readiness still requires a complete public sweep before `done`.
 MiniMax scene12 attempt3 is blocked by provider billing limit after removing
 contradictory composite-tool controls. MiMo Responses scene0 passes; scene10
 attempt1 is blocked by a model-response stall; attempt2 is now blocked by a
@@ -36,7 +39,19 @@ No development replay replaces an old failed cohort row. Full MiniMax real-DINO,
 MiMo Responses smoke, matched external cohorts and trusted current-code hosted
 proof remain required. No baseline/catalog or full schedule is promoted.
 
-## Live work — poll before starting another simulator
+## Latest live work — all listed sessions are terminal
+
+MiniMax scene12 attempt4 is terminal and FAILED checker validation. It started
+clean at `f960e7ab` with real CUDA DINO, static-full, scene12 seed7, five targets
+and a fresh Runtime Metric Map. After1048.777s and 90 successful model
+responses, it produced 3/5 restoration, 3 complete grounded chains, 0
+disturbances and 9/10 waypoints, then failed outcome/checker validation. The
+missed targets were RemoteControl and Plate; no executed target misplacement is
+proven by this artifact. This is a case-level capability/evidence miss, not
+proof that the global 12/15 or 5/6 threshold is impossible. The plan's sweep
+>=0.9 remains a grading lower bound; the runtime's full-sweep readiness gate is
+intentional, so this attempt's 9/10 coverage is incomplete rather than evidence
+of a threshold bug.
 
 MiMo Responses scene12 attempt1 is terminal, session `30357` consumed:
 

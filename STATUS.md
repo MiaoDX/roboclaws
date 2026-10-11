@@ -29,8 +29,11 @@ verification and exact attempt identities.
 ## Next Action
 
 The repaired scene0 and current-code scene10 development replays pass with real
-CUDA DINO at 4/5. Scene12's latest replay visits all waypoints but remains 3/5
-with mandatory heading recovery unfinished;
+CUDA DINO at 4/5. The latest MiniMax scene12 replay is terminal at 3/5 restored,
+with 3 complete chains and 9/10 waypoints visited; it is a behavioral/evidence
+failure, not a provider failure. The plan's sweep >=0.9 is a grader lower bound;
+the authoritative cleanup runtime still requires a complete public sweep before
+`done`, so this is not a threshold bug.
 MiMo Responses scene0 passes at4/5 with enforced cumulative tokens; scene10
 attempt2 is blocked after a second 180-second model-response stall (68 responses,
 3/4 chains). A successful readiness probe remains separate.
@@ -63,6 +66,12 @@ and real-DINO capability evidence separate.
 - Real-DINO MiniMax v1 covers all 15 identities but misses acceptance. The post-fix scene0
   development replay passes at 4/5, with full waypoint coverage and zero disturbances;
   this does not replace the failed cohort. MiMo Responses development smoke is incomplete.
+- The latest MiniMax scene12 development replay is terminal at 3/5 restoration, 3/4 required
+  chains and 9/10 waypoints. This is a real capability/evidence miss for that case; it does
+  not establish that the global threshold is impossible.
+- The plan's sweep coverage >=0.9 is a lower bound for grading; the live cleanup runtime
+  intentionally requires a complete public sweep before authoritative `done`. The latest
+  9/10-waypoint run therefore remains incomplete, with no threshold bug established.
 - Former reserved scenes 11/13 were inspected during diagnosis. A new
   readiness attempt marks scene15 structurally ready with5/5 feasible targets.
   Its 50-view real-DINO scan still finds no public RemoteControl candidate
