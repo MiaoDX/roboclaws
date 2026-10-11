@@ -376,7 +376,14 @@ capability pass or behavior failure. Summary: `mimo-scene10-attempt1/proof-summa
 A subsequent zero-retry MiMo SDK readiness probe passes in2.086s; this establishes
 current connectivity only, not scene10 completion. Evidence:
 `mimo-readiness-after-stall-attempt1.json`; this readiness utility exposes no usage
-or cost metrics (256 output-token cap, 30s transport timeout).
+or cost metrics (256 output-token cap, 30s transport timeout). A fresh three-call
+micro-readiness run also passes in5.9/11.9/14.0s. A bounded payload diagnostic
+returns explicit `incomplete/max_output_tokens` with reasoning-only usage for
+32KB and128KB prompts, rather than a transport error; this explains the
+empty-output health probe but does not explain the180s scene10 stall. Evidence:
+`mimo-micro-readiness-attempt1.json`,
+`mimo-payload-response-diagnostic-attempt1.json` and
+`mimo-payload-response-diagnostic-attempt2.json`.
 
 Scene12 attempt2 recorded 79 model metrics, input/output 7,225,018/18,140;
 its ledger charged 9,243,158 of16M including a retained 2M unknown reservation.
