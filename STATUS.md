@@ -79,18 +79,21 @@ capability evidence separate.
 - The plan's sweep coverage >=0.9 is a lower bound for grading; the live cleanup runtime
   intentionally requires a complete public sweep before authoritative `done`. The latest
   9/10-waypoint run therefore remains incomplete, with no threshold bug established.
-- Former reserved scenes 11/13 were inspected during diagnosis. A new
-  readiness attempt marks scene15 structurally ready with5/5 feasible targets.
-  Its 50-view real-DINO scan still finds no public RemoteControl candidate
-  (only low-pixel private evidence), so visual readiness is not yet accepted.
-  An offline query/threshold diagnostic produced candidates only after
-  narrowing or relaxing thresholds, but none overlapped the private target
-  box sufficiently; no detector-threshold code bug is established.
+- Former reserved scenes 11/13 were inspected during diagnosis. The latest
+  scene15 readiness attempt is structurally ready with5/5 feasible targets and
+  finds four actionable public Plate candidates, but still no public
+  RemoteControl candidate. Only two scanned frames contain private
+  RemoteControl pixels. The paired offline query/threshold diagnostic finds a
+  default-threshold remote candidate with IoU0.0 against the private target;
+  relaxed thresholds add low-confidence candidates without establishing a
+  target match. Visual readiness remains open, with no detector-threshold code
+  bug established.
   Scene14 loads and validates its map but has only2 targets satisfying the
   current cleanup rules at seed7, so it is fixture-infeasible for the
   five-target contract. Readiness and final execution freeze remain
-  incomplete; attempts are recorded under `reserved-readiness-attempt2/` and
-  `scene15-feasibility-forward-live-attempt1/` without altering the prepared
+  incomplete; attempts are recorded under `reserved-readiness-attempt2/`,
+  `scene15-feasibility-forward-live-attempt1/`, and the current
+  `scene15-feasibility-forward-live-attempt2/` without altering the prepared
   v2 case lists.
 - Per-run cumulative token enforcement is implemented and live-verified,
   including the actual MiMo Responses request-model identity. Case sharding and

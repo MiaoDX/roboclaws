@@ -52,10 +52,20 @@ the capability thresholds are impossible. Artifacts are retained under
 
 The current evidence classification is: scene12's 3/5 restoration is a real
 case-level capability/evidence miss; scene14 is fixture-infeasible for the
-five-target contract; scene15 is not yet visually ready; and the 9/10 sweep
-case is correctly incomplete because authoritative cleanup `done` requires a
-complete public sweep even though the written 0.9 value is a grading lower
-bound. Keep the 12/15 and 5/6 thresholds unchanged.
+five-target contract; scene15 has public Plate evidence but still lacks a
+public RemoteControl candidate; and the 9/10 sweep case is correctly
+incomplete because authoritative cleanup `done` requires a complete public
+sweep even though the written 0.9 value is a grading lower bound. Keep the
+12/15 and 5/6 thresholds unchanged.
+
+The latest scene15 diagnostic (`scene15-feasibility-forward-live-attempt2/`)
+replayed the fixed 50-view public-DINO scan with zero provider calls and found
+four actionable public Plate candidates but no public RemoteControl candidate.
+An offline threshold/query diagnostic on the one selected private-pixel frame
+returned a default-threshold remote candidate at IoU0.0 against the private
+target; relaxed thresholds produced more low-confidence candidates without a
+target match. This keeps scene15 visual readiness open without establishing a
+detector code defect.
 
 Fixed-prior rerun identities and outcomes:
 
@@ -469,13 +479,14 @@ The follow-up endpoint check reached the configured R2 host (root `404`) while
 the official Hugging Face endpoint still timed out. A new readiness attempt
 then loaded both maps: scene15 is structurally ready with5/5 feasible targets,
 while scene14 fails the five-target contract because its fixed seed7 scene has
-only2 objects that satisfy the current cleanup rules. The separate 50-view
-scene15 real-DINO scan finds no public RemoteControl candidate despite low-pixel
-private evidence, so visual readiness is still open. A grader-only offline
-query/threshold diagnostic on that captured frame found no candidate with at
-least0.5 IoU against the private target box, even when thresholds were relaxed;
-this does not establish a detector-threshold code bug. No credentials/configuration
-changed.
+only2 objects that satisfy the current cleanup rules. The latest 50-view
+scene15 real-DINO scan finds four actionable public Plate candidates but no
+public RemoteControl candidate despite two private-pixel frames, so visual
+readiness is still open. Its grader-only offline query/threshold diagnostic
+found one default-threshold remote candidate with IoU0.0 against the private
+target; relaxed thresholds added low-confidence candidates without a target
+match. This does not establish a detector-threshold code bug. No
+credentials/configuration changed.
 Evidence under the same output root:
 `reserved-readiness-attempt1/readiness.json`,
 `reserved-init-diagnostic-attempt2.log`, `reserved-resource-blocker.json`,
@@ -483,9 +494,11 @@ Evidence under the same output root:
 The endpoint rechecks are `resource-endpoints-attempt3.json` and
 `resource-endpoints-attempt4.json`; the new fixture result is
 `reserved-readiness-attempt2/readiness.json`. Visual evidence is in
-`scene15-feasibility-forward-live-attempt1/fixture-feasibility-grader-summary.private.json`.
-The offline detector diagnostic is
-`scene15-remote-dino-threshold-diagnostic/summary.private.json`.
+`scene15-feasibility-forward-live-attempt1/fixture-feasibility-grader-summary.private.json`
+and the current `scene15-feasibility-forward-live-attempt2/proof-summary.json`.
+The offline detector diagnostics are
+`scene15-remote-dino-threshold-diagnostic/summary.private.json` and
+`scene15-remote-dino-threshold-diagnostic-attempt2/summary.private.json`.
 Scene14 is now classified as a fixture-content blocker rather than a download
 blocker, and scene15 has a remaining visual-evidence blocker; do not substitute
 a scene or change the target threshold without a new case-epoch decision.
