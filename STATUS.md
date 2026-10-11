@@ -63,6 +63,9 @@ and real-DINO capability evidence separate.
   readiness attempt marks scene15 structurally ready with5/5 feasible targets.
   Its 50-view real-DINO scan still finds no public RemoteControl candidate
   (only low-pixel private evidence), so visual readiness is not yet accepted.
+  An offline query/threshold diagnostic produced candidates only after
+  narrowing or relaxing thresholds, but none overlapped the private target
+  box sufficiently; no detector-threshold code bug is established.
   Scene14 loads and validates its map but has only2 targets satisfying the
   current cleanup rules at seed7, so it is fixture-infeasible for the
   five-target contract. Readiness and final execution freeze remain

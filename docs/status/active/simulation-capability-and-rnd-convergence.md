@@ -415,8 +415,11 @@ then loaded both maps: scene15 is structurally ready with5/5 feasible targets,
 while scene14 fails the five-target contract because its fixed seed7 scene has
 only2 objects that satisfy the current cleanup rules. The separate 50-view
 scene15 real-DINO scan finds no public RemoteControl candidate despite low-pixel
-private evidence, so visual readiness is still open. No
-credentials/configuration changed.
+private evidence, so visual readiness is still open. A grader-only offline
+query/threshold diagnostic on that captured frame found no candidate with at
+least0.5 IoU against the private target box, even when thresholds were relaxed;
+this does not establish a detector-threshold code bug. No credentials/configuration
+changed.
 Evidence under the same output root:
 `reserved-readiness-attempt1/readiness.json`,
 `reserved-init-diagnostic-attempt2.log`, `reserved-resource-blocker.json`,
@@ -425,6 +428,8 @@ The endpoint rechecks are `resource-endpoints-attempt3.json` and
 `resource-endpoints-attempt4.json`; the new fixture result is
 `reserved-readiness-attempt2/readiness.json`. Visual evidence is in
 `scene15-feasibility-forward-live-attempt1/fixture-feasibility-grader-summary.private.json`.
+The offline detector diagnostic is
+`scene15-remote-dino-threshold-diagnostic/summary.private.json`.
 Scene14 is now classified as a fixture-content blocker rather than a download
 blocker, and scene15 has a remaining visual-evidence blocker; do not substitute
 a scene or change the target threshold without a new case-epoch decision.
